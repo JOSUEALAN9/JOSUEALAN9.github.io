@@ -2,11 +2,369 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Mi Portafolio</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Conciliación Fiscal Avanzada</title>
+    <!-- Tailwind CSS para el diseño profesional -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- SheetJS para exportar a Excel -->
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
 </head>
-<body>
-    <h1>¡Hola! Esta es mi nueva página web</h1>
-    <p>Pronto añadiré más contenido
-        Saludos..</p>
+<body class="bg-gray-100 text-gray-800 font-sans h-screen flex flex-col">
+
+    <!-- Encabezado -->
+    <header class="bg-blue-900 text-white p-6 shadow-md">
+        <div class="max-w-7xl mx-auto flex justify-between items-center">
+            <div>
+                <h1 class="text-2xl font-bold">Motor de Conciliación CFDI</h1>
+                <p class="text-sm text-blue-200 mt-1">Procesamiento local seguro (Ingresos, REPs, Notas de Crédito)</p>
+            </div>
+            <div id="statusConexion" class="bg-yellow-500 text-black px-4 py-2 rounded font-semibold text-sm">
+                ⏳ Esperando Configuración...
+            </div>
+        </div>
+    </header>
+
+    <!-- Área de Trabajo -->
+    <main class="flex-grow p-6 max-w-7xl mx-auto w-full grid grid-cols-1 md:grid-cols-3 gap-6">
+        
+        <!-- Panel Izquierdo: Carga de Archivos -->
+        <div class="col-span-1 bg-white p-6 rounded-lg shadow-md flex flex-col gap-4">
+            <h2 class="text-lg font-bold border-b pb-2">1. Cargar Archivos</h2>
+            <p class="text-sm text-gray-600">Selecciona o arrastra la carpeta con todos los XML (Facturas y Pagos).</p>
+            
+            <div class="border-2 border-dashed border-blue-400 bg-blue-50 hover:bg-blue-100 transition rounded-lg p-8 text-center relative">
+                <span class="text-blue-800 font-semibold cursor-pointer">Haz clic para buscar XMLs</span>
+                <input type="file" id="fileInput" accept=".xml" multiple class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
+            </div>
+            <div id="fileCount" class="text-sm text-gray-500 font-medium hidden">
+                0 archivos seleccionados.
+            </div>
+
+            <button id="btnProcesar" disabled class="mt-4 bg-gray-400 text-white font-bold py-3 rounded shadow transition">
+                Procesar Conciliación
+            </button>
+        </div>
+
+        <!-- Panel Derecho: Resultados -->
+        <div class="col-span-2 bg-white p-6 rounded-lg shadow-md flex flex-col">
+            <div class="flex justify-between items-center border-b pb-2 mb-4">
+                <h2 class="text-lg font-bold">2. Resultados</h2>
+                <button id="btnDescargar" disabled class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded shadow hidden flex items-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                    Descargar Excel
+                </button>
+            </div>
+            
+            <!-- Dashboard de Resumen -->
+            <div class="grid grid-cols-3 gap-4 mb-6">
+                <div class="bg-blue-50 p-4 rounded text-center border border-blue-100">
+                    <p class="text-xs text-gray-500 uppercase font-bold">Total Facturas (I)</p>
+                    <p id="dashFacturas" class="text-3xl font-bold text-blue-800">0</p>
+                </div>
+                <div class="bg-green-50 p-4 rounded text-center border border-green-100">
+                    <p class="text-xs text-gray-500 uppercase font-bold">Total REPs (P)</p>
+                    <p id="dashPagos" class="text-3xl font-bold text-green-800">0</p>
+                </div>
+                <div class="bg-purple-50 p-4 rounded text-center border border-purple-100">
+                    <p class="text-xs text-gray-500 uppercase font-bold">Notas de Crédito (E)</p>
+                    <p id="dashNC" class="text-3xl font-bold text-purple-800">0</p>
+                </div>
+            </div>
+
+            <!-- Tabla de Previsualización -->
+            <div class="overflow-x-auto border rounded max-h-96 flex-grow">
+                <table class="w-full text-left text-sm" id="tablaResultados">
+                    <thead class="bg-gray-100 sticky top-0">
+                        <tr>
+                            <th class="p-3 border-b">UUID Factura</th>
+                            <th class="p-3 border-b">Receptor</th>
+                            <th class="p-3 border-b">Total MXN</th>
+                            <th class="p-3 border-b">Saldo Insoluto</th>
+                            <th class="p-3 border-b">Estatus Global</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y text-gray-700">
+                        <tr><td colspan="5" class="p-4 text-center text-gray-400">Esperando procesamiento...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <!-- LÓGICA JAVASCRIPT -->
+    <script>
+        // ==========================================
+        // 1. CONFIGURACIÓN Y GOOGLE SHEETS
+        // ==========================================
+        const URL_CANCELADOS = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQGT9Z6555p79zjIeU63m4bMCeNT5G3mO0p-tPjWLRIw-HJRJg3vK9ZVd6zfsRceSk5g-nruArhkhKB/pub?gid=0&single=true&output=csv"; // <--- CAMBIAR AQUÍ
+        const URL_TC = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQGT9Z6555p79zjIeU63m4bMCeNT5G3mO0p-tPjWLRIw-HJRJg3vK9ZVd6zfsRceSk5g-nruArhkhKB/pub?gid=1256836069&single=true&output=csv";     // <--- CAMBIAR AQUÍ
+
+        let diccionarioManual = {};
+        let diccionarioTC = {};
+        let datosAExportar = [];
+
+        // Función para convertir fecha "08/01/2026" (DD/MM/YYYY) a "2026-01-08"
+        function formatearFechaCSV(fechaStr) {
+            if (!fechaStr) return "";
+            const partes = fechaStr.trim().split('/');
+            if (partes.length === 3) {
+                return `${partes[2]}-${partes[1].padStart(2, '0')}-${partes[0].padStart(2, '0')}`;
+            }
+            return fechaStr.trim();
+        }
+
+        async function cargarGoogleSheets() {
+            try {
+                // Cargar Cancelados / Manual
+                if(URL_CANCELADOS.includes("http")) {
+                    const resManual = await fetch(URL_CANCELADOS);
+                    const csvManual = await resManual.text();
+                    const lineasManual = csvManual.split('\n').slice(1);
+                    lineasManual.forEach(linea => {
+                        const col = linea.split(',').map(i => i?.trim()?.toUpperCase().replace(/"/g, ''));
+                        if (col[0]) {
+                            diccionarioManual[col[0]] = {
+                                esCancelado: col[1] === "CANCELADO",
+                                estaPagadoManual: col[2] === "PAGADO"
+                            };
+                        }
+                    });
+                }
+
+                // Cargar Tipos de Cambio
+                if(URL_TC.includes("http")) {
+                    const resTC = await fetch(URL_TC);
+                    const csvTC = await resTC.text();
+                    const lineasTC = csvTC.split('\n').slice(1);
+                    lineasTC.forEach(linea => {
+                        const col = linea.split(',').map(i => i?.trim().replace(/"/g, ''));
+                        if (col.length >= 3 && col[0]) {
+                            const fechaFormat = formatearFechaCSV(col[0]); // 2026-01-08
+                            const moneda = col[1].toUpperCase();
+                            const llave = `${fechaFormat}_${moneda}`;
+                            diccionarioTC[llave] = parseFloat(col[2]);
+                        }
+                    });
+                }
+
+                const statusDiv = document.getElementById('statusConexion');
+                statusDiv.className = "bg-green-500 text-white px-4 py-2 rounded font-semibold text-sm";
+                statusDiv.innerText = "✅ Configuración Conectada";
+            } catch (error) {
+                console.error("Error al cargar Google Sheets:", error);
+                const statusDiv = document.getElementById('statusConexion');
+                statusDiv.className = "bg-red-500 text-white px-4 py-2 rounded font-semibold text-sm";
+                statusDiv.innerText = "❌ Error al leer Sheets";
+            }
+        }
+
+        // Ejecutar conexión al cargar la página
+        window.onload = cargarGoogleSheets;
+
+
+        // ==========================================
+        // 2. LECTURA Y CLASIFICACIÓN DE XML
+        // ==========================================
+        const fileInput = document.getElementById('fileInput');
+        const btnProcesar = document.getElementById('btnProcesar');
+        const btnDescargar = document.getElementById('btnDescargar');
+        let archivosXML = [];
+
+        fileInput.addEventListener('change', (e) => {
+            archivosXML = Array.from(e.target.files);
+            document.getElementById('fileCount').classList.remove('hidden');
+            document.getElementById('fileCount').innerText = `${archivosXML.length} archivos detectados.`;
+            
+            if (archivosXML.length > 0) {
+                btnProcesar.disabled = false;
+                btnProcesar.className = "mt-4 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded shadow transition cursor-pointer";
+            }
+        });
+
+        btnProcesar.addEventListener('click', async () => {
+            btnProcesar.innerText = "Procesando...";
+            const parser = new DOMParser();
+            
+            let expedientes = {}; // Diccionario maestro de facturas
+            let listaPagos = []; // Almacén temporal de REPs
+            let listaNotas = []; // Almacén temporal de Egresos
+
+            // Paso 1: Leer todos los archivos y clasificarlos
+            for (let file of archivosXML) {
+                const text = await file.text();
+                const xmlDoc = parser.parseFromString(text, "text/xml");
+                const comprobante = xmlDoc.getElementsByTagName("cfdi:Comprobante")[0];
+                const timbre = xmlDoc.getElementsByTagName("tfd:TimbreFiscalDigital")[0];
+                
+                if (!comprobante || !timbre) continue;
+
+                const tipo = comprobante.getAttribute("TipoDeComprobante")?.toUpperCase();
+                const uuid = timbre.getAttribute("UUID")?.toUpperCase();
+                const receptor = xmlDoc.getElementsByTagName("cfdi:Receptor")[0];
+
+                const baseData = {
+                    archivo: file.name,
+                    uuid: uuid,
+                    fechaEmision: comprobante.getAttribute("Fecha")?.split('T')[0],
+                    rfcReceptor: receptor?.getAttribute("Rfc"),
+                    nombreReceptor: receptor?.getAttribute("Nombre"),
+                    moneda: comprobante.getAttribute("Moneda"),
+                    tc: parseFloat(comprobante.getAttribute("TipoCambio") || 1),
+                    totalOrigen: parseFloat(comprobante.getAttribute("Total") || 0),
+                    metodoPago: comprobante.getAttribute("MetodoPago")?.toUpperCase()
+                };
+
+                if (tipo === "I") {
+                    // Factura de Ingreso
+                    baseData.totalPagadoOrigen = 0;
+                    baseData.totalDescuentoNC = 0;
+                    expedientes[uuid] = baseData;
+                } 
+                else if (tipo === "P") {
+                    // REP
+                    const pagos20 = xmlDoc.getElementsByTagName("pago20:Pago");
+                    for (let p of pagos20) {
+                        const docsRel = p.getElementsByTagName("pago20:DoctoRelacionado");
+                        for (let dr of docsRel) {
+                            listaPagos.push({
+                                uuidFactura: dr.getAttribute("IdDocumento")?.toUpperCase(),
+                                montoPagado: parseFloat(dr.getAttribute("ImpPagado") || 0),
+                                monedaDR: dr.getAttribute("MonedaDR"),
+                                tcPago: parseFloat(p.getAttribute("TipoCambioP") || 1),
+                                fechaPago: p.getAttribute("FechaPago")?.split('T')[0]
+                            });
+                        }
+                    }
+                }
+                else if (tipo === "E") {
+                    // Nota de Crédito
+                    const relacionados = xmlDoc.getElementsByTagName("cfdi:CfdiRelacionado");
+                    for (let rel of relacionados) {
+                        listaNotas.push({
+                            uuidFactura: rel.getAttribute("UUID")?.toUpperCase(),
+                            montoDescuento: baseData.totalOrigen // Simplificado
+                        });
+                    }
+                }
+            }
+
+            // Paso 2: El Motor (Conciliar Pagos y NC hacia las facturas)
+            listaPagos.forEach(pago => {
+                if(expedientes[pago.uuidFactura]) {
+                    expedientes[pago.uuidFactura].totalPagadoOrigen += pago.montoPagado;
+                }
+            });
+
+            listaNotas.forEach(nota => {
+                if(expedientes[nota.uuidFactura]) {
+                    expedientes[nota.uuidFactura].totalDescuentoNC += nota.montoDescuento;
+                }
+            });
+
+            // Paso 3: Matemáticas Finales y Estatus Inteligente (Sobrescritura manual)
+            datosAExportar = [];
+            let htmlFilas = "";
+
+            let countI = Object.keys(expedientes).length;
+            let countP = archivosXML.filter(f => f.name.toLowerCase().includes('rep') || f.name.toLowerCase().includes('pago')).length;
+            let countE = listaNotas.length;
+
+            for (let uuid in expedientes) {
+                let f = expedientes[uuid];
+                
+                // Conversión a MXN
+                let totalMXN = f.totalOrigen * f.tc;
+                let pagadoMXN = f.totalPagadoOrigen * f.tc;
+                let ncMXN = f.totalDescuentoNC * f.tc;
+                
+                let saldoInsoluto = totalMXN - pagadoMXN - ncMXN;
+                if(saldoInsoluto < 0) saldoInsoluto = 0; // Evitar negativos por decimales
+
+                // ==========================================
+                // LÓGICA DE ESTATUS (EL TRUCO MAESTRO)
+                // ==========================================
+                let estatusGlobal = "";
+                let configManual = diccionarioManual[uuid];
+
+                if (configManual && configManual.esCancelado) {
+                    estatusGlobal = "⚫ Cancelado";
+                } 
+                // AQUI: Si en el excel dice Pagado, anula la matemática.
+                else if (configManual && configManual.estaPagadoManual) {
+                    estatusGlobal = "🟢 Pagado (Manual)";
+                    saldoInsoluto = 0; 
+                }
+                else if (f.metodoPago === "PUE") {
+                    estatusGlobal = "🟢 Pagado (PUE)";
+                    saldoInsoluto = 0;
+                }
+                else if (saldoInsoluto <= 0.1 && ncMXN > 0) {
+                    estatusGlobal = "🟣 Saldado con NC";
+                }
+                else if (saldoInsoluto <= 0.1) {
+                    estatusGlobal = "🟢 Pagado";
+                }
+                else if (saldoInsoluto >= (totalMXN - 0.1)) {
+                    estatusGlobal = "🔴 No Pagado";
+                } 
+                else {
+                    estatusGlobal = "🟡 Parcial";
+                }
+
+                // Generar Objeto Final para Excel
+                datosAExportar.push({
+                    "UUID Factura": uuid,
+                    "Receptor": f.nombreReceptor,
+                    "Fecha Emisión": f.fechaEmision,
+                    "Moneda": f.moneda,
+                    "TC Emisión": f.tc.toFixed(4),
+                    "Total MXN": totalMXN.toFixed(2),
+                    "Pagado (Abonos) MXN": pagadoMXN.toFixed(2),
+                    "Notas Crédito MXN": ncMXN.toFixed(2),
+                    "Saldo Insoluto MXN": saldoInsoluto.toFixed(2),
+                    "Estatus Global": estatusGlobal
+                });
+
+                // Dibujar en la tabla web
+                htmlFilas += `
+                    <tr class="hover:bg-blue-50">
+                        <td class="p-3 border-b text-xs">${uuid}</td>
+                        <td class="p-3 border-b text-xs truncate max-w-xs">${f.nombreReceptor}</td>
+                        <td class="p-3 border-b text-right">$${totalMXN.toFixed(2)}</td>
+                        <td class="p-3 border-b text-right font-bold">$${saldoInsoluto.toFixed(2)}</td>
+                        <td class="p-3 border-b"><span class="px-2 py-1 bg-gray-200 rounded text-xs">${estatusGlobal}</span></td>
+                    </tr>
+                `;
+            }
+
+            // Actualizar Interfaz
+            document.getElementById('dashFacturas').innerText = countI;
+            document.getElementById('dashPagos').innerText = countP; // Estimado
+            document.getElementById('dashNC').innerText = countE;
+            
+            if(htmlFilas === "") htmlFilas = "<tr><td colspan='5' class='text-center p-4'>No se encontraron Facturas de Ingreso válidas.</td></tr>";
+            document.querySelector('#tablaResultados tbody').innerHTML = htmlFilas;
+
+            btnProcesar.innerText = "Completado";
+            btnProcesar.className = "mt-4 bg-green-600 text-white font-bold py-3 rounded shadow cursor-default";
+            
+            // Activar botón de Excel
+            btnDescargar.classList.remove('hidden');
+            btnDescargar.disabled = false;
+        });
+
+        // ==========================================
+        // 3. EXPORTACIÓN A EXCEL (SheetJS)
+        // ==========================================
+        btnDescargar.addEventListener('click', () => {
+            if (datosAExportar.length === 0) return;
+            const worksheet = XLSX.utils.json_to_sheet(datosAExportar);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Conciliacion");
+            
+            // Generar y descargar archivo
+            XLSX.writeFile(workbook, "Papel_Trabajo_Conciliacion.xlsx");
+        });
+    </script>
 </body>
 </html>
