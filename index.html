@@ -12,6 +12,8 @@
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
         ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
         .modal-active { display: flex !important; }
+        /* Truncado inteligente multilínea para conceptos */
+        .clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
     </style>
 </head>
 <body class="bg-gray-50 text-gray-800 font-sans h-screen flex flex-col overflow-hidden relative">
@@ -55,25 +57,18 @@
                 <div class="w-px h-8 bg-gray-200"></div>
                 <div><p class="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Notas (E)</p><p id="dashE" class="text-xl font-black text-purple-600">0</p></div>
                 <div class="w-px h-8 bg-gray-200"></div>
-                <!-- Nuevo Contador -->
                 <div><p class="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Total Procesados</p><p id="dashTotal" class="text-xl font-black text-emerald-600">0</p></div>
             </div>
 
-            <!-- Filtros Inteligentes -->
+            <!-- Filtros Inteligentes Bidireccionales -->
             <div class="flex items-center gap-3 flex-wrap flex-grow justify-end">
-                <select id="fMetodo" class="bg-gray-50 border border-gray-300 text-xs rounded-lg p-2 outline-none"><option value="ALL">Método (Todos)</option><option value="PUE">Solo PUE</option><option value="PPD">Solo PPD</option></select>
+                <select id="fMetodo" class="bg-gray-50 border border-gray-300 text-xs rounded-lg p-2 outline-none"><option value="ALL">Método (Todos)</option></select>
                 <select id="fMoneda" class="bg-gray-50 border border-gray-300 text-xs rounded-lg p-2 outline-none"><option value="ALL">Moneda (Todas)</option></select>
                 <select id="fMesEmision" class="bg-gray-50 border border-gray-300 text-xs rounded-lg p-2 outline-none"><option value="ALL">Emisión (Todas)</option></select>
                 <select id="fMesPago" class="bg-gray-50 border border-gray-300 text-xs rounded-lg p-2 outline-none"><option value="ALL">Pago (Todos)</option></select>
-                <select id="fEstatus" class="bg-gray-50 border border-gray-300 text-xs rounded-lg p-2 outline-none">
-                    <option value="ALL">Estatus (Todos)</option>
-                    <option value="🟢 Pagado">🟢 Pagado</option>
-                    <option value="🟡 Pago Parcial">🟡 Pago Parcial</option>
-                    <option value="🔴 No Pagado">🔴 No Pagado</option>
-                    <option value="⚫ Cancelado">⚫ Cancelado</option>
-                </select>
+                <select id="fEstatus" class="bg-gray-50 border border-gray-300 text-xs rounded-lg p-2 outline-none"><option value="ALL">Estatus (Todos)</option></select>
 
-                <button id="btnDescargar" disabled class="bg-emerald-600 hover:bg-emerald-500 disabled:bg-gray-300 text-white font-bold py-2 px-4 rounded-lg shadow flex items-center gap-2 text-sm ml-2">
+                <button id="btnDescargar" disabled class="bg-emerald-600 hover:bg-emerald-500 disabled:bg-gray-300 text-white font-bold py-2 px-4 rounded-lg shadow flex items-center gap-2 text-sm ml-2 transition">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                     Exportar Cubo
                 </button>
@@ -82,14 +77,14 @@
 
         <!-- Tabla Dashboard -->
         <div class="bg-white rounded-xl shadow-sm border border-gray-200 flex-grow overflow-hidden flex flex-col">
-            <!-- Contenedor con overflow horizontal para scroll infinito -->
             <div class="overflow-auto flex-grow relative w-full">
-                <table class="w-full text-left text-xs whitespace-nowrap min-w-max" id="tablaResultados">
+                <!-- Se fuerza un ancho mínimo amplio para que el scroll horizontal siempre funcione y no aplaste los datos -->
+                <table class="w-full text-left text-xs whitespace-nowrap min-w-[1400px]" id="tablaResultados">
                     <thead class="bg-slate-50 text-slate-600 sticky top-0 z-10 shadow-sm uppercase tracking-wider">
                         <tr>
                             <th class="p-3 font-semibold border-b w-48">Proveedor</th>
-                            <th class="p-3 font-semibold border-b w-32">UUID / Folio</th>
-                            <th class="p-3 font-semibold border-b w-36">Fecha</th>
+                            <th class="p-3 font-semibold border-b w-40">UUID</th>
+                            <th class="p-3 font-semibold border-b w-32">Fecha</th>
                             <th class="p-3 font-semibold border-b w-64">Conceptos</th>
                             <th class="p-3 font-semibold border-b w-20">Tasa</th>
                             <th class="p-3 font-semibold border-b text-right w-28">Total MXN</th>
@@ -107,7 +102,7 @@
         </div>
     </main>
 
-    <!-- MODAL DE CARGA DROPZONE -->
+    <!-- MODAL DE CARGA -->
     <div id="modalCarga" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden justify-center items-center">
         <div class="bg-white w-full max-w-xl rounded-2xl shadow-2xl p-6 relative">
             <button id="btnCerrarModal" class="absolute top-4 right-4 text-gray-400 hover:text-red-500"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
@@ -117,38 +112,33 @@
             <div id="dropzone" class="border-2 border-dashed border-blue-400 bg-blue-50 hover:bg-blue-100 transition rounded-xl p-10 text-center relative cursor-pointer">
                 <svg class="w-12 h-12 text-blue-500 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                 <span class="text-blue-800 font-bold text-sm block">Arrastra los XML aquí o haz clic</span>
-                <!-- Selector múltiple normal (sin forzar carpetas) -->
                 <input type="file" id="fileInput" multiple accept=".xml" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
             </div>
         </div>
     </div>
 
-    <!-- LÓGICA JAVASCRIPT MASTER 3.1 (Refinada) -->
+    <!-- LÓGICA JAVASCRIPT MASTER 4.0 -->
     <script>
-        // ==========================================
-        // 1. CONEXIÓN A GOOGLE SHEETS
-        // ==========================================
         const URL_CANCELADOS = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQGT9Z6555p79zjIeU63m4bMCeNT5G3mO0p-tPjWLRIw-HJRJg3vK9ZVd6zfsRceSk5g-nruArhkhKB/pub?gid=0&single=true&output=csv"; 
         const URL_TC = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQGT9Z6555p79zjIeU63m4bMCeNT5G3mO0p-tPjWLRIw-HJRJg3vK9ZVd6zfsRceSk5g-nruArhkhKB/pub?gid=1256836069&single=true&output=csv";
 
         let diccionarioManual = {};
         let diccionarioTC = {};
-        
         let motorFacturas = {};
         let cuboFiscal41Columnas = []; 
-        let filasTablaUI = []; 
-        let rawDataForFilters = []; // Almacena datos planos para cascada de filtros
+        let rawDataForFilters = []; 
 
         const mesesTexto = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
 
-        // Formatea "YYYY-MM-DD" a "DD/MM/YYYY" para presentación en pantalla
+        // Formatea "YYYY-MM-DD" a "DD/MM/YYYY" asegurando consistencia
         function formatDateToMX(isoString) {
             if (!isoString) return "";
             const parts = isoString.split('-');
             if (parts.length !== 3) return isoString;
-            return `${parts[2]}/${parts[1]}/${parts[0]}`;
+            return `${parts[2].padStart(2,'0')}/${parts[1].padStart(2,'0')}/${parts[0]}`;
         }
 
+        // Para diccionarios CSV
         function formatearFechaCSV(fechaStr) {
             if (!fechaStr) return "";
             const partes = fechaStr.trim().split('/');
@@ -186,16 +176,12 @@
         }
         window.onload = cargarGoogleSheets;
 
-        // ==========================================
-        // UI: MODAL LOGIC
-        // ==========================================
+        // UI: MODAL
         const modal = document.getElementById('modalCarga');
         document.getElementById('btnAbrirCarga').onclick = () => modal.classList.add('modal-active');
         document.getElementById('btnCerrarModal').onclick = () => modal.classList.remove('modal-active');
 
-        // ==========================================
-        // 2. EL SABUESO DE XML Y CONSTRUCTOR DE CUBOS
-        // ==========================================
+        // PROCESAMIENTO PRINCIPAL
         const fileInput = document.getElementById('fileInput');
         const btnDescargar = document.getElementById('btnDescargar');
         
@@ -212,9 +198,9 @@
             let listaPagos = [];
             let listaNotas = [];
             let contadores = { I: 0, P: 0, E: 0, Total: archivosXML.length };
-            rawDataForFilters = []; // Reset list for dynamic filters
+            rawDataForFilters = []; 
 
-            // FASE A: Ingesta Cruda
+            // FASE A: Ingesta
             for (let file of archivosXML) {
                 const text = await file.text();
                 const xmlDoc = parser.parseFromString(text, "text/xml");
@@ -239,7 +225,6 @@
                     const nodosConcepto = xmlDoc.getElementsByTagName("cfdi:Concepto");
                     for(let c of nodosConcepto) arrayConceptos.push(c.getAttribute("Descripcion"));
                     const strConceptosFull = arrayConceptos.join(" | ");
-                    const strConceptosUI = strConceptosFull.length > 45 ? strConceptosFull.substring(0,45) + "..." : strConceptosFull;
 
                     let ivaMXN = 0, base16 = 0, base8 = 0, base0 = 0, baseEx = 0;
                     let retISR = 0, retIVA = 0;
@@ -284,11 +269,9 @@
                         txtMesEm = `${mesesTexto[f.getMonth()]} ${f.getFullYear()}`;
                     }
 
-                    const monedaF = comprobante.getAttribute("Moneda") || "MXN";
-
                     motorFacturas[uuid] = {
                         F_UUID: uuid,
-                        F_Folio: folioFactura, // Captura de Folio
+                        F_Folio: folioFactura,
                         F_RFC_Prov: emisor?.getAttribute("Rfc"),
                         F_Nombre_Prov: emisor?.getAttribute("Nombre")?.substring(0,35), 
                         F_FechaEmision: fechaCruda,
@@ -296,15 +279,14 @@
                         F_MesEmision: fechaCruda ? new Date(fechaCruda).getMonth() + 1 : "",
                         MesUI_Val: valMesEm, MesUI_Txt: txtMesEm,
                         F_UsoCFDI: xmlDoc.getElementsByTagName("cfdi:Receptor")[0]?.getAttribute("UsoCFDI"),
-                        F_MetodoPago: comprobante.getAttribute("MetodoPago")?.toUpperCase(),
+                        F_MetodoPago: comprobante.getAttribute("MetodoPago")?.toUpperCase() || "PPD", // Fallback seguro
                         F_FormaPago: comprobante.getAttribute("FormaPago"),
-                        F_Moneda: monedaF,
+                        F_Moneda: comprobante.getAttribute("Moneda") || "MXN",
                         F_TC: parseFloat(comprobante.getAttribute("TipoCambio") || 1),
                         F_Total_Origen: parseFloat(comprobante.getAttribute("Total") || 0),
                         F_SubTotal_Origen: parseFloat(comprobante.getAttribute("SubTotal") || 0),
                         Tasa_Dominante: tasaTxt,
                         F_Conceptos_Full: strConceptosFull,
-                        F_Conceptos_UI: strConceptosUI,
                         F_Base_16: base16, F_Base_8: base8, F_Base_0: base0, F_Base_Exenta: baseEx, 
                         F_IVA_Total: ivaMXN, F_Ret_ISR: retISR, F_Ret_IVA: retIVA,
                         
@@ -373,7 +355,7 @@
                 }
             }
 
-            // FASE B: Conciliación Mayor
+            // FASE B: Conciliación
             listaPagos.forEach(pago => {
                 if(motorFacturas[pago.uuidFactura]) {
                     motorFacturas[pago.uuidFactura].pagadoOrigenAcumulado += pago.montoPagadoDR;
@@ -387,10 +369,9 @@
                 }
             });
 
-            // FASE C: Construcción final
+            // FASE C: Preparar Data
             cuboFiscal41Columnas = [];
-            filasTablaUI = [];
-
+            
             for (let uuid in motorFacturas) {
                 let f = motorFacturas[uuid];
                 
@@ -419,16 +400,16 @@
                 else if (saldoInsoluto >= (totalMXN - 1)) { estGlobal = "🔴 No Pagado"; estAux = "Sin Recepción de Pagos"; } 
                 else { estGlobal = "🟡 Pago Parcial"; estAux = "Saldos pendientes en PPD"; }
 
-                // BUILDER UI FECHAS HÍBRIDAS CON FORMATO MX
+                // Fechas Híbridas (UI)
                 let uiFechas = `<div class="font-semibold text-slate-700">${formatDateToMX(f.F_FechaEmision)}</div>`;
                 let uiPagosMeses = [];
                 f.historialPagos.forEach(p => {
-                    uiFechas += `<div class="text-[10px] text-blue-600 mt-0.5">↪ Pago: ${formatDateToMX(p.fechaPago)}</div>`;
+                    uiFechas += `<div class="text-[10px] text-blue-600 mt-0.5">↪ ${formatDateToMX(p.fechaPago)}</div>`;
                     if(p.fechaPago) uiPagosMeses.push(`${new Date(p.fechaPago).getFullYear()}-${String(new Date(p.fechaPago).getMonth()+1).padStart(2,'0')}`);
                 });
                 if(f.F_MetodoPago === "PUE") uiPagosMeses.push(f.MesUI_Val);
 
-                // --- GENERAR FILAS DEL CUBO EXCEL (41 COLUMNAS) ---
+                // --- GENERAR EXCEL ---
                 const crearFilaCubo = (esPrimerAbono, refREP = null, refNC = null) => {
                     let p_tc_banco = refREP ? refREP.tcPago : (f.F_MetodoPago==="PUE" ? tcF : 0);
                     let monedaPago = refREP ? refREP.monedaPago : (f.F_MetodoPago==="PUE" ? f.F_Moneda : null);
@@ -476,8 +457,7 @@
                         "F_Conceptos": f.F_Conceptos_Full,
                         "F_Moneda": f.F_Moneda,
                         "F_TC": tcF,
-                        "Tasa_Dominante": f.Tasa_Dominante, // <- COLUMNA 41 AÑADIDA
-                        // MATRIZ ÚNICA
+                        "Tasa_Dominante": f.Tasa_Dominante, 
                         "F_Total_Origen_Unico": esPrimerAbono ? f.F_Total_Origen : 0,
                         "F_Total_MXN_Unico": esPrimerAbono ? totalMXN : 0,
                         "F_Base_Gravada_Unica": esPrimerAbono ? (b16_mxn + b8_mxn) : 0,
@@ -487,14 +467,12 @@
                         "F_Base_0_MXN": esPrimerAbono ? b0_mxn : 0,
                         "F_Base_Exenta_MXN": esPrimerAbono ? bEx_mxn : 0,
                         "F_Base_NoObjeto_MXN": esPrimerAbono ? bNoObj_mxn : 0,
-                        // AUDITORÍA
                         "P_MonedaPago": monedaPago,
                         "P_TC_Pago": p_tc_banco,
                         "TC_Contable_Final": tc_contable,
                         "Diferencia_TC_Auditoria": dif_aud,
                         "Diferencia_TC_Auditoria_IVA": dif_aud_iva,
                         "Fluctuacion_Cambiaria_SAT": fluc_sat,
-                        // FLUJO EFECTIVO
                         "P_ImpPagado_Origen": p_impPagado_orig,
                         "P_ImpPagado_MXN": p_impPagado_mxn,
                         "P_Base_Gravada_Total": p_baseG_total,
@@ -524,7 +502,7 @@
                     f.historialNC.forEach(nc => { crearFilaCubo(esPrim, null, nc); esPrim = false; }); 
                 }
 
-                // DIBUJAR UI DASHBOARD (Rediseño limpio de encabezados y folio)
+                // DIBUJAR UI DASHBOARD 
                 let colorSaldo = saldoInsoluto > 1 ? "text-red-600 font-bold" : "text-slate-400";
                 let badgeColor = 
                     estGlobal.includes("🟢") ? "bg-green-100 text-green-800" :
@@ -533,28 +511,30 @@
 
                 let strPagosAttr = uiPagosMeses.join(","); 
 
-                // Almacenar data cruda para la cascada de filtros
                 rawDataForFilters.push({
                     metodo: f.F_MetodoPago,
                     moneda: f.F_Moneda,
                     mesEmisionVal: f.MesUI_Val,
                     mesEmisionTxt: f.MesUI_Txt,
-                    mesesPagos: uiPagosMeses, // array
+                    mesesPagos: uiPagosMeses,
                     estatus: estGlobal,
                     html: `
                         <tr class="hover:bg-blue-50/50 transition border-b" 
                             data-metodo="${f.F_MetodoPago}" data-moneda="${f.F_Moneda}" 
-                            data-mesem="${f.MesUI_Val}" data-mespa="${strPagosAttr}" data-estatus="${estGlobal}" data-uuid="${uuid}">
+                            data-mesem="${f.MesUI_Val}" data-mespa="${strPagosAttr}" data-estatus="${estGlobal}">
                             <td class="p-3 align-top">
                                 <div class="font-mono text-blue-700 font-bold">${f.F_RFC_Prov}</div>
                                 <div class="text-[10px] text-slate-500 truncate w-40" title="${f.F_Nombre_Prov}">${f.F_Nombre_Prov}</div>
                             </td>
                             <td class="p-3 align-top">
-                                <div class="text-[10px] text-slate-700 font-mono" title="${uuid}">${uuid.substring(0,8)}...</div>
-                                <div class="text-[10px] text-slate-500">Folio: ${f.F_Folio}</div>
+                                <!-- UUID completo partido, sin folio -->
+                                <div class="text-[11px] text-slate-700 font-mono break-all whitespace-normal max-w-[150px] leading-tight" title="Doble clic para copiar">${uuid}</div>
                             </td>
                             <td class="p-3 leading-tight align-top">${uiFechas}</td>
-                            <td class="p-3 text-[10px] text-slate-500 whitespace-normal w-56 align-top">${f.F_Conceptos_UI}</td>
+                            <td class="p-3 align-top">
+                                <!-- Conceptos completos con clamp css -->
+                                <div class="text-[10px] text-slate-500 whitespace-normal w-64 clamp-2 leading-relaxed" title="${f.F_Conceptos_Full}">${f.F_Conceptos_Full}</div>
+                            </td>
                             <td class="p-3 align-top"><span class="px-2 py-1 bg-slate-100 rounded text-[10px] text-slate-600 font-semibold border">${f.Tasa_Dominante}</span></td>
                             <td class="p-3 text-right tabular-nums font-semibold align-top">$${totalMXN.toLocaleString('es-MX', {minimumFractionDigits:2})}</td>
                             <td class="p-3 text-right tabular-nums text-slate-500 align-top">$${iva_mxn.toLocaleString('es-MX', {minimumFractionDigits:2})}</td>
@@ -565,108 +545,96 @@
                 });
             }
 
-            // ACTUALIZAR DASHBOARD Y SELECTS
             document.getElementById('dashI').innerText = contadores.I.toLocaleString();
             document.getElementById('dashP').innerText = contadores.P.toLocaleString(); 
             document.getElementById('dashE').innerText = contadores.E.toLocaleString();
             document.getElementById('dashTotal').innerText = contadores.Total.toLocaleString();
             
-            actualizarCascadaDeFiltros(true); // Populate inicial
-            renderizarTablaUI();
+            // Iniciar Motor de Filtros
+            actualizarSelectsDesdeData(true);
             btnDescargar.disabled = false;
         });
 
         // ==========================================
-        // 3. MOTOR DE FILTROS (CASCADA INTELIGENTE)
+        // 3. MATRIZ REACTIVA DE FILTROS CRUZADOS
         // ==========================================
-        const filtros = ['fMetodo', 'fMoneda', 'fMesEmision', 'fMesPago', 'fEstatus'];
-        filtros.forEach(f => document.getElementById(f).addEventListener('change', () => {
-            actualizarCascadaDeFiltros(false);
-            renderizarTablaUI();
+        const filtrosIds = ['fMetodo', 'fMoneda', 'fMesEmision', 'fMesPago', 'fEstatus'];
+        filtrosIds.forEach(id => document.getElementById(id).addEventListener('change', () => {
+            actualizarSelectsDesdeData(false);
         }));
 
-        function actualizarCascadaDeFiltros(isInitialLoad) {
-            // Obtener el estado actual (si no es carga inicial)
-            const vMet = document.getElementById('fMetodo').value;
-            // Para la cascada, recalculamos las opciones disponibles basadas en los datos filtrados
-            let monedasDisponibles = new Set();
-            let mesEmDisponibles = new Set();
-            let mesPaDisponibles = new Set();
-            let estatusDisponibles = new Set();
+        function actualizarSelectsDesdeData(isInitial) {
+            const vMet = isInitial ? "ALL" : document.getElementById('fMetodo').value;
+            const vMon = isInitial ? "ALL" : document.getElementById('fMoneda').value;
+            const vEm  = isInitial ? "ALL" : document.getElementById('fMesEmision').value;
+            const vPa  = isInitial ? "ALL" : document.getElementById('fMesPago').value;
+            const vEst = isInitial ? "ALL" : document.getElementById('fEstatus').value;
+
+            // Conjuntos para almacenar opciones válidas
+            let sets = { met: new Set(), mon: new Set(), em: new Set(), pa: new Set(), est: new Set() };
+            let htmlFilas = "";
 
             rawDataForFilters.forEach(f => {
-                // Check if this row passes the primary independent filters (e.g. Método)
-                // In a perfect cascade, selecting PPD should limit Monedas to only what's in PPD
-                let pasa = true;
-                if (vMet !== "ALL" && f.metodo !== vMet) pasa = false;
-                
-                if (pasa) {
-                    monedasDisponibles.add(f.moneda);
-                    if(f.mesEmisionVal) mesEmDisponibles.add(JSON.stringify({v: f.mesEmisionVal, t: f.mesEmisionTxt}));
-                    f.mesesPagos.forEach(mp => {
-                        if(mp) {
-                            const [yyyy, mm] = mp.split('-');
-                            mesPaDisponibles.add(JSON.stringify({v: mp, t: `${mesesTexto[parseInt(mm)-1]} ${yyyy}`}));
-                        }
-                    });
-                    estatusDisponibles.add(f.estatus);
+                // Evaluar si esta fila pasa el filtro de CADA categoría
+                let matchMet = (vMet === "ALL" || f.metodo === vMet);
+                let matchMon = (vMon === "ALL" || f.moneda === vMon);
+                let matchEm  = (vEm === "ALL" || f.mesEmisionVal === vEm);
+                let matchPa  = (vPa === "ALL" || f.mesesPagos.includes(vPa));
+                let matchEst = (vEst === "ALL" || f.estatus === vEst);
+
+                // Filtrado Cruzado Bidireccional:
+                // Si cumple con todos LOS DEMÁS filtros, su valor es válido para el select actual
+                if(matchMon && matchEm && matchPa && matchEst) sets.met.add(f.metodo);
+                if(matchMet && matchEm && matchPa && matchEst) sets.mon.add(f.moneda);
+                if(matchMet && matchMon && matchPa && matchEst && f.mesEmisionVal) sets.em.add(JSON.stringify({v: f.mesEmisionVal, t: f.mesEmisionTxt}));
+                if(matchMet && matchMon && matchEm && matchEst) f.mesesPagos.forEach(mp => {
+                    if(mp) sets.pa.add(JSON.stringify({v: mp, t: `${mesesTexto[parseInt(mp.split('-')[1])-1]} ${mp.split('-')[0]}`}));
+                });
+                if(matchMet && matchMon && matchEm && matchPa) sets.est.add(f.estatus);
+
+                // Render de la fila (debe cumplir TODOS los filtros)
+                if(matchMet && matchMon && matchEm && matchPa && matchEst) {
+                    htmlFilas += f.html;
                 }
             });
 
-            // Función para actualizar un select manteniendo su valor previo si existe
-            const rellenarSelect = (id, setObjs, label, preserveValue) => {
+            // Función constructora de Selects
+            const rellenar = (id, setObjs, label, curVal) => {
                 const el = document.getElementById(id);
-                const currentVal = el.value;
                 el.innerHTML = `<option value="ALL">${label} (Todas)</option>`;
+                let found = false;
                 
-                let valEncontrado = false;
-                
-                if (typeof Array.from(setObjs)[0] === 'string' && Array.from(setObjs)[0].startsWith('{')) {
-                    // It's a JSON string (Months)
-                    Array.from(setObjs).map(JSON.parse).sort((a,b) => a.v > b.v ? 1 : -1).forEach(item => {
-                        el.innerHTML += `<option value="${item.v}">${item.t}</option>`;
-                        if(item.v === currentVal) valEncontrado = true;
+                let arr = Array.from(setObjs);
+                if(arr.length > 0 && arr[0].startsWith('{')) { // Es Fecha JSON
+                    arr.map(JSON.parse).sort((a,b) => a.v > b.v ? 1 : -1).forEach(i => {
+                        el.innerHTML += `<option value="${i.v}">${i.t}</option>`;
+                        if(i.v === curVal) found = true;
                     });
-                } else {
-                    // Plain strings (Monedas, Estatus)
-                    Array.from(setObjs).sort().forEach(m => {
+                } else { // Es Texto Simple
+                    arr.sort().forEach(m => {
                         el.innerHTML += `<option value="${m}">${m}</option>`;
-                        if(m === currentVal) valEncontrado = true;
+                        if(m === curVal) found = true;
                     });
                 }
-
-                if (preserveValue && valEncontrado) el.value = currentVal;
+                
+                if(!isInitial) {
+                    if(found) el.value = curVal; // Mantener selección si aún es válida
+                    else el.value = "ALL"; // Reset si la selección ya no existe en la matriz
+                }
             };
 
-            rellenarSelect('fMoneda', monedasDisponibles, 'Moneda', !isInitialLoad);
-            rellenarSelect('fMesEmision', mesEmDisponibles, 'Emisión', !isInitialLoad);
-            rellenarSelect('fMesPago', mesPaDisponibles, 'Pago', !isInitialLoad);
-        }
+            rellenar('fMetodo', sets.met, 'Método', vMet);
+            rellenar('fMoneda', sets.mon, 'Moneda', vMon);
+            rellenar('fMesEmision', sets.em, 'Emisión', vEm);
+            rellenar('fMesPago', sets.pa, 'Pago', vPa);
+            rellenar('fEstatus', sets.est, 'Estatus', vEst);
 
-        function renderizarTablaUI() {
-            const vMet = document.getElementById('fMetodo').value;
-            const vMon = document.getElementById('fMoneda').value;
-            const vEm = document.getElementById('fMesEmision').value;
-            const vPa = document.getElementById('fMesPago').value;
-            const vEst = document.getElementById('fEstatus').value;
-            
-            let htmlFinal = "";
-            rawDataForFilters.forEach(f => {
-                let show = true;
-                if (vMet !== "ALL" && f.metodo !== vMet) show = false;
-                if (vMon !== "ALL" && f.moneda !== vMon) show = false;
-                if (vEm !== "ALL" && f.mesEmisionVal !== vEm) show = false;
-                if (vPa !== "ALL" && !f.mesesPagos.includes(vPa)) show = false;
-                if (vEst !== "ALL" && f.estatus !== vEst) show = false;
-                if (show) htmlFinal += f.html;
-            });
-
-            if(htmlFinal === "") htmlFinal = "<tr><td colspan='10' class='p-8 text-center text-slate-500'>Sin resultados para los filtros actuales.</td></tr>";
-            document.getElementById('cuerpoTabla').innerHTML = htmlFinal;
+            if(htmlFilas === "") htmlFilas = "<tr><td colspan='10' class='p-8 text-center text-slate-500'>Sin resultados para los filtros actuales.</td></tr>";
+            document.getElementById('cuerpoTabla').innerHTML = htmlFilas;
         }
 
         // ==========================================
-        // 4. EXPORTACIÓN A EXCEL (CUBO 41 COLUMNAS)
+        // 4. EXPORTACIÓN A EXCEL
         // ==========================================
         btnDescargar.addEventListener('click', () => {
             if (cuboFiscal41Columnas.length === 0) return;
