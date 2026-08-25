@@ -74,8 +74,9 @@
                         <svg class="w-3 h-3 ml-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
                     </button>
                     <div id="panelProvDropdown" class="hidden origin-top-right absolute right-0 mt-2 w-80 rounded-md shadow-2xl bg-white ring-1 ring-black ring-opacity-5 focus:outline-none flex flex-col">
-                        <div class="p-2 border-b">
-                            <input type="text" id="searchProv" class="w-full text-xs border border-gray-300 rounded p-2 focus:outline-none focus:ring-1 focus:ring-blue-500" placeholder="Buscar proveedor...">
+                        <div class="p-2 border-b flex flex-col gap-2 bg-slate-50 rounded-t-md">
+                            <input type="text" id="searchProv" class="w-full text-xs border border-gray-300 rounded p-2 focus:outline-none focus:ring-1 focus:ring-blue-500 shadow-sm" placeholder="Buscar proveedor...">
+                            <button id="btnToggleTodosProv" class="w-full text-xs font-bold text-blue-700 bg-blue-100 hover:bg-blue-200 border border-blue-200 rounded py-1.5 transition disabled:opacity-50">Seleccionar Visibles</button>
                         </div>
                         <ul id="listProv" class="max-h-64 overflow-y-auto p-2 text-xs divide-y divide-gray-50">
                             <li class="p-2 text-gray-400 text-center">Esperando datos...</li>
@@ -162,7 +163,7 @@
         </div>
     </div>
 
-    <!-- LÓGICA JAVASCRIPT MASTER 5.0 -->
+    <!-- LÓGICA JAVASCRIPT MASTER 6.0 -->
     <script>
         const URL_CANCELADOS = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQGT9Z6555p79zjIeU63m4bMCeNT5G3mO0p-tPjWLRIw-HJRJg3vK9ZVd6zfsRceSk5g-nruArhkhKB/pub?gid=0&single=true&output=csv"; 
         const URL_TC = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQGT9Z6555p79zjIeU63m4bMCeNT5G3mO0p-tPjWLRIw-HJRJg3vK9ZVd6zfsRceSk5g-nruArhkhKB/pub?gid=1256836069&single=true&output=csv";
@@ -267,10 +268,11 @@
         document.getElementById('fileInputArr').addEventListener('change', handleFilesSelected);
         document.getElementById('folderInputArr').addEventListener('change', handleFilesSelected);
 
-        // UI: DROPDOWN PROVEEDOR
+        // UI: DROPDOWN PROVEEDOR & BOTÓN SELECCIONAR TODO
         const btnProvDropdown = document.getElementById('btnProvDropdown');
         const panelProvDropdown = document.getElementById('panelProvDropdown');
         const searchProv = document.getElementById('searchProv');
+        const btnToggleTodosProv = document.getElementById('btnToggleTodosProv');
         
         btnProvDropdown.addEventListener('click', () => {
             panelProvDropdown.classList.toggle('hidden');
@@ -290,7 +292,38 @@
                 const text = li.textContent.toLowerCase();
                 li.style.display = text.includes(term) ? '' : 'none';
             });
+            actualizarTextoBotonTodos();
         });
+
+        btnToggleTodosProv.addEventListener('click', () => {
+            // Obtenemos solo los checkboxes visibles en la búsqueda actual
+            const checkboxesVisibles = Array.from(document.querySelectorAll('.prov-checkbox')).filter(cb => cb.closest('li').style.display !== 'none');
+            if (checkboxesVisibles.length === 0) return;
+
+            const todosMarcados = checkboxesVisibles.every(cb => cb.checked);
+            
+            if (todosMarcados) {
+                checkboxesVisibles.forEach(cb => proveedoresSeleccionados.delete(cb.value));
+            } else {
+                checkboxesVisibles.forEach(cb => proveedoresSeleccionados.add(cb.value));
+            }
+            
+            actualizarEtiquetaProveedor();
+            actualizarSelectsDesdeData(false);
+            renderizarTablaUI();
+        });
+
+        function actualizarTextoBotonTodos() {
+            const checkboxesVisibles = Array.from(document.querySelectorAll('.prov-checkbox')).filter(cb => cb.closest('li').style.display !== 'none');
+            if(checkboxesVisibles.length === 0) {
+                btnToggleTodosProv.innerText = "Sin resultados";
+                btnToggleTodosProv.disabled = true;
+                return;
+            }
+            btnToggleTodosProv.disabled = false;
+            const todosMarcados = checkboxesVisibles.every(cb => cb.checked);
+            btnToggleTodosProv.innerText = todosMarcados ? "Deseleccionar Visibles" : "Seleccionar Visibles";
+        }
 
         function renderizarListaProveedores(setProveedoresDisponibles) {
             const listProv = document.getElementById('listProv');
@@ -299,6 +332,7 @@
             
             if(arrProvs.length === 0) {
                 listProv.innerHTML = '<li class="p-2 text-gray-400 text-center">No hay proveedores en este filtro</li>';
+                actualizarTextoBotonTodos();
                 return;
             }
 
@@ -326,6 +360,17 @@
                 });
                 listProv.appendChild(li);
             });
+
+            // Re-aplicar búsqueda si existe texto en el input
+            const term = searchProv.value.toLowerCase();
+            if (term) {
+                const items = document.querySelectorAll('#listProv li');
+                items.forEach(li => {
+                    const text = li.textContent.toLowerCase();
+                    li.style.display = text.includes(term) ? '' : 'none';
+                });
+            }
+            actualizarTextoBotonTodos();
         }
 
         function actualizarEtiquetaProveedor() {
@@ -802,7 +847,7 @@
         }
 
         // ==========================================
-        // 4. EXPORTACIÓN A EXCEL (CUBO 44 COL)
+        // 4. EXPORTACIÓN A EXCEL
         // ==========================================
         btnDescargar.addEventListener('click', () => {
             if (cuboFiscal44Columnas.length === 0) return;
