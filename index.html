@@ -3,94 +3,76 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SaaS Conciliación Fiscal Avanzada</title>
-    <!-- Tailwind CSS para el diseño corporativo -->
+    <title>SaaS Conciliación Fiscal ERP</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- SheetJS para la exportación a Excel del Cubo Fiscal -->
     <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
     <style>
-        /* Pequeño scrollbar personalizado para la tabla */
         ::-webkit-scrollbar { width: 8px; height: 8px; }
         ::-webkit-scrollbar-track { background: #f1f1f1; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
         ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        .modal-active { display: flex !important; }
     </style>
 </head>
-<body class="bg-gray-50 text-gray-800 font-sans h-screen flex flex-col overflow-hidden">
+<body class="bg-gray-50 text-gray-800 font-sans h-screen flex flex-col overflow-hidden relative">
 
-    <!-- TOP NAV (Cinta de opciones limpia) -->
-    <header class="bg-slate-900 text-white p-4 shadow-lg flex-none">
+    <!-- TOP NAV -->
+    <header class="bg-slate-900 text-white p-4 shadow-lg flex-none z-10">
         <div class="max-w-[1600px] mx-auto flex justify-between items-center">
             <div class="flex items-center gap-4">
                 <div class="bg-blue-600 p-2 rounded-lg">
                     <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                 </div>
                 <div>
-                    <h1 class="text-xl font-bold leading-tight">Motor de Conciliación CFDI</h1>
-                    <p class="text-xs text-slate-400">Inteligencia Fiscal & Cubo de Datos Local</p>
+                    <h1 class="text-xl font-bold leading-tight">Cubo Fiscal Avanzado</h1>
+                    <p class="text-xs text-slate-400">Inteligencia de Datos & Conciliación Local</p>
                 </div>
             </div>
             
             <div class="flex items-center gap-4">
-                <!-- Status Google Sheets -->
                 <div id="statusConexion" class="bg-amber-500 text-slate-900 px-3 py-1.5 rounded-full font-bold text-xs flex items-center gap-2">
-                    <span class="animate-pulse">⏳</span> Conectando Configuración...
+                    <span class="animate-pulse">⏳</span> Conectando BD...
                 </div>
                 
-                <!-- Botón de Carga de Carpeta NATIVA -->
-                <div class="relative overflow-hidden group">
-                    <button class="bg-blue-600 hover:bg-blue-500 text-white font-semibold py-2 px-6 rounded shadow transition flex items-center gap-2">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
-                        Cargar Carpeta XML
-                    </button>
-                    <!-- webkitdirectory permite subir la carpeta completa de golpe -->
-                    <input type="file" id="fileInput" webkitdirectory directory multiple accept=".xml" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
-                </div>
+                <button id="btnAbrirCarga" class="bg-blue-600 hover:bg-blue-500 text-white font-semibold py-2 px-6 rounded shadow transition flex items-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
+                    Cargar Archivos XML
+                </button>
             </div>
         </div>
     </header>
 
-    <!-- ÁREA DE TRABAJO (Full Width) -->
-    <main class="flex-grow flex flex-col p-6 max-w-[1600px] mx-auto w-full gap-4 overflow-hidden">
+    <!-- ÁREA DE TRABAJO -->
+    <main class="flex-grow flex flex-col p-6 max-w-[1600px] mx-auto w-full gap-4 overflow-hidden relative">
         
         <!-- Action Bar (Filtros y Resumen) -->
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 flex justify-between items-center flex-none">
-            
-            <!-- Resumen Estadístico -->
-            <div class="flex gap-8">
-                <div>
-                    <p class="text-xs text-gray-500 uppercase font-bold tracking-wider">Facturas (I)</p>
-                    <p id="dashFacturas" class="text-2xl font-black text-slate-800">0</p>
-                </div>
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 flex flex-wrap justify-between items-center flex-none gap-4">
+            <!-- KPIs -->
+            <div class="flex gap-6">
+                <div><p class="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Facturas (I)</p><p id="dashI" class="text-xl font-black text-slate-800">0</p></div>
                 <div class="w-px bg-gray-200"></div>
-                <div>
-                    <p class="text-xs text-gray-500 uppercase font-bold tracking-wider">Pagos (REPs)</p>
-                    <p id="dashPagos" class="text-2xl font-black text-blue-600">0</p>
-                </div>
+                <div><p class="text-[10px] text-gray-500 uppercase font-bold tracking-wider">REPs (P)</p><p id="dashP" class="text-xl font-black text-blue-600">0</p></div>
                 <div class="w-px bg-gray-200"></div>
-                <div>
-                    <p class="text-xs text-gray-500 uppercase font-bold tracking-wider">Notas de Crédito (E)</p>
-                    <p id="dashNC" class="text-2xl font-black text-purple-600">0</p>
-                </div>
+                <div><p class="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Notas (E)</p><p id="dashE" class="text-xl font-black text-purple-600">0</p></div>
             </div>
 
-            <!-- Filtros y Descarga -->
-            <div class="flex items-center gap-4">
-                <select id="filtroMes" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5 outline-none">
-                    <option value="ALL">Todos los Meses</option>
-                </select>
-                
-                <select id="filtroEstatus" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5 outline-none">
-                    <option value="ALL">Todos los Estatus</option>
+            <!-- Filtros Inteligentes -->
+            <div class="flex items-center gap-3 flex-wrap flex-grow justify-end">
+                <select id="fMetodo" class="bg-gray-50 border border-gray-300 text-xs rounded-lg p-2 outline-none"><option value="ALL">Método (Todos)</option><option value="PUE">Solo PUE</option><option value="PPD">Solo PPD</option></select>
+                <select id="fMoneda" class="bg-gray-50 border border-gray-300 text-xs rounded-lg p-2 outline-none"><option value="ALL">Moneda (Todas)</option></select>
+                <select id="fMesEmision" class="bg-gray-50 border border-gray-300 text-xs rounded-lg p-2 outline-none"><option value="ALL">Emisión (Todas)</option></select>
+                <select id="fMesPago" class="bg-gray-50 border border-gray-300 text-xs rounded-lg p-2 outline-none"><option value="ALL">Pago (Todos)</option></select>
+                <select id="fEstatus" class="bg-gray-50 border border-gray-300 text-xs rounded-lg p-2 outline-none">
+                    <option value="ALL">Estatus (Todos)</option>
                     <option value="🟢 Pagado">🟢 Pagado</option>
                     <option value="🟡 Pago Parcial">🟡 Pago Parcial</option>
                     <option value="🔴 No Pagado">🔴 No Pagado</option>
                     <option value="⚫ Cancelado">⚫ Cancelado</option>
                 </select>
 
-                <button id="btnDescargar" disabled class="bg-emerald-600 hover:bg-emerald-500 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-bold py-2.5 px-6 rounded-lg shadow transition flex items-center gap-2">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                    Exportar Cubo Fiscal
+                <button id="btnDescargar" disabled class="bg-emerald-600 hover:bg-emerald-500 disabled:bg-gray-300 text-white font-bold py-2 px-4 rounded-lg shadow flex items-center gap-2 text-sm ml-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                    Exportar Cubo
                 </button>
             </div>
         </div>
@@ -98,29 +80,45 @@
         <!-- Tabla Dashboard -->
         <div class="bg-white rounded-xl shadow-sm border border-gray-200 flex-grow overflow-hidden flex flex-col">
             <div class="overflow-y-auto flex-grow relative">
-                <table class="w-full text-left text-sm whitespace-nowrap" id="tablaResultados">
-                    <thead class="bg-slate-50 text-slate-600 sticky top-0 z-10 shadow-sm">
+                <table class="w-full text-left text-xs whitespace-nowrap" id="tablaResultados">
+                    <thead class="bg-slate-50 text-slate-600 sticky top-0 z-10 shadow-sm uppercase tracking-wider">
                         <tr>
-                            <th class="p-4 font-semibold border-b">RFC Proveedor</th>
-                            <th class="p-4 font-semibold border-b">Nombre Proveedor</th>
-                            <th class="p-4 font-semibold border-b">Mes Emisión</th>
-                            <th class="p-4 font-semibold border-b">Tasa</th>
-                            <th class="p-4 font-semibold border-b text-right">Total MXN</th>
-                            <th class="p-4 font-semibold border-b text-right">IVA MXN</th>
-                            <th class="p-4 font-semibold border-b text-right text-red-600">Saldo Insoluto</th>
-                            <th class="p-4 font-semibold border-b text-center">Estatus Global</th>
-                            <th class="p-4 font-semibold border-b">Contexto (Estatus Auxiliar)</th>
+                            <th class="p-3 font-semibold border-b">Identidad Fiscal</th>
+                            <th class="p-3 font-semibold border-b">Fechas (Emisión / Pagos)</th>
+                            <th class="p-3 font-semibold border-b">Conceptos</th>
+                            <th class="p-3 font-semibold border-b">Tasa</th>
+                            <th class="p-3 font-semibold border-b text-right">Total MXN</th>
+                            <th class="p-3 font-semibold border-b text-right">IVA MXN</th>
+                            <th class="p-3 font-semibold border-b text-right text-red-600">Saldo Insoluto</th>
+                            <th class="p-3 font-semibold border-b text-center">Estatus Global</th>
+                            <th class="p-3 font-semibold border-b">Contexto (Auxiliar)</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y text-slate-700" id="cuerpoTabla">
-                        <tr><td colspan="9" class="p-12 text-center text-slate-400 font-medium">Sube tu carpeta de XMLs para comenzar la magia...</td></tr>
+                        <tr><td colspan="9" class="p-12 text-center text-slate-400 font-medium">Sube tus XML para iniciar el motor analítico...</td></tr>
                     </tbody>
                 </table>
             </div>
         </div>
     </main>
 
-    <!-- LÓGICA JAVASCRIPT MASTER -->
+    <!-- MODAL DE CARGA DROPZONE -->
+    <div id="modalCarga" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden justify-center items-center">
+        <div class="bg-white w-full max-w-xl rounded-2xl shadow-2xl p-6 relative">
+            <button id="btnCerrarModal" class="absolute top-4 right-4 text-gray-400 hover:text-red-500"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
+            <h2 class="text-xl font-bold mb-1">Ingesta de Datos</h2>
+            <p class="text-xs text-gray-500 mb-4">Selecciona los archivos XML (Facturas, Pagos y Notas de Crédito).</p>
+            
+            <div id="dropzone" class="border-2 border-dashed border-blue-400 bg-blue-50 hover:bg-blue-100 transition rounded-xl p-10 text-center relative cursor-pointer">
+                <svg class="w-12 h-12 text-blue-500 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                <span class="text-blue-800 font-bold text-sm block">Arrastra los XML aquí o haz clic</span>
+                <!-- Selector múltiple normal (sin forzar carpetas) -->
+                <input type="file" id="fileInput" multiple accept=".xml" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
+            </div>
+        </div>
+    </div>
+
+    <!-- LÓGICA JAVASCRIPT MASTER 3.0 -->
     <script>
         // ==========================================
         // 1. CONEXIÓN A GOOGLE SHEETS
@@ -131,10 +129,9 @@
         let diccionarioManual = {};
         let diccionarioTC = {};
         
-        // Variables Globales para la vista y exportación
         let motorFacturas = {};
         let cuboFiscal40Columnas = []; 
-        let filasTablaUI = []; // Almacena el HTML de cada fila para el filtrado rápido
+        let filasTablaUI = []; 
 
         const mesesTexto = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
 
@@ -166,19 +163,24 @@
 
                 const statusDiv = document.getElementById('statusConexion');
                 statusDiv.className = "bg-emerald-100 border border-emerald-400 text-emerald-800 px-3 py-1.5 rounded-full font-bold text-xs flex items-center gap-2";
-                statusDiv.innerHTML = "✅ Base de Datos Sincronizada";
+                statusDiv.innerHTML = "✅ BD Sincronizada";
             } catch (error) {
-                console.error("Error Sheets:", error);
                 const statusDiv = document.getElementById('statusConexion');
                 statusDiv.className = "bg-red-100 border border-red-400 text-red-800 px-3 py-1.5 rounded-full font-bold text-xs flex items-center gap-2";
-                statusDiv.innerHTML = "❌ Error al leer Sheets";
+                statusDiv.innerHTML = "❌ Error BD";
             }
         }
         window.onload = cargarGoogleSheets;
 
+        // ==========================================
+        // UI: MODAL LOGIC
+        // ==========================================
+        const modal = document.getElementById('modalCarga');
+        document.getElementById('btnAbrirCarga').onclick = () => modal.classList.add('modal-active');
+        document.getElementById('btnCerrarModal').onclick = () => modal.classList.remove('modal-active');
 
         // ==========================================
-        // 2. EL SABUESO DE XML Y CONCILIADOR
+        // 2. EL SABUESO DE XML (MOTOR 3.0)
         // ==========================================
         const fileInput = document.getElementById('fileInput');
         const btnDescargar = document.getElementById('btnDescargar');
@@ -186,11 +188,10 @@
         fileInput.addEventListener('change', async (e) => {
             const archivosXML = Array.from(e.target.files).filter(f => f.name.toLowerCase().endsWith('.xml'));
             if (archivosXML.length === 0) return;
-
-            document.getElementById('cuerpoTabla').innerHTML = `<tr><td colspan="9" class="p-12 text-center text-blue-600 font-bold text-lg animate-pulse">Procesando ${archivosXML.length} archivos mediante Web Workers...</td></tr>`;
+            modal.classList.remove('modal-active');
             
-            // Pausa milimétrica para que el navegador dibuje el mensaje de "Procesando"
-            await new Promise(r => setTimeout(r, 100));
+            document.getElementById('cuerpoTabla').innerHTML = `<tr><td colspan="9" class="p-12 text-center text-blue-600 font-bold text-lg animate-pulse">Analizando ${archivosXML.length} archivos...</td></tr>`;
+            await new Promise(r => setTimeout(r, 50)); // Render break
 
             const parser = new DOMParser();
             motorFacturas = {};
@@ -198,43 +199,63 @@
             let listaNotas = [];
             let contadores = { I: 0, P: 0, E: 0 };
 
+            // SETS PARA FILTROS DINÁMICOS
+            let setMesEm = new Set(), setMesPa = new Set(), setMonedas = new Set();
+
             // FASE A: Ingesta Cruda
             for (let file of archivosXML) {
                 const text = await file.text();
                 const xmlDoc = parser.parseFromString(text, "text/xml");
                 
-                // Extracción segura sin importar prefijos cfdi:
                 const comprobante = xmlDoc.getElementsByTagName("cfdi:Comprobante")[0] || xmlDoc.getElementsByTagName("Comprobante")[0];
                 const timbre = xmlDoc.getElementsByTagName("tfd:TimbreFiscalDigital")[0] || xmlDoc.getElementsByTagName("TimbreFiscalDigital")[0];
-                
                 if (!comprobante || !timbre) continue;
 
                 const tipo = comprobante.getAttribute("TipoDeComprobante")?.toUpperCase();
                 const uuid = timbre.getAttribute("UUID")?.toUpperCase();
                 const emisor = xmlDoc.getElementsByTagName("cfdi:Emisor")[0] || xmlDoc.getElementsByTagName("Emisor")[0];
                 
-                // Buscar nodos de pago agresivamente (El Sabueso)
                 const nodosPago20 = xmlDoc.getElementsByTagName("pago20:Pago");
                 const nodosPago10 = xmlDoc.getElementsByTagName("pago10:Pago");
                 const esREPReal = (nodosPago20.length > 0 || nodosPago10.length > 0);
 
-                // Base Data Extractor para Facturas de Proveedores (El Emisor es el Proveedor)
                 if (tipo === "I" && !esREPReal) {
                     contadores.I++;
                     
-                    // Extraer Tasa Dominante e IVA
+                    // F_Conceptos (Extracción y Truncado UI)
+                    let arrayConceptos = [];
+                    const nodosConcepto = xmlDoc.getElementsByTagName("cfdi:Concepto");
+                    for(let c of nodosConcepto) arrayConceptos.push(c.getAttribute("Descripcion"));
+                    const strConceptosFull = arrayConceptos.join(" | ");
+                    const strConceptosUI = strConceptosFull.length > 45 ? strConceptosFull.substring(0,45) + "..." : strConceptosFull;
+
+                    // Bases, Retenciones Globales y Tasa Dominante
                     let ivaMXN = 0, base16 = 0, base8 = 0, base0 = 0, baseEx = 0;
+                    let retISR = 0, retIVA = 0;
+                    
                     const traslados = xmlDoc.getElementsByTagName("cfdi:Traslado");
                     for (let t of traslados) {
-                        const factor = t.getAttribute("TipoFactor")?.toUpperCase();
-                        const tasa = parseFloat(t.getAttribute("TasaOCuota") || 0);
-                        const importe = parseFloat(t.getAttribute("Importe") || 0);
-                        const base = parseFloat(t.getAttribute("Base") || 0);
-                        
-                        if (factor === "EXENTO") baseEx += base;
-                        else if (tasa === 0.16) { base16 += base; ivaMXN += importe; }
-                        else if (tasa === 0.08) { base8 += base; ivaMXN += importe; }
-                        else if (tasa === 0.00) { base0 += base; }
+                        if(t.parentNode.nodeName === "cfdi:Traslados") { // Asegurar que es global
+                            const factor = t.getAttribute("TipoFactor")?.toUpperCase();
+                            const tasa = parseFloat(t.getAttribute("TasaOCuota") || 0);
+                            const base = parseFloat(t.getAttribute("Base") || 0);
+                            const imp = parseFloat(t.getAttribute("Importe") || 0);
+                            
+                            if (factor === "EXENTO") baseEx += base;
+                            else if (tasa === 0.16) { base16 += base; ivaMXN += imp; }
+                            else if (tasa === 0.08) { base8 += base; ivaMXN += imp; }
+                            else if (tasa === 0.00) { base0 += base; }
+                        }
+                    }
+
+                    const retenciones = xmlDoc.getElementsByTagName("cfdi:Retencion");
+                    for(let r of retenciones){
+                        if(r.parentNode.nodeName === "cfdi:Retenciones") {
+                            const imp = r.getAttribute("Impuesto");
+                            const importe = parseFloat(r.getAttribute("Importe") || 0);
+                            if(imp === "001") retISR += importe;
+                            if(imp === "002") retIVA += importe;
+                        }
                     }
 
                     let tasaTxt = "No Objeto";
@@ -245,42 +266,44 @@
                     else if (baseEx > 0) tasaTxt = "Exento";
 
                     let fechaCruda = comprobante.getAttribute("Fecha")?.split('T')[0] || "";
-                    let añoEm = "", mesEm = "", mesEmTxt = "";
+                    let valMesEm = "", txtMesEm = "";
                     if(fechaCruda) {
                         const f = new Date(fechaCruda);
-                        añoEm = f.getFullYear();
-                        mesEm = f.getMonth() + 1;
-                        mesEmTxt = `${mesesTexto[f.getMonth()]} ${añoEm}`;
+                        valMesEm = `${f.getFullYear()}-${String(f.getMonth() + 1).padStart(2,'0')}`; // 2026-01 (Sortable)
+                        txtMesEm = `${mesesTexto[f.getMonth()]} ${f.getFullYear()}`;
+                        setMesEm.add(JSON.stringify({v: valMesEm, t: txtMesEm}));
                     }
+
+                    const monedaF = comprobante.getAttribute("Moneda") || "MXN";
+                    setMonedas.add(monedaF);
 
                     motorFacturas[uuid] = {
                         F_UUID: uuid,
                         F_RFC_Prov: emisor?.getAttribute("Rfc"),
-                        F_Nombre_Prov: emisor?.getAttribute("Nombre")?.substring(0,40), // Truncado para UI
+                        F_Nombre_Prov: emisor?.getAttribute("Nombre")?.substring(0,35), 
                         F_FechaEmision: fechaCruda,
-                        F_AñoEmision: añoEm,
-                        F_MesEmision: mesEm,
-                        MesUI: mesEmTxt,
+                        F_AñoEmision: fechaCruda ? new Date(fechaCruda).getFullYear() : "",
+                        F_MesEmision: fechaCruda ? new Date(fechaCruda).getMonth() + 1 : "",
+                        MesUI_Val: valMesEm, MesUI_Txt: txtMesEm,
                         F_UsoCFDI: xmlDoc.getElementsByTagName("cfdi:Receptor")[0]?.getAttribute("UsoCFDI"),
                         F_MetodoPago: comprobante.getAttribute("MetodoPago")?.toUpperCase(),
                         F_FormaPago: comprobante.getAttribute("FormaPago"),
-                        F_Moneda: comprobante.getAttribute("Moneda") || "MXN",
+                        F_Moneda: monedaF,
                         F_TC: parseFloat(comprobante.getAttribute("TipoCambio") || 1),
                         F_Total_Origen: parseFloat(comprobante.getAttribute("Total") || 0),
                         F_SubTotal_Origen: parseFloat(comprobante.getAttribute("SubTotal") || 0),
                         Tasa_Dominante: tasaTxt,
-                        // Bases Crudas para el cubo
-                        F_Base_16: base16, F_Base_8: base8, F_Base_0: base0, F_Base_Exenta: baseEx, F_IVA_Total: ivaMXN,
-                        // Contenedores para Conciliación
-                        historialPagos: [],
-                        historialNC: [],
-                        pagadoOrigenAcumulado: 0,
-                        ncOrigenAcumulada: 0
+                        F_Conceptos_Full: strConceptosFull,
+                        F_Conceptos_UI: strConceptosUI,
+                        // Bases Crudas Factura
+                        F_Base_16: base16, F_Base_8: base8, F_Base_0: base0, F_Base_Exenta: baseEx, 
+                        F_IVA_Total: ivaMXN, F_Ret_ISR: retISR, F_Ret_IVA: retIVA,
+                        
+                        historialPagos: [], historialNC: [], pagadoOrigenAcumulado: 0, ncOrigenAcumulada: 0
                     };
                 } 
                 else if (esREPReal) {
                     contadores.P++;
-                    // Leer pagos 2.0 y 1.0
                     const iterarPagos = (nodos, prefijo) => {
                         for (let p of nodos) {
                             const tcPago = parseFloat(p.getAttribute("TipoCambioP") || 1);
@@ -288,19 +311,47 @@
                             const fechaPago = p.getAttribute("FechaPago")?.split('T')[0];
                             const formaPago = p.getAttribute("FormaDePagoP");
                             
+                            if(fechaPago) {
+                                const fp = new Date(fechaPago);
+                                setMesPa.add(JSON.stringify({v: `${fp.getFullYear()}-${String(fp.getMonth() + 1).padStart(2,'0')}`, t: `${mesesTexto[fp.getMonth()]} ${fp.getFullYear()}`}));
+                            }
+
                             const docsRel = p.getElementsByTagName(`${prefijo}:DoctoRelacionado`);
                             for (let dr of docsRel) {
-                                listaPagos.push({
+                                let objPago = {
                                     uuidFactura: dr.getAttribute("IdDocumento")?.toUpperCase(),
                                     uuidREP: uuid,
-                                    montoPagadoDR: parseFloat(dr.getAttribute("ImpPagado") || 0), // Importe en moneda de la DR
+                                    montoPagadoDR: parseFloat(dr.getAttribute("ImpPagado") || 0),
                                     monedaDR: dr.getAttribute("MonedaDR"),
                                     tcDR: parseFloat(dr.getAttribute("EquivalenciaDR") || 1),
                                     fechaPago: fechaPago,
                                     monedaPago: monedaPago,
                                     tcPago: tcPago,
-                                    formaPago: formaPago
-                                });
+                                    formaPago: formaPago,
+                                    // Deep Flujo Extractor
+                                    P_Base_Gravada_Total: 0, P_IVA_Total_Origen: 0,
+                                    P_Ret_ISR_Origen: 0, P_Ret_IVA_Origen: 0
+                                };
+
+                                // Leer Nodos Internos del DR (Pago 2.0)
+                                if(prefijo === "pago20") {
+                                    const trasDR = dr.getElementsByTagName("pago20:TrasladoDR");
+                                    for(let tr of trasDR) {
+                                        const tq = parseFloat(tr.getAttribute("TasaOCuotaDR")||0);
+                                        if(tq === 0.16 || tq === 0.08) {
+                                            objPago.P_Base_Gravada_Total += parseFloat(tr.getAttribute("BaseDR")||0);
+                                            objPago.P_IVA_Total_Origen += parseFloat(tr.getAttribute("ImporteDR")||0);
+                                        }
+                                    }
+                                    const retDR = dr.getElementsByTagName("pago20:RetencionDR");
+                                    for(let rdr of retDR) {
+                                        const impDR = rdr.getAttribute("ImpuestoDR");
+                                        const importeDR = parseFloat(rdr.getAttribute("ImporteDR")||0);
+                                        if(impDR === "001") objPago.P_Ret_ISR_Origen += importeDR;
+                                        if(impDR === "002") objPago.P_Ret_IVA_Origen += importeDR;
+                                    }
+                                }
+                                listaPagos.push(objPago);
                             }
                         }
                     };
@@ -312,129 +363,114 @@
                     const relacionados = xmlDoc.getElementsByTagName("cfdi:CfdiRelacionado");
                     for (let rel of relacionados) {
                         listaNotas.push({
-                            uuidFactura: rel.getAttribute("UUID")?.toUpperCase(),
-                            uuidNC: uuid,
-                            montoDescuento: parseFloat(comprobante.getAttribute("Total") || 0), // Simplificado
+                            uuidFactura: rel.getAttribute("UUID")?.toUpperCase(), uuidNC: uuid,
+                            montoDescuento: parseFloat(comprobante.getAttribute("Total") || 0),
                             tcNC: parseFloat(comprobante.getAttribute("TipoCambio") || 1)
                         });
                     }
                 }
             }
 
-            // FASE B: Conciliación (Armado del Libro Mayor)
+            // FASE B: Conciliación Mayor
             listaPagos.forEach(pago => {
                 if(motorFacturas[pago.uuidFactura]) {
                     motorFacturas[pago.uuidFactura].pagadoOrigenAcumulado += pago.montoPagadoDR;
                     motorFacturas[pago.uuidFactura].historialPagos.push(pago);
                 }
             });
-
             listaNotas.forEach(nota => {
                 if(motorFacturas[nota.uuidFactura]) {
-                    // Para simplificar, asumimos que la NC cubre la misma moneda
                     motorFacturas[nota.uuidFactura].ncOrigenAcumulada += nota.montoDescuento;
                     motorFacturas[nota.uuidFactura].historialNC.push(nota);
                 }
             });
 
-            // FASE C: Cálculos Finales, Generación del Dashboard y del CUBO 40 Columnas
+            // FASE C: Motor de Excel (Cubo) y Dashboard
             cuboFiscal40Columnas = [];
             filasTablaUI = [];
-            let optionsMes = new Set();
 
             for (let uuid in motorFacturas) {
                 let f = motorFacturas[uuid];
                 
-                // Conversión Maestro a MXN
-                let tc = (f.F_Moneda === "MXN") ? 1 : f.F_TC;
-                let totalMXN = f.F_Total_Origen * tc;
-                let pagadoMXN = f.pagadoOrigenAcumulado * tc;
-                let ncMXN = f.ncOrigenAcumulada * tc;
+                // Conversiones a MXN
+                let tcF = (f.F_Moneda === "MXN") ? 1 : f.F_TC;
+                let totalMXN = f.F_Total_Origen * tcF;
+                let pagadoMXN = f.pagadoOrigenAcumulado * tcF;
+                let ncMXN = f.ncOrigenAcumulada * tcF;
                 let saldoInsoluto = totalMXN - pagadoMXN - ncMXN;
                 if(saldoInsoluto < 0) saldoInsoluto = 0;
 
-                // Bases MXN
-                let b16_mxn = f.F_Base_16 * tc; let b8_mxn = f.F_Base_8 * tc;
-                let b0_mxn = f.F_Base_0 * tc;   let bEx_mxn = f.F_Base_Exenta * tc;
-                let iva_mxn = f.F_IVA_Total * tc;
-                let baseGravadaUnica = b16_mxn + b8_mxn;
-                let bNoObj_mxn = (f.F_SubTotal_Origen * tc) - b16_mxn - b8_mxn - b0_mxn - bEx_mxn;
+                // Bases MXN (Factura)
+                let b16_mxn = f.F_Base_16 * tcF; let b8_mxn = f.F_Base_8 * tcF;
+                let b0_mxn = f.F_Base_0 * tcF;   let bEx_mxn = f.F_Base_Exenta * tcF;
+                let iva_mxn = f.F_IVA_Total * tcF;
+                let bNoObj_mxn = (f.F_SubTotal_Origen * tcF) - b16_mxn - b8_mxn - b0_mxn - bEx_mxn;
+                let retIsr_mxn = f.F_Ret_ISR * tcF;
+                let retIva_mxn = f.F_Ret_IVA * tcF;
 
-                // ESTATUS LÓGICO (4 Niveles Globales)
-                let estatusGlobal = "";
-                let estatusAuxiliar = "";
+                // ESTATUS LÓGICO
+                let estGlobal = "", estAux = "";
                 let conf = diccionarioManual[uuid];
-
-                if (conf && conf.esCancelado) {
-                    estatusGlobal = "⚫ Cancelado";
-                    estatusAuxiliar = "Cancelado en portal SAT / Tabla Manual";
-                } 
-                else if (conf && conf.estaPagadoManual) {
-                    estatusGlobal = "🟢 Pagado";
-                    estatusAuxiliar = "Saldado Manualmente en Excel";
-                    saldoInsoluto = 0; 
-                }
-                else if (f.F_MetodoPago === "PUE") {
-                    estatusGlobal = "🟢 Pagado";
-                    estatusAuxiliar = "Saldado por Método PUE";
-                    saldoInsoluto = 0;
-                }
-                else if (saldoInsoluto <= 1 && f.ncOrigenAcumulada > 0) {
-                    estatusGlobal = "🟢 Pagado";
-                    estatusAuxiliar = "Cubierto con Nota de Crédito";
-                }
-                else if (saldoInsoluto <= 1) {
-                    estatusGlobal = "🟢 Pagado";
-                    estatusAuxiliar = "Abonos completan Total (PPD)";
-                }
-                else if (saldoInsoluto >= (totalMXN - 1)) {
-                    estatusGlobal = "🔴 No Pagado";
-                    estatusAuxiliar = "Sin Recepción de Pagos";
-                } 
-                else {
-                    estatusGlobal = "🟡 Pago Parcial";
-                    estatusAuxiliar = "Saldos pendientes en PPD";
-                }
-
-                optionsMes.add(f.MesUI);
-
-                // --- 1. DIBUJAR EN EL DASHBOARD UI (Resumen visual) ---
-                let colorSaldo = saldoInsoluto > 1 ? "text-red-600 font-bold" : "text-slate-400";
-                let badgeColor = 
-                    estatusGlobal.includes("🟢") ? "bg-green-100 text-green-800 border-green-200" :
-                    estatusGlobal.includes("🟡") ? "bg-yellow-100 text-yellow-800 border-yellow-200" :
-                    estatusGlobal.includes("🔴") ? "bg-red-100 text-red-800 border-red-200" :
-                    "bg-gray-100 text-gray-800 border-gray-200";
-
-                let htmlFila = `
-                    <tr class="hover:bg-blue-50 transition border-b" data-mes="${f.MesUI}" data-estatus="${estatusGlobal}">
-                        <td class="p-4 font-mono text-xs text-slate-500">${f.F_RFC_Prov}</td>
-                        <td class="p-4 truncate max-w-[200px]" title="${f.F_Nombre_Prov}">${f.F_Nombre_Prov}</td>
-                        <td class="p-4">${f.MesUI}</td>
-                        <td class="p-4"><span class="px-2 py-1 bg-slate-100 rounded text-xs text-slate-600">${f.Tasa_Dominante}</span></td>
-                        <td class="p-4 text-right tabular-nums">$${totalMXN.toLocaleString('es-MX', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
-                        <td class="p-4 text-right tabular-nums text-slate-500">$${iva_mxn.toLocaleString('es-MX', {minimumFractionDigits: 2})}</td>
-                        <td class="p-4 text-right tabular-nums ${colorSaldo}">$${saldoInsoluto.toLocaleString('es-MX', {minimumFractionDigits: 2})}</td>
-                        <td class="p-4 text-center"><span class="px-3 py-1 border rounded-full text-xs font-semibold ${badgeColor}">${estatusGlobal}</span></td>
-                        <td class="p-4 text-xs text-slate-500 italic">${estatusAuxiliar}</td>
-                    </tr>
-                `;
-                filasTablaUI.push(htmlFila);
-
-                // --- 2. GENERAR EL CUBO FISCAL EXCEL (Las 40 Columnas) ---
-                // Para no tener datos duplicados, usamos la técnica [IndicePago] = 1 de tu Power Query.
                 
-                // Función Helper para crear la fila de 40 columnas
-                const crearFilaCubo = (esIndice1, refREP = null, refNC = null) => {
+                if (conf && conf.esCancelado) { estGlobal = "⚫ Cancelado"; estAux = "Cancelado en portal SAT/Manual"; } 
+                else if (conf && conf.estaPagadoManual) { estGlobal = "🟢 Pagado"; estAux = "Saldado Manualmente en Excel"; saldoInsoluto = 0; }
+                else if (f.F_MetodoPago === "PUE") { estGlobal = "🟢 Pagado"; estAux = "Saldado por Método PUE"; saldoInsoluto = 0; }
+                else if (saldoInsoluto <= 1 && f.ncOrigenAcumulada > 0) { estGlobal = "🟢 Pagado"; estAux = "Cubierto con Nota de Crédito"; }
+                else if (saldoInsoluto <= 1) { estGlobal = "🟢 Pagado"; estAux = "Abonos completan Total (PPD)"; }
+                else if (saldoInsoluto >= (totalMXN - 1)) { estGlobal = "🔴 No Pagado"; estAux = "Sin Recepción de Pagos"; } 
+                else { estGlobal = "🟡 Pago Parcial"; estAux = "Saldos pendientes en PPD"; }
+
+                // BUILDER UI FECHAS HÍBRIDAS
+                let uiFechas = `<div class="font-semibold text-slate-700">${f.F_FechaEmision}</div>`;
+                let uiPagosMeses = [];
+                f.historialPagos.forEach(p => {
+                    uiFechas += `<div class="text-[10px] text-blue-600 mt-0.5">↪ Pago: ${p.fechaPago}</div>`;
+                    if(p.fechaPago) uiPagosMeses.push(`${new Date(p.fechaPago).getFullYear()}-${String(new Date(p.fechaPago).getMonth()+1).padStart(2,'0')}`);
+                });
+                
+                // Si es PUE, el mes de pago UI asume el mes de emisión
+                if(f.F_MetodoPago === "PUE") uiPagosMeses.push(f.MesUI_Val);
+
+                // --- GENERAR FILAS DEL CUBO EXCEL ---
+                const crearFilaCubo = (esPrimerAbono, refREP = null, refNC = null) => {
+                    // Auditoría Cambiaria (Si hay pago en USD, buscar en diccionario)
+                    let p_tc_banco = refREP ? refREP.tcPago : (f.F_MetodoPago==="PUE" ? tcF : 0);
+                    let monedaPago = refREP ? refREP.monedaPago : (f.F_MetodoPago==="PUE" ? f.F_Moneda : null);
+                    let fechaPagoClean = refREP ? refREP.fechaPago : (f.F_MetodoPago==="PUE" ? f.F_FechaEmision : null);
+                    
+                    let tc_contable = 1;
+                    if(monedaPago && monedaPago !== "MXN" && fechaPagoClean) {
+                        const llaveTC = `${fechaPagoClean}_${monedaPago}`;
+                        if(diccionarioTC[llaveTC]) tc_contable = diccionarioTC[llaveTC];
+                        else tc_contable = 0; // 0 forzará una alarma en el Excel
+                    }
+
+                    // Flujos del Pago
+                    let p_impPagado_orig = refREP ? refREP.montoPagadoDR : (f.F_MetodoPago==="PUE" && esPrimerAbono ? f.F_Total_Origen : 0);
+                    let p_impPagado_mxn = p_impPagado_orig * p_tc_banco;
+                    
+                    let p_baseG_total = refREP ? refREP.P_Base_Gravada_Total : (f.F_MetodoPago==="PUE" && esPrimerAbono ? b16_mxn+b8_mxn : 0);
+                    let p_iva_total_origen = refREP ? refREP.P_IVA_Total_Origen : (f.F_MetodoPago==="PUE" && esPrimerAbono ? iva_mxn/tcF : 0);
+                    let p_iva_total_mxn = p_iva_total_origen * p_tc_banco;
+                    
+                    let p_ret_isr_mxn = refREP ? (refREP.P_Ret_ISR_Origen * p_tc_banco) : (f.F_MetodoPago==="PUE" && esPrimerAbono ? retIsr_mxn : 0);
+                    let p_ret_iva_mxn = refREP ? (refREP.P_Ret_IVA_Origen * p_tc_banco) : (f.F_MetodoPago==="PUE" && esPrimerAbono ? retIva_mxn : 0);
+
+                    // Diferencias
+                    let fluc_sat = (p_impPagado_orig * p_tc_banco) - (p_impPagado_orig * tcF);
+                    let dif_aud = (p_impPagado_orig * p_tc_banco) - (p_impPagado_orig * tc_contable);
+                    let dif_aud_iva = (p_iva_total_origen * p_tc_banco) - (p_iva_total_origen * tc_contable);
+                    if(tc_contable === 0) { dif_aud = "⚠️ Faltó Capturar TC"; dif_aud_iva = "⚠️ Faltó Capturar TC"; }
+
                     let fila = {
-                        "Estatus Global": estatusGlobal,
-                        "Estatus Auxiliar": estatusAuxiliar,
+                        "Estatus Global": estGlobal,
+                        "Estatus Auxiliar": estAux,
                         "F_AñoEmision": f.F_AñoEmision,
                         "F_MesEmision": f.F_MesEmision,
-                        "P_AñoPago": refREP ? new Date(refREP.fechaPago).getFullYear() : (f.F_MetodoPago === "PUE" ? f.F_AñoEmision : null),
-                        "P_MesPago": refREP ? new Date(refREP.fechaPago).getMonth() + 1 : (f.F_MetodoPago === "PUE" ? f.F_MesEmision : null),
+                        "P_AñoPago": fechaPagoClean ? new Date(fechaPagoClean).getFullYear() : null,
+                        "P_MesPago": fechaPagoClean ? new Date(fechaPagoClean).getMonth() + 1 : null,
                         "F_FechaEmision": f.F_FechaEmision,
-                        "P_FechaPago": refREP ? refREP.fechaPago : (f.F_MetodoPago === "PUE" ? f.F_FechaEmision : null),
+                        "P_FechaPago": fechaPagoClean,
                         "F_UsoCFDI": f.F_UsoCFDI,
                         "F_MetodoPago": f.F_MetodoPago,
                         "P_FormaPago": refREP ? refREP.formaPago : f.F_FormaPago,
@@ -443,76 +479,124 @@
                         "F_UUID": uuid,
                         "P_UUID_REP": refNC ? "Aplica a: " + uuid : (refREP ? refREP.uuidREP : (f.F_MetodoPago === "PUE" ? "PUE (Cobro Inmediato)" : "Sin Pago")),
                         "UUID_Presentacion": refNC ? uuid : uuid, 
+                        "F_Conceptos": f.F_Conceptos_Full,
                         "F_Moneda": f.F_Moneda,
-                        "F_TC": tc,
-                        
-                        // MATRIZ ÚNICA (Condicionada a Indice 1)
-                        "F_Total_Origen_Unico": esIndice1 ? f.F_Total_Origen : 0,
-                        "F_Total_MXN_Unico": esIndice1 ? totalMXN : 0,
-                        "F_Base_Gravada_Unica": esIndice1 ? baseGravadaUnica : 0,
-                        "F_IVA_Total_Unico": esIndice1 ? iva_mxn : 0,
-                        "F_Base_0_MXN": esIndice1 ? b0_mxn : 0,
-                        "F_Base_Exenta_MXN": esIndice1 ? bEx_mxn : 0,
-                        "F_Base_NoObjeto_MXN": esIndice1 ? bNoObj_mxn : 0,
-                        
-                        // AUDITORÍA CAMBIARIA
-                        "P_MonedaPago": refREP ? refREP.monedaPago : (f.F_MetodoPago==="PUE" ? f.F_Moneda : null),
-                        "P_TC_Pago": refREP ? refREP.tcPago : (f.F_MetodoPago==="PUE" ? tc : 0),
-                        "TC_Contable_Final": 1, // Se calcularía cruzando con diccionarioTC
-                        "Fluctuacion_Cambiaria_SAT": 0, // Fórmula matemática
-                        
-                        // PAGOS
-                        "P_ImpPagado_Origen": refREP ? refREP.montoPagadoDR : (f.F_MetodoPago==="PUE" && esIndice1 ? f.F_Total_Origen : 0)
+                        "F_TC": tcF,
+                        // MATRIZ ÚNICA (Condicionada a esPrimerAbono)
+                        "F_Total_Origen_Unico": esPrimerAbono ? f.F_Total_Origen : 0,
+                        "F_Total_MXN_Unico": esPrimerAbono ? totalMXN : 0,
+                        "F_Base_Gravada_Unica": esPrimerAbono ? (b16_mxn + b8_mxn) : 0,
+                        "F_IVA_Total_Unico": esPrimerAbono ? iva_mxn : 0,
+                        "F_Ret_ISR_Unica": esPrimerAbono ? retIsr_mxn : 0,
+                        "F_Ret_IVA_Unica": esPrimerAbono ? retIva_mxn : 0,
+                        "F_Base_0_MXN": esPrimerAbono ? b0_mxn : 0,
+                        "F_Base_Exenta_MXN": esPrimerAbono ? bEx_mxn : 0,
+                        "F_Base_NoObjeto_MXN": esPrimerAbono ? bNoObj_mxn : 0,
+                        // AUDITORÍA
+                        "P_MonedaPago": monedaPago,
+                        "P_TC_Pago": p_tc_banco,
+                        "TC_Contable_Final": tc_contable,
+                        "Diferencia_TC_Auditoria": dif_aud,
+                        "Diferencia_TC_Auditoria_IVA": dif_aud_iva,
+                        "Fluctuacion_Cambiaria_SAT": fluc_sat,
+                        // FLUJO EFECTIVO (Flujo Profundo REP 2.0)
+                        "P_ImpPagado_Origen": p_impPagado_orig,
+                        "P_ImpPagado_MXN": p_impPagado_mxn,
+                        "P_Base_Gravada_Total": p_baseG_total,
+                        "P_IVA_Total": p_iva_total_mxn,
+                        "P_Ret_ISR_MXN": p_ret_isr_mxn,
+                        "P_Ret_IVA_MXN": p_ret_iva_mxn
                     };
 
-                    // Ajuste Notas de Crédito (Multiplicar provisión por -1)
+                    // Ajuste Negativo Notas Crédito
                     if (refNC) {
-                        let factorDesc = refNC.montoDescuento / f.F_Total_Origen;
+                        let fD = refNC.montoDescuento / f.F_Total_Origen;
                         fila["F_Total_Origen_Unico"] = refNC.montoDescuento * -1;
                         fila["F_Total_MXN_Unico"] = (refNC.montoDescuento * refNC.tcNC) * -1;
-                        fila["F_Base_Gravada_Unica"] = (baseGravadaUnica * factorDesc) * -1;
-                        fila["F_IVA_Total_Unico"] = (iva_mxn * factorDesc) * -1;
+                        fila["F_Base_Gravada_Unica"] = ((b16_mxn + b8_mxn) * fD) * -1;
+                        fila["F_IVA_Total_Unico"] = (iva_mxn * fD) * -1;
+                        fila["F_Ret_ISR_Unica"] = (retIsr_mxn * fD) * -1;
+                        fila["F_Ret_IVA_Unica"] = (retIva_mxn * fD) * -1;
+                        // Anular flujos de caja en NC
+                        fila["P_ImpPagado_Origen"] = 0; fila["P_ImpPagado_MXN"]=0; fila["P_IVA_Total"]=0; 
                     }
-
                     cuboFiscal40Columnas.push(fila);
                 };
 
-                // Lógica de llenado de filas para el Cubo
+                // Despliegue de filas Excel
                 if (f.historialPagos.length === 0 && f.historialNC.length === 0) {
-                    crearFilaCubo(true, null, null); // Indice 1, Sin Pagos
+                    crearFilaCubo(true, null, null); 
                 } else {
-                    let esPrimero = true;
-                    f.historialPagos.forEach(p => { crearFilaCubo(esPrimero, p, null); esPrimero = false; });
-                    f.historialNC.forEach(nc => { crearFilaCubo(esPrimero, null, nc); esPrimero = false; }); // NC genera filas adicionales
+                    let esPrim = true;
+                    f.historialPagos.forEach(p => { crearFilaCubo(esPrim, p, null); esPrim = false; });
+                    f.historialNC.forEach(nc => { crearFilaCubo(esPrim, null, nc); esPrim = false; }); 
                 }
+
+                // DIBUJAR UI DASHBOARD
+                let colorSaldo = saldoInsoluto > 1 ? "text-red-600 font-bold" : "text-slate-400";
+                let badgeColor = 
+                    estGlobal.includes("🟢") ? "bg-green-100 text-green-800" :
+                    estGlobal.includes("🟡") ? "bg-yellow-100 text-yellow-800" :
+                    estGlobal.includes("🔴") ? "bg-red-100 text-red-800" : "bg-gray-100 text-gray-800";
+
+                let strPagosAttr = uiPagosMeses.join(","); // Para el filtro JS
+
+                let htmlFila = `
+                    <tr class="hover:bg-blue-50/50 transition border-b" 
+                        data-metodo="${f.F_MetodoPago}" data-moneda="${f.F_Moneda}" 
+                        data-mesem="${f.MesUI_Val}" data-mespa="${strPagosAttr}" data-estatus="${estGlobal}" data-uuid="${uuid}">
+                        <td class="p-3">
+                            <div class="font-mono text-blue-700 font-bold">${f.F_RFC_Prov}</div>
+                            <div class="text-[10px] text-slate-500 truncate w-40" title="${f.F_Nombre_Prov}">${f.F_Nombre_Prov}</div>
+                        </td>
+                        <td class="p-3 leading-tight">${uiFechas}</td>
+                        <td class="p-3 text-[10px] text-slate-500 whitespace-normal w-48">${f.F_Conceptos_UI}</td>
+                        <td class="p-3"><span class="px-2 py-1 bg-slate-100 rounded text-[10px] text-slate-600 font-semibold">${f.Tasa_Dominante}</span></td>
+                        <td class="p-3 text-right tabular-nums font-semibold">$${totalMXN.toLocaleString('es-MX', {minimumFractionDigits:2})}</td>
+                        <td class="p-3 text-right tabular-nums text-slate-500">$${iva_mxn.toLocaleString('es-MX', {minimumFractionDigits:2})}</td>
+                        <td class="p-3 text-right tabular-nums ${colorSaldo}">$${saldoInsoluto.toLocaleString('es-MX', {minimumFractionDigits:2})}</td>
+                        <td class="p-3 text-center"><span class="px-2 py-1 rounded text-[10px] font-bold ${badgeColor}">${estGlobal}</span></td>
+                        <td class="p-3 text-[10px] text-slate-500 italic whitespace-normal w-32">${estAux}</td>
+                    </tr>`;
+                filasTablaUI.push(htmlFila);
             }
 
-            // --- 3. ACTUALIZAR INTERFAZ Y FILTROS ---
-            document.getElementById('dashFacturas').innerText = contadores.I.toLocaleString();
-            document.getElementById('dashPagos').innerText = contadores.P.toLocaleString(); 
-            document.getElementById('dashNC').innerText = contadores.E.toLocaleString();
+            // ACTUALIZAR DASHBOARD Y SELECTS
+            document.getElementById('dashI').innerText = contadores.I.toLocaleString();
+            document.getElementById('dashP').innerText = contadores.P.toLocaleString(); 
+            document.getElementById('dashE').innerText = contadores.E.toLocaleString();
             
-            // Llenar combo de meses ordenados
-            const cboMes = document.getElementById('filtroMes');
-            cboMes.innerHTML = '<option value="ALL">Todos los Meses</option>';
-            Array.from(optionsMes).sort().forEach(m => {
-                if(m) cboMes.innerHTML += `<option value="${m}">${m}</option>`;
-            });
+            const fillSelect = (id, setObjs, label) => {
+                const el = document.getElementById(id);
+                el.innerHTML = `<option value="ALL">${label} (Todas)</option>`;
+                Array.from(setObjs).map(JSON.parse).sort((a,b) => a.v > b.v ? 1 : -1).forEach(item => {
+                    el.innerHTML += `<option value="${item.v}">${item.t}</option>`;
+                });
+            };
+            
+            fillSelect('fMesEmision', setMesEm, 'Emisión');
+            fillSelect('fMesPago', setMesPa, 'Pago');
+            
+            const elMon = document.getElementById('fMoneda');
+            elMon.innerHTML = `<option value="ALL">Moneda (Todas)</option>`;
+            Array.from(setMonedas).sort().forEach(m => elMon.innerHTML += `<option value="${m}">${m}</option>`);
 
             renderizarTablaUI();
             btnDescargar.disabled = false;
-            document.getElementById('fileInput').value = ""; // Reset
         });
 
         // ==========================================
         // 3. MOTOR DE FILTROS EN TIEMPO REAL
         // ==========================================
-        const filtroMes = document.getElementById('filtroMes');
-        const filtroEstatus = document.getElementById('filtroEstatus');
+        const filtros = ['fMetodo', 'fMoneda', 'fMesEmision', 'fMesPago', 'fEstatus'];
+        filtros.forEach(f => document.getElementById(f).addEventListener('change', renderizarTablaUI));
 
         function renderizarTablaUI() {
-            const vMes = filtroMes.value;
-            const vEst = filtroEstatus.value;
+            const vMet = document.getElementById('fMetodo').value;
+            const vMon = document.getElementById('fMoneda').value;
+            const vEm = document.getElementById('fMesEmision').value;
+            const vPa = document.getElementById('fMesPago').value;
+            const vEst = document.getElementById('fEstatus').value;
             
             let htmlFinal = "";
             let domNode = document.createElement('tbody');
@@ -520,28 +604,27 @@
             
             Array.from(domNode.children).forEach(tr => {
                 let show = true;
-                if (vMes !== "ALL" && tr.getAttribute('data-mes') !== vMes) show = false;
+                if (vMet !== "ALL" && tr.getAttribute('data-metodo') !== vMet) show = false;
+                if (vMon !== "ALL" && tr.getAttribute('data-moneda') !== vMon) show = false;
+                if (vEm !== "ALL" && tr.getAttribute('data-mesem') !== vEm) show = false;
+                if (vPa !== "ALL" && !tr.getAttribute('data-mespa').includes(vPa)) show = false;
                 if (vEst !== "ALL" && tr.getAttribute('data-estatus') !== vEst) show = false;
                 if (show) htmlFinal += tr.outerHTML;
             });
 
-            if(htmlFinal === "") htmlFinal = "<tr><td colspan='9' class='p-8 text-center text-slate-500'>No hay resultados para estos filtros.</td></tr>";
+            if(htmlFinal === "") htmlFinal = "<tr><td colspan='9' class='p-8 text-center text-slate-500'>Sin resultados para los filtros actuales.</td></tr>";
             document.getElementById('cuerpoTabla').innerHTML = htmlFinal;
         }
 
-        filtroMes.addEventListener('change', renderizarTablaUI);
-        filtroEstatus.addEventListener('change', renderizarTablaUI);
-
         // ==========================================
-        // 4. EXPORTACIÓN A EXCEL (El Cubo Fiscal 40 Col)
+        // 4. EXPORTACIÓN A EXCEL (CUBO INTOCABLE)
         // ==========================================
         btnDescargar.addEventListener('click', () => {
             if (cuboFiscal40Columnas.length === 0) return;
             const worksheet = XLSX.utils.json_to_sheet(cuboFiscal40Columnas);
             const workbook = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(workbook, worksheet, "Cubo_Fiscal");
-            
-            XLSX.writeFile(workbook, "Cubo_Fiscal_Conciliado.xlsx");
+            XLSX.writeFile(workbook, "Cubo_Fiscal_ERP.xlsx");
         });
     </script>
 </body>
