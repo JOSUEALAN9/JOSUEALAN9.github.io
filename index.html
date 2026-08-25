@@ -35,9 +35,14 @@
                     <span class="animate-pulse">⏳</span> Conectando BD...
                 </div>
                 
-                <button id="btnAbrirCarga" class="bg-blue-600 hover:bg-blue-500 text-white font-semibold py-2 px-6 rounded shadow transition flex items-center gap-2">
+                <button id="btnAbrirCarga" class="bg-blue-600 hover:bg-blue-500 text-white font-semibold py-2 px-4 rounded shadow transition flex items-center gap-2">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
-                    Cargar Archivos XML
+                    Adjuntar XML
+                </button>
+
+                <button id="btnLimpiarDatos" class="bg-slate-700 hover:bg-red-600 text-white font-semibold py-2 px-4 rounded shadow transition flex items-center gap-2" title="Resetear todo el tablero">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                    Limpiar
                 </button>
             </div>
         </div>
@@ -59,7 +64,7 @@
                 <div><p class="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Total Procesados</p><p id="dashTotal" class="text-xl font-black text-emerald-600">0</p></div>
             </div>
 
-            <!-- Filtros Inteligentes Bidireccionales -->
+            <!-- Filtros Inteligentes -->
             <div class="flex items-center gap-3 flex-wrap flex-grow justify-end">
                 
                 <!-- Componente Custom Multi-Select Proveedor -->
@@ -123,33 +128,54 @@
         </div>
     </main>
 
-    <!-- MODAL DE CARGA -->
+    <!-- MODAL DE CARGA (Staging Area) -->
     <div id="modalCarga" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden justify-center items-center">
-        <div class="bg-white w-full max-w-xl rounded-2xl shadow-2xl p-6 relative">
+        <div class="bg-white w-full max-w-2xl rounded-2xl shadow-2xl p-6 relative">
             <button id="btnCerrarModal" class="absolute top-4 right-4 text-gray-400 hover:text-red-500"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
-            <h2 class="text-xl font-bold mb-1">Ingesta de Datos</h2>
-            <p class="text-xs text-gray-500 mb-4">Selecciona los archivos XML puros (Facturas, Pagos y Notas de Crédito).</p>
+            <h2 class="text-xl font-bold mb-1">Ingesta de Datos (Bóveda Temporal)</h2>
+            <p class="text-xs text-gray-500 mb-6">Acumula todos los XML o carpetas que necesites. Cuando termines, presiona Procesar.</p>
             
-            <div id="dropzone" class="border-2 border-dashed border-blue-400 bg-blue-50 hover:bg-blue-100 transition rounded-xl p-10 text-center relative cursor-pointer">
-                <svg class="w-12 h-12 text-blue-500 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                <span class="text-blue-800 font-bold text-sm block">Arrastra los XML aquí o haz clic</span>
-                <input type="file" id="fileInput" multiple accept=".xml" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
+            <div class="flex gap-4 mb-6">
+                <button onclick="document.getElementById('fileInputArr').click()" class="flex-1 bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-700 font-semibold py-4 rounded-xl transition flex flex-col items-center gap-2">
+                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"></path></svg>
+                    Añadir Archivos Sueltos
+                </button>
+                <button onclick="document.getElementById('folderInputArr').click()" class="flex-1 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-700 font-semibold py-4 rounded-xl transition flex flex-col items-center gap-2">
+                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path></svg>
+                    Añadir Carpeta Completa
+                </button>
+            </div>
+
+            <!-- Contenedor Oculto de Inputs -->
+            <input type="file" id="fileInputArr" multiple accept=".xml" class="hidden">
+            <input type="file" id="folderInputArr" webkitdirectory directory multiple accept=".xml" class="hidden">
+
+            <!-- Footer del Modal -->
+            <div class="bg-slate-50 p-4 rounded-xl border flex justify-between items-center">
+                <div class="text-sm text-slate-600">
+                    XMLs listos en bóveda: <span id="lblStagedCount" class="text-2xl font-black text-emerald-600 ml-2">0</span>
+                </div>
+                <button id="btnProcesarStaged" disabled class="bg-emerald-600 hover:bg-emerald-500 disabled:bg-gray-300 text-white font-bold py-2.5 px-8 rounded-lg shadow transition">
+                    Procesar Conciliación
+                </button>
             </div>
         </div>
     </div>
 
-    <!-- LÓGICA JAVASCRIPT MASTER 4.0 -->
+    <!-- LÓGICA JAVASCRIPT MASTER 5.0 -->
     <script>
         const URL_CANCELADOS = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQGT9Z6555p79zjIeU63m4bMCeNT5G3mO0p-tPjWLRIw-HJRJg3vK9ZVd6zfsRceSk5g-nruArhkhKB/pub?gid=0&single=true&output=csv"; 
         const URL_TC = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQGT9Z6555p79zjIeU63m4bMCeNT5G3mO0p-tPjWLRIw-HJRJg3vK9ZVd6zfsRceSk5g-nruArhkhKB/pub?gid=1256836069&single=true&output=csv";
 
         let diccionarioManual = {};
         let diccionarioTC = {};
+        
+        // Variables de Memoria Global
+        let xmlFilesStage = []; // Bóveda temporal
         let motorFacturas = {};
-        let cuboFiscal41Columnas = []; 
+        let cuboFiscal44Columnas = []; 
         let rawDataForFilters = []; 
-        let proveedoresSeleccionados = new Set(); // Estado del filtro múltiple
-
+        let proveedoresSeleccionados = new Set(); 
         const mesesTexto = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
 
         function formatDateToMX(isoString) {
@@ -158,7 +184,6 @@
             if (parts.length !== 3) return isoString;
             return `${parts[2].padStart(2,'0')}/${parts[1].padStart(2,'0')}/${parts[0]}`;
         }
-
         function formatearFechaCSV(fechaStr) {
             if (!fechaStr) return "";
             const partes = fechaStr.trim().split('/');
@@ -196,12 +221,53 @@
         }
         window.onload = cargarGoogleSheets;
 
-        // UI: MODAL
+        // UI: MODAL & LIMPIAR DATOS
         const modal = document.getElementById('modalCarga');
         document.getElementById('btnAbrirCarga').onclick = () => modal.classList.add('modal-active');
         document.getElementById('btnCerrarModal').onclick = () => modal.classList.remove('modal-active');
 
-        // UI: DROPDOWN PROVEEDOR LOGIC
+        document.getElementById('btnLimpiarDatos').addEventListener('click', () => {
+            // Bomba de Vacío
+            xmlFilesStage = [];
+            motorFacturas = {};
+            cuboFiscal44Columnas = [];
+            rawDataForFilters = [];
+            proveedoresSeleccionados.clear();
+            
+            document.getElementById('lblStagedCount').innerText = "0";
+            document.getElementById('btnProcesarStaged').disabled = true;
+            document.getElementById('btnDescargar').disabled = true;
+            
+            ['dashI', 'dashP', 'dashE', 'dashTotal'].forEach(id => document.getElementById(id).innerText = "0");
+            document.getElementById('cuerpoTabla').innerHTML = `<tr><td colspan="10" class="p-12 text-center text-slate-400 font-medium">Sube tus XML para iniciar el motor analítico...</td></tr>`;
+            
+            ['fMetodo', 'fMoneda', 'fMesEmision', 'fMesPago', 'fEstatus'].forEach(id => {
+                document.getElementById(id).innerHTML = `<option value="ALL">Todas</option>`;
+            });
+            actualizarEtiquetaProveedor();
+            document.getElementById('listProv').innerHTML = '<li class="p-2 text-gray-400 text-center">Esperando datos...</li>';
+        });
+
+        // ==========================================
+        // MOTOR DE ACUMULACIÓN (STAGING)
+        // ==========================================
+        const handleFilesSelected = (e) => {
+            const archivos = Array.from(e.target.files).filter(f => f.name.toLowerCase().endsWith('.xml'));
+            // Filtrar duplicados en la bóveda por nombre y tamaño
+            archivos.forEach(newFile => {
+                if(!xmlFilesStage.some(staged => staged.name === newFile.name && staged.size === newFile.size)) {
+                    xmlFilesStage.push(newFile);
+                }
+            });
+            document.getElementById('lblStagedCount').innerText = xmlFilesStage.length;
+            document.getElementById('btnProcesarStaged').disabled = xmlFilesStage.length === 0;
+            e.target.value = ""; // Reset input
+        };
+
+        document.getElementById('fileInputArr').addEventListener('change', handleFilesSelected);
+        document.getElementById('folderInputArr').addEventListener('change', handleFilesSelected);
+
+        // UI: DROPDOWN PROVEEDOR
         const btnProvDropdown = document.getElementById('btnProvDropdown');
         const panelProvDropdown = document.getElementById('panelProvDropdown');
         const searchProv = document.getElementById('searchProv');
@@ -229,8 +295,6 @@
         function renderizarListaProveedores(setProveedoresDisponibles) {
             const listProv = document.getElementById('listProv');
             listProv.innerHTML = '';
-            
-            // Convertimos a array y ordenamos alfabéticamente
             let arrProvs = Array.from(setProveedoresDisponibles).sort();
             
             if(arrProvs.length === 0) {
@@ -246,8 +310,6 @@
                     <input type="checkbox" value="${p}" class="prov-checkbox mt-0.5 rounded border-gray-300 text-blue-600 focus:ring-blue-500" ${isChecked}>
                     <label class="cursor-pointer text-gray-700 w-full truncate" title="${p}">${p}</label>
                 `;
-                
-                // Click en la fila completa selecciona el checkbox
                 li.addEventListener('click', (e) => {
                     if(e.target.tagName !== 'INPUT') {
                         const cb = li.querySelector('input');
@@ -255,17 +317,13 @@
                         cb.dispatchEvent(new Event('change'));
                     }
                 });
-
-                // Cambio en el checkbox actualiza el Set y la Matriz
                 li.querySelector('input').addEventListener('change', (e) => {
                     if(e.target.checked) proveedoresSeleccionados.add(e.target.value);
                     else proveedoresSeleccionados.delete(e.target.value);
-                    
                     actualizarEtiquetaProveedor();
                     actualizarSelectsDesdeData(false);
                     renderizarTablaUI();
                 });
-
                 listProv.appendChild(li);
             });
         }
@@ -277,28 +335,24 @@
             else lbl.textContent = `${proveedoresSeleccionados.size} Seleccionados`;
         }
 
-        // PROCESAMIENTO PRINCIPAL
-        const fileInput = document.getElementById('fileInput');
-        const btnDescargar = document.getElementById('btnDescargar');
-        
-        fileInput.addEventListener('change', async (e) => {
-            const archivosXML = Array.from(e.target.files).filter(f => f.name.toLowerCase().endsWith('.xml'));
-            if (archivosXML.length === 0) return;
+        // ==========================================
+        // PROCESAMIENTO PRINCIPAL (Desde Bóveda)
+        // ==========================================
+        document.getElementById('btnProcesarStaged').addEventListener('click', async () => {
             modal.classList.remove('modal-active');
-            
-            document.getElementById('cuerpoTabla').innerHTML = `<tr><td colspan="10" class="p-12 text-center text-blue-600 font-bold text-lg animate-pulse">Analizando ${archivosXML.length} archivos...</td></tr>`;
+            document.getElementById('cuerpoTabla').innerHTML = `<tr><td colspan="10" class="p-12 text-center text-blue-600 font-bold text-lg animate-pulse">Analizando ${xmlFilesStage.length} archivos...</td></tr>`;
             await new Promise(r => setTimeout(r, 50)); 
 
             const parser = new DOMParser();
             motorFacturas = {};
             let listaPagos = [];
             let listaNotas = [];
-            let contadores = { I: 0, P: 0, E: 0, Total: archivosXML.length };
+            let contadores = { I: 0, P: 0, E: 0, Total: xmlFilesStage.length };
             rawDataForFilters = []; 
             proveedoresSeleccionados.clear();
             actualizarEtiquetaProveedor();
 
-            for (let file of archivosXML) {
+            for (let file of xmlFilesStage) {
                 const text = await file.text();
                 const xmlDoc = parser.parseFromString(text, "text/xml");
                 
@@ -308,7 +362,10 @@
 
                 const tipo = comprobante.getAttribute("TipoDeComprobante")?.toUpperCase();
                 const uuid = timbre.getAttribute("UUID")?.toUpperCase();
+                const folioFactura = comprobante.getAttribute("Folio") || "-";
+                
                 const emisor = xmlDoc.getElementsByTagName("cfdi:Emisor")[0] || xmlDoc.getElementsByTagName("Emisor")[0];
+                const receptor = xmlDoc.getElementsByTagName("cfdi:Receptor")[0] || xmlDoc.getElementsByTagName("Receptor")[0];
                 
                 const nodosPago20 = xmlDoc.getElementsByTagName("pago20:Pago");
                 const nodosPago10 = xmlDoc.getElementsByTagName("pago10:Pago");
@@ -367,15 +424,18 @@
 
                     motorFacturas[uuid] = {
                         F_UUID: uuid,
-                        F_RFC_Prov: emisor?.getAttribute("Rfc"),
+                        F_Folio: folioFactura,
+                        F_RFC_Prov: emisor?.getAttribute("Rfc") || "SIN RFC",
                         F_Nombre_Prov: emisor?.getAttribute("Nombre") || "SIN NOMBRE", 
+                        F_RFC_Receptor: receptor?.getAttribute("Rfc") || "SIN RFC",
+                        F_Nombre_Receptor: receptor?.getAttribute("Nombre") || "SIN NOMBRE", 
                         F_FechaEmision: fechaCruda,
                         F_AñoEmision: fechaCruda ? new Date(fechaCruda).getFullYear() : "",
                         F_MesEmision: fechaCruda ? new Date(fechaCruda).getMonth() + 1 : "",
                         MesUI_Val: valMesEm, MesUI_Txt: txtMesEm,
-                        F_UsoCFDI: xmlDoc.getElementsByTagName("cfdi:Receptor")[0]?.getAttribute("UsoCFDI"),
+                        F_UsoCFDI: receptor?.getAttribute("UsoCFDI"),
                         F_MetodoPago: comprobante.getAttribute("MetodoPago")?.toUpperCase() || "PPD", 
-                        F_FormaPago: comprobante.getAttribute("FormaPago"),
+                        F_FormaPago: comprobante.getAttribute("FormaPago") || "",
                         F_Moneda: comprobante.getAttribute("Moneda") || "MXN",
                         F_TC: parseFloat(comprobante.getAttribute("TipoCambio") || 1),
                         F_Total_Origen: parseFloat(comprobante.getAttribute("Total") || 0),
@@ -384,7 +444,6 @@
                         F_Conceptos_Full: strConceptosFull,
                         F_Base_16: base16, F_Base_8: base8, F_Base_0: base0, F_Base_Exenta: baseEx, 
                         F_IVA_Total: ivaMXN, F_Ret_ISR: retISR, F_Ret_IVA: retIVA,
-                        
                         historialPagos: [], historialNC: [], pagadoOrigenAcumulado: 0, ncOrigenAcumulada: 0
                     };
                 } 
@@ -450,6 +509,7 @@
                 }
             }
 
+            // FASE B: Conciliación Mayor
             listaPagos.forEach(pago => {
                 if(motorFacturas[pago.uuidFactura]) {
                     motorFacturas[pago.uuidFactura].pagadoOrigenAcumulado += pago.montoPagadoDR;
@@ -463,7 +523,8 @@
                 }
             });
 
-            cuboFiscal41Columnas = [];
+            // FASE C: Cubo Fiscal (44 Columnas)
+            cuboFiscal44Columnas = [];
             
             for (let uuid in motorFacturas) {
                 let f = motorFacturas[uuid];
@@ -539,9 +600,12 @@
                         "P_FechaPago": fechaPagoClean,
                         "F_UsoCFDI": f.F_UsoCFDI,
                         "F_MetodoPago": f.F_MetodoPago,
-                        "P_FormaPago": refREP ? refREP.formaPago : f.F_FormaPago,
+                        "F_FormaPago": f.F_FormaPago,
+                        "P_FormaPago": refREP ? refREP.formaPago : (f.F_MetodoPago === "PUE" ? f.F_FormaPago : null),
                         "F_RFC_Prov": f.F_RFC_Prov,
                         "F_Nombre_Prov": f.F_Nombre_Prov,
+                        "F_RFC_Receptor": f.F_RFC_Receptor,
+                        "F_Nombre_Receptor": f.F_Nombre_Receptor,
                         "F_UUID": uuid,
                         "P_UUID_REP": refNC ? "Aplica a: " + uuid : (refREP ? refREP.uuidREP : (f.F_MetodoPago === "PUE" ? "PUE (Cobro Inmediato)" : "Sin Pago")),
                         "UUID_Presentacion": refNC ? uuid : uuid, 
@@ -582,7 +646,7 @@
                         fila["F_Ret_IVA_Unica"] = (retIva_mxn * fD) * -1;
                         fila["P_ImpPagado_Origen"] = 0; fila["P_ImpPagado_MXN"]=0; fila["P_IVA_Total"]=0; 
                     }
-                    cuboFiscal41Columnas.push(fila);
+                    cuboFiscal44Columnas.push(fila);
                 };
 
                 if (f.historialPagos.length === 0 && f.historialNC.length === 0) {
@@ -618,12 +682,10 @@
                                 <div class="text-[10px] text-slate-500 truncate w-48" title="${f.F_Nombre_Prov}">${f.F_Nombre_Prov}</div>
                             </td>
                             <td class="p-3 align-top">
-                                <!-- UUID sin folio, partiendo la cadena de manera segura -->
                                 <div class="text-[11px] text-slate-700 font-mono break-all whitespace-normal max-w-[140px] leading-tight" title="Doble clic para copiar">${uuid}</div>
                             </td>
                             <td class="p-3 leading-tight align-top w-28">${uiFechas}</td>
                             <td class="p-3 align-top">
-                                <!-- Conceptos con clamp multi-linea -->
                                 <div class="text-[10px] text-slate-500 whitespace-normal w-64 clamp-2 leading-relaxed" title="${f.F_Conceptos_Full}">${f.F_Conceptos_Full}</div>
                             </td>
                             <td class="p-3 align-top"><span class="px-2 py-1 bg-slate-100 rounded text-[10px] text-slate-600 font-semibold border">${f.Tasa_Dominante}</span></td>
@@ -646,7 +708,7 @@
         });
 
         // ==========================================
-        // 3. MATRIZ REACTIVA DE FILTROS CRUZADOS (Incluye Proveedores)
+        // 3. MATRIZ REACTIVA DE FILTROS CRUZADOS
         // ==========================================
         const filtrosIds = ['fMetodo', 'fMoneda', 'fMesEmision', 'fMesPago', 'fEstatus'];
         filtrosIds.forEach(id => document.getElementById(id).addEventListener('change', () => {
@@ -669,14 +731,9 @@
                 let matchEm  = (vEm === "ALL" || f.mesEmisionVal === vEm);
                 let matchPa  = (vPa === "ALL" || f.mesesPagos.includes(vPa));
                 let matchEst = (vEst === "ALL" || f.estatus === vEst);
-                
-                // matchProv evalúa si la fila pasa el filtro ACTUAL de proveedores, o si no hay ninguno seleccionado.
                 let matchProv = (proveedoresSeleccionados.size === 0 || proveedoresSeleccionados.has(f.proveedor));
 
-                // Para el Select Múltiple de Proveedor: Evaluamos todos LOS DEMÁS filtros, pero IGNORAMOS el estado del filtro proveedor actual.
                 if(matchMet && matchMon && matchEm && matchPa && matchEst) sets.prov.add(f.proveedor);
-
-                // Para los Selects Standard: Evaluamos todos los demás (incluyendo Proveedor)
                 if(matchProv && matchMon && matchEm && matchPa && matchEst) sets.met.add(f.metodo);
                 if(matchProv && matchMet && matchEm && matchPa && matchEst) sets.mon.add(f.moneda);
                 if(matchProv && matchMet && matchMon && matchPa && matchEst && f.mesEmisionVal) sets.em.add(JSON.stringify({v: f.mesEmisionVal, t: f.mesEmisionTxt}));
@@ -686,7 +743,6 @@
                 if(matchProv && matchMet && matchMon && matchEm && matchPa) sets.est.add(f.estatus);
             });
 
-            // Actualizar la lista custom de proveedores
             renderizarListaProveedores(sets.prov);
 
             const rellenar = (id, setObjs, label, curVal) => {
@@ -746,11 +802,11 @@
         }
 
         // ==========================================
-        // 4. EXPORTACIÓN A EXCEL
+        // 4. EXPORTACIÓN A EXCEL (CUBO 44 COL)
         // ==========================================
         btnDescargar.addEventListener('click', () => {
-            if (cuboFiscal41Columnas.length === 0) return;
-            const worksheet = XLSX.utils.json_to_sheet(cuboFiscal41Columnas);
+            if (cuboFiscal44Columnas.length === 0) return;
+            const worksheet = XLSX.utils.json_to_sheet(cuboFiscal44Columnas);
             const workbook = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(workbook, worksheet, "Cubo_Fiscal");
             XLSX.writeFile(workbook, "Cubo_Fiscal_ERP.xlsx");
