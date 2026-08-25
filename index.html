@@ -12,7 +12,6 @@
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
         ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
         .modal-active { display: flex !important; }
-        /* Truncado inteligente multilínea para conceptos */
         .clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
     </style>
 </head>
@@ -62,13 +61,36 @@
 
             <!-- Filtros Inteligentes Bidireccionales -->
             <div class="flex items-center gap-3 flex-wrap flex-grow justify-end">
-                <select id="fMetodo" class="bg-gray-50 border border-gray-300 text-xs rounded-lg p-2 outline-none"><option value="ALL">Método (Todos)</option></select>
-                <select id="fMoneda" class="bg-gray-50 border border-gray-300 text-xs rounded-lg p-2 outline-none"><option value="ALL">Moneda (Todas)</option></select>
-                <select id="fMesEmision" class="bg-gray-50 border border-gray-300 text-xs rounded-lg p-2 outline-none"><option value="ALL">Emisión (Todas)</option></select>
-                <select id="fMesPago" class="bg-gray-50 border border-gray-300 text-xs rounded-lg p-2 outline-none"><option value="ALL">Pago (Todos)</option></select>
-                <select id="fEstatus" class="bg-gray-50 border border-gray-300 text-xs rounded-lg p-2 outline-none"><option value="ALL">Estatus (Todos)</option></select>
+                
+                <!-- Componente Custom Multi-Select Proveedor -->
+                <div class="relative inline-block text-left z-20" id="provDropdownContainer">
+                    <button id="btnProvDropdown" class="bg-gray-50 border border-gray-300 text-xs rounded-lg p-2.5 outline-none flex items-center justify-between w-40 hover:bg-gray-100 transition">
+                        <span id="lblProvDropdown" class="truncate font-medium text-gray-700">Proveedor (Todos)</span>
+                        <svg class="w-3 h-3 ml-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                    </button>
+                    <div id="panelProvDropdown" class="hidden origin-top-right absolute right-0 mt-2 w-80 rounded-md shadow-2xl bg-white ring-1 ring-black ring-opacity-5 focus:outline-none flex flex-col">
+                        <div class="p-2 border-b">
+                            <input type="text" id="searchProv" class="w-full text-xs border border-gray-300 rounded p-2 focus:outline-none focus:ring-1 focus:ring-blue-500" placeholder="Buscar proveedor...">
+                        </div>
+                        <ul id="listProv" class="max-h-64 overflow-y-auto p-2 text-xs divide-y divide-gray-50">
+                            <li class="p-2 text-gray-400 text-center">Esperando datos...</li>
+                        </ul>
+                    </div>
+                </div>
 
-                <button id="btnDescargar" disabled class="bg-emerald-600 hover:bg-emerald-500 disabled:bg-gray-300 text-white font-bold py-2 px-4 rounded-lg shadow flex items-center gap-2 text-sm ml-2 transition">
+                <select id="fMetodo" class="bg-gray-50 border border-gray-300 text-xs rounded-lg p-2.5 outline-none font-medium text-gray-700"><option value="ALL">Método (Todos)</option><option value="PUE">Solo PUE</option><option value="PPD">Solo PPD</option></select>
+                <select id="fMoneda" class="bg-gray-50 border border-gray-300 text-xs rounded-lg p-2.5 outline-none font-medium text-gray-700"><option value="ALL">Moneda (Todas)</option></select>
+                <select id="fMesEmision" class="bg-gray-50 border border-gray-300 text-xs rounded-lg p-2.5 outline-none font-medium text-gray-700"><option value="ALL">Emisión (Todas)</option></select>
+                <select id="fMesPago" class="bg-gray-50 border border-gray-300 text-xs rounded-lg p-2.5 outline-none font-medium text-gray-700"><option value="ALL">Pago (Todos)</option></select>
+                <select id="fEstatus" class="bg-gray-50 border border-gray-300 text-xs rounded-lg p-2.5 outline-none font-medium text-gray-700">
+                    <option value="ALL">Estatus (Todos)</option>
+                    <option value="🟢 Pagado">🟢 Pagado</option>
+                    <option value="🟡 Pago Parcial">🟡 Pago Parcial</option>
+                    <option value="🔴 No Pagado">🔴 No Pagado</option>
+                    <option value="⚫ Cancelado">⚫ Cancelado</option>
+                </select>
+
+                <button id="btnDescargar" disabled class="bg-emerald-600 hover:bg-emerald-500 disabled:bg-gray-300 text-white font-bold py-2.5 px-4 rounded-lg shadow flex items-center gap-2 text-sm ml-2 transition">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                     Exportar Cubo
                 </button>
@@ -76,16 +98,15 @@
         </div>
 
         <!-- Tabla Dashboard -->
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 flex-grow overflow-hidden flex flex-col">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 flex-grow overflow-hidden flex flex-col z-0">
             <div class="overflow-auto flex-grow relative w-full">
-                <!-- Se fuerza un ancho mínimo amplio para que el scroll horizontal siempre funcione y no aplaste los datos -->
-                <table class="w-full text-left text-xs whitespace-nowrap min-w-[1400px]" id="tablaResultados">
+                <table class="w-full text-left text-xs whitespace-nowrap min-w-[1500px]" id="tablaResultados">
                     <thead class="bg-slate-50 text-slate-600 sticky top-0 z-10 shadow-sm uppercase tracking-wider">
                         <tr>
-                            <th class="p-3 font-semibold border-b w-48">Proveedor</th>
+                            <th class="p-3 font-semibold border-b w-56">Proveedor</th>
                             <th class="p-3 font-semibold border-b w-40">UUID</th>
                             <th class="p-3 font-semibold border-b w-32">Fecha</th>
-                            <th class="p-3 font-semibold border-b w-64">Conceptos</th>
+                            <th class="p-3 font-semibold border-b w-72">Conceptos</th>
                             <th class="p-3 font-semibold border-b w-20">Tasa</th>
                             <th class="p-3 font-semibold border-b text-right w-28">Total MXN</th>
                             <th class="p-3 font-semibold border-b text-right w-28">IVA MXN</th>
@@ -127,10 +148,10 @@
         let motorFacturas = {};
         let cuboFiscal41Columnas = []; 
         let rawDataForFilters = []; 
+        let proveedoresSeleccionados = new Set(); // Estado del filtro múltiple
 
         const mesesTexto = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
 
-        // Formatea "YYYY-MM-DD" a "DD/MM/YYYY" asegurando consistencia
         function formatDateToMX(isoString) {
             if (!isoString) return "";
             const parts = isoString.split('-');
@@ -138,7 +159,6 @@
             return `${parts[2].padStart(2,'0')}/${parts[1].padStart(2,'0')}/${parts[0]}`;
         }
 
-        // Para diccionarios CSV
         function formatearFechaCSV(fechaStr) {
             if (!fechaStr) return "";
             const partes = fechaStr.trim().split('/');
@@ -181,6 +201,82 @@
         document.getElementById('btnAbrirCarga').onclick = () => modal.classList.add('modal-active');
         document.getElementById('btnCerrarModal').onclick = () => modal.classList.remove('modal-active');
 
+        // UI: DROPDOWN PROVEEDOR LOGIC
+        const btnProvDropdown = document.getElementById('btnProvDropdown');
+        const panelProvDropdown = document.getElementById('panelProvDropdown');
+        const searchProv = document.getElementById('searchProv');
+        
+        btnProvDropdown.addEventListener('click', () => {
+            panelProvDropdown.classList.toggle('hidden');
+            if(!panelProvDropdown.classList.hidden) searchProv.focus();
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!document.getElementById('provDropdownContainer').contains(e.target)) {
+                panelProvDropdown.classList.add('hidden');
+            }
+        });
+
+        searchProv.addEventListener('input', (e) => {
+            const term = e.target.value.toLowerCase();
+            const items = document.querySelectorAll('#listProv li');
+            items.forEach(li => {
+                const text = li.textContent.toLowerCase();
+                li.style.display = text.includes(term) ? '' : 'none';
+            });
+        });
+
+        function renderizarListaProveedores(setProveedoresDisponibles) {
+            const listProv = document.getElementById('listProv');
+            listProv.innerHTML = '';
+            
+            // Convertimos a array y ordenamos alfabéticamente
+            let arrProvs = Array.from(setProveedoresDisponibles).sort();
+            
+            if(arrProvs.length === 0) {
+                listProv.innerHTML = '<li class="p-2 text-gray-400 text-center">No hay proveedores en este filtro</li>';
+                return;
+            }
+
+            arrProvs.forEach(p => {
+                const isChecked = proveedoresSeleccionados.has(p) ? 'checked' : '';
+                const li = document.createElement('li');
+                li.className = "px-2 py-1.5 hover:bg-blue-50 cursor-pointer flex items-start gap-2";
+                li.innerHTML = `
+                    <input type="checkbox" value="${p}" class="prov-checkbox mt-0.5 rounded border-gray-300 text-blue-600 focus:ring-blue-500" ${isChecked}>
+                    <label class="cursor-pointer text-gray-700 w-full truncate" title="${p}">${p}</label>
+                `;
+                
+                // Click en la fila completa selecciona el checkbox
+                li.addEventListener('click', (e) => {
+                    if(e.target.tagName !== 'INPUT') {
+                        const cb = li.querySelector('input');
+                        cb.checked = !cb.checked;
+                        cb.dispatchEvent(new Event('change'));
+                    }
+                });
+
+                // Cambio en el checkbox actualiza el Set y la Matriz
+                li.querySelector('input').addEventListener('change', (e) => {
+                    if(e.target.checked) proveedoresSeleccionados.add(e.target.value);
+                    else proveedoresSeleccionados.delete(e.target.value);
+                    
+                    actualizarEtiquetaProveedor();
+                    actualizarSelectsDesdeData(false);
+                    renderizarTablaUI();
+                });
+
+                listProv.appendChild(li);
+            });
+        }
+
+        function actualizarEtiquetaProveedor() {
+            const lbl = document.getElementById('lblProvDropdown');
+            if (proveedoresSeleccionados.size === 0) lbl.textContent = "Proveedor (Todos)";
+            else if (proveedoresSeleccionados.size === 1) lbl.textContent = "1 Seleccionado";
+            else lbl.textContent = `${proveedoresSeleccionados.size} Seleccionados`;
+        }
+
         // PROCESAMIENTO PRINCIPAL
         const fileInput = document.getElementById('fileInput');
         const btnDescargar = document.getElementById('btnDescargar');
@@ -199,8 +295,9 @@
             let listaNotas = [];
             let contadores = { I: 0, P: 0, E: 0, Total: archivosXML.length };
             rawDataForFilters = []; 
+            proveedoresSeleccionados.clear();
+            actualizarEtiquetaProveedor();
 
-            // FASE A: Ingesta
             for (let file of archivosXML) {
                 const text = await file.text();
                 const xmlDoc = parser.parseFromString(text, "text/xml");
@@ -211,7 +308,6 @@
 
                 const tipo = comprobante.getAttribute("TipoDeComprobante")?.toUpperCase();
                 const uuid = timbre.getAttribute("UUID")?.toUpperCase();
-                const folioFactura = comprobante.getAttribute("Folio") || "-";
                 const emisor = xmlDoc.getElementsByTagName("cfdi:Emisor")[0] || xmlDoc.getElementsByTagName("Emisor")[0];
                 
                 const nodosPago20 = xmlDoc.getElementsByTagName("pago20:Pago");
@@ -271,15 +367,14 @@
 
                     motorFacturas[uuid] = {
                         F_UUID: uuid,
-                        F_Folio: folioFactura,
                         F_RFC_Prov: emisor?.getAttribute("Rfc"),
-                        F_Nombre_Prov: emisor?.getAttribute("Nombre")?.substring(0,35), 
+                        F_Nombre_Prov: emisor?.getAttribute("Nombre") || "SIN NOMBRE", 
                         F_FechaEmision: fechaCruda,
                         F_AñoEmision: fechaCruda ? new Date(fechaCruda).getFullYear() : "",
                         F_MesEmision: fechaCruda ? new Date(fechaCruda).getMonth() + 1 : "",
                         MesUI_Val: valMesEm, MesUI_Txt: txtMesEm,
                         F_UsoCFDI: xmlDoc.getElementsByTagName("cfdi:Receptor")[0]?.getAttribute("UsoCFDI"),
-                        F_MetodoPago: comprobante.getAttribute("MetodoPago")?.toUpperCase() || "PPD", // Fallback seguro
+                        F_MetodoPago: comprobante.getAttribute("MetodoPago")?.toUpperCase() || "PPD", 
                         F_FormaPago: comprobante.getAttribute("FormaPago"),
                         F_Moneda: comprobante.getAttribute("Moneda") || "MXN",
                         F_TC: parseFloat(comprobante.getAttribute("TipoCambio") || 1),
@@ -355,7 +450,6 @@
                 }
             }
 
-            // FASE B: Conciliación
             listaPagos.forEach(pago => {
                 if(motorFacturas[pago.uuidFactura]) {
                     motorFacturas[pago.uuidFactura].pagadoOrigenAcumulado += pago.montoPagadoDR;
@@ -369,7 +463,6 @@
                 }
             });
 
-            // FASE C: Preparar Data
             cuboFiscal41Columnas = [];
             
             for (let uuid in motorFacturas) {
@@ -400,7 +493,6 @@
                 else if (saldoInsoluto >= (totalMXN - 1)) { estGlobal = "🔴 No Pagado"; estAux = "Sin Recepción de Pagos"; } 
                 else { estGlobal = "🟡 Pago Parcial"; estAux = "Saldos pendientes en PPD"; }
 
-                // Fechas Híbridas (UI)
                 let uiFechas = `<div class="font-semibold text-slate-700">${formatDateToMX(f.F_FechaEmision)}</div>`;
                 let uiPagosMeses = [];
                 f.historialPagos.forEach(p => {
@@ -409,7 +501,6 @@
                 });
                 if(f.F_MetodoPago === "PUE") uiPagosMeses.push(f.MesUI_Val);
 
-                // --- GENERAR EXCEL ---
                 const crearFilaCubo = (esPrimerAbono, refREP = null, refNC = null) => {
                     let p_tc_banco = refREP ? refREP.tcPago : (f.F_MetodoPago==="PUE" ? tcF : 0);
                     let monedaPago = refREP ? refREP.monedaPago : (f.F_MetodoPago==="PUE" ? f.F_Moneda : null);
@@ -502,7 +593,6 @@
                     f.historialNC.forEach(nc => { crearFilaCubo(esPrim, null, nc); esPrim = false; }); 
                 }
 
-                // DIBUJAR UI DASHBOARD 
                 let colorSaldo = saldoInsoluto > 1 ? "text-red-600 font-bold" : "text-slate-400";
                 let badgeColor = 
                     estGlobal.includes("🟢") ? "bg-green-100 text-green-800" :
@@ -512,6 +602,7 @@
                 let strPagosAttr = uiPagosMeses.join(","); 
 
                 rawDataForFilters.push({
+                    proveedor: f.F_Nombre_Prov,
                     metodo: f.F_MetodoPago,
                     moneda: f.F_Moneda,
                     mesEmisionVal: f.MesUI_Val,
@@ -524,15 +615,15 @@
                             data-mesem="${f.MesUI_Val}" data-mespa="${strPagosAttr}" data-estatus="${estGlobal}">
                             <td class="p-3 align-top">
                                 <div class="font-mono text-blue-700 font-bold">${f.F_RFC_Prov}</div>
-                                <div class="text-[10px] text-slate-500 truncate w-40" title="${f.F_Nombre_Prov}">${f.F_Nombre_Prov}</div>
+                                <div class="text-[10px] text-slate-500 truncate w-48" title="${f.F_Nombre_Prov}">${f.F_Nombre_Prov}</div>
                             </td>
                             <td class="p-3 align-top">
-                                <!-- UUID completo partido, sin folio -->
-                                <div class="text-[11px] text-slate-700 font-mono break-all whitespace-normal max-w-[150px] leading-tight" title="Doble clic para copiar">${uuid}</div>
+                                <!-- UUID sin folio, partiendo la cadena de manera segura -->
+                                <div class="text-[11px] text-slate-700 font-mono break-all whitespace-normal max-w-[140px] leading-tight" title="Doble clic para copiar">${uuid}</div>
                             </td>
-                            <td class="p-3 leading-tight align-top">${uiFechas}</td>
+                            <td class="p-3 leading-tight align-top w-28">${uiFechas}</td>
                             <td class="p-3 align-top">
-                                <!-- Conceptos completos con clamp css -->
+                                <!-- Conceptos con clamp multi-linea -->
                                 <div class="text-[10px] text-slate-500 whitespace-normal w-64 clamp-2 leading-relaxed" title="${f.F_Conceptos_Full}">${f.F_Conceptos_Full}</div>
                             </td>
                             <td class="p-3 align-top"><span class="px-2 py-1 bg-slate-100 rounded text-[10px] text-slate-600 font-semibold border">${f.Tasa_Dominante}</span></td>
@@ -550,17 +641,17 @@
             document.getElementById('dashE').innerText = contadores.E.toLocaleString();
             document.getElementById('dashTotal').innerText = contadores.Total.toLocaleString();
             
-            // Iniciar Motor de Filtros
             actualizarSelectsDesdeData(true);
             btnDescargar.disabled = false;
         });
 
         // ==========================================
-        // 3. MATRIZ REACTIVA DE FILTROS CRUZADOS
+        // 3. MATRIZ REACTIVA DE FILTROS CRUZADOS (Incluye Proveedores)
         // ==========================================
         const filtrosIds = ['fMetodo', 'fMoneda', 'fMesEmision', 'fMesPago', 'fEstatus'];
         filtrosIds.forEach(id => document.getElementById(id).addEventListener('change', () => {
             actualizarSelectsDesdeData(false);
+            renderizarTablaUI();
         }));
 
         function actualizarSelectsDesdeData(isInitial) {
@@ -570,47 +661,46 @@
             const vPa  = isInitial ? "ALL" : document.getElementById('fMesPago').value;
             const vEst = isInitial ? "ALL" : document.getElementById('fEstatus').value;
 
-            // Conjuntos para almacenar opciones válidas
-            let sets = { met: new Set(), mon: new Set(), em: new Set(), pa: new Set(), est: new Set() };
-            let htmlFilas = "";
+            let sets = { prov: new Set(), met: new Set(), mon: new Set(), em: new Set(), pa: new Set(), est: new Set() };
 
             rawDataForFilters.forEach(f => {
-                // Evaluar si esta fila pasa el filtro de CADA categoría
                 let matchMet = (vMet === "ALL" || f.metodo === vMet);
                 let matchMon = (vMon === "ALL" || f.moneda === vMon);
                 let matchEm  = (vEm === "ALL" || f.mesEmisionVal === vEm);
                 let matchPa  = (vPa === "ALL" || f.mesesPagos.includes(vPa));
                 let matchEst = (vEst === "ALL" || f.estatus === vEst);
+                
+                // matchProv evalúa si la fila pasa el filtro ACTUAL de proveedores, o si no hay ninguno seleccionado.
+                let matchProv = (proveedoresSeleccionados.size === 0 || proveedoresSeleccionados.has(f.proveedor));
 
-                // Filtrado Cruzado Bidireccional:
-                // Si cumple con todos LOS DEMÁS filtros, su valor es válido para el select actual
-                if(matchMon && matchEm && matchPa && matchEst) sets.met.add(f.metodo);
-                if(matchMet && matchEm && matchPa && matchEst) sets.mon.add(f.moneda);
-                if(matchMet && matchMon && matchPa && matchEst && f.mesEmisionVal) sets.em.add(JSON.stringify({v: f.mesEmisionVal, t: f.mesEmisionTxt}));
-                if(matchMet && matchMon && matchEm && matchEst) f.mesesPagos.forEach(mp => {
+                // Para el Select Múltiple de Proveedor: Evaluamos todos LOS DEMÁS filtros, pero IGNORAMOS el estado del filtro proveedor actual.
+                if(matchMet && matchMon && matchEm && matchPa && matchEst) sets.prov.add(f.proveedor);
+
+                // Para los Selects Standard: Evaluamos todos los demás (incluyendo Proveedor)
+                if(matchProv && matchMon && matchEm && matchPa && matchEst) sets.met.add(f.metodo);
+                if(matchProv && matchMet && matchEm && matchPa && matchEst) sets.mon.add(f.moneda);
+                if(matchProv && matchMet && matchMon && matchPa && matchEst && f.mesEmisionVal) sets.em.add(JSON.stringify({v: f.mesEmisionVal, t: f.mesEmisionTxt}));
+                if(matchProv && matchMet && matchMon && matchEm && matchEst) f.mesesPagos.forEach(mp => {
                     if(mp) sets.pa.add(JSON.stringify({v: mp, t: `${mesesTexto[parseInt(mp.split('-')[1])-1]} ${mp.split('-')[0]}`}));
                 });
-                if(matchMet && matchMon && matchEm && matchPa) sets.est.add(f.estatus);
-
-                // Render de la fila (debe cumplir TODOS los filtros)
-                if(matchMet && matchMon && matchEm && matchPa && matchEst) {
-                    htmlFilas += f.html;
-                }
+                if(matchProv && matchMet && matchMon && matchEm && matchPa) sets.est.add(f.estatus);
             });
 
-            // Función constructora de Selects
+            // Actualizar la lista custom de proveedores
+            renderizarListaProveedores(sets.prov);
+
             const rellenar = (id, setObjs, label, curVal) => {
                 const el = document.getElementById(id);
                 el.innerHTML = `<option value="ALL">${label} (Todas)</option>`;
                 let found = false;
                 
                 let arr = Array.from(setObjs);
-                if(arr.length > 0 && arr[0].startsWith('{')) { // Es Fecha JSON
+                if(arr.length > 0 && arr[0].startsWith('{')) { 
                     arr.map(JSON.parse).sort((a,b) => a.v > b.v ? 1 : -1).forEach(i => {
                         el.innerHTML += `<option value="${i.v}">${i.t}</option>`;
                         if(i.v === curVal) found = true;
                     });
-                } else { // Es Texto Simple
+                } else { 
                     arr.sort().forEach(m => {
                         el.innerHTML += `<option value="${m}">${m}</option>`;
                         if(m === curVal) found = true;
@@ -618,8 +708,8 @@
                 }
                 
                 if(!isInitial) {
-                    if(found) el.value = curVal; // Mantener selección si aún es válida
-                    else el.value = "ALL"; // Reset si la selección ya no existe en la matriz
+                    if(found) el.value = curVal; 
+                    else el.value = "ALL"; 
                 }
             };
 
@@ -629,8 +719,30 @@
             rellenar('fMesPago', sets.pa, 'Pago', vPa);
             rellenar('fEstatus', sets.est, 'Estatus', vEst);
 
-            if(htmlFilas === "") htmlFilas = "<tr><td colspan='10' class='p-8 text-center text-slate-500'>Sin resultados para los filtros actuales.</td></tr>";
-            document.getElementById('cuerpoTabla').innerHTML = htmlFilas;
+            if(isInitial) renderizarTablaUI();
+        }
+
+        function renderizarTablaUI() {
+            const vMet = document.getElementById('fMetodo').value;
+            const vMon = document.getElementById('fMoneda').value;
+            const vEm = document.getElementById('fMesEmision').value;
+            const vPa = document.getElementById('fMesPago').value;
+            const vEst = document.getElementById('fEstatus').value;
+            
+            let htmlFinal = "";
+            rawDataForFilters.forEach(f => {
+                let show = true;
+                if (proveedoresSeleccionados.size > 0 && !proveedoresSeleccionados.has(f.proveedor)) show = false;
+                if (vMet !== "ALL" && f.metodo !== vMet) show = false;
+                if (vMon !== "ALL" && f.moneda !== vMon) show = false;
+                if (vEm !== "ALL" && f.mesEmisionVal !== vEm) show = false;
+                if (vPa !== "ALL" && !f.mesesPagos.includes(vPa)) show = false;
+                if (vEst !== "ALL" && f.estatus !== vEst) show = false;
+                if (show) htmlFinal += f.html;
+            });
+
+            if(htmlFinal === "") htmlFinal = "<tr><td colspan='10' class='p-12 text-center text-slate-500'>Sin resultados para los filtros actuales.</td></tr>";
+            document.getElementById('cuerpoTabla').innerHTML = htmlFinal;
         }
 
         // ==========================================
