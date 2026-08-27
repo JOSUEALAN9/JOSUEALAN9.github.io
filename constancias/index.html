@@ -9,8 +9,8 @@
         body { -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none; user-select: none; }
         .fade-in { animation: fadeIn 0.3s ease-in-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
-        /* Efecto al arrastrar archivos */
         .drag-over { background-color: #eff6ff !important; border-color: #3b82f6 !important; }
+        .modal-active { display: flex !important; }
     </style>
 </head>
 <body class="bg-gray-50 text-gray-800 font-sans h-screen flex flex-col overflow-hidden relative">
@@ -29,8 +29,11 @@
             </div>
             
             <div class="flex items-center gap-4">
-                <a href="../" class="text-slate-300 hover:text-white font-semibold text-sm mr-4 flex items-center gap-1 transition">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg> Menú Principal
+                <button onclick="abrirInstructivo()" class="text-blue-300 hover:text-white font-semibold text-sm mr-2 flex items-center gap-1 transition">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg> Instructivo
+                </button>
+                <a href="../" class="text-slate-300 hover:text-white font-semibold text-sm mr-2 flex items-center gap-1 transition">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg> Menú
                 </a>
                 <button onclick="limpiarFormularios()" class="bg-slate-700 hover:bg-red-600 text-white font-semibold py-2 px-4 rounded shadow transition flex items-center gap-2">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
@@ -44,7 +47,6 @@
     <main class="flex-grow flex items-center justify-center p-6 w-full relative overflow-y-auto">
         <div class="bg-white rounded-xl shadow-md border border-gray-200 w-full max-w-2xl overflow-hidden flex flex-col">
             
-            <!-- Pestañas -->
             <div class="flex border-b bg-slate-50">
                 <button id="tab-ind" onclick="switchTab('individual')" class="flex-1 py-4 text-sm font-bold text-blue-700 border-b-2 border-blue-600 transition flex justify-center items-center gap-2 bg-white">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
@@ -56,7 +58,6 @@
                 </button>
             </div>
 
-            <!-- ALERTAS -->
             <div id="alert-container" class="hidden px-6 pt-4">
                 <div id="alert-message" class="p-4 rounded-lg text-sm font-semibold flex items-center gap-2"></div>
             </div>
@@ -89,18 +90,30 @@
                     </div>
                 </div>
 
-                <div class="mt-4">
+                <div class="bg-slate-50 border border-slate-200 rounded-lg p-4">
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-3">Documentos a procesar</label>
+                    <div class="flex flex-col gap-2">
+                        <label class="flex items-center gap-2 cursor-pointer">
+                            <input type="checkbox" id="chk_constancia" checked class="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500">
+                            <span class="text-sm font-semibold text-slate-700">Constancia de Situación Fiscal</span>
+                        </label>
+                        <label class="flex items-center gap-2 cursor-pointer">
+                            <input type="checkbox" id="chk_opinion" class="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500">
+                            <span class="text-sm font-semibold text-slate-700">Opinión de Cumplimiento (32-D)</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="mt-2">
                     <button type="submit" id="btn-individual" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3.5 rounded-lg shadow-md transition disabled:bg-slate-400 disabled:cursor-not-allowed flex justify-center items-center gap-2">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-                        Descargar Constancia
+                        Generar Documentos
                     </button>
                 </div>
             </form>
 
             <!-- MODO MASIVO -->
             <form id="form-masivo" class="p-8 hidden flex-col gap-6 fade-in" onsubmit="procesarMasivo(event)">
-                
-                <!-- Botón de Plantilla -->
                 <div class="flex justify-between items-center bg-blue-50 border border-blue-100 p-4 rounded-lg">
                     <div>
                         <h4 class="text-sm font-bold text-blue-800">1. Prepara tu información</h4>
@@ -111,7 +124,6 @@
                     </a>
                 </div>
 
-                <!-- Zona de Arrastre -->
                 <div>
                     <h4 class="text-sm font-bold text-slate-700 mb-2">2. Carga tu carpeta de trabajo</h4>
                     <div id="dropzone" onclick="document.getElementById('folder_input').click()" class="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center cursor-pointer hover:bg-gray-50 transition bg-white relative">
@@ -122,7 +134,6 @@
                         <p class="text-xs text-gray-400 mt-1">O haz clic para seleccionarla desde tus documentos</p>
                     </div>
 
-                    <!-- Resumen de archivos cargados -->
                     <div id="resumen-carga" class="hidden mt-3 bg-slate-50 p-3 rounded border text-xs">
                         <div class="flex justify-between font-bold text-slate-700">
                             <span>Archivos detectados: <span id="lbl-total-archivos" class="text-blue-600">0</span></span>
@@ -134,19 +145,63 @@
                 <div class="mt-2">
                     <button type="submit" id="btn-masivo" disabled class="w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-3.5 rounded-lg shadow-md transition disabled:bg-gray-300 disabled:cursor-not-allowed flex justify-center items-center gap-2">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
-                        Procesar Lote y Generar ZIP
+                        Procesar Descargas
                     </button>
                 </div>
             </form>
-
         </div>
     </main>
 
+    <!-- MODAL INSTRUCTIVO -->
+    <div id="modal-instrucciones" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden justify-center items-center p-4">
+        <div class="bg-white w-full max-w-3xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            <div class="p-5 border-b flex justify-between items-center bg-slate-50">
+                <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                    <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    Instrucciones de Lote Masivo
+                </h2>
+                <button onclick="cerrarInstructivo()" class="text-gray-400 hover:text-red-500 transition"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
+            </div>
+            
+            <div class="p-6 overflow-y-auto flex flex-col gap-8">
+                <div>
+                    <h3 class="font-bold text-blue-700 flex items-center gap-2"><span class="bg-blue-100 text-blue-800 px-2 py-0.5 rounded text-sm">Paso 1</span> Prepara tu archivo Excel</h3>
+                    <p class="text-sm text-gray-600 mt-2 leading-relaxed">Descarga la plantilla y captura únicamente el RFC y la contraseña de cada empresa. Guarda el archivo con el nombre <strong>directorio.xlsx</strong>.</p>
+                    <div class="w-full h-40 bg-gray-100 rounded-lg mt-3 flex items-center justify-center border border-gray-200 text-gray-400 text-xs italic overflow-hidden">
+                        <!-- Reemplaza el src con tu imagen real en GitHub -->
+                        <img src="" alt="Ejemplo Excel" class="hidden w-full h-full object-cover">
+                        [Coloca aquí la ruta de tu imagen del Excel]
+                    </div>
+                </div>
+
+                <div>
+                    <h3 class="font-bold text-blue-700 flex items-center gap-2"><span class="bg-blue-100 text-blue-800 px-2 py-0.5 rounded text-sm">Paso 2</span> Agrupa las firmas</h3>
+                    <p class="text-sm text-gray-600 mt-2 leading-relaxed">Coloca el Excel <strong>directorio.xlsx</strong> y los archivos de las e.firmas (.cer y .key) dentro de una misma carpeta. No importa si las firmas están en subcarpetas, el sistema las detectará automáticamente usando el RFC.</p>
+                    <div class="w-full h-40 bg-gray-100 rounded-lg mt-3 flex items-center justify-center border border-gray-200 text-gray-400 text-xs italic overflow-hidden">
+                        <img src="" alt="Ejemplo Carpeta" class="hidden w-full h-full object-cover">
+                        [Coloca aquí la ruta de tu imagen de la carpeta]
+                    </div>
+                </div>
+
+                <div>
+                    <h3 class="font-bold text-blue-700 flex items-center gap-2"><span class="bg-blue-100 text-blue-800 px-2 py-0.5 rounded text-sm">Paso 3</span> Arrastra y Procesa</h3>
+                    <p class="text-sm text-gray-600 mt-2 leading-relaxed">Arrastra la carpeta completa hacia el recuadro punteado. El sistema empaquetará los datos internamente de forma segura. Al finalizar, recibirás un <strong>archivo ZIP</strong> con todos los PDF descargados.</p>
+                </div>
+            </div>
+            
+            <div class="p-4 border-t bg-gray-50 flex justify-end">
+                <button onclick="cerrarInstructivo()" class="bg-slate-800 hover:bg-slate-700 text-white font-bold py-2 px-6 rounded-lg transition">Entendido</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         const API_URL = "http://127.0.0.1:8000";
-        let archivosGlobalesMasivo = []; // Almacenará los archivos listos para enviar
+        let archivosGlobalesMasivo = [];
 
-        // Lógica de UI (Pestañas, Alertas, Contraseña)
+        function abrirInstructivo() { document.getElementById('modal-instrucciones').classList.add('modal-active'); }
+        function cerrarInstructivo() { document.getElementById('modal-instrucciones').classList.remove('modal-active'); }
+
         function switchTab(modo) {
             document.getElementById('tab-ind').className = modo === 'individual' ? "flex-1 py-4 text-sm font-bold text-blue-700 border-b-2 border-blue-600 transition flex justify-center items-center gap-2 bg-white" : "flex-1 py-4 text-sm font-semibold text-slate-500 border-b-2 border-transparent hover:text-slate-700 transition flex justify-center items-center gap-2";
             document.getElementById('tab-mas').className = modo === 'masivo' ? "flex-1 py-4 text-sm font-bold text-blue-700 border-b-2 border-blue-600 transition flex justify-center items-center gap-2 bg-white" : "flex-1 py-4 text-sm font-semibold text-slate-500 border-b-2 border-transparent hover:text-slate-700 transition flex justify-center items-center gap-2";
@@ -179,62 +234,37 @@
 
         function ocultarAlerta() { document.getElementById('alert-container').classList.add('hidden'); }
 
-        // --- LÓGICA DROPZONE Y LECTURA DE CARPETA ---
         const dropzone = document.getElementById('dropzone');
-
-        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-            dropzone.addEventListener(eventName, preventDefaults, false);
-        });
-
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => { dropzone.addEventListener(eventName, preventDefaults, false); });
         function preventDefaults(e) { e.preventDefault(); e.stopPropagation(); }
+        ['dragenter', 'dragover'].forEach(eventName => { dropzone.addEventListener(eventName, () => dropzone.classList.add('drag-over'), false); });
+        ['dragleave', 'drop'].forEach(eventName => { dropzone.addEventListener(eventName, () => dropzone.classList.remove('drag-over'), false); });
 
-        ['dragenter', 'dragover'].forEach(eventName => {
-            dropzone.addEventListener(eventName, () => dropzone.classList.add('drag-over'), false);
-        });
-
-        ['dragleave', 'drop'].forEach(eventName => {
-            dropzone.addEventListener(eventName, () => dropzone.classList.remove('drag-over'), false);
-        });
-
-        // Captura al arrastrar la carpeta físicamente
         dropzone.addEventListener('drop', async (e) => {
             let files = [];
             const items = e.dataTransfer.items;
             for (let i = 0; i < items.length; i++) {
                 const item = items[i].webkitGetAsEntry();
-                if (item) {
-                    const extracted = await readEntry(item);
-                    files = files.concat(extracted);
-                }
+                if (item) { files = files.concat(await readEntry(item)); }
             }
             procesarArchivosLeidos(files);
         });
 
-        // Captura mediante el botón nativo <input webkitdirectory>
-        function leerCarpeta(e) {
-            const files = Array.from(e.target.files);
-            procesarArchivosLeidos(files);
-        }
+        function leerCarpeta(e) { procesarArchivosLeidos(Array.from(e.target.files)); }
 
-        // Lector recursivo para Drag and Drop
         async function readEntry(entry) {
-            if (entry.isFile) {
-                return new Promise(resolve => entry.file(resolve));
-            } else if (entry.isDirectory) {
+            if (entry.isFile) { return new Promise(resolve => entry.file(resolve)); } 
+            else if (entry.isDirectory) {
                 const dirReader = entry.createReader();
                 const entries = await new Promise(resolve => dirReader.readEntries(resolve));
                 let files = [];
-                for (let i = 0; i < entries.length; i++) {
-                    files = files.concat(await readEntry(entries[i]));
-                }
+                for (let i = 0; i < entries.length; i++) { files = files.concat(await readEntry(entries[i])); }
                 return files;
             }
         }
 
-        // Filtra y valida los archivos en pantalla
         function procesarArchivosLeidos(files) {
             archivosGlobalesMasivo = files.filter(f => f.name.endsWith('.cer') || f.name.endsWith('.key') || f.name.endsWith('.xlsx'));
-            
             const tieneExcel = archivosGlobalesMasivo.some(f => f.name === 'directorio.xlsx');
             
             document.getElementById('resumen-carga').classList.remove('hidden');
@@ -250,7 +280,6 @@
             }
         }
 
-        // --- COMUNICACIÓN CON BACKEND ---
         function setLoading(btnId, isLoading, originalHTML) {
             const btn = document.getElementById(btnId);
             if(isLoading) {
@@ -273,6 +302,8 @@
             formData.append("password", document.getElementById('password').value);
             formData.append("cer", document.getElementById('archivo_cer').files[0]);
             formData.append("key", document.getElementById('archivo_key').files[0]);
+            formData.append("descargar_csf", document.getElementById('chk_constancia').checked);
+            formData.append("descargar_32d", document.getElementById('chk_opinion').checked);
 
             try {
                 const response = await fetch(`${API_URL}/api/constancia/individual`, { method: "POST", body: formData });
@@ -281,9 +312,12 @@
                     const url = window.URL.createObjectURL(blob);
                     const a = document.createElement('a');
                     a.href = url;
-                    a.download = `Constancia_${document.getElementById('rfc').value.toUpperCase()}.pdf`;
+                    
+                    const isZip = document.getElementById('chk_constancia').checked && document.getElementById('chk_opinion').checked;
+                    a.download = isZip ? `Documentos_${document.getElementById('rfc').value.toUpperCase()}.zip` : `Constancia_${document.getElementById('rfc').value.toUpperCase()}.pdf`;
+                    
                     a.click();
-                    mostrarAlerta('success', '¡Constancia descargada con éxito!');
+                    mostrarAlerta('success', '¡Proceso completado con éxito!');
                 } else {
                     mostrarAlerta('error', "Credenciales rechazadas o servidor SAT saturado.");
                 }
@@ -298,10 +332,7 @@
             setLoading('btn-masivo', true, btnOriginalHTML);
 
             const formData = new FormData();
-            // Empaqueta los archivos crudos y los manda directo a Python
-            archivosGlobalesMasivo.forEach(file => {
-                formData.append("archivos_lote", file);
-            });
+            archivosGlobalesMasivo.forEach(file => { formData.append("archivos_lote", file); });
 
             try {
                 const response = await fetch(`${API_URL}/api/constancia/masivo_crudo`, { method: "POST", body: formData });
@@ -310,7 +341,7 @@
                     const url = window.URL.createObjectURL(blob);
                     const a = document.createElement('a');
                     a.href = url;
-                    a.download = `Resultados_Constancias_SALA.zip`;
+                    a.download = `Resultados_Constancias_Lote.zip`;
                     a.click();
                     mostrarAlerta('success', 'Lote completado. Se descargó el archivo ZIP.');
                 } else {
