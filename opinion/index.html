@@ -21,7 +21,6 @@
         <div class="max-w-[1600px] mx-auto flex justify-between items-center">
             <div class="flex items-center gap-4">
                 <div class="bg-emerald-600 p-2 rounded-lg">
-                    <!-- Icono de Escudo/Verificación para Cumplimiento -->
                     <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
                 </div>
                 <div>
@@ -120,17 +119,22 @@
             <!-- MODO MASIVO -->
             <form id="form-masivo" class="p-8 hidden flex-col gap-6 fade-in" onsubmit="procesarMasivo(event)">
                 
-                <div class="bg-emerald-50 border border-emerald-100 p-4 rounded-lg flex flex-col gap-2">
-                    <div class="flex justify-between items-center border-b border-emerald-200 pb-2">
+                <div class="bg-emerald-50 border border-emerald-100 p-4 rounded-lg flex flex-col gap-3">
+                    <div class="flex justify-between items-center border-b border-emerald-200 pb-3">
                         <h4 class="text-sm font-bold text-emerald-800 flex items-center gap-1">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg> 
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg> 
                             Instrucciones de Lote
                         </h4>
-                        <button type="button" onclick="abrirInstructivo()" class="bg-white border border-emerald-200 text-emerald-600 hover:bg-emerald-100 text-xs font-bold py-1.5 px-3 rounded flex items-center gap-1 transition">
-                            Ver Instructivo Completo
-                        </button>
+                        <div class="flex gap-2">
+                            <button type="button" onclick="abrirInstructivo()" class="bg-white border border-emerald-200 text-emerald-600 hover:bg-emerald-100 text-xs font-bold py-1.5 px-3 rounded flex items-center transition shadow-sm">
+                                Ver Instructivo Completo
+                            </button>
+                            <a href="assets/Plantilla_Masiva.xlsx" download class="bg-emerald-600 border border-emerald-600 text-white hover:bg-emerald-700 text-xs font-bold py-1.5 px-3 rounded flex items-center transition shadow-sm">
+                                Descargar Plantilla
+                            </a>
+                        </div>
                     </div>
-                    <ul class="text-xs text-emerald-800 space-y-1 mt-1 list-disc list-inside">
+                    <ul class="text-xs text-emerald-800 space-y-1 list-disc list-inside">
                         <li>Guarda el archivo <strong>directorio.xlsx</strong> con 4 columnas: RFC, Contraseña, Archivo_CER, Archivo_KEY.</li>
                         <li>Coloca el Excel y todas las carpetas/archivos de e.firmas dentro de una carpeta maestra.</li>
                         <li>Arrastra esa carpeta entera al recuadro inferior. El sistema validará los archivos antes de procesar.</li>
@@ -159,7 +163,7 @@
                 <div class="mt-2">
                     <button type="submit" id="btn-masivo" disabled class="w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-3.5 rounded-lg shadow-md transition disabled:bg-gray-300 disabled:cursor-not-allowed flex justify-center items-center gap-2">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-                        Procesar Descarga Masiva
+                        Procesar Descarga
                     </button>
                 </div>
             </form>
@@ -185,7 +189,6 @@
                     </div>
                     <p class="text-sm text-gray-600 leading-relaxed">Captura el RFC, Contraseña, y los nombres exactos de los archivos .cer y .key. Guarda el archivo con el nombre <strong>directorio.xlsx</strong>.</p>
                     <div class="w-full h-40 bg-gray-100 rounded-lg mt-3 flex items-center justify-center border border-gray-200 text-gray-400 text-xs italic overflow-hidden">
-                        <!-- Reemplaza el src con tu imagen real en GitHub -->
                         <img src="" alt="Ejemplo Excel" class="hidden w-full h-full object-cover">
                         [Coloca aquí la ruta de tu imagen del Excel]
                     </div>
@@ -251,7 +254,6 @@
 
         function ocultarAlerta() { document.getElementById('alert-container').classList.add('hidden'); }
 
-        // --- LÓGICA DROPZONE Y EXCEL VALIDATION ---
         const dropzone = document.getElementById('dropzone');
         ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => { dropzone.addEventListener(eventName, preventDefaults, false); });
         function preventDefaults(e) { e.preventDefault(); e.stopPropagation(); }
@@ -360,7 +362,6 @@
             reader.readAsArrayBuffer(excelFile);
         }
 
-        // --- PETICIONES A BACKEND ---
         function toggleLoadingState(btnId, isLoading, originalHTML) {
             const btn = document.getElementById(btnId);
             if(isLoading) {
@@ -383,23 +384,18 @@
             formData.append("password", document.getElementById('password').value);
             formData.append("cer", document.getElementById('archivo_cer').files[0]);
             formData.append("key", document.getElementById('archivo_key').files[0]);
-            
-            // Opinion es mandatoria, Constancia es el checkbox opcional
             formData.append("descargar_32d", "true");
             formData.append("descargar_csf", document.getElementById('chk_constancia').checked);
 
             try {
-                // Endpoint ajustado a "opinion"
                 const response = await fetch(`${API_URL}/api/opinion/individual`, { method: "POST", body: formData });
                 if(response.ok) {
                     const blob = await response.blob();
                     const url = window.URL.createObjectURL(blob);
                     const a = document.createElement('a');
                     a.href = url;
-                    
                     const descargoAmbos = document.getElementById('chk_constancia').checked;
                     a.download = descargoAmbos ? `Documentos_${document.getElementById('rfc').value.toUpperCase()}.zip` : `Opinion_32D_${document.getElementById('rfc').value.toUpperCase()}.pdf`;
-                    
                     a.click();
                     mostrarAlerta('success', '¡Proceso completado con éxito!');
                 } else {
@@ -419,7 +415,6 @@
             archivosGlobalesMasivo.forEach(file => { formData.append("archivos_lote", file); });
 
             try {
-                // Endpoint ajustado a "opinion"
                 const response = await fetch(`${API_URL}/api/opinion/masivo_crudo`, { method: "POST", body: formData });
                 if(response.ok) {
                     const blob = await response.blob();
