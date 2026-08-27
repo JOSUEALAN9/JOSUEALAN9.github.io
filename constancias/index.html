@@ -7,19 +7,19 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none; user-select: none; }
-        /* Animación suave para cambio de pestañas */
         .fade-in { animation: fadeIn 0.3s ease-in-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+        /* Efecto al arrastrar archivos */
+        .drag-over { background-color: #eff6ff !important; border-color: #3b82f6 !important; }
     </style>
 </head>
 <body class="bg-gray-50 text-gray-800 font-sans h-screen flex flex-col overflow-hidden relative">
 
-    <!-- TOP NAV (Idéntico al Validador) -->
+    <!-- TOP NAV -->
     <header class="bg-slate-900 text-white p-4 shadow-lg flex-none z-10">
         <div class="max-w-[1600px] mx-auto flex justify-between items-center">
             <div class="flex items-center gap-4">
                 <div class="bg-blue-600 p-2 rounded-lg">
-                    <!-- Icono de Documento/Constancia -->
                     <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                 </div>
                 <div>
@@ -29,7 +29,6 @@
             </div>
             
             <div class="flex items-center gap-4">
-                <!-- Enlace de regreso al menú principal de tu ERP -->
                 <a href="../" class="text-slate-300 hover:text-white font-semibold text-sm mr-4 flex items-center gap-1 transition">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg> Menú Principal
                 </a>
@@ -41,12 +40,11 @@
         </div>
     </header>
 
-    <!-- ÁREA DE TRABAJO CENTRADA -->
+    <!-- ÁREA DE TRABAJO -->
     <main class="flex-grow flex items-center justify-center p-6 w-full relative overflow-y-auto">
-        
         <div class="bg-white rounded-xl shadow-md border border-gray-200 w-full max-w-2xl overflow-hidden flex flex-col">
             
-            <!-- Pestañas (Tabs) -->
+            <!-- Pestañas -->
             <div class="flex border-b bg-slate-50">
                 <button id="tab-ind" onclick="switchTab('individual')" class="flex-1 py-4 text-sm font-bold text-blue-700 border-b-2 border-blue-600 transition flex justify-center items-center gap-2 bg-white">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
@@ -54,38 +52,41 @@
                 </button>
                 <button id="tab-mas" onclick="switchTab('masivo')" class="flex-1 py-4 text-sm font-semibold text-slate-500 border-b-2 border-transparent hover:text-slate-700 transition flex justify-center items-center gap-2">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path></svg>
-                    Lote Masivo (ZIP)
+                    Lote Masivo
                 </button>
             </div>
 
-            <!-- CONTENEDOR DE ALERTAS -->
+            <!-- ALERTAS -->
             <div id="alert-container" class="hidden px-6 pt-4">
-                <div id="alert-message" class="p-4 rounded-lg text-sm font-semibold flex items-center gap-2">
-                    <!-- El JS inyecta colores e íconos aquí -->
-                </div>
+                <div id="alert-message" class="p-4 rounded-lg text-sm font-semibold flex items-center gap-2"></div>
             </div>
 
             <!-- MODO INDIVIDUAL -->
             <form id="form-individual" class="p-8 flex flex-col gap-5 fade-in" onsubmit="procesarIndividual(event)">
                 <div>
                     <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-2">RFC de la Empresa / Persona</label>
-                    <input type="text" id="rfc" placeholder="Ej. SALA011230GD2" required autocomplete="off" class="w-full text-sm border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm uppercase">
+                    <input type="text" id="rfc" placeholder="Ej. XAXX010101000" required autocomplete="off" class="w-full text-sm border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm uppercase">
                 </div>
                 
                 <div class="grid grid-cols-2 gap-4">
                     <div>
                         <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-2">Certificado (.cer)</label>
-                        <input type="file" id="archivo_cer" accept=".cer" required class="w-full text-sm border border-gray-300 rounded-lg p-2.5 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 file:mr-4 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                        <input type="file" id="archivo_cer" accept=".cer" required class="w-full text-sm border border-gray-300 rounded-lg p-2.5 bg-gray-50 focus:outline-none file:mr-4 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-2">Clave Privada (.key)</label>
-                        <input type="file" id="archivo_key" accept=".key" required class="w-full text-sm border border-gray-300 rounded-lg p-2.5 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 file:mr-4 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                        <input type="file" id="archivo_key" accept=".key" required class="w-full text-sm border border-gray-300 rounded-lg p-2.5 bg-gray-50 focus:outline-none file:mr-4 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
                     </div>
                 </div>
 
                 <div>
                     <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-2">Contraseña de e.firma</label>
-                    <input type="password" id="password" required class="w-full text-sm border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm">
+                    <div class="relative">
+                        <input type="password" id="password" required class="w-full text-sm border border-gray-300 rounded-lg p-3 pr-10 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm">
+                        <button type="button" onclick="togglePassword('password', 'eye-icon-ind')" class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-500 hover:text-blue-600">
+                            <svg id="eye-icon-ind" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                        </button>
+                    </div>
                 </div>
 
                 <div class="mt-4">
@@ -98,22 +99,42 @@
 
             <!-- MODO MASIVO -->
             <form id="form-masivo" class="p-8 hidden flex-col gap-6 fade-in" onsubmit="procesarMasivo(event)">
-                <div class="bg-blue-50 border border-blue-100 p-4 rounded-lg flex gap-3">
-                    <svg class="w-6 h-6 text-blue-600 flex-none mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                    <p class="text-xs text-blue-800 leading-relaxed">
-                        <strong>Instrucciones:</strong> Comprime en un archivo <span class="font-bold">.zip</span> tu documento Excel (<i>directorio.xlsx</i>) junto con las carpetas que contienen los archivos .cer y .key de las empresas a procesar.
-                    </p>
+                
+                <!-- Botón de Plantilla -->
+                <div class="flex justify-between items-center bg-blue-50 border border-blue-100 p-4 rounded-lg">
+                    <div>
+                        <h4 class="text-sm font-bold text-blue-800">1. Prepara tu información</h4>
+                        <p class="text-xs text-blue-700 mt-1">Llena el Excel con RFC y contraseñas. Guárdalo junto a tus firmas.</p>
+                    </div>
+                    <a href="assets/Plantilla_Masiva.zip" download class="bg-white border border-blue-200 text-blue-600 hover:bg-blue-100 text-xs font-bold py-2 px-4 rounded shadow-sm flex items-center gap-1 transition">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg> Descargar Plantilla
+                    </a>
                 </div>
 
+                <!-- Zona de Arrastre -->
                 <div>
-                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-2">Archivo ZIP de Trabajo</label>
-                    <input type="file" id="archivo_zip" accept=".zip" required class="w-full text-sm border border-gray-300 rounded-lg p-3 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-500 cursor-pointer">
+                    <h4 class="text-sm font-bold text-slate-700 mb-2">2. Carga tu carpeta de trabajo</h4>
+                    <div id="dropzone" onclick="document.getElementById('folder_input').click()" class="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center cursor-pointer hover:bg-gray-50 transition bg-white relative">
+                        <input type="file" id="folder_input" webkitdirectory directory multiple class="hidden" onchange="leerCarpeta(event)">
+                        
+                        <svg class="mx-auto h-12 w-12 text-gray-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path></svg>
+                        <p class="text-sm font-semibold text-slate-600">Arrastra aquí la carpeta completa</p>
+                        <p class="text-xs text-gray-400 mt-1">O haz clic para seleccionarla desde tus documentos</p>
+                    </div>
+
+                    <!-- Resumen de archivos cargados -->
+                    <div id="resumen-carga" class="hidden mt-3 bg-slate-50 p-3 rounded border text-xs">
+                        <div class="flex justify-between font-bold text-slate-700">
+                            <span>Archivos detectados: <span id="lbl-total-archivos" class="text-blue-600">0</span></span>
+                            <span id="lbl-excel-status"></span>
+                        </div>
+                    </div>
                 </div>
 
-                <div class="mt-4">
-                    <button type="submit" id="btn-masivo" class="w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-3.5 rounded-lg shadow-md transition disabled:bg-slate-400 disabled:cursor-not-allowed flex justify-center items-center gap-2">
+                <div class="mt-2">
+                    <button type="submit" id="btn-masivo" disabled class="w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-3.5 rounded-lg shadow-md transition disabled:bg-gray-300 disabled:cursor-not-allowed flex justify-center items-center gap-2">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
-                        Procesar Lote y Extraer
+                        Procesar Lote y Generar ZIP
                     </button>
                 </div>
             </form>
@@ -122,59 +143,119 @@
     </main>
 
     <script>
-        // API Base URL (Cambiar a tu dominio cuando despliegues el backend)
         const API_URL = "http://127.0.0.1:8000";
+        let archivosGlobalesMasivo = []; // Almacenará los archivos listos para enviar
 
+        // Lógica de UI (Pestañas, Alertas, Contraseña)
         function switchTab(modo) {
-            const tabInd = document.getElementById('tab-ind');
-            const tabMas = document.getElementById('tab-mas');
-            const formInd = document.getElementById('form-individual');
-            const formMas = document.getElementById('form-masivo');
-            
+            document.getElementById('tab-ind').className = modo === 'individual' ? "flex-1 py-4 text-sm font-bold text-blue-700 border-b-2 border-blue-600 transition flex justify-center items-center gap-2 bg-white" : "flex-1 py-4 text-sm font-semibold text-slate-500 border-b-2 border-transparent hover:text-slate-700 transition flex justify-center items-center gap-2";
+            document.getElementById('tab-mas').className = modo === 'masivo' ? "flex-1 py-4 text-sm font-bold text-blue-700 border-b-2 border-blue-600 transition flex justify-center items-center gap-2 bg-white" : "flex-1 py-4 text-sm font-semibold text-slate-500 border-b-2 border-transparent hover:text-slate-700 transition flex justify-center items-center gap-2";
+            document.getElementById('form-individual').classList.toggle('hidden', modo !== 'individual');
+            document.getElementById('form-masivo').classList.toggle('hidden', modo !== 'masivo');
             ocultarAlerta();
-
-            if(modo === 'individual') {
-                tabInd.className = "flex-1 py-4 text-sm font-bold text-blue-700 border-b-2 border-blue-600 transition flex justify-center items-center gap-2 bg-white";
-                tabMas.className = "flex-1 py-4 text-sm font-semibold text-slate-500 border-b-2 border-transparent hover:text-slate-700 transition flex justify-center items-center gap-2";
-                formInd.classList.remove('hidden');
-                formMas.classList.add('hidden');
-            } else {
-                tabMas.className = "flex-1 py-4 text-sm font-bold text-blue-700 border-b-2 border-blue-600 transition flex justify-center items-center gap-2 bg-white";
-                tabInd.className = "flex-1 py-4 text-sm font-semibold text-slate-500 border-b-2 border-transparent hover:text-slate-700 transition flex justify-center items-center gap-2";
-                formMas.classList.remove('hidden');
-                formInd.classList.add('hidden');
-            }
         }
 
         function limpiarFormularios() {
             document.getElementById('form-individual').reset();
             document.getElementById('form-masivo').reset();
+            archivosGlobalesMasivo = [];
+            document.getElementById('resumen-carga').classList.add('hidden');
+            document.getElementById('btn-masivo').disabled = true;
             ocultarAlerta();
+        }
+
+        function togglePassword(inputId, iconId) {
+            const input = document.getElementById(inputId);
+            input.type = input.type === "password" ? "text" : "password";
         }
 
         function mostrarAlerta(tipo, mensaje) {
             const container = document.getElementById('alert-container');
             const alertBox = document.getElementById('alert-message');
             container.classList.remove('hidden');
-            
-            if(tipo === 'error') {
-                alertBox.className = "p-4 rounded-lg text-sm font-semibold flex items-center gap-2 bg-red-50 text-red-700 border border-red-200";
-                alertBox.innerHTML = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg> ${mensaje}`;
-            } else if (tipo === 'success') {
-                alertBox.className = "p-4 rounded-lg text-sm font-semibold flex items-center gap-2 bg-green-50 text-green-700 border border-green-200";
-                alertBox.innerHTML = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> ${mensaje}`;
+            alertBox.className = tipo === 'error' ? "p-4 rounded-lg text-sm font-semibold flex items-center gap-2 bg-red-50 text-red-700 border border-red-200" : "p-4 rounded-lg text-sm font-semibold flex items-center gap-2 bg-green-50 text-green-700 border border-green-200";
+            alertBox.innerHTML = tipo === 'error' ? `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg> ${mensaje}` : `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> ${mensaje}`;
+        }
+
+        function ocultarAlerta() { document.getElementById('alert-container').classList.add('hidden'); }
+
+        // --- LÓGICA DROPZONE Y LECTURA DE CARPETA ---
+        const dropzone = document.getElementById('dropzone');
+
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropzone.addEventListener(eventName, preventDefaults, false);
+        });
+
+        function preventDefaults(e) { e.preventDefault(); e.stopPropagation(); }
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropzone.addEventListener(eventName, () => dropzone.classList.add('drag-over'), false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropzone.addEventListener(eventName, () => dropzone.classList.remove('drag-over'), false);
+        });
+
+        // Captura al arrastrar la carpeta físicamente
+        dropzone.addEventListener('drop', async (e) => {
+            let files = [];
+            const items = e.dataTransfer.items;
+            for (let i = 0; i < items.length; i++) {
+                const item = items[i].webkitGetAsEntry();
+                if (item) {
+                    const extracted = await readEntry(item);
+                    files = files.concat(extracted);
+                }
+            }
+            procesarArchivosLeidos(files);
+        });
+
+        // Captura mediante el botón nativo <input webkitdirectory>
+        function leerCarpeta(e) {
+            const files = Array.from(e.target.files);
+            procesarArchivosLeidos(files);
+        }
+
+        // Lector recursivo para Drag and Drop
+        async function readEntry(entry) {
+            if (entry.isFile) {
+                return new Promise(resolve => entry.file(resolve));
+            } else if (entry.isDirectory) {
+                const dirReader = entry.createReader();
+                const entries = await new Promise(resolve => dirReader.readEntries(resolve));
+                let files = [];
+                for (let i = 0; i < entries.length; i++) {
+                    files = files.concat(await readEntry(entries[i]));
+                }
+                return files;
             }
         }
 
-        function ocultarAlerta() {
-            document.getElementById('alert-container').classList.add('hidden');
+        // Filtra y valida los archivos en pantalla
+        function procesarArchivosLeidos(files) {
+            archivosGlobalesMasivo = files.filter(f => f.name.endsWith('.cer') || f.name.endsWith('.key') || f.name.endsWith('.xlsx'));
+            
+            const tieneExcel = archivosGlobalesMasivo.some(f => f.name === 'directorio.xlsx');
+            
+            document.getElementById('resumen-carga').classList.remove('hidden');
+            document.getElementById('lbl-total-archivos').innerText = archivosGlobalesMasivo.length;
+            
+            const excelStatus = document.getElementById('lbl-excel-status');
+            if(tieneExcel) {
+                excelStatus.innerHTML = `Excel directorio.xlsx: <span class="text-green-600 font-bold">Encontrado ✓</span>`;
+                document.getElementById('btn-masivo').disabled = false;
+            } else {
+                excelStatus.innerHTML = `Excel directorio.xlsx: <span class="text-red-600 font-bold">Faltante ✗</span>`;
+                document.getElementById('btn-masivo').disabled = true;
+            }
         }
 
-        function toggleLoadingState(btnId, isLoading, originalHTML) {
+        // --- COMUNICACIÓN CON BACKEND ---
+        function setLoading(btnId, isLoading, originalHTML) {
             const btn = document.getElementById(btnId);
             if(isLoading) {
                 btn.disabled = true;
-                btn.innerHTML = `<svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Conectando con SAT...`;
+                btn.innerHTML = `<svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Conectando con SAT...`;
             } else {
                 btn.disabled = false;
                 btn.innerHTML = originalHTML;
@@ -184,10 +265,8 @@
         async function procesarIndividual(e) {
             e.preventDefault();
             ocultarAlerta();
-            
-            const btn = document.getElementById('btn-individual');
-            const btnOriginalHTML = btn.innerHTML;
-            toggleLoadingState('btn-individual', true, btnOriginalHTML);
+            const btnOriginalHTML = document.getElementById('btn-individual').innerHTML;
+            setLoading('btn-individual', true, btnOriginalHTML);
 
             const formData = new FormData();
             formData.append("rfc", document.getElementById('rfc').value.trim().toUpperCase());
@@ -196,67 +275,49 @@
             formData.append("key", document.getElementById('archivo_key').files[0]);
 
             try {
-                const response = await fetch(`${API_URL}/api/constancia/individual`, {
-                    method: "POST",
-                    body: formData
-                });
-                
+                const response = await fetch(`${API_URL}/api/constancia/individual`, { method: "POST", body: formData });
                 if(response.ok) {
                     const blob = await response.blob();
                     const url = window.URL.createObjectURL(blob);
                     const a = document.createElement('a');
                     a.href = url;
                     a.download = `Constancia_${document.getElementById('rfc').value.toUpperCase()}.pdf`;
-                    document.body.appendChild(a);
                     a.click();
-                    document.body.removeChild(a);
                     mostrarAlerta('success', '¡Constancia descargada con éxito!');
                 } else {
-                    const err = await response.json();
-                    mostrarAlerta('error', err.detail || "Error de autenticación o bloqueo temporal del SAT.");
+                    mostrarAlerta('error', "Credenciales rechazadas o servidor SAT saturado.");
                 }
-            } catch (error) {
-                mostrarAlerta('error', "No se pudo conectar con el motor Python. Verifica que el servidor esté activo.");
-            } finally {
-                toggleLoadingState('btn-individual', false, btnOriginalHTML);
-            }
+            } catch (error) { mostrarAlerta('error', "Fallo de conexión con Python."); } 
+            finally { setLoading('btn-individual', false, btnOriginalHTML); }
         }
 
         async function procesarMasivo(e) {
             e.preventDefault();
             ocultarAlerta();
-            
-            const btn = document.getElementById('btn-masivo');
-            const btnOriginalHTML = btn.innerHTML;
-            toggleLoadingState('btn-masivo', true, btnOriginalHTML);
+            const btnOriginalHTML = document.getElementById('btn-masivo').innerHTML;
+            setLoading('btn-masivo', true, btnOriginalHTML);
 
             const formData = new FormData();
-            formData.append("zip_file", document.getElementById('archivo_zip').files[0]);
+            // Empaqueta los archivos crudos y los manda directo a Python
+            archivosGlobalesMasivo.forEach(file => {
+                formData.append("archivos_lote", file);
+            });
 
             try {
-                const response = await fetch(`${API_URL}/api/constancia/masivo`, {
-                    method: "POST",
-                    body: formData
-                });
-
+                const response = await fetch(`${API_URL}/api/constancia/masivo_crudo`, { method: "POST", body: formData });
                 if(response.ok) {
                     const blob = await response.blob();
                     const url = window.URL.createObjectURL(blob);
                     const a = document.createElement('a');
                     a.href = url;
-                    a.download = `Resultados_Constancias.zip`;
-                    document.body.appendChild(a);
+                    a.download = `Resultados_Constancias_SALA.zip`;
                     a.click();
-                    document.body.removeChild(a);
-                    mostrarAlerta('success', '¡Proceso masivo completado! Revisa el archivo ZIP descargado.');
+                    mostrarAlerta('success', 'Lote completado. Se descargó el archivo ZIP.');
                 } else {
-                    mostrarAlerta('error', "El servidor falló al procesar el lote. Revisa la estructura del ZIP.");
+                    mostrarAlerta('error', "Error al procesar el lote en el servidor.");
                 }
-            } catch (error) {
-                mostrarAlerta('error', "Error de conexión con el motor automatizado.");
-            } finally {
-                toggleLoadingState('btn-masivo', false, btnOriginalHTML);
-            }
+            } catch (error) { mostrarAlerta('error', "Fallo de conexión con Python."); } 
+            finally { setLoading('btn-masivo', false, btnOriginalHTML); }
         }
     </script>
 </body>
