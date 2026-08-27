@@ -1,1 +1,576 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Validador Fiscal SAT ERP</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
+    <style>
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        .modal-active { display: flex !important; }
+        body { -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none; user-select: none; }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800 font-sans h-screen flex flex-col overflow-hidden relative">
 
+    <!-- TOP NAV -->
+    <header class="bg-slate-900 text-white p-4 shadow-lg flex-none z-10">
+        <div class="max-w-[1600px] mx-auto flex justify-between items-center">
+            <div class="flex items-center gap-4">
+                <div class="bg-emerald-600 p-2 rounded-lg">
+                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold leading-tight">Auditoría y Validación SAT</h1>
+                    <p class="text-xs text-slate-400">Consulta masiva de estatus en tiempo real</p>
+                </div>
+            </div>
+            
+            <div class="flex items-center gap-4">
+                <a href="/" class="text-slate-300 hover:text-white font-semibold text-sm mr-4 flex items-center gap-1 transition">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg> Inicio
+                </a>
+                <button id="btnAbrirCarga" class="bg-blue-600 hover:bg-blue-500 text-white font-semibold py-2 px-4 rounded shadow transition flex items-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
+                    Cargar XML
+                </button>
+                <button id="btnLimpiarDatos" class="bg-slate-700 hover:bg-red-600 text-white font-semibold py-2 px-4 rounded shadow transition flex items-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                    Limpiar
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- ÁREA DE TRABAJO -->
+    <main class="flex-grow flex flex-col p-6 max-w-[1600px] mx-auto w-full gap-4 overflow-hidden relative">
+        
+        <!-- Action Bar (Filtros y Resumen) -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 flex flex-wrap justify-between items-center flex-none gap-4">
+            <!-- KPIs -->
+            <div class="flex gap-6 items-center">
+                <div><p class="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Total XML</p><p id="dashTotal" class="text-xl font-black text-slate-800">0</p></div>
+                <div class="w-px h-8 bg-gray-200"></div>
+                <div><p class="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Vigentes</p><p id="dashVigentes" class="text-xl font-black text-emerald-600">0</p></div>
+                <div class="w-px h-8 bg-gray-200"></div>
+                <div><p class="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Cancelados</p><p id="dashCancelados" class="text-xl font-black text-red-600">0</p></div>
+                <div class="w-px h-8 bg-gray-200"></div>
+                <div><p class="text-[10px] text-gray-500 uppercase font-bold tracking-wider">No Encontrados</p><p id="dashErrores" class="text-xl font-black text-amber-500">0</p></div>
+            </div>
+
+            <!-- Filtros Inteligentes -->
+            <div class="flex items-center gap-3 flex-wrap flex-grow justify-end">
+                
+                <!-- Componente Custom Multi-Select Proveedor -->
+                <div class="relative inline-block text-left z-20" id="provDropdownContainer">
+                    <button id="btnProvDropdown" class="bg-gray-50 border border-gray-300 text-xs rounded-lg p-2.5 outline-none flex items-center justify-between w-48 hover:bg-gray-100 transition">
+                        <span id="lblProvDropdown" class="truncate font-medium text-gray-700">Proveedor (Todos)</span>
+                        <svg class="w-3 h-3 ml-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                    </button>
+                    <div id="panelProvDropdown" class="hidden origin-top-right absolute right-0 mt-2 w-80 rounded-md shadow-2xl bg-white ring-1 ring-black ring-opacity-5 focus:outline-none flex flex-col">
+                        <div class="p-2 border-b flex flex-col gap-2 bg-slate-50 rounded-t-md">
+                            <input type="text" id="searchProv" class="w-full text-xs border border-gray-300 rounded p-2 focus:outline-none focus:ring-1 focus:ring-emerald-500 shadow-sm" placeholder="Buscar proveedor...">
+                            <button id="btnToggleTodosProv" class="w-full text-xs font-bold text-emerald-700 bg-emerald-100 hover:bg-emerald-200 border border-emerald-200 rounded py-1.5 transition disabled:opacity-50">Seleccionar Visibles</button>
+                        </div>
+                        <ul id="listProv" class="max-h-64 overflow-y-auto p-2 text-xs divide-y divide-gray-50">
+                            <li class="p-2 text-gray-400 text-center">Esperando datos...</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <select id="fTipo" class="bg-gray-50 border border-gray-300 text-xs rounded-lg p-2.5 outline-none font-medium text-gray-700"><option value="ALL">Tipo (Todos)</option></select>
+                <select id="fMes" class="bg-gray-50 border border-gray-300 text-xs rounded-lg p-2.5 outline-none font-medium text-gray-700"><option value="ALL">Mes Emisión (Todos)</option></select>
+                <select id="fEstatus" class="bg-gray-50 border border-gray-300 text-xs rounded-lg p-2.5 outline-none font-medium text-gray-700"><option value="ALL">Estatus SAT (Todos)</option></select>
+
+                <button id="btnDescargar" disabled class="bg-emerald-600 hover:bg-emerald-500 disabled:bg-gray-300 text-white font-bold py-2.5 px-4 rounded-lg shadow flex items-center gap-2 text-sm ml-2 transition">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                    Exportar Excel
+                </button>
+            </div>
+        </div>
+
+        <!-- Tabla Dashboard -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 flex-grow overflow-hidden flex flex-col z-0">
+            <div class="overflow-auto flex-grow relative w-full">
+                <table class="w-full text-left text-xs whitespace-nowrap min-w-[1300px]" id="tablaResultados" style="-webkit-user-select: text; user-select: text;">
+                    <thead class="bg-slate-50 text-slate-600 sticky top-0 z-10 shadow-sm uppercase tracking-wider">
+                        <tr>
+                            <th class="p-3 font-semibold border-b w-48">Proveedor</th>
+                            <th class="p-3 font-semibold border-b w-32">UUID</th>
+                            <th class="p-3 font-semibold border-b w-24">Fecha</th>
+                            <th class="p-3 font-semibold border-b w-16 text-center">Tipo</th>
+                            <th class="p-3 font-semibold border-b text-right w-24">SubTotal</th>
+                            <th class="p-3 font-semibold border-b text-right w-24">Traslados</th>
+                            <th class="p-3 font-semibold border-b text-right w-24 text-red-500">Retenciones</th>
+                            <th class="p-3 font-semibold border-b text-right w-24 font-bold">Total</th>
+                            <th class="p-3 font-semibold border-b text-center w-32">Estatus SAT</th>
+                            <th class="p-3 font-semibold border-b w-48">Detalle Cancelación</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y text-slate-700" id="cuerpoTabla">
+                        <tr><td colspan="10" class="p-12 text-center text-slate-400 font-medium">Sube tus XML para auditar estatus con el SAT...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <!-- MODAL DE CARGA -->
+    <div id="modalCarga" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden justify-center items-center">
+        <div class="bg-white w-full max-w-2xl rounded-2xl shadow-2xl p-6 relative">
+            <button id="btnCerrarModal" class="absolute top-4 right-4 text-gray-400 hover:text-red-500"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
+            <h2 class="text-xl font-bold mb-1">Validador Masivo SAT</h2>
+            <p class="text-xs text-gray-500 mb-6">Adjunta archivos o carpetas. El sistema consultará directamente a los servidores del SAT.</p>
+            
+            <div class="flex gap-4 mb-6">
+                <button onclick="document.getElementById('fileInputArr').click()" class="flex-1 bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-700 font-semibold py-4 rounded-xl transition flex flex-col items-center gap-2">
+                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"></path></svg>
+                    Añadir XML
+                </button>
+                <button onclick="document.getElementById('folderInputArr').click()" class="flex-1 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-700 font-semibold py-4 rounded-xl transition flex flex-col items-center gap-2">
+                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path></svg>
+                    Añadir Carpeta con XML
+                </button>
+            </div>
+            
+            <input type="file" id="fileInputArr" multiple accept=".xml" class="hidden">
+            <input type="file" id="folderInputArr" webkitdirectory directory multiple accept=".xml" class="hidden">
+
+            <div class="bg-slate-50 p-4 rounded-xl border flex justify-between items-center">
+                <div class="text-sm text-slate-600">XML listos: <span id="lblStagedCount" class="text-2xl font-black text-emerald-600 ml-2">0</span></div>
+                <button id="btnProcesarStaged" disabled class="bg-emerald-600 hover:bg-emerald-500 disabled:bg-gray-300 text-white font-bold py-2.5 px-8 rounded-lg shadow transition">
+                    Validar con el SAT
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let xmlFilesStage = [];
+        let rawDataForFilters = [];
+        let proveedoresSeleccionados = new Set();
+        const mesesTexto = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
+
+        function formatDateToMX(isoString) {
+            if (!isoString) return "";
+            const parts = isoString.split('-');
+            if (parts.length !== 3) return isoString;
+            return `${parts[2].padStart(2,'0')}/${parts[1].padStart(2,'0')}/${parts[0]}`;
+        }
+
+        const modal = document.getElementById('modalCarga');
+        document.getElementById('btnAbrirCarga').onclick = () => modal.classList.add('modal-active');
+        document.getElementById('btnCerrarModal').onclick = () => modal.classList.remove('modal-active');
+
+        const handleFilesSelected = (e) => {
+            const archivos = Array.from(e.target.files).filter(f => f.name.toLowerCase().endsWith('.xml'));
+            archivos.forEach(newFile => {
+                if(!xmlFilesStage.some(staged => staged.name === newFile.name && staged.size === newFile.size)) {
+                    xmlFilesStage.push(newFile);
+                }
+            });
+            document.getElementById('lblStagedCount').innerText = xmlFilesStage.length;
+            document.getElementById('btnProcesarStaged').disabled = xmlFilesStage.length === 0;
+            e.target.value = ""; 
+        };
+
+        document.getElementById('fileInputArr').addEventListener('change', handleFilesSelected);
+        document.getElementById('folderInputArr').addEventListener('change', handleFilesSelected);
+
+        document.getElementById('btnLimpiarDatos').addEventListener('click', () => {
+            xmlFilesStage = [];
+            rawDataForFilters = [];
+            proveedoresSeleccionados.clear();
+            
+            document.getElementById('lblStagedCount').innerText = "0";
+            document.getElementById('btnProcesarStaged').disabled = true;
+            document.getElementById('btnDescargar').disabled = true;
+            
+            ['dashTotal', 'dashVigentes', 'dashCancelados', 'dashErrores'].forEach(id => document.getElementById(id).innerText = "0");
+            document.getElementById('cuerpoTabla').innerHTML = `<tr><td colspan="10" class="p-12 text-center text-slate-400 font-medium">Sube tus XML para auditar estatus con el SAT...</td></tr>`;
+            
+            ['fTipo', 'fMes', 'fEstatus'].forEach(id => {
+                document.getElementById(id).innerHTML = `<option value="ALL">Todas</option>`;
+            });
+            actualizarEtiquetaProveedor();
+            document.getElementById('listProv').innerHTML = '<li class="p-2 text-gray-400 text-center">Esperando datos...</li>';
+        });
+
+        // Lógica del Dropdown Custom para Proveedores
+        const btnProvDropdown = document.getElementById('btnProvDropdown');
+        const panelProvDropdown = document.getElementById('panelProvDropdown');
+        const searchProv = document.getElementById('searchProv');
+        const btnToggleTodosProv = document.getElementById('btnToggleTodosProv');
+        
+        btnProvDropdown.addEventListener('click', () => {
+            panelProvDropdown.classList.toggle('hidden');
+            if(!panelProvDropdown.classList.hidden) searchProv.focus();
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!document.getElementById('provDropdownContainer').contains(e.target)) {
+                panelProvDropdown.classList.add('hidden');
+            }
+        });
+
+        searchProv.addEventListener('input', (e) => {
+            const term = e.target.value.toLowerCase();
+            const items = document.querySelectorAll('#listProv li');
+            items.forEach(li => {
+                const text = li.textContent.toLowerCase();
+                li.style.display = text.includes(term) ? '' : 'none';
+            });
+            actualizarTextoBotonTodos();
+        });
+
+        btnToggleTodosProv.addEventListener('click', () => {
+            const checkboxesVisibles = Array.from(document.querySelectorAll('.prov-checkbox')).filter(cb => cb.closest('li').style.display !== 'none');
+            if (checkboxesVisibles.length === 0) return;
+
+            const todosMarcados = checkboxesVisibles.every(cb => cb.checked);
+            if (todosMarcados) checkboxesVisibles.forEach(cb => proveedoresSeleccionados.delete(cb.value));
+            else checkboxesVisibles.forEach(cb => proveedoresSeleccionados.add(cb.value));
+            
+            actualizarEtiquetaProveedor();
+            actualizarSelectsDesdeData(false);
+            renderizarTablaUI();
+        });
+
+        function actualizarTextoBotonTodos() {
+            const checkboxesVisibles = Array.from(document.querySelectorAll('.prov-checkbox')).filter(cb => cb.closest('li').style.display !== 'none');
+            if(checkboxesVisibles.length === 0) {
+                btnToggleTodosProv.innerText = "Sin resultados";
+                btnToggleTodosProv.disabled = true;
+                return;
+            }
+            btnToggleTodosProv.disabled = false;
+            const todosMarcados = checkboxesVisibles.every(cb => cb.checked);
+            btnToggleTodosProv.innerText = todosMarcados ? "Deseleccionar Visibles" : "Seleccionar Visibles";
+        }
+
+        function renderizarListaProveedores(setProveedoresDisponibles) {
+            const listProv = document.getElementById('listProv');
+            listProv.innerHTML = '';
+            let arrProvs = Array.from(setProveedoresDisponibles).sort();
+            
+            if(arrProvs.length === 0) {
+                listProv.innerHTML = '<li class="p-2 text-gray-400 text-center">No hay proveedores en este filtro</li>';
+                actualizarTextoBotonTodos();
+                return;
+            }
+
+            arrProvs.forEach(p => {
+                const isChecked = proveedoresSeleccionados.has(p) ? 'checked' : '';
+                const li = document.createElement('li');
+                li.className = "px-2 py-1.5 hover:bg-emerald-50 cursor-pointer flex items-start gap-2";
+                li.innerHTML = `
+                    <input type="checkbox" value="${p}" class="prov-checkbox mt-0.5 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" ${isChecked}>
+                    <label class="cursor-pointer text-gray-700 w-full truncate" title="${p}">${p}</label>
+                `;
+                li.addEventListener('click', (e) => {
+                    if(e.target.tagName !== 'INPUT') {
+                        const cb = li.querySelector('input');
+                        cb.checked = !cb.checked;
+                        cb.dispatchEvent(new Event('change'));
+                    }
+                });
+                li.querySelector('input').addEventListener('change', (e) => {
+                    if(e.target.checked) proveedoresSeleccionados.add(e.target.value);
+                    else proveedoresSeleccionados.delete(e.target.value);
+                    actualizarEtiquetaProveedor();
+                    actualizarSelectsDesdeData(false);
+                    renderizarTablaUI();
+                });
+                listProv.appendChild(li);
+            });
+
+            const term = searchProv.value.toLowerCase();
+            if (term) {
+                const items = document.querySelectorAll('#listProv li');
+                items.forEach(li => {
+                    const text = li.textContent.toLowerCase();
+                    li.style.display = text.includes(term) ? '' : 'none';
+                });
+            }
+            actualizarTextoBotonTodos();
+        }
+
+        function actualizarEtiquetaProveedor() {
+            const lbl = document.getElementById('lblProvDropdown');
+            if (proveedoresSeleccionados.size === 0) lbl.textContent = "Proveedor (Todos)";
+            else if (proveedoresSeleccionados.size === 1) lbl.textContent = "1 Seleccionado";
+            else lbl.textContent = `${proveedoresSeleccionados.size} Seleccionados`;
+        }
+
+        // Lógica de Comunicación con el Servidor Python
+        async function validarFacturaEnServidor(rfcEmisor, rfcReceptor, total, uuid) {
+            try {
+                const respuesta = await fetch("https://api.josuealan.com/validar-factura/", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        rfc_emisor: rfcEmisor,
+                        rfc_receptor: rfcReceptor,
+                        total: parseFloat(total).toFixed(2),
+                        uuid: uuid
+                    })
+                });
+                if (!respuesta.ok) throw new Error("Error de conexión");
+                return await respuesta.json();
+            } catch (error) {
+                return { estado: "Error", es_cancelable: "Verifica el túnel o conexión", estatus_cancelacion: "" };
+            }
+        }
+
+        document.getElementById('btnProcesarStaged').addEventListener('click', async () => {
+            modal.classList.remove('modal-active');
+            const tbody = document.getElementById('cuerpoTabla');
+            tbody.innerHTML = `<tr><td colspan="10" class="p-12 text-center text-blue-600 font-bold text-lg animate-pulse">Analizando XMLs y conectando con SAT...</td></tr>`;
+            
+            const parser = new DOMParser();
+            let facturasTemp = [];
+            rawDataForFilters = [];
+            proveedoresSeleccionados.clear();
+            actualizarEtiquetaProveedor();
+
+            // Extracción Inicial
+            for (let file of xmlFilesStage) {
+                const text = await file.text();
+                const xmlDoc = parser.parseFromString(text, "text/xml");
+                
+                const comprobante = xmlDoc.getElementsByTagName("cfdi:Comprobante")[0] || xmlDoc.getElementsByTagName("Comprobante")[0];
+                const timbre = xmlDoc.getElementsByTagName("tfd:TimbreFiscalDigital")[0] || xmlDoc.getElementsByTagName("TimbreFiscalDigital")[0];
+                if (!comprobante || !timbre) continue;
+
+                const emisor = xmlDoc.getElementsByTagName("cfdi:Emisor")[0] || xmlDoc.getElementsByTagName("Emisor")[0];
+                const receptor = xmlDoc.getElementsByTagName("cfdi:Receptor")[0] || xmlDoc.getElementsByTagName("Receptor")[0];
+
+                let fechaCruda = comprobante.getAttribute("Fecha")?.split('T')[0] || "";
+                let valMesEm = "", txtMesEm = "";
+                if(fechaCruda) {
+                    const fDate = new Date(fechaCruda);
+                    valMesEm = `${fDate.getFullYear()}-${String(fDate.getMonth() + 1).padStart(2,'0')}`;
+                    txtMesEm = `${mesesTexto[fDate.getMonth()]} ${fDate.getFullYear()}`;
+                }
+
+                let totalTraslados = 0;
+                const nodosTraslado = xmlDoc.getElementsByTagName("cfdi:Traslado");
+                for (let t of nodosTraslado) {
+                    if(t.parentNode.nodeName === "cfdi:Traslados") {
+                        totalTraslados += parseFloat(t.getAttribute("Importe") || 0);
+                    }
+                }
+
+                let totalRetenciones = 0;
+                const nodosRetencion = xmlDoc.getElementsByTagName("cfdi:Retencion");
+                for (let r of nodosRetencion) {
+                    if(r.parentNode.nodeName === "cfdi:Retenciones") {
+                        totalRetenciones += parseFloat(r.getAttribute("Importe") || 0);
+                    }
+                }
+
+                facturasTemp.push({
+                    uuid: timbre.getAttribute("UUID")?.toUpperCase(),
+                    rfcEmisor: emisor?.getAttribute("Rfc") || "SIN RFC",
+                    nombreEmisor: emisor?.getAttribute("Nombre") || "SIN NOMBRE",
+                    rfcReceptor: receptor?.getAttribute("Rfc") || "",
+                    total: parseFloat(comprobante.getAttribute("Total") || 0),
+                    subTotal: parseFloat(comprobante.getAttribute("SubTotal") || 0),
+                    totalTraslados: totalTraslados,
+                    totalRetenciones: totalRetenciones,
+                    tipo: comprobante.getAttribute("TipoDeComprobante")?.toUpperCase() || "",
+                    fechaCruda: fechaCruda,
+                    mesEmisionVal: valMesEm,
+                    mesEmisionTxt: txtMesEm
+                });
+            }
+
+            let cVigentes = 0, cCancelados = 0, cErrores = 0;
+            
+            // Consulta al SAT y llenado de Data Global
+            for (let i = 0; i < facturasTemp.length; i++) {
+                let f = facturasTemp[i];
+                tbody.innerHTML = `<tr><td colspan="10" class="p-12 text-center text-blue-600 font-bold">Consultando SAT: ${i + 1} de ${facturasTemp.length}...</td></tr>`;
+                
+                const respuestaSAT = await validarFacturaEnServidor(f.rfcEmisor, f.rfcReceptor, f.total, f.uuid);
+                
+                let estatus = respuestaSAT.estado || "Error";
+                let cancelable = respuestaSAT.es_cancelable || "";
+                let motivo = respuestaSAT.estatus_cancelacion || "";
+                
+                let estatusLimpio = "Error";
+                if (estatus.includes("Vigente")) { cVigentes++; estatusLimpio = "Vigente"; }
+                else if (estatus.includes("Cancelado")) { cCancelados++; estatusLimpio = "Cancelado"; }
+                else { cErrores++; }
+
+                rawDataForFilters.push({
+                    ...f,
+                    satEstatus: estatus,
+                    estatusLimpio: estatusLimpio,
+                    satCancelable: cancelable,
+                    satMotivo: motivo
+                });
+            }
+
+            document.getElementById('dashTotal').innerText = rawDataForFilters.length;
+            document.getElementById('dashVigentes').innerText = cVigentes;
+            document.getElementById('dashCancelados').innerText = cCancelados;
+            document.getElementById('dashErrores').innerText = cErrores;
+            
+            actualizarSelectsDesdeData(true);
+            btnDescargar.disabled = false;
+        });
+
+        // Filtros Cruzados Reactivos
+        const filtrosIds = ['fTipo', 'fMes', 'fEstatus'];
+        filtrosIds.forEach(id => document.getElementById(id).addEventListener('change', () => {
+            actualizarSelectsDesdeData(false);
+            renderizarTablaUI();
+        }));
+
+        function actualizarSelectsDesdeData(isInitial) {
+            const vTipo = isInitial ? "ALL" : document.getElementById('fTipo').value;
+            const vMes  = isInitial ? "ALL" : document.getElementById('fMes').value;
+            const vEst  = isInitial ? "ALL" : document.getElementById('fEstatus').value;
+
+            let sets = { prov: new Set(), tipo: new Set(), mes: new Set(), est: new Set() };
+
+            rawDataForFilters.forEach(f => {
+                let matchTipo = (vTipo === "ALL" || f.tipo === vTipo);
+                let matchMes  = (vMes === "ALL" || f.mesEmisionVal === vMes);
+                let matchEst  = (vEst === "ALL" || f.estatusLimpio === vEst);
+                let matchProv = (proveedoresSeleccionados.size === 0 || proveedoresSeleccionados.has(f.nombreEmisor));
+
+                if(matchTipo && matchMes && matchEst) sets.prov.add(f.nombreEmisor);
+                if(matchProv && matchMes && matchEst) sets.tipo.add(f.tipo);
+                if(matchProv && matchTipo && matchEst && f.mesEmisionVal) sets.mes.add(JSON.stringify({v: f.mesEmisionVal, t: f.mesEmisionTxt}));
+                if(matchProv && matchTipo && matchMes) sets.est.add(f.estatusLimpio);
+            });
+
+            renderizarListaProveedores(sets.prov);
+
+            const rellenar = (id, setObjs, label, curVal, prefixMap = {}) => {
+                const el = document.getElementById(id);
+                el.innerHTML = `<option value="ALL">${label} (Todos)</option>`;
+                let found = false;
+                
+                let arr = Array.from(setObjs);
+                if(arr.length > 0 && arr[0].startsWith('{')) { 
+                    arr.map(JSON.parse).sort((a,b) => a.v > b.v ? 1 : -1).forEach(i => {
+                        el.innerHTML += `<option value="${i.v}">${i.t}</option>`;
+                        if(i.v === curVal) found = true;
+                    });
+                } else { 
+                    arr.sort().forEach(m => {
+                        let text = prefixMap[m] ? `${prefixMap[m]} ${m}` : m;
+                        el.innerHTML += `<option value="${m}">${text}</option>`;
+                        if(m === curVal) found = true;
+                    });
+                }
+                
+                if(!isInitial) {
+                    if(found) el.value = curVal; 
+                    else el.value = "ALL"; 
+                }
+            };
+
+            rellenar('fTipo', sets.tipo, 'Tipo', vTipo, {"I": "Ingreso (I)", "E": "Egreso (E)", "P": "Pago (P)"});
+            rellenar('fMes', sets.mes, 'Mes Emisión', vMes);
+            rellenar('fEstatus', sets.est, 'Estatus SAT', vEst, {"Vigente": "🟢", "Cancelado": "🔴", "Error": "⚠️"});
+
+            if(isInitial) renderizarTablaUI();
+        }
+
+        function renderizarTablaUI() {
+            const vTipo = document.getElementById('fTipo').value;
+            const vMes = document.getElementById('fMes').value;
+            const vEst = document.getElementById('fEstatus').value;
+            
+            let htmlFinal = "";
+            rawDataForFilters.forEach(f => {
+                let show = true;
+                if (proveedoresSeleccionados.size > 0 && !proveedoresSeleccionados.has(f.nombreEmisor)) show = false;
+                if (vTipo !== "ALL" && f.tipo !== vTipo) show = false;
+                if (vMes !== "ALL" && f.mesEmisionVal !== vMes) show = false;
+                if (vEst !== "ALL" && f.estatusLimpio !== vEst) show = false;
+
+                if (show) {
+                    let colorBadge = "bg-gray-100 text-gray-800";
+                    let icono = "";
+                    if(f.estatusLimpio === "Vigente") { colorBadge = "bg-green-100 text-green-800"; icono = "🟢"; }
+                    if(f.estatusLimpio === "Cancelado") { colorBadge = "bg-red-100 text-red-800"; icono = "🔴"; }
+                    if(f.estatusLimpio === "Error") { colorBadge = "bg-amber-100 text-amber-800"; icono = "⚠️"; }
+
+                    htmlFinal += `
+                    <tr class="hover:bg-emerald-50/50 transition border-b">
+                        <td class="p-3 align-top">
+                            <div class="font-mono text-blue-700 font-bold">${f.rfcEmisor}</div>
+                            <div class="text-[10px] text-slate-500 truncate w-48" title="${f.nombreEmisor}">${f.nombreEmisor}</div>
+                        </td>
+                        <td class="p-3 align-top text-[11px] text-slate-700 font-mono">${f.uuid}</td>
+                        <td class="p-3 align-top font-medium">${formatDateToMX(f.fechaCruda)}</td>
+                        <td class="p-3 align-top text-center font-bold text-slate-500">${f.tipo}</td>
+                        <td class="p-3 text-right tabular-nums align-top">$${f.subTotal.toLocaleString('es-MX', {minimumFractionDigits:2})}</td>
+                        <td class="p-3 text-right tabular-nums text-slate-500 align-top">$${f.totalTraslados.toLocaleString('es-MX', {minimumFractionDigits:2})}</td>
+                        <td class="p-3 text-right tabular-nums text-red-500 align-top">$${f.totalRetenciones.toLocaleString('es-MX', {minimumFractionDigits:2})}</td>
+                        <td class="p-3 text-right tabular-nums font-bold align-top">$${f.total.toLocaleString('es-MX', {minimumFractionDigits:2})}</td>
+                        <td class="p-3 text-center align-top"><span class="px-2 py-1 rounded text-[10px] font-bold ${colorBadge} border">${icono} ${f.satEstatus}</span></td>
+                        <td class="p-3 text-[10px] text-slate-500 italic align-top">
+                            ${f.satCancelable} <br> <span class="font-semibold text-slate-700">${f.satMotivo}</span>
+                        </td>
+                    </tr>`;
+                }
+            });
+
+            if(htmlFinal === "") htmlFinal = "<tr><td colspan='10' class='p-12 text-center text-slate-500'>Sin resultados para los filtros actuales.</td></tr>";
+            document.getElementById('cuerpoTabla').innerHTML = htmlFinal;
+        }
+
+        // Exportación Exacta Respetando Filtros
+        document.getElementById('btnDescargar').addEventListener('click', () => {
+            const vTipo = document.getElementById('fTipo').value;
+            const vMes = document.getElementById('fMes').value;
+            const vEst = document.getElementById('fEstatus').value;
+            
+            let dataExportar = [];
+            
+            rawDataForFilters.forEach(f => {
+                let show = true;
+                if (proveedoresSeleccionados.size > 0 && !proveedoresSeleccionados.has(f.nombreEmisor)) show = false;
+                if (vTipo !== "ALL" && f.tipo !== vTipo) show = false;
+                if (vMes !== "ALL" && f.mesEmisionVal !== vMes) show = false;
+                if (vEst !== "ALL" && f.estatusLimpio !== vEst) show = false;
+
+                if (show) {
+                    dataExportar.push({
+                        "RFC Emisor": f.rfcEmisor,
+                        "Nombre Emisor": f.nombreEmisor,
+                        "RFC Receptor": f.rfcReceptor,
+                        "UUID": f.uuid,
+                        "Fecha Emisión": formatDateToMX(f.fechaCruda),
+                        "Tipo Comprobante": f.tipo,
+                        "SubTotal MXN": parseFloat(f.subTotal.toFixed(2)),
+                        "Traslados MXN": parseFloat(f.totalTraslados.toFixed(2)),
+                        "Retenciones MXN": parseFloat(f.totalRetenciones.toFixed(2)),
+                        "Total MXN": parseFloat(f.total.toFixed(2)),
+                        "Estatus SAT": f.satEstatus,
+                        "Es Cancelable": f.satCancelable,
+                        "Motivo/Estatus Cancelación": f.satMotivo
+                    });
+                }
+            });
+
+            if(dataExportar.length === 0) return;
+
+            const ws = XLSX.utils.json_to_sheet(dataExportar);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Auditoria_SAT");
+            XLSX.writeFile(wb, "Reporte_Validacion_XML.xlsx");
+        });
+    </script>
+</body>
+</html>
