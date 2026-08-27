@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Módulo Constancias SAT | ERP</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none; user-select: none; }
+        /* Animación suave para cambio de pestañas */
+        .fade-in { animation: fadeIn 0.3s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800 font-sans h-screen flex flex-col overflow-hidden relative">
+
+    <!-- TOP NAV (Idéntico al Validador) -->
+    <header class="bg-slate-900 text-white p-4 shadow-lg flex-none z-10">
+        <div class="max-w-[1600px] mx-auto flex justify-between items-center">
+            <div class="flex items-center gap-4">
+                <div class="bg-blue-600 p-2 rounded-lg">
+                    <!-- Icono de Documento/Constancia -->
+                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold leading-tight">Constancias de Situación Fiscal</h1>
+                    <p class="text-xs text-slate-400">Descarga directa y lotes masivos vía e.firma</p>
+                </div>
+            </div>
+            
+            <div class="flex items-center gap-4">
+                <!-- Enlace de regreso al menú principal de tu ERP -->
+                <a href="../" class="text-slate-300 hover:text-white font-semibold text-sm mr-4 flex items-center gap-1 transition">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg> Menú Principal
+                </a>
+                <button onclick="limpiarFormularios()" class="bg-slate-700 hover:bg-red-600 text-white font-semibold py-2 px-4 rounded shadow transition flex items-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                    Limpiar
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- ÁREA DE TRABAJO CENTRADA -->
+    <main class="flex-grow flex items-center justify-center p-6 w-full relative overflow-y-auto">
+        
+        <div class="bg-white rounded-xl shadow-md border border-gray-200 w-full max-w-2xl overflow-hidden flex flex-col">
+            
+            <!-- Pestañas (Tabs) -->
+            <div class="flex border-b bg-slate-50">
+                <button id="tab-ind" onclick="switchTab('individual')" class="flex-1 py-4 text-sm font-bold text-blue-700 border-b-2 border-blue-600 transition flex justify-center items-center gap-2 bg-white">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                    Descarga Individual
+                </button>
+                <button id="tab-mas" onclick="switchTab('masivo')" class="flex-1 py-4 text-sm font-semibold text-slate-500 border-b-2 border-transparent hover:text-slate-700 transition flex justify-center items-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path></svg>
+                    Lote Masivo (ZIP)
+                </button>
+            </div>
+
+            <!-- CONTENEDOR DE ALERTAS -->
+            <div id="alert-container" class="hidden px-6 pt-4">
+                <div id="alert-message" class="p-4 rounded-lg text-sm font-semibold flex items-center gap-2">
+                    <!-- El JS inyecta colores e íconos aquí -->
+                </div>
+            </div>
+
+            <!-- MODO INDIVIDUAL -->
+            <form id="form-individual" class="p-8 flex flex-col gap-5 fade-in" onsubmit="procesarIndividual(event)">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-2">RFC de la Empresa / Persona</label>
+                    <input type="text" id="rfc" placeholder="Ej. SALA011230GD2" required autocomplete="off" class="w-full text-sm border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm uppercase">
+                </div>
+                
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-2">Certificado (.cer)</label>
+                        <input type="file" id="archivo_cer" accept=".cer" required class="w-full text-sm border border-gray-300 rounded-lg p-2.5 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 file:mr-4 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-2">Clave Privada (.key)</label>
+                        <input type="file" id="archivo_key" accept=".key" required class="w-full text-sm border border-gray-300 rounded-lg p-2.5 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 file:mr-4 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-2">Contraseña de e.firma</label>
+                    <input type="password" id="password" required class="w-full text-sm border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm">
+                </div>
+
+                <div class="mt-4">
+                    <button type="submit" id="btn-individual" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3.5 rounded-lg shadow-md transition disabled:bg-slate-400 disabled:cursor-not-allowed flex justify-center items-center gap-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                        Descargar Constancia
+                    </button>
+                </div>
+            </form>
+
+            <!-- MODO MASIVO -->
+            <form id="form-masivo" class="p-8 hidden flex-col gap-6 fade-in" onsubmit="procesarMasivo(event)">
+                <div class="bg-blue-50 border border-blue-100 p-4 rounded-lg flex gap-3">
+                    <svg class="w-6 h-6 text-blue-600 flex-none mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    <p class="text-xs text-blue-800 leading-relaxed">
+                        <strong>Instrucciones:</strong> Comprime en un archivo <span class="font-bold">.zip</span> tu documento Excel (<i>directorio.xlsx</i>) junto con las carpetas que contienen los archivos .cer y .key de las empresas a procesar.
+                    </p>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-2">Archivo ZIP de Trabajo</label>
+                    <input type="file" id="archivo_zip" accept=".zip" required class="w-full text-sm border border-gray-300 rounded-lg p-3 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-500 cursor-pointer">
+                </div>
+
+                <div class="mt-4">
+                    <button type="submit" id="btn-masivo" class="w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-3.5 rounded-lg shadow-md transition disabled:bg-slate-400 disabled:cursor-not-allowed flex justify-center items-center gap-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                        Procesar Lote y Extraer
+                    </button>
+                </div>
+            </form>
+
+        </div>
+    </main>
+
+    <script>
+        // API Base URL (Cambiar a tu dominio cuando despliegues el backend)
+        const API_URL = "http://127.0.0.1:8000";
+
+        function switchTab(modo) {
+            const tabInd = document.getElementById('tab-ind');
+            const tabMas = document.getElementById('tab-mas');
+            const formInd = document.getElementById('form-individual');
+            const formMas = document.getElementById('form-masivo');
+            
+            ocultarAlerta();
+
+            if(modo === 'individual') {
+                tabInd.className = "flex-1 py-4 text-sm font-bold text-blue-700 border-b-2 border-blue-600 transition flex justify-center items-center gap-2 bg-white";
+                tabMas.className = "flex-1 py-4 text-sm font-semibold text-slate-500 border-b-2 border-transparent hover:text-slate-700 transition flex justify-center items-center gap-2";
+                formInd.classList.remove('hidden');
+                formMas.classList.add('hidden');
+            } else {
+                tabMas.className = "flex-1 py-4 text-sm font-bold text-blue-700 border-b-2 border-blue-600 transition flex justify-center items-center gap-2 bg-white";
+                tabInd.className = "flex-1 py-4 text-sm font-semibold text-slate-500 border-b-2 border-transparent hover:text-slate-700 transition flex justify-center items-center gap-2";
+                formMas.classList.remove('hidden');
+                formInd.classList.add('hidden');
+            }
+        }
+
+        function limpiarFormularios() {
+            document.getElementById('form-individual').reset();
+            document.getElementById('form-masivo').reset();
+            ocultarAlerta();
+        }
+
+        function mostrarAlerta(tipo, mensaje) {
+            const container = document.getElementById('alert-container');
+            const alertBox = document.getElementById('alert-message');
+            container.classList.remove('hidden');
+            
+            if(tipo === 'error') {
+                alertBox.className = "p-4 rounded-lg text-sm font-semibold flex items-center gap-2 bg-red-50 text-red-700 border border-red-200";
+                alertBox.innerHTML = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg> ${mensaje}`;
+            } else if (tipo === 'success') {
+                alertBox.className = "p-4 rounded-lg text-sm font-semibold flex items-center gap-2 bg-green-50 text-green-700 border border-green-200";
+                alertBox.innerHTML = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> ${mensaje}`;
+            }
+        }
+
+        function ocultarAlerta() {
+            document.getElementById('alert-container').classList.add('hidden');
+        }
+
+        function toggleLoadingState(btnId, isLoading, originalHTML) {
+            const btn = document.getElementById(btnId);
+            if(isLoading) {
+                btn.disabled = true;
+                btn.innerHTML = `<svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Conectando con SAT...`;
+            } else {
+                btn.disabled = false;
+                btn.innerHTML = originalHTML;
+            }
+        }
+
+        async function procesarIndividual(e) {
+            e.preventDefault();
+            ocultarAlerta();
+            
+            const btn = document.getElementById('btn-individual');
+            const btnOriginalHTML = btn.innerHTML;
+            toggleLoadingState('btn-individual', true, btnOriginalHTML);
+
+            const formData = new FormData();
+            formData.append("rfc", document.getElementById('rfc').value.trim().toUpperCase());
+            formData.append("password", document.getElementById('password').value);
+            formData.append("cer", document.getElementById('archivo_cer').files[0]);
+            formData.append("key", document.getElementById('archivo_key').files[0]);
+
+            try {
+                const response = await fetch(`${API_URL}/api/constancia/individual`, {
+                    method: "POST",
+                    body: formData
+                });
+                
+                if(response.ok) {
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `Constancia_${document.getElementById('rfc').value.toUpperCase()}.pdf`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    mostrarAlerta('success', '¡Constancia descargada con éxito!');
+                } else {
+                    const err = await response.json();
+                    mostrarAlerta('error', err.detail || "Error de autenticación o bloqueo temporal del SAT.");
+                }
+            } catch (error) {
+                mostrarAlerta('error', "No se pudo conectar con el motor Python. Verifica que el servidor esté activo.");
+            } finally {
+                toggleLoadingState('btn-individual', false, btnOriginalHTML);
+            }
+        }
+
+        async function procesarMasivo(e) {
+            e.preventDefault();
+            ocultarAlerta();
+            
+            const btn = document.getElementById('btn-masivo');
+            const btnOriginalHTML = btn.innerHTML;
+            toggleLoadingState('btn-masivo', true, btnOriginalHTML);
+
+            const formData = new FormData();
+            formData.append("zip_file", document.getElementById('archivo_zip').files[0]);
+
+            try {
+                const response = await fetch(`${API_URL}/api/constancia/masivo`, {
+                    method: "POST",
+                    body: formData
+                });
+
+                if(response.ok) {
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `Resultados_Constancias.zip`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    mostrarAlerta('success', '¡Proceso masivo completado! Revisa el archivo ZIP descargado.');
+                } else {
+                    mostrarAlerta('error', "El servidor falló al procesar el lote. Revisa la estructura del ZIP.");
+                }
+            } catch (error) {
+                mostrarAlerta('error', "Error de conexión con el motor automatizado.");
+            } finally {
+                toggleLoadingState('btn-masivo', false, btnOriginalHTML);
+            }
+        }
+    </script>
+</body>
+</html>
