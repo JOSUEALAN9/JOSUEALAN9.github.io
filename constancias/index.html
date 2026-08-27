@@ -11,6 +11,7 @@
         .fade-in { animation: fadeIn 0.3s ease-in-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
         .drag-over { background-color: #eff6ff !important; border-color: #3b82f6 !important; }
+        .modal-active { display: flex !important; }
     </style>
 </head>
 <body class="bg-gray-50 text-gray-800 font-sans h-screen flex flex-col overflow-hidden relative">
@@ -61,7 +62,6 @@
 
             <!-- MODO INDIVIDUAL -->
             <form id="form-individual" class="p-8 flex flex-col gap-5 fade-in" onsubmit="procesarIndividual(event)">
-                
                 <div class="bg-blue-50 border border-blue-100 p-4 rounded-lg flex items-start gap-3">
                     <svg class="w-5 h-5 text-blue-600 flex-none mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                     <p class="text-xs text-blue-800 leading-relaxed">
@@ -118,14 +118,22 @@
             <!-- MODO MASIVO -->
             <form id="form-masivo" class="p-8 hidden flex-col gap-6 fade-in" onsubmit="procesarMasivo(event)">
                 
-                <div class="bg-blue-50 border border-blue-100 p-4 rounded-lg flex flex-col gap-2">
-                    <div class="flex justify-between items-center border-b border-blue-200 pb-2">
-                        <h4 class="text-sm font-bold text-blue-800 flex items-center gap-1"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg> Instrucciones de Lote</h4>
-                        <a href="assets/Plantilla_Masiva.xlsx" download class="bg-white border border-blue-200 text-blue-600 hover:bg-blue-100 text-xs font-bold py-1.5 px-3 rounded flex items-center gap-1 transition">
-                            Descargar Plantilla
-                        </a>
+                <div class="bg-blue-50 border border-blue-100 p-4 rounded-lg flex flex-col gap-3">
+                    <div class="flex justify-between items-center border-b border-blue-200 pb-3">
+                        <h4 class="text-sm font-bold text-blue-800 flex items-center gap-1">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg> 
+                            Instrucciones de Lote
+                        </h4>
+                        <div class="flex gap-2">
+                            <button type="button" onclick="abrirInstructivo()" class="bg-white border border-blue-200 text-blue-600 hover:bg-blue-100 text-xs font-bold py-1.5 px-3 rounded flex items-center transition shadow-sm">
+                                Ver Instructivo Completo
+                            </button>
+                            <a href="assets/Plantilla_Masiva.xlsx" download class="bg-blue-600 border border-blue-600 text-white hover:bg-blue-700 text-xs font-bold py-1.5 px-3 rounded flex items-center transition shadow-sm">
+                                Descargar Plantilla
+                            </a>
+                        </div>
                     </div>
-                    <ul class="text-xs text-blue-800 space-y-1 mt-1 list-disc list-inside">
+                    <ul class="text-xs text-blue-800 space-y-1 list-disc list-inside">
                         <li>Guarda el archivo <strong>directorio.xlsx</strong> con 4 columnas: RFC, Contraseña, Archivo_CER, Archivo_KEY.</li>
                         <li>Coloca el Excel y todas las carpetas/archivos de e.firmas dentro de una carpeta maestra.</li>
                         <li>Arrastra esa carpeta entera al recuadro inferior. El sistema validará los archivos antes de procesar.</li>
@@ -161,9 +169,57 @@
         </div>
     </main>
 
+    <!-- MODAL INSTRUCTIVO -->
+    <div id="modal-instrucciones" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden justify-center items-center p-4">
+        <div class="bg-white w-full max-w-3xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            <div class="p-5 border-b flex justify-between items-center bg-slate-50">
+                <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                    <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    Instrucciones de Lote Masivo (Constancias)
+                </h2>
+                <button onclick="cerrarInstructivo()" class="text-gray-400 hover:text-red-500 transition"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
+            </div>
+            
+            <div class="p-6 overflow-y-auto flex flex-col gap-8">
+                <div>
+                    <div class="flex justify-between items-center mb-2">
+                        <h3 class="font-bold text-blue-700 flex items-center gap-2"><span class="bg-blue-100 text-blue-800 px-2 py-0.5 rounded text-sm">Paso 1</span> Prepara tu archivo Excel</h3>
+                        <a href="assets/Plantilla_Masiva.xlsx" download class="text-xs font-bold text-blue-600 hover:underline">↓ Descargar Plantilla.xlsx</a>
+                    </div>
+                    <p class="text-sm text-gray-600 leading-relaxed">Captura el RFC, Contraseña, y los nombres exactos de los archivos .cer y .key. Guarda el archivo con el nombre <strong>directorio.xlsx</strong>.</p>
+                    <div class="w-full h-40 bg-gray-100 rounded-lg mt-3 flex items-center justify-center border border-gray-200 text-gray-400 text-xs italic overflow-hidden">
+                        <img src="" alt="Ejemplo Excel" class="hidden w-full h-full object-cover">
+                        [Coloca aquí la ruta de tu imagen del Excel]
+                    </div>
+                </div>
+
+                <div>
+                    <h3 class="font-bold text-blue-700 flex items-center gap-2"><span class="bg-blue-100 text-blue-800 px-2 py-0.5 rounded text-sm">Paso 2</span> Agrupa las firmas</h3>
+                    <p class="text-sm text-gray-600 mt-2 leading-relaxed">Coloca el Excel <strong>directorio.xlsx</strong> y los archivos de las e.firmas (.cer y .key) dentro de una misma carpeta. El sistema leerá subcarpetas automáticamente.</p>
+                    <div class="w-full h-40 bg-gray-100 rounded-lg mt-3 flex items-center justify-center border border-gray-200 text-gray-400 text-xs italic overflow-hidden">
+                        <img src="" alt="Ejemplo Carpeta" class="hidden w-full h-full object-cover">
+                        [Coloca aquí la ruta de tu imagen de la carpeta]
+                    </div>
+                </div>
+
+                <div>
+                    <h3 class="font-bold text-blue-700 flex items-center gap-2"><span class="bg-blue-100 text-blue-800 px-2 py-0.5 rounded text-sm">Paso 3</span> Arrastra y Procesa</h3>
+                    <p class="text-sm text-gray-600 mt-2 leading-relaxed">Arrastra la carpeta completa hacia el recuadro punteado. El sistema validará que no falte ningún archivo antes de permitirte iniciar la descarga.</p>
+                </div>
+            </div>
+            
+            <div class="p-4 border-t bg-gray-50 flex justify-end">
+                <button onclick="cerrarInstructivo()" class="bg-slate-800 hover:bg-slate-700 text-white font-bold py-2 px-6 rounded-lg transition">Entendido</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         const API_URL = "http://127.0.0.1:8000";
         let archivosGlobalesMasivo = [];
+
+        function abrirInstructivo() { document.getElementById('modal-instrucciones').classList.add('modal-active'); }
+        function cerrarInstructivo() { document.getElementById('modal-instrucciones').classList.remove('modal-active'); }
 
         function switchTab(modo) {
             document.getElementById('tab-ind').className = modo === 'individual' ? "flex-1 py-4 text-sm font-bold text-blue-700 border-b-2 border-blue-600 transition flex justify-center items-center gap-2 bg-white" : "flex-1 py-4 text-sm font-semibold text-slate-500 border-b-2 border-transparent hover:text-slate-700 transition flex justify-center items-center gap-2";
@@ -197,7 +253,6 @@
 
         function ocultarAlerta() { document.getElementById('alert-container').classList.add('hidden'); }
 
-        // --- LÓGICA DROPZONE Y EXCEL VALIDATION ---
         const dropzone = document.getElementById('dropzone');
         ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => { dropzone.addEventListener(eventName, preventDefaults, false); });
         function preventDefaults(e) { e.preventDefault(); e.stopPropagation(); }
@@ -252,7 +307,6 @@
             badge.className = "px-2 py-1 rounded font-bold bg-blue-100 text-blue-700";
             badge.innerText = "Analizando...";
 
-            // Leer Excel con SheetJS
             const reader = new FileReader();
             reader.onload = function(e) {
                 try {
@@ -272,13 +326,12 @@
                     const nombresEnCarpeta = archivosGlobalesMasivo.map(f => f.name.toLowerCase());
 
                     jsonExcel.forEach((row, index) => {
-                        const filaNum = index + 2; // Fila real en Excel (1 encabezado + 0-index)
+                        const filaNum = index + 2; 
                         const rfc = row.RFC ? String(row.RFC).trim() : `Fila ${filaNum}`;
                         
                         let reqCer = row.Archivo_CER ? String(row.Archivo_CER).trim().toLowerCase() : "";
                         let reqKey = row.Archivo_KEY ? String(row.Archivo_KEY).trim().toLowerCase() : "";
                         
-                        // Validar y autocorregir extensión si el usuario la olvidó
                         if(reqCer && !reqCer.endsWith('.cer')) reqCer += '.cer';
                         if(reqKey && !reqKey.endsWith('.key')) reqKey += '.key';
 
@@ -308,7 +361,6 @@
             reader.readAsArrayBuffer(excelFile);
         }
 
-        // --- PETICIONES A BACKEND ---
         function toggleLoadingState(btnId, isLoading, originalHTML) {
             const btn = document.getElementById(btnId);
             if(isLoading) {
@@ -331,8 +383,6 @@
             formData.append("password", document.getElementById('password').value);
             formData.append("cer", document.getElementById('archivo_cer').files[0]);
             formData.append("key", document.getElementById('archivo_key').files[0]);
-            
-            // Constancia es mandatoria, el switch es para la 32-D extra
             formData.append("descargar_csf", "true");
             formData.append("descargar_32d", document.getElementById('chk_opinion').checked);
 
