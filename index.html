@@ -12,13 +12,13 @@
     <header class="bg-slate-900 text-white p-4 shadow-lg">
         <div class="max-w-6xl mx-auto flex justify-between items-center">
             <div class="flex items-center gap-3">
-                <div class="bg-emerald-600 p-2 rounded-lg">
+                <div class="bg-emerald-600 p-2 rounded-lg shadow-md">
                     <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
                 </div>
                 <h1 class="text-xl font-bold tracking-wide">Fiscontable</h1>
             </div>
             <nav>
-                <span class="text-sm text-slate-400">Soluciones SaaS</span>
+                <span class="text-sm text-slate-400 font-medium tracking-wide uppercase">Soluciones SaaS</span>
             </nav>
         </div>
     </header>
@@ -28,8 +28,8 @@
         
         <!-- Hero Section -->
         <div class="mb-12 border-b border-gray-200 pb-8">
-            <h2 class="text-4xl font-black text-slate-800 mb-4">Herramientas Fiscales & Contables</h2>
-            <p class="text-lg text-gray-600 max-w-2xl">Automatización de procesos, análisis de datos y herramientas para un control fiscal contable.</p>
+            <h2 class="text-4xl font-black text-slate-800 mb-4 tracking-tight">Herramientas Fiscales & Contables</h2>
+            <p class="text-lg text-gray-600 max-w-2xl">Plataforma integral de automatización de procesos, análisis de datos y control fiscal mediante conexión directa al SAT.</p>
         </div>
 
         <!-- Grid de Herramientas -->
@@ -37,41 +37,66 @@
             
             <!-- Tarjeta 1: Conciliador PPD -->
             <a href="conciliacion/" class="group block bg-white rounded-2xl shadow-sm border border-gray-200 p-6 hover:shadow-xl hover:border-blue-300 transition-all duration-300">
-                <div class="bg-blue-100 w-14 h-14 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                <div class="bg-blue-100 w-14 h-14 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform shadow-sm">
                     <svg class="w-7 h-7 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                 </div>
                 <h3 class="text-xl font-bold text-slate-800 mb-2 group-hover:text-blue-600 transition-colors">Facturas Recibidas PPD</h3>
-                <p class="text-sm text-gray-500 mb-4">Conciliación local para Facturas PPD vs Complementos.</p>
+                <p class="text-sm text-gray-500 mb-4">Conciliación local para Facturas PPD vs Complementos de Pago.</p>
                 <span class="text-sm font-semibold text-blue-600 flex items-center gap-1">
-                    Abrir <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                    Abrir Módulo <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
                 </span>
             </a>
 
             <!-- Tarjeta 2: Validador SAT -->
             <a href="validador/" class="group block bg-white rounded-2xl shadow-sm border border-gray-200 p-6 hover:shadow-xl hover:border-emerald-300 transition-all duration-300">
-                <div class="bg-emerald-100 w-14 h-14 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                <div class="bg-emerald-100 w-14 h-14 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform shadow-sm">
                     <svg class="w-7 h-7 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                 </div>
                 <h3 class="text-xl font-bold text-slate-800 mb-2 group-hover:text-emerald-600 transition-colors">Validador Fiscal SAT</h3>
-                <p class="text-sm text-gray-500 mb-4">Auditoría masiva de estatus (Vigente/Cancelado) directo con el SAT.</p>
+                <p class="text-sm text-gray-500 mb-4">Auditoría masiva de estatus (Vigente/Cancelado) en tiempo real directo con el SAT.</p>
                 <span class="text-sm font-semibold text-emerald-600 flex items-center gap-1">
-                    Abrir <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                    Abrir Módulo <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
                 </span>
             </a>
 
-            <!-- Tarjeta 3: Placeholder para el futuro -->
+            <!-- Tarjeta 3: Constancias de Situación Fiscal -->
+            <a href="constancias/" class="group block bg-white rounded-2xl shadow-sm border border-gray-200 p-6 hover:shadow-xl hover:border-indigo-300 transition-all duration-300">
+                <div class="bg-indigo-100 w-14 h-14 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform shadow-sm">
+                    <svg class="w-7 h-7 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                </div>
+                <h3 class="text-xl font-bold text-slate-800 mb-2 group-hover:text-indigo-600 transition-colors">Constancias CSF</h3>
+                <p class="text-sm text-gray-500 mb-4">Descarga automatizada individual y por lote masivo vía e.firma.</p>
+                <span class="text-sm font-semibold text-indigo-600 flex items-center gap-1">
+                    Abrir Módulo <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                </span>
+            </a>
+
+            <!-- Tarjeta 4: Opinión de Cumplimiento -->
+            <a href="opinion/" class="group block bg-white rounded-2xl shadow-sm border border-gray-200 p-6 hover:shadow-xl hover:border-teal-300 transition-all duration-300">
+                <div class="bg-teal-100 w-14 h-14 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform shadow-sm">
+                    <svg class="w-7 h-7 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+                </div>
+                <h3 class="text-xl font-bold text-slate-800 mb-2 group-hover:text-teal-600 transition-colors">Opinión 32-D</h3>
+                <p class="text-sm text-gray-500 mb-4">Auditoría de obligaciones fiscales individual y por lote vía e.firma.</p>
+                <span class="text-sm font-semibold text-teal-600 flex items-center gap-1">
+                    Abrir Módulo <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                </span>
+            </a>
+
+            <!-- Tarjeta 5: Placeholder para el futuro -->
             <div class="block bg-gray-50 rounded-2xl border border-dashed border-gray-300 p-6 opacity-70">
                 <div class="bg-gray-200 w-14 h-14 rounded-xl flex items-center justify-center mb-6">
                     <svg class="w-7 h-7 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
                 </div>
                 <h3 class="text-xl font-bold text-slate-500 mb-2">Próximamente</h3>
-                <p class="text-sm text-gray-400">Nuevo módulo en desarrollo...</p>
+                <p class="text-sm text-gray-400">Nuevas automatizaciones y herramientas fiscales en desarrollo.</p>
             </div>
 
         </div>
     </main>
 
-    <footer class="bg-slate-900 text-slate-400 text-center py-6 text-xs mt-auto">
+    <!-- Footer -->
+    <footer class="bg-slate-900 text-slate-400 text-center py-6 text-xs mt-auto border-t border-slate-800">
         <p>&copy; 2026 Alan Sánchez. Todos los derechos reservados.</p>
     </footer>
 
