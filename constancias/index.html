@@ -14,7 +14,7 @@
         .modal-active { display: flex !important; }
     </style>
 </head>
-<body class="bg-gray-50 text-gray-800 font-sans h-screen flex flex-col overflow-hidden relative">
+<body class="bg-gray-50 text-gray-800 font-sans h-screen flex flex-col relative">
 
     <!-- TOP NAV -->
     <header class="bg-slate-900 text-white p-4 shadow-lg flex-none z-10">
@@ -42,8 +42,8 @@
     </header>
 
     <!-- ÁREA DE TRABAJO -->
-    <main class="flex-grow flex items-center justify-center p-6 w-full relative overflow-y-auto">
-        <div class="bg-white rounded-xl shadow-md border border-gray-200 w-full max-w-2xl overflow-hidden flex flex-col">
+    <main class="flex-grow flex p-6 w-full relative overflow-y-auto">
+        <div class="bg-white rounded-xl shadow-md border border-gray-200 w-full max-w-2xl m-auto flex flex-col">
             
             <div class="flex border-b bg-slate-50">
                 <button id="tab-ind" onclick="switchTab('individual')" class="flex-1 py-4 text-sm font-bold text-blue-700 border-b-2 border-blue-600 transition flex justify-center items-center gap-2 bg-white">
@@ -166,6 +166,9 @@
                     </button>
                 </div>
             </form>
+        </div>
+    </main>
+
     <!-- MODAL INSTRUCTIVO -->
     <div id="modal-instrucciones" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden justify-center items-center p-4">
         <div class="bg-white w-full max-w-3xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
@@ -181,7 +184,7 @@
                 <div>
                     <div class="flex justify-between items-center mb-2">
                         <h3 class="font-bold text-blue-700 flex items-center gap-2"><span class="bg-blue-100 text-blue-800 px-2 py-0.5 rounded text-sm">Paso 1</span> Prepara tu archivo Excel</h3>
-                        <a href="assets/Plantilla_Masiva.xlsx" download class="text-xs font-bold text-blue-600 hover:underline">↓ Descargar Plantilla.xlsx</a>
+                        <a href="assets/directorio.xlsx" download class="text-xs font-bold text-blue-600 hover:underline">↓ Descargar Plantilla.xlsx</a>
                     </div>
                     <p class="text-sm text-gray-600 leading-relaxed">Captura el RFC, Contraseña, y los nombres exactos de los archivos .cer y .key. Guarda el archivo con el nombre <strong>directorio.xlsx</strong>.</p>
                     <div class="w-full h-40 bg-gray-100 rounded-lg mt-3 flex items-center justify-center border border-gray-200 text-gray-400 text-xs italic overflow-hidden">
@@ -212,8 +215,16 @@
     </div>
 
     <script>
-        const API_URL = "http://127.0.0.1:8000";
+        const API_URL = "https://api.josuealan.com";
         let archivosGlobalesMasivo = [];
+
+        function obtenerFechaDDMMAA() {
+            const hoy = new Date();
+            const dd = String(hoy.getDate()).padStart(2, '0');
+            const mm = String(hoy.getMonth() + 1).padStart(2, '0');
+            const aa = String(hoy.getFullYear()).slice(-2);
+            return `${dd}_${mm}_${aa}`;
+        }
 
         function abrirInstructivo() { document.getElementById('modal-instrucciones').classList.add('modal-active'); }
         function cerrarInstructivo() { document.getElementById('modal-instrucciones').classList.remove('modal-active'); }
@@ -376,7 +387,8 @@
             toggleLoadingState('btn-individual', true, btnOriginalHTML);
 
             const formData = new FormData();
-            formData.append("rfc", document.getElementById('rfc').value.trim().toUpperCase());
+            const rfc = document.getElementById('rfc').value.trim().toUpperCase();
+            formData.append("rfc", rfc);
             formData.append("password", document.getElementById('password').value);
             formData.append("cer", document.getElementById('archivo_cer').files[0]);
             formData.append("key", document.getElementById('archivo_key').files[0]);
@@ -390,8 +402,11 @@
                     const url = window.URL.createObjectURL(blob);
                     const a = document.createElement('a');
                     a.href = url;
+                    
+                    const fecha = obtenerFechaDDMMAA();
                     const descargoAmbos = document.getElementById('chk_opinion').checked;
-                    a.download = descargoAmbos ? `Documentos_${document.getElementById('rfc').value.toUpperCase()}.zip` : `Constancia_${document.getElementById('rfc').value.toUpperCase()}.pdf`;
+                    a.download = descargoAmbos ? `Expediente_${rfc}_${fecha}.zip` : `CSF_${rfc}_${fecha}.pdf`;
+                    
                     a.click();
                     mostrarAlerta('success', '¡Proceso completado con éxito!');
                 } else {
@@ -417,7 +432,10 @@
                     const url = window.URL.createObjectURL(blob);
                     const a = document.createElement('a');
                     a.href = url;
-                    a.download = `Resultados_Constancias_Lote.zip`;
+                    
+                    const fecha = obtenerFechaDDMMAA();
+                    a.download = `Archivos_masivos_${fecha}.zip`;
+                    
                     a.click();
                     mostrarAlerta('success', 'Lote completado. Se descargó el archivo ZIP.');
                 } else {
