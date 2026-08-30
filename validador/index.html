@@ -311,6 +311,7 @@
             try {
                 const respuesta = await fetch("https://api.josuealan.com/validar-factura/", {
                     method: "POST",
+                    credentials: "include",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
                         rfc_emisor: rfcEmisor,
