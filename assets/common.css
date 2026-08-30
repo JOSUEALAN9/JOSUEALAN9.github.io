@@ -1,0 +1,46 @@
+/* ============================================================
+   common.css — estilos compartidos entre módulos de Fiscontable
+   Cada módulo conserva su propio color de acento (el mismo que
+   ya tiene asignado en el portal principal); esto solo comparte
+   estructura, no color.
+   ============================================================ */
+
+.fade-in { animation: fadeIn 0.3s ease-in-out; }
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.modal-active { display: flex !important; }
+
+.card-elevated {
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 8px 24px -8px rgba(15, 23, 42, 0.14);
+}
+
+/* Oculta el ícono nativo de "mostrar contraseña" de Edge/IE para que
+   no se encime con nuestro propio botón de mostrar/ocultar. */
+input[type="password"]::-ms-reveal,
+input[type="password"]::-ms-clear {
+    display: none;
+}
+
+/* Campo de solo lectura (usado para el RFC autocompletado desde el .cer) */
+.campo-solo-lectura {
+    background-color: #f1f5f9 !important;
+    color: #475569;
+    cursor: not-allowed;
+}
+
+/* Barra de avance "honesta": comunica que algo sigue en proceso sin
+   simular un porcentaje exacto que hoy no podemos calcular de verdad. */
+.progress-track {
+    height: 6px;
+    border-radius: 999px;
+    background: #e2e8f0;
+    overflow: hidden;
+}
+.progress-fill {
+    height: 100%;
+    border-radius: 999px;
+    transition: width 0.7s ease;
+}
