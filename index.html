@@ -3,126 +3,120 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Portal de Herramientas Fiscontables</title>
+    <title>Fiscontable</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="assets/common.css">
 </head>
 <body class="bg-gray-50 text-gray-800 font-sans min-h-screen flex flex-col">
 
-    <!-- Top Navigation -->
     <header class="bg-slate-900 text-white p-4 shadow-lg">
-        <div class="max-w-6xl mx-auto flex justify-between items-center">
+        <div class="max-w-6xl mx-auto flex justify-between items-center gap-3">
             <div class="flex items-center gap-3">
                 <div class="bg-emerald-600 p-2 rounded-lg shadow-md">
                     <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
                 </div>
                 <h1 class="text-xl font-bold tracking-wide">Fiscontable</h1>
             </div>
-            <nav>
-                <span class="text-sm text-slate-400 font-medium tracking-wide uppercase">Soluciones SaaS</span>
-            </nav>
+            <div class="flex items-center gap-4">
+                <span id="usuario-actual" class="text-xs text-slate-400 hidden sm:inline"></span>
+                <a href="https://contafiscal.cloudflareaccess.com/cdn-cgi/access/logout" class="text-slate-300 hover:text-white text-sm font-semibold flex items-center gap-1 transition">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+                    <span class="hidden sm:inline">Cerrar sesión</span>
+                </a>
+            </div>
         </div>
     </header>
 
-    <!-- Main Content -->
-    <main class="flex-grow max-w-6xl mx-auto w-full p-6 mt-8">
-        
-        <!-- Hero Section -->
-        <div class="mb-12 border-b border-gray-200 pb-8">
-            <h2 class="text-4xl font-black text-slate-800 mb-4 tracking-tight">Herramientas Fiscales & Contables</h2>
-            <p class="text-lg text-gray-600 max-w-2xl">Plataforma integral de automatización de procesos, análisis de datos y control fiscal mediante conexión directa al SAT.</p>
+    <main class="flex-grow max-w-5xl mx-auto w-full p-6 mt-6 sm:mt-12">
+
+        <div id="aviso-conexion" class="hidden mb-6 bg-amber-50 border border-amber-200 p-4 rounded-lg flex items-start gap-3">
+            <svg class="w-5 h-5 text-amber-600 flex-none mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            <p id="aviso-conexion-texto" class="text-sm text-amber-800"></p>
         </div>
 
-        <!-- Grid de Herramientas -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            
-            <!-- Tarjeta 1: Conciliador PPD -->
-            <a href="conciliacion/" class="group block bg-white rounded-2xl shadow-sm border border-gray-200 p-6 hover:shadow-xl hover:border-blue-300 transition-all duration-300">
-                <div class="bg-blue-100 w-14 h-14 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform shadow-sm">
-                    <svg class="w-7 h-7 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+        <div class="mb-10">
+            <h2 id="saludo" class="text-3xl sm:text-4xl font-black text-slate-800 mb-3 tracking-tight">Bienvenido</h2>
+            <p class="text-base sm:text-lg text-gray-600">¿Con qué quieres trabajar hoy?</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+            <a href="clientes/" class="group block bg-white rounded-2xl card-elevated border border-gray-200 p-8 hover:border-violet-300 transition-all duration-300">
+                <div class="bg-violet-100 w-16 h-16 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                    <svg class="w-8 h-8 text-violet-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-1.13a4 4 0 10-4-4 4 4 0 004 4zm6 0a4 4 0 10-4-4"></path></svg>
                 </div>
-                <h3 class="text-xl font-bold text-slate-800 mb-2 group-hover:text-blue-600 transition-colors">Facturas Recibidas PPD</h3>
-                <p class="text-sm text-gray-500 mb-4">Conciliación local para Facturas PPD vs Complementos de Pago.</p>
-                <span class="text-sm font-semibold text-blue-600 flex items-center gap-1">
-                    Abrir Módulo <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                <h3 class="text-2xl font-bold text-slate-800 mb-2 group-hover:text-violet-600 transition-colors">Espacio Contador</h3>
+                <p class="text-sm text-gray-500 mb-5 leading-relaxed">Tu cartera de clientes con seguimiento de documentos, cumplimiento y vencimientos. Trabajas por cliente, no por herramienta.</p>
+                <span class="text-sm font-bold text-violet-600 flex items-center gap-1">
+                    Entrar <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
                 </span>
             </a>
 
-            <!-- Tarjeta 2: Validador SAT -->
-            <a href="validador/" class="group block bg-white rounded-2xl shadow-sm border border-gray-200 p-6 hover:shadow-xl hover:border-emerald-300 transition-all duration-300">
-                <div class="bg-emerald-100 w-14 h-14 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform shadow-sm">
-                    <svg class="w-7 h-7 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            <a href="herramientas/" class="group block bg-white rounded-2xl card-elevated border border-gray-200 p-8 hover:border-emerald-300 transition-all duration-300">
+                <div class="bg-emerald-100 w-16 h-16 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                    <svg class="w-8 h-8 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z"></path></svg>
                 </div>
-                <h3 class="text-xl font-bold text-slate-800 mb-2 group-hover:text-emerald-600 transition-colors">Validador Fiscal SAT</h3>
-                <p class="text-sm text-gray-500 mb-4">Auditoría masiva de estatus (Vigente/Cancelado) en tiempo real directo con el SAT.</p>
-                <span class="text-sm font-semibold text-emerald-600 flex items-center gap-1">
-                    Abrir Módulo <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                <h3 class="text-2xl font-bold text-slate-800 mb-2 group-hover:text-emerald-600 transition-colors">Herramientas Rápidas</h3>
+                <p class="text-sm text-gray-500 mb-5 leading-relaxed">Conciliación, validación de XML, constancias y opiniones — para trabajo de una sola vez, sin necesidad de registrar al contribuyente.</p>
+                <span class="text-sm font-bold text-emerald-600 flex items-center gap-1">
+                    Entrar <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
                 </span>
             </a>
+        </div>
 
-            <!-- Tarjeta 3: Constancias de Situación Fiscal -->
-            <a href="constancias/" class="group block bg-white rounded-2xl shadow-sm border border-gray-200 p-6 hover:shadow-xl hover:border-indigo-300 transition-all duration-300">
-                <div class="bg-indigo-100 w-14 h-14 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform shadow-sm">
-                    <svg class="w-7 h-7 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                </div>
-                <h3 class="text-xl font-bold text-slate-800 mb-2 group-hover:text-indigo-600 transition-colors">Constancias CSF</h3>
-                <p class="text-sm text-gray-500 mb-4">Descarga automatizada individual y por lote masivo vía e.firma.</p>
-                <span class="text-sm font-semibold text-indigo-600 flex items-center gap-1">
-                    Abrir Módulo <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
-                </span>
+        <div id="bloque-admin" class="hidden mt-8 pt-8 border-t border-gray-200">
+            <a href="admin/" class="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-slate-800 transition">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                Administrar usuarios
             </a>
-
-            <!-- Tarjeta 4: Opinión de Cumplimiento -->
-            <a href="opinion/" class="group block bg-white rounded-2xl shadow-sm border border-gray-200 p-6 hover:shadow-xl hover:border-teal-300 transition-all duration-300">
-                <div class="bg-teal-100 w-14 h-14 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform shadow-sm">
-                    <svg class="w-7 h-7 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
-                </div>
-                <h3 class="text-xl font-bold text-slate-800 mb-2 group-hover:text-teal-600 transition-colors">Opinión 32-D</h3>
-                <p class="text-sm text-gray-500 mb-4">Auditoría de obligaciones fiscales individual y por lote vía e.firma.</p>
-                <span class="text-sm font-semibold text-teal-600 flex items-center gap-1">
-                    Abrir Módulo <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
-                </span>
-            </a>
-
-            <!-- Tarjeta 5: Mis Clientes -->
-            <a href="clientes/" class="group block bg-white rounded-2xl shadow-sm border border-gray-200 p-6 hover:shadow-xl hover:border-violet-300 transition-all duration-300">
-                <div class="bg-violet-100 w-14 h-14 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform shadow-sm">
-                    <svg class="w-7 h-7 text-violet-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-1.13a4 4 0 10-4-4 4 4 0 004 4zm6 0a4 4 0 10-4-4"></path></svg>
-                </div>
-                <h3 class="text-xl font-bold text-slate-800 mb-2 group-hover:text-violet-600 transition-colors">Mis Clientes</h3>
-                <p class="text-sm text-gray-500 mb-4">Directorio privado con seguimiento de documentos por cliente.</p>
-                <span class="text-sm font-semibold text-violet-600 flex items-center gap-1">
-                    Abrir Módulo <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
-                </span>
-            </a>
-
-            <!-- Tarjeta 6: Administrar Usuarios -->
-            <a href="admin/" class="group block bg-white rounded-2xl shadow-sm border border-gray-200 p-6 hover:shadow-xl hover:border-slate-400 transition-all duration-300">
-                <div class="bg-slate-200 w-14 h-14 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform shadow-sm">
-                    <svg class="w-7 h-7 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
-                </div>
-                <h3 class="text-xl font-bold text-slate-800 mb-2 group-hover:text-slate-600 transition-colors">Administrar Usuarios</h3>
-                <p class="text-sm text-gray-500 mb-4">Roles y vigencia — solo administradores.</p>
-                <span class="text-sm font-semibold text-slate-600 flex items-center gap-1">
-                    Abrir Módulo <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
-                </span>
-            </a>
-
-            <!-- Tarjeta 7: Placeholder para el futuro -->
-            <div class="block bg-gray-50 rounded-2xl border border-dashed border-gray-300 p-6 opacity-70">
-                <div class="bg-gray-200 w-14 h-14 rounded-xl flex items-center justify-center mb-6">
-                    <svg class="w-7 h-7 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
-                </div>
-                <h3 class="text-xl font-bold text-slate-500 mb-2">Próximamente</h3>
-                <p class="text-sm text-gray-400">Nuevas automatizaciones y herramientas fiscales en desarrollo.</p>
-            </div>
-
         </div>
     </main>
 
-    <!-- Footer -->
     <footer class="bg-slate-900 text-slate-400 text-center py-6 text-xs mt-auto border-t border-slate-800">
         <p>&copy; 2026 Alan Sánchez. Todos los derechos reservados.</p>
     </footer>
 
+    <script>
+        const API_URL = "https://api.josuealan.com";
+
+        document.addEventListener("DOMContentLoaded", cargarPerfil);
+
+        function mostrarAvisoConexion(mensaje) {
+            document.getElementById("aviso-conexion-texto").textContent = mensaje;
+            document.getElementById("aviso-conexion").classList.remove("hidden");
+        }
+
+        async function cargarPerfil() {
+            // Ante cualquier duda, el bloque de administración queda oculto:
+            // nunca mostrar de más. El backend igual rechaza a quien no sea
+            // admin, así que esto es presentación, no seguridad.
+            try {
+                const resp = await fetch(`${API_URL}/api/mi-perfil`, { credentials: "include" });
+
+                if (resp.status === 401 || resp.status === 403) {
+                    mostrarAvisoConexion("Tu sesión expiró. Recarga la página para iniciar sesión de nuevo.");
+                    return;
+                }
+                if (!resp.ok) {
+                    mostrarAvisoConexion("No pudimos conectar con el servidor. Puedes navegar, pero las herramientas no funcionarán hasta que se restablezca la conexión.");
+                    return;
+                }
+
+                const perfil = await resp.json();
+                const nombre = perfil.correo.split("@")[0];
+                document.getElementById("saludo").textContent = `Hola, ${nombre}`;
+                document.getElementById("usuario-actual").textContent = perfil.correo;
+
+                if (perfil.rol === "admin") {
+                    document.getElementById("bloque-admin").classList.remove("hidden");
+                }
+                if (perfil.solo_lectura) {
+                    mostrarAvisoConexion("Tu acceso venció. Puedes consultar tu directorio de clientes, pero no generar documentos ni hacer cambios.");
+                }
+            } catch (error) {
+                mostrarAvisoConexion("No pudimos conectar con el servidor. Verifica tu conexión o si el servicio está activo.");
+            }
+        }
+    </script>
 </body>
 </html>
