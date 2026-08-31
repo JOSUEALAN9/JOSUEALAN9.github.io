@@ -107,7 +107,7 @@
         }
 
         async function interpretarError(response) {
-            if (!response) return "No pudimos conectar con el servidor.";
+            if (!response) return "No pudimos conectar con el servidor. Intenta de nuevo más tarde.";
             if (response.status === 401 || response.status === 403) {
                 try {
                     const data = await response.json();
@@ -133,7 +133,7 @@
                 document.getElementById("contenido-admin").classList.remove("hidden");
                 await cargarUsuarios();
             } catch (error) {
-                mostrarAlerta("error", "No se pudo verificar tu acceso.");
+                mostrarAlerta("error", "No se pudo verificar tu acceso. Intenta de nuevo más tarde.");
             }
         }
 
@@ -188,7 +188,7 @@
                 mostrarAlerta("success", "Usuario guardado.");
                 await cargarUsuarios();
             } catch (error) {
-                mostrarAlerta("error", "No se pudo conectar con el servidor.");
+                mostrarAlerta("error", "No se pudo conectar con el servidor. Intenta de nuevo más tarde.");
             }
         }
 
@@ -202,7 +202,7 @@
                 if (!resp.ok) { mostrarAlerta("error", await interpretarError(resp)); return; }
                 await cargarUsuarios();
             } catch (error) {
-                mostrarAlerta("error", "No se pudo conectar con el servidor.");
+                mostrarAlerta("error", "No se pudo conectar con el servidor. Intenta de nuevo más tarde.");
             }
         }
     </script>
