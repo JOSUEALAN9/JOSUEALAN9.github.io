@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Herramientas Rápidas | Fiscontable</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="../assets/common.css">
+</head>
+<body class="bg-gray-50 text-gray-800 font-sans min-h-screen flex flex-col">
+
+    <header class="bg-slate-900 text-white p-4 shadow-lg">
+        <div class="max-w-6xl mx-auto flex flex-wrap justify-between items-center gap-3">
+            <div class="flex items-center gap-4">
+                <div class="bg-emerald-600 p-2 rounded-lg">
+                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z"></path></svg>
+                </div>
+                <div>
+                    <h1 class="text-lg sm:text-xl font-bold leading-tight">Herramientas Rápidas</h1>
+                    <p class="text-xs text-slate-400">Trabajo de una sola vez, sin registrar contribuyente</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-3 sm:gap-4">
+                <a href="../clientes/" class="text-violet-300 hover:text-white font-semibold text-sm flex items-center gap-1 transition">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-1.13a4 4 0 10-4-4 4 4 0 004 4zm6 0a4 4 0 10-4-4"></path></svg>
+                    <span class="hidden sm:inline">Espacio Contador</span>
+                </a>
+                <a href="../" class="text-slate-300 hover:text-white font-semibold text-sm flex items-center gap-1 transition">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg> Inicio
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-grow max-w-6xl mx-auto w-full p-6 mt-4">
+
+        <div id="aviso" class="hidden mb-6 bg-amber-50 border border-amber-200 p-4 rounded-lg flex items-start gap-3">
+            <svg class="w-5 h-5 text-amber-600 flex-none mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            <p id="aviso-texto" class="text-sm text-amber-800"></p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+
+            <a href="../conciliacion/" data-modulo="conciliacion" class="tarjeta-modulo group block bg-white rounded-2xl card-elevated border border-gray-200 p-6 hover:border-blue-300 transition-all duration-300">
+                <div class="bg-blue-100 w-14 h-14 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                    <svg class="w-7 h-7 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                </div>
+                <h3 class="text-xl font-bold text-slate-800 mb-2 group-hover:text-blue-600 transition-colors">Facturas Recibidas PPD</h3>
+                <p class="text-sm text-gray-500 mb-4">Conciliación local para Facturas PPD vs Complementos de Pago.</p>
+                <span class="text-sm font-semibold text-blue-600 flex items-center gap-1">
+                    Abrir <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                </span>
+            </a>
+
+            <a href="../validador/" data-modulo="validador" class="tarjeta-modulo group block bg-white rounded-2xl card-elevated border border-gray-200 p-6 hover:border-emerald-300 transition-all duration-300">
+                <div class="bg-emerald-100 w-14 h-14 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                    <svg class="w-7 h-7 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                </div>
+                <h3 class="text-xl font-bold text-slate-800 mb-2 group-hover:text-emerald-600 transition-colors">Validador Fiscal SAT</h3>
+                <p class="text-sm text-gray-500 mb-4">Auditoría masiva de estatus (Vigente/Cancelado) directo con el SAT.</p>
+                <span class="text-sm font-semibold text-emerald-600 flex items-center gap-1">
+                    Abrir <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                </span>
+            </a>
+
+            <a href="../constancias/" data-modulo="constancias" class="tarjeta-modulo group block bg-white rounded-2xl card-elevated border border-gray-200 p-6 hover:border-indigo-300 transition-all duration-300">
+                <div class="bg-indigo-100 w-14 h-14 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                    <svg class="w-7 h-7 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                </div>
+                <h3 class="text-xl font-bold text-slate-800 mb-2 group-hover:text-indigo-600 transition-colors">Constancias CSF</h3>
+                <p class="text-sm text-gray-500 mb-4">Descarga individual y masiva vía e.firma.</p>
+                <span class="text-sm font-semibold text-indigo-600 flex items-center gap-1">
+                    Abrir <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                </span>
+            </a>
+
+            <a href="../opinion/" data-modulo="opinion" class="tarjeta-modulo group block bg-white rounded-2xl card-elevated border border-gray-200 p-6 hover:border-teal-300 transition-all duration-300">
+                <div class="bg-teal-100 w-14 h-14 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                    <svg class="w-7 h-7 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+                </div>
+                <h3 class="text-xl font-bold text-slate-800 mb-2 group-hover:text-teal-600 transition-colors">Opinión de Cumplimiento (32-D)</h3>
+                <p class="text-sm text-gray-500 mb-4">Auditoría de obligaciones fiscales individual y masiva vía e.firma.</p>
+                <span class="text-sm font-semibold text-teal-600 flex items-center gap-1">
+                    Abrir <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                </span>
+            </a>
+
+            <div class="block bg-gray-50 rounded-2xl border border-dashed border-gray-300 p-6 opacity-70">
+                <div class="bg-gray-200 w-14 h-14 rounded-xl flex items-center justify-center mb-6">
+                    <svg class="w-7 h-7 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
+                </div>
+                <h3 class="text-xl font-bold text-slate-500 mb-2">Próximamente</h3>
+                <p class="text-sm text-gray-400">Declaraciones, descarga de XML, IMSS e Infonavit.</p>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        const API_URL = "https://api.josuealan.com";
+
+        document.addEventListener("DOMContentLoaded", aplicarPermisos);
+
+        function mostrarAviso(mensaje) {
+            document.getElementById("aviso-texto").textContent = mensaje;
+            document.getElementById("aviso").classList.remove("hidden");
+        }
+
+        function marcarNoDisponible(tarjeta, motivo) {
+            tarjeta.classList.add("opacity-40", "pointer-events-none");
+            tarjeta.setAttribute("title", motivo);
+        }
+
+        async function aplicarPermisos() {
+            try {
+                const resp = await fetch(`${API_URL}/api/mi-perfil`, { credentials: "include" });
+
+                if (resp.status === 401 || resp.status === 403) {
+                    mostrarAviso("Tu sesión expiró. Recarga la página para iniciar sesión de nuevo.");
+                    return;
+                }
+                if (!resp.ok) {
+                    mostrarAviso("No pudimos conectar con el servidor, así que no sabemos qué herramientas tienes habilitadas. Puedes intentar abrirlas, pero podrían no responder. Intenta de nuevo más tarde o contacta al administrador.");
+                    return;
+                }
+
+                const perfil = await resp.json();
+                const permitidos = perfil.modulos_permitidos || [];
+
+                document.querySelectorAll(".tarjeta-modulo").forEach(tarjeta => {
+                    const modulo = tarjeta.dataset.modulo;
+                    if (!permitidos.includes(modulo)) {
+                        marcarNoDisponible(tarjeta, "Tu plan actual no incluye esta herramienta.");
+                    }
+                });
+
+                if (perfil.solo_lectura) {
+                    mostrarAviso("Tu acceso venció. Las herramientas están deshabilitadas hasta que se renueve; puedes seguir consultando tu directorio de clientes. Contacta al administrador para renovarlo.");
+                    document.querySelectorAll(".tarjeta-modulo").forEach(t => marcarNoDisponible(t, "Tu acceso venció."));
+                }
+            } catch (error) {
+                mostrarAviso("No pudimos conectar con el servidor. Verifica tu conexión a internet, intenta de nuevo más tarde o contacta al administrador.");
+            }
+        }
+    </script>
+</body>
+</html>
