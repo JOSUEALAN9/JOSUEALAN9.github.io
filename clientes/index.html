@@ -23,8 +23,12 @@
             </div>
 
             <div class="flex items-center gap-2 sm:gap-4">
+                <a href="../herramientas/" class="text-emerald-300 hover:text-white font-semibold text-sm flex items-center gap-1 transition">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z"></path></svg>
+                    <span class="hidden sm:inline">Herramientas</span>
+                </a>
                 <a href="../" class="text-slate-300 hover:text-white font-semibold text-sm flex items-center gap-1 transition">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg> Menú
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg> <span class="hidden sm:inline">Inicio</span>
                 </a>
                 <button onclick="abrirModalNuevoCliente()" id="btn-agregar-cliente" class="bg-violet-600 hover:bg-violet-500 text-white font-semibold py-2 px-3 sm:px-4 rounded shadow transition flex items-center gap-2 text-sm">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
@@ -127,7 +131,7 @@
         }
 
         async function interpretarError(response) {
-            if (!response) return "No pudimos conectar con el servidor. Verifica tu conexión o si el túnel/portal está activo.";
+            if (!response) return "No pudimos conectar con el servidor. Verifica tu conexión, intenta de nuevo más tarde o contacta al administrador.";
             if (response.status === 401 || response.status === 403) return "Tu sesión de acceso expiró. Recarga la página e inicia sesión de nuevo.";
             if (response.status === 409) return "Ya tienes un cliente registrado con ese RFC.";
             try {
