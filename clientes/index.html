@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mis Clientes | Fiscontable</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="../assets/common.css">
+</head>
+<body class="bg-gray-50 text-gray-800 font-sans min-h-screen flex flex-col relative">
+
+    <!-- TOP NAV -->
+    <header class="bg-slate-900 text-white p-4 shadow-lg flex-none z-10">
+        <div class="max-w-[1600px] mx-auto flex flex-wrap justify-between items-center gap-3">
+            <div class="flex items-center gap-4">
+                <div class="bg-violet-600 p-2 rounded-lg">
+                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-1.13a4 4 0 10-4-4 4 4 0 004 4zm6 0a4 4 0 10-4-4"></path></svg>
+                </div>
+                <div>
+                    <h1 class="text-lg sm:text-xl font-bold leading-tight">Mis Clientes</h1>
+                    <p class="text-xs text-slate-400">Tu directorio privado — solo tú lo ves</p>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-2 sm:gap-4">
+                <a href="../" class="text-slate-300 hover:text-white font-semibold text-sm flex items-center gap-1 transition">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg> Menú
+                </a>
+                <button onclick="abrirModalNuevoCliente()" id="btn-agregar-cliente" class="bg-violet-600 hover:bg-violet-500 text-white font-semibold py-2 px-3 sm:px-4 rounded shadow transition flex items-center gap-2 text-sm">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                    <span class="hidden sm:inline">Agregar cliente</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- ÁREA DE TRABAJO -->
+    <main class="flex-grow p-4 sm:p-6 w-full max-w-6xl mx-auto">
+
+        <div id="alert-container" class="hidden mb-4">
+            <div id="alert-message" class="p-4 rounded-lg text-sm font-semibold flex items-start gap-2"></div>
+        </div>
+
+        <div id="banner-solo-lectura" class="hidden mb-4 bg-amber-50 border border-amber-200 p-4 rounded-lg flex items-start gap-3">
+            <svg class="w-5 h-5 text-amber-600 flex-none mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            <p class="text-sm text-amber-800">Tu acceso venció. Puedes seguir viendo tu directorio, pero no puedes agregar, quitar ni generar documentos hasta que se renueve. Contacta al administrador.</p>
+        </div>
+
+        <div id="estado-vacio" class="hidden bg-white rounded-xl card-elevated border border-dashed border-gray-300 p-12 text-center">
+            <svg class="w-12 h-12 text-gray-300 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-1.13a4 4 0 10-4-4 4 4 0 004 4zm6 0a4 4 0 10-4-4"></path></svg>
+            <p class="text-slate-500 font-semibold">Todavía no tienes clientes registrados</p>
+            <p class="text-sm text-slate-400 mt-1">Cuando generes una Constancia u Opinión desde Herramientas Rápidas, puedes agregar ese RFC aquí para llevarle seguimiento.</p>
+        </div>
+
+        <div id="lista-clientes" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+    </main>
+
+    <!-- MODAL: AGREGAR CLIENTE -->
+    <div id="modal-nuevo-cliente" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden justify-center items-center p-4">
+        <div class="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden flex flex-col">
+            <div class="p-5 border-b flex justify-between items-center bg-slate-50">
+                <h2 class="text-lg font-bold text-slate-800">Agregar cliente</h2>
+                <button onclick="cerrarModalNuevoCliente()" class="text-gray-400 hover:text-red-500 transition"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
+            </div>
+            <form id="form-nuevo-cliente" class="p-6 flex flex-col gap-4" onsubmit="crearCliente(event)">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-2">RFC</label>
+                    <input type="text" id="input-rfc" required class="w-full text-sm border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-violet-500 shadow-sm uppercase" placeholder="Ej. XAXX010101000">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-2">Alias (cómo lo quieres identificar)</label>
+                    <input type="text" id="input-alias" required class="w-full text-sm border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-violet-500 shadow-sm" placeholder="Ej. Constructora XYZ">
+                </div>
+                <p class="text-xs text-slate-400">Los demás datos (régimen, domicilio, contacto) se agregan más adelante — por ahora solo necesitamos identificarlo.</p>
+                <button type="submit" id="btn-guardar-cliente" class="mt-2 w-full bg-violet-600 hover:bg-violet-500 text-white font-bold py-3 rounded-lg shadow-md transition">
+                    Guardar cliente
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = "https://api.josuealan.com";
+        let usuariosCacheClientes = [];
+        let clientesCache = [];
+        let soloLectura = false;
+
+        document.addEventListener("DOMContentLoaded", async () => {
+            await verificarPerfil();
+            cargarClientes();
+        });
+        document.addEventListener("keydown", (e) => { if (e.key === "Escape") cerrarModalNuevoCliente(); });
+
+        async function verificarPerfil() {
+            try {
+                const resp = await fetch(`${API_URL}/api/mi-perfil`, { credentials: "include" });
+                if (!resp.ok) return;
+                const perfil = await resp.json();
+                soloLectura = perfil.solo_lectura;
+                if (soloLectura) {
+                    document.getElementById("banner-solo-lectura").classList.remove("hidden");
+                    document.getElementById("btn-agregar-cliente").classList.add("hidden");
+                }
+            } catch (error) {
+                console.warn("No se pudo verificar el perfil:", error);
+            }
+        }
+
+        function abrirModalNuevoCliente() {
+            document.getElementById("modal-nuevo-cliente").classList.add("modal-active");
+            document.getElementById("input-rfc").focus();
+        }
+        function cerrarModalNuevoCliente() {
+            document.getElementById("modal-nuevo-cliente").classList.remove("modal-active");
+            document.getElementById("form-nuevo-cliente").reset();
+        }
+
+        function mostrarAlerta(tipo, mensaje) {
+            const container = document.getElementById("alert-container");
+            const alertBox = document.getElementById("alert-message");
+            container.classList.remove("hidden");
+            alertBox.className = tipo === "error"
+                ? "p-4 rounded-lg text-sm font-semibold flex items-start gap-2 bg-amber-50 text-amber-800 border border-amber-200"
+                : "p-4 rounded-lg text-sm font-semibold flex items-start gap-2 bg-green-50 text-green-700 border border-green-200";
+            alertBox.innerHTML = `<span>${mensaje}</span>`;
+            setTimeout(() => container.classList.add("hidden"), 4000);
+        }
+
+        async function interpretarError(response) {
+            if (!response) return "No pudimos conectar con el servidor. Verifica tu conexión o si el túnel/portal está activo.";
+            if (response.status === 401 || response.status === 403) return "Tu sesión de acceso expiró. Recarga la página e inicia sesión de nuevo.";
+            if (response.status === 409) return "Ya tienes un cliente registrado con ese RFC.";
+            try {
+                const data = await response.json();
+                return data.detail || "Ocurrió un error inesperado.";
+            } catch {
+                return "Ocurrió un error inesperado.";
+            }
+        }
+
+        async function cargarClientes() {
+            try {
+                const resp = await fetch(`${API_URL}/api/clientes`, { credentials: "include" });
+                if (!resp.ok) {
+                    mostrarAlerta("error", await interpretarError(resp));
+                    return;
+                }
+                clientesCache = await resp.json();
+                renderizarClientes();
+            } catch (error) {
+                mostrarAlerta("error", await interpretarError(null));
+            }
+        }
+
+        function badgeDocumento(cliente, tipo, etiqueta) {
+            const doc = cliente.documentos.find(d => d.tipo === tipo);
+            if (doc) {
+                return `<span class="text-xs font-bold px-2 py-1 rounded-full bg-green-100 text-green-700">${etiqueta} ✓</span>`;
+            }
+            // Placeholder neutral -- aquí es donde en Fase 3 vivirá el
+            // semáforo real (vigente / por vencer / vencido), no solo
+            // "existe / no existe".
+            return `<span class="text-xs font-semibold px-2 py-1 rounded-full bg-gray-100 text-gray-400">${etiqueta} —</span>`;
+        }
+
+        function renderizarClientes() {
+            const contenedor = document.getElementById("lista-clientes");
+            const estadoVacio = document.getElementById("estado-vacio");
+
+            if (clientesCache.length === 0) {
+                contenedor.innerHTML = "";
+                estadoVacio.classList.remove("hidden");
+                return;
+            }
+            estadoVacio.classList.add("hidden");
+
+            contenedor.innerHTML = clientesCache.map(cliente => {
+                const rfcCodificado = encodeURIComponent(cliente.rfc);
+                const aliasCodificado = encodeURIComponent(cliente.alias);
+                return `
+                <div class="bg-white rounded-xl card-elevated border border-gray-200 p-5 flex flex-col gap-3">
+                    <div class="flex justify-between items-start gap-2">
+                        <div>
+                            <h3 class="font-bold text-slate-800 leading-tight">${cliente.alias}</h3>
+                            <p class="text-xs text-slate-400 font-mono">${cliente.rfc}</p>
+                        </div>
+                        <button onclick="eliminarCliente('${cliente.rfc}')" title="Quitar del directorio" class="text-gray-300 hover:text-red-500 transition flex-none ${soloLectura ? 'hidden' : ''}">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                        </button>
+                    </div>
+
+                    <div class="flex gap-2 flex-wrap">
+                        ${badgeDocumento(cliente, "csf", "Constancia")}
+                        ${badgeDocumento(cliente, "opinion", "Opinión")}
+                    </div>
+
+                    <div class="flex gap-2 mt-1">
+                        <a href="../constancias/?rfc=${rfcCodificado}&cliente=${aliasCodificado}" class="flex-1 text-center text-xs font-bold bg-indigo-50 text-indigo-700 hover:bg-indigo-100 py-2 rounded-lg transition">
+                            Constancia
+                        </a>
+                        <a href="../opinion/?rfc=${rfcCodificado}&cliente=${aliasCodificado}" class="flex-1 text-center text-xs font-bold bg-teal-50 text-teal-700 hover:bg-teal-100 py-2 rounded-lg transition">
+                            Opinión
+                        </a>
+                    </div>
+                </div>`;
+            }).join("");
+        }
+
+        async function crearCliente(e) {
+            e.preventDefault();
+            const boton = document.getElementById("btn-guardar-cliente");
+            const originalTexto = boton.textContent;
+            boton.disabled = true;
+            boton.textContent = "Guardando...";
+
+            const rfc = document.getElementById("input-rfc").value.trim().toUpperCase();
+            const alias = document.getElementById("input-alias").value.trim();
+
+            try {
+                const resp = await fetch(`${API_URL}/api/clientes`, {
+                    method: "POST",
+                    credentials: "include",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ rfc, alias }),
+                });
+                if (!resp.ok) {
+                    mostrarAlerta("error", await interpretarError(resp));
+                    return;
+                }
+                cerrarModalNuevoCliente();
+                mostrarAlerta("success", "Cliente agregado.");
+                await cargarClientes();
+            } catch (error) {
+                mostrarAlerta("error", await interpretarError(null));
+            } finally {
+                boton.disabled = false;
+                boton.textContent = originalTexto;
+            }
+        }
+
+        async function eliminarCliente(rfc) {
+            if (!confirm(`¿Quitar a este cliente de tu directorio? Esto no borra los documentos ya generados, solo lo saca de esta lista.`)) return;
+            try {
+                const resp = await fetch(`${API_URL}/api/clientes/${encodeURIComponent(rfc)}`, {
+                    method: "DELETE",
+                    credentials: "include",
+                });
+                if (!resp.ok) {
+                    mostrarAlerta("error", await interpretarError(resp));
+                    return;
+                }
+                await cargarClientes();
+            } catch (error) {
+                mostrarAlerta("error", await interpretarError(null));
+            }
+        }
+    </script>
+</body>
+</html>
