@@ -45,6 +45,16 @@
             <div id="alert-message" class="p-4 rounded-lg text-sm font-semibold flex items-start gap-2"></div>
         </div>
 
+        <div id="banner-sin-conexion" class="hidden mb-4 bg-amber-50 border border-amber-200 p-4 rounded-lg flex items-start justify-between gap-3">
+            <div class="flex items-start gap-3">
+                <svg class="w-5 h-5 text-amber-600 flex-none mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                <p id="banner-sin-conexion-texto" class="text-sm text-amber-800"></p>
+            </div>
+            <button onclick="reintentar()" id="btn-reintentar" class="flex-none bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold py-2 px-4 rounded-lg transition">
+                Reintentar
+            </button>
+        </div>
+
         <div id="banner-solo-lectura" class="hidden mb-4 bg-amber-50 border border-amber-200 p-4 rounded-lg flex items-start gap-3">
             <svg class="w-5 h-5 text-amber-600 flex-none mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
             <p class="text-sm text-amber-800">Tu acceso venció. Puedes seguir viendo tu directorio, pero no puedes agregar, quitar ni generar documentos hasta que se renueve. Contacta al administrador.</p>
@@ -85,32 +95,84 @@
 
     <script>
         const API_URL = "https://api.josuealan.com";
-        let usuariosCacheClientes = [];
         let clientesCache = [];
         let soloLectura = false;
+        let sinConexion = false;
 
-        document.addEventListener("DOMContentLoaded", async () => {
-            await verificarPerfil();
-            cargarClientes();
-        });
+        document.addEventListener("DOMContentLoaded", inicializar);
         document.addEventListener("keydown", (e) => { if (e.key === "Escape") cerrarModalNuevoCliente(); });
+
+        async function inicializar() {
+            sinConexion = false;
+            document.getElementById("banner-sin-conexion").classList.add("hidden");
+
+            const perfilOk = await verificarPerfil();
+            if (!perfilOk) {
+                marcarSinConexion();
+                return;
+            }
+            await cargarClientes();
+        }
+
+        async function reintentar() {
+            const boton = document.getElementById("btn-reintentar");
+            boton.disabled = true;
+            boton.textContent = "Reintentando...";
+            await inicializar();
+            boton.disabled = false;
+            boton.textContent = "Reintentar";
+        }
+
+        function marcarSinConexion(mensaje) {
+            sinConexion = true;
+            document.getElementById("banner-sin-conexion-texto").textContent =
+                mensaje || "No pudimos conectar con el servidor. Verifica tu conexión, intenta de nuevo más tarde o contacta al administrador.";
+            document.getElementById("banner-sin-conexion").classList.remove("hidden");
+
+            // No ofrecemos acciones que sabemos que van a fallar: es peor
+            // dejar que llene el formulario completo para rebotarlo al final.
+            const btnAgregar = document.getElementById("btn-agregar-cliente");
+            btnAgregar.disabled = true;
+            btnAgregar.classList.add("opacity-40", "cursor-not-allowed");
+            btnAgregar.title = "No disponible sin conexión al servidor";
+
+            document.getElementById("estado-vacio").classList.add("hidden");
+            document.getElementById("lista-clientes").innerHTML = "";
+        }
 
         async function verificarPerfil() {
             try {
                 const resp = await fetch(`${API_URL}/api/mi-perfil`, { credentials: "include" });
-                if (!resp.ok) return;
+
+                if (resp.status === 401 || resp.status === 403) {
+                    marcarSinConexion("Tu sesión expiró. Recarga la página para iniciar sesión de nuevo.");
+                    return false;
+                }
+                if (!resp.ok) return false;
+
                 const perfil = await resp.json();
                 soloLectura = perfil.solo_lectura;
+
+                const btnAgregar = document.getElementById("btn-agregar-cliente");
+                btnAgregar.disabled = false;
+                btnAgregar.classList.remove("opacity-40", "cursor-not-allowed");
+                btnAgregar.title = "";
+
                 if (soloLectura) {
                     document.getElementById("banner-solo-lectura").classList.remove("hidden");
-                    document.getElementById("btn-agregar-cliente").classList.add("hidden");
+                    btnAgregar.classList.add("hidden");
+                } else {
+                    document.getElementById("banner-solo-lectura").classList.add("hidden");
+                    btnAgregar.classList.remove("hidden");
                 }
+                return true;
             } catch (error) {
-                console.warn("No se pudo verificar el perfil:", error);
+                return false;
             }
         }
 
         function abrirModalNuevoCliente() {
+            if (sinConexion || soloLectura) return;
             document.getElementById("modal-nuevo-cliente").classList.add("modal-active");
             document.getElementById("input-rfc").focus();
         }
@@ -146,13 +208,13 @@
             try {
                 const resp = await fetch(`${API_URL}/api/clientes`, { credentials: "include" });
                 if (!resp.ok) {
-                    mostrarAlerta("error", await interpretarError(resp));
+                    marcarSinConexion(await interpretarError(resp));
                     return;
                 }
                 clientesCache = await resp.json();
                 renderizarClientes();
             } catch (error) {
-                mostrarAlerta("error", await interpretarError(null));
+                marcarSinConexion();
             }
         }
 
