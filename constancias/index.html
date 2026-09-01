@@ -734,42 +734,6 @@
                 },
             };
         }
-
-        // --- FUENTE DE DATOS ACTUAL: un reloj que simula avance porque
-        // hoy no tenemos un backend que reporte progreso real. Sube
-        // hasta ~88% y se detiene ahí -- solo llega a 100% cuando la
-        // respuesta real del servidor ya llegó. El día que exista el
-        // sistema de jobs con estatus, esta función se reemplaza por
-        // una que haga polling al backend y llame a .actualizar() con
-        // los números reales; crearControladorProgreso() de arriba no
-        // cambia. ---
-        function iniciarProgresoSimulado(prefijo) {
-            const controlador = crearControladorProgreso(prefijo);
-            const fases = [
-                "Subiendo tus archivos...",
-                "Conectando con el SAT...",
-                "Generando tu documento...",
-            ];
-            let porcentaje = 0;
-
-            controlador.actualizar(0, fases[0]);
-
-            const intervalo = setInterval(() => {
-                porcentaje = Math.min(porcentaje + 6, 88);
-                const fase = Math.min(Math.floor(porcentaje / 30), fases.length - 1);
-                controlador.actualizar(porcentaje, fases[fase]);
-            }, 900);
-
-            return {
-                completar() {
-                    clearInterval(intervalo);
-                    controlador.completar();
-                },
-                detener() {
-                    clearInterval(intervalo);
-                    controlador.detener();
-                },
-            };
         }
 
         // --- Interpretación de errores: distingue lo que sí podemos
@@ -924,40 +888,96 @@
             }
         }
 
+        function monitorearLote(loteId, botonId, botonOriginalHTML) {
+            const controlador = crearControladorProgreso('masivo');
+
+            const intervalo = setInterval(async () => {
+                let resp;
+                try {
+                    resp = await fetch(`${API_URL}/api/lotes/${loteId}`, { credentials: "include" });
+                } catch (error) {
+                    clearInterval(intervalo);
+                    toggleLoadingState(botonId, false, botonOriginalHTML);
+                    controlador.detener();
+                    mostrarAlerta("error", await interpretarError(null));
+                    return;
+                }
+
+                if (!resp.ok) {
+                    clearInterval(intervalo);
+                    toggleLoadingState(botonId, false, botonOriginalHTML);
+                    controlador.detener();
+                    mostrarAlerta("error", await interpretarError(resp));
+                    return;
+                }
+
+                const lote = await resp.json();
+
+                if (lote.estado === "procesando") {
+                    const porcentaje = lote.total > 0 ? Math.round((lote.procesados / lote.total) * 100) : 5;
+                    const texto = lote.total > 0
+                        ? `Procesando ${lote.procesados}/${lote.total}${lote.rfc_actual ? " — " + lote.rfc_actual : ""}`
+                        : "Preparando el lote...";
+                    controlador.actualizar(Math.max(porcentaje, 5), texto);
+                    return;
+                }
+
+                clearInterval(intervalo);
+                toggleLoadingState(botonId, false, botonOriginalHTML);
+
+                if (lote.estado === "completado") {
+                    controlador.completar();
+                    try {
+                        const descarga = await fetch(`${API_URL}/api/lotes/${loteId}/descargar`, { credentials: "include" });
+                        if (!descarga.ok) {
+                            mostrarAlerta("error", await interpretarError(descarga));
+                            return;
+                        }
+                        const blob = await descarga.blob();
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement("a");
+                        a.href = url;
+                        a.download = lote.nombre_descarga || "Lote.zip";
+                        a.click();
+
+                        if (lote.fallidos && lote.fallidos.length > 0) {
+                            const listaFallidos = lote.fallidos.map(f => f[0]).join(", ");
+                            mostrarAlerta("error", `Lote completado: ${lote.exitosos} de ${lote.total} exitosos. Fallaron: ${listaFallidos}`);
+                        } else {
+                            mostrarAlerta("success", `Lote completado: ${lote.exitosos} de ${lote.total} documentos generados.`);
+                        }
+                    } catch (error) {
+                        mostrarAlerta("error", "El lote se generó, pero no se pudo descargar automáticamente. Intenta de nuevo.");
+                    }
+                } else {
+                    controlador.detener();
+                    mostrarAlerta("error", lote.mensaje_error || "Ocurrió un error al procesar el lote.");
+                }
+            }, 3000);
+        }
+
         async function procesarMasivo(e) {
             e.preventDefault();
             ocultarAlerta();
-            const btnOriginalHTML = document.getElementById('btn-masivo').innerHTML;
+            const boton = document.getElementById('btn-masivo');
+            const btnOriginalHTML = boton.innerHTML;
             toggleLoadingState('btn-masivo', true, btnOriginalHTML);
-            const progreso = iniciarProgresoSimulado('masivo');
 
             const formData = new FormData();
             archivosGlobalesMasivo.forEach(file => { formData.append("archivos_lote", file); });
 
-            let response = null;
             try {
-                response = await fetch(`${API_URL}/api/constancia/masivo_crudo`, { method: "POST", credentials: "include", body: formData });
-                if (response.ok) {
-                    progreso.completar();
-                    const blob = await response.blob();
-                    const url = window.URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-
-                    const fecha = obtenerFechaDDMMAA();
-                    a.download = `Constancias_Masivas_${fecha}.zip`;
-
-                    a.click();
-                    mostrarAlerta('success', 'Descarga masiva completada. Se descargó el archivo ZIP.');
-                } else {
-                    progreso.detener();
+                const response = await fetch(`${API_URL}/api/constancia/lote/iniciar`, { method: "POST", credentials: "include", body: formData });
+                if (!response.ok) {
+                    toggleLoadingState('btn-masivo', false, btnOriginalHTML);
                     mostrarAlerta('error', await interpretarError(response));
+                    return;
                 }
+                const { lote_id } = await response.json();
+                monitorearLote(lote_id, 'btn-masivo', btnOriginalHTML);
             } catch (error) {
-                progreso.detener();
-                mostrarAlerta('error', await interpretarError(null));
-            } finally {
                 toggleLoadingState('btn-masivo', false, btnOriginalHTML);
+                mostrarAlerta('error', await interpretarError(null));
             }
         }
     </script>
