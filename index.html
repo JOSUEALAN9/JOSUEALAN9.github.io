@@ -55,9 +55,21 @@
 
     <main class="flex-grow max-w-5xl mx-auto w-full p-6 mt-6 sm:mt-12">
 
-        <div id="aviso-conexion" class="hidden mb-6 bg-amber-50 border border-amber-200 p-4 rounded-lg flex items-start gap-3">
-            <svg class="w-5 h-5 text-amber-600 flex-none mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-            <p id="aviso-conexion-texto" class="text-sm text-amber-800"></p>
+        <div id="aviso-conexion" class="hidden mb-6 bg-amber-50 border border-amber-200 p-4 rounded-lg">
+            <div class="flex items-start gap-3">
+                <svg class="w-5 h-5 text-amber-600 flex-none mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                <div class="flex-grow">
+                    <p id="aviso-conexion-texto" class="text-sm text-amber-800"></p>
+                    <div id="aviso-conexion-acciones" class="hidden mt-3 flex flex-wrap gap-2">
+                        <a href="https://api.josuealan.com/" target="_blank" rel="noopener" class="bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold py-2 px-4 rounded-lg transition">
+                            Reconectar sesión
+                        </a>
+                        <button onclick="cargarPerfil()" class="bg-white border border-amber-300 text-amber-700 hover:bg-amber-100 text-xs font-bold py-2 px-4 rounded-lg transition">
+                            Reintentar
+                        </button>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <div class="mb-10">
@@ -88,6 +100,14 @@
                     Entrar <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
                 </span>
             </a>
+        </div>
+
+        <div class="mt-6 flex flex-wrap gap-4 items-center">
+            <a href="procesos/" class="inline-flex items-center gap-2 text-sm font-semibold text-amber-700 hover:text-amber-900 bg-amber-50 hover:bg-amber-100 border border-amber-200 py-2.5 px-4 rounded-lg transition">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                Mis Procesos
+            </a>
+            <span class="text-xs text-slate-400">Descargas en curso y terminadas — siguen disponibles aunque cierres sesión.</span>
         </div>
 
         <div id="bloque-admin" class="hidden mt-8 pt-8 border-t border-gray-200">
@@ -161,9 +181,14 @@
             document.getElementById("menu-perfil").classList.toggle("hidden");
         }
 
-        function mostrarAvisoConexion(mensaje) {
+        function mostrarAvisoConexion(mensaje, conAcciones = false) {
             document.getElementById("aviso-conexion-texto").textContent = mensaje;
             document.getElementById("aviso-conexion").classList.remove("hidden");
+            document.getElementById("aviso-conexion-acciones").classList.toggle("hidden", !conAcciones);
+        }
+
+        function ocultarAvisoConexion() {
+            document.getElementById("aviso-conexion").classList.add("hidden");
         }
 
         function formatearVigencia(perfil) {
@@ -200,20 +225,28 @@
         }
 
         async function cargarPerfil() {
+            ocultarAvisoConexion();
             try {
                 const resp = await fetch(`${API_URL}/api/mi-perfil`, { credentials: "include" });
 
                 if (resp.status === 401 || resp.status === 403) {
-                    mostrarAvisoConexion("Tu sesión expiró. Recarga la página para iniciar sesión de nuevo.");
+                    mostrarAvisoConexion("Tu sesión con el servidor expiró. Reconéctala para continuar.", true);
                     return;
                 }
                 if (!resp.ok) {
-                    mostrarAvisoConexion("No pudimos conectar con el servidor. Puedes navegar, pero las herramientas no funcionarán hasta que se restablezca la conexión. Intenta de nuevo más tarde o contacta al administrador.");
+                    mostrarAvisoConexion("El servidor respondió con un error. Intenta de nuevo más tarde o contacta al administrador.", true);
                     return;
                 }
                 pintarPerfil(await resp.json());
             } catch (error) {
-                mostrarAvisoConexion("No pudimos conectar con el servidor. Verifica tu conexión a internet, intenta de nuevo más tarde o contacta al administrador.");
+                // Aquí no podemos saber la causa exacta: el navegador entrega
+                // el mismo error para "servidor caído" que para "Access
+                // redirigió al login" (CORS oculta la respuesta). Por eso el
+                // mensaje reconoce ambas y ofrece las dos salidas.
+                mostrarAvisoConexion(
+                    "No pudimos conectar con el servidor. Puede que tu sesión haya expirado o que el servidor no esté disponible en este momento.",
+                    true
+                );
             }
         }
 
