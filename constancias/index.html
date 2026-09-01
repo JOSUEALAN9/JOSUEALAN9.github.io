@@ -305,6 +305,26 @@
             campoRFC.readOnly = true;
             campoRFC.classList.add("campo-solo-lectura");
 
+            // Primero: ¿ya hay un trabajo corriendo para este RFC? (por
+            // ejemplo, si cerraste la pestaña mientras se generaba). Si
+            // sí, lo retomamos en vez de dejarte iniciar uno duplicado.
+            try {
+                const pendResp = await fetch(`${API_URL}/api/trabajos/pendiente?rfc=${encodeURIComponent(rfcDesdeCliente)}&tipo=csf`, {
+                    credentials: "include",
+                });
+                if (pendResp.ok) {
+                    const pendiente = await pendResp.json();
+                    if (pendiente.existe) {
+                        document.getElementById("form-individual").classList.add("hidden");
+                        mostrarAlerta("success", "Ya tenías un documento en proceso para este cliente. Retomando el seguimiento...");
+                        monitorearTrabajo(pendiente.job_id, "individual", rfcDesdeCliente.toUpperCase());
+                        return;
+                    }
+                }
+            } catch (error) {
+                console.warn("No se pudo consultar si había un trabajo pendiente:", error);
+            }
+
             try {
                 const resp = await fetch(`${API_URL}/api/documentos/estado?rfc=${encodeURIComponent(rfcDesdeCliente)}&tipo=csf`, {
                     credentials: "include",
@@ -678,12 +698,74 @@
             }
         }
 
+        // --- Monitoreo real de un trabajo en el servidor: reemplaza el
+        // reloj falso de iniciarProgresoSimulado() por polling de verdad.
+        // Es exactamente el punto donde dijimos que solo había que
+        // cambiar "quién produce los números" -- crearControladorProgreso
+        // no se tocó. ---
+        function monitorearTrabajo(jobId, prefijo, rfcParaNombre) {
+            const controlador = crearControladorProgreso(prefijo);
+            let segundos = 0;
+
+            const intervalo = setInterval(async () => {
+                segundos += 2;
+                let resp;
+                try {
+                    resp = await fetch(`${API_URL}/api/trabajos/${jobId}`, { credentials: "include" });
+                } catch (error) {
+                    clearInterval(intervalo);
+                    controlador.detener();
+                    mostrarAlerta("error", await interpretarError(null));
+                    return;
+                }
+
+                if (!resp.ok) {
+                    clearInterval(intervalo);
+                    controlador.detener();
+                    mostrarAlerta("error", await interpretarError(resp));
+                    return;
+                }
+
+                const trabajo = await resp.json();
+
+                if (trabajo.estado === "procesando") {
+                    const porcentaje = Math.min(10 + segundos * 2, 90);
+                    controlador.actualizar(porcentaje, `Procesando... (${segundos}s) — puedes cerrar esta pestaña, no se pierde`);
+                    return;
+                }
+
+                clearInterval(intervalo);
+
+                if (trabajo.estado === "completado") {
+                    controlador.completar();
+                    try {
+                        const descarga = await fetch(`${API_URL}/api/trabajos/${jobId}/descargar`, { credentials: "include" });
+                        if (!descarga.ok) {
+                            mostrarAlerta("error", await interpretarError(descarga));
+                            return;
+                        }
+                        const blob = await descarga.blob();
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement("a");
+                        a.href = url;
+                        a.download = trabajo.nombre_descarga || `${rfcParaNombre}.pdf`;
+                        a.click();
+                        mostrarAlerta("success", "¡Proceso completado con éxito!");
+                    } catch (error) {
+                        mostrarAlerta("error", "El documento se generó, pero no se pudo descargar automáticamente. Intenta de nuevo.");
+                    }
+                } else {
+                    controlador.detener();
+                    mostrarAlerta("error", trabajo.mensaje_error || "Ocurrió un error al procesar tu documento.");
+                }
+            }, 2000);
+        }
+
         async function procesarIndividual(e) {
             e.preventDefault();
             ocultarAlerta();
             const btnOriginalHTML = document.getElementById('btn-individual').innerHTML;
             toggleLoadingState('btn-individual', true, btnOriginalHTML);
-            const progreso = iniciarProgresoSimulado('individual');
 
             const formData = new FormData();
             const rfc = document.getElementById('rfc').value.trim().toUpperCase();
@@ -694,28 +776,15 @@
             formData.append("descargar_csf", "true");
             formData.append("descargar_32d", document.getElementById('chk_opinion').checked);
 
-            let response = null;
             try {
-                response = await fetch(`${API_URL}/api/constancia/individual`, { method: "POST", credentials: "include", body: formData });
-                if (response.ok) {
-                    progreso.completar();
-                    const blob = await response.blob();
-                    const url = window.URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-
-                    const fecha = obtenerFechaDDMMAA();
-                    const descargoAmbos = document.getElementById('chk_opinion').checked;
-                    a.download = descargoAmbos ? `Expediente_${rfc}_${fecha}.zip` : `CSF_${rfc}_${fecha}.pdf`;
-
-                    a.click();
-                    mostrarAlerta('success', '¡Proceso completado con éxito!');
-                } else {
-                    progreso.detener();
+                const response = await fetch(`${API_URL}/api/constancia/iniciar`, { method: "POST", credentials: "include", body: formData });
+                if (!response.ok) {
                     mostrarAlerta('error', await interpretarError(response));
+                    return;
                 }
+                const { job_id } = await response.json();
+                monitorearTrabajo(job_id, 'individual', rfc);
             } catch (error) {
-                progreso.detener();
                 mostrarAlerta('error', await interpretarError(null));
             } finally {
                 toggleLoadingState('btn-individual', false, btnOriginalHTML);
