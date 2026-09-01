@@ -50,9 +50,12 @@
                 <svg class="w-5 h-5 text-amber-600 flex-none mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                 <p id="banner-sin-conexion-texto" class="text-sm text-amber-800"></p>
             </div>
-            <button onclick="reintentar()" id="btn-reintentar" class="flex-none bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold py-2 px-4 rounded-lg transition">
+            <button onclick="reintentar()" id="btn-reintentar" class="flex-none bg-white border border-amber-300 text-amber-700 hover:bg-amber-100 text-xs font-bold py-2 px-4 rounded-lg transition">
                 Reintentar
             </button>
+            <a href="https://api.josuealan.com/" target="_blank" rel="noopener" class="flex-none bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold py-2 px-4 rounded-lg transition">
+                Reconectar sesión
+            </a>
         </div>
 
         <div id="banner-solo-lectura" class="hidden mb-4 bg-amber-50 border border-amber-200 p-4 rounded-lg flex items-start gap-3">
@@ -126,7 +129,7 @@
         function marcarSinConexion(mensaje) {
             sinConexion = true;
             document.getElementById("banner-sin-conexion-texto").textContent =
-                mensaje || "No pudimos conectar con el servidor. Verifica tu conexión, intenta de nuevo más tarde o contacta al administrador.";
+                mensaje || "No pudimos conectar con el servidor. Puede que tu sesión haya expirado o que el servidor no esté disponible en este momento.";
             document.getElementById("banner-sin-conexion").classList.remove("hidden");
 
             // No ofrecemos acciones que sabemos que van a fallar: es peor
@@ -145,7 +148,7 @@
                 const resp = await fetch(`${API_URL}/api/mi-perfil`, { credentials: "include" });
 
                 if (resp.status === 401 || resp.status === 403) {
-                    marcarSinConexion("Tu sesión expiró. Recarga la página para iniciar sesión de nuevo.");
+                    marcarSinConexion("Tu sesión con el servidor expiró. Reconéctala para continuar.");
                     return false;
                 }
                 if (!resp.ok) return false;
@@ -255,9 +258,16 @@
                         </button>
                     </div>
 
-                    <div class="flex gap-2 flex-wrap">
+                    <div class="flex gap-2 flex-wrap items-center">
                         ${badgeDocumento(cliente, "csf", "Constancia")}
                         ${badgeDocumento(cliente, "opinion", "Opinión")}
+                        ${cliente.efirma_guardada
+                            ? `<span class="text-xs font-bold px-2 py-1 rounded-full bg-violet-100 text-violet-700 flex items-center gap-1">
+                                   <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+                                   e.firma guardada
+                               </span>${soloLectura ? '' : `<button onclick="olvidarEfirma('${cliente.rfc}')" class="text-xs text-slate-400 hover:text-red-500 underline transition">olvidar</button>`}`
+                            : `<span class="text-xs font-semibold px-2 py-1 rounded-full bg-gray-100 text-gray-400">Sin e.firma guardada</span>`
+                        }
                     </div>
 
                     <div class="flex gap-2 mt-1">
@@ -301,6 +311,24 @@
             } finally {
                 boton.disabled = false;
                 boton.textContent = originalTexto;
+            }
+        }
+
+        async function olvidarEfirma(rfc) {
+            if (!confirm("¿Olvidar la e.firma guardada de este cliente? La próxima vez que generes su constancia, tendrás que subirla de nuevo.")) return;
+            try {
+                const resp = await fetch(`${API_URL}/api/clientes/${encodeURIComponent(rfc)}/efirma`, {
+                    method: "DELETE",
+                    credentials: "include",
+                });
+                if (!resp.ok) {
+                    mostrarAlerta("error", await interpretarError(resp));
+                    return;
+                }
+                mostrarAlerta("success", "e.firma eliminada de este cliente.");
+                await cargarClientes();
+            } catch (error) {
+                mostrarAlerta("error", "No se pudo conectar con el servidor.");
             }
         }
 
