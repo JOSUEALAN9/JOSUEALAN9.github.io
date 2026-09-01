@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mis Procesos | Fiscontable</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="../assets/common.css">
+</head>
+<body class="bg-gray-50 text-gray-800 font-sans min-h-screen flex flex-col">
+
+    <header class="bg-slate-900 text-white p-4 shadow-lg flex-none z-10">
+        <div class="max-w-5xl mx-auto flex flex-wrap justify-between items-center gap-3">
+            <div class="flex items-center gap-4">
+                <div class="bg-amber-500 p-2 rounded-lg">
+                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                </div>
+                <div>
+                    <h1 class="text-lg sm:text-xl font-bold leading-tight">Mis Procesos</h1>
+                    <p class="text-xs text-slate-400">Descargas en curso y terminadas de los últimos 7 días</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-3 sm:gap-4">
+                <button onclick="cargarProcesos()" id="btn-refrescar" class="text-slate-300 hover:text-white font-semibold text-sm flex items-center gap-1 transition">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                    <span class="hidden sm:inline">Actualizar</span>
+                </button>
+                <a href="../" class="text-slate-300 hover:text-white font-semibold text-sm flex items-center gap-1 transition">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg> <span class="hidden sm:inline">Inicio</span>
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-grow p-4 sm:p-6 w-full max-w-5xl mx-auto">
+
+        <div id="aviso" class="hidden mb-4 bg-amber-50 border border-amber-200 p-4 rounded-lg flex items-start gap-3">
+            <svg class="w-5 h-5 text-amber-600 flex-none mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            <p id="aviso-texto" class="text-sm text-amber-800"></p>
+        </div>
+
+        <div id="banner-notif" class="hidden mb-4 bg-blue-50 border border-blue-200 p-4 rounded-lg flex flex-wrap items-center justify-between gap-3">
+            <p class="text-sm text-blue-800">¿Quieres que te avise cuando termine un proceso? Funciona mientras tengas el navegador abierto, aunque estés en otra pestaña.</p>
+            <button onclick="pedirPermisoNotificaciones()" class="bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold py-2 px-4 rounded-lg transition flex-none">
+                Activar avisos
+            </button>
+        </div>
+
+        <div id="estado-vacio" class="hidden bg-white rounded-xl card-elevated border border-dashed border-gray-300 p-12 text-center">
+            <svg class="w-12 h-12 text-gray-300 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            <p class="text-slate-500 font-semibold">No tienes procesos recientes</p>
+            <p class="text-sm text-slate-400 mt-1">Aquí van a aparecer tus descargas de constancias y opiniones, en curso y terminadas.</p>
+        </div>
+
+        <div id="lista-procesos" class="flex flex-col gap-3"></div>
+    </main>
+
+    <script>
+        const API_URL = "https://api.josuealan.com";
+        let hayProcesosActivos = false;
+        let procesosAvisados = new Set();
+
+        document.addEventListener("DOMContentLoaded", () => {
+            cargarProcesos();
+            revisarEstadoNotificaciones();
+            // Se refresca solo cada 5 segundos mientras haya algo corriendo.
+            setInterval(() => { if (hayProcesosActivos) cargarProcesos(true); }, 5000);
+        });
+
+        function mostrarAviso(mensaje) {
+            document.getElementById("aviso-texto").textContent = mensaje;
+            document.getElementById("aviso").classList.remove("hidden");
+        }
+
+        function ocultarAviso() {
+            document.getElementById("aviso").classList.add("hidden");
+        }
+
+        // --- Avisos del navegador (opción 2). Límite honesto: solo
+        // funcionan si el navegador sigue abierto. Si lo cierras por
+        // completo, no llega nada -- para eso está esta misma página,
+        // que puedes consultar cuando vuelvas. ---
+        function revisarEstadoNotificaciones() {
+            if (!("Notification" in window)) return;
+            if (Notification.permission === "default") {
+                document.getElementById("banner-notif").classList.remove("hidden");
+            }
+        }
+
+        async function pedirPermisoNotificaciones() {
+            if (!("Notification" in window)) return;
+            await Notification.requestPermission();
+            document.getElementById("banner-notif").classList.add("hidden");
+        }
+
+        function avisar(titulo, cuerpo) {
+            if (!("Notification" in window) || Notification.permission !== "granted") return;
+            try {
+                new Notification(titulo, { body: cuerpo, icon: "../favicon.ico" });
+            } catch (error) {
+                console.warn("No se pudo mostrar la notificación:", error);
+            }
+        }
+
+        function formatearFecha(iso) {
+            const fecha = new Date(iso + "Z");
+            return fecha.toLocaleString("es-MX", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+        }
+
+        function badgeEstado(estado) {
+            if (estado === "procesando") {
+                return `<span class="text-xs font-bold px-2.5 py-1 rounded-full bg-blue-100 text-blue-700 flex items-center gap-1.5">
+                    <svg class="animate-spin h-3 w-3" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
+                    En proceso</span>`;
+            }
+            if (estado === "completado") {
+                return `<span class="text-xs font-bold px-2.5 py-1 rounded-full bg-green-100 text-green-700">Completado</span>`;
+            }
+            return `<span class="text-xs font-bold px-2.5 py-1 rounded-full bg-red-100 text-red-700">Error</span>`;
+        }
+
+        async function descargarProceso(url, nombre, boton) {
+            const originalHTML = boton.innerHTML;
+            boton.disabled = true;
+            boton.innerHTML = "Descargando...";
+            try {
+                const resp = await fetch(`${API_URL}${url}`, { credentials: "include" });
+                if (!resp.ok) {
+                    mostrarAviso("No se pudo descargar el archivo. Puede que ya haya expirado en el servidor.");
+                    return;
+                }
+                const blob = await resp.blob();
+                const enlace = document.createElement("a");
+                enlace.href = window.URL.createObjectURL(blob);
+                enlace.download = nombre || "documento";
+                enlace.click();
+            } catch (error) {
+                mostrarAviso("No se pudo conectar con el servidor para descargar.");
+            } finally {
+                boton.disabled = false;
+                boton.innerHTML = originalHTML;
+            }
+        }
+
+        function tarjetaProceso(p) {
+            const esLote = p.clase === "lote";
+            const etiquetaTipo = p.tipo === "csf" ? "Constancia"
+                : p.tipo === "opinion" ? "Opinión"
+                : p.tipo === "csf+opinion" ? "Constancia + Opinión" : p.tipo;
+
+            let detalle = "";
+            if (esLote && p.estado === "procesando" && p.total > 0) {
+                const pct = Math.round((p.procesados / p.total) * 100);
+                detalle = `
+                    <div class="mt-3">
+                        <div class="progress-track"><div class="progress-fill bg-blue-500" style="width:${pct}%"></div></div>
+                        <p class="text-xs text-slate-500 mt-1.5">${p.procesados} de ${p.total}${p.rfc_actual ? " — " + p.rfc_actual : ""}</p>
+                    </div>`;
+            } else if (esLote && p.estado === "completado") {
+                detalle = `<p class="text-xs text-slate-500 mt-2">${p.exitosos} de ${p.total} generados correctamente.</p>`;
+                if (p.fallidos && p.fallidos.length > 0) {
+                    detalle += `<p class="text-xs text-amber-700 mt-1">No se pudo con: ${p.fallidos.map(f => f[0]).join(", ")}</p>`;
+                }
+            } else if (p.estado === "error") {
+                detalle = `<p class="text-xs text-red-600 mt-2">${p.mensaje_error || "Ocurrió un error."}</p>`;
+            }
+
+            const botonDescarga = p.estado === "completado"
+                ? `<button onclick="descargarProceso('${p.url_descarga}', '${p.nombre_descarga || ""}', this)" class="bg-green-600 hover:bg-green-500 text-white text-xs font-bold py-2 px-4 rounded-lg transition flex-none">Descargar</button>`
+                : "";
+
+            return `
+            <div class="bg-white rounded-xl card-elevated border border-gray-200 p-5">
+                <div class="flex flex-wrap justify-between items-start gap-3">
+                    <div>
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <h3 class="font-bold text-slate-800">${p.titulo}</h3>
+                            ${badgeEstado(p.estado)}
+                        </div>
+                        <p class="text-xs text-slate-400 mt-1">${etiquetaTipo} · ${formatearFecha(p.creado_en)}</p>
+                    </div>
+                    ${botonDescarga}
+                </div>
+                ${detalle}
+            </div>`;
+        }
+
+        async function cargarProcesos(silencioso = false) {
+            const boton = document.getElementById("btn-refrescar");
+            if (!silencioso) {
+                ocultarAviso();
+            }
+
+            try {
+                const resp = await fetch(`${API_URL}/api/procesos`, { credentials: "include" });
+
+                if (resp.status === 401 || resp.status === 403) {
+                    mostrarAviso("Tu sesión expiró. Recarga la página para iniciar sesión de nuevo.");
+                    return;
+                }
+                if (!resp.ok) {
+                    mostrarAviso("No pudimos conectar con el servidor. Intenta de nuevo más tarde o contacta al administrador.");
+                    return;
+                }
+
+                const procesos = await resp.json();
+                hayProcesosActivos = procesos.some(p => p.estado === "procesando");
+
+                // Aviso del navegador cuando algo pasa de "procesando" a terminado
+                procesos.forEach(p => {
+                    if (p.estado !== "procesando" && !procesosAvisados.has(p.id)) {
+                        if (procesosAvisados.size > 0 || silencioso) {
+                            const titulo = p.estado === "completado" ? "Proceso completado" : "Proceso con error";
+                            avisar(titulo, `${p.titulo} — ${p.estado === "completado" ? "listo para descargar" : "revisa el detalle"}`);
+                        }
+                        procesosAvisados.add(p.id);
+                    }
+                });
+
+                const contenedor = document.getElementById("lista-procesos");
+                const vacio = document.getElementById("estado-vacio");
+
+                if (procesos.length === 0) {
+                    contenedor.innerHTML = "";
+                    vacio.classList.remove("hidden");
+                    return;
+                }
+                vacio.classList.add("hidden");
+                contenedor.innerHTML = procesos.map(tarjetaProceso).join("");
+
+            } catch (error) {
+                if (!silencioso) {
+                    mostrarAviso("No pudimos conectar con el servidor. Verifica tu conexión e intenta de nuevo.");
+                }
+            }
+        }
+    </script>
+</body>
+</html>
