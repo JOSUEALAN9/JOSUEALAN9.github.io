@@ -110,6 +110,16 @@
             tarjeta.setAttribute("title", motivo);
         }
 
+        // Conciliación corre 100% en el navegador, así que sigue siendo
+        // útil aunque el backend esté caído. Las demás sí lo necesitan.
+        function deshabilitarLasQueNecesitanServidor() {
+            document.querySelectorAll(".tarjeta-modulo").forEach(tarjeta => {
+                if (tarjeta.dataset.modulo !== "conciliacion") {
+                    marcarNoDisponible(tarjeta, "No disponible sin conexión al servidor");
+                }
+            });
+        }
+
         async function aplicarPermisos() {
             try {
                 const resp = await fetch(`${API_URL}/api/mi-perfil`, { credentials: "include" });
@@ -119,7 +129,8 @@
                     return;
                 }
                 if (!resp.ok) {
-                    mostrarAviso("No pudimos conectar con el servidor, así que no sabemos qué herramientas tienes habilitadas. Puedes intentar abrirlas, pero podrían no responder. Intenta de nuevo más tarde o contacta al administrador.");
+                    mostrarAviso("No pudimos conectar con el servidor. Las herramientas que dependen de él no funcionarán por ahora. Intenta de nuevo más tarde o contacta al administrador.");
+                    deshabilitarLasQueNecesitanServidor();
                     return;
                 }
 
@@ -139,6 +150,7 @@
                 }
             } catch (error) {
                 mostrarAviso("No pudimos conectar con el servidor. Verifica tu conexión a internet, intenta de nuevo más tarde o contacta al administrador.");
+                deshabilitarLasQueNecesitanServidor();
             }
         }
     </script>
