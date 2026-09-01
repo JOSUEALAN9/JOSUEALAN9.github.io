@@ -58,14 +58,26 @@
     <script>
         const API_URL = "https://api.josuealan.com";
         let hayProcesosActivos = false;
-        let procesosAvisados = new Set();
+        let procesosConocidos = new Map();  // id -> estado en el que ya lo vimos
+        let primeraCarga = true;
 
         document.addEventListener("DOMContentLoaded", () => {
             cargarProcesos();
             revisarEstadoNotificaciones();
-            // Se refresca solo cada 5 segundos mientras haya algo corriendo.
-            setInterval(() => { if (hayProcesosActivos) cargarProcesos(true); }, 5000);
+            programarRefresco();
         });
+
+        // Refresca siempre, pero al ritmo adecuado: rápido si hay algo
+        // corriendo, lento si no. Antes solo refrescaba cuando YA había
+        // algo activo al abrir la página -- por eso, si lanzabas un
+        // proceso desde otra pestaña, esta nunca se enteraba.
+        function programarRefresco() {
+            const intervalo = hayProcesosActivos ? 5000 : 20000;
+            setTimeout(async () => {
+                await cargarProcesos(true);
+                programarRefresco();
+            }, intervalo);
+        }
 
         function mostrarAviso(mensaje) {
             document.getElementById("aviso-texto").textContent = mensaje;
@@ -116,7 +128,31 @@
             if (estado === "completado") {
                 return `<span class="text-xs font-bold px-2.5 py-1 rounded-full bg-green-100 text-green-700">Completado</span>`;
             }
+            if (estado === "interrumpido") {
+                return `<span class="text-xs font-bold px-2.5 py-1 rounded-full bg-amber-100 text-amber-700">Interrumpido</span>`;
+            }
             return `<span class="text-xs font-bold px-2.5 py-1 rounded-full bg-red-100 text-red-700">Error</span>`;
+        }
+
+        async function quitarProceso(clase, id, boton) {
+            if (!confirm("¿Quitar este proceso de la lista? Si tenía un archivo para descargar, también se elimina.")) return;
+            boton.disabled = true;
+            try {
+                const resp = await fetch(`${API_URL}/api/procesos/${clase}/${id}`, {
+                    method: "DELETE",
+                    credentials: "include",
+                });
+                if (!resp.ok) {
+                    mostrarAviso("No se pudo quitar el proceso. Intenta de nuevo.");
+                    boton.disabled = false;
+                    return;
+                }
+                procesosConocidos.delete(id);
+                await cargarProcesos(true);
+            } catch (error) {
+                mostrarAviso("No se pudo conectar con el servidor.");
+                boton.disabled = false;
+            }
         }
 
         async function descargarProceso(url, nombre, boton) {
@@ -161,12 +197,22 @@
                 if (p.fallidos && p.fallidos.length > 0) {
                     detalle += `<p class="text-xs text-amber-700 mt-1">No se pudo con: ${p.fallidos.map(f => f[0]).join(", ")}</p>`;
                 }
-            } else if (p.estado === "error") {
-                detalle = `<p class="text-xs text-red-600 mt-2">${p.mensaje_error || "Ocurrió un error."}</p>`;
+            } else if (p.estado === "error" || p.estado === "interrumpido") {
+                const color = p.estado === "interrumpido" ? "text-amber-700" : "text-red-600";
+                detalle = `<p class="text-xs ${color} mt-2">${p.mensaje_error || "Ocurrió un error."}</p>`;
+                if (esLote && p.exitosos > 0) {
+                    detalle += `<p class="text-xs text-slate-500 mt-1">Alcanzaron a generarse ${p.exitosos} de ${p.total}. Siguen guardados y disponibles.</p>`;
+                }
             }
 
             const botonDescarga = p.estado === "completado"
                 ? `<button onclick="descargarProceso('${p.url_descarga}', '${p.nombre_descarga || ""}', this)" class="bg-green-600 hover:bg-green-500 text-white text-xs font-bold py-2 px-4 rounded-lg transition flex-none">Descargar</button>`
+                : "";
+
+            const botonQuitar = p.estado !== "procesando"
+                ? `<button onclick="quitarProceso('${p.clase}', '${p.id}', this)" title="Quitar de la lista" class="text-gray-300 hover:text-red-500 transition flex-none p-1">
+                       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                   </button>`
                 : "";
 
             return `
@@ -179,7 +225,10 @@
                         </div>
                         <p class="text-xs text-slate-400 mt-1">${etiquetaTipo} · ${formatearFecha(p.creado_en)}</p>
                     </div>
-                    ${botonDescarga}
+                    <div class="flex items-center gap-2">
+                        ${botonDescarga}
+                        ${botonQuitar}
+                    </div>
                 </div>
                 ${detalle}
             </div>`;
@@ -206,16 +255,24 @@
                 const procesos = await resp.json();
                 hayProcesosActivos = procesos.some(p => p.estado === "procesando");
 
-                // Aviso del navegador cuando algo pasa de "procesando" a terminado
+                // Avisos: solo cuando un proceso CAMBIA de estado mientras
+                // la página está abierta. En la primera carga solo se
+                // registra lo que ya existe, sin avisar de nada -- antes,
+                // al recargar con F5, saltaban avisos de lotes viejos.
                 procesos.forEach(p => {
-                    if (p.estado !== "procesando" && !procesosAvisados.has(p.id)) {
-                        if (procesosAvisados.size > 0 || silencioso) {
-                            const titulo = p.estado === "completado" ? "Proceso completado" : "Proceso con error";
-                            avisar(titulo, `${p.titulo} — ${p.estado === "completado" ? "listo para descargar" : "revisa el detalle"}`);
-                        }
-                        procesosAvisados.add(p.id);
+                    const estadoPrevio = procesosConocidos.get(p.id);
+                    const cambioATerminado = estadoPrevio === "procesando" && p.estado !== "procesando";
+
+                    if (!primeraCarga && cambioATerminado) {
+                        const titulo = p.estado === "completado" ? "Proceso completado" : "Proceso finalizado con problemas";
+                        const cuerpo = p.estado === "completado"
+                            ? `${p.titulo} — listo para descargar`
+                            : `${p.titulo} — revisa el detalle`;
+                        avisar(titulo, cuerpo);
                     }
+                    procesosConocidos.set(p.id, p.estado);
                 });
+                primeraCarga = false;
 
                 const contenedor = document.getElementById("lista-procesos");
                 const vacio = document.getElementById("estado-vacio");
