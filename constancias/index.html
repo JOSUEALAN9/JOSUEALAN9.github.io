@@ -76,11 +76,30 @@
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
                         Descargar
                     </button>
-                    <button type="button" onclick="mostrarFormularioGeneracion()" class="flex-1 bg-white border-2 border-indigo-600 text-indigo-600 hover:bg-indigo-50 font-bold py-3.5 rounded-lg transition flex justify-center items-center gap-2">
+                    <button type="button" onclick="manejarActualizar()" class="flex-1 bg-white border-2 border-indigo-600 text-indigo-600 hover:bg-indigo-50 font-bold py-3.5 rounded-lg transition flex justify-center items-center gap-2">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
                         Actualizar
                     </button>
                 </div>
+            </div>
+
+            <!-- PANEL: E.FIRMA YA GUARDADA, PERO SIN DOCUMENTO EN CACHÉ TODAVÍA -->
+            <div id="panel-efirma-guardada" class="hidden p-6 sm:p-8 flex-col gap-4 fade-in">
+                <div class="bg-violet-50 border border-violet-200 p-4 rounded-lg flex items-start gap-3">
+                    <svg class="w-5 h-5 text-violet-600 flex-none mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+                    <p class="text-sm text-violet-800">Este cliente ya tiene su e.firma guardada. No necesitas volver a subirla.</p>
+                </div>
+                <button type="button" onclick="generarConEfirmaGuardada()" id="btn-generar-efirma-guardada" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3.5 rounded-lg shadow-md transition flex justify-center items-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                    Generar Constancia
+                </button>
+                <div id="progreso-efirma-guardada" class="hidden">
+                    <div class="progress-track"><div id="progreso-efirma-guardada-fill" class="progress-fill bg-indigo-500" style="width:0%"></div></div>
+                    <p id="progreso-efirma-guardada-texto" class="text-xs text-slate-500 mt-1.5 text-center">Procesando...</p>
+                </div>
+                <button type="button" onclick="mostrarFormularioGeneracion()" class="text-xs text-slate-400 hover:text-slate-600 underline transition text-center">
+                    ¿No es la e.firma correcta? Súbela de nuevo
+                </button>
             </div>
 
             <!-- MODO INDIVIDUAL -->
@@ -134,6 +153,17 @@
                         <input type="checkbox" id="chk_opinion" class="sr-only peer">
                         <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
                         <span class="ml-3 text-xs font-bold text-slate-700 whitespace-nowrap">Opinión de Cumplimiento (32-D)</span>
+                    </label>
+                </div>
+
+                <div class="bg-violet-50 border border-violet-200 rounded-lg p-4 flex justify-between items-start gap-3">
+                    <div>
+                        <p class="text-sm font-bold text-violet-900">Guardar e.firma de este cliente</p>
+                        <p class="text-xs text-violet-700 mt-0.5">Se guarda cifrada en el servidor para no volver a subirla la próxima vez. Requiere que el RFC ya esté en tu directorio de "Mis Clientes".</p>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer flex-none">
+                        <input type="checkbox" id="chk_guardar_efirma" class="sr-only peer">
+                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-violet-600"></div>
                     </label>
                 </div>
 
@@ -305,50 +335,54 @@
             campoRFC.readOnly = true;
             campoRFC.classList.add("campo-solo-lectura");
 
-            // Primero: ¿ya hay un trabajo corriendo para este RFC? (por
-            // ejemplo, si cerraste la pestaña mientras se generaba). Si
-            // sí, lo retomamos en vez de dejarte iniciar uno duplicado.
-            try {
-                const pendResp = await fetch(`${API_URL}/api/trabajos/pendiente?rfc=${encodeURIComponent(rfcDesdeCliente)}&tipo=csf`, {
-                    credentials: "include",
-                });
-                if (pendResp.ok) {
-                    const pendiente = await pendResp.json();
-                    if (pendiente.existe) {
-                        document.getElementById("form-individual").classList.add("hidden");
-                        mostrarAlerta("success", "Ya tenías un documento en proceso para este cliente. Retomando el seguimiento...");
-                        monitorearTrabajo(pendiente.job_id, "individual", rfcDesdeCliente.toUpperCase());
-                        return;
-                    }
-                }
-            } catch (error) {
-                console.warn("No se pudo consultar si había un trabajo pendiente:", error);
-            }
-
-            try {
-                const resp = await fetch(`${API_URL}/api/documentos/estado?rfc=${encodeURIComponent(rfcDesdeCliente)}&tipo=csf`, {
-                    credentials: "include",
-                });
-                if (!resp.ok) return; // si falla la consulta, simplemente se ve el formulario normal
-                const data = await resp.json();
-
-                if (data.existe) {
-                    document.getElementById("panel-cliente-nombre").textContent = nombreCliente || rfcDesdeCliente.toUpperCase();
-                    const fecha = new Date(data.generado_en + "Z");
-                    document.getElementById("panel-cliente-fecha").textContent = fecha.toLocaleDateString("es-MX", { day: "numeric", month: "long", year: "numeric" });
-                    document.getElementById("panel-cliente-detectado").classList.remove("hidden");
-                    document.getElementById("panel-cliente-detectado").classList.add("flex");
-                    document.getElementById("form-individual").classList.add("hidden");
-                }
-            } catch (error) {
-                console.warn("No se pudo consultar el caché de documentos:", error);
-            }
+            await revisarEstadoDelRFC(rfcDesdeCliente, nombreCliente);
         }
 
         function mostrarFormularioGeneracion() {
             document.getElementById("panel-cliente-detectado").classList.add("hidden");
             document.getElementById("panel-cliente-detectado").classList.remove("flex");
+            document.getElementById("panel-efirma-guardada").classList.add("hidden");
+            document.getElementById("panel-efirma-guardada").classList.remove("flex");
             document.getElementById("form-individual").classList.remove("hidden");
+        }
+
+        function manejarActualizar() {
+            if (efirmaGuardadaActual) {
+                document.getElementById("panel-cliente-detectado").classList.add("hidden");
+                document.getElementById("panel-cliente-detectado").classList.remove("flex");
+                generarConEfirmaGuardada();
+            } else {
+                mostrarFormularioGeneracion();
+            }
+        }
+
+        async function generarConEfirmaGuardada() {
+            if (trabajosEnCurso[rfcActivo]) {
+                mostrarAlerta("error", "Ya se está generando este documento, espera a que termine.");
+                return;
+            }
+            ocultarAlerta();
+
+            const boton = document.getElementById("btn-generar-efirma-guardada");
+            const originalHTML = boton.innerHTML;
+            toggleLoadingState("btn-generar-efirma-guardada", true, originalHTML);
+
+            try {
+                const resp = await fetch(`${API_URL}/api/clientes/${encodeURIComponent(rfcActivo)}/generar-constancia`, {
+                    method: "POST",
+                    credentials: "include",
+                });
+                if (!resp.ok) {
+                    toggleLoadingState("btn-generar-efirma-guardada", false, originalHTML);
+                    mostrarAlerta("error", await interpretarError(resp));
+                    return;
+                }
+                const { job_id } = await resp.json();
+                monitorearTrabajo(job_id, "efirma-guardada", rfcActivo, "btn-generar-efirma-guardada", originalHTML);
+            } catch (error) {
+                toggleLoadingState("btn-generar-efirma-guardada", false, originalHTML);
+                mostrarAlerta("error", await interpretarError(null));
+            }
         }
 
         async function descargarDesdeCache() {
@@ -357,7 +391,7 @@
             boton.disabled = true;
             boton.innerHTML = "Descargando...";
             try {
-                const resp = await fetch(`${API_URL}/api/documentos/descargar?rfc=${encodeURIComponent(rfcDesdeCliente)}&tipo=csf`, {
+                const resp = await fetch(`${API_URL}/api/documentos/descargar?rfc=${encodeURIComponent(rfcActivo)}&tipo=csf`, {
                     credentials: "include",
                 });
                 if (!resp.ok) {
@@ -368,7 +402,7 @@
                 const url = window.URL.createObjectURL(blob);
                 const a = document.createElement("a");
                 a.href = url;
-                a.download = `CSF_${rfcDesdeCliente.toUpperCase()}.pdf`;
+                a.download = `CSF_${rfcActivo}.pdf`;
                 a.click();
             } catch (error) {
                 mostrarAlerta("error", "No se pudo conectar con el servidor para descargar el documento.");
@@ -399,7 +433,83 @@
         });
 
         // --- Autocompletar RFC desde el certificado .cer ---
+        // --- Estado compartido: qué RFC está "activo" en pantalla ahora
+        // mismo, venga de un link de "Mis Clientes" o de haber leído el
+        // .cer a mano en Herramientas Rápidas. El panel de Descargar /
+        // Actualizar usa esta misma variable en los dos casos. ---
+        let rfcActivo = rfcDesdeCliente ? rfcDesdeCliente.toUpperCase() : null;
+        let efirmaGuardadaActual = false;
+
+        // --- Trabajos en curso para este RFC (para no dejar que un
+        // segundo clic en "Generar Constancia" dispare un segundo robot
+        // en paralelo mientras el primero sigue corriendo). ---
+        const trabajosEnCurso = {};
+
+        async function revisarEstadoDelRFC(rfc, nombreMostrar) {
+            rfcActivo = rfc.toUpperCase();
+
+            try {
+                const pendResp = await fetch(`${API_URL}/api/trabajos/pendiente?rfc=${encodeURIComponent(rfcActivo)}&tipo=csf`, {
+                    credentials: "include",
+                });
+                if (pendResp.ok) {
+                    const pendiente = await pendResp.json();
+                    if (pendiente.existe) {
+                        document.getElementById("form-individual").classList.add("hidden");
+                        mostrarAlerta("success", "Ya tenías un documento en proceso para este RFC. Retomando el seguimiento...");
+                        monitorearTrabajo(pendiente.job_id, "individual", rfcActivo);
+                        return;
+                    }
+                }
+            } catch (error) {
+                console.warn("No se pudo consultar si había un trabajo pendiente:", error);
+            }
+
+            try {
+                const efirmaResp = await fetch(`${API_URL}/api/clientes/${encodeURIComponent(rfcActivo)}/efirma-estado`, {
+                    credentials: "include",
+                });
+                if (efirmaResp.ok) {
+                    const efirmaData = await efirmaResp.json();
+                    efirmaGuardadaActual = !!efirmaData.efirma_guardada;
+                }
+            } catch (error) {
+                console.warn("No se pudo consultar el estado de la e.firma guardada:", error);
+            }
+
+            try {
+                const resp = await fetch(`${API_URL}/api/documentos/estado?rfc=${encodeURIComponent(rfcActivo)}&tipo=csf`, {
+                    credentials: "include",
+                });
+                if (!resp.ok) return;
+                const data = await resp.json();
+
+                if (data.existe) {
+                    document.getElementById("panel-cliente-nombre").textContent = nombreMostrar || rfcActivo;
+                    const fecha = new Date(data.generado_en + "Z");
+                    document.getElementById("panel-cliente-fecha").textContent = fecha.toLocaleDateString("es-MX", { day: "numeric", month: "long", year: "numeric" });
+                    document.getElementById("panel-cliente-detectado").classList.remove("hidden");
+                    document.getElementById("panel-cliente-detectado").classList.add("flex");
+                    document.getElementById("form-individual").classList.add("hidden");
+                    return;
+                }
+            } catch (error) {
+                console.warn("No se pudo consultar el caché de documentos:", error);
+            }
+
+            // No hay documento en caché. Si de todas formas ya tiene la
+            // e.firma guardada, no tiene caso pedirle que la vuelva a
+            // subir -- se ofrece generar directo.
+            if (efirmaGuardadaActual) {
+                document.getElementById("panel-efirma-guardada").classList.remove("hidden");
+                document.getElementById("panel-efirma-guardada").classList.add("flex");
+                document.getElementById("form-individual").classList.add("hidden");
+            }
+        }
+
         document.getElementById("archivo_cer").addEventListener("change", async (e) => {
+            if (rfcDesdeCliente) return; // el RFC ya vino fijo desde "Mis Clientes"; no hace falta releerlo
+
             const archivo = e.target.files[0];
             const campoRFC = document.getElementById("rfc");
             const hint = document.getElementById("rfc-hint");
@@ -414,6 +524,7 @@
                 campoRFC.classList.add("campo-solo-lectura");
                 hint.textContent = "RFC leído automáticamente de tu certificado.";
                 hint.className = "text-xs text-green-600 mt-1";
+                await revisarEstadoDelRFC(rfcDetectado, null);
             } else {
                 campoRFC.value = "";
                 campoRFC.readOnly = false;
@@ -461,6 +572,10 @@
             const hint = document.getElementById('rfc-hint');
             hint.textContent = "";
             hint.className = "text-xs mt-1";
+
+            document.getElementById('panel-efirma-guardada').classList.add('hidden');
+            document.getElementById('panel-efirma-guardada').classList.remove('flex');
+            document.getElementById('form-individual').classList.remove('hidden');
 
             ocultarAlerta();
         }
@@ -703,8 +818,9 @@
         // Es exactamente el punto donde dijimos que solo había que
         // cambiar "quién produce los números" -- crearControladorProgreso
         // no se tocó. ---
-        function monitorearTrabajo(jobId, prefijo, rfcParaNombre) {
+        function monitorearTrabajo(jobId, prefijo, rfcParaNombre, botonId = null, botonOriginalHTML = null) {
             const controlador = crearControladorProgreso(prefijo);
+            trabajosEnCurso[rfcParaNombre] = jobId;
             let segundos = 0;
 
             const intervalo = setInterval(async () => {
@@ -714,6 +830,8 @@
                     resp = await fetch(`${API_URL}/api/trabajos/${jobId}`, { credentials: "include" });
                 } catch (error) {
                     clearInterval(intervalo);
+                    delete trabajosEnCurso[rfcParaNombre];
+                    if (botonId) toggleLoadingState(botonId, false, botonOriginalHTML);
                     controlador.detener();
                     mostrarAlerta("error", await interpretarError(null));
                     return;
@@ -721,6 +839,8 @@
 
                 if (!resp.ok) {
                     clearInterval(intervalo);
+                    delete trabajosEnCurso[rfcParaNombre];
+                    if (botonId) toggleLoadingState(botonId, false, botonOriginalHTML);
                     controlador.detener();
                     mostrarAlerta("error", await interpretarError(resp));
                     return;
@@ -730,11 +850,13 @@
 
                 if (trabajo.estado === "procesando") {
                     const porcentaje = Math.min(10 + segundos * 2, 90);
-                    controlador.actualizar(porcentaje, `Procesando... (${segundos}s) — puedes cerrar esta pestaña, no se pierde`);
+                    controlador.actualizar(porcentaje, `Procesando... (${segundos}s)`);
                     return;
                 }
 
                 clearInterval(intervalo);
+                delete trabajosEnCurso[rfcParaNombre];
+                if (botonId) toggleLoadingState(botonId, false, botonOriginalHTML);
 
                 if (trabajo.estado === "completado") {
                     controlador.completar();
@@ -764,30 +886,41 @@
         async function procesarIndividual(e) {
             e.preventDefault();
             ocultarAlerta();
-            const btnOriginalHTML = document.getElementById('btn-individual').innerHTML;
-            toggleLoadingState('btn-individual', true, btnOriginalHTML);
+
+            const rfc = document.getElementById('rfc').value.trim().toUpperCase();
+
+            if (trabajosEnCurso[rfc]) {
+                mostrarAlerta("error", "Ya se está generando este documento, espera a que termine.");
+                return;
+            }
+
+            const boton = document.getElementById('btn-individual');
+            const originalHTML = boton.innerHTML;
+            toggleLoadingState('btn-individual', true, originalHTML);
 
             const formData = new FormData();
-            const rfc = document.getElementById('rfc').value.trim().toUpperCase();
             formData.append("rfc", rfc);
             formData.append("password", document.getElementById('password').value);
             formData.append("cer", document.getElementById('archivo_cer').files[0]);
             formData.append("key", document.getElementById('archivo_key').files[0]);
             formData.append("descargar_csf", "true");
             formData.append("descargar_32d", document.getElementById('chk_opinion').checked);
+            formData.append("guardar_efirma", document.getElementById('chk_guardar_efirma').checked);
 
             try {
                 const response = await fetch(`${API_URL}/api/constancia/iniciar`, { method: "POST", credentials: "include", body: formData });
                 if (!response.ok) {
+                    toggleLoadingState('btn-individual', false, originalHTML);
                     mostrarAlerta('error', await interpretarError(response));
                     return;
                 }
                 const { job_id } = await response.json();
-                monitorearTrabajo(job_id, 'individual', rfc);
+                // El botón se queda deshabilitado -- monitorearTrabajo lo
+                // libera cuando el trabajo termina (completado o error).
+                monitorearTrabajo(job_id, 'individual', rfc, 'btn-individual', originalHTML);
             } catch (error) {
+                toggleLoadingState('btn-individual', false, originalHTML);
                 mostrarAlerta('error', await interpretarError(null));
-            } finally {
-                toggleLoadingState('btn-individual', false, btnOriginalHTML);
             }
         }
 
