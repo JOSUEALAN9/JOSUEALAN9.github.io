@@ -18,6 +18,10 @@
                 <h1 class="text-xl font-bold tracking-wide">Fiscontable</h1>
             </div>
             <div class="flex items-center gap-4 relative">
+                <a href="admin/" id="enlace-admin" class="hidden text-slate-300 hover:text-white text-sm font-semibold items-center gap-1.5 transition mr-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                    <span class="hidden sm:inline">Administración</span>
+                </a>
                 <button onclick="togglePerfilMenu()" id="btn-perfil" class="flex items-center gap-2 text-slate-300 hover:text-white transition">
                     <span id="avatar-inicial" class="w-8 h-8 rounded-full bg-emerald-600 text-white text-sm font-bold flex items-center justify-center">?</span>
                     <span id="nombre-header" class="text-sm font-semibold hidden sm:inline"></span>
@@ -103,19 +107,14 @@
         </div>
 
         <div class="mt-6 flex flex-wrap gap-4 items-center">
-            <a href="procesos/" class="inline-flex items-center gap-2 text-sm font-semibold text-amber-700 hover:text-amber-900 bg-amber-50 hover:bg-amber-100 border border-amber-200 py-2.5 px-4 rounded-lg transition">
+            <a href="descargas/" class="inline-flex items-center gap-2 text-sm font-semibold text-amber-700 hover:text-amber-900 bg-amber-50 hover:bg-amber-100 border border-amber-200 py-2.5 px-4 rounded-lg transition">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                Mis Procesos
+                Mis Descargas
             </a>
-            <span class="text-xs text-slate-400">Descargas en curso y terminadas — siguen disponibles aunque cierres sesión.</span>
+            <span class="text-xs text-slate-400">Tus documentos listos y en preparación — siguen disponibles aunque cierres sesión.</span>
         </div>
 
-        <div id="bloque-admin" class="hidden mt-8 pt-8 border-t border-gray-200">
-            <a href="admin/" class="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-slate-800 transition">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-                Administrar usuarios
-            </a>
-        </div>
+        
     </main>
 
     <div id="modal-perfil" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden justify-center items-center p-4">
@@ -214,7 +213,9 @@
             document.getElementById("menu-vigencia").textContent = formatearVigencia(perfil);
 
             if (perfil.rol === "admin") {
-                document.getElementById("bloque-admin").classList.remove("hidden");
+                const enlace = document.getElementById("enlace-admin");
+                enlace.classList.remove("hidden");
+                enlace.classList.add("flex");
             }
             if (perfil.solo_lectura) {
                 mostrarAvisoConexion("Tu acceso venció. Puedes consultar tu directorio de clientes, pero no generar documentos ni hacer cambios. Contacta al administrador para renovarlo.");
