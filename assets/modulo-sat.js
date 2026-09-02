@@ -23,6 +23,8 @@
 
         const API_URL = "https://api.josuealan.com";
         let archivosGlobalesMasivo = [];
+        let revisionLote = null;          // resultado de /api/lote/revisar
+        let forzarRegenerarLote = false;  // ¿pedir todos nuevos al SAT?
 
         // Antes de mostrar cualquier formulario, confirmamos que el usuario
         // pueda usar este módulo. Sin esto, alguien con el acceso vencido
@@ -364,7 +366,10 @@
             document.getElementById('form-individual').reset();
             document.getElementById('form-masivo').reset();
             archivosGlobalesMasivo = [];
+            revisionLote = null;
+            forzarRegenerarLote = false;
             document.getElementById('panel-validacion').classList.add('hidden');
+            document.getElementById('panel-revision-servidor').classList.add('hidden');
             document.getElementById('btn-masivo').disabled = true;
 
             const campoRFC = document.getElementById('rfc');
@@ -499,7 +504,11 @@
                         badge.className = "px-2 py-1 rounded font-bold bg-green-100 text-green-700";
                         badge.innerText = "Validación Exitosa";
                         msgExito.classList.remove('hidden');
-                        btnMasivo.disabled = false;
+                        // La validación local (archivos presentes) pasó.
+                        // Ahora le preguntamos al servidor qué ya existe
+                        // y qué e.firmas traen problemas -- sin tocar el
+                        // SAT. Eso decide qué botones se ofrecen.
+                        revisarLoteEnServidor();
                     }
 
                 } catch (error) {
@@ -507,6 +516,112 @@
                 }
             };
             reader.readAsArrayBuffer(excelFile);
+        }
+
+        // --- Revisión previa en el servidor: valida cada e.firma
+        // (contraseña, vigencia, que el .key sea del .cer) y revisa qué
+        // documentos ya existen. Todo esto sin tocar al SAT, en
+        // segundos, para no descubrir los problemas 25 minutos después. ---
+        async function revisarLoteEnServidor() {
+            const panel = document.getElementById("panel-revision-servidor");
+            const contenido = document.getElementById("revision-contenido");
+            panel.classList.remove("hidden");
+            contenido.innerHTML = '<p class="text-xs text-slate-500">Revisando e.firmas y documentos existentes...</p>';
+
+            const formData = new FormData();
+            archivosGlobalesMasivo.forEach(file => formData.append("archivos_lote", file));
+            formData.append("tipo_documento", MODULO.tipo);
+
+            try {
+                const resp = await fetch(`${API_URL}/api/lote/revisar`, {
+                    method: "POST", credentials: "include", body: formData,
+                });
+                if (!resp.ok) {
+                    contenido.innerHTML = '<p class="text-xs text-amber-700">No se pudo revisar el lote por adelantado. Puedes continuar de todos modos.</p>';
+                    document.getElementById("btn-masivo").disabled = false;
+                    return;
+                }
+
+                revisionLote = await resp.json();
+                pintarRevisionLote();
+
+            } catch (error) {
+                contenido.innerHTML = '<p class="text-xs text-amber-700">No se pudo revisar el lote por adelantado. Puedes continuar de todos modos.</p>';
+                document.getElementById("btn-masivo").disabled = false;
+            }
+        }
+
+        function pintarRevisionLote() {
+            const r = revisionLote;
+            const contenido = document.getElementById("revision-contenido");
+            const yaHay = r.ya_existentes.length;
+            const conProblema = r.con_problemas.length;
+            const listos = r.listos.length;
+
+            let html = '<div class="flex flex-wrap gap-2 mb-3">';
+            html += `<span class="text-xs font-bold px-2.5 py-1 rounded-full bg-slate-100 text-slate-700">${r.total} en el Excel</span>`;
+            if (listos) html += `<span class="text-xs font-bold px-2.5 py-1 rounded-full bg-green-100 text-green-700">${listos} por generar</span>`;
+            if (yaHay) html += `<span class="text-xs font-bold px-2.5 py-1 rounded-full bg-blue-100 text-blue-700">${yaHay} ya descargados</span>`;
+            if (conProblema) html += `<span class="text-xs font-bold px-2.5 py-1 rounded-full bg-amber-100 text-amber-700">${conProblema} con problemas</span>`;
+            html += '</div>';
+
+            if (conProblema) {
+                html += '<div class="mb-3 bg-amber-50 border border-amber-200 rounded-lg p-3">';
+                html += '<p class="text-xs font-bold text-amber-900 mb-1.5">Estos no se van a procesar hasta que los corrijas:</p>';
+                html += '<ul class="text-xs text-amber-800 space-y-1">';
+                r.con_problemas.forEach(p => { html += `<li><strong>${p.rfc}</strong> — ${p.motivo}</li>`; });
+                html += '</ul></div>';
+            }
+
+            if (yaHay) {
+                html += `<div class="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                    <p class="text-xs text-blue-900 mb-2">
+                        <strong>${yaHay} de estos RFC ya tienen su documento</strong> descargado hace menos de ${r.dias_reutilizacion} días.
+                        Puedes aprovecharlos y ahorrarte la espera, o pedir documentos nuevos del día de hoy.
+                    </p>
+                    <div class="flex flex-wrap gap-2">
+                        <label class="flex items-center gap-2 cursor-pointer bg-white border border-blue-300 rounded-lg px-3 py-2">
+                            <input type="radio" name="modo-lote" value="reutilizar" checked onchange="cambiarModoLote(this.value)">
+                            <span class="text-xs font-bold text-blue-900">Aprovechar los que ya tengo</span>
+                        </label>
+                        <label class="flex items-center gap-2 cursor-pointer bg-white border border-gray-300 rounded-lg px-3 py-2">
+                            <input type="radio" name="modo-lote" value="forzar" onchange="cambiarModoLote(this.value)">
+                            <span class="text-xs font-bold text-slate-700">Pedir todos nuevos al SAT</span>
+                        </label>
+                    </div>
+                </div>`;
+            }
+
+            contenido.innerHTML = html;
+            actualizarBotonMasivo();
+        }
+
+        function cambiarModoLote(valor) {
+            forzarRegenerarLote = (valor === "forzar");
+            actualizarBotonMasivo();
+        }
+
+        function actualizarBotonMasivo() {
+            const btn = document.getElementById("btn-masivo");
+            const r = revisionLote;
+            if (!r) { btn.disabled = false; return; }
+
+            const aProcesar = forzarRegenerarLote
+                ? r.listos.length + r.ya_existentes.length
+                : r.listos.length;
+
+            if (aProcesar === 0 && r.ya_existentes.length > 0 && !forzarRegenerarLote) {
+                btn.disabled = false;
+                btn.innerHTML = `Descargar los ${r.ya_existentes.length} que ya tengo`;
+                return;
+            }
+            if (aProcesar === 0) {
+                btn.disabled = true;
+                btn.innerHTML = "No hay nada que procesar";
+                return;
+            }
+            btn.disabled = false;
+            btn.innerHTML = `Generar ${aProcesar} documento${aProcesar === 1 ? "" : "s"}`;
         }
 
         // --- PARTE VISUAL (no le importa de dónde vienen los números).
@@ -776,6 +891,7 @@
 
             const formData = new FormData();
             archivosGlobalesMasivo.forEach(file => { formData.append("archivos_lote", file); });
+            formData.append("forzar_regenerar", forzarRegenerarLote);
 
             try {
                 const response = await fetch(`${API_URL}/api/${MODULO.slug}/lote/iniciar`, { method: "POST", credentials: "include", body: formData });
@@ -791,4 +907,3 @@
                 mostrarAlerta('error', await interpretarError(null));
             }
         }
-    
