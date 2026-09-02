@@ -3,15 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Voucheo de Impuestos | Fiscontable</title>
+    <title>Voucheo Automático | Fiscontable</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="../assets/common.css">
 </head>
-<body class="bg-gray-50 text-gray-800 font-sans min-h-screen flex flex-col">
+<body class="bg-gray-50 text-gray-800 font-sans h-screen flex flex-col relative">
 
-    <!-- Encabezado estándar Fiscontable -->
-    <header class="bg-slate-900 text-white p-4 shadow-lg">
-        <div class="max-w-6xl mx-auto flex flex-wrap justify-between items-center gap-3">
+    <!-- TOP NAV -->
+    <header class="bg-slate-900 text-white p-4 shadow-lg flex-none z-10">
+        <div class="max-w-[1600px] mx-auto flex flex-wrap justify-between items-center gap-3">
             <div class="flex items-center gap-4">
                 <div class="bg-amber-600 p-2 rounded-lg">
                     <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z"></path></svg>
@@ -21,98 +21,297 @@
                     <p class="text-xs text-slate-400">Generación y actualización de papeles de trabajo</p>
                 </div>
             </div>
-            <div class="flex items-center gap-3 sm:gap-4">
+            <div class="flex items-center gap-2 sm:gap-4">
                 <a href="../herramientas/" class="text-slate-300 hover:text-white font-semibold text-sm flex items-center gap-1 transition">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg> Regresar
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg> Menú
                 </a>
+                <button onclick="limpiarFormularios()" class="bg-slate-700 hover:bg-red-600 text-white font-semibold py-2 px-3 sm:px-4 rounded shadow transition flex items-center gap-2 text-sm">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                    <span class="hidden sm:inline">Limpiar</span>
+                </button>
             </div>
         </div>
     </header>
 
-    <main class="flex-grow max-w-3xl mx-auto w-full p-6 mt-4">
-        <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 sm:p-8">
-            
-            <!-- Selector de Tipo de Impuesto -->
-            <div class="mb-8">
-                <label class="block text-sm font-bold text-gray-700 uppercase mb-3">1. Selecciona el Tipo de Voucheo</label>
+    <!-- ÁREA DE TRABAJO -->
+    <main class="flex-grow flex p-4 sm:p-6 w-full relative overflow-y-auto">
+        <div class="bg-white rounded-xl card-elevated border border-gray-200 w-full max-w-2xl m-auto flex flex-col">
+
+            <!-- Pestañas Fiscontable Style -->
+            <div id="tabs-container" class="flex border-b bg-slate-50">
+                <button id="tab-nuevo" onclick="switchTab('nuevo')" class="flex-1 py-4 text-sm font-bold text-amber-700 border-b-2 border-amber-600 transition flex justify-center items-center gap-2 bg-white">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                    Nuevo Ejercicio
+                </button>
+                <button id="tab-actualizar" onclick="switchTab('actualizar')" class="flex-1 py-4 text-sm font-semibold text-slate-500 border-b-2 border-transparent hover:text-slate-700 transition flex justify-center items-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                    Actualizar Archivo
+                </button>
+            </div>
+
+            <!-- PANEL DE BLOQUEO DE PERMISOS -->
+            <div id="panel-bloqueo" class="hidden p-8 flex-col items-center text-center gap-3">
+                <svg class="w-12 h-12 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+                <p id="panel-bloqueo-texto" class="text-sm text-slate-600 max-w-md"></p>
+                <a href="../herramientas/" class="mt-2 bg-slate-800 hover:bg-slate-700 text-white font-bold py-2.5 px-6 rounded-lg transition text-sm">Volver</a>
+            </div>
+
+            <div id="alert-container" class="hidden px-6 pt-4">
+                <div id="alert-message" class="p-4 rounded-lg text-sm font-semibold flex items-start gap-2"></div>
+            </div>
+
+            <!-- Selector de Impuesto (Aplica para ambas pestañas) -->
+            <div id="selector-impuesto" class="px-6 pt-6 pb-2 fade-in">
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-3">1. Tipo de Impuestos</label>
                 <div class="flex gap-4">
                     <label class="flex-1 cursor-pointer">
-                        <input type="radio" name="tipo_impuesto" value="estatal" class="peer sr-only" checked onchange="actualizarFormularios()">
-                        <div class="p-4 border-2 rounded-xl text-center peer-checked:border-amber-500 peer-checked:bg-amber-50 hover:bg-gray-50 transition">
-                            <span class="font-bold text-gray-800">Impuestos Estatales</span>
+                        <input type="radio" name="tipo_impuesto" value="estatal" class="peer sr-only" checked>
+                        <div class="p-3 border-2 rounded-lg text-center peer-checked:border-amber-500 peer-checked:bg-amber-50 hover:bg-gray-50 transition">
+                            <span class="text-sm font-bold text-slate-800">Estatales</span>
                         </div>
                     </label>
                     <label class="flex-1 cursor-pointer">
-                        <input type="radio" name="tipo_impuesto" value="federal" class="peer sr-only" onchange="actualizarFormularios()">
-                        <div class="p-4 border-2 rounded-xl text-center peer-checked:border-amber-500 peer-checked:bg-amber-50 hover:bg-gray-50 transition">
-                            <span class="font-bold text-gray-800">Impuestos Federales</span>
+                        <input type="radio" name="tipo_impuesto" value="federal" class="peer sr-only">
+                        <div class="p-3 border-2 rounded-lg text-center peer-checked:border-amber-500 peer-checked:bg-amber-50 hover:bg-gray-50 transition">
+                            <span class="text-sm font-bold text-slate-800">Federales</span>
                         </div>
                     </label>
                 </div>
             </div>
 
-            <!-- Pestañas de Acción -->
-            <div class="border-b border-gray-200 mb-6 flex gap-6">
-                <button onclick="cambiarPestana('nuevo')" id="tab-nuevo" class="pb-3 text-sm font-bold uppercase border-b-2 border-amber-500 text-amber-600 transition">Nuevo Ejercicio</button>
-                <button onclick="cambiarPestana('actualizar')" id="tab-actualizar" class="pb-3 text-sm font-bold uppercase border-b-2 border-transparent text-gray-500 hover:text-gray-700 transition">Actualizar Archivo</button>
-            </div>
-
-            <!-- Formulario: Nuevo Ejercicio -->
-            <div id="seccion-nuevo" class="block">
-                <div class="bg-blue-50 border border-blue-200 p-4 rounded-lg mb-6 flex gap-3 text-sm text-blue-800">
-                    <span>ℹ️</span> Sube los acuses PDF. El sistema extraerá el RFC automáticamente y descargará la plantilla maestra correspondiente.
+            <!-- MODO: NUEVO EJERCICIO -->
+            <form id="form-nuevo" class="px-6 pb-6 pt-2 flex flex-col gap-5 fade-in" onsubmit="procesarVoucheo(event, 'nuevo')">
+                <div class="bg-blue-50 border border-blue-100 p-4 rounded-lg flex items-start gap-3">
+                    <svg class="w-5 h-5 text-blue-600 flex-none mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    <p class="text-xs text-blue-800 leading-relaxed">
+                        <strong>Instrucciones:</strong> Sube los acuses PDF del SAT o Tribut@Net. El sistema leerá el RFC del primer documento y descargará la plantilla maestra para generar un nuevo papel de trabajo consolidado.
+                    </p>
                 </div>
-                <form action="https://api.josuealan.com/api/voucheo" method="POST" enctype="multipart/form-data">
-                    <input type="hidden" name="modo" value="nuevo">
-                    <input type="hidden" name="impuesto_seleccionado" id="input_tipo_nuevo" value="estatal">
-                    
-                    <label class="block text-sm font-bold text-gray-700 uppercase mb-2">Acuses en PDF</label>
-                    <input type="file" name="acuses_pdf" accept=".pdf" multiple required class="w-full border border-gray-300 p-3 rounded-lg mb-6 bg-gray-50">
-                    
-                    <button type="submit" class="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-3 px-4 rounded-xl transition">Generar Voucheo</button>
-                </form>
-            </div>
 
-            <!-- Formulario: Actualizar -->
-            <div id="seccion-actualizar" class="hidden">
-                <div class="bg-blue-50 border border-blue-200 p-4 rounded-lg mb-6 flex gap-3 text-sm text-blue-800">
-                    <span>ℹ️</span> Selecciona tu papel de trabajo actual (.xlsx) y los nuevos acuses. El sistema inyectará los datos sin borrar tu captura previa.
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-2">2. Acuses PDF (Selecciona múltiples)</label>
+                    <input type="file" id="pdf_nuevo" accept=".pdf" multiple required class="w-full text-sm border border-gray-300 rounded-lg p-2.5 bg-gray-50 focus:outline-none file:mr-4 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-amber-50 file:text-amber-700 hover:file:bg-amber-100 cursor-pointer">
                 </div>
-                <form action="https://api.josuealan.com/api/voucheo" method="POST" enctype="multipart/form-data">
-                    <input type="hidden" name="modo" value="actualizar">
-                    <input type="hidden" name="impuesto_seleccionado" id="input_tipo_actualizar" value="estatal">
-                    
-                    <label class="block text-sm font-bold text-gray-700 uppercase mb-2">Papel de Trabajo Actual (.xlsx)</label>
-                    <input type="file" name="archivo_excel" accept=".xlsx" required class="w-full border border-gray-300 p-3 rounded-lg mb-4 bg-gray-50">
-                    
-                    <label class="block text-sm font-bold text-gray-700 uppercase mb-2">Nuevos Acuses en PDF</label>
-                    <input type="file" name="acuses_pdf" accept=".pdf" multiple required class="w-full border border-gray-300 p-3 rounded-lg mb-6 bg-gray-50">
-                    
-                    <button type="submit" class="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-3 px-4 rounded-xl transition">Actualizar Voucheo</button>
-                </form>
-            </div>
 
+                <div class="mt-2">
+                    <button type="submit" id="btn-nuevo" class="w-full bg-amber-600 hover:bg-amber-500 text-white font-bold py-3.5 rounded-lg shadow-md transition disabled:bg-slate-400 flex justify-center items-center gap-2">
+                        Generar Papel de Trabajo
+                    </button>
+                </div>
+            </form>
+
+           <!-- MODO: ACTUALIZAR ARCHIVO -->
+            <form id="form-actualizar" class="px-6 pb-6 pt-2 hidden flex-col gap-5 fade-in" onsubmit="procesarVoucheo(event, 'actualizar')">
+                <div class="bg-blue-50 border border-blue-100 p-4 rounded-lg flex items-start gap-3">
+                    <svg class="w-5 h-5 text-blue-600 flex-none mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    <p class="text-xs text-blue-800 leading-relaxed">
+                        <strong>Instrucciones:</strong> Selecciona tu papel de trabajo actual (.xlsx) y los nuevos acuses PDF. El sistema inyectará los datos del mes sin borrar tu captura bancaria manual.
+                    </p>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-2">2. Tu Archivo Excel Actual</label>
+                    <input type="file" id="excel_actualizar" accept=".xlsx" required class="w-full text-sm border border-gray-300 rounded-lg p-2.5 bg-gray-50 focus:outline-none file:mr-4 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100 cursor-pointer">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-2">3. Nuevos Acuses PDF</label>
+                    <input type="file" id="pdf_actualizar" accept=".pdf" multiple required class="w-full text-sm border border-gray-300 rounded-lg p-2.5 bg-gray-50 focus:outline-none file:mr-4 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-amber-50 file:text-amber-700 hover:file:bg-amber-100 cursor-pointer">
+                </div>
+
+                <div class="mt-2">
+                    <button type="submit" id="btn-actualizar" class="w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-3.5 rounded-lg shadow-md transition disabled:bg-slate-400 flex justify-center items-center gap-2">
+                        Actualizar Papel de Trabajo
+                    </button>
+                </div>
+            </form>
         </div>
     </main>
 
     <script>
-        function cambiarPestana(pestana) {
-            document.getElementById('seccion-nuevo').classList.toggle('hidden', pestana !== 'nuevo');
-            document.getElementById('seccion-actualizar').classList.toggle('hidden', pestana !== 'actualizar');
-            
-            document.getElementById('tab-nuevo').className = pestana === 'nuevo' 
-                ? 'pb-3 text-sm font-bold uppercase border-b-2 border-amber-500 text-amber-600 transition' 
-                : 'pb-3 text-sm font-bold uppercase border-b-2 border-transparent text-gray-500 hover:text-gray-700 transition';
-                
-            document.getElementById('tab-actualizar').className = pestana === 'actualizar' 
-                ? 'pb-3 text-sm font-bold uppercase border-b-2 border-amber-500 text-amber-600 transition' 
-                : 'pb-3 text-sm font-bold uppercase border-b-2 border-transparent text-gray-500 hover:text-gray-700 transition';
+        const API_URL = "https://api.josuealan.com";
+
+        document.addEventListener("DOMContentLoaded", async () => {
+            await verificarPermisos();
+        });
+
+        function bloquearModulo(mensaje) {
+            document.querySelectorAll("#form-nuevo, #form-actualizar, #selector-impuesto").forEach(el => el.classList.add("hidden"));
+            document.getElementById("tabs-container")?.classList.add("hidden");
+            document.getElementById("panel-bloqueo-texto").textContent = mensaje;
+            document.getElementById("panel-bloqueo").classList.remove("hidden");
+            document.getElementById("panel-bloqueo").classList.add("flex");
         }
 
-        function actualizarFormularios() {
-            const tipo = document.querySelector('input[name="tipo_impuesto"]:checked').value;
-            document.getElementById('input_tipo_nuevo').value = tipo;
-            document.getElementById('input_tipo_actualizar').value = tipo;
+        async function verificarPermisos() {
+            try {
+                const resp = await fetch(`${API_URL}/api/mi-perfil`, { credentials: "include" });
+
+                if (resp.status === 401 || resp.status === 403) {
+                    bloquearModulo("Tu sesión expiró. Recarga la página para iniciar sesión de nuevo.");
+                    return false;
+                }
+                if (!resp.ok) {
+                    bloquearModulo("No pudimos conectar con el servidor. Intenta de nuevo más tarde.");
+                    return false;
+                }
+
+                const perfil = await resp.json();
+
+                if (perfil.solo_lectura) {
+                    bloquearModulo("Tu acceso venció. No puedes generar documentos hasta que se renueve.");
+                    return false;
+                }
+                // AQUÍ VALIDAMOS EL MÓDULO VOUCHEO
+                if (!(perfil.modulos_permitidos || []).includes("voucheo")) {
+                    bloquearModulo("Tu plan actual no incluye el módulo de Voucheo. Contacta al administrador si necesitas acceso.");
+                    return false;
+                }
+                return true;
+            } catch (error) {
+                bloquearModulo("No pudimos conectar con el servidor. Verifica tu conexión.");
+                return false;
+            }
+        }
+
+        function switchTab(modo) {
+            const isNuevo = modo === 'nuevo';
+            
+            // Estilos de pestañas
+            document.getElementById('tab-nuevo').className = isNuevo 
+                ? "flex-1 py-4 text-sm font-bold text-amber-700 border-b-2 border-amber-600 transition flex justify-center items-center gap-2 bg-white" 
+                : "flex-1 py-4 text-sm font-semibold text-slate-500 border-b-2 border-transparent hover:text-slate-700 transition flex justify-center items-center gap-2";
+            
+            document.getElementById('tab-actualizar').className = !isNuevo 
+                ? "flex-1 py-4 text-sm font-bold text-amber-700 border-b-2 border-amber-600 transition flex justify-center items-center gap-2 bg-white" 
+                : "flex-1 py-4 text-sm font-semibold text-slate-500 border-b-2 border-transparent hover:text-slate-700 transition flex justify-center items-center gap-2";
+            
+            // Mostrar/Ocultar formularios
+            document.getElementById('form-nuevo').classList.toggle('hidden', !isNuevo);
+            document.getElementById('form-nuevo').classList.toggle('flex', isNuevo);
+            
+            document.getElementById('form-actualizar').classList.toggle('hidden', isNuevo);
+            document.getElementById('form-actualizar').classList.toggle('flex', !isNuevo);
+            
+            ocultarAlerta();
+        }
+
+        function limpiarFormularios() {
+            document.getElementById('form-nuevo').reset();
+            document.getElementById('form-actualizar').reset();
+            ocultarAlerta();
+        }
+
+        function mostrarAlerta(tipo, mensaje) {
+            const container = document.getElementById('alert-container');
+            const alertBox = document.getElementById('alert-message');
+            container.classList.remove('hidden');
+            
+            if(tipo === 'error') {
+                alertBox.className = "p-4 rounded-lg text-sm font-semibold flex items-start gap-2 bg-amber-50 text-amber-800 border border-amber-200";
+                alertBox.innerHTML = `<svg class="w-5 h-5 flex-none mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg> <span>${mensaje}</span>`;
+            } else {
+                alertBox.className = "p-4 rounded-lg text-sm font-semibold flex items-start gap-2 bg-green-50 text-green-700 border border-green-200";
+                alertBox.innerHTML = `<svg class="w-5 h-5 flex-none mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> <span>${mensaje}</span>`;
+            }
+        }
+
+        function ocultarAlerta() { document.getElementById('alert-container').classList.add('hidden'); }
+
+        function toggleLoadingState(btnId, isLoading, originalHTML) {
+            const btn = document.getElementById(btnId);
+            if (isLoading) {
+                btn.disabled = true;
+                btn.innerHTML = `<svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Procesando acuses...`;
+            } else {
+                btn.disabled = false;
+                btn.innerHTML = originalHTML;
+            }
+        }
+
+        async function interpretarError(response) {
+            if (!response) return "No pudimos conectar con el servidor. Verifica tu conexión a internet.";
+            if (response.status === 401 || response.status === 403) return "Tu sesión expiró o no tienes permiso para este módulo.";
+            try {
+                const data = await response.json();
+                return data.detail || "Error interno del servidor.";
+            } catch {
+                return `Error HTTP ${response.status}. Intenta de nuevo.`;
+            }
+        }
+
+        async function procesarVoucheo(e, modo) {
+            e.preventDefault();
+            ocultarAlerta();
+
+            const btnId = modo === 'nuevo' ? 'btn-nuevo' : 'btn-actualizar';
+            const boton = document.getElementById(btnId);
+            const originalHTML = boton.innerHTML;
+            
+            const tipoImpuesto = document.querySelector('input[name="tipo_impuesto"]:checked').value;
+            const inputPdfs = document.getElementById(modo === 'nuevo' ? 'pdf_nuevo' : 'pdf_actualizar').files;
+            const inputExcel = modo === 'actualizar' ? document.getElementById('excel_actualizar').files[0] : null;
+
+            if (inputPdfs.length === 0) {
+                mostrarAlerta('error', 'Debes seleccionar al menos un acuse en formato PDF.');
+                return;
+            }
+
+            toggleLoadingState(btnId, true, originalHTML);
+
+            const formData = new FormData();
+            formData.append("modo", modo);
+            formData.append("impuesto_seleccionado", tipoImpuesto);
+            
+            for (let i = 0; i < inputPdfs.length; i++) {
+                formData.append("acuses_pdf", inputPdfs[i]);
+            }
+            if (inputExcel) {
+                formData.append("archivo_excel", inputExcel);
+            }
+
+            try {
+                const response = await fetch(`${API_URL}/api/voucheo/generar`, { 
+                    method: "POST", 
+                    credentials: "include", 
+                    body: formData 
+                });
+
+                if (!response.ok) {
+                    mostrarAlerta('error', await interpretarError(response));
+                    toggleLoadingState(btnId, false, originalHTML);
+                    return;
+                }
+
+                // Obtener el nombre del archivo del Header si es posible
+                let filename = `Voucheo_${tipoImpuesto}_2026.xlsx`;
+                const disposition = response.headers.get('Content-Disposition');
+                if (disposition && disposition.indexOf('filename=') !== -1) {
+                    const filenameRegex = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/;
+                    const matches = filenameRegex.exec(disposition);
+                    if (matches != null && matches[1]) { 
+                        filename = matches[1].replace(/['"]/g, '');
+                    }
+                }
+
+                // Forzar descarga del Blob
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(url);
+
+                mostrarAlerta('success', '¡Papel de trabajo generado con éxito!');
+                
+            } catch (error) {
+                mostrarAlerta('error', await interpretarError(null));
+            } finally {
+                toggleLoadingState(btnId, false, originalHTML);
+            }
         }
     </script>
 </body>
