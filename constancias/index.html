@@ -156,15 +156,24 @@
                     </label>
                 </div>
 
-                <div class="bg-violet-50 border border-violet-200 rounded-lg p-4 flex justify-between items-start gap-3">
-                    <div>
-                        <p class="text-sm font-bold text-violet-900">Guardar e.firma de este cliente</p>
-                        <p class="text-xs text-violet-700 mt-0.5">Se guarda cifrada en el servidor para no volver a subirla la próxima vez. Requiere que el RFC ya esté en tu directorio de "Mis Clientes".</p>
+                <div id="bloque-guardar-efirma" class="bg-violet-50 border border-violet-200 rounded-lg p-4 flex flex-col gap-3">
+                    <div class="flex justify-between items-start gap-3">
+                        <div>
+                            <p class="text-sm font-bold text-violet-900">Guardar e.firma de este cliente</p>
+                            <p id="texto-guardar-efirma" class="text-xs text-violet-700 mt-0.5">Se guarda cifrada para no volver a subirla la próxima vez.</p>
+                        </div>
+                        <label class="relative inline-flex items-center cursor-pointer flex-none">
+                            <input type="checkbox" id="chk_guardar_efirma" class="sr-only peer" onchange="alCambiarGuardarEfirma()">
+                            <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-violet-600"></div>
+                        </label>
                     </div>
-                    <label class="relative inline-flex items-center cursor-pointer flex-none">
-                        <input type="checkbox" id="chk_guardar_efirma" class="sr-only peer">
-                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-violet-600"></div>
-                    </label>
+
+                    <div id="campo-alias-cliente" class="hidden">
+                        <label class="block text-xs font-bold text-violet-900 uppercase tracking-wide mb-1.5">Nombre del cliente</label>
+                        <input type="text" id="alias_cliente" placeholder="Ej. Constructora XYZ"
+                            class="w-full text-sm border border-violet-300 rounded-lg p-2.5 focus:outline-none focus:ring-2 focus:ring-violet-500">
+                        <p class="text-xs text-violet-600 mt-1">Este RFC no está en tu directorio. Se dará de alta con este nombre.</p>
+                    </div>
                 </div>
 
                 <div class="mt-2">
@@ -335,6 +344,7 @@
             campoRFC.readOnly = true;
             campoRFC.classList.add("campo-solo-lectura");
 
+            await revisarSiEsCliente(rfcDesdeCliente.toUpperCase());
             await revisarEstadoDelRFC(rfcDesdeCliente, nombreCliente);
         }
 
@@ -439,6 +449,51 @@
         // Actualizar usa esta misma variable en los dos casos. ---
         let rfcActivo = rfcDesdeCliente ? rfcDesdeCliente.toUpperCase() : null;
         let efirmaGuardadaActual = false;
+        let clienteRegistrado = null;  // {existe, alias, efirma_guardada} del RFC en pantalla
+
+        // --- Cuando ya sabemos el RFC, consultamos si está en el
+        // directorio: de eso depende si al guardar la e.firma hay que
+        // pedir un nombre (para darlo de alta) o no. ---
+        async function revisarSiEsCliente(rfc) {
+            try {
+                const resp = await fetch(`${API_URL}/api/clientes/${encodeURIComponent(rfc)}/existe`, {
+                    credentials: "include",
+                });
+                clienteRegistrado = resp.ok ? await resp.json() : null;
+            } catch (error) {
+                clienteRegistrado = null;
+            }
+            actualizarBloqueEfirma();
+        }
+
+        function actualizarBloqueEfirma() {
+            const bloque = document.getElementById("bloque-guardar-efirma");
+            const texto = document.getElementById("texto-guardar-efirma");
+            const chk = document.getElementById("chk_guardar_efirma");
+
+            if (clienteRegistrado && clienteRegistrado.efirma_guardada) {
+                // Ya la tiene guardada: no tiene caso ofrecer guardarla otra vez
+                bloque.classList.add("hidden");
+                chk.checked = false;
+                return;
+            }
+            bloque.classList.remove("hidden");
+
+            if (clienteRegistrado && clienteRegistrado.existe) {
+                texto.textContent = `Se guardará en la ficha de ${clienteRegistrado.alias}, cifrada, para no volver a subirla.`;
+            } else {
+                texto.textContent = "Se guarda cifrada y este RFC se dará de alta en tu directorio de clientes.";
+            }
+            alCambiarGuardarEfirma();
+        }
+
+        function alCambiarGuardarEfirma() {
+            const activo = document.getElementById("chk_guardar_efirma").checked;
+            const necesitaAlias = activo && !(clienteRegistrado && clienteRegistrado.existe);
+            const campo = document.getElementById("campo-alias-cliente");
+            campo.classList.toggle("hidden", !necesitaAlias);
+            if (necesitaAlias) document.getElementById("alias_cliente").focus();
+        }
 
         // --- Trabajos en curso para este RFC (para no dejar que un
         // segundo clic en "Generar Constancia" dispare un segundo robot
@@ -524,6 +579,7 @@
                 campoRFC.classList.add("campo-solo-lectura");
                 hint.textContent = "RFC leído automáticamente de tu certificado.";
                 hint.className = "text-xs text-green-600 mt-1";
+                await revisarSiEsCliente(rfcDetectado);
                 await revisarEstadoDelRFC(rfcDetectado, null);
             } else {
                 campoRFC.value = "";
@@ -857,6 +913,15 @@
                 return;
             }
 
+            const quiereGuardar = document.getElementById('chk_guardar_efirma').checked;
+            const aliasCliente = document.getElementById('alias_cliente').value.trim();
+            const esClienteNuevo = quiereGuardar && !(clienteRegistrado && clienteRegistrado.existe);
+
+            if (esClienteNuevo && !aliasCliente) {
+                mostrarAlerta("error", "Escribe el nombre del cliente para darlo de alta, o desactiva el guardado de la e.firma.");
+                return;
+            }
+
             const boton = document.getElementById('btn-individual');
             const originalHTML = boton.innerHTML;
             toggleLoadingState('btn-individual', true, originalHTML);
@@ -868,7 +933,8 @@
             formData.append("key", document.getElementById('archivo_key').files[0]);
             formData.append("descargar_csf", "true");
             formData.append("descargar_32d", document.getElementById('chk_opinion').checked);
-            formData.append("guardar_efirma", document.getElementById('chk_guardar_efirma').checked);
+            formData.append("guardar_efirma", quiereGuardar);
+            formData.append("alias_cliente", aliasCliente);
 
             try {
                 const response = await fetch(`${API_URL}/api/constancia/iniciar`, { method: "POST", credentials: "include", body: formData });
