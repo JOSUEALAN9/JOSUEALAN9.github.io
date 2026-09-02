@@ -3,150 +3,222 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Módulo Opinión 32-D | ERP</title>
+    <title>Módulo Opinión 32-D | Fiscontable</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
-    <style>
-        body { -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none; user-select: none; }
-        .fade-in { animation: fadeIn 0.3s ease-in-out; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
-        .drag-over { background-color: #eff6ff !important; border-color: #3b82f6 !important; }
-        .modal-active { display: flex !important; }
-    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/forge/1.3.1/forge.min.js"></script>
+    <link rel="stylesheet" href="../assets/common.css">
+    <script src="../assets/rfc-from-cer.js" defer></script>
 </head>
 <body class="bg-gray-50 text-gray-800 font-sans h-screen flex flex-col relative">
 
     <!-- TOP NAV -->
     <header class="bg-slate-900 text-white p-4 shadow-lg flex-none z-10">
-        <div class="max-w-[1600px] mx-auto flex justify-between items-center">
+        <div class="max-w-[1600px] mx-auto flex flex-wrap justify-between items-center gap-3">
             <div class="flex items-center gap-4">
-                <div class="bg-emerald-600 p-2 rounded-lg">
-                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+                <div class="bg-teal-600 p-2 rounded-lg">
+                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                 </div>
                 <div>
-                    <h1 class="text-xl font-bold leading-tight">Opinión de Cumplimiento (32-D)</h1>
-                    <p class="text-xs text-slate-400">Auditoría de obligaciones fiscales individual y por lote</p>
+                    <h1 class="text-lg sm:text-xl font-bold leading-tight">Opinión de Cumplimiento (32-D)</h1>
+                    <p class="text-xs text-slate-400">Auditoría de obligaciones fiscales vía e.firma</p>
                 </div>
             </div>
-            
-            <div class="flex items-center gap-4">
-                <a href="../" class="text-slate-300 hover:text-white font-semibold text-sm mr-2 flex items-center gap-1 transition">
+
+            <div class="flex items-center gap-2 sm:gap-4">
+                <a href="../" class="text-slate-300 hover:text-white font-semibold text-sm flex items-center gap-1 transition">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg> Menú
                 </a>
-                <button onclick="limpiarFormularios()" class="bg-slate-700 hover:bg-red-600 text-white font-semibold py-2 px-4 rounded shadow transition flex items-center gap-2">
+                <button onclick="limpiarFormularios()" class="bg-slate-700 hover:bg-red-600 text-white font-semibold py-2 px-3 sm:px-4 rounded shadow transition flex items-center gap-2 text-sm">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                    Limpiar
+                    <span class="hidden sm:inline">Limpiar</span>
                 </button>
             </div>
         </div>
     </header>
 
-    <!-- ÁREA DE TRABAJO (Corrección de Scroll y Centrado) -->
-    <main class="flex-grow flex p-6 w-full relative overflow-y-auto">
-        <div class="bg-white rounded-xl shadow-md border border-gray-200 w-full max-w-2xl m-auto flex flex-col">
-            
+    <!-- ÁREA DE TRABAJO -->
+    <main class="flex-grow flex p-4 sm:p-6 w-full relative overflow-y-auto">
+        <div class="bg-white rounded-xl card-elevated border border-gray-200 w-full max-w-2xl m-auto flex flex-col">
+
             <div class="flex border-b bg-slate-50">
-                <button id="tab-ind" onclick="switchTab('individual')" class="flex-1 py-4 text-sm font-bold text-emerald-700 border-b-2 border-emerald-600 transition flex justify-center items-center gap-2 bg-white">
+                <button id="tab-ind" onclick="switchTab('individual')" class="flex-1 py-4 text-sm font-bold text-teal-700 border-b-2 border-teal-600 transition flex justify-center items-center gap-2 bg-white">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
                     Descarga Individual
                 </button>
                 <button id="tab-mas" onclick="switchTab('masivo')" class="flex-1 py-4 text-sm font-semibold text-slate-500 border-b-2 border-transparent hover:text-slate-700 transition flex justify-center items-center gap-2">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path></svg>
-                    Lote Masivo
+                    Descarga Masiva
                 </button>
             </div>
 
+            <div id="panel-bloqueo" class="hidden p-8 flex-col items-center text-center gap-3">
+                <svg class="w-12 h-12 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+                <p id="panel-bloqueo-texto" class="text-sm text-slate-600 max-w-md"></p>
+                <a href="../" class="mt-2 bg-slate-800 hover:bg-slate-700 text-white font-bold py-2.5 px-6 rounded-lg transition text-sm">Volver al inicio</a>
+            </div>
+
             <div id="alert-container" class="hidden px-6 pt-4">
-                <div id="alert-message" class="p-4 rounded-lg text-sm font-semibold flex items-center gap-2"></div>
+                <div id="alert-message" class="p-4 rounded-lg text-sm font-semibold flex items-start gap-2"></div>
+            </div>
+
+            <!-- PANEL: YA EXISTE UN DOCUMENTO EN CACHÉ (aparece solo si llegas desde un cliente con constancia vigente) -->
+            <div id="panel-cliente-detectado" class="hidden p-6 sm:p-8 flex-col gap-4 fade-in">
+                <div class="bg-green-50 border border-green-200 p-4 rounded-lg flex items-start gap-3">
+                    <svg class="w-5 h-5 text-green-600 flex-none mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                    <div class="text-sm text-green-800">
+                        <p class="font-bold" id="panel-cliente-nombre">Cliente</p>
+                        <p class="text-xs mt-1">Ya tienes una Opinión vigente para este RFC, generada el <span id="panel-cliente-fecha"></span>. Puedes descargarla directo o generar una nueva.</p>
+                    </div>
+                </div>
+                <div class="flex flex-col sm:flex-row gap-3">
+                    <button type="button" onclick="descargarDesdeCache()" id="btn-descargar-cache" class="flex-1 bg-green-600 hover:bg-green-500 text-white font-bold py-3.5 rounded-lg shadow-md transition flex justify-center items-center gap-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                        Descargar
+                    </button>
+                    <button type="button" onclick="manejarActualizar()" class="flex-1 bg-white border-2 border-teal-600 text-teal-600 hover:bg-teal-50 font-bold py-3.5 rounded-lg transition flex justify-center items-center gap-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                        Actualizar
+                    </button>
+                </div>
+            </div>
+
+            <!-- PANEL: E.FIRMA YA GUARDADA, PERO SIN DOCUMENTO EN CACHÉ TODAVÍA -->
+            <div id="panel-efirma-guardada" class="hidden p-6 sm:p-8 flex-col gap-4 fade-in">
+                <div class="bg-violet-50 border border-violet-200 p-4 rounded-lg flex items-start gap-3">
+                    <svg class="w-5 h-5 text-violet-600 flex-none mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+                    <p class="text-sm text-violet-800">Este cliente ya tiene su e.firma guardada. No necesitas volver a subirla.</p>
+                </div>
+                <button type="button" onclick="generarConEfirmaGuardada()" id="btn-generar-efirma-guardada" class="w-full bg-teal-600 hover:bg-teal-500 text-white font-bold py-3.5 rounded-lg shadow-md transition flex justify-center items-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                    Generar Opinión
+                </button>
+                <div id="progreso-efirma-guardada" class="hidden">
+                    <div class="progress-track"><div id="progreso-efirma-guardada-fill" class="progress-fill bg-teal-500" style="width:0%"></div></div>
+                    <p id="progreso-efirma-guardada-texto" class="text-xs text-slate-500 mt-1.5 text-center">Procesando...</p>
+                </div>
+                <button type="button" onclick="mostrarFormularioGeneracion()" class="text-xs text-slate-400 hover:text-slate-600 underline transition text-center">
+                    ¿No es la e.firma correcta? Súbela de nuevo
+                </button>
             </div>
 
             <!-- MODO INDIVIDUAL -->
-            <form id="form-individual" class="p-8 flex flex-col gap-5 fade-in" onsubmit="procesarIndividual(event)">
-                
-                <div class="bg-emerald-50 border border-emerald-100 p-4 rounded-lg flex items-start gap-3">
-                    <svg class="w-5 h-5 text-emerald-600 flex-none mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                    <p class="text-xs text-emerald-800 leading-relaxed">
-                        <strong>Instrucciones:</strong> Ingresa el RFC y las credenciales de la e.firma vigente para descargar la Opinión de Cumplimiento (32-D).
+            <form id="form-individual" class="p-6 sm:p-8 flex flex-col gap-5 fade-in" onsubmit="procesarIndividual(event)">
+                <div class="bg-teal-50 border border-teal-100 p-4 rounded-lg flex items-start gap-3">
+                    <svg class="w-5 h-5 text-teal-600 flex-none mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    <p class="text-xs text-teal-800 leading-relaxed">
+                        <strong>Instrucciones:</strong> Selecciona los archivos de tu e.firma vigente (.cer y .key) — el RFC se completa automáticamente al leer el certificado — y captura tu contraseña para generar la Constancia de Situación Fiscal.
                     </p>
                 </div>
 
                 <div>
                     <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-2">RFC de la Empresa / Persona</label>
-                    <input type="text" id="rfc" placeholder="Ej. XAXX010101000" required autocomplete="off" class="w-full text-sm border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-sm uppercase">
+                    <input type="text" id="rfc" placeholder="" required autocomplete="off" readonly
+                        class="campo-solo-lectura w-full text-sm border border-gray-300 rounded-lg p-3 focus:outline-none shadow-sm uppercase">
+                    <p id="rfc-hint" class="text-xs mt-1"></p>
                 </div>
-                
-                <div class="grid grid-cols-2 gap-4">
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                         <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-2">Certificado (.cer)</label>
-                        <input type="file" id="archivo_cer" accept=".cer" required class="w-full text-sm border border-gray-300 rounded-lg p-2.5 bg-gray-50 focus:outline-none file:mr-4 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100">
+                        <input type="file" id="archivo_cer" accept=".cer" required class="w-full text-sm border border-gray-300 rounded-lg p-2.5 bg-gray-50 focus:outline-none file:mr-4 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-teal-50 file:text-teal-700 hover:file:bg-teal-100">
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-2">Clave Privada (.key)</label>
-                        <input type="file" id="archivo_key" accept=".key" required class="w-full text-sm border border-gray-300 rounded-lg p-2.5 bg-gray-50 focus:outline-none file:mr-4 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100">
+                        <input type="file" id="archivo_key" accept=".key" required class="w-full text-sm border border-gray-300 rounded-lg p-2.5 bg-gray-50 focus:outline-none file:mr-4 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-teal-50 file:text-teal-700 hover:file:bg-teal-100">
                     </div>
                 </div>
 
                 <div>
                     <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-2">Contraseña de e.firma</label>
                     <div class="relative">
-                        <input type="password" id="password" required class="w-full text-sm border border-gray-300 rounded-lg p-3 pr-10 focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-sm">
-                        <button type="button" onclick="togglePassword('password')" class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-500 hover:text-emerald-600">
+                        <input type="password" id="password" required autocomplete="new-password"
+                            class="w-full text-sm border border-gray-300 rounded-lg p-3 pr-10 focus:outline-none focus:ring-2 focus:ring-teal-500 shadow-sm">
+                        <button type="button" onclick="togglePassword('password')" class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-500 hover:text-teal-600">
                             <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
                         </button>
                     </div>
+                    <p class="text-xs text-slate-400 mt-1.5 flex items-center gap-1">
+                        <svg class="w-3.5 h-3.5 flex-none text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+                        Tu e.firma viaja cifrada y se elimina de nuestros servidores al terminar el proceso.
+                    </p>
                 </div>
 
-                <div class="bg-slate-50 border border-slate-200 rounded-lg p-4 flex justify-between items-center">
+                <div class="bg-slate-50 border border-slate-200 rounded-lg p-4 flex justify-between items-center gap-3">
                     <div>
-                        <p class="text-sm font-bold text-slate-800">Descarga Adicional</p>
-                        <p class="text-xs text-slate-500">El sistema descargará también este documento en la misma sesión.</p>
+                        <p class="text-sm font-bold text-slate-800">Documento adicional</p>
+                        <p class="text-xs text-slate-500">Se procesará en la misma sesión, sin volver a pedir tus datos.</p>
                     </div>
-                    <label class="relative inline-flex items-center cursor-pointer">
+                    <label class="relative inline-flex items-center cursor-pointer flex-none">
                         <input type="checkbox" id="chk_constancia" class="sr-only peer">
-                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
-                        <span class="ml-3 text-xs font-bold text-slate-700">Constancia</span>
+                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-teal-600"></div>
+                        <span class="ml-3 text-xs font-bold text-slate-700 whitespace-nowrap">Constancia de Situación Fiscal</span>
                     </label>
                 </div>
 
+                <div id="bloque-guardar-efirma" class="bg-violet-50 border border-violet-200 rounded-lg p-4 flex flex-col gap-3">
+                    <div class="flex justify-between items-start gap-3">
+                        <div>
+                            <p class="text-sm font-bold text-violet-900">Guardar e.firma de este cliente</p>
+                            <p id="texto-guardar-efirma" class="text-xs text-violet-700 mt-0.5">Se guarda cifrada para no volver a subirla la próxima vez.</p>
+                        </div>
+                        <label class="relative inline-flex items-center cursor-pointer flex-none">
+                            <input type="checkbox" id="chk_guardar_efirma" class="sr-only peer" onchange="alCambiarGuardarEfirma()">
+                            <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-violet-600"></div>
+                        </label>
+                    </div>
+
+                    <div id="campo-alias-cliente" class="hidden">
+                        <label class="block text-xs font-bold text-violet-900 uppercase tracking-wide mb-1.5">Nombre del cliente</label>
+                        <input type="text" id="alias_cliente" placeholder="Ej. Constructora XYZ"
+                            class="w-full text-sm border border-violet-300 rounded-lg p-2.5 focus:outline-none focus:ring-2 focus:ring-violet-500">
+                        <p class="text-xs text-violet-600 mt-1">Este RFC no está en tu directorio. Se dará de alta con este nombre.</p>
+                    </div>
+                </div>
+
                 <div class="mt-2">
-                    <button type="submit" id="btn-individual" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3.5 rounded-lg shadow-md transition disabled:bg-slate-400 flex justify-center items-center gap-2">
+                    <button type="submit" id="btn-individual" class="w-full bg-teal-600 hover:bg-teal-500 text-white font-bold py-3.5 rounded-lg shadow-md transition disabled:bg-slate-400 flex justify-center items-center gap-2">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-                        Procesar Descarga
+                        Generar Opinión
                     </button>
+                    <div id="progreso-individual" class="hidden mt-3">
+                        <div class="progress-track"><div id="progreso-individual-fill" class="progress-fill bg-teal-500" style="width:0%"></div></div>
+                        <p id="progreso-individual-texto" class="text-xs text-slate-500 mt-1.5 text-center">Subiendo tus archivos...</p>
+                    </div>
                 </div>
             </form>
 
-            <!-- MODO MASIVO -->
-            <form id="form-masivo" class="p-8 hidden flex-col gap-6 fade-in" onsubmit="procesarMasivo(event)">
-                
-                <div class="bg-emerald-50 border border-emerald-100 p-4 rounded-lg flex flex-col gap-3">
-                    <div class="flex justify-between items-center border-b border-emerald-200 pb-3">
-                        <h4 class="text-sm font-bold text-emerald-800 flex items-center gap-1">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg> 
-                            Instrucciones de Lote
+           <!-- MODO MASIVO -->
+            <form id="form-masivo" class="p-6 sm:p-8 hidden flex-col gap-6 fade-in" onsubmit="procesarMasivo(event)">
+
+                <div class="bg-teal-50 border border-teal-100 p-4 rounded-lg flex flex-col gap-3">
+                    <div class="flex flex-wrap justify-between items-center gap-2 border-b border-teal-200 pb-3">
+                        <h4 class="text-sm font-bold text-teal-800 flex items-center gap-1">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                            Instrucciones de Descarga Masiva
                         </h4>
-                        <div class="flex gap-2">
-                            <button type="button" onclick="abrirInstructivo()" class="bg-white border border-emerald-200 text-emerald-600 hover:bg-emerald-100 text-xs font-bold py-1.5 px-3 rounded flex items-center transition shadow-sm">
+                        <div class="flex gap-2 flex-wrap">
+                            <button type="button" onclick="abrirInstructivo()" class="bg-white border border-teal-600 text-teal-600 hover:bg-teal-50 text-xs font-bold py-1.5 px-3 rounded flex items-center transition shadow-sm">
                                 Ver Instructivo Completo
                             </button>
-                            <a href="assets/directorio.xlsx" download class="bg-emerald-600 border border-emerald-600 text-white hover:bg-emerald-700 text-xs font-bold py-1.5 px-3 rounded flex items-center transition shadow-sm">
+                            <a href="../assets/directorio.xlsx" download class="bg-teal-600 border border-teal-600 text-white hover:bg-teal-700 text-xs font-bold py-1.5 px-3 rounded flex items-center transition shadow-sm">
                                 Descargar Plantilla
                             </a>
                         </div>
                     </div>
-                    <ul class="text-xs text-emerald-800 space-y-1 list-disc list-inside">
+                    <ul class="text-xs text-teal-800 space-y-1 list-disc list-inside">
                         <li>Guarda el archivo <strong>directorio.xlsx</strong> con 4 columnas: RFC, Contraseña, Archivo_CER, Archivo_KEY.</li>
                         <li>Coloca el Excel y todas las carpetas/archivos de e.firmas dentro de una carpeta maestra.</li>
-                        <li>Arrastra esa carpeta entera al recuadro inferior. El sistema validará los archivos antes de procesar.</li>
+                        <li id="instruccion-dropzone-texto">Arrastra esa carpeta entera al recuadro inferior. El sistema validará los archivos antes de procesar.</li>
                     </ul>
                 </div>
 
                 <div>
                     <div id="dropzone" onclick="document.getElementById('folder_input').click()" class="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center cursor-pointer hover:bg-gray-50 transition bg-white relative">
-                        <input type="file" id="folder_input" webkitdirectory directory multiple class="hidden" onchange="leerCarpeta(event)">
+                        <input type="file" id="folder_input" multiple class="hidden" onchange="leerCarpeta(event)">
                         <svg class="mx-auto h-12 w-12 text-gray-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path></svg>
-                        <p class="text-sm font-semibold text-slate-600">Arrastra aquí la carpeta completa</p>
-                        <p class="text-xs text-gray-400 mt-1">O haz clic para seleccionarla desde tus documentos</p>
+                        <p id="dropzone-titulo" class="text-sm font-semibold text-slate-600">Arrastra aquí la carpeta completa</p>
+                        <p id="dropzone-subtitulo" class="text-xs text-gray-400 mt-1">O haz clic para seleccionarla desde tus documentos</p>
                     </div>
 
                     <!-- Panel de Validación de Excel -->
@@ -163,8 +235,12 @@
                 <div class="mt-2">
                     <button type="submit" id="btn-masivo" disabled class="w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-3.5 rounded-lg shadow-md transition disabled:bg-gray-300 disabled:cursor-not-allowed flex justify-center items-center gap-2">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-                        Procesar Descarga
+                        Generar Opiniones (Masivo)
                     </button>
+                    <div id="progreso-masivo" class="hidden mt-3">
+                        <div class="progress-track"><div id="progreso-masivo-fill" class="progress-fill bg-teal-500" style="width:0%"></div></div>
+                        <p id="progreso-masivo-texto" class="text-xs text-slate-500 mt-1.5 text-center">Subiendo tus archivos...</p>
+                    </div>
                 </div>
             </form>
         </div>
@@ -172,43 +248,35 @@
 
     <!-- MODAL INSTRUCTIVO -->
     <div id="modal-instrucciones" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden justify-center items-center p-4">
-        <div class="bg-white w-full max-w-3xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+        <div class="bg-white w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
             <div class="p-5 border-b flex justify-between items-center bg-slate-50">
                 <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
-                    <svg class="w-6 h-6 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                    Instrucciones de Lote Masivo (Opinión 32-D)
+                    <svg class="w-6 h-6 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    Instrucciones de Descarga Masiva (Opiniones)
                 </h2>
                 <button onclick="cerrarInstructivo()" class="text-gray-400 hover:text-red-500 transition"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
             </div>
-            
-            <div class="p-6 overflow-y-auto flex flex-col gap-8">
+
+            <div class="p-6 overflow-y-auto flex flex-col gap-6">
                 <div>
                     <div class="flex justify-between items-center mb-2">
-                        <h3 class="font-bold text-emerald-700 flex items-center gap-2"><span class="bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded text-sm">Paso 1</span> Prepara tu archivo Excel</h3>
-                        <a href="assets/directorio.xlsx" download class="text-xs font-bold text-blue-600 hover:underline">↓ Descargar Plantilla.xlsx</a>
+                        <h3 class="font-bold text-teal-700 flex items-center gap-2"><span class="bg-teal-100 text-teal-800 px-2 py-0.5 rounded text-sm">Paso 1</span> Prepara tu archivo Excel</h3>
+                        <a href="../assets/directorio.xlsx" download class="text-xs font-bold text-teal-600 hover:underline">↓ Descargar Plantilla.xlsx</a>
                     </div>
                     <p class="text-sm text-gray-600 leading-relaxed">Captura el RFC, Contraseña, y los nombres exactos de los archivos .cer y .key. Guarda el archivo con el nombre <strong>directorio.xlsx</strong>.</p>
-                    <div class="w-full h-40 bg-gray-100 rounded-lg mt-3 flex items-center justify-center border border-gray-200 text-gray-400 text-xs italic overflow-hidden">
-                        <img src="" alt="Ejemplo Excel" class="hidden w-full h-full object-cover">
-                        [Coloca aquí la ruta de tu imagen del Excel]
-                    </div>
                 </div>
 
                 <div>
-                    <h3 class="font-bold text-emerald-700 flex items-center gap-2"><span class="bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded text-sm">Paso 2</span> Agrupa las firmas</h3>
+                    <h3 class="font-bold text-teal-700 flex items-center gap-2"><span class="bg-teal-100 text-teal-800 px-2 py-0.5 rounded text-sm">Paso 2</span> Agrupa las firmas</h3>
                     <p class="text-sm text-gray-600 mt-2 leading-relaxed">Coloca el Excel <strong>directorio.xlsx</strong> y los archivos de las e.firmas (.cer y .key) dentro de una misma carpeta. El sistema leerá subcarpetas automáticamente.</p>
-                    <div class="w-full h-40 bg-gray-100 rounded-lg mt-3 flex items-center justify-center border border-gray-200 text-gray-400 text-xs italic overflow-hidden">
-                        <img src="" alt="Ejemplo Carpeta" class="hidden w-full h-full object-cover">
-                        [Coloca aquí la ruta de tu imagen de la carpeta]
-                    </div>
                 </div>
 
                 <div>
-                    <h3 class="font-bold text-emerald-700 flex items-center gap-2"><span class="bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded text-sm">Paso 3</span> Arrastra y Procesa</h3>
-                    <p class="text-sm text-gray-600 mt-2 leading-relaxed">Arrastra la carpeta completa hacia el recuadro punteado. El sistema validará que no falte ningún archivo antes de permitirte iniciar la descarga.</p>
+                    <h3 class="font-bold text-teal-700 flex items-center gap-2"><span class="bg-teal-100 text-teal-800 px-2 py-0.5 rounded text-sm">Paso 3</span> Arrastra y Procesa</h3>
+                    <p class="text-sm text-gray-600 mt-2 leading-relaxed">Arrastra la carpeta completa hacia el recuadro punteado (en celular, selecciona el Excel y todos los archivos de una vez). El sistema validará que no falte ningún archivo antes de permitirte iniciar la descarga.</p>
                 </div>
             </div>
-            
+
             <div class="p-4 border-t bg-gray-50 flex justify-end">
                 <button onclick="cerrarInstructivo()" class="bg-slate-800 hover:bg-slate-700 text-white font-bold py-2 px-6 rounded-lg transition">Entendido</button>
             </div>
@@ -218,6 +286,310 @@
     <script>
         const API_URL = "https://api.josuealan.com";
         let archivosGlobalesMasivo = [];
+
+        // Antes de mostrar cualquier formulario, confirmamos que el usuario
+        // pueda usar este módulo. Sin esto, alguien con el acceso vencido
+        // llenaba todo el formulario para que el servidor lo rechazara al
+        // final -- es peor experiencia que decírselo desde el principio.
+        function bloquearModulo(mensaje) {
+            document.querySelectorAll("#form-individual, #form-masivo, #panel-cliente-detectado")
+                .forEach(el => { el.classList.add("hidden"); el.classList.remove("flex"); });
+            document.querySelector(".flex.border-b.bg-slate-50")?.classList.add("hidden");
+            document.getElementById("panel-bloqueo-texto").textContent = mensaje;
+            const panel = document.getElementById("panel-bloqueo");
+            panel.classList.remove("hidden");
+            panel.classList.add("flex");
+        }
+
+        async function verificarPermisos() {
+            try {
+                const resp = await fetch(`${API_URL}/api/mi-perfil`, { credentials: "include" });
+
+                if (resp.status === 401 || resp.status === 403) {
+                    bloquearModulo("Tu sesión expiró. Recarga la página para iniciar sesión de nuevo.");
+                    return false;
+                }
+                if (!resp.ok) {
+                    bloquearModulo("No pudimos conectar con el servidor. Intenta de nuevo más tarde o contacta al administrador.");
+                    return false;
+                }
+
+                const perfil = await resp.json();
+
+                if (perfil.solo_lectura) {
+                    bloquearModulo("Tu acceso venció. No puedes generar documentos hasta que se renueve. Contacta al administrador.");
+                    return false;
+                }
+                if (!(perfil.modulos_permitidos || []).includes("opinion")) {
+                    bloquearModulo("Tu plan actual no incluye el módulo de Opinión. Contacta al administrador si necesitas acceso.");
+                    return false;
+                }
+                return true;
+            } catch (error) {
+                bloquearModulo("No pudimos conectar con el servidor. Verifica tu conexión, intenta de nuevo más tarde o contacta al administrador.");
+                return false;
+            }
+        }
+
+        // --- Llegada desde el módulo "Clientes" (?rfc=...&cliente=...) ---
+        const parametros = new URLSearchParams(window.location.search);
+        const rfcDesdeCliente = parametros.get("rfc");
+        const nombreCliente = parametros.get("cliente");
+
+        async function verificarCacheAlEntrar() {
+            if (!rfcDesdeCliente) return; // uso normal de Herramientas Rápidas, sin cambios
+
+            const campoRFC = document.getElementById("rfc");
+            campoRFC.value = rfcDesdeCliente.toUpperCase();
+            campoRFC.readOnly = true;
+            campoRFC.classList.add("campo-solo-lectura");
+
+            await revisarSiEsCliente(rfcDesdeCliente.toUpperCase());
+            await revisarEstadoDelRFC(rfcDesdeCliente, nombreCliente);
+        }
+
+        function mostrarFormularioGeneracion() {
+            document.getElementById("panel-cliente-detectado").classList.add("hidden");
+            document.getElementById("panel-cliente-detectado").classList.remove("flex");
+            document.getElementById("panel-efirma-guardada").classList.add("hidden");
+            document.getElementById("panel-efirma-guardada").classList.remove("flex");
+            document.getElementById("form-individual").classList.remove("hidden");
+        }
+
+        function manejarActualizar() {
+            if (efirmaGuardadaActual) {
+                document.getElementById("panel-cliente-detectado").classList.add("hidden");
+                document.getElementById("panel-cliente-detectado").classList.remove("flex");
+                generarConEfirmaGuardada();
+            } else {
+                mostrarFormularioGeneracion();
+            }
+        }
+
+        async function generarConEfirmaGuardada() {
+            if (trabajosEnCurso[rfcActivo]) {
+                mostrarAlerta("error", "Ya se está generando este documento, espera a que termine.");
+                return;
+            }
+            ocultarAlerta();
+
+            const boton = document.getElementById("btn-generar-efirma-guardada");
+            const originalHTML = boton.innerHTML;
+            toggleLoadingState("btn-generar-efirma-guardada", true, originalHTML);
+
+            try {
+                const resp = await fetch(`${API_URL}/api/clientes/${encodeURIComponent(rfcActivo)}/generar-opinion`, {
+                    method: "POST",
+                    credentials: "include",
+                });
+                if (!resp.ok) {
+                    toggleLoadingState("btn-generar-efirma-guardada", false, originalHTML);
+                    mostrarAlerta("error", await interpretarError(resp));
+                    return;
+                }
+                const { job_id } = await resp.json();
+                monitorearTrabajo(job_id, "efirma-guardada", rfcActivo, "btn-generar-efirma-guardada", originalHTML);
+            } catch (error) {
+                toggleLoadingState("btn-generar-efirma-guardada", false, originalHTML);
+                mostrarAlerta("error", await interpretarError(null));
+            }
+        }
+
+        async function descargarDesdeCache() {
+            const boton = document.getElementById("btn-descargar-cache");
+            const originalHTML = boton.innerHTML;
+            boton.disabled = true;
+            boton.innerHTML = "Descargando...";
+            try {
+                const resp = await fetch(`${API_URL}/api/documentos/descargar?rfc=${encodeURIComponent(rfcActivo)}&tipo=opinion`, {
+                    credentials: "include",
+                });
+                if (!resp.ok) {
+                    mostrarAlerta("error", "No se pudo descargar el documento en caché. Intenta 'Actualizar' para generar uno nuevo.");
+                    return;
+                }
+                const blob = await resp.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = `OPC_${rfcActivo}.pdf`;
+                a.click();
+            } catch (error) {
+                mostrarAlerta("error", "No se pudo conectar con el servidor para descargar el documento.");
+            } finally {
+                boton.disabled = false;
+                boton.innerHTML = originalHTML;
+            }
+        }
+
+        // --- Detección simple de móvil, para decidir cómo se piden los
+        // archivos del lote (carpeta completa vs selección múltiple). ---
+        const esMovil = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || window.matchMedia("(pointer: coarse)").matches;
+
+        document.addEventListener("DOMContentLoaded", async () => {
+            const permitido = await verificarPermisos();
+            if (!permitido) return;
+
+            verificarCacheAlEntrar();
+            const folderInput = document.getElementById("folder_input");
+            if (esMovil) {
+                document.getElementById("dropzone-titulo").innerText = "Toca aquí para seleccionar tus archivos";
+                document.getElementById("dropzone-subtitulo").innerText = "Elige el directorio.xlsx y todos los .cer/.key a la vez";
+                document.getElementById("instruccion-dropzone-texto").innerText = "En celular no se puede arrastrar una carpeta: selecciona el Excel y todos los archivos .cer/.key juntos desde tu explorador de archivos.";
+            } else {
+                folderInput.setAttribute("webkitdirectory", "");
+                folderInput.setAttribute("directory", "");
+            }
+        });
+
+        // --- Autocompletar RFC desde el certificado .cer ---
+        // --- Estado compartido: qué RFC está "activo" en pantalla ahora
+        // mismo, venga de un link de "Mis Clientes" o de haber leído el
+        // .cer a mano en Herramientas Rápidas. El panel de Descargar /
+        // Actualizar usa esta misma variable en los dos casos. ---
+        let rfcActivo = rfcDesdeCliente ? rfcDesdeCliente.toUpperCase() : null;
+        let efirmaGuardadaActual = false;
+        let clienteRegistrado = null;  // {existe, alias, efirma_guardada} del RFC en pantalla
+
+        // --- Cuando ya sabemos el RFC, consultamos si está en el
+        // directorio: de eso depende si al guardar la e.firma hay que
+        // pedir un nombre (para darlo de alta) o no. ---
+        async function revisarSiEsCliente(rfc) {
+            try {
+                const resp = await fetch(`${API_URL}/api/clientes/${encodeURIComponent(rfc)}/existe`, {
+                    credentials: "include",
+                });
+                clienteRegistrado = resp.ok ? await resp.json() : null;
+            } catch (error) {
+                clienteRegistrado = null;
+            }
+            actualizarBloqueEfirma();
+        }
+
+        function actualizarBloqueEfirma() {
+            const bloque = document.getElementById("bloque-guardar-efirma");
+            const texto = document.getElementById("texto-guardar-efirma");
+            const chk = document.getElementById("chk_guardar_efirma");
+
+            if (clienteRegistrado && clienteRegistrado.efirma_guardada) {
+                // Ya la tiene guardada: no tiene caso ofrecer guardarla otra vez
+                bloque.classList.add("hidden");
+                chk.checked = false;
+                return;
+            }
+            bloque.classList.remove("hidden");
+
+            if (clienteRegistrado && clienteRegistrado.existe) {
+                texto.textContent = `Se guardará en la ficha de ${clienteRegistrado.alias}, cifrada, para no volver a subirla.`;
+            } else {
+                texto.textContent = "Se guarda cifrada y este RFC se dará de alta en tu directorio de clientes.";
+            }
+            alCambiarGuardarEfirma();
+        }
+
+        function alCambiarGuardarEfirma() {
+            const activo = document.getElementById("chk_guardar_efirma").checked;
+            const necesitaAlias = activo && !(clienteRegistrado && clienteRegistrado.existe);
+            const campo = document.getElementById("campo-alias-cliente");
+            campo.classList.toggle("hidden", !necesitaAlias);
+            if (necesitaAlias) document.getElementById("alias_cliente").focus();
+        }
+
+        // --- Trabajos en curso para este RFC (para no dejar que un
+        // segundo clic en "Generar Constancia" dispare un segundo robot
+        // en paralelo mientras el primero sigue corriendo). ---
+        const trabajosEnCurso = {};
+
+        async function revisarEstadoDelRFC(rfc, nombreMostrar) {
+            rfcActivo = rfc.toUpperCase();
+
+            try {
+                const pendResp = await fetch(`${API_URL}/api/trabajos/pendiente?rfc=${encodeURIComponent(rfcActivo)}&tipo=opinion`, {
+                    credentials: "include",
+                });
+                if (pendResp.ok) {
+                    const pendiente = await pendResp.json();
+                    if (pendiente.existe) {
+                        document.getElementById("form-individual").classList.add("hidden");
+                        mostrarAlerta("success", "Ya tenías un documento en proceso para este RFC. Retomando el seguimiento...");
+                        monitorearTrabajo(pendiente.job_id, "individual", rfcActivo);
+                        return;
+                    }
+                }
+            } catch (error) {
+                console.warn("No se pudo consultar si había un trabajo pendiente:", error);
+            }
+
+            try {
+                const efirmaResp = await fetch(`${API_URL}/api/clientes/${encodeURIComponent(rfcActivo)}/efirma-estado`, {
+                    credentials: "include",
+                });
+                if (efirmaResp.ok) {
+                    const efirmaData = await efirmaResp.json();
+                    efirmaGuardadaActual = !!efirmaData.efirma_guardada;
+                }
+            } catch (error) {
+                console.warn("No se pudo consultar el estado de la e.firma guardada:", error);
+            }
+
+            try {
+                const resp = await fetch(`${API_URL}/api/documentos/estado?rfc=${encodeURIComponent(rfcActivo)}&tipo=opinion`, {
+                    credentials: "include",
+                });
+                if (!resp.ok) return;
+                const data = await resp.json();
+
+                if (data.existe) {
+                    document.getElementById("panel-cliente-nombre").textContent = nombreMostrar || rfcActivo;
+                    const fecha = new Date(data.generado_en + "Z");
+                    document.getElementById("panel-cliente-fecha").textContent = fecha.toLocaleDateString("es-MX", { day: "numeric", month: "long", year: "numeric" });
+                    document.getElementById("panel-cliente-detectado").classList.remove("hidden");
+                    document.getElementById("panel-cliente-detectado").classList.add("flex");
+                    document.getElementById("form-individual").classList.add("hidden");
+                    return;
+                }
+            } catch (error) {
+                console.warn("No se pudo consultar el caché de documentos:", error);
+            }
+
+            // No hay documento en caché. Si de todas formas ya tiene la
+            // e.firma guardada, no tiene caso pedirle que la vuelva a
+            // subir -- se ofrece generar directo.
+            if (efirmaGuardadaActual) {
+                document.getElementById("panel-efirma-guardada").classList.remove("hidden");
+                document.getElementById("panel-efirma-guardada").classList.add("flex");
+                document.getElementById("form-individual").classList.add("hidden");
+            }
+        }
+
+        document.getElementById("archivo_cer").addEventListener("change", async (e) => {
+            if (rfcDesdeCliente) return; // el RFC ya vino fijo desde "Mis Clientes"; no hace falta releerlo
+
+            const archivo = e.target.files[0];
+            const campoRFC = document.getElementById("rfc");
+            const hint = document.getElementById("rfc-hint");
+            if (!archivo) return;
+
+            hint.textContent = "Leyendo certificado...";
+            const rfcDetectado = await extraerRFCDeCertificado(archivo);
+
+            if (rfcDetectado) {
+                campoRFC.value = rfcDetectado;
+                campoRFC.readOnly = true;
+                campoRFC.classList.add("campo-solo-lectura");
+                hint.textContent = "RFC leído automáticamente de tu certificado.";
+                hint.className = "text-xs text-green-600 mt-1";
+                await revisarSiEsCliente(rfcDetectado);
+                await revisarEstadoDelRFC(rfcDetectado, null);
+            } else {
+                campoRFC.value = "";
+                campoRFC.readOnly = false;
+                campoRFC.classList.remove("campo-solo-lectura");
+                campoRFC.placeholder = "No se pudo leer, escribe tu RFC";
+                hint.textContent = "No pudimos leerlo automáticamente de tu certificado. Ingrésalo manualmente.";
+                hint.className = "text-xs text-amber-600 mt-1";
+            }
+        });
 
         function obtenerFechaDDMMAA() {
             const hoy = new Date();
@@ -230,9 +602,13 @@
         function abrirInstructivo() { document.getElementById('modal-instrucciones').classList.add('modal-active'); }
         function cerrarInstructivo() { document.getElementById('modal-instrucciones').classList.remove('modal-active'); }
 
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') cerrarInstructivo();
+        });
+
         function switchTab(modo) {
-            document.getElementById('tab-ind').className = modo === 'individual' ? "flex-1 py-4 text-sm font-bold text-emerald-700 border-b-2 border-emerald-600 transition flex justify-center items-center gap-2 bg-white" : "flex-1 py-4 text-sm font-semibold text-slate-500 border-b-2 border-transparent hover:text-slate-700 transition flex justify-center items-center gap-2";
-            document.getElementById('tab-mas').className = modo === 'masivo' ? "flex-1 py-4 text-sm font-bold text-emerald-700 border-b-2 border-emerald-600 transition flex justify-center items-center gap-2 bg-white" : "flex-1 py-4 text-sm font-semibold text-slate-500 border-b-2 border-transparent hover:text-slate-700 transition flex justify-center items-center gap-2";
+            document.getElementById('tab-ind').className = modo === 'individual' ? "flex-1 py-4 text-sm font-bold text-teal-700 border-b-2 border-teal-600 transition flex justify-center items-center gap-2 bg-white" : "flex-1 py-4 text-sm font-semibold text-slate-500 border-b-2 border-transparent hover:text-slate-700 transition flex justify-center items-center gap-2";
+            document.getElementById('tab-mas').className = modo === 'masivo' ? "flex-1 py-4 text-sm font-bold text-teal-700 border-b-2 border-teal-600 transition flex justify-center items-center gap-2 bg-white" : "flex-1 py-4 text-sm font-semibold text-slate-500 border-b-2 border-transparent hover:text-slate-700 transition flex justify-center items-center gap-2";
             document.getElementById('form-individual').classList.toggle('hidden', modo !== 'individual');
             document.getElementById('form-masivo').classList.toggle('hidden', modo !== 'masivo');
             ocultarAlerta();
@@ -244,6 +620,19 @@
             archivosGlobalesMasivo = [];
             document.getElementById('panel-validacion').classList.add('hidden');
             document.getElementById('btn-masivo').disabled = true;
+
+            const campoRFC = document.getElementById('rfc');
+            campoRFC.readOnly = true;
+            campoRFC.classList.add('campo-solo-lectura');
+            campoRFC.placeholder = "";
+            const hint = document.getElementById('rfc-hint');
+            hint.textContent = "";
+            hint.className = "text-xs mt-1";
+
+            document.getElementById('panel-efirma-guardada').classList.add('hidden');
+            document.getElementById('panel-efirma-guardada').classList.remove('flex');
+            document.getElementById('form-individual').classList.remove('hidden');
+
             ocultarAlerta();
         }
 
@@ -256,8 +645,12 @@
             const container = document.getElementById('alert-container');
             const alertBox = document.getElementById('alert-message');
             container.classList.remove('hidden');
-            alertBox.className = tipo === 'error' ? "p-4 rounded-lg text-sm font-semibold flex items-center gap-2 bg-red-50 text-red-700 border border-red-200" : "p-4 rounded-lg text-sm font-semibold flex items-center gap-2 bg-green-50 text-green-700 border border-green-200";
-            alertBox.innerHTML = tipo === 'error' ? `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg> ${mensaje}` : `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> ${mensaje}`;
+            alertBox.className = tipo === 'error'
+                ? "p-4 rounded-lg text-sm font-semibold flex items-start gap-2 bg-amber-50 text-amber-800 border border-amber-200"
+                : "p-4 rounded-lg text-sm font-semibold flex items-start gap-2 bg-green-50 text-green-700 border border-green-200";
+            alertBox.innerHTML = tipo === 'error'
+                ? `<svg class="w-5 h-5 flex-none mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg> <span>${mensaje}</span>`
+                : `<svg class="w-5 h-5 flex-none mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> <span>${mensaje}</span>`;
         }
 
         function ocultarAlerta() { document.getElementById('alert-container').classList.add('hidden'); }
@@ -281,7 +674,7 @@
         function leerCarpeta(e) { procesarYValidarCarpeta(Array.from(e.target.files)); }
 
         async function readEntry(entry) {
-            if (entry.isFile) { return new Promise(resolve => entry.file(resolve)); } 
+            if (entry.isFile) { return new Promise(resolve => entry.file(resolve)); }
             else if (entry.isDirectory) {
                 const dirReader = entry.createReader();
                 const entries = await new Promise(resolve => dirReader.readEntries(resolve));
@@ -293,38 +686,38 @@
 
         function procesarYValidarCarpeta(files) {
             archivosGlobalesMasivo = files.filter(f => f.name.toLowerCase().endsWith('.cer') || f.name.toLowerCase().endsWith('.key') || f.name.toLowerCase().endsWith('.xlsx'));
-            
+
             const excelFile = archivosGlobalesMasivo.find(f => f.name.toLowerCase() === 'directorio.xlsx');
             const panel = document.getElementById('panel-validacion');
             const listaErrores = document.getElementById('lista-errores');
             const msgExito = document.getElementById('msg-exito');
             const badge = document.getElementById('badge-status');
             const btnMasivo = document.getElementById('btn-masivo');
-            
+
             panel.classList.remove('hidden');
             listaErrores.innerHTML = '';
             msgExito.classList.add('hidden');
             btnMasivo.disabled = true;
 
-            if(!excelFile) {
+            if (!excelFile) {
                 badge.className = "px-2 py-1 rounded font-bold bg-red-100 text-red-700";
                 badge.innerText = "Error Crítico";
-                listaErrores.innerHTML = "<li>No se encontró el archivo 'directorio.xlsx' en la raíz de la carpeta.</li>";
+                listaErrores.innerHTML = "<li>No se encontró el archivo 'directorio.xlsx' entre los archivos seleccionados.</li>";
                 return;
             }
 
-            badge.className = "px-2 py-1 rounded font-bold bg-blue-100 text-blue-700";
+            badge.className = "px-2 py-1 rounded font-bold bg-teal-100 text-teal-700";
             badge.innerText = "Analizando...";
 
             const reader = new FileReader();
-            reader.onload = function(e) {
+            reader.onload = function (e) {
                 try {
                     const data = new Uint8Array(e.target.result);
-                    const workbook = XLSX.read(data, {type: 'array'});
+                    const workbook = XLSX.read(data, { type: 'array' });
                     const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
                     const jsonExcel = XLSX.utils.sheet_to_json(firstSheet);
-                    
-                    if(jsonExcel.length === 0) {
+
+                    if (jsonExcel.length === 0) {
                         badge.className = "px-2 py-1 rounded font-bold bg-amber-100 text-amber-700";
                         badge.innerText = "Excel Vacío";
                         listaErrores.innerHTML = "<li>El archivo Excel no contiene registros para procesar.</li>";
@@ -335,24 +728,24 @@
                     const nombresEnCarpeta = archivosGlobalesMasivo.map(f => f.name.toLowerCase());
 
                     jsonExcel.forEach((row, index) => {
-                        const filaNum = index + 2; 
+                        const filaNum = index + 2;
                         const rfc = row.RFC ? String(row.RFC).trim() : `Fila ${filaNum}`;
-                        
+
                         let reqCer = row.Archivo_CER ? String(row.Archivo_CER).trim().toLowerCase() : "";
                         let reqKey = row.Archivo_KEY ? String(row.Archivo_KEY).trim().toLowerCase() : "";
-                        
-                        if(reqCer && !reqCer.endsWith('.cer')) reqCer += '.cer';
-                        if(reqKey && !reqKey.endsWith('.key')) reqKey += '.key';
 
-                        if(!reqCer || !nombresEnCarpeta.includes(reqCer)) {
+                        if (reqCer && !reqCer.endsWith('.cer')) reqCer += '.cer';
+                        if (reqKey && !reqKey.endsWith('.key')) reqKey += '.key';
+
+                        if (!reqCer || !nombresEnCarpeta.includes(reqCer)) {
                             erroresEncontrados.push(`<li><b>${rfc}:</b> Falta archivo CER (${reqCer || 'Celda vacía'})</li>`);
                         }
-                        if(!reqKey || !nombresEnCarpeta.includes(reqKey)) {
+                        if (!reqKey || !nombresEnCarpeta.includes(reqKey)) {
                             erroresEncontrados.push(`<li><b>${rfc}:</b> Falta archivo KEY (${reqKey || 'Celda vacía'})</li>`);
                         }
                     });
 
-                    if(erroresEncontrados.length > 0) {
+                    if (erroresEncontrados.length > 0) {
                         badge.className = "px-2 py-1 rounded font-bold bg-red-100 text-red-700";
                         badge.innerText = `${erroresEncontrados.length} Errores de Archivos`;
                         listaErrores.innerHTML = erroresEncontrados.join('');
@@ -370,80 +763,287 @@
             reader.readAsArrayBuffer(excelFile);
         }
 
+        // --- PARTE VISUAL (no le importa de dónde vienen los números).
+        // Este controlador es el que va a seguir existiendo tal cual el
+        // día que conectemos progreso real: solo cambia quién llama a
+        // .actualizar(), nunca esta función. ---
+        function crearControladorProgreso(prefijo) {
+            const contenedor = document.getElementById(`progreso-${prefijo}`);
+            const relleno = document.getElementById(`progreso-${prefijo}-fill`);
+            const texto = document.getElementById(`progreso-${prefijo}-texto`);
+
+            contenedor.classList.remove("hidden");
+            relleno.style.width = "0%";
+
+            return {
+                actualizar(porcentaje, mensaje) {
+                    relleno.style.width = `${Math.min(porcentaje, 100)}%`;
+                    if (mensaje) texto.textContent = mensaje;
+                },
+                completar(mensajeFinal = "¡Listo!") {
+                    relleno.style.width = "100%";
+                    texto.textContent = mensajeFinal;
+                    setTimeout(() => contenedor.classList.add("hidden"), 900);
+                },
+                detener() {
+                    contenedor.classList.add("hidden");
+                },
+            };
+        }
+
+        // --- Interpretación de errores: distingue lo que sí podemos
+        // distinguir hoy (sin conexión, sesión expirada, error del
+        // servidor) y muestra el detalle real del backend en vez de
+        // un mensaje único genérico para todo. La distinción fina de
+        // "contraseña incorrecta" requiere una mejora aparte en el
+        // robot de Playwright, pendiente. ---
+        async function interpretarError(response) {
+            if (!response) {
+                return "No pudimos conectar con el servidor. Verifica tu conexión a internet o si el túnel/portal está activo.";
+            }
+            if (response.status === 401 || response.status === 403) {
+                return "Tu sesión de acceso expiró. Recarga la página, inicia sesión de nuevo e intenta otra vez.";
+            }
+            if (response.status >= 500) {
+                try {
+                    const data = await response.json();
+                    let detalle = (data.detail || "").replace(/^Fallo en robot SAT:\s*/i, "");
+                    if (/dashboard|redirecciones|Generar Constancia|timeout/i.test(detalle)) {
+                        return "El SAT no respondió a tiempo. Puede ser tu contraseña de e.firma o que el servicio del SAT esté saturado. Verifica tus datos e intenta de nuevo en unos minutos.";
+                    }
+                    return detalle
+                        ? `No se pudo completar el proceso: ${detalle}`
+                        : "Ocurrió un error inesperado en el servidor.";
+                } catch {
+                    return "Ocurrió un error inesperado en el servidor.";
+                }
+            }
+            return `Ocurrió un problema al procesar la solicitud (código ${response.status}). Intenta de nuevo.`;
+        }
+
         function toggleLoadingState(btnId, isLoading, originalHTML) {
             const btn = document.getElementById(btnId);
-            if(isLoading) {
+            if (isLoading) {
                 btn.disabled = true;
-                btn.innerHTML = `<svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Conectando con SAT...`;
+                btn.innerHTML = `<svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Procesando, esto puede tardar unos segundos...`;
             } else {
                 btn.disabled = false;
                 btn.innerHTML = originalHTML;
             }
         }
 
+        // --- Monitoreo real de un trabajo en el servidor: reemplaza el
+        // reloj falso de iniciarProgresoSimulado() por polling de verdad.
+        // Es exactamente el punto donde dijimos que solo había que
+        // cambiar "quién produce los números" -- crearControladorProgreso
+        // no se tocó. ---
+        function monitorearTrabajo(jobId, prefijo, rfcParaNombre, botonId = null, botonOriginalHTML = null) {
+            const controlador = crearControladorProgreso(prefijo);
+            trabajosEnCurso[rfcParaNombre] = jobId;
+            let segundos = 0;
+
+            const intervalo = setInterval(async () => {
+                segundos += 2;
+                let resp;
+                try {
+                    resp = await fetch(`${API_URL}/api/trabajos/${jobId}`, { credentials: "include" });
+                } catch (error) {
+                    clearInterval(intervalo);
+                    delete trabajosEnCurso[rfcParaNombre];
+                    if (botonId) toggleLoadingState(botonId, false, botonOriginalHTML);
+                    controlador.detener();
+                    mostrarAlerta("error", await interpretarError(null));
+                    return;
+                }
+
+                if (!resp.ok) {
+                    clearInterval(intervalo);
+                    delete trabajosEnCurso[rfcParaNombre];
+                    if (botonId) toggleLoadingState(botonId, false, botonOriginalHTML);
+                    controlador.detener();
+                    mostrarAlerta("error", await interpretarError(resp));
+                    return;
+                }
+
+                const trabajo = await resp.json();
+
+                if (trabajo.estado === "procesando") {
+                    const porcentaje = Math.min(10 + segundos * 2, 90);
+                    controlador.actualizar(porcentaje, `Procesando... (${segundos}s)`);
+                    return;
+                }
+
+                clearInterval(intervalo);
+                delete trabajosEnCurso[rfcParaNombre];
+                if (botonId) toggleLoadingState(botonId, false, botonOriginalHTML);
+
+                if (trabajo.estado === "completado") {
+                    controlador.completar();
+                    try {
+                        const descarga = await fetch(`${API_URL}/api/trabajos/${jobId}/descargar`, { credentials: "include" });
+                        if (!descarga.ok) {
+                            mostrarAlerta("error", await interpretarError(descarga));
+                            return;
+                        }
+                        const blob = await descarga.blob();
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement("a");
+                        a.href = url;
+                        a.download = trabajo.nombre_descarga || `${rfcParaNombre}.pdf`;
+                        a.click();
+                        mostrarAlerta("success", "¡Proceso completado con éxito!");
+                    } catch (error) {
+                        mostrarAlerta("error", "El documento se generó, pero no se pudo descargar automáticamente. Intenta de nuevo.");
+                    }
+                } else {
+                    controlador.detener();
+                    mostrarAlerta("error", trabajo.mensaje_error || "Ocurrió un error al procesar tu documento.");
+                }
+            }, 2000);
+        }
+
         async function procesarIndividual(e) {
             e.preventDefault();
             ocultarAlerta();
-            const btnOriginalHTML = document.getElementById('btn-individual').innerHTML;
-            toggleLoadingState('btn-individual', true, btnOriginalHTML);
+
+            const rfc = document.getElementById('rfc').value.trim().toUpperCase();
+
+            if (trabajosEnCurso[rfc]) {
+                mostrarAlerta("error", "Ya se está generando este documento, espera a que termine.");
+                return;
+            }
+
+            const quiereGuardar = document.getElementById('chk_guardar_efirma').checked;
+            const aliasCliente = document.getElementById('alias_cliente').value.trim();
+            const esClienteNuevo = quiereGuardar && !(clienteRegistrado && clienteRegistrado.existe);
+
+            if (esClienteNuevo && !aliasCliente) {
+                mostrarAlerta("error", "Escribe el nombre del cliente para darlo de alta, o desactiva el guardado de la e.firma.");
+                return;
+            }
+
+            const boton = document.getElementById('btn-individual');
+            const originalHTML = boton.innerHTML;
+            toggleLoadingState('btn-individual', true, originalHTML);
 
             const formData = new FormData();
-            const rfc = document.getElementById('rfc').value.trim().toUpperCase();
             formData.append("rfc", rfc);
             formData.append("password", document.getElementById('password').value);
             formData.append("cer", document.getElementById('archivo_cer').files[0]);
             formData.append("key", document.getElementById('archivo_key').files[0]);
-            formData.append("descargar_32d", "true");
             formData.append("descargar_csf", document.getElementById('chk_constancia').checked);
+            formData.append("descargar_32d", "true");
+            formData.append("guardar_efirma", quiereGuardar);
+            formData.append("alias_cliente", aliasCliente);
 
             try {
-                const response = await fetch(`${API_URL}/api/opinion/individual`, { method: "POST", body: formData });
-                if(response.ok) {
-                    const blob = await response.blob();
-                    const url = window.URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    
-                    const fecha = obtenerFechaDDMMAA();
-                    const descargoAmbos = document.getElementById('chk_constancia').checked;
-                    a.download = descargoAmbos ? `Expediente_${rfc}_${fecha}.zip` : `OPC_${rfc}_${fecha}.pdf`;
-                    
-                    a.click();
-                    mostrarAlerta('success', '¡Proceso completado con éxito!');
-                } else {
-                    mostrarAlerta('error', "Credenciales rechazadas o servidor SAT saturado.");
+                const response = await fetch(`${API_URL}/api/opinion/iniciar`, { method: "POST", credentials: "include", body: formData });
+                if (!response.ok) {
+                    toggleLoadingState('btn-individual', false, originalHTML);
+                    mostrarAlerta('error', await interpretarError(response));
+                    return;
                 }
-            } catch (error) { mostrarAlerta('error', "Fallo de conexión con Python."); } 
-            finally { toggleLoadingState('btn-individual', false, btnOriginalHTML); }
+                const { job_id } = await response.json();
+                // El botón se queda deshabilitado -- monitorearTrabajo lo
+                // libera cuando el trabajo termina (completado o error).
+                monitorearTrabajo(job_id, 'individual', rfc, 'btn-individual', originalHTML);
+            } catch (error) {
+                toggleLoadingState('btn-individual', false, originalHTML);
+                mostrarAlerta('error', await interpretarError(null));
+            }
+        }
+
+        function monitorearLote(loteId, botonId, botonOriginalHTML) {
+            const controlador = crearControladorProgreso('masivo');
+
+            const intervalo = setInterval(async () => {
+                let resp;
+                try {
+                    resp = await fetch(`${API_URL}/api/lotes/${loteId}`, { credentials: "include" });
+                } catch (error) {
+                    clearInterval(intervalo);
+                    toggleLoadingState(botonId, false, botonOriginalHTML);
+                    controlador.detener();
+                    mostrarAlerta("error", await interpretarError(null));
+                    return;
+                }
+
+                if (!resp.ok) {
+                    clearInterval(intervalo);
+                    toggleLoadingState(botonId, false, botonOriginalHTML);
+                    controlador.detener();
+                    mostrarAlerta("error", await interpretarError(resp));
+                    return;
+                }
+
+                const lote = await resp.json();
+
+                if (lote.estado === "procesando") {
+                    const porcentaje = lote.total > 0 ? Math.round((lote.procesados / lote.total) * 100) : 5;
+                    const texto = lote.total > 0
+                        ? `Procesando ${lote.procesados}/${lote.total}${lote.rfc_actual ? " — " + lote.rfc_actual : ""}`
+                        : "Preparando el lote...";
+                    controlador.actualizar(Math.max(porcentaje, 5), texto);
+                    return;
+                }
+
+                clearInterval(intervalo);
+                toggleLoadingState(botonId, false, botonOriginalHTML);
+
+                if (lote.estado === "completado") {
+                    controlador.completar();
+                    try {
+                        const descarga = await fetch(`${API_URL}/api/lotes/${loteId}/descargar`, { credentials: "include" });
+                        if (!descarga.ok) {
+                            mostrarAlerta("error", await interpretarError(descarga));
+                            return;
+                        }
+                        const blob = await descarga.blob();
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement("a");
+                        a.href = url;
+                        a.download = lote.nombre_descarga || "Lote.zip";
+                        a.click();
+
+                        if (lote.fallidos && lote.fallidos.length > 0) {
+                            const listaFallidos = lote.fallidos.map(f => f[0]).join(", ");
+                            mostrarAlerta("error", `Lote completado: ${lote.exitosos} de ${lote.total} exitosos. Fallaron: ${listaFallidos}`);
+                        } else {
+                            mostrarAlerta("success", `Lote completado: ${lote.exitosos} de ${lote.total} documentos generados.`);
+                        }
+                    } catch (error) {
+                        mostrarAlerta("error", "El lote se generó, pero no se pudo descargar automáticamente. Intenta de nuevo.");
+                    }
+                } else {
+                    controlador.detener();
+                    mostrarAlerta("error", lote.mensaje_error || "Ocurrió un error al procesar el lote.");
+                }
+            }, 3000);
         }
 
         async function procesarMasivo(e) {
             e.preventDefault();
             ocultarAlerta();
-            const btnOriginalHTML = document.getElementById('btn-masivo').innerHTML;
+            const boton = document.getElementById('btn-masivo');
+            const btnOriginalHTML = boton.innerHTML;
             toggleLoadingState('btn-masivo', true, btnOriginalHTML);
 
             const formData = new FormData();
             archivosGlobalesMasivo.forEach(file => { formData.append("archivos_lote", file); });
 
             try {
-                const response = await fetch(`${API_URL}/api/opinion/masivo_crudo`, { method: "POST", body: formData });
-                if(response.ok) {
-                    const blob = await response.blob();
-                    const url = window.URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    
-                    const fecha = obtenerFechaDDMMAA();
-                    a.download = `Archivos_masivos_${fecha}.zip`;
-                    
-                    a.click();
-                    mostrarAlerta('success', 'Lote completado. Se descargó el archivo ZIP.');
-                } else {
-                    mostrarAlerta('error', "Error al procesar el lote en el servidor.");
+                const response = await fetch(`${API_URL}/api/opinion/lote/iniciar`, { method: "POST", credentials: "include", body: formData });
+                if (!response.ok) {
+                    toggleLoadingState('btn-masivo', false, btnOriginalHTML);
+                    mostrarAlerta('error', await interpretarError(response));
+                    return;
                 }
-            } catch (error) { mostrarAlerta('error', "Fallo de conexión con Python."); } 
-            finally { toggleLoadingState('btn-masivo', false, btnOriginalHTML); }
+                const { lote_id } = await response.json();
+                monitorearLote(lote_id, 'btn-masivo', btnOriginalHTML);
+            } catch (error) {
+                toggleLoadingState('btn-masivo', false, btnOriginalHTML);
+                mostrarAlerta('error', await interpretarError(null));
+            }
         }
     </script>
 </body>
