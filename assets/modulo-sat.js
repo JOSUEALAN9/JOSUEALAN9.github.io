@@ -867,7 +867,7 @@
                         a.click();
 
                         if (lote.fallidos && lote.fallidos.length > 0) {
-                            const listaFallidos = lote.fallidos.map(f => f[0]).join(", ");
+                            const listaFallidos = lote.fallidos.map(f => f.rfc || f[0]).join(", ");
                             mostrarAlerta("error", `Lote completado: ${lote.exitosos} de ${lote.total} exitosos. Fallaron: ${listaFallidos}`);
                         } else {
                             mostrarAlerta("success", `Lote completado: ${lote.exitosos} de ${lote.total} documentos generados.`);
