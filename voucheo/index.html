@@ -60,6 +60,36 @@
                 <div id="alert-message" class="p-4 rounded-lg text-sm font-semibold flex items-start gap-2"></div>
             </div>
 
+            <!-- PANEL DE RESULTADO: qué se procesó, qué se omitió, y descarga -->
+            <div id="panel-resultado" class="hidden px-6 pt-4 flex-col gap-4 fade-in">
+                <div class="bg-white border-2 border-green-200 rounded-lg p-4">
+                    <div class="flex items-center justify-between gap-3 flex-wrap">
+                        <div>
+                            <p class="text-xs font-bold text-slate-500 uppercase tracking-wide">Papel de trabajo</p>
+                            <p id="resultado-nombre-archivo" class="text-sm font-bold text-slate-800"></p>
+                        </div>
+                        <a id="btn-descargar-resultado" href="#" class="bg-green-600 hover:bg-green-500 text-white font-bold py-2 px-4 rounded-lg text-sm flex items-center gap-2 transition">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                            Descargar
+                        </a>
+                    </div>
+                </div>
+
+                <div id="resultado-procesados-wrap" class="hidden">
+                    <p class="text-xs font-bold text-slate-600 uppercase tracking-wide mb-2">
+                        ✅ Se cargaron <span id="resultado-procesados-count"></span> acuse(s)
+                    </p>
+                    <ul id="resultado-procesados-lista" class="text-xs text-slate-700 space-y-1.5"></ul>
+                </div>
+
+                <div id="resultado-omitidos-wrap" class="hidden">
+                    <p class="text-xs font-bold text-amber-700 uppercase tracking-wide mb-2">
+                        ⚠️ No se cargaron <span id="resultado-omitidos-count"></span> archivo(s)
+                    </p>
+                    <ul id="resultado-omitidos-lista" class="text-xs text-amber-800 space-y-1.5"></ul>
+                </div>
+            </div>
+
             <!-- Selector de Impuesto (Aplica para ambas pestañas) -->
             <div id="selector-impuesto" class="px-6 pt-6 pb-2 fade-in">
                 <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-3">1. Tipo de Impuestos</label>
@@ -70,10 +100,11 @@
                             <span class="text-sm font-bold text-slate-800">Estatales</span>
                         </div>
                     </label>
-                    <label class="flex-1 cursor-pointer">
-                        <input type="radio" name="tipo_impuesto" value="federal" class="peer sr-only">
-                        <div class="p-3 border-2 rounded-lg text-center peer-checked:border-amber-500 peer-checked:bg-amber-50 hover:bg-gray-50 transition">
-                            <span class="text-sm font-bold text-slate-800">Federales</span>
+                    <label class="flex-1 cursor-not-allowed" title="Todavía no disponible">
+                        <input type="radio" name="tipo_impuesto" value="federal" class="peer sr-only" disabled>
+                        <div class="p-3 border-2 rounded-lg text-center border-gray-200 bg-gray-100 opacity-60">
+                            <span class="text-sm font-bold text-slate-500">Federales</span>
+                            <span class="block text-[10px] text-slate-400 mt-0.5">Próximamente</span>
                         </div>
                     </label>
                 </div>
@@ -194,12 +225,19 @@
             document.getElementById('form-actualizar').classList.toggle('flex', !isNuevo);
             
             ocultarAlerta();
+            ocultarResultado();
         }
 
         function limpiarFormularios() {
             document.getElementById('form-nuevo').reset();
             document.getElementById('form-actualizar').reset();
             ocultarAlerta();
+            ocultarResultado();
+        }
+
+        function ocultarResultado() {
+            document.getElementById('panel-resultado').classList.add('hidden');
+            document.getElementById('panel-resultado').classList.remove('flex');
         }
 
         function mostrarAlerta(tipo, mensaje) {
@@ -234,20 +272,77 @@
             if (response.status === 401 || response.status === 403) return "Tu sesión expiró o no tienes permiso para este módulo.";
             try {
                 const data = await response.json();
+                // El detail puede ser un texto simple, o un objeto
+                // {mensaje, omitidos} cuando NINGÚN acuse se pudo procesar.
+                if (data.detail && typeof data.detail === "object") {
+                    let texto = data.detail.mensaje || "No se pudo procesar ningún acuse.";
+                    if (Array.isArray(data.detail.omitidos) && data.detail.omitidos.length) {
+                        texto += " " + data.detail.omitidos.map(o => `${o.archivo}: ${o.motivo}`).join(" · ");
+                    }
+                    return texto;
+                }
                 return data.detail || "Error interno del servidor.";
             } catch {
                 return `Error HTTP ${response.status}. Intenta de nuevo.`;
             }
         }
 
+        function mostrarResultado(nombreArchivo, historialId, reporte) {
+            document.getElementById('resultado-nombre-archivo').textContent = nombreArchivo;
+            document.getElementById('btn-descargar-resultado').href =
+                `${API_URL}/api/voucheo/historial/${historialId}/descargar`;
+
+            const procesados = reporte.procesados || [];
+            const omitidos = reporte.omitidos || [];
+
+            const wrapProcesados = document.getElementById('resultado-procesados-wrap');
+            const listaProcesados = document.getElementById('resultado-procesados-lista');
+            listaProcesados.innerHTML = "";
+            if (procesados.length) {
+                document.getElementById('resultado-procesados-count').textContent = procesados.length;
+                procesados.forEach(p => {
+                    const li = document.createElement('li');
+                    li.className = "border-l-2 border-green-400 pl-2";
+                    let linea = `<strong>${p.mes}</strong> (${p.tipo.replace('_', ' ')}) — folio ${p.folio}`;
+                    if (p.aviso) linea += `<br><span class="text-slate-500">${p.aviso}</span>`;
+                    if (p.aviso_diferencia) linea += `<br><span class="text-amber-700">⚠️ ${p.aviso_diferencia}</span>`;
+                    li.innerHTML = linea;
+                    listaProcesados.appendChild(li);
+                });
+                wrapProcesados.classList.remove('hidden');
+            } else {
+                wrapProcesados.classList.add('hidden');
+            }
+
+            const wrapOmitidos = document.getElementById('resultado-omitidos-wrap');
+            const listaOmitidos = document.getElementById('resultado-omitidos-lista');
+            listaOmitidos.innerHTML = "";
+            if (omitidos.length) {
+                document.getElementById('resultado-omitidos-count').textContent = omitidos.length;
+                omitidos.forEach(o => {
+                    const li = document.createElement('li');
+                    li.className = "border-l-2 border-amber-400 pl-2";
+                    li.innerHTML = `<strong>${o.archivo}</strong><br><span>${o.motivo}</span>`;
+                    listaOmitidos.appendChild(li);
+                });
+                wrapOmitidos.classList.remove('hidden');
+            } else {
+                wrapOmitidos.classList.add('hidden');
+            }
+
+            document.getElementById('panel-resultado').classList.remove('hidden');
+            document.getElementById('panel-resultado').classList.add('flex');
+        }
+
         async function procesarVoucheo(e, modo) {
             e.preventDefault();
             ocultarAlerta();
+            ocultarResultado();
 
             const btnId = modo === 'nuevo' ? 'btn-nuevo' : 'btn-actualizar';
             const boton = document.getElementById(btnId);
             const originalHTML = boton.innerHTML;
-            
+
             const tipoImpuesto = document.querySelector('input[name="tipo_impuesto"]:checked').value;
             const inputPdfs = document.getElementById(modo === 'nuevo' ? 'pdf_nuevo' : 'pdf_actualizar').files;
             const inputExcel = modo === 'actualizar' ? document.getElementById('excel_actualizar').files[0] : null;
@@ -262,7 +357,7 @@
             const formData = new FormData();
             formData.append("modo", modo);
             formData.append("impuesto_seleccionado", tipoImpuesto);
-            
+
             for (let i = 0; i < inputPdfs.length; i++) {
                 formData.append("acuses_pdf", inputPdfs[i]);
             }
@@ -271,10 +366,10 @@
             }
 
             try {
-                const response = await fetch(`${API_URL}/api/voucheo/generar`, { 
-                    method: "POST", 
-                    credentials: "include", 
-                    body: formData 
+                const response = await fetch(`${API_URL}/api/voucheo/generar`, {
+                    method: "POST",
+                    credentials: "include",
+                    body: formData
                 });
 
                 if (!response.ok) {
@@ -283,30 +378,16 @@
                     return;
                 }
 
-                // Obtener el nombre del archivo del Header si es posible
-                let filename = `Voucheo_${tipoImpuesto}_2026.xlsx`;
-                const disposition = response.headers.get('Content-Disposition');
-                if (disposition && disposition.indexOf('filename=') !== -1) {
-                    const filenameRegex = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/;
-                    const matches = filenameRegex.exec(disposition);
-                    if (matches != null && matches[1]) { 
-                        filename = matches[1].replace(/['"]/g, '');
-                    }
+                const data = await response.json();
+                mostrarResultado(data.nombre_archivo, data.historial_id, data.reporte || {});
+
+                const omitidosN = (data.reporte && data.reporte.omitidos) ? data.reporte.omitidos.length : 0;
+                if (omitidosN > 0) {
+                    mostrarAlerta('error', `Papel de trabajo generado, pero ${omitidosN} archivo(s) no se cargaron. Revisa el detalle abajo.`);
+                } else {
+                    mostrarAlerta('success', '¡Papel de trabajo generado con éxito!');
                 }
 
-                // Forzar descarga del Blob
-                const blob = await response.blob();
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement("a");
-                a.href = url;
-                a.download = filename;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                window.URL.revokeObjectURL(url);
-
-                mostrarAlerta('success', '¡Papel de trabajo generado con éxito!');
-                
             } catch (error) {
                 mostrarAlerta('error', await interpretarError(null));
             } finally {
