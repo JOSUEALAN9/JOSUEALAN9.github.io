@@ -82,6 +82,23 @@
         </p>
     </main>
 
+
+    <!-- MODAL: MOTIVOS DE LOS QUE NO SE PUDIERON -->
+    <div id="modal-motivos" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden justify-center items-center p-4">
+        <div class="bg-white w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh]">
+            <div class="p-5 border-b flex justify-between items-center bg-slate-50">
+                <div>
+                    <h2 class="text-lg font-bold text-slate-800">Contribuyentes sin resultado</h2>
+                    <p class="text-xs text-slate-500 mt-0.5">Qué pasó con cada uno y si se puede volver a intentar</p>
+                </div>
+                <button onclick="cerrarMotivos()" class="text-gray-400 hover:text-red-500 transition">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            <div id="contenido-motivos" class="p-6 overflow-y-auto"></div>
+        </div>
+    </div>
+
     <script>
         const API_URL = "https://api.josuealan.com";
         let hayEnPreparacion = false;
@@ -226,7 +243,9 @@
                 resumen = partes.join(" · ") + " · " + formatearFecha(p.creado_en);
             }
             const avisoFallidos = (p.fallidos && p.fallidos.length)
-                ? `<p class="text-xs text-amber-700 mt-1.5">Sin resultado para: ${p.fallidos.map(f => f[0]).join(", ")}</p>`
+                ? `<button onclick="verMotivos('${p.id}')" class="text-xs text-amber-700 hover:text-amber-900 underline mt-1.5">
+                       Sin resultado para ${p.fallidos.length} contribuyente${p.fallidos.length === 1 ? "" : "s"} — ver por qué
+                   </button>`
                 : "";
             return `
             <div class="bg-white rounded-xl card-elevated border border-gray-200 p-5">
@@ -280,6 +299,46 @@
                 </div>
             </div>`;
         }
+
+
+        function verMotivos(idProceso) {
+            const p = (window._ultimosProcesos || []).find(x => x.id === idProceso);
+            if (!p || !p.fallidos) return;
+
+            // Se agrupan por motivo: es más útil ver "12 con e.firma vencida"
+            // que una lista de 12 renglones repitiendo lo mismo.
+            const grupos = {};
+            p.fallidos.forEach(f => {
+                const motivo = f.motivo || "Sin detalle";
+                if (!grupos[motivo]) grupos[motivo] = { rfcs: [], reintentable: f.reintentable };
+                grupos[motivo].rfcs.push(f.rfc);
+            });
+
+            let html = "";
+            Object.entries(grupos).forEach(([motivo, datos]) => {
+                const color = datos.reintentable ? "blue" : "amber";
+                const etiqueta = datos.reintentable
+                    ? "Se puede volver a intentar"
+                    : "Hay que corregir la e.firma primero";
+                html += `
+                <div class="mb-4 border border-${color}-200 bg-${color}-50 rounded-lg p-4">
+                    <div class="flex flex-wrap items-start justify-between gap-2 mb-2">
+                        <p class="text-sm font-bold text-${color}-900">${motivo}</p>
+                        <span class="text-xs font-bold px-2 py-1 rounded-full bg-white text-${color}-700 flex-none">${etiqueta}</span>
+                    </div>
+                    <p class="text-xs text-${color}-800 font-mono leading-relaxed">${datos.rfcs.join(", ")}</p>
+                </div>`;
+            });
+
+            document.getElementById("contenido-motivos").innerHTML = html;
+            document.getElementById("modal-motivos").classList.add("modal-active");
+        }
+
+        function cerrarMotivos() {
+            document.getElementById("modal-motivos").classList.remove("modal-active");
+        }
+
+        document.addEventListener("keydown", (e) => { if (e.key === "Escape") cerrarMotivos(); });
 
         async function cancelar(clase, id, boton) {
             if (!confirm("¿Detener esta descarga? Se conservará lo que ya se haya generado.")) return;
