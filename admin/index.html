@@ -194,6 +194,9 @@
 
                 tbody.innerHTML = procesos.map(p => {
                     const badge = badges[p.estado] || '<span class="text-xs font-bold px-2 py-1 rounded-full bg-red-100 text-red-700">Error</span>';
+                    const motivos = (p.motivos && p.motivos.length)
+                        ? `<div class="mt-1.5">${p.motivos.map(m => `<span class="text-xs text-amber-700 block">${m.cuantos} × ${m.motivo}</span>`).join("")}</div>`
+                        : "";
                     const avance = (p.clase === "lote" && p.estado === "procesando" && p.total)
                         ? `<span class="text-xs text-slate-400 block">${p.procesados}/${p.total}${p.rfc_actual ? " · " + p.rfc_actual : ""}</span>` : "";
                     const detener = p.estado === "procesando"
@@ -207,6 +210,7 @@
                             <span class="font-semibold">${nombres[p.tipo] || p.tipo}</span>
                             <span class="text-xs text-slate-400 block">${p.titulo}</span>
                             ${avance}
+                            ${motivos}
                         </td>
                         <td class="p-4">${badge}</td>
                         <td class="p-4 text-xs text-slate-500">${fecha}</td>
