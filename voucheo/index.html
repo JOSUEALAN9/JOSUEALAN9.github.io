@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voucheo de Impuestos | Fiscontable</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="../assets/common.css">
+</head>
+<body class="bg-gray-50 text-gray-800 font-sans min-h-screen flex flex-col">
+
+    <!-- Encabezado estándar Fiscontable -->
+    <header class="bg-slate-900 text-white p-4 shadow-lg">
+        <div class="max-w-6xl mx-auto flex flex-wrap justify-between items-center gap-3">
+            <div class="flex items-center gap-4">
+                <div class="bg-amber-600 p-2 rounded-lg">
+                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z"></path></svg>
+                </div>
+                <div>
+                    <h1 class="text-lg sm:text-xl font-bold leading-tight">Voucheo Automático</h1>
+                    <p class="text-xs text-slate-400">Generación y actualización de papeles de trabajo</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-3 sm:gap-4">
+                <a href="../herramientas/" class="text-slate-300 hover:text-white font-semibold text-sm flex items-center gap-1 transition">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg> Regresar
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-grow max-w-3xl mx-auto w-full p-6 mt-4">
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 sm:p-8">
+            
+            <!-- Selector de Tipo de Impuesto -->
+            <div class="mb-8">
+                <label class="block text-sm font-bold text-gray-700 uppercase mb-3">1. Selecciona el Tipo de Voucheo</label>
+                <div class="flex gap-4">
+                    <label class="flex-1 cursor-pointer">
+                        <input type="radio" name="tipo_impuesto" value="estatal" class="peer sr-only" checked onchange="actualizarFormularios()">
+                        <div class="p-4 border-2 rounded-xl text-center peer-checked:border-amber-500 peer-checked:bg-amber-50 hover:bg-gray-50 transition">
+                            <span class="font-bold text-gray-800">Impuestos Estatales</span>
+                        </div>
+                    </label>
+                    <label class="flex-1 cursor-pointer">
+                        <input type="radio" name="tipo_impuesto" value="federal" class="peer sr-only" onchange="actualizarFormularios()">
+                        <div class="p-4 border-2 rounded-xl text-center peer-checked:border-amber-500 peer-checked:bg-amber-50 hover:bg-gray-50 transition">
+                            <span class="font-bold text-gray-800">Impuestos Federales</span>
+                        </div>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Pestañas de Acción -->
+            <div class="border-b border-gray-200 mb-6 flex gap-6">
+                <button onclick="cambiarPestana('nuevo')" id="tab-nuevo" class="pb-3 text-sm font-bold uppercase border-b-2 border-amber-500 text-amber-600 transition">Nuevo Ejercicio</button>
+                <button onclick="cambiarPestana('actualizar')" id="tab-actualizar" class="pb-3 text-sm font-bold uppercase border-b-2 border-transparent text-gray-500 hover:text-gray-700 transition">Actualizar Archivo</button>
+            </div>
+
+            <!-- Formulario: Nuevo Ejercicio -->
+            <div id="seccion-nuevo" class="block">
+                <div class="bg-blue-50 border border-blue-200 p-4 rounded-lg mb-6 flex gap-3 text-sm text-blue-800">
+                    <span>ℹ️</span> Sube los acuses PDF. El sistema extraerá el RFC automáticamente y descargará la plantilla maestra correspondiente.
+                </div>
+                <form action="https://api.josuealan.com/api/voucheo" method="POST" enctype="multipart/form-data">
+                    <input type="hidden" name="modo" value="nuevo">
+                    <input type="hidden" name="impuesto_seleccionado" id="input_tipo_nuevo" value="estatal">
+                    
+                    <label class="block text-sm font-bold text-gray-700 uppercase mb-2">Acuses en PDF</label>
+                    <input type="file" name="acuses_pdf" accept=".pdf" multiple required class="w-full border border-gray-300 p-3 rounded-lg mb-6 bg-gray-50">
+                    
+                    <button type="submit" class="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-3 px-4 rounded-xl transition">Generar Voucheo</button>
+                </form>
+            </div>
+
+            <!-- Formulario: Actualizar -->
+            <div id="seccion-actualizar" class="hidden">
+                <div class="bg-blue-50 border border-blue-200 p-4 rounded-lg mb-6 flex gap-3 text-sm text-blue-800">
+                    <span>ℹ️</span> Selecciona tu papel de trabajo actual (.xlsx) y los nuevos acuses. El sistema inyectará los datos sin borrar tu captura previa.
+                </div>
+                <form action="https://api.josuealan.com/api/voucheo" method="POST" enctype="multipart/form-data">
+                    <input type="hidden" name="modo" value="actualizar">
+                    <input type="hidden" name="impuesto_seleccionado" id="input_tipo_actualizar" value="estatal">
+                    
+                    <label class="block text-sm font-bold text-gray-700 uppercase mb-2">Papel de Trabajo Actual (.xlsx)</label>
+                    <input type="file" name="archivo_excel" accept=".xlsx" required class="w-full border border-gray-300 p-3 rounded-lg mb-4 bg-gray-50">
+                    
+                    <label class="block text-sm font-bold text-gray-700 uppercase mb-2">Nuevos Acuses en PDF</label>
+                    <input type="file" name="acuses_pdf" accept=".pdf" multiple required class="w-full border border-gray-300 p-3 rounded-lg mb-6 bg-gray-50">
+                    
+                    <button type="submit" class="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-3 px-4 rounded-xl transition">Actualizar Voucheo</button>
+                </form>
+            </div>
+
+        </div>
+    </main>
+
+    <script>
+        function cambiarPestana(pestana) {
+            document.getElementById('seccion-nuevo').classList.toggle('hidden', pestana !== 'nuevo');
+            document.getElementById('seccion-actualizar').classList.toggle('hidden', pestana !== 'actualizar');
+            
+            document.getElementById('tab-nuevo').className = pestana === 'nuevo' 
+                ? 'pb-3 text-sm font-bold uppercase border-b-2 border-amber-500 text-amber-600 transition' 
+                : 'pb-3 text-sm font-bold uppercase border-b-2 border-transparent text-gray-500 hover:text-gray-700 transition';
+                
+            document.getElementById('tab-actualizar').className = pestana === 'actualizar' 
+                ? 'pb-3 text-sm font-bold uppercase border-b-2 border-amber-500 text-amber-600 transition' 
+                : 'pb-3 text-sm font-bold uppercase border-b-2 border-transparent text-gray-500 hover:text-gray-700 transition';
+        }
+
+        function actualizarFormularios() {
+            const tipo = document.querySelector('input[name="tipo_impuesto"]:checked').value;
+            document.getElementById('input_tipo_nuevo').value = tipo;
+            document.getElementById('input_tipo_actualizar').value = tipo;
+        }
+    </script>
+</body>
+</html>
