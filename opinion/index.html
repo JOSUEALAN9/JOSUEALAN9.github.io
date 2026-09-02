@@ -230,6 +230,12 @@
                         <ul id="lista-errores" class="text-red-600 font-medium space-y-1 max-h-32 overflow-y-auto"></ul>
                         <p id="msg-exito" class="text-green-600 font-bold hidden flex items-center gap-1"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> Todas las firmas validadas correctamente. Listo para procesar.</p>
                     </div>
+                    <!-- Revisión previa en el servidor (e.firmas y documentos existentes) -->
+                    <div id="panel-revision-servidor" class="hidden mt-3 bg-white border border-gray-200 rounded-lg p-4">
+                        <p class="text-xs font-bold text-slate-700 mb-2">Revisión previa</p>
+                        <div id="revision-contenido"></div>
+                    </div>
+
                 </div>
 
                 <div class="mt-2">
