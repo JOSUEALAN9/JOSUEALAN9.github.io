@@ -179,6 +179,7 @@
             if (!permitido) return;
 
             verificarCacheAlEntrar();
+            mostrarCuotaDiaria();
             const folderInput = document.getElementById("folder_input");
             if (esMovil) {
                 document.getElementById("dropzone-titulo").innerText = "Toca aquí para seleccionar tus archivos";
@@ -522,6 +523,35 @@
         // (contraseña, vigencia, que el .key sea del .cer) y revisa qué
         // documentos ya existen. Todo esto sin tocar al SAT, en
         // segundos, para no descubrir los problemas 25 minutos después. ---
+
+        // --- Cuota diaria: informativa, se consulta al entrar. No
+        // bloquea nada aquí; el backend es quien decide. Sirve para que
+        // el usuario sepa con qué cuenta antes de armar su Excel, en vez
+        // de descubrirlo cuando ya le dio a generar. ---
+        async function mostrarCuotaDiaria() {
+            try {
+                const resp = await fetch(`${API_URL}/api/mi-cuota`, { credentials: "include" });
+                if (!resp.ok) return;
+                const cuota = await resp.json();
+
+                if (cuota.limite === null) return;  // sin límite: no hay nada que decir
+
+                const linea = document.getElementById("linea-cuota");
+                const texto = document.getElementById("texto-cuota");
+
+                if (cuota.disponibles === 0) {
+                    texto.textContent = `Ya usaste los ${cuota.limite} contribuyentes de hoy. El contador se reinicia mañana.`;
+                    linea.className = "text-xs text-amber-700 flex items-center gap-1.5";
+                } else {
+                    texto.textContent = `Hoy te quedan ${cuota.disponibles} de ${cuota.limite} contribuyentes. Los que ya tengas descargados no cuentan.`;
+                    linea.className = "text-xs text-slate-400 flex items-center gap-1.5";
+                }
+                linea.classList.remove("hidden");
+            } catch (error) {
+                // Si no se puede consultar, simplemente no se muestra nada.
+            }
+        }
+
         async function revisarLoteEnServidor() {
             const panel = document.getElementById("panel-revision-servidor");
             const contenido = document.getElementById("revision-contenido");
@@ -543,7 +573,7 @@
                 }
 
                 revisionLote = await resp.json();
-                pintarRevisionLote();
+                await pintarRevisionLote();
 
             } catch (error) {
                 contenido.innerHTML = '<p class="text-xs text-amber-700">No se pudo revisar el lote por adelantado. Puedes continuar de todos modos.</p>';
@@ -551,7 +581,7 @@
             }
         }
 
-        function pintarRevisionLote() {
+        async function pintarRevisionLote() {
             const r = revisionLote;
             const contenido = document.getElementById("revision-contenido");
             const yaHay = r.ya_existentes.length;
@@ -564,6 +594,26 @@
             if (yaHay) html += `<span class="text-xs font-bold px-2.5 py-1 rounded-full bg-blue-100 text-blue-700">${yaHay} ya descargados</span>`;
             if (conProblema) html += `<span class="text-xs font-bold px-2.5 py-1 rounded-full bg-amber-100 text-amber-700">${conProblema} con problemas</span>`;
             html += '</div>';
+
+            // Si lo que van a pedirle al SAT no cabe en lo que queda del
+            // día, se dice AQUÍ -- no después de darle a generar.
+            try {
+                const respCuota = await fetch(`${API_URL}/api/mi-cuota`, { credentials: "include" });
+                if (respCuota.ok) {
+                    const cuota = await respCuota.json();
+                    if (cuota.limite !== null && listos > cuota.disponibles) {
+                        html += `<div class="mb-3 bg-amber-50 border border-amber-200 rounded-lg p-3">
+                            <p class="text-xs text-amber-900">
+                                Este lote pediría <strong>${listos}</strong> documentos al SAT, pero hoy te quedan
+                                <strong>${cuota.disponibles}</strong> de ${cuota.limite}.
+                                Divide el lote o continúa mañana, cuando se reinicie tu contador.
+                            </p>
+                        </div>`;
+                    }
+                }
+            } catch (error) {
+                // Si no se puede consultar, se sigue sin el aviso.
+            }
 
             if (conProblema) {
                 html += '<div class="mb-3 bg-amber-50 border border-amber-200 rounded-lg p-3">';
