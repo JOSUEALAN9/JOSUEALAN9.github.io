@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Declaraciones | Fiscontable</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="../assets/common.css">
+</head>
+<body class="bg-gray-50 text-gray-800 font-sans min-h-screen flex flex-col relative">
+
+    <header class="bg-slate-900 text-white p-4 shadow-lg flex-none z-10">
+        <div class="max-w-4xl mx-auto flex flex-wrap justify-between items-center gap-3">
+            <div class="flex items-center gap-4">
+                <div class="bg-indigo-600 p-2 rounded-lg">
+                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                </div>
+                <div>
+                    <h1 class="text-lg sm:text-xl font-bold leading-tight">Declaraciones del SAT</h1>
+                    <p class="text-xs text-slate-400">Acuses, pagos y recibos — portal nuevo y anterior</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-2 sm:gap-4">
+                <a href="../clientes/" class="text-indigo-300 hover:text-white font-semibold text-sm flex items-center gap-1 transition">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+                    <span class="hidden sm:inline">Clientes</span>
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-grow p-4 sm:p-6 w-full max-w-2xl mx-auto">
+
+        <div id="alert-container" class="hidden mb-4">
+            <div id="alert-message" class="p-4 rounded-lg text-sm font-semibold flex items-start gap-2"></div>
+        </div>
+
+        <div id="banner-sin-conexion" class="hidden mb-4 bg-amber-50 border border-amber-200 p-4 rounded-lg flex items-start justify-between gap-3">
+            <div class="flex items-start gap-3">
+                <svg class="w-5 h-5 text-amber-600 flex-none mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                <p id="banner-sin-conexion-texto" class="text-sm text-amber-800"></p>
+            </div>
+            <button onclick="inicializar()" class="flex-none bg-white border border-amber-300 text-amber-700 hover:bg-amber-100 text-xs font-bold py-2 px-4 rounded-lg transition">Reintentar</button>
+        </div>
+
+        <!-- PASO 1: elegir cliente -->
+        <div id="tarjeta-cliente" class="bg-white rounded-xl card-elevated border border-gray-200 p-5 mb-5">
+            <h2 class="text-sm font-bold text-slate-800 uppercase tracking-wide mb-3">1. ¿Para quién?</h2>
+
+            <div class="flex flex-col gap-3">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">Cliente registrado</label>
+                    <select id="select-cliente" onchange="alSeleccionarCliente()" class="w-full text-sm border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm">
+                        <option value="">— Selecciona un cliente —</option>
+                    </select>
+                </div>
+
+                <div class="flex items-center gap-2 text-xs text-slate-400">
+                    <div class="flex-grow border-t border-gray-200"></div>
+                    o
+                    <div class="flex-grow border-t border-gray-200"></div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">RFC suelto (no registrado como cliente)</label>
+                    <input type="text" id="input-rfc-suelto" oninput="alEscribirRfcSuelto()" placeholder="Ej. XAXX010101000" class="w-full text-sm border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm uppercase font-mono">
+                </div>
+            </div>
+
+            <div id="badge-efirma" class="hidden mt-3 text-xs font-bold px-2 py-1 rounded-full inline-flex items-center gap-1"></div>
+        </div>
+
+        <!-- PASO 2: e.firma (solo si no está guardada) -->
+        <div id="tarjeta-efirma" class="hidden bg-white rounded-xl card-elevated border border-gray-200 p-5 mb-5">
+            <h2 class="text-sm font-bold text-slate-800 uppercase tracking-wide mb-3">2. e.firma</h2>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">Certificado (.cer)</label>
+                    <input type="file" id="input-cer" accept=".cer" class="w-full text-xs border border-gray-300 rounded-lg p-2 bg-gray-50 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">Clave privada (.key)</label>
+                    <input type="file" id="input-key" accept=".key" class="w-full text-xs border border-gray-300 rounded-lg p-2 bg-gray-50 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700">
+                </div>
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">Contraseña de e.firma</label>
+                <div class="relative">
+                    <input type="password" id="input-password" autocomplete="new-password" class="w-full text-sm border border-gray-300 rounded-lg p-3 pr-10 focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm">
+                    <button type="button" onclick="togglePassword()" class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-500 hover:text-indigo-600">
+                        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- PASO 3: qué descargar -->
+        <div id="tarjeta-opciones" class="hidden bg-white rounded-xl card-elevated border border-gray-200 p-5 mb-5">
+            <h2 class="text-sm font-bold text-slate-800 uppercase tracking-wide mb-3">3. Qué descargar</h2>
+
+            <div class="grid grid-cols-2 gap-3 mb-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">Tipo de persona</label>
+                    <select id="select-tipo-persona" class="w-full text-sm border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm">
+                        <option value="pm">Persona Moral</option>
+                        <option value="pf">Persona Física</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">Ejercicio</label>
+                    <input type="number" id="input-ejercicio" value="2026" min="2015" max="2030" class="w-full text-sm border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm">
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-2">Portal</label>
+                <div class="flex gap-4">
+                    <label class="flex items-center gap-2 text-sm"><input type="checkbox" id="chk-portal-nuevo" checked class="rounded text-indigo-600 focus:ring-indigo-500"> Nuevo</label>
+                    <label class="flex items-center gap-2 text-sm"><input type="checkbox" id="chk-portal-antiguo" checked class="rounded text-indigo-600 focus:ring-indigo-500"> Anterior</label>
+                </div>
+            </div>
+
+            <div class="mb-2">
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-2">Documentos</label>
+                <div class="flex gap-4 flex-wrap">
+                    <label class="flex items-center gap-2 text-sm"><input type="checkbox" id="chk-detalle" checked class="rounded text-indigo-600 focus:ring-indigo-500"> Detalle</label>
+                    <label class="flex items-center gap-2 text-sm"><input type="checkbox" id="chk-pago" checked class="rounded text-indigo-600 focus:ring-indigo-500"> Pago</label>
+                    <label class="flex items-center gap-2 text-sm"><input type="checkbox" id="chk-recibo" checked class="rounded text-indigo-600 focus:ring-indigo-500"> Recibo</label>
+                </div>
+            </div>
+
+            <button onclick="iniciarDescarga()" id="btn-iniciar" class="mt-4 w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 rounded-lg shadow-md transition">
+                Buscar y descargar
+            </button>
+        </div>
+
+        <!-- PROGRESO -->
+        <div id="tarjeta-progreso" class="hidden bg-white rounded-xl card-elevated border border-gray-200 p-5">
+            <h2 class="text-sm font-bold text-slate-800 uppercase tracking-wide mb-3">Progreso</h2>
+            <div class="flex items-center gap-3 mb-2">
+                <svg id="spinner-progreso" class="animate-spin h-5 w-5 text-indigo-600 flex-none" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
+                <p id="texto-progreso" class="text-sm text-slate-600">Iniciando...</p>
+            </div>
+            <div id="resultado-final" class="hidden mt-3"></div>
+        </div>
+    </main>
+
+    <script>
+        const API_URL = "https://api.josuealan.com";
+        let clientesCache = [];
+        let clienteSeleccionado = null;
+        let intervaloConsulta = null;
+
+        document.addEventListener("DOMContentLoaded", inicializar);
+
+        function paramsUrl() {
+            return new URLSearchParams(window.location.search);
+        }
+
+        async function inicializar() {
+            document.getElementById("banner-sin-conexion").classList.add("hidden");
+            try {
+                const resp = await fetch(`${API_URL}/api/clientes`, { credentials: "include" });
+                if (!resp.ok) { marcarSinConexion(await interpretarError(resp)); return; }
+                clientesCache = await resp.json();
+                renderizarSelectClientes();
+
+                const rfcUrl = paramsUrl().get("rfc");
+                if (rfcUrl) {
+                    document.getElementById("select-cliente").value = rfcUrl.toUpperCase();
+                    alSeleccionarCliente();
+                }
+            } catch (error) {
+                marcarSinConexion();
+            }
+        }
+
+        function marcarSinConexion(mensaje) {
+            document.getElementById("banner-sin-conexion-texto").textContent =
+                mensaje || "No pudimos conectar con el servidor. Puede que tu sesión haya expirado.";
+            document.getElementById("banner-sin-conexion").classList.remove("hidden");
+        }
+
+        async function interpretarError(response) {
+            if (!response) return "No pudimos conectar con el servidor.";
+            if (response.status === 401 || response.status === 403) return "Tu sesión de acceso expiró. Recarga la página.";
+            try {
+                const data = await response.json();
+                return data.detail || "Ocurrió un error inesperado.";
+            } catch {
+                return "Ocurrió un error inesperado.";
+            }
+        }
+
+        function mostrarAlerta(tipo, mensaje) {
+            const container = document.getElementById("alert-container");
+            const alertBox = document.getElementById("alert-message");
+            container.classList.remove("hidden");
+            alertBox.className = tipo === "error"
+                ? "p-4 rounded-lg text-sm font-semibold flex items-start gap-2 bg-amber-50 text-amber-800 border border-amber-200"
+                : "p-4 rounded-lg text-sm font-semibold flex items-start gap-2 bg-green-50 text-green-700 border border-green-200";
+            alertBox.innerHTML = `<span>${mensaje}</span>`;
+            if (tipo !== "error") setTimeout(() => container.classList.add("hidden"), 5000);
+        }
+
+        function renderizarSelectClientes() {
+            const select = document.getElementById("select-cliente");
+            select.innerHTML = '<option value="">— Selecciona un cliente —</option>' +
+                clientesCache.map(c => `<option value="${c.rfc}">${c.alias} (${c.rfc})</option>`).join("");
+        }
+
+        function alSeleccionarCliente() {
+            const rfc = document.getElementById("select-cliente").value;
+            document.getElementById("input-rfc-suelto").value = "";
+            if (!rfc) { ocultarPasosPosteriores(); return; }
+
+            clienteSeleccionado = clientesCache.find(c => c.rfc === rfc);
+            mostrarPasoEfirmaSegunCliente();
+        }
+
+        function alEscribirRfcSuelto() {
+            const rfc = document.getElementById("input-rfc-suelto").value.trim().toUpperCase();
+            document.getElementById("select-cliente").value = "";
+            clienteSeleccionado = null;
+
+            if (rfc.length < 12) { ocultarPasosPosteriores(); return; }
+
+            document.getElementById("badge-efirma").classList.add("hidden");
+            document.getElementById("tarjeta-efirma").classList.remove("hidden");
+            document.getElementById("tarjeta-opciones").classList.remove("hidden");
+        }
+
+        function mostrarPasoEfirmaSegunCliente() {
+            const badge = document.getElementById("badge-efirma");
+            const tarjetaEfirma = document.getElementById("tarjeta-efirma");
+
+            if (clienteSeleccionado.efirma_guardada) {
+                badge.textContent = "e.firma guardada — no hace falta subirla de nuevo";
+                badge.className = "mt-3 text-xs font-bold px-2 py-1 rounded-full inline-flex items-center gap-1 bg-indigo-100 text-indigo-700";
+                badge.classList.remove("hidden");
+                tarjetaEfirma.classList.add("hidden");
+            } else {
+                badge.textContent = "Sin e.firma guardada — súbela abajo";
+                badge.className = "mt-3 text-xs font-bold px-2 py-1 rounded-full inline-flex items-center gap-1 bg-gray-100 text-gray-500";
+                badge.classList.remove("hidden");
+                tarjetaEfirma.classList.remove("hidden");
+            }
+            document.getElementById("tarjeta-opciones").classList.remove("hidden");
+        }
+
+        function ocultarPasosPosteriores() {
+            document.getElementById("badge-efirma").classList.add("hidden");
+            document.getElementById("tarjeta-efirma").classList.add("hidden");
+            document.getElementById("tarjeta-opciones").classList.add("hidden");
+            document.getElementById("tarjeta-progreso").classList.add("hidden");
+        }
+
+        function togglePassword() {
+            const campo = document.getElementById("input-password");
+            campo.type = campo.type === "password" ? "text" : "password";
+        }
+
+        function portalesSeleccionados() {
+            const p = [];
+            if (document.getElementById("chk-portal-nuevo").checked) p.push("nuevo");
+            if (document.getElementById("chk-portal-antiguo").checked) p.push("antiguo");
+            return p;
+        }
+
+        function tiposDocumentoSeleccionados() {
+            const t = [];
+            if (document.getElementById("chk-detalle").checked) t.push("detalle");
+            if (document.getElementById("chk-pago").checked) t.push("pago");
+            if (document.getElementById("chk-recibo").checked) t.push("recibo");
+            return t;
+        }
+
+        async function iniciarDescarga() {
+            const rfc = clienteSeleccionado ? clienteSeleccionado.rfc : document.getElementById("input-rfc-suelto").value.trim().toUpperCase();
+            if (!rfc) { mostrarAlerta("error", "Falta indicar para qué RFC es."); return; }
+
+            const portales = portalesSeleccionados();
+            const tipos = tiposDocumentoSeleccionados();
+            if (portales.length === 0) { mostrarAlerta("error", "Selecciona al menos un portal."); return; }
+            if (tipos.length === 0) { mostrarAlerta("error", "Selecciona al menos un tipo de documento."); return; }
+
+            const tipoPersona = document.getElementById("select-tipo-persona").value;
+            const ejercicio = document.getElementById("input-ejercicio").value;
+
+            const boton = document.getElementById("btn-iniciar");
+            boton.disabled = true;
+            boton.textContent = "Iniciando...";
+
+            try {
+                let resp;
+                const usaEfirmaGuardada = clienteSeleccionado && clienteSeleccionado.efirma_guardada;
+
+                if (usaEfirmaGuardada) {
+                    const formData = new FormData();
+                    formData.append("tipo_persona", tipoPersona);
+                    formData.append("ejercicio", ejercicio);
+                    formData.append("portales", portales.join(","));
+                    formData.append("tipos_documento", tipos.join(","));
+                    resp = await fetch(`${API_URL}/api/clientes/${encodeURIComponent(rfc)}/descargar-declaraciones`, {
+                        method: "POST", credentials: "include", body: formData,
+                    });
+                } else {
+                    const cer = document.getElementById("input-cer").files[0];
+                    const key = document.getElementById("input-key").files[0];
+                    const password = document.getElementById("input-password").value;
+                    if (!cer || !key || !password) {
+                        mostrarAlerta("error", "Necesitamos el .cer, el .key y la contraseña.");
+                        boton.disabled = false; boton.textContent = "Buscar y descargar";
+                        return;
+                    }
+                    const formData = new FormData();
+                    formData.append("rfc", rfc);
+                    formData.append("password", password);
+                    formData.append("tipo_persona", tipoPersona);
+                    formData.append("ejercicio", ejercicio);
+                    formData.append("portales", portales.join(","));
+                    formData.append("tipos_documento", tipos.join(","));
+                    formData.append("cer", cer);
+                    formData.append("key", key);
+                    resp = await fetch(`${API_URL}/api/declaraciones/iniciar`, {
+                        method: "POST", credentials: "include", body: formData,
+                    });
+                }
+
+                if (!resp.ok) { mostrarAlerta("error", await interpretarError(resp)); return; }
+                const datos = await resp.json();
+                document.getElementById("tarjeta-progreso").classList.remove("hidden");
+                document.getElementById("resultado-final").classList.add("hidden");
+                document.getElementById("spinner-progreso").classList.remove("hidden");
+                document.getElementById("texto-progreso").textContent = "Iniciando...";
+                consultarProgreso(datos.job_id);
+            } catch (error) {
+                mostrarAlerta("error", "No se pudo conectar con el servidor.");
+            } finally {
+                boton.disabled = false;
+                boton.textContent = "Buscar y descargar";
+            }
+        }
+
+        function consultarProgreso(jobId) {
+            if (intervaloConsulta) clearInterval(intervaloConsulta);
+            intervaloConsulta = setInterval(async () => {
+                try {
+                    const resp = await fetch(`${API_URL}/api/trabajos/${jobId}`, { credentials: "include" });
+                    if (!resp.ok) { clearInterval(intervaloConsulta); return; }
+                    const datos = await resp.json();
+                    document.getElementById("texto-progreso").textContent = datos.progreso || "Procesando...";
+
+                    if (datos.estado === "completado") {
+                        clearInterval(intervaloConsulta);
+                        document.getElementById("spinner-progreso").classList.add("hidden");
+                        const resultado = document.getElementById("resultado-final");
+                        resultado.className = "mt-3 p-3 rounded-lg bg-green-50 border border-green-200 text-sm text-green-800";
+                        resultado.innerHTML = `${datos.progreso || "Completado"} <a href="${API_URL}/api/trabajos/${jobId}/descargar" class="block mt-2 font-bold underline">Descargar</a>`;
+                        resultado.classList.remove("hidden");
+                    } else if (datos.estado === "error" || datos.estado === "cancelado") {
+                        clearInterval(intervaloConsulta);
+                        document.getElementById("spinner-progreso").classList.add("hidden");
+                        const resultado = document.getElementById("resultado-final");
+                        resultado.className = "mt-3 p-3 rounded-lg bg-amber-50 border border-amber-200 text-sm text-amber-800";
+                        resultado.textContent = datos.mensaje_error || "No se pudo completar.";
+                        resultado.classList.remove("hidden");
+                    }
+                } catch (error) {
+                    // se reintenta solo en la siguiente vuelta del intervalo
+                }
+            }, 2000);
+        }
+    </script>
+</body>
+</html>
