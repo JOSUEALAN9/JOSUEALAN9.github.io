@@ -120,14 +120,9 @@
                 </div>
             </div>
 
-            <div class="mb-2">
-                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-2">Documentos</label>
-                <div class="flex gap-4 flex-wrap">
-                    <label class="flex items-center gap-2 text-sm"><input type="checkbox" id="chk-detalle" checked class="rounded text-indigo-600 focus:ring-indigo-500"> Detalle</label>
-                    <label class="flex items-center gap-2 text-sm"><input type="checkbox" id="chk-pago" checked class="rounded text-indigo-600 focus:ring-indigo-500"> Pago</label>
-                    <label class="flex items-center gap-2 text-sm"><input type="checkbox" id="chk-recibo" checked class="rounded text-indigo-600 focus:ring-indigo-500"> Recibo</label>
-                </div>
-            </div>
+            <p class="text-xs text-slate-500 bg-slate-50 border border-slate-200 rounded-lg p-3">
+                Se descargan siempre los tres documentos de cada declaración: detalle, pago y acuse de recibo.
+            </p>
 
             <button onclick="iniciarDescarga()" id="btn-iniciar" class="mt-4 w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 rounded-lg shadow-md transition">
                 Buscar y descargar
@@ -267,22 +262,14 @@
             return p;
         }
 
-        function tiposDocumentoSeleccionados() {
-            const t = [];
-            if (document.getElementById("chk-detalle").checked) t.push("detalle");
-            if (document.getElementById("chk-pago").checked) t.push("pago");
-            if (document.getElementById("chk-recibo").checked) t.push("recibo");
-            return t;
-        }
-
         async function iniciarDescarga() {
             const rfc = clienteSeleccionado ? clienteSeleccionado.rfc : document.getElementById("input-rfc-suelto").value.trim().toUpperCase();
             if (!rfc) { mostrarAlerta("error", "Falta indicar para qué RFC es."); return; }
 
             const portales = portalesSeleccionados();
-            const tipos = tiposDocumentoSeleccionados();
+            // Los tres tipos se descargan siempre -- ya no se preguntan.
+            const tipos = ["detalle", "pago", "recibo"];
             if (portales.length === 0) { mostrarAlerta("error", "Selecciona al menos un portal."); return; }
-            if (tipos.length === 0) { mostrarAlerta("error", "Selecciona al menos un tipo de documento."); return; }
 
             const tipoPersona = document.getElementById("select-tipo-persona").value;
             const ejercicio = document.getElementById("input-ejercicio").value;
