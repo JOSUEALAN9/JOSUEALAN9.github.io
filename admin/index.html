@@ -5,26 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Administrar Usuarios | Fiscontable</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="../assets/common.css">
+    <link rel="stylesheet" href="/assets/common.css">
 </head>
-<body class="bg-gray-50 text-gray-800 font-sans min-h-screen flex flex-col relative">
+<body class="min-h-screen flex flex-col relative">
 
-    <header class="bg-slate-900 text-white p-4 shadow-lg flex-none z-10">
-        <div class="max-w-[1600px] mx-auto flex flex-wrap justify-between items-center gap-3">
-            <div class="flex items-center gap-4">
-                <div class="bg-slate-700 p-2 rounded-lg">
-                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
-                </div>
-                <div>
-                    <h1 class="text-lg sm:text-xl font-bold leading-tight">Administrar Usuarios</h1>
-                    <p class="text-xs text-slate-400">Roles, vigencia y acceso — solo administradores</p>
-                </div>
-            </div>
-            <a href="../" class="text-slate-300 hover:text-white font-semibold text-sm flex items-center gap-1 transition">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg> Menú
-            </a>
-        </div>
-    </header>
+    <div id="app-header" data-modulo="admin" data-titulo="Administración" data-migas=""></div>
+<script src="/assets/app-header.js"></script>
 
     <main class="flex-grow p-4 sm:p-6 w-full max-w-4xl mx-auto">
         <div id="alert-container" class="hidden mb-4">
