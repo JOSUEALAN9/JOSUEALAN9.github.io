@@ -4,360 +4,350 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Declaraciones | Fiscontable</title>
+    <link rel="stylesheet" href="/assets/common.css">
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="../assets/common.css">
 </head>
-<body class="bg-gray-50 text-gray-800 font-sans min-h-screen flex flex-col relative">
+<body class="min-h-screen flex flex-col">
 
-    <header class="bg-slate-900 text-white p-4 shadow-lg flex-none z-10">
-        <div class="max-w-4xl mx-auto flex flex-wrap justify-between items-center gap-3">
-            <div class="flex items-center gap-4">
-                <div class="bg-indigo-600 p-2 rounded-lg">
-                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                </div>
-                <div>
-                    <h1 class="text-lg sm:text-xl font-bold leading-tight">Declaraciones del SAT</h1>
-                    <p class="text-xs text-slate-400">Acuses, pagos y recibos — portal nuevo y anterior</p>
-                </div>
-            </div>
-            <div class="flex items-center gap-2 sm:gap-4">
-                <a href="../clientes/" class="text-indigo-300 hover:text-white font-semibold text-sm flex items-center gap-1 transition">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
-                    <span class="hidden sm:inline">Clientes</span>
-                </a>
-            </div>
-        </div>
-    </header>
+<div id="app-header"
+     data-modulo="declaraciones"
+     data-titulo="Declaraciones"
+     data-migas="Herramientas|/herramientas/"></div>
 
-    <main class="flex-grow p-4 sm:p-6 w-full max-w-2xl mx-auto">
+<main class="flex-grow w-full" style="max-width:720px;margin:0 auto;padding:32px 20px 64px">
 
-        <div id="alert-container" class="hidden mb-4">
-            <div id="alert-message" class="p-4 rounded-lg text-sm font-semibold flex items-start gap-2"></div>
-        </div>
+    <h1 class="display" style="font-size:30px">Declaraciones presentadas</h1>
+    <p style="margin:9px 0 26px;font-size:15px;color:var(--texto-tenue)">
+        Baja el acuse, el pago y el recibo de cada declaración del ejercicio.
+        Se revisan los dos portales del SAT, el nuevo y el anterior.
+    </p>
 
-        <div id="banner-sin-conexion" class="hidden mb-4 bg-amber-50 border border-amber-200 p-4 rounded-lg flex items-start justify-between gap-3">
-            <div class="flex items-start gap-3">
-                <svg class="w-5 h-5 text-amber-600 flex-none mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                <p id="banner-sin-conexion-texto" class="text-sm text-amber-800"></p>
-            </div>
-            <button onclick="inicializar()" class="flex-none bg-white border border-amber-300 text-amber-700 hover:bg-amber-100 text-xs font-bold py-2 px-4 rounded-lg transition">Reintentar</button>
-        </div>
+    <div id="alerta" class="fc-aviso" style="margin:0 0 16px" hidden></div>
 
-        <!-- PASO 1: elegir cliente -->
-        <div id="tarjeta-cliente" class="bg-white rounded-xl card-elevated border border-gray-200 p-5 mb-5">
-            <h2 class="text-sm font-bold text-slate-800 uppercase tracking-wide mb-3">1. ¿Para quién?</h2>
+    <!-- Paso 1 -->
+    <div id="paso-cliente"></div>
 
-            <div class="flex flex-col gap-3">
-                <div>
-                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">Cliente registrado</label>
-                    <select id="select-cliente" onchange="alSeleccionarCliente()" class="w-full text-sm border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm">
-                        <option value="">— Selecciona un cliente —</option>
-                    </select>
-                </div>
+    <!-- Paso 2: e.firma, sólo si no está guardada -->
+    <section id="paso-efirma" class="ficha" hidden>
+        <h2 class="ficha__titulo">Su e.firma</h2>
+        <p class="ficha__nota">Viaja cifrada y se borra del servidor al terminar.</p>
 
-                <div class="flex items-center gap-2 text-xs text-slate-400">
-                    <div class="flex-grow border-t border-gray-200"></div>
-                    o
-                    <div class="flex-grow border-t border-gray-200"></div>
-                </div>
-
-                <div>
-                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">RFC suelto (no registrado como cliente)</label>
-                    <input type="text" id="input-rfc-suelto" oninput="alEscribirRfcSuelto()" placeholder="Ej. XAXX010101000" class="w-full text-sm border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm uppercase font-mono">
-                </div>
-            </div>
-
-            <div id="badge-efirma" class="hidden mt-3 text-xs font-bold px-2 py-1 rounded-full inline-flex items-center gap-1"></div>
+        <div class="dos">
+            <label class="campo">
+                <span class="campo__etiqueta">Certificado (.cer)</span>
+                <input type="file" id="cer" accept=".cer" class="campo__archivo">
+            </label>
+            <label class="campo">
+                <span class="campo__etiqueta">Clave privada (.key)</span>
+                <input type="file" id="key" accept=".key" class="campo__archivo">
+            </label>
         </div>
 
-        <!-- PASO 2: e.firma (solo si no está guardada) -->
-        <div id="tarjeta-efirma" class="hidden bg-white rounded-xl card-elevated border border-gray-200 p-5 mb-5">
-            <h2 class="text-sm font-bold text-slate-800 uppercase tracking-wide mb-3">2. e.firma</h2>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
-                <div>
-                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">Certificado (.cer)</label>
-                    <input type="file" id="input-cer" accept=".cer" class="w-full text-xs border border-gray-300 rounded-lg p-2 bg-gray-50 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700">
-                </div>
-                <div>
-                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">Clave privada (.key)</label>
-                    <input type="file" id="input-key" accept=".key" class="w-full text-xs border border-gray-300 rounded-lg p-2 bg-gray-50 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700">
-                </div>
-            </div>
-            <div>
-                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">Contraseña de e.firma</label>
-                <div class="relative">
-                    <input type="password" id="input-password" autocomplete="new-password" class="w-full text-sm border border-gray-300 rounded-lg p-3 pr-10 focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm">
-                    <button type="button" onclick="togglePassword()" class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-500 hover:text-indigo-600">
-                        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
-                    </button>
-                </div>
-            </div>
+        <label class="campo" style="margin-top:12px">
+            <span class="campo__etiqueta">Contraseña de la e.firma</span>
+            <span style="position:relative;display:block">
+                <input type="password" id="password" autocomplete="new-password" class="campo__control" style="padding-right:44px">
+                <button type="button" id="ver-password" class="ojo" aria-label="Mostrar contraseña">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path d="M2.5 12C3.7 7.9 7.5 5 12 5s8.3 2.9 9.5 7c-1.2 4.1-5 7-9.5 7s-8.3-2.9-9.5-7z"/>
+                    </svg>
+                </button>
+            </span>
+        </label>
+    </section>
+
+    <!-- Paso 3: qué buscar -->
+    <section id="paso-opciones" class="ficha" hidden>
+        <h2 class="ficha__titulo">Qué buscar</h2>
+
+        <div class="dos">
+            <label class="campo">
+                <span class="campo__etiqueta">Tipo de persona</span>
+                <select id="tipo-persona" class="campo__control">
+                    <option value="pm">Moral</option>
+                    <option value="pf">Física</option>
+                </select>
+            </label>
+            <label class="campo">
+                <span class="campo__etiqueta">Ejercicio</span>
+                <select id="ejercicio" class="campo__control"></select>
+            </label>
         </div>
 
-        <!-- PASO 3: qué descargar -->
-        <div id="tarjeta-opciones" class="hidden bg-white rounded-xl card-elevated border border-gray-200 p-5 mb-5">
-            <h2 class="text-sm font-bold text-slate-800 uppercase tracking-wide mb-3">3. Qué descargar</h2>
-
-            <div class="grid grid-cols-2 gap-3 mb-4">
-                <div>
-                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">Tipo de persona</label>
-                    <select id="select-tipo-persona" class="w-full text-sm border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm">
-                        <option value="pm">Persona Moral</option>
-                        <option value="pf">Persona Física</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">Ejercicio</label>
-                    <input type="number" id="input-ejercicio" value="2026" min="2015" max="2030" class="w-full text-sm border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm">
-                </div>
+        <fieldset style="margin-top:16px;border:0;padding:0">
+            <legend class="campo__etiqueta" style="padding:0">Portales del SAT</legend>
+            <div style="display:flex;gap:18px;margin-top:8px">
+                <label class="marca"><input type="checkbox" id="portal-nuevo" checked> Nuevo</label>
+                <label class="marca"><input type="checkbox" id="portal-antiguo" checked> Anterior</label>
             </div>
+        </fieldset>
 
-            <div class="mb-4">
-                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-2">Portal</label>
-                <div class="flex gap-4">
-                    <label class="flex items-center gap-2 text-sm"><input type="checkbox" id="chk-portal-nuevo" checked class="rounded text-indigo-600 focus:ring-indigo-500"> Nuevo</label>
-                    <label class="flex items-center gap-2 text-sm"><input type="checkbox" id="chk-portal-antiguo" checked class="rounded text-indigo-600 focus:ring-indigo-500"> Anterior</label>
-                </div>
-            </div>
+        <p class="ficha__nota" style="margin-top:16px">
+            De cada declaración encontrada se bajan sus tres documentos: acuse de detalle,
+            acuse de pago y acuse de recibo.
+        </p>
 
-            <p class="text-xs text-slate-500 bg-slate-50 border border-slate-200 rounded-lg p-3">
-                Se descargan siempre los tres documentos de cada declaración: detalle, pago y acuse de recibo.
-            </p>
+        <button type="button" id="btn-buscar" class="boton-principal">Buscar y descargar</button>
+    </section>
 
-            <button onclick="iniciarDescarga()" id="btn-iniciar" class="mt-4 w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 rounded-lg shadow-md transition">
-                Buscar y descargar
-            </button>
+    <!-- Progreso -->
+    <section id="paso-progreso" class="ficha" hidden>
+        <h2 class="ficha__titulo">En proceso</h2>
+        <div style="display:flex;align-items:center;gap:11px">
+            <svg id="giro" class="animate-spin" style="width:19px;height:19px;color:var(--acento);flex:none" viewBox="0 0 24 24" fill="none">
+                <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3.4" opacity=".24"/>
+                <path d="M22 12a10 10 0 00-10-10" stroke="currentColor" stroke-width="3.4" stroke-linecap="round"/>
+            </svg>
+            <p id="texto-progreso" style="font-size:14px;color:var(--texto-tenue)">Arrancando…</p>
         </div>
+        <div class="progress-track" id="barra" style="margin-top:12px" hidden><div class="progress-fill" id="barra-fill" style="width:6%"></div></div>
+        <div id="resultado" style="margin-top:14px" hidden></div>
+        <button type="button" id="btn-detener" class="fc-btn" style="margin-top:14px">Detener</button>
+    </section>
 
-        <!-- PROGRESO -->
-        <div id="tarjeta-progreso" class="hidden bg-white rounded-xl card-elevated border border-gray-200 p-5">
-            <h2 class="text-sm font-bold text-slate-800 uppercase tracking-wide mb-3">Progreso</h2>
-            <div class="flex items-center gap-3 mb-2">
-                <svg id="spinner-progreso" class="animate-spin h-5 w-5 text-indigo-600 flex-none" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
-                <p id="texto-progreso" class="text-sm text-slate-600">Iniciando...</p>
-            </div>
-            <div id="resultado-final" class="hidden mt-3"></div>
-        </div>
-    </main>
+</main>
 
-    <script>
-        const API_URL = "https://api.josuealan.com";
-        let clientesCache = [];
-        let clienteSeleccionado = null;
-        let intervaloConsulta = null;
+<footer class="fc-pie">© 2026 Alan Sánchez</footer>
 
-        document.addEventListener("DOMContentLoaded", inicializar);
+<script src="/assets/app-header.js"></script>
+<script src="/assets/paso-cliente.js"></script>
+<script>
+(function () {
+    "use strict";
+    var API = Fiscontable.API;
 
-        function paramsUrl() {
-            return new URLSearchParams(window.location.search);
+    var elegido = null;
+    var sondeo = null;          // un único temporizador vivo
+    var trabajoActual = null;
+    var paso = null;
+
+    var fEfirma   = document.getElementById("paso-efirma");
+    var fOpciones = document.getElementById("paso-opciones");
+    var fProgreso = document.getElementById("paso-progreso");
+    var btnBuscar = document.getElementById("btn-buscar");
+
+    /* ---- Ejercicios: se generan del año en curso hacia atrás, para no
+            tener que mantener un valor fijo cada enero. ---- */
+    (function () {
+        var select = document.getElementById("ejercicio");
+        var hoy = new Date().getFullYear();
+        for (var a = hoy; a >= hoy - 10; a--) {
+            var o = document.createElement("option");
+            o.value = a; o.textContent = a;
+            select.appendChild(o);
         }
+    })();
 
-        async function inicializar() {
-            document.getElementById("banner-sin-conexion").classList.add("hidden");
-            try {
-                const resp = await fetch(`${API_URL}/api/clientes`, { credentials: "include" });
-                if (!resp.ok) { marcarSinConexion(await interpretarError(resp)); return; }
-                clientesCache = await resp.json();
-                renderizarSelectClientes();
+    document.getElementById("ver-password").addEventListener("click", function () {
+        var c = document.getElementById("password");
+        c.type = c.type === "password" ? "text" : "password";
+        this.setAttribute("aria-label", c.type === "password" ? "Mostrar contraseña" : "Ocultar contraseña");
+    });
 
-                const rfcUrl = paramsUrl().get("rfc");
-                if (rfcUrl) {
-                    document.getElementById("select-cliente").value = rfcUrl.toUpperCase();
-                    alSeleccionarCliente();
-                }
-            } catch (error) {
-                marcarSinConexion();
+    function alerta(mensaje) {
+        var caja = document.getElementById("alerta");
+        caja.textContent = mensaje;
+        caja.hidden = false;
+        caja.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+    function sinAlerta() { document.getElementById("alerta").hidden = true; }
+
+    async function leerError(resp) {
+        if (!resp) return "No pudimos conectar con el servidor. Revisa tu conexión e intenta de nuevo.";
+        if (resp.status === 401 || resp.status === 403) return "Tu sesión expiró. Recarga la página para entrar otra vez.";
+        try {
+            var d = await resp.json();
+            return d.detail || "El servidor respondió con un error (" + resp.status + ").";
+        } catch (e) {
+            return "El servidor respondió con un error (" + resp.status + ").";
+        }
+    }
+
+    /* -------------------------------------------------- pasos */
+
+    function alElegir(quien) {
+        elegido = quien;
+        sinAlerta();
+        fEfirma.hidden = quien.efirmaGuardada;
+        fOpciones.hidden = false;
+        fOpciones.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+
+    function alLimpiar() {
+        elegido = null;
+        fEfirma.hidden = true;
+        fOpciones.hidden = true;
+        fProgreso.hidden = true;
+    }
+
+    /* ------------------------------------------------ arranque */
+
+    async function buscar() {
+        sinAlerta();
+        if (!elegido) { alerta("Primero indica de quién es el trabajo."); return; }
+
+        var portales = [];
+        if (document.getElementById("portal-nuevo").checked) portales.push("nuevo");
+        if (document.getElementById("portal-antiguo").checked) portales.push("antiguo");
+        if (!portales.length) { alerta("Marca al menos un portal del SAT."); return; }
+
+        var cuerpo = new FormData();
+        cuerpo.append("tipo_persona", document.getElementById("tipo-persona").value);
+        cuerpo.append("ejercicio", document.getElementById("ejercicio").value);
+        cuerpo.append("portales", portales.join(","));
+        cuerpo.append("tipos_documento", "detalle,pago,recibo");
+
+        var ruta;
+        if (elegido.efirmaGuardada) {
+            ruta = "/api/clientes/" + encodeURIComponent(elegido.rfc) + "/descargar-declaraciones";
+        } else {
+            var cer = document.getElementById("cer").files[0];
+            var key = document.getElementById("key").files[0];
+            var pwd = document.getElementById("password").value;
+            if (!cer || !key || !pwd) {
+                alerta("Faltan el .cer, el .key o la contraseña de la e.firma.");
+                return;
             }
+            ruta = "/api/declaraciones/iniciar";
+            cuerpo.append("rfc", elegido.rfc);
+            cuerpo.append("password", pwd);
+            cuerpo.append("cer", cer);
+            cuerpo.append("key", key);
         }
 
-        function marcarSinConexion(mensaje) {
-            document.getElementById("banner-sin-conexion-texto").textContent =
-                mensaje || "No pudimos conectar con el servidor. Puede que tu sesión haya expirado.";
-            document.getElementById("banner-sin-conexion").classList.remove("hidden");
-        }
+        // El botón se queda apagado hasta que el trabajo termine. Antes se
+        // reactivaba en el `finally` incluso cuando el trabajo ya había
+        // arrancado, y un doble clic lanzaba dos robots al SAT por el
+        // mismo RFC.
+        btnBuscar.disabled = true;
+        btnBuscar.textContent = "Arrancando…";
 
-        async function interpretarError(response) {
-            if (!response) return "No pudimos conectar con el servidor.";
-            if (response.status === 401 || response.status === 403) return "Tu sesión de acceso expiró. Recarga la página.";
-            try {
-                const data = await response.json();
-                return data.detail || "Ocurrió un error inesperado.";
-            } catch {
-                return "Ocurrió un error inesperado.";
+        try {
+            var resp = await fetch(API + ruta, { method: "POST", credentials: "include", body: cuerpo });
+            if (!resp.ok) {
+                alerta(await leerError(resp));
+                liberarBoton();
+                return;
             }
+            var datos = await resp.json();
+            trabajoActual = datos.job_id;
+            mostrarProgreso();
+            vigilar(datos.job_id);
+            Fiscontable.refrescarDescargas();
+        } catch (e) {
+            alerta(await leerError(null));
+            liberarBoton();
         }
+    }
 
-        function mostrarAlerta(tipo, mensaje) {
-            const container = document.getElementById("alert-container");
-            const alertBox = document.getElementById("alert-message");
-            container.classList.remove("hidden");
-            alertBox.className = tipo === "error"
-                ? "p-4 rounded-lg text-sm font-semibold flex items-start gap-2 bg-amber-50 text-amber-800 border border-amber-200"
-                : "p-4 rounded-lg text-sm font-semibold flex items-start gap-2 bg-green-50 text-green-700 border border-green-200";
-            alertBox.innerHTML = `<span>${mensaje}</span>`;
-            if (tipo !== "error") setTimeout(() => container.classList.add("hidden"), 5000);
-        }
+    function liberarBoton() {
+        btnBuscar.disabled = false;
+        btnBuscar.textContent = "Buscar y descargar";
+    }
 
-        function renderizarSelectClientes() {
-            const select = document.getElementById("select-cliente");
-            select.innerHTML = '<option value="">— Selecciona un cliente —</option>' +
-                clientesCache.map(c => `<option value="${c.rfc}">${c.alias} (${c.rfc})</option>`).join("");
-        }
+    function mostrarProgreso() {
+        fProgreso.hidden = false;
+        document.getElementById("giro").style.display = "";
+        document.getElementById("resultado").hidden = true;
+        document.getElementById("btn-detener").hidden = false;
+        document.getElementById("texto-progreso").textContent = "Arrancando…";
+        fProgreso.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
 
-        function alSeleccionarCliente() {
-            const rfc = document.getElementById("select-cliente").value;
-            document.getElementById("input-rfc-suelto").value = "";
-            if (!rfc) { ocultarPasosPosteriores(); return; }
-
-            clienteSeleccionado = clientesCache.find(c => c.rfc === rfc);
-            mostrarPasoEfirmaSegunCliente();
-        }
-
-        function alEscribirRfcSuelto() {
-            const rfc = document.getElementById("input-rfc-suelto").value.trim().toUpperCase();
-            document.getElementById("select-cliente").value = "";
-            clienteSeleccionado = null;
-
-            if (rfc.length < 12) { ocultarPasosPosteriores(); return; }
-
-            document.getElementById("badge-efirma").classList.add("hidden");
-            document.getElementById("tarjeta-efirma").classList.remove("hidden");
-            document.getElementById("tarjeta-opciones").classList.remove("hidden");
-        }
-
-        function mostrarPasoEfirmaSegunCliente() {
-            const badge = document.getElementById("badge-efirma");
-            const tarjetaEfirma = document.getElementById("tarjeta-efirma");
-
-            if (clienteSeleccionado.efirma_guardada) {
-                badge.textContent = "e.firma guardada — no hace falta subirla de nuevo";
-                badge.className = "mt-3 text-xs font-bold px-2 py-1 rounded-full inline-flex items-center gap-1 bg-indigo-100 text-indigo-700";
-                badge.classList.remove("hidden");
-                tarjetaEfirma.classList.add("hidden");
-            } else {
-                badge.textContent = "Sin e.firma guardada — súbela abajo";
-                badge.className = "mt-3 text-xs font-bold px-2 py-1 rounded-full inline-flex items-center gap-1 bg-gray-100 text-gray-500";
-                badge.classList.remove("hidden");
-                tarjetaEfirma.classList.remove("hidden");
-            }
-            document.getElementById("tarjeta-opciones").classList.remove("hidden");
-        }
-
-        function ocultarPasosPosteriores() {
-            document.getElementById("badge-efirma").classList.add("hidden");
-            document.getElementById("tarjeta-efirma").classList.add("hidden");
-            document.getElementById("tarjeta-opciones").classList.add("hidden");
-            document.getElementById("tarjeta-progreso").classList.add("hidden");
-        }
-
-        function togglePassword() {
-            const campo = document.getElementById("input-password");
-            campo.type = campo.type === "password" ? "text" : "password";
-        }
-
-        function portalesSeleccionados() {
-            const p = [];
-            if (document.getElementById("chk-portal-nuevo").checked) p.push("nuevo");
-            if (document.getElementById("chk-portal-antiguo").checked) p.push("antiguo");
-            return p;
-        }
-
-        async function iniciarDescarga() {
-            const rfc = clienteSeleccionado ? clienteSeleccionado.rfc : document.getElementById("input-rfc-suelto").value.trim().toUpperCase();
-            if (!rfc) { mostrarAlerta("error", "Falta indicar para qué RFC es."); return; }
-
-            const portales = portalesSeleccionados();
-            // Los tres tipos se descargan siempre -- ya no se preguntan.
-            const tipos = ["detalle", "pago", "recibo"];
-            if (portales.length === 0) { mostrarAlerta("error", "Selecciona al menos un portal."); return; }
-
-            const tipoPersona = document.getElementById("select-tipo-persona").value;
-            const ejercicio = document.getElementById("input-ejercicio").value;
-
-            const boton = document.getElementById("btn-iniciar");
-            boton.disabled = true;
-            boton.textContent = "Iniciando...";
-
+    function vigilar(jobId) {
+        clearInterval(sondeo);
+        sondeo = setInterval(async function () {
             try {
-                let resp;
-                const usaEfirmaGuardada = clienteSeleccionado && clienteSeleccionado.efirma_guardada;
+                var resp = await fetch(API + "/api/trabajos/" + jobId, { credentials: "include" });
+                if (!resp.ok) return;     // reintenta en la siguiente vuelta
+                var t = await resp.json();
 
-                if (usaEfirmaGuardada) {
-                    const formData = new FormData();
-                    formData.append("tipo_persona", tipoPersona);
-                    formData.append("ejercicio", ejercicio);
-                    formData.append("portales", portales.join(","));
-                    formData.append("tipos_documento", tipos.join(","));
-                    resp = await fetch(`${API_URL}/api/clientes/${encodeURIComponent(rfc)}/descargar-declaraciones`, {
-                        method: "POST", credentials: "include", body: formData,
+                document.getElementById("texto-progreso").textContent = t.progreso || "Procesando…";
+
+                if (t.estado === "procesando") return;
+
+                detenerSondeo();
+                document.getElementById("giro").style.display = "none";
+                document.getElementById("btn-detener").hidden = true;
+                liberarBoton();
+                Fiscontable.refrescarDescargas();
+
+                var caja = document.getElementById("resultado");
+                caja.hidden = false;
+
+                if (t.estado === "completado") {
+                    caja.innerHTML =
+                        '<div style="background:#ECFDF3;border:1px solid #A9E5C3;border-radius:10px;padding:13px;font-size:13.5px;color:#05603A">' +
+                        Fiscontable.escapar(t.progreso || "Listo.") +
+                        '</div><button type="button" id="btn-bajar" class="boton-principal" style="margin-top:12px">Descargar</button>';
+                    document.getElementById("btn-bajar").addEventListener("click", function () {
+                        bajar(jobId, t.nombre_descarga, this);
                     });
                 } else {
-                    const cer = document.getElementById("input-cer").files[0];
-                    const key = document.getElementById("input-key").files[0];
-                    const password = document.getElementById("input-password").value;
-                    if (!cer || !key || !password) {
-                        mostrarAlerta("error", "Necesitamos el .cer, el .key y la contraseña.");
-                        boton.disabled = false; boton.textContent = "Buscar y descargar";
-                        return;
-                    }
-                    const formData = new FormData();
-                    formData.append("rfc", rfc);
-                    formData.append("password", password);
-                    formData.append("tipo_persona", tipoPersona);
-                    formData.append("ejercicio", ejercicio);
-                    formData.append("portales", portales.join(","));
-                    formData.append("tipos_documento", tipos.join(","));
-                    formData.append("cer", cer);
-                    formData.append("key", key);
-                    resp = await fetch(`${API_URL}/api/declaraciones/iniciar`, {
-                        method: "POST", credentials: "include", body: formData,
-                    });
+                    caja.innerHTML =
+                        '<div style="background:#FFFBF3;border:1px solid #FCD9A6;border-radius:10px;padding:13px;font-size:13.5px;color:#7A4A05">' +
+                        Fiscontable.escapar(t.mensaje_error || "No se pudo completar.") + "</div>";
                 }
-
-                if (!resp.ok) { mostrarAlerta("error", await interpretarError(resp)); return; }
-                const datos = await resp.json();
-                document.getElementById("tarjeta-progreso").classList.remove("hidden");
-                document.getElementById("resultado-final").classList.add("hidden");
-                document.getElementById("spinner-progreso").classList.remove("hidden");
-                document.getElementById("texto-progreso").textContent = "Iniciando...";
-                consultarProgreso(datos.job_id);
-            } catch (error) {
-                mostrarAlerta("error", "No se pudo conectar con el servidor.");
-            } finally {
-                boton.disabled = false;
-                boton.textContent = "Buscar y descargar";
+            } catch (e) {
+                // Un tropiezo de red no mata el seguimiento: se reintenta.
             }
-        }
+        }, 2500);
+    }
 
-        function consultarProgreso(jobId) {
-            if (intervaloConsulta) clearInterval(intervaloConsulta);
-            intervaloConsulta = setInterval(async () => {
-                try {
-                    const resp = await fetch(`${API_URL}/api/trabajos/${jobId}`, { credentials: "include" });
-                    if (!resp.ok) { clearInterval(intervaloConsulta); return; }
-                    const datos = await resp.json();
-                    document.getElementById("texto-progreso").textContent = datos.progreso || "Procesando...";
+    function detenerSondeo() {
+        clearInterval(sondeo);
+        sondeo = null;
+    }
 
-                    if (datos.estado === "completado") {
-                        clearInterval(intervaloConsulta);
-                        document.getElementById("spinner-progreso").classList.add("hidden");
-                        const resultado = document.getElementById("resultado-final");
-                        resultado.className = "mt-3 p-3 rounded-lg bg-green-50 border border-green-200 text-sm text-green-800";
-                        resultado.innerHTML = `${datos.progreso || "Completado"} <a href="${API_URL}/api/trabajos/${jobId}/descargar" class="block mt-2 font-bold underline">Descargar</a>`;
-                        resultado.classList.remove("hidden");
-                    } else if (datos.estado === "error" || datos.estado === "cancelado") {
-                        clearInterval(intervaloConsulta);
-                        document.getElementById("spinner-progreso").classList.add("hidden");
-                        const resultado = document.getElementById("resultado-final");
-                        resultado.className = "mt-3 p-3 rounded-lg bg-amber-50 border border-amber-200 text-sm text-amber-800";
-                        resultado.textContent = datos.mensaje_error || "No se pudo completar.";
-                        resultado.classList.remove("hidden");
-                    }
-                } catch (error) {
-                    // se reintenta solo en la siguiente vuelta del intervalo
-                }
-            }, 2000);
+    async function bajar(jobId, nombre, boton) {
+        boton.disabled = true;
+        boton.textContent = "Descargando…";
+        try {
+            var resp = await fetch(API + "/api/trabajos/" + jobId + "/descargar", { credentials: "include" });
+            if (!resp.ok) { alerta(await leerError(resp)); return; }
+            var url = URL.createObjectURL(await resp.blob());
+            var a = document.createElement("a");
+            a.href = url;
+            a.download = nombre || (elegido.rfc + "_declaraciones.zip");
+            a.click();
+            setTimeout(function () { URL.revokeObjectURL(url); }, 4000);
+        } catch (e) {
+            alerta("El archivo se generó, pero no se pudo bajar. Búscalo en Mis descargas.");
+        } finally {
+            boton.disabled = false;
+            boton.textContent = "Descargar";
         }
-    </script>
+    }
+
+    document.getElementById("btn-detener").addEventListener("click", async function () {
+        this.disabled = true;
+        this.textContent = "Deteniendo…";
+        try {
+            await fetch(API + "/api/trabajos/" + trabajoActual + "/cancelar",
+                { method: "POST", credentials: "include" });
+        } catch (e) { /* el sondeo va a reflejar el estado real */ }
+        this.disabled = false;
+        this.textContent = "Detener";
+    });
+
+    btnBuscar.addEventListener("click", buscar);
+
+    // Sin temporizadores huérfanos al salir de la página.
+    window.addEventListener("pagehide", detenerSondeo);
+
+    /* --------------------------------------------- inicio real */
+    (async function () {
+        // Se verifica el permiso ANTES de mostrar nada. Antes este módulo
+        // dejaba llenar todo el formulario para que el backend lo
+        // rechazara al final.
+        if (!(await Fiscontable.exigirModulo("declaraciones"))) return;
+        paso = PasoCliente.montar({
+            contenedor: "paso-cliente",
+            alElegir: alElegir,
+            alLimpiar: alLimpiar
+        });
+    })();
+})();
+</script>
 </body>
 </html>
