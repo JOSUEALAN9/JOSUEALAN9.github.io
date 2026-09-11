@@ -5,41 +5,25 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mis Clientes | Fiscontable</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="../assets/common.css">
+    <link rel="stylesheet" href="/assets/common.css">
 </head>
-<body class="bg-gray-50 text-gray-800 font-sans min-h-screen flex flex-col relative">
+<body class="min-h-screen flex flex-col relative">
 
     <!-- TOP NAV -->
-    <header class="bg-slate-900 text-white p-4 shadow-lg flex-none z-10">
-        <div class="max-w-[1600px] mx-auto flex flex-wrap justify-between items-center gap-3">
-            <div class="flex items-center gap-4">
-                <div class="bg-violet-600 p-2 rounded-lg">
-                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-1.13a4 4 0 10-4-4 4 4 0 004 4zm6 0a4 4 0 10-4-4"></path></svg>
-                </div>
-                <div>
-                    <h1 class="text-lg sm:text-xl font-bold leading-tight">Mis Clientes</h1>
-                    <p class="text-xs text-slate-400">Tu directorio privado — solo tú lo ves</p>
-                </div>
-            </div>
-
-            <div class="flex items-center gap-2 sm:gap-4">
-                <a href="../herramientas/" class="text-emerald-300 hover:text-white font-semibold text-sm flex items-center gap-1 transition">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z"></path></svg>
-                    <span class="hidden sm:inline">Herramientas</span>
-                </a>
-                <a href="../" class="text-slate-300 hover:text-white font-semibold text-sm flex items-center gap-1 transition">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg> <span class="hidden sm:inline">Inicio</span>
-                </a>
-                <button onclick="abrirModalNuevoCliente()" id="btn-agregar-cliente" class="bg-violet-600 hover:bg-violet-500 text-white font-semibold py-2 px-3 sm:px-4 rounded shadow transition flex items-center gap-2 text-sm">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
-                    <span class="hidden sm:inline">Agregar cliente</span>
-                </button>
-            </div>
-        </div>
-    </header>
+    <div id="app-header" data-modulo="clientes" data-titulo="Mis clientes" data-migas=""></div>
+<script src="/assets/app-header.js"></script>
 
     <!-- ÁREA DE TRABAJO -->
-    <main class="flex-grow p-4 sm:p-6 w-full max-w-6xl mx-auto">
+    <main class="flex-grow w-full" style="max-width:1180px;margin:0 auto;padding:28px 20px 56px">
+
+        <div style="display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:14px;margin-bottom:22px">
+            <div>
+                <h1 class="display" style="font-size:30px">Mis clientes</h1>
+                <p style="margin-top:7px;font-size:14.5px;color:var(--texto-tenue)">Tu cartera, con sus documentos y su e.firma guardada.</p>
+            </div>
+            <button type="button" id="btn-agregar-cliente" onclick="abrirModalNuevoCliente()" class="boton-principal" style="width:auto;margin:0;padding:11px 20px">Nuevo cliente</button>
+        </div>
+
 
         <div id="alert-container" class="hidden mb-4">
             <div id="alert-message" class="p-4 rounded-lg text-sm font-semibold flex items-start gap-2"></div>
@@ -347,13 +331,10 @@
                         }
                     </div>
 
-                    <div class="flex gap-2 mt-1">
-                        <a href="../constancias/?rfc=${rfcCodificado}&cliente=${aliasCodificado}" class="flex-1 text-center text-xs font-bold bg-indigo-50 text-indigo-700 hover:bg-indigo-100 py-2 rounded-lg transition">
-                            Constancia
-                        </a>
-                        <a href="../opinion/?rfc=${rfcCodificado}&cliente=${aliasCodificado}" class="flex-1 text-center text-xs font-bold bg-teal-50 text-teal-700 hover:bg-teal-100 py-2 rounded-lg transition">
-                            Opinión
-                        </a>
+                    <div class="atajos">
+                        <a href="/constancias/?rfc=${rfcCodificado}&cliente=${aliasCodificado}" style="--tono:#4338CA;--tono-suave:#ECEBFB">Constancia</a>
+                        <a href="/opinion/?rfc=${rfcCodificado}&cliente=${aliasCodificado}" style="--tono:#0F766E;--tono-suave:#E6F2F1">Opinión</a>
+                        <a href="/declaraciones/?rfc=${rfcCodificado}&cliente=${aliasCodificado}" style="--tono:#0369A1;--tono-suave:#E4F1F9">Declaraciones</a>
                     </div>
                 </div>`;
             }).join("");
