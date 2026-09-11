@@ -31,6 +31,9 @@
 (function () {
     "use strict";
 
+    var VERSION = "4";
+    console.info("Fiscontable — interfaz v" + VERSION);
+
     var API = "https://api.josuealan.com";
 
     // Un solo lugar donde vive la identidad de cada módulo: nombre,
@@ -189,6 +192,7 @@
 
     var panelAbierto = false;
     var temporizador = null;
+    var ultimaLista = [];
     var ultimoEstado = new Map();
     var primerSondeo = true;
 
@@ -241,6 +245,12 @@
         document.body.classList.add("fc-sin-scroll");
         panelAbierto = true;
         document.getElementById("fc-panel-cerrar").focus();
+
+        if (ultimaLista.length) {
+            pintarLista(ultimaLista);
+            marcarComoVistos(ultimaLista);
+            refrescarContador(ultimaLista);
+        }
         sondear();
     }
 
@@ -354,36 +364,45 @@
         try { new Notification(titulo, { body: cuerpo }); } catch (e) { /* sin permiso real */ }
     }
 
+    /**
+     * Recalcula el número del botón y devuelve cuántos procesos siguen
+     * corriendo. El número suma dos cosas: lo que corre (se descuenta solo
+     * al terminar) y lo que ya terminó pero no has visto (se descuenta al
+     * abrir el panel). Si no hay ni una ni otra, el número desaparece.
+     */
+    function refrescarContador(procesos) {
+        var activos = procesos.filter(function (p) { return p.estado === "procesando"; }).length;
+        var nuevos = procesos.filter(function (p) {
+            return p.estado !== "procesando" && !vistos.has(p.id);
+        }).length;
+        var total = activos + nuevos;
+
+        var contador = document.getElementById("fc-contador");
+        if (contador) {
+            contador.textContent = total;
+            contador.hidden = total === 0;
+            contador.style.background = activos ? "#F59E0B" : "#12B76A";
+            contador.style.color = activos ? "#241503" : "#FFFFFF";
+        }
+
+        var boton = document.getElementById("fc-btn-descargas");
+        if (boton) {
+            boton.classList.toggle("fc-accion--activa", activos > 0);
+            boton.setAttribute("aria-label", activos
+                ? "Mis descargas — " + activos + " en proceso"
+                : (nuevos ? "Mis descargas — " + nuevos + " sin ver" : "Mis descargas"));
+        }
+        return activos;
+    }
+
     async function sondear() {
         try {
             var resp = await fetch(API + "/api/procesos", { credentials: "include" });
             if (!resp.ok) { programar(); return; }
             var procesos = await resp.json();
+            ultimaLista = procesos;
 
-            var activos = procesos.filter(function (p) { return p.estado === "procesando"; }).length;
-            var nuevos = procesos.filter(function (p) {
-                return p.estado !== "procesando" && !vistos.has(p.id);
-            }).length;
-
-            // Antes el número era "lo que hay", así que tres documentos
-            // descargados la semana pasada te marcaban un 3 eterno. Ahora
-            // sólo cuenta lo que corre y lo que terminó sin que lo vieras.
-            var contador = document.getElementById("fc-contador");
-            if (contador) {
-                var n = activos + nuevos;
-                contador.textContent = n;
-                contador.hidden = n === 0;
-                contador.style.background = activos ? "#F59E0B" : "#12B76A";
-                contador.style.color = activos ? "#241503" : "#FFFFFF";
-            }
-
-            var boton = document.getElementById("fc-btn-descargas");
-            if (boton) {
-                boton.classList.toggle("fc-accion--activa", activos > 0);
-                boton.setAttribute("aria-label", activos
-                    ? "Mis descargas — " + activos + " en proceso"
-                    : (nuevos ? "Mis descargas — " + nuevos + " sin ver" : "Mis descargas"));
-            }
+            var activos = refrescarContador(procesos);
 
             // Aviso del navegador cuando algo pasa de "procesando" a terminado.
             procesos.forEach(function (p) {
@@ -403,10 +422,7 @@
                 // Estás viéndolos: dejan de ser novedad, y el número baja
                 // en el momento, sin esperar al siguiente sondeo.
                 marcarComoVistos(procesos);
-                if (contador) {
-                    contador.textContent = activos;
-                    contador.hidden = activos === 0;
-                }
+                refrescarContador(procesos);
             }
             programar(activos > 0);
         } catch (e) {
