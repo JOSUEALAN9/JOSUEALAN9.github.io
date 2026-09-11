@@ -100,14 +100,21 @@
         var tramos = migasDesdeDatos();
         var titulo = ancla.dataset.titulo || modulo.nombre;
 
-        var migas = tramos.map(function (t) {
-            return '<span class="fc-migas__sep">' + ico(D.flecha, 2.2) + "</span>" +
-                '<a href="' + esc(t.href) + '">' + esc(t.texto) + "</a>";
+        // En el teléfono no cabe la ruta completa, así que el último
+        // tramo (el "padre") se convierte en una flecha de regresar y el
+        // resto se esconde. En pantalla grande se ve la ruta entera.
+        var migas = tramos.map(function (t, i) {
+            var esPadre = i === tramos.length - 1;
+            return '<a class="fc-miga' + (esPadre ? " fc-miga--padre" : "") + '" href="' + esc(t.href) + '"' +
+                (esPadre ? ' aria-label="Regresar a ' + esc(t.texto) + '"' : "") + ">" +
+                '<span class="fc-miga__sep">' + ico(D.flecha, 2.2) + "</span>" +
+                "<span>" + esc(t.texto) + "</span></a>";
         }).join("");
 
         if (clave !== "portada") {
-            migas += '<span class="fc-migas__sep">' + ico(D.flecha, 2.2) + "</span>" +
-                '<span class="fc-migas__actual">' + esc(titulo) + "</span>";
+            migas += '<span class="fc-miga fc-miga--actual">' +
+                '<span class="fc-miga__sep">' + ico(D.flecha, 2.2) + "</span>" +
+                "<span>" + esc(titulo) + "</span></span>";
         }
 
         ancla.outerHTML =
@@ -185,6 +192,44 @@
     var ultimoEstado = new Map();
     var primerSondeo = true;
 
+    /* --- Qué procesos ya viste ---------------------------------------
+       El contador tiene dos significados distintos y antes los mezclaba:
+       lo que está corriendo (se limpia solo al terminar) y lo que acabó
+       y todavía no has visto (eso sí hay que darlo por visto). Se guarda
+       en el navegador para que siga valiendo cuando cambias de módulo.  */
+
+    var LLAVE_VISTOS = "fc:procesos-vistos";
+
+    function leerVistos() {
+        try {
+            return new Set(JSON.parse(localStorage.getItem(LLAVE_VISTOS) || "[]"));
+        } catch (e) {
+            return new Set();
+        }
+    }
+
+    function guardarVistos(conjunto) {
+        try {
+            localStorage.setItem(LLAVE_VISTOS, JSON.stringify(Array.from(conjunto)));
+        } catch (e) { /* si el navegador no deja guardar, el contador sigue funcionando */ }
+    }
+
+    var vistos = leerVistos();
+
+    /** Da por visto todo lo que ya terminó (bien o mal). Lo que sigue
+        corriendo se deja fuera: cuando acabe volverá a contar como nuevo. */
+    function marcarComoVistos(procesos) {
+        var antes = vistos.size;
+        procesos.forEach(function (p) {
+            if (p.estado !== "procesando") vistos.add(p.id);
+        });
+        // Se poda lo que el servidor ya borró, para que la lista no crezca sin fin.
+        var vigentes = new Set(procesos.map(function (p) { return p.id; }));
+        vistos.forEach(function (id) { if (!vigentes.has(id)) vistos.delete(id); });
+
+        if (vistos.size !== antes) guardarVistos(vistos);
+    }
+
     function abrirDescargas() {
         var velo = document.getElementById("fc-velo");
         var panel = document.getElementById("fc-panel");
@@ -242,6 +287,8 @@
 
     function tarjeta(p) {
         var t = esc(tituloProceso(p));
+        var nuevo = p.estado !== "procesando" && !vistos.has(p.id)
+            ? '<span class="fc-punto" title="Nuevo desde la última vez"></span>' : "";
 
         if (p.estado === "procesando") {
             var detalle = "Preparando…", barra = "";
@@ -261,7 +308,7 @@
         if (p.estado === "completado") {
             var resumen = fecha(p.creado_en);
             if (p.clase === "lote") resumen = p.exitosos + " de " + p.total + " obtenidos · " + resumen;
-            return '<div class="fc-item"><div class="fc-item__titulo">' + t + "</div>" +
+            return '<div class="fc-item"><div class="fc-item__titulo">' + nuevo + t + "</div>" +
                 '<div class="fc-item__detalle">' + esc(resumen) + "</div>" +
                 '<div class="fc-item__acciones">' +
                 '<button type="button" class="fc-btn fc-btn--principal" data-accion="descargar" ' +
@@ -271,7 +318,7 @@
                 "</div></div>";
         }
 
-        return '<div class="fc-item fc-item--alerta"><div class="fc-item__titulo">' + t + "</div>" +
+        return '<div class="fc-item fc-item--alerta"><div class="fc-item__titulo">' + nuevo + t + "</div>" +
             '<div class="fc-item__detalle">' + esc(p.mensaje_error || "No se pudo completar.") + "</div>" +
             '<div class="fc-item__acciones">' +
             '<a class="fc-btn" href="/descargas/">Ver detalle</a>' +
@@ -314,15 +361,28 @@
             var procesos = await resp.json();
 
             var activos = procesos.filter(function (p) { return p.estado === "procesando"; }).length;
-            var listos = procesos.filter(function (p) { return p.estado === "completado"; }).length;
+            var nuevos = procesos.filter(function (p) {
+                return p.estado !== "procesando" && !vistos.has(p.id);
+            }).length;
 
+            // Antes el número era "lo que hay", así que tres documentos
+            // descargados la semana pasada te marcaban un 3 eterno. Ahora
+            // sólo cuenta lo que corre y lo que terminó sin que lo vieras.
             var contador = document.getElementById("fc-contador");
             if (contador) {
-                var n = activos || listos;
+                var n = activos + nuevos;
                 contador.textContent = n;
                 contador.hidden = n === 0;
                 contador.style.background = activos ? "#F59E0B" : "#12B76A";
                 contador.style.color = activos ? "#241503" : "#FFFFFF";
+            }
+
+            var boton = document.getElementById("fc-btn-descargas");
+            if (boton) {
+                boton.classList.toggle("fc-accion--activa", activos > 0);
+                boton.setAttribute("aria-label", activos
+                    ? "Mis descargas — " + activos + " en proceso"
+                    : (nuevos ? "Mis descargas — " + nuevos + " sin ver" : "Mis descargas"));
             }
 
             // Aviso del navegador cuando algo pasa de "procesando" a terminado.
@@ -338,7 +398,16 @@
             });
             primerSondeo = false;
 
-            if (panelAbierto) pintarLista(procesos);
+            if (panelAbierto) {
+                pintarLista(procesos);
+                // Estás viéndolos: dejan de ser novedad, y el número baja
+                // en el momento, sin esperar al siguiente sondeo.
+                marcarComoVistos(procesos);
+                if (contador) {
+                    contador.textContent = activos;
+                    contador.hidden = activos === 0;
+                }
+            }
             programar(activos > 0);
         } catch (e) {
             programar();
@@ -674,6 +743,17 @@
     // Un solo temporizador vivo por página, y se apaga al salir: antes
     // cada módulo dejaba su propio setInterval corriendo.
     window.addEventListener("pagehide", function () { clearTimeout(temporizador); });
+
+    // Tablas anchas: se envuelven en un carril con desplazamiento lateral
+    // para que en el teléfono se puedan ver de lado en vez de romper la
+    // página. Funciona en cualquier módulo, presente o futuro.
+    document.querySelectorAll("main table").forEach(function (tabla) {
+        if (tabla.closest(".fc-carril")) return;
+        var carril = document.createElement("div");
+        carril.className = "fc-carril";
+        tabla.parentNode.insertBefore(carril, tabla);
+        carril.appendChild(tabla);
+    });
 
     iniciarPerfil();
     sondear();
