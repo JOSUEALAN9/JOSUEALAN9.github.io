@@ -210,24 +210,41 @@ a.fc-miga:hover { color: #fff; }
 .fc-accion__etiqueta { display: none; }
 @media (min-width: 900px) { .fc-accion__etiqueta { display: inline; } }
 
-/* Contador de procesos en curso sobre el ícono de descargas */
+/* Contador de procesos del botón de descargas.
+   Cuando la palabra "Descargas" se ve, el número va DESPUÉS del texto,
+   como una pastilla en línea. Sólo cuando el botón se queda en puro ícono
+   (pantalla chica) el número se monta en la esquina, que es donde se
+   entiende. Antes estaba siempre encimado y tapaba la última letra. */
 .fc-contador {
-    position: absolute;
-    top: 3px;
-    right: 3px;
-    min-width: 17px;
-    height: 17px;
-    padding: 0 4px;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
     border-radius: 999px;
     background: #F59E0B;
     color: #241503;
-    font-size: 10.5px;
+    font-size: 11px;
     font-weight: 700;
-    line-height: 17px;
+    line-height: 18px;
     text-align: center;
-    box-shadow: 0 0 0 2px var(--tinta);
+    flex: none;
 }
 .fc-contador[hidden] { display: none; }
+
+/* Sin etiqueta visible: insignia sobre el ícono. El aro del color de la
+   barra lo separa del fondo. */
+@media (max-width: 899px) {
+    .fc-contador {
+        position: absolute;
+        top: 2px;
+        right: 2px;
+        min-width: 16px;
+        height: 16px;
+        font-size: 10px;
+        line-height: 16px;
+        padding: 0 4px;
+        box-shadow: 0 0 0 2px var(--tinta);
+    }
+}
 
 .fc-avatar {
     width: 27px;
