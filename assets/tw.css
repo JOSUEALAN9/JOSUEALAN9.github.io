@@ -1,0 +1,6 @@
+/* Archivo de entrada de Tailwind.
+   No lo edites para dar estilo: eso va en common.css.
+   Esto sólo le dice a Tailwind qué capas generar. */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
