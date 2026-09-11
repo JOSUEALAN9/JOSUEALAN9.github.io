@@ -128,35 +128,55 @@ body {
 .fc-migas {
     display: flex;
     align-items: center;
-    gap: 8px;
     min-width: 0;
     font-size: 13.5px;
     flex: 1;
 }
 
-.fc-migas__sep {
-    color: rgba(255, 255, 255, .28);
-    flex: none;
-}
-
-.fc-migas a {
+.fc-miga {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
     color: rgba(255, 255, 255, .62);
     text-decoration: none;
-    white-space: nowrap;
     padding: 4px 2px;
     transition: color .15s;
 }
-.fc-migas a:hover { color: #fff; }
+a.fc-miga:hover { color: #fff; }
 
-.fc-migas__actual {
+.fc-miga__sep { display: inline-flex; color: rgba(255, 255, 255, .28); flex: none; }
+.fc-miga__sep svg { width: 15px; height: 15px; }
+
+.fc-miga > span:last-child { white-space: nowrap; }
+
+.fc-miga--actual {
     color: #fff;
     font-weight: 600;
-    white-space: nowrap;
+    min-width: 0;
+}
+.fc-miga--actual > span:last-child {
     overflow: hidden;
     text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
-/* --- Acciones de la derecha --- */
+/* En pantalla chica la ruta completa no cabe: el último tramo se queda
+   como flecha de regresar y los intermedios se esconden. */
+@media (max-width: 760px) {
+    .fc-marca__nombre { display: none; }
+    .fc-miga:not(.fc-miga--padre):not(.fc-miga--actual) { display: none; }
+    .fc-miga--padre > span:last-child { display: none; }
+    .fc-miga--padre {
+        width: 38px; height: 38px;
+        justify-content: center;
+        padding: 0;
+        margin-right: 2px;
+    }
+    .fc-miga--padre .fc-miga__sep { transform: rotate(180deg); color: rgba(255, 255, 255, .7); }
+    .fc-miga--padre .fc-miga__sep svg { width: 19px; height: 19px; }
+    .fc-miga--actual .fc-miga__sep { display: none; }
+}
 
 .fc-acciones {
     display: flex;
@@ -171,7 +191,7 @@ body {
     display: inline-flex;
     align-items: center;
     gap: 7px;
-    height: 36px;
+    height: 40px;
     padding: 0 11px;
     border: 0;
     border-radius: var(--radio-chico);
@@ -752,3 +772,60 @@ body.fc-sin-scroll { overflow: hidden; }
     text-decoration: none; white-space: nowrap;
 }
 .atajos a:hover { filter: brightness(.96); }
+
+/* ============================================================
+   AJUSTES DE TELÉFONO
+   ============================================================ */
+
+/* Carril para tablas anchas (Admin, Validador). Lo aplica
+   app-header.js a cualquier <table> dentro de <main>. */
+.fc-carril {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    border-radius: var(--radio-chico);
+}
+.fc-carril > table { min-width: 640px; }
+
+@media (max-width: 620px) {
+    :root { --barra-alto: 56px; }
+
+    .fc-barra__interior { padding: 0 12px; gap: 8px; }
+    .fc-acciones { gap: 0; }
+    .fc-accion { padding: 0 9px; }
+    .fc-menu { right: 12px; left: 12px; width: auto; }
+
+    /* El panel de descargas ocupa la pantalla completa, como una vista
+       propia, en vez de un cajón angosto. */
+    .fc-panel { width: 100vw; border-radius: 0; }
+
+    .ficha { padding: 16px; }
+    .pc-abierto { padding: 16px; }
+    .fc-aviso { margin: 12px; }
+
+    /* Botones de ancho completo: más fáciles de atinar con el pulgar. */
+    .botonera { display: block; }
+    .botonera > * { width: 100%; }
+    .fc-btn { padding: 9px 14px; }
+}
+
+/* El teclado del teléfono hace zoom si la letra del campo baja de 16 px. */
+@media (max-width: 620px) {
+    .campo__control, .pc-control, input[type="text"], input[type="tel"],
+    input[type="password"], input[type="number"], select, textarea {
+        font-size: 16px;
+    }
+}
+
+/* Punto de "esto terminó desde la última vez que miraste" */
+.fc-punto {
+    display: inline-block;
+    width: 7px; height: 7px;
+    border-radius: 999px;
+    background: var(--acento);
+    margin-right: 7px;
+    vertical-align: middle;
+}
+
+/* El botón de descargas se enciende mientras algo corre */
+.fc-accion--activa { background: rgba(245, 158, 11, .16); color: #fff; }
