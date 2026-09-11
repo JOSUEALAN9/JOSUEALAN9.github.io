@@ -1,959 +1,828 @@
 /**
- * modulo-sat.js — Lógica compartida entre Constancias y Opinión 32-D.
+ * modulo-sat.js — lógica compartida entre Constancias (CSF) y Opinión (32-D).
  *
- * Los dos módulos eran archivos de ~1000 líneas con solo 21 líneas de
- * diferencia entre sí (nombres, endpoints y colores). Todo lo demás
- * -- jobs, caché, permisos, e.firma guardada, lote masivo, progreso --
- * era idéntico y estaba duplicado, así que cualquier arreglo había que
- * hacerlo dos veces. Ya nos pasó con el bug del botón "Actualizar".
+ * Los dos módulos eran archivos casi idénticos de ~1000 líneas, así que
+ * cualquier arreglo había que hacerlo dos veces. Desde entonces la lógica
+ * vive aquí una sola vez y cada página sólo declara su MODULO.
  *
- * Ahora esa lógica vive aquí una sola vez, y cada módulo solo declara
- * su configuración en una constante MODULO antes de cargar este
- * archivo:
+ * Cambio de esta versión: el modo individual arranca con el paso
+ * "¿Para quién?" (assets/paso-cliente.js), igual que Declaraciones.
+ * Antes se pedían .cer, .key, contraseña y RFC ANTES de saber si ese
+ * contribuyente ya tenía e.firma guardada o un documento reciente. Con el
+ * orden invertido, el caso más común -- cliente con e.firma guardada --
+ * pasó de cuatro campos a un clic.
+ *
+ * Cada página declara, antes de cargar este archivo:
  *
  *   const MODULO = {
- *       slug: "constancia",        // para las URLs del backend
- *       tipo: "csf",               // tipo de documento en el caché
- *       permiso: "constancias",    // nombre del módulo en los permisos
- *       nombre: "Constancias",     // para los mensajes al usuario
- *       prefijoArchivo: "CSF",     // nombre del PDF descargado
+ *       slug: "constancia",       // para las URLs del backend
+ *       tipo: "csf",              // tipo de documento en el caché
+ *       permiso: "constancias",   // clave del permiso
+ *       nombre: "Constancia",     // singular, para los mensajes
+ *       prefijoArchivo: "CSF",    // nombre del PDF descargado
+ *       adicional: "Opinión de Cumplimiento (32-D)",  // el otro documento
  *   };
  */
+(function () {
+    "use strict";
 
+    var API = Fiscontable.API;
+    var esc = Fiscontable.escapar;
 
-        const API_URL = "https://api.josuealan.com";
-        let archivosGlobalesMasivo = [];
-        let revisionLote = null;          // resultado de /api/lote/revisar
-        let forzarRegenerarLote = false;  // ¿pedir todos nuevos al SAT?
+    var elegido = null;          // {rfc, alias, esCliente, efirmaGuardada}
+    var estado = null;           // lo que el servidor sabe de ese RFC
+    var enCurso = {};            // RFC -> job_id, para no lanzar dos robots
+    var sondeos = [];            // todos los temporizadores vivos de la página
 
-        // Antes de mostrar cualquier formulario, confirmamos que el usuario
-        // pueda usar este módulo. Sin esto, alguien con el acceso vencido
-        // llenaba todo el formulario para que el servidor lo rechazara al
-        // final -- es peor experiencia que decírselo desde el principio.
-        function bloquearModulo(mensaje) {
-            document.querySelectorAll("#form-individual, #form-masivo, #panel-cliente-detectado")
-                .forEach(el => { el.classList.add("hidden"); el.classList.remove("flex"); });
-            document.querySelector(".flex.border-b.bg-slate-50")?.classList.add("hidden");
-            document.getElementById("panel-bloqueo-texto").textContent = mensaje;
-            const panel = document.getElementById("panel-bloqueo");
-            panel.classList.remove("hidden");
-            panel.classList.add("flex");
-        }
+    var archivosLote = [];
+    var revisionLote = null;
+    var forzarRegenerar = false;
 
-        async function verificarPermisos() {
+    /* ================================================== utilidades */
+
+    function $(id) { return document.getElementById(id); }
+
+    function limpiarSondeos() {
+        sondeos.forEach(clearInterval);
+        sondeos = [];
+    }
+    window.addEventListener("pagehide", limpiarSondeos);
+
+    function alerta(tipo, mensaje) {
+        var caja = $("alerta");
+        caja.hidden = false;
+        caja.className = tipo === "error" ? "fc-aviso" : "fc-aviso fc-aviso--bien";
+        caja.textContent = mensaje;
+        caja.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+    function sinAlerta() { $("alerta").hidden = true; }
+
+    async function leerError(resp) {
+        if (!resp) return "No pudimos conectar con el servidor. Revisa tu conexión o si el túnel está activo.";
+        if (resp.status === 401 || resp.status === 403) return "Tu sesión expiró. Recarga la página e intenta otra vez.";
+        if (resp.status >= 500) {
             try {
-                const resp = await fetch(`${API_URL}/api/mi-perfil`, { credentials: "include" });
-
-                if (resp.status === 401 || resp.status === 403) {
-                    bloquearModulo("Tu sesión expiró. Recarga la página para iniciar sesión de nuevo.");
-                    return false;
+                var d = await resp.json();
+                var detalle = (d.detail || "").replace(/^Fallo en robot SAT:\s*/i, "");
+                if (/dashboard|redirecciones|Generar Constancia|timeout/i.test(detalle)) {
+                    return "El SAT no respondió a tiempo. Puede ser la contraseña de la e.firma o que su " +
+                        "servicio esté saturado. Verifica los datos e intenta en unos minutos.";
                 }
-                if (!resp.ok) {
-                    bloquearModulo("No pudimos conectar con el servidor. Intenta de nuevo más tarde o contacta al administrador.");
-                    return false;
-                }
-
-                const perfil = await resp.json();
-
-                if (perfil.solo_lectura) {
-                    bloquearModulo("Tu acceso venció. No puedes generar documentos hasta que se renueve. Contacta al administrador.");
-                    return false;
-                }
-                if (!(perfil.modulos_permitidos || []).includes(MODULO.permiso)) {
-                    bloquearModulo(`Tu plan actual no incluye el módulo de ${MODULO.nombre}. Contacta al administrador si necesitas acceso.`);
-                    return false;
-                }
-                return true;
-            } catch (error) {
-                bloquearModulo("No pudimos conectar con el servidor. Verifica tu conexión, intenta de nuevo más tarde o contacta al administrador.");
-                return false;
+                return detalle ? "No se pudo completar: " + detalle : "Error inesperado en el servidor.";
+            } catch (e) {
+                return "Error inesperado en el servidor.";
             }
         }
+        return "Hubo un problema al procesar la solicitud (código " + resp.status + ").";
+    }
 
-        // --- Llegada desde el módulo "Clientes" (?rfc=...&cliente=...) ---
-        const parametros = new URLSearchParams(window.location.search);
-        const rfcDesdeCliente = parametros.get("rfc");
-        const nombreCliente = parametros.get("cliente");
+    function fechaLarga(iso) {
+        var f = new Date(iso + "Z");
+        if (isNaN(f)) return "";
+        return f.toLocaleDateString("es-MX", { day: "numeric", month: "long", year: "numeric" });
+    }
 
-        async function verificarCacheAlEntrar() {
-            if (!rfcDesdeCliente) return; // uso normal de Herramientas Rápidas, sin cambios
+    async function bajarBlob(url, nombre) {
+        var resp = await fetch(API + url, { credentials: "include" });
+        if (!resp.ok) throw resp;
+        var objeto = URL.createObjectURL(await resp.blob());
+        var a = document.createElement("a");
+        a.href = objeto;
+        a.download = nombre;
+        a.click();
+        setTimeout(function () { URL.revokeObjectURL(objeto); }, 4000);
+    }
 
-            const campoRFC = document.getElementById("rfc");
-            campoRFC.value = rfcDesdeCliente.toUpperCase();
-            campoRFC.readOnly = true;
-            campoRFC.classList.add("campo-solo-lectura");
+    /* ============================== MODO INDIVIDUAL — paso 2 */
 
-            await revisarSiEsCliente(rfcDesdeCliente.toUpperCase());
-            await revisarEstadoDelRFC(rfcDesdeCliente, nombreCliente);
-        }
+    function pintarPaso2(html) {
+        var caja = $("paso-dos");
+        caja.innerHTML = html;
+        caja.hidden = !html;
+    }
 
-        function mostrarFormularioGeneracion() {
-            document.getElementById("panel-cliente-detectado").classList.add("hidden");
-            document.getElementById("panel-cliente-detectado").classList.remove("flex");
-            document.getElementById("panel-efirma-guardada").classList.add("hidden");
-            document.getElementById("panel-efirma-guardada").classList.remove("flex");
-            document.getElementById("form-individual").classList.remove("hidden");
-        }
+    function esqueleto() {
+        pintarPaso2(
+            '<div class="ficha">' +
+              '<div class="fc-esqueleto" style="height:15px;width:48%"></div>' +
+              '<div class="fc-esqueleto" style="height:13px;width:72%;margin-top:11px"></div>' +
+              '<div class="fc-esqueleto" style="height:44px;margin-top:18px"></div>' +
+            "</div>");
+    }
 
-        function manejarActualizar() {
-            const panelCache = document.getElementById("panel-cliente-detectado");
-            panelCache.classList.add("hidden");
-            panelCache.classList.remove("flex");
+    /**
+     * Averigua todo lo que el servidor ya sabe de este RFC antes de
+     * pedirle nada al usuario: si hay un trabajo corriendo, si tiene
+     * e.firma guardada, y si ya existe un documento reciente.
+     */
+    async function investigarRFC(rfc) {
+        var info = { pendiente: null, efirma: false, cache: null, registrado: null };
 
-            if (efirmaGuardadaActual) {
-                // El botón y la barra de progreso viven dentro de este
-                // panel, así que hay que mostrarlo ANTES de arrancar --
-                // si no, se ocultan los tres paneles y la pantalla queda
-                // vacía aunque el proceso sí esté corriendo.
-                const panelEfirma = document.getElementById("panel-efirma-guardada");
-                panelEfirma.classList.remove("hidden");
-                panelEfirma.classList.add("flex");
-                generarConEfirmaGuardada();
-            } else {
-                mostrarFormularioGeneracion();
+        try {
+            var r1 = await fetch(API + "/api/trabajos/pendiente?rfc=" + encodeURIComponent(rfc) +
+                "&tipo=" + MODULO.tipo, { credentials: "include" });
+            if (r1.ok) {
+                var p = await r1.json();
+                if (p.existe) info.pendiente = p.job_id;
             }
-        }
+        } catch (e) { /* no es bloqueante */ }
 
-        async function generarConEfirmaGuardada() {
-            if (trabajosEnCurso[rfcActivo]) {
-                mostrarAlerta("error", "Ya se está generando este documento, espera a que termine.");
-                return;
+        try {
+            var r2 = await fetch(API + "/api/clientes/" + encodeURIComponent(rfc) + "/efirma-estado",
+                { credentials: "include" });
+            if (r2.ok) info.efirma = !!(await r2.json()).efirma_guardada;
+        } catch (e) { /* no es bloqueante */ }
+
+        try {
+            var r3 = await fetch(API + "/api/documentos/estado?rfc=" + encodeURIComponent(rfc) +
+                "&tipo=" + MODULO.tipo, { credentials: "include" });
+            if (r3.ok) {
+                var d = await r3.json();
+                if (d.existe) info.cache = d;
             }
-            ocultarAlerta();
+        } catch (e) { /* no es bloqueante */ }
 
-            const boton = document.getElementById("btn-generar-efirma-guardada");
-            const originalHTML = boton.innerHTML;
-            toggleLoadingState("btn-generar-efirma-guardada", true, originalHTML);
+        try {
+            var r4 = await fetch(API + "/api/clientes/" + encodeURIComponent(rfc) + "/existe",
+                { credentials: "include" });
+            if (r4.ok) info.registrado = await r4.json();
+        } catch (e) { /* no es bloqueante */ }
 
+        return info;
+    }
+
+    async function alElegirCliente(quien) {
+        elegido = quien;
+        sinAlerta();
+        esqueleto();
+
+        var info = await investigarRFC(quien.rfc);
+        if (!elegido || elegido.rfc !== quien.rfc) return;   // cambió de RFC mientras consultábamos
+        estado = info;
+
+        if (estado.pendiente) {
+            vistaProgreso("Ya tenías un documento en proceso para este RFC. Retomamos el seguimiento.");
+            vigilarTrabajo(estado.pendiente);
+            return;
+        }
+        if (estado.cache) { vistaCache(); return; }
+        if (estado.efirma) { vistaEfirmaGuardada(); return; }
+        vistaFormulario();
+    }
+
+    function alLimpiarCliente() {
+        elegido = null;
+        estado = null;
+        sinAlerta();
+        pintarPaso2("");
+    }
+
+    /* --- Estado A: ya existe un documento reciente --- */
+
+    function vistaCache() {
+        pintarPaso2(
+            '<div class="ficha fade-in">' +
+              '<h2 class="ficha__titulo">Ya tienes esta ' + esc(MODULO.nombre) + "</h2>" +
+              '<p class="ficha__nota">Se generó el ' + esc(fechaLarga(estado.cache.generado_en)) +
+              ". Puedes bajar esa misma o pedir una nueva al SAT.</p>" +
+              '<div class="botonera">' +
+                '<button type="button" class="boton-principal" id="btn-cache">Descargar la que ya tengo</button>' +
+                '<button type="button" class="boton-secundario" id="btn-nueva">Pedir una nueva al SAT</button>' +
+              "</div></div>");
+
+        $("btn-cache").addEventListener("click", async function () {
+            var b = this;
+            b.disabled = true;
+            b.textContent = "Descargando…";
             try {
-                const resp = await fetch(`${API_URL}/api/clientes/${encodeURIComponent(rfcActivo)}/generar-${MODULO.slug}`, {
-                    method: "POST",
-                    credentials: "include",
-                });
-                if (!resp.ok) {
-                    toggleLoadingState("btn-generar-efirma-guardada", false, originalHTML);
-                    mostrarAlerta("error", await interpretarError(resp));
-                    return;
-                }
-                const { job_id } = await resp.json();
-                monitorearTrabajo(job_id, "efirma-guardada", rfcActivo, "btn-generar-efirma-guardada", originalHTML);
-            } catch (error) {
-                toggleLoadingState("btn-generar-efirma-guardada", false, originalHTML);
-                mostrarAlerta("error", await interpretarError(null));
-            }
-        }
-
-        async function descargarDesdeCache() {
-            const boton = document.getElementById("btn-descargar-cache");
-            const originalHTML = boton.innerHTML;
-            boton.disabled = true;
-            boton.innerHTML = "Descargando...";
-            try {
-                const resp = await fetch(`${API_URL}/api/documentos/descargar?rfc=${encodeURIComponent(rfcActivo)}&tipo=${MODULO.tipo}`, {
-                    credentials: "include",
-                });
-                if (!resp.ok) {
-                    mostrarAlerta("error", "No se pudo descargar el documento en caché. Intenta 'Actualizar' para generar uno nuevo.");
-                    return;
-                }
-                const blob = await resp.blob();
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement("a");
-                a.href = url;
-                a.download = `${MODULO.prefijoArchivo}_${rfcActivo}.pdf`;
-                a.click();
-            } catch (error) {
-                mostrarAlerta("error", "No se pudo conectar con el servidor para descargar el documento.");
+                await bajarBlob("/api/documentos/descargar?rfc=" + encodeURIComponent(elegido.rfc) +
+                    "&tipo=" + MODULO.tipo, MODULO.prefijoArchivo + "_" + elegido.rfc + ".pdf");
+            } catch (resp) {
+                alerta("error", "No se pudo bajar el documento guardado. Prueba pidiendo uno nuevo.");
             } finally {
+                b.disabled = false;
+                b.textContent = "Descargar la que ya tengo";
+            }
+        });
+
+        $("btn-nueva").addEventListener("click", function () {
+            if (estado.efirma) generarConEfirmaGuardada();
+            else vistaFormulario();
+        });
+    }
+
+    /* --- Estado B: e.firma guardada, sin documento reciente --- */
+
+    function vistaEfirmaGuardada() {
+        pintarPaso2(
+            '<div class="ficha fade-in">' +
+              '<h2 class="ficha__titulo">Todo listo</h2>' +
+              '<p class="ficha__nota">Este contribuyente ya tiene su e.firma guardada, no hay nada más que subir.</p>' +
+              '<button type="button" class="boton-principal" id="btn-generar">Generar ' + esc(MODULO.nombre) + "</button>" +
+              '<button type="button" class="enlace-discreto" id="btn-otra-efirma">Usar otra e.firma</button>' +
+            "</div>");
+
+        $("btn-generar").addEventListener("click", generarConEfirmaGuardada);
+        $("btn-otra-efirma").addEventListener("click", vistaFormulario);
+    }
+
+    async function generarConEfirmaGuardada() {
+        if (enCurso[elegido.rfc]) {
+            alerta("error", "Ya se está generando este documento. Espera a que termine.");
+            return;
+        }
+        sinAlerta();
+        vistaProgreso("Arrancando…");
+        try {
+            var resp = await fetch(API + "/api/clientes/" + encodeURIComponent(elegido.rfc) +
+                "/generar-" + MODULO.slug, { method: "POST", credentials: "include" });
+            if (!resp.ok) {
+                alerta("error", await leerError(resp));
+                vistaEfirmaGuardada();
+                return;
+            }
+            var datos = await resp.json();
+            vigilarTrabajo(datos.job_id);
+            Fiscontable.refrescarDescargas();
+        } catch (e) {
+            alerta("error", await leerError(null));
+            vistaEfirmaGuardada();
+        }
+    }
+
+    /* --- Estado C: hay que subir la e.firma --- */
+
+    function vistaFormulario() {
+        var registrado = estado && estado.registrado;
+        var yaTieneGuardada = estado && estado.efirma;
+
+        pintarPaso2(
+            '<div class="ficha fade-in">' +
+              '<h2 class="ficha__titulo">Su e.firma</h2>' +
+              '<p class="ficha__nota">Viaja cifrada y se borra del servidor al terminar.</p>' +
+
+              '<div class="dos">' +
+                '<label class="campo"><span class="campo__etiqueta">Certificado (.cer)</span>' +
+                  '<input type="file" id="cer" accept=".cer" class="campo__archivo"></label>' +
+                '<label class="campo"><span class="campo__etiqueta">Clave privada (.key)</span>' +
+                  '<input type="file" id="key" accept=".key" class="campo__archivo"></label>' +
+              "</div>" +
+              '<p class="pc-pista" id="pista-cer"></p>' +
+
+              '<label class="campo" style="margin-top:8px">' +
+                '<span class="campo__etiqueta">Contraseña de la e.firma</span>' +
+                '<span style="position:relative;display:block">' +
+                  '<input type="password" id="password" autocomplete="new-password" class="campo__control" style="padding-right:44px">' +
+                  '<button type="button" class="ojo" id="ver-password" aria-label="Mostrar contraseña">' +
+                    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' +
+                    '<path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path d="M2.5 12C3.7 7.9 7.5 5 12 5s8.3 2.9 9.5 7c-1.2 4.1-5 7-9.5 7s-8.3-2.9-9.5-7z"/></svg>' +
+                  "</button></span></label>" +
+
+              (MODULO.adicional ?
+                '<label class="interruptor"><input type="checkbox" id="chk-adicional">' +
+                "<span><strong>Traer también la " + esc(MODULO.adicional) + "</strong>" +
+                "<span>Se saca en la misma sesión, sin volver a pedir los datos.</span></span></label>" : "") +
+
+              (yaTieneGuardada ? "" :
+                '<label class="interruptor"><input type="checkbox" id="chk-guardar">' +
+                '<span><strong>Guardar esta e.firma</strong><span>' +
+                (registrado && registrado.existe
+                    ? "Queda cifrada en la ficha de " + esc(registrado.alias) + ", para no volver a subirla."
+                    : "Queda cifrada y este RFC se da de alta en tu directorio.") +
+                "</span></span></label>" +
+                '<div class="campo" id="campo-alias" hidden style="margin-top:2px">' +
+                  '<span class="campo__etiqueta">Nombre del cliente</span>' +
+                  '<input type="text" id="alias" class="campo__control" placeholder="Ej. Constructora del Caribe">' +
+                "</div>") +
+
+              '<button type="button" class="boton-principal" id="btn-generar">Generar ' + esc(MODULO.nombre) + "</button>" +
+            "</div>");
+
+        $("ver-password").addEventListener("click", function () {
+            var c = $("password");
+            c.type = c.type === "password" ? "text" : "password";
+        });
+
+        // El RFC ya lo eligió el usuario en el paso 1, así que el .cer
+        // ahora sirve para CONFIRMAR que corresponde. Antes el RFC salía
+        // del certificado y una confusión de archivos era invisible.
+        $("cer").addEventListener("change", async function (e) {
+            var pista = $("pista-cer");
+            var archivo = e.target.files[0];
+            if (!archivo) { pista.textContent = ""; return; }
+
+            pista.className = "pc-pista";
+            pista.textContent = "Leyendo el certificado…";
+            var rfcCert = await extraerRFCDeCertificado(archivo);
+
+            if (!rfcCert) {
+                pista.textContent = "No pudimos leer el RFC del certificado. Si estás seguro de que es el correcto, continúa.";
+                return;
+            }
+            if (rfcCert !== elegido.rfc) {
+                pista.className = "pc-pista pc-pista--mal";
+                pista.textContent = "Cuidado: este certificado es de " + esc(rfcCert) +
+                    " y elegiste " + esc(elegido.rfc) + ".";
+                return;
+            }
+            pista.className = "pc-pista pc-pista--bien";
+            pista.textContent = "El certificado corresponde a " + esc(rfcCert) + ".";
+        });
+
+        var chkGuardar = $("chk-guardar");
+        if (chkGuardar) {
+            chkGuardar.addEventListener("change", function () {
+                var hacenFaltaDatos = this.checked && !(registrado && registrado.existe);
+                $("campo-alias").hidden = !hacenFaltaDatos;
+                if (hacenFaltaDatos) $("alias").focus();
+            });
+        }
+
+        $("btn-generar").addEventListener("click", generarConFormulario);
+    }
+
+    async function generarConFormulario() {
+        sinAlerta();
+        if (enCurso[elegido.rfc]) {
+            alerta("error", "Ya se está generando este documento. Espera a que termine.");
+            return;
+        }
+
+        var cer = $("cer").files[0];
+        var key = $("key").files[0];
+        var password = $("password").value;
+        if (!cer || !key || !password) {
+            alerta("error", "Faltan el .cer, el .key o la contraseña.");
+            return;
+        }
+
+        var chkGuardar = $("chk-guardar");
+        var quiereGuardar = !!(chkGuardar && chkGuardar.checked);
+        var alias = $("alias") ? $("alias").value.trim() : "";
+        var esNuevo = quiereGuardar && !(estado.registrado && estado.registrado.existe);
+
+        if (esNuevo && !alias) {
+            alerta("error", "Escribe el nombre del cliente para darlo de alta, o desactiva el guardado de la e.firma.");
+            return;
+        }
+
+        var adicional = $("chk-adicional") ? $("chk-adicional").checked : false;
+
+        var cuerpo = new FormData();
+        cuerpo.append("rfc", elegido.rfc);
+        cuerpo.append("password", password);
+        cuerpo.append("cer", cer);
+        cuerpo.append("key", key);
+        cuerpo.append("descargar_csf", MODULO.tipo === "csf" ? "true" : String(adicional));
+        cuerpo.append("descargar_32d", MODULO.tipo === "opinion" ? "true" : String(adicional));
+        cuerpo.append("guardar_efirma", String(quiereGuardar));
+        cuerpo.append("alias_cliente", alias);
+
+        var boton = $("btn-generar");
+        boton.disabled = true;
+        boton.textContent = "Arrancando…";
+
+        try {
+            var resp = await fetch(API + "/api/" + MODULO.slug + "/iniciar",
+                { method: "POST", credentials: "include", body: cuerpo });
+            if (!resp.ok) {
+                alerta("error", await leerError(resp));
                 boton.disabled = false;
-                boton.innerHTML = originalHTML;
-            }
-        }
-
-        // --- Detección simple de móvil, para decidir cómo se piden los
-        // archivos del lote (carpeta completa vs selección múltiple). ---
-        const esMovil = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || window.matchMedia("(pointer: coarse)").matches;
-
-        document.addEventListener("DOMContentLoaded", async () => {
-            const permitido = await verificarPermisos();
-            if (!permitido) return;
-
-            verificarCacheAlEntrar();
-            mostrarCuotaDiaria();
-            const folderInput = document.getElementById("folder_input");
-            if (esMovil) {
-                document.getElementById("dropzone-titulo").innerText = "Toca aquí para seleccionar tus archivos";
-                document.getElementById("dropzone-subtitulo").innerText = "Elige el directorio.xlsx y todos los .cer/.key a la vez";
-                document.getElementById("instruccion-dropzone-texto").innerText = "En celular no se puede arrastrar una carpeta: selecciona el Excel y todos los archivos .cer/.key juntos desde tu explorador de archivos.";
-            } else {
-                folderInput.setAttribute("webkitdirectory", "");
-                folderInput.setAttribute("directory", "");
-            }
-        });
-
-        // --- Autocompletar RFC desde el certificado .cer ---
-        // --- Estado compartido: qué RFC está "activo" en pantalla ahora
-        // mismo, venga de un link de "Mis Clientes" o de haber leído el
-        // .cer a mano en Herramientas Rápidas. El panel de Descargar /
-        // Actualizar usa esta misma variable en los dos casos. ---
-        let rfcActivo = rfcDesdeCliente ? rfcDesdeCliente.toUpperCase() : null;
-        let efirmaGuardadaActual = false;
-        let clienteRegistrado = null;  // {existe, alias, efirma_guardada} del RFC en pantalla
-
-        // --- Cuando ya sabemos el RFC, consultamos si está en el
-        // directorio: de eso depende si al guardar la e.firma hay que
-        // pedir un nombre (para darlo de alta) o no. ---
-        async function revisarSiEsCliente(rfc) {
-            try {
-                const resp = await fetch(`${API_URL}/api/clientes/${encodeURIComponent(rfc)}/existe`, {
-                    credentials: "include",
-                });
-                clienteRegistrado = resp.ok ? await resp.json() : null;
-            } catch (error) {
-                clienteRegistrado = null;
-            }
-            actualizarBloqueEfirma();
-        }
-
-        function actualizarBloqueEfirma() {
-            const bloque = document.getElementById("bloque-guardar-efirma");
-            const texto = document.getElementById("texto-guardar-efirma");
-            const chk = document.getElementById("chk_guardar_efirma");
-
-            if (clienteRegistrado && clienteRegistrado.efirma_guardada) {
-                // Ya la tiene guardada: no tiene caso ofrecer guardarla otra vez
-                bloque.classList.add("hidden");
-                chk.checked = false;
+                boton.textContent = "Generar " + MODULO.nombre;
                 return;
             }
-            bloque.classList.remove("hidden");
-
-            if (clienteRegistrado && clienteRegistrado.existe) {
-                texto.textContent = `Se guardará en la ficha de ${clienteRegistrado.alias}, cifrada, para no volver a subirla.`;
-            } else {
-                texto.textContent = "Se guarda cifrada y este RFC se dará de alta en tu directorio de clientes.";
-            }
-            alCambiarGuardarEfirma();
+            var datos = await resp.json();
+            vistaProgreso("Arrancando…");
+            vigilarTrabajo(datos.job_id);
+            Fiscontable.refrescarDescargas();
+        } catch (e) {
+            alerta("error", await leerError(null));
+            boton.disabled = false;
+            boton.textContent = "Generar " + MODULO.nombre;
         }
+    }
 
-        function alCambiarGuardarEfirma() {
-            const activo = document.getElementById("chk_guardar_efirma").checked;
-            const necesitaAlias = activo && !(clienteRegistrado && clienteRegistrado.existe);
-            const campo = document.getElementById("campo-alias-cliente");
-            campo.classList.toggle("hidden", !necesitaAlias);
-            if (necesitaAlias) document.getElementById("alias_cliente").focus();
-        }
+    /* --- Progreso de un trabajo individual --- */
 
-        // --- Trabajos en curso para este RFC (para no dejar que un
-        // segundo clic en "Generar Constancia" dispare un segundo robot
-        // en paralelo mientras el primero sigue corriendo). ---
-        const trabajosEnCurso = {};
+    function vistaProgreso(mensaje) {
+        pintarPaso2(
+            '<div class="ficha fade-in">' +
+              '<h2 class="ficha__titulo">En proceso</h2>' +
+              '<p class="ficha__nota" id="progreso-texto">' + esc(mensaje) + "</p>" +
+              '<div class="progress-track" style="margin-top:12px"><div class="progress-fill" id="progreso-fill" style="width:6%"></div></div>' +
+              '<p class="ficha__nota" style="margin-top:10px">Puedes seguir trabajando: esto sigue corriendo ' +
+              "y lo vas a encontrar en Mis descargas.</p>" +
+            "</div>");
+    }
 
-        async function revisarEstadoDelRFC(rfc, nombreMostrar) {
-            rfcActivo = rfc.toUpperCase();
+    function vigilarTrabajo(jobId) {
+        var rfc = elegido.rfc;
+        enCurso[rfc] = jobId;
+        var segundos = 0;
 
+        var intervalo = setInterval(async function () {
+            segundos += 2;
+            var resp;
             try {
-                const pendResp = await fetch(`${API_URL}/api/trabajos/pendiente?rfc=${encodeURIComponent(rfcActivo)}&tipo=${MODULO.tipo}`, {
-                    credentials: "include",
-                });
-                if (pendResp.ok) {
-                    const pendiente = await pendResp.json();
-                    if (pendiente.existe) {
-                        document.getElementById("form-individual").classList.add("hidden");
-                        mostrarAlerta("success", "Ya tenías un documento en proceso para este RFC. Retomando el seguimiento...");
-                        monitorearTrabajo(pendiente.job_id, "individual", rfcActivo);
-                        return;
-                    }
-                }
-            } catch (error) {
-                console.warn("No se pudo consultar si había un trabajo pendiente:", error);
+                resp = await fetch(API + "/api/trabajos/" + jobId, { credentials: "include" });
+            } catch (e) {
+                return;    // tropiezo de red: se reintenta en la siguiente vuelta
             }
-
-            try {
-                const efirmaResp = await fetch(`${API_URL}/api/clientes/${encodeURIComponent(rfcActivo)}/efirma-estado`, {
-                    credentials: "include",
-                });
-                if (efirmaResp.ok) {
-                    const efirmaData = await efirmaResp.json();
-                    efirmaGuardadaActual = !!efirmaData.efirma_guardada;
-                }
-            } catch (error) {
-                console.warn("No se pudo consultar el estado de la e.firma guardada:", error);
-            }
-
-            try {
-                const resp = await fetch(`${API_URL}/api/documentos/estado?rfc=${encodeURIComponent(rfcActivo)}&tipo=${MODULO.tipo}`, {
-                    credentials: "include",
-                });
-                if (!resp.ok) return;
-                const data = await resp.json();
-
-                if (data.existe) {
-                    document.getElementById("panel-cliente-nombre").textContent = nombreMostrar || rfcActivo;
-                    const fecha = new Date(data.generado_en + "Z");
-                    document.getElementById("panel-cliente-fecha").textContent = fecha.toLocaleDateString("es-MX", { day: "numeric", month: "long", year: "numeric" });
-                    document.getElementById("panel-cliente-detectado").classList.remove("hidden");
-                    document.getElementById("panel-cliente-detectado").classList.add("flex");
-                    document.getElementById("form-individual").classList.add("hidden");
-                    return;
-                }
-            } catch (error) {
-                console.warn("No se pudo consultar el caché de documentos:", error);
-            }
-
-            // No hay documento en caché. Si de todas formas ya tiene la
-            // e.firma guardada, no tiene caso pedirle que la vuelva a
-            // subir -- se ofrece generar directo.
-            if (efirmaGuardadaActual) {
-                document.getElementById("panel-efirma-guardada").classList.remove("hidden");
-                document.getElementById("panel-efirma-guardada").classList.add("flex");
-                document.getElementById("form-individual").classList.add("hidden");
-            }
-        }
-
-        document.getElementById("archivo_cer").addEventListener("change", async (e) => {
-            if (rfcDesdeCliente) return; // el RFC ya vino fijo desde "Mis Clientes"; no hace falta releerlo
-
-            const archivo = e.target.files[0];
-            const campoRFC = document.getElementById("rfc");
-            const hint = document.getElementById("rfc-hint");
-            if (!archivo) return;
-
-            hint.textContent = "Leyendo certificado...";
-            const rfcDetectado = await extraerRFCDeCertificado(archivo);
-
-            if (rfcDetectado) {
-                campoRFC.value = rfcDetectado;
-                campoRFC.readOnly = true;
-                campoRFC.classList.add("campo-solo-lectura");
-                hint.textContent = "RFC leído automáticamente de tu certificado.";
-                hint.className = "text-xs text-green-600 mt-1";
-                await revisarSiEsCliente(rfcDetectado);
-                await revisarEstadoDelRFC(rfcDetectado, null);
-            } else {
-                campoRFC.value = "";
-                campoRFC.readOnly = false;
-                campoRFC.classList.remove("campo-solo-lectura");
-                campoRFC.placeholder = "No se pudo leer, escribe tu RFC";
-                hint.textContent = "No pudimos leerlo automáticamente de tu certificado. Ingrésalo manualmente.";
-                hint.className = "text-xs text-amber-600 mt-1";
-            }
-        });
-
-        function obtenerFechaDDMMAA() {
-            const hoy = new Date();
-            const dd = String(hoy.getDate()).padStart(2, '0');
-            const mm = String(hoy.getMonth() + 1).padStart(2, '0');
-            const aa = String(hoy.getFullYear()).slice(-2);
-            return `${dd}_${mm}_${aa}`;
-        }
-
-        function abrirInstructivo() { document.getElementById('modal-instrucciones').classList.add('modal-active'); }
-        function cerrarInstructivo() { document.getElementById('modal-instrucciones').classList.remove('modal-active'); }
-
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') cerrarInstructivo();
-        });
-
-        function switchTab(modo) {
-            document.getElementById('tab-ind').className = modo === 'individual' ? "flex-1 py-4 text-sm font-bold text-indigo-700 border-b-2 border-indigo-600 transition flex justify-center items-center gap-2 bg-white" : "flex-1 py-4 text-sm font-semibold text-slate-500 border-b-2 border-transparent hover:text-slate-700 transition flex justify-center items-center gap-2";
-            document.getElementById('tab-mas').className = modo === 'masivo' ? "flex-1 py-4 text-sm font-bold text-indigo-700 border-b-2 border-indigo-600 transition flex justify-center items-center gap-2 bg-white" : "flex-1 py-4 text-sm font-semibold text-slate-500 border-b-2 border-transparent hover:text-slate-700 transition flex justify-center items-center gap-2";
-            document.getElementById('form-individual').classList.toggle('hidden', modo !== 'individual');
-            document.getElementById('form-masivo').classList.toggle('hidden', modo !== 'masivo');
-            ocultarAlerta();
-        }
-
-        function limpiarFormularios() {
-            document.getElementById('form-individual').reset();
-            document.getElementById('form-masivo').reset();
-            archivosGlobalesMasivo = [];
-            revisionLote = null;
-            forzarRegenerarLote = false;
-            document.getElementById('panel-validacion').classList.add('hidden');
-            document.getElementById('panel-revision-servidor').classList.add('hidden');
-            document.getElementById('btn-masivo').disabled = true;
-
-            const campoRFC = document.getElementById('rfc');
-            campoRFC.readOnly = true;
-            campoRFC.classList.add('campo-solo-lectura');
-            campoRFC.placeholder = "";
-            const hint = document.getElementById('rfc-hint');
-            hint.textContent = "";
-            hint.className = "text-xs mt-1";
-
-            document.getElementById('panel-efirma-guardada').classList.add('hidden');
-            document.getElementById('panel-efirma-guardada').classList.remove('flex');
-            document.getElementById('form-individual').classList.remove('hidden');
-
-            ocultarAlerta();
-        }
-
-        function togglePassword(inputId) {
-            const input = document.getElementById(inputId);
-            input.type = input.type === "password" ? "text" : "password";
-        }
-
-        function mostrarAlerta(tipo, mensaje) {
-            const container = document.getElementById('alert-container');
-            const alertBox = document.getElementById('alert-message');
-            container.classList.remove('hidden');
-            alertBox.className = tipo === 'error'
-                ? "p-4 rounded-lg text-sm font-semibold flex items-start gap-2 bg-amber-50 text-amber-800 border border-amber-200"
-                : "p-4 rounded-lg text-sm font-semibold flex items-start gap-2 bg-green-50 text-green-700 border border-green-200";
-            alertBox.innerHTML = tipo === 'error'
-                ? `<svg class="w-5 h-5 flex-none mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg> <span>${mensaje}</span>`
-                : `<svg class="w-5 h-5 flex-none mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> <span>${mensaje}</span>`;
-        }
-
-        function ocultarAlerta() { document.getElementById('alert-container').classList.add('hidden'); }
-
-        const dropzone = document.getElementById('dropzone');
-        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => { dropzone.addEventListener(eventName, preventDefaults, false); });
-        function preventDefaults(e) { e.preventDefault(); e.stopPropagation(); }
-        ['dragenter', 'dragover'].forEach(eventName => { dropzone.addEventListener(eventName, () => dropzone.classList.add('drag-over'), false); });
-        ['dragleave', 'drop'].forEach(eventName => { dropzone.addEventListener(eventName, () => dropzone.classList.remove('drag-over'), false); });
-
-        dropzone.addEventListener('drop', async (e) => {
-            let files = [];
-            const items = e.dataTransfer.items;
-            for (let i = 0; i < items.length; i++) {
-                const item = items[i].webkitGetAsEntry();
-                if (item) { files = files.concat(await readEntry(item)); }
-            }
-            procesarYValidarCarpeta(files);
-        });
-
-        function leerCarpeta(e) { procesarYValidarCarpeta(Array.from(e.target.files)); }
-
-        async function readEntry(entry) {
-            if (entry.isFile) { return new Promise(resolve => entry.file(resolve)); }
-            else if (entry.isDirectory) {
-                const dirReader = entry.createReader();
-                const entries = await new Promise(resolve => dirReader.readEntries(resolve));
-                let files = [];
-                for (let i = 0; i < entries.length; i++) { files = files.concat(await readEntry(entries[i])); }
-                return files;
-            }
-        }
-
-        function procesarYValidarCarpeta(files) {
-            archivosGlobalesMasivo = files.filter(f => f.name.toLowerCase().endsWith('.cer') || f.name.toLowerCase().endsWith('.key') || f.name.toLowerCase().endsWith('.xlsx'));
-
-            const excelFile = archivosGlobalesMasivo.find(f => f.name.toLowerCase() === 'directorio.xlsx');
-            const panel = document.getElementById('panel-validacion');
-            const listaErrores = document.getElementById('lista-errores');
-            const msgExito = document.getElementById('msg-exito');
-            const badge = document.getElementById('badge-status');
-            const btnMasivo = document.getElementById('btn-masivo');
-
-            panel.classList.remove('hidden');
-            listaErrores.innerHTML = '';
-            msgExito.classList.add('hidden');
-            btnMasivo.disabled = true;
-
-            if (!excelFile) {
-                badge.className = "px-2 py-1 rounded font-bold bg-red-100 text-red-700";
-                badge.innerText = "Error Crítico";
-                listaErrores.innerHTML = "<li>No se encontró el archivo 'directorio.xlsx' entre los archivos seleccionados.</li>";
+            if (!resp.ok) {
+                clearInterval(intervalo);
+                delete enCurso[rfc];
+                alerta("error", await leerError(resp));
+                vistaFormulario();
                 return;
             }
 
-            badge.className = "px-2 py-1 rounded font-bold bg-indigo-100 text-indigo-700";
-            badge.innerText = "Analizando...";
+            var t = await resp.json();
 
-            const reader = new FileReader();
-            reader.onload = function (e) {
+            if (t.estado === "procesando") {
+                var fill = $("progreso-fill");
+                if (fill) fill.style.width = Math.min(10 + segundos * 2, 92) + "%";
+                var texto = $("progreso-texto");
+                if (texto) texto.textContent = t.progreso || "Procesando… (" + segundos + " s)";
+                return;
+            }
+
+            clearInterval(intervalo);
+            delete enCurso[rfc];
+            Fiscontable.refrescarDescargas();
+
+            if (t.estado === "completado") {
+                var fillFinal = $("progreso-fill");
+                if (fillFinal) fillFinal.style.width = "100%";
                 try {
-                    const data = new Uint8Array(e.target.result);
-                    const workbook = XLSX.read(data, { type: 'array' });
-                    const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-                    const jsonExcel = XLSX.utils.sheet_to_json(firstSheet);
-
-                    if (jsonExcel.length === 0) {
-                        badge.className = "px-2 py-1 rounded font-bold bg-amber-100 text-amber-700";
-                        badge.innerText = "Excel Vacío";
-                        listaErrores.innerHTML = "<li>El archivo Excel no contiene registros para procesar.</li>";
-                        return;
-                    }
-
-                    let erroresEncontrados = [];
-                    const nombresEnCarpeta = archivosGlobalesMasivo.map(f => f.name.toLowerCase());
-
-                    jsonExcel.forEach((row, index) => {
-                        const filaNum = index + 2;
-                        const rfc = row.RFC ? String(row.RFC).trim() : `Fila ${filaNum}`;
-
-                        let reqCer = row.Archivo_CER ? String(row.Archivo_CER).trim().toLowerCase() : "";
-                        let reqKey = row.Archivo_KEY ? String(row.Archivo_KEY).trim().toLowerCase() : "";
-
-                        if (reqCer && !reqCer.endsWith('.cer')) reqCer += '.cer';
-                        if (reqKey && !reqKey.endsWith('.key')) reqKey += '.key';
-
-                        if (!reqCer || !nombresEnCarpeta.includes(reqCer)) {
-                            erroresEncontrados.push(`<li><b>${rfc}:</b> Falta archivo CER (${reqCer || 'Celda vacía'})</li>`);
-                        }
-                        if (!reqKey || !nombresEnCarpeta.includes(reqKey)) {
-                            erroresEncontrados.push(`<li><b>${rfc}:</b> Falta archivo KEY (${reqKey || 'Celda vacía'})</li>`);
-                        }
-                    });
-
-                    if (erroresEncontrados.length > 0) {
-                        badge.className = "px-2 py-1 rounded font-bold bg-red-100 text-red-700";
-                        badge.innerText = `${erroresEncontrados.length} Errores de Archivos`;
-                        listaErrores.innerHTML = erroresEncontrados.join('');
-                    } else {
-                        badge.className = "px-2 py-1 rounded font-bold bg-green-100 text-green-700";
-                        badge.innerText = "Validación Exitosa";
-                        msgExito.classList.remove('hidden');
-                        // La validación local (archivos presentes) pasó.
-                        // Ahora le preguntamos al servidor qué ya existe
-                        // y qué e.firmas traen problemas -- sin tocar el
-                        // SAT. Eso decide qué botones se ofrecen.
-                        revisarLoteEnServidor();
-                    }
-
-                } catch (error) {
-                    listaErrores.innerHTML = "<li>Error al leer el formato del archivo Excel. Verifica que no esté corrupto.</li>";
+                    await bajarBlob("/api/trabajos/" + jobId + "/descargar",
+                        t.nombre_descarga || (MODULO.prefijoArchivo + "_" + rfc + ".pdf"));
+                    alerta("bien", "Listo. El documento ya se descargó.");
+                } catch (err) {
+                    alerta("error", "El documento se generó, pero no se pudo bajar solo. Búscalo en Mis descargas.");
                 }
-            };
-            reader.readAsArrayBuffer(excelFile);
-        }
-
-        // --- Revisión previa en el servidor: valida cada e.firma
-        // (contraseña, vigencia, que el .key sea del .cer) y revisa qué
-        // documentos ya existen. Todo esto sin tocar al SAT, en
-        // segundos, para no descubrir los problemas 25 minutos después. ---
-
-        // --- Cuota diaria: informativa, se consulta al entrar. No
-        // bloquea nada aquí; el backend es quien decide. Sirve para que
-        // el usuario sepa con qué cuenta antes de armar su Excel, en vez
-        // de descubrirlo cuando ya le dio a generar. ---
-        async function mostrarCuotaDiaria() {
-            try {
-                const resp = await fetch(`${API_URL}/api/mi-cuota`, { credentials: "include" });
-                if (!resp.ok) return;
-                const cuota = await resp.json();
-
-                if (cuota.limite === null) return;  // sin límite: no hay nada que decir
-
-                const linea = document.getElementById("linea-cuota");
-                const texto = document.getElementById("texto-cuota");
-
-                if (cuota.disponibles === 0) {
-                    texto.textContent = `Ya usaste los ${cuota.limite} contribuyentes de hoy. El contador se reinicia mañana.`;
-                    linea.className = "text-xs text-amber-700 flex items-center gap-1.5";
-                } else {
-                    texto.textContent = `Hoy te quedan ${cuota.disponibles} de ${cuota.limite} contribuyentes. Los que ya tengas descargados no cuentan.`;
-                    linea.className = "text-xs text-slate-400 flex items-center gap-1.5";
-                }
-                linea.classList.remove("hidden");
-            } catch (error) {
-                // Si no se puede consultar, simplemente no se muestra nada.
+                estado.cache = { generado_en: new Date().toISOString().slice(0, 19) };
+                vistaCache();
+            } else {
+                alerta("error", t.mensaje_error || "No se pudo generar el documento.");
+                vistaFormulario();
             }
+        }, 2000);
+
+        sondeos.push(intervalo);
+    }
+
+    /* =================================== MODO MASIVO (por lote) */
+
+    var esMovil = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) ||
+        window.matchMedia("(pointer: coarse)").matches;
+
+    async function mostrarCuota() {
+        try {
+            var resp = await fetch(API + "/api/mi-cuota", { credentials: "include" });
+            if (!resp.ok) return;
+            var cuota = await resp.json();
+            if (cuota.limite === null) return;
+
+            var linea = $("linea-cuota");
+            linea.textContent = cuota.disponibles === 0
+                ? "Ya usaste los " + cuota.limite + " contribuyentes de hoy. El contador se reinicia mañana."
+                : "Hoy te quedan " + cuota.disponibles + " de " + cuota.limite +
+                  " contribuyentes. Los que ya tengas descargados no cuentan.";
+            linea.hidden = false;
+        } catch (e) { /* si no se puede consultar, no se dice nada */ }
+    }
+
+    function prepararDropzone() {
+        var zona = $("dropzone");
+        var input = $("folder_input");
+
+        if (esMovil) {
+            $("dropzone-titulo").textContent = "Toca para seleccionar los archivos";
+            $("dropzone-subtitulo").textContent = "Elige el directorio.xlsx y todos los .cer/.key a la vez";
+        } else {
+            input.setAttribute("webkitdirectory", "");
+            input.setAttribute("directory", "");
         }
 
-        async function revisarLoteEnServidor() {
-            const panel = document.getElementById("panel-revision-servidor");
-            const contenido = document.getElementById("revision-contenido");
-            panel.classList.remove("hidden");
-            contenido.innerHTML = '<p class="text-xs text-slate-500">Revisando e.firmas y documentos existentes...</p>';
+        zona.addEventListener("click", function () { input.click(); });
+        input.addEventListener("change", function (e) { validarCarpeta(Array.from(e.target.files)); });
 
-            const formData = new FormData();
-            archivosGlobalesMasivo.forEach(file => formData.append("archivos_lote", file));
-            formData.append("tipo_documento", MODULO.tipo);
+        ["dragenter", "dragover", "dragleave", "drop"].forEach(function (evento) {
+            zona.addEventListener(evento, function (e) { e.preventDefault(); e.stopPropagation(); });
+        });
+        ["dragenter", "dragover"].forEach(function (evento) {
+            zona.addEventListener(evento, function () { zona.classList.add("dropzone--activa"); });
+        });
+        ["dragleave", "drop"].forEach(function (evento) {
+            zona.addEventListener(evento, function () { zona.classList.remove("dropzone--activa"); });
+        });
 
+        zona.addEventListener("drop", async function (e) {
+            var archivos = [];
+            var items = e.dataTransfer.items;
+            for (var i = 0; i < items.length; i++) {
+                var entrada = items[i].webkitGetAsEntry();
+                if (entrada) archivos = archivos.concat(await leerEntrada(entrada));
+            }
+            validarCarpeta(archivos);
+        });
+    }
+
+    async function leerEntrada(entrada) {
+        if (entrada.isFile) return [await new Promise(function (r) { entrada.file(r); })];
+        if (!entrada.isDirectory) return [];
+        var lector = entrada.createReader();
+        var hijos = await new Promise(function (r) { lector.readEntries(r); });
+        var archivos = [];
+        for (var i = 0; i < hijos.length; i++) archivos = archivos.concat(await leerEntrada(hijos[i]));
+        return archivos;
+    }
+
+    function validarCarpeta(archivos) {
+        archivosLote = archivos.filter(function (f) {
+            var n = f.name.toLowerCase();
+            return n.endsWith(".cer") || n.endsWith(".key") || n.endsWith(".xlsx");
+        });
+
+        var excel = archivosLote.find(function (f) { return f.name.toLowerCase() === "directorio.xlsx"; });
+        var panel = $("panel-validacion");
+        var lista = $("lista-errores");
+        var btn = $("btn-masivo");
+
+        panel.hidden = false;
+        lista.innerHTML = "";
+        btn.disabled = true;
+
+        if (!excel) {
+            lista.innerHTML = "<li>No encontramos <strong>directorio.xlsx</strong> entre los archivos que elegiste.</li>";
+            return;
+        }
+
+        lista.innerHTML = "<li>Revisando el Excel…</li>";
+
+        var lector = new FileReader();
+        lector.onload = function (e) {
             try {
-                const resp = await fetch(`${API_URL}/api/lote/revisar`, {
-                    method: "POST", credentials: "include", body: formData,
-                });
-                if (!resp.ok) {
-                    contenido.innerHTML = '<p class="text-xs text-amber-700">No se pudo revisar el lote por adelantado. Puedes continuar de todos modos.</p>';
-                    document.getElementById("btn-masivo").disabled = false;
+                var libro = XLSX.read(new Uint8Array(e.target.result), { type: "array" });
+                var filas = XLSX.utils.sheet_to_json(libro.Sheets[libro.SheetNames[0]]);
+
+                if (!filas.length) {
+                    lista.innerHTML = "<li>El Excel no tiene ningún renglón que procesar.</li>";
                     return;
                 }
 
-                revisionLote = await resp.json();
-                await pintarRevisionLote();
+                var nombres = archivosLote.map(function (f) { return f.name.toLowerCase(); });
+                var faltantes = [];
 
-            } catch (error) {
-                contenido.innerHTML = '<p class="text-xs text-amber-700">No se pudo revisar el lote por adelantado. Puedes continuar de todos modos.</p>';
-                document.getElementById("btn-masivo").disabled = false;
-            }
-        }
+                filas.forEach(function (fila, i) {
+                    var rfc = fila.RFC ? String(fila.RFC).trim() : "Renglón " + (i + 2);
+                    var cer = fila.Archivo_CER ? String(fila.Archivo_CER).trim().toLowerCase() : "";
+                    var key = fila.Archivo_KEY ? String(fila.Archivo_KEY).trim().toLowerCase() : "";
+                    if (cer && !cer.endsWith(".cer")) cer += ".cer";
+                    if (key && !key.endsWith(".key")) key += ".key";
 
-        async function pintarRevisionLote() {
-            const r = revisionLote;
-            const contenido = document.getElementById("revision-contenido");
-            const yaHay = r.ya_existentes.length;
-            const conProblema = r.con_problemas.length;
-            const listos = r.listos.length;
-
-            let html = '<div class="flex flex-wrap gap-2 mb-3">';
-            html += `<span class="text-xs font-bold px-2.5 py-1 rounded-full bg-slate-100 text-slate-700">${r.total} en el Excel</span>`;
-            if (listos) html += `<span class="text-xs font-bold px-2.5 py-1 rounded-full bg-green-100 text-green-700">${listos} por generar</span>`;
-            if (yaHay) html += `<span class="text-xs font-bold px-2.5 py-1 rounded-full bg-blue-100 text-blue-700">${yaHay} ya descargados</span>`;
-            if (conProblema) html += `<span class="text-xs font-bold px-2.5 py-1 rounded-full bg-amber-100 text-amber-700">${conProblema} con problemas</span>`;
-            html += '</div>';
-
-            // Si lo que van a pedirle al SAT no cabe en lo que queda del
-            // día, se dice AQUÍ -- no después de darle a generar.
-            try {
-                const respCuota = await fetch(`${API_URL}/api/mi-cuota`, { credentials: "include" });
-                if (respCuota.ok) {
-                    const cuota = await respCuota.json();
-                    if (cuota.limite !== null && listos > cuota.disponibles) {
-                        html += `<div class="mb-3 bg-amber-50 border border-amber-200 rounded-lg p-3">
-                            <p class="text-xs text-amber-900">
-                                Este lote pediría <strong>${listos}</strong> documentos al SAT, pero hoy te quedan
-                                <strong>${cuota.disponibles}</strong> de ${cuota.limite}.
-                                Divide el lote o continúa mañana, cuando se reinicie tu contador.
-                            </p>
-                        </div>`;
+                    if (!cer || nombres.indexOf(cer) === -1) {
+                        faltantes.push("<li><strong>" + esc(rfc) + "</strong>: falta el .cer (" +
+                            esc(cer || "celda vacía") + ")</li>");
                     }
+                    if (!key || nombres.indexOf(key) === -1) {
+                        faltantes.push("<li><strong>" + esc(rfc) + "</strong>: falta el .key (" +
+                            esc(key || "celda vacía") + ")</li>");
+                    }
+                });
+
+                if (faltantes.length) {
+                    lista.innerHTML = faltantes.join("");
+                    return;
                 }
-            } catch (error) {
-                // Si no se puede consultar, se sigue sin el aviso.
+
+                lista.innerHTML = '<li class="ok">Los ' + filas.length +
+                    " renglones tienen sus archivos. Revisando contra el servidor…</li>";
+                revisarLoteEnServidor();
+            } catch (err) {
+                lista.innerHTML = "<li>No se pudo leer el Excel. Verifica que no esté dañado.</li>";
             }
+        };
+        lector.readAsArrayBuffer(excel);
+    }
 
-            if (conProblema) {
-                html += '<div class="mb-3 bg-amber-50 border border-amber-200 rounded-lg p-3">';
-                html += '<p class="text-xs font-bold text-amber-900 mb-1.5">Estos no se van a procesar hasta que los corrijas:</p>';
-                html += '<ul class="text-xs text-amber-800 space-y-1">';
-                r.con_problemas.forEach(p => { html += `<li><strong>${p.rfc}</strong> — ${p.motivo}</li>`; });
-                html += '</ul></div>';
-            }
+    async function revisarLoteEnServidor() {
+        var panel = $("panel-revision");
+        var contenido = $("revision-contenido");
+        panel.hidden = false;
+        contenido.innerHTML = '<p class="ficha__nota">Revisando e.firmas y documentos existentes…</p>';
 
-            if (yaHay) {
-                html += `<div class="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                    <p class="text-xs text-blue-900 mb-2">
-                        <strong>${yaHay} de estos RFC ya tienen su documento</strong> descargado hace menos de ${r.dias_reutilizacion} días.
-                        Puedes aprovecharlos y ahorrarte la espera, o pedir documentos nuevos del día de hoy.
-                    </p>
-                    <div class="flex flex-wrap gap-2">
-                        <label class="flex items-center gap-2 cursor-pointer bg-white border border-blue-300 rounded-lg px-3 py-2">
-                            <input type="radio" name="modo-lote" value="reutilizar" checked onchange="cambiarModoLote(this.value)">
-                            <span class="text-xs font-bold text-blue-900">Aprovechar los que ya tengo</span>
-                        </label>
-                        <label class="flex items-center gap-2 cursor-pointer bg-white border border-gray-300 rounded-lg px-3 py-2">
-                            <input type="radio" name="modo-lote" value="forzar" onchange="cambiarModoLote(this.value)">
-                            <span class="text-xs font-bold text-slate-700">Pedir todos nuevos al SAT</span>
-                        </label>
-                    </div>
-                </div>`;
-            }
+        var cuerpo = new FormData();
+        archivosLote.forEach(function (f) { cuerpo.append("archivos_lote", f); });
+        cuerpo.append("tipo_documento", MODULO.tipo);
 
-            contenido.innerHTML = html;
-            actualizarBotonMasivo();
-        }
-
-        function cambiarModoLote(valor) {
-            forzarRegenerarLote = (valor === "forzar");
-            actualizarBotonMasivo();
-        }
-
-        function actualizarBotonMasivo() {
-            const btn = document.getElementById("btn-masivo");
-            const r = revisionLote;
-            if (!r) { btn.disabled = false; return; }
-
-            const aProcesar = forzarRegenerarLote
-                ? r.listos.length + r.ya_existentes.length
-                : r.listos.length;
-
-            if (aProcesar === 0 && r.ya_existentes.length > 0 && !forzarRegenerarLote) {
-                btn.disabled = false;
-                btn.innerHTML = `Descargar los ${r.ya_existentes.length} que ya tengo`;
+        try {
+            var resp = await fetch(API + "/api/lote/revisar",
+                { method: "POST", credentials: "include", body: cuerpo });
+            if (!resp.ok) {
+                contenido.innerHTML = '<p class="ficha__nota">No se pudo revisar por adelantado. Puedes continuar de todos modos.</p>';
+                $("btn-masivo").disabled = false;
                 return;
             }
-            if (aProcesar === 0) {
-                btn.disabled = true;
-                btn.innerHTML = "No hay nada que procesar";
-                return;
+            revisionLote = await resp.json();
+            await pintarRevision();
+        } catch (e) {
+            contenido.innerHTML = '<p class="ficha__nota">No se pudo revisar por adelantado. Puedes continuar de todos modos.</p>';
+            $("btn-masivo").disabled = false;
+        }
+    }
+
+    async function pintarRevision() {
+        var r = revisionLote;
+        var listos = r.listos.length, yaHay = r.ya_existentes.length, malos = r.con_problemas.length;
+
+        var html = '<div class="sellos">' +
+            '<span class="sello">' + r.total + " en el Excel</span>" +
+            (listos ? '<span class="sello sello--bien">' + listos + " por generar</span>" : "") +
+            (yaHay ? '<span class="sello sello--info">' + yaHay + " ya descargados</span>" : "") +
+            (malos ? '<span class="sello sello--mal">' + malos + " con problemas</span>" : "") +
+            "</div>";
+
+        try {
+            var resp = await fetch(API + "/api/mi-cuota", { credentials: "include" });
+            if (resp.ok) {
+                var cuota = await resp.json();
+                if (cuota.limite !== null && listos > cuota.disponibles) {
+                    html += '<div class="nota nota--alerta">Este lote pediría <strong>' + listos +
+                        "</strong> documentos al SAT, pero hoy te quedan <strong>" + cuota.disponibles +
+                        "</strong> de " + cuota.limite + ". Divídelo o continúa mañana.</div>";
+                }
             }
+        } catch (e) { /* sin aviso de cuota */ }
+
+        if (malos) {
+            html += '<div class="nota nota--alerta"><strong>Estos no se procesan hasta que los corrijas:</strong><ul>' +
+                r.con_problemas.map(function (p) {
+                    return "<li>" + esc(p.rfc) + " — " + esc(p.motivo) + "</li>";
+                }).join("") + "</ul></div>";
+        }
+
+        if (yaHay) {
+            html += '<div class="nota nota--info"><p><strong>' + yaHay +
+                " de estos RFC ya tienen su documento</strong> de hace menos de " + r.dias_reutilizacion +
+                " días. Puedes aprovecharlos y ahorrarte la espera, o pedir todo nuevo.</p>" +
+                '<div class="opciones-lote">' +
+                  '<label><input type="radio" name="modo-lote" value="reutilizar" checked> Aprovechar los que ya tengo</label>' +
+                  '<label><input type="radio" name="modo-lote" value="forzar"> Pedir todos nuevos al SAT</label>' +
+                "</div></div>";
+        }
+
+        $("revision-contenido").innerHTML = html;
+
+        Array.prototype.forEach.call(document.getElementsByName("modo-lote"), function (radio) {
+            radio.addEventListener("change", function () {
+                forzarRegenerar = this.value === "forzar";
+                actualizarBotonMasivo();
+            });
+        });
+
+        actualizarBotonMasivo();
+    }
+
+    function actualizarBotonMasivo() {
+        var btn = $("btn-masivo");
+        var r = revisionLote;
+        if (!r) { btn.disabled = false; return; }
+
+        var cuantos = forzarRegenerar ? r.listos.length + r.ya_existentes.length : r.listos.length;
+
+        if (cuantos === 0 && r.ya_existentes.length && !forzarRegenerar) {
             btn.disabled = false;
-            btn.innerHTML = `Generar ${aProcesar} documento${aProcesar === 1 ? "" : "s"}`;
+            btn.textContent = "Descargar los " + r.ya_existentes.length + " que ya tengo";
+            return;
         }
-
-        // --- PARTE VISUAL (no le importa de dónde vienen los números).
-        // Este controlador es el que va a seguir existiendo tal cual el
-        // día que conectemos progreso real: solo cambia quién llama a
-        // .actualizar(), nunca esta función. ---
-        function crearControladorProgreso(prefijo) {
-            const contenedor = document.getElementById(`progreso-${prefijo}`);
-            const relleno = document.getElementById(`progreso-${prefijo}-fill`);
-            const texto = document.getElementById(`progreso-${prefijo}-texto`);
-
-            contenedor.classList.remove("hidden");
-            relleno.style.width = "0%";
-
-            return {
-                actualizar(porcentaje, mensaje) {
-                    relleno.style.width = `${Math.min(porcentaje, 100)}%`;
-                    if (mensaje) texto.textContent = mensaje;
-                },
-                completar(mensajeFinal = "¡Listo!") {
-                    relleno.style.width = "100%";
-                    texto.textContent = mensajeFinal;
-                    setTimeout(() => contenedor.classList.add("hidden"), 900);
-                },
-                detener() {
-                    contenedor.classList.add("hidden");
-                },
-            };
+        if (cuantos === 0) {
+            btn.disabled = true;
+            btn.textContent = "No hay nada que procesar";
+            return;
         }
+        btn.disabled = false;
+        btn.textContent = "Generar " + cuantos + " documento" + (cuantos === 1 ? "" : "s");
+    }
 
-        // --- Interpretación de errores: distingue lo que sí podemos
-        // distinguir hoy (sin conexión, sesión expirada, error del
-        // servidor) y muestra el detalle real del backend en vez de
-        // un mensaje único genérico para todo. La distinción fina de
-        // "contraseña incorrecta" requiere una mejora aparte en el
-        // robot de Playwright, pendiente. ---
-        async function interpretarError(response) {
-            if (!response) {
-                return "No pudimos conectar con el servidor. Verifica tu conexión a internet o si el túnel/portal está activo.";
-            }
-            if (response.status === 401 || response.status === 403) {
-                return "Tu sesión de acceso expiró. Recarga la página, inicia sesión de nuevo e intenta otra vez.";
-            }
-            if (response.status >= 500) {
-                try {
-                    const data = await response.json();
-                    let detalle = (data.detail || "").replace(/^Fallo en robot SAT:\s*/i, "");
-                    if (/dashboard|redirecciones|Generar Constancia|timeout/i.test(detalle)) {
-                        return "El SAT no respondió a tiempo. Puede ser tu contraseña de e.firma o que el servicio del SAT esté saturado. Verifica tus datos e intenta de nuevo en unos minutos.";
-                    }
-                    return detalle
-                        ? `No se pudo completar el proceso: ${detalle}`
-                        : "Ocurrió un error inesperado en el servidor.";
-                } catch {
-                    return "Ocurrió un error inesperado en el servidor.";
-                }
-            }
-            return `Ocurrió un problema al procesar la solicitud (código ${response.status}). Intenta de nuevo.`;
-        }
+    async function lanzarLote() {
+        sinAlerta();
+        var btn = $("btn-masivo");
+        var original = btn.textContent;
+        btn.disabled = true;
+        btn.textContent = "Arrancando…";
 
-        function toggleLoadingState(btnId, isLoading, originalHTML) {
-            const btn = document.getElementById(btnId);
-            if (isLoading) {
-                btn.disabled = true;
-                btn.innerHTML = `<svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Procesando, esto puede tardar unos segundos...`;
-            } else {
+        var cuerpo = new FormData();
+        archivosLote.forEach(function (f) { cuerpo.append("archivos_lote", f); });
+        cuerpo.append("forzar_regenerar", String(forzarRegenerar));
+
+        try {
+            var resp = await fetch(API + "/api/" + MODULO.slug + "/lote/iniciar",
+                { method: "POST", credentials: "include", body: cuerpo });
+            if (!resp.ok) {
+                alerta("error", await leerError(resp));
                 btn.disabled = false;
-                btn.innerHTML = originalHTML;
+                btn.textContent = original;
+                return;
             }
+            var datos = await resp.json();
+            vigilarLote(datos.lote_id, btn, original);
+            Fiscontable.refrescarDescargas();
+        } catch (e) {
+            alerta("error", await leerError(null));
+            btn.disabled = false;
+            btn.textContent = original;
         }
+    }
 
-        // --- Monitoreo real de un trabajo en el servidor: reemplaza el
-        // reloj falso de iniciarProgresoSimulado() por polling de verdad.
-        // Es exactamente el punto donde dijimos que solo había que
-        // cambiar "quién produce los números" -- crearControladorProgreso
-        // no se tocó. ---
-        function monitorearTrabajo(jobId, prefijo, rfcParaNombre, botonId = null, botonOriginalHTML = null) {
-            const controlador = crearControladorProgreso(prefijo);
-            trabajosEnCurso[rfcParaNombre] = jobId;
-            let segundos = 0;
+    function vigilarLote(loteId, btn, original) {
+        $("progreso-masivo").hidden = false;
 
-            const intervalo = setInterval(async () => {
-                segundos += 2;
-                let resp;
-                try {
-                    resp = await fetch(`${API_URL}/api/trabajos/${jobId}`, { credentials: "include" });
-                } catch (error) {
-                    clearInterval(intervalo);
-                    delete trabajosEnCurso[rfcParaNombre];
-                    if (botonId) toggleLoadingState(botonId, false, botonOriginalHTML);
-                    controlador.detener();
-                    mostrarAlerta("error", await interpretarError(null));
-                    return;
-                }
-
-                if (!resp.ok) {
-                    clearInterval(intervalo);
-                    delete trabajosEnCurso[rfcParaNombre];
-                    if (botonId) toggleLoadingState(botonId, false, botonOriginalHTML);
-                    controlador.detener();
-                    mostrarAlerta("error", await interpretarError(resp));
-                    return;
-                }
-
-                const trabajo = await resp.json();
-
-                if (trabajo.estado === "procesando") {
-                    const porcentaje = Math.min(10 + segundos * 2, 90);
-                    controlador.actualizar(porcentaje, `Procesando... (${segundos}s)`);
-                    return;
-                }
-
+        var intervalo = setInterval(async function () {
+            var resp;
+            try {
+                resp = await fetch(API + "/api/lotes/" + loteId, { credentials: "include" });
+            } catch (e) {
+                return;
+            }
+            if (!resp.ok) {
                 clearInterval(intervalo);
-                delete trabajosEnCurso[rfcParaNombre];
-                if (botonId) toggleLoadingState(botonId, false, botonOriginalHTML);
-
-                if (trabajo.estado === "completado") {
-                    controlador.completar();
-                    try {
-                        const descarga = await fetch(`${API_URL}/api/trabajos/${jobId}/descargar`, { credentials: "include" });
-                        if (!descarga.ok) {
-                            mostrarAlerta("error", await interpretarError(descarga));
-                            return;
-                        }
-                        const blob = await descarga.blob();
-                        const url = window.URL.createObjectURL(blob);
-                        const a = document.createElement("a");
-                        a.href = url;
-                        a.download = trabajo.nombre_descarga || `${rfcParaNombre}.pdf`;
-                        a.click();
-                        mostrarAlerta("success", "¡Proceso completado con éxito!");
-                    } catch (error) {
-                        mostrarAlerta("error", "El documento se generó, pero no se pudo descargar automáticamente. Intenta de nuevo.");
-                    }
-                } else {
-                    controlador.detener();
-                    mostrarAlerta("error", trabajo.mensaje_error || "Ocurrió un error al procesar tu documento.");
-                }
-            }, 2000);
-        }
-
-        async function procesarIndividual(e) {
-            e.preventDefault();
-            ocultarAlerta();
-
-            const rfc = document.getElementById('rfc').value.trim().toUpperCase();
-
-            if (trabajosEnCurso[rfc]) {
-                mostrarAlerta("error", "Ya se está generando este documento, espera a que termine.");
+                alerta("error", await leerError(resp));
+                btn.disabled = false;
+                btn.textContent = original;
                 return;
             }
 
-            const quiereGuardar = document.getElementById('chk_guardar_efirma').checked;
-            const aliasCliente = document.getElementById('alias_cliente').value.trim();
-            const esClienteNuevo = quiereGuardar && !(clienteRegistrado && clienteRegistrado.existe);
+            var lote = await resp.json();
 
-            if (esClienteNuevo && !aliasCliente) {
-                mostrarAlerta("error", "Escribe el nombre del cliente para darlo de alta, o desactiva el guardado de la e.firma.");
+            if (lote.estado === "procesando") {
+                var pct = lote.total > 0 ? Math.round((lote.procesados / lote.total) * 100) : 5;
+                $("progreso-masivo-fill").style.width = Math.max(pct, 5) + "%";
+                $("progreso-masivo-texto").textContent = lote.total > 0
+                    ? "Procesando " + lote.procesados + " de " + lote.total +
+                      (lote.rfc_actual ? " · " + lote.rfc_actual : "")
+                    : "Preparando el lote…";
                 return;
             }
 
-            const boton = document.getElementById('btn-individual');
-            const originalHTML = boton.innerHTML;
-            toggleLoadingState('btn-individual', true, originalHTML);
+            clearInterval(intervalo);
+            btn.disabled = false;
+            btn.textContent = original;
+            Fiscontable.refrescarDescargas();
 
-            const formData = new FormData();
-            formData.append("rfc", rfc);
-            formData.append("password", document.getElementById('password').value);
-            formData.append("cer", document.getElementById('archivo_cer').files[0]);
-            formData.append("key", document.getElementById('archivo_key').files[0]);
-            formData.append("descargar_csf", MODULO.tipo === "csf" ? "true" : document.getElementById("chk_adicional").checked);
-            formData.append("descargar_32d", MODULO.tipo === "opinion" ? "true" : document.getElementById("chk_adicional").checked);
-            formData.append("guardar_efirma", quiereGuardar);
-            formData.append("alias_cliente", aliasCliente);
-
-            try {
-                const response = await fetch(`${API_URL}/api/${MODULO.slug}/iniciar`, { method: "POST", credentials: "include", body: formData });
-                if (!response.ok) {
-                    toggleLoadingState('btn-individual', false, originalHTML);
-                    mostrarAlerta('error', await interpretarError(response));
-                    return;
-                }
-                const { job_id } = await response.json();
-                // El botón se queda deshabilitado -- monitorearTrabajo lo
-                // libera cuando el trabajo termina (completado o error).
-                monitorearTrabajo(job_id, 'individual', rfc, 'btn-individual', originalHTML);
-            } catch (error) {
-                toggleLoadingState('btn-individual', false, originalHTML);
-                mostrarAlerta('error', await interpretarError(null));
-            }
-        }
-
-        function monitorearLote(loteId, botonId, botonOriginalHTML) {
-            const controlador = crearControladorProgreso('masivo');
-
-            const intervalo = setInterval(async () => {
-                let resp;
+            if (lote.estado === "completado") {
+                $("progreso-masivo-fill").style.width = "100%";
+                $("progreso-masivo-texto").textContent = "Terminado.";
                 try {
-                    resp = await fetch(`${API_URL}/api/lotes/${loteId}`, { credentials: "include" });
-                } catch (error) {
-                    clearInterval(intervalo);
-                    toggleLoadingState(botonId, false, botonOriginalHTML);
-                    controlador.detener();
-                    mostrarAlerta("error", await interpretarError(null));
+                    await bajarBlob("/api/lotes/" + loteId + "/descargar", lote.nombre_descarga || "Lote.zip");
+                } catch (err) {
+                    alerta("error", "El lote se generó, pero no se pudo bajar solo. Búscalo en Mis descargas.");
                     return;
                 }
-
-                if (!resp.ok) {
-                    clearInterval(intervalo);
-                    toggleLoadingState(botonId, false, botonOriginalHTML);
-                    controlador.detener();
-                    mostrarAlerta("error", await interpretarError(resp));
-                    return;
-                }
-
-                const lote = await resp.json();
-
-                if (lote.estado === "procesando") {
-                    const porcentaje = lote.total > 0 ? Math.round((lote.procesados / lote.total) * 100) : 5;
-                    const texto = lote.total > 0
-                        ? `Procesando ${lote.procesados}/${lote.total}${lote.rfc_actual ? " — " + lote.rfc_actual : ""}`
-                        : "Preparando el lote...";
-                    controlador.actualizar(Math.max(porcentaje, 5), texto);
-                    return;
-                }
-
-                clearInterval(intervalo);
-                toggleLoadingState(botonId, false, botonOriginalHTML);
-
-                if (lote.estado === "completado") {
-                    controlador.completar();
-                    try {
-                        const descarga = await fetch(`${API_URL}/api/lotes/${loteId}/descargar`, { credentials: "include" });
-                        if (!descarga.ok) {
-                            mostrarAlerta("error", await interpretarError(descarga));
-                            return;
-                        }
-                        const blob = await descarga.blob();
-                        const url = window.URL.createObjectURL(blob);
-                        const a = document.createElement("a");
-                        a.href = url;
-                        a.download = lote.nombre_descarga || "Lote.zip";
-                        a.click();
-
-                        if (lote.fallidos && lote.fallidos.length > 0) {
-                            const listaFallidos = lote.fallidos.map(f => f.rfc || f[0]).join(", ");
-                            mostrarAlerta("error", `Lote completado: ${lote.exitosos} de ${lote.total} exitosos. Fallaron: ${listaFallidos}`);
-                        } else {
-                            mostrarAlerta("success", `Lote completado: ${lote.exitosos} de ${lote.total} documentos generados.`);
-                        }
-                    } catch (error) {
-                        mostrarAlerta("error", "El lote se generó, pero no se pudo descargar automáticamente. Intenta de nuevo.");
-                    }
+                if (lote.fallidos && lote.fallidos.length) {
+                    alerta("error", "Terminó con " + lote.exitosos + " de " + lote.total +
+                        ". Abre Mis descargas para ver qué pasó con los " + lote.fallidos.length + " restantes.");
                 } else {
-                    controlador.detener();
-                    mostrarAlerta("error", lote.mensaje_error || "Ocurrió un error al procesar el lote.");
+                    alerta("bien", "Terminado: " + lote.exitosos + " de " + lote.total + " documentos.");
                 }
-            }, 3000);
-        }
-
-        async function procesarMasivo(e) {
-            e.preventDefault();
-            ocultarAlerta();
-            const boton = document.getElementById('btn-masivo');
-            const btnOriginalHTML = boton.innerHTML;
-            toggleLoadingState('btn-masivo', true, btnOriginalHTML);
-
-            const formData = new FormData();
-            archivosGlobalesMasivo.forEach(file => { formData.append("archivos_lote", file); });
-            formData.append("forzar_regenerar", forzarRegenerarLote);
-
-            try {
-                const response = await fetch(`${API_URL}/api/${MODULO.slug}/lote/iniciar`, { method: "POST", credentials: "include", body: formData });
-                if (!response.ok) {
-                    toggleLoadingState('btn-masivo', false, btnOriginalHTML);
-                    mostrarAlerta('error', await interpretarError(response));
-                    return;
-                }
-                const { lote_id } = await response.json();
-                monitorearLote(lote_id, 'btn-masivo', btnOriginalHTML);
-            } catch (error) {
-                toggleLoadingState('btn-masivo', false, btnOriginalHTML);
-                mostrarAlerta('error', await interpretarError(null));
+            } else {
+                $("progreso-masivo").hidden = true;
+                alerta("error", lote.mensaje_error || "El lote no se pudo completar.");
             }
-        }
+        }, 3000);
+
+        sondeos.push(intervalo);
+    }
+
+    /* ================================================= pestañas */
+
+    function cambiarPestana(modo) {
+        ["individual", "masivo"].forEach(function (m) {
+            var esta = m === modo;
+            $("tab-" + m).classList.toggle("pestana--activa", esta);
+            $("tab-" + m).setAttribute("aria-selected", String(esta));
+            $("panel-" + m).hidden = !esta;
+        });
+        sinAlerta();
+    }
+
+    /* ================================================= arranque */
+
+    document.addEventListener("DOMContentLoaded", async function () {
+        $("tab-individual").addEventListener("click", function () { cambiarPestana("individual"); });
+        $("tab-masivo").addEventListener("click", function () { cambiarPestana("masivo"); });
+        $("btn-masivo").addEventListener("click", lanzarLote);
+
+        // Se comprueba el permiso antes de dejar que el usuario llene nada.
+        if (!(await Fiscontable.exigirModulo(MODULO.permiso))) return;
+
+        PasoCliente.montar({
+            contenedor: "paso-cliente",
+            alElegir: alElegirCliente,
+            alLimpiar: alLimpiarCliente
+        });
+
+        prepararDropzone();
+        mostrarCuota();
+    });
+})();
