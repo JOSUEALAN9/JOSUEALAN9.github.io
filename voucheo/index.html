@@ -5,36 +5,25 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Voucheo Automático | Fiscontable</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="../assets/common.css">
+    <link rel="stylesheet" href="/assets/common.css">
 </head>
-<body class="bg-gray-50 text-gray-800 font-sans h-screen flex flex-col relative">
+<body class="h-screen flex flex-col relative">
 
     <!-- TOP NAV -->
-    <header class="bg-slate-900 text-white p-4 shadow-lg flex-none z-10">
-        <div class="max-w-[1600px] mx-auto flex flex-wrap justify-between items-center gap-3">
-            <div class="flex items-center gap-4">
-                <div class="bg-amber-600 p-2 rounded-lg">
-                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z"></path></svg>
-                </div>
-                <div>
-                    <h1 class="text-lg sm:text-xl font-bold leading-tight">Voucheo Automático</h1>
-                    <p class="text-xs text-slate-400">Generación y actualización de papeles de trabajo</p>
-                </div>
-            </div>
-            <div class="flex items-center gap-2 sm:gap-4">
-                <a href="../herramientas/" class="text-slate-300 hover:text-white font-semibold text-sm flex items-center gap-1 transition">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg> Menú
-                </a>
-                <button onclick="limpiarFormularios()" class="bg-slate-700 hover:bg-red-600 text-white font-semibold py-2 px-3 sm:px-4 rounded shadow transition flex items-center gap-2 text-sm">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                    <span class="hidden sm:inline">Limpiar</span>
-                </button>
-            </div>
-        </div>
-    </header>
+    <div id="app-header" data-modulo="voucheo" data-titulo="Voucheo" data-migas="Herramientas|/herramientas/"></div>
+<script src="/assets/app-header.js"></script>
 
     <!-- ÁREA DE TRABAJO -->
-    <main class="flex-grow flex p-4 sm:p-6 w-full relative overflow-y-auto">
+    <main class="flex-grow flex flex-col p-4 sm:p-6 w-full relative overflow-y-auto">
+
+        <div style="width:100%;max-width:1180px;margin:0 auto 18px;display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:14px">
+            <div>
+                <h1 class="display" style="font-size:28px">Voucheo de impuestos</h1>
+                <p style="margin-top:6px;font-size:14.5px;color:var(--texto-tenue)">De los acuses en PDF al papel de trabajo, sin capturar a mano.</p>
+            </div>
+            <button type="button" onclick="limpiarFormularios()" class="fc-btn">Limpiar</button>
+        </div>
+
         <div class="bg-white rounded-xl card-elevated border border-gray-200 w-full max-w-2xl m-auto flex flex-col">
 
             <!-- Pestañas Fiscontable Style -->
@@ -53,7 +42,7 @@
             <div id="panel-bloqueo" class="hidden p-8 flex-col items-center text-center gap-3">
                 <svg class="w-12 h-12 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
                 <p id="panel-bloqueo-texto" class="text-sm text-slate-600 max-w-md"></p>
-                <a href="../herramientas/" class="mt-2 bg-slate-800 hover:bg-slate-700 text-white font-bold py-2.5 px-6 rounded-lg transition text-sm">Volver</a>
+                <a href="/herramientas/" class="mt-2 bg-slate-800 hover:bg-slate-700 text-white font-bold py-2.5 px-6 rounded-lg transition text-sm">Volver</a>
             </div>
 
             <div id="alert-container" class="hidden px-6 pt-4">
