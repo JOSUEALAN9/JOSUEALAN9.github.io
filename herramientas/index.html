@@ -3,166 +3,161 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Herramientas Rápidas | Fiscontable</title>
+    <title>Herramientas | Fiscontable</title>
+    <link rel="stylesheet" href="/assets/common.css">
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="../assets/common.css">
 </head>
-<body class="bg-gray-50 text-gray-800 font-sans min-h-screen flex flex-col">
+<body class="min-h-screen flex flex-col">
 
-    <header class="bg-slate-900 text-white p-4 shadow-lg">
-        <div class="max-w-6xl mx-auto flex flex-wrap justify-between items-center gap-3">
-            <div class="flex items-center gap-4">
-                <div class="bg-emerald-600 p-2 rounded-lg">
-                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z"></path></svg>
-                </div>
-                <div>
-                    <h1 class="text-lg sm:text-xl font-bold leading-tight">Herramientas Rápidas</h1>
-                    <p class="text-xs text-slate-400">Trabajo de una sola vez, sin registrar contribuyente</p>
-                </div>
-            </div>
-            <div class="flex items-center gap-3 sm:gap-4">
-                <a href="../clientes/" class="text-violet-300 hover:text-white font-semibold text-sm flex items-center gap-1 transition">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-1.13a4 4 0 10-4-4 4 4 0 004 4zm6 0a4 4 0 10-4-4"></path></svg>
-                    <span class="hidden sm:inline">Espacio Contador</span>
-                </a>
-                <a href="../" class="text-slate-300 hover:text-white font-semibold text-sm flex items-center gap-1 transition">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg> Inicio
-                </a>
-            </div>
-        </div>
-    </header>
+<div id="app-header" data-modulo="herramientas" data-titulo="Herramientas"></div>
 
-    <main class="flex-grow max-w-6xl mx-auto w-full p-6 mt-4">
+<main class="flex-grow w-full" style="max-width:1180px;margin:0 auto;padding:0 20px">
 
-        <div id="aviso" class="hidden mb-6 bg-amber-50 border border-amber-200 p-4 rounded-lg flex items-start gap-3">
-            <svg class="w-5 h-5 text-amber-600 flex-none mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-            <p id="aviso-texto" class="text-sm text-amber-800"></p>
-        </div>
+    <section style="padding:44px 0 30px">
+        <h1 class="display" style="font-size:clamp(28px,4vw,38px)">Herramientas</h1>
+        <p style="margin-top:10px;font-size:16px;color:var(--texto-tenue);max-width:62ch">
+            Todas empiezan preguntándote para quién es el trabajo. Puedes elegir un cliente
+            de tu directorio o escribir un RFC suelto sin darlo de alta.
+        </p>
+    </section>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <h2 class="grupo">Trámites ante el SAT</h2>
+    <div class="rejilla">
 
-            <a href="../conciliacion/" data-modulo="conciliacion" class="tarjeta-modulo group block bg-white rounded-2xl card-elevated border border-gray-200 p-6 hover:border-blue-300 transition-all duration-300">
-                <div class="bg-blue-100 w-14 h-14 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                    <svg class="w-7 h-7 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                </div>
-                <h3 class="text-xl font-bold text-slate-800 mb-2 group-hover:text-blue-600 transition-colors">Facturas Recibidas PPD</h3>
-                <p class="text-sm text-gray-500 mb-4">Conciliación local para Facturas PPD vs Complementos de Pago.</p>
-                <span class="text-sm font-semibold text-blue-600 flex items-center gap-1">
-                    Abrir <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
-                </span>
-            </a>
+        <a href="/constancias/" class="util" data-modulo="constancias" style="--tono:#4338CA;--tono-suave:#ECEBFB">
+            <span class="util__icono"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg></span>
+            <h3>Constancia de Situación Fiscal</h3>
+            <p>Uno a uno o por lote, con e.firma. Si el cliente ya la tiene reciente, te la da sin volver al SAT.</p>
+            <span class="util__cta">Abrir</span>
+        </a>
 
-            <a href="../validador/" data-modulo="validador" class="tarjeta-modulo group block bg-white rounded-2xl card-elevated border border-gray-200 p-6 hover:border-emerald-300 transition-all duration-300">
-                <div class="bg-emerald-100 w-14 h-14 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                    <svg class="w-7 h-7 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                </div>
-                <h3 class="text-xl font-bold text-slate-800 mb-2 group-hover:text-emerald-600 transition-colors">Validador Fiscal SAT</h3>
-                <p class="text-sm text-gray-500 mb-4">Auditoría masiva de estatus (Vigente/Cancelado) directo con el SAT.</p>
-                <span class="text-sm font-semibold text-emerald-600 flex items-center gap-1">
-                    Abrir <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
-                </span>
-            </a>
+        <a href="/opinion/" class="util" data-modulo="opinion" style="--tono:#0F766E;--tono-suave:#E6F2F1">
+            <span class="util__icono"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12l2 2 4-4m5.6-4A11.9 11.9 0 0112 2.9 11.9 11.9 0 013.4 6 12 12 0 003 9c0 5.6 3.8 10.3 9 11.6 5.2-1.3 9-6 9-11.6 0-1-.1-2-.4-3z"/></svg></span>
+            <h3>Opinión de Cumplimiento 32-D</h3>
+            <p>Revisión de obligaciones, individual o por lote. Mismo flujo que Constancias.</p>
+            <span class="util__cta">Abrir</span>
+        </a>
 
-            <a href="../constancias/" data-modulo="constancias" class="tarjeta-modulo group block bg-white rounded-2xl card-elevated border border-gray-200 p-6 hover:border-indigo-300 transition-all duration-300">
-                <div class="bg-indigo-100 w-14 h-14 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                    <svg class="w-7 h-7 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                </div>
-                <h3 class="text-xl font-bold text-slate-800 mb-2 group-hover:text-indigo-600 transition-colors">Constancias CSF</h3>
-                <p class="text-sm text-gray-500 mb-4">Descarga individual y masiva vía e.firma.</p>
-                <span class="text-sm font-semibold text-indigo-600 flex items-center gap-1">
-                    Abrir <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
-                </span>
-            </a>
+        <a href="/declaraciones/" class="util" data-modulo="declaraciones" style="--tono:#0369A1;--tono-suave:#E4F1F9">
+            <span class="util__icono"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 10v6m0 0l-3-3m3 3l3-3M7 21h10a2 2 0 002-2V7.4a1 1 0 00-.3-.7l-3.4-3.4a1 1 0 00-.7-.3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg></span>
+            <h3>Declaraciones presentadas</h3>
+            <p>Baja acuse, pago y recibo de cada declaración del ejercicio. Cubre el portal nuevo y el anterior.</p>
+            <span class="util__cta">Abrir</span>
+        </a>
 
-            <a href="../opinion/" data-modulo="opinion" class="tarjeta-modulo group block bg-white rounded-2xl card-elevated border border-gray-200 p-6 hover:border-teal-300 transition-all duration-300">
-                <div class="bg-teal-100 w-14 h-14 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                    <svg class="w-7 h-7 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
-                </div>
-                <h3 class="text-xl font-bold text-slate-800 mb-2 group-hover:text-teal-600 transition-colors">Opinión de Cumplimiento (32-D)</h3>
-                <p class="text-sm text-gray-500 mb-4">Auditoría de obligaciones fiscales individual y masiva vía e.firma.</p>
-                <span class="text-sm font-semibold text-teal-600 flex items-center gap-1">
-                    Abrir <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
-                </span>
-            </a>
-            
-        <a href="../voucheo/" data-modulo="voucheo" class="tarjeta-modulo group block bg-white rounded-2xl card-elevated border border-gray-200 p-6 hover:border-amber-300 transition-all duration-300">
-    <div class="bg-amber-100 w-14 h-14 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-        <svg class="w-7 h-7 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z"></path></svg>
     </div>
-    <h3 class="text-xl font-bold text-slate-800 mb-2 group-hover:text-amber-600 transition-colors">Voucheo de Impuestos</h3>
-    <p class="text-sm text-gray-500 mb-4">Automatización de papeles de trabajo (Estatales y Federales) en Excel.</p>
-    <span class="text-sm font-semibold text-amber-600 flex items-center gap-1">
-        Abrir <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
-    </span>
-</a>
-            <div class="block bg-gray-50 rounded-2xl border border-dashed border-gray-300 p-6 opacity-70">
-                <div class="bg-gray-200 w-14 h-14 rounded-xl flex items-center justify-center mb-6">
-                    <svg class="w-7 h-7 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
-                </div>
-                <h3 class="text-xl font-bold text-slate-500 mb-2">Próximamente</h3>
-                <p class="text-sm text-gray-400">Declaraciones, descarga de XML, IMSS e Infonavit.</p>
-            </div>
+
+    <h2 class="grupo">Revisión y papeles de trabajo</h2>
+    <div class="rejilla">
+
+        <a href="/voucheo/" class="util" data-modulo="voucheo" style="--tono:#B45309;--tono-suave:#FBF0E2">
+            <span class="util__icono"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z"/></svg></span>
+            <h3>Voucheo de impuestos</h3>
+            <p>Vacía los acuses en PDF al papel de trabajo de Excel. Hoy cubre ISN e ISH de Quintana Roo e ISN de BCS.</p>
+            <span class="util__cta">Abrir</span>
+        </a>
+
+        <a href="/conciliacion/" class="util" data-modulo="conciliacion" style="--tono:#1D4ED8;--tono-suave:#E8EFFD">
+            <span class="util__icono"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg></span>
+            <h3>Facturas recibidas PPD</h3>
+            <p>Cruza facturas PPD contra sus complementos de pago. Corre en tu navegador, sin tocar el servidor.</p>
+            <span class="util__cta">Abrir</span>
+            <span class="fc-cinta-pendiente util__cinta">Rediseño pendiente</span>
+        </a>
+
+        <a href="/validador/" class="util" data-modulo="validador" style="--tono:#047857;--tono-suave:#E6F4EF">
+            <span class="util__icono"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></span>
+            <h3>Validador de XML</h3>
+            <p>Revisa contra el SAT si cada factura sigue vigente o ya fue cancelada.</p>
+            <span class="util__cta">Abrir</span>
+            <span class="fc-cinta-pendiente util__cinta">Rediseño pendiente</span>
+        </a>
+
+    </div>
+
+    <h2 class="grupo">En camino</h2>
+    <div class="rejilla" style="padding-bottom:64px">
+        <div class="util util--futuro">
+            <h3>Voucheo federal</h3>
+            <p>Los mismos papeles de trabajo, pero con los acuses del SAT.</p>
         </div>
-    </main>
+        <div class="util util--futuro">
+            <h3>Descarga masiva de XML</h3>
+            <p>Bajar emitidos y recibidos de un periodo completo.</p>
+        </div>
+        <div class="util util--futuro">
+            <h3>IMSS e Infonavit</h3>
+            <p>Mismo motor de descargas, otros portales.</p>
+        </div>
+    </div>
+</main>
 
-    <script>
-        const API_URL = "https://api.josuealan.com";
+<footer class="fc-pie">© 2026 Alan Sánchez</footer>
 
-        document.addEventListener("DOMContentLoaded", aplicarPermisos);
+<style>
+    .grupo { font-size: 15px; font-weight: 600; color: var(--texto-tenue); margin: 30px 0 14px; }
+    .rejilla { display: grid; gap: 16px; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); }
 
-        function mostrarAviso(mensaje) {
-            document.getElementById("aviso-texto").textContent = mensaje;
-            document.getElementById("aviso").classList.remove("hidden");
+    .util {
+        position: relative;
+        display: block;
+        background: #fff;
+        border: 1px solid var(--linea);
+        border-radius: 16px;
+        padding: 22px;
+        text-decoration: none;
+        color: inherit;
+        box-shadow: var(--sombra-baja);
+        transition: border-color .18s, box-shadow .18s;
+    }
+    .util:hover { border-color: var(--tono); box-shadow: var(--sombra-media); }
+    .util__icono {
+        width: 42px; height: 42px; border-radius: 12px;
+        background: var(--tono-suave); color: var(--tono);
+        display: grid; place-items: center; margin-bottom: 16px;
+    }
+    .util__icono svg { width: 21px; height: 21px; }
+    .util h3 { font-size: 16.5px; font-weight: 700; margin-bottom: 6px; line-height: 1.3; }
+    .util p { font-size: 13.5px; line-height: 1.55; color: var(--texto-tenue); }
+    .util__cta { display: inline-block; margin-top: 14px; font-size: 13.5px; font-weight: 700; color: var(--tono); }
+    .util__cinta { position: absolute; top: 16px; right: 16px; }
+
+    .util--futuro {
+        background: transparent;
+        border-style: dashed;
+        box-shadow: none;
+        opacity: .72;
+    }
+    .util--futuro h3 { color: var(--texto-tenue); }
+
+    .util--vedado { opacity: .42; pointer-events: none; }
+</style>
+
+<script src="/assets/app-header.js"></script>
+<script>
+    document.addEventListener("fc:perfil", function (e) {
+        var p = e.detail;
+        if (!p) {
+            // Sin servidor, sólo Conciliación sirve: corre entera en el navegador.
+            marcar(function (m) { return m !== "conciliacion"; }, "No disponible sin conexión al servidor");
+            return;
         }
+        if (p.solo_lectura) {
+            marcar(function () { return true; }, "Tu acceso venció.");
+            return;
+        }
+        var permitidos = p.modulos_permitidos || [];
+        marcar(function (m) { return !permitidos.includes(m); }, "Tu plan actual no incluye esta herramienta.");
+    });
 
-        function marcarNoDisponible(tarjeta, motivo) {
-            tarjeta.classList.add("opacity-40", "pointer-events-none");
+    function marcar(debeVedarse, motivo) {
+        document.querySelectorAll(".util[data-modulo]").forEach(function (tarjeta) {
+            if (!debeVedarse(tarjeta.dataset.modulo)) return;
+            tarjeta.classList.add("util--vedado");
             tarjeta.setAttribute("title", motivo);
-        }
-
-        // Conciliación corre 100% en el navegador, así que sigue siendo
-        // útil aunque el backend esté caído. Las demás sí lo necesitan.
-        function deshabilitarLasQueNecesitanServidor() {
-            document.querySelectorAll(".tarjeta-modulo").forEach(tarjeta => {
-                if (tarjeta.dataset.modulo !== "conciliacion") {
-                    marcarNoDisponible(tarjeta, "No disponible sin conexión al servidor");
-                }
-            });
-        }
-
-        async function aplicarPermisos() {
-            try {
-                const resp = await fetch(`${API_URL}/api/mi-perfil`, { credentials: "include" });
-
-                if (resp.status === 401 || resp.status === 403) {
-                    mostrarAviso("Tu sesión expiró. Recarga la página para iniciar sesión de nuevo.");
-                    return;
-                }
-                if (!resp.ok) {
-                    mostrarAviso("No pudimos conectar con el servidor. Las herramientas que dependen de él no funcionarán por ahora. Intenta de nuevo más tarde o contacta al administrador.");
-                    deshabilitarLasQueNecesitanServidor();
-                    return;
-                }
-
-                const perfil = await resp.json();
-                const permitidos = perfil.modulos_permitidos || [];
-
-                document.querySelectorAll(".tarjeta-modulo").forEach(tarjeta => {
-                    const modulo = tarjeta.dataset.modulo;
-                    if (!permitidos.includes(modulo)) {
-                        marcarNoDisponible(tarjeta, "Tu plan actual no incluye esta herramienta.");
-                    }
-                });
-
-                if (perfil.solo_lectura) {
-                    mostrarAviso("Tu acceso venció. Las herramientas están deshabilitadas hasta que se renueve; puedes seguir consultando tu directorio de clientes. Contacta al administrador para renovarlo.");
-                    document.querySelectorAll(".tarjeta-modulo").forEach(t => marcarNoDisponible(t, "Tu acceso venció."));
-                }
-            } catch (error) {
-                mostrarAviso("No pudimos conectar con el servidor. Verifica tu conexión a internet, intenta de nuevo más tarde o contacta al administrador.");
-                deshabilitarLasQueNecesitanServidor();
-            }
-        }
-    </script>
+            tarjeta.setAttribute("aria-disabled", "true");
+        });
+    }
+</script>
 </body>
 </html>
