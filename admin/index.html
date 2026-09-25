@@ -5,15 +5,37 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Administrar Usuarios | Fiscontable</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="/assets/css/common.css?v=202609251629">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202609251704">
 </head>
 <body class="min-h-screen flex flex-col relative">
 
     <div id="app-header" data-modulo="admin" data-titulo="Administración" data-migas=""></div>
-<script src="/assets/js/nucleo.js?v=202609251629"></script>
-<script src="/assets/js/barra.js?v=202609251629"></script>
+<script src="/assets/js/nucleo.js?v=202609251704"></script>
+<script src="/assets/js/barra.js?v=202609251704"></script>
 
     <main class="flex-grow p-4 sm:p-6 w-full max-w-4xl mx-auto">
+        <style>
+            /* Solo para esta página */
+            .adm-chip { display:inline-flex; align-items:center; gap:6px; padding:6px 12px; border-radius:999px; border:1px solid #e2e8f0; font-size:13px; font-weight:600; color:#475569; background:#fff; cursor:pointer; user-select:none; transition:all .15s; }
+            .adm-chip input { position:absolute; opacity:0; width:1px; height:1px; }
+            .adm-chip:has(input:checked) { background:#ecfdf5; border-color:#34d399; color:#065f46; }
+            .adm-chip:has(input:checked)::before { content:"✓"; font-size:12px; }
+            .adm-chip:has(input:focus-visible) { outline:2px solid #10b981; outline-offset:2px; }
+            .adm-chip:has(input:disabled) { opacity:.5; cursor:default; }
+            .adm-filtro { padding:6px 12px; border-radius:999px; font-size:12.5px; font-weight:700; color:#64748b; border:1px solid transparent; }
+            .adm-filtro--activo { background:#0f172a; color:#fff; }
+            .adm-filtro:not(.adm-filtro--activo):hover { border-color:#e2e8f0; }
+            .adm-avatar { width:32px; height:32px; border-radius:999px; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:800; flex:none; }
+            .adm-barra { height:6px; border-radius:999px; background:#e2e8f0; overflow:hidden; }
+            .adm-barra > span { display:block; height:100%; background:#10b981; }
+            dialog::backdrop { background: rgba(15,23,42,.45); }
+        </style>
+
+        <div class="mb-5">
+            <h1 class="text-2xl font-extrabold text-slate-900">Administración</h1>
+            <p class="text-sm text-slate-500 mt-1">Usuarios, qué puede usar cada quien y lo que está pasando en el portal.</p>
+        </div>
+
         <div id="alert-container" class="hidden mb-4">
             <div id="alert-message" class="p-4 rounded-lg text-sm font-semibold flex items-start gap-2"></div>
         </div>
@@ -22,138 +44,132 @@
             <p class="text-slate-500 font-semibold">Esta sección es solo para administradores.</p>
         </div>
 
-        <div id="contenido-admin" class="hidden flex flex-col gap-6">
-            <!-- Formulario agregar/editar -->
-            <div class="bg-white rounded-xl card-elevated border border-gray-200 p-5">
-                <h2 class="font-bold text-slate-800 mb-4">Agregar o actualizar usuario</h2>
-                <form id="form-usuario" onsubmit="guardarUsuario(event)" class="grid grid-cols-1 sm:grid-cols-4 gap-3 items-end">
-                    <div class="sm:col-span-2">
-                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1">Correo</label>
-                        <input type="email" id="input-correo" required class="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:outline-none focus:ring-2 focus:ring-slate-500">
+        <div id="contenido-admin" class="hidden">
+            <div class="pestanas" role="tablist">
+                <button type="button" class="pestana pestana--activa" role="tab" data-pestana="usuarios">Usuarios <span class="text-slate-400 font-semibold" id="cuenta-usuarios"></span></button>
+                <button type="button" class="pestana" role="tab" data-pestana="permisos">Permisos por rol</button>
+                <button type="button" class="pestana" role="tab" data-pestana="actividad">Actividad <span class="text-slate-400 font-semibold" id="cuenta-actividad"></span></button>
+            </div>
+
+            <!-- ============ USUARIOS ============ -->
+            <section id="panel-usuarios" role="tabpanel">
+                <div class="flex flex-wrap items-center gap-3 mb-4">
+                    <input type="search" id="buscar-usuario" placeholder="Buscar por correo…" class="flex-grow min-w-[200px] text-sm border border-gray-300 rounded-lg p-2.5 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white">
+                    <button type="button" id="btn-agregar-usuario" class="boton-principal" style="width:auto;margin:0;padding:10px 18px">+ Agregar usuario</button>
+                </div>
+                <div class="bg-white rounded-xl card-elevated border border-gray-200 overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm min-w-[640px]">
+                            <thead class="bg-slate-50 text-left text-[11px] font-bold text-slate-500 uppercase tracking-wide">
+                                <tr><th class="p-4">Usuario</th><th class="p-4">Rol</th><th class="p-4">Vence</th><th class="p-4">Estatus</th><th class="p-4"></th></tr>
+                            </thead>
+                            <tbody id="tabla-usuarios"></tbody>
+                        </table>
                     </div>
-                    <div>
-                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1">Rol</label>
-                        <select id="input-rol" class="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:outline-none focus:ring-2 focus:ring-slate-500">
+                    <p id="sin-usuarios" class="hidden p-8 text-center text-sm text-slate-400">Nadie coincide con la búsqueda.</p>
+                </div>
+            </section>
+
+            <!-- ============ PERMISOS POR ROL ============ -->
+            <section id="panel-permisos" role="tabpanel" hidden>
+                <p class="text-sm text-slate-500 mb-4">Qué módulos ve cada rol y cuántos RFC nuevos al día puede sacar en descargas masivas. Aplica en cuanto guardas; cada usuario lo ve al recargar su página. A quien tenga <strong>ajustes propios</strong> no le cambia lo que tenga personalizado.</p>
+                <div id="tarjetas-roles" class="flex flex-col gap-4"></div>
+                <div class="bg-slate-50 border border-slate-200 rounded-lg p-4 text-xs text-slate-500 mt-4">
+                    <p class="font-bold text-slate-700 mb-1">Reglas fijas</p>
+                    <p><strong>Admin</strong> tiene todo, sin límite, y no se edita ni se personaliza. <strong>Demo</strong> siempre vence (7 días si no pones fecha) y no puede guardar e.firmas. Quien entra por primera vez queda como Demo.</p>
+                    <p class="mt-1">Cuando el acceso de alguien vence, sigue viendo su directorio de Clientes en modo lectura, pero no puede generar documentos ni agregar/quitar clientes. Los documentos que se reutilizan del caché no cuentan para el límite.</p>
+                </div>
+            </section>
+
+            <!-- ============ ACTIVIDAD ============ -->
+            <section id="panel-actividad" role="tabpanel" hidden>
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4" id="resumen-actividad"></div>
+                <div class="flex flex-wrap items-center gap-2 mb-3">
+                    <div class="flex flex-wrap gap-1" id="filtros-actividad">
+                        <button type="button" class="adm-filtro adm-filtro--activo" data-filtro="todos">Todos</button>
+                        <button type="button" class="adm-filtro" data-filtro="procesando">En proceso</button>
+                        <button type="button" class="adm-filtro" data-filtro="error">Con problemas</button>
+                        <button type="button" class="adm-filtro" data-filtro="completado">Completados</button>
+                    </div>
+                    <input type="search" id="buscar-actividad" placeholder="Usuario o RFC…" class="ml-auto w-full sm:w-56 text-sm border border-gray-300 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white">
+                </div>
+                <div id="lista-actividad" class="flex flex-col gap-2"></div>
+                <p id="sin-actividad" class="hidden bg-white rounded-xl border border-gray-200 p-10 text-center text-sm text-slate-400">No hay actividad que mostrar.</p>
+                <p class="text-xs text-slate-400 mt-3 flex items-center gap-2">
+                    <span>Descargas de todos los usuarios, para dar soporte. No incluye los documentos en sí.</span>
+                    <span class="ml-auto" id="actualizado-actividad"></span>
+                    <button type="button" id="btn-actualizar-actividad" class="font-bold text-slate-500 hover:text-slate-800 underline">Actualizar</button>
+                </p>
+            </section>
+        </div>
+
+        <!-- Agregar / editar usuario -->
+        <dialog id="dlg-usuario" class="rounded-xl p-0 w-full max-w-md shadow-2xl">
+            <form id="form-usuario" class="p-6 flex flex-col gap-4">
+                <div>
+                    <h3 class="font-bold text-slate-800" id="titulo-dlg-usuario">Agregar usuario</h3>
+                    <p class="text-xs text-slate-500 mt-0.5">Si el correo ya existe, se actualiza.</p>
+                </div>
+                <label class="block">
+                    <span class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1">Correo</span>
+                    <input type="email" id="input-correo" required class="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                </label>
+                <div class="grid grid-cols-2 gap-3">
+                    <label class="block">
+                        <span class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1">Rol</span>
+                        <select id="input-rol" class="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:outline-none focus:ring-2 focus:ring-emerald-500">
                             <option value="demo">Demo (prueba)</option>
                             <option value="plus">Plus</option>
                             <option value="pro">Pro</option>
                             <option value="admin">Admin</option>
                         </select>
-                    </div>
-                    <div>
-                        <label id="etiqueta-fecha" class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1">Vence (opcional)</label>
-                        <input type="date" id="input-fecha" class="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:outline-none focus:ring-2 focus:ring-slate-500">
-                    </div>
-                    <div class="sm:col-span-4">
-                        <button type="submit" class="bg-slate-800 hover:bg-slate-700 text-white font-bold py-2.5 px-6 rounded-lg shadow transition text-sm">
-                            Guardar
-                        </button>
-                        <span class="text-xs text-slate-400 ml-3">Si el correo ya existe, se actualiza; si no, se crea.</span>
-                    </div>
-                </form>
-            </div>
-
-            <!-- Tabla de usuarios -->
-            <div class="bg-white rounded-xl card-elevated border border-gray-200 overflow-hidden">
-                <table class="w-full text-sm">
-                    <thead class="bg-slate-50 text-left text-xs font-bold text-slate-500 uppercase">
-                        <tr>
-                            <th class="p-4">Correo</th>
-                            <th class="p-4">Rol</th>
-                            <th class="p-4">Vence</th>
-                            <th class="p-4">Estatus</th>
-                            <th class="p-4"></th>
-                        </tr>
-                    </thead>
-                    <tbody id="tabla-usuarios"></tbody>
-                </table>
-            </div>
-
-            <!-- PERMISOS POR ROL -->
-            <div class="bg-white rounded-xl card-elevated border border-gray-200 overflow-hidden">
-                <div class="p-5 border-b border-gray-100">
-                    <h2 class="font-bold text-slate-800">Permisos por rol</h2>
-                    <p class="text-xs text-slate-500 mt-0.5">Qué módulos ve cada rol y cuántos RFC nuevos al día puede sacar en descargas masivas. Aplica en cuanto guardas; cada usuario lo ve al recargar su página.</p>
+                    </label>
+                    <label class="block">
+                        <span id="etiqueta-fecha" class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1">Vence (opcional)</span>
+                        <input type="date" id="input-fecha" class="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                    </label>
                 </div>
-                <div class="overflow-x-auto">
-                    <table class="w-full text-sm min-w-[860px]">
-                        <thead class="bg-slate-50 text-left text-xs font-bold text-slate-500 uppercase" id="cabeza-roles"></thead>
-                        <tbody id="tabla-roles"></tbody>
-                    </table>
+                <div class="flex gap-2 justify-end pt-1">
+                    <button type="button" data-cerrar="dlg-usuario" class="text-sm font-bold text-slate-500 border border-gray-200 rounded-lg py-2 px-4">Cancelar</button>
+                    <button type="submit" class="bg-slate-800 hover:bg-slate-700 text-white font-bold py-2 px-5 rounded-lg text-sm">Guardar</button>
                 </div>
-                <p class="px-5 py-3 text-xs text-slate-500 border-t border-gray-100">
-                    <strong>RFC/día:</strong> vacío = sin límite · 0 = sin descargas masivas (solo de uno en uno).
-                    Los documentos que se reutilizan del caché no cuentan.
-                </p>
-            </div>
+            </form>
+        </dialog>
 
-            <!-- AJUSTES PROPIOS DE UN USUARIO -->
-            <dialog id="dlg-ajustes" class="rounded-xl p-0 w-full max-w-lg shadow-2xl backdrop:bg-slate-900/40">
-                <form method="dialog" class="p-6 flex flex-col gap-4" onsubmit="guardarAjustesUsuario(event)">
-                    <div>
-                        <h3 class="font-bold text-slate-800">Ajustes propios</h3>
-                        <p class="text-xs text-slate-500 mt-0.5 font-mono" id="ajustes-correo"></p>
-                        <p class="text-xs text-slate-500 mt-1">Reemplazan a los de su rol solo para esta persona.</p>
-                    </div>
-                    <fieldset class="flex flex-col gap-2">
-                        <legend class="text-xs font-bold text-slate-700 uppercase tracking-wide mb-1">Módulos</legend>
-                        <label class="text-sm flex items-center gap-2"><input type="radio" name="ajustes-modo" value="rol" onchange="pintarModoAjustes()"> <span>Los de su rol <span class="text-slate-400" id="ajustes-modulos-rol"></span></span></label>
-                        <label class="text-sm flex items-center gap-2"><input type="radio" name="ajustes-modo" value="propios" onchange="pintarModoAjustes()"> Personalizados</label>
-                        <div id="ajustes-casillas" class="grid grid-cols-2 gap-1 pl-6"></div>
-                    </fieldset>
-                    <fieldset class="flex flex-col gap-2">
-                        <legend class="text-xs font-bold text-slate-700 uppercase tracking-wide mb-1">RFC por día en descargas masivas</legend>
-                        <select id="ajustes-limite-modo" class="text-sm border border-gray-300 rounded-lg p-2.5" onchange="pintarModoAjustes()">
+        <!-- Ajustes propios de un usuario -->
+        <dialog id="dlg-ajustes" class="rounded-xl p-0 w-full max-w-lg shadow-2xl">
+            <form id="form-ajustes" class="p-6 flex flex-col gap-4">
+                <div>
+                    <h3 class="font-bold text-slate-800">Ajustes propios</h3>
+                    <p class="text-xs text-slate-500 mt-0.5 font-mono" id="ajustes-correo"></p>
+                    <p class="text-xs text-slate-500 mt-1">Reemplazan a los de su rol solo para esta persona.</p>
+                </div>
+                <fieldset class="flex flex-col gap-2">
+                    <legend class="text-xs font-bold text-slate-700 uppercase tracking-wide mb-1">Módulos</legend>
+                    <label class="text-sm flex items-center gap-2"><input type="radio" name="ajustes-modo" value="rol"> <span>Los de su rol <span class="text-slate-400" id="ajustes-modulos-rol"></span></span></label>
+                    <label class="text-sm flex items-center gap-2"><input type="radio" name="ajustes-modo" value="propios"> Personalizados</label>
+                    <div id="ajustes-casillas" class="flex flex-wrap gap-2 pl-6 pt-1"></div>
+                </fieldset>
+                <fieldset class="flex flex-col gap-2">
+                    <legend class="text-xs font-bold text-slate-700 uppercase tracking-wide mb-1">Descargas masivas</legend>
+                    <div class="flex gap-2">
+                        <select id="ajustes-limite-modo" class="flex-grow text-sm border border-gray-300 rounded-lg p-2.5">
                             <option value="rol">El de su rol</option>
-                            <option value="numero">Un número</option>
+                            <option value="numero">Hasta un número al día</option>
                             <option value="sin">Sin límite</option>
                         </select>
-                        <input type="number" id="ajustes-limite" min="0" max="10000" class="text-sm border border-gray-300 rounded-lg p-2.5" placeholder="Ej. 5 (0 = sin descargas masivas)">
-                    </fieldset>
-                    <div class="flex gap-2 justify-end pt-2">
-                        <button type="button" onclick="document.getElementById('dlg-ajustes').close()" class="text-sm font-bold text-slate-500 border border-gray-200 rounded-lg py-2 px-4">Cancelar</button>
-                        <button type="submit" class="bg-slate-800 hover:bg-slate-700 text-white font-bold py-2 px-5 rounded-lg text-sm">Guardar ajustes</button>
+                        <input type="number" id="ajustes-limite" min="0" max="10000" class="w-28 text-sm border border-gray-300 rounded-lg p-2.5" placeholder="RFC/día">
                     </div>
-                </form>
-            </dialog>
-
-
-            <!-- PROCESOS DE TODOS LOS USUARIOS -->
-            <div class="bg-white rounded-xl card-elevated border border-gray-200 overflow-hidden">
-                <div class="p-5 border-b border-gray-100 flex flex-wrap justify-between items-center gap-3">
-                    <div>
-                        <h2 class="font-bold text-slate-800">Actividad del portal</h2>
-                        <p class="text-xs text-slate-500 mt-0.5">Descargas de todos los usuarios, para dar soporte. No incluye los documentos en sí.</p>
-                    </div>
-                    <button onclick="cargarProcesosAdmin()" class="text-xs font-bold text-slate-500 hover:text-slate-800 border border-gray-200 rounded-lg py-2 px-3 transition">
-                        Actualizar
-                    </button>
+                    <p class="text-xs text-slate-400">0 = sin descargas masivas (solo de uno en uno).</p>
+                </fieldset>
+                <div class="flex gap-2 justify-end pt-1">
+                    <button type="button" data-cerrar="dlg-ajustes" class="text-sm font-bold text-slate-500 border border-gray-200 rounded-lg py-2 px-4">Cancelar</button>
+                    <button type="submit" class="bg-slate-800 hover:bg-slate-700 text-white font-bold py-2 px-5 rounded-lg text-sm">Guardar ajustes</button>
                 </div>
-                <div class="overflow-x-auto">
-                    <table class="w-full text-sm min-w-[700px]">
-                        <thead class="bg-slate-50 text-left text-xs font-bold text-slate-500 uppercase">
-                            <tr>
-                                <th class="p-4">Usuario</th>
-                                <th class="p-4">Documento</th>
-                                <th class="p-4">Estado</th>
-                                <th class="p-4">Cuándo</th>
-                                <th class="p-4"></th>
-                            </tr>
-                        </thead>
-                        <tbody id="tabla-procesos-admin"></tbody>
-                    </table>
-                </div>
-                <p id="sin-procesos-admin" class="hidden p-8 text-center text-sm text-slate-400">No hay actividad reciente en el portal.</p>
-            </div>
-
-            <div class="bg-slate-50 border border-slate-200 rounded-lg p-4 text-xs text-slate-500">
-                <p class="font-bold text-slate-700 mb-1">Reglas fijas</p>
-                <p><strong>Admin</strong> tiene todo, sin límite, y no se edita ni se personaliza. <strong>Demo</strong> siempre vence (7 días si no pones fecha) y no puede guardar e.firmas. Quien entra por primera vez queda como Demo.</p>
-                <p class="mt-1">Cuando el acceso de alguien vence, sigue viendo su directorio de Clientes en modo lectura, pero no puede generar documentos ni agregar/quitar clientes.</p>
-            </div>
-        </div>
+            </form>
+        </dialog>
     </main>
 
-<script src="/admin/admin.js?v=202609251629"></script>
+<script src="/admin/admin.js?v=202609251704"></script>
 </body>
 </html>
