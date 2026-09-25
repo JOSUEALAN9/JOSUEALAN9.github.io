@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Validador Fiscal SAT ERP</title>
+    <link rel="stylesheet" href="/assets/css/common.css?v=202609251331">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
+    <style>
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        .modal-active { display: flex !important; }
+        body { -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none; user-select: none; }
+    </style>
+</head>
+<body class="h-screen flex flex-col overflow-hidden relative">
+
+    <!-- TOP NAV -->
+    <div id="app-header" data-modulo="validador" data-titulo="Validador de XML" data-migas="Herramientas|/herramientas/"></div>
+<script src="/assets/js/nucleo.js?v=202609251331"></script>
+<script src="/assets/js/barra.js?v=202609251331"></script>
+
+    <div style="max-width:1180px;margin:14px auto 0;padding:0 20px">
+        <div class="nota nota--alerta" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+            <span class="fc-cinta-pendiente">Rediseño pendiente</span>
+            <span>Este módulo todavía no pasa por la revisión de diseño. Funciona igual que antes;
+            sólo se le puso la barra nueva y la verificación de permisos.</span>
+        </div>
+    </div>
+
+
+    <!-- ÁREA DE TRABAJO -->
+    <main class="flex-grow flex flex-col p-6 max-w-[1600px] mx-auto w-full gap-4 overflow-hidden relative">
+    <div style="width:100%;max-width:1600px;margin:0 auto 16px;display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:14px">
+        <div>
+            <h1 class="display" style="font-size:26px">Validador de XML</h1>
+            <p style="margin-top:5px;font-size:14px;color:var(--texto-tenue)">Revisa contra el SAT si cada factura sigue vigente o ya fue cancelada.</p>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><button id="btnAbrirCarga" class="boton-principal" style="width:auto;margin:0;padding:10px 18px">Cargar XML</button><button id="btnLimpiarDatos" class="fc-btn">Limpiar</button></div>
+    </div>
+
+        
+        <!-- Action Bar (Filtros y Resumen) -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 flex flex-wrap justify-between items-center flex-none gap-4">
+            <!-- KPIs -->
+            <div class="flex gap-6 items-center">
+                <div><p class="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Total XML</p><p id="dashTotal" class="text-xl font-black text-slate-800">0</p></div>
+                <div class="w-px h-8 bg-gray-200"></div>
+                <div><p class="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Vigentes</p><p id="dashVigentes" class="text-xl font-black text-emerald-600">0</p></div>
+                <div class="w-px h-8 bg-gray-200"></div>
+                <div><p class="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Cancelados</p><p id="dashCancelados" class="text-xl font-black text-red-600">0</p></div>
+                <div class="w-px h-8 bg-gray-200"></div>
+                <div><p class="text-[10px] text-gray-500 uppercase font-bold tracking-wider">No Encontrados</p><p id="dashErrores" class="text-xl font-black text-amber-500">0</p></div>
+            </div>
+
+            <!-- Filtros Inteligentes -->
+            <div class="flex items-center gap-3 flex-wrap flex-grow justify-end">
+                
+                <!-- Componente Custom Multi-Select Proveedor -->
+                <div class="relative inline-block text-left z-20" id="provDropdownContainer">
+                    <button id="btnProvDropdown" class="bg-gray-50 border border-gray-300 text-xs rounded-lg p-2.5 outline-none flex items-center justify-between w-48 hover:bg-gray-100 transition">
+                        <span id="lblProvDropdown" class="truncate font-medium text-gray-700">Proveedor (Todos)</span>
+                        <svg class="w-3 h-3 ml-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                    </button>
+                    <div id="panelProvDropdown" class="hidden origin-top-right absolute right-0 mt-2 w-80 rounded-md shadow-2xl bg-white ring-1 ring-black ring-opacity-5 focus:outline-none flex flex-col">
+                        <div class="p-2 border-b flex flex-col gap-2 bg-slate-50 rounded-t-md">
+                            <input type="text" id="searchProv" class="w-full text-xs border border-gray-300 rounded p-2 focus:outline-none focus:ring-1 focus:ring-emerald-500 shadow-sm" placeholder="Buscar proveedor...">
+                            <button id="btnToggleTodosProv" class="w-full text-xs font-bold text-emerald-700 bg-emerald-100 hover:bg-emerald-200 border border-emerald-200 rounded py-1.5 transition disabled:opacity-50">Seleccionar Visibles</button>
+                        </div>
+                        <ul id="listProv" class="max-h-64 overflow-y-auto p-2 text-xs divide-y divide-gray-50">
+                            <li class="p-2 text-gray-400 text-center">Esperando datos...</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <select id="fTipo" class="bg-gray-50 border border-gray-300 text-xs rounded-lg p-2.5 outline-none font-medium text-gray-700"><option value="ALL">Tipo (Todos)</option></select>
+                <select id="fMes" class="bg-gray-50 border border-gray-300 text-xs rounded-lg p-2.5 outline-none font-medium text-gray-700"><option value="ALL">Mes Emisión (Todos)</option></select>
+                <select id="fEstatus" class="bg-gray-50 border border-gray-300 text-xs rounded-lg p-2.5 outline-none font-medium text-gray-700"><option value="ALL">Estatus SAT (Todos)</option></select>
+
+                <button id="btnDescargar" disabled class="bg-emerald-600 hover:bg-emerald-500 disabled:bg-gray-300 text-white font-bold py-2.5 px-4 rounded-lg shadow flex items-center gap-2 text-sm ml-2 transition">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                    Exportar Excel
+                </button>
+            </div>
+        </div>
+
+        <!-- Tabla Dashboard -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 flex-grow overflow-hidden flex flex-col z-0">
+            <div class="overflow-auto flex-grow relative w-full">
+                <table class="w-full text-left text-xs whitespace-nowrap min-w-[1300px]" id="tablaResultados" style="-webkit-user-select: text; user-select: text;">
+                    <thead class="bg-slate-50 text-slate-600 sticky top-0 z-10 shadow-sm uppercase tracking-wider">
+                        <tr>
+                            <th class="p-3 font-semibold border-b w-48">Proveedor</th>
+                            <th class="p-3 font-semibold border-b w-32">UUID</th>
+                            <th class="p-3 font-semibold border-b w-24">Fecha</th>
+                            <th class="p-3 font-semibold border-b w-16 text-center">Tipo</th>
+                            <th class="p-3 font-semibold border-b text-right w-24">SubTotal</th>
+                            <th class="p-3 font-semibold border-b text-right w-24">Traslados</th>
+                            <th class="p-3 font-semibold border-b text-right w-24 text-red-500">Retenciones</th>
+                            <th class="p-3 font-semibold border-b text-right w-24 font-bold">Total</th>
+                            <th class="p-3 font-semibold border-b text-center w-32">Estatus SAT</th>
+                            <th class="p-3 font-semibold border-b w-48">Detalle Cancelación</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y text-slate-700" id="cuerpoTabla">
+                        <tr><td colspan="10" class="p-12 text-center text-slate-400 font-medium">Sube tus XML para auditar estatus con el SAT...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <!-- MODAL DE CARGA -->
+    <div id="modalCarga" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden justify-center items-center">
+        <div class="bg-white w-full max-w-2xl rounded-2xl shadow-2xl p-6 relative">
+            <button id="btnCerrarModal" class="absolute top-4 right-4 text-gray-400 hover:text-red-500"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
+            <h2 class="text-xl font-bold mb-1">Validador Masivo SAT</h2>
+            <p class="text-xs text-gray-500 mb-6">Adjunta archivos o carpetas. El sistema consultará directamente a los servidores del SAT.</p>
+            
+            <div class="flex gap-4 mb-6">
+                <button onclick="document.getElementById('fileInputArr').click()" class="flex-1 bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-700 font-semibold py-4 rounded-xl transition flex flex-col items-center gap-2">
+                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"></path></svg>
+                    Añadir XML
+                </button>
+                <button onclick="document.getElementById('folderInputArr').click()" class="flex-1 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-700 font-semibold py-4 rounded-xl transition flex flex-col items-center gap-2">
+                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path></svg>
+                    Añadir Carpeta con XML
+                </button>
+            </div>
+            
+            <input type="file" id="fileInputArr" multiple accept=".xml" class="hidden">
+            <input type="file" id="folderInputArr" webkitdirectory directory multiple accept=".xml" class="hidden">
+
+            <div class="bg-slate-50 p-4 rounded-xl border flex justify-between items-center">
+                <div class="text-sm text-slate-600">XML listos: <span id="lblStagedCount" class="text-2xl font-black text-emerald-600 ml-2">0</span></div>
+                <button id="btnProcesarStaged" disabled class="bg-emerald-600 hover:bg-emerald-500 disabled:bg-gray-300 text-white font-bold py-2.5 px-8 rounded-lg shadow transition">
+                    Validar con el SAT
+                </button>
+            </div>
+        </div>
+    </div>
+
+<script src="/herramientas/validador/validador.js?v=202609251331"></script>
+</body>
+</html>

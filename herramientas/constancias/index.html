@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Constancias | Fiscontable</title>
+    <link rel="stylesheet" href="/assets/css/common.css?v=202609251331">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
+</head>
+<body class="min-h-screen flex flex-col">
+
+<div id="app-header"
+     data-modulo="constancias"
+     data-titulo="Constancias"
+     data-migas="Herramientas|/herramientas/"></div>
+
+<main class="flex-grow w-full" style="max-width:720px;margin:0 auto;padding:32px 20px 64px">
+
+    <h1 class="display" style="font-size:30px">Constancia de Situación Fiscal</h1>
+    <p style="margin:9px 0 24px;font-size:15px;color:var(--texto-tenue)">Si el contribuyente ya tiene una reciente, te la damos sin volver a molestar al SAT.</p>
+
+    <div class="pestanas" role="tablist">
+        <button type="button" class="pestana pestana--activa" id="tab-individual" role="tab" aria-selected="true">Un contribuyente</button>
+        <button type="button" class="pestana" id="tab-masivo" role="tab" aria-selected="false">Varios a la vez</button>
+    </div>
+
+    <div id="alerta" class="fc-aviso" style="margin:0 0 16px" hidden></div>
+
+    <!-- ============ UN CONTRIBUYENTE ============ -->
+    <section id="panel-individual" role="tabpanel">
+        <div id="paso-cliente"></div>
+        <div id="paso-dos" hidden></div>
+    </section>
+
+    <!-- ============ VARIOS A LA VEZ ============ -->
+    <section id="panel-masivo" role="tabpanel" hidden>
+
+        <p class="ficha__nota" id="linea-cuota" style="margin-bottom:14px" hidden></p>
+
+        <div class="ficha">
+            <h2 class="ficha__titulo">Cómo preparar el lote</h2>
+            <ol class="ficha__nota" style="padding-left:18px;list-style:decimal;margin-top:10px">
+                <li style="margin-bottom:5px">Llena <strong>directorio.xlsx</strong> con cuatro columnas: RFC, Contraseña, Archivo_CER y Archivo_KEY.</li>
+                <li style="margin-bottom:5px">Guarda ese Excel junto con todos los .cer y .key en una misma carpeta. Se leen las subcarpetas solas.</li>
+                <li id="instruccion-arrastre">Arrastra la carpeta entera al recuadro de abajo. Se revisa todo antes de tocar el SAT.</li>
+            </ol>
+            <a href="/assets/plantillas/directorio.xlsx" download class="fc-btn" style="margin-top:14px">Descargar la plantilla de Excel</a>
+        </div>
+
+        <div class="dropzone" id="dropzone">
+            <input type="file" id="folder_input" multiple hidden>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
+            <p class="dropzone__titulo" id="dropzone-titulo">Arrastra aquí la carpeta completa</p>
+            <p class="dropzone__sub" id="dropzone-subtitulo">O haz clic para elegirla desde tus documentos</p>
+        </div>
+
+        <div class="ficha" id="panel-validacion" style="margin-top:16px" hidden>
+            <h2 class="ficha__titulo">Revisión de archivos</h2>
+            <ul class="lista-errores" id="lista-errores" style="margin-top:8px"></ul>
+        </div>
+
+        <div class="ficha" id="panel-revision" hidden>
+            <h2 class="ficha__titulo">Revisión previa</h2>
+            <p class="ficha__nota">Qué se va a pedir al SAT y qué ya tienes. Esto no toca el SAT todavía.</p>
+            <div id="revision-contenido"></div>
+        </div>
+
+        <button type="button" id="btn-masivo" class="boton-principal" disabled>Arrastra la carpeta para empezar</button>
+
+        <div id="progreso-masivo" style="margin-top:14px" hidden>
+            <div class="progress-track"><div class="progress-fill" id="progreso-masivo-fill" style="width:0%"></div></div>
+            <p class="ficha__nota" id="progreso-masivo-texto" style="margin-top:8px;text-align:center">Subiendo los archivos…</p>
+        </div>
+
+        <p class="ficha__nota" style="margin-top:16px">
+            Los lotes grandes llevan pausas entre contribuyentes para no concentrar carga sobre el
+            portal del SAT. Puedes cerrar esta pestaña: el proceso sigue y lo encuentras en Mis descargas.
+        </p>
+    </section>
+
+</main>
+
+<footer class="fc-pie">© 2026 Alan Sánchez</footer>
+
+<script src="/assets/js/nucleo.js?v=202609251331"></script>
+<script src="/assets/js/barra.js?v=202609251331"></script>
+<script src="/assets/js/comun/paso-cliente.js?v=202609251331"></script>
+<script src="/assets/js/comun/leer-cer.js?v=202609251331"></script>
+<script>
+    const MODULO = {
+        slug: "constancia",
+        tipo: "csf",
+        permiso: "constancias",
+        nombre: "Constancia",
+        prefijoArchivo: "CSF",
+        adicional: "Opinión de Cumplimiento (32-D)",
+    };
+</script>
+<script src="/assets/js/comun/modulo-sat.js?v=202609251331"></script>
+</body>
+</html>
