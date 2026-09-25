@@ -5,13 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Administrar Usuarios | Fiscontable</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="/assets/css/common.css?v=202609251518">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202609251629">
 </head>
 <body class="min-h-screen flex flex-col relative">
 
     <div id="app-header" data-modulo="admin" data-titulo="Administración" data-migas=""></div>
-<script src="/assets/js/nucleo.js?v=202609251518"></script>
-<script src="/assets/js/barra.js?v=202609251518"></script>
+<script src="/assets/js/nucleo.js?v=202609251629"></script>
+<script src="/assets/js/barra.js?v=202609251629"></script>
 
     <main class="flex-grow p-4 sm:p-6 w-full max-w-4xl mx-auto">
         <div id="alert-container" class="hidden mb-4">
@@ -34,13 +34,14 @@
                     <div>
                         <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1">Rol</label>
                         <select id="input-rol" class="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:outline-none focus:ring-2 focus:ring-slate-500">
+                            <option value="demo">Demo (prueba)</option>
                             <option value="plus">Plus</option>
                             <option value="pro">Pro</option>
                             <option value="admin">Admin</option>
                         </select>
                     </div>
                     <div>
-                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1">Vence (opcional)</label>
+                        <label id="etiqueta-fecha" class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1">Vence (opcional)</label>
                         <input type="date" id="input-fecha" class="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:outline-none focus:ring-2 focus:ring-slate-500">
                     </div>
                     <div class="sm:col-span-4">
@@ -67,6 +68,54 @@
                     <tbody id="tabla-usuarios"></tbody>
                 </table>
             </div>
+
+            <!-- PERMISOS POR ROL -->
+            <div class="bg-white rounded-xl card-elevated border border-gray-200 overflow-hidden">
+                <div class="p-5 border-b border-gray-100">
+                    <h2 class="font-bold text-slate-800">Permisos por rol</h2>
+                    <p class="text-xs text-slate-500 mt-0.5">Qué módulos ve cada rol y cuántos RFC nuevos al día puede sacar en descargas masivas. Aplica en cuanto guardas; cada usuario lo ve al recargar su página.</p>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm min-w-[860px]">
+                        <thead class="bg-slate-50 text-left text-xs font-bold text-slate-500 uppercase" id="cabeza-roles"></thead>
+                        <tbody id="tabla-roles"></tbody>
+                    </table>
+                </div>
+                <p class="px-5 py-3 text-xs text-slate-500 border-t border-gray-100">
+                    <strong>RFC/día:</strong> vacío = sin límite · 0 = sin descargas masivas (solo de uno en uno).
+                    Los documentos que se reutilizan del caché no cuentan.
+                </p>
+            </div>
+
+            <!-- AJUSTES PROPIOS DE UN USUARIO -->
+            <dialog id="dlg-ajustes" class="rounded-xl p-0 w-full max-w-lg shadow-2xl backdrop:bg-slate-900/40">
+                <form method="dialog" class="p-6 flex flex-col gap-4" onsubmit="guardarAjustesUsuario(event)">
+                    <div>
+                        <h3 class="font-bold text-slate-800">Ajustes propios</h3>
+                        <p class="text-xs text-slate-500 mt-0.5 font-mono" id="ajustes-correo"></p>
+                        <p class="text-xs text-slate-500 mt-1">Reemplazan a los de su rol solo para esta persona.</p>
+                    </div>
+                    <fieldset class="flex flex-col gap-2">
+                        <legend class="text-xs font-bold text-slate-700 uppercase tracking-wide mb-1">Módulos</legend>
+                        <label class="text-sm flex items-center gap-2"><input type="radio" name="ajustes-modo" value="rol" onchange="pintarModoAjustes()"> <span>Los de su rol <span class="text-slate-400" id="ajustes-modulos-rol"></span></span></label>
+                        <label class="text-sm flex items-center gap-2"><input type="radio" name="ajustes-modo" value="propios" onchange="pintarModoAjustes()"> Personalizados</label>
+                        <div id="ajustes-casillas" class="grid grid-cols-2 gap-1 pl-6"></div>
+                    </fieldset>
+                    <fieldset class="flex flex-col gap-2">
+                        <legend class="text-xs font-bold text-slate-700 uppercase tracking-wide mb-1">RFC por día en descargas masivas</legend>
+                        <select id="ajustes-limite-modo" class="text-sm border border-gray-300 rounded-lg p-2.5" onchange="pintarModoAjustes()">
+                            <option value="rol">El de su rol</option>
+                            <option value="numero">Un número</option>
+                            <option value="sin">Sin límite</option>
+                        </select>
+                        <input type="number" id="ajustes-limite" min="0" max="10000" class="text-sm border border-gray-300 rounded-lg p-2.5" placeholder="Ej. 5 (0 = sin descargas masivas)">
+                    </fieldset>
+                    <div class="flex gap-2 justify-end pt-2">
+                        <button type="button" onclick="document.getElementById('dlg-ajustes').close()" class="text-sm font-bold text-slate-500 border border-gray-200 rounded-lg py-2 px-4">Cancelar</button>
+                        <button type="submit" class="bg-slate-800 hover:bg-slate-700 text-white font-bold py-2 px-5 rounded-lg text-sm">Guardar ajustes</button>
+                    </div>
+                </form>
+            </dialog>
 
 
             <!-- PROCESOS DE TODOS LOS USUARIOS -->
@@ -98,13 +147,13 @@
             </div>
 
             <div class="bg-slate-50 border border-slate-200 rounded-lg p-4 text-xs text-slate-500">
-                <p class="font-bold text-slate-700 mb-1">Qué incluye cada rol hoy:</p>
-                <p><strong>Admin</strong> — todos los módulos + esta pantalla. <strong>Pro</strong> — Conciliación, Validador, Constancias, Opinión, Clientes. <strong>Plus</strong> — Constancias y Clientes.</p>
+                <p class="font-bold text-slate-700 mb-1">Reglas fijas</p>
+                <p><strong>Admin</strong> tiene todo, sin límite, y no se edita ni se personaliza. <strong>Demo</strong> siempre vence (7 días si no pones fecha) y no puede guardar e.firmas. Quien entra por primera vez queda como Demo.</p>
                 <p class="mt-1">Cuando el acceso de alguien vence, sigue viendo su directorio de Clientes en modo lectura, pero no puede generar documentos ni agregar/quitar clientes.</p>
             </div>
         </div>
     </main>
 
-<script src="/admin/admin.js?v=202609251518"></script>
+<script src="/admin/admin.js?v=202609251629"></script>
 </body>
 </html>

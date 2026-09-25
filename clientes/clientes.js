@@ -5,6 +5,7 @@ const API_URL = Fiscontable.API;          // la dirección vive solo en assets/j
 const esc = Fiscontable.escapar;          // todo texto del servidor pasa por aquí antes de ir al HTML
 let clientesCache = [];
 let soloLectura = false;
+let puedeGuardarEfirma = true;   // en la Demo no se guardan e.firmas (lo decide el servidor)
 let sinConexion = false;
 
 document.addEventListener("DOMContentLoaded", inicializar);
@@ -62,6 +63,7 @@ async function verificarPerfil() {
 
         const perfil = await resp.json();
         soloLectura = perfil.solo_lectura;
+        puedeGuardarEfirma = perfil.puede_guardar_efirma !== false;
 
         const btnAgregar = document.getElementById("btn-agregar-cliente");
         btnAgregar.disabled = false;
@@ -250,6 +252,13 @@ function abrirModalEditar(rfc) {
         badge.className = "text-xs font-bold px-2 py-1 rounded-full flex-none bg-gray-100 text-gray-500";
         btnOlvidar.classList.add("hidden");
         document.getElementById("btn-guardar-efirma").textContent = "Guardar e.firma";
+    }
+
+    // Demo: la ficha no ofrece guardar e.firma (el servidor también lo rechaza).
+    document.getElementById("editar-efirma-form").classList.toggle("hidden", !puedeGuardarEfirma);
+    if (!puedeGuardarEfirma) {
+        badge.textContent = "No disponible en la versión de prueba";
+        badge.className = "text-xs font-bold px-2 py-1 rounded-full flex-none bg-gray-100 text-gray-500";
     }
 
     document.getElementById("modal-editar-cliente").classList.add("modal-active");

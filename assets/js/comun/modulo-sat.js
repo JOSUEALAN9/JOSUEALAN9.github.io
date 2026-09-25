@@ -31,6 +31,7 @@
 
     var elegido = null;          // {rfc, alias, esCliente, efirmaGuardada, cer?, nombreCert?}
     var paso = null;             // el paso "¿Para quién?" montado
+    var puedeGuardarEfirma = true;   // false en la Demo (lo decide el servidor)
     var estado = null;           // lo que el servidor sabe de ese RFC
     var enCurso = {};            // RFC -> job_id, para no lanzar dos robots
     var sondeos = [];            // todos los temporizadores vivos de la página
@@ -289,7 +290,7 @@
                 "<span><strong>Traer también la " + esc(MODULO.adicional) + "</strong>" +
                 "<span>Se saca en la misma sesión, sin volver a pedir los datos.</span></span></label>" : "") +
 
-              (yaTieneGuardada ? "" :
+              (yaTieneGuardada || !puedeGuardarEfirma ? "" :
                 '<label class="interruptor"><input type="checkbox" id="chk-guardar">' +
                 '<span><strong>Guardar esta e.firma</strong><span>' +
                 (registrado && registrado.existe
@@ -497,6 +498,11 @@
             if (cuota.limite === null) return;
 
             var linea = $("linea-cuota");
+            if (cuota.limite === 0) {
+                linea.textContent = "Tu plan no incluye descargas masivas. Puedes sacar los documentos de uno en uno.";
+                linea.hidden = false;
+                return;
+            }
             linea.textContent = cuota.disponibles === 0
                 ? "Ya usaste los " + cuota.limite + " contribuyentes de hoy. El contador se reinicia mañana."
                 : "Hoy te quedan " + cuota.disponibles + " de " + cuota.limite +
@@ -828,6 +834,8 @@
 
         // Se comprueba el permiso antes de dejar que el usuario llene nada.
         if (!(await Fiscontable.exigirModulo(MODULO.permiso))) return;
+        var p = await Fiscontable.perfil();
+        puedeGuardarEfirma = !p || p.puede_guardar_efirma !== false;
 
         paso = PasoCliente.montar({
             contenedor: "paso-cliente",
