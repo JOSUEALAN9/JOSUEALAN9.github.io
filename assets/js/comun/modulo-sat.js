@@ -6,7 +6,7 @@
  * vive aquí una sola vez y cada página sólo declara su MODULO.
  *
  * Cambio de esta versión: el modo individual arranca con el paso
- * "¿Para quién?" (assets/paso-cliente.js), igual que Declaraciones.
+ * "¿Para quién?" (assets/js/comun/paso-cliente.js), igual que Declaraciones.
  * Antes se pedían .cer, .key, contraseña y RFC ANTES de saber si ese
  * contribuyente ya tenía e.firma guardada o un documento reciente. Con el
  * orden invertido, el caso más común -- cliente con e.firma guardada --

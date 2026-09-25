@@ -10,7 +10,7 @@
  * Camino "Con una e.firma": ya no se teclea el RFC. Para alguien que no
  * está en el directorio siempre hace falta su e.firma, y el .cer ya trae
  * el RFC, el nombre y la vigencia. Se lee en el navegador
- * (assets/rfc-from-cer.js) y el .cer viaja en `elegido.cer` para que el
+ * (assets/js/comun/leer-cer.js) y el .cer viaja en `elegido.cer` para que el
  * módulo no lo vuelva a pedir. Solo si el .cer no se puede leer aparece
  * el campo para escribir el RFC a mano.
  *
@@ -28,14 +28,10 @@
 (function () {
     "use strict";
 
-    var API = "https://api.josuealan.com";
+    var API = window.Fiscontable.API;
     var PATRON_RFC = /^[A-ZÑ&]{3,4}\d{6}[A-Z0-9]{3}$/;
 
-    function esc(v) {
-        return String(v == null ? "" : v)
-            .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
-            .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
-    }
+    var esc = window.Fiscontable.escapar;
 
     function fechaCorta(f) {
         return f.toLocaleDateString("es-MX", { day: "numeric", month: "short", year: "numeric" });

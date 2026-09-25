@@ -1,5 +1,5 @@
 /**
- * rfc-from-cer.js — Lee el certificado (.cer) de una e.firma en el
+ * leer-cer.js — Lee el certificado (.cer) de una e.firma en el
  * navegador, sin mandarlo a ningún lado y sin librerías externas.
  *
  *   leerCertificado(archivo)  -> { rfc, nombre, vigenteDesde, vigenteHasta,

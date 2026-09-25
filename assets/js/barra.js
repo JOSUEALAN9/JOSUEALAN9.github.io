@@ -1,5 +1,6 @@
 /**
- * app-header.js — el marco de Fiscontable, en un solo lugar.
+ * barra.js — el marco de Fiscontable, en un solo lugar (antes app-header.js).
+ * Requiere assets/js/nucleo.js cargado antes.
  *
  * Antes cada página dibujaba su propia navegación: el mismo botón se
  * llamaba "Inicio", "Menú", "Volver" o "Clientes" según dónde estuvieras,
@@ -31,10 +32,7 @@
 (function () {
     "use strict";
 
-    var VERSION = "4";
-    console.info("Fiscontable — interfaz v" + VERSION);
-
-    var API = "https://api.josuealan.com";
+    var API = window.Fiscontable.API;
 
     // Un solo lugar donde vive la identidad de cada módulo: nombre,
     // color y clave de permiso. Agregar un módulo nuevo es una línea.
@@ -63,11 +61,7 @@
 
     /* ---------------------------------------------------------- útiles */
 
-    function esc(valor) {
-        return String(valor == null ? "" : valor)
-            .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
-            .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
-    }
+    var esc = window.Fiscontable.escapar;
 
     function ico(d, ancho) {
         return '<svg fill="none" stroke="currentColor" stroke-width="' + (ancho || 2) +
@@ -774,8 +768,7 @@
     iniciarPerfil();
     sondear();
 
-    window.Fiscontable = {
-        API: API,
+    Object.assign(window.Fiscontable, {
         modulo: clave,
         perfil: perfil,
         exigirModulo: exigirModulo,
@@ -785,7 +778,6 @@
         abrirDescargas: abrirDescargas,
         cerrarDescargas: cerrarDescargas,
         refrescarDescargas: sondear,
-        abrirModalPerfil: abrirModalPerfil,
-        escapar: esc
-    };
+        abrirModalPerfil: abrirModalPerfil
+    });
 })();
