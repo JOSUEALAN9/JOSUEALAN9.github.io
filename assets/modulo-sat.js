@@ -29,7 +29,8 @@
     var API = Fiscontable.API;
     var esc = Fiscontable.escapar;
 
-    var elegido = null;          // {rfc, alias, esCliente, efirmaGuardada}
+    var elegido = null;          // {rfc, alias, esCliente, efirmaGuardada, cer?, nombreCert?}
+    var paso = null;             // el paso "¿Para quién?" montado
     var estado = null;           // lo que el servidor sabe de ese RFC
     var enCurso = {};            // RFC -> job_id, para no lanzar dos robots
     var sondeos = [];            // todos los temporizadores vivos de la página
@@ -261,13 +262,18 @@
               '<h2 class="ficha__titulo">Su e.firma</h2>' +
               '<p class="ficha__nota">Viaja cifrada y se borra del servidor al terminar.</p>' +
 
-              '<div class="dos">' +
-                '<label class="campo"><span class="campo__etiqueta">Certificado (.cer)</span>' +
-                  '<input type="file" id="cer" accept=".cer" class="campo__archivo"></label>' +
-                '<label class="campo"><span class="campo__etiqueta">Clave privada (.key)</span>' +
-                  '<input type="file" id="key" accept=".key" class="campo__archivo"></label>' +
-              "</div>" +
-              '<p class="pc-pista" id="pista-cer"></p>' +
+              (elegido.cer
+                ? '<label class="campo"><span class="campo__etiqueta">Clave privada (.key)</span>' +
+                    '<input type="file" id="key" accept=".key" class="campo__archivo"></label>' +
+                  '<p class="pc-pista pc-pista--bien" id="pista-cer">Certificado: ' + esc(elegido.cer.name) +
+                    ' <button type="button" class="pc-cambiar" id="btn-otro-cer" style="margin-left:6px;padding:2px 8px">Cambiar</button></p>'
+                : '<div class="dos">' +
+                    '<label class="campo"><span class="campo__etiqueta">Certificado (.cer)</span>' +
+                      '<input type="file" id="cer" accept=".cer" class="campo__archivo"></label>' +
+                    '<label class="campo"><span class="campo__etiqueta">Clave privada (.key)</span>' +
+                      '<input type="file" id="key" accept=".key" class="campo__archivo"></label>' +
+                  "</div>" +
+                  '<p class="pc-pista" id="pista-cer"></p>') +
 
               '<label class="campo" style="margin-top:8px">' +
                 '<span class="campo__etiqueta">Contraseña de la e.firma</span>' +
@@ -292,7 +298,8 @@
                 "</span></span></label>" +
                 '<div class="campo" id="campo-alias" hidden style="margin-top:2px">' +
                   '<span class="campo__etiqueta">Nombre del cliente</span>' +
-                  '<input type="text" id="alias" class="campo__control" placeholder="Ej. Constructora del Caribe">' +
+                  '<input type="text" id="alias" class="campo__control" placeholder="Ej. Constructora del Caribe" value="' +
+                    esc(elegido.nombreCert || "") + '">' +
                 "</div>") +
 
               '<button type="button" class="boton-principal" id="btn-generar">Generar ' + esc(MODULO.nombre) + "</button>" +
@@ -306,7 +313,13 @@
         // El RFC ya lo eligió el usuario en el paso 1, así que el .cer
         // ahora sirve para CONFIRMAR que corresponde. Antes el RFC salía
         // del certificado y una confusión de archivos era invisible.
-        $("cer").addEventListener("change", async function (e) {
+        if ($("btn-otro-cer")) {
+            $("btn-otro-cer").addEventListener("click", function () {
+                if (paso) paso.reabrir();
+            });
+        }
+
+        if ($("cer")) $("cer").addEventListener("change", async function (e) {
             var pista = $("pista-cer");
             var archivo = e.target.files[0];
             if (!archivo) { pista.textContent = ""; return; }
@@ -348,7 +361,7 @@
             return;
         }
 
-        var cer = $("cer").files[0];
+        var cer = elegido.cer || ($("cer") && $("cer").files[0]);
         var key = $("key").files[0];
         var password = $("password").value;
         if (!cer || !key || !password) {
@@ -816,7 +829,7 @@
         // Se comprueba el permiso antes de dejar que el usuario llene nada.
         if (!(await Fiscontable.exigirModulo(MODULO.permiso))) return;
 
-        PasoCliente.montar({
+        paso = PasoCliente.montar({
             contenedor: "paso-cliente",
             alElegir: alElegirCliente,
             alLimpiar: alLimpiarCliente

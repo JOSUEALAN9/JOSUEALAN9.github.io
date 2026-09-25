@@ -4,15 +4,24 @@
  * Este patrón nació en Declaraciones y ahora lo usan también Constancias
  * y Opinión. La idea: antes de pedirte archivos, contraseñas o fechas,
  * la herramienta pregunta de quién es el trabajo. Elegir un cliente del
- * directorio o teclear un RFC suelto son dos caminos del mismo paso, no
- * dos módulos distintos.
+ * directorio o subir la e.firma de alguien que no está registrado son dos
+ * caminos del mismo paso, no dos módulos distintos.
+ *
+ * Camino "Con una e.firma": ya no se teclea el RFC. Para alguien que no
+ * está en el directorio siempre hace falta su e.firma, y el .cer ya trae
+ * el RFC, el nombre y la vigencia. Se lee en el navegador
+ * (assets/rfc-from-cer.js) y el .cer viaja en `elegido.cer` para que el
+ * módulo no lo vuelva a pedir. Solo si el .cer no se puede leer aparece
+ * el campo para escribir el RFC a mano.
  *
  * Cuando llegas desde la ficha de un cliente (?rfc=...&cliente=...) el
  * paso se resuelve solo y se colapsa a una línea.
  *
  *   PasoCliente.montar({
  *       contenedor: "paso-cliente",
- *       alElegir: function (elegido) { ... },   // {rfc, alias, esCliente, efirmaGuardada}
+ *       alElegir: function (elegido) { ... },
+ *           // {rfc, alias, esCliente, efirmaGuardada,
+ *           //  cer (File, solo si llegó por e.firma), nombreCert, vigenteHasta}
  *       alLimpiar: function () { ... }
  *   });
  */
@@ -26,6 +35,10 @@
         return String(v == null ? "" : v)
             .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
             .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+    }
+
+    function fechaCorta(f) {
+        return f.toLocaleDateString("es-MX", { day: "numeric", month: "short", year: "numeric" });
     }
 
     /** Un RFC mexicano válido: 12 para moral, 13 para física. */
@@ -53,13 +66,21 @@
                       '<option value="">Cargando tu directorio…</option></select>' +
                   "</label>" +
                   '<div class="pc-o"><span>o</span></div>' +
-                  '<label class="pc-campo">' +
-                    '<span class="pc-etiqueta">Un RFC que no tienes registrado</span>' +
-                    '<input class="pc-control pc-rfc" id="pc-rfc" type="text" inputmode="text" ' +
-                      'autocomplete="off" spellcheck="false" maxlength="13" placeholder="XAXX010101000">' +
-                    '<span class="pc-pista" id="pc-pista"></span>' +
-                  "</label>" +
+                  '<div class="pc-campo">' +
+                    '<span class="pc-etiqueta">Alguien que no tienes registrado</span>' +
+                    '<label class="pc-control" for="pc-cer" id="pc-cer-boton" tabindex="0" role="button" ' +
+                      'style="display:block;box-sizing:border-box;cursor:pointer;text-align:center;font-weight:600;color:var(--acento)">' +
+                      "Subir su e.firma (.cer)</label>" +
+                    '<input type="file" id="pc-cer" accept=".cer" ' +
+                      'style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none">' +
+                  "</div>" +
                 "</div>" +
+                '<span class="pc-pista" id="pc-pista"></span>' +
+                '<label class="pc-campo" id="pc-manual" style="display:none;margin-top:10px;max-width:320px">' +
+                  '<span class="pc-etiqueta">Escribe su RFC</span>' +
+                  '<input class="pc-control pc-rfc" id="pc-rfc" type="text" inputmode="text" ' +
+                    'autocomplete="off" spellcheck="false" maxlength="13" placeholder="XAXX010101000">' +
+                "</label>" +
               "</div>" +
               '<div class="pc-cerrado" id="pc-cerrado" hidden>' +
                 '<div class="pc-quien">' +
@@ -76,6 +97,10 @@
 
         var select = caja.querySelector("#pc-select");
         var campoRfc = caja.querySelector("#pc-rfc");
+        var campoCer = caja.querySelector("#pc-cer");
+        var botonCer = caja.querySelector("#pc-cer-boton");
+        var bloqueManual = caja.querySelector("#pc-manual");
+        var cerPendiente = null;     // .cer que no se pudo leer: viaja con el RFC tecleado
         var pista = caja.querySelector("#pc-pista");
         var abierto = caja.querySelector("#pc-abierto");
         var cerrado = caja.querySelector("#pc-cerrado");
@@ -85,12 +110,21 @@
         function colapsar(datos) {
             elegido = datos;
             caja.querySelector("#pc-inicial").textContent = (datos.alias || datos.rfc).charAt(0).toUpperCase();
-            caja.querySelector("#pc-nombre").textContent = datos.alias || "RFC sin registrar";
-            caja.querySelector("#pc-rfc-chico").textContent = datos.rfc;
+            caja.querySelector("#pc-nombre").textContent = datos.alias || datos.nombreCert || "RFC sin registrar";
+            var linea = datos.rfc;
+            if (datos.vigenteHasta) {
+                var dias = Math.floor((datos.vigenteHasta - new Date()) / 86400000);
+                linea += " · e.firma vigente hasta " + fechaCorta(datos.vigenteHasta) +
+                    (dias <= 30 ? " (vence en " + dias + (dias === 1 ? " día)" : " días)") : "");
+            }
+            caja.querySelector("#pc-rfc-chico").textContent = linea;
 
             var sello = caja.querySelector("#pc-sello");
             if (datos.efirmaGuardada) {
                 sello.textContent = "e.firma guardada";
+                sello.hidden = false;
+            } else if (!datos.esCliente) {
+                sello.textContent = "No está en tu directorio";
                 sello.hidden = false;
             } else {
                 sello.hidden = true;
@@ -107,6 +141,10 @@
             abierto.hidden = false;
             select.value = "";
             campoRfc.value = "";
+            campoCer.value = "";
+            cerPendiente = null;
+            bloqueManual.style.display = "none";
+            botonCer.textContent = "Subir su e.firma (.cer)";
             limpiarPista();
             if (opciones.alLimpiar) opciones.alLimpiar();
             select.focus();
@@ -117,6 +155,9 @@
         select.addEventListener("change", function () {
             if (!select.value) return;
             campoRfc.value = "";
+            campoCer.value = "";
+            cerPendiente = null;
+            bloqueManual.style.display = "none";
             limpiarPista();
             var c = clientes.find(function (x) { return x.rfc === select.value; });
             if (!c) return;
@@ -150,8 +191,58 @@
                 });
                 return;
             }
-            colapsar({ rfc: rfc, alias: null, esCliente: false, efirmaGuardada: false });
+            colapsar({ rfc: rfc, alias: null, esCliente: false, efirmaGuardada: false, cer: cerPendiente });
         }
+
+        /* ---- Camino "Con una e.firma" ---- */
+
+        function pistaMal(texto) { pista.textContent = texto; pista.className = "pc-pista pc-pista--mal"; }
+
+        botonCer.addEventListener("keydown", function (e) {
+            if (e.key === "Enter" || e.key === " ") { e.preventDefault(); campoCer.click(); }
+        });
+
+        campoCer.addEventListener("change", async function () {
+            var archivo = campoCer.files[0];
+            if (!archivo) return;
+            select.value = "";
+            bloqueManual.style.display = "none";
+            cerPendiente = null;
+            pista.className = "pc-pista";
+            pista.textContent = "Leyendo el certificado…";
+            botonCer.textContent = archivo.name;
+
+            var cert = typeof window.leerCertificado === "function" ? await window.leerCertificado(archivo) : null;
+
+            if (!cert || !cert.rfc) {
+                // Respaldo: el .cer sí se usa, pero el RFC se escribe a mano.
+                cerPendiente = archivo;
+                bloqueManual.style.display = "block";
+                pistaMal("No pudimos leer el RFC de este archivo. Revisa que sea el .cer de la e.firma " +
+                    "(no el .key ni el de sellos) o escribe el RFC abajo.");
+                campoRfc.focus();
+                return;
+            }
+            if (cert.vencido) {
+                campoCer.value = "";
+                botonCer.textContent = "Subir su e.firma (.cer)";
+                pistaMal("La e.firma de " + (cert.nombre || cert.rfc) + " venció el " + fechaCorta(cert.vigenteHasta) +
+                    ". El SAT no la va a aceptar; hace falta la e.firma vigente.");
+                return;
+            }
+
+            limpiarPista();
+            var c = clientes.find(function (x) { return x.rfc === cert.rfc; });
+            colapsar({
+                rfc: cert.rfc,
+                alias: c ? c.alias : null,
+                esCliente: !!c,
+                efirmaGuardada: !!(c && c.efirma_guardada),
+                cer: archivo,
+                nombreCert: cert.nombre,
+                vigenteHasta: cert.vigenteHasta
+            });
+        });
 
         campoRfc.addEventListener("input", function () {
             campoRfc.value = campoRfc.value.toUpperCase();
@@ -170,7 +261,7 @@
             } catch (e) {
                 clientes = [];
                 select.innerHTML = '<option value="">No pudimos cargar tu directorio</option>';
-                pista.textContent = "Puedes seguir con un RFC suelto mientras tanto.";
+                pista.textContent = "Puedes seguir subiendo la e.firma mientras tanto.";
                 pista.className = "pc-pista";
                 resolverParametros();
                 return;
@@ -206,7 +297,7 @@
                 colapsar({ rfc: rfc, alias: p.get("cliente") || null, esCliente: false, efirmaGuardada: false });
                 return;
             }
-            pista.textContent = "El RFC de la liga (" + esc(rfc) + ") no tiene forma válida. Escríbelo a mano.";
+            pista.textContent = "El RFC de la liga (" + esc(rfc) + ") no tiene forma válida. Elige al cliente o sube su e.firma.";
             pista.className = "pc-pista pc-pista--mal";
         }
 

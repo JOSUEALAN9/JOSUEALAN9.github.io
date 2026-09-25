@@ -33,7 +33,7 @@
         <p class="ficha__nota">Viaja cifrada y se borra del servidor al terminar.</p>
 
         <div class="dos">
-            <label class="campo">
+            <label class="campo" id="campo-cer">
                 <span class="campo__etiqueta">Certificado (.cer)</span>
                 <input type="file" id="cer" accept=".cer" class="campo__archivo">
             </label>
@@ -110,6 +110,7 @@
 <footer class="fc-pie">© 2026 Alan Sánchez</footer>
 
 <script src="/assets/app-header.js"></script>
+<script src="/assets/rfc-from-cer.js"></script>
 <script src="/assets/paso-cliente.js"></script>
 <script>
 (function () {
@@ -169,6 +170,10 @@
         elegido = quien;
         sinAlerta();
         fEfirma.hidden = quien.efirmaGuardada;
+        // Si el .cer ya vino del paso "¿Para quién?", aquí no se vuelve a pedir.
+        document.getElementById("campo-cer").style.display = quien.cer ? "none" : "";
+        // 12 caracteres = persona moral, 13 = persona física.
+        document.getElementById("tipo-persona").value = quien.rfc.length === 13 ? "pf" : "pm";
         fOpciones.hidden = false;
         fOpciones.scrollIntoView({ behavior: "smooth", block: "nearest" });
     }
@@ -201,7 +206,7 @@
         if (elegido.efirmaGuardada) {
             ruta = "/api/clientes/" + encodeURIComponent(elegido.rfc) + "/descargar-declaraciones";
         } else {
-            var cer = document.getElementById("cer").files[0];
+            var cer = elegido.cer || document.getElementById("cer").files[0];
             var key = document.getElementById("key").files[0];
             var pwd = document.getElementById("password").value;
             if (!cer || !key || !pwd) {
