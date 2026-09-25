@@ -1,6 +1,23 @@
 /**
  * conciliacion.js — código de herramientas/conciliacion/ (antes vivía dentro del HTML).
  */
+const esc = Fiscontable.escapar;   // los datos de los XML son de terceros: siempre como texto
+
+/**
+ * Impuestos del comprobante SIN contarlos dos veces. En un CFDI cada
+ * concepto trae sus traslados/retenciones y además el comprobante trae
+ * el resumen; antes se sumaban los dos niveles y el IVA salía al doble.
+ * Se toma el resumen del comprobante; solo si no existe (CFDI sin nodo
+ * de impuestos global) se usan los de los conceptos.
+ */
+function impuestosDelComprobante(xmlDoc, comprobante, etiqueta) {
+    const todos = Array.from(xmlDoc.getElementsByTagName(etiqueta));
+    const abuelo = n => n.parentNode && n.parentNode.parentNode ? n.parentNode.parentNode.parentNode : null;
+    const delComprobante = todos.filter(n => abuelo(n) === comprobante);
+    if (delComprobante.length) return delComprobante;
+    return todos.filter(n => abuelo(n) && /Concepto$/.test(abuelo(n).nodeName));
+}
+
 const URL_CANCELADOS = "https://api-fiscal.josuealan9.workers.dev/api/cancelados"; 
 const URL_TC = "https://api-fiscal.josuealan9.workers.dev/api/tc";
 
@@ -164,8 +181,8 @@ function renderizarListaProveedores(setProveedoresDisponibles) {
         const li = document.createElement('li');
         li.className = "px-2 py-1.5 hover:bg-blue-50 cursor-pointer flex items-start gap-2";
         li.innerHTML = `
-            <input type="checkbox" value="${p}" class="prov-checkbox mt-0.5 rounded border-gray-300 text-blue-600 focus:ring-blue-500" ${isChecked}>
-            <label class="cursor-pointer text-gray-700 w-full truncate" title="${p}">${p}</label>
+            <input type="checkbox" value="${esc(p)}" class="prov-checkbox mt-0.5 rounded border-gray-300 text-blue-600 focus:ring-blue-500" ${isChecked}>
+            <label class="cursor-pointer text-gray-700 w-full truncate" title="${esc(p)}">${esc(p)}</label>
         `;
         li.addEventListener('click', (e) => {
             if(e.target.tagName !== 'INPUT') {
@@ -246,7 +263,7 @@ document.getElementById('btnProcesarStaged').addEventListener('click', async () 
             let ivaMXN = 0, base16 = 0, base8 = 0, base0 = 0, baseEx = 0;
             let retISR = 0, retIVA = 0;
 
-            const traslados = xmlDoc.getElementsByTagName("cfdi:Traslado");
+            const traslados = impuestosDelComprobante(xmlDoc, comprobante, "cfdi:Traslado");
             for (let t of traslados) {
                 if(t.parentNode.nodeName === "cfdi:Traslados") {
                     const factor = t.getAttribute("TipoFactor")?.toUpperCase();
@@ -261,7 +278,7 @@ document.getElementById('btnProcesarStaged').addEventListener('click', async () 
                 }
             }
 
-            const retenciones = xmlDoc.getElementsByTagName("cfdi:Retencion");
+            const retenciones = impuestosDelComprobante(xmlDoc, comprobante, "cfdi:Retencion");
             for(let r of retenciones){
                 if(r.parentNode.nodeName === "cfdi:Retenciones") {
                     const imp = r.getAttribute("Impuesto");
@@ -416,10 +433,10 @@ document.getElementById('btnProcesarStaged').addEventListener('click', async () 
         else if (saldoInsoluto >= (totalMXN - 1)) { estGlobal = "🔴 No Pagado"; estAux = "Sin Recepción de Pagos"; } 
         else { estGlobal = "🟡 Pago Parcial"; estAux = "Saldos pendientes en PPD"; }
 
-        let uiFechas = `<div class="font-semibold text-slate-700">${formatDateToMX(f.F_FechaEmision)}</div>`;
+        let uiFechas = `<div class="font-semibold text-slate-700">${esc(formatDateToMX(f.F_FechaEmision))}</div>`;
         let uiPagosMeses = [];
         f.historialPagos.forEach(p => {
-            uiFechas += `<div class="text-[10px] text-blue-600 mt-0.5">↪ ${formatDateToMX(p.fechaPago)}</div>`;
+            uiFechas += `<div class="text-[10px] text-blue-600 mt-0.5">↪ ${esc(formatDateToMX(p.fechaPago))}</div>`;
             if(p.fechaPago) uiPagosMeses.push(`${new Date(p.fechaPago).getFullYear()}-${String(new Date(p.fechaPago).getMonth()+1).padStart(2,'0')}`);
         });
         if(f.F_MetodoPago === "PUE") uiPagosMeses.push(f.MesUI_Val);
@@ -546,20 +563,20 @@ document.getElementById('btnProcesarStaged').addEventListener('click', async () 
             estatusAuxiliar: estAux,
             html: `
                 <tr class="hover:bg-blue-50/50 transition border-b" 
-                    data-metodo="${f.F_MetodoPago}" data-moneda="${f.F_Moneda}" 
-                    data-mesem="${f.MesUI_Val}" data-mespa="${strPagosAttr}" data-estatus="${estGlobal}">
+                    data-metodo="${esc(f.F_MetodoPago)}" data-moneda="${esc(f.F_Moneda)}" 
+                    data-mesem="${esc(f.MesUI_Val)}" data-mespa="${esc(strPagosAttr)}" data-estatus="${esc(estGlobal)}">
                     <td class="p-3 align-top">
-                        <div class="font-mono text-blue-700 font-bold">${f.F_RFC_Prov}</div>
-                        <div class="text-[10px] text-slate-500 truncate w-48" title="${f.F_Nombre_Prov}">${f.F_Nombre_Prov}</div>
+                        <div class="font-mono text-blue-700 font-bold">${esc(f.F_RFC_Prov)}</div>
+                        <div class="text-[10px] text-slate-500 truncate w-48" title="${esc(f.F_Nombre_Prov)}">${esc(f.F_Nombre_Prov)}</div>
                     </td>
                     <td class="p-3 align-top">
-                        <div class="text-[11px] text-slate-700 font-mono break-all whitespace-normal max-w-[140px] leading-tight" title="Doble clic para copiar">${uuid}</div>
+                        <div class="text-[11px] text-slate-700 font-mono break-all whitespace-normal max-w-[140px] leading-tight" title="Doble clic para copiar">${esc(uuid)}</div>
                     </td>
                     <td class="p-3 leading-tight align-top w-28">${uiFechas}</td>
                     <td class="p-3 align-top">
-                        <div class="text-[10px] text-slate-500 whitespace-normal w-64 clamp-2 leading-relaxed" title="${f.F_Conceptos_Full}">${f.F_Conceptos_Full}</div>
+                        <div class="text-[10px] text-slate-500 whitespace-normal w-64 clamp-2 leading-relaxed" title="${esc(f.F_Conceptos_Full)}">${esc(f.F_Conceptos_Full)}</div>
                     </td>
-                    <td class="p-3 align-top"><span class="px-2 py-1 bg-slate-100 rounded text-[10px] text-slate-600 font-semibold border">${f.Tasa_Dominante}</span></td>
+                    <td class="p-3 align-top"><span class="px-2 py-1 bg-slate-100 rounded text-[10px] text-slate-600 font-semibold border">${esc(f.Tasa_Dominante)}</span></td>
                     <td class="p-3 text-right tabular-nums font-semibold align-top">$${totalMXN.toLocaleString('es-MX', {minimumFractionDigits:2})}</td>
                     <td class="p-3 text-right tabular-nums text-slate-500 align-top">$${iva_mxn.toLocaleString('es-MX', {minimumFractionDigits:2})}</td>
                     <td class="p-3 text-right tabular-nums align-top ${colorSaldo}">$${saldoInsoluto.toLocaleString('es-MX', {minimumFractionDigits:2})}</td>
@@ -624,12 +641,12 @@ function actualizarSelectsDesdeData(isInitial) {
         let arr = Array.from(setObjs);
         if(arr.length > 0 && arr[0].startsWith('{')) { 
             arr.map(JSON.parse).sort((a,b) => a.v > b.v ? 1 : -1).forEach(i => {
-                el.innerHTML += `<option value="${i.v}">${i.t}</option>`;
+                el.innerHTML += `<option value="${esc(i.v)}">${esc(i.t)}</option>`;
                 if(i.v === curVal) found = true;
             });
         } else { 
             arr.sort().forEach(m => {
-                el.innerHTML += `<option value="${m}">${m}</option>`;
+                el.innerHTML += `<option value="${esc(m)}">${esc(m)}</option>`;
                 if(m === curVal) found = true;
             });
         }

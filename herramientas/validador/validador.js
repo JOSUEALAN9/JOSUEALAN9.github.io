@@ -1,6 +1,23 @@
 /**
  * validador.js — código de herramientas/validador/ (antes vivía dentro del HTML).
  */
+const esc = Fiscontable.escapar;   // los datos de los XML son de terceros: siempre como texto
+
+/**
+ * Impuestos del comprobante SIN contarlos dos veces. En un CFDI cada
+ * concepto trae sus traslados/retenciones y además el comprobante trae
+ * el resumen; antes se sumaban los dos niveles y el IVA salía al doble.
+ * Se toma el resumen del comprobante; solo si no existe (CFDI sin nodo
+ * de impuestos global) se usan los de los conceptos.
+ */
+function impuestosDelComprobante(xmlDoc, comprobante, etiqueta) {
+    const todos = Array.from(xmlDoc.getElementsByTagName(etiqueta));
+    const abuelo = n => n.parentNode && n.parentNode.parentNode ? n.parentNode.parentNode.parentNode : null;
+    const delComprobante = todos.filter(n => abuelo(n) === comprobante);
+    if (delComprobante.length) return delComprobante;
+    return todos.filter(n => abuelo(n) && /Concepto$/.test(abuelo(n).nodeName));
+}
+
 let xmlFilesStage = [];
 let rawDataForFilters = [];
 let proveedoresSeleccionados = new Set();
@@ -119,8 +136,8 @@ function renderizarListaProveedores(setProveedoresDisponibles) {
         const li = document.createElement('li');
         li.className = "px-2 py-1.5 hover:bg-emerald-50 cursor-pointer flex items-start gap-2";
         li.innerHTML = `
-            <input type="checkbox" value="${p}" class="prov-checkbox mt-0.5 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" ${isChecked}>
-            <label class="cursor-pointer text-gray-700 w-full truncate" title="${p}">${p}</label>
+            <input type="checkbox" value="${esc(p)}" class="prov-checkbox mt-0.5 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" ${isChecked}>
+            <label class="cursor-pointer text-gray-700 w-full truncate" title="${esc(p)}">${esc(p)}</label>
         `;
         li.addEventListener('click', (e) => {
             if(e.target.tagName !== 'INPUT') {
@@ -210,7 +227,7 @@ document.getElementById('btnProcesarStaged').addEventListener('click', async () 
         }
 
         let totalTraslados = 0;
-        const nodosTraslado = xmlDoc.getElementsByTagName("cfdi:Traslado");
+        const nodosTraslado = impuestosDelComprobante(xmlDoc, comprobante, "cfdi:Traslado");
         for (let t of nodosTraslado) {
             if(t.parentNode.nodeName === "cfdi:Traslados") {
                 totalTraslados += parseFloat(t.getAttribute("Importe") || 0);
@@ -218,7 +235,7 @@ document.getElementById('btnProcesarStaged').addEventListener('click', async () 
         }
 
         let totalRetenciones = 0;
-        const nodosRetencion = xmlDoc.getElementsByTagName("cfdi:Retencion");
+        const nodosRetencion = impuestosDelComprobante(xmlDoc, comprobante, "cfdi:Retencion");
         for (let r of nodosRetencion) {
             if(r.parentNode.nodeName === "cfdi:Retenciones") {
                 totalRetenciones += parseFloat(r.getAttribute("Importe") || 0);
@@ -313,13 +330,13 @@ function actualizarSelectsDesdeData(isInitial) {
         let arr = Array.from(setObjs);
         if(arr.length > 0 && arr[0].startsWith('{')) { 
             arr.map(JSON.parse).sort((a,b) => a.v > b.v ? 1 : -1).forEach(i => {
-                el.innerHTML += `<option value="${i.v}">${i.t}</option>`;
+                el.innerHTML += `<option value="${esc(i.v)}">${esc(i.t)}</option>`;
                 if(i.v === curVal) found = true;
             });
         } else { 
             arr.sort().forEach(m => {
                 let text = prefixMap[m] ? `${prefixMap[m]} ${m}` : m;
-                el.innerHTML += `<option value="${m}">${text}</option>`;
+                el.innerHTML += `<option value="${esc(m)}">${esc(text)}</option>`;
                 if(m === curVal) found = true;
             });
         }
@@ -360,19 +377,19 @@ function renderizarTablaUI() {
             htmlFinal += `
             <tr class="hover:bg-emerald-50/50 transition border-b">
                 <td class="p-3 align-top">
-                    <div class="font-mono text-blue-700 font-bold">${f.rfcEmisor}</div>
-                    <div class="text-[10px] text-slate-500 truncate w-48" title="${f.nombreEmisor}">${f.nombreEmisor}</div>
+                    <div class="font-mono text-blue-700 font-bold">${esc(f.rfcEmisor)}</div>
+                    <div class="text-[10px] text-slate-500 truncate w-48" title="${esc(f.nombreEmisor)}">${esc(f.nombreEmisor)}</div>
                 </td>
-                <td class="p-3 align-top text-[11px] text-slate-700 font-mono">${f.uuid}</td>
-                <td class="p-3 align-top font-medium">${formatDateToMX(f.fechaCruda)}</td>
-                <td class="p-3 align-top text-center font-bold text-slate-500">${f.tipo}</td>
+                <td class="p-3 align-top text-[11px] text-slate-700 font-mono">${esc(f.uuid)}</td>
+                <td class="p-3 align-top font-medium">${esc(formatDateToMX(f.fechaCruda))}</td>
+                <td class="p-3 align-top text-center font-bold text-slate-500">${esc(f.tipo)}</td>
                 <td class="p-3 text-right tabular-nums align-top">$${f.subTotal.toLocaleString('es-MX', {minimumFractionDigits:2})}</td>
                 <td class="p-3 text-right tabular-nums text-slate-500 align-top">$${f.totalTraslados.toLocaleString('es-MX', {minimumFractionDigits:2})}</td>
                 <td class="p-3 text-right tabular-nums text-red-500 align-top">$${f.totalRetenciones.toLocaleString('es-MX', {minimumFractionDigits:2})}</td>
                 <td class="p-3 text-right tabular-nums font-bold align-top">$${f.total.toLocaleString('es-MX', {minimumFractionDigits:2})}</td>
-                <td class="p-3 text-center align-top"><span class="px-2 py-1 rounded text-[10px] font-bold ${colorBadge} border">${icono} ${f.satEstatus}</span></td>
+                <td class="p-3 text-center align-top"><span class="px-2 py-1 rounded text-[10px] font-bold ${colorBadge} border">${icono} ${esc(f.satEstatus)}</span></td>
                 <td class="p-3 text-[10px] text-slate-500 italic align-top">
-                    ${f.satCancelable} <br> <span class="font-semibold text-slate-700">${f.satMotivo}</span>
+                    ${esc(f.satCancelable)} <br> <span class="font-semibold text-slate-700">${esc(f.satMotivo)}</span>
                 </td>
             </tr>`;
         }
