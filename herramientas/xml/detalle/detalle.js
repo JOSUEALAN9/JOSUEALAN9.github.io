@@ -1,0 +1,164 @@
+/**
+ * detalle.js — Detalle de un CFDI, en su propia pestaña.
+ * Dirección: /herramientas/xml/detalle/?rfc=...&uuid=...
+ */
+(function () {
+    "use strict";
+    var API = Fiscontable.API, esc = Fiscontable.escapar;
+    var $ = function (id) { return document.getElementById(id); };
+    var fm = new Intl.NumberFormat("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    var fn = new Intl.NumberFormat("es-MX", { maximumFractionDigits: 6 });
+    var P = new URLSearchParams(location.search);
+    var RFC = (P.get("rfc") || "").toUpperCase(), UUID = (P.get("uuid") || "").toUpperCase();
+
+    var TIPOS = { I: "Ingreso", E: "Egreso", T: "Traslado", N: "Nómina", P: "Pago" };
+    var FORMA = { "01": "Efectivo", "02": "Cheque nominativo", "03": "Transferencia electrónica", "04": "Tarjeta de crédito", "05": "Monedero electrónico",
+        "06": "Dinero electrónico", "08": "Vales de despensa", "12": "Dación en pago", "15": "Condonación", "17": "Compensación", "28": "Tarjeta de débito",
+        "29": "Tarjeta de servicios", "30": "Aplicación de anticipos", "99": "Por definir" };
+    var IMP = { "001": "ISR", "002": "IVA", "003": "IEPS" };
+    var RELACION = { "01": "Nota de crédito", "02": "Nota de débito", "03": "Devolución", "04": "Sustitución", "05": "Traslados previos",
+        "06": "Factura por traslados", "07": "Aplicación de anticipo" };
+    var PERCEPCION = { "001": "Sueldos", "002": "Aguinaldo", "003": "PTU", "019": "Horas extra", "020": "Prima dominical", "021": "Prima vacacional",
+        "022": "Prima de antigüedad", "023": "Pagos por separación", "025": "Indemnizaciones", "028": "Comisiones", "029": "Vales de despensa", "038": "Otros ingresos por salarios", "046": "Asimilados" };
+    var DEDUCCION = { "001": "IMSS", "002": "ISR", "003": "Aportaciones a retiro", "004": "Otros", "005": "Fondo de vivienda", "006": "Incapacidad", "007": "Pensión alimenticia",
+        "009": "INFONAVIT", "010": "Crédito de vivienda", "011": "FONACOT", "012": "Anticipo de salarios", "020": "Ausentismo" };
+    var OTRO = { "001": "Reintegro de ISR", "002": "Subsidio para el empleo", "003": "Viáticos", "004": "Saldo a favor", "999": "Pagos distintos" };
+
+    function m(v) { return v === null || v === undefined ? "" : fm.format(v); }
+    function f(s) { return s ? s.slice(8, 10) + "/" + s.slice(5, 7) + "/" + s.slice(0, 4) + (s.length > 10 ? " " + s.slice(11, 16) : "") : ""; }
+    function dato(etq, val) { return val === null || val === undefined || val === "" ? "" : '<div class="det-dato"><span>' + esc(etq) + "</span><strong>" + esc(val) + "</strong></div>"; }
+    function liga(uuid, texto) { return '<a class="det-liga" href="?rfc=' + encodeURIComponent(RFC) + "&uuid=" + encodeURIComponent(uuid) + '" target="_blank" rel="noopener">' + esc(texto) + "</a>"; }
+    function refCfdi(x) {
+        if (!x.encontrado) return '<span class="xml-tenue" title="No está en la biblioteca">' + esc(x.uuid) + "</span>";
+        return liga(x.uuid, (TIPOS[x.tipo] || "") + " " + (x.serie_folio || x.uuid.slice(0, 8))) +
+            ' <span class="xml-tenue">' + esc(f(x.fecha)) + " · " + esc(x.contraparte || "") + " · $" + m(x.total) + " " + esc(x.moneda || "") + "</span>";
+    }
+    function sello(txt, tono) { return '<span class="xml-sello xml-sello--' + tono + '">' + esc(txt) + "</span>"; }
+
+    document.addEventListener("DOMContentLoaded", async function () {
+        if (!(await Fiscontable.exigirModulo("validador"))) return;
+        if (!RFC || !UUID) { $("det-cargando").textContent = "Falta el RFC o el UUID en la dirección."; return; }
+        try {
+            var resp = await fetch(API + "/api/xml/detalle?rfc=" + encodeURIComponent(RFC) + "&uuid=" + encodeURIComponent(UUID), { credentials: "include" });
+            if (!resp.ok) throw new Error(await Fiscontable.leerError(resp));
+            pintar(await resp.json());
+        } catch (e) { $("det-cargando").textContent = e.message; }
+    });
+
+    function pintar(r) {
+        var d = r.cfdi;
+        var titulo = (TIPOS[d.tipo] || "CFDI") + " " + ([d.serie, d.folio].filter(Boolean).join("-") || "");
+        document.title = titulo + " · Fiscontable";
+        var sellos = [sello("CFDI " + d.version, "gris"), sello(r.rol === "emitido" ? "Emitido" : "Recibido", "gris")];
+        sellos.push(r.estado_sat === "Vigente" ? sello("Vigente en el SAT", "verde") : r.estado_sat === "Cancelado" ? sello("Cancelado en el SAT", "rojo") : sello("Sin validar ante el SAT", "gris"));
+        if (d.metodo_pago === "PPD" && d.tipo === "I") {
+            var ult = r.cobros.length ? r.cobros[r.cobros.length - 1] : null;
+            sellos.push(!ult ? sello("PPD sin pago", "rojo") : (ult.insoluto <= 0.009 ? sello("PPD pagada", "verde") : sello("PPD con saldo", "ambar")));
+        }
+        var html = [];
+        html.push('<div class="det-cabeza"><div><h1>' + esc(titulo) + '</h1><div class="det-uuid">' + esc(d.uuid) + '</div><div class="det-sellos">' + sellos.join("") + "</div></div>" +
+            '<div class="det-acciones"><a class="xml-btn" href="' + API + "/api/xml/archivo?rfc=" + encodeURIComponent(RFC) + "&uuid=" + encodeURIComponent(d.uuid) + '">Descargar XML</a>' +
+            '<button class="xml-btn" disabled title="Llega con la generación de PDF">PDF · próximamente</button>' +
+            '<button class="xml-btn" onclick="window.print()">Imprimir</button></div></div>');
+
+        var em = d.emisor, re = d.receptor;
+        html.push('<div class="det-partes">' +
+            '<div class="det-parte"><h3>Emisor</h3><div class="det-nombre">' + esc(em.nombre || "") + '</div><div class="det-rfc">' + esc(em.rfc) + '</div><div class="det-linea">Régimen ' + esc(em.regimen || "—") + "</div>" +
+            (d.nomina && d.nomina.registro_patronal ? '<div class="det-linea">Registro patronal ' + esc(d.nomina.registro_patronal) + "</div>" : "") + "</div>" +
+            '<div class="det-parte"><h3>Receptor</h3><div class="det-nombre">' + esc(re.nombre || "") + '</div><div class="det-rfc">' + esc(re.rfc) + '</div><div class="det-linea">' +
+            esc(["Régimen " + (re.regimen || "—"), re.uso ? "Uso " + re.uso : "", re.domicilio ? "C.P. " + re.domicilio : ""].filter(Boolean).join(" · ")) + "</div>" +
+            (d.info_global ? '<div class="det-linea">Factura global · periodicidad ' + esc(d.info_global.periodicidad || "") + " · meses " + esc(d.info_global.meses || "") + " · " + esc(d.info_global.anio || "") + "</div>" : "") +
+            "</div></div>");
+
+        html.push('<div class="det-tarjeta"><h2>Comprobante</h2><div class="det-datos">' +
+            dato("Fecha de emisión", f(d.fecha_emision)) + dato("Fecha de timbrado", f(d.fecha_timbrado)) +
+            dato("Forma de pago", d.forma_pago ? d.forma_pago + " - " + (FORMA[d.forma_pago] || "") : "") + dato("Método de pago", d.metodo_pago) +
+            dato("Moneda", d.moneda) + dato("Tipo de cambio", d.tipo_cambio ? fn.format(d.tipo_cambio) : "") +
+            dato("Lugar de expedición", d.lugar_expedicion) + dato("Condiciones de pago", d.condiciones_pago) +
+            dato("Exportación", d.exportacion) + dato("Complementos", (d.complementos || []).join(", ")) +
+            dato("PAC", d.pac_rfc) + dato("Certificado SAT", d.no_cert_sat) + "</div></div>");
+
+        if (d.tipo === "N" && d.nomina) html.push(nomina(d));
+        else if (d.tipo === "P" && d.pagos) html.push(pagos(d, r));
+        else html.push(conceptos(d));
+
+        if (r.cobros && r.cobros.length || (d.metodo_pago === "PPD" && d.tipo === "I")) html.push(cobros(d, r));
+        if (r.relacionados.length || r.relacionado_por.length) {
+            html.push('<div class="det-tarjeta"><h2>CFDI relacionados</h2>' +
+                r.relacionados.map(function (g) {
+                    return '<p style="font-size:13px;font-weight:700;margin:6px 0">' + esc(g.tipo + " - " + (RELACION[g.tipo] || "")) + "</p><ul>" +
+                        g.cfdi.map(function (x) { return '<li style="font-size:13px;margin:3px 0">' + refCfdi(x) + "</li>"; }).join("") + "</ul>";
+                }).join("") +
+                (r.relacionado_por.length ? '<p style="font-size:13px;font-weight:700;margin:10px 0 6px">Otros CFDI que hacen referencia a este</p><ul>' +
+                    r.relacionado_por.map(function (x) { return '<li style="font-size:13px;margin:3px 0">' + esc((RELACION[x.tipo_relacion] || x.tipo_relacion) + ": ") + refCfdi(x) + "</li>"; }).join("") + "</ul>" : "") +
+                "</div>");
+        }
+        $("det-cargando").hidden = true;
+        $("det").innerHTML = html.join("");
+        $("det").hidden = false;
+    }
+
+    function conceptos(d) {
+        var filas = (d.conceptos || []).map(function (c) {
+            return "<tr><td>" + esc(c.clave || "") + '</td><td class="num">' + (c.cantidad != null ? fn.format(c.cantidad) : "") + "</td><td>" + esc(c.clave_unidad || c.unidad || "") +
+                "</td><td>" + esc(c.descripcion || "") + '</td><td class="num">' + m(c.valor_unitario) + '</td><td class="num">' + m(c.descuento) + '</td><td class="num">' + m(c.importe) + "</td></tr>";
+        }).join("");
+        var imp = (d.traslados || []).map(function (t) {
+            return "<tr><td>" + esc((IMP[t.impuesto] || t.impuesto) + " trasladado " + (t.factor === "Exento" ? "exento" : (t.tasa || "") + "%")) + "</td><td>$" + m(t.importe) + "</td></tr>";
+        }).concat((d.retenciones || []).map(function (t) {
+            return "<tr><td>" + esc((IMP[t.impuesto] || t.impuesto) + " retenido " + (t.tasa ? t.tasa + "%" : "")) + "</td><td>−$" + m(t.importe) + "</td></tr>";
+        }));
+        if (d.imp_locales) {
+            (d.imp_locales.trasladados || []).forEach(function (x) { imp.push("<tr><td>" + esc((x.nombre || "Local") + " " + (x.tasa || "") + "%") + "</td><td>$" + m(x.importe) + "</td></tr>"); });
+            (d.imp_locales.retenidos || []).forEach(function (x) { imp.push("<tr><td>" + esc((x.nombre || "Local") + " retenido " + (x.tasa || "") + "%") + "</td><td>−$" + m(x.importe) + "</td></tr>"); });
+        }
+        return '<div class="det-tarjeta"><h2>Conceptos (' + (d.conceptos || []).length + ')</h2><div class="det-scroll"><table class="det-tabla"><thead><tr><th>Clave</th><th class="num">Cantidad</th><th>Unidad</th><th>Descripción</th><th class="num">Valor unitario</th><th class="num">Descuento</th><th class="num">Importe</th></tr></thead><tbody>' +
+            filas + '</tbody></table></div></div>' +
+            '<div class="det-totales"><div></div><div class="det-tarjeta"><table class="det-suma"><tr><td>Subtotal</td><td>$' + m(d.subtotal) + "</td></tr>" +
+            (d.descuento ? "<tr><td>Descuento</td><td>−$" + m(d.descuento) + "</td></tr>" : "") + imp.join("") +
+            '<tr class="det-gran"><td>Total</td><td>$' + m(d.total) + " " + esc(d.moneda || "") + "</td></tr></table></div></div>";
+    }
+
+    function pagos(d, r) {
+        var cab = d.pagos.pagos.map(function (p) {
+            return "<tr><td>" + esc(f(p.fecha)) + "</td><td>" + esc((p.forma || "") + " " + (FORMA[p.forma] || "")) + "</td><td>" + esc(p.moneda || "") +
+                '</td><td class="num">' + (p.tipo_cambio ? fn.format(p.tipo_cambio) : "") + '</td><td class="num">$' + m(p.monto) + "</td><td>" + esc(p.num_operacion || "") + "</td></tr>";
+        }).join("");
+        var doc = r.facturas_pagadas.map(function (x) {
+            return "<tr><td>" + refCfdi(x.factura) + '</td><td class="num">' + esc(x.parcialidad || "") + '</td><td class="num">$' + m(x.saldo_anterior) +
+                '</td><td class="num">$' + m(x.pagado) + '</td><td class="num">$' + m(x.saldo_insoluto) + '</td><td class="num">' + (x.iva != null ? "$" + m(x.iva) : "") + "</td></tr>";
+        }).join("");
+        return '<div class="det-tarjeta"><h2>Pagos (complemento ' + esc(d.pagos.version || "") + ')</h2><div class="det-scroll"><table class="det-tabla"><thead><tr><th>Fecha de pago</th><th>Forma</th><th>Moneda</th><th class="num">Tipo de cambio</th><th class="num">Monto</th><th>Núm. operación</th></tr></thead><tbody>' + cab + "</tbody></table></div></div>" +
+            '<div class="det-tarjeta"><h2>Facturas que liquida</h2><div class="det-scroll"><table class="det-tabla"><thead><tr><th>Factura</th><th class="num">Parcialidad</th><th class="num">Saldo anterior</th><th class="num">Pagado</th><th class="num">Saldo insoluto</th><th class="num">IVA</th></tr></thead><tbody>' + doc + "</tbody></table></div></div>";
+    }
+
+    function cobros(d, r) {
+        if (!r.cobros.length) return '<div class="det-tarjeta"><h2>Detalle de cobros</h2><p style="font-size:13.5px;color:#991b1b;font-weight:700">No hay ningún pago cargado para esta factura PPD. Saldo pendiente: $' + m(d.total) + "</p></div>";
+        var ult = r.cobros[r.cobros.length - 1];
+        return '<div class="det-tarjeta"><h2>Detalle de cobros</h2><div class="det-scroll"><table class="det-tabla"><thead><tr><th>Fecha de pago</th><th>Pago</th><th>Forma</th><th class="num">Parcialidad</th><th class="num">Saldo anterior</th><th class="num">Pagado</th><th class="num">Saldo insoluto</th></tr></thead><tbody>' +
+            r.cobros.map(function (c) {
+                return "<tr><td>" + esc(f(c.fecha)) + "</td><td>" + (c.pago.encontrado ? liga(c.pago_uuid, c.pago.serie_folio || c.pago_uuid.slice(0, 8)) : esc(c.pago_uuid.slice(0, 8))) + "</td><td>" + esc((c.forma || "") + " " + (FORMA[c.forma] || "")) +
+                    '</td><td class="num">' + esc(c.parcialidad || "") + '</td><td class="num">$' + m(c.anterior) + '</td><td class="num">$' + m(c.pagado) + '</td><td class="num">$' + m(c.insoluto) + "</td></tr>";
+            }).join("") + "</tbody></table></div>" +
+            '<p style="font-size:13.5px;font-weight:800;margin-top:10px;color:' + (ult.insoluto <= 0.009 ? "#166534" : "#92400e") + '">' +
+            (ult.insoluto <= 0.009 ? "Factura pagada por completo." : "Saldo pendiente: $" + m(ult.insoluto)) + "</p></div>";
+    }
+
+    function nomina(d) {
+        var n = d.nomina, e = n.empleado || {};
+        var per = n.percepciones.map(function (p) { return "<tr><td>" + esc(p.tipo + " " + (PERCEPCION[p.tipo] || "")) + "</td><td>" + esc(p.concepto || "") + '</td><td class="num">$' + m(p.gravado) + '</td><td class="num">$' + m(p.exento) + "</td></tr>"; }).join("");
+        var ded = n.deducciones.map(function (x) { return "<tr><td>" + esc(x.tipo + " " + (DEDUCCION[x.tipo] || "")) + "</td><td>" + esc(x.concepto || "") + '</td><td class="num">$' + m(x.importe) + "</td></tr>"; }).join("");
+        var otr = n.otros_pagos.map(function (x) { return "<tr><td>" + esc(x.tipo + " " + (OTRO[x.tipo] || "")) + "</td><td>" + esc(x.concepto || "") + '</td><td class="num">$' + m(x.importe) + (x.subsidio_causado != null ? ' <span class="xml-tenue">(causado $' + m(x.subsidio_causado) + ")</span>" : "") + "</td></tr>"; }).join("");
+        return '<div class="det-tarjeta"><h2>Empleado</h2><div class="det-datos">' +
+            dato("Núm. empleado", e.num_empleado) + dato("CURP", e.curp) + dato("NSS", e.nss) + dato("Puesto", e.puesto) + dato("Departamento", e.departamento) +
+            dato("Inicio relación laboral", f(e.fecha_inicio)) + dato("Antigüedad", e.antiguedad) + dato("SDI", e.sdi != null ? "$" + m(e.sdi) : "") + dato("SBC", e.sbc != null ? "$" + m(e.sbc) : "") +
+            dato("Tipo de nómina", n.tipo === "O" ? "Ordinaria" : n.tipo === "E" ? "Extraordinaria" : n.tipo) + dato("Fecha de pago", f(n.fecha_pago)) +
+            dato("Periodo", f(n.fecha_inicial) + " al " + f(n.fecha_final)) + dato("Días pagados", n.dias) + "</div></div>" +
+            '<div class="det-tarjeta"><h2>Percepciones</h2><table class="det-tabla"><thead><tr><th>Tipo</th><th>Concepto</th><th class="num">Gravado</th><th class="num">Exento</th></tr></thead><tbody>' + per +
+            '</tbody><tfoot><tr><td colspan="2">Total percepciones $' + m(n.total_percepciones) + '</td><td class="num">$' + m(n.total_gravado) + '</td><td class="num">$' + m(n.total_exento) + "</td></tr></tfoot></table></div>" +
+            (ded ? '<div class="det-tarjeta"><h2>Deducciones</h2><table class="det-tabla"><thead><tr><th>Tipo</th><th>Concepto</th><th class="num">Importe</th></tr></thead><tbody>' + ded + '</tbody><tfoot><tr><td colspan="2">Total deducciones</td><td class="num">$' + m(n.total_deducciones) + "</td></tr></tfoot></table></div>" : "") +
+            (otr ? '<div class="det-tarjeta"><h2>Otros pagos</h2><table class="det-tabla"><thead><tr><th>Tipo</th><th>Concepto</th><th class="num">Importe</th></tr></thead><tbody>' + otr + "</tbody></table></div>" : "") +
+            '<div class="det-totales"><div></div><div class="det-tarjeta"><table class="det-suma"><tr><td>Percepciones</td><td>$' + m(n.total_percepciones) + "</td></tr><tr><td>Otros pagos</td><td>$" + m(n.total_otros_pagos || 0) +
+            "</td></tr><tr><td>Deducciones</td><td>−$" + m(n.total_deducciones || 0) + '</td></tr><tr class="det-gran"><td>Neto pagado</td><td>$' + m(d.total) + "</td></tr></table></div></div>";
+    }
+})();

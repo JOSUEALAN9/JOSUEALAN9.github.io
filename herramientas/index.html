@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Herramientas | Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/common.css?v=202609271616">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202609271757">
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="min-h-screen flex flex-col">
@@ -63,6 +63,13 @@
             <p>Cruza facturas PPD contra sus complementos de pago. Corre en tu navegador, sin tocar el servidor.</p>
             <span class="util__cta">Abrir</span>
             <span class="fc-cinta-pendiente util__cinta">Rediseño pendiente</span>
+        </a>
+
+        <a href="/herramientas/xml/" class="util" data-modulo="validador" style="--tono:#0E7490;--tono-suave:#E0F2F7">
+            <span class="util__icono"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg></span>
+            <h3>Administración de XML</h3>
+            <p>Carga los XML del SAT y revísalos por tipo: recibidos, emitidos, nómina y pagos. Reportes en Excel y conciliación de PPD.</p>
+            <span class="util__cta">Abrir</span>
         </a>
 
         <a href="/herramientas/validador/" class="util" data-modulo="validador" style="--tono:#047857;--tono-suave:#E6F4EF">
@@ -133,8 +140,8 @@
     .util--vedado { opacity: .42; pointer-events: none; }
 </style>
 
-<script src="/assets/js/nucleo.js?v=202609271616"></script>
-<script src="/assets/js/barra.js?v=202609271616"></script>
+<script src="/assets/js/nucleo.js?v=202609271757"></script>
+<script src="/assets/js/barra.js?v=202609271757"></script>
 <script>
     document.addEventListener("fc:perfil", function (e) {
         var p = e.detail;

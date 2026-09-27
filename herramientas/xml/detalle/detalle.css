@@ -1,0 +1,31 @@
+.det-pagina { max-width: 1100px; margin: 0 auto; padding: 20px 20px 48px; }
+.det-cabeza { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+.det-cabeza h1 { font-size: 24px; font-weight: 800; color: #0f172a; }
+.det-cabeza .det-uuid { font-family: ui-monospace, monospace; font-size: 12.5px; color: #475569; margin-top: 2px; }
+.det-acciones { display: flex; gap: 8px; flex-wrap: wrap; }
+.det-sellos { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+.det-tarjeta { background: #fff; border: 1px solid #e2e8f0; border-radius: 14px; padding: 16px 18px; margin-bottom: 14px; }
+.det-tarjeta h2 { font-size: 11.5px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; color: #64748b; margin-bottom: 10px; }
+.det-partes { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+.det-parte { background: #fff; border: 1px solid #e2e8f0; border-radius: 14px; padding: 16px 18px; }
+.det-parte h3 { font-size: 11px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; color: #64748b; }
+.det-parte .det-nombre { font-size: 16px; font-weight: 800; color: #0f172a; margin-top: 4px; }
+.det-parte .det-rfc { font-family: ui-monospace, monospace; font-size: 13px; color: #334155; }
+.det-parte .det-linea { font-size: 12.5px; color: #64748b; margin-top: 2px; }
+.det-datos { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 10px 18px; }
+.det-dato span { display: block; font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: .03em; }
+.det-dato strong { font-size: 13.5px; color: #0f172a; font-weight: 600; word-break: break-word; }
+.det-tabla { width: 100%; border-collapse: collapse; font-size: 13px; }
+.det-tabla th { text-align: left; font-size: 11px; font-weight: 800; color: #64748b; text-transform: uppercase; padding: 8px 8px; border-bottom: 2px solid #e2e8f0; }
+.det-tabla td { padding: 8px 8px; border-bottom: 1px solid #f1f5f9; vertical-align: top; }
+.det-tabla .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.det-tabla tfoot td { font-weight: 800; border-top: 2px solid #1e293b; border-bottom: 0; }
+.det-totales { display: grid; grid-template-columns: 1fr 320px; gap: 14px; }
+.det-suma { width: 100%; font-size: 13.5px; }
+.det-suma td { padding: 5px 0; }
+.det-suma td:last-child { text-align: right; font-variant-numeric: tabular-nums; }
+.det-suma .det-gran td { font-size: 17px; font-weight: 800; border-top: 2px solid #1e293b; padding-top: 8px; }
+.det-liga { color: #0369a1; font-weight: 700; text-decoration: underline; }
+.det-scroll { overflow-x: auto; }
+@media (max-width: 760px) { .det-partes, .det-totales { grid-template-columns: 1fr; } }
+@media print { #app-header, .fc-barra, .det-acciones, #fc-letreros { display: none !important; } body { background: #fff; } .det-tarjeta, .det-parte { break-inside: avoid; } }
