@@ -5,13 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Administrar Usuarios | Fiscontable</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="/assets/css/common.css?v=202609251704">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202609271616">
 </head>
 <body class="min-h-screen flex flex-col relative">
 
     <div id="app-header" data-modulo="admin" data-titulo="Administración" data-migas=""></div>
-<script src="/assets/js/nucleo.js?v=202609251704"></script>
-<script src="/assets/js/barra.js?v=202609251704"></script>
+<script src="/assets/js/nucleo.js?v=202609271616"></script>
+<script src="/assets/js/barra.js?v=202609271616"></script>
 
     <main class="flex-grow p-4 sm:p-6 w-full max-w-4xl mx-auto">
         <style>
@@ -49,6 +49,7 @@
                 <button type="button" class="pestana pestana--activa" role="tab" data-pestana="usuarios">Usuarios <span class="text-slate-400 font-semibold" id="cuenta-usuarios"></span></button>
                 <button type="button" class="pestana" role="tab" data-pestana="permisos">Permisos por rol</button>
                 <button type="button" class="pestana" role="tab" data-pestana="actividad">Actividad <span class="text-slate-400 font-semibold" id="cuenta-actividad"></span></button>
+                <button type="button" class="pestana" role="tab" data-pestana="sistema">Sistema <span class="text-amber-600 font-semibold" id="alerta-sistema"></span></button>
             </div>
 
             <!-- ============ USUARIOS ============ -->
@@ -100,6 +101,105 @@
                     <span class="ml-auto" id="actualizado-actividad"></span>
                     <button type="button" id="btn-actualizar-actividad" class="font-bold text-slate-500 hover:text-slate-800 underline">Actualizar</button>
                 </p>
+            </section>
+
+            <!-- ============ SISTEMA ============ -->
+            <section id="panel-sistema" role="tabpanel" hidden>
+                <div class="flex items-center gap-3 mb-3">
+                    <h2 class="text-xs font-bold text-slate-500 uppercase tracking-wide">Estado</h2>
+                    <button type="button" id="btn-actualizar-sistema" class="ml-auto text-xs font-bold text-slate-500 hover:text-slate-800 underline">Actualizar</button>
+                </div>
+                <div id="tarjetas-estado" class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 mb-6"></div>
+
+                <h2 class="text-xs font-bold text-slate-500 uppercase tracking-wide mb-3">Portal</h2>
+                <div class="grid gap-3 md:grid-cols-2 mb-6">
+                    <div class="bg-white rounded-xl card-elevated border border-gray-200 p-5">
+                        <div class="flex items-start gap-3">
+                            <div class="flex-grow">
+                                <p class="font-bold text-slate-800">Modo mantenimiento</p>
+                                <p class="text-xs text-slate-500 mt-1">Pausa las descargas <strong>nuevas</strong> contra el SAT; lo que ya corre termina. Sale un letrero en todo el portal. Tú sigues pudiendo usar todo.</p>
+                            </div>
+                            <label class="relative inline-flex items-center cursor-pointer flex-none mt-1">
+                                <input type="checkbox" id="chk-mantenimiento" class="sr-only peer">
+                                <span class="w-11 h-6 bg-slate-200 rounded-full peer-checked:bg-amber-500 transition"></span>
+                                <span class="absolute left-0.5 top-0.5 w-5 h-5 bg-white rounded-full shadow transition peer-checked:translate-x-5"></span>
+                            </label>
+                        </div>
+                        <p id="estado-mantenimiento" class="text-xs font-bold mt-3"></p>
+                    </div>
+                    <div class="bg-white rounded-xl card-elevated border border-gray-200 p-5">
+                        <p class="font-bold text-slate-800">Aviso para todos</p>
+                        <p class="text-xs text-slate-500 mt-1">Un letrero en todas las páginas. Cada quien lo puede ocultar; vuelve a salir si lo cambias.</p>
+                        <textarea id="aviso-texto" maxlength="300" rows="2" placeholder="Ej. El SAT está intermitente hoy; si algo falla, reintenta más tarde." class="w-full mt-3 text-sm border border-gray-300 rounded-lg p-2.5 focus:outline-none focus:ring-2 focus:ring-emerald-500"></textarea>
+                        <div class="flex flex-wrap items-center gap-2 mt-2">
+                            <select id="aviso-tipo" class="text-sm border border-gray-300 rounded-lg p-2 bg-white">
+                                <option value="info">Informativo (azul)</option>
+                                <option value="atencion">Atención (naranja)</option>
+                            </select>
+                            <label class="text-xs text-slate-500 flex items-center gap-1">hasta
+                                <input type="date" id="aviso-hasta" class="text-sm border border-gray-300 rounded-lg p-1.5">
+                            </label>
+                            <button type="button" id="btn-quitar-aviso" class="ml-auto text-xs font-bold text-slate-500 border border-gray-200 rounded-lg py-1.5 px-3" hidden>Quitar</button>
+                            <button type="button" id="btn-publicar-aviso" class="bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold py-1.5 px-4 rounded-lg">Publicar</button>
+                        </div>
+                    </div>
+                </div>
+
+                <h2 class="text-xs font-bold text-slate-500 uppercase tracking-wide mb-3">Acciones</h2>
+                <div class="bg-white rounded-xl card-elevated border border-gray-200 divide-y divide-gray-100 mb-6">
+                    <div class="p-5 flex flex-wrap items-center gap-3">
+                        <div class="flex-grow min-w-[220px]">
+                            <p class="font-bold text-slate-800">Reiniciar servidor</p>
+                            <p class="text-xs text-slate-500 mt-0.5">Se apaga y vuelve solo en unos segundos. Los lotes en curso quedan como interrumpidos y se reanudan con confirmación.</p>
+                        </div>
+                        <button type="button" id="btn-reiniciar" class="text-sm font-bold text-red-600 border border-red-200 hover:bg-red-50 rounded-lg py-2 px-4">Reiniciar</button>
+                    </div>
+                    <div class="p-5 flex flex-wrap items-center gap-3">
+                        <div class="flex-grow min-w-[220px]">
+                            <p class="font-bold text-slate-800">Reiniciar túnel de VS Code</p>
+                            <p class="text-xs text-slate-500 mt-0.5">Para cuando VS Code no conecta con la Vostro. No afecta al portal.</p>
+                        </div>
+                        <button type="button" id="btn-reiniciar-vscode" class="text-sm font-bold text-slate-700 border border-gray-200 hover:border-slate-400 rounded-lg py-2 px-4">Reiniciar túnel</button>
+                    </div>
+                    <div class="p-5">
+                        <div class="flex flex-wrap items-center gap-3">
+                            <div class="flex-grow min-w-[220px]">
+                                <p class="font-bold text-slate-800">Procesos atorados</p>
+                                <p class="text-xs text-slate-500 mt-0.5">Los que llevan más de 30 minutos "en proceso" sin avanzar.</p>
+                            </div>
+                            <button type="button" id="btn-revisar-atorados" class="text-sm font-bold text-slate-700 border border-gray-200 hover:border-slate-400 rounded-lg py-2 px-4">Revisar</button>
+                        </div>
+                        <div id="caja-atorados" class="mt-3 text-sm" hidden></div>
+                    </div>
+                    <div class="p-5">
+                        <p class="font-bold text-slate-800">Limpiar caché de documentos</p>
+                        <p class="text-xs text-slate-500 mt-0.5">Lo borrado se vuelve a pedir al SAT la próxima vez (y gasta cuota).</p>
+                        <div class="flex flex-wrap items-center gap-2 mt-3">
+                            <button type="button" id="btn-limpiar-vencidos" class="text-sm font-bold text-slate-700 border border-gray-200 hover:border-slate-400 rounded-lg py-2 px-4">Borrar vencidos ahora</button>
+                            <span class="text-xs text-slate-400">o de un RFC:</span>
+                            <input type="text" id="rfc-cache" maxlength="13" placeholder="RFC" class="w-40 text-sm font-mono uppercase border border-gray-300 rounded-lg p-2">
+                            <button type="button" id="btn-limpiar-rfc" class="text-sm font-bold text-slate-700 border border-gray-200 hover:border-slate-400 rounded-lg py-2 px-4">Borrar sus documentos</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-3 mb-3">
+                    <h2 class="text-xs font-bold text-slate-500 uppercase tracking-wide">Log del servidor</h2>
+                    <span class="text-[11px] text-slate-400">Sin contraseñas ni rutas de e.firma; RFC enmascarados.</span>
+                    <select id="log-lineas" class="ml-auto text-xs border border-gray-300 rounded-lg p-1.5 bg-white">
+                        <option value="100">100 líneas</option>
+                        <option value="200" selected>200 líneas</option>
+                        <option value="500">500 líneas</option>
+                    </select>
+                    <button type="button" id="btn-ver-log" class="text-xs font-bold text-slate-700 border border-gray-200 hover:border-slate-400 rounded-lg py-1.5 px-3 bg-white">Ver log</button>
+                </div>
+                <pre id="caja-log" class="bg-slate-900 text-slate-200 text-[11.5px] leading-relaxed rounded-xl p-4 overflow-auto max-h-[420px] mb-6 whitespace-pre-wrap break-words" hidden></pre>
+
+                <h2 class="text-xs font-bold text-slate-500 uppercase tracking-wide mb-3">Bitácora</h2>
+                <div class="bg-white rounded-xl card-elevated border border-gray-200 overflow-hidden">
+                    <div id="lista-bitacora" class="divide-y divide-gray-100"></div>
+                    <p id="sin-bitacora" class="hidden p-8 text-center text-sm text-slate-400">Todavía no hay acciones registradas.</p>
+                </div>
             </section>
         </div>
 
@@ -170,6 +270,6 @@
         </dialog>
     </main>
 
-<script src="/admin/admin.js?v=202609251704"></script>
+<script src="/admin/admin.js?v=202609271616"></script>
 </body>
 </html>

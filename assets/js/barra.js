@@ -605,6 +605,7 @@
         document.getElementById("fc-menu-vigencia").textContent = vigencia(p);
 
         if (p.rol === "admin") document.getElementById("fc-enlace-admin").hidden = false;
+        pintarLetreros(p);
 
         if (p.solo_lectura) {
             aviso("Tu acceso venció. Puedes consultar tu directorio, pero no generar documentos. " +
@@ -634,6 +635,63 @@
         var p = await perfil();
         if (p && p._error) { manejarErrorPerfil(p._error); return; }
         pintarPerfil(p);
+    }
+
+    /* ------------------------------------------------ letreros globales */
+    /* Los publica el administrador desde Administración → Sistema y llegan
+       con /api/mi-perfil: el modo mantenimiento (no se cierra) y el aviso
+       global (se puede cerrar; vuelve a salir si el aviso cambia). */
+
+    function pintarLetreros(p) {
+        var viejo = document.getElementById("fc-letreros");
+        if (viejo) viejo.remove();
+        var barra = document.querySelector(".fc-barra");
+        if (!barra) return;
+
+        var caja = document.createElement("div");
+        caja.id = "fc-letreros";
+
+        function letrero(texto, colores, cerrable, alCerrar) {
+            var fila = document.createElement("div");
+            fila.setAttribute("role", "status");
+            fila.style.cssText = "display:flex;align-items:flex-start;gap:12px;justify-content:center;" +
+                "padding:10px 16px;font-size:13.5px;font-weight:600;line-height:1.4;" + colores;
+            var t = document.createElement("span");
+            t.textContent = texto;
+            t.style.maxWidth = "900px";
+            fila.appendChild(t);
+            if (cerrable) {
+                var b = document.createElement("button");
+                b.type = "button";
+                b.textContent = "✕";
+                b.title = "Ocultar este aviso";
+                b.setAttribute("aria-label", "Ocultar este aviso");
+                b.style.cssText = "background:none;border:0;cursor:pointer;font-size:14px;opacity:.7;padding:0 4px;color:inherit";
+                b.addEventListener("click", function () { fila.remove(); alCerrar(); });
+                fila.appendChild(b);
+            }
+            caja.appendChild(fila);
+        }
+
+        if (p.mantenimiento) {
+            letrero("Portal en mantenimiento: por ahora no se pueden iniciar descargas nuevas. Lo que ya estaba corriendo sigue." +
+                (p.rol === "admin" ? " (Tú, como administrador, sigues pudiendo usar todo.)" : ""),
+                "background:#FEF3C7;color:#78350F;border-bottom:1px solid #FCD34D", false);
+        }
+        if (p.aviso && p.aviso.texto) {
+            var clave = "fc-aviso-oculto:" + (p.aviso.publicado_en || "") + ":" + p.aviso.texto;
+            var oculto = false;
+            try { oculto = localStorage.getItem("fc-aviso-oculto") === clave; } catch (e) { /* sin almacenamiento */ }
+            if (!oculto) {
+                letrero(p.aviso.texto,
+                    p.aviso.tipo === "atencion"
+                        ? "background:#FFF7ED;color:#9A3412;border-bottom:1px solid #FDBA74"
+                        : "background:#EFF6FF;color:#1E3A8A;border-bottom:1px solid #BFDBFE",
+                    true,
+                    function () { try { localStorage.setItem("fc-aviso-oculto", clave); } catch (e) { /* nada */ } });
+            }
+        }
+        if (caja.children.length) barra.insertAdjacentElement("afterend", caja);
     }
 
     /* ------------------------------------------------ avisos y bloqueo */
@@ -778,6 +836,12 @@
         abrirDescargas: abrirDescargas,
         cerrarDescargas: cerrarDescargas,
         refrescarDescargas: sondear,
-        abrirModalPerfil: abrirModalPerfil
+        abrirModalPerfil: abrirModalPerfil,
+        // Para Administración → Sistema: vuelve a pedir el perfil y repinta los letreros.
+        recargarLetreros: async function () {
+            promesaPerfil = null;
+            var p = await perfil();
+            if (p && !p._error) { perfilActual = p; pintarLetreros(p); }
+        }
     });
 })();
