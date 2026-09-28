@@ -29,3 +29,6 @@
 .det-scroll { overflow-x: auto; }
 @media (max-width: 760px) { .det-partes, .det-totales { grid-template-columns: 1fr; } }
 @media print { #app-header, .fc-barra, .det-acciones, #fc-letreros { display: none !important; } body { background: #fff; } .det-tarjeta, .det-parte { break-inside: avoid; } }
+.det-alertas { background: #fffbeb; border-color: #fde68a; }
+.det-alertas h2 { color: #92400e; }
+.det-alertas li { font-size: 13.5px; color: #92400e; font-weight: 600; margin: 3px 0; }

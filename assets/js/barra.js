@@ -967,6 +967,7 @@
         abrirModalPerfil: abrirModalPerfil,
         // La empresa elegida en el selector general (o null). Los módulos también
         // pueden escuchar window "fiscontable:empresa" para enterarse de un cambio.
+        elegirEmpresa: function (rfc) { return elegirEmpresa(rfc); },
         empresaActiva: function () {
             return perfil().then(function (p) { return p && !p._error ? (p.empresa_activa || null) : null; });
         },

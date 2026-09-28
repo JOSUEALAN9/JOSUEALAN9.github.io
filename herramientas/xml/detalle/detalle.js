@@ -50,17 +50,20 @@
         var titulo = (TIPOS[d.tipo] || "CFDI") + " " + ([d.serie, d.folio].filter(Boolean).join("-") || "");
         document.title = titulo + " · Fiscontable";
         var sellos = [sello("CFDI " + d.version, "gris"), sello(r.rol === "emitido" ? "Emitido" : "Recibido", "gris")];
-        sellos.push(r.estado_sat === "Vigente" ? sello("Vigente en el SAT", "verde") : r.estado_sat === "Cancelado" ? sello("Cancelado en el SAT", "rojo") : sello("Sin validar ante el SAT", "gris"));
+        sellos.push('<span id="sello-sat">' + selloSAT(r) + "</span>");
         if (d.metodo_pago === "PPD" && d.tipo === "I") {
             var ult = r.cobros.length ? r.cobros[r.cobros.length - 1] : null;
             sellos.push(!ult ? sello("PPD sin pago", "rojo") : (ult.insoluto <= 0.009 ? sello("PPD pagada", "verde") : sello("PPD con saldo", "ambar")));
         }
         var html = [];
         html.push('<div class="det-cabeza"><div><h1>' + esc(titulo) + '</h1><div class="det-uuid">' + esc(d.uuid) + '</div><div class="det-sellos">' + sellos.join("") + "</div></div>" +
-            '<div class="det-acciones"><a class="xml-btn" href="' + API + "/api/xml/archivo?rfc=" + encodeURIComponent(RFC) + "&uuid=" + encodeURIComponent(d.uuid) + '">Descargar XML</a>' +
+            '<div class="det-acciones"><button type="button" class="xml-btn" id="btn-validar-uno">Validar ante el SAT</button><a class="xml-btn" href="' + API + "/api/xml/archivo?rfc=" + encodeURIComponent(RFC) + "&uuid=" + encodeURIComponent(d.uuid) + '">Descargar XML</a>' +
             '<button class="xml-btn" disabled title="Llega con la generación de PDF">PDF · próximamente</button>' +
             '<button class="xml-btn" onclick="window.print()">Imprimir</button></div></div>');
 
+        if (r.alertas && r.alertas.length) {
+            html.push('<div class="det-tarjeta det-alertas"><h2>Para revisar</h2><ul>' + r.alertas.map(function (a) { return "<li>⚠ " + esc(a) + "</li>"; }).join("") + "</ul></div>");
+        }
         var em = d.emisor, re = d.receptor;
         html.push('<div class="det-partes">' +
             '<div class="det-parte"><h3>Emisor</h3><div class="det-nombre">' + esc(em.nombre || "") + '</div><div class="det-rfc">' + esc(em.rfc) + '</div><div class="det-linea">Régimen ' + esc(em.regimen || "—") + "</div>" +
@@ -72,8 +75,8 @@
 
         html.push('<div class="det-tarjeta"><h2>Comprobante</h2><div class="det-datos">' +
             dato("Fecha de emisión", f(d.fecha_emision)) + dato("Fecha de timbrado", f(d.fecha_timbrado)) +
-            dato("Forma de pago", d.forma_pago ? d.forma_pago + " - " + (FORMA[d.forma_pago] || "") : "") + dato("Método de pago", d.metodo_pago) +
-            dato("Moneda", d.moneda) + dato("Tipo de cambio", d.tipo_cambio ? fn.format(d.tipo_cambio) : "") +
+            (d.tipo === "P" ? "" : dato("Forma de pago", d.forma_pago ? d.forma_pago + " - " + (FORMA[d.forma_pago] || "") : "") + dato("Método de pago", d.metodo_pago) +
+                dato("Moneda", d.moneda) + dato("Tipo de cambio", d.tipo_cambio ? fn.format(d.tipo_cambio) : "")) +
             dato("Lugar de expedición", d.lugar_expedicion) + dato("Condiciones de pago", d.condiciones_pago) +
             dato("Exportación", d.exportacion) + dato("Complementos", (d.complementos || []).join(", ")) +
             dato("PAC", d.pac_rfc) + dato("Certificado SAT", d.no_cert_sat) + "</div></div>");
@@ -96,6 +99,32 @@
         $("det-cargando").hidden = true;
         $("det").innerHTML = html.join("");
         $("det").hidden = false;
+        $("btn-validar-uno").addEventListener("click", validarAhora);
+    }
+
+    function selloSAT(r) {
+        var cuando = r.estado_sat_en ? " · " + f(r.estado_sat_en).slice(0, 10) : "";
+        if (r.estado_sat === "Vigente") return sello("Vigente en el SAT" + cuando, "verde");
+        if (r.estado_sat === "Cancelado") return sello("Cancelado en el SAT" + cuando, "rojo");
+        if (r.estado_sat === "No encontrado") return sello("El SAT no lo encuentra" + cuando, "ambar");
+        return sello("Sin validar ante el SAT", "gris");
+    }
+
+    async function validarAhora() {
+        var b = $("btn-validar-uno");
+        b.disabled = true; b.textContent = "Consultando al SAT…";
+        try {
+            var resp = await fetch(API + "/api/xml/validar-uno", { method: "POST", credentials: "include",
+                headers: { "Content-Type": "application/json" }, body: JSON.stringify({ rfc: RFC, uuid: UUID }) });
+            if (!resp.ok) throw new Error(await Fiscontable.leerError(resp));
+            var r = await resp.json();
+            $("sello-sat").innerHTML = selloSAT({ estado_sat: r.estado, estado_sat_en: r.validado_en });
+            b.textContent = "Validar de nuevo";
+        } catch (e) {
+            b.textContent = "Validar ante el SAT";
+            Fiscontable.aviso ? Fiscontable.aviso(e.message) : alert(e.message);
+        }
+        b.disabled = false;
     }
 
     function conceptos(d) {
@@ -120,28 +149,55 @@
     }
 
     function pagos(d, r) {
-        var cab = d.pagos.pagos.map(function (p) {
-            return "<tr><td>" + esc(f(p.fecha)) + "</td><td>" + esc((p.forma || "") + " " + (FORMA[p.forma] || "")) + "</td><td>" + esc(p.moneda || "") +
-                '</td><td class="num">' + (p.tipo_cambio ? fn.format(p.tipo_cambio) : "") + '</td><td class="num">$' + m(p.monto) + "</td><td>" + esc(p.num_operacion || "") + "</td></tr>";
+        var lista = d.pagos.pagos;
+        var docs = r.facturas_pagadas;
+        var totalPagado = lista.reduce(function (s, p) { return s + (p.monto || 0); }, 0);
+        var monedas = Array.from(new Set(lista.map(function (p) { return p.moneda; }))).join(", ");
+        var formas = Array.from(new Set(lista.map(function (p) { return (p.forma || "") + " " + (FORMA[p.forma] || ""); }))).join(", ");
+        var fechas = Array.from(new Set(lista.map(function (p) { return f(p.fecha).slice(0, 10); }))).join(", ");
+        var resumen = "Este comprobante registra " + (lista.length === 1 ? "un pago" : lista.length + " pagos") + " por <strong>$" + m(totalPagado) + " " + esc(monedas) +
+            "</strong>, hecho el " + esc(fechas) + " por " + esc(formas.trim()) + ". " +
+            (docs.length === 1 ? "Con ese dinero se pagó <strong>una factura</strong>:" : "Con ese dinero se pagaron <strong>" + docs.length + " facturas</strong>:");
+        var sumaPagado = 0, sumaIva = 0;
+        var filas = docs.map(function (x) {
+            sumaPagado += x.pagado || 0; sumaIva += x.iva || 0;
+            var sf = [x.serie, x.folio].filter(Boolean).join("-");
+            var factura = x.factura.encontrado ? refCfdi(x.factura)
+                : "<strong>" + esc(sf ? "Factura " + sf : "Factura") + '</strong> <span class="xml-tenue">— no está en tu biblioteca</span><br><span class="xml-tenue" style="font-family:ui-monospace,monospace;font-size:11.5px">' + esc(x.uuid) + "</span>";
+            var queda = x.saldo_insoluto || 0;
+            var estado = queda <= 0.009 ? sello("Liquidada", "verde") : sello("Quedan $" + m(queda), "ambar");
+            return "<tr><td>" + factura + '</td><td class="num">' + esc(x.parcialidad || "") + '</td><td class="num">$' + m(x.saldo_anterior) +
+                '</td><td class="num"><strong>$' + m(x.pagado) + '</strong></td><td class="num">$' + m(x.saldo_insoluto) + "</td><td>" + estado +
+                '</td><td class="num">' + (x.iva != null ? "$" + m(x.iva) : "—") + "</td></tr>";
         }).join("");
-        var doc = r.facturas_pagadas.map(function (x) {
-            return "<tr><td>" + refCfdi(x.factura) + '</td><td class="num">' + esc(x.parcialidad || "") + '</td><td class="num">$' + m(x.saldo_anterior) +
-                '</td><td class="num">$' + m(x.pagado) + '</td><td class="num">$' + m(x.saldo_insoluto) + '</td><td class="num">' + (x.iva != null ? "$" + m(x.iva) : "") + "</td></tr>";
-        }).join("");
-        return '<div class="det-tarjeta"><h2>Pagos (complemento ' + esc(d.pagos.version || "") + ')</h2><div class="det-scroll"><table class="det-tabla"><thead><tr><th>Fecha de pago</th><th>Forma</th><th>Moneda</th><th class="num">Tipo de cambio</th><th class="num">Monto</th><th>Núm. operación</th></tr></thead><tbody>' + cab + "</tbody></table></div></div>" +
-            '<div class="det-tarjeta"><h2>Facturas que liquida</h2><div class="det-scroll"><table class="det-tabla"><thead><tr><th>Factura</th><th class="num">Parcialidad</th><th class="num">Saldo anterior</th><th class="num">Pagado</th><th class="num">Saldo insoluto</th><th class="num">IVA</th></tr></thead><tbody>' + doc + "</tbody></table></div></div>";
+        var detallePago = lista.length > 1 ? '<div class="det-scroll" style="margin-bottom:12px"><table class="det-tabla"><thead><tr><th>Fecha de pago</th><th>Forma</th><th>Moneda</th><th class="num">Tipo de cambio</th><th class="num">Monto</th><th>Núm. operación</th></tr></thead><tbody>' +
+            lista.map(function (p) {
+                return "<tr><td>" + esc(f(p.fecha)) + "</td><td>" + esc((p.forma || "") + " " + (FORMA[p.forma] || "")) + "</td><td>" + esc(p.moneda || "") +
+                    '</td><td class="num">' + (p.tipo_cambio ? fn.format(p.tipo_cambio) : "") + '</td><td class="num">$' + m(p.monto) + "</td><td>" + esc(p.num_operacion || "") + "</td></tr>";
+            }).join("") + "</tbody></table></div>" : "";
+        var datosPago = lista.length === 1 ? '<div class="det-datos" style="margin-bottom:14px">' +
+            dato("Fecha de pago", f(lista[0].fecha)) + dato("Forma de pago", formas.trim()) + dato("Moneda del pago", lista[0].moneda) +
+            (lista[0].moneda !== "MXN" ? dato("Tipo de cambio", lista[0].tipo_cambio ? fn.format(lista[0].tipo_cambio) : "") : "") +
+            dato("Monto del pago", "$" + m(lista[0].monto)) + dato("Núm. de operación", lista[0].num_operacion) + "</div>" : "";
+        return '<div class="det-tarjeta"><h2>El pago (complemento ' + esc(d.pagos.version || "") + ")</h2>" + datosPago + detallePago +
+            '<p style="font-size:14px;color:#334155;margin-bottom:10px">' + resumen + "</p>" +
+            '<div class="det-scroll"><table class="det-tabla"><thead><tr><th>Factura pagada</th><th class="num">Núm. de pago</th><th class="num">Saldo antes</th><th class="num">Pagado aquí</th><th class="num">Saldo que queda</th><th></th><th class="num">IVA incluido</th></tr></thead><tbody>' +
+            filas + '</tbody><tfoot><tr><td colspan="3">Total</td><td class="num">$' + m(sumaPagado) + '</td><td colspan="2"></td><td class="num">' + (sumaIva ? "$" + m(sumaIva) : "") + "</td></tr></tfoot></table></div>" +
+            '<p class="xml-tenue" style="margin-top:10px">“Núm. de pago” es la parcialidad: 1 = primer pago de esa factura. “IVA incluido” es la parte de lo pagado que corresponde al IVA de cada factura (el IVA efectivamente cobrado o pagado).</p></div>';
     }
 
     function cobros(d, r) {
-        if (!r.cobros.length) return '<div class="det-tarjeta"><h2>Detalle de cobros</h2><p style="font-size:13.5px;color:#991b1b;font-weight:700">No hay ningún pago cargado para esta factura PPD. Saldo pendiente: $' + m(d.total) + "</p></div>";
+        if (!r.cobros.length) return '<div class="det-tarjeta"><h2>Pagos recibidos de esta factura</h2><p style="font-size:13.5px;color:#991b1b;font-weight:700">No hay ningún pago cargado para esta factura PPD. Saldo pendiente: $' + m(d.total) + "</p>" +
+            '<p class="xml-tenue" style="margin-top:6px">Si ya se pagó, carga el XML del complemento de pago y aquí aparecerá.</p></div>';
         var ult = r.cobros[r.cobros.length - 1];
-        return '<div class="det-tarjeta"><h2>Detalle de cobros</h2><div class="det-scroll"><table class="det-tabla"><thead><tr><th>Fecha de pago</th><th>Pago</th><th>Forma</th><th class="num">Parcialidad</th><th class="num">Saldo anterior</th><th class="num">Pagado</th><th class="num">Saldo insoluto</th></tr></thead><tbody>' +
+        var liquidada = ult.insoluto <= 0.009;
+        return '<div class="det-tarjeta"><h2>Pagos recibidos de esta factura</h2><div class="det-scroll"><table class="det-tabla"><thead><tr><th>Fecha de pago</th><th>Comprobante de pago</th><th>Forma</th><th class="num">Núm. de pago</th><th class="num">Saldo antes</th><th class="num">Pagado</th><th class="num">Saldo que queda</th></tr></thead><tbody>' +
             r.cobros.map(function (c) {
-                return "<tr><td>" + esc(f(c.fecha)) + "</td><td>" + (c.pago.encontrado ? liga(c.pago_uuid, c.pago.serie_folio || c.pago_uuid.slice(0, 8)) : esc(c.pago_uuid.slice(0, 8))) + "</td><td>" + esc((c.forma || "") + " " + (FORMA[c.forma] || "")) +
-                    '</td><td class="num">' + esc(c.parcialidad || "") + '</td><td class="num">$' + m(c.anterior) + '</td><td class="num">$' + m(c.pagado) + '</td><td class="num">$' + m(c.insoluto) + "</td></tr>";
+                return "<tr><td>" + esc(f(c.fecha)) + "</td><td>" + (c.pago.encontrado ? liga(c.pago_uuid, "Pago " + (c.pago.serie_folio || c.pago_uuid.slice(0, 8))) : esc(c.pago_uuid.slice(0, 8))) + "</td><td>" + esc((c.forma || "") + " " + (FORMA[c.forma] || "")) +
+                    '</td><td class="num">' + esc(c.parcialidad || "") + '</td><td class="num">$' + m(c.anterior) + '</td><td class="num"><strong>$' + m(c.pagado) + '</strong></td><td class="num">$' + m(c.insoluto) + "</td></tr>";
             }).join("") + "</tbody></table></div>" +
-            '<p style="font-size:13.5px;font-weight:800;margin-top:10px;color:' + (ult.insoluto <= 0.009 ? "#166534" : "#92400e") + '">' +
-            (ult.insoluto <= 0.009 ? "Factura pagada por completo." : "Saldo pendiente: $" + m(ult.insoluto)) + "</p></div>";
+            '<p style="font-size:13.5px;font-weight:800;margin-top:10px;color:' + (liquidada ? "#166534" : "#92400e") + '">' +
+            (liquidada ? "Pagada por completo en " + (r.cobros.length === 1 ? "un pago" : r.cobros.length + " pagos") + "." : "Saldo pendiente: $" + m(ult.insoluto)) + "</p></div>";
     }
 
     function nomina(d) {

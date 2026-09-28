@@ -90,7 +90,7 @@
                 "</div>" +
                 '<div class="pc-derecha">' +
                   '<span class="pc-sello" id="pc-sello" hidden></span>' +
-                  '<button type="button" class="pc-cambiar" id="pc-cambiar">Cambiar</button>' +
+                  '<button type="button" class="pc-cambiar" id="pc-cambiar" title="Elegir otro cliente o a alguien sin registrar, solo para este trabajo">Otro contribuyente</button>' +
                 "</div>" +
               "</div>" +
             "</div>";

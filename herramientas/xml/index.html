@@ -4,14 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Administración de XML · Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/common.css?v=202609272226">
-    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202609272226">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202609272308">
+    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202609272308">
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-slate-50">
 <div id="app-header" data-modulo="xml" data-titulo="Administración de XML" data-migas="Herramientas|/herramientas/"></div>
-<script src="/assets/js/nucleo.js?v=202609272226"></script>
-<script src="/assets/js/barra.js?v=202609272226"></script>
+<script src="/assets/js/nucleo.js?v=202609272308"></script>
+<script src="/assets/js/barra.js?v=202609272308"></script>
 
 <main class="xml-pagina">
     <div class="xml-cabeza">
@@ -19,7 +19,13 @@
             <h1>Administración de XML</h1>
             <p id="empresa-titulo">&nbsp;</p>
         </div>
-        <button type="button" id="btn-agregar" class="xml-btn xml-btn--primario">+ Agregar XML</button>
+        <div class="xml-cabeza__acciones">
+            <div class="xml-menu">
+                <button type="button" id="btn-otra" class="xml-btn">Abrir otra empresa ▾</button>
+                <div id="menu-otra" class="xml-menu__lista xml-menu__lista--otra" hidden></div>
+            </div>
+            <button type="button" id="btn-agregar" class="xml-btn xml-btn--primario">+ Agregar XML</button>
+        </div>
     </div>
 
     <!-- Bandeja: se juntan los XML y nada se guarda hasta "Procesar" -->
@@ -38,8 +44,8 @@
             <p id="leyendo" class="xml-tenue" hidden></p>
         </div>
         <div id="bandeja-resumen"></div>
-        <div id="resultado-carga"></div>
     </section>
+    <div id="resultado-carga"></div>
 
     <div id="sin-empresa" class="xml-vacio" hidden></div>
 
@@ -48,9 +54,6 @@
         <div class="xml-filtros-sup">
             <label>Periodo
                 <select id="sel-periodo"></select>
-            </label>
-            <label id="caja-otras" hidden>Otras empresas con XML (sin registrar)
-                <select id="sel-otras"></select>
             </label>
         </div>
 
@@ -63,10 +66,14 @@
                 <div class="xml-menu">
                     <button type="button" id="btn-filtros" class="xml-btn">Filtros<span id="cuenta-filtros" class="xml-insignia" hidden></span></button>
                     <div id="menu-filtros" class="xml-menu__lista xml-menu__lista--filtros" hidden>
+                        <p class="xml-filtro__titulo">Rápidos</p>
                         <div id="rapidos" class="xml-chips xml-chips--rapidos"></div>
-                        <button type="button" id="quitar-filtros" class="xml-enlace">Quitar filtros</button>
+                        <p class="xml-filtro__titulo">Más filtros</p>
+                        <div id="avanzados" class="xml-avanzados"></div>
+                        <button type="button" id="quitar-filtros" class="xml-enlace">Quitar todos los filtros</button>
                     </div>
                 </div>
+                <button type="button" id="btn-validar" class="xml-btn" title="Consulta en el SAT si están vigentes o cancelados">Validar ante el SAT</button>
                 <button type="button" id="btn-columnas" class="xml-btn">Columnas</button>
                 <div class="xml-menu">
                     <button type="button" id="btn-vistas" class="xml-btn"><span id="nombre-vista">Vista de fábrica</span> ▾</button>
@@ -75,11 +82,17 @@
                 <div class="xml-menu">
                     <button type="button" id="btn-excel" class="xml-btn xml-btn--verde">Excel ▾</button>
                     <div id="menu-excel" class="xml-menu__lista" hidden>
-                        <button type="button" data-excel="vista">Lo que veo <span>tus columnas y filtros</span></button>
-                        <button type="button" data-excel="completo">Completo <span>todas las columnas, una hoja por tipo</span></button>
+                        <button type="button" data-excel="vista">Esta tabla <span>con tus columnas, orden y filtros</span></button>
+                        <button type="button" data-excel="completo">Reporte completo <span>todas las columnas, una hoja por tipo</span></button>
                     </div>
                 </div>
             </div>
+        </div>
+
+        <div id="avance-validacion" class="xml-validando" hidden>
+            <div class="xml-validando__texto"><strong id="validando-titulo">Validando ante el SAT…</strong> <span id="validando-detalle"></span></div>
+            <div class="xml-barra"><span id="validando-barra"></span></div>
+            <button type="button" id="btn-detener" class="xml-enlace">Detener</button>
         </div>
 
         <div id="barra-seleccion" class="xml-seleccion" hidden>
@@ -105,6 +118,15 @@
 
 <div id="velo-soltar" class="xml-velo" hidden><div>Suelta los XML para agregarlos a la bandeja</div></div>
 
+<!-- ¿Revalidar? -->
+<div id="modal-validar" class="xml-modal" hidden>
+    <div class="xml-modal__caja" role="dialog" aria-modal="true" aria-labelledby="modal-validar-titulo">
+        <h3 id="modal-validar-titulo">Validar ante el SAT</h3>
+        <p id="modal-validar-texto"></p>
+        <div class="xml-modal__acciones" id="modal-validar-acciones"></div>
+    </div>
+</div>
+
 <!-- Panel de columnas -->
 <aside id="panel-columnas" class="xml-panel" hidden>
     <div class="xml-panel__cabeza">
@@ -121,6 +143,6 @@
     </div>
 </aside>
 
-<script src="/herramientas/xml/xml.js?v=202609272226"></script>
+<script src="/herramientas/xml/xml.js?v=202609272308"></script>
 </body>
 </html>

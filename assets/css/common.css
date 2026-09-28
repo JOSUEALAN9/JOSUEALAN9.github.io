@@ -871,3 +871,12 @@ body.fc-sin-scroll { overflow: hidden; }
 .fc-empresas__ninguna { border: 0; background: none; color: var(--texto-tenue); font-weight: 600; cursor: pointer; text-decoration: underline; }
 .fc-empresas__nueva { color: var(--acento); font-weight: 700; margin-left: auto; }
 @media (max-width: 700px) { .fc-empresas { width: auto; } }
+
+/* Con el selector de empresa la barra tiene menos espacio: cada tramo de la
+   ruta se recorta con "…" en lugar de encimarse, y en pantallas medianas
+   solo quedan el tramo anterior y el actual. */
+.fc-miga > span:last-child { overflow: hidden; text-overflow: ellipsis; }
+.fc-miga:not(.fc-miga--actual) { flex-shrink: 1; }
+@media (max-width: 1520px) {
+    .fc-migas .fc-miga:not(.fc-miga--padre):not(.fc-miga--actual) { display: none; }
+}

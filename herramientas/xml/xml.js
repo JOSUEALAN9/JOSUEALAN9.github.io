@@ -28,10 +28,10 @@
         nomina: []
     };
     var RAPIDOS = {
-        recibidos: [["ppd", "PPD"], ["sinpago", "PPD sin pago"], ["retenciones", "Con retenciones"], ["extranjera", "Moneda extranjera"], ["relacionados", "Con relacionados"]],
-        emitidos: [["ppd", "PPD"], ["sinpago", "PPD sin pago"], ["retenciones", "Con retenciones"], ["extranjera", "Moneda extranjera"], ["relacionados", "Con relacionados"]],
-        pagos: [["nocargada", "Factura no cargada"], ["extranjera", "Moneda extranjera"]],
-        nomina: []
+        recibidos: [["alertas", "Con alertas"], ["cancelados", "Cancelados"], ["sinvalidar", "Sin validar"], ["ppd", "PPD"], ["sinpago", "PPD sin pago"], ["retenciones", "Con retenciones"], ["extranjera", "Moneda extranjera"], ["relacionados", "Con relacionados"]],
+        emitidos: [["alertas", "Con alertas"], ["cancelados", "Cancelados"], ["sinvalidar", "Sin validar"], ["ppd", "PPD"], ["sinpago", "PPD sin pago"], ["retenciones", "Con retenciones"], ["extranjera", "Moneda extranjera"], ["relacionados", "Con relacionados"]],
+        pagos: [["alertas", "Con alertas"], ["cancelados", "Cancelados"], ["sinvalidar", "Sin validar"], ["nocargada", "Factura no cargada"], ["extranjera", "Moneda extranjera"]],
+        nomina: [["alertas", "Con alertas"], ["cancelados", "Cancelados"], ["sinvalidar", "Sin validar"]]
     };
     var PRUEBA_RAPIDO = {
         ppd: function (f) { return f.metodo_pago === "PPD"; },
@@ -39,7 +39,10 @@
         retenciones: function (f) { return !!(f.ret_isr || f.ret_iva || f.ret_ieps); },
         extranjera: function (f) { var m = f.moneda || f.moneda_p; return !!m && m !== "MXN" && m !== "XXX"; },
         relacionados: function (f) { return !!f.cfdi_relacionados; },
-        nocargada: function (f) { return f.docto_encontrado === "No"; }
+        nocargada: function (f) { return f.docto_encontrado === "No"; },
+        alertas: function (f) { return !!f.alertas; },
+        cancelados: function (f) { return f.estado_sat === "Cancelado"; },
+        sinvalidar: function (f) { return !f.estado_sat || f.estado_sat === "Sin validar"; }
     };
     var ANCHO_TIPO = { moneda: 122, numero: 90, fecha: 104, uuid: 130, texto: 160 };
     var ANCHO_CLAVE = { emisor_nombre: 250, receptor_nombre: 250, contraparte_nombre: 250, conceptos: 300, serie_folio: 130,
@@ -50,7 +53,7 @@
         modulo: "recibidos", sub: "", rapidos: {}, busqueda: "",
         orden: { clave: null, dir: 1 }, seleccion: new Set(),
         columnas: {}, vistas: [], vistaActual: {},
-        filas: [], altoFila: 35
+        filas: [], altoFila: 35, av: {}, otras: [], clientesLista: null
     };
 
     var fmtMoneda = new Intl.NumberFormat("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -100,8 +103,8 @@
         // Si cambias de empresa en la barra, la página se actualiza sola
         window.addEventListener("fiscontable:empresa", async function (e) {
             E.empresa = e.detail; E.otra = null; E.rfc = null;
+            $("bandeja").hidden = true;
             await refrescarBibliotecas();
-            if (!$("bandeja").hidden) pintarBandeja();
         });
     }
 
@@ -115,20 +118,16 @@
        registrar que se cargó con la herramienta rápida. */
     async function refrescarBibliotecas(rfcPreferido) {
         try { E.contribuyentes = await apiJSON("/api/xml/contribuyentes"); } catch (e) { avisar(e.message); return; }
-        var otras = E.contribuyentes.filter(function (c) { return !c.registrado; });
-        $("caja-otras").hidden = !otras.length;
-        $("sel-otras").innerHTML = '<option value="">Elegir…</option>' + otras.map(function (c) {
-            return '<option value="' + esc(c.rfc) + '">' + esc((c.nombre || "Sin nombre") + " · " + c.rfc) + "</option>";
-        }).join("");
+        var otras = E.otras = E.contribuyentes.filter(function (c) { return !c.registrado; });
         var activa = E.empresa ? E.empresa.rfc : null;
         var rfc = rfcPreferido || E.rfc || activa;
         if (rfc && rfc !== activa && !otras.some(function (c) { return c.rfc === rfc; })) rfc = activa;
         E.otra = rfc && rfc !== activa ? rfc : null;
-        $("sel-otras").value = E.otra || "";
+        if (rfc !== E.rfc) $("bandeja").hidden = true;      // al cambiar de vista, la bandeja se cierra
         E.rfc = rfc;
         pintarEncabezado();
         var c = rfc && E.contribuyentes.find(function (x) { return x.rfc === rfc; });
-        if (!c) { mostrarVacio(otras); return; }
+        if (!c) { mostrarVacio(); return; }
         $("sin-empresa").hidden = true;
         $("contenido").hidden = false;
         armarPeriodos(c);
@@ -149,19 +148,65 @@
         }
     }
 
-    function mostrarVacio(otras) {
+    function mostrarVacio() {
         $("contenido").hidden = true;
         var caja = $("sin-empresa");
         caja.hidden = false;
-        var lista = otras.length ? '<p style="margin-top:14px">O revisa los XML que ya cargaste de alguien sin registrar:</p><div class="xml-chips" style="justify-content:center;margin-top:8px">' +
-            otras.map(function (c) { return '<button type="button" class="xml-chip" data-otra="' + esc(c.rfc) + '">' + esc((c.nombre || c.rfc) + " · " + c.rfc) + "</button>"; }).join("") + "</div>" : "";
         if (E.empresa) {
             caja.innerHTML = '<p class="xml-vacio__titulo">' + esc(E.empresa.alias || E.empresa.rfc) + " todavía no tiene XML</p>" +
-                "<p>Arrastra aquí sus XML (o un ZIP de la descarga del SAT) y presiona <strong>Procesar</strong>.</p>" + lista;
+                "<p>Arrastra aquí sus XML (o un ZIP de la descarga del SAT) y presiona <strong>Procesar</strong>.</p>";
             abrirBandeja();
         } else {
             caja.innerHTML = '<p class="xml-vacio__titulo">¿En qué empresa vas a trabajar?</p>' +
-                "<p>Elígela con el botón <strong>Empresa</strong> de la barra de arriba.<br>¿Son XML de alguien que no tienes registrado? Da clic en <strong>Agregar XML</strong>: el portal detecta de quién son.</p>" + lista;
+                "<p>Elígela con el botón de empresa de la barra de arriba.<br>¿Son XML de alguien que no tienes registrado? Da clic en <strong>Agregar XML</strong>: el portal detecta de quién son.</p>";
+        }
+    }
+
+    /* Menú "Abrir otra empresa": tus empresas (cambia la empresa activa) y las
+       que cargaste sin registrar (se borran solas a los 7 días). */
+    async function pintarMenuOtra() {
+        var menu = $("menu-otra");
+        if (E.clientesLista === null) {
+            menu.innerHTML = '<p class="xml-otra__nota">Cargando…</p>';
+            try { E.clientesLista = await apiJSON("/api/clientes"); } catch (e) { E.clientesLista = []; }
+        }
+        var activa = E.empresa ? E.empresa.rfc : null;
+        var h = ['<div class="xml-otra__grupo">Tus empresas</div>'];
+        if (!E.clientesLista.length) h.push('<p class="xml-otra__nota">Todavía no tienes empresas registradas.</p>');
+        E.clientesLista.forEach(function (c) {
+            h.push('<button type="button" data-empresa="' + esc(c.rfc) + '"' + (c.rfc === E.rfc ? ' class="xml-activa"' : "") + ">" + esc(c.alias) +
+                ' <span>' + esc(c.rfc) + (c.rfc === activa ? " · empresa activa" : "") + "</span></button>");
+        });
+        h.push('<div class="xml-separador"></div><div class="xml-otra__grupo">Sin registrar</div>');
+        if (!E.otras.length) h.push('<p class="xml-otra__nota">No tienes XML cargados de alguien sin registrar. Para cargarlos, usa <strong>Agregar XML</strong>.</p>');
+        E.otras.forEach(function (c) {
+            var dia = c.expira ? c.expira.slice(8, 10) + "/" + c.expira.slice(5, 7) : "";
+            h.push('<div class="xml-otra__fila"><button type="button" data-otra="' + esc(c.rfc) + '"' + (c.rfc === E.rfc ? ' class="xml-activa"' : "") + ">" +
+                esc(c.nombre || "Sin nombre") + " <span>" + esc(c.rfc) + (dia ? " · se borra el " + dia : "") + "</span></button>" +
+                '<button type="button" class="xml-otra__borrar" data-borrar="' + esc(c.rfc) + '">Borrar</button></div>');
+        });
+        if (E.otras.length) h.push('<p class="xml-otra__nota">Los XML de alguien sin registrar se borran solos 7 días después de su última carga. Regístralo como cliente para conservarlos.</p>');
+        h.push('<div class="xml-separador"></div><button type="button" data-ir="/clientes/">+ Registrar empresa</button>');
+        menu.innerHTML = h.join("");
+    }
+
+    async function accionMenuOtra(b) {
+        $("menu-otra").hidden = true;
+        if (b.dataset.ir) { location.href = b.dataset.ir; return; }
+        if (b.dataset.otra) { refrescarBibliotecas(b.dataset.otra); return; }
+        if (b.dataset.empresa) {
+            if (E.empresa && E.empresa.rfc === b.dataset.empresa) { E.otra = null; E.rfc = null; refrescarBibliotecas(); }
+            else await Fiscontable.elegirEmpresa(b.dataset.empresa);     // la barra avisa y la página se actualiza
+            return;
+        }
+        if (b.dataset.borrar) {
+            var rfc = b.dataset.borrar;
+            if (!confirm("¿Borrar ya todos los XML de " + nombreDe(rfc) + " (" + rfc + ")?\n\nNo está en tu directorio; no quedará registro.")) return;
+            try {
+                await apiJSON("/api/xml/borrar-biblioteca", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ rfc: rfc }) });
+                if (E.rfc === rfc) { E.rfc = null; E.otra = null; }
+                await refrescarBibliotecas();
+            } catch (e) { avisar(e.message); }
         }
     }
 
@@ -210,6 +255,7 @@
         }
         pintarPestanas();
         cambiarModulo(E.modulo, true);
+        reanudarValidacion();
     }
 
     /* ============================================================ minimódulos */
@@ -231,6 +277,7 @@
         E.modulo = modulo;
         if (!conservarSub) E.sub = "";
         E.rapidos = {};
+        E.av = {};
         E.orden = { clave: null, dir: 1 };
         E.seleccion.clear();
         document.querySelectorAll("#pestanas .pestana").forEach(function (b) { b.classList.toggle("pestana--activa", b.dataset.modulo === modulo); });
@@ -255,11 +302,11 @@
 
     function pintarRapidos() {
         var opciones = RAPIDOS[E.modulo];
-        $("btn-filtros").hidden = !opciones.length;
         $("rapidos").innerHTML = opciones.map(function (r) {
             return '<button type="button" class="xml-chip' + (E.rapidos[r[0]] ? " xml-chip--activo" : "") + '" data-rapido="' + r[0] + '">' + r[1] + "</button>";
         }).join("");
-        var n = Object.keys(E.rapidos).filter(function (k) { return E.rapidos[k]; }).length;
+        var n = Object.keys(E.rapidos).filter(function (k) { return E.rapidos[k]; }).length +
+            Object.keys(E.av).filter(function (k) { return E.av[k] !== "" && E.av[k] !== undefined; }).length;
         $("cuenta-filtros").hidden = !n;
         $("cuenta-filtros").textContent = n;
         $("btn-filtros").classList.toggle("xml-btn--activo", n > 0);
@@ -367,13 +414,56 @@
         return f._q;
     }
 
+    function fechaDe(f) { return E.modulo === "pagos" ? f.fecha_pago : E.modulo === "nomina" ? f.fecha_pago_nom : f.fecha_emision; }
+    function importeDe(f) { return E.modulo === "pagos" ? (f.importe_pagado != null ? f.importe_pagado : f.monto_pago) : f.total; }
+    var CAMPOS_AV = {
+        metodo: { etiqueta: "Método de pago", valor: function (f) { return f.metodo_pago; }, modulos: ["recibidos", "emitidos"] },
+        forma: { etiqueta: "Forma de pago", valor: function (f) { return f.forma_pago || f.forma_pago_p; }, modulos: ["recibidos", "emitidos", "pagos"] },
+        moneda: { etiqueta: "Moneda", valor: function (f) { return f.moneda || f.moneda_p; }, modulos: ["recibidos", "emitidos", "pagos"] },
+        uso: { etiqueta: "Uso CFDI", valor: function (f) { return f.uso_cfdi; }, modulos: ["recibidos", "emitidos"] },
+        sat: { etiqueta: "Estado SAT", valor: function (f) { return f.estado_sat || "Sin validar"; }, modulos: ["recibidos", "emitidos", "pagos", "nomina"] }
+    };
+
+    function pintarAvanzados() {
+        var filas = E.datos[E.modulo].filas;
+        var h = ['<label>Fecha del<input type="date" data-av="desde" value="' + esc(E.av.desde || "") + '"></label>',
+                 '<label>al<input type="date" data-av="hasta" value="' + esc(E.av.hasta || "") + '"></label>',
+                 '<label>Importe desde<input type="number" step="0.01" data-av="min" placeholder="0.00" value="' + esc(E.av.min || "") + '"></label>',
+                 '<label>hasta<input type="number" step="0.01" data-av="max" placeholder="sin tope" value="' + esc(E.av.max || "") + '"></label>'];
+        Object.keys(CAMPOS_AV).forEach(function (k) {
+            var c = CAMPOS_AV[k];
+            if (c.modulos.indexOf(E.modulo) === -1) return;
+            var valores = {};
+            filas.forEach(function (f) { var v = c.valor(f); if (v) valores[v] = 1; });
+            var lista = Object.keys(valores).sort();
+            if (lista.length < 2 && !E.av[k]) return;
+            h.push("<label>" + c.etiqueta + '<select data-av="' + k + '"><option value="">Todos</option>' +
+                lista.map(function (v) { return '<option value="' + esc(v) + '"' + (E.av[k] === v ? " selected" : "") + ">" + esc(v) + "</option>"; }).join("") + "</select></label>");
+        });
+        $("avanzados").innerHTML = h.join("");
+    }
+
     function aplicar() {
         var filas = E.datos[E.modulo].filas;
         var q = E.busqueda.trim().toLowerCase();
         var activos = Object.keys(E.rapidos).filter(function (k) { return E.rapidos[k]; });
+        var av = E.av;
+        var min = av.min !== undefined && av.min !== "" ? +av.min : null, max = av.max !== undefined && av.max !== "" ? +av.max : null;
         E.filas = filas.filter(function (f) {
             if (E.sub && f._sub !== E.sub) return false;
             for (var i = 0; i < activos.length; i++) if (!PRUEBA_RAPIDO[activos[i]](f)) return false;
+            if (av.desde || av.hasta) {
+                var fe = (fechaDe(f) || "").slice(0, 10);
+                if (av.desde && fe < av.desde) return false;
+                if (av.hasta && fe > av.hasta) return false;
+            }
+            if (min !== null || max !== null) {
+                var imp = importeDe(f);
+                if (imp === undefined || imp === null) return false;
+                if (min !== null && imp < min) return false;
+                if (max !== null && imp > max) return false;
+            }
+            for (var k in CAMPOS_AV) if (av[k] && CAMPOS_AV[k].valor(f) !== av[k]) return false;
             return !q || textoBusqueda(f).indexOf(q) !== -1;
         });
         if (E.orden.clave) {
@@ -401,12 +491,17 @@
 
     var SELLOS = {
         estado_pago: { "Pagada": "verde", "Parcial": "ambar", "Sin pago": "rojo" },
-        estado_sat: { "Vigente": "verde", "Cancelado": "rojo", "Sin validar": "gris" },
+        estado_sat: { "Vigente": "verde", "Cancelado": "rojo", "Sin validar": "gris", "No encontrado": "ambar" },
         docto_encontrado: { "Sí": "verde", "No": "ambar" }
     };
 
     function celda(c, f, fija) {
         var v = f[c.clave];
+        if (c.clave === "alertas") {
+            var n = v ? v.split("; ").length : 0;
+            return "<td" + (fija ? ' class="xml-fija xml-fija--ultima" style="left:36px"' : "") + (n ? ' title="' + esc(v) + '"' : "") + ">" +
+                (n ? '<span class="xml-alerta">⚠ ' + n + "</span> " + esc(v.split("; ")[0]) : "") + "</td>";
+        }
         var clase = c.tipo === "moneda" || c.tipo === "numero" ? "xml-num" : (c.tipo === "uuid" ? "xml-uuid" : "");
         if (fija) clase += " xml-fija xml-fija--ultima";
         var txt = formato(c, v);
@@ -639,7 +734,8 @@
             cuerpo.modulo = E.modulo;
             cuerpo.sub = E.sub || null;
             cuerpo.columnas = E.columnas[E.modulo].map(function (c) { return c.clave; });
-            var filtrado = E.busqueda.trim() || Object.keys(E.rapidos).some(function (k) { return E.rapidos[k]; });
+            var filtrado = E.busqueda.trim() || Object.keys(E.rapidos).some(function (k) { return E.rapidos[k]; }) ||
+                Object.keys(E.av).some(function (k) { return E.av[k]; });
             cuerpo.uuids = filtrado ? Array.from(new Set(E.filas.map(function (f) { return f.uuid; }))) : null;
         }
         var boton = $("btn-excel");
@@ -666,6 +762,101 @@
             E.seleccion.clear();
             await refrescarBibliotecas(E.rfc);
         } catch (e) { avisar(e.message); }
+    }
+
+    /* ============================================================ validar ante el SAT */
+    var VAL = { reloj: null, siguiente: 0 };
+
+    function estadoPorUuid() {
+        var m = {};
+        MODULOS.forEach(function (mod) { E.datos[mod.clave].filas.forEach(function (f) { m[f.uuid] = f.estado_sat || "Sin validar"; }); });
+        return m;
+    }
+
+    function pedirValidacion() {
+        var uuids = E.seleccion.size ? Array.from(E.seleccion) : Array.from(new Set(E.filas.map(function (f) { return f.uuid; })));
+        if (!uuids.length) { avisar("No hay XML en la tabla para validar."); return; }
+        var estados = estadoPorUuid();
+        var faltan = uuids.filter(function (u) { return (estados[u] || "Sin validar") === "Sin validar"; });
+        var yaVal = uuids.length - faltan.length;
+        var origen = E.seleccion.size ? "seleccionados" : "de esta tabla";
+        if (!yaVal) { iniciarValidacion(uuids); return; }
+        $("modal-validar-texto").textContent = "De los " + uuids.length.toLocaleString("es-MX") + " XML " + origen + ", " +
+            yaVal.toLocaleString("es-MX") + " ya se habían validado. ¿Qué quieres hacer?";
+        $("modal-validar-acciones").innerHTML =
+            (faltan.length ? '<button type="button" class="xml-btn xml-btn--primario" data-val="faltan">Validar solo los que faltan (' + faltan.length.toLocaleString("es-MX") + ")</button>" : "") +
+            '<button type="button" class="xml-btn' + (faltan.length ? "" : " xml-btn--primario") + '" data-val="todos">Validar todos de nuevo (' + uuids.length.toLocaleString("es-MX") + ")</button>" +
+            '<button type="button" class="xml-enlace" data-val="cancelar">Cancelar</button>';
+        $("modal-validar").hidden = false;
+        $("modal-validar-acciones").onclick = function (e) {
+            var b = e.target.closest("[data-val]");
+            if (!b) return;
+            $("modal-validar").hidden = true;
+            if (b.dataset.val === "faltan") iniciarValidacion(faltan);
+            else if (b.dataset.val === "todos") iniciarValidacion(uuids);
+        };
+    }
+
+    async function iniciarValidacion(uuids) {
+        try {
+            await apiJSON("/api/xml/validar", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ rfc: E.rfc, uuids: uuids }) });
+        } catch (e) { avisar(e.message); return; }
+        VAL.siguiente = 0;
+        seguirValidacion();
+    }
+
+    function seguirValidacion() {
+        clearTimeout(VAL.reloj);
+        $("avance-validacion").hidden = false;
+        $("avance-validacion").classList.remove("xml-validando--listo");
+        $("btn-detener").hidden = false;
+        $("btn-validar").disabled = true;
+        (async function consultar() {
+            var r;
+            try { r = await apiJSON("/api/xml/validacion?desde=" + VAL.siguiente); } catch (e) { VAL.reloj = setTimeout(consultar, 4000); return; }
+            if (r.estado === "ninguno") { $("avance-validacion").hidden = true; $("btn-validar").disabled = false; return; }
+            VAL.siguiente = r.siguiente;
+            aplicarCambiosSAT(r.cambios);
+            var pct = r.total ? Math.round(100 * r.hechos / r.total) : 100;
+            $("validando-barra").style.width = pct + "%";
+            var c = r.conteo;
+            var detalle = r.hechos.toLocaleString("es-MX") + " de " + r.total.toLocaleString("es-MX") + " · " + c.Vigente + " vigentes · " + c.Cancelado + " cancelados" +
+                (c["No encontrado"] ? " · " + c["No encontrado"] + " no encontrados" : "") + (c.Error ? " · " + c.Error + " sin respuesta del SAT" : "");
+            $("validando-detalle").textContent = detalle;
+            if (r.estado === "corriendo") { $("validando-titulo").textContent = "Validando ante el SAT…"; VAL.reloj = setTimeout(consultar, 1500); return; }
+            $("validando-titulo").textContent = r.estado === "detenido" ? "Validación detenida." : "Validación terminada.";
+            $("avance-validacion").classList.add("xml-validando--listo");
+            $("btn-detener").hidden = true;
+            $("btn-validar").disabled = false;
+            if (c.Error) $("validando-detalle").textContent = detalle + " — vuelve a validar esos más tarde.";
+            VAL.reloj = setTimeout(function () { $("avance-validacion").hidden = true; }, 15000);
+        })();
+    }
+
+    function aplicarCambiosSAT(cambios) {
+        if (!cambios || !cambios.length) return;
+        var m = {};
+        cambios.forEach(function (c) { m[c.uuid] = c; });
+        MODULOS.forEach(function (mod) {
+            E.datos[mod.clave].filas.forEach(function (f) {
+                var c = m[f.uuid];
+                if (!c) return;
+                f.estado_sat = c.estado_sat;
+                f.estado_sat_en = c.estado_sat_en;
+                var lista = (f.alertas ? f.alertas.split("; ") : []).filter(function (a) { return a !== "Cancelado en el SAT" && a !== "El SAT no lo encuentra"; });
+                if (c.estado_sat === "Cancelado") lista.unshift("Cancelado en el SAT");
+                if (c.estado_sat === "No encontrado") lista.unshift("El SAT no lo encuentra");
+                if (lista.length) f.alertas = lista.join("; "); else delete f.alertas;
+            });
+        });
+        pintarFilas(true);
+    }
+
+    async function reanudarValidacion() {
+        try {
+            var r = await apiJSON("/api/xml/validacion?desde=0");
+            if (r.estado === "corriendo" && r.rfc === E.rfc) { VAL.siguiente = 0; seguirValidacion(); }
+        } catch (e) { /* nada */ }
     }
 
     /* ============================================================ bandeja de carga */
@@ -850,13 +1041,17 @@
                 '<button type="button" class="xml-btn" data-copiar="si">Sí, agregar</button><button type="button" class="xml-enlace" data-copiar="no">No</button></div>';
         }).join("");
         $("resultado-carga").innerHTML = '<div class="xml-resultado' + (tot.rechazados.length ? " xml-resultado--error" : "") + '" data-de="' + esc(d) + '">' +
+            '<button type="button" class="xml-resultado__cerrar" title="Cerrar" data-cerrar-resultado>×</button>' +
             "<strong>" + esc(nombre) + ": " + tot.nuevos.toLocaleString("es-MX") + " XML nuevos guardados" + (tot.duplicados ? " · " + tot.duplicados + " ya estaban" : "") + "</strong>" +
             (tot.rechazados.length ? "<ul>" + tot.rechazados.slice(0, 15).map(function (r) { return "<li>" + esc(r.archivo) + " — " + esc(r.motivo) + "</li>"; }).join("") + "</ul>" : "") +
-            preguntas + "</div>";
+            preguntas + (BJ.xml.size ? '<p style="margin-top:8px">Quedaron ' + BJ.xml.size.toLocaleString("es-MX") +
+                ' XML de otras empresas en la bandeja. <button type="button" class="xml-enlace" data-abrir-bandeja>Abrir la bandeja</button></p>' : "") + "</div>";
         pintarBandeja();
         // Si no estabas viendo ninguna biblioteca, se abre la que acabas de cargar
         await refrescarBibliotecas(E.rfc && E.contribuyentes.some(function (c) { return c.rfc === E.rfc; }) ? E.rfc : d);
-        if (!BJ.xml.size && !preguntas && !tot.rechazados.length) setTimeout(function () { if (!BJ.xml.size) $("bandeja").hidden = true; }, 5000);
+        // Al procesar, la bandeja se cierra: ya estás administrando. Lo que quedó de otras empresas espera ahí.
+        if (!BJ.xml.size) BJ.invalidos = [];
+        $("bandeja").hidden = true;
     }
 
     async function responderCopia(boton) {
@@ -907,9 +1102,13 @@
         $("bandeja-resumen").addEventListener("change", function (e) { if (e.target.id === "sel-destino") { BJ.destino = e.target.value; pintarBandeja(); } });
         $("bandeja-resumen").addEventListener("click", function (e) {
             if (e.target.id === "btn-procesar") procesar();
-            if (e.target.id === "btn-vaciar") { BJ.xml.clear(); BJ.invalidos = []; BJ.destino = null; $("resultado-carga").innerHTML = ""; pintarBandeja(); }
+            if (e.target.id === "btn-vaciar") { BJ.xml.clear(); BJ.invalidos = []; BJ.destino = null; pintarBandeja(); }
         });
-        $("resultado-carga").addEventListener("click", function (e) { var b = e.target.closest("[data-copiar]"); if (b) responderCopia(b); });
+        $("resultado-carga").addEventListener("click", function (e) {
+            if (e.target.closest("[data-cerrar-resultado]")) { $("resultado-carga").innerHTML = ""; return; }
+            if (e.target.closest("[data-abrir-bandeja]")) { abrirBandeja(); return; }
+            var b = e.target.closest("[data-copiar]"); if (b) responderCopia(b);
+        });
         // Soltar archivos en cualquier parte de la página
         var profundidad = 0, velo = $("velo-soltar");
         function conArchivos(e) { return e.dataTransfer && Array.prototype.indexOf.call(e.dataTransfer.types || [], "Files") !== -1; }
@@ -925,12 +1124,25 @@
 
     /* ============================================================ eventos */
     function cerrarMenus(excepto) {
-        ["menu-excel", "menu-vistas", "menu-filtros"].forEach(function (id) { if (id !== excepto) $(id).hidden = true; });
+        ["menu-excel", "menu-vistas", "menu-filtros", "menu-otra"].forEach(function (id) { if (id !== excepto) $(id).hidden = true; });
     }
 
     function prepararEventos() {
         $("sel-periodo").addEventListener("change", cargarRegistros);
-        $("sel-otras").addEventListener("change", function () { if (this.value) refrescarBibliotecas(this.value); });
+        $("btn-otra").addEventListener("click", function (e) {
+            e.stopPropagation(); cerrarMenus("menu-otra");
+            $("menu-otra").hidden = !$("menu-otra").hidden;
+            if (!$("menu-otra").hidden) pintarMenuOtra();
+        });
+        $("menu-otra").addEventListener("click", function (e) { e.stopPropagation(); var b = e.target.closest("button"); if (b) accionMenuOtra(b); });
+        $("btn-validar").addEventListener("click", pedirValidacion);
+        $("btn-detener").addEventListener("click", function () { apiJSON("/api/xml/validacion/detener", { method: "POST" }).catch(function () {}); });
+        $("modal-validar").addEventListener("click", function (e) { if (e.target.id === "modal-validar") $("modal-validar").hidden = true; });
+        document.addEventListener("keydown", function (e) { if (e.key === "Escape") { $("modal-validar").hidden = true; $("panel-columnas").hidden = true; } });
+        $("avanzados").addEventListener("input", function (e) {
+            var k = e.target.dataset.av; if (!k) return;
+            E.av[k] = e.target.value; pintarRapidos(); aplicar();
+        });
         $("sin-empresa").addEventListener("click", function (e) { var b = e.target.closest("[data-otra]"); if (b) refrescarBibliotecas(b.dataset.otra); });
         $("aviso-otra").addEventListener("click", function (e) { if (e.target.id === "volver-empresa") { E.otra = null; E.rfc = null; refrescarBibliotecas(); } });
         $("pestanas").addEventListener("click", function (e) {
@@ -947,7 +1159,7 @@
             if (!b) return;
             E.rapidos[b.dataset.rapido] = !E.rapidos[b.dataset.rapido]; pintarRapidos(); aplicar();
         });
-        $("quitar-filtros").addEventListener("click", function () { E.rapidos = {}; pintarRapidos(); aplicar(); });
+        $("quitar-filtros").addEventListener("click", function () { E.rapidos = {}; E.av = {}; pintarRapidos(); pintarAvanzados(); aplicar(); });
         var reloj = null;
         $("buscar").addEventListener("input", function () {
             clearTimeout(reloj);
@@ -955,7 +1167,10 @@
             reloj = setTimeout(function () { E.busqueda = v; aplicar(); }, 150);
         });
         [["btn-filtros", "menu-filtros"], ["btn-vistas", "menu-vistas"], ["btn-excel", "menu-excel"]].forEach(function (par) {
-            $(par[0]).addEventListener("click", function (e) { e.stopPropagation(); cerrarMenus(par[1]); $(par[1]).hidden = !$(par[1]).hidden; });
+            $(par[0]).addEventListener("click", function (e) {
+                e.stopPropagation(); cerrarMenus(par[1]); $(par[1]).hidden = !$(par[1]).hidden;
+                if (par[1] === "menu-filtros" && !$(par[1]).hidden) pintarAvanzados();
+            });
             $(par[1]).addEventListener("click", function (e) { e.stopPropagation(); });
         });
         document.addEventListener("click", function () { cerrarMenus(); });

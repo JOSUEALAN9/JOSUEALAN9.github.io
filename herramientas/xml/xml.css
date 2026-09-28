@@ -141,3 +141,28 @@
 .xml-btn--activo { border-color: var(--acento, #0e7490); color: var(--acento, #0e7490); }
 /* "hidden" siempre gana, aunque la clase ponga display (p. ej. las etiquetas de filtros) */
 .xml-pagina [hidden], .xml-panel[hidden], .xml-velo[hidden], #sin-empresa[hidden] { display: none !important; }
+.xml-cabeza__acciones { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.xml-menu__lista--otra { width: 340px; max-height: 70vh; overflow: auto; }
+.xml-menu__lista .xml-otra__grupo { font-size: 11px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; color: #64748b; padding: 8px 10px 4px; }
+.xml-otra__fila { display: flex; align-items: center; gap: 6px; }
+.xml-otra__fila > button:first-child { flex: 1; }
+.xml-otra__borrar { flex: none !important; width: auto !important; color: #b91c1c !important; font-size: 12px !important; font-weight: 700 !important; }
+.xml-otra__nota { font-size: 12px; color: #64748b; padding: 4px 10px 8px; }
+.xml-filtro__titulo { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; color: #64748b; margin: 2px 0 6px; }
+.xml-avanzados { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
+.xml-avanzados label { display: flex; flex-direction: column; gap: 3px; font-size: 11.5px; font-weight: 700; color: #475569; }
+.xml-avanzados input, .xml-avanzados select { border: 1px solid #cbd5e1; border-radius: 8px; padding: 6px 8px; font-size: 12.5px; font-weight: 500; width: 100%; box-sizing: border-box; background: #fff; }
+.xml-menu__lista--filtros { width: 420px; max-width: 92vw; }
+.xml-validando { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; background: #ecfeff; border: 1px solid #a5f3fc; border-radius: 12px; padding: 10px 14px; margin-bottom: 10px; font-size: 13px; color: #155e75; }
+.xml-validando .xml-barra { flex: 1 1 200px; }
+.xml-validando--listo { background: #f0fdf4; border-color: #bbf7d0; color: #166534; }
+.xml-modal { position: fixed; inset: 0; z-index: 80; background: rgba(15,23,42,.45); display: grid; place-items: center; padding: 16px; }
+.xml-modal__caja { background: #fff; border-radius: 16px; padding: 22px; width: 460px; max-width: 100%; box-shadow: 0 20px 50px rgba(15,23,42,.3); }
+.xml-modal__caja h3 { font-size: 18px; font-weight: 800; color: #0f172a; margin-bottom: 8px; }
+.xml-modal__caja p { font-size: 14px; color: #475569; margin-bottom: 16px; }
+.xml-modal__acciones { display: flex; flex-direction: column; gap: 8px; }
+.xml-modal__acciones .xml-btn { justify-content: center; padding: 10px 14px; }
+.xml-alerta { color: #b45309; font-weight: 800; }
+#resultado-carga .xml-resultado { margin: 0 0 14px; position: relative; padding-right: 40px; }
+.xml-resultado__cerrar { position: absolute; right: 10px; top: 8px; border: 0; background: none; font-size: 16px; cursor: pointer; color: inherit; opacity: .6; }
+@media (max-width: 700px) { .xml-avanzados { grid-template-columns: 1fr; } }
