@@ -92,53 +92,95 @@
 
     async function iniciar() {
         if (!(await Fiscontable.exigirModulo("validador"))) return;
-        prepararCarga();
+        prepararBandeja();
         prepararEventos();
-        await Promise.all([cargarVistas(), cargarContribuyentes()]);
+        await cargarVistas();
+        E.empresa = await Fiscontable.empresaActiva();
+        await refrescarBibliotecas();
+        // Si cambias de empresa en la barra, la página se actualiza sola
+        window.addEventListener("fiscontable:empresa", async function (e) {
+            E.empresa = e.detail; E.otra = null; E.rfc = null;
+            await refrescarBibliotecas();
+            if (!$("bandeja").hidden) pintarBandeja();
+        });
     }
 
-    async function cargarContribuyentes(rfcPreferido) {
-        try {
-            E.contribuyentes = await apiJSON("/api/xml/contribuyentes");
-        } catch (e) { avisar(e.message); return; }
-        var hay = E.contribuyentes.length > 0;
-        $("sin-datos").hidden = hay;
-        $("contenido").hidden = !hay;
-        if (!hay) { $("panel-carga").hidden = false; return; }
-
-        $("sel-contribuyente").innerHTML = E.contribuyentes.map(function (c) {
-            return '<option value="' + esc(c.rfc) + '">' + esc((c.nombre || "Sin nombre") + " · " + c.rfc + " (" + c.total + ")") + "</option>";
-        }).join("");
-        $("sel-forzar").innerHTML = '<option value="">Detectar solo (recomendado)</option>' + E.contribuyentes.map(function (c) {
-            return '<option value="' + esc(c.rfc) + '">' + esc((c.nombre || "") + " · " + c.rfc) + "</option>";
-        }).join("");
-        var elegido = rfcPreferido || E.rfc || leerLocal("rfc");
-        if (!E.contribuyentes.some(function (c) { return c.rfc === elegido; })) elegido = E.contribuyentes[0].rfc;
-        $("sel-contribuyente").value = elegido;
-        await elegirContribuyente(elegido);
-    }
-
-    async function elegirContribuyente(rfc) {
-        E.rfc = rfc;
-        E.busqueda = ""; $("buscar").value = "";
-        guardarLocal("rfc", rfc);
-        E.seleccion.clear();
+    function nombreDe(rfc) {
+        if (E.empresa && E.empresa.rfc === rfc) return E.empresa.alias || rfc;
         var c = E.contribuyentes.find(function (x) { return x.rfc === rfc; });
+        return (c && c.nombre) || rfc;
+    }
+
+    /* La biblioteca que se ve: la de la empresa activa, o la de un RFC sin
+       registrar que se cargó con la herramienta rápida. */
+    async function refrescarBibliotecas(rfcPreferido) {
+        try { E.contribuyentes = await apiJSON("/api/xml/contribuyentes"); } catch (e) { avisar(e.message); return; }
+        var otras = E.contribuyentes.filter(function (c) { return !c.registrado; });
+        $("caja-otras").hidden = !otras.length;
+        $("sel-otras").innerHTML = '<option value="">Elegir…</option>' + otras.map(function (c) {
+            return '<option value="' + esc(c.rfc) + '">' + esc((c.nombre || "Sin nombre") + " · " + c.rfc) + "</option>";
+        }).join("");
+        var activa = E.empresa ? E.empresa.rfc : null;
+        var rfc = rfcPreferido || E.rfc || activa;
+        if (rfc && rfc !== activa && !otras.some(function (c) { return c.rfc === rfc; })) rfc = activa;
+        E.otra = rfc && rfc !== activa ? rfc : null;
+        $("sel-otras").value = E.otra || "";
+        E.rfc = rfc;
+        pintarEncabezado();
+        var c = rfc && E.contribuyentes.find(function (x) { return x.rfc === rfc; });
+        if (!c) { mostrarVacio(otras); return; }
+        $("sin-empresa").hidden = true;
+        $("contenido").hidden = false;
+        armarPeriodos(c);
+        await cargarRegistros();
+    }
+
+    function pintarEncabezado() {
+        var t = E.otra ? nombreDe(E.otra) + " · " + E.otra + " (sin registrar)"
+            : E.empresa ? (E.empresa.alias || "") + " · " + E.empresa.rfc
+            : "Elige una empresa en la barra de arriba, o agrega XML de alguien sin registrar.";
+        $("empresa-titulo").textContent = t;
+        var aviso = $("aviso-otra");
+        aviso.hidden = !E.otra;
+        if (E.otra) {
+            aviso.innerHTML = "Estás viendo XML de <strong>" + esc(nombreDe(E.otra)) + "</strong> (" + esc(E.otra) + "), que no está en tu directorio." +
+                ' <a class="xml-enlace" href="/clientes/">Registrarla como cliente</a>' +
+                (E.empresa ? ' <button type="button" class="xml-enlace" id="volver-empresa">Volver a ' + esc(E.empresa.alias || E.empresa.rfc) + "</button>" : "");
+        }
+    }
+
+    function mostrarVacio(otras) {
+        $("contenido").hidden = true;
+        var caja = $("sin-empresa");
+        caja.hidden = false;
+        var lista = otras.length ? '<p style="margin-top:14px">O revisa los XML que ya cargaste de alguien sin registrar:</p><div class="xml-chips" style="justify-content:center;margin-top:8px">' +
+            otras.map(function (c) { return '<button type="button" class="xml-chip" data-otra="' + esc(c.rfc) + '">' + esc((c.nombre || c.rfc) + " · " + c.rfc) + "</button>"; }).join("") + "</div>" : "";
+        if (E.empresa) {
+            caja.innerHTML = '<p class="xml-vacio__titulo">' + esc(E.empresa.alias || E.empresa.rfc) + " todavía no tiene XML</p>" +
+                "<p>Arrastra aquí sus XML (o un ZIP de la descarga del SAT) y presiona <strong>Procesar</strong>.</p>" + lista;
+            abrirBandeja();
+        } else {
+            caja.innerHTML = '<p class="xml-vacio__titulo">¿En qué empresa vas a trabajar?</p>' +
+                "<p>Elígela con el botón <strong>Empresa</strong> de la barra de arriba.<br>¿Son XML de alguien que no tienes registrado? Da clic en <strong>Agregar XML</strong>: el portal detecta de quién son.</p>" + lista;
+        }
+    }
+
+    function armarPeriodos(c) {
+        E.busqueda = ""; $("buscar").value = "";
+        E.seleccion.clear();
         var opciones = ['<option value="">Todos los periodos</option>'];
         var anios = {};
         (c.periodos || []).forEach(function (p) { anios[p.periodo.slice(0, 4)] = (anios[p.periodo.slice(0, 4)] || 0) + p.n; });
         Object.keys(anios).sort().reverse().forEach(function (a) {
-            opciones.push('<option value="a:' + a + '">Todo ' + a + " (" + anios[a] + ")</option>");
+            opciones.push('<option value="a:' + a + '">Todo ' + a + "</option>");
             (c.periodos || []).filter(function (p) { return p.periodo.slice(0, 4) === a; }).forEach(function (p) {
-                opciones.push('<option value="m:' + p.periodo + '">&nbsp;&nbsp;' + MESES[+p.periodo.slice(5, 7) - 1] + " " + a + " (" + p.n + ")</option>");
+                opciones.push('<option value="m:' + p.periodo + '">&nbsp;&nbsp;' + MESES[+p.periodo.slice(5, 7) - 1] + " " + a + "</option>");
             });
         });
         $("sel-periodo").innerHTML = opciones.join("");
-        // Por defecto, el mes más reciente con XML
-        var recordado = leerLocal("periodo:" + rfc);
+        var recordado = leerLocal("periodo:" + c.rfc);
         $("sel-periodo").value = recordado && $("sel-periodo").querySelector('option[value="' + recordado + '"]') ? recordado
             : (c.periodos && c.periodos.length ? "m:" + c.periodos[0].periodo : "");
-        await cargarRegistros();
     }
 
     function rangoPeriodo() {
@@ -161,8 +203,6 @@
             E.datos = (await apiJSON("/api/xml/registros" + q)).modulos;
         } catch (e) { avisar(e.message); return; }
         E.seleccion.clear();
-        var c = E.contribuyentes.find(function (x) { return x.rfc === E.rfc; });
-        $("resumen-contrib").textContent = c ? c.total + " XML en su biblioteca" : "";
         if (!E.datos[E.modulo] || !E.datos[E.modulo].filas.length) {
             var primero = MODULOS.find(function (m) { return E.datos[m.clave].filas.length; });
             E.modulo = primero ? primero.clave : "recibidos";
@@ -214,9 +254,15 @@
     }
 
     function pintarRapidos() {
-        $("rapidos").innerHTML = RAPIDOS[E.modulo].map(function (r) {
+        var opciones = RAPIDOS[E.modulo];
+        $("btn-filtros").hidden = !opciones.length;
+        $("rapidos").innerHTML = opciones.map(function (r) {
             return '<button type="button" class="xml-chip' + (E.rapidos[r[0]] ? " xml-chip--activo" : "") + '" data-rapido="' + r[0] + '">' + r[1] + "</button>";
         }).join("");
+        var n = Object.keys(E.rapidos).filter(function (k) { return E.rapidos[k]; }).length;
+        $("cuenta-filtros").hidden = !n;
+        $("cuenta-filtros").textContent = n;
+        $("btn-filtros").classList.toggle("xml-btn--activo", n > 0);
     }
 
     /* ============================================================ columnas y vistas */
@@ -247,17 +293,31 @@
         try { E.vistas = await apiJSON("/api/xml/vistas"); } catch (e) { E.vistas = []; }
     }
 
+    function vistaActualObj() {
+        var actual = E.vistaActual[E.modulo] || "";
+        return E.vistas.find(function (v) { return v.modulo === E.modulo && v.nombre === actual; }) || null;
+    }
+
     function pintarVistas() {
         var propias = E.vistas.filter(function (v) { return v.modulo === E.modulo; });
-        var actual = E.vistaActual[E.modulo] || "";
-        $("sel-vista").innerHTML = '<option value="">Vista: de fábrica</option>' + propias.map(function (v) {
-            return '<option value="' + esc(v.nombre) + '">Vista: ' + esc(v.nombre) + (v.predeterminada ? " ★" : "") + "</option>";
-        }).join("") + (actual && propias.some(function (v) { return v.nombre === actual; }) ? '<option value="__borrar">Borrar esta vista…</option>' : "");
-        $("sel-vista").value = propias.some(function (v) { return v.nombre === actual; }) ? actual : "";
+        var v = vistaActualObj();
+        $("nombre-vista").textContent = v ? v.nombre : "Vista de fábrica";
+        function item(accion, nombre, texto, clase) {
+            return '<button type="button" data-accion="' + accion + '" data-nombre="' + esc(nombre) + '"' + (clase ? ' class="' + clase + '"' : "") + ">" + texto + "</button>";
+        }
+        var h = [item("aplicar", "", "Vista de fábrica", !v ? "xml-activa" : "")];
+        propias.forEach(function (p) {
+            h.push(item("aplicar", p.nombre, esc(p.nombre) + (p.predeterminada ? " ★" : ""), v && p.nombre === v.nombre ? "xml-activa" : ""));
+        });
+        h.push('<div class="xml-separador"></div>');
+        if (v) h.push(item("guardar", v.nombre, "Guardar cambios en «" + esc(v.nombre) + "»"));
+        h.push(item("nueva", "", "Guardar como vista nueva…"));
+        if (v) h.push(item("pred", v.nombre, v.predeterminada ? "Ya no abrir siempre con esta vista" : "Abrir siempre con esta vista ★"));
+        if (v) h.push(item("borrar", v.nombre, "Borrar «" + esc(v.nombre) + "»", "xml-peligro"));
+        $("menu-vistas").innerHTML = h.join("");
     }
 
     function aplicarVista(nombre) {
-        if (nombre === "__borrar") { borrarVista(); return; }
         var v = E.vistas.find(function (x) { return x.modulo === E.modulo && x.nombre === nombre; });
         E.columnas[E.modulo] = (v ? v.columnas : columnasDeFabrica()).filter(function (c) { return colPorClave(c.clave); });
         E.vistaActual[E.modulo] = v ? v.nombre : "";
@@ -267,29 +327,35 @@
         if (!$("panel-columnas").hidden) pintarPanelColumnas();
     }
 
-    async function guardarVista() {
-        var nombre = prompt("Nombre de la vista (por ejemplo: Revisión de IVA):", E.vistaActual[E.modulo] || "Mi vista");
-        if (!nombre || !nombre.trim()) return;
-        var pred = confirm("¿Usar esta vista siempre que abras " + MODULOS.find(function (m) { return m.clave === E.modulo; }).nombre + "?");
+    async function guardarVista(nombre, predeterminada, columnas) {
         try {
             await api("/api/xml/vistas", { method: "PUT", headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ modulo: E.modulo, nombre: nombre.trim(), columnas: E.columnas[E.modulo], predeterminada: pred }) });
+                body: JSON.stringify({ modulo: E.modulo, nombre: nombre, columnas: columnas || E.columnas[E.modulo], predeterminada: !!predeterminada }) });
             await cargarVistas();
-            E.vistaActual[E.modulo] = nombre.trim();
+            E.vistaActual[E.modulo] = nombre;
             guardarColumnasLocal();
             pintarVistas();
         } catch (e) { avisar(e.message); }
     }
 
-    async function borrarVista() {
-        var actual = E.vistaActual[E.modulo];
-        var v = E.vistas.find(function (x) { return x.modulo === E.modulo && x.nombre === actual; });
-        if (!v || !confirm("¿Borrar la vista \"" + v.nombre + "\"?")) { pintarVistas(); return; }
-        try {
-            await api("/api/xml/vistas/" + v.id, { method: "DELETE" });
-            await cargarVistas();
-            aplicarVista("");
-        } catch (e) { avisar(e.message); }
+    async function accionVista(accion, nombre) {
+        $("menu-vistas").hidden = true;
+        var v = vistaActualObj();
+        if (accion === "aplicar") aplicarVista(nombre);
+        else if (accion === "guardar" && v) guardarVista(v.nombre, v.predeterminada);
+        else if (accion === "nueva") {
+            var n = prompt("Nombre de la vista nueva (por ejemplo: Revisión de IVA):", "");
+            if (n && n.trim()) guardarVista(n.trim().slice(0, 60), false);
+        }
+        else if (accion === "pred" && v) guardarVista(v.nombre, !v.predeterminada, v.columnas);
+        else if (accion === "borrar" && v) {
+            if (!confirm("¿Borrar la vista «" + v.nombre + "»?")) return;
+            try {
+                await api("/api/xml/vistas/" + v.id, { method: "DELETE" });
+                await cargarVistas();
+                aplicarVista("");
+            } catch (e) { avisar(e.message); }
+        }
     }
 
     /* ============================================================ filtrar y ordenar */
@@ -598,12 +664,211 @@
         try {
             await postJSON("/api/xml/quitar", { rfc: E.rfc, uuids: Array.from(E.seleccion) });
             E.seleccion.clear();
-            await cargarContribuyentes(E.rfc);
+            await refrescarBibliotecas(E.rfc);
         } catch (e) { avisar(e.message); }
     }
 
-    /* ============================================================ carga de XML */
-    var LIMITE_LOTE = 40 * 1024 * 1024, LIMITE_ARCHIVOS = 400, LIMITE_ZIP = 95 * 1024 * 1024;
+    /* ============================================================ bandeja de carga */
+    /* Los XML se leen en el navegador (también los de un ZIP) para mostrar un
+       resumen antes de guardar. Nada llega al servidor hasta "Procesar", y solo
+       se envían los XML de la empresa elegida. Los de otras empresas se quedan
+       en la bandeja por si quieres procesarlos después para otra. */
+    var GENERICOS = { XAXX010101000: 1, XEXX010101000: 1 };
+    var LIMITE_LOTE = 40 * 1024 * 1024, LIMITE_ARCHIVOS = 400;
+    var BJ = { xml: new Map(), invalidos: [], destino: null, cargandoZip: null, leyendo: 0, clientes: null };
+
+    function abrirBandeja() {
+        $("bandeja").hidden = false;
+        pintarBandeja();
+        if (BJ.clientes === null) {
+            BJ.clientes = {};
+            apiJSON("/api/clientes").then(function (lista) {
+                lista.forEach(function (c) { BJ.clientes[c.rfc] = c.alias; });
+                pintarBandeja();
+            }).catch(function () { /* sin directorio: se ordena solo por frecuencia */ });
+        }
+    }
+
+    function leerXML(nombre, bytes) {
+        if (bytes.length > 5 * 1024 * 1024) { BJ.invalidos.push({ archivo: nombre, motivo: "Pesa más de 5 MB." }); return; }
+        var texto = new TextDecoder("utf-8").decode(bytes);
+        var doc = new DOMParser().parseFromString(texto, "application/xml");
+        var raiz = doc.documentElement;
+        if (!raiz || raiz.localName !== "Comprobante" || doc.getElementsByTagName("parsererror").length) {
+            BJ.invalidos.push({ archivo: nombre, motivo: "No es un CFDI." }); return;
+        }
+        var tfd = doc.getElementsByTagNameNS("*", "TimbreFiscalDigital")[0];
+        var em = doc.getElementsByTagNameNS("*", "Emisor")[0], re = doc.getElementsByTagNameNS("*", "Receptor")[0];
+        function at(el, n) { return el ? (el.getAttribute(n) || el.getAttribute(n.charAt(0).toLowerCase() + n.slice(1)) || "") : ""; }
+        var uuid = at(tfd, "UUID").toUpperCase();
+        if (!uuid) { BJ.invalidos.push({ archivo: nombre, motivo: "No está timbrado." }); return; }
+        BJ.xml.set(uuid, { nombre: nombre, bytes: bytes, tipo: at(raiz, "TipoDeComprobante"),
+            er: at(em, "Rfc").toUpperCase(), en: at(em, "Nombre"), rr: at(re, "Rfc").toUpperCase(), rn: at(re, "Nombre") });
+    }
+
+    function cargarJSZip() {
+        if (window.JSZip) return Promise.resolve();
+        if (!BJ.cargandoZip) {
+            BJ.cargandoZip = new Promise(function (ok, mal) {
+                var sc = document.createElement("script");
+                sc.src = "https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js";
+                sc.onload = ok; sc.onerror = function () { BJ.cargandoZip = null; mal(new Error("No se pudo abrir el ZIP (falló la descarga del lector de ZIP).")); };
+                document.head.appendChild(sc);
+            });
+        }
+        return BJ.cargandoZip;
+    }
+
+    async function agregarArchivos(archivos) {
+        abrirBandeja();
+        var utiles = archivos.filter(function (f) { return /\.(xml|zip)$/i.test(f.name); });
+        if (!utiles.length) { avisar("No encontré XML ni ZIP en lo que agregaste."); return; }
+        var leyendo = $("leyendo");
+        leyendo.hidden = false;
+        leyendo.textContent = "Leyendo…";
+        BJ.leyendo++;
+        pintarBandeja();
+        var hechos = 0;
+        for (var i = 0; i < utiles.length; i++) {
+            var f = utiles[i];
+            try {
+                if (/\.zip$/i.test(f.name)) {
+                    await cargarJSZip();
+                    var zip = await window.JSZip.loadAsync(f);
+                    var entradas = Object.keys(zip.files).filter(function (n) { return !zip.files[n].dir && /\.xml$/i.test(n); });
+                    for (var j = 0; j < entradas.length; j++) {
+                        leerXML(entradas[j].split("/").pop(), await zip.files[entradas[j]].async("uint8array"));
+                        if (++hechos % 50 === 0) { leyendo.textContent = "Leyendo… " + hechos + " XML"; await new Promise(function (r) { setTimeout(r, 0); }); }
+                    }
+                } else {
+                    leerXML(f.name, new Uint8Array(await f.arrayBuffer()));
+                    if (++hechos % 50 === 0) { leyendo.textContent = "Leyendo… " + hechos + " XML"; await new Promise(function (r) { setTimeout(r, 0); }); }
+                }
+            } catch (e) {
+                BJ.invalidos.push({ archivo: f.name, motivo: e.message && e.message.indexOf("ZIP") !== -1 ? e.message : "No se pudo leer." });
+            }
+        }
+        BJ.leyendo--;
+        leyendo.hidden = BJ.leyendo <= 0;
+        pintarBandeja();
+    }
+
+    function candidatos() {
+        var cuenta = {}, nombres = {};
+        BJ.xml.forEach(function (x) {
+            var lista = x.tipo === "N" ? [x.er] : [x.er, x.rr];
+            lista.forEach(function (r) {
+                if (!r || GENERICOS[r]) return;
+                cuenta[r] = (cuenta[r] || 0) + 1;
+                if (!nombres[r]) nombres[r] = r === x.er ? x.en : x.rn;
+            });
+        });
+        var mios = BJ.clientes || {};
+        return Object.keys(cuenta).sort(function (a, b) { return (!!mios[b] - !!mios[a]) || (cuenta[b] - cuenta[a]); })
+            .slice(0, 12)
+            .map(function (r) { return { rfc: r, nombre: mios[r] || nombres[r], n: cuenta[r], cliente: !!mios[r] }; });
+    }
+
+    function deDestino(x, d) { return x.tipo === "N" ? x.er === d : (x.er === d || x.rr === d); }
+
+    function pintarBandeja() {
+        var caja = $("bandeja-resumen");
+        if (!BJ.xml.size && !BJ.invalidos.length) { caja.innerHTML = ""; return; }
+        var cands = candidatos();
+        var actual = E.rfc;
+        // Destino: el que ya elegiste; si no, la empresa que estás viendo (si aparece); si no, el RFC que más se repite
+        if (!BJ.destino || !cands.some(function (c) { return c.rfc === BJ.destino; })) {
+            BJ.destino = actual && cands.some(function (c) { return c.rfc === actual; }) ? actual : (cands[0] ? cands[0].rfc : null);
+        }
+        var d = BJ.destino;
+        var n = { recibidos: 0, emitidos: 0, nomina: 0, pagos: 0, ajenos: 0 };
+        BJ.xml.forEach(function (x) {
+            if (!d || !deDestino(x, d)) { n.ajenos++; return; }
+            if (x.tipo === "N") n.nomina++;
+            else if (x.tipo === "P") n.pagos++;
+            else if (x.er === d) n.emitidos++;
+            else n.recibidos++;
+        });
+        var total = n.recibidos + n.emitidos + n.nomina + n.pagos;
+        var opciones = cands.map(function (c) {
+            return '<option value="' + esc(c.rfc) + '"' + (c.rfc === d ? " selected" : "") + ">" +
+                esc((c.nombre || "Sin nombre") + " · " + c.rfc + " (" + c.n + " XML)" + (c.cliente ? "" : " · sin registrar")) + "</option>";
+        }).join("");
+        function cifra(v, t, ajena) { return v ? '<div class="xml-cifra' + (ajena ? " xml-cifra--ajena" : "") + '"><b>' + v.toLocaleString("es-MX") + "</b><span>" + t + "</span></div>" : ""; }
+        caja.innerHTML = '<div class="xml-resumen">' +
+            (cands.length ? '<div class="xml-resumen__destino">Estos XML son de <select id="sel-destino">' + opciones + "</select></div>" : "") +
+            '<div class="xml-resumen__cifras">' +
+                cifra(n.recibidos, "Recibidos") + cifra(n.emitidos, "Emitidos") + cifra(n.nomina, "Nómina") + cifra(n.pagos, "Pagos") +
+                cifra(n.ajenos, "de otras empresas (no se cargan ahora)", true) + cifra(BJ.invalidos.length, "no son CFDI", true) +
+            "</div>" +
+            '<div class="xml-resumen__acciones">' +
+                '<button type="button" id="btn-procesar" class="xml-btn xml-btn--primario"' + (total && !BJ.leyendo ? "" : " disabled") + ">" +
+                    (BJ.leyendo ? "Leyendo archivos…" : "Procesar " + total.toLocaleString("es-MX") + " XML") + "</button>" +
+                '<button type="button" id="btn-vaciar" class="xml-enlace">Vaciar bandeja</button>' +
+            "</div></div>";
+    }
+
+    async function procesar() {
+        var d = BJ.destino;
+        var cand = candidatos().find(function (c) { return c.rfc === d; });
+        var lista = [];
+        BJ.xml.forEach(function (x, uuid) { if (deDestino(x, d)) lista.push([uuid, x]); });
+        if (!lista.length) return;
+        var lotes = [], actual = [], peso = 0;
+        lista.forEach(function (par) {
+            if (actual.length && (peso + par[1].bytes.length > LIMITE_LOTE || actual.length >= LIMITE_ARCHIVOS)) { lotes.push(actual); actual = []; peso = 0; }
+            actual.push(par); peso += par[1].bytes.length;
+        });
+        if (actual.length) lotes.push(actual);
+
+        var boton = $("btn-procesar");
+        boton.disabled = true;
+        var tot = { nuevos: 0, duplicados: 0, rechazados: [], tambien: {} };
+        for (var i = 0; i < lotes.length; i++) {
+            boton.textContent = "Procesando… " + Math.round(100 * i / lotes.length) + "%";
+            var fd = new FormData();
+            lotes[i].forEach(function (par) { fd.append("archivos", new Blob([par[1].bytes], { type: "application/xml" }), par[1].nombre); });
+            fd.append("rfc", d);
+            try {
+                var r = await apiJSON("/api/xml/cargar", { method: "POST", body: fd });
+                tot.nuevos += r.nuevos; tot.duplicados += r.duplicados;
+                tot.rechazados = tot.rechazados.concat(r.rechazados);
+                (r.tambien_de || []).forEach(function (t) {
+                    var x = tot.tambien[t.rfc] = tot.tambien[t.rfc] || { rfc: t.rfc, nombre: t.nombre, uuids: [] };
+                    x.uuids = x.uuids.concat(t.uuids);
+                });
+                lotes[i].forEach(function (par) { BJ.xml.delete(par[0]); });
+            } catch (e) {
+                tot.rechazados.push({ archivo: "Parte " + (i + 1) + " de " + lotes.length, motivo: e.message });
+            }
+        }
+        var nombre = (cand && cand.nombre) || nombreDe(d);
+        var preguntas = Object.keys(tot.tambien).map(function (k) {
+            var t = tot.tambien[k];
+            return '<div class="xml-pregunta" data-a="' + esc(t.rfc) + '" data-uuids="' + esc(t.uuids.join(",")) + '"><span><strong>' + t.uuids.length +
+                "</strong> de estos XML también son de <strong>" + esc(t.nombre || t.rfc) + "</strong> (" + esc(t.rfc) + "), que está en tu directorio. ¿Agregarlos también a su biblioteca?</span>" +
+                '<button type="button" class="xml-btn" data-copiar="si">Sí, agregar</button><button type="button" class="xml-enlace" data-copiar="no">No</button></div>';
+        }).join("");
+        $("resultado-carga").innerHTML = '<div class="xml-resultado' + (tot.rechazados.length ? " xml-resultado--error" : "") + '" data-de="' + esc(d) + '">' +
+            "<strong>" + esc(nombre) + ": " + tot.nuevos.toLocaleString("es-MX") + " XML nuevos guardados" + (tot.duplicados ? " · " + tot.duplicados + " ya estaban" : "") + "</strong>" +
+            (tot.rechazados.length ? "<ul>" + tot.rechazados.slice(0, 15).map(function (r) { return "<li>" + esc(r.archivo) + " — " + esc(r.motivo) + "</li>"; }).join("") + "</ul>" : "") +
+            preguntas + "</div>";
+        pintarBandeja();
+        // Si no estabas viendo ninguna biblioteca, se abre la que acabas de cargar
+        await refrescarBibliotecas(E.rfc && E.contribuyentes.some(function (c) { return c.rfc === E.rfc; }) ? E.rfc : d);
+        if (!BJ.xml.size && !preguntas && !tot.rechazados.length) setTimeout(function () { if (!BJ.xml.size) $("bandeja").hidden = true; }, 5000);
+    }
+
+    async function responderCopia(boton) {
+        var caja = boton.closest(".xml-pregunta");
+        if (boton.dataset.copiar === "no") { caja.remove(); return; }
+        boton.disabled = true;
+        try {
+            var r = await apiJSON("/api/xml/copiar", { method: "POST", headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ de_rfc: boton.closest("[data-de]").dataset.de, a_rfc: caja.dataset.a, uuids: caja.dataset.uuids.split(",") }) });
+            caja.innerHTML = "<span>Listo: se agregaron " + r.copiados + " XML a la biblioteca de " + esc(caja.dataset.a) + ".</span>";
+        } catch (e) { boton.disabled = false; avisar(e.message); }
+    }
 
     function leerEntrada(entrada, salida) {
         return new Promise(function (resolver) {
@@ -622,88 +887,52 @@
         });
     }
 
-    async function subir(archivos) {
-        var utiles = archivos.filter(function (f) { return /\.(xml|zip)$/i.test(f.name); });
-        if (!utiles.length) { avisar("No encontré archivos XML ni ZIP en lo que elegiste."); return; }
-        var grandes = utiles.filter(function (f) { return /\.zip$/i.test(f.name) && f.size > LIMITE_ZIP; });
-        if (grandes.length) { avisar("El ZIP " + grandes[0].name + " pesa más de 95 MB. Divídelo en partes más chicas."); return; }
-        // Lotes: cada ZIP va solo; los XML sueltos en grupos de hasta 40 MB / 400 archivos
-        var lotes = [], actual = [], peso = 0;
-        utiles.forEach(function (f) {
-            if (/\.zip$/i.test(f.name)) { lotes.push([f]); return; }
-            if (actual.length && (peso + f.size > LIMITE_LOTE || actual.length >= LIMITE_ARCHIVOS)) { lotes.push(actual); actual = []; peso = 0; }
-            actual.push(f); peso += f.size;
-        });
-        if (actual.length) lotes.push(actual);
-
-        var forzar = $("sel-forzar").value;
-        var total = { nuevos: 0, duplicados: 0, encontrados: 0, rechazados: [], por: {} };
-        $("progreso-carga").hidden = false;
-        $("resultado-carga").innerHTML = "";
-        $("btn-cargar").disabled = true;
-        for (var i = 0; i < lotes.length; i++) {
-            $("barra-carga").style.width = Math.round(100 * i / lotes.length) + "%";
-            $("texto-carga").textContent = "Leyendo parte " + (i + 1) + " de " + lotes.length + "…";
-            var fd = new FormData();
-            lotes[i].forEach(function (f) { fd.append("archivos", f, f.webkitRelativePath ? f.name : f.name); });
-            if (forzar) fd.append("rfc", forzar);
-            try {
-                var r = await apiJSON("/api/xml/cargar", { method: "POST", body: fd });
-                total.nuevos += r.nuevos; total.duplicados += r.duplicados; total.encontrados += r.xml_encontrados;
-                total.rechazados = total.rechazados.concat(r.rechazados);
-                r.por_contribuyente.forEach(function (p) {
-                    var x = total.por[p.rfc] = total.por[p.rfc] || { rfc: p.rfc, nombre: p.nombre, nuevos: 0, duplicados: 0 };
-                    x.nuevos += p.nuevos; x.duplicados += p.duplicados;
-                });
-            } catch (e) {
-                total.rechazados.push({ archivo: "Parte " + (i + 1), motivo: e.message });
-            }
+    async function archivosDeSoltar(e) {
+        var archivos = [];
+        var items = e.dataTransfer.items;
+        if (items && items.length && items[0].webkitGetAsEntry) {
+            var entradas = Array.prototype.map.call(items, function (it) { return it.webkitGetAsEntry(); }).filter(Boolean);
+            await Promise.all(entradas.map(function (en) { return leerEntrada(en, archivos); }));
+        } else {
+            archivos = Array.prototype.slice.call(e.dataTransfer.files);
         }
-        $("barra-carga").style.width = "100%";
-        $("texto-carga").textContent = "Listo.";
-        $("btn-cargar").disabled = false;
-        var por = Object.keys(total.por).map(function (k) { return total.por[k]; }).sort(function (a, b) { return (b.nuevos + b.duplicados) - (a.nuevos + a.duplicados); });
-        $("resultado-carga").innerHTML =
-            '<div class="xml-resultado' + (total.nuevos ? "" : " xml-resultado--error") + '">' +
-            "<strong>" + total.encontrados + " XML leídos · " + total.nuevos + " nuevos · " + total.duplicados + " ya estaban</strong>" +
-            (por.length ? "<ul>" + por.map(function (p) {
-                return "<li>" + esc((p.nombre || "") + " · " + p.rfc) + ": " + p.nuevos + " nuevos" + (p.duplicados ? ", " + p.duplicados + " ya estaban" : "") + "</li>";
-            }).join("") + "</ul>" : "") +
-            (total.rechazados.length ? "<p style=\"margin-top:8px\"><strong>No se cargaron " + total.rechazados.length + ":</strong></p><ul>" +
-                total.rechazados.slice(0, 15).map(function (r) { return "<li>" + esc(r.archivo) + " — " + esc(r.motivo) + "</li>"; }).join("") +
-                (total.rechazados.length > 15 ? "<li>… y " + (total.rechazados.length - 15) + " más</li>" : "") + "</ul>" : "") +
-            "</div>";
-        if (total.nuevos) await cargarContribuyentes(por.length ? por[0].rfc : null);
-        setTimeout(function () { $("progreso-carga").hidden = true; }, 1500);
-        // Si todo entró bien, la zona de carga se pliega sola para dejarle espacio a la tabla.
-        if (total.nuevos && !total.rechazados.length) setTimeout(function () { $("panel-carga").hidden = true; }, 6000);
+        return archivos;
     }
 
-    function prepararCarga() {
-        $("btn-cargar").addEventListener("click", function () { $("panel-carga").hidden = !$("panel-carga").hidden; });
-        $("in-archivos").addEventListener("change", function (e) { subir(Array.prototype.slice.call(e.target.files)); e.target.value = ""; });
-        $("in-carpeta").addEventListener("change", function (e) { subir(Array.prototype.slice.call(e.target.files)); e.target.value = ""; });
-        var zona = $("zona-carga");
-        ["dragenter", "dragover"].forEach(function (t) { zona.addEventListener(t, function (e) { e.preventDefault(); zona.classList.add("xml-zona--encima"); }); });
-        ["dragleave", "drop"].forEach(function (t) { zona.addEventListener(t, function () { zona.classList.remove("xml-zona--encima"); }); });
-        zona.addEventListener("drop", async function (e) {
-            e.preventDefault();
-            var archivos = [];
-            var items = e.dataTransfer.items;
-            if (items && items.length && items[0].webkitGetAsEntry) {
-                var entradas = Array.prototype.map.call(items, function (it) { return it.webkitGetAsEntry(); }).filter(Boolean);
-                await Promise.all(entradas.map(function (en) { return leerEntrada(en, archivos); }));
-            } else {
-                archivos = Array.prototype.slice.call(e.dataTransfer.files);
-            }
-            subir(archivos);
+    function prepararBandeja() {
+        $("btn-agregar").addEventListener("click", function () { if ($("bandeja").hidden) abrirBandeja(); else $("bandeja").hidden = true; });
+        $("cerrar-bandeja").addEventListener("click", function () { $("bandeja").hidden = true; });
+        $("in-archivos").addEventListener("change", function (e) { agregarArchivos(Array.prototype.slice.call(e.target.files)); e.target.value = ""; });
+        $("in-carpeta").addEventListener("change", function (e) { agregarArchivos(Array.prototype.slice.call(e.target.files)); e.target.value = ""; });
+        $("bandeja-resumen").addEventListener("change", function (e) { if (e.target.id === "sel-destino") { BJ.destino = e.target.value; pintarBandeja(); } });
+        $("bandeja-resumen").addEventListener("click", function (e) {
+            if (e.target.id === "btn-procesar") procesar();
+            if (e.target.id === "btn-vaciar") { BJ.xml.clear(); BJ.invalidos = []; BJ.destino = null; $("resultado-carga").innerHTML = ""; pintarBandeja(); }
+        });
+        $("resultado-carga").addEventListener("click", function (e) { var b = e.target.closest("[data-copiar]"); if (b) responderCopia(b); });
+        // Soltar archivos en cualquier parte de la página
+        var profundidad = 0, velo = $("velo-soltar");
+        function conArchivos(e) { return e.dataTransfer && Array.prototype.indexOf.call(e.dataTransfer.types || [], "Files") !== -1; }
+        document.addEventListener("dragenter", function (e) { if (!conArchivos(e)) return; e.preventDefault(); profundidad++; velo.hidden = false; });
+        document.addEventListener("dragover", function (e) { if (conArchivos(e)) e.preventDefault(); });
+        document.addEventListener("dragleave", function (e) { if (!conArchivos(e)) return; if (--profundidad <= 0) { profundidad = 0; velo.hidden = true; } });
+        document.addEventListener("drop", async function (e) {
+            if (!conArchivos(e)) return;
+            e.preventDefault(); profundidad = 0; velo.hidden = true;
+            agregarArchivos(await archivosDeSoltar(e));
         });
     }
 
     /* ============================================================ eventos */
+    function cerrarMenus(excepto) {
+        ["menu-excel", "menu-vistas", "menu-filtros"].forEach(function (id) { if (id !== excepto) $(id).hidden = true; });
+    }
+
     function prepararEventos() {
-        $("sel-contribuyente").addEventListener("change", function () { E.modulo = "recibidos"; elegirContribuyente(this.value); });
         $("sel-periodo").addEventListener("change", cargarRegistros);
+        $("sel-otras").addEventListener("change", function () { if (this.value) refrescarBibliotecas(this.value); });
+        $("sin-empresa").addEventListener("click", function (e) { var b = e.target.closest("[data-otra]"); if (b) refrescarBibliotecas(b.dataset.otra); });
+        $("aviso-otra").addEventListener("click", function (e) { if (e.target.id === "volver-empresa") { E.otra = null; E.rfc = null; refrescarBibliotecas(); } });
         $("pestanas").addEventListener("click", function (e) {
             var b = e.target.closest(".pestana");
             if (b && !b.disabled) cambiarModulo(b.dataset.modulo);
@@ -718,20 +947,23 @@
             if (!b) return;
             E.rapidos[b.dataset.rapido] = !E.rapidos[b.dataset.rapido]; pintarRapidos(); aplicar();
         });
+        $("quitar-filtros").addEventListener("click", function () { E.rapidos = {}; pintarRapidos(); aplicar(); });
         var reloj = null;
         $("buscar").addEventListener("input", function () {
             clearTimeout(reloj);
             var v = this.value;
             reloj = setTimeout(function () { E.busqueda = v; aplicar(); }, 150);
         });
-        $("sel-vista").addEventListener("change", function () { aplicarVista(this.value); });
-        $("btn-guardar-vista").addEventListener("click", guardarVista);
-        $("btn-excel").addEventListener("click", function (e) { e.stopPropagation(); $("menu-excel").hidden = !$("menu-excel").hidden; });
-        document.addEventListener("click", function () { $("menu-excel").hidden = true; });
+        [["btn-filtros", "menu-filtros"], ["btn-vistas", "menu-vistas"], ["btn-excel", "menu-excel"]].forEach(function (par) {
+            $(par[0]).addEventListener("click", function (e) { e.stopPropagation(); cerrarMenus(par[1]); $(par[1]).hidden = !$(par[1]).hidden; });
+            $(par[1]).addEventListener("click", function (e) { e.stopPropagation(); });
+        });
+        document.addEventListener("click", function () { cerrarMenus(); });
+        $("menu-vistas").addEventListener("click", function (e) { var b = e.target.closest("[data-accion]"); if (b) accionVista(b.dataset.accion, b.dataset.nombre); });
         $("menu-excel").addEventListener("click", function (e) { var b = e.target.closest("[data-excel]"); if (b) exportarExcel(b.dataset.excel); });
         $("btn-zip").addEventListener("click", descargarZip);
         $("btn-quitar").addEventListener("click", quitarSeleccion);
-        $("btn-limpiar-sel").addEventListener("click", function () { E.seleccion.clear(); pintarFilas(true); pintarSeleccion(); pintarTabla(); });
+        $("btn-limpiar-sel").addEventListener("click", function () { E.seleccion.clear(); pintarTabla(); });
         $("tabla-caja").addEventListener("scroll", function () { pintarFilas(false); }, { passive: true });
         window.addEventListener("resize", function () { pintarFilas(true); });
         $("tbody").addEventListener("click", function (e) {

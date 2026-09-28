@@ -846,3 +846,28 @@ body.fc-sin-scroll { overflow: hidden; }
 
 /* El botón de descargas se enciende mientras algo corre */
 .fc-accion--activa { background: rgba(245, 158, 11, .16); color: #fff; }
+
+/* --- Selector general de empresa (barra) --- */
+.fc-empresa { max-width: 260px; }
+.fc-empresa__nombre { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 190px; }
+.fc-empresa__flecha { font-size: 10px; opacity: .7; }
+.fc-empresa--vacia .fc-empresa__nombre { color: #fcd34d; }
+.fc-empresas { width: 330px; }
+.fc-empresas__cabeza { padding: 14px 14px 10px; border-bottom: 1px solid var(--linea); }
+.fc-empresas__buscar { width: 100%; margin-top: 8px; box-sizing: border-box; border: 1px solid var(--linea); border-radius: 10px; padding: 8px 10px; font-size: 13.5px; }
+.fc-empresas__lista { max-height: min(55vh, 420px); overflow: auto; padding: 6px; }
+.fc-empresas__item { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; padding: 8px 10px; border: 0; background: none; border-radius: 10px; cursor: pointer; color: var(--texto); }
+.fc-empresas__item:hover { background: #f1f5f9; }
+.fc-empresas__item--activa { background: var(--acento-suave); }
+.fc-empresas__inicial { width: 30px; height: 30px; border-radius: 9px; background: #e2e8f0; color: #334155; font-weight: 800; font-size: 13px; display: grid; place-items: center; flex: none; }
+.fc-empresas__item--activa .fc-empresas__inicial { background: var(--acento); color: #fff; }
+.fc-empresas__texto { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.fc-empresas__texto strong { font-size: 13.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fc-empresas__texto small { font-size: 11.5px; color: var(--texto-tenue); font-family: ui-monospace, monospace; }
+.fc-empresas__check { color: var(--acento); font-weight: 900; }
+.fc-empresas__nada { padding: 14px; font-size: 13px; color: var(--texto-tenue); }
+.fc-empresas__nada a { color: var(--acento); font-weight: 700; }
+.fc-empresas__pie { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 10px 14px; border-top: 1px solid var(--linea); font-size: 12.5px; }
+.fc-empresas__ninguna { border: 0; background: none; color: var(--texto-tenue); font-weight: 600; cursor: pointer; text-decoration: underline; }
+.fc-empresas__nueva { color: var(--acento); font-weight: 700; margin-left: auto; }
+@media (max-width: 700px) { .fc-empresas { width: auto; } }

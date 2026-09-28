@@ -15,7 +15,11 @@
  * el campo para escribir el RFC a mano.
  *
  * Cuando llegas desde la ficha de un cliente (?rfc=...&cliente=...) el
- * paso se resuelve solo y se colapsa a una línea.
+ * paso se resuelve solo y se colapsa a una línea. Si no, se resuelve con
+ * la EMPRESA ACTIVA del selector general de la barra; "Cambiar" deja
+ * elegir otro cliente o un RFC sin registrar (herramienta rápida) solo
+ * para este trabajo, sin cambiar la empresa activa. Si cambias de empresa
+ * en la barra, el paso se actualiza solo (salvo que hayas elegido a mano).
  *
  *   PasoCliente.montar({
  *       contenedor: "paso-cliente",
@@ -282,7 +286,7 @@
         function resolverParametros() {
             var p = new URLSearchParams(window.location.search);
             var rfc = (p.get("rfc") || "").trim().toUpperCase();
-            if (!rfc) return;
+            if (!rfc) { aplicarEmpresaActiva(); return; }
 
             var c = clientes.find(function (x) { return x.rfc === rfc; });
             if (c) {
@@ -296,6 +300,25 @@
             pista.textContent = "El RFC de la liga (" + esc(rfc) + ") no tiene forma válida. Elige al cliente o sube su e.firma.";
             pista.className = "pc-pista pc-pista--mal";
         }
+
+        // Empresa activa del selector general
+        function datosDeEmpresa(empresa) {
+            var c = empresa && clientes.find(function (x) { return x.rfc === empresa.rfc; });
+            return c ? { rfc: c.rfc, alias: c.alias, esCliente: true, efirmaGuardada: !!c.efirma_guardada, deEmpresa: true } : null;
+        }
+        function aplicarEmpresaActiva() {
+            if (!window.Fiscontable.empresaActiva) return;
+            window.Fiscontable.empresaActiva().then(function (empresa) {
+                var datos = datosDeEmpresa(empresa);
+                if (datos && !elegido) colapsar(datos);
+            });
+        }
+        window.addEventListener("fiscontable:empresa", function (e) {
+            if (elegido && !elegido.deEmpresa) return;     // eligió a mano para este trabajo: no se le mueve
+            var datos = datosDeEmpresa(e.detail);
+            if (datos) colapsar(datos);
+            else if (elegido) reabrir();
+        });
 
         cargarClientes();
 

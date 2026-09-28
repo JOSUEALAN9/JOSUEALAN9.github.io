@@ -4,70 +4,74 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Administración de XML · Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/common.css?v=202609271757">
-    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202609271757">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202609272226">
+    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202609272226">
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-slate-50">
 <div id="app-header" data-modulo="xml" data-titulo="Administración de XML" data-migas="Herramientas|/herramientas/"></div>
-<script src="/assets/js/nucleo.js?v=202609271757"></script>
-<script src="/assets/js/barra.js?v=202609271757"></script>
+<script src="/assets/js/nucleo.js?v=202609272226"></script>
+<script src="/assets/js/barra.js?v=202609272226"></script>
 
 <main class="xml-pagina">
     <div class="xml-cabeza">
         <div>
             <h1>Administración de XML</h1>
-            <p>Carga los XML una vez; se acomodan solos por contribuyente y por tipo.</p>
+            <p id="empresa-titulo">&nbsp;</p>
         </div>
-        <button type="button" id="btn-cargar" class="xml-btn xml-btn--primario">+ Cargar XML</button>
+        <button type="button" id="btn-agregar" class="xml-btn xml-btn--primario">+ Agregar XML</button>
     </div>
 
-    <!-- Carga -->
-    <section id="panel-carga" class="xml-carga" hidden>
+    <!-- Bandeja: se juntan los XML y nada se guarda hasta "Procesar" -->
+    <section id="bandeja" class="xml-bandeja" hidden>
+        <div class="xml-bandeja__cabeza">
+            <h2>Agregar XML</h2>
+            <button type="button" id="cerrar-bandeja" class="xml-enlace">Cerrar</button>
+        </div>
         <div id="zona-carga" class="xml-zona">
-            <p class="xml-zona__titulo">Arrastra aquí los XML, una carpeta o un ZIP</p>
-            <p class="xml-zona__sub">Puedes mezclar contribuyentes y tipos; los PDF que vengan en el ZIP se ignoran.</p>
+            <p class="xml-zona__titulo">Arrastra aquí tus XML, carpetas o archivos ZIP</p>
+            <p class="xml-zona__sub">Puedes agregar varias veces. Nada se guarda hasta que presiones <strong>Procesar</strong>.</p>
             <div class="xml-zona__botones">
                 <label class="xml-btn">Elegir archivos<input type="file" id="in-archivos" multiple accept=".xml,.zip" hidden></label>
                 <label class="xml-btn">Elegir carpeta<input type="file" id="in-carpeta" webkitdirectory multiple hidden></label>
             </div>
-            <label class="xml-zona__forzar">Asignar todo a:
-                <select id="sel-forzar"><option value="">Detectar solo (recomendado)</option></select>
-            </label>
+            <p id="leyendo" class="xml-tenue" hidden></p>
         </div>
-        <div id="progreso-carga" class="xml-progreso" hidden><div class="xml-barra"><span id="barra-carga"></span></div><p id="texto-carga"></p></div>
+        <div id="bandeja-resumen"></div>
         <div id="resultado-carga"></div>
     </section>
 
-    <div id="sin-datos" class="xml-vacio" hidden>
-        <p class="xml-vacio__titulo">Todavía no hay XML en tu biblioteca</p>
-        <p>Da clic en <strong>Cargar XML</strong> y arrastra los archivos o el ZIP de la descarga del SAT.</p>
-    </div>
+    <div id="sin-empresa" class="xml-vacio" hidden></div>
 
     <div id="contenido" hidden>
-        <!-- Contribuyente y periodo -->
+        <div id="aviso-otra" class="xml-aviso-otra" hidden></div>
         <div class="xml-filtros-sup">
-            <label>Contribuyente
-                <select id="sel-contribuyente"></select>
-            </label>
             <label>Periodo
                 <select id="sel-periodo"></select>
             </label>
-            <span id="resumen-contrib" class="xml-tenue"></span>
+            <label id="caja-otras" hidden>Otras empresas con XML (sin registrar)
+                <select id="sel-otras"></select>
+            </label>
         </div>
 
-        <!-- Minimódulos -->
         <div class="pestanas xml-pestanas" role="tablist" id="pestanas"></div>
         <div id="subfiltros" class="xml-chips"></div>
 
-        <!-- Barra de herramientas -->
         <div class="xml-toolbar">
             <input type="search" id="buscar" placeholder="Buscar RFC, nombre, folio, UUID…">
-            <div id="rapidos" class="xml-chips xml-chips--rapidos"></div>
             <div class="xml-toolbar__der">
-                <select id="sel-vista" title="Vistas guardadas"></select>
-                <button type="button" id="btn-guardar-vista" class="xml-btn" title="Guardar el acomodo de columnas">Guardar vista</button>
+                <div class="xml-menu">
+                    <button type="button" id="btn-filtros" class="xml-btn">Filtros<span id="cuenta-filtros" class="xml-insignia" hidden></span></button>
+                    <div id="menu-filtros" class="xml-menu__lista xml-menu__lista--filtros" hidden>
+                        <div id="rapidos" class="xml-chips xml-chips--rapidos"></div>
+                        <button type="button" id="quitar-filtros" class="xml-enlace">Quitar filtros</button>
+                    </div>
+                </div>
                 <button type="button" id="btn-columnas" class="xml-btn">Columnas</button>
+                <div class="xml-menu">
+                    <button type="button" id="btn-vistas" class="xml-btn"><span id="nombre-vista">Vista de fábrica</span> ▾</button>
+                    <div id="menu-vistas" class="xml-menu__lista" hidden></div>
+                </div>
                 <div class="xml-menu">
                     <button type="button" id="btn-excel" class="xml-btn xml-btn--verde">Excel ▾</button>
                     <div id="menu-excel" class="xml-menu__lista" hidden>
@@ -99,6 +103,8 @@
     </div>
 </main>
 
+<div id="velo-soltar" class="xml-velo" hidden><div>Suelta los XML para agregarlos a la bandeja</div></div>
+
 <!-- Panel de columnas -->
 <aside id="panel-columnas" class="xml-panel" hidden>
     <div class="xml-panel__cabeza">
@@ -115,6 +121,6 @@
     </div>
 </aside>
 
-<script src="/herramientas/xml/xml.js?v=202609271757"></script>
+<script src="/herramientas/xml/xml.js?v=202609272226"></script>
 </body>
 </html>

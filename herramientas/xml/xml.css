@@ -114,3 +114,30 @@
 .xml-panel__pie { padding-top: 6px; }
 @media (max-width: 700px) { .xml-tabla-caja { height: calc(100vh - 260px); } .xml-filtros-sup select { min-width: 0; width: 100%; } }
 .xml-tabla .xml-th-txt { cursor: grab; }
+.xml-bandeja { background: #fff; border: 1px solid #e2e8f0; border-radius: 14px; padding: 16px; margin-bottom: 16px; }
+.xml-bandeja__cabeza { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+.xml-bandeja__cabeza h2 { font-weight: 800; font-size: 16px; color: #0f172a; }
+.xml-resumen { margin-top: 12px; border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px; }
+.xml-resumen__destino { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 13.5px; color: #334155; margin-bottom: 10px; }
+.xml-resumen__destino strong { color: #0f172a; }
+.xml-resumen__destino select { border: 1px solid #cbd5e1; border-radius: 8px; padding: 6px 8px; font-size: 13px; font-weight: 600; }
+.xml-resumen__cifras { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+.xml-cifra { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 8px 12px; min-width: 110px; }
+.xml-cifra b { display: block; font-size: 18px; color: #0f172a; }
+.xml-cifra span { font-size: 11.5px; color: #64748b; font-weight: 700; }
+.xml-cifra--ajena { background: #fffbeb; border-color: #fde68a; }
+.xml-resumen__acciones { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.xml-pregunta { margin-top: 10px; background: #eff6ff; border: 1px solid #bfdbfe; color: #1e3a8a; border-radius: 10px; padding: 10px 12px; font-size: 13px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.xml-pregunta .xml-btn { padding: 5px 10px; font-size: 12.5px; }
+.xml-insignia { background: var(--acento, #0e7490); color: #fff; border-radius: 999px; font-size: 11px; padding: 1px 7px; margin-left: 4px; }
+.xml-menu__lista--filtros { width: 300px; padding: 12px; }
+.xml-menu__lista--filtros .xml-chips { margin-bottom: 8px; }
+.xml-menu__lista .xml-separador { height: 1px; background: #e2e8f0; margin: 6px 4px; }
+.xml-menu__lista .xml-activa { background: #f1f5f9; }
+.xml-menu__lista .xml-peligro { color: #b91c1c; }
+.xml-aviso-otra { background: #fffbeb; border: 1px solid #fde68a; color: #92400e; border-radius: 12px; padding: 10px 14px; font-size: 13px; margin-bottom: 12px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.xml-velo { position: fixed; inset: 0; z-index: 70; background: rgba(14,116,144,.12); border: 3px dashed var(--acento, #0e7490); display: grid; place-items: center; pointer-events: none; }
+.xml-velo div { background: #fff; padding: 16px 22px; border-radius: 14px; font-weight: 800; color: #0f172a; box-shadow: 0 12px 30px rgba(15,23,42,.18); }
+.xml-btn--activo { border-color: var(--acento, #0e7490); color: var(--acento, #0e7490); }
+/* "hidden" siempre gana, aunque la clase ponga display (p. ej. las etiquetas de filtros) */
+.xml-pagina [hidden], .xml-panel[hidden], .xml-velo[hidden], #sin-empresa[hidden] { display: none !important; }

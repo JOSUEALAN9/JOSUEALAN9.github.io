@@ -71,6 +71,7 @@
 
     var D = {
         rayo:     "M13 10V3L4 14h7v7l9-11h-7z",
+        edificio: "M3 21h18M5 21V7l7-4 7 4v14M9 9h1m-1 4h1m4-4h1m-1 4h1M10 21v-4h4v4",
         descarga: "M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4",
         engrane:  "M10.3 4.3c.4-1.7 2.9-1.7 3.4 0a1.7 1.7 0 002.5 1.1c1.6-.9 3.3.8 2.4 2.4a1.7 1.7 0 001.1 2.5c1.7.4 1.7 2.9 0 3.4a1.7 1.7 0 00-1.1 2.5c.9 1.6-.8 3.3-2.4 2.4a1.7 1.7 0 00-2.5 1.1c-.4 1.7-2.9 1.7-3.4 0a1.7 1.7 0 00-2.5-1.1c-1.6.9-3.3-.8-2.4-2.4a1.7 1.7 0 00-1.1-2.5c-1.7-.4-1.7-2.9 0-3.4a1.7 1.7 0 001.1-2.5c-.9-1.6.8-3.3 2.4-2.4 1 .6 2.3.1 2.5-1.1zM15 12a3 3 0 11-6 0 3 3 0 016 0z",
         persona:  "M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z",
@@ -124,6 +125,11 @@
                 "</a>" +
                 '<nav class="fc-migas" aria-label="Ruta">' + migas + "</nav>" +
                 '<div class="fc-acciones">' +
+                  '<button type="button" class="fc-accion fc-empresa" id="fc-btn-empresa" aria-haspopup="menu" aria-expanded="false" hidden>' +
+                    ico(D.edificio) +
+                    '<span class="fc-accion__etiqueta fc-empresa__nombre" id="fc-empresa-nombre">Elegir empresa</span>' +
+                    '<span class="fc-empresa__flecha" aria-hidden="true">▾</span>' +
+                  "</button>" +
                   '<button type="button" class="fc-accion" id="fc-btn-descargas" aria-haspopup="dialog" aria-label="Mis descargas">' +
                     ico(D.descarga) +
                     '<span class="fc-accion__etiqueta">Descargas</span>' +
@@ -137,7 +143,7 @@
                     '<span class="fc-accion__etiqueta" id="fc-nombre-corto"></span>' +
                   "</button>" +
                 "</div>" +
-                menuPerfilHTML() +
+                menuPerfilHTML() + menuEmpresasHTML() +
               "</div>" +
             "</header>" +
             avisoHTML();
@@ -158,6 +164,124 @@
               '<a class="fc-menu__boton fc-menu__boton--salir" href="/cdn-cgi/access/logout" role="menuitem">' +
                 ico(D.salir) + "Cerrar sesión</a>" +
             "</div></div>";
+    }
+
+    /* --------------------------------------------- selector de empresa */
+    /* La empresa en la que estás trabajando. Se guarda en el servidor
+       (te sigue en cualquier PC) y los módulos la usan para resolver solos
+       el paso "¿Para quién?". Las herramientas rápidas (un RFC sin
+       registrar) siguen disponibles en cada módulo sin tocar este selector. */
+    function menuEmpresasHTML() {
+        return '<div class="fc-menu fc-empresas" id="fc-empresas" role="menu" hidden>' +
+            '<div class="fc-empresas__cabeza"><div class="fc-menu__nombre">¿En qué empresa trabajas?</div>' +
+              '<input type="search" class="fc-empresas__buscar" id="fc-empresas-buscar" placeholder="Buscar por nombre o RFC…" autocomplete="off"></div>' +
+            '<div class="fc-empresas__lista" id="fc-empresas-lista"></div>' +
+            '<div class="fc-empresas__pie">' +
+              '<button type="button" class="fc-empresas__ninguna" id="fc-empresa-ninguna">Quitar empresa activa</button>' +
+              '<a class="fc-empresas__nueva" href="/clientes/">+ Registrar empresa</a>' +
+            "</div></div>";
+    }
+
+    var clientesCache = null;
+
+    function pintarEmpresa() {
+        var e = perfilActual && perfilActual.empresa_activa;
+        var boton = document.getElementById("fc-btn-empresa");
+        if (!boton) return;
+        boton.hidden = false;
+        boton.classList.toggle("fc-empresa--vacia", !e);
+        document.getElementById("fc-empresa-nombre").textContent = e ? (e.alias || e.rfc) : "Elegir empresa";
+        boton.title = e ? (e.alias || "") + " · " + e.rfc + " — cambiar de empresa" : "Elige la empresa en la que vas a trabajar";
+        document.getElementById("fc-empresa-ninguna").hidden = !e;
+    }
+
+    function pintarListaEmpresas() {
+        var q = (document.getElementById("fc-empresas-buscar").value || "").trim().toLowerCase();
+        var activa = perfilActual && perfilActual.empresa_activa ? perfilActual.empresa_activa.rfc : null;
+        var lista = (clientesCache || []).filter(function (c) {
+            return !q || (c.alias + " " + c.rfc + " " + (c.razon_social || "")).toLowerCase().indexOf(q) !== -1;
+        });
+        var caja = document.getElementById("fc-empresas-lista");
+        if (clientesCache === null) { caja.innerHTML = '<p class="fc-empresas__nada">Cargando tu directorio…</p>'; return; }
+        if (!clientesCache.length) {
+            caja.innerHTML = '<p class="fc-empresas__nada">Todavía no tienes empresas registradas. Regístralas en <a href="/clientes/">Mis clientes</a>.</p>';
+            return;
+        }
+        caja.innerHTML = lista.length ? lista.map(function (c) {
+            return '<button type="button" class="fc-empresas__item' + (c.rfc === activa ? " fc-empresas__item--activa" : "") + '" data-rfc="' + esc(c.rfc) + '" role="menuitem">' +
+                '<span class="fc-empresas__inicial">' + esc((c.alias || c.rfc).charAt(0).toUpperCase()) + "</span>" +
+                '<span class="fc-empresas__texto"><strong>' + esc(c.alias) + "</strong><small>" + esc(c.rfc) + "</small></span>" +
+                (c.rfc === activa ? '<span class="fc-empresas__check">✓</span>' : "") + "</button>";
+        }).join("") : '<p class="fc-empresas__nada">Ninguna coincide con la búsqueda.</p>';
+    }
+
+    async function abrirEmpresas() {
+        var panel = document.getElementById("fc-empresas");
+        var boton = document.getElementById("fc-btn-empresa");
+        document.getElementById("fc-menu").hidden = true;
+        panel.hidden = false;
+        boton.setAttribute("aria-expanded", "true");
+        var interior = panel.parentElement.getBoundingClientRect();
+        var r = boton.getBoundingClientRect();
+        panel.style.right = Math.max(12, interior.right - r.right) + "px";
+        var buscar = document.getElementById("fc-empresas-buscar");
+        buscar.value = "";
+        pintarListaEmpresas();
+        if (window.innerWidth > 700) buscar.focus();
+        if (clientesCache === null) {
+            try {
+                var resp = await fetch(API + "/api/clientes", { credentials: "include" });
+                clientesCache = resp.ok ? await resp.json() : [];
+            } catch (e) { clientesCache = []; }
+            pintarListaEmpresas();
+        }
+    }
+
+    function cerrarEmpresas() {
+        var panel = document.getElementById("fc-empresas");
+        if (!panel || panel.hidden) return;
+        panel.hidden = true;
+        document.getElementById("fc-btn-empresa").setAttribute("aria-expanded", "false");
+    }
+
+    async function elegirEmpresa(rfc) {
+        cerrarEmpresas();
+        try {
+            var resp = await fetch(API + "/api/mi-perfil/empresa", {
+                method: "PUT", credentials: "include",
+                headers: { "Content-Type": "application/json" }, body: JSON.stringify({ rfc: rfc })
+            });
+            if (!resp.ok) throw new Error(await window.Fiscontable.leerError(resp));
+            var r = await resp.json();
+            perfilActual.empresa_activa = r.empresa_activa;
+            promesaPerfil = Promise.resolve(perfilActual);
+            pintarEmpresa();
+            window.dispatchEvent(new CustomEvent("fiscontable:empresa", { detail: r.empresa_activa }));
+        } catch (e) {
+            aviso(e.message || "No se pudo cambiar de empresa.");
+        }
+    }
+
+    function prepararEmpresas() {
+        var boton = document.getElementById("fc-btn-empresa");
+        if (!boton) return;
+        boton.addEventListener("click", function (e) {
+            e.stopPropagation();
+            if (document.getElementById("fc-empresas").hidden) abrirEmpresas(); else cerrarEmpresas();
+        });
+        var panel = document.getElementById("fc-empresas");
+        panel.addEventListener("click", function (e) {
+            e.stopPropagation();
+            var item = e.target.closest("[data-rfc]");
+            if (item) elegirEmpresa(item.dataset.rfc);
+        });
+        document.getElementById("fc-empresas-buscar").addEventListener("input", pintarListaEmpresas);
+        document.getElementById("fc-empresas-buscar").addEventListener("keydown", function (e) {
+            if (e.key === "Enter") { var primero = panel.querySelector("[data-rfc]"); if (primero) elegirEmpresa(primero.dataset.rfc); }
+        });
+        document.getElementById("fc-empresa-ninguna").addEventListener("click", function () { elegirEmpresa(null); });
+        document.addEventListener("click", cerrarEmpresas);
+        document.addEventListener("keydown", function (e) { if (e.key === "Escape") cerrarEmpresas(); });
     }
 
     function avisoHTML() {
@@ -607,6 +731,7 @@
 
         if (p.rol === "admin") document.getElementById("fc-enlace-admin").hidden = false;
         pintarLetreros(p);
+        pintarEmpresa();
 
         if (p.solo_lectura) {
             aviso("Tu acceso venció. Puedes consultar tu directorio, pero no generar documentos. " +
@@ -772,6 +897,8 @@
     document.getElementById("fc-velo").addEventListener("click", cerrarDescargas);
     document.getElementById("fc-panel-cuerpo").addEventListener("click", accionPanel);
 
+    prepararEmpresas();
+
     var btnPerfil = document.getElementById("fc-btn-perfil");
     var menu = document.getElementById("fc-menu");
 
@@ -838,6 +965,11 @@
         cerrarDescargas: cerrarDescargas,
         refrescarDescargas: sondear,
         abrirModalPerfil: abrirModalPerfil,
+        // La empresa elegida en el selector general (o null). Los módulos también
+        // pueden escuchar window "fiscontable:empresa" para enterarse de un cambio.
+        empresaActiva: function () {
+            return perfil().then(function (p) { return p && !p._error ? (p.empresa_activa || null) : null; });
+        },
         // Para Administración → Sistema: vuelve a pedir el perfil y repinta los letreros.
         recargarLetreros: async function () {
             promesaPerfil = null;
