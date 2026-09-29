@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Herramientas | Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/common.css?v=202609272308">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202609282331">
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="min-h-screen flex flex-col">
@@ -59,10 +59,9 @@
 
         <a href="/herramientas/conciliacion/" class="util" data-modulo="conciliacion" style="--tono:#1D4ED8;--tono-suave:#E8EFFD">
             <span class="util__icono"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg></span>
-            <h3>Facturas recibidas PPD</h3>
-            <p>Cruza facturas PPD contra sus complementos de pago. Corre en tu navegador, sin tocar el servidor.</p>
+            <h3>Conciliación</h3>
+            <p>Cruza tus facturas emitidas y recibidas contra sus complementos de pago y notas de crédito, con el tipo de cambio de Banxico.</p>
             <span class="util__cta">Abrir</span>
-            <span class="fc-cinta-pendiente util__cinta">Rediseño pendiente</span>
         </a>
 
         <a href="/herramientas/xml/" class="util" data-modulo="validador" style="--tono:#0E7490;--tono-suave:#E0F2F7">
@@ -140,14 +139,14 @@
     .util--vedado { opacity: .42; pointer-events: none; }
 </style>
 
-<script src="/assets/js/nucleo.js?v=202609272308"></script>
-<script src="/assets/js/barra.js?v=202609272308"></script>
+<script src="/assets/js/nucleo.js?v=202609282331"></script>
+<script src="/assets/js/barra.js?v=202609282331"></script>
 <script>
     document.addEventListener("fc:perfil", function (e) {
         var p = e.detail;
         if (!p) {
-            // Sin servidor, sólo Conciliación sirve: corre entera en el navegador.
-            marcar(function (m) { return m !== "conciliacion"; }, "No disponible sin conexión al servidor");
+            // Sin servidor no sirve ninguna herramienta (Conciliación ya usa la biblioteca del servidor).
+            marcar(function () { return true; }, "No disponible sin conexión al servidor");
             return;
         }
         if (p.solo_lectura) {

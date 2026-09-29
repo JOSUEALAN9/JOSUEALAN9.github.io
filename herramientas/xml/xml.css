@@ -140,7 +140,7 @@
 .xml-velo div { background: #fff; padding: 16px 22px; border-radius: 14px; font-weight: 800; color: #0f172a; box-shadow: 0 12px 30px rgba(15,23,42,.18); }
 .xml-btn--activo { border-color: var(--acento, #0e7490); color: var(--acento, #0e7490); }
 /* "hidden" siempre gana, aunque la clase ponga display (p. ej. las etiquetas de filtros) */
-.xml-pagina [hidden], .xml-panel[hidden], .xml-velo[hidden], #sin-empresa[hidden] { display: none !important; }
+.xml-pagina [hidden], .xml-panel[hidden], .xml-velo[hidden], .xml-modal[hidden], #sin-empresa[hidden] { display: none !important; }
 .xml-cabeza__acciones { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .xml-menu__lista--otra { width: 340px; max-height: 70vh; overflow: auto; }
 .xml-menu__lista .xml-otra__grupo { font-size: 11px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; color: #64748b; padding: 8px 10px 4px; }

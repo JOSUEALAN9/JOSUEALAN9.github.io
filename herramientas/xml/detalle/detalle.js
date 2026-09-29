@@ -51,9 +51,11 @@
         document.title = titulo + " · Fiscontable";
         var sellos = [sello("CFDI " + d.version, "gris"), sello(r.rol === "emitido" ? "Emitido" : "Recibido", "gris")];
         sellos.push('<span id="sello-sat">' + selloSAT(r) + "</span>");
-        if (d.metodo_pago === "PPD" && d.tipo === "I") {
-            var ult = r.cobros.length ? r.cobros[r.cobros.length - 1] : null;
-            sellos.push(!ult ? sello("PPD sin pago", "rojo") : (ult.insoluto <= 0.009 ? sello("PPD pagada", "verde") : sello("PPD con saldo", "ambar")));
+        if (d.metodo_pago === "PPD" && d.tipo === "I" && r.conciliacion) {
+            var ec = r.conciliacion.estado_pago;
+            var color = { "Pagada": "verde", "Cubierta con nota de crédito": "verde", "Pagada (ajuste manual)": "verde", "Parcial": "ambar",
+                          "Pago a factura cancelada": "ambar", "Sin pago": "rojo", "Pagada de más": "rojo" }[ec] || "gris";
+            sellos.push(sello("PPD: " + ec, color));
         }
         var html = [];
         html.push('<div class="det-cabeza"><div><h1>' + esc(titulo) + '</h1><div class="det-uuid">' + esc(d.uuid) + '</div><div class="det-sellos">' + sellos.join("") + "</div></div>" +
@@ -189,15 +191,20 @@
     function cobros(d, r) {
         if (!r.cobros.length) return '<div class="det-tarjeta"><h2>Pagos recibidos de esta factura</h2><p style="font-size:13.5px;color:#991b1b;font-weight:700">No hay ningún pago cargado para esta factura PPD. Saldo pendiente: $' + m(d.total) + "</p>" +
             '<p class="xml-tenue" style="margin-top:6px">Si ya se pagó, carga el XML del complemento de pago y aquí aparecerá.</p></div>';
-        var ult = r.cobros[r.cobros.length - 1];
-        var liquidada = ult.insoluto <= 0.009;
+        var vigentes = r.cobros.filter(function (c) { return !c.cancelado; });
+        var conc = r.conciliacion || {};
+        var liquidada = conc.estado_pago ? ["Pagada", "Cubierta con nota de crédito", "Pagada (ajuste manual)"].indexOf(conc.estado_pago) !== -1
+            : (vigentes.length && vigentes[vigentes.length - 1].insoluto <= 0.009);
+        var saldo = conc.saldo_insoluto !== undefined && conc.saldo_insoluto !== null ? conc.saldo_insoluto : (vigentes.length ? vigentes[vigentes.length - 1].insoluto : d.total);
         return '<div class="det-tarjeta"><h2>Pagos recibidos de esta factura</h2><div class="det-scroll"><table class="det-tabla"><thead><tr><th>Fecha de pago</th><th>Comprobante de pago</th><th>Forma</th><th class="num">Núm. de pago</th><th class="num">Saldo antes</th><th class="num">Pagado</th><th class="num">Saldo que queda</th></tr></thead><tbody>' +
             r.cobros.map(function (c) {
-                return "<tr><td>" + esc(f(c.fecha)) + "</td><td>" + (c.pago.encontrado ? liga(c.pago_uuid, "Pago " + (c.pago.serie_folio || c.pago_uuid.slice(0, 8))) : esc(c.pago_uuid.slice(0, 8))) + "</td><td>" + esc((c.forma || "") + " " + (FORMA[c.forma] || "")) +
+                return "<tr" + (c.cancelado ? ' style="color:#94a3b8;text-decoration:line-through" title="Cancelado en el SAT: no cuenta"' : "") + "><td>" + esc(f(c.fecha)) + "</td><td>" + (c.pago.encontrado ? liga(c.pago_uuid, "Pago " + (c.pago.serie_folio || c.pago_uuid.slice(0, 8))) : esc(c.pago_uuid.slice(0, 8))) + "</td><td>" + esc((c.forma || "") + " " + (FORMA[c.forma] || "")) +
                     '</td><td class="num">' + esc(c.parcialidad || "") + '</td><td class="num">$' + m(c.anterior) + '</td><td class="num"><strong>$' + m(c.pagado) + '</strong></td><td class="num">$' + m(c.insoluto) + "</td></tr>";
             }).join("") + "</tbody></table></div>" +
             '<p style="font-size:13.5px;font-weight:800;margin-top:10px;color:' + (liquidada ? "#166534" : "#92400e") + '">' +
-            (liquidada ? "Pagada por completo en " + (r.cobros.length === 1 ? "un pago" : r.cobros.length + " pagos") + "." : "Saldo pendiente: $" + m(ult.insoluto)) + "</p></div>";
+            (conc.estado_pago === "Pagada de más" ? "Se aplicó $" + m(-saldo) + " más que el total: revisa si algún complemento se canceló y se volvió a emitir." :
+             liquidada ? "Pagada por completo en " + (vigentes.length === 1 ? "un pago" : vigentes.length + " pagos") + "." : "Saldo pendiente: $" + m(saldo)) +
+            (vigentes.length < r.cobros.length ? " Los tachados están cancelados en el SAT y no cuentan." : "") + "</p></div>";
     }
 
     function nomina(d) {

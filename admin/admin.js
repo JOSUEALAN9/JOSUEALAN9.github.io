@@ -623,7 +623,10 @@ function prepararEventosSistema() {
     $("btn-limpiar-rfc").addEventListener("click", () => limpiarCache($("rfc-cache").value.trim().toUpperCase()));
     $("btn-ver-log").addEventListener("click", verLog);
     $("log-lineas").addEventListener("change", () => { if (!$("caja-log").hidden) verLog(); });
-    $("tarjetas-estado").addEventListener("click", e => { if (e.target.closest("#btn-probar-proxy")) probarProxy(); });
+    $("tarjetas-estado").addEventListener("click", e => {
+        if (e.target.closest("#btn-probar-proxy")) probarProxy();
+        if (e.target.closest("#btn-actualizar-tc")) actualizarTipoCambio(e.target.closest("#btn-actualizar-tc"));
+    });
 }
 
 function tamano(bytes) {
@@ -696,12 +699,26 @@ function pintarEstado() {
         : `<p class="text-sm text-amber-700 font-semibold">Sin respaldos automáticos</p>
            <p class="text-[11px] text-slate-500 mt-1">La base, los documentos y las e.firmas guardadas solo existen en la Vostro.</p>`;
 
+    // Tipo de cambio de Banxico (se descarga solo a las 6:00 y 18:00)
+    const tc = e.tipo_cambio || {};
+    const usd = (tc.monedas || {}).USD;
+    const tarea = tc.tarea || {};
+    const tcMal = !tc.token_configurado || !!tarea.error || !usd;
+    const tipoCambio = !tc.token_configurado
+        ? `<p class="text-sm text-amber-700">Sin configurar: falta <span class="font-mono text-xs">FISCONTABLE_BANXICO_TOKEN</span> en el servidor.</p>`
+        : `<p class="text-sm text-slate-800">${usd ? `FIX del ${esc(usd.hasta)}: <strong>${esc(Number(usd.ultimo_valor).toFixed(4))}</strong>` : "Todavía sin datos"}</p>
+           <p class="text-[11px] text-slate-500 mt-1">${usd ? `${esc(usd.dias)} días desde ${esc(usd.desde)} · ` : ""}Solo a las ${esc(tc.horarios || "6:00 y 18:00")}</p>
+           ${tarea.ultimo_exito ? `<p class="text-[11px] text-slate-500">Última descarga: ${esc(haceCuanto(tarea.ultimo_exito))}</p>` : ""}
+           ${tarea.error ? `<p class="text-xs font-bold text-amber-700 mt-1">⚠ ${esc(tarea.error)}</p>` : ""}
+           <button type="button" id="btn-actualizar-tc" class="mt-2 text-xs font-bold text-slate-700 border border-gray-200 hover:border-slate-400 rounded-lg py-1.5 px-3">Actualizar ahora</button>`;
+
     $("tarjetas-estado").innerHTML =
         tarjeta("Versión en producción", version, alertaGit ? "mal" : "") +
         tarjeta("Servidor", servidor) +
         tarjeta("Disco", disco, pct > 85 ? "mal" : "") +
         tarjeta("Proxy de Oracle", proxy, e.proxy_configurado ? "" : "mal") +
-        tarjeta("Respaldo", respaldo, e.ultimo_respaldo ? "" : "mal");
+        tarjeta("Respaldo", respaldo, e.ultimo_respaldo ? "" : "mal") +
+        tarjeta("Tipo de cambio Banxico", tipoCambio, tcMal ? "mal" : "");
     $("alerta-sistema").textContent = (alertaGit || e.mantenimiento.activo) ? "•" : "";
 }
 
@@ -717,6 +734,16 @@ function pintarPortal() {
     }
     $("btn-quitar-aviso").hidden = !e.aviso;
     $("btn-publicar-aviso").textContent = e.aviso ? "Actualizar" : "Publicar";
+}
+
+async function actualizarTipoCambio(boton) {
+    boton.disabled = true;
+    boton.textContent = "Actualizando…";
+    try {
+        const r = await api("/api/conciliacion/tipos-cambio/actualizar", { method: "POST" });
+        mostrarAlerta("exito", r.mensaje || "Tipos de cambio actualizados.");
+    } catch (err) { mostrarAlerta("error", err.message); }
+    await cargarSistema();
 }
 
 async function probarProxy() {

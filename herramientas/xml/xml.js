@@ -35,7 +35,7 @@
     };
     var PRUEBA_RAPIDO = {
         ppd: function (f) { return f.metodo_pago === "PPD"; },
-        sinpago: function (f) { return f.estado_pago === "Sin pago" || f.estado_pago === "Parcial"; },
+        sinpago: function (f) { return f.estado_pago === "Sin pago" || f.estado_pago === "Parcial" || f.estado_pago === "Pago a factura cancelada"; },
         retenciones: function (f) { return !!(f.ret_isr || f.ret_iva || f.ret_ieps); },
         extranjera: function (f) { var m = f.moneda || f.moneda_p; return !!m && m !== "MXN" && m !== "XXX"; },
         relacionados: function (f) { return !!f.cfdi_relacionados; },
@@ -97,6 +97,8 @@
         if (!(await Fiscontable.exigirModulo("validador"))) return;
         prepararBandeja();
         prepararEventos();
+        var perfil = await Fiscontable.perfil();
+        $("btn-conciliacion").hidden = !(perfil && (perfil.modulos_permitidos || []).indexOf("conciliacion") !== -1);
         await cargarVistas();
         E.empresa = await Fiscontable.empresaActiva();
         await refrescarBibliotecas();
@@ -490,7 +492,8 @@
     }
 
     var SELLOS = {
-        estado_pago: { "Pagada": "verde", "Parcial": "ambar", "Sin pago": "rojo" },
+        estado_pago: { "Pagada": "verde", "Parcial": "ambar", "Sin pago": "rojo", "Pagada de más": "rojo", "Pago a factura cancelada": "ambar",
+                       "Cubierta con nota de crédito": "verde", "Pagada (ajuste manual)": "verde" },
         estado_sat: { "Vigente": "verde", "Cancelado": "rojo", "Sin validar": "gris", "No encontrado": "ambar" },
         docto_encontrado: { "Sí": "verde", "No": "ambar" }
     };
@@ -551,6 +554,7 @@
 
     var ultimoInicio = -1;
     function pintarFilas(forzar) {
+        if (!E.datos || !E.columnas[E.modulo]) return;     // aún no hay tabla (p. ej. cambio de tamaño al cargar)
         var caja = $("tabla-caja");
         var alto = E.altoFila;
         var visiblesN = Math.ceil(caja.clientHeight / alto) + 1;
@@ -745,6 +749,15 @@
             descargarBlob(await resp.blob(), nombreArchivo(resp, "reporte.xlsx"));
         } catch (e) { avisar(e.message); }
         boton.disabled = false; boton.textContent = "Excel ▾";
+    }
+
+    /* Conciliación: se abre con la misma empresa, periodo y lado (lee la misma biblioteca). */
+    function abrirConciliacion() {
+        var r = rangoPeriodo();
+        var lado = E.modulo === "recibidos" ? "recibidos" : "emitidos";
+        if (E.modulo === "pagos") lado = E.sub === "recibidos" ? "recibidos" : "emitidos";
+        location.href = "/herramientas/conciliacion/?rfc=" + encodeURIComponent(E.rfc) + "&lado=" + lado + "&base=emision" +
+            (r.desde ? "&desde=" + r.desde + "&hasta=" + r.hasta : "");
     }
 
     async function descargarZip() {
@@ -1136,6 +1149,7 @@
         });
         $("menu-otra").addEventListener("click", function (e) { e.stopPropagation(); var b = e.target.closest("button"); if (b) accionMenuOtra(b); });
         $("btn-validar").addEventListener("click", pedirValidacion);
+        $("btn-conciliacion").addEventListener("click", abrirConciliacion);
         $("btn-detener").addEventListener("click", function () { apiJSON("/api/xml/validacion/detener", { method: "POST" }).catch(function () {}); });
         $("modal-validar").addEventListener("click", function (e) { if (e.target.id === "modal-validar") $("modal-validar").hidden = true; });
         document.addEventListener("keydown", function (e) { if (e.key === "Escape") { $("modal-validar").hidden = true; $("panel-columnas").hidden = true; } });

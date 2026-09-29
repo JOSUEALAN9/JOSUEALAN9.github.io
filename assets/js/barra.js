@@ -40,7 +40,7 @@
         portada:       { nombre: "Fiscontable",           acento: "#0E9F6E", suave: "#E8F6F0", permiso: null },
         clientes:      { nombre: "Mis clientes",          acento: "#6D28D9", suave: "#F1EBFD", permiso: null },
         herramientas:  { nombre: "Herramientas",          acento: "#0E9F6E", suave: "#E8F6F0", permiso: null },
-        conciliacion:  { nombre: "Facturas PPD",          acento: "#1D4ED8", suave: "#E8EFFD", permiso: "conciliacion" },
+        conciliacion:  { nombre: "Conciliación",          acento: "#1D4ED8", suave: "#E8EFFD", permiso: "conciliacion" },
         validador:     { nombre: "Validador SAT",         acento: "#047857", suave: "#E6F4EF", permiso: "validador" },
         xml:           { nombre: "Administración de XML", acento: "#0E7490", suave: "#E0F2F7", permiso: "validador" },
         constancias:   { nombre: "Constancias",           acento: "#4338CA", suave: "#ECEBFB", permiso: "constancias" },
