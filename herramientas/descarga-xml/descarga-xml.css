@@ -1,0 +1,75 @@
+/* descarga-xml.css — lo propio de Descarga masiva de XML.
+   La tabla de resultados usa la de Administración de XML (xml.css + tabla.js). */
+
+.dm-formulario { max-width: 760px; margin: 0 auto; }
+.dm-formulario *, .dm-filtro-res * { box-sizing: border-box; }
+
+.dm-opciones { display: grid; gap: 10px; margin-top: 12px; }
+@media (min-width: 620px) { .dm-opciones { grid-template-columns: 1fr 1fr; } }
+.dm-opcion {
+    display: flex; align-items: flex-start; gap: 10px;
+    padding: 12px 13px;
+    border: 1px solid var(--linea); border-radius: var(--radio-chico);
+    background: #fff; cursor: pointer;
+}
+.dm-opcion:has(input:checked) { border-color: var(--acento); background: var(--acento-suave); }
+.dm-opcion input { margin-top: 3px; width: 16px; height: 16px; accent-color: var(--acento); flex: none; }
+.dm-opcion strong { display: block; font-size: 14px; }
+.dm-opcion span span { display: block; font-size: 12.5px; color: var(--texto-tenue); margin-top: 2px; line-height: 1.45; }
+.dm-opcion--apagada { opacity: .55; cursor: not-allowed; background: var(--papel); }
+
+.dm-nota-bien {
+    margin-top: 14px; padding: 10px 12px;
+    background: #ECFDF3; border: 1px solid #A9E5C3; border-radius: var(--radio-chico);
+    font-size: 13px; color: #05603A;
+}
+.dm-nota-bien[hidden] { display: none; }
+
+.dm-tres { display: grid; gap: 12px; grid-template-columns: 1fr 1fr 1fr; }
+.dm-opcional { font-weight: 400; color: var(--texto-tenue); }
+.dm-rfc { text-transform: uppercase; letter-spacing: .04em; }
+.dm-rfc::placeholder { text-transform: none; letter-spacing: 0; }
+
+.dm-cabeza { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+
+/* Lista de solicitudes */
+.dm-sol {
+    border: 1px solid var(--linea); border-radius: var(--radio-chico);
+    padding: 12px 13px; margin-bottom: 9px; background: #fff;
+}
+.dm-sol--activa { border-color: var(--acento); }
+.dm-sol__fila { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.dm-sol__titulo { font-size: 13.5px; font-weight: 600; }
+.dm-sol__detalle { font-size: 12.5px; color: var(--texto-tenue); margin-top: 4px; line-height: 1.45; }
+.dm-sol__acciones { display: flex; gap: 7px; margin-top: 9px; flex-wrap: wrap; }
+.dm-vacio { font-size: 13px; color: var(--texto-tenue); padding: 6px 0; }
+
+.dm-estado {
+    font-size: 11.5px; font-weight: 700; padding: 2px 9px; border-radius: 999px; white-space: nowrap;
+    background: #EEF1F5; color: #475467;
+}
+.dm-estado--activo { background: var(--acento-suave); color: var(--acento); }
+.dm-estado--bien { background: #ECFDF3; color: #05603A; }
+.dm-estado--mal { background: #FEF3F2; color: #B42318; }
+.dm-estado--gris { background: #F2F4F7; color: #667085; }
+
+.dm-giro { display: inline-block; width: 11px; height: 11px; margin-right: 5px; vertical-align: -1px;
+    border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: dm-giro .8s linear infinite; }
+@keyframes dm-giro { to { transform: rotate(360deg); } }
+
+/* Resultados */
+.dm-cifras { display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); margin-bottom: 12px; }
+.dm-cifra { background: #fff; border: 1px solid var(--linea); border-radius: var(--radio-chico); padding: 11px 13px; }
+.dm-cifra__valor { font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.dm-cifra__nombre { font-size: 12px; color: var(--texto-tenue); margin-top: 1px; }
+.dm-cifra--bien .dm-cifra__valor { color: #05603A; }
+.dm-cifra--mal .dm-cifra__valor { color: #B42318; }
+
+.dm-filtro-res { display: flex; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
+.dm-filtro-res input { flex: 1 1 260px; }
+.dm-filtro-res select { flex: 0 1 200px; }
+
+@media (max-width: 480px) {
+    .dm-tres { grid-template-columns: 1fr 1fr; }
+    .dm-tres .campo:first-child { grid-column: 1 / -1; }
+}

@@ -188,6 +188,7 @@ function renderizarClientes() {
                 <a href="/herramientas/constancias/?rfc=${rfcCodificado}&cliente=${aliasCodificado}" style="--tono:#4338CA;--tono-suave:#ECEBFB">Constancia</a>
                 <a href="/herramientas/opinion/?rfc=${rfcCodificado}&cliente=${aliasCodificado}" style="--tono:#0F766E;--tono-suave:#E6F2F1">Opinión</a>
                 <a href="/herramientas/declaraciones/?rfc=${rfcCodificado}&cliente=${aliasCodificado}" style="--tono:#0369A1;--tono-suave:#E4F1F9">Declaraciones</a>
+                <a href="/herramientas/descarga-xml/?rfc=${rfcCodificado}&cliente=${aliasCodificado}" style="--tono:#0E7490;--tono-suave:#E0F2F7">Descargar XML</a>
             </div>
         </div>`;
     }).join("");

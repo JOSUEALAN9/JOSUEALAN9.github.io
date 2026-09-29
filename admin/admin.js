@@ -18,9 +18,9 @@ const ESTILO_ROL = {
 };
 const NOMBRE_DOC = {
     csf: "Constancia", opinion: "Opinión", "csf+opinion": "Constancia + Opinión",
-    declaraciones: "Declaraciones", voucheo: "Voucheo",
+    declaraciones: "Declaraciones", voucheo: "Voucheo", descarga_xml: "Descarga masiva de XML",
 };
-const INICIAL_DOC = { csf: "CSF", opinion: "32D", "csf+opinion": "C+O", declaraciones: "DEC", voucheo: "VOU" };
+const INICIAL_DOC = { csf: "CSF", opinion: "32D", "csf+opinion": "C+O", declaraciones: "DEC", voucheo: "VOU", descarga_xml: "XML" };
 
 let usuariosCache = [];
 let rolesCache = null;          // {modulos:[{clave,nombre}], roles:[...]}

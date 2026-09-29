@@ -47,6 +47,7 @@
         opinion:       { nombre: "Opinión 32-D",          acento: "#0F766E", suave: "#E6F2F1", permiso: "opinion" },
         voucheo:       { nombre: "Voucheo",               acento: "#B45309", suave: "#FBF0E2", permiso: "voucheo" },
         declaraciones: { nombre: "Declaraciones",         acento: "#0369A1", suave: "#E4F1F9", permiso: "declaraciones" },
+        descarga_xml:  { nombre: "Descarga masiva de XML", acento: "#0E7490", suave: "#E0F2F7", permiso: "descarga_xml" },
         descargas:     { nombre: "Mis descargas",         acento: "#334155", suave: "#EEF1F5", permiso: null },
         admin:         { nombre: "Administración",        acento: "#BE123C", suave: "#FCE9EE", permiso: null }
     };
@@ -587,7 +588,8 @@
         opinion: "Opinión de Cumplimiento",
         "csf+opinion": "Constancia y Opinión",
         declaraciones: "Declaraciones",
-        voucheo: "Voucheo de impuestos"
+        voucheo: "Voucheo de impuestos",
+        descarga_xml: "Descarga masiva de XML"
     };
 
     function tituloProceso(p) {

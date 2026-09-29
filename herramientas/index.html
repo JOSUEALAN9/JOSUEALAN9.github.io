@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Herramientas | Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/common.css?v=202609291629">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202609291637">
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="min-h-screen flex flex-col">
@@ -42,6 +42,13 @@
             <span class="util__icono"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 10v6m0 0l-3-3m3 3l3-3M7 21h10a2 2 0 002-2V7.4a1 1 0 00-.3-.7l-3.4-3.4a1 1 0 00-.7-.3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg></span>
             <h3>Declaraciones presentadas</h3>
             <p>Baja acuse, pago y recibo de cada declaración del ejercicio. Cubre el portal nuevo y el anterior.</p>
+            <span class="util__cta">Abrir</span>
+        </a>
+
+        <a href="/herramientas/descarga-xml/" class="util" data-modulo="descarga_xml" style="--tono:#0E7490;--tono-suave:#E0F2F7">
+            <span class="util__icono"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg></span>
+            <h3>Descarga masiva de XML</h3>
+            <p>Emitidos y recibidos de un periodo, directo del SAT con e.firma. Entran solos a tu Administración de XML.</p>
             <span class="util__cta">Abrir</span>
         </a>
 
@@ -86,10 +93,6 @@
         <div class="util util--futuro">
             <h3>Voucheo federal</h3>
             <p>Los mismos papeles de trabajo, pero con los acuses del SAT.</p>
-        </div>
-        <div class="util util--futuro">
-            <h3>Descarga masiva de XML</h3>
-            <p>Bajar emitidos y recibidos de un periodo completo.</p>
         </div>
         <div class="util util--futuro">
             <h3>IMSS e Infonavit</h3>
@@ -139,8 +142,8 @@
     .util--vedado { opacity: .42; pointer-events: none; }
 </style>
 
-<script src="/assets/js/nucleo.js?v=202609291629"></script>
-<script src="/assets/js/barra.js?v=202609291629"></script>
+<script src="/assets/js/nucleo.js?v=202609291637"></script>
+<script src="/assets/js/barra.js?v=202609291637"></script>
 <script>
     document.addEventListener("fc:perfil", function (e) {
         var p = e.detail;

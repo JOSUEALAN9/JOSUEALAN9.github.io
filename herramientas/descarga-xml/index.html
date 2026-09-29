@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Descarga masiva de XML | Fiscontable</title>
+    <link rel="stylesheet" href="/assets/css/common.css?v=202609291637">
+    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202609291637">
+    <link rel="stylesheet" href="/herramientas/descarga-xml/descarga-xml.css?v=202609291637">
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="min-h-screen flex flex-col">
+
+<div id="app-header"
+     data-modulo="descarga_xml"
+     data-titulo="Descarga masiva de XML"
+     data-migas="Herramientas|/herramientas/"></div>
+
+<main class="flex-grow w-full" style="max-width:1180px;margin:0 auto;padding:32px 20px 64px">
+
+  <div class="dm-formulario">
+    <h1 class="display" style="font-size:30px">Descarga masiva de XML</h1>
+    <p style="margin:9px 0 26px;font-size:15px;color:var(--texto-tenue)">
+        Baja del SAT los CFDI emitidos o recibidos de un periodo. Los XML entran directo a la
+        biblioteca de <a href="/herramientas/xml/" style="color:var(--acento);font-weight:600">Administración de XML</a> del contribuyente.
+    </p>
+
+    <div id="alerta" class="fc-aviso" style="margin:0 0 16px" hidden></div>
+
+    <!-- Paso 1 -->
+    <div id="paso-cliente"></div>
+
+    <!-- Paso 2: cómo entrar al SAT -->
+    <section id="paso-acceso" class="ficha" hidden>
+        <h2 class="ficha__titulo">Acceso al SAT</h2>
+        <div class="dm-opciones" role="radiogroup" aria-label="Forma de acceso">
+            <label class="dm-opcion">
+                <input type="radio" name="acceso" value="efirma" checked>
+                <span><strong>e.firma</strong><span>Con el servicio oficial de descarga masiva del SAT. Sin captcha.</span></span>
+            </label>
+            <label class="dm-opcion dm-opcion--apagada" title="Llega en la siguiente fase">
+                <input type="radio" name="acceso" value="ciec" disabled>
+                <span><strong>Contraseña (CIEC)</strong><span>Con captcha, por el portal de factura electrónica. Próximamente.</span></span>
+            </label>
+        </div>
+
+        <p id="nota-guardada" class="dm-nota-bien" hidden>Se usará la e.firma guardada de este cliente.</p>
+
+        <div id="campos-efirma" hidden>
+            <p class="ficha__nota" style="margin-top:14px">Viaja cifrada y se borra del servidor en cuanto termina la descarga.</p>
+            <div class="dos" style="margin-top:10px">
+                <label class="campo" id="campo-cer">
+                    <span class="campo__etiqueta">Certificado (.cer)</span>
+                    <input type="file" id="cer" accept=".cer" class="campo__archivo">
+                </label>
+                <label class="campo">
+                    <span class="campo__etiqueta">Clave privada (.key)</span>
+                    <input type="file" id="key" accept=".key" class="campo__archivo">
+                </label>
+            </div>
+            <label class="campo" style="margin-top:12px">
+                <span class="campo__etiqueta">Contraseña de la e.firma</span>
+                <span style="position:relative;display:block">
+                    <input type="password" id="password" autocomplete="new-password" class="campo__control" style="padding-right:44px">
+                    <button type="button" id="ver-password" class="ojo" aria-label="Mostrar contraseña">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path d="M2.5 12C3.7 7.9 7.5 5 12 5s8.3 2.9 9.5 7c-1.2 4.1-5 7-9.5 7s-8.3-2.9-9.5-7z"/>
+                        </svg>
+                    </button>
+                </span>
+            </label>
+        </div>
+    </section>
+
+    <!-- Paso 3: qué bajar -->
+    <section id="paso-filtros" class="ficha" hidden>
+        <h2 class="ficha__titulo">Qué comprobantes</h2>
+
+        <div class="pestanas" role="tablist" style="margin-top:10px">
+            <button type="button" class="pestana pestana--activa" data-tipo="emitidos" role="tab" aria-selected="true">Emitidas</button>
+            <button type="button" class="pestana" data-tipo="recibidos" role="tab" aria-selected="false">Recibidas</button>
+        </div>
+
+        <!-- Emitidas: rango libre de fecha y hora -->
+        <div id="filtros-emitidos">
+            <div class="dos">
+                <label class="campo">
+                    <span class="campo__etiqueta">Fecha inicial</span>
+                    <input type="datetime-local" id="em-inicio" step="1" class="campo__control">
+                </label>
+                <label class="campo">
+                    <span class="campo__etiqueta">Fecha final</span>
+                    <input type="datetime-local" id="em-fin" step="1" class="campo__control">
+                </label>
+            </div>
+            <label class="campo" style="margin-top:12px">
+                <span class="campo__etiqueta">RFC receptor <span class="dm-opcional">(opcional)</span></span>
+                <input type="text" id="em-rfc" maxlength="13" autocomplete="off" spellcheck="false" class="campo__control dm-rfc" placeholder="Todos">
+            </label>
+        </div>
+
+        <!-- Recibidas: año, mes y día (0 = todos), como el portal del SAT -->
+        <div id="filtros-recibidos" hidden>
+            <div class="dm-tres">
+                <label class="campo">
+                    <span class="campo__etiqueta">Año</span>
+                    <select id="re-anio" class="campo__control"></select>
+                </label>
+                <label class="campo">
+                    <span class="campo__etiqueta">Mes</span>
+                    <select id="re-mes" class="campo__control"></select>
+                </label>
+                <label class="campo">
+                    <span class="campo__etiqueta">Día</span>
+                    <select id="re-dia" class="campo__control"></select>
+                </label>
+            </div>
+            <div class="dos" style="margin-top:12px">
+                <label class="campo">
+                    <span class="campo__etiqueta">Hora inicial</span>
+                    <input type="time" id="re-hora-inicio" step="1" value="00:00:00" class="campo__control">
+                </label>
+                <label class="campo">
+                    <span class="campo__etiqueta">Hora final</span>
+                    <input type="time" id="re-hora-fin" step="1" value="23:59:59" class="campo__control">
+                </label>
+            </div>
+            <label class="campo" style="margin-top:12px">
+                <span class="campo__etiqueta">RFC emisor <span class="dm-opcional">(opcional)</span></span>
+                <input type="text" id="re-rfc" maxlength="13" autocomplete="off" spellcheck="false" class="campo__control dm-rfc" placeholder="Todos">
+            </label>
+            <p id="re-rango" class="ficha__nota" style="margin-top:8px"></p>
+        </div>
+
+        <div class="dos" style="margin-top:12px">
+            <label class="campo">
+                <span class="campo__etiqueta">Estado del comprobante</span>
+                <select id="estado" class="campo__control">
+                    <option value="Todos">Todos</option>
+                    <option value="Vigente">Vigentes</option>
+                    <option value="Cancelado">Cancelados</option>
+                </select>
+            </label>
+            <label class="campo">
+                <span class="campo__etiqueta">Tipo de comprobante</span>
+                <select id="tipo-comprobante" class="campo__control">
+                    <option value="">Todos</option>
+                    <option value="I">Ingreso</option>
+                    <option value="E">Egreso</option>
+                    <option value="T">Traslado</option>
+                    <option value="N">Nómina</option>
+                    <option value="P">Pago</option>
+                </select>
+            </label>
+        </div>
+
+        <div class="botonera">
+            <button type="button" id="btn-buscar" class="boton-secundario">Buscar CFDI</button>
+            <button type="button" id="btn-descargar" class="boton-principal">Buscar y descargar</button>
+        </div>
+        <p class="ficha__nota" style="margin-top:12px">
+            <strong>Buscar CFDI</strong> trae la lista de lo que hay en el SAT, con su estado (vigente o cancelado), sin bajar XML.
+            <strong>Buscar y descargar</strong> baja los XML a tu biblioteca. El SAT prepara cada solicitud por su cuenta:
+            puede tardar de minutos a horas. No necesitas dejar esta página abierta.
+        </p>
+    </section>
+
+    <!-- Historial de solicitudes del contribuyente -->
+    <section id="paso-solicitudes" class="ficha" hidden>
+        <div class="dm-cabeza">
+            <h2 class="ficha__titulo" style="margin:0">Solicitudes al SAT</h2>
+            <button type="button" id="btn-refrescar" class="fc-btn fc-btn--discreto">Actualizar</button>
+        </div>
+        <div id="lista-solicitudes" style="margin-top:12px"></div>
+    </section>
+  </div>
+
+    <!-- Resultados de una solicitud -->
+    <section id="resultados" hidden style="margin-top:28px">
+        <div class="dm-cabeza" style="margin-bottom:12px">
+            <div>
+                <h2 id="res-titulo" style="font-size:19px;font-weight:700"></h2>
+                <p id="res-sub" style="font-size:13px;color:var(--texto-tenue);margin-top:2px"></p>
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+                <button type="button" id="res-biblioteca" class="fc-btn">Abrir en Administración de XML</button>
+                <button type="button" id="res-bajar" class="fc-btn fc-btn--principal">Descargar archivo</button>
+                <button type="button" id="res-cerrar" class="fc-btn fc-btn--discreto">Cerrar</button>
+            </div>
+        </div>
+        <div id="res-cifras" class="dm-cifras"></div>
+        <div class="dm-filtro-res">
+            <input type="search" id="res-buscar" class="campo__control" placeholder="Buscar por UUID, RFC o nombre…">
+            <select id="res-ver" class="campo__control">
+                <option value="">Todos</option>
+                <option value="no">No descargados</option>
+                <option value="si">Descargados</option>
+                <option value="Vigente">Vigentes</option>
+                <option value="Cancelado">Cancelados</option>
+            </select>
+        </div>
+        <div id="res-tabla" class="xml-tabla-caja"></div>
+        <p id="res-recorte" class="ficha__nota" style="margin-top:8px" hidden></p>
+    </section>
+
+</main>
+
+<footer class="fc-pie">© 2026 Alan Sánchez</footer>
+
+<script src="/assets/js/nucleo.js?v=202609291637"></script>
+<script src="/assets/js/barra.js?v=202609291637"></script>
+<script src="/assets/js/comun/leer-cer.js?v=202609291637"></script>
+<script src="/assets/js/comun/paso-cliente.js?v=202609291637"></script>
+<script src="/assets/js/comun/tabla.js?v=202609291637"></script>
+<script src="/herramientas/descarga-xml/descarga-xml.js?v=202609291637"></script>
+</body>
+</html>
