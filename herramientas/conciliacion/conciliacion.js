@@ -70,7 +70,7 @@
         var q = new URLSearchParams(location.search);
         if (q.get("lado") === "emitidos" || q.get("lado") === "recibidos") E.lado = q.get("lado");
         if (q.get("base") === "pago" || q.get("base") === "emision") $("sel-base").value = q.get("base");
-        else if (leer("base")) $("sel-base").value = leer("base");
+        else if (leer("base") === "pago" || leer("base") === "emision") $("sel-base").value = leer("base");
         E.urlPeriodo = q.get("desde") || q.get("hasta") ? { desde: q.get("desde"), hasta: q.get("hasta") } : null;
 
         bandeja = FCBandeja.crear({
@@ -81,11 +81,25 @@
         prepararTablas();
         prepararEventos();
         E.empresa = await Fiscontable.empresaActiva();
+        E.periodoGeneral = await Fiscontable.periodoActivo();
+        // Periodo de ESTA página: arranca en el general; cambiarlo aquí no mueve el general.
+        E.selPeriodo = Fiscontable.selectorPeriodo({
+            boton: $("btn-periodo"), etiqueta: $("periodo-titulo"),
+            permitirAnio: true, permitirTodos: true, general: E.periodoGeneral,
+            alCambiar: function (v) { $("sel-periodo").value = v || ""; cargarDatos(); }
+        });
         $("btn-ir-xml").hidden = !puede("validador");
         await refrescarBibliotecas(q.get("rfc"));
         window.addEventListener("fiscontable:empresa", async function (ev) {
             E.empresa = ev.detail; E.otra = null; E.rfc = null;
             await refrescarBibliotecas();
+        });
+        window.addEventListener("fiscontable:periodo", function (ev) {
+            E.periodoGeneral = ev.detail;
+            E.selPeriodo.general(ev.detail);
+            if (!E.rfc) return;
+            ponerPeriodo(ev.detail ? "m:" + ev.detail : "");
+            cargarDatos();
         });
     }
 
@@ -126,7 +140,7 @@
             t.tabla = FCTabla.crear({
                 caja: t.caja, id: "conc-" + E.lado, catalogo: E.datos.columnas, predeterminadas: E.datos.predeterminadas,
                 sellos: SELLOS, anchoClave: ANCHOS, claveFila: "uuid",
-                claseFila: function (f) { return f.estado_conciliacion === "Cancelada" ? "conc-cancelada" : ""; },
+                claseFila: function (f) { return f.estado_conciliacion === "Cancelada" ? "fila-cancelada" : ""; },
                 alClic: abrirFactura,
                 alSeleccionar: pintarSeleccion,
                 alCambiarColumnas: function () { E.menuVistas.pintar(); }
@@ -154,9 +168,8 @@
         E.rfc = rfc;
         pintarEncabezado();
         var c = rfc && E.contribuyentes.find(function (x) { return x.rfc === rfc; });
+        $("btn-periodo").disabled = !c;
         if (!c) { mostrarVacio(); return; }
-        $("sin-empresa").hidden = true;
-        $("contenido").hidden = false;
         armarPeriodos(c);
         await cargarDatos();
         reanudarValidacion();
@@ -164,14 +177,17 @@
 
     function pintarEncabezado() {
         var reg = E.otra && (E.contribuyentes.find(function (c) { return c.rfc === E.otra; }) || {}).registrado;
-        $("empresa-titulo").textContent = E.otra ? nombreDe(E.otra) + " · " + E.otra + (reg ? "" : " (sin registrar)")
-            : E.empresa ? (E.empresa.alias || "") + " · " + E.empresa.rfc
-            : "Elige una empresa en la barra de arriba, o agrega XML de alguien sin registrar.";
+        var boton = $("btn-otra");
+        var rfc = E.otra || (E.empresa && E.empresa.rfc);
+        $("empresa-etiqueta").textContent = rfc ? "Empresa · " + rfc : "Empresa";
+        $("empresa-titulo").innerHTML = E.otra ? esc(nombreDe(E.otra)) + (reg ? "" : '<span class="ctx-marca">sin registrar</span>')
+            : E.empresa ? esc(E.empresa.alias || E.empresa.rfc) : "Elegir empresa";
+        boton.classList.toggle("ctx-campo--vacio", !rfc);
         var aviso = $("aviso-otra");
         aviso.hidden = !E.otra;
         if (E.otra) {
-            aviso.innerHTML = (reg ? "Estás viendo <strong>" + esc(nombreDe(E.otra)) + "</strong> (" + esc(E.otra) + "), que no es tu empresa activa."
-                : "Conciliación rápida de <strong>" + esc(nombreDe(E.otra)) + "</strong> (" + esc(E.otra) + "), que no está en tu directorio. Sus XML se borran solos 7 días después de la última carga." +
+            aviso.innerHTML = (reg ? "Estás viendo <strong>" + esc(nombreDe(E.otra)) + "</strong>, que no es tu empresa activa."
+                : "<strong>" + esc(nombreDe(E.otra)) + "</strong> no está en tu directorio: sus XML se borran solos 7 días después de la última carga." +
                   ' <a class="xml-enlace" href="/clientes/">Registrarla como cliente</a>') +
                 (E.empresa ? ' <button type="button" class="xml-enlace" id="volver-empresa">Volver a ' + esc(E.empresa.alias || E.empresa.rfc) + "</button>" : "");
         }
@@ -179,17 +195,32 @@
 
     function mostrarVacio() {
         $("contenido").hidden = true;
+        $("ayuda-base").hidden = true;
         var caja = $("sin-empresa");
         caja.hidden = false;
         if (E.empresa) {
-            caja.innerHTML = '<p class="xml-vacio__titulo">' + esc(E.empresa.alias || E.empresa.rfc) + " todavía no tiene XML</p>" +
-                "<p>Arrastra aquí sus facturas, complementos de pago y notas de crédito (o el ZIP de la descarga del SAT) y presiona <strong>Procesar</strong>.<br>" +
-                "Son los mismos XML de Administración de XML: lo que cargues aquí, allá también aparece.</p>";
-            bandeja.abrir();
+            caja.innerHTML = '<p class="ctx-vacio__titulo">' + esc(E.empresa.alias || E.empresa.rfc) + " todavía no tiene XML</p>" +
+                "<p>Agrega sus facturas, complementos de pago y notas de crédito (o el ZIP de la descarga masiva del SAT). " +
+                "Son los mismos XML de Administración de XML: lo que cargues aquí, allá también aparece.</p>" +
+                '<div class="ctx-vacio__acciones"><button type="button" class="xml-btn xml-btn--primario" data-agregar>+ Agregar XML</button></div>';
         } else {
-            caja.innerHTML = '<p class="xml-vacio__titulo">¿De quién es la conciliación?</p>' +
-                "<p>Elige la empresa con el botón de empresa de la barra de arriba.<br>¿Es de alguien que no tienes registrado? Da clic en <strong>Agregar XML</strong>: el portal detecta de quién son.</p>";
+            caja.innerHTML = '<p class="ctx-vacio__titulo">¿De quién es la conciliación?</p>' +
+                "<p>Elige una de tus empresas, o trabaja sin registrar: agrega los XML y el portal detecta solo de quién son. " +
+                "Lo que cargues sin registrar se borra a los 7 días.</p>" +
+                '<div class="ctx-vacio__acciones"><button type="button" class="xml-btn xml-btn--primario" data-elegir>Elegir empresa</button>' +
+                '<button type="button" class="xml-btn" data-agregar>Trabajar sin registrar</button></div>';
         }
+    }
+
+    function mostrarElegirPeriodo() {
+        $("contenido").hidden = true;
+        $("ayuda-base").hidden = true;
+        var caja = $("sin-empresa");
+        caja.hidden = false;
+        caja.innerHTML = '<p class="ctx-vacio__titulo">¿Qué periodo quieres conciliar?</p>' +
+            "<p>Elige un mes, el año completo o todos los periodos. Las facturas y sus pagos suelen caer en meses distintos: " +
+            "si un mes se ve incompleto, prueba el año completo.<br>Si eliges el periodo en la barra de arriba, todos los módulos se abren solos en ese mes.</p>" +
+            '<div class="ctx-vacio__acciones"><button type="button" class="xml-btn xml-btn--primario" data-periodo>Elegir periodo</button></div>';
     }
 
     async function pintarMenuOtra() {
@@ -205,21 +236,22 @@
             h.push('<button type="button" data-empresa="' + esc(c.rfc) + '"' + (c.rfc === E.rfc ? ' class="xml-activa"' : "") + ">" + esc(c.alias) +
                 " <span>" + esc(c.rfc) + (c.rfc === activa ? " · empresa activa" : "") + "</span></button>");
         });
-        h.push('<div class="xml-separador"></div><div class="xml-otra__grupo">Conciliación rápida (sin registrar)</div>');
-        if (!E.otras.length) h.push('<p class="xml-otra__nota">Para conciliar a alguien sin registrar, usa <strong>Agregar XML</strong>.</p>');
+        h.push('<div class="xml-separador"></div><div class="xml-otra__grupo">Sin registrar · se borran a los 7 días</div>');
         E.otras.forEach(function (c) {
             var dia = c.expira ? c.expira.slice(8, 10) + "/" + c.expira.slice(5, 7) : "";
             h.push('<div class="xml-otra__fila"><button type="button" data-otra="' + esc(c.rfc) + '"' + (c.rfc === E.rfc ? ' class="xml-activa"' : "") + ">" +
                 esc(c.nombre || "Sin nombre") + " <span>" + esc(c.rfc) + (dia ? " · se borra el " + dia : "") + "</span></button>" +
                 '<button type="button" class="xml-otra__borrar" data-borrar="' + esc(c.rfc) + '">Borrar</button></div>');
         });
-        h.push('<div class="xml-separador"></div><button type="button" data-ir="/clientes/">+ Registrar empresa</button>');
+        h.push('<button type="button" data-nuevo>+ Trabajar sin registrar <span>Agrega XML de alguien que no está en tu directorio</span></button>');
+        h.push('<div class="xml-separador"></div><button type="button" data-ir="/clientes/">+ Registrar empresa <span>Para conservar sus XML sin límite de tiempo</span></button>');
         menu.innerHTML = h.join("");
     }
 
     async function accionMenuOtra(b) {
         $("menu-otra").hidden = true;
         if (b.dataset.ir) { location.href = b.dataset.ir; return; }
+        if (b.hasAttribute("data-nuevo")) { bandeja.abrir(); return; }
         if (b.dataset.otra) { refrescarBibliotecas(b.dataset.otra); return; }
         if (b.dataset.empresa) {
             if (E.empresa && E.empresa.rfc === b.dataset.empresa) { E.otra = null; E.rfc = null; refrescarBibliotecas(); }
@@ -239,36 +271,26 @@
 
     /* ============================================================ periodo */
     function armarPeriodos(c) {
-        var opciones = ['<option value="">Todos los periodos</option>'];
-        var anios = {};
-        (c.periodos || []).forEach(function (p) { anios[p.periodo.slice(0, 4)] = 1; });
-        Object.keys(anios).sort().reverse().forEach(function (a) {
-            opciones.push('<option value="a:' + a + '">Todo ' + a + "</option>");
-            (c.periodos || []).filter(function (p) { return p.periodo.slice(0, 4) === a; }).forEach(function (p) {
-                opciones.push('<option value="m:' + p.periodo + '">&nbsp;&nbsp;' + MESES[+p.periodo.slice(5, 7) - 1] + " " + a + "</option>");
-            });
-        });
-        var elegido = null;
+        var conteos = {};
+        (c.periodos || []).forEach(function (p) { conteos[p.periodo] = p.n; });
+        E.selPeriodo.conteos(conteos);
+        E.selPeriodo.general(E.periodoGeneral);
+        // Orden de prioridad: el enlace con fechas (p. ej. desde Administración de XML),
+        // luego el periodo general. Sin ninguno, no se carga nada hasta elegir.
+        var valor = E.periodoGeneral ? "m:" + E.periodoGeneral : "";
         if (E.urlPeriodo) {
             var d = E.urlPeriodo.desde || "", h = E.urlPeriodo.hasta || "";
-            if (d.slice(8, 10) === "01" && h && d.slice(0, 7) === h.slice(0, 7)) elegido = "m:" + d.slice(0, 7);
-            else if (d.slice(5) === "01-01" && h.slice(5) === "12-31" && d.slice(0, 4) === h.slice(0, 4)) elegido = "a:" + d.slice(0, 4);
-            else {
-                elegido = "r:" + d + "|" + h;
-                opciones.push('<option value="' + esc(elegido) + '">Del ' + esc(fechaMX(d) || "inicio") + " al " + esc(fechaMX(h) || "hoy") + "</option>");
-            }
+            if (d.slice(8, 10) === "01" && h && d.slice(0, 7) === h.slice(0, 7)) valor = "m:" + d.slice(0, 7);
+            else if (d.slice(5) === "01-01" && h.slice(5) === "12-31" && d.slice(0, 4) === h.slice(0, 4)) valor = "a:" + d.slice(0, 4);
+            else if (d || h) valor = "r:" + d + "|" + h;
             E.urlPeriodo = null;
         }
-        var sel = $("sel-periodo");
-        sel.innerHTML = opciones.join("");
-        var valor = elegido || leer("periodo:" + c.rfc);
-        if (valor && valor.indexOf("m:") === 0 && !sel.querySelector('option[value="' + valor + '"]')) {
-            // Mes sin facturas emitidas (útil por fecha de pago): se agrega igual
-            sel.insertAdjacentHTML("beforeend", '<option value="' + esc(valor) + '">' + MESES[+valor.slice(7, 9) - 1] + " " + esc(valor.slice(2, 6)) + "</option>");
-        }
-        // Primera vez: el año más reciente completo (las facturas y sus pagos suelen caer en meses distintos)
-        if (!valor || !sel.querySelector('option[value="' + valor + '"]')) valor = c.periodos && c.periodos.length ? "a:" + c.periodos[0].periodo.slice(0, 4) : "";
-        sel.value = valor;
+        ponerPeriodo(valor);
+    }
+
+    function ponerPeriodo(v) {
+        $("sel-periodo").value = v || "";
+        E.selPeriodo.poner(v || null);
     }
 
     function rango() {
@@ -285,7 +307,11 @@
     /* ============================================================ datos */
     async function cargarDatos() {
         if (!E.rfc) return;
-        guardar("periodo:" + E.rfc, $("sel-periodo").value);
+        pintarBase();
+        if (!$("sel-periodo").value) { mostrarElegirPeriodo(); return; }
+        $("sin-empresa").hidden = true;
+        $("contenido").hidden = false;
+        $("ayuda-base").hidden = false;
         guardar("lado", E.lado); guardar("base", $("sel-base").value);
         var r = rango();
         var comun = "?rfc=" + encodeURIComponent(E.rfc) + "&lado=" + E.lado + "&base=" + $("sel-base").value +
@@ -322,25 +348,32 @@
             '<button type="button" class="xml-btn" id="validar-faltan">Validar los que faltan</button>';
     }
 
+    /* "Lo facturado | Lo cobrado": cambia qué facturas entran al periodo.
+       (El análisis a detalle del flujo de efectivo irá en el módulo de IVA cobrado.) */
+    function pintarBase() {
+        var base = $("sel-base").value;
+        document.querySelectorAll("#base [data-base]").forEach(function (b) { b.setAttribute("aria-pressed", String(b.dataset.base === base)); });
+        $("base-pago").textContent = textoLado("Lo cobrado", "Lo pagado");
+        $("ayuda-base").textContent = base === "pago"
+            ? textoLado("Lo cobrado", "Lo pagado") + " en el periodo, aunque sea de facturas de otros meses. Responde «¿cuánto dinero " + textoLado("entró", "salió") + "?»."
+            : "Las facturas " + textoLado("emitidas", "recibidas") + " en el periodo, con todos sus pagos aunque lleguen después. Responde «¿cómo quedó lo que se facturó?».";
+    }
+
     function pintarTarjetas() {
         var fs = E.datos.facturas, vivas = fs.filter(function (f) { return f.estado_conciliacion !== "Cancelada"; });
         function suma(k, lista) { return lista.reduce(function (s, f) { return s + (f[k] || 0); }, 0); }
         var abiertas = vivas.filter(function (f) { return ["Parcial", "Sin pago", "Pago a factura cancelada"].indexOf(f.estado_conciliacion) !== -1; });
-        var demas = fs.filter(function (f) { return f.estado_conciliacion === "Pagada de más"; });
-        var alertas = fs.filter(function (f) { return f.alertas; });
-        function t(titulo, valor, nota, clase, filtro) {
-            var tag = filtro ? "button" : "div";
-            return "<" + tag + (filtro ? ' type="button" data-tarjeta="' + filtro + '" title="Clic para ver solo estas"' : "") + ' class="conc-tarjeta' + (clase ? " " + clase : "") +
-                (filtro && E.tarjeta === filtro ? " conc-tarjeta--activa" : "") + '"><small>' + titulo + "</small><b>" + valor + "</b><span>" + nota + "</span></" + tag + ">";
-        }
         var canceladas = fs.length - vivas.length;
+        if (!fs.length) { $("tarjetas").innerHTML = ""; return; }
+        var saldo = suma("saldo_mxn", abiertas);
         $("tarjetas").innerHTML =
-            t("Facturas", vivas.length.toLocaleString("es-MX"), canceladas ? canceladas + " cancelada(s) aparte" : "en el periodo") +
-            t("Total en pesos", "$" + dinero(suma("total_mxn", vivas)), "a TC de cada factura") +
-            t(textoLado("Cobrado", "Pagado") + " en pesos", "$" + dinero(suma("pagado_mxn", vivas)), "con el TC de cada pago") +
-            t(textoLado("Por cobrar", "Por pagar"), "$" + dinero(suma("saldo_mxn", abiertas)), abiertas.length + " factura(s) con saldo", abiertas.length ? "conc-tarjeta--alerta" : "", "saldo") +
-            t("Pagadas de más", demas.length, demas.length ? "revisa complementos repetidos" : "ninguna", demas.length ? "conc-tarjeta--mal" : "", "demas") +
-            t("Para revisar", alertas.length, alertas.length ? "facturas con alertas" : "todo en orden", alertas.length ? "conc-tarjeta--alerta" : "", "alertas");
+            '<div class="ctx-resumen__dato"><small>Total en pesos</small><b>$' + dinero(suma("total_mxn", vivas)) + "</b></div>" +
+            '<div class="ctx-resumen__dato"><small>' + textoLado("Cobrado", "Pagado") + " en pesos</small><b>$" + dinero(suma("pagado_mxn", vivas)) + "</b></div>" +
+            '<button type="button" data-tarjeta="saldo" title="Clic para ver solo las que tienen saldo" class="ctx-resumen__dato' +
+                (abiertas.length ? " ctx-resumen__dato--alerta" : "") + (E.tarjeta === "saldo" ? " ctx-resumen__dato--activo" : "") + '">' +
+                "<small>" + textoLado("Por cobrar", "Por pagar") + "</small><b>$" + dinero(saldo) + "</b>" +
+                "<span>" + (abiertas.length ? abiertas.length + " factura" + (abiertas.length === 1 ? "" : "s") + " con saldo" : "todo " + textoLado("cobrado", "pagado")) + "</span></button>" +
+            (canceladas ? '<div class="ctx-resumen__nota">' + canceladas + " cancelada" + (canceladas === 1 ? "" : "s") + " en el SAT · no cuenta" + (canceladas === 1 ? "" : "n") + "</div>" : "");
     }
 
     function nombreEstado(e) { return e; }
@@ -459,7 +492,10 @@
         (f.sustituye_a || "").split(", ").filter(Boolean).forEach(function (u) { previos = previos.concat(E.movsPorFactura[u] || []); });
         var mon = f.moneda || "MXN";
         var h = [];
-        h.push('<div class="xml-panel__cabeza"><h3>Factura ' + esc(f.serie_folio || f.uuid.slice(0, 8)) + '</h3><button type="button" class="xml-enlace" data-cerrar>Cerrar</button></div>');
+        var verFactura = puede("validador") ? '<a class="xml-btn" target="_blank" rel="noopener" href="/herramientas/xml/detalle/?rfc=' +
+            encodeURIComponent(E.rfc) + "&uuid=" + encodeURIComponent(f.uuid) + '">Ver factura</a>' : "";
+        h.push('<div class="xml-panel__cabeza"><h3>Factura ' + esc(f.serie_folio || f.uuid.slice(0, 8)) + '</h3>' +
+            '<div class="conc-cabeza-acciones">' + verFactura + '<button type="button" class="xml-enlace" data-cerrar>Cerrar</button></div></div>');
         h.push('<p class="conc-sub">' + esc(f.contraparte_nombre || "") + " · " + esc(f.contraparte_rfc || "") + "</p>");
         h.push("<div>" + sello(nombreEstado(f.estado_conciliacion), SELLO_ESTADO[f.estado_conciliacion]) + " " +
             sello("SAT: " + (f.estado_sat || "Sin validar"), SELLOS.estado_sat[f.estado_sat || "Sin validar"]) + " " + sello(f.metodo_pago || "", "gris") +
@@ -469,17 +505,6 @@
             "<div><small>" + textoLado("Cobrado", "Pagado") + "</small><b>" + dinero(f.pagado) + "</b></div>" +
             "<div><small>Notas de crédito</small><b>" + dinero(f.notas || 0) + "</b></div>" +
             "<div><small>" + textoLado("Por cobrar", "Por pagar") + '</small><b class="' + ((f.saldo || 0) < -0.005 ? "fc-negativo" : "") + '">' + dinero(f.saldo) + "</b></div></div>");
-        if (f.alertas) h.push('<ul class="conc-alertas">' + f.alertas.split("; ").map(function (a) { return "<li>⚠ " + esc(a) + "</li>"; }).join("") + "</ul>");
-        h.push('<dl class="conc-datos">' +
-            "<dt>Emitida el</dt><dd>" + esc(fechaMX(f.fecha_emision)) + "</dd>" +
-            (mon !== "MXN" ? "<dt>Tipo de cambio</dt><dd>" + esc(f.tipo_cambio ? fmtTc.format(f.tipo_cambio) : "—") +
-                (f.tc_banxico_emision ? " · Banxico " + esc(fmtTc.format(f.tc_banxico_emision)) + " (FIX del " + esc(fechaMX(f.fecha_fix_emision)) + ")" : "") + "</dd>" : "") +
-            "<dt>" + textoLado("Cobrado", "Pagado") + " en pesos</dt><dd>$" + dinero(f.pagado_mxn) + (f.fluctuacion_mxn ? " · fluctuación cambiaria $" + dinero(f.fluctuacion_mxn) : "") + "</dd>" +
-            (f.ajuste_manual ? "<dt>Ajuste manual</dt><dd>" + esc(f.ajuste_manual) + "</dd>" : "") +
-            (f.sustituye_a ? "<dt>Sustituye a</dt><dd>" + esc(f.sustituye_a) + "</dd>" : "") +
-            (f.sustituida_por ? "<dt>La sustituye</dt><dd>" + esc(f.sustituida_por) + "</dd>" : "") +
-            "<dt>UUID</dt><dd>" + esc(f.uuid) + "</dd></dl>");
-
         function tablaMovs(lista) {
             if (!lista.length) return '<p class="conc-sub">' + (f.metodo_pago === "PUE" ? "Es PUE: se considera pagada al emitirse." : "No hay complementos de pago ni notas de crédito cargados para esta factura.") + "</p>";
             return '<div class="conc-scroll"><table class="conc-mini"><thead><tr><th>Fecha</th><th>Tipo</th><th>Comprobante</th><th class="num">Parc.</th>' +
@@ -497,13 +522,23 @@
         h.push("<h4>Pagos y notas de crédito</h4>" + tablaMovs(movs));
         if (previos.length) h.push("<h4>Aplicados a la factura que esta sustituye</h4>" + tablaMovs(previos));
 
-        var acciones = ['<button type="button" class="xml-btn" data-accion="validar">Validar esta factura y sus pagos</button>'];
+        if (f.alertas) h.push('<ul class="conc-alertas">' + f.alertas.split("; ").map(function (a) { return "<li>⚠ " + esc(a) + "</li>"; }).join("") + "</ul>");
+        h.push('<dl class="conc-datos">' +
+            "<dt>Emitida el</dt><dd>" + esc(fechaMX(f.fecha_emision)) + "</dd>" +
+            (mon !== "MXN" ? "<dt>Tipo de cambio</dt><dd>" + esc(f.tipo_cambio ? fmtTc.format(f.tipo_cambio) : "—") +
+                (f.tc_banxico_emision ? " · Banxico " + esc(fmtTc.format(f.tc_banxico_emision)) + " (FIX del " + esc(fechaMX(f.fecha_fix_emision)) + ")" : "") + "</dd>" : "") +
+            "<dt>" + textoLado("Cobrado", "Pagado") + " en pesos</dt><dd>$" + dinero(f.pagado_mxn) + (f.fluctuacion_mxn ? " · fluctuación cambiaria $" + dinero(f.fluctuacion_mxn) : "") + "</dd>" +
+            (f.ajuste_manual ? "<dt>Ajuste manual</dt><dd>" + esc(f.ajuste_manual) + "</dd>" : "") +
+            (f.sustituye_a ? "<dt>Sustituye a</dt><dd>" + esc(f.sustituye_a) + "</dd>" : "") +
+            (f.sustituida_por ? "<dt>La sustituye</dt><dd>" + esc(f.sustituida_por) + "</dd>" : "") +
+            "<dt>UUID</dt><dd>" + esc(f.uuid) + "</dd></dl>");
+
+        var acciones = [];
         if (f.estado_conciliacion !== "Cancelada" && f.metodo_pago !== "PUE") {
             acciones.push(f.ajuste_manual ? '<button type="button" class="xml-btn" data-accion="quitar-ajuste">Quitar el ajuste manual</button>'
                 : '<button type="button" class="xml-btn" data-accion="ajuste">Marcar como ' + textoLado("cobrada", "pagada") + " a mano…</button>");
         }
-        if (puede("validador")) acciones.push('<a class="xml-btn" target="_blank" rel="noopener" href="/herramientas/xml/detalle/?rfc=' + encodeURIComponent(E.rfc) + "&uuid=" + encodeURIComponent(f.uuid) + '">Ver el XML</a>');
-        h.push('<div class="conc-acciones">' + acciones.join("") + "</div>");
+        if (acciones.length) h.push('<div class="conc-acciones">' + acciones.join("") + "</div>");
         p.innerHTML = h.join("");
         p.hidden = false;
         $("panel-tc").hidden = true;
@@ -642,6 +677,10 @@
             '<select id="sel-regla">' + Object.keys(reglas).map(function (r) { return '<option value="' + esc(r) + '"' + (r === E.regla ? " selected" : "") + ">" + esc(reglas[r]) + "</option>"; }).join("") + "</select>" +
             '<p class="conc-sub" style="margin-top:6px">Ejemplo: para un pago del lunes 31 de agosto, la regla del DOF toma el publicado el viernes 28 (el FIX del jueves 27).</p></div>');
         h.push('<div class="conc-caja" id="estado-banxico">Revisando la descarga de Banxico…</div>');
+        h.push('<div class="conc-caja"><strong>Validar contra la fuente oficial</strong><br>' +
+            "Descarga la serie del dólar que tiene el portal para este periodo (fecha del FIX, fecha en que se publicó en el DOF y valor) y compárala con la de Banxico." +
+            '<div class="conc-acciones" style="margin-top:8px"><button type="button" class="xml-btn" id="btn-serie-tc">Descargar serie (CSV, abre en Excel)</button>' +
+            '<a class="xml-btn" target="_blank" rel="noopener" href="https://www.banxico.org.mx/tipcamb/main.do?page=tip&amp;idioma=sp">Comparar en Banxico</a></div></div>');
         h.push('<p class="conc-sub">Cada fecha con pagos o notas en moneda extranjera. <strong>Tu tipo de cambio para el reporte</strong> no cambia los XML ni la tabla de Banxico: ' +
             "se usa en las columnas «TC contable» y «Diferencia vs TC contable» y en el Excel, solo para esta empresa. Déjalo vacío para usar el de Banxico.</p>");
         if (!filas.length) h.push('<p class="conc-sub"><strong>No hay pagos en moneda extranjera en este periodo.</strong></p>');
@@ -680,8 +719,33 @@
         } catch (e) { var c = $("estado-banxico"); if (c) c.textContent = e.message; }
     }
 
+    /* Serie del FIX que tiene el portal, para compararla con la oficial.
+       La fecha de publicación en el DOF es el siguiente día de la serie. */
+    async function descargarSerieTC(boton) {
+        var r = rango(), hoy = new Date().toISOString().slice(0, 10);
+        var hasta = r.hasta || hoy, desde = r.desde;
+        if (!desde) { var d = new Date(); d.setFullYear(d.getFullYear() - 1); desde = d.toISOString().slice(0, 10); }
+        // Unos días antes del inicio: así el primer día del periodo también tiene su FIX publicado
+        var antes = new Date(desde + "T12:00:00"); antes.setDate(antes.getDate() - 10);
+        boton.disabled = true;
+        try {
+            var serie = await apiJSON("/api/conciliacion/tipos-cambio/serie?moneda=USD&desde=" + antes.toISOString().slice(0, 10) + "&hasta=" + hasta);
+            if (!serie.length) { avisar("El portal todavía no tiene tipos de cambio de Banxico para esas fechas."); return; }
+            var lineas = ["Fecha del FIX (Banxico),Publicado en el DOF,Tipo de cambio USD"];
+            serie.forEach(function (x, i) {
+                var pub = serie[i + 1] ? fechaMX(serie[i + 1].fecha) : "pendiente";
+                lineas.push(fechaMX(x.fecha) + "," + pub + "," + x.valor);
+            });
+            // BOM: para que Excel respete los acentos
+            descargarBlob(new Blob(["\ufeff" + lineas.join("\r\n")], { type: "text/csv;charset=utf-8" }),
+                "TipoCambio_USD_" + desde + "_a_" + hasta + ".csv");
+        } catch (err) { avisar(err.message); }
+        finally { boton.disabled = false; }
+    }
+
     async function accionTC(e) {
         if (e.target.closest("[data-cerrar]")) { $("panel-tc").hidden = true; return; }
+        if (e.target.id === "btn-serie-tc") { descargarSerieTC(e.target); return; }
         if (e.target.id === "btn-actualizar-tc") {
             e.target.disabled = true; e.target.textContent = "Actualizando…";
             try { await enviar("/api/conciliacion/tipos-cambio/actualizar", {}); await cargarDatos(); pintarPanelTC(); }
@@ -741,8 +805,20 @@
             $("panel-factura").hidden = true;
             await cargarDatos();
         });
-        $("sel-periodo").addEventListener("change", cargarDatos);
-        $("sel-base").addEventListener("change", cargarDatos);
+        $("base").addEventListener("click", function (e) {
+            var b = e.target.closest("[data-base]");
+            if (!b || $("sel-base").value === b.dataset.base) return;
+            $("sel-base").value = b.dataset.base;
+            cargarDatos();
+        });
+        $("sin-empresa").addEventListener("click", function (e) {
+            var b = e.target.closest("button");
+            if (!b) return;
+            if (b.dataset.otra) { refrescarBibliotecas(b.dataset.otra); return; }
+            if (b.hasAttribute("data-agregar")) { bandeja.abrir(); return; }
+            if (b.hasAttribute("data-periodo")) { E.selPeriodo.abrir(); return; }
+            if (b.hasAttribute("data-elegir")) { e.stopPropagation(); cerrarMenus("menu-otra"); $("menu-otra").hidden = false; pintarMenuOtra(); }
+        });
         $("btn-otra").addEventListener("click", function (e) {
             e.stopPropagation(); cerrarMenus("menu-otra");
             $("menu-otra").hidden = !$("menu-otra").hidden;

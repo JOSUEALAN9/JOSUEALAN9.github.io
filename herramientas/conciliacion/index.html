@@ -4,35 +4,50 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Conciliación · Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/common.css?v=202609282331">
-    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202609282331">
-    <link rel="stylesheet" href="/herramientas/conciliacion/conciliacion.css?v=202609282331">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202609291629">
+    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202609291629">
+    <link rel="stylesheet" href="/herramientas/conciliacion/conciliacion.css?v=202609291629">
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-slate-50">
 <div id="app-header" data-modulo="conciliacion" data-titulo="Conciliación" data-migas="Herramientas|/herramientas/"></div>
-<script src="/assets/js/nucleo.js?v=202609282331"></script>
-<script src="/assets/js/barra.js?v=202609282331"></script>
+<script src="/assets/js/nucleo.js?v=202609291629"></script>
+<script src="/assets/js/barra.js?v=202609291629"></script>
 
 <main class="xml-pagina">
     <div class="xml-cabeza">
-        <div>
-            <h1>Conciliación de facturas</h1>
-            <p id="empresa-titulo">&nbsp;</p>
-        </div>
+        <h1>Conciliación de facturas</h1>
         <div class="xml-cabeza__acciones">
-            <div class="xml-menu">
-                <button type="button" id="btn-otra" class="xml-btn">Abrir otra empresa ▾</button>
-                <div id="menu-otra" class="xml-menu__lista xml-menu__lista--otra" hidden></div>
-            </div>
             <a id="btn-ir-xml" class="xml-btn" href="/herramientas/xml/" hidden>Ver sus XML</a>
             <button type="button" id="btn-agregar" class="xml-btn xml-btn--primario">+ Agregar XML</button>
         </div>
     </div>
 
+    <!-- Contexto: mismo patrón que Administración de XML -->
+    <div class="ctx">
+        <div class="xml-menu">
+            <button type="button" id="btn-otra" class="ctx-campo" aria-haspopup="menu">
+                <span class="ctx-campo__texto"><small id="empresa-etiqueta">Empresa</small><strong id="empresa-titulo">Elegir empresa</strong></span>
+                <span class="ctx-campo__flecha" aria-hidden="true">▾</span>
+            </button>
+            <div id="menu-otra" class="xml-menu__lista xml-menu__lista--otra" hidden></div>
+        </div>
+        <button type="button" id="btn-periodo" class="ctx-campo" aria-haspopup="dialog" disabled>
+            <span class="ctx-campo__texto"><small>Periodo</small><strong id="periodo-titulo">Elegir periodo</strong></span>
+            <span class="ctx-campo__flecha" aria-hidden="true">▾</span>
+        </button>
+        <input type="hidden" id="sel-periodo">
+        <div class="ctx-segmento" id="base" role="group" aria-label="Qué facturas entran al periodo">
+            <button type="button" data-base="emision" aria-pressed="true">Lo facturado</button>
+            <button type="button" data-base="pago" aria-pressed="false" id="base-pago">Lo cobrado</button>
+        </div>
+        <input type="hidden" id="sel-base" value="emision">
+    </div>
+    <p id="ayuda-base" class="ctx-ayuda" hidden></p>
+
     <section id="bandeja"></section>
     <div id="resultado-carga"></div>
-    <div id="sin-empresa" class="xml-vacio" hidden></div>
+    <div id="sin-empresa" class="ctx-vacio" hidden></div>
 
     <div id="contenido" hidden>
         <div id="aviso-otra" class="xml-aviso-otra" hidden></div>
@@ -42,17 +57,10 @@
                 <button type="button" class="conc-lado" data-lado="emitidos">Mis facturas emitidas <span>clientes · cobranza</span></button>
                 <button type="button" class="conc-lado" data-lado="recibidos">Mis facturas recibidas <span>proveedores · pagos</span></button>
             </div>
-            <div class="xml-filtros-sup conc-periodo">
-                <label>Periodo<select id="sel-periodo"></select></label>
-                <label>Según<select id="sel-base">
-                    <option value="emision">Fecha de emisión de la factura</option>
-                    <option value="pago">Fecha de pago (flujo de efectivo)</option>
-                </select></label>
-            </div>
         </div>
 
         <div id="aviso-validar" class="conc-aviso" hidden></div>
-        <div id="tarjetas" class="conc-tarjetas"></div>
+        <div id="tarjetas" class="ctx-resumen"></div>
         <div id="chips-estado" class="xml-chips"></div>
 
         <div class="xml-toolbar">
@@ -116,8 +124,8 @@
     </div>
 </div>
 
-<script src="/assets/js/comun/tabla.js?v=202609282331"></script>
-<script src="/assets/js/comun/bandeja-xml.js?v=202609282331"></script>
-<script src="/herramientas/conciliacion/conciliacion.js?v=202609282331"></script>
+<script src="/assets/js/comun/tabla.js?v=202609291629"></script>
+<script src="/assets/js/comun/bandeja-xml.js?v=202609291629"></script>
+<script src="/herramientas/conciliacion/conciliacion.js?v=202609291629"></script>
 </body>
 </html>

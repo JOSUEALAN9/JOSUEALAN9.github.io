@@ -79,7 +79,8 @@
         cerrar:   "M6 18L18 6M6 6l12 12",
         alerta:   "M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z",
         candado:  "M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z M16 11V7a4 4 0 00-8 0v4",
-        flecha:   "M9 18l6-6-6-6"
+        flecha:   "M9 18l6-6-6-6",
+        calendario: "M8 7V3m8 4V3M4 11h16M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
     };
 
     /* ------------------------------------------------------- la barra */
@@ -128,6 +129,11 @@
                   '<button type="button" class="fc-accion fc-empresa" id="fc-btn-empresa" aria-haspopup="menu" aria-expanded="false" hidden>' +
                     ico(D.edificio) +
                     '<span class="fc-accion__etiqueta fc-empresa__nombre" id="fc-empresa-nombre">Elegir empresa</span>' +
+                    '<span class="fc-empresa__flecha" aria-hidden="true">▾</span>' +
+                  "</button>" +
+                  '<button type="button" class="fc-accion fc-empresa fc-empresa--vacia" id="fc-btn-periodo" aria-haspopup="dialog" aria-expanded="false" hidden>' +
+                    ico(D.calendario) +
+                    '<span class="fc-accion__etiqueta fc-empresa__nombre" id="fc-periodo-nombre">Elegir periodo</span>' +
                     '<span class="fc-empresa__flecha" aria-hidden="true">▾</span>' +
                   "</button>" +
                   '<button type="button" class="fc-accion" id="fc-btn-descargas" aria-haspopup="dialog" aria-label="Mis descargas">' +
@@ -282,6 +288,182 @@
         document.getElementById("fc-empresa-ninguna").addEventListener("click", function () { elegirEmpresa(null); });
         document.addEventListener("click", cerrarEmpresas);
         document.addEventListener("keydown", function (e) { if (e.key === "Escape") cerrarEmpresas(); });
+    }
+
+    /* --------------------------------------------- selector de periodo */
+    /* Componente único para elegir periodo. Lo usa el selector general de la
+       barra (solo mes y año) y lo reutiliza cualquier módulo con opciones
+       extra (todo el año, todos los periodos, cuántos XML hay por mes):
+
+         var sel = Fiscontable.selectorPeriodo({
+             boton: el, etiqueta: el,          // el botón y dónde escribir el texto
+             valor: "m:2025-10",               // "m:AAAA-MM" | "a:AAAA" | "t:" | null
+             permitirAnio: true, permitirTodos: true, permitirQuitar: false,
+             conteos: { "2025-10": 12 },       // opcional: se muestran en cada mes
+             general: "2025-10",               // opcional: ofrece "volver al general"
+             alCambiar: function (valor) {}
+         });
+         sel.poner(v); sel.conteos(obj); sel.general(p); sel.valor(); sel.abrir();
+    */
+    var MESES_LARGOS = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+    var MESES_CORTOS = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
+
+    function textoPeriodo(v) {
+        if (!v) return "Elegir periodo";
+        if (v === "t:") return "Todos los periodos";
+        if (v.indexOf("a:") === 0) return "Todo " + v.slice(2);
+        if (v.indexOf("m:") === 0) return MESES_LARGOS[+v.slice(7, 9) - 1] + " " + v.slice(2, 6);
+        if (v.indexOf("r:") === 0) return "Rango de fechas";
+        return v;
+    }
+
+    function selectorPeriodo(o) {
+        var st = { valor: o.valor || null, conteos: o.conteos || {}, general: o.general || null, anio: null };
+        var pop = document.createElement("div");
+        pop.className = "fc-periodo";
+        pop.setAttribute("role", "dialog");
+        pop.setAttribute("aria-label", "Elegir periodo");
+        pop.hidden = true;
+        document.body.appendChild(pop);
+
+        function anioInicial() {
+            var v = st.valor;
+            if (v && (v.indexOf("m:") === 0 || v.indexOf("a:") === 0)) return +v.slice(2, 6);
+            var llaves = Object.keys(st.conteos).sort();
+            return llaves.length ? +llaves[llaves.length - 1].slice(0, 4) : new Date().getFullYear();
+        }
+
+        function pintar() {
+            var a = st.anio, hayConteos = Object.keys(st.conteos).length > 0, totalAnio = 0;
+            var meses = MESES_CORTOS.map(function (nombre, i) {
+                var clave = a + "-" + String(i + 1).padStart(2, "0");
+                var n = st.conteos[clave] || 0;
+                totalAnio += n;
+                var activo = st.valor === "m:" + clave;
+                return '<button type="button" class="fc-periodo__mes' + (activo ? " fc-periodo__mes--activo" : "") +
+                    (hayConteos && !n ? " fc-periodo__mes--vacio" : "") + '" data-mes="' + clave + '"' +
+                    ' title="' + MESES_LARGOS[i] + " " + a + (hayConteos ? " · " + n + " XML" : "") + '">' +
+                    "<span>" + nombre + "</span>" + (hayConteos && n ? "<small>" + n.toLocaleString("es-MX") + "</small>" : "") + "</button>";
+            }).join("");
+            var pie = [];
+            if (o.permitirAnio) pie.push('<button type="button" class="fc-periodo__opcion' + (st.valor === "a:" + a ? " fc-periodo__opcion--activa" : "") +
+                '" data-anio-completo="' + a + '">Todo ' + a + (hayConteos && totalAnio ? " <small>" + totalAnio.toLocaleString("es-MX") + "</small>" : "") + "</button>");
+            if (o.permitirTodos) pie.push('<button type="button" class="fc-periodo__opcion' + (st.valor === "t:" ? " fc-periodo__opcion--activa" : "") +
+                '" data-todos>Todos los periodos</button>');
+            if (st.general && st.valor !== "m:" + st.general) pie.push('<button type="button" class="fc-periodo__general" data-general>' +
+                "Volver al periodo general · " + esc(textoPeriodo("m:" + st.general)) + "</button>");
+            if (o.permitirQuitar && st.valor) pie.push('<button type="button" class="fc-periodo__quitar" data-quitar>Quitar periodo</button>');
+            pop.innerHTML =
+                '<div class="fc-periodo__cabeza">' +
+                  '<button type="button" class="fc-periodo__flecha" data-anio="-1" aria-label="Año anterior">‹</button>' +
+                  "<strong>" + a + "</strong>" +
+                  '<button type="button" class="fc-periodo__flecha" data-anio="1" aria-label="Año siguiente">›</button>' +
+                "</div>" +
+                '<div class="fc-periodo__meses">' + meses + "</div>" +
+                (pie.length ? '<div class="fc-periodo__pie">' + pie.join("") + "</div>" : "");
+        }
+
+        function posicionar() {
+            var r = o.boton.getBoundingClientRect();
+            var ancho = pop.offsetWidth || 300;
+            pop.style.top = Math.round(r.bottom + 6) + "px";
+            pop.style.left = Math.round(Math.max(12, Math.min(r.left, window.innerWidth - ancho - 12))) + "px";
+        }
+
+        function abrir() {
+            st.anio = anioInicial();
+            pintar();
+            pop.hidden = false;
+            o.boton.setAttribute("aria-expanded", "true");
+            posicionar();
+            if (o.alAbrir) o.alAbrir();
+        }
+        function cerrar() {
+            if (pop.hidden) return;
+            pop.hidden = true;
+            o.boton.setAttribute("aria-expanded", "false");
+        }
+        function etiqueta() {
+            if (o.etiqueta) o.etiqueta.textContent = textoPeriodo(st.valor);
+            o.boton.classList.toggle("fc-sin-periodo", !st.valor);
+        }
+        function elegir(v) {
+            st.valor = v;
+            cerrar();
+            etiqueta();
+            if (o.alCambiar) o.alCambiar(v);
+        }
+
+        o.boton.addEventListener("click", function () { if (pop.hidden) abrir(); else cerrar(); });
+        pop.addEventListener("click", function (e) {
+            var b = e.target.closest("button");
+            if (!b) return;
+            if (b.dataset.anio) { st.anio += +b.dataset.anio; pintar(); return; }
+            if (b.dataset.mes) { elegir("m:" + b.dataset.mes); return; }
+            if (b.dataset.anioCompleto) { elegir("a:" + b.dataset.anioCompleto); return; }
+            if (b.hasAttribute("data-todos")) { elegir("t:"); return; }
+            if (b.hasAttribute("data-general")) { elegir("m:" + st.general); return; }
+            if (b.hasAttribute("data-quitar")) { elegir(null); }
+        });
+        // pointerdown (no click): así se cierra aunque otro menú detenga el clic
+        document.addEventListener("pointerdown", function (e) {
+            if (!pop.hidden && !pop.contains(e.target) && !o.boton.contains(e.target)) cerrar();
+        }, true);
+        document.addEventListener("keydown", function (e) { if (e.key === "Escape") cerrar(); });
+        window.addEventListener("resize", cerrar);
+        etiqueta();
+
+        return {
+            poner: function (v) { st.valor = v || null; etiqueta(); },
+            valor: function () { return st.valor; },
+            conteos: function (c) { st.conteos = c || {}; },
+            general: function (g) { st.general = g || null; },
+            abrir: abrir,
+            cerrar: cerrar
+        };
+    }
+
+    /* El periodo general (mes y año) se guarda en el servidor, igual que la
+       empresa: te sigue en cualquier PC. Los módulos lo precargan; cambiar el
+       periodo dentro de un módulo NO lo toca. */
+    var selectorGeneral = null;
+
+    function pintarPeriodo() {
+        var boton = document.getElementById("fc-btn-periodo");
+        if (!boton) return;
+        var p = perfilActual && perfilActual.periodo_activo;
+        boton.hidden = false;
+        boton.classList.toggle("fc-empresa--vacia", !p);
+        boton.title = p ? "Periodo general: " + textoPeriodo("m:" + p) + " — cambiar" : "Elige el periodo en el que vas a trabajar";
+        if (!selectorGeneral) {
+            selectorGeneral = selectorPeriodo({
+                boton: boton, etiqueta: document.getElementById("fc-periodo-nombre"),
+                valor: p ? "m:" + p : null, permitirQuitar: true,
+                alAbrir: function () { cerrarEmpresas(); var m = document.getElementById("fc-menu"); if (m) m.hidden = true; },
+                alCambiar: elegirPeriodoGeneral
+            });
+        } else {
+            selectorGeneral.poner(p ? "m:" + p : null);
+        }
+    }
+
+    async function elegirPeriodoGeneral(valor) {
+        var periodo = valor && valor.indexOf("m:") === 0 ? valor.slice(2) : null;
+        try {
+            var resp = await fetch(API + "/api/mi-perfil/periodo", {
+                method: "PUT", credentials: "include",
+                headers: { "Content-Type": "application/json" }, body: JSON.stringify({ periodo: periodo })
+            });
+            if (!resp.ok) throw new Error(await window.Fiscontable.leerError(resp));
+            var r = await resp.json();
+            perfilActual.periodo_activo = r.periodo_activo;
+            promesaPerfil = Promise.resolve(perfilActual);
+            pintarPeriodo();
+            window.dispatchEvent(new CustomEvent("fiscontable:periodo", { detail: r.periodo_activo }));
+        } catch (e) {
+            pintarPeriodo();      // regresa el botón al valor que sí quedó guardado
+            aviso(e.message || "No se pudo cambiar el periodo.");
+        }
     }
 
     function avisoHTML() {
@@ -612,7 +794,10 @@
         var caja = document.createElement("div");
         caja.id = "fc-modal-perfil";
         caja.className = "fixed inset-0 hidden items-center justify-center p-4";
-        caja.style.cssText = "position:fixed;inset:0;z-index:90;background:rgba(16,27,45,.5);" +
+        // display:none propio: antes dependía de la clase "hidden" de Tailwind, y si el
+        // CDN de Tailwind no cargaba, la ventana quedaba invisible ENCIMA de toda la página
+        // bloqueando los clics. .modal-active (common.css) la muestra con !important.
+        caja.style.cssText = "display:none;position:fixed;inset:0;z-index:90;background:rgba(16,27,45,.5);" +
             "backdrop-filter:blur(2px);align-items:center;justify-content:center;padding:16px";
         caja.innerHTML =
             '<div style="background:#fff;width:100%;max-width:420px;border-radius:var(--radio);' +
@@ -732,6 +917,7 @@
         if (p.rol === "admin") document.getElementById("fc-enlace-admin").hidden = false;
         pintarLetreros(p);
         pintarEmpresa();
+        pintarPeriodo();
 
         if (p.solo_lectura) {
             aviso("Tu acceso venció. Puedes consultar tu directorio, pero no generar documentos. " +
@@ -971,6 +1157,14 @@
         empresaActiva: function () {
             return perfil().then(function (p) { return p && !p._error ? (p.empresa_activa || null) : null; });
         },
+        // Periodo general ("AAAA-MM" o null). Evento: window "fiscontable:periodo".
+        periodoActivo: function () {
+            return perfil().then(function (p) { return p && !p._error ? (p.periodo_activo || null) : null; });
+        },
+        elegirPeriodo: function (periodo) { return elegirPeriodoGeneral(periodo ? "m:" + periodo : null); },
+        // Componente reutilizable para cualquier módulo (ver comentario arriba)
+        selectorPeriodo: selectorPeriodo,
+        textoPeriodo: textoPeriodo,
         // Para Administración → Sistema: vuelve a pedir el perfil y repinta los letreros.
         recargarLetreros: async function () {
             promesaPerfil = null;

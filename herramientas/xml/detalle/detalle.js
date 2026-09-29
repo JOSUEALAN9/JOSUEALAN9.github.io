@@ -34,9 +34,20 @@
             ' <span class="xml-tenue">' + esc(f(x.fecha)) + " · " + esc(x.contraparte || "") + " · $" + m(x.total) + " " + esc(x.moneda || "") + "</span>";
     }
     function sello(txt, tono) { return '<span class="xml-sello xml-sello--' + tono + '">' + esc(txt) + "</span>"; }
+    // Clave con su descripción del catálogo del SAT ("616 - Sin obligaciones fiscales")
+    function C(catalogo, clave) { return window.FCCatalogos ? FCCatalogos.texto(catalogo, clave) : (clave || ""); }
 
     document.addEventListener("DOMContentLoaded", async function () {
         if (!(await Fiscontable.exigirModulo("validador"))) return;
+        if (window.FCCatalogos) {
+            var cat = await FCCatalogos.cargar();
+            // Las listas locales eran incompletas: se completan con el catálogo del servidor
+            Object.assign(FORMA, cat.forma_pago || {});
+            Object.assign(RELACION, cat.tipo_relacion || {});
+            Object.assign(PERCEPCION, cat.tipo_percepcion || {});
+            Object.assign(DEDUCCION, cat.tipo_deduccion || {});
+            Object.assign(OTRO, cat.tipo_otro_pago || {});
+        }
         if (!RFC || !UUID) { $("det-cargando").textContent = "Falta el RFC o el UUID en la dirección."; return; }
         try {
             var resp = await fetch(API + "/api/xml/detalle?rfc=" + encodeURIComponent(RFC) + "&uuid=" + encodeURIComponent(UUID), { credentials: "include" });
@@ -68,19 +79,22 @@
         }
         var em = d.emisor, re = d.receptor;
         html.push('<div class="det-partes">' +
-            '<div class="det-parte"><h3>Emisor</h3><div class="det-nombre">' + esc(em.nombre || "") + '</div><div class="det-rfc">' + esc(em.rfc) + '</div><div class="det-linea">Régimen ' + esc(em.regimen || "—") + "</div>" +
+            '<div class="det-parte"><h3>Emisor</h3><div class="det-nombre">' + esc(em.nombre || "") + '</div><div class="det-rfc">' + esc(em.rfc) + '</div><div class="det-linea">Régimen: ' + esc(C("regimen", em.regimen) || "—") + "</div>" +
             (d.nomina && d.nomina.registro_patronal ? '<div class="det-linea">Registro patronal ' + esc(d.nomina.registro_patronal) + "</div>" : "") + "</div>" +
-            '<div class="det-parte"><h3>Receptor</h3><div class="det-nombre">' + esc(re.nombre || "") + '</div><div class="det-rfc">' + esc(re.rfc) + '</div><div class="det-linea">' +
-            esc(["Régimen " + (re.regimen || "—"), re.uso ? "Uso " + re.uso : "", re.domicilio ? "C.P. " + re.domicilio : ""].filter(Boolean).join(" · ")) + "</div>" +
-            (d.info_global ? '<div class="det-linea">Factura global · periodicidad ' + esc(d.info_global.periodicidad || "") + " · meses " + esc(d.info_global.meses || "") + " · " + esc(d.info_global.anio || "") + "</div>" : "") +
+            '<div class="det-parte"><h3>Receptor</h3><div class="det-nombre">' + esc(re.nombre || "") + '</div><div class="det-rfc">' + esc(re.rfc) + "</div>" +
+            '<div class="det-linea">Régimen: ' + esc(C("regimen", re.regimen) || "—") + "</div>" +
+            (re.uso ? '<div class="det-linea">Uso del CFDI: ' + esc(C("uso_cfdi", re.uso)) + "</div>" : "") +
+            (re.domicilio ? '<div class="det-linea">C.P. ' + esc(re.domicilio) + "</div>" : "") +
+            (d.info_global ? '<div class="det-linea">Factura global: ' + esc(C("periodicidad", d.info_global.periodicidad)) +
+                " · " + esc(C("meses", d.info_global.meses)) + " " + esc(d.info_global.anio || "") + "</div>" : "") +
             "</div></div>");
 
         html.push('<div class="det-tarjeta"><h2>Comprobante</h2><div class="det-datos">' +
             dato("Fecha de emisión", f(d.fecha_emision)) + dato("Fecha de timbrado", f(d.fecha_timbrado)) +
-            (d.tipo === "P" ? "" : dato("Forma de pago", d.forma_pago ? d.forma_pago + " - " + (FORMA[d.forma_pago] || "") : "") + dato("Método de pago", d.metodo_pago) +
+            (d.tipo === "P" ? "" : dato("Forma de pago", C("forma_pago", d.forma_pago)) + dato("Método de pago", C("metodo_pago", d.metodo_pago)) +
                 dato("Moneda", d.moneda) + dato("Tipo de cambio", d.tipo_cambio ? fn.format(d.tipo_cambio) : "")) +
             dato("Lugar de expedición", d.lugar_expedicion) + dato("Condiciones de pago", d.condiciones_pago) +
-            dato("Exportación", d.exportacion) + dato("Complementos", (d.complementos || []).join(", ")) +
+            dato("Exportación", C("exportacion", d.exportacion)) + dato("Complementos", (d.complementos || []).join(", ")) +
             dato("PAC", d.pac_rfc) + dato("Certificado SAT", d.no_cert_sat) + "</div></div>");
 
         if (d.tipo === "N" && d.nomina) html.push(nomina(d));
@@ -105,10 +119,12 @@
     }
 
     function selloSAT(r) {
-        var cuando = r.estado_sat_en ? " · " + f(r.estado_sat_en).slice(0, 10) : "";
-        if (r.estado_sat === "Vigente") return sello("Vigente en el SAT" + cuando, "verde");
-        if (r.estado_sat === "Cancelado") return sello("Cancelado en el SAT" + cuando, "rojo");
-        if (r.estado_sat === "No encontrado") return sello("El SAT no lo encuentra" + cuando, "ambar");
+        // estado_sat_en es cuándo CONSULTAMOS al SAT, no cuándo se canceló: el servicio
+        // público del SAT no da la fecha de cancelación. Por eso va aparte y rotulada.
+        var consulta = r.estado_sat_en ? ' <span class="det-consultado">consultado el ' + esc(f(r.estado_sat_en).slice(0, 10)) + "</span>" : "";
+        if (r.estado_sat === "Vigente") return sello("Vigente en el SAT", "verde") + consulta;
+        if (r.estado_sat === "Cancelado") return sello("Cancelado en el SAT", "rojo") + consulta;
+        if (r.estado_sat === "No encontrado") return sello("El SAT no lo encuentra", "ambar") + consulta;
         return sello("Sin validar ante el SAT", "gris");
     }
 

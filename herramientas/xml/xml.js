@@ -101,12 +101,28 @@
         $("btn-conciliacion").hidden = !(perfil && (perfil.modulos_permitidos || []).indexOf("conciliacion") !== -1);
         await cargarVistas();
         E.empresa = await Fiscontable.empresaActiva();
+        E.periodoGeneral = await Fiscontable.periodoActivo();
+        // Periodo de ESTA página: arranca en el general, y cambiarlo aquí no
+        // mueve el general. Aquí sí se permite año completo y todos los periodos.
+        E.selPeriodo = Fiscontable.selectorPeriodo({
+            boton: $("btn-periodo"), etiqueta: $("periodo-titulo"),
+            permitirAnio: true, permitirTodos: true, general: E.periodoGeneral,
+            alCambiar: function (v) { $("sel-periodo").value = v || ""; cargarRegistros(); }
+        });
         await refrescarBibliotecas();
         // Si cambias de empresa en la barra, la página se actualiza sola
         window.addEventListener("fiscontable:empresa", async function (e) {
             E.empresa = e.detail; E.otra = null; E.rfc = null;
             $("bandeja").hidden = true;
             await refrescarBibliotecas();
+        });
+        // Y si cambias el periodo general, esta página lo sigue
+        window.addEventListener("fiscontable:periodo", function (e) {
+            E.periodoGeneral = e.detail;
+            E.selPeriodo.general(e.detail);
+            if (!E.rfc) return;
+            ponerPeriodo(e.detail ? "m:" + e.detail : "");
+            cargarRegistros();
         });
     }
 
@@ -129,22 +145,24 @@
         E.rfc = rfc;
         pintarEncabezado();
         var c = rfc && E.contribuyentes.find(function (x) { return x.rfc === rfc; });
+        $("btn-periodo").disabled = !c;
         if (!c) { mostrarVacio(); return; }
-        $("sin-empresa").hidden = true;
-        $("contenido").hidden = false;
         armarPeriodos(c);
         await cargarRegistros();
     }
 
     function pintarEncabezado() {
-        var t = E.otra ? nombreDe(E.otra) + " · " + E.otra + " (sin registrar)"
-            : E.empresa ? (E.empresa.alias || "") + " · " + E.empresa.rfc
-            : "Elige una empresa en la barra de arriba, o agrega XML de alguien sin registrar.";
-        $("empresa-titulo").textContent = t;
+        var boton = $("btn-otra");
+        var rfc = E.otra || (E.empresa && E.empresa.rfc);
+        $("empresa-etiqueta").textContent = rfc ? "Empresa · " + rfc : "Empresa";
+        $("empresa-titulo").innerHTML = E.otra ? esc(nombreDe(E.otra)) + '<span class="ctx-marca">sin registrar</span>'
+            : E.empresa ? esc(E.empresa.alias || E.empresa.rfc) : "Elegir empresa";
+        boton.classList.toggle("ctx-campo--vacio", !rfc);
+        boton.title = rfc ? "Cambiar de empresa" : "Elige de quién son los XML";
         var aviso = $("aviso-otra");
         aviso.hidden = !E.otra;
         if (E.otra) {
-            aviso.innerHTML = "Estás viendo XML de <strong>" + esc(nombreDe(E.otra)) + "</strong> (" + esc(E.otra) + "), que no está en tu directorio." +
+            aviso.innerHTML = "<strong>" + esc(nombreDe(E.otra)) + "</strong> no está en tu directorio: sus XML se borran solos 7 días después de la última carga." +
                 ' <a class="xml-enlace" href="/clientes/">Registrarla como cliente</a>' +
                 (E.empresa ? ' <button type="button" class="xml-enlace" id="volver-empresa">Volver a ' + esc(E.empresa.alias || E.empresa.rfc) + "</button>" : "");
         }
@@ -155,13 +173,29 @@
         var caja = $("sin-empresa");
         caja.hidden = false;
         if (E.empresa) {
-            caja.innerHTML = '<p class="xml-vacio__titulo">' + esc(E.empresa.alias || E.empresa.rfc) + " todavía no tiene XML</p>" +
-                "<p>Arrastra aquí sus XML (o un ZIP de la descarga del SAT) y presiona <strong>Procesar</strong>.</p>";
-            abrirBandeja();
+            caja.innerHTML = '<p class="ctx-vacio__titulo">' + esc(E.empresa.alias || E.empresa.rfc) + " todavía no tiene XML</p>" +
+                "<p>Agrega sus XML, una carpeta o el ZIP de la descarga masiva del SAT. Nada se guarda hasta que presiones <strong>Procesar</strong>.</p>" +
+                '<div class="ctx-vacio__acciones"><button type="button" class="xml-btn xml-btn--primario" data-agregar>+ Agregar XML</button></div>';
         } else {
-            caja.innerHTML = '<p class="xml-vacio__titulo">¿En qué empresa vas a trabajar?</p>' +
-                "<p>Elígela con el botón de empresa de la barra de arriba.<br>¿Son XML de alguien que no tienes registrado? Da clic en <strong>Agregar XML</strong>: el portal detecta de quién son.</p>";
+            caja.innerHTML = '<p class="ctx-vacio__titulo">¿De quién son los XML?</p>' +
+                "<p>Elige una de tus empresas, o trabaja sin registrar: agrega los XML y el portal detecta solo de quién son. " +
+                "Lo que cargues sin registrar se borra a los 7 días.</p>" +
+                '<div class="ctx-vacio__acciones"><button type="button" class="xml-btn xml-btn--primario" data-elegir>Elegir empresa</button>' +
+                '<button type="button" class="xml-btn" data-agregar>Trabajar sin registrar</button></div>';
         }
+    }
+
+    /* Hay empresa pero todavía no se eligió periodo: no se carga nada hasta elegirlo. */
+    function mostrarElegirPeriodo() {
+        $("contenido").hidden = true;
+        var c = E.contribuyentes.find(function (x) { return x.rfc === E.rfc; }) || {};
+        var total = (c.periodos || []).reduce(function (s, p) { return s + p.n; }, 0);
+        var caja = $("sin-empresa");
+        caja.hidden = false;
+        caja.innerHTML = '<p class="ctx-vacio__titulo">¿Qué periodo quieres ver?</p>' +
+            "<p>" + esc(nombreDe(E.rfc)) + " tiene " + total.toLocaleString("es-MX") + " XML. Elige un mes, el año completo o todos los periodos." +
+            "<br>Si eliges el periodo en la barra de arriba, todos los módulos se abren solos en ese mes.</p>" +
+            '<div class="ctx-vacio__acciones"><button type="button" class="xml-btn xml-btn--primario" data-periodo>Elegir periodo</button></div>';
     }
 
     /* Menú "Abrir otra empresa": tus empresas (cambia la empresa activa) y las
@@ -179,22 +213,22 @@
             h.push('<button type="button" data-empresa="' + esc(c.rfc) + '"' + (c.rfc === E.rfc ? ' class="xml-activa"' : "") + ">" + esc(c.alias) +
                 ' <span>' + esc(c.rfc) + (c.rfc === activa ? " · empresa activa" : "") + "</span></button>");
         });
-        h.push('<div class="xml-separador"></div><div class="xml-otra__grupo">Sin registrar</div>');
-        if (!E.otras.length) h.push('<p class="xml-otra__nota">No tienes XML cargados de alguien sin registrar. Para cargarlos, usa <strong>Agregar XML</strong>.</p>');
+        h.push('<div class="xml-separador"></div><div class="xml-otra__grupo">Sin registrar · se borran a los 7 días</div>');
         E.otras.forEach(function (c) {
             var dia = c.expira ? c.expira.slice(8, 10) + "/" + c.expira.slice(5, 7) : "";
             h.push('<div class="xml-otra__fila"><button type="button" data-otra="' + esc(c.rfc) + '"' + (c.rfc === E.rfc ? ' class="xml-activa"' : "") + ">" +
                 esc(c.nombre || "Sin nombre") + " <span>" + esc(c.rfc) + (dia ? " · se borra el " + dia : "") + "</span></button>" +
                 '<button type="button" class="xml-otra__borrar" data-borrar="' + esc(c.rfc) + '">Borrar</button></div>');
         });
-        if (E.otras.length) h.push('<p class="xml-otra__nota">Los XML de alguien sin registrar se borran solos 7 días después de su última carga. Regístralo como cliente para conservarlos.</p>');
-        h.push('<div class="xml-separador"></div><button type="button" data-ir="/clientes/">+ Registrar empresa</button>');
+        h.push('<button type="button" data-nuevo>+ Trabajar sin registrar <span>Agrega XML de alguien que no está en tu directorio</span></button>');
+        h.push('<div class="xml-separador"></div><button type="button" data-ir="/clientes/">+ Registrar empresa <span>Para conservar sus XML sin límite de tiempo</span></button>');
         menu.innerHTML = h.join("");
     }
 
     async function accionMenuOtra(b) {
         $("menu-otra").hidden = true;
         if (b.dataset.ir) { location.href = b.dataset.ir; return; }
+        if (b.hasAttribute("data-nuevo")) { abrirBandeja(); return; }
         if (b.dataset.otra) { refrescarBibliotecas(b.dataset.otra); return; }
         if (b.dataset.empresa) {
             if (E.empresa && E.empresa.rfc === b.dataset.empresa) { E.otra = null; E.rfc = null; refrescarBibliotecas(); }
@@ -215,19 +249,17 @@
     function armarPeriodos(c) {
         E.busqueda = ""; $("buscar").value = "";
         E.seleccion.clear();
-        var opciones = ['<option value="">Todos los periodos</option>'];
-        var anios = {};
-        (c.periodos || []).forEach(function (p) { anios[p.periodo.slice(0, 4)] = (anios[p.periodo.slice(0, 4)] || 0) + p.n; });
-        Object.keys(anios).sort().reverse().forEach(function (a) {
-            opciones.push('<option value="a:' + a + '">Todo ' + a + "</option>");
-            (c.periodos || []).filter(function (p) { return p.periodo.slice(0, 4) === a; }).forEach(function (p) {
-                opciones.push('<option value="m:' + p.periodo + '">&nbsp;&nbsp;' + MESES[+p.periodo.slice(5, 7) - 1] + " " + a + "</option>");
-            });
-        });
-        $("sel-periodo").innerHTML = opciones.join("");
-        var recordado = leerLocal("periodo:" + c.rfc);
-        $("sel-periodo").value = recordado && $("sel-periodo").querySelector('option[value="' + recordado + '"]') ? recordado
-            : (c.periodos && c.periodos.length ? "m:" + c.periodos[0].periodo : "");
+        var conteos = {};
+        (c.periodos || []).forEach(function (p) { conteos[p.periodo] = p.n; });
+        E.selPeriodo.conteos(conteos);
+        E.selPeriodo.general(E.periodoGeneral);
+        // Se precarga el periodo general; si no hay, no se carga nada hasta elegir.
+        ponerPeriodo(E.periodoGeneral ? "m:" + E.periodoGeneral : "");
+    }
+
+    function ponerPeriodo(v) {
+        $("sel-periodo").value = v || "";
+        E.selPeriodo.poner(v || null);
     }
 
     function rangoPeriodo() {
@@ -238,11 +270,14 @@
             return { desde: v.slice(2) + "-01", hasta: v.slice(2) + "-" + String(ultimo).padStart(2, "0") };
         }
         if (v.indexOf("a:") === 0) return { desde: v.slice(2) + "-01-01", hasta: v.slice(2) + "-12-31" };
-        return { desde: null, hasta: null };
+        return { desde: null, hasta: null };      // "t:" = todos los periodos
     }
 
     async function cargarRegistros() {
-        guardarLocal("periodo:" + E.rfc, $("sel-periodo").value);
+        if (!E.rfc) return;
+        if (!$("sel-periodo").value) { mostrarElegirPeriodo(); return; }
+        $("sin-empresa").hidden = true;
+        $("contenido").hidden = false;
         var r = rangoPeriodo();
         var q = "?rfc=" + encodeURIComponent(E.rfc) + (r.desde ? "&desde=" + r.desde + "&hasta=" + r.hasta : "");
         $("conteo-filas").textContent = "Cargando…";
@@ -547,6 +582,12 @@
         }).join("") + "</tr>" : "";
 
         $("sin-filas").hidden = E.filas.length > 0;
+        if (!E.filas.length) {
+            // ¿Faltan datos en el periodo, o los esconden los filtros? Son dos mensajes distintos.
+            var hayEnPeriodo = MODULOS.some(function (m) { return E.datos[m.clave] && E.datos[m.clave].filas.length; });
+            $("sin-filas").textContent = hayEnPeriodo ? "No hay registros con estos filtros."
+                : "No hay XML en " + Fiscontable.textoPeriodo($("sel-periodo").value) + ". Elige otro periodo arriba.";
+        }
         $("conteo-filas").textContent = E.filas.length.toLocaleString("es-MX") + " registro(s)";
         pintarFilas(true);
         pintarSeleccion();
@@ -568,7 +609,8 @@
         for (var i = inicio; i < fin; i++) {
             var f = E.filas[i];
             var sel = E.seleccion.has(f.uuid);
-            html.push('<tr data-i="' + i + '"' + (sel ? ' class="xml-sel"' : "") + ">" +
+            var clases = (sel ? "xml-sel " : "") + (f.estado_sat === "Cancelado" ? "fila-cancelada" : "");
+            html.push('<tr data-i="' + i + '"' + (clases.trim() ? ' class="' + clases.trim() + '"' : "") + ">" +
                 '<td class="xml-check xml-fija" style="left:0"><input type="checkbox" data-sel="' + i + '"' + (sel ? " checked" : "") + "></td>" +
                 cols.map(function (c, j) { return celda(c, f, j === 0); }).join("") + "</tr>");
         }
@@ -1141,7 +1183,7 @@
     }
 
     function prepararEventos() {
-        $("sel-periodo").addEventListener("change", cargarRegistros);
+
         $("btn-otra").addEventListener("click", function (e) {
             e.stopPropagation(); cerrarMenus("menu-otra");
             $("menu-otra").hidden = !$("menu-otra").hidden;
@@ -1157,7 +1199,14 @@
             var k = e.target.dataset.av; if (!k) return;
             E.av[k] = e.target.value; pintarRapidos(); aplicar();
         });
-        $("sin-empresa").addEventListener("click", function (e) { var b = e.target.closest("[data-otra]"); if (b) refrescarBibliotecas(b.dataset.otra); });
+        $("sin-empresa").addEventListener("click", function (e) {
+            var b = e.target.closest("button");
+            if (!b) return;
+            if (b.dataset.otra) { refrescarBibliotecas(b.dataset.otra); return; }
+            if (b.hasAttribute("data-agregar")) { abrirBandeja(); return; }
+            if (b.hasAttribute("data-periodo")) { E.selPeriodo.abrir(); return; }
+            if (b.hasAttribute("data-elegir")) { e.stopPropagation(); cerrarMenus("menu-otra"); $("menu-otra").hidden = false; pintarMenuOtra(); }
+        });
         $("aviso-otra").addEventListener("click", function (e) { if (e.target.id === "volver-empresa") { E.otra = null; E.rfc = null; refrescarBibliotecas(); } });
         $("pestanas").addEventListener("click", function (e) {
             var b = e.target.closest(".pestana");

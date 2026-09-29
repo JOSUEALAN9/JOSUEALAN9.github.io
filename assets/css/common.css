@@ -880,3 +880,43 @@ body.fc-sin-scroll { overflow: hidden; }
 @media (max-width: 1520px) {
     .fc-migas .fc-miga:not(.fc-miga--padre):not(.fc-miga--actual) { display: none; }
 }
+
+/* ============================================================
+   SELECTOR DE PERIODO (componente compartido)
+   ------------------------------------------------------------
+   Lo usa el selector general de la barra y cualquier módulo vía
+   Fiscontable.selectorPeriodo(). Flota con position: fixed para
+   que ningún contenedor con overflow lo recorte.
+   ============================================================ */
+.fc-periodo {
+    position: fixed; z-index: 70; width: 300px;
+    background: #fff; color: var(--texto);
+    border: 1px solid var(--linea); border-radius: var(--radio);
+    box-shadow: var(--sombra-alta); padding: 12px;
+}
+.fc-periodo[hidden] { display: none; }
+.fc-periodo__cabeza { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.fc-periodo__cabeza strong { font-family: 'Bricolage Grotesque', 'Instrument Sans', sans-serif; font-size: 17px; font-weight: 800; letter-spacing: -.01em; }
+.fc-periodo__flecha { width: 32px; height: 32px; border: 1px solid var(--linea); border-radius: 9px; background: #fff; font-size: 18px; line-height: 1; color: var(--texto); cursor: pointer; }
+.fc-periodo__flecha:hover { background: #f1f5f9; }
+.fc-periodo__meses { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.fc-periodo__mes {
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;
+    min-height: 46px; border: 1px solid transparent; border-radius: 10px; background: #f8fafc;
+    font: inherit; font-size: 13.5px; font-weight: 700; color: var(--texto); cursor: pointer;
+    transition: background .12s, border-color .12s;
+}
+.fc-periodo__mes small { font-size: 10.5px; font-weight: 700; color: var(--acento); font-variant-numeric: tabular-nums; }
+.fc-periodo__mes:hover { border-color: var(--acento); background: #fff; }
+.fc-periodo__mes--vacio { color: #b6bec9; background: #fff; border-color: #f1f5f9; }
+.fc-periodo__mes--activo, .fc-periodo__mes--activo:hover { background: var(--acento); border-color: var(--acento); color: #fff; }
+.fc-periodo__mes--activo small { color: rgba(255, 255, 255, .85); }
+.fc-periodo__pie { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--linea); }
+.fc-periodo__opcion { flex: 1 1 auto; border: 1px solid var(--linea); border-radius: 9px; background: #fff; padding: 7px 10px; font: inherit; font-size: 12.5px; font-weight: 700; color: var(--texto); cursor: pointer; }
+.fc-periodo__opcion small { color: var(--texto-tenue); font-weight: 600; margin-left: 3px; }
+.fc-periodo__opcion:hover { border-color: var(--acento); }
+.fc-periodo__opcion--activa { background: var(--acento-suave); border-color: var(--acento); }
+.fc-periodo__general, .fc-periodo__quitar { width: 100%; border: 0; background: none; padding: 6px 2px 0; text-align: left; font: inherit; font-size: 12.5px; font-weight: 700; cursor: pointer; }
+.fc-periodo__general { color: var(--acento); }
+.fc-periodo__quitar { color: var(--texto-tenue); text-decoration: underline; }
+@media (max-width: 620px) { .fc-periodo { left: 12px !important; right: 12px; width: auto; } }
