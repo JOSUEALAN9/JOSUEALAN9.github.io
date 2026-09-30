@@ -27,7 +27,8 @@
         modo: "webservice", tipo: "emitidos", acceso: "ciec", elegido: null, ciecOtra: false, puedeGuardar: false,
         periodoGeneral: null, periodoTocado: false,
         solicitudes: [], sondeo: null, captcha: { id: null, turno: null, enviado: false },
-        abierta: null, detalle: null, tablas: {}, filas: []
+        abierta: null, detalle: null, tablas: {}, filas: [],
+        sesion: { abierta: false, entrando: false }      // sesión abierta del portal (GET /portal/sesion)
     };
 
     var $ = function (id) { return document.getElementById(id); };
@@ -105,6 +106,7 @@
             : "El SAT prepara cada solicitud por su cuenta: puede tardar de minutos a horas. No necesitas dejar esta página abierta; la ves en Solicitudes.";
         pintarAcceso();
         pintarResumen();
+        if (portal) cargarSesion();
     }
 
     function pintarAcceso() {
@@ -127,7 +129,66 @@
         $("nota-ciec-guardada").hidden = !usaGuardada;
         $("ciec-escribir").hidden = usaGuardada;
         $("caja-guardar-ciec").hidden = !(q.esCliente && E.puedeGuardar);
+        pintarSesion();
     }
+
+    /* ================================================================ sesión del portal */
+    // Como en Mi Admin: se entra una vez y las siguientes búsquedas del mismo RFC (emitidas o
+    // recibidas) usan esa sesión, sin contraseña ni captcha, hasta "Cerrar sesión" o 30 min sin uso.
+
+    function sesionUsable() {
+        var s = E.sesion;
+        return E.modo === "portal" && !!E.elegido && !!s && s.abierta && s.rfc === E.elegido.rfc;
+    }
+
+    function pintarSesion() {
+        var q = E.elegido, s = E.sesion || {}, caja = $("sesion-portal");
+        var portal = E.modo === "portal" && !!q;
+        var mia = portal && (s.abierta || s.entrando) && s.rfc === q.rfc;
+        var otro = portal && s.abierta && s.rfc !== q.rfc;
+        caja.hidden = !(mia || otro);
+        if (caja.hidden) return;
+        caja.className = "dm-sesion" + (s.entrando ? " dm-sesion--entrando" : "") + (otro ? " dm-sesion--otro" : "");
+        var como = s.acceso === "efirma" ? "e.firma" : "contraseña";
+        var texto;
+        if (otro) texto = "Tienes una sesión abierta del portal con " + s.rfc + ". Al buscar con este RFC se cierra y se entra de nuevo.";
+        else if (s.entrando) texto = "Entrando al portal…";
+        else texto = "Sesión abierta en el portal (" + como + "): tus búsquedas de " + s.rfc + ", emitidas o recibidas, ya no piden entrar." +
+            (s.ocupada || s.cierra_en_min == null ? "" : " Se cierra sola en " + Math.max(1, s.cierra_en_min) + " min sin uso.");
+        $("sesion-texto").textContent = texto;
+        $("sesion-cerrar").hidden = !s.abierta;
+        if (mia && s.abierta) {                          // no hace falta volver a entrar
+            $("acceso-portal").hidden = true;
+            $("campos-ciec").hidden = true;
+            $("campos-efirma").hidden = true;
+        }
+    }
+
+    async function cargarSesion() {
+        if (E.modo !== "portal") return;
+        try { E.sesion = await api("/api/descarga-xml/portal/sesion"); }
+        catch (e) { E.sesion = { abierta: false, entrando: false }; }
+        pintarAcceso();
+    }
+
+    $("sesion-cerrar").addEventListener("click", async function () {
+        var b = this;
+        b.disabled = true;
+        try {
+            await api("/api/descarga-xml/portal/sesion/cerrar", { method: "POST" });
+            E.sesion = { abierta: false, entrando: false };
+            pintarAcceso();
+            toast("Sesión del portal cerrada.");
+            setTimeout(cargarSolicitudes, 3000);
+        } catch (e) {
+            alerta(e.message);
+            cargarSesion();
+        } finally {
+            b.disabled = false;
+        }
+    });
+
+    setInterval(function () { if (E.modo === "portal" && E.elegido && !document.hidden) cargarSesion(); }, 60000);
 
     document.querySelectorAll(".dm-modo").forEach(function (b) {
         b.addEventListener("click", function () { ponerModo(b.dataset.modo); });
@@ -292,8 +353,11 @@
         } else {
             ruta = "/api/descarga-xml/portal/solicitar";
             cuerpo.append("modo", modo);
-            cuerpo.append("acceso", E.acceso);
-            if (E.acceso === "ciec") {
+            var conSesion = sesionUsable();
+            cuerpo.append("acceso", conSesion ? E.sesion.acceso : E.acceso);
+            if (conSesion) {
+                /* la sesión abierta ya entró al portal: no se manda contraseña ni e.firma */
+            } else if (E.acceso === "ciec") {
                 if (!E.elegido.ciecGuardada || E.ciecOtra) {
                     var ciec = $("ciec").value;
                     if (!ciec) { alerta("Escribe la contraseña del SAT (CIEC) del contribuyente."); return; }
@@ -313,8 +377,10 @@
             Fiscontable.refrescarDescargas();
             var ins = $("insignia");
             ins.classList.remove("dm-insignia--pulso"); void ins.offsetWidth; ins.classList.add("dm-insignia--pulso");
+            if (E.modo === "portal") cargarSesion();
             toast(E.modo === "portal"
-                ? (E.acceso === "ciec" ? "Entrando al portal… en un momento te pide el captcha." : "Entrando al portal con la e.firma…")
+                ? (conSesion ? "Buscando con la sesión abierta del portal…"
+                   : E.acceso === "ciec" ? "Entrando al portal… en un momento te pide el captcha." : "Entrando al portal con la e.firma…")
                 : "Solicitud enviada al SAT.", "Ver solicitudes", abrirCajon);
         } catch (e) {
             alerta(e.message || await Fiscontable.leerError(null));
@@ -345,6 +411,7 @@
 
     async function cargarSolicitudes() {
         if (!E.elegido) return;
+        if (E.modo === "portal") cargarSesion();
         var rfc = E.elegido.rfc;
         try {
             var lista = await api("/api/descarga-xml/solicitudes?rfc=" + encodeURIComponent(rfc));

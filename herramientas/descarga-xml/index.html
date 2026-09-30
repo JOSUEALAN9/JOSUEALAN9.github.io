@@ -53,6 +53,13 @@
             </div>
         </div>
 
+        <!-- Sesión abierta del portal (como en Mi Admin): las búsquedas ya no piden entrar -->
+        <div id="sesion-portal" class="dm-sesion" role="status" hidden>
+            <span class="dm-sesion__punto" aria-hidden="true"></span>
+            <span id="sesion-texto" class="dm-crece"></span>
+            <button type="button" id="sesion-cerrar" class="boton-secundario dm-sesion__boton">Cerrar sesión</button>
+        </div>
+
         <!-- Contraseña (CIEC): solo en el portal -->
         <div id="campos-ciec" hidden>
             <p id="nota-ciec-guardada" class="dm-nota" hidden>

@@ -142,3 +142,13 @@
     .dm-periodo .ctx-campo { flex: 1 1 140px; min-width: 0; }
     .dm-acciones { flex-direction: column; }
 }
+
+/* Sesión abierta del portal */
+.dm-sesion { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 8px 12px; margin: 0 0 10px;
+             border: 1px solid var(--linea); border-radius: var(--radio-chico); background: var(--acento-suave); font-size: .92rem; }
+.dm-sesion__punto { width: 9px; height: 9px; border-radius: 50%; background: var(--marca); flex: none; }
+.dm-sesion__boton { width: auto; flex: none; margin-left: auto; padding: 5px 14px; font-size: .88rem; }
+.dm-sesion--entrando { background: var(--papel); }
+.dm-sesion--entrando .dm-sesion__punto { background: #D69E2E; }
+.dm-sesion--otro { background: var(--papel); }
+.dm-sesion--otro .dm-sesion__punto { background: var(--texto-tenue); }
