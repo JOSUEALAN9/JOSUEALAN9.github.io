@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Constancias | Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/common.css?v=202609300912">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202609301214">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
 </head>
@@ -69,7 +69,11 @@
         </div>
 
         <button type="button" id="btn-masivo" class="boton-principal" disabled>Arrastra la carpeta para empezar</button>
-        <button type="button" id="btn-masivo-programar" class="boton-secundario" style="margin-top:10px" hidden>🌙 Programar este lote para la madrugada (2:00 a 6:30)</button>
+        <div id="caja-programar-lote" style="display:none;margin-top:10px;gap:10px;flex-wrap:wrap;align-items:flex-end">
+            <label class="campo" style="flex:0 1 190px"><span class="campo__etiqueta">Madrugada del</span>
+                <input type="date" id="lote-noche" class="campo__control"></label>
+            <button type="button" id="btn-masivo-programar" class="boton-secundario" style="flex:1 1 260px">🌙 Programar este lote (2:00 a 6:30)</button>
+        </div>
 
         <div id="progreso-masivo" style="margin-top:14px" hidden>
             <div class="progress-track"><div class="progress-fill" id="progreso-masivo-fill" style="width:0%"></div></div>
@@ -86,10 +90,10 @@
 
 <footer class="fc-pie">© 2026 Alan Sánchez</footer>
 
-<script src="/assets/js/nucleo.js?v=202609300912"></script>
-<script src="/assets/js/barra.js?v=202609300912"></script>
-<script src="/assets/js/comun/paso-cliente.js?v=202609300912"></script>
-<script src="/assets/js/comun/leer-cer.js?v=202609300912"></script>
+<script src="/assets/js/nucleo.js?v=202609301214"></script>
+<script src="/assets/js/barra.js?v=202609301214"></script>
+<script src="/assets/js/comun/paso-cliente.js?v=202609301214"></script>
+<script src="/assets/js/comun/leer-cer.js?v=202609301214"></script>
 <script>
     const MODULO = {
         slug: "constancia",
@@ -100,8 +104,8 @@
         adicional: "Opinión de Cumplimiento (32-D)",
     };
 </script>
-<script src="/assets/js/comun/modulo-sat.js?v=202609300912"></script>
-<script src="/assets/js/comun/programar.js?v=202609300912"></script>
+<script src="/assets/js/comun/modulo-sat.js?v=202609301214"></script>
+<script src="/assets/js/comun/programar.js?v=202609301214"></script>
 <script>Fiscontable.Programar.montar({ modulo: "csf", contenedor: "programar-madrugada" });</script>
 </body>
 </html>

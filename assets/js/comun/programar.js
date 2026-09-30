@@ -79,6 +79,20 @@
 
     /* ------------------------------------------------------------ opciones por módulo */
 
+    /* La madrugada que sigue: hoy si aún no dan las 6:30; si no, mañana. */
+    function nocheSiguiente() {
+        var f = new Date();
+        if (f.getHours() > 6 || (f.getHours() === 6 && f.getMinutes() >= 30)) f.setDate(f.getDate() + 1);
+        return f.getFullYear() + "-" + String(f.getMonth() + 1).padStart(2, "0") + "-" + String(f.getDate()).padStart(2, "0");
+    }
+    function textoNoche(valor) {
+        if (!valor) return "";
+        var d = new Date(valor + "T12:00:00"), hoy = new Date(), man = new Date(); man.setDate(hoy.getDate() + 1);
+        var nombre = d.toDateString() === hoy.toDateString() ? "hoy" : d.toDateString() === man.toDateString() ? "mañana" :
+            d.toLocaleDateString("es-MX", { weekday: "long", day: "numeric", month: "long" });
+        return "Madrugada de " + nombre + ", de 2:00 a 6:30 a. m. (hora de México), con pausas al azar.";
+    }
+
     function mesAnterior() {
         var f = new Date(); f.setDate(1); f.setMonth(f.getMonth() - 1);
         return f.getFullYear() + "-" + String(f.getMonth() + 1).padStart(2, "0");
@@ -155,6 +169,9 @@
             '      <label class="marca" style="flex:none"><input type="checkbox" data-fp="todos"> Todos</label></div></div>' +
             '    <div class="fp-clientes" data-fp="clientes"><p class="ficha__nota" style="padding:10px">Cargando tu directorio…</p></div>' +
             '    <p class="ficha__nota" data-fp="cuenta"></p>' +
+            '    <div class="fp-fila"><label class="campo"><span class="campo__etiqueta">¿Qué madrugada?</span>' +
+            '      <input type="date" class="campo__control" data-fp="noche"></label>' +
+            '      <p class="ficha__nota" data-fp="noche-texto" style="flex:2 1 220px"></p></div>' +
                  opcionesHtml(modulo) +
             '    <div class="fp-aviso fp-aviso--error" data-fp="error" hidden></div>' +
             "  </div>" +
@@ -171,7 +188,7 @@
                 var c = p.conteo || {}, total = (p.tareas || []).length;
                 var linea;
                 if (p.estado === "programada") {
-                    linea = "Empieza " + dia(p.arranque) + " a las " + hora(p.arranque) + " · " + total + " por hacer";
+                    linea = "Empieza " + dia(p.arranque) + " a las " + hora(p.arranque) + " · " + (c.pendiente || 0) + " por hacer";
                 } else if (p.estado === "en_curso") {
                     linea = "Trabajando: " + (c.lista || 0) + " de " + total + " listos";
                 } else {
@@ -261,6 +278,7 @@
             pintarClientes();
         });
         $("buscar").addEventListener("input", pintarClientes);
+        $("noche").addEventListener("change", function () { $("noche-texto").textContent = textoNoche(this.value); });
 
         async function abrir() {
             $("error").hidden = true;
@@ -278,6 +296,12 @@
                         return { rfc: q.rfc, alias: q.alias, marcado: false };
                     });
                 }
+                var noche = $("noche"), siguiente = nocheSiguiente();
+                noche.min = siguiente;
+                var max = new Date(); max.setDate(max.getDate() + 60);
+                noche.max = max.toISOString().slice(0, 10);
+                if (!noche.value || noche.value < siguiente) noche.value = siguiente;
+                $("noche-texto").textContent = textoNoche(noche.value);
                 pintarClientes();
                 $("buscar").focus();
             } catch (e) {
@@ -297,7 +321,7 @@
             var rfcs = (clientes || []).filter(function (q) { return q.marcado; }).map(function (q) { return q.rfc; });
             try {
                 if (!rfcs.length) throw new Error("Elige al menos un cliente.");
-                var cuerpo = Object.assign({ modulo: modulo, rfcs: rfcs }, leerOpciones(modulo));
+                var cuerpo = Object.assign({ modulo: modulo, rfcs: rfcs, noche: $("noche").value || null }, leerOpciones(modulo));
                 b.disabled = true; b.textContent = "Programando…";
                 var p = await api("/api/programadas", {
                     method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(cuerpo)
@@ -327,5 +351,5 @@
     function refrescar(abrirId) { recargas.forEach(function (f) { f(abrirId); }); }
 
     window.Fiscontable = window.Fiscontable || {};
-    window.Fiscontable.Programar = { montar: montar, refrescar: refrescar };
+    window.Fiscontable.Programar = { montar: montar, refrescar: refrescar, nocheSiguiente: nocheSiguiente, textoNoche: textoNoche };
 })();

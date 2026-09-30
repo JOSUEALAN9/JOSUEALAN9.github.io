@@ -706,12 +706,17 @@
     function actualizarBotonMasivo() {
         var btn = $("btn-masivo");
         var r = revisionLote;
-        var programar = $("btn-masivo-programar");
-        if (!r) { btn.disabled = false; if (programar) programar.hidden = true; return; }
+        var programar = $("caja-programar-lote");
+        if (!r) { btn.disabled = false; if (programar) programar.style.display = "none"; return; }
 
         var cuantos = forzarRegenerar ? r.listos.length + r.ya_existentes.length : r.listos.length;
         // Programar el mismo lote para la madrugada: la carpeta viaja cifrada, no hace falta el directorio
-        if (programar) programar.hidden = cuantos === 0 || !window.Fiscontable.Programar;
+        if (programar) {
+            var P = window.Fiscontable.Programar;
+            programar.style.display = cuantos === 0 || !P ? "none" : "flex";
+            var noche = $("lote-noche");
+            if (P && noche && (!noche.value || noche.value < P.nocheSiguiente())) { noche.value = P.nocheSiguiente(); noche.min = P.nocheSiguiente(); }
+        }
 
         if (cuantos === 0 && r.ya_existentes.length && !forzarRegenerar) {
             btn.disabled = false;
@@ -766,12 +771,14 @@
         archivosLote.forEach(function (f) { cuerpo.append("archivos_lote", f); });
         cuerpo.append("modulo", MODULO.tipo);
         cuerpo.append("forzar_regenerar", String(forzarRegenerar));
+        if ($("lote-noche") && $("lote-noche").value) cuerpo.append("noche", $("lote-noche").value);
         try {
             var resp = await fetch(API + "/api/programadas/lote", { method: "POST", credentials: "include", body: cuerpo });
             if (!resp.ok) { alerta("error", await leerError(resp)); return; }
             var p = await resp.json(), c = p.conteo || {};
             var arranque = new Date(p.arranque).toLocaleTimeString("es-MX", { hour: "numeric", minute: "2-digit" });
-            alerta("bien", "Lote programado para la madrugada (empieza a las " + arranque + "): " + (c.pendiente || 0) +
+            var diaArranque = new Date(p.arranque).toLocaleDateString("es-MX", { weekday: "long", day: "numeric", month: "long" });
+            alerta("bien", "Lote programado para la madrugada del " + diaArranque + " (empieza a las " + arranque + "): " + (c.pendiente || 0) +
                 " por hacer" + (c.revisar ? ", " + c.revisar + " con la e.firma a revisar" : "") +
                 ". Lo sigues en la tarjeta de arriba y en la mañana lo encuentras en Mis descargas.");
             if (window.Fiscontable.Programar && window.Fiscontable.Programar.refrescar) window.Fiscontable.Programar.refrescar(p.id);

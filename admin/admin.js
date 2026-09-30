@@ -19,8 +19,11 @@ const ESTILO_ROL = {
 const NOMBRE_DOC = {
     csf: "Constancia", opinion: "Opinión", "csf+opinion": "Constancia + Opinión",
     declaraciones: "Declaraciones", voucheo: "Voucheo", descarga_xml: "Descarga masiva de XML",
+    programada_csf: "Programada · Constancias", programada_opinion: "Programada · Opiniones",
+    programada_declaraciones: "Programada · Declaraciones", programada_xml: "Programada · Descarga de XML",
 };
-const INICIAL_DOC = { csf: "CSF", opinion: "32D", "csf+opinion": "C+O", declaraciones: "DEC", voucheo: "VOU", descarga_xml: "XML" };
+const INICIAL_DOC = { csf: "CSF", opinion: "32D", "csf+opinion": "C+O", declaraciones: "DEC", voucheo: "VOU", descarga_xml: "XML",
+    programada_csf: "🌙", programada_opinion: "🌙", programada_declaraciones: "🌙", programada_xml: "🌙" };
 
 let usuariosCache = [];
 let rolesCache = null;          // {modulos:[{clave,nombre}], roles:[...]}
@@ -575,9 +578,11 @@ function renderizarActividad() {
                 <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
                     <span class="font-bold text-slate-800">${esc(nombreDoc)}</span>
                     ${p.clase === "lote" ? sello("Lote", "bg-slate-100 text-slate-600") : ""}
+                    ${p.clase === "programada" ? sello("Madrugada", "bg-indigo-100 text-indigo-700") : ""}
                     <span class="font-mono text-xs text-slate-500">${esc(p.titulo)}</span>
                 </div>
                 <p class="text-xs text-slate-500 mt-0.5 truncate">${esc(p.usuario)}</p>
+                ${p.clase === "programada" && p.progreso ? `<p class="text-xs text-indigo-700 mt-1">${esc(p.progreso)}</p>` : ""}
                 ${avance}${motivos}${error}
             </div>
             <div class="text-right flex-none">

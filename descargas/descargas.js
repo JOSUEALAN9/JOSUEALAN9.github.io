@@ -63,6 +63,10 @@ function nombreDocumento(p) {
         "csf": "Constancia de Situación Fiscal",
         "opinion": "Opinión de Cumplimiento",
         "csf+opinion": "Constancia y Opinión",
+        "programada_csf": "🌙 Programada · Constancias",
+        "programada_opinion": "🌙 Programada · Opiniones",
+        "programada_declaraciones": "🌙 Programada · Declaraciones",
+        "programada_xml": "🌙 Programada · Descarga de XML",
     };
     return tipos[p.tipo] || p.tipo;
 }
@@ -121,6 +125,7 @@ function tarjetaPreparando(p) {
         detalle = `${p.procesados} de ${p.total}${p.rfc_actual ? " · " + p.rfc_actual : ""}`;
         barra = `<div class="progress-track mt-2"><div class="progress-fill bg-blue-500" style="width:${pct}%"></div></div>`;
     }
+    if (p.clase === "programada") detalle = p.progreso || "Programada para la madrugada.";
     return `
     <div class="bg-white rounded-xl card-elevated border border-gray-200 p-5">
         <div class="flex items-start gap-3">
@@ -249,7 +254,8 @@ async function cancelar(clase, id, boton) {
     boton.disabled = true;
     boton.textContent = "Deteniendo...";
     try {
-        const ruta = clase === "lote" ? `/api/lotes/${id}/cancelar` : `/api/trabajos/${id}/cancelar`;
+        const ruta = clase === "lote" ? `/api/lotes/${id}/cancelar`
+            : clase === "programada" ? `/api/programadas/${id}/cancelar` : `/api/trabajos/${id}/cancelar`;
         const resp = await fetch(`${API_URL}${ruta}`, { method: "POST", credentials: "include" });
         if (!resp.ok) {
             mostrarAviso("No se pudo detener. Puede que ya haya terminado.");

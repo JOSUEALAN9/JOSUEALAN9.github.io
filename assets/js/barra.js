@@ -821,7 +821,9 @@
                 boton.textContent = "Deteniendo…";
                 var ruta = boton.dataset.clase === "lote"
                     ? "/api/lotes/" + boton.dataset.id + "/cancelar"
-                    : "/api/trabajos/" + boton.dataset.id + "/cancelar";
+                    : boton.dataset.clase === "programada"
+                        ? "/api/programadas/" + boton.dataset.id + "/cancelar"
+                        : "/api/trabajos/" + boton.dataset.id + "/cancelar";
                 await fetch(API + ruta, { method: "POST", credentials: "include" });
                 await sondear();
                 return;
