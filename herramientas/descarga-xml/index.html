@@ -4,9 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Descarga masiva de XML | Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/common.css?v=202609292003">
-    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202609292003">
-    <link rel="stylesheet" href="/herramientas/descarga-xml/descarga-xml.css?v=202609292003">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202609300849">
+    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202609300849">
+    <link rel="stylesheet" href="/herramientas/descarga-xml/descarga-xml.css?v=202609300849">
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="min-h-screen flex flex-col">
@@ -40,6 +40,8 @@
     </div>
 
     <div id="alerta" class="fc-aviso" style="margin:0 0 12px" hidden></div>
+
+    <div id="programar-madrugada"></div>
 
     <!-- 1. De quién y cómo entrar -->
     <div id="paso-cliente"></div>
@@ -229,11 +231,13 @@
 
 <footer class="fc-pie">© 2026 Alan Sánchez</footer>
 
-<script src="/assets/js/nucleo.js?v=202609292003"></script>
-<script src="/assets/js/barra.js?v=202609292003"></script>
-<script src="/assets/js/comun/leer-cer.js?v=202609292003"></script>
-<script src="/assets/js/comun/paso-cliente.js?v=202609292003"></script>
-<script src="/assets/js/comun/tabla.js?v=202609292003"></script>
-<script src="/herramientas/descarga-xml/descarga-xml.js?v=202609292003"></script>
+<script src="/assets/js/nucleo.js?v=202609300849"></script>
+<script src="/assets/js/barra.js?v=202609300849"></script>
+<script src="/assets/js/comun/leer-cer.js?v=202609300849"></script>
+<script src="/assets/js/comun/paso-cliente.js?v=202609300849"></script>
+<script src="/assets/js/comun/tabla.js?v=202609300849"></script>
+<script src="/herramientas/descarga-xml/descarga-xml.js?v=202609300849"></script>
+<script src="/assets/js/comun/programar.js?v=202609300849"></script>
+<script>Fiscontable.Programar.montar({ modulo: "xml", contenedor: "programar-madrugada" });</script>
 </body>
 </html>

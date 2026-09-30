@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Opinión 32-D | Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/common.css?v=202609292003">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202609300849">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
 </head>
@@ -19,6 +19,8 @@
 
     <h1 class="display" style="font-size:30px">Opinión de Cumplimiento 32-D</h1>
     <p style="margin:9px 0 24px;font-size:15px;color:var(--texto-tenue)">El estado de las obligaciones fiscales del contribuyente, tal como lo publica el SAT.</p>
+
+    <div id="programar-madrugada"></div>
 
     <div class="pestanas" role="tablist">
         <button type="button" class="pestana pestana--activa" id="tab-individual" role="tab" aria-selected="true">Un contribuyente</button>
@@ -83,10 +85,10 @@
 
 <footer class="fc-pie">© 2026 Alan Sánchez</footer>
 
-<script src="/assets/js/nucleo.js?v=202609292003"></script>
-<script src="/assets/js/barra.js?v=202609292003"></script>
-<script src="/assets/js/comun/paso-cliente.js?v=202609292003"></script>
-<script src="/assets/js/comun/leer-cer.js?v=202609292003"></script>
+<script src="/assets/js/nucleo.js?v=202609300849"></script>
+<script src="/assets/js/barra.js?v=202609300849"></script>
+<script src="/assets/js/comun/paso-cliente.js?v=202609300849"></script>
+<script src="/assets/js/comun/leer-cer.js?v=202609300849"></script>
 <script>
     const MODULO = {
         slug: "opinion",
@@ -97,6 +99,8 @@
         adicional: "Constancia de Situación Fiscal",
     };
 </script>
-<script src="/assets/js/comun/modulo-sat.js?v=202609292003"></script>
+<script src="/assets/js/comun/modulo-sat.js?v=202609300849"></script>
+<script src="/assets/js/comun/programar.js?v=202609300849"></script>
+<script>Fiscontable.Programar.montar({ modulo: "opinion", contenedor: "programar-madrugada" });</script>
 </body>
 </html>

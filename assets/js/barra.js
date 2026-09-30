@@ -634,7 +634,11 @@
         "csf+opinion": "Constancia y Opinión",
         declaraciones: "Declaraciones",
         voucheo: "Voucheo de impuestos",
-        descarga_xml: "Descarga masiva de XML"
+        descarga_xml: "Descarga masiva de XML",
+        programada_csf: "Programada · Constancias",
+        programada_opinion: "Programada · Opiniones",
+        programada_declaraciones: "Programada · Declaraciones",
+        programada_xml: "Programada · Descarga de XML"
     };
 
     function tituloProceso(p) {
