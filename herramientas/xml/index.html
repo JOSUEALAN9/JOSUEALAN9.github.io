@@ -4,35 +4,36 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Administración de XML · Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/common.css?v=202609291637">
-    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202609291637">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202609292003">
+    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202609292003">
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-slate-50">
 <div id="app-header" data-modulo="xml" data-titulo="Administración de XML" data-migas="Herramientas|/herramientas/"></div>
-<script src="/assets/js/nucleo.js?v=202609291637"></script>
-<script src="/assets/js/barra.js?v=202609291637"></script>
+<script src="/assets/js/nucleo.js?v=202609292003"></script>
+<script src="/assets/js/barra.js?v=202609292003"></script>
 
 <main class="xml-pagina">
+    <!-- Una sola fila: qué módulo, de quién, qué periodo y la acción principal -->
     <div class="xml-cabeza">
         <h1>Administración de XML</h1>
-        <button type="button" id="btn-agregar" class="xml-btn xml-btn--primario">+ Agregar XML</button>
-    </div>
-
-    <!-- Contexto: de quién y qué periodo. Mismo patrón en todos los módulos de XML. -->
-    <div class="ctx">
-        <div class="xml-menu">
-            <button type="button" id="btn-otra" class="ctx-campo" aria-haspopup="menu">
-                <span class="ctx-campo__texto"><small id="empresa-etiqueta">Empresa</small><strong id="empresa-titulo">Elegir empresa</strong></span>
+        <div class="ctx">
+            <div class="xml-menu">
+                <button type="button" id="btn-otra" class="ctx-campo" aria-haspopup="menu">
+                    <span class="ctx-campo__texto"><small id="empresa-etiqueta">Empresa</small><strong id="empresa-titulo">Elegir empresa</strong></span>
+                    <span class="ctx-campo__flecha" aria-hidden="true">▾</span>
+                </button>
+                <div id="menu-otra" class="xml-menu__lista xml-menu__lista--otra" hidden></div>
+            </div>
+            <button type="button" id="btn-periodo" class="ctx-campo" aria-haspopup="dialog" disabled>
+                <span class="ctx-campo__texto"><small>Periodo</small><strong id="periodo-titulo">Elegir periodo</strong></span>
                 <span class="ctx-campo__flecha" aria-hidden="true">▾</span>
             </button>
-            <div id="menu-otra" class="xml-menu__lista xml-menu__lista--otra" hidden></div>
+            <input type="hidden" id="sel-periodo">
         </div>
-        <button type="button" id="btn-periodo" class="ctx-campo" aria-haspopup="dialog" disabled>
-            <span class="ctx-campo__texto"><small>Periodo</small><strong id="periodo-titulo">Elegir periodo</strong></span>
-            <span class="ctx-campo__flecha" aria-hidden="true">▾</span>
-        </button>
-        <input type="hidden" id="sel-periodo">
+        <div class="xml-cabeza__acciones">
+            <button type="button" id="btn-agregar" class="xml-btn xml-btn--primario">+ Agregar XML</button>
+        </div>
     </div>
 
     <!-- Bandeja: se juntan los XML y nada se guarda hasta "Procesar" -->
@@ -145,6 +146,6 @@
     </div>
 </aside>
 
-<script src="/herramientas/xml/xml.js?v=202609291637"></script>
+<script src="/herramientas/xml/xml.js?v=202609292003"></script>
 </body>
 </html>

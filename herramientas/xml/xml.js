@@ -106,7 +106,7 @@
         // mueve el general. Aquí sí se permite año completo y todos los periodos.
         E.selPeriodo = Fiscontable.selectorPeriodo({
             boton: $("btn-periodo"), etiqueta: $("periodo-titulo"),
-            permitirAnio: true, permitirTodos: true, general: E.periodoGeneral,
+            permitirAnio: true, permitirTodos: true, permitirRango: true, general: E.periodoGeneral,
             alCambiar: function (v) { $("sel-periodo").value = v || ""; cargarRegistros(); }
         });
         await refrescarBibliotecas();
@@ -193,7 +193,7 @@
         var caja = $("sin-empresa");
         caja.hidden = false;
         caja.innerHTML = '<p class="ctx-vacio__titulo">¿Qué periodo quieres ver?</p>' +
-            "<p>" + esc(nombreDe(E.rfc)) + " tiene " + total.toLocaleString("es-MX") + " XML. Elige un mes, el año completo o todos los periodos." +
+            "<p>" + esc(nombreDe(E.rfc)) + " tiene " + total.toLocaleString("es-MX") + " XML. Elige un mes, el año completo, un rango de fechas o todos los periodos." +
             "<br>Si eliges el periodo en la barra de arriba, todos los módulos se abren solos en ese mes.</p>" +
             '<div class="ctx-vacio__acciones"><button type="button" class="xml-btn xml-btn--primario" data-periodo>Elegir periodo</button></div>';
     }
@@ -270,6 +270,7 @@
             return { desde: v.slice(2) + "-01", hasta: v.slice(2) + "-" + String(ultimo).padStart(2, "0") };
         }
         if (v.indexOf("a:") === 0) return { desde: v.slice(2) + "-01-01", hasta: v.slice(2) + "-12-31" };
+        if (v.indexOf("r:") === 0) { var p = v.slice(2).split("|"); return { desde: p[0] || null, hasta: p[1] || null }; }
         return { desde: null, hasta: null };      // "t:" = todos los periodos
     }
 
@@ -279,7 +280,7 @@
         $("sin-empresa").hidden = true;
         $("contenido").hidden = false;
         var r = rangoPeriodo();
-        var q = "?rfc=" + encodeURIComponent(E.rfc) + (r.desde ? "&desde=" + r.desde + "&hasta=" + r.hasta : "");
+        var q = "?rfc=" + encodeURIComponent(E.rfc) + (r.desde ? "&desde=" + r.desde : "") + (r.hasta ? "&hasta=" + r.hasta : "");
         $("conteo-filas").textContent = "Cargando…";
         try {
             E.datos = (await apiJSON("/api/xml/registros" + q)).modulos;
@@ -451,7 +452,6 @@
         return f._q;
     }
 
-    function fechaDe(f) { return E.modulo === "pagos" ? f.fecha_pago : E.modulo === "nomina" ? f.fecha_pago_nom : f.fecha_emision; }
     function importeDe(f) { return E.modulo === "pagos" ? (f.importe_pagado != null ? f.importe_pagado : f.monto_pago) : f.total; }
     var CAMPOS_AV = {
         metodo: { etiqueta: "Método de pago", valor: function (f) { return f.metodo_pago; }, modulos: ["recibidos", "emitidos"] },
@@ -463,9 +463,7 @@
 
     function pintarAvanzados() {
         var filas = E.datos[E.modulo].filas;
-        var h = ['<label>Fecha del<input type="date" data-av="desde" value="' + esc(E.av.desde || "") + '"></label>',
-                 '<label>al<input type="date" data-av="hasta" value="' + esc(E.av.hasta || "") + '"></label>',
-                 '<label>Importe desde<input type="number" step="0.01" data-av="min" placeholder="0.00" value="' + esc(E.av.min || "") + '"></label>',
+        var h = ['<label>Importe desde<input type="number" step="0.01" data-av="min" placeholder="0.00" value="' + esc(E.av.min || "") + '"></label>',
                  '<label>hasta<input type="number" step="0.01" data-av="max" placeholder="sin tope" value="' + esc(E.av.max || "") + '"></label>'];
         Object.keys(CAMPOS_AV).forEach(function (k) {
             var c = CAMPOS_AV[k];
@@ -489,11 +487,6 @@
         E.filas = filas.filter(function (f) {
             if (E.sub && f._sub !== E.sub) return false;
             for (var i = 0; i < activos.length; i++) if (!PRUEBA_RAPIDO[activos[i]](f)) return false;
-            if (av.desde || av.hasta) {
-                var fe = (fechaDe(f) || "").slice(0, 10);
-                if (av.desde && fe < av.desde) return false;
-                if (av.hasta && fe > av.hasta) return false;
-            }
             if (min !== null || max !== null) {
                 var imp = importeDe(f);
                 if (imp === undefined || imp === null) return false;

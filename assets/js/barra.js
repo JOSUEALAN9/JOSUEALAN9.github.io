@@ -298,8 +298,9 @@
 
          var sel = Fiscontable.selectorPeriodo({
              boton: el, etiqueta: el,          // el botón y dónde escribir el texto
-             valor: "m:2025-10",               // "m:AAAA-MM" | "a:AAAA" | "t:" | null
+             valor: "m:2025-10",               // "m:AAAA-MM" | "a:AAAA" | "t:" | "r:AAAA-MM-DD|AAAA-MM-DD" | null
              permitirAnio: true, permitirTodos: true, permitirQuitar: false,
+             permitirRango: true,              // "Rango de fechas": del día X al día Y
              conteos: { "2025-10": 12 },       // opcional: se muestran en cada mes
              general: "2025-10",               // opcional: ofrece "volver al general"
              alCambiar: function (valor) {}
@@ -314,8 +315,20 @@
         if (v === "t:") return "Todos los periodos";
         if (v.indexOf("a:") === 0) return "Todo " + v.slice(2);
         if (v.indexOf("m:") === 0) return MESES_LARGOS[+v.slice(7, 9) - 1] + " " + v.slice(2, 6);
-        if (v.indexOf("r:") === 0) return "Rango de fechas";
+        if (v.indexOf("r:") === 0) return textoRango(v.slice(2).split("|"));
         return v;
+    }
+
+    /** "3 ene – 15 mar 2026", "20 dic 2025 – 10 ene 2026", "Desde 1 ene 2026"… */
+    function textoRango(r) {
+        function dia(f, conAnio) {
+            return +f.slice(8, 10) + " " + MESES_CORTOS[+f.slice(5, 7) - 1].toLowerCase() + (conAnio ? " " + f.slice(0, 4) : "");
+        }
+        var d = r[0] || "", h = r[1] || "";
+        if (d && h) return dia(d, d.slice(0, 4) !== h.slice(0, 4)) + " – " + dia(h, true);
+        if (d) return "Desde " + dia(d, true);
+        if (h) return "Hasta " + dia(h, true);
+        return "Rango de fechas";
     }
 
     function selectorPeriodo(o) {
@@ -330,6 +343,7 @@
         function anioInicial() {
             var v = st.valor;
             if (v && (v.indexOf("m:") === 0 || v.indexOf("a:") === 0)) return +v.slice(2, 6);
+            if (v && v.indexOf("r:") === 0 && /^\d{4}/.test(v.slice(2))) return +v.slice(2, 6);
             var llaves = Object.keys(st.conteos).sort();
             return llaves.length ? +llaves[llaves.length - 1].slice(0, 4) : new Date().getFullYear();
         }
@@ -354,6 +368,16 @@
             if (st.general && st.valor !== "m:" + st.general) pie.push('<button type="button" class="fc-periodo__general" data-general>' +
                 "Volver al periodo general · " + esc(textoPeriodo("m:" + st.general)) + "</button>");
             if (o.permitirQuitar && st.valor) pie.push('<button type="button" class="fc-periodo__quitar" data-quitar>Quitar periodo</button>');
+            if (o.permitirRango) {
+                // Días exactos, en el mismo lugar que los meses: así no hay un segundo
+                // filtro de fechas en otro panel que choque con el periodo.
+                var r = st.valor && st.valor.indexOf("r:") === 0 ? st.valor.slice(2).split("|") : rangoDe(st.valor, a);
+                pie.push('<div class="fc-periodo__rango' + (st.valor && st.valor.indexOf("r:") === 0 ? " fc-periodo__rango--activo" : "") + '">' +
+                    "<span>Rango de fechas</span>" +
+                    '<label><small>Del</small><input type="date" data-rango-desde value="' + esc(r[0] || "") + '"></label>' +
+                    '<label><small>al</small><input type="date" data-rango-hasta value="' + esc(r[1] || "") + '"></label>' +
+                    '<button type="button" class="fc-periodo__aplicar" data-rango>Aplicar</button></div>');
+            }
             pop.innerHTML =
                 '<div class="fc-periodo__cabeza">' +
                   '<button type="button" class="fc-periodo__flecha" data-anio="-1" aria-label="Año anterior">‹</button>' +
@@ -362,6 +386,23 @@
                 "</div>" +
                 '<div class="fc-periodo__meses">' + meses + "</div>" +
                 (pie.length ? '<div class="fc-periodo__pie">' + pie.join("") + "</div>" : "");
+        }
+
+        /** Fechas con las que se abre el rango: las del mes o año elegido, o el año que se ve. */
+        function rangoDe(v, anio) {
+            if (v && v.indexOf("m:") === 0) {
+                var y = +v.slice(2, 6), m = +v.slice(7, 9);
+                return [v.slice(2) + "-01", v.slice(2) + "-" + String(new Date(y, m, 0).getDate()).padStart(2, "0")];
+            }
+            if (v && v.indexOf("a:") === 0) return [v.slice(2) + "-01-01", v.slice(2) + "-12-31"];
+            return [anio + "-01-01", anio + "-12-31"];
+        }
+
+        function aplicarRango() {
+            var d = pop.querySelector("[data-rango-desde]").value, h = pop.querySelector("[data-rango-hasta]").value;
+            if (!d && !h) return;
+            if (d && h && d > h) { var t = d; d = h; h = t; }
+            elegir("r:" + d + "|" + h);
         }
 
         function posicionar() {
@@ -404,7 +445,11 @@
             if (b.dataset.anioCompleto) { elegir("a:" + b.dataset.anioCompleto); return; }
             if (b.hasAttribute("data-todos")) { elegir("t:"); return; }
             if (b.hasAttribute("data-general")) { elegir("m:" + st.general); return; }
-            if (b.hasAttribute("data-quitar")) { elegir(null); }
+            if (b.hasAttribute("data-quitar")) { elegir(null); return; }
+            if (b.hasAttribute("data-rango")) aplicarRango();
+        });
+        pop.addEventListener("keydown", function (e) {
+            if (e.key === "Enter" && e.target.matches("[data-rango-desde], [data-rango-hasta]")) { e.preventDefault(); aplicarRango(); }
         });
         // pointerdown (no click): así se cierra aunque otro menú detenga el clic
         document.addEventListener("pointerdown", function (e) {

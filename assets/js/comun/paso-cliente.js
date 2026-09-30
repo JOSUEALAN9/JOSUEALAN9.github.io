@@ -24,7 +24,7 @@
  *   PasoCliente.montar({
  *       contenedor: "paso-cliente",
  *       alElegir: function (elegido) { ... },
- *           // {rfc, alias, esCliente, efirmaGuardada,
+ *           // {rfc, alias, esCliente, efirmaGuardada, ciecGuardada (contraseña del portal),
  *           //  cer (File, solo si llegó por e.firma), nombreCert, vigenteHasta}
  *       alLimpiar: function () { ... }
  *   });
@@ -165,7 +165,8 @@
                 rfc: c.rfc,
                 alias: c.alias,
                 esCliente: true,
-                efirmaGuardada: !!c.efirma_guardada
+                efirmaGuardada: !!c.efirma_guardada,
+                ciecGuardada: !!c.ciec_guardada
             });
         });
 
@@ -187,7 +188,8 @@
                     rfc: yaEsCliente.rfc,
                     alias: yaEsCliente.alias,
                     esCliente: true,
-                    efirmaGuardada: !!yaEsCliente.efirma_guardada
+                    efirmaGuardada: !!yaEsCliente.efirma_guardada,
+                    ciecGuardada: !!yaEsCliente.ciec_guardada
                 });
                 return;
             }
@@ -238,6 +240,7 @@
                 alias: c ? c.alias : null,
                 esCliente: !!c,
                 efirmaGuardada: !!(c && c.efirma_guardada),
+                ciecGuardada: !!(c && c.ciec_guardada),
                 cer: archivo,
                 nombreCert: cert.nombre,
                 vigenteHasta: cert.vigenteHasta
@@ -290,7 +293,7 @@
 
             var c = clientes.find(function (x) { return x.rfc === rfc; });
             if (c) {
-                colapsar({ rfc: c.rfc, alias: c.alias, esCliente: true, efirmaGuardada: !!c.efirma_guardada });
+                colapsar({ rfc: c.rfc, alias: c.alias, esCliente: true, efirmaGuardada: !!c.efirma_guardada, ciecGuardada: !!c.ciec_guardada });
                 return;
             }
             if (rfcValido(rfc)) {
@@ -304,7 +307,7 @@
         // Empresa activa del selector general
         function datosDeEmpresa(empresa) {
             var c = empresa && clientes.find(function (x) { return x.rfc === empresa.rfc; });
-            return c ? { rfc: c.rfc, alias: c.alias, esCliente: true, efirmaGuardada: !!c.efirma_guardada, deEmpresa: true } : null;
+            return c ? { rfc: c.rfc, alias: c.alias, esCliente: true, efirmaGuardada: !!c.efirma_guardada, ciecGuardada: !!c.ciec_guardada, deEmpresa: true } : null;
         }
         function aplicarEmpresaActiva() {
             if (!window.Fiscontable.empresaActiva) return;

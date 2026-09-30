@@ -85,7 +85,7 @@
         // Periodo de ESTA página: arranca en el general; cambiarlo aquí no mueve el general.
         E.selPeriodo = Fiscontable.selectorPeriodo({
             boton: $("btn-periodo"), etiqueta: $("periodo-titulo"),
-            permitirAnio: true, permitirTodos: true, general: E.periodoGeneral,
+            permitirAnio: true, permitirTodos: true, permitirRango: true, general: E.periodoGeneral,
             alCambiar: function (v) { $("sel-periodo").value = v || ""; cargarDatos(); }
         });
         $("btn-ir-xml").hidden = !puede("validador");
@@ -218,7 +218,7 @@
         var caja = $("sin-empresa");
         caja.hidden = false;
         caja.innerHTML = '<p class="ctx-vacio__titulo">¿Qué periodo quieres conciliar?</p>' +
-            "<p>Elige un mes, el año completo o todos los periodos. Las facturas y sus pagos suelen caer en meses distintos: " +
+            "<p>Elige un mes, el año completo, un rango de fechas o todos los periodos. Las facturas y sus pagos suelen caer en meses distintos: " +
             "si un mes se ve incompleto, prueba el año completo.<br>Si eliges el periodo en la barra de arriba, todos los módulos se abren solos en ese mes.</p>" +
             '<div class="ctx-vacio__acciones"><button type="button" class="xml-btn xml-btn--primario" data-periodo>Elegir periodo</button></div>';
     }
@@ -423,9 +423,7 @@
 
     function pintarAvanzados() {
         var fs = E.datos ? E.datos.facturas : [];
-        var h = ['<label>Emitida del<input type="date" data-av="desde" value="' + esc(E.av.desde || "") + '"></label>',
-                 '<label>al<input type="date" data-av="hasta" value="' + esc(E.av.hasta || "") + '"></label>',
-                 '<label>Total desde<input type="number" step="0.01" data-av="min" placeholder="0.00" value="' + esc(E.av.min || "") + '"></label>',
+        var h = ['<label>Total desde<input type="number" step="0.01" data-av="min" placeholder="0.00" value="' + esc(E.av.min || "") + '"></label>',
                  '<label>hasta<input type="number" step="0.01" data-av="max" placeholder="sin tope" value="' + esc(E.av.max || "") + '"></label>',
                  '<label>Días con saldo, más de<input type="number" step="1" data-av="dias" placeholder="0" value="' + esc(E.av.dias || "") + '"></label>'];
         Object.keys(CAMPOS_AV).forEach(function (k) {
@@ -453,8 +451,6 @@
         E.filtradas = E.datos.facturas.filter(function (f) {
             if (E.estado && f.estado_conciliacion !== E.estado) return false;
             for (var i = 0; i < activos.length; i++) if (!PRUEBA[activos[i]](f)) return false;
-            if (av.desde && f.fecha_emision < av.desde) return false;
-            if (av.hasta && f.fecha_emision > av.hasta) return false;
             if (min !== null && (f.total || 0) < min) return false;
             if (max !== null && (f.total || 0) > max) return false;
             if (dias !== null && !((f.dias_saldo || 0) > dias)) return false;

@@ -919,4 +919,11 @@ body.fc-sin-scroll { overflow: hidden; }
 .fc-periodo__general, .fc-periodo__quitar { width: 100%; border: 0; background: none; padding: 6px 2px 0; text-align: left; font: inherit; font-size: 12.5px; font-weight: 700; cursor: pointer; }
 .fc-periodo__general { color: var(--acento); }
 .fc-periodo__quitar { color: var(--texto-tenue); text-decoration: underline; }
+.fc-periodo__rango { width: 100%; display: flex; flex-wrap: wrap; align-items: flex-end; gap: 6px; margin-top: 4px; padding-top: 10px; border-top: 1px dashed var(--linea); }
+.fc-periodo__rango > span { width: 100%; font-size: 12px; font-weight: 800; color: var(--texto-tenue); }
+.fc-periodo__rango--activo > span { color: var(--acento); }
+.fc-periodo__rango label { flex: 1 1 110px; display: flex; flex-direction: column; gap: 2px; }
+.fc-periodo__rango small { font-size: 11px; color: var(--texto-tenue); font-weight: 700; }
+.fc-periodo__rango input { box-sizing: border-box; width: 100%; border: 1px solid var(--linea); border-radius: 8px; padding: 6px 7px; font: inherit; font-size: 12.5px; }
+.fc-periodo__aplicar { flex: 1 1 100%; border: 0; border-radius: 8px; background: var(--acento); color: #fff; padding: 8px 12px; font: inherit; font-size: 12.5px; font-weight: 800; cursor: pointer; }
 @media (max-width: 620px) { .fc-periodo { left: 12px !important; right: 12px; width: auto; } }
