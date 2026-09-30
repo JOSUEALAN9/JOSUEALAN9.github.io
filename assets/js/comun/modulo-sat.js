@@ -706,9 +706,12 @@
     function actualizarBotonMasivo() {
         var btn = $("btn-masivo");
         var r = revisionLote;
-        if (!r) { btn.disabled = false; return; }
+        var programar = $("btn-masivo-programar");
+        if (!r) { btn.disabled = false; if (programar) programar.hidden = true; return; }
 
         var cuantos = forzarRegenerar ? r.listos.length + r.ya_existentes.length : r.listos.length;
+        // Programar el mismo lote para la madrugada: la carpeta viaja cifrada, no hace falta el directorio
+        if (programar) programar.hidden = cuantos === 0 || !window.Fiscontable.Programar;
 
         if (cuantos === 0 && r.ya_existentes.length && !forzarRegenerar) {
             btn.disabled = false;
@@ -749,6 +752,32 @@
             Fiscontable.refrescarDescargas();
         } catch (e) {
             alerta("error", await leerError(null));
+            btn.disabled = false;
+            btn.textContent = original;
+        }
+    }
+
+    async function programarLote() {
+        sinAlerta();
+        var btn = $("btn-masivo-programar"), original = btn.textContent;
+        btn.disabled = true;
+        btn.textContent = "Programando…";
+        var cuerpo = new FormData();
+        archivosLote.forEach(function (f) { cuerpo.append("archivos_lote", f); });
+        cuerpo.append("modulo", MODULO.tipo);
+        cuerpo.append("forzar_regenerar", String(forzarRegenerar));
+        try {
+            var resp = await fetch(API + "/api/programadas/lote", { method: "POST", credentials: "include", body: cuerpo });
+            if (!resp.ok) { alerta("error", await leerError(resp)); return; }
+            var p = await resp.json(), c = p.conteo || {};
+            var arranque = new Date(p.arranque).toLocaleTimeString("es-MX", { hour: "numeric", minute: "2-digit" });
+            alerta("bien", "Lote programado para la madrugada (empieza a las " + arranque + "): " + (c.pendiente || 0) +
+                " por hacer" + (c.revisar ? ", " + c.revisar + " con la e.firma a revisar" : "") +
+                ". Lo sigues en la tarjeta de arriba y en la mañana lo encuentras en Mis descargas.");
+            if (window.Fiscontable.Programar && window.Fiscontable.Programar.refrescar) window.Fiscontable.Programar.refrescar(p.id);
+        } catch (e) {
+            alerta("error", await leerError(null));
+        } finally {
             btn.disabled = false;
             btn.textContent = original;
         }
@@ -831,6 +860,7 @@
         $("tab-individual").addEventListener("click", function () { cambiarPestana("individual"); });
         $("tab-masivo").addEventListener("click", function () { cambiarPestana("masivo"); });
         $("btn-masivo").addEventListener("click", lanzarLote);
+        if ($("btn-masivo-programar")) $("btn-masivo-programar").addEventListener("click", programarLote);
 
         // Se comprueba el permiso antes de dejar que el usuario llene nada.
         if (!(await Fiscontable.exigirModulo(MODULO.permiso))) return;

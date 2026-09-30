@@ -177,6 +177,7 @@
                 } else {
                     linea = (p.resumen && p.resumen.mensaje) || ESTADO_PROG[p.estado];
                 }
+                if (p.parametros && p.parametros.origen === "lote") linea = "Lote subido · " + linea;
                 var chips = Object.keys(ESTADOS).filter(function (k) { return c[k]; }).map(function (k) {
                     return '<span class="fp-chip ' + ESTADOS[k][1] + '">' + ESTADOS[k][0] + " " + c[k] + "</span>";
                 }).join(" ");
@@ -314,8 +315,17 @@
 
         cargarLista();
         setInterval(function () { if (!document.hidden) cargarLista(); }, 60000);
+        recargas.push(function (abrirId) {
+            if (abrirId) abiertas[abrirId] = true;
+            cargarLista();
+            caja.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        });
     }
 
+    var recargas = [];
+    /* Otra parte de la página (p. ej. "Varios a la vez") programó algo: se vuelve a pintar la lista. */
+    function refrescar(abrirId) { recargas.forEach(function (f) { f(abrirId); }); }
+
     window.Fiscontable = window.Fiscontable || {};
-    window.Fiscontable.Programar = { montar: montar };
+    window.Fiscontable.Programar = { montar: montar, refrescar: refrescar };
 })();
