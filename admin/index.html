@@ -5,13 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Administrar Usuarios | Fiscontable</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="/assets/css/common.css?v=202610020825">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202610020843">
 </head>
 <body class="min-h-screen flex flex-col relative">
 
     <div id="app-header" data-modulo="admin" data-titulo="Administración" data-migas=""></div>
-<script src="/assets/js/nucleo.js?v=202610020825"></script>
-<script src="/assets/js/barra.js?v=202610020825"></script>
+<script src="/assets/js/nucleo.js?v=202610020843"></script>
+<script src="/assets/js/barra.js?v=202610020843"></script>
 
     <main class="flex-grow p-4 sm:p-6 w-full max-w-4xl mx-auto">
         <style>
@@ -110,6 +110,42 @@
                     <button type="button" id="btn-actualizar-sistema" class="ml-auto text-xs font-bold text-slate-500 hover:text-slate-800 underline">Actualizar</button>
                 </div>
                 <div id="tarjetas-estado" class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 mb-6"></div>
+
+                <div class="flex flex-wrap items-center gap-3 mb-3">
+                    <h2 class="text-xs font-bold text-slate-500 uppercase tracking-wide">Estado del SAT</h2>
+                    <span id="sat-ritmo" class="text-[11px] text-slate-400"></span>
+                    <button type="button" id="btn-sat-revisar-todos" class="ml-auto text-xs font-bold text-slate-700 border border-gray-200 hover:border-slate-400 rounded-lg py-1.5 px-3 bg-white">Revisar todos ahora</button>
+                </div>
+                <div class="bg-white rounded-xl card-elevated border border-gray-200 mb-6">
+                    <div id="sat-servicios" class="divide-y divide-gray-100"></div>
+                    <div class="p-5 border-t border-gray-100 grid gap-4 md:grid-cols-2">
+                        <div>
+                            <p class="font-bold text-slate-800 text-sm">e.firma de prueba</p>
+                            <p class="text-xs text-slate-500 mt-1">Con ella cada revisión entra de verdad (hasta ver la Opinión, el tablero de la Constancia o el portal de facturas) y cierra la sesión, sin descargar nada. Sin ella, solo se revisa que abra la pantalla de acceso. Usa <strong>tu propia</strong> e.firma: solo salen las de tu directorio.</p>
+                            <div class="flex flex-wrap items-center gap-2 mt-3">
+                                <select id="sat-efirma" class="text-sm border border-gray-300 rounded-lg p-2 bg-white max-w-full"></select>
+                                <button type="button" id="btn-sat-efirma" class="bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold py-2 px-4 rounded-lg">Guardar</button>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="flex items-start gap-3">
+                                <div class="flex-grow">
+                                    <p class="font-bold text-slate-800 text-sm">Revisión automática</p>
+                                    <p class="text-xs text-slate-500 mt-1">Si algo sale mal, se revisa más seguido hasta que vuelva y lo confirme 3 veces. Mientras un servicio está caído, sale un letrero para todos y la madrugada no gasta intentos en él.</p>
+                                </div>
+                                <label class="relative inline-flex items-center cursor-pointer flex-none mt-1">
+                                    <input type="checkbox" id="chk-sat-activo" class="sr-only peer">
+                                    <span class="w-11 h-6 bg-slate-200 rounded-full peer-checked:bg-emerald-500 transition"></span>
+                                    <span class="absolute left-0.5 top-0.5 w-5 h-5 bg-white rounded-full shadow transition peer-checked:translate-x-5"></span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    <details class="border-t border-gray-100">
+                        <summary class="px-5 py-3 text-xs font-bold text-slate-500 cursor-pointer select-none">Últimas revisiones (48 h)</summary>
+                        <div id="sat-historial" class="px-5 pb-4 text-xs"></div>
+                    </details>
+                </div>
 
                 <h2 class="text-xs font-bold text-slate-500 uppercase tracking-wide mb-3">Portal</h2>
                 <div class="grid gap-3 md:grid-cols-2 mb-6">
@@ -270,6 +306,6 @@
         </dialog>
     </main>
 
-<script src="/admin/admin.js?v=202610020825"></script>
+<script src="/admin/admin.js?v=202610020843"></script>
 </body>
 </html>

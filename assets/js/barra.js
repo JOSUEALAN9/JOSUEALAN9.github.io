@@ -1062,6 +1062,21 @@
                     function () { try { localStorage.setItem("fc-aviso-oculto", clave); } catch (e) { /* nada */ } });
             }
         }
+        // Lo pone solo el monitor del SAT (Administración → Sistema) mientras un servicio no responde.
+        if (p.sat_fallas && p.sat_fallas.length) {
+            var claveSat = "fc-sat-oculto:" + p.sat_fallas.map(function (s) { return s.servicio + "@" + (s.desde || ""); }).join(",");
+            var ocultoSat = false;
+            try { ocultoSat = localStorage.getItem("fc-sat-oculto") === claveSat; } catch (e) { /* sin almacenamiento */ }
+            if (!ocultoSat) {
+                var nombres = p.sat_fallas.map(function (s) { return s.nombre; });
+                var lista = nombres.length > 1 ? nombres.slice(0, -1).join(", ") + " y " + nombres[nombres.length - 1] : nombres[0];
+                letrero("El SAT no está respondiendo en: " + lista + ". Lo que pidas ahí puede fallar; conviene intentarlo más tarde. " +
+                    "Este aviso se quita solo cuando vuelva.",
+                    "background:#FEF2F2;color:#991B1B;border-bottom:1px solid #FECACA",
+                    true,
+                    function () { try { localStorage.setItem("fc-sat-oculto", claveSat); } catch (e) { /* nada */ } });
+            }
+        }
         if (caja.children.length) barra.insertAdjacentElement("afterend", caja);
     }
 

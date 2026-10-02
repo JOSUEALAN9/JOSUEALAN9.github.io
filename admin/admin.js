@@ -628,6 +628,13 @@ function prepararEventosSistema() {
     $("btn-limpiar-rfc").addEventListener("click", () => limpiarCache($("rfc-cache").value.trim().toUpperCase()));
     $("btn-ver-log").addEventListener("click", verLog);
     $("log-lineas").addEventListener("change", () => { if (!$("caja-log").hidden) verLog(); });
+    $("btn-sat-revisar-todos").addEventListener("click", () => revisarSAT(null));
+    $("btn-sat-efirma").addEventListener("click", guardarEfirmaSAT);
+    $("chk-sat-activo").addEventListener("change", cambiarActivoSAT);
+    $("sat-servicios").addEventListener("click", e => {
+        const b = e.target.closest("[data-sat-revisar]");
+        if (b) revisarSAT(b.dataset.satRevisar);
+    });
     $("tarjetas-estado").addEventListener("click", e => {
         if (e.target.closest("#btn-probar-proxy")) probarProxy();
         if (e.target.closest("#btn-actualizar-tc")) actualizarTipoCambio(e.target.closest("#btn-actualizar-tc"));
@@ -661,6 +668,7 @@ async function cargarSistema() {
         estadoSistema = await api("/api/admin/sistema/estado");
         pintarEstado();
         pintarPortal();
+        await cargarEstadoSAT();
         await cargarBitacora();
     } catch (err) { mostrarAlerta("error", err.message); }
 }
@@ -739,6 +747,131 @@ function pintarPortal() {
     }
     $("btn-quitar-aviso").hidden = !e.aviso;
     $("btn-publicar-aviso").textContent = e.aviso ? "Actualizar" : "Publicar";
+}
+
+// ---------------------------------------------------------------- Estado del SAT
+let estadoSAT = null;
+let relojSAT = null;
+
+const SAT_ESTADOS = {
+    funciona: { texto: "Funciona", clase: "bg-emerald-50 text-emerald-700 border-emerald-200", punto: "#10b981" },
+    lento: { texto: "Lento", clase: "bg-amber-50 text-amber-700 border-amber-200", punto: "#f59e0b" },
+    falla: { texto: "No responde", clase: "bg-red-50 text-red-700 border-red-200", punto: "#ef4444" },
+    sin_revisar: { texto: "Sin revisar", clase: "bg-slate-50 text-slate-500 border-slate-200", punto: "#94a3b8" },
+};
+
+function horaCorta(iso) {
+    return iso ? aFecha(iso).toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" }) : "";
+}
+
+function faltaPara(iso) {
+    const min = Math.round((aFecha(iso) - Date.now()) / 60000);
+    if (min <= 0) return "en cualquier momento";
+    if (min < 60) return `en ${min} min`;
+    return `en ${Math.floor(min / 60)} h ${min % 60} min`;
+}
+
+async function cargarEstadoSAT() {
+    try {
+        estadoSAT = await api("/api/admin/estado-sat");
+    } catch (err) {
+        $("sat-servicios").innerHTML = `<p class="p-5 text-sm text-amber-700">${esc(err.message)}</p>`;
+        return;
+    }
+    pintarEstadoSAT();
+    // Mientras algo se está revisando o está por revisarse, se actualiza solo
+    clearTimeout(relojSAT);
+    const pronto = estadoSAT.servicios.some(s => s.revisando || (s.proxima_revision && aFecha(s.proxima_revision) - Date.now() < 120000));
+    if (pronto && !$("panel-sistema").hidden) relojSAT = setTimeout(cargarEstadoSAT, 15000);
+}
+
+function pintarEstadoSAT() {
+    const e = estadoSAT;
+    const r = e.ritmo;
+    $("sat-ritmo").textContent = `Cada ${r.normal_min[0] / 60}–${r.normal_min[1] / 60} h al azar; si falla, cada ${r.vigilancia_min[0]}–${r.vigilancia_min[1]} min`;
+    $("sat-servicios").innerHTML = e.servicios.map(s => {
+        const st = SAT_ESTADOS[s.estado] || SAT_ESTADOS.sin_revisar;
+        const detalle = [];
+        if (s.ultima_revision) detalle.push(`Revisado ${haceCuanto(s.ultima_revision)}${s.segundos != null ? ` (${Math.round(s.segundos)} s, ${s.nivel === "completa" ? "con e.firma" : "sin e.firma"})` : ""}`);
+        if (s.desde && s.estado !== "sin_revisar") detalle.push(`${s.estado === "falla" ? "Caído" : "Así"} desde las ${horaCorta(s.desde)}`);
+        if (s.modo === "vigilancia" && s.estado !== "falla") detalle.push(`Confirmando que volvió: ${s.confirmaciones} de ${s.confirmaciones_necesarias}`);
+        if (e.activo && s.proxima_revision && !s.revisando) detalle.push(`Siguiente revisión ${faltaPara(s.proxima_revision)}`);
+        return `<div class="p-4 flex flex-wrap items-start gap-3">
+            <span class="mt-1.5 w-2.5 h-2.5 rounded-full flex-none" style="background:${st.punto}"></span>
+            <div class="flex-grow min-w-[220px]">
+                <div class="flex flex-wrap items-center gap-2">
+                    <p class="font-bold text-slate-800 text-sm">${esc(s.nombre)}</p>
+                    <span class="text-[11px] font-bold border rounded-full px-2 py-0.5 ${st.clase}">${s.revisando ? "Revisando…" : st.texto}</span>
+                    ${s.modo === "vigilancia" ? `<span class="text-[11px] font-bold text-amber-700">Vigilando</span>` : ""}
+                </div>
+                ${s.mensaje ? `<p class="text-xs text-slate-600 mt-1">${esc(s.mensaje)}</p>` : ""}
+                <p class="text-[11px] text-slate-400 mt-1">${esc(detalle.join(" · "))}</p>
+            </div>
+            <button type="button" data-sat-revisar="${esc(s.servicio)}" class="text-xs font-bold text-slate-700 border border-gray-200 hover:border-slate-400 rounded-lg py-1.5 px-3"${s.revisando ? " disabled" : ""}>Revisar ahora</button>
+        </div>`;
+    }).join("");
+
+    const sel = $("sat-efirma");
+    const opciones = [`<option value="">Sin e.firma (solo la pantalla de acceso)</option>`]
+        .concat(e.opciones_efirma.map(o => `<option value="${esc(o.rfc)}">${esc(o.nombre)} · ${esc(o.rfc)}</option>`));
+    if (e.efirma && !e.opciones_efirma.some(o => o.rfc === e.efirma.rfc)) {
+        opciones.push(`<option value="${esc(e.efirma.rfc)}">${esc(e.efirma.rfc)} (de otro administrador)</option>`);
+    }
+    sel.innerHTML = opciones.join("");
+    sel.value = e.efirma ? e.efirma.rfc : "";
+    $("chk-sat-activo").checked = !!e.activo;
+
+    $("sat-historial").innerHTML = e.historial.length
+        ? `<table class="w-full"><tbody>${e.historial.map(h => {
+            const st = SAT_ESTADOS[h.estado] || SAT_ESTADOS.sin_revisar;
+            return `<tr class="border-t border-gray-50 align-top">
+                <td class="py-1.5 pr-3 whitespace-nowrap text-slate-400">${esc(aFecha(h.momento).toLocaleString("es-MX", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }))}</td>
+                <td class="py-1.5 pr-3 whitespace-nowrap text-slate-700">${esc(h.nombre)}</td>
+                <td class="py-1.5 pr-3 whitespace-nowrap font-bold" style="color:${st.punto}">${esc(st.texto)}</td>
+                <td class="py-1.5 text-slate-500">${esc(h.mensaje || "")}${h.motivo && h.motivo !== "programada" ? ` <span class="text-slate-400">(${esc(h.motivo)})</span>` : ""}</td>
+            </tr>`;
+        }).join("")}</tbody></table>`
+        : `<p class="text-slate-400">Todavía no hay revisiones.</p>`;
+
+    const caido = e.activo && e.servicios.some(s => s.estado === "falla");
+    if (caido) $("alerta-sistema").textContent = "•";
+}
+
+async function revisarSAT(servicio) {
+    try {
+        const r = await api("/api/admin/estado-sat/revisar", {
+            method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ servicio }),
+        });
+        mostrarAlerta("success", r.mensaje);
+    } catch (err) { mostrarAlerta("error", err.message); }
+    setTimeout(cargarEstadoSAT, 1500);
+}
+
+async function guardarEfirmaSAT() {
+    const rfc = $("sat-efirma").value || null;
+    try {
+        await api("/api/admin/estado-sat/efirma", {
+            method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ rfc }),
+        });
+        mostrarAlerta("success", rfc ? "Listo: las revisiones entrarán con esa e.firma. Se revisa todo en un momento."
+                                     : "Listo: las revisiones solo abrirán la pantalla de acceso.");
+    } catch (err) { mostrarAlerta("error", err.message); }
+    await cargarEstadoSAT();
+}
+
+async function cambiarActivoSAT() {
+    const activo = $("chk-sat-activo").checked;
+    if (!activo && !confirm("¿Pausar la revisión automática del SAT?\n\nSe quita el letrero y la madrugada deja de consultarla.")) {
+        $("chk-sat-activo").checked = true; return;
+    }
+    try {
+        await api("/api/admin/estado-sat/activo", {
+            method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ activo }),
+        });
+        mostrarAlerta("success", activo ? "Revisión automática activada." : "Revisión automática pausada.");
+        if (Fiscontable.recargarLetreros) Fiscontable.recargarLetreros();
+    } catch (err) { mostrarAlerta("error", err.message); $("chk-sat-activo").checked = !activo; }
+    await cargarEstadoSAT();
 }
 
 async function actualizarTipoCambio(boton) {
