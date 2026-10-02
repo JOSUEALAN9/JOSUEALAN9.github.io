@@ -670,7 +670,13 @@
         if (p.estado === "completado") {
             var resumen = fecha(p.creado_en);
             if (p.clase === "lote") resumen = p.exitosos + " de " + p.total + " obtenidos · " + resumen;
-            return '<div class="fc-item"><div class="fc-item__titulo">' + nuevo + t + "</div>" +
+            var incompleta = false;
+            if (p.resumen) {         // madrugada: "1 listo, 2 fallaron"
+                var noche = p.resumen.replace(/^[^:]*:\s*/, "").replace(/\.$/, "");
+                incompleta = /revisar|fall|no alcanz|cancelad/i.test(noche);
+                resumen = noche + " · " + resumen;
+            }
+            return '<div class="fc-item' + (incompleta ? " fc-item--alerta" : "") + '"><div class="fc-item__titulo">' + nuevo + t + "</div>" +
                 '<div class="fc-item__detalle">' + esc(resumen) + "</div>" +
                 '<div class="fc-item__acciones">' +
                 '<button type="button" class="fc-btn fc-btn--principal" data-accion="descargar" ' +
@@ -761,7 +767,7 @@
                 var antes = ultimoEstado.get(p.id);
                 if (!primerSondeo && antes === "procesando" && p.estado !== "procesando") {
                     avisarNavegador(
-                        p.estado === "completado" ? "Documento listo" : "No se pudo completar",
+                        p.estado !== "completado" ? "No se pudo completar" : (/revisar|fall|no alcanz|cancelad/i.test(p.resumen || "") ? "Terminó, pero no salieron todos" : "Documento listo"),
                         tituloProceso(p)
                     );
                 }

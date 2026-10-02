@@ -149,6 +149,13 @@ function tarjetaLista(p) {
         if (p.reutilizados) partes.push(`${p.reutilizados} ya los tenías`);
         resumen = partes.join(" · ") + " · " + formatearFecha(p.creado_en);
     }
+    // Madrugada: el resumen dice cuántos salieron y cuántos no (antes se veía como éxito total).
+    const resumenNoche = p.resumen ? p.resumen.replace(/^[^:]*:\s*/, "").replace(/\.$/, "") : "";
+    const nocheIncompleta = /revisar|fall|no alcanz|cancelad/i.test(resumenNoche);
+    if (resumenNoche) resumen = resumenNoche + " · " + formatearFecha(p.creado_en);
+    const avisoNoche = nocheIncompleta
+        ? `<p class="text-xs text-amber-700 mt-1.5">No salieron todos. El detalle por RFC está en la tarjeta 🌙 del módulo.</p>`
+        : "";
     const avisoFallidos = (p.fallidos && p.fallidos.length)
         ? `<button data-id="${esc(p.id)}" onclick="verMotivos(this.dataset.id)" class="text-xs text-amber-700 hover:text-amber-900 underline mt-1.5">
                Sin resultado para ${p.fallidos.length} contribuyente${p.fallidos.length === 1 ? "" : "s"} — ver por qué
@@ -160,7 +167,7 @@ function tarjetaLista(p) {
             <div class="flex-grow">
                 <h3 class="font-bold text-slate-800">${esc(titulo(p))}</h3>
                 <p class="text-xs text-slate-500 mt-0.5">${esc(resumen)}</p>
-                ${avisoFallidos}
+                ${avisoFallidos}${avisoNoche}
             </div>
             <div class="flex items-center gap-2 flex-none">
                 <button data-url="${esc(p.url_descarga)}" data-nombre="${esc(p.nombre_descarga || "")}" onclick="descargar(this.dataset.url, this.dataset.nombre, this)" class="bg-green-600 hover:bg-green-500 text-white text-xs font-bold py-2 px-4 rounded-lg transition">Descargar</button>
@@ -337,7 +344,7 @@ async function cargarDescargas(silencioso = false) {
             const previo = procesosConocidos.get(p.id);
             if (!primeraCarga && previo === "procesando" && p.estado !== "procesando") {
                 avisar(
-                    p.estado === "completado" ? "Documento listo" : "No se pudo completar",
+                    p.estado !== "completado" ? "No se pudo completar" : (/revisar|fall|no alcanz|cancelad/i.test(p.resumen || "") ? "Terminó, pero no salieron todos" : "Documento listo"),
                     titulo(p)
                 );
             }
