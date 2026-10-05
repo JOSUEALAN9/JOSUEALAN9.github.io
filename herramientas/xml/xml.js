@@ -28,9 +28,9 @@
         nomina: []
     };
     var RAPIDOS = {
-        recibidos: [["alertas", "Con alertas"], ["cancelados", "Cancelados"], ["sinvalidar", "Sin validar"], ["ppd", "PPD"], ["sinpago", "PPD sin pago"], ["retenciones", "Con retenciones"], ["extranjera", "Moneda extranjera"], ["relacionados", "Con relacionados"]],
-        emitidos: [["alertas", "Con alertas"], ["cancelados", "Cancelados"], ["sinvalidar", "Sin validar"], ["ppd", "PPD"], ["sinpago", "PPD sin pago"], ["retenciones", "Con retenciones"], ["extranjera", "Moneda extranjera"], ["relacionados", "Con relacionados"]],
-        pagos: [["alertas", "Con alertas"], ["cancelados", "Cancelados"], ["sinvalidar", "Sin validar"], ["nocargada", "Factura no cargada"], ["extranjera", "Moneda extranjera"]],
+        recibidos: [["alertas", "Con alertas"], ["listas", "En listas del SAT"], ["cancelados", "Cancelados"], ["sinvalidar", "Sin validar"], ["ppd", "PPD"], ["sinpago", "PPD sin pago"], ["retenciones", "Con retenciones"], ["extranjera", "Moneda extranjera"], ["relacionados", "Con relacionados"]],
+        emitidos: [["alertas", "Con alertas"], ["listas", "En listas del SAT"], ["cancelados", "Cancelados"], ["sinvalidar", "Sin validar"], ["ppd", "PPD"], ["sinpago", "PPD sin pago"], ["retenciones", "Con retenciones"], ["extranjera", "Moneda extranjera"], ["relacionados", "Con relacionados"]],
+        pagos: [["alertas", "Con alertas"], ["listas", "En listas del SAT"], ["cancelados", "Cancelados"], ["sinvalidar", "Sin validar"], ["nocargada", "Factura no cargada"], ["extranjera", "Moneda extranjera"]],
         nomina: [["alertas", "Con alertas"], ["cancelados", "Cancelados"], ["sinvalidar", "Sin validar"]]
     };
     var PRUEBA_RAPIDO = {
@@ -41,6 +41,7 @@
         relacionados: function (f) { return !!f.cfdi_relacionados; },
         nocargada: function (f) { return f.docto_encontrado === "No"; },
         alertas: function (f) { return !!f.alertas; },
+        listas: function (f) { return !!f.listas_sat; },
         cancelados: function (f) { return f.estado_sat === "Cancelado"; },
         sinvalidar: function (f) { return !f.estado_sat || f.estado_sat === "Sin validar"; }
     };
@@ -802,6 +803,20 @@
         } catch (e) { avisar(e.message); }
     }
 
+    async function descargarReportes() {
+        var n = E.seleccion.size;
+        if (n > 300) { avisar("Saca hasta 300 reportes a la vez."); return; }
+        var boton = $("btn-reportes");
+        boton.disabled = true;
+        boton.textContent = "Generando " + n + "…";
+        try {
+            var resp = await postJSON("/api/xml/reportes-validacion", { rfc: E.rfc, uuids: Array.from(E.seleccion) });
+            descargarBlob(await resp.blob(), nombreArchivo(resp, "reportes_validacion.zip"));
+        } catch (e) { avisar(e.message); }
+        boton.disabled = false;
+        boton.textContent = "Reporte de validación (ZIP)";
+    }
+
     async function quitarSeleccion() {
         var n = E.seleccion.size;
         if (!confirm("¿Quitar " + n + " XML de la biblioteca de " + E.rfc + "?\n\nSe borran el archivo y su registro. Puedes volver a cargarlos después.")) return;
@@ -1233,6 +1248,7 @@
         $("menu-vistas").addEventListener("click", function (e) { var b = e.target.closest("[data-accion]"); if (b) accionVista(b.dataset.accion, b.dataset.nombre); });
         $("menu-excel").addEventListener("click", function (e) { var b = e.target.closest("[data-excel]"); if (b) exportarExcel(b.dataset.excel); });
         $("btn-zip").addEventListener("click", descargarZip);
+        $("btn-reportes").addEventListener("click", descargarReportes);
         $("btn-quitar").addEventListener("click", quitarSeleccion);
         $("btn-limpiar-sel").addEventListener("click", function () { E.seleccion.clear(); pintarTabla(); });
         $("tabla-caja").addEventListener("scroll", function () { pintarFilas(false); }, { passive: true });

@@ -71,6 +71,7 @@
         var html = [];
         html.push('<div class="det-cabeza"><div><h1>' + esc(titulo) + '</h1><div class="det-uuid">' + esc(d.uuid) + '</div><div class="det-sellos">' + sellos.join("") + "</div></div>" +
             '<div class="det-acciones"><button type="button" class="xml-btn" id="btn-validar-uno">Validar ante el SAT</button><a class="xml-btn" href="' + API + "/api/xml/archivo?rfc=" + encodeURIComponent(RFC) + "&uuid=" + encodeURIComponent(d.uuid) + '">Descargar XML</a>' +
+            '<a class="xml-btn" title="Consulta el SAT en ese momento y revisa las listas del SAT del emisor" href="' + API + "/api/xml/reporte-validacion?rfc=" + encodeURIComponent(RFC) + "&uuid=" + encodeURIComponent(d.uuid) + '">Reporte de validación (PDF)</a>' +
             '<button class="xml-btn" disabled title="Llega con la generación de PDF">PDF · próximamente</button>' +
             '<button class="xml-btn" onclick="window.print()">Imprimir</button></div></div>');
 
@@ -80,14 +81,15 @@
         var em = d.emisor, re = d.receptor;
         html.push('<div class="det-partes">' +
             '<div class="det-parte"><h3>Emisor</h3><div class="det-nombre">' + esc(em.nombre || "") + '</div><div class="det-rfc">' + esc(em.rfc) + '</div><div class="det-linea">Régimen: ' + esc(C("regimen", em.regimen) || "—") + "</div>" +
-            (d.nomina && d.nomina.registro_patronal ? '<div class="det-linea">Registro patronal ' + esc(d.nomina.registro_patronal) + "</div>" : "") + "</div>" +
+            (d.nomina && d.nomina.registro_patronal ? '<div class="det-linea">Registro patronal ' + esc(d.nomina.registro_patronal) + "</div>" : "") +
+            listasDe(r, "emisor") + "</div>" +
             '<div class="det-parte"><h3>Receptor</h3><div class="det-nombre">' + esc(re.nombre || "") + '</div><div class="det-rfc">' + esc(re.rfc) + "</div>" +
             '<div class="det-linea">Régimen: ' + esc(C("regimen", re.regimen) || "—") + "</div>" +
             (re.uso ? '<div class="det-linea">Uso del CFDI: ' + esc(C("uso_cfdi", re.uso)) + "</div>" : "") +
             (re.domicilio ? '<div class="det-linea">C.P. ' + esc(re.domicilio) + "</div>" : "") +
             (d.info_global ? '<div class="det-linea">Factura global: ' + esc(C("periodicidad", d.info_global.periodicidad)) +
                 " · " + esc(C("meses", d.info_global.meses)) + " " + esc(d.info_global.anio || "") + "</div>" : "") +
-            "</div></div>");
+            listasDe(r, "receptor") + "</div></div>");
 
         html.push('<div class="det-tarjeta"><h2>Comprobante</h2><div class="det-datos">' +
             dato("Fecha de emisión", f(d.fecha_emision)) + dato("Fecha de timbrado", f(d.fecha_timbrado)) +
@@ -116,6 +118,23 @@
         $("det").innerHTML = html.join("");
         $("det").hidden = false;
         $("btn-validar-uno").addEventListener("click", validarAhora);
+    }
+
+    // En qué listas del SAT aparece el emisor o el receptor (69-B, 49 Bis, no localizados…)
+    function listasDe(r, parte) {
+        var info = r.listas_sat;
+        if (!info) return "";
+        var hits = info[parte] || [];
+        if (!hits.length) {
+            return Object.keys(info.fechas || {}).length
+                ? '<div class="det-linea" style="color:#047857">✓ No aparece en las listas del SAT</div>' : "";
+        }
+        var color = { grave: "rojo", alerta: "ambar", informativo: "gris" };
+        return '<div class="det-sellos" style="margin-top:6px">' + hits.map(function (h) {
+            var fecha = h.fecha ? " · " + (h.fecha_tipo || "") + " " + h.fecha.slice(8, 10) + "/" + h.fecha.slice(5, 7) + "/" + h.fecha.slice(0, 4) : "";
+            return sello(h.nombre_lista + ": " + h.situacion + fecha, color[h.gravedad] || "gris");
+        }).join("") + '</div><div class="det-linea"><a class="det-liga" href="/herramientas/listas-sat/?rfc=' +
+            encodeURIComponent((r.cfdi[parte] || {}).rfc || "") + '">Ver en Listas del SAT</a></div>';
     }
 
     function selloSAT(r) {

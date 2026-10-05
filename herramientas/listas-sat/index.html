@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Listas del SAT · Fiscontable</title>
+    <link rel="stylesheet" href="/assets/css/common.css?v=202610050937">
+    <link rel="stylesheet" href="/herramientas/listas-sat/listas-sat.css?v=202610050937">
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-50">
+<div id="app-header" data-modulo="validador" data-titulo="Listas del SAT" data-migas="Herramientas|/herramientas/"></div>
+<script src="/assets/js/nucleo.js?v=202610050937"></script>
+<script src="/assets/js/barra.js?v=202610050937"></script>
+
+<main class="ls-pagina">
+    <div class="ls-cabeza">
+        <div>
+            <h1>Listas del SAT</h1>
+            <p class="ls-sub">69-B (operaciones simuladas), 49 Bis (CFDI falsos), no localizados, incumplidos, CSD sin efectos y 69-B Bis. Se revisan solas de lunes a viernes a las 7:00.</p>
+        </div>
+        <button type="button" id="btn-actualizar" class="ls-btn" hidden>Actualizar ahora</button>
+    </div>
+
+    <div id="aviso" class="ls-aviso" hidden></div>
+
+    <!-- Buscar un RFC -->
+    <section class="ls-caja">
+        <h2>Buscar un RFC</h2>
+        <form id="form-buscar" class="ls-buscar" autocomplete="off">
+            <input type="text" id="rfc-buscar" maxlength="13" placeholder="RFC del proveedor o cliente" aria-label="RFC a buscar">
+            <button type="submit" class="ls-btn ls-btn--primario">Buscar</button>
+        </form>
+        <div id="resultado-buscar" class="ls-resultado" hidden></div>
+    </section>
+
+    <!-- Tus contrapartes -->
+    <section class="ls-caja">
+        <div class="ls-caja__cabeza">
+            <h2>Tus proveedores y clientes en alguna lista</h2>
+            <select id="sel-empresa" aria-label="Empresa"><option value="">Todas mis empresas</option></select>
+        </div>
+        <p id="texto-contrapartes" class="ls-nota">Revisando…</p>
+        <div id="lista-contrapartes"></div>
+    </section>
+
+    <!-- Cambios -->
+    <section class="ls-caja">
+        <h2>Cambios recientes de tus proveedores y clientes</h2>
+        <p class="ls-nota">Quién entró, cambió de situación o salió de una lista en los últimos 60 días.</p>
+        <div id="lista-cambios"></div>
+    </section>
+
+    <!-- Estado de cada lista -->
+    <section class="ls-caja">
+        <h2>Las listas</h2>
+        <div id="lista-estado" class="ls-estado"></div>
+        <div id="caja-49bis" class="ls-49bis" hidden>
+            <p class="ls-nota">El enlace del PDF del 49 Bis cambia con cada publicación. Si un día no se encuentra solo, pega aquí el nuevo
+                (en sat.gob.mx → artículo 49 del CFF → Consulta → Listado de contribuyentes).</p>
+            <div class="ls-buscar">
+                <input type="url" id="url-49bis" placeholder="https://….pdf" aria-label="Enlace del PDF del 49 Bis">
+                <button type="button" id="btn-url-49bis" class="ls-btn">Guardar enlace</button>
+            </div>
+        </div>
+    </section>
+</main>
+
+<script src="/herramientas/listas-sat/listas-sat.js?v=202610050937"></script>
+</body>
+</html>
