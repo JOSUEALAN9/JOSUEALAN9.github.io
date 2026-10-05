@@ -243,3 +243,36 @@ button.ctx-resumen__dato:hover { background: #f8fafc; }
 .xml-mes--activo small { color: #cbd5e1; }
 .xml-mes--todo { min-width: auto; }
 .pestana .xml-cuenta:empty { display: none; }
+
+/* Columna de acciones (como Mi Admin): a la derecha en pantalla grande, arriba en celular */
+.xml-layout:not([hidden]) { display: grid; grid-template-columns: minmax(0, 1fr) 190px; gap: 14px; align-items: start; }
+.xml-layout__principal { min-width: 0; grid-column: 1; grid-row: 1; }
+.xml-acciones { grid-column: 2; grid-row: 1; position: sticky; top: 12px; background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 10px; display: flex; flex-direction: column; gap: 4px; }
+.xml-acciones__grupo { font-size: 10.5px; font-weight: 800; color: #0e7490; text-transform: uppercase; letter-spacing: .05em; margin: 6px 4px 2px; }
+.xml-acciones__grupo:first-child { margin-top: 0; }
+.xml-accion { display: flex; align-items: center; gap: 8px; width: 100%; text-align: left; font-size: 13px; font-weight: 600; color: #1e293b; background: none; border: 1px solid transparent; border-radius: 8px; padding: 7px 8px; cursor: pointer; }
+.xml-accion b { width: 22px; height: 22px; flex: none; display: grid; place-items: center; border-radius: 6px; background: #f1f5f9; color: #0e7490; font-size: 12px; }
+.xml-accion:hover:not(:disabled) { background: #f8fafc; border-color: #e2e8f0; }
+.xml-accion:disabled { opacity: .55; cursor: default; }
+.xml-acciones__nota { font-size: 11px; color: #64748b; margin: 6px 4px 0; line-height: 1.35; }
+@media (max-width: 1000px) {
+  .xml-layout:not([hidden]) { grid-template-columns: minmax(0, 1fr); }
+  .xml-acciones { grid-column: 1; grid-row: 1; position: static; flex-direction: row; flex-wrap: wrap; }
+  .xml-layout__principal { grid-row: 2; }
+  .xml-acciones__grupo { display: none; }
+  .xml-accion { width: auto; }
+  .xml-acciones__nota { width: 100%; }
+}
+
+/* Pestañas de listas del SAT (Facturas · Operaciones simuladas · No localizados · Incumplidos) */
+.xml-vlistas { display: flex; flex-wrap: wrap; gap: 0; border-bottom: 1px solid #e2e8f0; margin-bottom: 10px; }
+.xml-vlistas:empty { display: none; }
+.xml-vlista { font-size: 12.5px; font-weight: 700; color: #64748b; background: none; border: 0; border-bottom: 2px solid transparent; padding: 7px 12px; cursor: pointer; }
+.xml-vlista span { margin-left: 4px; font-weight: 800; }
+.xml-vlista--riesgo span { color: #b91c1c; }
+.xml-vlista--activa { color: #0f172a; border-bottom-color: #0e7490; }
+
+/* Fechas exactas */
+.xml-periodo__fechas label { font-size: 12px; color: #475569; display: flex; align-items: center; gap: 6px; }
+.xml-periodo__fechas input { font-size: 12.5px; border: 1px solid #cbd5e1; border-radius: 8px; padding: 4px 6px; }
+.xml-periodo--fechas #anios .xml-mes--activo, .xml-periodo--fechas #meses .xml-mes--activo { background: #fff; color: #334155; border-color: #e2e8f0; }

@@ -190,6 +190,9 @@ function prepararEventos() {
         renderizarActividad();
     });
     $("buscar-actividad").addEventListener("input", renderizarActividad);
+    $("fecha-actividad").addEventListener("change", renderizarActividad);
+    $("tipo-actividad").addEventListener("change", renderizarActividad);
+    $("btn-ver-actividad").addEventListener("click", () => abrirVentana("Toda la actividad", "bloque-actividad", renderizarActividad));
     $("btn-actualizar-actividad").addEventListener("click", cargarProcesosAdmin);
     $("lista-actividad").addEventListener("click", e => {
         const b = e.target.closest("button[data-accion='detener']");
@@ -516,6 +519,8 @@ async function cargarProcesosAdmin() {
         $("cuenta-actividad").textContent = enProceso ? `(${enProceso} en proceso)` : "";
         $("actualizado-actividad").textContent = "Actualizado " + new Date().toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" });
         renderizarResumen();
+        renderizarRecientes();
+        llenarTiposActividad();
         renderizarActividad();
     } catch (e) { mostrarAlerta("error", e.message); }
 }
@@ -542,12 +547,44 @@ function renderizarResumen() {
         </div>`).join("");
 }
 
+function nombreDocDe(p) {
+    return NOMBRE_DOC[p.tipo] || (p.tipo ? p.tipo.charAt(0).toUpperCase() + p.tipo.slice(1) : "Documento");
+}
+
+/* Lo más reciente a la vista (5); lo demás, con filtros, en la ventana. */
+function renderizarRecientes() {
+    const ultimos = procesosCache.slice().sort((a, b) => (b.creado_en || "").localeCompare(a.creado_en || "")).slice(0, 5);
+    const color = { procesando: "text-blue-700", completado: "text-emerald-700" };
+    $("actividad-recientes").innerHTML = ultimos.length ? ultimos.map(p => `
+        <div class="px-4 py-2.5 flex flex-wrap items-baseline gap-x-3 gap-y-0.5">
+            <span class="text-sm font-semibold text-slate-800">${esc(nombreDocDe(p))}</span>
+            <span class="font-mono text-xs text-slate-500">${esc(p.titulo)}</span>
+            <span class="text-xs text-slate-500 truncate">${esc(p.usuario)}</span>
+            <span class="ml-auto text-[11px] font-bold ${color[grupoEstado(p.estado)] || "text-amber-700"}">${esc(p.estado === "procesando" ? "En proceso" : p.estado === "completado" ? "Completado" : "Con problemas")}</span>
+            <span class="text-[11px] text-slate-400">${esc(haceCuanto(p.creado_en))}</span>
+        </div>`).join("") : `<p class="p-6 text-center text-sm text-slate-400">No hay actividad todavía.</p>`;
+    $("btn-ver-actividad").textContent = `Ver toda la actividad (${procesosCache.length})`;
+}
+
+function llenarTiposActividad() {
+    const sel = $("tipo-actividad"), actual = sel.value;
+    const tipos = [...new Set(procesosCache.map(p => p.tipo).filter(Boolean))];
+    sel.innerHTML = `<option value="">Todos los tipos</option>` +
+        tipos.map(t => [t, NOMBRE_DOC[t] || t]).sort((a, b) => a[1].localeCompare(b[1])).map(([t, n]) => `<option value="${esc(t)}">${esc(n)}</option>`).join("");
+    sel.value = tipos.includes(actual) ? actual : "";
+}
+
 function renderizarActividad() {
     const texto = $("buscar-actividad").value.trim().toLowerCase();
+    const dias = $("fecha-actividad").value, tipo = $("tipo-actividad").value;
+    const desde = dias === "" ? null : (() => { const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() - Number(dias)); return d; })();
     const lista = procesosCache.filter(p =>
         (filtroActividad === "todos" || grupoEstado(p.estado) === filtroActividad) &&
+        (!tipo || p.tipo === tipo) &&
+        (!desde || new Date(p.creado_en + "Z") >= desde) &&
         (!texto || (p.usuario || "").toLowerCase().includes(texto) || (p.titulo || "").toLowerCase().includes(texto)));
     $("sin-actividad").classList.toggle("hidden", lista.length > 0);
+    $("cuenta-filtrada-actividad").textContent = `${lista.length} de ${procesosCache.length} procesos.`;
 
     const estados = {
         procesando: ["En proceso", "bg-blue-100 text-blue-700"],
@@ -616,6 +653,31 @@ async function cancelarProcesoAdmin(clase, id, boton) {
  * ===================================================================== */
 let estadoSistema = null;
 
+/* Ventana para lo largo: mueve un bloque de la página adentro y lo regresa al cerrar
+   (así sus botones y eventos siguen siendo los mismos). */
+let ventanaBloque = null;
+function abrirVentana(titulo, idBloque, alAbrir) {
+    cerrarVentana();
+    const bloque = $(idBloque);
+    const marca = document.createComment("lugar-" + idBloque);
+    bloque.parentNode.insertBefore(marca, bloque);
+    ventanaBloque = { bloque, marca };
+    $("ventana-titulo").textContent = titulo;
+    $("ventana-cuerpo").appendChild(bloque);
+    bloque.hidden = false;
+    $("ventana").hidden = false;
+    if (alAbrir) alAbrir();
+}
+function cerrarVentana() {
+    if (!ventanaBloque) { $("ventana").hidden = true; return; }
+    const { bloque, marca } = ventanaBloque;
+    bloque.hidden = true;
+    marca.parentNode.insertBefore(bloque, marca);
+    marca.remove();
+    ventanaBloque = null;
+    $("ventana").hidden = true;
+}
+
 function prepararEventosSistema() {
     $("btn-actualizar-sistema").addEventListener("click", cargarSistema);
     $("chk-mantenimiento").addEventListener("change", cambiarMantenimiento);
@@ -627,6 +689,25 @@ function prepararEventosSistema() {
     $("btn-limpiar-vencidos").addEventListener("click", () => limpiarCache(null));
     $("btn-limpiar-rfc").addEventListener("click", () => limpiarCache($("rfc-cache").value.trim().toUpperCase()));
     $("btn-ver-log").addEventListener("click", verLog);
+    // Subpestañas de Sistema (la última se recuerda en este navegador)
+    const abrirSub = nombre => {
+        document.querySelectorAll("#sub-sistema [data-sub]").forEach(b => b.classList.toggle("adm-sub--activa", b.dataset.sub === nombre));
+        document.querySelectorAll("#panel-sistema [data-subpanel]").forEach(p => { p.hidden = p.dataset.subpanel !== nombre; });
+        try { localStorage.setItem("fc-admin-sub", nombre); } catch (e) { /* sin almacenamiento */ }
+    };
+    $("sub-sistema").addEventListener("click", e => { const b = e.target.closest("[data-sub]"); if (b) abrirSub(b.dataset.sub); });
+    try { const s = localStorage.getItem("fc-admin-sub"); if (s && document.querySelector(`#sub-sistema [data-sub="${s}"]`)) abrirSub(s); } catch (e) { /* nada */ }
+    $("btn-abrir-log").addEventListener("click", () => abrirVentana("Log del servidor", "bloque-log", verLog));
+    $("btn-ver-bitacora").addEventListener("click", () => abrirVentana("Bitácora de administración", "bloque-bitacora", pintarBitacoraToda));
+    $("buscar-bitacora").addEventListener("input", pintarBitacoraToda);
+    $("quien-bitacora").addEventListener("change", pintarBitacoraToda);
+    $("btn-sat-config").addEventListener("click", () => abrirVentana("Estado del SAT: configuración e historial", "bloque-sat-config"));
+    $("btn-ver-listas").addEventListener("click", () => abrirVentana("Listas del SAT", "bloque-listas"));
+    $("btn-listas-actualizar").addEventListener("click", actualizarListas);
+    $("btn-url-49bis").addEventListener("click", guardarUrl49bis);
+    $("ventana-cerrar").addEventListener("click", cerrarVentana);
+    $("ventana").addEventListener("click", e => { if (e.target.id === "ventana") cerrarVentana(); });
+    document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("ventana").hidden) cerrarVentana(); });
     $("log-lineas").addEventListener("change", () => { if (!$("caja-log").hidden) verLog(); });
     $("btn-sat-revisar-todos").addEventListener("click", () => revisarSAT(null));
     $("btn-sat-efirma").addEventListener("click", guardarEfirmaSAT);
@@ -669,6 +750,7 @@ async function cargarSistema() {
         pintarEstado();
         pintarPortal();
         await cargarEstadoSAT();
+        cargarListasAdmin();
         await cargarBitacora();
     } catch (err) { mostrarAlerta("error", err.message); }
 }
@@ -820,6 +902,8 @@ function pintarEstadoSAT() {
     sel.innerHTML = opciones.join("");
     sel.value = e.efirma ? e.efirma.rfc : "";
     $("chk-sat-activo").checked = !!e.activo;
+    $("sat-resumen-config").textContent = (e.activo ? "Revisión automática activada" : "Revisión automática PAUSADA") +
+        " · " + (e.efirma ? "con e.firma " + e.efirma.rfc : "sin e.firma (solo la pantalla de acceso)");
 
     $("sat-historial").innerHTML = e.historial.length
         ? `<table class="w-full"><tbody>${e.historial.map(h => {
@@ -872,6 +956,56 @@ async function cambiarActivoSAT() {
         if (Fiscontable.recargarLetreros) Fiscontable.recargarLetreros();
     } catch (err) { mostrarAlerta("error", err.message); $("chk-sat-activo").checked = !activo; }
     await cargarEstadoSAT();
+}
+
+// ---------------------------------------------------------------- Listas del SAT
+let listasReloj = null;
+async function cargarListasAdmin() {
+    let e;
+    try { e = await api("/api/listas-sat/estado"); }
+    catch (err) { $("resumen-listas").textContent = err.message; return; }
+    const listas = e.listas;
+    const errores = listas.filter(l => l.error);
+    const fechas = listas.map(l => l.actualizado_al).filter(Boolean).sort();
+    const revisadas = listas.map(l => l.revisada_en).filter(Boolean).sort();
+    $("resumen-listas").innerHTML = e.actualizando
+        ? `<span class="font-semibold text-blue-700">Actualizando las listas…</span>`
+        : `<span class="font-semibold">${listas.length - errores.length} de ${listas.length} listas al día</span>` +
+          (fechas.length ? ` · la más reciente publicada al ${esc(fechaCorta(fechas[fechas.length - 1]))}` : "") +
+          (revisadas.length ? ` · revisadas ${esc(haceCuanto(revisadas[0]))}` : " · todavía no se descargan") +
+          ` · ${esc(e.horario)}` +
+          (errores.length ? `<p class="text-xs font-bold text-amber-700 mt-1">⚠ Con error: ${errores.map(l => esc(l.nombre)).join(", ")}. Ábrelas en «Ver listas».</p>` : "");
+    $("listas-estado").innerHTML = listas.map(l => `
+        <div class="bg-white rounded-lg border ${l.error ? "border-amber-300" : "border-gray-200"} p-3">
+            <p class="text-sm font-bold text-slate-800">${esc(l.nombre)}</p>
+            <p class="text-[11px] text-slate-500">${esc(l.descripcion)}</p>
+            <p class="text-[11px] text-slate-600 mt-1">${l.registros != null ? `${Number(l.registros).toLocaleString("es-MX")} ${l.registros === 1 ? "registro" : "registros"}${l.actualizado_al ? " · al " + esc(fechaCorta(l.actualizado_al)) : ""}` : "Todavía no se descarga"}</p>
+            ${l.revisada_en ? `<p class="text-[11px] text-slate-400">Revisada ${esc(haceCuanto(l.revisada_en))}</p>` : ""}
+            ${l.error ? `<p class="text-[11px] font-bold text-amber-700 mt-1">⚠ ${esc(l.error)}</p>` : ""}
+        </div>`).join("");
+    const l49 = listas.find(l => l.lista === "49bis");
+    if (l49 && !$("url-49bis").value) $("url-49bis").value = l49.url || "";
+    $("btn-listas-actualizar").disabled = e.actualizando;
+    clearTimeout(listasReloj);
+    if (e.actualizando) listasReloj = setTimeout(cargarListasAdmin, 10000);
+    if (errores.length) $("alerta-sistema").textContent = "•";
+}
+
+async function actualizarListas() {
+    if (!confirm("¿Descargar ahora todas las listas del SAT?\n\nTarda unos minutos; solo se reemplazan las que cambiaron.")) return;
+    try {
+        const r = await api("/api/listas-sat/actualizar", { method: "POST" });
+        mostrarAlerta("success", r.mensaje);
+    } catch (err) { mostrarAlerta("error", err.message); }
+    setTimeout(cargarListasAdmin, 1500);
+}
+
+async function guardarUrl49bis() {
+    try {
+        await api("/api/listas-sat/url-49bis", { method: "PUT", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ url: $("url-49bis").value.trim() }) });
+        mostrarAlerta("success", "Enlace guardado. Se usa en la siguiente actualización.");
+    } catch (err) { mostrarAlerta("error", err.message); }
 }
 
 async function actualizarTipoCambio(boton) {
@@ -1037,15 +1171,34 @@ async function verLog() {
     } catch (err) { caja.textContent = err.message; }
 }
 
+let bitacoraCache = [];
+
+function filaBitacora(b) {
+    return `<div class="px-5 py-3 flex flex-wrap items-baseline gap-x-3 gap-y-0.5">
+        <span class="text-sm font-semibold text-slate-800">${esc(b.accion)}</span>
+        ${b.detalle ? `<span class="text-xs text-slate-500">${esc(b.detalle)}</span>` : ""}
+        <span class="ml-auto text-[11px] text-slate-400 whitespace-nowrap" title="${esc(new Date(b.cuando + "Z").toLocaleString("es-MX"))}">${esc(b.quien)} · ${esc(haceCuanto(b.cuando))}</span>
+    </div>`;
+}
+
 async function cargarBitacora() {
     try {
-        const filas = await api("/api/admin/sistema/bitacora?limite=50");
-        $("sin-bitacora").classList.toggle("hidden", filas.length > 0);
-        $("lista-bitacora").innerHTML = filas.map(b => `
-            <div class="px-5 py-3 flex flex-wrap items-baseline gap-x-3 gap-y-0.5">
-                <span class="text-sm font-semibold text-slate-800">${esc(b.accion)}</span>
-                ${b.detalle ? `<span class="text-xs text-slate-500">${esc(b.detalle)}</span>` : ""}
-                <span class="ml-auto text-[11px] text-slate-400 whitespace-nowrap" title="${esc(new Date(b.cuando + "Z").toLocaleString("es-MX"))}">${esc(b.quien)} · ${esc(haceCuanto(b.cuando))}</span>
-            </div>`).join("");
+        bitacoraCache = await api("/api/admin/sistema/bitacora?limite=300");
+        $("sin-bitacora").classList.toggle("hidden", bitacoraCache.length > 0);
+        $("lista-bitacora").innerHTML = bitacoraCache.slice(0, 5).map(filaBitacora).join("");
+        const quienes = [...new Set(bitacoraCache.map(b => b.quien))].sort();
+        const sel = $("quien-bitacora"), actual = sel.value;
+        sel.innerHTML = `<option value="">Todos</option>` + quienes.map(q => `<option value="${esc(q)}">${esc(q)}</option>`).join("");
+        sel.value = quienes.includes(actual) ? actual : "";
+        if (!$("ventana").hidden && ventanaBloque && ventanaBloque.bloque.id === "bloque-bitacora") pintarBitacoraToda();
     } catch (err) { mostrarAlerta("error", err.message); }
+}
+
+function pintarBitacoraToda() {
+    const q = $("buscar-bitacora").value.trim().toLowerCase(), quien = $("quien-bitacora").value;
+    const filas = bitacoraCache.filter(b => (!quien || b.quien === quien) &&
+        (!q || `${b.accion} ${b.detalle || ""} ${b.quien}`.toLowerCase().includes(q)));
+    $("cuenta-bitacora").textContent = `${filas.length} de ${bitacoraCache.length} registros (los más recientes primero).`;
+    $("lista-bitacora-toda").innerHTML = filas.map(filaBitacora).join("") ||
+        `<p class="p-6 text-center text-sm text-slate-400">Nada coincide.</p>`;
 }

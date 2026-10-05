@@ -45,3 +45,6 @@
 .ls-cambio { font-size: 12.5px; padding: 7px 0; border-top: 1px solid #f1f5f9; color: #334155; }
 .ls-cambio:first-child { border-top: 0; }
 .ls-cambio time { color: #94a3b8; margin-right: 6px; }
+.ls-actualizacion { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex: 0 1 auto; }
+.ls-actualizacion .ls-nota { margin: 0; text-align: right; }
+@media (max-width: 640px) { .ls-actualizacion { align-items: flex-start; } .ls-actualizacion .ls-nota { text-align: left; } }

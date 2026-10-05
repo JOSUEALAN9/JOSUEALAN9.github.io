@@ -50,7 +50,7 @@
         estado_pago: 120, estado_sat: 100, forma_pago: 210, forma_pago_p: 210, uso_cfdi: 190, docto_encontrado: 90 };
 
     var E = {
-        contribuyentes: [], rfc: null, periodo: "", datos: null, anio: "", meses: new Set(), anios: [], totalXml: 0,
+        contribuyentes: [], rfc: null, periodo: "", datos: null, anio: "", meses: new Set(), anios: [], cuentas: {}, fechas: { desde: "", hasta: "" }, cargado: null, vlista: "",
         modulo: "recibidos", sub: "", rapidos: {}, busqueda: "",
         orden: { clave: null, dir: 1 }, seleccion: new Set(),
         columnas: {}, vistas: [], vistaActual: {},
@@ -118,6 +118,7 @@
             if (!E.rfc || !e.detail) return;
             E.anio = e.detail.slice(0, 4);
             E.meses = new Set([e.detail.slice(5, 7)]);
+            E.fechas = { desde: "", hasta: "" }; $("fecha-desde").value = ""; $("fecha-hasta").value = "";
             cargarRegistros();
         });
     }
@@ -232,106 +233,157 @@
 
     var MES_CORTO = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
     var MES_LARGO = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
+    var DOCE = MES_CORTO.map(function (_, i) { return String(i + 1).padStart(2, "0"); });
 
-    /* Años con XML (y cuántos) de la empresa; arranca en el periodo general o en el último mes con XML. */
+    /* Periodo de esta página: un año y los meses marcados (o un rango de fechas exactas).
+       Solo se carga lo elegido; sin año o sin meses no se carga nada. Arranca en el periodo
+       general; si no hay, espera a que elijas. */
     function armarPeriodos(c) {
         E.busqueda = ""; $("buscar").value = "";
         E.seleccion.clear();
+        E.cuentas = {};                                        // "AAAA-MM" -> {total, modulos}
+        (c.periodos || []).forEach(function (p) { if (p.periodo) E.cuentas[p.periodo] = { n: p.n, modulos: p.modulos || {} }; });
         var porAnio = {};
-        (c.periodos || []).forEach(function (p) {
-            var a = (p.periodo || "").slice(0, 4);
-            if (a) porAnio[a] = (porAnio[a] || 0) + p.n;
-        });
+        Object.keys(E.cuentas).forEach(function (p) { porAnio[p.slice(0, 4)] = (porAnio[p.slice(0, 4)] || 0) + E.cuentas[p].n; });
         E.anios = Object.keys(porAnio).sort().reverse().map(function (a) { return [a, porAnio[a]]; });
-        E.totalXml = (c.periodos || []).reduce(function (s, p) { return s + p.n; }, 0);
-        var ultimo = (c.periodos || []).map(function (p) { return p.periodo; }).filter(Boolean).sort().pop();
-        var inicio = E.periodoGeneral || ultimo;
-        E.anio = inicio ? inicio.slice(0, 4) : String(new Date().getFullYear());
-        E.meses = new Set(inicio ? [inicio.slice(5, 7)] : []);
+        E.fechas = { desde: "", hasta: "" };
+        $("fecha-desde").value = ""; $("fecha-hasta").value = "";
+        E.cargado = null;
+        if (E.periodoGeneral) { E.anio = E.periodoGeneral.slice(0, 4); E.meses = new Set([E.periodoGeneral.slice(5, 7)]); }
+        else { E.anio = ""; E.meses = new Set(); }
     }
 
+    function porFechas() { return !!(E.fechas.desde || E.fechas.hasta); }
+    function hayEleccion() { return porFechas() || (E.anio && E.meses.size > 0); }
+
     function enPeriodo(f) {
-        if (E.anio === "t" || !E.meses.size) return true;
-        return E.meses.has((f._periodo || "").slice(5, 7));
+        if (porFechas()) return true;                          // el servidor ya filtró por fechas exactas
+        return (f._periodo || "").slice(0, 4) === E.anio && E.meses.has((f._periodo || "").slice(5, 7));
     }
 
     function filasPeriodo(modulo) {
         return E.datos && E.datos[modulo] ? E.datos[modulo].filas.filter(enPeriodo) : [];
     }
 
+    function dmy(iso) { return iso ? iso.slice(8, 10) + "/" + iso.slice(5, 7) + "/" + iso.slice(0, 4) : "…"; }
+
     function textoPeriodo() {
-        if (E.anio === "t") return "ningún año";
-        if (!E.meses.size) return "todo " + E.anio;
+        if (porFechas()) return "del " + dmy(E.fechas.desde) + " al " + dmy(E.fechas.hasta);
+        if (!hayEleccion()) return "ningún periodo";
+        if (E.meses.size === 12) return "todo " + E.anio;
         var ms = Array.from(E.meses).sort().map(function (m) { return MES_LARGO[+m - 1]; });
         return (ms.length > 1 ? ms.slice(0, -1).join(", ") + " y " + ms[ms.length - 1] : ms[0]) + " de " + E.anio;
     }
 
-    /* Desde-hasta que cubre lo elegido (Conciliación, Excel); los meses sueltos van aparte. */
+    /* Desde-hasta que cubre lo elegido (es lo que se pide al servidor, a Conciliación y a Excel). */
     function rangoPeriodo() {
-        if (E.anio === "t") return { desde: null, hasta: null };
-        if (!E.meses.size) return { desde: E.anio + "-01-01", hasta: E.anio + "-12-31" };
+        if (porFechas()) return { desde: E.fechas.desde || null, hasta: E.fechas.hasta || null };
+        if (!hayEleccion()) return { desde: null, hasta: null };
         var ms = Array.from(E.meses).sort();
         var ultimo = new Date(+E.anio, +ms[ms.length - 1], 0).getDate();
         return { desde: E.anio + "-" + ms[0] + "-01", hasta: E.anio + "-" + ms[ms.length - 1] + "-" + String(ultimo).padStart(2, "0") };
     }
 
     function mesesElegidos() {
-        return E.anio !== "t" && E.meses.size ? Array.from(E.meses).sort().map(function (m) { return E.anio + "-" + m; }) : null;
+        return !porFechas() && hayEleccion() ? Array.from(E.meses).sort().map(function (m) { return E.anio + "-" + m; }) : null;
+    }
+
+    function cuantos(periodo) {
+        var c = E.cuentas[periodo];
+        return c ? (c.modulos[E.modulo] || 0) : 0;
     }
 
     function pintarPeriodo() {
+        $("periodo-xml").classList.toggle("xml-periodo--fechas", porFechas());
         var anios = E.anios.slice();
-        if (E.anio !== "t" && !anios.some(function (a) { return a[0] === E.anio; })) anios.unshift([E.anio, 0]);
-        $("anios").innerHTML = anios.map(function (a) {
+        if (E.anio && !anios.some(function (a) { return a[0] === E.anio; })) anios.unshift([E.anio, 0]);
+        $("anios").innerHTML = anios.length ? anios.map(function (a) {
             return '<button type="button" class="xml-mes xml-mes--todo' + (E.anio === a[0] ? " xml-mes--activo" : "") + (a[1] ? "" : " xml-mes--cero") +
-                '" data-anio="' + a[0] + '">' + a[0] + "<small>" + a[1].toLocaleString("es-MX") + "</small></button>";
-        }).join("") + '<button type="button" class="xml-mes xml-mes--todo' + (E.anio === "t" ? " xml-mes--activo" : "") +
-            '" data-anio="t">Todos<small>' + (E.totalXml || 0).toLocaleString("es-MX") + "</small></button>";
-        if (E.anio === "t") {
-            $("meses").innerHTML = '<span class="xml-tenue">Se ven los XML de todos los años.</span>';
+                '" data-anio="' + a[0] + '" aria-pressed="' + (E.anio === a[0]) + '">' + a[0] + "<small>" + a[1].toLocaleString("es-MX") + "</small></button>";
+        }).join("") : '<span class="xml-tenue">Todavía no hay XML.</span>';
+        if (!E.anio) {
+            $("meses").innerHTML = '<span class="xml-tenue">Elige un año.</span>';
             return;
         }
-        // Cuántos hay por mes en la pestaña en la que estás (del año ya cargado)
-        var porMes = {};
-        if (E.datos && E.datos[E.modulo]) E.datos[E.modulo].filas.forEach(function (f) {
-            var m = (f._periodo || "").slice(5, 7);
-            (porMes[m] = porMes[m] || new Set()).add(f.uuid);
-        });
-        var total = Object.keys(porMes).reduce(function (s, m) { return s + porMes[m].size; }, 0);
-        $("meses").innerHTML = '<button type="button" class="xml-mes xml-mes--todo' + (E.meses.size ? "" : " xml-mes--activo") +
-            '" data-mes="">Todo el año<small>' + total.toLocaleString("es-MX") + "</small></button>" +
-            MES_CORTO.map(function (nombre, i) {
-                var mm = String(i + 1).padStart(2, "0"), n = porMes[mm] ? porMes[mm].size : 0;
-                return '<button type="button" class="xml-mes' + (E.meses.has(mm) ? " xml-mes--activo" : "") + (n ? "" : " xml-mes--cero") +
-                    '" data-mes="' + mm + '" aria-pressed="' + E.meses.has(mm) + '" title="' + MES_LARGO[i] + " " + E.anio + '">' + nombre + "<small>" + n + "</small></button>";
+        // Cuántos hay de la pestaña en la que estás, por mes (sin cargar los XML)
+        var total = DOCE.reduce(function (s, mm) { return s + cuantos(E.anio + "-" + mm); }, 0);
+        $("meses").innerHTML = '<button type="button" class="xml-mes xml-mes--todo' + (E.meses.size === 12 ? " xml-mes--activo" : "") +
+            '" data-mes="todo" aria-pressed="' + (E.meses.size === 12) + '">Todo el año<small>' + total.toLocaleString("es-MX") + "</small></button>" +
+            DOCE.map(function (mm, i) {
+                var n = cuantos(E.anio + "-" + mm), on = E.meses.has(mm);
+                return '<button type="button" class="xml-mes' + (on ? " xml-mes--activo" : "") + (n ? "" : " xml-mes--cero") +
+                    '" data-mes="' + mm + '" aria-pressed="' + on + '" title="' + MES_LARGO[i] + " " + E.anio + '">' + MES_CORTO[i] + "<small>" + n.toLocaleString("es-MX") + "</small></button>";
             }).join("");
     }
 
-    /* Cambiar de mes no vuelve al servidor: el año ya está cargado. */
-    function refrescarPorMes() {
+    /* Si lo elegido cabe en lo que ya se cargó, se filtra aquí; si no, se pide al servidor. */
+    function alCambiarPeriodo() {
         E.seleccion.clear();
-        pintarPeriodo();
-        pintarPestanas();
-        pintarSubfiltros();
-        aplicar();
+        var r = rangoPeriodo();
+        var cabe = E.cargado && E.cargado.rfc === E.rfc && hayEleccion() && !porFechas() && !E.cargado.fechas &&
+            r.desde >= E.cargado.desde && r.hasta <= E.cargado.hasta;
+        if (cabe) {
+            pintarPeriodo(); pintarPestanas(); pintarSubfiltros(); pintarVistaListas(); aplicar();
+        } else {
+            cargarRegistros();
+        }
     }
 
     async function cargarRegistros() {
         if (!E.rfc) return;
         $("sin-empresa").hidden = true;
         $("contenido").hidden = false;
-        var r = E.anio === "t" ? {} : { desde: E.anio + "-01-01", hasta: E.anio + "-12-31" };
-        var q = "?rfc=" + encodeURIComponent(E.rfc) + (r.desde ? "&desde=" + r.desde + "&hasta=" + r.hasta : "");
+        pintarPeriodo();
+        var r = rangoPeriodo();
+        // Sin elección no se trae ningún XML (solo la forma de la tabla)
+        var desde = hayEleccion() ? r.desde : "1900-01-01", hasta = hayEleccion() ? r.hasta : "1900-01-01";
+        var q = "?rfc=" + encodeURIComponent(E.rfc) + (desde ? "&desde=" + desde : "") + (hasta ? "&hasta=" + hasta : "");
         $("conteo-filas").textContent = "Cargando…";
         try {
             E.datos = (await apiJSON("/api/xml/registros" + q)).modulos;
         } catch (e) { avisar(e.message); return; }
+        E.cargado = hayEleccion() ? { rfc: E.rfc, desde: r.desde, hasta: r.hasta, fechas: porFechas() } : null;
         E.seleccion.clear();
-        // Te quedas en la pestaña que elegiste aunque en este periodo no tenga XML
-        pintarPeriodo();
         pintarPestanas();
         cambiarModulo(E.modulo, true);
         reanudarValidacion();
+    }
+
+    /* ============================================================ listas del SAT (como Mi Admin) */
+    var VISTAS_LISTAS = [
+        ["", "Facturas", []],
+        ["simuladas", "Operaciones simuladas", ["69b", "49bis"]],
+        ["no_localizados", "No localizados", ["no_localizados"]],
+        ["incumplidos", "Incumplidos", ["firmes", "exigibles", "cancelados", "sentencias"]],
+        ["csd", "CSD sin efectos", ["csd_sin_efectos"]]
+    ];
+
+    function enVistaLista(f, v) {
+        var l = f._listas || [];
+        return v[2].some(function (k) { return l.indexOf(k) !== -1; });
+    }
+
+    function pintarVistaListas() {
+        if (E.modulo === "nomina" || !E.datos) { $("vista-listas").innerHTML = ""; return; }
+        var filas = filasPeriodo(E.modulo).filter(function (f) { return !E.sub || f._sub === E.sub; });
+        $("vista-listas").innerHTML = VISTAS_LISTAS.map(function (v) {
+            var n = v[0] ? contarUuid(filas.filter(function (f) { return enVistaLista(f, v); })) : contarUuid(filas);
+            return '<button type="button" role="tab" class="xml-vlista' + (E.vlista === v[0] ? " xml-vlista--activa" : "") + (v[0] && n ? " xml-vlista--riesgo" : "") +
+                '" data-vlista="' + v[0] + '" aria-selected="' + (E.vlista === v[0]) + '">' + v[1] + "<span>" + n + "</span></button>";
+        }).join("");
+    }
+
+    /* Las acciones de la derecha usan lo seleccionado; si no hay selección, lo que ves. */
+    function uuidsParaAcciones() {
+        if (E.seleccion.size) return Array.from(E.seleccion);
+        return Array.from(new Set((E.filas || []).map(function (f) { return f.uuid; })));
+    }
+
+    function pintarAlcance() {
+        var n = uuidsParaAcciones().length;
+        $("acciones-alcance").textContent = !n ? "No hay XML en la tabla."
+            : E.seleccion.size ? "Sobre los " + n.toLocaleString("es-MX") + " seleccionados." : "Sobre los " + n.toLocaleString("es-MX") + " XML que ves.";
+        ["btn-acuse", "btn-zip"].forEach(function (id) { $(id).disabled = !n; });
     }
 
     /* ============================================================ minimódulos */
@@ -352,6 +404,7 @@
     function cambiarModulo(modulo, conservarSub) {
         E.modulo = modulo;
         if (!conservarSub) E.sub = "";
+        E.vlista = "";
         E.rapidos = {};
         E.av = {};
         E.orden = { clave: null, dir: 1 };
@@ -360,6 +413,7 @@
         pintarPeriodo();
         prepararColumnas();
         pintarSubfiltros();
+        pintarVistaListas();
         pintarRapidos();
         pintarVistas();
         aplicar();
@@ -523,8 +577,10 @@
         var activos = Object.keys(E.rapidos).filter(function (k) { return E.rapidos[k]; });
         var av = E.av;
         var min = av.min !== undefined && av.min !== "" ? +av.min : null, max = av.max !== undefined && av.max !== "" ? +av.max : null;
+        var vl = E.vlista ? VISTAS_LISTAS.find(function (v) { return v[0] === E.vlista; }) : null;
         E.filas = filas.filter(function (f) {
             if (E.sub && f._sub !== E.sub) return false;
+            if (vl && !enVistaLista(f, vl)) return false;
             for (var i = 0; i < activos.length; i++) if (!PRUEBA_RAPIDO[activos[i]](f)) return false;
             if (min !== null || max !== null) {
                 var imp = importeDe(f);
@@ -618,15 +674,14 @@
             // ¿Faltan datos en el periodo, o los esconden los filtros? Son dos mensajes distintos.
             var delPeriodo = filasPeriodo(E.modulo).length;
             var nombreMod = (MODULOS.find(function (m) { return m.clave === E.modulo; }) || {}).nombre || "";
-            var conXml = E.anio === "t" ? [] : MES_CORTO.filter(function (_, i) {
-                var mm = String(i + 1).padStart(2, "0");
-                return E.datos[E.modulo].filas.some(function (f) { return (f._periodo || "").slice(5, 7) === mm; });
-            });
-            $("sin-filas").textContent = delPeriodo ? "No hay registros con estos filtros."
+            var conXml = E.anio ? DOCE.filter(function (mm) { return cuantos(E.anio + "-" + mm); }).map(function (mm) { return MES_CORTO[+mm - 1]; }) : [];
+            $("sin-filas").textContent = !hayEleccion() ? "Elige un año y al menos un mes (o un rango de fechas) para ver los XML."
+                : delPeriodo ? "No hay registros con estos filtros."
                 : "No hay XML de " + nombreMod + " en " + textoPeriodo() + "." +
-                  (conXml.length ? " En " + E.anio + " sí hay en: " + conXml.join(", ") + "." : " Elige otro año arriba.");
+                  (porFechas() ? "" : conXml.length ? " En " + E.anio + " sí hay en: " + conXml.join(", ") + "." : " En " + E.anio + " no hay de este tipo.");
         }
         $("conteo-filas").textContent = E.filas.length.toLocaleString("es-MX") + " registro(s)";
+        pintarAlcance();
         pintarFilas(true);
         pintarSeleccion();
     }
@@ -662,6 +717,7 @@
         var n = E.seleccion.size;
         $("barra-seleccion").hidden = n === 0;
         $("texto-seleccion").textContent = n + " XML seleccionado" + (n === 1 ? "" : "s");
+        pintarAlcance();
     }
 
     function abrirDetalle(f) {
@@ -811,7 +867,6 @@
 
     /* ============================================================ acciones */
     async function exportarExcel(modo) {
-        $("menu-excel").hidden = true;
         var r = rangoPeriodo();
         var cuerpo = { rfc: E.rfc, desde: r.desde, hasta: r.hasta, meses: mesesElegidos(), modo: modo };
         if (modo === "vista") {
@@ -822,13 +877,14 @@
                 Object.keys(E.av).some(function (k) { return E.av[k]; });
             cuerpo.uuids = filtrado ? Array.from(new Set(E.filas.map(function (f) { return f.uuid; }))) : null;
         }
-        var boton = $("btn-excel");
-        boton.disabled = true; boton.textContent = "Generando…";
+        var boton = document.querySelector('.xml-acciones [data-excel="' + modo + '"]');
+        var texto = boton.innerHTML;
+        boton.disabled = true; boton.innerHTML = "<b>⏳</b>Generando…";
         try {
             var resp = await postJSON("/api/xml/excel", cuerpo);
             descargarBlob(await resp.blob(), nombreArchivo(resp, "reporte.xlsx"));
         } catch (e) { avisar(e.message); }
-        boton.disabled = false; boton.textContent = "Excel ▾";
+        boton.disabled = false; boton.innerHTML = texto;
     }
 
     /* Conciliación: se abre con la misma empresa, periodo y lado (lee la misma biblioteca). */
@@ -841,24 +897,33 @@
     }
 
     async function descargarZip() {
+        var uuids = uuidsParaAcciones();
+        var boton = $("btn-zip"), texto = boton.innerHTML;
+        boton.disabled = true; boton.innerHTML = "<b>⏳</b>Preparando…";
         try {
-            var resp = await postJSON("/api/xml/zip", { rfc: E.rfc, uuids: Array.from(E.seleccion) });
+            var resp = await postJSON("/api/xml/zip", { rfc: E.rfc, uuids: uuids });
             descargarBlob(await resp.blob(), nombreArchivo(resp, "xml.zip"));
         } catch (e) { avisar(e.message); }
+        boton.disabled = false; boton.innerHTML = texto;
     }
 
+    /* Acuse de validación: uno = PDF (consulta el SAT en ese momento); varios = ZIP (hasta 300). */
     async function descargarReportes() {
-        var n = E.seleccion.size;
-        if (n > 300) { avisar("Saca hasta 300 reportes a la vez."); return; }
-        var boton = $("btn-reportes");
-        boton.disabled = true;
-        boton.textContent = "Generando " + n + "…";
+        var uuids = uuidsParaAcciones();
+        if (uuids.length > 300) { avisar("Saca hasta 300 acuses a la vez: selecciona o filtra menos XML (hay " + uuids.length.toLocaleString("es-MX") + ")."); return; }
+        var boton = $("btn-acuse"), texto = boton.innerHTML;
+        boton.disabled = true; boton.innerHTML = "<b>⏳</b>Generando " + uuids.length + "…";
         try {
-            var resp = await postJSON("/api/xml/reportes-validacion", { rfc: E.rfc, uuids: Array.from(E.seleccion) });
-            descargarBlob(await resp.blob(), nombreArchivo(resp, "reportes_validacion.zip"));
+            var resp = uuids.length === 1
+                ? await (async function () {
+                    var r = await fetch(API + "/api/xml/reporte-validacion?rfc=" + encodeURIComponent(E.rfc) + "&uuid=" + encodeURIComponent(uuids[0]), { credentials: "include" });
+                    if (!r.ok) throw new Error(await Fiscontable.leerError(r));
+                    return r;
+                })()
+                : await postJSON("/api/xml/reportes-validacion", { rfc: E.rfc, uuids: uuids });
+            descargarBlob(await resp.blob(), nombreArchivo(resp, uuids.length === 1 ? "acuse_validacion.pdf" : "acuses_validacion.zip"));
         } catch (e) { avisar(e.message); }
-        boton.disabled = false;
-        boton.textContent = "Reporte de validación (ZIP)";
+        boton.disabled = false; boton.innerHTML = texto;
     }
 
     async function quitarSeleccion() {
@@ -1230,8 +1295,14 @@
     }
 
     /* ============================================================ eventos */
+    function limpiarFechas() {
+        E.fechas = { desde: "", hasta: "" };
+        $("fecha-desde").value = ""; $("fecha-hasta").value = "";
+        $("quitar-fechas").hidden = true;
+    }
+
     function cerrarMenus(excepto) {
-        ["menu-excel", "menu-vistas", "menu-filtros", "menu-otra"].forEach(function (id) { if (id !== excepto) $(id).hidden = true; });
+        ["menu-vistas", "menu-filtros", "menu-otra"].forEach(function (id) { if (id !== excepto) $(id).hidden = true; });
     }
 
     function prepararEventos() {
@@ -1259,21 +1330,6 @@
             if (b.hasAttribute("data-elegir")) { e.stopPropagation(); cerrarMenus("menu-otra"); $("menu-otra").hidden = false; pintarMenuOtra(); }
         });
         $("aviso-otra").addEventListener("click", function (e) { if (e.target.id === "volver-empresa") { E.otra = null; E.rfc = null; refrescarBibliotecas(); } });
-        $("anios").addEventListener("click", function (e) {
-            var b = e.target.closest("[data-anio]");
-            if (!b || b.dataset.anio === E.anio) return;
-            E.anio = b.dataset.anio;                 // los meses marcados se quedan (julio 2025 vs julio 2026)
-            cargarRegistros();
-        });
-        $("meses").addEventListener("click", function (e) {
-            var b = e.target.closest("[data-mes]");
-            if (!b) return;
-            var mm = b.dataset.mes;
-            if (!mm) E.meses.clear();
-            else if (E.meses.has(mm)) E.meses.delete(mm);
-            else E.meses.add(mm);
-            refrescarPorMes();
-        });
         $("pestanas").addEventListener("click", function (e) {
             var b = e.target.closest(".pestana");
             if (b && !b.disabled) cambiarModulo(b.dataset.modulo);
@@ -1281,7 +1337,7 @@
         $("subfiltros").addEventListener("click", function (e) {
             var b = e.target.closest("[data-sub]");
             if (!b) return;
-            E.sub = b.dataset.sub; pintarSubfiltros(); aplicar();
+            E.sub = b.dataset.sub; pintarSubfiltros(); pintarVistaListas(); aplicar();
         });
         $("rapidos").addEventListener("click", function (e) {
             var b = e.target.closest("[data-rapido]");
@@ -1295,7 +1351,7 @@
             var v = this.value;
             reloj = setTimeout(function () { E.busqueda = v; aplicar(); }, 150);
         });
-        [["btn-filtros", "menu-filtros"], ["btn-vistas", "menu-vistas"], ["btn-excel", "menu-excel"]].forEach(function (par) {
+        [["btn-filtros", "menu-filtros"], ["btn-vistas", "menu-vistas"]].forEach(function (par) {
             $(par[0]).addEventListener("click", function (e) {
                 e.stopPropagation(); cerrarMenus(par[1]); $(par[1]).hidden = !$(par[1]).hidden;
                 if (par[1] === "menu-filtros" && !$(par[1]).hidden) pintarAvanzados();
@@ -1304,9 +1360,40 @@
         });
         document.addEventListener("click", function () { cerrarMenus(); });
         $("menu-vistas").addEventListener("click", function (e) { var b = e.target.closest("[data-accion]"); if (b) accionVista(b.dataset.accion, b.dataset.nombre); });
-        $("menu-excel").addEventListener("click", function (e) { var b = e.target.closest("[data-excel]"); if (b) exportarExcel(b.dataset.excel); });
+        document.querySelector(".xml-acciones").addEventListener("click", function (e) {
+            var b = e.target.closest("[data-excel]"); if (b && !b.disabled) exportarExcel(b.dataset.excel);
+        });
         $("btn-zip").addEventListener("click", descargarZip);
-        $("btn-reportes").addEventListener("click", descargarReportes);
+        $("btn-acuse").addEventListener("click", descargarReportes);
+        $("vista-listas").addEventListener("click", function (e) {
+            var b = e.target.closest("[data-vlista]"); if (!b) return;
+            E.vlista = b.dataset.vlista; E.seleccion.clear(); pintarVistaListas(); aplicar();
+        });
+        $("anios").addEventListener("click", function (e) {
+            var b = e.target.closest("[data-anio]"); if (!b) return;
+            E.anio = b.dataset.anio === E.anio ? "" : b.dataset.anio;       // otro clic en el año lo quita
+            if (E.anio && !E.meses.size) E.meses = new Set();
+            limpiarFechas();
+            alCambiarPeriodo();
+        });
+        $("meses").addEventListener("click", function (e) {
+            var b = e.target.closest("[data-mes]"); if (!b) return;
+            var mm = b.dataset.mes;
+            if (mm === "todo") E.meses = E.meses.size === 12 ? new Set() : new Set(DOCE);
+            else if (E.meses.has(mm)) E.meses.delete(mm);                    // con todo el año marcado, quita solo ese mes
+            else E.meses.add(mm);
+            limpiarFechas();
+            alCambiarPeriodo();
+        });
+        ["fecha-desde", "fecha-hasta"].forEach(function (id) {
+            $(id).addEventListener("change", function () {
+                E.fechas = { desde: $("fecha-desde").value, hasta: $("fecha-hasta").value };
+                if (E.fechas.desde && E.fechas.hasta && E.fechas.desde > E.fechas.hasta) { avisar("La fecha inicial es posterior a la final."); return; }
+                $("quitar-fechas").hidden = !porFechas();
+                cargarRegistros();
+            });
+        });
+        $("quitar-fechas").addEventListener("click", function () { limpiarFechas(); cargarRegistros(); });
         $("btn-quitar").addEventListener("click", quitarSeleccion);
         $("btn-limpiar-sel").addEventListener("click", function () { E.seleccion.clear(); pintarTabla(); });
         $("tabla-caja").addEventListener("scroll", function () { pintarFilas(false); }, { passive: true });

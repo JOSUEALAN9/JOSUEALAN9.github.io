@@ -113,49 +113,57 @@
         }).join("") : '<p class="ls-nota">Sin cambios en tus proveedores y clientes.</p>';
     }
 
-    // ------------------------------------------------------------ estado
+    // ------------------------------------------------------------ actualización
+    /* Una línea con la fecha de las listas y "Buscar actualizaciones" (para todos). El detalle de
+       cada lista, los errores y el enlace del 49 Bis están en Administración → Sistema. */
+    var antesDeBuscar = null;
+
+    function resumenListas(e) {
+        var fechas = e.listas.map(function (l) { return l.actualizado_al; }).filter(Boolean).sort();
+        var revisadas = e.listas.map(function (l) { return l.revisada_en; }).filter(Boolean).sort();
+        if (!revisadas.length) return "Las listas todavía no se descargan.";
+        return "Listas actualizadas al " + dmy(fechas[fechas.length - 1] || revisadas[revisadas.length - 1]) +
+            " · revisadas con el SAT " + hace(revisadas[0]);
+    }
+
     async function cargarEstado() {
         try {
             var e = await api("/api/listas-sat/estado");
-            $("lista-estado").innerHTML = e.listas.map(function (l) {
-                var cuerpo = l.registros != null
-                    ? "<span>" + Number(l.registros).toLocaleString("es-MX") + (l.registros === 1 ? " registro" : " registros") + (l.actualizado_al ? " · al " + esc(dmy(l.actualizado_al)) : "") + "</span>" +
-                      "<span>Revisada " + esc(hace(l.revisada_en)) + "</span>"
-                    : "<span>Todavía no se descarga.</span>";
-                return '<div class="ls-lista' + (l.error ? " ls-lista--error" : "") + '" title="' + esc(l.descripcion) + '"><strong>' + esc(l.nombre) + "</strong>" +
-                    "<span>" + esc(l.descripcion) + "</span>" + cuerpo + (l.error ? "<em>⚠ " + esc(l.error) + "</em>" : "") + "</div>";
-            }).join("");
-            $("btn-actualizar").hidden = !e.es_admin;
-            $("btn-actualizar").disabled = e.actualizando;
-            $("btn-actualizar").textContent = e.actualizando ? "Actualizando…" : "Actualizar ahora";
-            $("caja-49bis").hidden = !e.es_admin;
-            if (e.es_admin) {
-                var l49 = e.listas.filter(function (l) { return l.lista === "49bis"; })[0];
-                if (l49 && !$("url-49bis").value) $("url-49bis").value = l49.url || "";
+            $("texto-actualizacion").textContent = e.actualizando ? "Buscando actualizaciones en el SAT…" : resumenListas(e);
+            $("btn-buscar-act").disabled = e.actualizando;
+            if (e.actualizando) { setTimeout(cargarEstado, 8000); return; }
+            if (antesDeBuscar) {                       // terminó una búsqueda que pidió esta persona
+                var cambiaron = e.listas.filter(function (l) { return l.cambiada_en && l.cambiada_en !== antesDeBuscar[l.lista]; });
+                antesDeBuscar = null;
+                aviso(cambiaron.length ? "Se actualizaron: " + cambiaron.map(function (l) { return l.nombre; }).join(", ") + "."
+                                       : "Las listas ya estaban actualizadas: el SAT no ha publicado nada nuevo.");
+                if (cambiaron.length) cargarContrapartes();
             }
-            if (e.actualizando) setTimeout(cargarEstado, 10000);
         } catch (err) {
-            aviso(err.message, true);
+            $("texto-actualizacion").textContent = err.message;
         }
     }
 
-    async function actualizar() {
-        if (!confirm("¿Descargar ahora todas las listas del SAT?\n\nTarda unos minutos; solo se reemplazan las que cambiaron.")) return;
+    async function buscarActualizaciones() {
+        var boton = $("btn-buscar-act");
+        boton.disabled = true;
         try {
-            var r = await api("/api/listas-sat/actualizar", { method: "POST" });
+            var previo = await api("/api/listas-sat/estado");
+            var r = await api("/api/listas-sat/buscar-actualizaciones", { method: "POST" });
+            if (r.estado === "al_dia") {
+                aviso(r.mensaje);
+                boton.disabled = false;
+                return;
+            }
+            antesDeBuscar = {};
+            previo.listas.forEach(function (l) { antesDeBuscar[l.lista] = l.cambiada_en; });
             aviso(r.mensaje);
-        } catch (err) { aviso(err.message, true); }
-        setTimeout(cargarEstado, 1500);
-    }
-
-    async function guardarUrl() {
-        try {
-            await api("/api/listas-sat/url-49bis", {
-                method: "PUT", headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ url: $("url-49bis").value.trim() })
-            });
-            aviso("Enlace guardado. Se usará en la siguiente actualización (o dale «Actualizar ahora»).");
-        } catch (err) { aviso(err.message, true); }
+            $("texto-actualizacion").textContent = "Buscando actualizaciones en el SAT…";
+            setTimeout(cargarEstado, 4000);
+        } catch (err) {
+            aviso(err.message, true);
+            boton.disabled = false;
+        }
     }
 
     async function empresas() {
@@ -176,8 +184,7 @@
 
     document.addEventListener("DOMContentLoaded", async function () {
         $("form-buscar").addEventListener("submit", buscar);
-        $("btn-actualizar").addEventListener("click", actualizar);
-        $("btn-url-49bis").addEventListener("click", guardarUrl);
+        $("btn-buscar-act").addEventListener("click", buscarActualizaciones);
         $("sel-empresa").addEventListener("change", cargarContrapartes);
         var rfc = new URLSearchParams(location.search).get("rfc");
         if (rfc) { $("rfc-buscar").value = rfc; buscar(new Event("submit")); }

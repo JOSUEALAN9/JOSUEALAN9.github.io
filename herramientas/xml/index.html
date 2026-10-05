@@ -4,14 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Administración de XML · Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/common.css?v=202610050958">
-    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202610050958">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202610051430">
+    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202610051430">
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-slate-50">
 <div id="app-header" data-modulo="xml" data-titulo="Administración de XML" data-migas="Herramientas|/herramientas/"></div>
-<script src="/assets/js/nucleo.js?v=202610050958"></script>
-<script src="/assets/js/barra.js?v=202610050958"></script>
+<script src="/assets/js/nucleo.js?v=202610051430"></script>
+<script src="/assets/js/barra.js?v=202610051430"></script>
 
 <main class="xml-pagina">
     <!-- Una sola fila: qué módulo, de quién, qué periodo y la acción principal -->
@@ -57,15 +57,36 @@
 
     <div id="sin-empresa" class="ctx-vacio" hidden></div>
 
-    <div id="contenido" hidden>
+    <div id="contenido" class="xml-layout" hidden>
+        <aside class="xml-acciones" aria-label="Acciones">
+            <p class="xml-acciones__grupo">Básica</p>
+            <button type="button" id="btn-validar" class="xml-accion" title="Consulta en el SAT si están vigentes o cancelados"><b>✓</b>Validar estado SAT</button>
+            <button type="button" id="btn-acuse" class="xml-accion" title="Un PDF por CFDI: estado en el SAT y listas del SAT"><b>📄</b>Acuse de validación</button>
+            <p class="xml-acciones__grupo">Reportes</p>
+            <button type="button" class="xml-accion" data-excel="vista" title="Con tus columnas, orden y filtros"><b>▦</b>Exportar esta tabla</button>
+            <button type="button" class="xml-accion" data-excel="completo" title="Todas las columnas, una hoja por tipo"><b>▤</b>Reporte completo</button>
+            <button type="button" id="btn-zip" class="xml-accion" title="Los XML de lo que ves (o de lo seleccionado)"><b>⇩</b>Descargar XML (ZIP)</button>
+            <button type="button" id="btn-conciliacion" class="xml-accion" title="Cruza facturas contra complementos de pago y notas de crédito" hidden><b>⇄</b>Conciliar</button>
+            <p id="acciones-alcance" class="xml-acciones__nota"></p>
+        </aside>
+        <div class="xml-layout__principal">
         <div id="aviso-otra" class="xml-aviso-otra" hidden></div>
         <!-- Periodo como en Mi Admin: año y meses (varios a la vez); se carga el año y se filtra aquí -->
         <div id="periodo-xml" class="xml-periodo" aria-label="Periodo">
             <div class="xml-periodo__fila"><span class="xml-periodo__etiqueta">Año</span><div id="anios" class="xml-periodo__chips"></div></div>
             <div class="xml-periodo__fila"><span class="xml-periodo__etiqueta">Meses</span><div id="meses" class="xml-periodo__chips"></div></div>
+            <div class="xml-periodo__fila"><span class="xml-periodo__etiqueta">Fechas</span>
+                <div class="xml-periodo__chips xml-periodo__fechas">
+                    <label>Del <input type="date" id="fecha-desde"></label>
+                    <label>al <input type="date" id="fecha-hasta"></label>
+                    <button type="button" id="quitar-fechas" class="xml-enlace" hidden>Quitar fechas</button>
+                </div>
+            </div>
         </div>
         <div class="pestanas xml-pestanas" role="tablist" id="pestanas"></div>
         <div id="subfiltros" class="xml-chips"></div>
+        <!-- Como Mi Admin: facturas y, aparte, las de proveedores/clientes en listas del SAT -->
+        <div id="vista-listas" class="xml-vlistas" role="tablist" aria-label="Listas del SAT"></div>
 
         <div class="xml-toolbar">
             <input type="search" id="buscar" placeholder="Buscar RFC, nombre, folio, UUID…">
@@ -80,19 +101,10 @@
                         <button type="button" id="quitar-filtros" class="xml-enlace">Quitar todos los filtros</button>
                     </div>
                 </div>
-                <button type="button" id="btn-validar" class="xml-btn" title="Consulta en el SAT si están vigentes o cancelados">Validar ante el SAT</button>
-                <button type="button" id="btn-conciliacion" class="xml-btn" title="Cruza facturas contra complementos de pago y notas de crédito" hidden>Conciliar</button>
                 <button type="button" id="btn-columnas" class="xml-btn">Columnas</button>
                 <div class="xml-menu">
                     <button type="button" id="btn-vistas" class="xml-btn"><span id="nombre-vista">Vista de fábrica</span> ▾</button>
                     <div id="menu-vistas" class="xml-menu__lista" hidden></div>
-                </div>
-                <div class="xml-menu">
-                    <button type="button" id="btn-excel" class="xml-btn xml-btn--verde">Excel ▾</button>
-                    <div id="menu-excel" class="xml-menu__lista" hidden>
-                        <button type="button" data-excel="vista">Esta tabla <span>con tus columnas, orden y filtros</span></button>
-                        <button type="button" data-excel="completo">Reporte completo <span>todas las columnas, una hoja por tipo</span></button>
-                    </div>
                 </div>
             </div>
         </div>
@@ -105,9 +117,7 @@
 
         <div id="barra-seleccion" class="xml-seleccion" hidden>
             <span id="texto-seleccion"></span>
-            <button type="button" id="btn-zip" class="xml-btn">Descargar XML (ZIP)</button>
-            <button type="button" id="btn-reportes" class="xml-btn" title="Un PDF por CFDI: estado en el SAT y listas del SAT del emisor">Reporte de validación (ZIP)</button>
-            <button type="button" class="xml-btn" disabled title="Llega con la generación de PDF">PDF · próximamente</button>
+            <span class="xml-tenue">Las acciones de la derecha usan lo seleccionado.</span>
             <button type="button" id="btn-quitar" class="xml-btn xml-btn--peligro">Quitar de la biblioteca</button>
             <button type="button" id="btn-limpiar-sel" class="xml-enlace">Quitar selección</button>
         </div>
@@ -122,6 +132,7 @@
             <p id="sin-filas" class="xml-vacio xml-vacio--tabla" hidden>No hay registros con estos filtros.</p>
         </div>
         <p class="xml-pie"><span id="conteo-filas"></span> · Clic en un registro para abrir su detalle en otra pestaña · Arrastra los encabezados para reordenar y su borde para cambiar el ancho.</p>
+        </div>
     </div>
 </main>
 
@@ -152,6 +163,6 @@
     </div>
 </aside>
 
-<script src="/herramientas/xml/xml.js?v=202610050958"></script>
+<script src="/herramientas/xml/xml.js?v=202610051430"></script>
 </body>
 </html>
