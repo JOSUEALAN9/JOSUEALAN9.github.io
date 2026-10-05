@@ -50,14 +50,8 @@ async function verificarPermisos() {
 function switchTab(modo) {
     const isNuevo = modo === 'nuevo';
 
-    // Estilos de pestañas
-    document.getElementById('tab-nuevo').className = isNuevo 
-        ? "flex-1 py-4 text-sm font-bold text-amber-700 border-b-2 border-amber-600 transition flex justify-center items-center gap-2 bg-white" 
-        : "flex-1 py-4 text-sm font-semibold text-slate-500 border-b-2 border-transparent hover:text-slate-700 transition flex justify-center items-center gap-2";
-
-    document.getElementById('tab-actualizar').className = !isNuevo 
-        ? "flex-1 py-4 text-sm font-bold text-amber-700 border-b-2 border-amber-600 transition flex justify-center items-center gap-2 bg-white" 
-        : "flex-1 py-4 text-sm font-semibold text-slate-500 border-b-2 border-transparent hover:text-slate-700 transition flex justify-center items-center gap-2";
+        document.getElementById('tab-nuevo').classList.toggle('pestana--activa', isNuevo);
+    document.getElementById('tab-actualizar').classList.toggle('pestana--activa', !isNuevo);
 
     // Mostrar/Ocultar formularios
     document.getElementById('form-nuevo').classList.toggle('hidden', !isNuevo);

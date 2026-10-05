@@ -5,24 +5,22 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mis Clientes | Fiscontable</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="/assets/css/common.css?v=202610052130">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202610052300">
 </head>
 <body class="min-h-screen flex flex-col relative">
 
     <!-- TOP NAV -->
     <div id="app-header" data-modulo="clientes" data-titulo="Mis clientes" data-migas=""></div>
-<script src="/assets/js/nucleo.js?v=202610052130"></script>
-<script src="/assets/js/barra.js?v=202610052130"></script>
+<script src="/assets/js/nucleo.js?v=202610052300"></script>
+<script src="/assets/js/barra.js?v=202610052300"></script>
 
     <!-- ÁREA DE TRABAJO -->
-    <main class="flex-grow w-full" style="max-width:1180px;margin:0 auto;padding:28px 20px 56px">
+    <main class="flex-grow w-full mod-pagina" style="max-width:1180px">
 
-        <div style="display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:14px;margin-bottom:22px">
-            <div>
-                <h1 class="display" style="font-size:30px">Mis clientes</h1>
-                <p style="margin-top:7px;font-size:14.5px;color:var(--texto-tenue)">Tu cartera, con sus documentos y su e.firma guardada.</p>
+        <div class="mod-cabeza"><h1>Mis clientes</h1>
+            <div class="mod-cabeza__acciones">
+                <button type="button" id="btn-agregar-cliente" onclick="abrirModalNuevoCliente()" class="boton-principal" style="width:auto;margin:0;padding:9px 18px">Nuevo cliente</button>
             </div>
-            <button type="button" id="btn-agregar-cliente" onclick="abrirModalNuevoCliente()" class="boton-principal" style="width:auto;margin:0;padding:11px 20px">Nuevo cliente</button>
         </div>
 
 
@@ -51,7 +49,7 @@
         <div id="estado-vacio" class="hidden bg-white rounded-xl card-elevated border border-dashed border-gray-300 p-12 text-center">
             <svg class="w-12 h-12 text-gray-300 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-1.13a4 4 0 10-4-4 4 4 0 004 4zm6 0a4 4 0 10-4-4"></path></svg>
             <p class="text-slate-500 font-semibold">Todavía no tienes clientes registrados</p>
-            <p class="text-sm text-slate-400 mt-1">Cuando generes una Constancia u Opinión desde Herramientas Rápidas, puedes agregar ese RFC aquí para llevarle seguimiento.</p>
+            <p class="text-sm text-slate-400 mt-1">Agrega tus clientes con «Nuevo cliente».</p>
         </div>
 
         <div id="lista-clientes" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
@@ -151,6 +149,6 @@
         </div>
     </div>
 
-<script src="/clientes/clientes.js?v=202610052130"></script>
+<script src="/clientes/clientes.js?v=202610052300"></script>
 </body>
 </html>

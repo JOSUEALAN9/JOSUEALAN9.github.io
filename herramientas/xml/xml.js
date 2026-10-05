@@ -50,7 +50,7 @@
         estado_pago: 120, estado_sat: 100, forma_pago: 210, forma_pago_p: 210, uso_cfdi: 190, docto_encontrado: 90 };
 
     var E = {
-        contribuyentes: [], rfc: null, periodo: "", datos: null, anio: "", meses: new Set(), anios: [], cuentas: {}, fechas: { desde: "", hasta: "" }, cargado: null,
+        contribuyentes: [], rfc: null, periodo: "", datos: null, P: null, cuentas: {}, cargado: null,
         modulo: "recibidos", sub: "", rapidos: {}, busqueda: "",
         orden: { clave: null, dir: 1 }, seleccion: new Set(),
         columnas: {}, vistas: [], vistaActual: {},
@@ -97,6 +97,8 @@
     async function iniciar() {
         if (!(await Fiscontable.exigirModulo("validador"))) return;
         prepararBandeja();
+        // Periodo de ESTA página (cuadros de año, meses y fechas; el mismo de Conciliación y Listas)
+        E.P = FCPeriodoMeses.crear({ contenedor: $("periodo-xml"), alCambiar: function () { alCambiarPeriodo(); }, alAvisar: avisar });
         prepararEventos();
         var perfil = await Fiscontable.perfil();
         $("btn-conciliacion").hidden = !(perfil && (perfil.modulos_permitidos || []).indexOf("conciliacion") !== -1);
@@ -116,9 +118,7 @@
         window.addEventListener("fiscontable:periodo", function (e) {
             E.periodoGeneral = e.detail;
             if (!E.rfc || !e.detail) return;
-            E.anio = e.detail.slice(0, 4);
-            E.meses = new Set([e.detail.slice(5, 7)]);
-            E.fechas = { desde: "", hasta: "" }; $("fecha-desde").value = ""; $("fecha-hasta").value = "";
+            E.P.poner({ anio: e.detail.slice(0, 4), meses: [e.detail.slice(5, 7)] });
             cargarRegistros();
         });
     }
@@ -232,88 +232,52 @@
     }
 
     var MES_CORTO = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
-    var MES_LARGO = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
     var DOCE = MES_CORTO.map(function (_, i) { return String(i + 1).padStart(2, "0"); });
 
     /* Periodo de esta página: un año y los meses marcados (o un rango de fechas exactas).
        Solo se carga lo elegido; sin año o sin meses no se carga nada. Arranca en el periodo
-       general; si no hay, espera a que elijas. */
+       general; si no hay, espera a que elijas. Los cuadros (comun/periodo-meses.js) dicen
+       cuántos XML hay de la pestaña en la que estás, sin cargarlos. */
     function armarPeriodos(c) {
         E.busqueda = ""; $("buscar").value = "";
         E.seleccion.clear();
         E.cuentas = {};                                        // "AAAA-MM" -> {total, modulos}
         (c.periodos || []).forEach(function (p) { if (p.periodo) E.cuentas[p.periodo] = { n: p.n, modulos: p.modulos || {} }; });
-        var porAnio = {};
-        Object.keys(E.cuentas).forEach(function (p) { porAnio[p.slice(0, 4)] = (porAnio[p.slice(0, 4)] || 0) + E.cuentas[p].n; });
-        E.anios = Object.keys(porAnio).sort().reverse().map(function (a) { return [a, porAnio[a]]; });
-        E.fechas = { desde: "", hasta: "" };
-        $("fecha-desde").value = ""; $("fecha-hasta").value = "";
         E.cargado = null;
-        if (E.periodoGeneral) { E.anio = E.periodoGeneral.slice(0, 4); E.meses = new Set([E.periodoGeneral.slice(5, 7)]); }
-        else { E.anio = ""; E.meses = new Set(); }
+        E.P.poner(E.periodoGeneral ? { anio: E.periodoGeneral.slice(0, 4), meses: [E.periodoGeneral.slice(5, 7)] } : null);
+        pintarPeriodo();
     }
 
-    function porFechas() { return !!(E.fechas.desde || E.fechas.hasta); }
-    function hayEleccion() { return porFechas() || (E.anio && E.meses.size > 0); }
+    function porFechas() { return E.P.porFechas(); }
+    function hayEleccion() { return E.P.hayEleccion(); }
+    function anioElegido() { return E.P.estado().anio; }
 
     function enPeriodo(f) {
         if (porFechas()) return true;                          // el servidor ya filtró por fechas exactas
-        return (f._periodo || "").slice(0, 4) === E.anio && E.meses.has((f._periodo || "").slice(5, 7));
+        var est = E.P.estado(), p = f._periodo || "";
+        return p.slice(0, 4) === est.anio && est.meses.indexOf(p.slice(5, 7)) !== -1;
     }
 
     function filasPeriodo(modulo) {
         return E.datos && E.datos[modulo] ? E.datos[modulo].filas.filter(enPeriodo) : [];
     }
 
-    function dmy(iso) { return iso ? iso.slice(8, 10) + "/" + iso.slice(5, 7) + "/" + iso.slice(0, 4) : "…"; }
-
-    function textoPeriodo() {
-        if (porFechas()) return "del " + dmy(E.fechas.desde) + " al " + dmy(E.fechas.hasta);
-        if (!hayEleccion()) return "ningún periodo";
-        if (E.meses.size === 12) return "todo " + E.anio;
-        var ms = Array.from(E.meses).sort().map(function (m) { return MES_LARGO[+m - 1]; });
-        return (ms.length > 1 ? ms.slice(0, -1).join(", ") + " y " + ms[ms.length - 1] : ms[0]) + " de " + E.anio;
-    }
+    function textoPeriodo() { return hayEleccion() ? E.P.texto() : "ningún periodo"; }
 
     /* Desde-hasta que cubre lo elegido (es lo que se pide al servidor, a Conciliación y a Excel). */
-    function rangoPeriodo() {
-        if (porFechas()) return { desde: E.fechas.desde || null, hasta: E.fechas.hasta || null };
-        if (!hayEleccion()) return { desde: null, hasta: null };
-        var ms = Array.from(E.meses).sort();
-        var ultimo = new Date(+E.anio, +ms[ms.length - 1], 0).getDate();
-        return { desde: E.anio + "-" + ms[0] + "-01", hasta: E.anio + "-" + ms[ms.length - 1] + "-" + String(ultimo).padStart(2, "0") };
-    }
-
-    function mesesElegidos() {
-        return !porFechas() && hayEleccion() ? Array.from(E.meses).sort().map(function (m) { return E.anio + "-" + m; }) : null;
-    }
+    function rangoPeriodo() { return E.P.rango(); }
+    function mesesElegidos() { return E.P.meses(); }
 
     function cuantos(periodo) {
         var c = E.cuentas[periodo];
         return c ? (c.modulos[E.modulo] || 0) : 0;
     }
 
+    // Los números de los cuadros son de la pestaña en la que estás
     function pintarPeriodo() {
-        $("periodo-xml").classList.toggle("xml-periodo--fechas", porFechas());
-        var anios = E.anios.slice();
-        if (E.anio && !anios.some(function (a) { return a[0] === E.anio; })) anios.unshift([E.anio, 0]);
-        $("anios").innerHTML = anios.length ? anios.map(function (a) {
-            return '<button type="button" class="xml-mes xml-mes--todo' + (E.anio === a[0] ? " xml-mes--activo" : "") + (a[1] ? "" : " xml-mes--cero") +
-                '" data-anio="' + a[0] + '" aria-pressed="' + (E.anio === a[0]) + '">' + a[0] + "<small>" + a[1].toLocaleString("es-MX") + "</small></button>";
-        }).join("") : '<span class="xml-tenue">Todavía no hay XML.</span>';
-        if (!E.anio) {
-            $("meses").innerHTML = '<span class="xml-tenue">Elige un año.</span>';
-            return;
-        }
-        // Cuántos hay de la pestaña en la que estás, por mes (sin cargar los XML)
-        var total = DOCE.reduce(function (s, mm) { return s + cuantos(E.anio + "-" + mm); }, 0);
-        $("meses").innerHTML = '<button type="button" class="xml-mes xml-mes--todo' + (E.meses.size === 12 ? " xml-mes--activo" : "") +
-            '" data-mes="todo" aria-pressed="' + (E.meses.size === 12) + '">Todo el año<small>' + total.toLocaleString("es-MX") + "</small></button>" +
-            DOCE.map(function (mm, i) {
-                var n = cuantos(E.anio + "-" + mm), on = E.meses.has(mm);
-                return '<button type="button" class="xml-mes' + (on ? " xml-mes--activo" : "") + (n ? "" : " xml-mes--cero") +
-                    '" data-mes="' + mm + '" aria-pressed="' + on + '" title="' + MES_LARGO[i] + " " + E.anio + '">' + MES_CORTO[i] + "<small>" + n.toLocaleString("es-MX") + "</small></button>";
-            }).join("");
+        var m = {};
+        Object.keys(E.cuentas || {}).forEach(function (p) { m[p] = cuantos(p); });
+        E.P.conteos(m);
     }
 
     /* Si lo elegido cabe en lo que ya se cargó, se filtra aquí; si no, se pide al servidor. */
@@ -359,7 +323,7 @@
         var n = uuidsParaAcciones().length;
         $("acciones-alcance").textContent = !n ? "No hay XML en la tabla."
             : E.seleccion.size ? "Sobre los " + n.toLocaleString("es-MX") + " seleccionados." : "Sobre los " + n.toLocaleString("es-MX") + " XML que ves.";
-        $("btn-zip").disabled = !n;
+        $("btn-zip").disabled = $("btn-pdf").disabled = !n;
     }
 
     /* ============================================================ minimódulos */
@@ -650,11 +614,12 @@
             // ¿Faltan datos en el periodo, o los esconden los filtros? Son dos mensajes distintos.
             var delPeriodo = filasPeriodo(E.modulo).length;
             var nombreMod = (MODULOS.find(function (m) { return m.clave === E.modulo; }) || {}).nombre || "";
-            var conXml = E.anio ? DOCE.filter(function (mm) { return cuantos(E.anio + "-" + mm); }).map(function (mm) { return MES_CORTO[+mm - 1]; }) : [];
+            var anio = anioElegido();
+            var conXml = anio ? DOCE.filter(function (mm) { return cuantos(anio + "-" + mm); }).map(function (mm) { return MES_CORTO[+mm - 1]; }) : [];
             $("sin-filas").textContent = !hayEleccion() ? "Elige un año y al menos un mes (o un rango de fechas) para ver los XML."
                 : delPeriodo ? "No hay registros con estos filtros."
                 : "No hay XML de " + nombreMod + " en " + textoPeriodo() + "." +
-                  (porFechas() ? "" : conXml.length ? " En " + E.anio + " sí hay en: " + conXml.join(", ") + "." : " En " + E.anio + " no hay de este tipo.");
+                  (porFechas() ? "" : conXml.length ? " En " + anio + " sí hay en: " + conXml.join(", ") + "." : " En " + anio + " no hay de este tipo.");
         }
         $("conteo-filas").textContent = E.filas.length.toLocaleString("es-MX") + " registro(s)";
         pintarAlcance();
@@ -869,7 +834,7 @@
         var lado = E.modulo === "recibidos" ? "recibidos" : "emitidos";
         if (E.modulo === "pagos") lado = E.sub === "recibidos" ? "recibidos" : "emitidos";
         var periodo = porFechas() ? (r.desde ? "&desde=" + r.desde : "") + (r.hasta ? "&hasta=" + r.hasta : "")
-            : hayEleccion() ? "&anio=" + E.anio + "&meses=" + Array.from(E.meses).sort().join(",") : "";
+            : hayEleccion() ? "&anio=" + anioElegido() + "&meses=" + E.P.estado().meses.join(",") : "";
         location.href = "/herramientas/conciliacion/?rfc=" + encodeURIComponent(E.rfc) + "&lado=" + lado + "&base=emision" + periodo;
     }
 
@@ -884,12 +849,27 @@
         boton.disabled = false; boton.innerHTML = texto;
     }
 
-    /* Acuse de validación: uno = PDF (consulta el SAT en ese momento); varios = ZIP (hasta 300). */
+    /* XML a PDF (representación impresa): uno = PDF; varios = ZIP (hasta 300). */
+    async function descargarPdf() {
+        var uuids = uuidsParaAcciones();
+        if (uuids.length > 300) { avisar("Saca hasta 300 PDF a la vez: selecciona o filtra menos XML (hay " + uuids.length.toLocaleString("es-MX") + ")."); return; }
+        var boton = $("btn-pdf"), texto = boton.innerHTML;
+        boton.disabled = true; boton.innerHTML = "<b>⏳</b>Generando " + uuids.length + "…";
+        try {
+            var resp = uuids.length === 1
+                ? await api("/api/xml/pdf?rfc=" + encodeURIComponent(E.rfc) + "&uuid=" + encodeURIComponent(uuids[0]))
+                : await postJSON("/api/xml/pdfs", { rfc: E.rfc, uuids: uuids });
+            descargarBlob(await resp.blob(), nombreArchivo(resp, uuids.length === 1 ? "cfdi.pdf" : "cfdi_pdf.zip"));
+        } catch (e) { avisar(e.message); }
+        boton.disabled = false; boton.innerHTML = texto;
+    }
+
     /* Las listas negras viven en su herramienta: se abre en otra pestaña con esta empresa y este periodo. */
     function abrirListas() {
         var q = new URLSearchParams({ empresa: E.rfc || "" });
-        if (porFechas()) { if (E.fechas.desde) q.set("desde", E.fechas.desde); if (E.fechas.hasta) q.set("hasta", E.fechas.hasta); }
-        else if (hayEleccion()) { q.set("anio", E.anio); q.set("meses", Array.from(E.meses).sort().join(",")); }
+        var est = E.P.estado();
+        if (porFechas()) { if (est.desde) q.set("desde", est.desde); if (est.hasta) q.set("hasta", est.hasta); }
+        else if (hayEleccion()) { q.set("anio", est.anio); q.set("meses", est.meses.join(",")); }
         window.open("/herramientas/listas-sat/?" + q.toString(), "_blank", "noopener");
     }
 
@@ -1262,12 +1242,6 @@
     }
 
     /* ============================================================ eventos */
-    function limpiarFechas() {
-        E.fechas = { desde: "", hasta: "" };
-        $("fecha-desde").value = ""; $("fecha-hasta").value = "";
-        $("quitar-fechas").hidden = true;
-    }
-
     function cerrarMenus(excepto) {
         ["menu-vistas", "menu-filtros", "menu-otra"].forEach(function (id) { if (id !== excepto) $(id).hidden = true; });
     }
@@ -1332,31 +1306,7 @@
         });
         $("btn-zip").addEventListener("click", descargarZip);
         $("btn-listas").addEventListener("click", abrirListas);
-        $("anios").addEventListener("click", function (e) {
-            var b = e.target.closest("[data-anio]"); if (!b) return;
-            E.anio = b.dataset.anio === E.anio ? "" : b.dataset.anio;       // otro clic en el año lo quita
-            if (E.anio && !E.meses.size) E.meses = new Set();
-            limpiarFechas();
-            alCambiarPeriodo();
-        });
-        $("meses").addEventListener("click", function (e) {
-            var b = e.target.closest("[data-mes]"); if (!b) return;
-            var mm = b.dataset.mes;
-            if (mm === "todo") E.meses = E.meses.size === 12 ? new Set() : new Set(DOCE);
-            else if (E.meses.has(mm)) E.meses.delete(mm);                    // con todo el año marcado, quita solo ese mes
-            else E.meses.add(mm);
-            limpiarFechas();
-            alCambiarPeriodo();
-        });
-        ["fecha-desde", "fecha-hasta"].forEach(function (id) {
-            $(id).addEventListener("change", function () {
-                E.fechas = { desde: $("fecha-desde").value, hasta: $("fecha-hasta").value };
-                if (E.fechas.desde && E.fechas.hasta && E.fechas.desde > E.fechas.hasta) { avisar("La fecha inicial es posterior a la final."); return; }
-                $("quitar-fechas").hidden = !porFechas();
-                cargarRegistros();
-            });
-        });
-        $("quitar-fechas").addEventListener("click", function () { limpiarFechas(); cargarRegistros(); });
+        $("btn-pdf").addEventListener("click", descargarPdf);
         $("btn-quitar").addEventListener("click", quitarSeleccion);
         $("btn-limpiar-sel").addEventListener("click", function () { E.seleccion.clear(); pintarTabla(); });
         $("tabla-caja").addEventListener("scroll", function () { pintarFilas(false); }, { passive: true });

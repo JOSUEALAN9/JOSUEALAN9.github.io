@@ -5,14 +5,26 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Voucheo Automático | Fiscontable</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="/assets/css/common.css?v=202610052130">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202610052300">
+    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202610052300">
+    <style>
+        .vo-ficha { padding: 6px 20px 20px; }
+        .vo-pestanas { margin-bottom: 16px; }
+        .vo-bloque { margin-bottom: 14px; display: flex; flex-direction: column; gap: 6px; }
+        .vo-bloque .ctx-segmento label { cursor: pointer; }
+        .vo-bloque .ctx-segmento span { display: inline-block; padding: 7px 14px; border-radius: 9px; font-size: 13px; font-weight: 700; }
+        .vo-bloque .ctx-segmento span[aria-pressed="true"] { background: #fff; box-shadow: 0 1px 3px rgba(15,23,42,.15); }
+        .vo-form { gap: 14px; }
+        .vo-form .ficha__nota { margin: 0; }
+        .vo-form > div { display: flex; flex-direction: column; gap: 6px; }
+    </style>
 </head>
 <body class="min-h-screen flex flex-col relative">
 
     <!-- TOP NAV -->
     <div id="app-header" data-modulo="voucheo" data-titulo="Voucheo" data-migas="Herramientas|/herramientas/"></div>
-<script src="/assets/js/nucleo.js?v=202610052130"></script>
-<script src="/assets/js/barra.js?v=202610052130"></script>
+<script src="/assets/js/nucleo.js?v=202610052300"></script>
+<script src="/assets/js/barra.js?v=202610052300"></script>
 
     <!-- ÁREA DE TRABAJO -->
     <main class="flex-grow mod-pagina mod-pagina--angosta">
@@ -20,20 +32,13 @@
             <div class="mod-cabeza__acciones"><button type="button" onclick="limpiarFormularios()" class="fc-btn">Limpiar</button></div>
         </div>
         <div>
-        <div class="bg-white rounded-xl card-elevated border border-gray-200 w-full flex flex-col">
+        <div class="ficha vo-ficha">
 
             <!-- Pestañas Fiscontable Style -->
-            <div id="tabs-container" class="flex border-b bg-slate-50">
-                <button id="tab-nuevo" onclick="switchTab('nuevo')" class="flex-1 py-4 text-sm font-bold text-amber-700 border-b-2 border-amber-600 transition flex justify-center items-center gap-2 bg-white">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
-                    Nuevo Ejercicio
-                </button>
-                <button id="tab-actualizar" onclick="switchTab('actualizar')" class="flex-1 py-4 text-sm font-semibold text-slate-500 border-b-2 border-transparent hover:text-slate-700 transition flex justify-center items-center gap-2">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
-                    Actualizar Archivo
-                </button>
+            <div id="tabs-container" class="pestanas vo-pestanas" role="tablist">
+                <button type="button" id="tab-nuevo" onclick="switchTab('nuevo')" class="pestana pestana--activa">Nuevo ejercicio</button>
+                <button type="button" id="tab-actualizar" onclick="switchTab('actualizar')" class="pestana">Actualizar archivo</button>
             </div>
-
             <!-- PANEL DE BLOQUEO DE PERMISOS -->
             <div id="panel-bloqueo" class="hidden p-8 flex-col items-center text-center gap-3">
                 <svg class="w-12 h-12 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
@@ -76,66 +81,45 @@
             </div>
 
             <!-- Selector de Impuesto (Aplica para ambas pestañas) -->
-            <div id="selector-impuesto" class="px-6 pt-6 pb-2 fade-in">
-                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-3">1. Tipo de Impuestos</label>
-                <div class="flex gap-4">
-                    <label class="flex-1 cursor-pointer">
-                        <input type="radio" name="tipo_impuesto" value="estatal" class="peer sr-only" checked>
-                        <div class="p-3 border-2 rounded-lg text-center peer-checked:border-amber-500 peer-checked:bg-amber-50 hover:bg-gray-50 transition">
-                            <span class="text-sm font-bold text-slate-800">Estatales</span>
-                        </div>
-                    </label>
-                    <label class="flex-1 cursor-not-allowed" title="Todavía no disponible">
-                        <input type="radio" name="tipo_impuesto" value="federal" class="peer sr-only" disabled>
-                        <div class="p-3 border-2 rounded-lg text-center border-gray-200 bg-gray-100 opacity-60">
-                            <span class="text-sm font-bold text-slate-500">Federales</span>
-                            <span class="block text-[10px] text-slate-400 mt-0.5">Próximamente</span>
-                        </div>
-                    </label>
+            <div id="selector-impuesto" class="vo-bloque">
+                <span class="campo__etiqueta">Impuestos</span>
+                <div class="ctx-segmento" role="group" aria-label="Tipo de impuestos">
+                    <label><input type="radio" name="tipo_impuesto" value="estatal" checked hidden><span aria-pressed="true">Estatales</span></label>
+                    <label title="Todavía no disponible"><input type="radio" name="tipo_impuesto" value="federal" disabled hidden><span aria-pressed="false" style="opacity:.5">Federales · próximamente</span></label>
                 </div>
             </div>
-
             <!-- MODO: NUEVO EJERCICIO -->
-            <form id="form-nuevo" class="px-6 pb-6 pt-2 flex flex-col gap-5 fade-in" onsubmit="procesarVoucheo(event, 'nuevo')">
-                <div class="bg-blue-50 border border-blue-100 p-4 rounded-lg flex items-start gap-3">
-                    <svg class="w-5 h-5 text-blue-600 flex-none mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                    <p class="text-xs text-blue-800 leading-relaxed">
-                        Sube los acuses PDF del SAT o Tribut@Net.
-                    </p>
-                </div>
+            <form id="form-nuevo" class="vo-form flex flex-col" onsubmit="procesarVoucheo(event, 'nuevo')">
+                <p class="ficha__nota">Sube los acuses PDF del SAT o Tribut@Net.</p>
 
                 <div>
-                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-2">2. Acuses PDF (Selecciona múltiples)</label>
-                    <input type="file" id="pdf_nuevo" accept=".pdf" multiple required class="w-full text-sm border border-gray-300 rounded-lg p-2.5 bg-gray-50 focus:outline-none file:mr-4 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-amber-50 file:text-amber-700 hover:file:bg-amber-100 cursor-pointer">
+                    <span class="campo__etiqueta">Acuses PDF</span>
+                    <input type="file" id="pdf_nuevo" accept=".pdf" multiple required class="campo__archivo">
                 </div>
 
                 <div class="mt-2">
-                    <button type="submit" id="btn-nuevo" class="w-full bg-amber-600 hover:bg-amber-500 text-white font-bold py-3.5 rounded-lg shadow-md transition disabled:bg-slate-400 flex justify-center items-center gap-2">
+                    <button type="submit" id="btn-nuevo" class="boton-principal">
                         Generar Papel de Trabajo
                     </button>
                 </div>
             </form>
 
            <!-- MODO: ACTUALIZAR ARCHIVO -->
-            <form id="form-actualizar" class="px-6 pb-6 pt-2 hidden flex-col gap-5 fade-in" onsubmit="procesarVoucheo(event, 'actualizar')">
-                <div class="bg-blue-50 border border-blue-100 p-4 rounded-lg flex items-start gap-3">
-                    <svg class="w-5 h-5 text-blue-600 flex-none mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                    <p class="text-xs text-blue-800 leading-relaxed">
-                        Elige tu papel de trabajo (.xlsx) y los acuses nuevos. Tu captura bancaria no se toca.</p>
+            <form id="form-actualizar" class="vo-form hidden flex-col" onsubmit="procesarVoucheo(event, 'actualizar')">
+                <p class="ficha__nota">Elige tu papel de trabajo (.xlsx) y los acuses nuevos. Tu captura bancaria no se toca.</p>
+
+                <div>
+                    <span class="campo__etiqueta">Tu Archivo Excel Actual</span>
+                    <input type="file" id="excel_actualizar" accept=".xlsx" required class="campo__archivo">
                 </div>
 
                 <div>
-                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-2">2. Tu Archivo Excel Actual</label>
-                    <input type="file" id="excel_actualizar" accept=".xlsx" required class="w-full text-sm border border-gray-300 rounded-lg p-2.5 bg-gray-50 focus:outline-none file:mr-4 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100 cursor-pointer">
-                </div>
-
-                <div>
-                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-2">3. Nuevos Acuses PDF</label>
-                    <input type="file" id="pdf_actualizar" accept=".pdf" multiple required class="w-full text-sm border border-gray-300 rounded-lg p-2.5 bg-gray-50 focus:outline-none file:mr-4 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-amber-50 file:text-amber-700 hover:file:bg-amber-100 cursor-pointer">
+                    <span class="campo__etiqueta">Nuevos Acuses PDF</span>
+                    <input type="file" id="pdf_actualizar" accept=".pdf" multiple required class="campo__archivo">
                 </div>
 
                 <div class="mt-2">
-                    <button type="submit" id="btn-actualizar" class="w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-3.5 rounded-lg shadow-md transition disabled:bg-slate-400 flex justify-center items-center gap-2">
+                    <button type="submit" id="btn-actualizar" class="boton-principal">
                         Actualizar Papel de Trabajo
                     </button>
                 </div>
@@ -144,6 +128,6 @@
         </div>
     </main>
 
-<script src="/herramientas/voucheo/voucheo.js?v=202610052130"></script>
+<script src="/herramientas/voucheo/voucheo.js?v=202610052300"></script>
 </body>
 </html>

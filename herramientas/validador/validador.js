@@ -79,13 +79,13 @@ document.getElementById('btnLimpiarDatos').addEventListener('click', () => {
     document.getElementById('btnDescargar').disabled = true;
 
     ['dashTotal', 'dashVigentes', 'dashCancelados', 'dashErrores', 'dashSinRespuesta'].forEach(id => document.getElementById(id).innerText = "0");
-    document.getElementById('cuerpoTabla').innerHTML = `<tr><td colspan="10" class="p-12 text-center text-slate-400 font-medium">Carga XML externos o valida los de la empresa.</td></tr>`;
+    document.getElementById('cuerpoTabla').innerHTML = `<tr><td colspan="10" class="val-vacio">Carga XML externos o valida los de la empresa.</td></tr>`;
 
     ['fTipo', 'fMes', 'fEstatus'].forEach(id => {
         document.getElementById(id).innerHTML = `<option value="ALL">Todas</option>`;
     });
     actualizarEtiquetaProveedor();
-    document.getElementById('listProv').innerHTML = '<li class="p-2 text-gray-400 text-center">Esperando datos...</li>';
+    document.getElementById('listProv').innerHTML = '<li class="xml-tenue">Esperando datos…</li>';
 });
 
 // Lógica del Dropdown Custom para Proveedores
@@ -137,7 +137,7 @@ function actualizarTextoBotonTodos() {
     }
     btnToggleTodosProv.disabled = false;
     const todosMarcados = checkboxesVisibles.every(cb => cb.checked);
-    btnToggleTodosProv.innerText = todosMarcados ? "Deseleccionar Visibles" : "Seleccionar Visibles";
+    btnToggleTodosProv.innerText = todosMarcados ? "Quitar visibles" : "Seleccionar visibles";
 }
 
 function renderizarListaProveedores(setProveedoresDisponibles) {
@@ -146,7 +146,7 @@ function renderizarListaProveedores(setProveedoresDisponibles) {
     let arrProvs = Array.from(setProveedoresDisponibles).sort();
 
     if(arrProvs.length === 0) {
-        listProv.innerHTML = '<li class="p-2 text-gray-400 text-center">No hay proveedores en este filtro</li>';
+        listProv.innerHTML = '<li class="xml-tenue">Ninguno con estos filtros</li>';
         actualizarTextoBotonTodos();
         return;
     }
@@ -154,10 +154,10 @@ function renderizarListaProveedores(setProveedoresDisponibles) {
     arrProvs.forEach(p => {
         const isChecked = proveedoresSeleccionados.has(p) ? 'checked' : '';
         const li = document.createElement('li');
-        li.className = "px-2 py-1.5 hover:bg-emerald-50 cursor-pointer flex items-start gap-2";
+        li.className = "";
         li.innerHTML = `
-            <input type="checkbox" value="${esc(p)}" class="prov-checkbox mt-0.5 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" ${isChecked}>
-            <label class="cursor-pointer text-gray-700 w-full truncate" title="${esc(p)}">${esc(p)}</label>
+            <input type="checkbox" value="${esc(p)}" class="prov-checkbox" ${isChecked}>
+            <label title="${esc(p)}" style="cursor:pointer">${esc(p)}</label>
         `;
         li.addEventListener('click', (e) => {
             if(e.target.tagName !== 'INPUT') {
@@ -216,7 +216,7 @@ async function consultarSAT(lista) {
     const tbody = document.getElementById('cuerpoTabla');
     const porUuid = new Map(rawDataForFilters.map(f => [f.uuid, f]));
     for (let i = 0; i < lista.length; i++) {
-        tbody.innerHTML = `<tr><td colspan="10" class="p-12 text-center text-blue-600 font-bold">Consultando SAT: ${i + 1} de ${lista.length}…</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="10" class="val-vacio">Consultando SAT: ${i + 1} de ${lista.length}…</td></tr>`;
         const f = lista[i];
         const r = await validarFacturaEnServidor(f);
         const estado = r.estado || "Sin respuesta";
@@ -246,7 +246,7 @@ function pintarOrigen() {
 document.getElementById('btnProcesarStaged').addEventListener('click', async () => {
     modal.classList.remove('modal-active');
     const tbody = document.getElementById('cuerpoTabla');
-    tbody.innerHTML = `<tr><td colspan="10" class="p-12 text-center text-blue-600 font-bold text-lg animate-pulse">Leyendo los XML…</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="10" class="val-vacio">Leyendo los XML…</td></tr>`;
     if (origen.tipo !== "externos") {                 // venían de una empresa: se empieza de cero con los externos
         rawDataForFilters = []; proveedoresSeleccionados.clear();
         origen = { tipo: "externos", rfc: null, rol: "recibido", texto: "" };
@@ -304,17 +304,17 @@ async function cargarDeEmpresa(rol) {
     const empresa = await Fiscontable.empresaActiva();
     const periodo = await Fiscontable.periodoActivo();
     const tbody = document.getElementById('cuerpoTabla');
-    if (!empresa) { tbody.innerHTML = `<tr><td colspan="10" class="p-12 text-center text-slate-500">Elige una empresa en la barra de arriba.</td></tr>`; return; }
-    if (!periodo) { tbody.innerHTML = `<tr><td colspan="10" class="p-12 text-center text-slate-500">Elige un periodo en la barra de arriba.</td></tr>`; return; }
+    if (!empresa) { tbody.innerHTML = `<tr><td colspan="10" class="val-vacio">Elige una empresa en la barra de arriba.</td></tr>`; return; }
+    if (!periodo) { tbody.innerHTML = `<tr><td colspan="10" class="val-vacio">Elige un periodo en la barra de arriba.</td></tr>`; return; }
     const ultimo = new Date(+periodo.slice(0, 4), +periodo.slice(5, 7), 0).getDate();
     const q = new URLSearchParams({ rfc: empresa.rfc, desde: periodo + "-01", hasta: periodo + "-" + String(ultimo).padStart(2, "0"), rol });
-    tbody.innerHTML = `<tr><td colspan="10" class="p-12 text-center text-blue-600 font-bold">Leyendo los XML de ${esc(empresa.alias || empresa.rfc)}…</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="10" class="val-vacio">Leyendo los XML de ${esc(empresa.alias || empresa.rfc)}…</td></tr>`;
     let datos;
     try {
         const r = await fetch(API + "/api/validador/empresa?" + q, { credentials: "include" });
         if (!r.ok) throw new Error(await Fiscontable.leerError(r));
         datos = await r.json();
-    } catch (e) { tbody.innerHTML = `<tr><td colspan="10" class="p-12 text-center text-red-600">${esc(e.message)}</td></tr>`; return; }
+    } catch (e) { tbody.innerHTML = `<tr><td colspan="10" class="val-vacio">${esc(e.message)}</td></tr>`; return; }
     const mes = mesDe(periodo + "-01");
     rawDataForFilters = []; proveedoresSeleccionados.clear(); actualizarEtiquetaProveedor();
     origen = { tipo: "empresa", rfc: empresa.rfc, rol, texto: `${empresa.alias || empresa.rfc} · ${rol === "emitido" ? "Emitidos" : "Recibidos"} de ${mes.t}` };
@@ -328,7 +328,7 @@ async function cargarDeEmpresa(rol) {
     });
     if (!lista.length) {
         pintarKPIs(); actualizarSelectsDesdeData(true);
-        tbody.innerHTML = `<tr><td colspan="10" class="p-12 text-center text-slate-500">Sin XML ${rol === "emitido" ? "emitidos" : "recibidos"} de ${esc(mes.t)}.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="10" class="val-vacio">Sin XML ${rol === "emitido" ? "emitidos" : "recibidos"} de ${esc(mes.t)}.</td></tr>`;
         return;
     }
     await consultarSAT(lista);
@@ -411,35 +411,25 @@ function renderizarTablaUI() {
         if (vEst !== "ALL" && f.estatusLimpio !== vEst) show = false;
 
         if (show) {
-            let colorBadge = "bg-gray-100 text-gray-800";
-            let icono = "";
-            if(f.estatusLimpio === "Vigente") { colorBadge = "bg-green-100 text-green-800"; icono = "🟢"; }
-            if(f.estatusLimpio === "Cancelado") { colorBadge = "bg-red-100 text-red-800"; icono = "🔴"; }
-            if(f.estatusLimpio === "No encontrado") { colorBadge = "bg-amber-100 text-amber-800"; icono = "⚠️"; }
-            if(f.estatusLimpio === "Sin respuesta") { colorBadge = "bg-slate-100 text-slate-600"; icono = "⏳"; }
-
+            const sello = { "Vigente": "verde", "Cancelado": "rojo", "No encontrado": "ambar" }[f.estatusLimpio] || "gris";
+            const m = v => "$" + v.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
             htmlFinal += `
-            <tr class="hover:bg-emerald-50/50 transition border-b">
-                <td class="p-3 align-top">
-                    <div class="font-mono text-blue-700 font-bold">${esc(f.rfcParte)}</div>
-                    <div class="text-[10px] text-slate-500 truncate w-48" title="${esc(f.nombreParte)}">${esc(f.nombreParte)}</div>
-                </td>
-                <td class="p-3 align-top text-[11px] text-slate-700 font-mono">${esc(f.uuid)}</td>
-                <td class="p-3 align-top font-medium">${esc(formatDateToMX(f.fechaCruda))}</td>
-                <td class="p-3 align-top text-center font-bold text-slate-500">${esc(f.tipo)}</td>
-                <td class="p-3 text-right tabular-nums align-top">$${f.subTotal.toLocaleString('es-MX', {minimumFractionDigits:2})}</td>
-                <td class="p-3 text-right tabular-nums text-slate-500 align-top">$${f.totalTraslados.toLocaleString('es-MX', {minimumFractionDigits:2})}</td>
-                <td class="p-3 text-right tabular-nums text-red-500 align-top">$${f.totalRetenciones.toLocaleString('es-MX', {minimumFractionDigits:2})}</td>
-                <td class="p-3 text-right tabular-nums font-bold align-top">$${f.total.toLocaleString('es-MX', {minimumFractionDigits:2})}</td>
-                <td class="p-3 text-center align-top"><span class="px-2 py-1 rounded text-[10px] font-bold ${colorBadge} border">${icono} ${esc(f.satEstatus)}</span></td>
-                <td class="p-3 text-[10px] text-slate-500 italic align-top">
-                    ${esc(f.satCancelable)} <br> <span class="font-semibold text-slate-700">${esc(f.satMotivo)}</span>
-                </td>
+            <tr>
+                <td class="val-dos"><div class="val-rfc">${esc(f.rfcParte)}</div><div class="val-nombre" title="${esc(f.nombreParte)}">${esc(f.nombreParte)}</div></td>
+                <td class="val-mono">${esc(f.uuid)}</td>
+                <td>${esc(formatDateToMX(f.fechaCruda))}</td>
+                <td>${esc(f.tipo)}</td>
+                <td class="xml-num">${m(f.subTotal)}</td>
+                <td class="xml-num">${m(f.totalTraslados)}</td>
+                <td class="xml-num">${m(f.totalRetenciones)}</td>
+                <td class="xml-num"><b>${m(f.total)}</b></td>
+                <td><span class="xml-sello xml-sello--${sello}">${esc(f.estatusLimpio)}</span></td>
+                <td class="val-dos" style="font-size:11px;color:#64748b">${esc(f.satCancelable)}${f.satMotivo ? "<br><b>" + esc(f.satMotivo) + "</b>" : ""}</td>
             </tr>`;
         }
     });
 
-    if(htmlFinal === "") htmlFinal = "<tr><td colspan='10' class='p-12 text-center text-slate-500'>Sin resultados para los filtros actuales.</td></tr>";
+    if(htmlFinal === "") htmlFinal = "<tr><td colspan='10' class='val-vacio'>Sin resultados con estos filtros.</td></tr>";
     document.getElementById('cuerpoTabla').innerHTML = htmlFinal;
 }
 

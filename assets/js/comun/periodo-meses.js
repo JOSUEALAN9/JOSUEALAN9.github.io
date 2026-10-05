@@ -1,8 +1,8 @@
 /*
  * periodo-meses.js — Periodo con cuadros de año, meses y fechas exactas (como Mi Admin).
- * El mismo de Administración de XML, para Conciliación y Listas del SAT.
+ * Lo usan Administración de XML, Conciliación y Listas del SAT (el mismo en los tres).
  *
- *   var p = FCPeriodoMeses.crear({ contenedor: el, alCambiar: function () { ... } });
+ *   var p = FCPeriodoMeses.crear({ contenedor: el, alCambiar: function () { ... }, alAvisar: fn(texto) });
  *   p.conteos({ "2026-08": 120, ... })   cuántos XML hay por mes (se pintan en los cuadros)
  *   p.poner({ anio: "2026", meses: ["08"] }) | p.poner({ desde, hasta }) | p.poner(null)
  *   p.hayEleccion(), p.porFechas(), p.rango() -> {desde, hasta}, p.meses() -> ["2026-08", ...] | null,
@@ -64,8 +64,8 @@
 
         $("anios").addEventListener("click", function (e) {
             var b = e.target.closest("[data-anio]"); if (!b) return;
-            if (E.anio === b.dataset.anio) { E.anio = ""; E.meses = new Set(); }
-            else E.anio = b.dataset.anio;
+            // Otro clic en el año lo quita; los meses marcados se recuerdan para el siguiente año que elijas
+            E.anio = E.anio === b.dataset.anio ? "" : b.dataset.anio;
             limpiarFechas(); cambio();
         });
         $("meses").addEventListener("click", function (e) {
@@ -80,6 +80,10 @@
             $(k).addEventListener("change", function () {
                 E.fechas = { desde: $("desde").value, hasta: $("hasta").value };
                 $("quitar").hidden = !porFechas();
+                if (E.fechas.desde && E.fechas.hasta && E.fechas.desde > E.fechas.hasta) {
+                    if (cfg.alAvisar) cfg.alAvisar("La fecha inicial es posterior a la final.");
+                    pintar(); return;
+                }
                 cambio();
             });
         });

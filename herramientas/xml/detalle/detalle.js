@@ -71,7 +71,7 @@
         var html = [];
         html.push('<div class="det-cabeza"><div><h1>' + esc(titulo) + '</h1><div class="det-uuid">' + esc(d.uuid) + '</div><div class="det-sellos">' + sellos.join("") + "</div></div>" +
             '<div class="det-acciones"><button type="button" class="xml-btn" id="btn-validar-uno">Validar ante el SAT</button><a class="xml-btn" href="' + API + "/api/xml/archivo?rfc=" + encodeURIComponent(RFC) + "&uuid=" + encodeURIComponent(d.uuid) + '">Descargar XML</a>' +
-            '<a class="xml-btn" title="Consulta el SAT en ese momento y revisa las listas del SAT del emisor" href="' + API + "/api/xml/reporte-validacion?rfc=" + encodeURIComponent(RFC) + "&uuid=" + encodeURIComponent(d.uuid) + '">Reporte de validación (PDF)</a>' +
+            '<a class="xml-btn" title="Representación impresa del CFDI" href="' + API + "/api/xml/pdf?rfc=" + encodeURIComponent(RFC) + "&uuid=" + encodeURIComponent(d.uuid) + '">Descargar PDF</a>' +
             '<button class="xml-btn" disabled title="Llega con la generación de PDF">PDF · próximamente</button>' +
             '<button class="xml-btn" onclick="window.print()">Imprimir</button></div></div>');
 

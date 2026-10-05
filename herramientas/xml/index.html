@@ -4,14 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Administración de XML · Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/common.css?v=202610052130">
-    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202610052130">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202610052300">
+    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202610052300">
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-slate-50">
 <div id="app-header" data-modulo="xml" data-titulo="Administración de XML" data-migas="Herramientas|/herramientas/"></div>
-<script src="/assets/js/nucleo.js?v=202610052130"></script>
-<script src="/assets/js/barra.js?v=202610052130"></script>
+<script src="/assets/js/nucleo.js?v=202610052300"></script>
+<script src="/assets/js/barra.js?v=202610052300"></script>
 
 <main class="xml-pagina">
     <!-- Una sola fila: qué módulo, de quién, qué periodo y la acción principal -->
@@ -64,6 +64,7 @@
             <p class="mod-acciones__grupo">Reportes</p>
             <button type="button" class="mod-accion" data-excel="vista" title="Con tus columnas, orden y filtros"><b>▦</b>Exportar esta tabla</button>
             <button type="button" class="mod-accion" data-excel="completo" title="Todas las columnas, una hoja por tipo"><b>▤</b>Reporte completo</button>
+            <button type="button" id="btn-pdf" class="mod-accion" title="Representación impresa: uno en PDF, varios en ZIP (hasta 300)"><b>⎙</b>XML a PDF</button>
             <button type="button" id="btn-zip" class="mod-accion" title="Los XML de lo que ves (o de lo seleccionado)"><b>⇩</b>Descargar XML (ZIP)</button>
             <p id="acciones-alcance" class="mod-acciones__nota"></p>
             <p class="mod-acciones__grupo">Con este periodo</p>
@@ -73,17 +74,7 @@
         <div class="mod-layout__principal">
         <div id="aviso-otra" class="xml-aviso-otra" hidden></div>
         <!-- Periodo como en Mi Admin: año y meses (varios a la vez); se carga el año y se filtra aquí -->
-        <div id="periodo-xml" class="xml-periodo" aria-label="Periodo">
-            <div class="xml-periodo__fila"><span class="xml-periodo__etiqueta">Año</span><div id="anios" class="xml-periodo__chips"></div></div>
-            <div class="xml-periodo__fila"><span class="xml-periodo__etiqueta">Meses</span><div id="meses" class="xml-periodo__chips"></div></div>
-            <div class="xml-periodo__fila"><span class="xml-periodo__etiqueta">Fechas</span>
-                <div class="xml-periodo__chips xml-periodo__fechas">
-                    <label>Del <input type="date" id="fecha-desde"></label>
-                    <label>al <input type="date" id="fecha-hasta"></label>
-                    <button type="button" id="quitar-fechas" class="xml-enlace" hidden>Quitar fechas</button>
-                </div>
-            </div>
-        </div>
+        <div id="periodo-xml"></div>
         <div class="pestanas xml-pestanas" role="tablist" id="pestanas"></div>
         <div id="subfiltros" class="xml-chips"></div>
 
@@ -162,6 +153,7 @@
     </div>
 </aside>
 
-<script src="/herramientas/xml/xml.js?v=202610052130"></script>
+<script src="/assets/js/comun/periodo-meses.js?v=202610052300"></script>
+<script src="/herramientas/xml/xml.js?v=202610052300"></script>
 </body>
 </html>
