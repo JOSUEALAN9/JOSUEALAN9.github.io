@@ -4,15 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Conciliación · Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/common.css?v=202610051730">
-    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202610051730">
-    <link rel="stylesheet" href="/herramientas/conciliacion/conciliacion.css?v=202610051730">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202610051930">
+    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202610051930">
+    <link rel="stylesheet" href="/herramientas/conciliacion/conciliacion.css?v=202610051930">
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-slate-50">
 <div id="app-header" data-modulo="conciliacion" data-titulo="Conciliación" data-migas="Herramientas|/herramientas/"></div>
-<script src="/assets/js/nucleo.js?v=202610051730"></script>
-<script src="/assets/js/barra.js?v=202610051730"></script>
+<script src="/assets/js/nucleo.js?v=202610051930"></script>
+<script src="/assets/js/barra.js?v=202610051930"></script>
 
 <main class="xml-pagina">
     <!-- Una sola fila: qué módulo, de quién, qué periodo y las acciones -->
@@ -33,7 +33,6 @@
             <input type="hidden" id="sel-periodo">
         </div>
         <div class="xml-cabeza__acciones">
-            <a id="btn-ir-xml" class="xml-btn" href="/herramientas/xml/" hidden>Ver sus XML</a>
             <button type="button" id="btn-agregar" class="xml-btn xml-btn--primario">+ Agregar XML</button>
         </div>
     </div>
@@ -43,7 +42,20 @@
     <div id="resultado-carga"></div>
     <div id="sin-empresa" class="ctx-vacio" hidden></div>
 
-    <div id="contenido" hidden>
+    <div id="contenido" class="mod-layout" hidden>
+        <aside class="mod-acciones" aria-label="Acciones">
+            <p class="mod-acciones__grupo">SAT</p>
+            <button type="button" id="btn-validar" class="mod-accion" title="Vigentes o cancelados: facturas, pagos y notas"><b>✓</b>Validar estado SAT</button>
+            <button type="button" id="btn-listas" class="mod-accion" title="Abre Listas del SAT con esta empresa y este periodo"><b>⚑</b>Validar listas</button>
+            <p class="mod-acciones__grupo">Reportes</p>
+            <button type="button" class="mod-accion" data-excel="vista" title="Con tus columnas y filtros, más movimientos y tipos de cambio"><b>▦</b>Exportar esta tabla</button>
+            <button type="button" class="mod-accion" data-excel="completo" title="Todas las facturas del periodo, sin filtros"><b>▤</b>Reporte completo</button>
+            <p class="mod-acciones__grupo">Ajustes</p>
+            <button type="button" id="btn-tc" class="mod-accion" title="Tipos de cambio usados y ajustes propios"><b>$</b>Tipos de cambio</button>
+            <a id="btn-ir-xml" class="mod-accion" href="/herramientas/xml/" hidden><b>⇢</b>Ver sus XML</a>
+            <p id="acciones-alcance" class="mod-acciones__nota"></p>
+        </aside>
+        <div class="mod-layout__principal">
         <div id="aviso-otra" class="xml-aviso-otra" hidden></div>
 
         <!-- Segunda fila: qué lado y qué facturas entran al periodo -->
@@ -77,19 +89,10 @@
                         <button type="button" id="quitar-filtros" class="xml-enlace">Quitar todos los filtros</button>
                     </div>
                 </div>
-                <button type="button" id="btn-validar" class="xml-btn" title="Consulta en el SAT si facturas, pagos y notas están vigentes o cancelados">Validar ante el SAT</button>
-                <button type="button" id="btn-tc" class="xml-btn">Tipos de cambio</button>
                 <button type="button" id="btn-columnas" class="xml-btn">Columnas</button>
                 <div class="xml-menu">
                     <button type="button" id="btn-vistas" class="xml-btn"><span id="nombre-vista">Vista de fábrica</span> ▾</button>
                     <div id="menu-vistas" class="xml-menu__lista" hidden></div>
-                </div>
-                <div class="xml-menu">
-                    <button type="button" id="btn-excel" class="xml-btn xml-btn--verde">Excel ▾</button>
-                    <div id="menu-excel" class="xml-menu__lista" hidden>
-                        <button type="button" data-excel="vista">Esta tabla <span>con tus columnas y filtros, más movimientos y tipos de cambio</span></button>
-                        <button type="button" data-excel="completo">Todo el periodo <span>todas las facturas, sin filtros</span></button>
-                    </div>
                 </div>
             </div>
         </div>
@@ -102,12 +105,13 @@
 
         <div id="barra-seleccion" class="xml-seleccion" hidden>
             <span id="texto-seleccion"></span>
-            <button type="button" id="btn-validar-sel" class="xml-btn">Validar ante el SAT</button>
+            <span class="xml-tenue">Las acciones de la derecha usan lo seleccionado.</span>
             <button type="button" id="btn-limpiar-sel" class="xml-enlace">Quitar selección</button>
         </div>
 
         <div id="tablas"></div>
-        <p class="xml-pie"><span id="conteo-filas"></span> · Clic en una factura para ver sus pagos y notas · Arrastra los encabezados para reordenar y su borde para cambiar el ancho · Lo cancelado en el SAT no cuenta.</p>
+        <p class="xml-pie"><span id="conteo-filas"></span> · Clic en una factura para ver sus pagos y notas · Lo cancelado en el SAT no cuenta.</p>
+        </div>
     </div>
 </main>
 
@@ -125,8 +129,8 @@
     </div>
 </div>
 
-<script src="/assets/js/comun/tabla.js?v=202610051730"></script>
-<script src="/assets/js/comun/bandeja-xml.js?v=202610051730"></script>
-<script src="/herramientas/conciliacion/conciliacion.js?v=202610051730"></script>
+<script src="/assets/js/comun/tabla.js?v=202610051930"></script>
+<script src="/assets/js/comun/bandeja-xml.js?v=202610051930"></script>
+<script src="/herramientas/conciliacion/conciliacion.js?v=202610051930"></script>
 </body>
 </html>

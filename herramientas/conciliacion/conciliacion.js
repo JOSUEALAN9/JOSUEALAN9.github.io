@@ -354,9 +354,10 @@
         var base = $("sel-base").value;
         document.querySelectorAll("#base [data-base]").forEach(function (b) { b.setAttribute("aria-pressed", String(b.dataset.base === base)); });
         $("base-pago").textContent = textoLado("Lo cobrado", "Lo pagado");
-        $("ayuda-base").textContent = base === "pago"
-            ? textoLado("Lo cobrado", "Lo pagado") + " en el periodo, aunque sea de facturas de otros meses. Responde «¿cuánto dinero " + textoLado("entró", "salió") + "?»."
-            : "Las facturas " + textoLado("emitidas", "recibidas") + " en el periodo, con todos sus pagos aunque lleguen después. Responde «¿cómo quedó lo que se facturó?».";
+        // Una línea corta; la explicación queda al pasar el mouse
+        $("ayuda-base").textContent = base === "pago" ? textoLado("Lo cobrado", "Lo pagado") + " en el periodo, de cualquier mes de factura."
+            : "Facturas del periodo con todos sus pagos.";
+        $("ayuda-base").title = base === "pago" ? "¿Cuánto dinero " + textoLado("entró", "salió") + "?" : "¿Cómo quedó lo que se facturó?";
     }
 
     function pintarTarjetas() {
@@ -462,6 +463,15 @@
         $("conteo-filas").textContent = !total
             ? "No hay facturas " + textoLado("emitidas", "recibidas") + " en este periodo (puede haber solo complementos de pago). Prueba otro periodo o «Según fecha de pago»"
             : E.filtradas.length.toLocaleString("es-MX") + (E.filtradas.length !== total ? " de " + total.toLocaleString("es-MX") : "") + " factura(s)";
+        pintarAlcance();
+    }
+
+    /* Las acciones de la derecha usan lo seleccionado; si no hay selección, lo que ves. */
+    function pintarAlcance() {
+        var sel = tabla() ? tabla().seleccion.size : 0, n = sel || (E.filtradas || []).length;
+        $("acciones-alcance").textContent = !n ? "No hay facturas en la tabla."
+            : sel ? "Sobre las " + n.toLocaleString("es-MX") + " seleccionadas." : "Sobre las " + n.toLocaleString("es-MX") + " facturas que ves.";
+        if (!n || $("avance-validacion").hidden) $("btn-validar").disabled = !n;    // mientras valida, sigue apagado
     }
 
     function hayFiltros() {
@@ -473,6 +483,7 @@
         var n = sel.size;
         $("barra-seleccion").hidden = n === 0;
         $("texto-seleccion").textContent = n + " factura" + (n === 1 ? "" : "s") + " seleccionada" + (n === 1 ? "" : "s");
+        pintarAlcance();
     }
 
     /* ============================================================ detalle de una factura */
@@ -768,7 +779,6 @@
 
     /* ============================================================ Excel */
     async function exportarExcel(modo) {
-        $("menu-excel").hidden = true;
         var r = rango();
         var cuerpo = { rfc: E.rfc, lado: E.lado, desde: r.desde, hasta: r.hasta, base: $("sel-base").value, regla: E.regla,
             columnas: tabla().columnas().map(function (c) { return c.clave; }), uuids: null };
@@ -777,19 +787,19 @@
             if (sel.size) cuerpo.uuids = Array.from(sel);
             else if (hayFiltros()) cuerpo.uuids = E.filtradas.map(function (f) { return f.uuid; });
         }
-        var boton = $("btn-excel");
-        boton.disabled = true; boton.textContent = "Generando…";
+        var boton = document.querySelector('.mod-acciones [data-excel="' + modo + '"]'), texto = boton.innerHTML;
+        boton.disabled = true; boton.innerHTML = "<b>⏳</b>Generando…";
         try {
             var resp = await enviar("/api/conciliacion/excel", cuerpo);
             var cd = resp.headers.get("Content-Disposition") || "", m = cd.match(/filename="?([^";]+)"?/);
             descargarBlob(await resp.blob(), m ? m[1] : "conciliacion.xlsx");
         } catch (e) { avisar(e.message); }
-        boton.disabled = false; boton.textContent = "Excel ▾";
+        boton.disabled = false; boton.innerHTML = texto;
     }
 
     /* ============================================================ eventos */
     function cerrarMenus(excepto) {
-        ["menu-excel", "menu-vistas", "menu-filtros", "menu-otra"].forEach(function (id) { if (id !== excepto) $(id).hidden = true; });
+        ["menu-vistas", "menu-filtros", "menu-otra"].forEach(function (id) { if (id !== excepto) $(id).hidden = true; });
     }
 
     function prepararEventos() {
@@ -849,7 +859,7 @@
             clearTimeout(reloj); var v = this.value;
             reloj = setTimeout(function () { E.busqueda = v; aplicar(); }, 150);
         });
-        [["btn-filtros", "menu-filtros"], ["btn-vistas", "menu-vistas"], ["btn-excel", "menu-excel"]].forEach(function (par) {
+        [["btn-filtros", "menu-filtros"], ["btn-vistas", "menu-vistas"]].forEach(function (par) {
             $(par[0]).addEventListener("click", function (e) {
                 e.stopPropagation(); cerrarMenus(par[1]); $(par[1]).hidden = !$(par[1]).hidden;
                 if (par[1] === "menu-filtros" && !$(par[1]).hidden) pintarAvanzados();
@@ -857,14 +867,21 @@
             $(par[1]).addEventListener("click", function (e) { e.stopPropagation(); });
         });
         document.addEventListener("click", function () { cerrarMenus(); });
-        $("menu-excel").addEventListener("click", function (e) { var b = e.target.closest("[data-excel]"); if (b) exportarExcel(b.dataset.excel); });
-        $("btn-columnas").addEventListener("click", function () { if (tabla()) tabla().abrirPanelColumnas(); });
-        $("btn-validar").addEventListener("click", function () {
-            if (E.datos) pedirValidacion(E.filtradas, hayFiltros() ? "de lo filtrado" : "de este periodo");
+        document.querySelector(".mod-acciones").addEventListener("click", function (e) {
+            var b = e.target.closest("[data-excel]"); if (b && !b.disabled && E.datos) exportarExcel(b.dataset.excel);
         });
-        $("btn-validar-sel").addEventListener("click", function () {
+        $("btn-listas").addEventListener("click", function () {
+            var r = rango(), q = new URLSearchParams({ empresa: E.rfc || "" });
+            if (r.desde) q.set("desde", r.desde); if (r.hasta) q.set("hasta", r.hasta);
+            window.open("/herramientas/listas-sat/?" + q.toString(), "_blank", "noopener");
+        });
+        $("btn-columnas").addEventListener("click", function () { if (tabla()) tabla().abrirPanelColumnas(); });
+        // Lo seleccionado; si no hay selección, lo que ves
+        $("btn-validar").addEventListener("click", function () {
+            if (!E.datos) return;
             var sel = tabla().seleccion;
-            pedirValidacion(E.datos.facturas.filter(function (f) { return sel.has(f.uuid); }), "de lo seleccionado");
+            if (sel.size) pedirValidacion(E.datos.facturas.filter(function (f) { return sel.has(f.uuid); }), "de lo seleccionado");
+            else pedirValidacion(E.filtradas, hayFiltros() ? "de lo filtrado" : "de este periodo");
         });
         $("btn-limpiar-sel").addEventListener("click", function () { tabla().limpiarSeleccion(); });
         $("btn-detener").addEventListener("click", function () { enviar("/api/conciliacion/validacion/detener", {}).catch(function () {}); });

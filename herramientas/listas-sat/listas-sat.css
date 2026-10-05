@@ -61,5 +61,4 @@
 .ls-ventana__cabeza h3 { margin: 0; }
 .ls-ventana .ls-nota, .ls-ventana p { margin-bottom: 6px; }
 .xml-toolbar .xml-chips { margin: 0; }
-a.xml-accion { text-decoration: none; }
-#pestanas { overflow-x: auto; scrollbar-width: thin; } #pestanas .pestana { white-space: nowrap; flex: none; }
+.ls-sin-xml { color: #64748b; font-weight: 600; }

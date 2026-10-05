@@ -359,7 +359,7 @@
         var n = uuidsParaAcciones().length;
         $("acciones-alcance").textContent = !n ? "No hay XML en la tabla."
             : E.seleccion.size ? "Sobre los " + n.toLocaleString("es-MX") + " seleccionados." : "Sobre los " + n.toLocaleString("es-MX") + " XML que ves.";
-        ["btn-acuse", "btn-zip"].forEach(function (id) { $(id).disabled = !n; });
+        $("btn-zip").disabled = !n;
     }
 
     /* ============================================================ minimódulos */
@@ -429,6 +429,10 @@
     function prepararColumnas() {
         // Orden de prioridad: lo último que acomodaste (local) → tu vista predeterminada → de fábrica
         var local = leerLocal("cols:" + E.modulo);
+        if (!leerLocal("mig:listas:" + E.modulo)) {                // una vez: quitar Listas del SAT, que entró de fábrica
+            if (local) { local = local.filter(function (c) { return c.clave !== "listas_sat"; }); guardarLocal("cols:" + E.modulo, local); }
+            guardarLocal("mig:listas:" + E.modulo, 1);
+        }
         var pred = E.vistas.find(function (v) { return v.modulo === E.modulo && v.predeterminada; });
         var cols = local || (pred && pred.columnas) || columnasDeFabrica();
         E.vistaActual[E.modulo] = local ? (leerLocal("vista:" + E.modulo) || "") : (pred ? pred.nombre : "");
@@ -849,7 +853,7 @@
                 Object.keys(E.av).some(function (k) { return E.av[k]; });
             cuerpo.uuids = filtrado ? Array.from(new Set(E.filas.map(function (f) { return f.uuid; }))) : null;
         }
-        var boton = document.querySelector('.xml-acciones [data-excel="' + modo + '"]');
+        var boton = document.querySelector('.mod-acciones [data-excel="' + modo + '"]');
         var texto = boton.innerHTML;
         boton.disabled = true; boton.innerHTML = "<b>⏳</b>Generando…";
         try {
@@ -880,22 +884,12 @@
     }
 
     /* Acuse de validación: uno = PDF (consulta el SAT en ese momento); varios = ZIP (hasta 300). */
-    async function descargarReportes() {
-        var uuids = uuidsParaAcciones();
-        if (uuids.length > 300) { avisar("Saca hasta 300 acuses a la vez: selecciona o filtra menos XML (hay " + uuids.length.toLocaleString("es-MX") + ")."); return; }
-        var boton = $("btn-acuse"), texto = boton.innerHTML;
-        boton.disabled = true; boton.innerHTML = "<b>⏳</b>Generando " + uuids.length + "…";
-        try {
-            var resp = uuids.length === 1
-                ? await (async function () {
-                    var r = await fetch(API + "/api/xml/reporte-validacion?rfc=" + encodeURIComponent(E.rfc) + "&uuid=" + encodeURIComponent(uuids[0]), { credentials: "include" });
-                    if (!r.ok) throw new Error(await Fiscontable.leerError(r));
-                    return r;
-                })()
-                : await postJSON("/api/xml/reportes-validacion", { rfc: E.rfc, uuids: uuids });
-            descargarBlob(await resp.blob(), nombreArchivo(resp, uuids.length === 1 ? "acuse_validacion.pdf" : "acuses_validacion.zip"));
-        } catch (e) { avisar(e.message); }
-        boton.disabled = false; boton.innerHTML = texto;
+    /* Las listas negras viven en su herramienta: se abre en otra pestaña con esta empresa y este periodo. */
+    function abrirListas() {
+        var q = new URLSearchParams({ empresa: E.rfc || "" });
+        if (porFechas()) { if (E.fechas.desde) q.set("desde", E.fechas.desde); if (E.fechas.hasta) q.set("hasta", E.fechas.hasta); }
+        else if (hayEleccion()) { q.set("anio", E.anio); q.set("meses", Array.from(E.meses).sort().join(",")); }
+        window.open("/herramientas/listas-sat/?" + q.toString(), "_blank", "noopener");
     }
 
     async function quitarSeleccion() {
@@ -1332,11 +1326,11 @@
         });
         document.addEventListener("click", function () { cerrarMenus(); });
         $("menu-vistas").addEventListener("click", function (e) { var b = e.target.closest("[data-accion]"); if (b) accionVista(b.dataset.accion, b.dataset.nombre); });
-        document.querySelector(".xml-acciones").addEventListener("click", function (e) {
+        document.querySelector(".mod-acciones").addEventListener("click", function (e) {
             var b = e.target.closest("[data-excel]"); if (b && !b.disabled) exportarExcel(b.dataset.excel);
         });
         $("btn-zip").addEventListener("click", descargarZip);
-        $("btn-acuse").addEventListener("click", descargarReportes);
+        $("btn-listas").addEventListener("click", abrirListas);
         $("anios").addEventListener("click", function (e) {
             var b = e.target.closest("[data-anio]"); if (!b) return;
             E.anio = b.dataset.anio === E.anio ? "" : b.dataset.anio;       // otro clic en el año lo quita

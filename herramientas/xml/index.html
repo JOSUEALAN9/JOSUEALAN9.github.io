@@ -4,14 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Administración de XML · Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/common.css?v=202610051730">
-    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202610051730">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202610051930">
+    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202610051930">
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-slate-50">
 <div id="app-header" data-modulo="xml" data-titulo="Administración de XML" data-migas="Herramientas|/herramientas/"></div>
-<script src="/assets/js/nucleo.js?v=202610051730"></script>
-<script src="/assets/js/barra.js?v=202610051730"></script>
+<script src="/assets/js/nucleo.js?v=202610051930"></script>
+<script src="/assets/js/barra.js?v=202610051930"></script>
 
 <main class="xml-pagina">
     <!-- Una sola fila: qué módulo, de quién, qué periodo y la acción principal -->
@@ -57,19 +57,19 @@
 
     <div id="sin-empresa" class="ctx-vacio" hidden></div>
 
-    <div id="contenido" class="xml-layout" hidden>
-        <aside class="xml-acciones" aria-label="Acciones">
-            <p class="xml-acciones__grupo">Básica</p>
-            <button type="button" id="btn-validar" class="xml-accion" title="Consulta en el SAT si están vigentes o cancelados"><b>✓</b>Validar estado SAT</button>
-            <button type="button" id="btn-acuse" class="xml-accion" title="Un PDF por CFDI: estado en el SAT y listas del SAT"><b>📄</b>Acuse de validación</button>
-            <p class="xml-acciones__grupo">Reportes</p>
-            <button type="button" class="xml-accion" data-excel="vista" title="Con tus columnas, orden y filtros"><b>▦</b>Exportar esta tabla</button>
-            <button type="button" class="xml-accion" data-excel="completo" title="Todas las columnas, una hoja por tipo"><b>▤</b>Reporte completo</button>
-            <button type="button" id="btn-zip" class="xml-accion" title="Los XML de lo que ves (o de lo seleccionado)"><b>⇩</b>Descargar XML (ZIP)</button>
-            <button type="button" id="btn-conciliacion" class="xml-accion" title="Cruza facturas contra complementos de pago y notas de crédito" hidden><b>⇄</b>Conciliar</button>
-            <p id="acciones-alcance" class="xml-acciones__nota"></p>
+    <div id="contenido" class="mod-layout" hidden>
+        <aside class="mod-acciones" aria-label="Acciones">
+            <p class="mod-acciones__grupo">SAT</p>
+            <button type="button" id="btn-validar" class="mod-accion" title="Consulta en el SAT si están vigentes o cancelados"><b>✓</b>Validar estado SAT</button>
+            <button type="button" id="btn-listas" class="mod-accion" title="Abre Listas del SAT con esta empresa y este periodo"><b>⚑</b>Validar listas</button>
+            <p class="mod-acciones__grupo">Reportes</p>
+            <button type="button" class="mod-accion" data-excel="vista" title="Con tus columnas, orden y filtros"><b>▦</b>Exportar esta tabla</button>
+            <button type="button" class="mod-accion" data-excel="completo" title="Todas las columnas, una hoja por tipo"><b>▤</b>Reporte completo</button>
+            <button type="button" id="btn-zip" class="mod-accion" title="Los XML de lo que ves (o de lo seleccionado)"><b>⇩</b>Descargar XML (ZIP)</button>
+            <button type="button" id="btn-conciliacion" class="mod-accion" title="Cruza facturas contra complementos de pago y notas de crédito" hidden><b>⇄</b>Conciliar</button>
+            <p id="acciones-alcance" class="mod-acciones__nota"></p>
         </aside>
-        <div class="xml-layout__principal">
+        <div class="mod-layout__principal">
         <div id="aviso-otra" class="xml-aviso-otra" hidden></div>
         <!-- Periodo como en Mi Admin: año y meses (varios a la vez); se carga el año y se filtra aquí -->
         <div id="periodo-xml" class="xml-periodo" aria-label="Periodo">
@@ -161,6 +161,6 @@
     </div>
 </aside>
 
-<script src="/herramientas/xml/xml.js?v=202610051730"></script>
+<script src="/herramientas/xml/xml.js?v=202610051930"></script>
 </body>
 </html>

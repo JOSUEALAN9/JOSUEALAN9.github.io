@@ -644,6 +644,7 @@
         $("resultados").hidden = true;
     }
     $("res-cerrar").addEventListener("click", cerrarResultados);
+    $("res-solicitudes").addEventListener("click", function () { $("btn-solicitudes").click(); });
 
     async function verResultados(id) {
         sinAlerta();
@@ -682,7 +683,7 @@
 
         $("res-faltantes").hidden = !(d.origen === "portal" && esLista && faltan > 0);
         $("res-bajar").hidden = !d.nombre_descarga;
-        $("res-bajar").textContent = /\.xlsx$/.test(d.nombre_descarga || "") ? "Descargar Excel" : "Descargar ZIP de XML";
+        $("res-bajar").querySelector("span").textContent = /\.xlsx$/.test(d.nombre_descarga || "") ? "Descargar Excel" : "Descargar ZIP de XML";
         $("res-bajar").dataset.job = d.job_id;
         $("res-bajar").dataset.nombre = d.nombre_descarga || "";
 
@@ -740,9 +741,9 @@
     });
 
     $("res-bajar").addEventListener("click", async function () {
-        var boton = this, texto = boton.textContent;
+        var boton = this, etiqueta = boton.querySelector("span"), texto = etiqueta.textContent;
         boton.disabled = true;
-        boton.textContent = "Descargando…";
+        etiqueta.textContent = "Descargando…";
         try {
             var r = await fetch(API + "/api/trabajos/" + encodeURIComponent(boton.dataset.job) + "/descargar", { credentials: "include" });
             if (!r.ok) { alerta(await Fiscontable.leerError(r)); return; }
@@ -756,7 +757,7 @@
             alerta("No se pudo bajar el archivo. Búscalo en Mis descargas.");
         } finally {
             boton.disabled = false;
-            boton.textContent = texto;
+            etiqueta.textContent = texto;
         }
     });
 

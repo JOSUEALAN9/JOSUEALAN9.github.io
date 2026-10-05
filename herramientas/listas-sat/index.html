@@ -4,15 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Listas del SAT · Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/common.css?v=202610051730">
-    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202610051730">
-    <link rel="stylesheet" href="/herramientas/listas-sat/listas-sat.css?v=202610051730">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202610051930">
+    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202610051930">
+    <link rel="stylesheet" href="/herramientas/listas-sat/listas-sat.css?v=202610051930">
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-slate-50">
 <div id="app-header" data-modulo="validador" data-titulo="Listas del SAT" data-migas="Herramientas|/herramientas/"></div>
-<script src="/assets/js/nucleo.js?v=202610051730"></script>
-<script src="/assets/js/barra.js?v=202610051730"></script>
+<script src="/assets/js/nucleo.js?v=202610051930"></script>
+<script src="/assets/js/barra.js?v=202610051930"></script>
 
 <main class="xml-pagina">
     <!-- Igual que sus hermanas: de quién, qué periodo y la revisión de las listas -->
@@ -36,18 +36,18 @@
     <div id="aviso" class="ls-aviso" hidden></div>
     <div id="sin-empresa" class="ctx-vacio" hidden></div>
 
-    <div id="contenido" class="xml-layout" hidden>
-        <aside class="xml-acciones" aria-label="Acciones">
-            <p class="xml-acciones__grupo">Reportes</p>
-            <button type="button" id="btn-excel" class="xml-accion" title="Lo que ves en la pestaña (o lo seleccionado)"><b>▦</b>Exportar Excel</button>
-            <button type="button" id="btn-acuse" class="xml-accion" title="Un PDF por CFDI: estado en el SAT y listas del SAT"><b>📄</b>Acuse de validación</button>
-            <p class="xml-acciones__grupo">Consultar</p>
-            <button type="button" id="btn-rfc" class="xml-accion" title="Cualquier RFC, aunque no esté en tus XML"><b>🔍</b>Buscar un RFC</button>
-            <button type="button" id="btn-cambios" class="xml-accion" title="Quién entró, cambió o salió de una lista"><b>↻</b>Cambios recientes</button>
-            <a id="btn-xml" class="xml-accion" href="/herramientas/xml/" title="Abrir Administración de XML"><b>⇢</b>Administración de XML</a>
-            <p id="acciones-alcance" class="xml-acciones__nota"></p>
+    <div id="contenido" class="mod-layout" hidden>
+        <aside class="mod-acciones" aria-label="Acciones">
+            <p class="mod-acciones__grupo">Reportes</p>
+            <button type="button" id="btn-excel" class="mod-accion" title="Lo que ves en la pestaña (o lo seleccionado)"><b>▦</b>Exportar Excel</button>
+            <button type="button" id="btn-acuse" class="mod-accion" title="Un PDF por CFDI: estado en el SAT y listas del SAT"><b>📄</b>Acuse de validación</button>
+            <p class="mod-acciones__grupo">Consultar</p>
+            <button type="button" id="btn-rfc" class="mod-accion" title="Cualquier RFC, aunque no esté en tus XML"><b>🔍</b>Buscar un RFC</button>
+            <button type="button" id="btn-cambios" class="mod-accion" title="Quién entró, cambió o salió de una lista"><b>↻</b>Cambios recientes</button>
+            <a id="btn-xml" class="mod-accion" href="/herramientas/xml/" title="Abrir Administración de XML"><b>⇢</b>Administración de XML</a>
+            <p id="acciones-alcance" class="mod-acciones__nota"></p>
         </aside>
-        <div class="xml-layout__principal">
+        <div class="mod-layout__principal">
             <div id="periodo-xml" class="xml-periodo" aria-label="Periodo">
                 <div class="xml-periodo__fila"><span class="xml-periodo__etiqueta">Año</span><div id="anios" class="xml-periodo__chips"></div></div>
                 <div class="xml-periodo__fila"><span class="xml-periodo__etiqueta">Meses</span><div id="meses" class="xml-periodo__chips"></div></div>
@@ -110,6 +110,6 @@
     </div>
 </div>
 
-<script src="/herramientas/listas-sat/listas-sat.js?v=202610051730"></script>
+<script src="/herramientas/listas-sat/listas-sat.js?v=202610051930"></script>
 </body>
 </html>

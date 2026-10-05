@@ -5,27 +5,29 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Voucheo Automático | Fiscontable</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="/assets/css/common.css?v=202610051730">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202610051930">
 </head>
-<body class="h-screen flex flex-col relative">
+<body class="min-h-screen flex flex-col relative">
 
     <!-- TOP NAV -->
     <div id="app-header" data-modulo="voucheo" data-titulo="Voucheo" data-migas="Herramientas|/herramientas/"></div>
-<script src="/assets/js/nucleo.js?v=202610051730"></script>
-<script src="/assets/js/barra.js?v=202610051730"></script>
+<script src="/assets/js/nucleo.js?v=202610051930"></script>
+<script src="/assets/js/barra.js?v=202610051930"></script>
 
     <!-- ÁREA DE TRABAJO -->
-    <main class="flex-grow flex flex-col p-4 sm:p-6 w-full relative overflow-y-auto">
-
-        <div style="width:100%;max-width:1180px;margin:0 auto 18px;display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:14px">
-            <div>
-                <h1 class="display" style="font-size:28px">Voucheo de impuestos</h1>
-                <p style="margin-top:6px;font-size:14.5px;color:var(--texto-tenue)">De los acuses en PDF al papel de trabajo, sin capturar a mano.</p>
-            </div>
-            <button type="button" onclick="limpiarFormularios()" class="fc-btn">Limpiar</button>
-        </div>
-
-        <div class="bg-white rounded-xl card-elevated border border-gray-200 w-full max-w-2xl m-auto flex flex-col">
+    <main class="flex-grow mod-pagina mod-pagina--form">
+        <div class="mod-cabeza"><h1>Voucheo de impuestos</h1></div>
+        <div class="mod-layout">
+        <aside class="mod-acciones" aria-label="Acciones">
+            <p class="mod-acciones__grupo">Papel de trabajo</p>
+            <button type="button" class="mod-accion" onclick="switchTab('nuevo')"><b>+</b>Nuevo ejercicio</button>
+            <button type="button" class="mod-accion" onclick="switchTab('actualizar')"><b>↻</b>Actualizar archivo</button>
+            <button type="button" class="mod-accion" onclick="limpiarFormularios()"><b>×</b>Limpiar</button>
+            <p class="mod-acciones__grupo">Ir a</p>
+            <a class="mod-accion" href="/descargas/"><b>⇩</b>Mis descargas</a>
+        </aside>
+        <div class="mod-layout__principal">
+        <div class="bg-white rounded-xl card-elevated border border-gray-200 w-full flex flex-col">
 
             <!-- Pestañas Fiscontable Style -->
             <div id="tabs-container" class="flex border-b bg-slate-50">
@@ -105,7 +107,7 @@
                 <div class="bg-blue-50 border border-blue-100 p-4 rounded-lg flex items-start gap-3">
                     <svg class="w-5 h-5 text-blue-600 flex-none mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                     <p class="text-xs text-blue-800 leading-relaxed">
-                        <strong>Instrucciones:</strong> Sube los acuses PDF del SAT o Tribut@Net. El sistema leerá el RFC del primer documento y descargará la plantilla maestra para generar un nuevo papel de trabajo consolidado.
+                        Sube los acuses PDF del SAT o Tribut@Net.
                     </p>
                 </div>
 
@@ -126,8 +128,7 @@
                 <div class="bg-blue-50 border border-blue-100 p-4 rounded-lg flex items-start gap-3">
                     <svg class="w-5 h-5 text-blue-600 flex-none mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                     <p class="text-xs text-blue-800 leading-relaxed">
-                        <strong>Instrucciones:</strong> Selecciona tu papel de trabajo actual (.xlsx) y los nuevos acuses PDF. El sistema inyectará los datos del mes sin borrar tu captura bancaria manual.
-                    </p>
+                        Elige tu papel de trabajo (.xlsx) y los acuses nuevos. Tu captura bancaria no se toca.</p>
                 </div>
 
                 <div>
@@ -147,8 +148,10 @@
                 </div>
             </form>
         </div>
+        </div>
+        </div>
     </main>
 
-<script src="/herramientas/voucheo/voucheo.js?v=202610051730"></script>
+<script src="/herramientas/voucheo/voucheo.js?v=202610051930"></script>
 </body>
 </html>

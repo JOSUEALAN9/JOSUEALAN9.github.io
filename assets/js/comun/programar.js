@@ -6,7 +6,9 @@
      contenedor: id del <div> donde va la tarjeta
 
    La tarjeta muestra el botón "Programar" y las últimas programaciones
-   del módulo (estado, detalle por RFC, cancelar, bajar el ZIP). El turno
+   del módulo (estado, detalle por RFC, cancelar, bajar el ZIP). Si la página
+   tiene columna de acciones con [data-programar], el botón vive ahí y la
+   tarjeta solo aparece cuando hay programaciones. El turno
    corre en el servidor entre 2:00 y 6:30 con pausas al azar; solo usa las
    e.firmas guardadas del directorio.
    ============================================================ */
@@ -90,7 +92,7 @@
         var d = new Date(valor + "T12:00:00"), hoy = new Date(), man = new Date(); man.setDate(hoy.getDate() + 1);
         var nombre = d.toDateString() === hoy.toDateString() ? "hoy" : d.toDateString() === man.toDateString() ? "mañana" :
             d.toLocaleDateString("es-MX", { weekday: "long", day: "numeric", month: "long" });
-        return "Madrugada de " + nombre + ", de 2:00 a 6:30 a. m. (hora de México), con pausas al azar.";
+        return "Madrugada de " + nombre + ".";
     }
 
     function mesAnterior() {
@@ -155,8 +157,7 @@
         caja.innerHTML =
             '<div class="fp-tarjeta">' +
             '  <div class="fp-cabeza">' +
-            '    <div class="fp-cabeza__texto"><strong>🌙 Programar para la madrugada</strong>' +
-            '      Se hace entre 2:00 y 6:30 con pausas al azar, cuando el SAT está libre. Usa las e.firmas guardadas del directorio.</div>' +
+            '    <div class="fp-cabeza__texto"><strong>🌙 Programar para la madrugada</strong></div>' +
             '    <button type="button" class="boton-secundario fp-boton" data-fp="abrir">Programar</button>' +
             '  </div>' +
             '  <div class="fp-lista" data-fp="lista"></div>' +
@@ -180,6 +181,7 @@
             "</div></div>";
 
         function $(nombre) { return caja.querySelector('[data-fp="' + nombre + '"]'); }
+        if (document.querySelector(".mod-acciones [data-programar]")) caja.querySelector(".fp-tarjeta").hidden = true;
 
         /* ---- lista de programaciones */
         function pintarLista(lista) {
@@ -218,6 +220,11 @@
                 html += "</div>";
             });
             $("lista").innerHTML = html;
+            // Con columna de acciones, "Programar" ya está a la derecha: la tarjeta solo aparece si hay programaciones
+            if (document.querySelector(".mod-acciones [data-programar]")) {
+                caja.querySelector(".fp-tarjeta").hidden = !html;
+                caja.querySelector(".fp-cabeza").hidden = true;
+            }
         }
 
         async function cargarLista() {

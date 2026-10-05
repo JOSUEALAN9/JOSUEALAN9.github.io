@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Declaraciones | Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/common.css?v=202610051730">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202610051930">
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="min-h-screen flex flex-col">
@@ -14,17 +14,22 @@
      data-titulo="Declaraciones"
      data-migas="Herramientas|/herramientas/"></div>
 
-<main class="flex-grow w-full" style="max-width:720px;margin:0 auto;padding:32px 20px 64px">
+<main class="flex-grow w-full mod-pagina mod-pagina--form">
 
-    <h1 class="display" style="font-size:30px">Declaraciones presentadas</h1>
-    <p style="margin:9px 0 26px;font-size:15px;color:var(--texto-tenue)">
-        Baja el acuse, el pago y el recibo de cada declaración del ejercicio.
-        Se revisan los dos portales del SAT, el nuevo y el anterior.
-    </p>
+    <div class="mod-cabeza"><h1>Declaraciones presentadas</h1></div>
+
+    <div class="mod-layout">
+    <aside class="mod-acciones" aria-label="Acciones">
+        <p class="mod-acciones__grupo">Madrugada</p>
+        <button type="button" class="mod-accion" data-programar><b>🌙</b>Programar</button>
+        <p class="mod-acciones__grupo">Ir a</p>
+        <a class="mod-accion" href="/descargas/"><b>⇩</b>Mis descargas</a>
+        <a class="mod-accion" href="/clientes/"><b>☰</b>Directorio</a>
+    </aside>
+    <div class="mod-layout__principal">
 
     <div id="alerta" class="fc-aviso" style="margin:0 0 16px" hidden></div>
 
-    <!-- Paso 1 -->
     <div id="programar-madrugada"></div>
 
     <div id="paso-cliente"></div>
@@ -32,7 +37,7 @@
     <!-- Paso 2: e.firma, sólo si no está guardada -->
     <section id="paso-efirma" class="ficha" hidden>
         <h2 class="ficha__titulo">Su e.firma</h2>
-        <p class="ficha__nota">Viaja cifrada y se borra del servidor al terminar.</p>
+        <p class="ficha__nota">Viaja cifrada y se borra al terminar.</p>
 
         <div class="dos">
             <label class="campo" id="campo-cer">
@@ -84,10 +89,7 @@
             </div>
         </fieldset>
 
-        <p class="ficha__nota" style="margin-top:16px">
-            De cada declaración encontrada se bajan sus tres documentos: acuse de detalle,
-            acuse de pago y acuse de recibo.
-        </p>
+        <p class="ficha__nota" style="margin-top:16px">Se bajan el acuse de detalle, el de pago y el de recibo.</p>
 
         <button type="button" id="btn-buscar" class="boton-principal">Buscar y descargar</button>
     </section>
@@ -107,16 +109,19 @@
         <button type="button" id="btn-detener" class="fc-btn" style="margin-top:14px">Detener</button>
     </section>
 
+    </div>
+    </div>
 </main>
 
 <footer class="fc-pie">© 2026 Alan Sánchez</footer>
 
-<script src="/assets/js/nucleo.js?v=202610051730"></script>
-<script src="/assets/js/barra.js?v=202610051730"></script>
-<script src="/assets/js/comun/leer-cer.js?v=202610051730"></script>
-<script src="/assets/js/comun/paso-cliente.js?v=202610051730"></script>
-<script src="/herramientas/declaraciones/declaraciones.js?v=202610051730"></script>
-<script src="/assets/js/comun/programar.js?v=202610051730"></script>
+<script src="/assets/js/nucleo.js?v=202610051930"></script>
+<script src="/assets/js/barra.js?v=202610051930"></script>
+<script src="/assets/js/comun/leer-cer.js?v=202610051930"></script>
+<script src="/assets/js/comun/paso-cliente.js?v=202610051930"></script>
+<script src="/herramientas/declaraciones/declaraciones.js?v=202610051930"></script>
+<script src="/assets/js/comun/acciones.js?v=202610051930"></script>
+<script src="/assets/js/comun/programar.js?v=202610051930"></script>
 <script>Fiscontable.Programar.montar({ modulo: "declaraciones", contenedor: "programar-madrugada" });</script>
 </body>
 </html>

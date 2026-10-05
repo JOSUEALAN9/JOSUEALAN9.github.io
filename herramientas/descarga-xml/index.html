@@ -4,9 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Descarga masiva de XML | Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/common.css?v=202610051730">
-    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202610051730">
-    <link rel="stylesheet" href="/herramientas/descarga-xml/descarga-xml.css?v=202610051730">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202610051930">
+    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202610051930">
+    <link rel="stylesheet" href="/herramientas/descarga-xml/descarga-xml.css?v=202610051930">
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="min-h-screen flex flex-col">
@@ -165,34 +165,39 @@
     </section>
   </div>
 
-    <!-- Resultados de una solicitud -->
-    <section id="resultados" class="dm-resultados" hidden>
-        <div class="dm-cabeza-res">
-            <div>
-                <h2 id="res-titulo"></h2>
-                <p id="res-sub"></p>
+    <!-- Resultados de una solicitud: tabla y, a la derecha, sus acciones (como los demás módulos) -->
+    <section id="resultados" class="dm-resultados mod-layout" hidden>
+        <aside class="mod-acciones" aria-label="Acciones">
+            <p class="mod-acciones__grupo">Descargar</p>
+            <button type="button" id="res-bajar" class="mod-accion mod-accion--primaria"><b>⇩</b><span>Descargar archivo</span></button>
+            <button type="button" id="res-faltantes" class="mod-accion" hidden><b>↻</b>Descargar los que faltan</button>
+            <p class="mod-acciones__grupo">Ir a</p>
+            <button type="button" id="res-biblioteca" class="mod-accion"><b>⇢</b>Administración de XML</button>
+            <button type="button" id="res-solicitudes" class="mod-accion"><b>☰</b>Solicitudes</button>
+            <button type="button" id="res-cerrar" class="mod-accion"><b>×</b>Cerrar resultados</button>
+        </aside>
+        <div class="mod-layout__principal">
+            <div class="dm-cabeza-res">
+                <div>
+                    <h2 id="res-titulo"></h2>
+                    <p id="res-sub"></p>
+                </div>
             </div>
-            <div class="dm-botones-res">
-                <button type="button" id="res-faltantes" class="fc-btn" hidden>Descargar los que faltan</button>
-                <button type="button" id="res-biblioteca" class="fc-btn">Abrir en Administración de XML</button>
-                <button type="button" id="res-bajar" class="fc-btn fc-btn--principal">Descargar archivo</button>
-                <button type="button" id="res-cerrar" class="fc-btn fc-btn--discreto">Cerrar</button>
+            <div id="res-cifras" class="ctx-resumen"></div>
+            <div class="dm-filtro-res">
+                <input type="search" id="res-buscar" class="campo__control" placeholder="Buscar por UUID, RFC o nombre…">
+                <select id="res-ver" class="campo__control">
+                    <option value="">Todos</option>
+                    <option value="no">No descargados</option>
+                    <option value="si">Descargados</option>
+                    <option value="Vigente">Vigentes</option>
+                    <option value="Cancelado">Cancelados</option>
+                </select>
             </div>
+            <div id="res-tabla-ws" class="xml-tabla-caja"></div>
+            <div id="res-tabla-portal" class="xml-tabla-caja" hidden></div>
+            <p id="res-recorte" class="dm-pista" style="margin-top:8px" hidden></p>
         </div>
-        <div id="res-cifras" class="ctx-resumen"></div>
-        <div class="dm-filtro-res">
-            <input type="search" id="res-buscar" class="campo__control" placeholder="Buscar por UUID, RFC o nombre…">
-            <select id="res-ver" class="campo__control">
-                <option value="">Todos</option>
-                <option value="no">No descargados</option>
-                <option value="si">Descargados</option>
-                <option value="Vigente">Vigentes</option>
-                <option value="Cancelado">Cancelados</option>
-            </select>
-        </div>
-        <div id="res-tabla-ws" class="xml-tabla-caja"></div>
-        <div id="res-tabla-portal" class="xml-tabla-caja" hidden></div>
-        <p id="res-recorte" class="dm-pista" style="margin-top:8px" hidden></p>
     </section>
 
 </main>
@@ -229,12 +234,12 @@
 
 <footer class="fc-pie">© 2026 Alan Sánchez</footer>
 
-<script src="/assets/js/nucleo.js?v=202610051730"></script>
-<script src="/assets/js/barra.js?v=202610051730"></script>
-<script src="/assets/js/comun/leer-cer.js?v=202610051730"></script>
-<script src="/assets/js/comun/paso-cliente.js?v=202610051730"></script>
-<script src="/assets/js/comun/tabla.js?v=202610051730"></script>
-<script src="/herramientas/descarga-xml/descarga-xml.js?v=202610051730"></script>
+<script src="/assets/js/nucleo.js?v=202610051930"></script>
+<script src="/assets/js/barra.js?v=202610051930"></script>
+<script src="/assets/js/comun/leer-cer.js?v=202610051930"></script>
+<script src="/assets/js/comun/paso-cliente.js?v=202610051930"></script>
+<script src="/assets/js/comun/tabla.js?v=202610051930"></script>
+<script src="/herramientas/descarga-xml/descarga-xml.js?v=202610051930"></script>
 <!-- Programar descargas de XML en la madrugada: pendiente para otra entrega (el motor ya lo soporta). -->
 </body>
 </html>

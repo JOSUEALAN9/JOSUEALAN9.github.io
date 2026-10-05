@@ -152,3 +152,5 @@
 .dm-sesion--entrando .dm-sesion__punto { background: #D69E2E; }
 .dm-sesion--otro { background: var(--papel); }
 .dm-sesion--otro .dm-sesion__punto { background: var(--texto-tenue); }
+.dm-resultados.mod-layout:not([hidden]) { display: grid; }
+.dm-cabeza-res { margin-bottom: 8px; }

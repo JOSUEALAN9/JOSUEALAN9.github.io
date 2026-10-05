@@ -80,7 +80,12 @@
         E.empresa = await Fiscontable.empresaActiva();
         E.periodoGeneral = await Fiscontable.periodoActivo();
         try { E.contribuyentes = await apiJSON("/api/xml/contribuyentes"); } catch (e) { aviso(e.message, true); }
-        await abrirEmpresa(E.empresa && E.empresa.rfc);
+        var q = new URLSearchParams(location.search);
+        if (q.get("empresa")) {
+            E.pedido = { anio: q.get("anio") || "", meses: (q.get("meses") || "").split(",").filter(function (m) { return /^\d\d$/.test(m); }),
+                         desde: q.get("desde") || "", hasta: q.get("hasta") || "" };
+        }
+        await abrirEmpresa(q.get("empresa") || (E.empresa && E.empresa.rfc));
         window.addEventListener("fiscontable:empresa", function (e) { E.empresa = e.detail; abrirEmpresa(e.detail && e.detail.rfc); });
         window.addEventListener("fiscontable:periodo", function (e) {
             E.periodoGeneral = e.detail;
@@ -142,7 +147,14 @@
             f._texto = [f.rfc, f.nombre, f.serie_folio, f.uuid].join(" ").toLowerCase();
         });
         limpiarFechas(true);
-        if (E.periodoGeneral) { E.anio = E.periodoGeneral.slice(0, 4); E.meses = new Set([E.periodoGeneral.slice(5, 7)]); }
+        var pedido = E.pedido; E.pedido = null;         // lo que mandó Administración de XML ("Validar listas")
+        if (pedido && (pedido.desde || pedido.hasta)) {
+            E.anio = ""; E.meses = new Set();
+            E.fechas = { desde: pedido.desde || "", hasta: pedido.hasta || "" };
+            $("fecha-desde").value = E.fechas.desde; $("fecha-hasta").value = E.fechas.hasta; $("quitar-fechas").hidden = false;
+        } else if (pedido && pedido.anio) {
+            E.anio = pedido.anio; E.meses = new Set(pedido.meses);
+        } else if (E.periodoGeneral) { E.anio = E.periodoGeneral.slice(0, 4); E.meses = new Set([E.periodoGeneral.slice(5, 7)]); }
         else { E.anio = ""; E.meses = new Set(); }
         alCambiarPeriodo();
     }
@@ -301,9 +313,20 @@
         pintarTabla();
     }
 
+    // Cuántos XML hay (de cualquier tipo, sin nómina) en el periodo elegido, estén o no en listas
+    function xmlEnPeriodo() {
+        var dias = E.datos.xml_por_dia || {}, n = 0;
+        Object.keys(dias).forEach(function (d) { if (enPeriodo({ fecha: d, _periodo: d.slice(0, 7) })) n += dias[d]; });
+        return n;
+    }
+
     function pintarResumen() {
         var d = E.datos;
         if (!hayEleccion()) { $("resumen").textContent = ""; return; }
+        if (!xmlEnPeriodo()) {
+            $("resumen").innerHTML = '<span class="ls-sin-xml">Sin XML de ' + esc(textoPeriodo()) + '. <a class="xml-enlace" href="/herramientas/xml/">Agrégalos en Administración de XML</a></span>';
+            return;
+        }
         var enP = d.cfdi.filter(function (f) { return enPeriodo(f) && f._grave; });
         var contrapartes = new Set(enP.map(function (f) { return f.rfc; }));
         $("resumen").innerHTML = !d.revisados ? "Todavía no hay XML para revisar."
@@ -330,6 +353,7 @@
         sin.hidden = E.filas.length > 0;
         if (!E.filas.length) {
             sin.textContent = !hayEleccion() ? "Elige un año y al menos un mes (o un rango de fechas) para revisar sus CFDI."
+                : !xmlEnPeriodo() ? "Sin XML de " + textoPeriodo() + "."
                 : E.busqueda ? "Nada coincide con la búsqueda." : "Ningún CFDI de " + textoPeriodo() + " es con proveedores o clientes en las listas.";
         }
         var suma = E.filas.reduce(function (s, f) { return s + (f.estado_sat === "Cancelado" || f.tipo === "P" ? 0 : (f.tipo === "E" ? -1 : 1) * (f.total || 0)); }, 0);
