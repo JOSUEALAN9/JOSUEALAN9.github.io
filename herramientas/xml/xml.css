@@ -265,12 +265,6 @@ button.ctx-resumen__dato:hover { background: #f8fafc; }
 }
 
 /* Pestañas de listas del SAT (Facturas · Operaciones simuladas · No localizados · Incumplidos) */
-.xml-vlistas { display: flex; flex-wrap: wrap; gap: 0; border-bottom: 1px solid #e2e8f0; margin-bottom: 10px; }
-.xml-vlistas:empty { display: none; }
-.xml-vlista { font-size: 12.5px; font-weight: 700; color: #64748b; background: none; border: 0; border-bottom: 2px solid transparent; padding: 7px 12px; cursor: pointer; }
-.xml-vlista span { margin-left: 4px; font-weight: 800; }
-.xml-vlista--riesgo span { color: #b91c1c; }
-.xml-vlista--activa { color: #0f172a; border-bottom-color: #0e7490; }
 
 /* Fechas exactas */
 .xml-periodo__fechas label { font-size: 12px; color: #475569; display: flex; align-items: center; gap: 6px; }

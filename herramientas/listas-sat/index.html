@@ -4,58 +4,112 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Listas del SAT · Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/common.css?v=202610051430">
-    <link rel="stylesheet" href="/herramientas/listas-sat/listas-sat.css?v=202610051430">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202610051730">
+    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202610051730">
+    <link rel="stylesheet" href="/herramientas/listas-sat/listas-sat.css?v=202610051730">
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-slate-50">
 <div id="app-header" data-modulo="validador" data-titulo="Listas del SAT" data-migas="Herramientas|/herramientas/"></div>
-<script src="/assets/js/nucleo.js?v=202610051430"></script>
-<script src="/assets/js/barra.js?v=202610051430"></script>
+<script src="/assets/js/nucleo.js?v=202610051730"></script>
+<script src="/assets/js/barra.js?v=202610051730"></script>
 
-<main class="ls-pagina">
-    <div class="ls-cabeza">
-        <div>
-            <h1>Listas del SAT</h1>
-            <p class="ls-sub">69-B (operaciones simuladas), 49 Bis (CFDI falsos), no localizados, incumplidos, CSD sin efectos y 69-B Bis. Se revisan solas de lunes a viernes a las 7:00.</p>
+<main class="xml-pagina">
+    <!-- Igual que sus hermanas: de quién, qué periodo y la revisión de las listas -->
+    <div class="xml-cabeza">
+        <h1>Listas del SAT</h1>
+        <div class="ctx">
+            <div class="xml-menu">
+                <button type="button" id="btn-empresa" class="ctx-campo" aria-haspopup="menu">
+                    <span class="ctx-campo__texto"><small id="empresa-etiqueta">Empresa</small><strong id="empresa-titulo">Elegir empresa</strong></span>
+                    <span class="ctx-campo__flecha" aria-hidden="true">▾</span>
+                </button>
+                <div id="menu-empresa" class="xml-menu__lista xml-menu__lista--otra" hidden></div>
+            </div>
         </div>
-        <div class="ls-actualizacion">
+        <div class="xml-cabeza__acciones ls-actualizacion">
             <p id="texto-actualizacion" class="ls-nota">Revisando…</p>
-            <button type="button" id="btn-buscar-act" class="ls-btn">Buscar actualizaciones</button>
+            <button type="button" id="btn-buscar-act" class="xml-btn">Buscar actualizaciones</button>
         </div>
     </div>
 
     <div id="aviso" class="ls-aviso" hidden></div>
+    <div id="sin-empresa" class="ctx-vacio" hidden></div>
 
-    <!-- Buscar un RFC -->
-    <section class="ls-caja">
-        <h2>Buscar un RFC</h2>
-        <form id="form-buscar" class="ls-buscar" autocomplete="off">
-            <input type="text" id="rfc-buscar" maxlength="13" placeholder="RFC del proveedor o cliente" aria-label="RFC a buscar">
-            <button type="submit" class="ls-btn ls-btn--primario">Buscar</button>
-        </form>
-        <div id="resultado-buscar" class="ls-resultado" hidden></div>
-    </section>
+    <div id="contenido" class="xml-layout" hidden>
+        <aside class="xml-acciones" aria-label="Acciones">
+            <p class="xml-acciones__grupo">Reportes</p>
+            <button type="button" id="btn-excel" class="xml-accion" title="Lo que ves en la pestaña (o lo seleccionado)"><b>▦</b>Exportar Excel</button>
+            <button type="button" id="btn-acuse" class="xml-accion" title="Un PDF por CFDI: estado en el SAT y listas del SAT"><b>📄</b>Acuse de validación</button>
+            <p class="xml-acciones__grupo">Consultar</p>
+            <button type="button" id="btn-rfc" class="xml-accion" title="Cualquier RFC, aunque no esté en tus XML"><b>🔍</b>Buscar un RFC</button>
+            <button type="button" id="btn-cambios" class="xml-accion" title="Quién entró, cambió o salió de una lista"><b>↻</b>Cambios recientes</button>
+            <a id="btn-xml" class="xml-accion" href="/herramientas/xml/" title="Abrir Administración de XML"><b>⇢</b>Administración de XML</a>
+            <p id="acciones-alcance" class="xml-acciones__nota"></p>
+        </aside>
+        <div class="xml-layout__principal">
+            <div id="periodo-xml" class="xml-periodo" aria-label="Periodo">
+                <div class="xml-periodo__fila"><span class="xml-periodo__etiqueta">Año</span><div id="anios" class="xml-periodo__chips"></div></div>
+                <div class="xml-periodo__fila"><span class="xml-periodo__etiqueta">Meses</span><div id="meses" class="xml-periodo__chips"></div></div>
+                <div class="xml-periodo__fila"><span class="xml-periodo__etiqueta">Fechas</span>
+                    <div class="xml-periodo__chips xml-periodo__fechas">
+                        <label>Del <input type="date" id="fecha-desde"></label>
+                        <label>al <input type="date" id="fecha-hasta"></label>
+                        <button type="button" id="quitar-fechas" class="xml-enlace" hidden>Quitar fechas</button>
+                    </div>
+                </div>
+            </div>
 
-    <!-- Tus contrapartes -->
-    <section class="ls-caja">
-        <div class="ls-caja__cabeza">
-            <h2>Tus proveedores y clientes en alguna lista</h2>
-            <select id="sel-empresa" aria-label="Empresa"><option value="">Todas mis empresas</option></select>
+            <p id="resumen" class="ls-resumen"></p>
+            <!-- General y una pestaña por lista; solo aparecen las que tienen algo -->
+            <div class="pestanas xml-pestanas" role="tablist" id="pestanas"></div>
+
+            <div class="xml-toolbar">
+                <input type="search" id="buscar" placeholder="Buscar RFC, nombre, folio, UUID…">
+                <div class="xml-toolbar__der">
+                    <div id="roles" class="xml-chips"></div>
+                </div>
+            </div>
+
+            <div id="barra-seleccion" class="xml-seleccion" hidden>
+                <span id="texto-seleccion"></span>
+                <span class="xml-tenue">Las acciones de la derecha usan lo seleccionado.</span>
+                <button type="button" id="btn-limpiar-sel" class="xml-enlace">Quitar selección</button>
+            </div>
+
+            <div class="xml-tabla-caja ls-tabla-caja">
+                <table class="xml-tabla ls-tabla">
+                    <thead id="thead"></thead>
+                    <tbody id="tbody"></tbody>
+                </table>
+                <p id="sin-filas" class="xml-vacio xml-vacio--tabla" hidden></p>
+            </div>
+            <p class="xml-pie"><span id="conteo-filas"></span> · Clic en un registro para abrir su detalle en otra pestaña.</p>
         </div>
-        <p id="texto-contrapartes" class="ls-nota">Revisando…</p>
-        <div id="lista-contrapartes"></div>
-    </section>
-
-    <!-- Cambios -->
-    <section class="ls-caja">
-        <h2>Cambios recientes de tus proveedores y clientes</h2>
-        <p class="ls-nota">Quién entró, cambió de situación o salió de una lista en los últimos 60 días.</p>
-        <div id="lista-cambios"></div>
-    </section>
-
+    </div>
 </main>
 
-<script src="/herramientas/listas-sat/listas-sat.js?v=202610051430"></script>
+<!-- Ventanas: buscar un RFC y cambios recientes -->
+<div id="ventana" class="xml-modal" hidden>
+    <div class="xml-modal__caja ls-ventana" role="dialog" aria-modal="true" aria-labelledby="ventana-titulo">
+        <div class="ls-ventana__cabeza">
+            <h3 id="ventana-titulo"></h3>
+            <button type="button" id="ventana-cerrar" class="xml-enlace">Cerrar</button>
+        </div>
+        <div id="bloque-rfc" hidden>
+            <form id="form-buscar" class="ls-buscar" autocomplete="off">
+                <input type="text" id="rfc-buscar" maxlength="13" placeholder="RFC del proveedor o cliente" aria-label="RFC a buscar">
+                <button type="submit" class="xml-btn xml-btn--primario">Buscar</button>
+            </form>
+            <div id="resultado-buscar" class="ls-resultado"></div>
+        </div>
+        <div id="bloque-cambios" hidden>
+            <p class="ls-nota">Proveedores y clientes de esta empresa que entraron, cambiaron de situación o salieron de una lista en los últimos 60 días.</p>
+            <div id="lista-cambios"></div>
+        </div>
+    </div>
+</div>
+
+<script src="/herramientas/listas-sat/listas-sat.js?v=202610051730"></script>
 </body>
 </html>

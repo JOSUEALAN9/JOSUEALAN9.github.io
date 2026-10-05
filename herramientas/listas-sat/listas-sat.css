@@ -1,13 +1,3 @@
-.ls-pagina { max-width: 1100px; margin: 0 auto; padding: 20px 16px 48px; }
-.ls-cabeza { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 12px; margin-bottom: 16px; }
-.ls-cabeza > div { flex: 1 1 320px; }
-.ls-cabeza h1 { font-size: 22px; font-weight: 800; color: #0f172a; }
-.ls-sub { font-size: 13px; color: #64748b; margin-top: 4px; }
-.ls-caja { background: #fff; border: 1px solid #e2e8f0; border-radius: 14px; padding: 18px; margin-bottom: 14px; box-shadow: 0 1px 2px rgba(15, 23, 42, .04); }
-.ls-caja h2 { font-size: 14px; font-weight: 800; color: #1e293b; margin-bottom: 10px; }
-.ls-caja__cabeza { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; justify-content: space-between; }
-.ls-caja__cabeza h2 { margin-bottom: 0; }
-.ls-caja select { font-size: 13px; border: 1px solid #cbd5e1; border-radius: 8px; padding: 6px 8px; background: #fff; max-width: 100%; }
 .ls-nota { font-size: 12.5px; color: #64748b; margin: 6px 0 10px; }
 .ls-buscar { display: flex; flex-wrap: wrap; gap: 8px; }
 .ls-buscar input { flex: 1 1 220px; min-width: 0; font-size: 14px; border: 1px solid #cbd5e1; border-radius: 8px; padding: 8px 10px; }
@@ -45,6 +35,31 @@
 .ls-cambio { font-size: 12.5px; padding: 7px 0; border-top: 1px solid #f1f5f9; color: #334155; }
 .ls-cambio:first-child { border-top: 0; }
 .ls-cambio time { color: #94a3b8; margin-right: 6px; }
-.ls-actualizacion { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex: 0 1 auto; }
+.ls-actualizacion { display: flex; align-items: center; gap: 10px; flex: 0 1 auto; }
 .ls-actualizacion .ls-nota { margin: 0; text-align: right; }
 @media (max-width: 640px) { .ls-actualizacion { align-items: flex-start; } .ls-actualizacion .ls-nota { text-align: left; } }
+
+/* Vista tipo Mi Admin (usa los estilos de Administración de XML) */
+.ls-resumen { font-size: 13px; color: #334155; margin: 2px 2px 8px; }
+.ls-resumen strong { color: #b91c1c; }
+.ls-pestana--lista .xml-cuenta { color: #b91c1c; }
+.ls-informativos { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; color: #475569; margin-left: 4px; cursor: pointer; }
+.ls-tabla { width: max-content; min-width: 100%; }
+.ls-tabla th { cursor: pointer; user-select: none; }
+.ls-tabla tbody tr { cursor: pointer; }
+.ls-tabla tbody tr:hover td { background: #f8fafc; }
+.ls-tabla tbody tr.xml-fila--sel td { background: #ecfeff; }
+.ls-tabla .ls-chk { width: 36px; min-width: 36px; text-align: center; cursor: default; }
+.ls-sellos--fila { display: inline-flex; flex-wrap: nowrap; gap: 4px; margin: 0; }
+.ls-sellos--fila .ls-sello { font-size: 11px; padding: 1px 7px; white-space: nowrap; }
+.ls-cancelado { color: #b91c1c; font-weight: 700; }
+.ls-fila--cancelada td { color: #94a3b8; }
+.ls-mes--hay small { color: #b91c1c; font-weight: 800; }
+.xml-mes--activo.ls-mes--hay small { color: #fecaca; }
+.ls-ventana { width: 620px; max-height: 85vh; overflow: auto; }
+.ls-ventana__cabeza { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+.ls-ventana__cabeza h3 { margin: 0; }
+.ls-ventana .ls-nota, .ls-ventana p { margin-bottom: 6px; }
+.xml-toolbar .xml-chips { margin: 0; }
+a.xml-accion { text-decoration: none; }
+#pestanas { overflow-x: auto; scrollbar-width: thin; } #pestanas .pestana { white-space: nowrap; flex: none; }

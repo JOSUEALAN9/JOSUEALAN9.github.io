@@ -50,7 +50,7 @@
         estado_pago: 120, estado_sat: 100, forma_pago: 210, forma_pago_p: 210, uso_cfdi: 190, docto_encontrado: 90 };
 
     var E = {
-        contribuyentes: [], rfc: null, periodo: "", datos: null, anio: "", meses: new Set(), anios: [], cuentas: {}, fechas: { desde: "", hasta: "" }, cargado: null, vlista: "",
+        contribuyentes: [], rfc: null, periodo: "", datos: null, anio: "", meses: new Set(), anios: [], cuentas: {}, fechas: { desde: "", hasta: "" }, cargado: null,
         modulo: "recibidos", sub: "", rapidos: {}, busqueda: "",
         orden: { clave: null, dir: 1 }, seleccion: new Set(),
         columnas: {}, vistas: [], vistaActual: {},
@@ -323,7 +323,7 @@
         var cabe = E.cargado && E.cargado.rfc === E.rfc && hayEleccion() && !porFechas() && !E.cargado.fechas &&
             r.desde >= E.cargado.desde && r.hasta <= E.cargado.hasta;
         if (cabe) {
-            pintarPeriodo(); pintarPestanas(); pintarSubfiltros(); pintarVistaListas(); aplicar();
+            pintarPeriodo(); pintarPestanas(); pintarSubfiltros(); aplicar();
         } else {
             cargarRegistros();
         }
@@ -347,30 +347,6 @@
         pintarPestanas();
         cambiarModulo(E.modulo, true);
         reanudarValidacion();
-    }
-
-    /* ============================================================ listas del SAT (como Mi Admin) */
-    var VISTAS_LISTAS = [
-        ["", "Facturas", []],
-        ["simuladas", "Operaciones simuladas", ["69b", "49bis"]],
-        ["no_localizados", "No localizados", ["no_localizados"]],
-        ["incumplidos", "Incumplidos", ["firmes", "exigibles", "cancelados", "sentencias"]],
-        ["csd", "CSD sin efectos", ["csd_sin_efectos"]]
-    ];
-
-    function enVistaLista(f, v) {
-        var l = f._listas || [];
-        return v[2].some(function (k) { return l.indexOf(k) !== -1; });
-    }
-
-    function pintarVistaListas() {
-        if (E.modulo === "nomina" || !E.datos) { $("vista-listas").innerHTML = ""; return; }
-        var filas = filasPeriodo(E.modulo).filter(function (f) { return !E.sub || f._sub === E.sub; });
-        $("vista-listas").innerHTML = VISTAS_LISTAS.map(function (v) {
-            var n = v[0] ? contarUuid(filas.filter(function (f) { return enVistaLista(f, v); })) : contarUuid(filas);
-            return '<button type="button" role="tab" class="xml-vlista' + (E.vlista === v[0] ? " xml-vlista--activa" : "") + (v[0] && n ? " xml-vlista--riesgo" : "") +
-                '" data-vlista="' + v[0] + '" aria-selected="' + (E.vlista === v[0]) + '">' + v[1] + "<span>" + n + "</span></button>";
-        }).join("");
     }
 
     /* Las acciones de la derecha usan lo seleccionado; si no hay selección, lo que ves. */
@@ -404,7 +380,6 @@
     function cambiarModulo(modulo, conservarSub) {
         E.modulo = modulo;
         if (!conservarSub) E.sub = "";
-        E.vlista = "";
         E.rapidos = {};
         E.av = {};
         E.orden = { clave: null, dir: 1 };
@@ -413,7 +388,6 @@
         pintarPeriodo();
         prepararColumnas();
         pintarSubfiltros();
-        pintarVistaListas();
         pintarRapidos();
         pintarVistas();
         aplicar();
@@ -577,10 +551,8 @@
         var activos = Object.keys(E.rapidos).filter(function (k) { return E.rapidos[k]; });
         var av = E.av;
         var min = av.min !== undefined && av.min !== "" ? +av.min : null, max = av.max !== undefined && av.max !== "" ? +av.max : null;
-        var vl = E.vlista ? VISTAS_LISTAS.find(function (v) { return v[0] === E.vlista; }) : null;
         E.filas = filas.filter(function (f) {
             if (E.sub && f._sub !== E.sub) return false;
-            if (vl && !enVistaLista(f, vl)) return false;
             for (var i = 0; i < activos.length; i++) if (!PRUEBA_RAPIDO[activos[i]](f)) return false;
             if (min !== null || max !== null) {
                 var imp = importeDe(f);
@@ -1337,7 +1309,7 @@
         $("subfiltros").addEventListener("click", function (e) {
             var b = e.target.closest("[data-sub]");
             if (!b) return;
-            E.sub = b.dataset.sub; pintarSubfiltros(); pintarVistaListas(); aplicar();
+            E.sub = b.dataset.sub; pintarSubfiltros(); aplicar();
         });
         $("rapidos").addEventListener("click", function (e) {
             var b = e.target.closest("[data-rapido]");
@@ -1365,10 +1337,6 @@
         });
         $("btn-zip").addEventListener("click", descargarZip);
         $("btn-acuse").addEventListener("click", descargarReportes);
-        $("vista-listas").addEventListener("click", function (e) {
-            var b = e.target.closest("[data-vlista]"); if (!b) return;
-            E.vlista = b.dataset.vlista; E.seleccion.clear(); pintarVistaListas(); aplicar();
-        });
         $("anios").addEventListener("click", function (e) {
             var b = e.target.closest("[data-anio]"); if (!b) return;
             E.anio = b.dataset.anio === E.anio ? "" : b.dataset.anio;       // otro clic en el año lo quita
