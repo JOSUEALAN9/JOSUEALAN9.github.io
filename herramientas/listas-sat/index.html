@@ -4,15 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Listas del SAT · Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/common.css?v=202610051930">
-    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202610051930">
-    <link rel="stylesheet" href="/herramientas/listas-sat/listas-sat.css?v=202610051930">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202610052130">
+    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202610052130">
+    <link rel="stylesheet" href="/herramientas/listas-sat/listas-sat.css?v=202610052130">
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-slate-50">
 <div id="app-header" data-modulo="validador" data-titulo="Listas del SAT" data-migas="Herramientas|/herramientas/"></div>
-<script src="/assets/js/nucleo.js?v=202610051930"></script>
-<script src="/assets/js/barra.js?v=202610051930"></script>
+<script src="/assets/js/nucleo.js?v=202610052130"></script>
+<script src="/assets/js/barra.js?v=202610052130"></script>
 
 <main class="xml-pagina">
     <!-- Igual que sus hermanas: de quién, qué periodo y la revisión de las listas -->
@@ -44,21 +44,11 @@
             <p class="mod-acciones__grupo">Consultar</p>
             <button type="button" id="btn-rfc" class="mod-accion" title="Cualquier RFC, aunque no esté en tus XML"><b>🔍</b>Buscar un RFC</button>
             <button type="button" id="btn-cambios" class="mod-accion" title="Quién entró, cambió o salió de una lista"><b>↻</b>Cambios recientes</button>
-            <a id="btn-xml" class="mod-accion" href="/herramientas/xml/" title="Abrir Administración de XML"><b>⇢</b>Administración de XML</a>
             <p id="acciones-alcance" class="mod-acciones__nota"></p>
         </aside>
         <div class="mod-layout__principal">
-            <div id="periodo-xml" class="xml-periodo" aria-label="Periodo">
-                <div class="xml-periodo__fila"><span class="xml-periodo__etiqueta">Año</span><div id="anios" class="xml-periodo__chips"></div></div>
-                <div class="xml-periodo__fila"><span class="xml-periodo__etiqueta">Meses</span><div id="meses" class="xml-periodo__chips"></div></div>
-                <div class="xml-periodo__fila"><span class="xml-periodo__etiqueta">Fechas</span>
-                    <div class="xml-periodo__chips xml-periodo__fechas">
-                        <label>Del <input type="date" id="fecha-desde"></label>
-                        <label>al <input type="date" id="fecha-hasta"></label>
-                        <button type="button" id="quitar-fechas" class="xml-enlace" hidden>Quitar fechas</button>
-                    </div>
-                </div>
-            </div>
+            <!-- Periodo: el mismo de Administración de XML (comun/periodo-meses.js). Solo se lee lo elegido -->
+            <div id="periodo-ls"></div>
 
             <p id="resumen" class="ls-resumen"></p>
             <!-- General y una pestaña por lista; solo aparecen las que tienen algo -->
@@ -110,6 +100,7 @@
     </div>
 </div>
 
-<script src="/herramientas/listas-sat/listas-sat.js?v=202610051930"></script>
+<script src="/assets/js/comun/periodo-meses.js?v=202610052130"></script>
+<script src="/herramientas/listas-sat/listas-sat.js?v=202610052130"></script>
 </body>
 </html>

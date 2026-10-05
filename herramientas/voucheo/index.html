@@ -5,28 +5,21 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Voucheo Automático | Fiscontable</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="/assets/css/common.css?v=202610051930">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202610052130">
 </head>
 <body class="min-h-screen flex flex-col relative">
 
     <!-- TOP NAV -->
     <div id="app-header" data-modulo="voucheo" data-titulo="Voucheo" data-migas="Herramientas|/herramientas/"></div>
-<script src="/assets/js/nucleo.js?v=202610051930"></script>
-<script src="/assets/js/barra.js?v=202610051930"></script>
+<script src="/assets/js/nucleo.js?v=202610052130"></script>
+<script src="/assets/js/barra.js?v=202610052130"></script>
 
     <!-- ÁREA DE TRABAJO -->
-    <main class="flex-grow mod-pagina mod-pagina--form">
-        <div class="mod-cabeza"><h1>Voucheo de impuestos</h1></div>
-        <div class="mod-layout">
-        <aside class="mod-acciones" aria-label="Acciones">
-            <p class="mod-acciones__grupo">Papel de trabajo</p>
-            <button type="button" class="mod-accion" onclick="switchTab('nuevo')"><b>+</b>Nuevo ejercicio</button>
-            <button type="button" class="mod-accion" onclick="switchTab('actualizar')"><b>↻</b>Actualizar archivo</button>
-            <button type="button" class="mod-accion" onclick="limpiarFormularios()"><b>×</b>Limpiar</button>
-            <p class="mod-acciones__grupo">Ir a</p>
-            <a class="mod-accion" href="/descargas/"><b>⇩</b>Mis descargas</a>
-        </aside>
-        <div class="mod-layout__principal">
+    <main class="flex-grow mod-pagina mod-pagina--angosta">
+        <div class="mod-cabeza"><h1>Voucheo de impuestos</h1>
+            <div class="mod-cabeza__acciones"><button type="button" onclick="limpiarFormularios()" class="fc-btn">Limpiar</button></div>
+        </div>
+        <div>
         <div class="bg-white rounded-xl card-elevated border border-gray-200 w-full flex flex-col">
 
             <!-- Pestañas Fiscontable Style -->
@@ -149,9 +142,8 @@
             </form>
         </div>
         </div>
-        </div>
     </main>
 
-<script src="/herramientas/voucheo/voucheo.js?v=202610051930"></script>
+<script src="/herramientas/voucheo/voucheo.js?v=202610052130"></script>
 </body>
 </html>

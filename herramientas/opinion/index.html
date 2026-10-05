@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Opinión 32-D | Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/common.css?v=202610051930">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202610052130">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
 </head>
@@ -15,23 +15,13 @@
      data-titulo="Opinión 32-D"
      data-migas="Herramientas|/herramientas/"></div>
 
-<main class="flex-grow w-full mod-pagina mod-pagina--form">
+<main class="flex-grow w-full mod-pagina mod-pagina--angosta">
 
-    <div class="mod-cabeza"><h1>Opinión de Cumplimiento 32-D</h1></div>
-
-    <div class="mod-layout">
-    <aside class="mod-acciones" aria-label="Acciones">
-        <p class="mod-acciones__grupo">Trámite</p>
-        <button type="button" class="mod-accion" data-ir-pestana="tab-individual"><b>1</b>Un contribuyente</button>
-        <button type="button" class="mod-accion" data-ir-pestana="tab-masivo"><b>≡</b>Varios a la vez</button>
-        <a class="mod-accion" href="/assets/plantillas/directorio.xlsx" download><b>▦</b>Plantilla del lote</a>
-        <p class="mod-acciones__grupo">Madrugada</p>
-        <button type="button" class="mod-accion" data-programar><b>🌙</b>Programar</button>
-        <p class="mod-acciones__grupo">Ir a</p>
-        <a class="mod-accion" href="/descargas/"><b>⇩</b>Mis descargas</a>
-        <a class="mod-accion" href="/clientes/"><b>☰</b>Directorio</a>
-    </aside>
-    <div class="mod-layout__principal">
+    <div class="mod-cabeza"><h1>Opinión de Cumplimiento 32-D</h1>
+        <div class="mod-cabeza__acciones">
+            <button type="button" class="fc-btn" data-programar>Programar descarga</button>
+        </div>
+    </div>
 
     <div id="programar-madrugada"></div>
 
@@ -82,9 +72,9 @@
 
         <button type="button" id="btn-masivo" class="boton-principal" disabled>Arrastra la carpeta para empezar</button>
         <div id="caja-programar-lote" style="display:none;margin-top:10px;gap:10px;flex-wrap:wrap;align-items:flex-end">
-            <label class="campo" style="flex:0 1 190px"><span class="campo__etiqueta">Madrugada del</span>
+            <label class="campo" style="flex:0 1 190px"><span class="campo__etiqueta">Día</span>
                 <input type="date" id="lote-noche" class="campo__control"></label>
-            <button type="button" id="btn-masivo-programar" class="boton-secundario" style="flex:1 1 260px">🌙 Programar este lote</button>
+            <button type="button" id="btn-masivo-programar" class="boton-secundario" style="flex:1 1 260px">Programar descarga de este lote</button>
         </div>
 
         <div id="progreso-masivo" style="margin-top:14px" hidden>
@@ -95,16 +85,14 @@
         <p class="ficha__nota" style="margin-top:16px">Puedes cerrar esta pestaña: el proceso sigue y lo encuentras en Mis descargas.</p>
     </section>
 
-    </div>
-    </div>
 </main>
 
 <footer class="fc-pie">© 2026 Alan Sánchez</footer>
 
-<script src="/assets/js/nucleo.js?v=202610051930"></script>
-<script src="/assets/js/barra.js?v=202610051930"></script>
-<script src="/assets/js/comun/paso-cliente.js?v=202610051930"></script>
-<script src="/assets/js/comun/leer-cer.js?v=202610051930"></script>
+<script src="/assets/js/nucleo.js?v=202610052130"></script>
+<script src="/assets/js/barra.js?v=202610052130"></script>
+<script src="/assets/js/comun/paso-cliente.js?v=202610052130"></script>
+<script src="/assets/js/comun/leer-cer.js?v=202610052130"></script>
 <script>
     const MODULO = {
         slug: "opinion",
@@ -115,9 +103,9 @@
         adicional: "Constancia de Situación Fiscal",
     };
 </script>
-<script src="/assets/js/comun/modulo-sat.js?v=202610051930"></script>
-<script src="/assets/js/comun/programar.js?v=202610051930"></script>
-<script src="/assets/js/comun/acciones.js?v=202610051930"></script>
+<script src="/assets/js/comun/modulo-sat.js?v=202610052130"></script>
+<script src="/assets/js/comun/programar.js?v=202610052130"></script>
+<script src="/assets/js/comun/acciones.js?v=202610052130"></script>
 <script>Fiscontable.Programar.montar({ modulo: "opinion", contenedor: "programar-madrugada" });</script>
 </body>
 </html>

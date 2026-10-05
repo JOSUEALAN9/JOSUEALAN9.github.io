@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Validador de XML | Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/common.css?v=202610051930">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202610052130">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
     <style>
@@ -13,41 +13,44 @@
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
         ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
         .modal-active { display: flex !important; }
-        body { -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none; user-select: none; }
     </style>
 </head>
 <body class="h-screen flex flex-col overflow-hidden relative">
 
     <!-- TOP NAV -->
     <div id="app-header" data-modulo="validador" data-titulo="Validador de XML" data-migas="Herramientas|/herramientas/"></div>
-<script src="/assets/js/nucleo.js?v=202610051930"></script>
-<script src="/assets/js/barra.js?v=202610051930"></script>
+<script src="/assets/js/nucleo.js?v=202610052130"></script>
+<script src="/assets/js/barra.js?v=202610052130"></script>
 
     <!-- ÁREA DE TRABAJO -->
     <main class="flex-grow flex flex-col mod-pagina overflow-hidden relative" style="min-height:0">
-    <div class="mod-cabeza"><h1>Validador de XML</h1></div>
+    <div class="mod-cabeza"><h1>Validador de XML</h1><span id="origenTexto" class="xml-tenue" style="font-size:13px;color:#64748b;margin-right:auto">XML externos · no se guardan</span></div>
     <div class="mod-layout" style="flex:1;min-height:0">
     <aside class="mod-acciones" aria-label="Acciones">
-        <p class="mod-acciones__grupo">Archivos</p>
-        <button type="button" id="btnAbrirCarga" class="mod-accion mod-accion--primaria"><b>+</b>Cargar XML</button>
-        <button type="button" id="btnLimpiarDatos" class="mod-accion"><b>×</b>Limpiar</button>
-        <p class="mod-acciones__grupo">Reportes</p>
+        <p class="mod-acciones__grupo">XML externos</p>
+        <button type="button" id="btnAbrirCarga" class="mod-accion mod-accion--primaria" title="Se consultan en el SAT y no se guardan"><b>+</b>Cargar XML</button>
+        <p class="mod-acciones__grupo">De la empresa</p>
+        <button type="button" class="mod-accion" data-cargar-empresa="recibido" title="Empresa y periodo de la barra de arriba"><b>⇣</b>Validar recibidos</button>
+        <button type="button" class="mod-accion" data-cargar-empresa="emitido" title="Empresa y periodo de la barra de arriba"><b>⇡</b>Validar emitidos</button>
+        <p class="mod-acciones__grupo">Resultado</p>
+        <button type="button" id="btnReintentar" class="mod-accion" hidden><b>↻</b>Reintentar sin respuesta</button>
         <button type="button" id="btnDescargar" class="mod-accion" disabled><b>▦</b>Exportar Excel</button>
-        <p class="mod-acciones__grupo">Ir a</p>
-        <a class="mod-accion" href="/herramientas/xml/"><b>⇢</b>Administración de XML</a>
+        <button type="button" id="btnLimpiarDatos" class="mod-accion"><b>×</b>Limpiar</button>
     </aside>
     <div class="mod-layout__principal" style="display:flex;flex-direction:column;gap:16px;height:100%;min-height:0">
         <!-- Action Bar (Filtros y Resumen) -->
         <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 flex flex-wrap justify-between items-center flex-none gap-4">
             <!-- KPIs -->
-            <div class="flex gap-6 items-center">
+            <div class="flex flex-wrap gap-x-6 gap-y-2 items-center">
                 <div><p class="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Total XML</p><p id="dashTotal" class="text-xl font-black text-slate-800">0</p></div>
                 <div class="w-px h-8 bg-gray-200"></div>
                 <div><p class="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Vigentes</p><p id="dashVigentes" class="text-xl font-black text-emerald-600">0</p></div>
                 <div class="w-px h-8 bg-gray-200"></div>
                 <div><p class="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Cancelados</p><p id="dashCancelados" class="text-xl font-black text-red-600">0</p></div>
                 <div class="w-px h-8 bg-gray-200"></div>
-                <div><p class="text-[10px] text-gray-500 uppercase font-bold tracking-wider">No Encontrados</p><p id="dashErrores" class="text-xl font-black text-amber-500">0</p></div>
+                <div><p class="text-[10px] text-gray-500 uppercase font-bold tracking-wider">No encontrados</p><p id="dashErrores" class="text-xl font-black text-amber-500">0</p></div>
+                <div class="w-px h-8 bg-gray-200"></div>
+                <div><p class="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Sin respuesta</p><p id="dashSinRespuesta" class="text-xl font-black text-slate-500">0</p></div>
             </div>
 
             <!-- Filtros Inteligentes -->
@@ -83,7 +86,7 @@
                 <table class="w-full text-left text-xs whitespace-nowrap min-w-[1300px]" id="tablaResultados" style="-webkit-user-select: text; user-select: text;">
                     <thead class="bg-slate-50 text-slate-600 sticky top-0 z-10 shadow-sm uppercase tracking-wider">
                         <tr>
-                            <th class="p-3 font-semibold border-b w-48">Proveedor</th>
+                            <th class="p-3 font-semibold border-b w-48" id="thParte">Proveedor</th>
                             <th class="p-3 font-semibold border-b w-32">UUID</th>
                             <th class="p-3 font-semibold border-b w-24">Fecha</th>
                             <th class="p-3 font-semibold border-b w-16 text-center">Tipo</th>
@@ -96,7 +99,7 @@
                         </tr>
                     </thead>
                     <tbody class="divide-y text-slate-700" id="cuerpoTabla">
-                        <tr><td colspan="10" class="p-12 text-center text-slate-400 font-medium">Sube tus XML para auditar estatus con el SAT...</td></tr>
+                        <tr><td colspan="10" class="p-12 text-center text-slate-400 font-medium">Carga XML externos o valida los de la empresa.</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -135,6 +138,6 @@
         </div>
     </div>
 
-<script src="/herramientas/validador/validador.js?v=202610051930"></script>
+<script src="/herramientas/validador/validador.js?v=202610052130"></script>
 </body>
 </html>

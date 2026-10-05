@@ -1,5 +1,5 @@
 /* ============================================================
-   programar.js — "Programar para la madrugada" (compartido por módulos)
+   programar.js — "Programar descarga" (compartido por módulos; corre de madrugada)
 
    Fiscontable.Programar.montar({ modulo, contenedor })
      modulo: "csf" | "opinion" | "declaraciones" | "xml"
@@ -7,7 +7,7 @@
 
    La tarjeta muestra el botón "Programar" y las últimas programaciones
    del módulo (estado, detalle por RFC, cancelar, bajar el ZIP). Si la página
-   tiene columna de acciones con [data-programar], el botón vive ahí y la
+   tiene un botón [data-programar] (en su encabezado), el botón vive ahí y la
    tarjeta solo aparece cuando hay programaciones. El turno
    corre en el servidor entre 2:00 y 6:30 con pausas al azar; solo usa las
    e.firmas guardadas del directorio.
@@ -92,7 +92,7 @@
         var d = new Date(valor + "T12:00:00"), hoy = new Date(), man = new Date(); man.setDate(hoy.getDate() + 1);
         var nombre = d.toDateString() === hoy.toDateString() ? "hoy" : d.toDateString() === man.toDateString() ? "mañana" :
             d.toLocaleDateString("es-MX", { weekday: "long", day: "numeric", month: "long" });
-        return "Madrugada de " + nombre + ".";
+        return "Se descarga en la madrugada de " + nombre + ".";
     }
 
     function mesAnterior() {
@@ -157,20 +157,20 @@
         caja.innerHTML =
             '<div class="fp-tarjeta">' +
             '  <div class="fp-cabeza">' +
-            '    <div class="fp-cabeza__texto"><strong>🌙 Programar para la madrugada</strong></div>' +
+            '    <div class="fp-cabeza__texto"><strong>Descargas programadas</strong></div>' +
             '    <button type="button" class="boton-secundario fp-boton" data-fp="abrir">Programar</button>' +
             '  </div>' +
             '  <div class="fp-lista" data-fp="lista"></div>' +
             "</div>" +
             '<div class="fp-fondo" data-fp="fondo" hidden><div class="fp-modal" role="dialog" aria-modal="true" aria-labelledby="fp-titulo">' +
-            '  <div class="fp-modal__cabeza"><h2 id="fp-titulo">Programar ' + NOMBRES[modulo] + " para la madrugada</h2>" +
+            '  <div class="fp-modal__cabeza"><h2 id="fp-titulo">Programar descarga de ' + NOMBRES[modulo] + "</h2>" +
             '    <p class="ficha__nota" data-fp="ventana"></p></div>' +
             '  <div class="fp-modal__cuerpo">' +
             '    <div><div class="fp-fila" style="align-items:center"><input type="search" class="campo__control" data-fp="buscar" placeholder="Buscar cliente o RFC">' +
             '      <label class="marca" style="flex:none"><input type="checkbox" data-fp="todos"> Todos</label></div></div>' +
             '    <div class="fp-clientes" data-fp="clientes"><p class="ficha__nota" style="padding:10px">Cargando tu directorio…</p></div>' +
             '    <p class="ficha__nota" data-fp="cuenta"></p>' +
-            '    <div class="fp-fila"><label class="campo"><span class="campo__etiqueta">¿Qué madrugada?</span>' +
+            '    <div class="fp-fila"><label class="campo"><span class="campo__etiqueta">¿Qué día?</span>' +
             '      <input type="date" class="campo__control" data-fp="noche"></label>' +
             '      <p class="ficha__nota" data-fp="noche-texto" style="flex:2 1 220px"></p></div>' +
                  opcionesHtml(modulo) +
@@ -181,7 +181,7 @@
             "</div></div>";
 
         function $(nombre) { return caja.querySelector('[data-fp="' + nombre + '"]'); }
-        if (document.querySelector(".mod-acciones [data-programar]")) caja.querySelector(".fp-tarjeta").hidden = true;
+        if (document.querySelector("[data-programar]")) caja.querySelector(".fp-tarjeta").hidden = true;
 
         /* ---- lista de programaciones */
         function pintarLista(lista) {
@@ -220,10 +220,10 @@
                 html += "</div>";
             });
             $("lista").innerHTML = html;
-            // Con columna de acciones, "Programar" ya está a la derecha: la tarjeta solo aparece si hay programaciones
-            if (document.querySelector(".mod-acciones [data-programar]")) {
+            // Con botón "Programar descarga" en la página, la tarjeta solo aparece si hay programaciones
+            if (document.querySelector("[data-programar]")) {
                 caja.querySelector(".fp-tarjeta").hidden = !html;
-                caja.querySelector(".fp-cabeza").hidden = true;
+                caja.querySelector(".fp-boton").hidden = true;          // el botón vive arriba; aquí queda el título
             }
         }
 

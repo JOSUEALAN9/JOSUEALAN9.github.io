@@ -1,14 +1,14 @@
 /*
- * acciones.js — Columna de acciones (como Mi Admin) de los módulos de trámite.
+ * acciones.js — Botones de acciones de los módulos de trámite (encabezado o columna).
  *
- * Los botones solo llevan a lo que la página ya tiene:
+ * Solo disparan lo que la página ya tiene:
  *   data-ir-pestana="id"  → hace clic en esa pestaña (Un contribuyente / Varios a la vez)
- *   data-programar        → abre "Programar para la madrugada"
+ *   data-programar        → abre "Programar descarga"
  */
 (function () {
     "use strict";
     document.addEventListener("click", function (e) {
-        var b = e.target.closest(".mod-acciones [data-ir-pestana], .mod-acciones [data-programar]");
+        var b = e.target.closest("[data-ir-pestana], [data-programar]");
         if (!b) return;
         if (b.dataset.irPestana) {
             var p = document.getElementById(b.dataset.irPestana);

@@ -4,15 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Conciliación · Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/common.css?v=202610051930">
-    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202610051930">
-    <link rel="stylesheet" href="/herramientas/conciliacion/conciliacion.css?v=202610051930">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202610052130">
+    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202610052130">
+    <link rel="stylesheet" href="/herramientas/conciliacion/conciliacion.css?v=202610052130">
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-slate-50">
 <div id="app-header" data-modulo="conciliacion" data-titulo="Conciliación" data-migas="Herramientas|/herramientas/"></div>
-<script src="/assets/js/nucleo.js?v=202610051930"></script>
-<script src="/assets/js/barra.js?v=202610051930"></script>
+<script src="/assets/js/nucleo.js?v=202610052130"></script>
+<script src="/assets/js/barra.js?v=202610052130"></script>
 
 <main class="xml-pagina">
     <!-- Una sola fila: qué módulo, de quién, qué periodo y las acciones -->
@@ -26,11 +26,6 @@
                 </button>
                 <div id="menu-otra" class="xml-menu__lista xml-menu__lista--otra" hidden></div>
             </div>
-            <button type="button" id="btn-periodo" class="ctx-campo" aria-haspopup="dialog" disabled>
-                <span class="ctx-campo__texto"><small>Periodo</small><strong id="periodo-titulo">Elegir periodo</strong></span>
-                <span class="ctx-campo__flecha" aria-hidden="true">▾</span>
-            </button>
-            <input type="hidden" id="sel-periodo">
         </div>
         <div class="xml-cabeza__acciones">
             <button type="button" id="btn-agregar" class="xml-btn xml-btn--primario">+ Agregar XML</button>
@@ -46,17 +41,23 @@
         <aside class="mod-acciones" aria-label="Acciones">
             <p class="mod-acciones__grupo">SAT</p>
             <button type="button" id="btn-validar" class="mod-accion" title="Vigentes o cancelados: facturas, pagos y notas"><b>✓</b>Validar estado SAT</button>
-            <button type="button" id="btn-listas" class="mod-accion" title="Abre Listas del SAT con esta empresa y este periodo"><b>⚑</b>Validar listas</button>
             <p class="mod-acciones__grupo">Reportes</p>
             <button type="button" class="mod-accion" data-excel="vista" title="Con tus columnas y filtros, más movimientos y tipos de cambio"><b>▦</b>Exportar esta tabla</button>
             <button type="button" class="mod-accion" data-excel="completo" title="Todas las facturas del periodo, sin filtros"><b>▤</b>Reporte completo</button>
-            <p class="mod-acciones__grupo">Ajustes</p>
             <button type="button" id="btn-tc" class="mod-accion" title="Tipos de cambio usados y ajustes propios"><b>$</b>Tipos de cambio</button>
-            <a id="btn-ir-xml" class="mod-accion" href="/herramientas/xml/" hidden><b>⇢</b>Ver sus XML</a>
             <p id="acciones-alcance" class="mod-acciones__nota"></p>
+            <p class="mod-acciones__grupo">Con este periodo</p>
+            <button type="button" id="btn-listas" class="mod-accion" title="Abre Listas del SAT con esta empresa y este periodo"><b>⚑</b>Validar listas</button>
+            <a id="btn-ir-xml" class="mod-accion" href="/herramientas/xml/" hidden><b>⇢</b>Ver sus XML</a>
         </aside>
         <div class="mod-layout__principal">
         <div id="aviso-otra" class="xml-aviso-otra" hidden></div>
+        <!-- Periodo como en Administración de XML: año, meses (varios) o fechas exactas -->
+        <div id="periodo-conc"></div>
+        <div id="elige-periodo" class="ctx-vacio" hidden>
+            <p class="ctx-vacio__titulo">Elige un año y al menos un mes, o un rango de fechas.</p>
+        </div>
+        <div id="cuerpo-conc">
 
         <!-- Segunda fila: qué lado y qué facturas entran al periodo -->
         <div class="conc-controles">
@@ -112,6 +113,7 @@
         <div id="tablas"></div>
         <p class="xml-pie"><span id="conteo-filas"></span> · Clic en una factura para ver sus pagos y notas · Lo cancelado en el SAT no cuenta.</p>
         </div>
+        </div>
     </div>
 </main>
 
@@ -129,8 +131,9 @@
     </div>
 </div>
 
-<script src="/assets/js/comun/tabla.js?v=202610051930"></script>
-<script src="/assets/js/comun/bandeja-xml.js?v=202610051930"></script>
-<script src="/herramientas/conciliacion/conciliacion.js?v=202610051930"></script>
+<script src="/assets/js/comun/periodo-meses.js?v=202610052130"></script>
+<script src="/assets/js/comun/tabla.js?v=202610052130"></script>
+<script src="/assets/js/comun/bandeja-xml.js?v=202610052130"></script>
+<script src="/herramientas/conciliacion/conciliacion.js?v=202610052130"></script>
 </body>
 </html>

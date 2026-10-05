@@ -4,14 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Administración de XML · Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/common.css?v=202610051930">
-    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202610051930">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202610052130">
+    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202610052130">
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-slate-50">
 <div id="app-header" data-modulo="xml" data-titulo="Administración de XML" data-migas="Herramientas|/herramientas/"></div>
-<script src="/assets/js/nucleo.js?v=202610051930"></script>
-<script src="/assets/js/barra.js?v=202610051930"></script>
+<script src="/assets/js/nucleo.js?v=202610052130"></script>
+<script src="/assets/js/barra.js?v=202610052130"></script>
 
 <main class="xml-pagina">
     <!-- Una sola fila: qué módulo, de quién, qué periodo y la acción principal -->
@@ -61,13 +61,14 @@
         <aside class="mod-acciones" aria-label="Acciones">
             <p class="mod-acciones__grupo">SAT</p>
             <button type="button" id="btn-validar" class="mod-accion" title="Consulta en el SAT si están vigentes o cancelados"><b>✓</b>Validar estado SAT</button>
-            <button type="button" id="btn-listas" class="mod-accion" title="Abre Listas del SAT con esta empresa y este periodo"><b>⚑</b>Validar listas</button>
             <p class="mod-acciones__grupo">Reportes</p>
             <button type="button" class="mod-accion" data-excel="vista" title="Con tus columnas, orden y filtros"><b>▦</b>Exportar esta tabla</button>
             <button type="button" class="mod-accion" data-excel="completo" title="Todas las columnas, una hoja por tipo"><b>▤</b>Reporte completo</button>
             <button type="button" id="btn-zip" class="mod-accion" title="Los XML de lo que ves (o de lo seleccionado)"><b>⇩</b>Descargar XML (ZIP)</button>
-            <button type="button" id="btn-conciliacion" class="mod-accion" title="Cruza facturas contra complementos de pago y notas de crédito" hidden><b>⇄</b>Conciliar</button>
             <p id="acciones-alcance" class="mod-acciones__nota"></p>
+            <p class="mod-acciones__grupo">Con este periodo</p>
+            <button type="button" id="btn-listas" class="mod-accion" title="Abre Listas del SAT con esta empresa y este periodo"><b>⚑</b>Validar listas</button>
+            <button type="button" id="btn-conciliacion" class="mod-accion" title="Cruza facturas contra complementos de pago y notas de crédito" hidden><b>⇄</b>Conciliar</button>
         </aside>
         <div class="mod-layout__principal">
         <div id="aviso-otra" class="xml-aviso-otra" hidden></div>
@@ -161,6 +162,6 @@
     </div>
 </aside>
 
-<script src="/herramientas/xml/xml.js?v=202610051930"></script>
+<script src="/herramientas/xml/xml.js?v=202610052130"></script>
 </body>
 </html>

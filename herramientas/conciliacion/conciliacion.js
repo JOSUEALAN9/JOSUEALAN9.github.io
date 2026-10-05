@@ -71,7 +71,10 @@
         if (q.get("lado") === "emitidos" || q.get("lado") === "recibidos") E.lado = q.get("lado");
         if (q.get("base") === "pago" || q.get("base") === "emision") $("sel-base").value = q.get("base");
         else if (leer("base") === "pago" || leer("base") === "emision") $("sel-base").value = leer("base");
-        E.urlPeriodo = q.get("desde") || q.get("hasta") ? { desde: q.get("desde"), hasta: q.get("hasta") } : null;
+        // Periodo que llega en el enlace: meses sueltos (?anio=&meses=) o fechas (?desde=&hasta=)
+        if (q.get("anio")) E.urlPeriodo = { anio: q.get("anio"), meses: (q.get("meses") || "").split(",").filter(function (m) { return /^\d\d$/.test(m); }) };
+        else if (q.get("desde") || q.get("hasta")) E.urlPeriodo = { desde: q.get("desde") || "", hasta: q.get("hasta") || "" };
+        else E.urlPeriodo = null;
 
         bandeja = FCBandeja.crear({
             seccion: $("bandeja"), resultado: $("resultado-carga"), endpoint: "/api/conciliacion/cargar",
@@ -82,12 +85,9 @@
         prepararEventos();
         E.empresa = await Fiscontable.empresaActiva();
         E.periodoGeneral = await Fiscontable.periodoActivo();
-        // Periodo de ESTA página: arranca en el general; cambiarlo aquí no mueve el general.
-        E.selPeriodo = Fiscontable.selectorPeriodo({
-            boton: $("btn-periodo"), etiqueta: $("periodo-titulo"),
-            permitirAnio: true, permitirTodos: true, permitirRango: true, general: E.periodoGeneral,
-            alCambiar: function (v) { $("sel-periodo").value = v || ""; cargarDatos(); }
-        });
+        // Periodo de ESTA página (cuadros como en Administración de XML): arranca en el general;
+        // cambiarlo aquí no mueve el general.
+        E.selPeriodo = FCPeriodoMeses.crear({ contenedor: $("periodo-conc"), alCambiar: function () { cargarDatos(); } });
         $("btn-ir-xml").hidden = !puede("validador");
         await refrescarBibliotecas(q.get("rfc"));
         window.addEventListener("fiscontable:empresa", async function (ev) {
@@ -96,9 +96,8 @@
         });
         window.addEventListener("fiscontable:periodo", function (ev) {
             E.periodoGeneral = ev.detail;
-            E.selPeriodo.general(ev.detail);
-            if (!E.rfc) return;
-            ponerPeriodo(ev.detail ? "m:" + ev.detail : "");
+            if (!E.rfc || !ev.detail) return;
+            E.selPeriodo.poner({ anio: ev.detail.slice(0, 4), meses: [ev.detail.slice(5, 7)] });
             cargarDatos();
         });
     }
@@ -168,7 +167,6 @@
         E.rfc = rfc;
         pintarEncabezado();
         var c = rfc && E.contribuyentes.find(function (x) { return x.rfc === rfc; });
-        $("btn-periodo").disabled = !c;
         if (!c) { mostrarVacio(); return; }
         armarPeriodos(c);
         await cargarDatos();
@@ -210,17 +208,6 @@
                 '<div class="ctx-vacio__acciones"><button type="button" class="xml-btn xml-btn--primario" data-elegir>Elegir empresa</button>' +
                 '<button type="button" class="xml-btn" data-agregar>Trabajar sin registrar</button></div>';
         }
-    }
-
-    function mostrarElegirPeriodo() {
-        $("contenido").hidden = true;
-        $("ayuda-base").hidden = true;
-        var caja = $("sin-empresa");
-        caja.hidden = false;
-        caja.innerHTML = '<p class="ctx-vacio__titulo">¿Qué periodo quieres conciliar?</p>' +
-            "<p>Elige un mes, el año completo, un rango de fechas o todos los periodos. Las facturas y sus pagos suelen caer en meses distintos: " +
-            "si un mes se ve incompleto, prueba el año completo.<br>Si eliges el periodo en la barra de arriba, todos los módulos se abren solos en ese mes.</p>" +
-            '<div class="ctx-vacio__acciones"><button type="button" class="xml-btn xml-btn--primario" data-periodo>Elegir periodo</button></div>';
     }
 
     async function pintarMenuOtra() {
@@ -274,49 +261,39 @@
         var conteos = {};
         (c.periodos || []).forEach(function (p) { conteos[p.periodo] = p.n; });
         E.selPeriodo.conteos(conteos);
-        E.selPeriodo.general(E.periodoGeneral);
-        // Orden de prioridad: el enlace con fechas (p. ej. desde Administración de XML),
-        // luego el periodo general. Sin ninguno, no se carga nada hasta elegir.
-        var valor = E.periodoGeneral ? "m:" + E.periodoGeneral : "";
-        if (E.urlPeriodo) {
-            var d = E.urlPeriodo.desde || "", h = E.urlPeriodo.hasta || "";
-            if (d.slice(8, 10) === "01" && h && d.slice(0, 7) === h.slice(0, 7)) valor = "m:" + d.slice(0, 7);
-            else if (d.slice(5) === "01-01" && h.slice(5) === "12-31" && d.slice(0, 4) === h.slice(0, 4)) valor = "a:" + d.slice(0, 4);
-            else if (d || h) valor = "r:" + d + "|" + h;
-            E.urlPeriodo = null;
-        }
-        ponerPeriodo(valor);
+        // Orden de prioridad: el enlace (p. ej. desde Administración de XML), luego el periodo
+        // general. Sin ninguno, no se carga nada hasta elegir.
+        if (E.urlPeriodo) { E.selPeriodo.poner(E.urlPeriodo); E.urlPeriodo = null; }
+        else if (E.periodoGeneral) E.selPeriodo.poner({ anio: E.periodoGeneral.slice(0, 4), meses: [E.periodoGeneral.slice(5, 7)] });
+        else E.selPeriodo.poner(null);
     }
 
-    function ponerPeriodo(v) {
-        $("sel-periodo").value = v || "";
-        E.selPeriodo.poner(v || null);
-    }
+    function rango() { return E.selPeriodo.rango(); }
 
-    function rango() {
-        var v = $("sel-periodo").value;
-        if (v.indexOf("m:") === 0) {
-            var y = +v.slice(2, 6), m = +v.slice(7, 9);
-            return { desde: v.slice(2) + "-01", hasta: v.slice(2) + "-" + String(new Date(y, m, 0).getDate()).padStart(2, "0") };
-        }
-        if (v.indexOf("a:") === 0) return { desde: v.slice(2) + "-01-01", hasta: v.slice(2) + "-12-31" };
-        if (v.indexOf("r:") === 0) { var p = v.slice(2).split("|"); return { desde: p[0] || null, hasta: p[1] || null }; }
-        return { desde: null, hasta: null };
-    }
+    /* Meses sueltos (enero y marzo): el servidor necesita la lista; si van seguidos basta el rango. */
+    function mesesSueltos() { var m = E.selPeriodo.meses(); return m && !E.selPeriodo.seguidos() ? m : null; }
 
     /* ============================================================ datos */
     async function cargarDatos() {
         if (!E.rfc) return;
         pintarBase();
-        if (!$("sel-periodo").value) { mostrarElegirPeriodo(); return; }
         $("sin-empresa").hidden = true;
         $("contenido").hidden = false;
-        $("ayuda-base").hidden = false;
+        var hay = E.selPeriodo.hayEleccion();
+        $("elige-periodo").hidden = hay;
+        $("cuerpo-conc").hidden = !hay;
+        $("ayuda-base").hidden = !hay;
+        if (!hay) { E.datos = null; return; }
         guardar("lado", E.lado); guardar("base", $("sel-base").value);
         var r = rango();
+        var sueltos = mesesSueltos();
         var comun = "?rfc=" + encodeURIComponent(E.rfc) + "&lado=" + E.lado + "&base=" + $("sel-base").value +
-            (r.desde ? "&desde=" + r.desde : "") + (r.hasta ? "&hasta=" + r.hasta : "");
-        history.replaceState(null, "", location.pathname + comun);
+            (r.desde ? "&desde=" + r.desde : "") + (r.hasta ? "&hasta=" + r.hasta : "") + (sueltos ? "&meses=" + sueltos.join(",") : "");
+        // En la dirección queda el periodo tal como se eligió (cuadros o fechas), para recargar igual
+        var est = E.selPeriodo.estado(), url = new URLSearchParams({ rfc: E.rfc, lado: E.lado, base: $("sel-base").value });
+        if (E.selPeriodo.porFechas()) { if (est.desde) url.set("desde", est.desde); if (est.hasta) url.set("hasta", est.hasta); }
+        else { url.set("anio", est.anio); url.set("meses", est.meses.join(",")); }
+        history.replaceState(null, "", location.pathname + "?" + url.toString());
         $("conteo-filas").textContent = "Calculando…";
         document.querySelectorAll("#lados .conc-lado").forEach(function (b) { b.classList.toggle("conc-lado--activo", b.dataset.lado === E.lado); });
         var datos;
@@ -780,7 +757,7 @@
     /* ============================================================ Excel */
     async function exportarExcel(modo) {
         var r = rango();
-        var cuerpo = { rfc: E.rfc, lado: E.lado, desde: r.desde, hasta: r.hasta, base: $("sel-base").value, regla: E.regla,
+        var cuerpo = { rfc: E.rfc, lado: E.lado, desde: r.desde, hasta: r.hasta, meses: mesesSueltos(), base: $("sel-base").value, regla: E.regla,
             columnas: tabla().columnas().map(function (c) { return c.clave; }), uuids: null };
         if (modo === "vista") {
             var sel = tabla().seleccion;
@@ -822,7 +799,6 @@
             if (!b) return;
             if (b.dataset.otra) { refrescarBibliotecas(b.dataset.otra); return; }
             if (b.hasAttribute("data-agregar")) { bandeja.abrir(); return; }
-            if (b.hasAttribute("data-periodo")) { E.selPeriodo.abrir(); return; }
             if (b.hasAttribute("data-elegir")) { e.stopPropagation(); cerrarMenus("menu-otra"); $("menu-otra").hidden = false; pintarMenuOtra(); }
         });
         $("btn-otra").addEventListener("click", function (e) {
@@ -871,8 +847,9 @@
             var b = e.target.closest("[data-excel]"); if (b && !b.disabled && E.datos) exportarExcel(b.dataset.excel);
         });
         $("btn-listas").addEventListener("click", function () {
-            var r = rango(), q = new URLSearchParams({ empresa: E.rfc || "" });
-            if (r.desde) q.set("desde", r.desde); if (r.hasta) q.set("hasta", r.hasta);
+            var q = new URLSearchParams({ empresa: E.rfc || "" }), est = E.selPeriodo.estado();
+            if (E.selPeriodo.porFechas()) { if (est.desde) q.set("desde", est.desde); if (est.hasta) q.set("hasta", est.hasta); }
+            else if (est.anio) { q.set("anio", est.anio); q.set("meses", est.meses.join(",")); }
             window.open("/herramientas/listas-sat/?" + q.toString(), "_blank", "noopener");
         });
         $("btn-columnas").addEventListener("click", function () { if (tabla()) tabla().abrirPanelColumnas(); });

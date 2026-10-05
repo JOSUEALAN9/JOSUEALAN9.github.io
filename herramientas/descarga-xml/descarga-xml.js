@@ -644,7 +644,6 @@
         $("resultados").hidden = true;
     }
     $("res-cerrar").addEventListener("click", cerrarResultados);
-    $("res-solicitudes").addEventListener("click", function () { $("btn-solicitudes").click(); });
 
     async function verResultados(id) {
         sinAlerta();
@@ -762,6 +761,8 @@
     });
 
     window.addEventListener("pagehide", detenerSondeo);
+    // Al regresar con "Atrás", el navegador puede restaurar la página tal cual: el botón no debe quedar apagado
+    window.addEventListener("pageshow", function () { $("res-biblioteca").disabled = false; });
 
     /* ================================================================ inicio */
     (async function () {

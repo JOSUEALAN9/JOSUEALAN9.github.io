@@ -18,7 +18,11 @@ function impuestosDelComprobante(xmlDoc, comprobante, etiqueta) {
     return todos.filter(n => abuelo(n) && /Concepto$/.test(abuelo(n).nodeName));
 }
 
+const API = Fiscontable.API;
 let xmlFilesStage = [];
+// "externos": XML que se suben aquí y NO se guardan (solo se consulta su estado).
+// "empresa": los de la biblioteca de la empresa activa en el periodo general (el estado sí se guarda en su biblioteca).
+let origen = { tipo: "externos", rfc: null, rol: "recibido", texto: "" };
 let rawDataForFilters = [];
 let proveedoresSeleccionados = new Set();
 const mesesTexto = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
@@ -33,6 +37,20 @@ function formatDateToMX(isoString) {
 const modal = document.getElementById('modalCarga');
 document.getElementById('btnAbrirCarga').onclick = () => modal.classList.add('modal-active');
 document.getElementById('btnCerrarModal').onclick = () => modal.classList.remove('modal-active');
+
+// Mes de emisión sin pasar por Date (new Date("2026-08-01") cae en julio en hora de México)
+function mesDe(fechaCruda) {
+    if (!/^\d{4}-\d{2}/.test(fechaCruda || "")) return { v: "", t: "" };
+    return { v: fechaCruda.slice(0, 7), t: `${mesesTexto[+fechaCruda.slice(5, 7) - 1]} ${fechaCruda.slice(0, 4)}` };
+}
+
+// Estado del SAT en cuatro grupos: Vigente, Cancelado, No encontrado y Sin respuesta (falla de conexión o del SAT)
+function estadoLimpio(estado) {
+    if (/Vigente/i.test(estado)) return "Vigente";
+    if (/Cancelado/i.test(estado)) return "Cancelado";
+    if (/No Encontrado/i.test(estado)) return "No encontrado";
+    return "Sin respuesta";
+}
 
 const handleFilesSelected = (e) => {
     const archivos = Array.from(e.target.files).filter(f => f.name.toLowerCase().endsWith('.xml'));
@@ -53,13 +71,15 @@ document.getElementById('btnLimpiarDatos').addEventListener('click', () => {
     xmlFilesStage = [];
     rawDataForFilters = [];
     proveedoresSeleccionados.clear();
+    origen = { tipo: "externos", rfc: null, rol: "recibido", texto: "" };
+    pintarOrigen();
 
     document.getElementById('lblStagedCount').innerText = "0";
     document.getElementById('btnProcesarStaged').disabled = true;
     document.getElementById('btnDescargar').disabled = true;
 
-    ['dashTotal', 'dashVigentes', 'dashCancelados', 'dashErrores'].forEach(id => document.getElementById(id).innerText = "0");
-    document.getElementById('cuerpoTabla').innerHTML = `<tr><td colspan="10" class="p-12 text-center text-slate-400 font-medium">Sube tus XML para auditar estatus con el SAT...</td></tr>`;
+    ['dashTotal', 'dashVigentes', 'dashCancelados', 'dashErrores', 'dashSinRespuesta'].forEach(id => document.getElementById(id).innerText = "0");
+    document.getElementById('cuerpoTabla').innerHTML = `<tr><td colspan="10" class="p-12 text-center text-slate-400 font-medium">Carga XML externos o valida los de la empresa.</td></tr>`;
 
     ['fTipo', 'fMes', 'fEstatus'].forEach(id => {
         document.getElementById(id).innerHTML = `<option value="ALL">Todas</option>`;
@@ -76,7 +96,7 @@ const btnToggleTodosProv = document.getElementById('btnToggleTodosProv');
 
 btnProvDropdown.addEventListener('click', () => {
     panelProvDropdown.classList.toggle('hidden');
-    if(!panelProvDropdown.classList.hidden) searchProv.focus();
+    if (!panelProvDropdown.classList.contains('hidden')) searchProv.focus();
 });
 
 document.addEventListener('click', (e) => {
@@ -174,39 +194,69 @@ function actualizarEtiquetaProveedor() {
     else lbl.textContent = `${proveedoresSeleccionados.size} Seleccionados`;
 }
 
-// Lógica de Comunicación con el Servidor Python
-async function validarFacturaEnServidor(rfcEmisor, rfcReceptor, total, uuid) {
+// Consulta del estado en el SAT. Externos: no se guarda nada. Empresa: se guarda en su biblioteca.
+async function validarFacturaEnServidor(f) {
     try {
-        const respuesta = await fetch("https://api.josuealan.com/validar-factura/", {
-            method: "POST",
-            credentials: "include",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                rfc_emisor: rfcEmisor,
-                rfc_receptor: rfcReceptor,
-                total: parseFloat(total).toFixed(2),
-                uuid: uuid
-            })
+        const cuerpo = origen.tipo === "empresa"
+            ? { url: "/api/xml/validar-uno", datos: { rfc: origen.rfc, uuid: f.uuid } }
+            : { url: "/validar-factura/", datos: { rfc_emisor: f.rfcEmisor, rfc_receptor: f.rfcReceptor, total: parseFloat(f.total).toFixed(2), uuid: f.uuid } };
+        const respuesta = await fetch(API + cuerpo.url, {
+            method: "POST", credentials: "include",
+            headers: { "Content-Type": "application/json" }, body: JSON.stringify(cuerpo.datos)
         });
-        if (!respuesta.ok) throw new Error("Error de conexión");
+        if (!respuesta.ok) throw new Error();
         return await respuesta.json();
     } catch (error) {
-        return { estado: "Error", es_cancelable: "Verifica el túnel o conexión", estatus_cancelacion: "" };
+        return { estado: "Sin respuesta", es_cancelable: "El SAT no respondió", estatus_cancelacion: "Reintenta en un momento" };
     }
+}
+
+// Consulta una lista (solo esas) y la mezcla con lo que ya está en la tabla
+async function consultarSAT(lista) {
+    const tbody = document.getElementById('cuerpoTabla');
+    const porUuid = new Map(rawDataForFilters.map(f => [f.uuid, f]));
+    for (let i = 0; i < lista.length; i++) {
+        tbody.innerHTML = `<tr><td colspan="10" class="p-12 text-center text-blue-600 font-bold">Consultando SAT: ${i + 1} de ${lista.length}…</td></tr>`;
+        const f = lista[i];
+        const r = await validarFacturaEnServidor(f);
+        const estado = r.estado || "Sin respuesta";
+        porUuid.set(f.uuid, { ...f, satEstatus: estado, estatusLimpio: estadoLimpio(estado), satCancelable: r.es_cancelable || "", satMotivo: r.estatus_cancelacion || "" });
+    }
+    rawDataForFilters = Array.from(porUuid.values());
+    pintarKPIs();
+    actualizarSelectsDesdeData(true);
+    document.getElementById('btnDescargar').disabled = rawDataForFilters.length === 0;
+}
+
+function pintarKPIs() {
+    const n = e => rawDataForFilters.filter(f => f.estatusLimpio === e).length;
+    document.getElementById('dashTotal').innerText = rawDataForFilters.length;
+    document.getElementById('dashVigentes').innerText = n("Vigente");
+    document.getElementById('dashCancelados').innerText = n("Cancelado");
+    document.getElementById('dashErrores').innerText = n("No encontrado");
+    document.getElementById('dashSinRespuesta').innerText = n("Sin respuesta");
+    document.getElementById('btnReintentar').hidden = !n("Sin respuesta");
+}
+
+function pintarOrigen() {
+    document.getElementById('origenTexto').textContent = origen.tipo === "empresa" ? origen.texto : "XML externos · no se guardan";
+    document.getElementById('thParte').textContent = origen.tipo === "empresa" && origen.rol === "emitido" ? "Cliente" : "Proveedor";
 }
 
 document.getElementById('btnProcesarStaged').addEventListener('click', async () => {
     modal.classList.remove('modal-active');
     const tbody = document.getElementById('cuerpoTabla');
-    tbody.innerHTML = `<tr><td colspan="10" class="p-12 text-center text-blue-600 font-bold text-lg animate-pulse">Analizando XMLs y conectando con SAT...</td></tr>`;
-
-    const parser = new DOMParser();
-    let facturasTemp = [];
-    rawDataForFilters = [];
-    proveedoresSeleccionados.clear();
+    tbody.innerHTML = `<tr><td colspan="10" class="p-12 text-center text-blue-600 font-bold text-lg animate-pulse">Leyendo los XML…</td></tr>`;
+    if (origen.tipo !== "externos") {                 // venían de una empresa: se empieza de cero con los externos
+        rawDataForFilters = []; proveedoresSeleccionados.clear();
+        origen = { tipo: "externos", rfc: null, rol: "recibido", texto: "" };
+        pintarOrigen();
+    }
     actualizarEtiquetaProveedor();
 
-    // Extracción Inicial
+    const parser = new DOMParser();
+    const yaEstan = new Set(rawDataForFilters.map(f => f.uuid));
+    let facturasTemp = [];
     for (let file of xmlFilesStage) {
         const text = await file.text();
         const xmlDoc = parser.parseFromString(text, "text/xml");
@@ -214,85 +264,78 @@ document.getElementById('btnProcesarStaged').addEventListener('click', async () 
         const comprobante = xmlDoc.getElementsByTagName("cfdi:Comprobante")[0] || xmlDoc.getElementsByTagName("Comprobante")[0];
         const timbre = xmlDoc.getElementsByTagName("tfd:TimbreFiscalDigital")[0] || xmlDoc.getElementsByTagName("TimbreFiscalDigital")[0];
         if (!comprobante || !timbre) continue;
+        const uuid = timbre.getAttribute("UUID")?.toUpperCase();
+        if (!uuid || yaEstan.has(uuid)) continue;          // los que ya se consultaron no se vuelven a pedir
+        yaEstan.add(uuid);
 
         const emisor = xmlDoc.getElementsByTagName("cfdi:Emisor")[0] || xmlDoc.getElementsByTagName("Emisor")[0];
         const receptor = xmlDoc.getElementsByTagName("cfdi:Receptor")[0] || xmlDoc.getElementsByTagName("Receptor")[0];
-
-        let fechaCruda = comprobante.getAttribute("Fecha")?.split('T')[0] || "";
-        let valMesEm = "", txtMesEm = "";
-        if(fechaCruda) {
-            const fDate = new Date(fechaCruda);
-            valMesEm = `${fDate.getFullYear()}-${String(fDate.getMonth() + 1).padStart(2,'0')}`;
-            txtMesEm = `${mesesTexto[fDate.getMonth()]} ${fDate.getFullYear()}`;
-        }
+        const fechaCruda = comprobante.getAttribute("Fecha")?.split('T')[0] || "";
+        const mes = mesDe(fechaCruda);
 
         let totalTraslados = 0;
-        const nodosTraslado = impuestosDelComprobante(xmlDoc, comprobante, "cfdi:Traslado");
-        for (let t of nodosTraslado) {
-            if(t.parentNode.nodeName === "cfdi:Traslados") {
-                totalTraslados += parseFloat(t.getAttribute("Importe") || 0);
-            }
+        for (let tr of impuestosDelComprobante(xmlDoc, comprobante, "cfdi:Traslado")) {
+            if (tr.parentNode.nodeName === "cfdi:Traslados") totalTraslados += parseFloat(tr.getAttribute("Importe") || 0);
         }
-
         let totalRetenciones = 0;
-        const nodosRetencion = impuestosDelComprobante(xmlDoc, comprobante, "cfdi:Retencion");
-        for (let r of nodosRetencion) {
-            if(r.parentNode.nodeName === "cfdi:Retenciones") {
-                totalRetenciones += parseFloat(r.getAttribute("Importe") || 0);
-            }
+        for (let r of impuestosDelComprobante(xmlDoc, comprobante, "cfdi:Retencion")) {
+            if (r.parentNode.nodeName === "cfdi:Retenciones") totalRetenciones += parseFloat(r.getAttribute("Importe") || 0);
         }
-
+        const rfcEmisor = emisor?.getAttribute("Rfc") || "SIN RFC", nombreEmisor = emisor?.getAttribute("Nombre") || "SIN NOMBRE";
         facturasTemp.push({
-            uuid: timbre.getAttribute("UUID")?.toUpperCase(),
-            rfcEmisor: emisor?.getAttribute("Rfc") || "SIN RFC",
-            nombreEmisor: emisor?.getAttribute("Nombre") || "SIN NOMBRE",
-            rfcReceptor: receptor?.getAttribute("Rfc") || "",
+            uuid, rfcEmisor, nombreEmisor, rfcReceptor: receptor?.getAttribute("Rfc") || "",
+            rfcParte: rfcEmisor, nombreParte: nombreEmisor,
             total: parseFloat(comprobante.getAttribute("Total") || 0),
             subTotal: parseFloat(comprobante.getAttribute("SubTotal") || 0),
-            totalTraslados: totalTraslados,
-            totalRetenciones: totalRetenciones,
+            totalTraslados, totalRetenciones,
             tipo: comprobante.getAttribute("TipoDeComprobante")?.toUpperCase() || "",
-            fechaCruda: fechaCruda,
-            mesEmisionVal: valMesEm,
-            mesEmisionTxt: txtMesEm
+            fechaCruda, mesEmisionVal: mes.v, mesEmisionTxt: mes.t
         });
     }
-
-    let cVigentes = 0, cCancelados = 0, cErrores = 0;
-
-    // Consulta al SAT y llenado de Data Global
-    for (let i = 0; i < facturasTemp.length; i++) {
-        let f = facturasTemp[i];
-        tbody.innerHTML = `<tr><td colspan="10" class="p-12 text-center text-blue-600 font-bold">Consultando SAT: ${i + 1} de ${facturasTemp.length}...</td></tr>`;
-
-        const respuestaSAT = await validarFacturaEnServidor(f.rfcEmisor, f.rfcReceptor, f.total, f.uuid);
-
-        let estatus = respuestaSAT.estado || "Error";
-        let cancelable = respuestaSAT.es_cancelable || "";
-        let motivo = respuestaSAT.estatus_cancelacion || "";
-
-        let estatusLimpio = "Error";
-        if (estatus.includes("Vigente")) { cVigentes++; estatusLimpio = "Vigente"; }
-        else if (estatus.includes("Cancelado")) { cCancelados++; estatusLimpio = "Cancelado"; }
-        else { cErrores++; }
-
-        rawDataForFilters.push({
-            ...f,
-            satEstatus: estatus,
-            estatusLimpio: estatusLimpio,
-            satCancelable: cancelable,
-            satMotivo: motivo
-        });
-    }
-
-    document.getElementById('dashTotal').innerText = rawDataForFilters.length;
-    document.getElementById('dashVigentes').innerText = cVigentes;
-    document.getElementById('dashCancelados').innerText = cCancelados;
-    document.getElementById('dashErrores').innerText = cErrores;
-
-    actualizarSelectsDesdeData(true);
-    btnDescargar.disabled = false;
+    // La bandeja se vacía: lo siguiente que agregues se suma a la tabla sin repetir consultas
+    xmlFilesStage = [];
+    document.getElementById('lblStagedCount').innerText = "0";
+    document.getElementById('btnProcesarStaged').disabled = true;
+    await consultarSAT(facturasTemp);
 });
+
+// XML de la empresa activa en el periodo general (selector de la barra de arriba)
+async function cargarDeEmpresa(rol) {
+    const empresa = await Fiscontable.empresaActiva();
+    const periodo = await Fiscontable.periodoActivo();
+    const tbody = document.getElementById('cuerpoTabla');
+    if (!empresa) { tbody.innerHTML = `<tr><td colspan="10" class="p-12 text-center text-slate-500">Elige una empresa en la barra de arriba.</td></tr>`; return; }
+    if (!periodo) { tbody.innerHTML = `<tr><td colspan="10" class="p-12 text-center text-slate-500">Elige un periodo en la barra de arriba.</td></tr>`; return; }
+    const ultimo = new Date(+periodo.slice(0, 4), +periodo.slice(5, 7), 0).getDate();
+    const q = new URLSearchParams({ rfc: empresa.rfc, desde: periodo + "-01", hasta: periodo + "-" + String(ultimo).padStart(2, "0"), rol });
+    tbody.innerHTML = `<tr><td colspan="10" class="p-12 text-center text-blue-600 font-bold">Leyendo los XML de ${esc(empresa.alias || empresa.rfc)}…</td></tr>`;
+    let datos;
+    try {
+        const r = await fetch(API + "/api/validador/empresa?" + q, { credentials: "include" });
+        if (!r.ok) throw new Error(await Fiscontable.leerError(r));
+        datos = await r.json();
+    } catch (e) { tbody.innerHTML = `<tr><td colspan="10" class="p-12 text-center text-red-600">${esc(e.message)}</td></tr>`; return; }
+    const mes = mesDe(periodo + "-01");
+    rawDataForFilters = []; proveedoresSeleccionados.clear(); actualizarEtiquetaProveedor();
+    origen = { tipo: "empresa", rfc: empresa.rfc, rol, texto: `${empresa.alias || empresa.rfc} · ${rol === "emitido" ? "Emitidos" : "Recibidos"} de ${mes.t}` };
+    pintarOrigen();
+    const lista = datos.cfdi.map(c => {
+        const parte = rol === "emitido" ? c.receptor : c.emisor, m = mesDe(c.fecha);
+        return { uuid: c.uuid, rfcEmisor: c.emisor.rfc || "", nombreEmisor: c.emisor.nombre || "", rfcReceptor: c.receptor.rfc || "",
+                 rfcParte: parte.rfc || "", nombreParte: parte.nombre || "SIN NOMBRE",
+                 total: +c.total || 0, subTotal: +c.subtotal || 0, totalTraslados: +c.traslados || 0, totalRetenciones: +c.retenciones || 0,
+                 tipo: (c.tipo || "").toUpperCase(), fechaCruda: c.fecha, mesEmisionVal: m.v, mesEmisionTxt: m.t };
+    });
+    if (!lista.length) {
+        pintarKPIs(); actualizarSelectsDesdeData(true);
+        tbody.innerHTML = `<tr><td colspan="10" class="p-12 text-center text-slate-500">Sin XML ${rol === "emitido" ? "emitidos" : "recibidos"} de ${esc(mes.t)}.</td></tr>`;
+        return;
+    }
+    await consultarSAT(lista);
+}
+
+document.querySelectorAll('[data-cargar-empresa]').forEach(b => b.addEventListener('click', () => cargarDeEmpresa(b.dataset.cargarEmpresa)));
+document.getElementById('btnReintentar').addEventListener('click', () => consultarSAT(rawDataForFilters.filter(f => f.estatusLimpio === "Sin respuesta")));
 
 // Filtros Cruzados Reactivos
 const filtrosIds = ['fTipo', 'fMes', 'fEstatus'];
@@ -312,9 +355,9 @@ function actualizarSelectsDesdeData(isInitial) {
         let matchTipo = (vTipo === "ALL" || f.tipo === vTipo);
         let matchMes  = (vMes === "ALL" || f.mesEmisionVal === vMes);
         let matchEst  = (vEst === "ALL" || f.estatusLimpio === vEst);
-        let matchProv = (proveedoresSeleccionados.size === 0 || proveedoresSeleccionados.has(f.nombreEmisor));
+        let matchProv = (proveedoresSeleccionados.size === 0 || proveedoresSeleccionados.has(f.nombreParte));
 
-        if(matchTipo && matchMes && matchEst) sets.prov.add(f.nombreEmisor);
+        if(matchTipo && matchMes && matchEst) sets.prov.add(f.nombreParte);
         if(matchProv && matchMes && matchEst) sets.tipo.add(f.tipo);
         if(matchProv && matchTipo && matchEst && f.mesEmisionVal) sets.mes.add(JSON.stringify({v: f.mesEmisionVal, t: f.mesEmisionTxt}));
         if(matchProv && matchTipo && matchMes) sets.est.add(f.estatusLimpio);
@@ -349,7 +392,7 @@ function actualizarSelectsDesdeData(isInitial) {
 
     rellenar('fTipo', sets.tipo, 'Tipo', vTipo, {"I": "Ingreso (I)", "E": "Egreso (E)", "P": "Pago (P)"});
     rellenar('fMes', sets.mes, 'Mes Emisión', vMes);
-    rellenar('fEstatus', sets.est, 'Estatus SAT', vEst, {"Vigente": "🟢", "Cancelado": "🔴", "Error": "⚠️"});
+    rellenar('fEstatus', sets.est, 'Estatus SAT', vEst, {"Vigente": "🟢", "Cancelado": "🔴", "No encontrado": "⚠️", "Sin respuesta": "⏳"});
 
     if(isInitial) renderizarTablaUI();
 }
@@ -362,7 +405,7 @@ function renderizarTablaUI() {
     let htmlFinal = "";
     rawDataForFilters.forEach(f => {
         let show = true;
-        if (proveedoresSeleccionados.size > 0 && !proveedoresSeleccionados.has(f.nombreEmisor)) show = false;
+        if (proveedoresSeleccionados.size > 0 && !proveedoresSeleccionados.has(f.nombreParte)) show = false;
         if (vTipo !== "ALL" && f.tipo !== vTipo) show = false;
         if (vMes !== "ALL" && f.mesEmisionVal !== vMes) show = false;
         if (vEst !== "ALL" && f.estatusLimpio !== vEst) show = false;
@@ -372,13 +415,14 @@ function renderizarTablaUI() {
             let icono = "";
             if(f.estatusLimpio === "Vigente") { colorBadge = "bg-green-100 text-green-800"; icono = "🟢"; }
             if(f.estatusLimpio === "Cancelado") { colorBadge = "bg-red-100 text-red-800"; icono = "🔴"; }
-            if(f.estatusLimpio === "Error") { colorBadge = "bg-amber-100 text-amber-800"; icono = "⚠️"; }
+            if(f.estatusLimpio === "No encontrado") { colorBadge = "bg-amber-100 text-amber-800"; icono = "⚠️"; }
+            if(f.estatusLimpio === "Sin respuesta") { colorBadge = "bg-slate-100 text-slate-600"; icono = "⏳"; }
 
             htmlFinal += `
             <tr class="hover:bg-emerald-50/50 transition border-b">
                 <td class="p-3 align-top">
-                    <div class="font-mono text-blue-700 font-bold">${esc(f.rfcEmisor)}</div>
-                    <div class="text-[10px] text-slate-500 truncate w-48" title="${esc(f.nombreEmisor)}">${esc(f.nombreEmisor)}</div>
+                    <div class="font-mono text-blue-700 font-bold">${esc(f.rfcParte)}</div>
+                    <div class="text-[10px] text-slate-500 truncate w-48" title="${esc(f.nombreParte)}">${esc(f.nombreParte)}</div>
                 </td>
                 <td class="p-3 align-top text-[11px] text-slate-700 font-mono">${esc(f.uuid)}</td>
                 <td class="p-3 align-top font-medium">${esc(formatDateToMX(f.fechaCruda))}</td>
@@ -409,7 +453,7 @@ document.getElementById('btnDescargar').addEventListener('click', () => {
 
     rawDataForFilters.forEach(f => {
         let show = true;
-        if (proveedoresSeleccionados.size > 0 && !proveedoresSeleccionados.has(f.nombreEmisor)) show = false;
+        if (proveedoresSeleccionados.size > 0 && !proveedoresSeleccionados.has(f.nombreParte)) show = false;
         if (vTipo !== "ALL" && f.tipo !== vTipo) show = false;
         if (vMes !== "ALL" && f.mesEmisionVal !== vMes) show = false;
         if (vEst !== "ALL" && f.estatusLimpio !== vEst) show = false;
@@ -438,7 +482,7 @@ document.getElementById('btnDescargar').addEventListener('click', () => {
     const ws = XLSX.utils.json_to_sheet(dataExportar);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Auditoria_SAT");
-    XLSX.writeFile(wb, "Reporte_Validacion_XML.xlsx");
+    XLSX.writeFile(wb, (origen.tipo === "empresa" ? origen.rfc + "_" : "") + "Validacion_XML.xlsx");
 });
 
 // Se comprueba el permiso al entrar, no al enviar.

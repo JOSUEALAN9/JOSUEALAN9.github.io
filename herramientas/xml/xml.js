@@ -868,8 +868,9 @@
         var r = rangoPeriodo();
         var lado = E.modulo === "recibidos" ? "recibidos" : "emitidos";
         if (E.modulo === "pagos") lado = E.sub === "recibidos" ? "recibidos" : "emitidos";
-        location.href = "/herramientas/conciliacion/?rfc=" + encodeURIComponent(E.rfc) + "&lado=" + lado + "&base=emision" +
-            (r.desde ? "&desde=" + r.desde + "&hasta=" + r.hasta : "");
+        var periodo = porFechas() ? (r.desde ? "&desde=" + r.desde : "") + (r.hasta ? "&hasta=" + r.hasta : "")
+            : hayEleccion() ? "&anio=" + E.anio + "&meses=" + Array.from(E.meses).sort().join(",") : "";
+        location.href = "/herramientas/conciliacion/?rfc=" + encodeURIComponent(E.rfc) + "&lado=" + lado + "&base=emision" + periodo;
     }
 
     async function descargarZip() {
