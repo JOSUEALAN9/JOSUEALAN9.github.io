@@ -4,14 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Administración de XML · Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/common.css?v=202610050937">
-    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202610050937">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202610050958">
+    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202610050958">
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-slate-50">
 <div id="app-header" data-modulo="xml" data-titulo="Administración de XML" data-migas="Herramientas|/herramientas/"></div>
-<script src="/assets/js/nucleo.js?v=202610050937"></script>
-<script src="/assets/js/barra.js?v=202610050937"></script>
+<script src="/assets/js/nucleo.js?v=202610050958"></script>
+<script src="/assets/js/barra.js?v=202610050958"></script>
 
 <main class="xml-pagina">
     <!-- Una sola fila: qué módulo, de quién, qué periodo y la acción principal -->
@@ -25,7 +25,7 @@
                 </button>
                 <div id="menu-otra" class="xml-menu__lista xml-menu__lista--otra" hidden></div>
             </div>
-            <button type="button" id="btn-periodo" class="ctx-campo" aria-haspopup="dialog" disabled>
+            <button type="button" id="btn-periodo" class="ctx-campo" aria-haspopup="dialog" disabled hidden>
                 <span class="ctx-campo__texto"><small>Periodo</small><strong id="periodo-titulo">Elegir periodo</strong></span>
                 <span class="ctx-campo__flecha" aria-hidden="true">▾</span>
             </button>
@@ -59,6 +59,11 @@
 
     <div id="contenido" hidden>
         <div id="aviso-otra" class="xml-aviso-otra" hidden></div>
+        <!-- Periodo como en Mi Admin: año y meses (varios a la vez); se carga el año y se filtra aquí -->
+        <div id="periodo-xml" class="xml-periodo" aria-label="Periodo">
+            <div class="xml-periodo__fila"><span class="xml-periodo__etiqueta">Año</span><div id="anios" class="xml-periodo__chips"></div></div>
+            <div class="xml-periodo__fila"><span class="xml-periodo__etiqueta">Meses</span><div id="meses" class="xml-periodo__chips"></div></div>
+        </div>
         <div class="pestanas xml-pestanas" role="tablist" id="pestanas"></div>
         <div id="subfiltros" class="xml-chips"></div>
 
@@ -147,6 +152,6 @@
     </div>
 </aside>
 
-<script src="/herramientas/xml/xml.js?v=202610050937"></script>
+<script src="/herramientas/xml/xml.js?v=202610050958"></script>
 </body>
 </html>

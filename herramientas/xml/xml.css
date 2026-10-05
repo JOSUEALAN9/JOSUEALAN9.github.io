@@ -230,3 +230,16 @@ button.ctx-resumen__dato:hover { background: #f8fafc; }
   .ctx-resumen__dato { flex: 1 1 45%; padding: 8px 12px; }
   .ctx-resumen__dato b { font-size: 15px; }
 }
+
+/* Periodo estilo Mi Admin: año + meses (varios a la vez) */
+.xml-periodo { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 8px 12px; margin-bottom: 10px; display: grid; gap: 6px; }
+.xml-periodo__fila { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.xml-periodo__etiqueta { font-size: 11px; font-weight: 800; color: #64748b; text-transform: uppercase; letter-spacing: .04em; width: 48px; flex: none; }
+.xml-periodo__chips { display: flex; flex-wrap: wrap; gap: 5px; min-width: 0; }
+.xml-mes { min-width: 52px; padding: 4px 8px; border-radius: 8px; border: 1px solid #e2e8f0; background: #fff; font-size: 12px; font-weight: 700; color: #334155; cursor: pointer; text-align: center; line-height: 1.15; }
+.xml-mes small { display: block; font-size: 10.5px; font-weight: 600; color: #94a3b8; }
+.xml-mes--cero { color: #94a3b8; background: #f8fafc; }
+.xml-mes--activo { background: #0f172a; border-color: #0f172a; color: #fff; }
+.xml-mes--activo small { color: #cbd5e1; }
+.xml-mes--todo { min-width: auto; }
+.pestana .xml-cuenta:empty { display: none; }
