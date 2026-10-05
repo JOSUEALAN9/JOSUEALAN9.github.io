@@ -64,10 +64,45 @@
         document.getElementById("tipo-persona").value = quien.rfc.length === 13 ? "pf" : "pm";
         fOpciones.hidden = false;
         fOpciones.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        cargarAlmacen(quien.rfc);
     }
+
+    /* -------------------------------------------------- almacén */
+    var MESES = ["", "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+
+    async function cargarAlmacen(rfc, ejercicio) {
+        var caja = document.getElementById("almacen");
+        try {
+            var q = "?rfc=" + encodeURIComponent(rfc) + (ejercicio ? "&ejercicio=" + encodeURIComponent(ejercicio) : "");
+            var resp = await fetch(API + "/api/declaraciones/almacen" + q, { credentials: "include" });
+            if (!resp.ok) { caja.hidden = true; return; }
+            var a = await resp.json();
+            if (!elegido || elegido.rfc !== rfc) return;
+            caja.hidden = !a.acceso || !a.ejercicios.length;
+            if (caja.hidden) return;
+            var esc = Fiscontable.escapar;
+            document.getElementById("almacen-empresa").textContent = "· " + rfc;
+            var sel = document.getElementById("almacen-ejercicio");
+            sel.innerHTML = a.ejercicios.map(function (e) { return '<option value="' + esc(e) + '"' + (e === a.ejercicio ? " selected" : "") + ">" + esc(e) + "</option>"; }).join("");
+            document.getElementById("almacen-nota").textContent = a.documentos.length + " documento(s) guardados del " + a.ejercicio +
+                ". Se guardan un año; si tu suscripción sigue vigente, se quedan.";
+            document.getElementById("almacen-filas").innerHTML = a.documentos.map(function (d) {
+                return "<tr><td>" + esc(MESES[+d.mes] || d.mes || "") + "</td><td>" + esc(d.tipo_declaracion || "") + "</td><td>" + esc(d.documento) +
+                    "</td><td>" + esc(d.num_operacion) + "</td><td>" + esc(d.descargado_por || "") + "</td><td>" + esc((d.descargado_en || "").slice(0, 10)) +
+                    '</td><td><a href="' + API + "/api/declaraciones/almacen/archivo?id=" + d.id + '">PDF</a></td></tr>';
+            }).join("");
+        } catch (e) { caja.hidden = true; }
+    }
+
+    document.getElementById("almacen-ejercicio").addEventListener("change", function () { if (elegido) cargarAlmacen(elegido.rfc, this.value); });
+    document.getElementById("almacen-zip").addEventListener("click", function () {
+        if (!elegido) return;
+        location.href = API + "/api/declaraciones/almacen/zip?rfc=" + encodeURIComponent(elegido.rfc) + "&ejercicio=" + encodeURIComponent(document.getElementById("almacen-ejercicio").value);
+    });
 
     function alLimpiar() {
         elegido = null;
+        document.getElementById("almacen").hidden = true;
         fEfirma.hidden = true;
         fOpciones.hidden = true;
         fProgreso.hidden = true;
@@ -89,6 +124,7 @@
         cuerpo.append("ejercicio", document.getElementById("ejercicio").value);
         cuerpo.append("portales", portales.join(","));
         cuerpo.append("tipos_documento", "detalle,pago,recibo");
+        cuerpo.append("forzar", document.getElementById("forzar").checked ? "1" : "");
 
         var ruta;
         if (elegido.efirmaGuardada) {
@@ -168,6 +204,7 @@
                 var caja = document.getElementById("resultado");
                 caja.hidden = false;
 
+                if (elegido) cargarAlmacen(elegido.rfc, document.getElementById("ejercicio").value);
                 if (t.estado === "completado") {
                     caja.innerHTML =
                         '<div style="background:#ECFDF3;border:1px solid #A9E5C3;border-radius:10px;padding:13px;font-size:13.5px;color:#05603A">' +

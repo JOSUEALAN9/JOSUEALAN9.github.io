@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Papel de trabajo de IVA · Fiscontable</title>
+    <link rel="stylesheet" href="/assets/css/common.css?v=202610060030">
+    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202610060030">
+    <link rel="stylesheet" href="/herramientas/iva/iva.css?v=202610060030">
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-50">
+<div id="app-header" data-modulo="iva" data-titulo="Papel de trabajo de IVA" data-migas="Herramientas|/herramientas/"></div>
+<script src="/assets/js/nucleo.js?v=202610060030"></script>
+<script src="/assets/js/barra.js?v=202610060030"></script>
+
+<main class="xml-pagina">
+    <div class="xml-cabeza">
+        <h1>Papel de trabajo de IVA</h1>
+        <div class="ctx">
+            <div class="xml-menu">
+                <button type="button" id="btn-empresa" class="ctx-campo" aria-haspopup="menu">
+                    <span class="ctx-campo__texto"><small id="empresa-etiqueta">Empresa</small><strong id="empresa-titulo">Elegir empresa</strong></span>
+                    <span class="ctx-campo__flecha" aria-hidden="true">▾</span>
+                </button>
+                <div id="menu-empresa" class="xml-menu__lista xml-menu__lista--otra" hidden></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="sin-empresa" class="ctx-vacio" hidden></div>
+
+    <div id="contenido" class="mod-layout" hidden>
+        <aside class="mod-acciones" aria-label="Acciones">
+            <p class="mod-acciones__grupo">Reportes</p>
+            <button type="button" id="btn-excel" class="mod-accion" title="Resumen y detalle CFDI por CFDI de los dos lados"><b>▦</b>Exportar Excel</button>
+            <p class="mod-acciones__grupo">Con este periodo</p>
+            <button type="button" id="btn-xml" class="mod-accion" title="Abre sus XML"><b>⇢</b>Ver sus XML</button>
+            <button type="button" id="btn-conc" class="mod-accion" title="Facturas contra pagos y notas" hidden><b>⇄</b>Conciliar</button>
+        </aside>
+        <div class="mod-layout__principal">
+            <div id="periodo-iva"></div>
+            <div id="elige-periodo" class="ctx-vacio" hidden><p class="ctx-vacio__titulo">Elige un año y al menos un mes, o un rango de fechas.</p></div>
+
+            <div id="cuerpo">
+                <!-- Resumen del periodo -->
+                <div class="iva-resumen">
+                    <div class="iva-caja">
+                        <p class="iva-caja__titulo">IVA cobrado <span>(emitidos)</span></p>
+                        <dl id="res-cobrado"></dl>
+                    </div>
+                    <div class="iva-caja">
+                        <p class="iva-caja__titulo">IVA acreditable <span>(recibidos)</span></p>
+                        <dl id="res-acreditable"></dl>
+                    </div>
+                    <div class="iva-caja iva-caja--resultado">
+                        <p class="iva-caja__titulo">Resultado</p>
+                        <dl id="res-resultado"></dl>
+                        <label class="iva-saldo">Saldo a favor de meses anteriores
+                            <input type="number" id="saldo-favor" min="0" step="0.01" placeholder="0.00"></label>
+                    </div>
+                </div>
+
+                <div class="pestanas xml-pestanas" role="tablist" id="pestanas"></div>
+
+                <div class="xml-toolbar">
+                    <input type="search" id="buscar" placeholder="Buscar RFC, nombre, folio, UUID…">
+                    <div class="xml-toolbar__der"><div id="origenes" class="xml-chips"></div></div>
+                </div>
+
+                <div class="xml-tabla-caja iva-tabla-caja">
+                    <table class="xml-tabla iva-tabla"><thead id="thead"></thead><tbody id="tbody"></tbody><tfoot id="tfoot"></tfoot></table>
+                    <p id="sin-filas" class="xml-vacio xml-vacio--tabla" hidden></p>
+                </div>
+                <p class="xml-pie"><span id="conteo"></span> · Flujo de efectivo: PUE en su mes, PPD cuando se paga. Lo cancelado en el SAT no cuenta.</p>
+            </div>
+        </div>
+    </div>
+</main>
+
+<script src="/assets/js/comun/periodo-meses.js?v=202610060030"></script>
+<script src="/herramientas/iva/iva.js?v=202610060030"></script>
+</body>
+</html>

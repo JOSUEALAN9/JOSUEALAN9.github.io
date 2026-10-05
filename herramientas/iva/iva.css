@@ -1,0 +1,21 @@
+.iva-resumen { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-bottom: 12px; }
+.iva-caja { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px 14px; }
+.iva-caja__titulo { font-size: 11px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; color: #0f172a; margin-bottom: 6px; }
+.iva-caja__titulo span { color: #94a3b8; font-weight: 700; text-transform: none; letter-spacing: 0; }
+.iva-caja dl { display: grid; grid-template-columns: 1fr auto; gap: 3px 10px; font-size: 13px; }
+.iva-caja dt { color: #475569; }
+.iva-caja dd { text-align: right; font-variant-numeric: tabular-nums; color: #0f172a; }
+.iva-caja dt.iva-total, .iva-caja dd.iva-total { font-weight: 800; border-top: 1px solid #e2e8f0; padding-top: 4px; }
+.iva-caja--resultado { border-color: var(--acento, #7c3aed); }
+.iva-cargo { color: #b91c1c !important; }
+.iva-favor { color: #047857 !important; }
+.iva-saldo { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 12px; color: #64748b; margin-top: 8px; }
+.iva-saldo input { width: 120px; border: 1px solid #cbd5e1; border-radius: 8px; padding: 4px 8px; text-align: right; font-size: 13px; }
+.iva-tabla { width: max-content; min-width: 100%; }
+.iva-tabla tbody tr { cursor: pointer; }
+.iva-tabla tbody tr:hover td { background: #f8fafc; }
+.iva-tabla tfoot td { font-weight: 800; background: #f1f5f9; position: sticky; bottom: 0; }
+.iva-aviso { color: #b45309; font-weight: 800; }
+.iva-neg { color: #b91c1c; }
+.pestana .xml-cuenta.iva-cuenta--aviso { color: #b45309; }
+@media (max-width: 900px) { .iva-resumen { grid-template-columns: 1fr; } }

@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Herramientas | Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/common.css?v=202610052300">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202610060030">
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="min-h-screen flex flex-col">
@@ -41,7 +41,7 @@
         <a href="/herramientas/declaraciones/" class="util" data-modulo="declaraciones" style="--tono:#0369A1;--tono-suave:#E4F1F9">
             <span class="util__icono"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 10v6m0 0l-3-3m3 3l3-3M7 21h10a2 2 0 002-2V7.4a1 1 0 00-.3-.7l-3.4-3.4a1 1 0 00-.7-.3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg></span>
             <h3>Declaraciones presentadas</h3>
-            <p>Baja acuse, pago y recibo de cada declaración del ejercicio. Cubre el portal nuevo y el anterior.</p>
+            <p>Acuse, pago y recibo de cada declaración, guardados por empresa: solo se baja lo que falta.</p>
             <span class="util__cta">Abrir</span>
         </a>
 
@@ -68,6 +68,13 @@
             <span class="util__icono"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg></span>
             <h3>Conciliación</h3>
             <p>Cruza tus facturas emitidas y recibidas contra sus complementos de pago y notas de crédito, con el tipo de cambio de Banxico.</p>
+            <span class="util__cta">Abrir</span>
+        </a>
+
+        <a href="/herramientas/iva/" class="util" data-modulo="iva" style="--tono:#7C3AED;--tono-suave:#F1EBFE">
+            <span class="util__icono"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 7h6m-6 4h6m-6 4h3M5 3h14a1 1 0 011 1v16l-3-2-2 2-2-2-2 2-2-2-3 2V4a1 1 0 011-1z"/></svg></span>
+            <h3>Papel de trabajo de IVA</h3>
+            <p>IVA cobrado y pagado del mes, desde tus XML: PUE, complementos de pago y notas de crédito, con Excel CFDI por CFDI.</p>
             <span class="util__cta">Abrir</span>
         </a>
 
@@ -148,8 +155,8 @@
     .util--vedado { opacity: .42; pointer-events: none; }
 </style>
 
-<script src="/assets/js/nucleo.js?v=202610052300"></script>
-<script src="/assets/js/barra.js?v=202610052300"></script>
+<script src="/assets/js/nucleo.js?v=202610060030"></script>
+<script src="/assets/js/barra.js?v=202610060030"></script>
 <script>
     document.addEventListener("fc:perfil", function (e) {
         var p = e.detail;
