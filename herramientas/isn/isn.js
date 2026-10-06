@@ -355,6 +355,23 @@
     }
     function mesAnterior() { var d = new Date(); d.setDate(1); d.setMonth(d.getMonth() - 1); return { anio: d.getFullYear(), mes: d.getMonth() + 1 }; }
 
+    function abrirPlantilla() {
+        // Por omisión el mes pasado (el que normalmente se declara); siempre se ve antes de bajarla
+        var m = mesAnterior();
+        opcionesAnios($("pl-anio"), m.anio);
+        $("pl-mes").innerHTML = MESES.map(function (n, i) { return '<option value="' + (i + 1) + '"' + (i + 1 === m.mes ? " selected" : "") + ">" + n + "</option>"; }).join("");
+        $("pl-error").hidden = true;
+        resumenPlantilla();
+        $("modal-plantilla").hidden = false;
+    }
+
+    function resumenPlantilla() {
+        var a = +$("pl-anio").value, ms = +$("pl-mes").value;
+        var tabla = (E.datos && E.datos.salarios_minimos) || {}, sm = tabla[a] && tabla[a].general;
+        $("pl-resumen").textContent = MESES[ms - 1] + " " + a + ": " + new Date(a, ms, 0).getDate() + " días" +
+            (sm ? " · salario mínimo zona general $" + sm.toFixed(2) : "") + ".";
+    }
+
     function abrirPresentar() {
         if (!E.puedePresentar) return;
         var m = mesAnterior();
@@ -524,7 +541,7 @@
         $("p-cancelar").addEventListener("click", function () { $("modal-presentar").hidden = true; });
         $("p-enviar").addEventListener("click", enviarLote);
         $("d-anio").addEventListener("change", pintarMesesDescarga);
-        $("d-cancelar").addEventListener("click", function () { $("modal-descargar").hidden = true; });
+        $("d-cancelar").addEventListener("click", function () { $("modal-descargar").hidden = true; $("modal-plantilla").hidden = true; });
         $("d-enviar").addEventListener("click", enviarDescarga);
         $("avance-cerrar").addEventListener("click", function () { $("avance").hidden = true; });
         $("avance-detener").addEventListener("click", detenerTrabajo);
@@ -558,12 +575,18 @@
             try { await api("/api/isn/periodo/" + E.editando.id, { method: "DELETE" }); $("modal").hidden = true; await cargarEmpresas(); cargar(); }
             catch (err) { $("form-error").textContent = err.message; $("form-error").hidden = false; }
         });
-        $("btn-plantilla").addEventListener("click", async function () {
-            // El mes a declarar: el del periodo general o el mes pasado; con tus empresas ya prellenadas
-            var hoy = new Date(), a = hoy.getFullYear(), ms = hoy.getMonth();          // getMonth: 0 = enero → mes pasado
-            if (ms === 0) { a -= 1; ms = 12; }
-            if (E.periodoGeneral) { a = +E.periodoGeneral.slice(0, 4); ms = +E.periodoGeneral.slice(5, 7); }
-            try { await bajar(await api("/api/isn/plantilla?anio=" + a + "&mes=" + ms), "Plantilla_ISN_" + a + "-" + String(ms).padStart(2, "0") + ".xlsx"); } catch (e) { aviso(e.message, true); }
+        $("btn-plantilla").addEventListener("click", abrirPlantilla);
+        $("pl-anio").addEventListener("change", resumenPlantilla);
+        $("pl-mes").addEventListener("change", resumenPlantilla);
+        $("pl-cancelar").addEventListener("click", function () { $("modal-plantilla").hidden = true; });
+        $("pl-bajar").addEventListener("click", async function () {
+            var a = +$("pl-anio").value, ms = +$("pl-mes").value, b = this;
+            b.disabled = true;
+            try {
+                await bajar(await api("/api/isn/plantilla?anio=" + a + "&mes=" + ms), "Plantilla_ISN_" + a + "-" + String(ms).padStart(2, "0") + ".xlsx");
+                $("modal-plantilla").hidden = true;
+            } catch (e) { $("pl-error").textContent = e.message; $("pl-error").hidden = false; }
+            b.disabled = false;
         });
         $("btn-excel").addEventListener("click", function () { $("in-excel").click(); });
         $("in-excel").addEventListener("change", async function () {

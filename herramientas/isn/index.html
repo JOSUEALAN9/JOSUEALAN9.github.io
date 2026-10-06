@@ -4,15 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ISN · Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/common.css?v=202610062330">
-    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202610062330">
-    <link rel="stylesheet" href="/herramientas/isn/isn.css?v=202610062330">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202610070030">
+    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202610070030">
+    <link rel="stylesheet" href="/herramientas/isn/isn.css?v=202610070030">
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-slate-50">
 <div id="app-header" data-modulo="isn" data-titulo="ISN" data-migas="Herramientas|/herramientas/"></div>
-<script src="/assets/js/nucleo.js?v=202610062330"></script>
-<script src="/assets/js/barra.js?v=202610062330"></script>
+<script src="/assets/js/nucleo.js?v=202610070030"></script>
+<script src="/assets/js/barra.js?v=202610070030"></script>
 
 <main class="xml-pagina">
     <div class="xml-cabeza">
@@ -181,6 +181,25 @@
     </div>
 </div>
 
+<!-- Plantilla de Excel: primero el periodo -->
+<div id="modal-plantilla" class="xml-modal" hidden>
+    <div class="xml-modal__caja isn-form">
+        <h3>Plantilla de Excel</h3>
+        <p class="isn-nota">¿Qué periodo vas a declarar? La plantilla trae ese año y mes en cada empresa, con los días del mes y el salario mínimo de su zona.</p>
+        <div class="isn-fila">
+            <label class="isn-campo">Año<select id="pl-anio"></select></label>
+            <label class="isn-campo">Mes<select id="pl-mes"></select></label>
+        </div>
+        <p class="isn-nota" id="pl-resumen"></p>
+        <p id="pl-error" class="isn-error" hidden></p>
+        <div class="isn-botones">
+            <span style="flex:1"></span>
+            <button type="button" id="pl-cancelar" class="xml-btn">Cancelar</button>
+            <button type="button" id="pl-bajar" class="xml-btn xml-btn--primario">Descargar plantilla</button>
+        </div>
+    </div>
+</div>
+
 <!-- Avance de lo que hace el robot de Tributanet -->
 <div id="avance" class="isn-avance" hidden>
     <div class="isn-avance__cabeza"><b id="avance-titulo">Tributanet</b><span id="avance-estado"></span>
@@ -189,6 +208,6 @@
     <ol id="avance-filas" class="isn-avance__filas"></ol>
 </div>
 
-<script src="/herramientas/isn/isn.js?v=202610062330"></script>
+<script src="/herramientas/isn/isn.js?v=202610070030"></script>
 </body>
 </html>
