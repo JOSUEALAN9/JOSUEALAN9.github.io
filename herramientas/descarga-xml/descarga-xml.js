@@ -92,6 +92,17 @@
 
     /* ================================================================ modo y acceso */
 
+    /* Web service 1.5: los XML de RECIBIDAS solo se pueden pedir vigentes (con "Todos" o "Cancelados" el SAT
+       contesta "XML mal formado"). En el portal sí se pueden buscar todas. */
+    function reglaEstado() {
+        var soloVigentes = E.modo === "webservice" && E.tipo === "recibidos";
+        var sel = $("estado");
+        Array.prototype.forEach.call(sel.options, function (o) { o.disabled = soloVigentes && o.value !== "Vigente"; });
+        if (soloVigentes) sel.value = "Vigente";
+        sel.title = soloVigentes ? "El SAT solo entrega por web service los XML de recibidas vigentes" : "";
+        $("estado-nota").hidden = !soloVigentes;
+    }
+
     function ponerModo(modo) {
         E.modo = modo;
         guardarLocal("descarga:modo", modo);
@@ -106,6 +117,7 @@
             : "El SAT prepara cada solicitud por su cuenta: puede tardar de minutos a horas. No necesitas dejar esta página abierta; la ves en Solicitudes.";
         pintarAcceso();
         pintarResumen();
+        reglaEstado();
         if (portal) cargarSesion();
     }
 
@@ -221,6 +233,7 @@
                 x.setAttribute("aria-pressed", x === b ? "true" : "false");
             });
             $("etq-contraparte").innerHTML = (E.tipo === "emitidos" ? "RFC receptor" : "RFC emisor") + ' <span class="dm-opcional">(opcional)</span>';
+            reglaEstado();
         });
     });
 
@@ -727,6 +740,7 @@
         var f = d.filtros || {};
         $("rfc-contraparte").value = f.rfc_contraparte || "";
         $("estado").value = f.estado || "Todos";
+        reglaEstado();
         $("tipo-comprobante").value = f.tipo_comprobante || "";
         if (f.acceso) { E.acceso = f.acceso; pintarAcceso(); }
         solicitar("cfdi", $("btn-descargar"));
