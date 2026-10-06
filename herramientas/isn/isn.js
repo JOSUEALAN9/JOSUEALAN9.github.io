@@ -149,7 +149,7 @@
         var base = (+$("f-rsm").value || 0) + (+$("f-rot").value || 0), tasa = +$("f-tasa").value;
         $("c-base").textContent = m(base);
         $("c-trab").textContent = (+$("f-tsm").value || 0) + (+$("f-tot").value || 0);
-        $("c-imp").textContent = tasa ? "$" + Math.round(base * tasa / 100).toLocaleString("es-MX") : "—";
+        $("c-imp").textContent = tasa ? "$" + Math.round(base * tasa / 100).toLocaleString("es-MX") : "Lo calcula el portal";
     }
 
     async function guardar(e) {
@@ -165,7 +165,7 @@
         try {
             var f = await json("/api/isn/periodo", "PUT", cuerpo);
             $("modal").hidden = true;
-            aviso("Guardado: " + f.mes_nombre + " " + f.anio + " · impuesto a cargo $" + m(f.impuesto) + ".");
+            aviso("Guardado: " + f.mes_nombre + " " + f.anio + (f.impuesto != null ? " · impuesto a cargo $" + m(f.impuesto) : "") + ".");
             E.anio = f.anio;
             await cargarEmpresas();
             abrir(f.rfc);
