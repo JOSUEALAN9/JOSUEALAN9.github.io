@@ -25,10 +25,8 @@
     function m(v) { return v == null ? "" : Number(v).toLocaleString("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
     function aviso(texto, error) { var a = $("aviso"); a.textContent = texto || ""; a.className = "isn-aviso" + (error ? " isn-aviso--error" : ""); a.hidden = !texto; }
     async function bajar(resp, porDefecto) {
-        var blob = await resp.blob(), url = URL.createObjectURL(blob), a = document.createElement("a");
         var mt = /filename="?([^";]+)"?/.exec(resp.headers.get("Content-Disposition") || "");
-        a.href = url; a.download = mt ? mt[1] : porDefecto; document.body.appendChild(a); a.click(); a.remove();
-        setTimeout(function () { URL.revokeObjectURL(url); }, 2000);
+        Fiscontable.guardarArchivo(await resp.blob(), mt ? mt[1] : porDefecto);
     }
 
     /* ------------------------------------------------------------ empresa y año */

@@ -813,12 +813,7 @@
                 boton.textContent = "Descargando…";
                 var r = await fetch(API + boton.dataset.url, { credentials: "include" });
                 if (!r.ok) throw new Error();
-                var blob = await r.blob();
-                var url = URL.createObjectURL(blob);
-                var a = document.createElement("a");
-                a.href = url; a.download = boton.dataset.nombre;
-                a.click();
-                setTimeout(function () { URL.revokeObjectURL(url); }, 4000);
+                Fiscontable.guardarArchivo(await r.blob(), boton.dataset.nombre);
             } else if (accion === "quitar") {
                 await fetch(API + "/api/procesos/" + boton.dataset.clase + "/" + boton.dataset.id,
                     { method: "DELETE", credentials: "include" });

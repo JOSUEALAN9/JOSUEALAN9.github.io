@@ -235,12 +235,7 @@
         try {
             var resp = await fetch(API + "/api/trabajos/" + jobId + "/descargar", { credentials: "include" });
             if (!resp.ok) { alerta(await leerError(resp)); return; }
-            var url = URL.createObjectURL(await resp.blob());
-            var a = document.createElement("a");
-            a.href = url;
-            a.download = nombre || (elegido.rfc + "_declaraciones.zip");
-            a.click();
-            setTimeout(function () { URL.revokeObjectURL(url); }, 4000);
+            Fiscontable.guardarArchivo(await resp.blob(), nombre || (elegido.rfc + "_declaraciones.zip"));
         } catch (e) {
             alerta("El archivo se generó, pero no se pudo bajar. Búscalo en Mis descargas.");
         } finally {

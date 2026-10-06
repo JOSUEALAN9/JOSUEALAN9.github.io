@@ -244,9 +244,7 @@
                 try {
                     var r = await fetch(API + "/api/programadas/" + b.dataset.bajar + "/descargar", { credentials: "include" });
                     if (!r.ok) throw new Error(await Fiscontable.leerError(r));
-                    var url = URL.createObjectURL(await r.blob()), a = document.createElement("a");
-                    a.href = url; a.download = "Programada_" + modulo + ".zip"; a.click();
-                    setTimeout(function () { URL.revokeObjectURL(url); }, 4000);
+                    Fiscontable.guardarArchivo(await r.blob(), "Programada_" + modulo + ".zip");
                 } catch (e) { alert(e.message); }
             }
         });

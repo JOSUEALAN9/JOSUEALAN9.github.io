@@ -53,11 +53,7 @@
     function enviar(ruta, cuerpo, metodo) {
         return api(ruta, { method: metodo || "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(cuerpo) });
     }
-    function descargarBlob(blob, nombre) {
-        var url = URL.createObjectURL(blob), a = document.createElement("a");
-        a.href = url; a.download = nombre; document.body.appendChild(a); a.click(); a.remove();
-        setTimeout(function () { URL.revokeObjectURL(url); }, 2000);
-    }
+    function descargarBlob(blob, nombre) { Fiscontable.guardarArchivo(blob, nombre); }
     function puede(modulo) { return !!(E.perfil && (E.perfil.modulos_permitidos || []).indexOf(modulo) !== -1); }
 
     /* ============================================================ arranque */

@@ -213,10 +213,8 @@
                 body: JSON.stringify({ rfc: E.rfc, desde: r.desde || "2000-01-01", hasta: r.hasta || new Date().toISOString().slice(0, 10),
                                        meses: E.P.meses(), saldo_favor: parseFloat($("saldo-favor").value) || 0, nombre: nombreDe(E.rfc) })
             });
-            var blob = await resp.blob(), url = URL.createObjectURL(blob), a = document.createElement("a");
             var mt = /filename="?([^";]+)"?/.exec(resp.headers.get("Content-Disposition") || "");
-            a.href = url; a.download = mt ? mt[1] : E.rfc + "_Papel_IVA.xlsx"; document.body.appendChild(a); a.click(); a.remove();
-            setTimeout(function () { URL.revokeObjectURL(url); }, 2000);
+            Fiscontable.guardarArchivo(await resp.blob(), mt ? mt[1] : E.rfc + "_Papel_IVA.xlsx");
         } catch (e) { avisar(e.message); }
         b.disabled = false; b.innerHTML = t;
     }

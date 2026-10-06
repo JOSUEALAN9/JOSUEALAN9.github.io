@@ -87,12 +87,7 @@
     async function bajarBlob(url, nombre) {
         var resp = await fetch(API + url, { credentials: "include" });
         if (!resp.ok) throw resp;
-        var objeto = URL.createObjectURL(await resp.blob());
-        var a = document.createElement("a");
-        a.href = objeto;
-        a.download = nombre;
-        a.click();
-        setTimeout(function () { URL.revokeObjectURL(objeto); }, 4000);
+        Fiscontable.guardarArchivo(await resp.blob(), nombre);
     }
 
     /* ============================== MODO INDIVIDUAL — paso 2 */

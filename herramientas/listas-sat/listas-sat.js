@@ -45,10 +45,7 @@
     function descargar(resp, porDefecto) {
         return resp.blob().then(function (blob) {
             var m = /filename="?([^";]+)"?/i.exec(resp.headers.get("Content-Disposition") || "");
-            var url = URL.createObjectURL(blob), a = document.createElement("a");
-            a.href = url; a.download = m ? m[1] : porDefecto;
-            document.body.appendChild(a); a.click(); a.remove();
-            setTimeout(function () { URL.revokeObjectURL(url); }, 2000);
+            Fiscontable.guardarArchivo(blob, m ? m[1] : porDefecto);
         });
     }
 

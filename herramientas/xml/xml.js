@@ -80,12 +80,7 @@
     function guardarLocal(clave, valor) { try { localStorage.setItem("xml:" + clave, JSON.stringify(valor)); } catch (e) { /* nada */ } }
     function leerLocal(clave) { try { return JSON.parse(localStorage.getItem("xml:" + clave)); } catch (e) { return null; } }
     E.pagosPor = leerLocal("pagosPor") === "pago" ? "pago" : "emision";
-    function descargarBlob(blob, nombre) {
-        var url = URL.createObjectURL(blob);
-        var a = document.createElement("a");
-        a.href = url; a.download = nombre; document.body.appendChild(a); a.click(); a.remove();
-        setTimeout(function () { URL.revokeObjectURL(url); }, 2000);
-    }
+    function descargarBlob(blob, nombre) { Fiscontable.guardarArchivo(blob, nombre); }
     function nombreArchivo(resp, porDefecto) {
         var cd = resp.headers.get("Content-Disposition") || "";
         var m = cd.match(/filename="?([^";]+)"?/);

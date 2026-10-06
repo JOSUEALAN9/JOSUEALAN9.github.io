@@ -760,12 +760,7 @@
         try {
             var r = await fetch(API + "/api/trabajos/" + encodeURIComponent(boton.dataset.job) + "/descargar", { credentials: "include" });
             if (!r.ok) { alerta(await Fiscontable.leerError(r)); return; }
-            var url = URL.createObjectURL(await r.blob());
-            var a = document.createElement("a");
-            a.href = url;
-            a.download = boton.dataset.nombre || "descarga_sat";
-            a.click();
-            setTimeout(function () { URL.revokeObjectURL(url); }, 4000);
+            Fiscontable.guardarArchivo(await r.blob(), boton.dataset.nombre || "descarga_sat");
         } catch (e) {
             alerta("No se pudo bajar el archivo. Búscalo en Mis descargas.");
         } finally {

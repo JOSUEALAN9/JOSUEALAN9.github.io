@@ -89,11 +89,7 @@ async function descargar(url, nombre, boton) {
             mostrarAviso("No se pudo descargar. Puede que el archivo ya haya expirado.");
             return;
         }
-        const blob = await resp.blob();
-        const a = document.createElement("a");
-        a.href = window.URL.createObjectURL(blob);
-        a.download = nombre || "documento";
-        a.click();
+        Fiscontable.guardarArchivo(await resp.blob(), nombre || "documento");
     } catch (e) {
         mostrarAviso("No se pudo conectar con el servidor.");
     } finally {
