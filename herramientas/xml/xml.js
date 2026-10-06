@@ -54,7 +54,8 @@
         modulo: "recibidos", sub: "", rapidos: {}, busqueda: "",
         orden: { clave: null, dir: 1 }, seleccion: new Set(),
         columnas: {}, vistas: [], vistaActual: {},
-        filas: [], altoFila: 35, av: {}, otras: [], clientesLista: null
+        filas: [], altoFila: 35, av: {}, otras: [], clientesLista: null,
+        pagosPor: "emision"            // pestaña Pagos: periodo por fecha de "emision" o de "pago" (FechaPago)
     };
 
     var fmtMoneda = new Intl.NumberFormat("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -78,6 +79,7 @@
     function avisar(texto, tipo) { Fiscontable.aviso ? Fiscontable.aviso(texto) : alert(texto); }
     function guardarLocal(clave, valor) { try { localStorage.setItem("xml:" + clave, JSON.stringify(valor)); } catch (e) { /* nada */ } }
     function leerLocal(clave) { try { return JSON.parse(localStorage.getItem("xml:" + clave)); } catch (e) { return null; } }
+    E.pagosPor = leerLocal("pagosPor") === "pago" ? "pago" : "emision";
     function descargarBlob(blob, nombre) {
         var url = URL.createObjectURL(blob);
         var a = document.createElement("a");
@@ -242,6 +244,7 @@
         E.busqueda = ""; $("buscar").value = "";
         E.seleccion.clear();
         E.cuentas = {};                                        // "AAAA-MM" -> {total, modulos}
+        E.cuentasPago = null;                                  // por mes de pago: se vuelven a pedir
         (c.periodos || []).forEach(function (p) { if (p.periodo) E.cuentas[p.periodo] = { n: p.n, modulos: p.modulos || {} }; });
         E.cargado = null;
         E.P.poner(E.periodoGeneral ? { anio: E.periodoGeneral.slice(0, 4), meses: [E.periodoGeneral.slice(5, 7)] } : null);
@@ -269,8 +272,17 @@
     function mesesElegidos() { return E.P.meses(); }
 
     function cuantos(periodo) {
+        if (E.modulo === "pagos" && E.pagosPor === "pago") return (E.cuentasPago || {})[periodo] || 0;   // por mes de pago
         var c = E.cuentas[periodo];
         return c ? (c.modulos[E.modulo] || 0) : 0;
+    }
+
+    /* Números de los meses en Pagos por fecha de pago: se piden una vez por empresa. */
+    async function cargarCuentasPago() {
+        if (!E.rfc || E.pagosPor !== "pago" || (E.cuentasPago && E.cuentasPagoRfc === E.rfc)) return;
+        try { E.cuentasPago = await apiJSON("/api/xml/pagos-por-mes?rfc=" + encodeURIComponent(E.rfc)); E.cuentasPagoRfc = E.rfc; }
+        catch (e) { E.cuentasPago = {}; }
+        pintarPeriodo();
     }
 
     // Los números de los cuadros son de la pestaña en la que estás
@@ -284,7 +296,7 @@
     function alCambiarPeriodo() {
         E.seleccion.clear();
         var r = rangoPeriodo();
-        var cabe = E.cargado && E.cargado.rfc === E.rfc && hayEleccion() && !porFechas() && !E.cargado.fechas &&
+        var cabe = E.cargado && E.cargado.rfc === E.rfc && hayEleccion() && !porFechas() && !E.cargado.fechas && E.cargado.pagosPor === E.pagosPor &&
             r.desde >= E.cargado.desde && r.hasta <= E.cargado.hasta;
         if (cabe) {
             pintarPeriodo(); pintarPestanas(); pintarSubfiltros(); aplicar();
@@ -301,12 +313,14 @@
         var r = rangoPeriodo();
         // Sin elección no se trae ningún XML (solo la forma de la tabla)
         var desde = hayEleccion() ? r.desde : "1900-01-01", hasta = hayEleccion() ? r.hasta : "1900-01-01";
-        var q = "?rfc=" + encodeURIComponent(E.rfc) + (desde ? "&desde=" + desde : "") + (hasta ? "&hasta=" + hasta : "");
+        var q = "?rfc=" + encodeURIComponent(E.rfc) + (desde ? "&desde=" + desde : "") + (hasta ? "&hasta=" + hasta : "") +
+            (E.pagosPor === "pago" ? "&pagos_por=pago" : "");
         $("conteo-filas").textContent = "Cargando…";
         try {
             E.datos = (await apiJSON("/api/xml/registros" + q)).modulos;
         } catch (e) { avisar(e.message); return; }
-        E.cargado = hayEleccion() ? { rfc: E.rfc, desde: r.desde, hasta: r.hasta, fechas: porFechas() } : null;
+        E.cargado = hayEleccion() ? { rfc: E.rfc, desde: r.desde, hasta: r.hasta, fechas: porFechas(), pagosPor: E.pagosPor } : null;
+        cargarCuentasPago();
         E.seleccion.clear();
         pintarPestanas();
         cambiarModulo(E.modulo, true);
@@ -366,7 +380,15 @@
             var n = contarUuid(filas.filter(function (f) { return f._sub === s[0]; }));
             if (n) html.push('<button type="button" class="xml-chip' + (E.sub === s[0] ? " xml-chip--activo" : "") + '" data-sub="' + s[0] + '">' + s[1] + "<span>" + n + "</span></button>");
         });
+        if (E.modulo === "pagos") {
+            html.push('<span class="xml-pagos-por" role="group" aria-label="Periodo de los pagos">Periodo por ' +
+                [["emision", "fecha de emisión"], ["pago", "fecha de pago"]].map(function (o) {
+                    return '<button type="button" class="xml-chip' + (E.pagosPor === o[0] ? " xml-chip--activo" : "") + '" data-pagos-por="' + o[0] + '"' +
+                        (o[0] === "pago" ? ' title="Complementos cuyo pago (FechaPago) cae en los meses elegidos, aunque se hayan emitido en otro mes"' : "") + ">" + o[1] + "</button>";
+                }).join("") + "</span>");
+        }
         $("subfiltros").innerHTML = html.join("");
+        $("btn-zip-origen").hidden = E.modulo !== "pagos";
     }
 
     function pintarRapidos() {
@@ -809,7 +831,7 @@
     /* ============================================================ acciones */
     async function exportarExcel(modo) {
         var r = rangoPeriodo();
-        var cuerpo = { rfc: E.rfc, desde: r.desde, hasta: r.hasta, meses: mesesElegidos(), modo: modo };
+        var cuerpo = { rfc: E.rfc, desde: r.desde, hasta: r.hasta, meses: mesesElegidos(), modo: modo, pagos_por: E.pagosPor };
         if (modo === "vista") {
             cuerpo.modulo = E.modulo;
             cuerpo.sub = E.sub || null;
@@ -845,6 +867,24 @@
         try {
             var resp = await postJSON("/api/xml/zip", { rfc: E.rfc, uuids: uuids });
             descargarBlob(await resp.blob(), nombreArchivo(resp, "xml.zip"));
+        } catch (e) { avisar(e.message); }
+        boton.disabled = false; boton.innerHTML = texto;
+    }
+
+    /* Pagos: los XML de las facturas que pagaron los complementos que ves (o los seleccionados). */
+    async function descargarZipOrigen() {
+        var elegidos = E.seleccion.size ? E.seleccion : null;
+        var filas = (E.filas || []).filter(function (f) { return !elegidos || elegidos.has(f.uuid); });
+        var doctos = Array.from(new Set(filas.map(function (f) { return f.docto_uuid; }).filter(Boolean)));
+        var faltan = new Set(filas.filter(function (f) { return f.docto_uuid && f.docto_encontrado === "No"; }).map(function (f) { return f.docto_uuid; }));
+        var hay = doctos.filter(function (u) { return !faltan.has(u); });
+        if (!hay.length) { avisar(doctos.length ? "Ninguna de esas facturas está en tu biblioteca (" + doctos.length + " sin cargar)." : "No hay facturas relacionadas en lo que ves."); return; }
+        var boton = $("btn-zip-origen"), texto = boton.innerHTML;
+        boton.disabled = true; boton.innerHTML = "<b>⏳</b>Preparando…";
+        try {
+            var resp = await postJSON("/api/xml/zip", { rfc: E.rfc, uuids: hay });
+            descargarBlob(await resp.blob(), "facturas_pagadas.zip");
+            if (faltan.size) avisar(hay.length + " factura(s) en el ZIP. " + faltan.size + " no están en tu biblioteca (descárgalas del SAT para tenerlas).");
         } catch (e) { avisar(e.message); }
         boton.disabled = false; boton.innerHTML = texto;
     }
@@ -1276,6 +1316,13 @@
             if (b && !b.disabled) cambiarModulo(b.dataset.modulo);
         });
         $("subfiltros").addEventListener("click", function (e) {
+            var pp = e.target.closest("[data-pagos-por]");
+            if (pp) {
+                if (pp.dataset.pagosPor === E.pagosPor) return;
+                E.pagosPor = pp.dataset.pagosPor; guardarLocal("pagosPor", E.pagosPor);
+                E.cargado = null; cargarRegistros();               // otro criterio: se vuelve a pedir al servidor
+                return;
+            }
             var b = e.target.closest("[data-sub]");
             if (!b) return;
             E.sub = b.dataset.sub; pintarSubfiltros(); aplicar();
@@ -1305,6 +1352,7 @@
             var b = e.target.closest("[data-excel]"); if (b && !b.disabled) exportarExcel(b.dataset.excel);
         });
         $("btn-zip").addEventListener("click", descargarZip);
+        $("btn-zip-origen").addEventListener("click", descargarZipOrigen);
         $("btn-listas").addEventListener("click", abrirListas);
         $("btn-pdf").addEventListener("click", descargarPdf);
         $("btn-quitar").addEventListener("click", quitarSeleccion);
