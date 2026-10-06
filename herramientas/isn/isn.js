@@ -90,7 +90,7 @@
                 ["trab", "Trabajadores", 100, 1], ["base", "Base", 120, 1], ["tasa", "Tasa", 64, 1], ["impuesto", "Impuesto (B)", 120, 1],
                 ["retenido", "Retenido", 100, 1], ["a_cargo", "A cargo", 120, 1],
                 ["presentada", "Estatus", 120], ["acuse_importe", "Pagado (acuse)", 120, 1], ["diferencia", "Diferencia", 100, 1],
-                ["folio", "Folio", 110], ["fecha_presentacion", "Presentada el", 110], ["acuse", "Acuse", 70], ["avisos", "Avisos", 260]];
+                ["folio", "Folio", 110], ["fecha_presentacion", "Presentada el", 110], ["acuse", "PDF", 110], ["avisos", "Avisos", 260]];
 
     function pintar() {
         pintarAnios();
@@ -116,7 +116,8 @@
                         if (f.faltan && f.faltan.length) return '<td title="' + esc(f.faltan.join(" ")) + '"><span class="xml-sello xml-sello--ambar">Falta información</span></td>';
                         return '<td title="Listo para llenar en Tributanet"><span class="xml-sello isn-sello-listo">Por presentar · listo</span></td>';
                     case "diferencia": return '<td class="xml-num' + (f.diferencia ? " isn-dif" : "") + '">' + (f.diferencia ? m(f.diferencia) : "") + "</td>";
-                    case "acuse": return "<td>" + (f.tiene_acuse ? '<a class="xml-enlace" data-acuse="' + f.id + '" href="' + API + "/api/isn/acuse/" + f.id + '">PDF</a>' : "") + "</td>";
+                    case "acuse": return "<td>" + (f.tiene_acuse ? '<a class="xml-enlace" data-acuse="' + f.id + '" href="' + API + "/api/isn/acuse/" + f.id + '">Acuse</a>' : "") +
+                        (f.tiene_pago_ceros ? ' · <a class="xml-enlace" data-acuse="' + f.id + '" href="' + API + "/api/isn/pago-ceros/" + f.id + '" title="Registrar pago en ceros">Ceros</a>' : "") + "</td>";
                     case "avisos": var t = (f.faltan || []).concat(f.avisos); return '<td title="' + esc(t.join(" · ")) + '" style="color:#b45309">' + esc(t.join(" · ")) + "</td>";
                     default: return "<td" + (c[3] ? ' class="xml-num"' : "") + ">" + (c[3] ? m(f[c[0]]) : esc(f[c[0]] == null ? "" : f[c[0]])) + "</td>";
                 }
