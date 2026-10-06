@@ -4,15 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ISN · Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/common.css?v=202610061400">
-    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202610061400">
-    <link rel="stylesheet" href="/herramientas/isn/isn.css?v=202610061400">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202610061700">
+    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202610061700">
+    <link rel="stylesheet" href="/herramientas/isn/isn.css?v=202610061700">
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-slate-50">
 <div id="app-header" data-modulo="isn" data-titulo="ISN" data-migas="Herramientas|/herramientas/"></div>
-<script src="/assets/js/nucleo.js?v=202610061400"></script>
-<script src="/assets/js/barra.js?v=202610061400"></script>
+<script src="/assets/js/nucleo.js?v=202610061700"></script>
+<script src="/assets/js/barra.js?v=202610061700"></script>
 
 <main class="xml-pagina">
     <div class="xml-cabeza">
@@ -35,10 +35,11 @@
         <aside class="mod-acciones" aria-label="Acciones">
             <p class="mod-acciones__grupo">Calcular</p>
             <button type="button" id="btn-nuevo" class="mod-accion mod-accion--primaria"><b>+</b>Nuevo periodo</button>
+            <button type="button" id="btn-datos" class="mod-accion" title="Domicilio, giro, firma y sucursales que pide Tributanet"><b>🏢</b>Datos de la declaración</button>
             <p class="mod-acciones__grupo">Cargar</p>
             <button type="button" id="btn-excel" class="mod-accion" title="Varias empresas y meses a la vez"><b>▦</b>Cargar Excel</button>
-            <button type="button" id="btn-plantilla" class="mod-accion"><b>⇩</b>Plantilla de Excel</button>
-            <button type="button" id="btn-acuses" class="mod-accion" title="Acuses de ISN de Quintana Roo o BCS: se guardan y se cruzan con lo calculado"><b>📄</b>Leer acuses</button>
+            <button type="button" id="btn-plantilla" class="mod-accion" title="Con tus empresas y sus sucursales; solo llenas los números"><b>⇩</b>Plantilla de Excel</button>
+            <button type="button" id="btn-acuses" class="mod-accion" title="Acuses de ISN de Quintana Roo o BCS: se guardan, se cruzan con lo calculado y llenan los datos de la declaración"><b>📄</b>Leer acuses</button>
             <p class="mod-acciones__grupo">Reportes</p>
             <button type="button" id="btn-exportar" class="mod-accion"><b>▤</b>Exportar Excel</button>
             <p class="mod-acciones__grupo">Declaración</p>
@@ -49,11 +50,12 @@
         </aside>
         <div class="mod-layout__principal">
             <div id="resumen" class="ctx-resumen"></div>
+            <div id="datos-empresa" class="isn-datos" hidden></div>
             <div class="xml-tabla-caja isn-tabla-caja">
                 <table class="xml-tabla isn-tabla"><thead id="thead"></thead><tbody id="tbody"></tbody></table>
                 <p id="sin-filas" class="xml-vacio xml-vacio--tabla" hidden></p>
             </div>
-            <p class="xml-pie">Base = remuneraciones con salario mínimo + con otro salario · Impuesto = base × tasa (la del portal o la del último acuse), en pesos · Clic en un periodo para editarlo.</p>
+            <p class="xml-pie">Base = remuneraciones con salario mínimo + con otro salario · Impuesto (B) = base × tasa · A cargo = B − retenido · Clic en un periodo para editarlo.</p>
         </div>
     </div>
 </main>
@@ -73,13 +75,27 @@
             <label>Remuneraciones salario mínimo<input id="f-rsm" type="number" min="0" step="0.01" value="0"></label>
             <label>Trabajadores con otro salario<input id="f-tot" type="number" min="0" step="1" value="0"></label>
             <label>Remuneraciones otro salario<input id="f-rot" type="number" min="0" step="0.01" value="0"></label>
+            <label title="Impuesto retenido por concesiones de obra pública y/o terceros">Retenido (C)<input id="f-ret" type="number" min="0" step="1" value="0"></label>
+            <label title="Adultos mayores, con discapacidad, en estado de gravidez o recién egresados">Trabajadores especiales<input id="f-esp" type="number" min="0" step="1" value="0"></label>
             <label>Tasa %<input id="f-tasa" type="number" min="0" step="0.01" placeholder="La pone el portal"></label>
             <label class="isn-ancho">Notas<input id="f-notas"></label>
         </div>
         <div class="isn-calculo">
             <span>Base <b id="c-base">0.00</b></span>
             <span>Trabajadores <b id="c-trab">0</b></span>
-            <span>Impuesto a cargo <b id="c-imp">—</b></span>
+            <span>Impuesto (B) <b id="c-imp">—</b></span>
+            <span>A cargo <b id="c-cargo">—</b></span>
+        </div>
+        <div id="reparto" class="isn-reparto" hidden>
+            <div class="isn-reparto__cabeza">
+                <b>Desglose por sucursal</b>
+                <button type="button" id="btn-repartir" class="xml-enlace">Repartir el impuesto según empleados</button>
+            </div>
+            <div class="isn-reparto__caja">
+                <table class="isn-reparto__tabla"><thead><tr><th>Sucursal</th><th class="xml-num">Empleados</th><th class="xml-num">Impuesto causado</th></tr></thead>
+                    <tbody id="reparto-filas"></tbody><tfoot><tr><td>Suma</td><td class="xml-num" id="rp-trab"></td><td class="xml-num" id="rp-imp"></td></tr></tfoot></table>
+            </div>
+            <p id="reparto-nota" class="isn-nota"></p>
         </div>
         <p id="form-error" class="isn-error" hidden></p>
         <div class="isn-botones">
@@ -91,6 +107,27 @@
     </form>
 </div>
 
-<script src="/herramientas/isn/isn.js?v=202610061400"></script>
+<!-- Datos de la declaración (lo que pide Tributanet) -->
+<div id="modal-datos" class="xml-modal" hidden>
+    <form id="form-datos" class="xml-modal__caja isn-form" autocomplete="off">
+        <h3 id="datos-titulo">Datos de la declaración</h3>
+        <p class="isn-nota">Se llenan solos con el acuse más reciente. Así quedan en Tributanet.</p>
+        <div id="datos-campos" class="isn-rejilla"></div>
+        <div class="isn-reparto__cabeza"><b>Matriz y sucursales</b><button type="button" id="btn-sucursal" class="xml-enlace">+ Agregar sucursal</button></div>
+        <div class="isn-reparto__caja">
+            <table class="isn-reparto__tabla"><thead><tr><th style="width:90px">Clave</th><th>Nombre y domicilio</th><th style="width:30px"></th></tr></thead>
+                <tbody id="sucursales-filas"></tbody></table>
+        </div>
+        <p id="datos-error" class="isn-error" hidden></p>
+        <div class="isn-botones">
+            <button type="button" id="datos-acuse" class="xml-btn">Llenar con un acuse</button>
+            <span style="flex:1"></span>
+            <button type="button" id="datos-cancelar" class="xml-btn">Cancelar</button>
+            <button type="submit" class="xml-btn xml-btn--primario">Guardar</button>
+        </div>
+    </form>
+</div>
+
+<script src="/herramientas/isn/isn.js?v=202610061700"></script>
 </body>
 </html>
