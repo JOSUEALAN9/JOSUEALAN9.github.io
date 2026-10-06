@@ -1,0 +1,19 @@
+.isn-anio { border: 1px solid #e2e8f0; border-radius: 10px; padding: 9px 10px; font-size: 13.5px; font-weight: 700; background: #fff; }
+.isn-aviso { background: #ecfdf5; border: 1px solid #a7f3d0; color: #065f46; border-radius: 10px; padding: 10px 14px; font-size: 13px; margin-bottom: 12px; white-space: pre-line; }
+.isn-aviso--error { background: #fffbeb; border-color: #fde68a; color: #92400e; }
+.isn-tabla { width: max-content; min-width: 100%; }
+.isn-tabla tbody tr { cursor: pointer; }
+.isn-tabla tbody tr:hover td { background: #f8fafc; }
+.isn-tabla-caja { height: auto; min-height: 300px; max-height: calc(100vh - 300px); }
+.isn-dif { color: #b91c1c; font-weight: 800; }
+.isn-form { width: 640px; }
+.isn-rejilla { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px 12px; margin: 10px 0; }
+.isn-rejilla label { display: flex; flex-direction: column; gap: 4px; font-size: 11.5px; font-weight: 700; color: #475569; }
+.isn-rejilla input, .isn-rejilla select { border: 1px solid #cbd5e1; border-radius: 8px; padding: 7px 9px; font-size: 13.5px; font-weight: 500; color: #0f172a; }
+.isn-rejilla .isn-ancho { grid-column: 1 / -1; }
+#f-rfc { text-transform: uppercase; font-family: ui-monospace, monospace; }
+.isn-calculo { display: flex; flex-wrap: wrap; gap: 18px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px 14px; font-size: 13px; color: #475569; }
+.isn-calculo b { color: #0f172a; font-size: 15px; margin-left: 4px; }
+.isn-error { color: #b91c1c; font-size: 13px; margin-top: 8px; }
+.isn-botones { display: flex; gap: 8px; margin-top: 14px; }
+@media (max-width: 680px) { .isn-rejilla { grid-template-columns: 1fr 1fr; } }

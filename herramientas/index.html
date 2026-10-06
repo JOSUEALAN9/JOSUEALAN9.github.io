@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Herramientas | Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/common.css?v=202610060030">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202610061030">
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="min-h-screen flex flex-col">
@@ -61,6 +61,13 @@
             <span class="util__icono"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z"/></svg></span>
             <h3>Voucheo de impuestos</h3>
             <p>Vacía los acuses en PDF al papel de trabajo de Excel. Hoy cubre ISN e ISH de Quintana Roo e ISN de BCS.</p>
+            <span class="util__cta">Abrir</span>
+        </a>
+
+        <a href="/herramientas/isn/" class="util" data-modulo="isn" style="--tono:#BE185D;--tono-suave:#FCE7F3">
+            <span class="util__icono"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M17 20h5v-2a3 3 0 00-5.4-1.8M17 20H7m10 0v-2c0-.7-.1-1.3-.4-1.8M7 20H2v-2a3 3 0 015.4-1.8M7 20v-2c0-.7.1-1.3.4-1.8m0 0a5 5 0 019.2 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg></span>
+            <h3>ISN (impuesto sobre nóminas)</h3>
+            <p>Calcula el ISN del mes, captura o carga por Excel, y lee los acuses de Quintana Roo y BCS para llevar el control.</p>
             <span class="util__cta">Abrir</span>
         </a>
 
@@ -155,8 +162,8 @@
     .util--vedado { opacity: .42; pointer-events: none; }
 </style>
 
-<script src="/assets/js/nucleo.js?v=202610060030"></script>
-<script src="/assets/js/barra.js?v=202610060030"></script>
+<script src="/assets/js/nucleo.js?v=202610061030"></script>
+<script src="/assets/js/barra.js?v=202610061030"></script>
 <script>
     document.addEventListener("fc:perfil", function (e) {
         var p = e.detail;

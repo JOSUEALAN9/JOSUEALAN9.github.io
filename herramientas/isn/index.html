@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ISN · Fiscontable</title>
+    <link rel="stylesheet" href="/assets/css/common.css?v=202610061030">
+    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202610061030">
+    <link rel="stylesheet" href="/herramientas/isn/isn.css?v=202610061030">
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-50">
+<div id="app-header" data-modulo="isn" data-titulo="ISN" data-migas="Herramientas|/herramientas/"></div>
+<script src="/assets/js/nucleo.js?v=202610061030"></script>
+<script src="/assets/js/barra.js?v=202610061030"></script>
+
+<main class="xml-pagina">
+    <div class="xml-cabeza">
+        <h1>Impuesto sobre nóminas</h1>
+        <div class="ctx">
+            <div class="xml-menu">
+                <button type="button" id="btn-empresa" class="ctx-campo" aria-haspopup="menu">
+                    <span class="ctx-campo__texto"><small id="empresa-etiqueta">Empresa</small><strong id="empresa-titulo">Elegir empresa</strong></span>
+                    <span class="ctx-campo__flecha" aria-hidden="true">▾</span>
+                </button>
+                <div id="menu-empresa" class="xml-menu__lista xml-menu__lista--otra" hidden></div>
+            </div>
+            <select id="sel-anio" class="isn-anio" aria-label="Año"></select>
+        </div>
+    </div>
+
+    <div id="aviso" class="isn-aviso" hidden></div>
+
+    <div class="mod-layout">
+        <aside class="mod-acciones" aria-label="Acciones">
+            <p class="mod-acciones__grupo">Calcular</p>
+            <button type="button" id="btn-nuevo" class="mod-accion mod-accion--primaria"><b>+</b>Nuevo periodo</button>
+            <p class="mod-acciones__grupo">Cargar</p>
+            <button type="button" id="btn-excel" class="mod-accion" title="Varias empresas y meses a la vez"><b>▦</b>Cargar Excel</button>
+            <button type="button" id="btn-plantilla" class="mod-accion"><b>⇩</b>Plantilla de Excel</button>
+            <button type="button" id="btn-acuses" class="mod-accion" title="Acuses de ISN de Quintana Roo o BCS: se guardan y se cruzan con lo calculado"><b>📄</b>Leer acuses</button>
+            <p class="mod-acciones__grupo">Reportes</p>
+            <button type="button" id="btn-exportar" class="mod-accion"><b>▤</b>Exportar Excel</button>
+            <p class="mod-acciones__grupo">Declaración</p>
+            <button type="button" id="btn-presentar" class="mod-accion" disabled title="El robot de Tributanet va en la siguiente entrega"><b>➤</b>Presentar declaración</button>
+            <p class="mod-acciones__nota">Presentar: próximamente.</p>
+            <input type="file" id="in-excel" accept=".xlsx" hidden>
+            <input type="file" id="in-acuses" accept=".pdf" multiple hidden>
+        </aside>
+        <div class="mod-layout__principal">
+            <div id="resumen" class="ctx-resumen"></div>
+            <div class="xml-tabla-caja isn-tabla-caja">
+                <table class="xml-tabla isn-tabla"><thead id="thead"></thead><tbody id="tbody"></tbody></table>
+                <p id="sin-filas" class="xml-vacio xml-vacio--tabla" hidden></p>
+            </div>
+            <p class="xml-pie">Base = remuneraciones con salario mínimo + con otro salario · Impuesto = base × tasa, en pesos · Clic en un periodo para editarlo.</p>
+        </div>
+    </div>
+</main>
+
+<!-- Captura / edición de un periodo -->
+<div id="modal" class="xml-modal" hidden>
+    <form id="form" class="xml-modal__caja isn-form" autocomplete="off">
+        <h3 id="form-titulo">Nuevo periodo</h3>
+        <div class="isn-rejilla">
+            <label>RFC<input id="f-rfc" maxlength="13" required></label>
+            <label>Estado<select id="f-estado"><option value="QROO">Quintana Roo</option><option value="BCS">Baja California Sur</option></select></label>
+            <label>Municipio<input id="f-municipio" placeholder="p. ej. BENITO JUAREZ"></label>
+            <label>Año<input id="f-anio" type="number" min="2000" max="2100" required></label>
+            <label>Mes<select id="f-mes"></select></label>
+            <label>Tipo<select id="f-tipo"><option>Normal</option><option>Complementaria</option></select></label>
+            <label>Trabajadores con salario mínimo<input id="f-tsm" type="number" min="0" step="1" value="0"></label>
+            <label>Remuneraciones salario mínimo<input id="f-rsm" type="number" min="0" step="0.01" value="0"></label>
+            <label>Trabajadores con otro salario<input id="f-tot" type="number" min="0" step="1" value="0"></label>
+            <label>Remuneraciones otro salario<input id="f-rot" type="number" min="0" step="0.01" value="0"></label>
+            <label>Tasa %<input id="f-tasa" type="number" min="0" step="0.01" required></label>
+            <label class="isn-ancho">Notas<input id="f-notas"></label>
+        </div>
+        <div class="isn-calculo">
+            <span>Base <b id="c-base">0.00</b></span>
+            <span>Trabajadores <b id="c-trab">0</b></span>
+            <span>Impuesto a cargo <b id="c-imp">—</b></span>
+        </div>
+        <p id="form-error" class="isn-error" hidden></p>
+        <div class="isn-botones">
+            <button type="button" id="form-borrar" class="xml-btn xml-btn--peligro" hidden>Borrar</button>
+            <span style="flex:1"></span>
+            <button type="button" id="form-cancelar" class="xml-btn">Cancelar</button>
+            <button type="submit" class="xml-btn xml-btn--primario">Guardar</button>
+        </div>
+    </form>
+</div>
+
+<script src="/herramientas/isn/isn.js?v=202610061030"></script>
+</body>
+</html>
