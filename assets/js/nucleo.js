@@ -14,7 +14,7 @@
 (function () {
     "use strict";
 
-    var VERSION = "202610070130";
+    var VERSION = "202610070300";
     var API = "https://api.josuealan.com";
 
     function escapar(valor) {

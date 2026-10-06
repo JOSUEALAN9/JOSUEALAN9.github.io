@@ -174,7 +174,7 @@
     function filaSucursal(s) {
         var tr = document.createElement("tr");
         tr.innerHTML = '<td><input class="su-clave" maxlength="6" placeholder="02001" value="' + esc(s.clave || "") + '"></td>' +
-            '<td><input class="su-nombre" value="' + esc(s.nombre || "") + '"></td>' +
+            '<td><input class="su-nombre" value="' + esc(s.nombre || "") + '">' + (s.nueva ? ' <span class="isn-sello-nueva" title="Reparte sus empleados en los periodos por presentar">nueva</span>' : "") + "</td>" +
             '<td><button type="button" class="isn-quitar" title="Quitar">×</button></td>';
         $("sucursales-filas").appendChild(tr);
     }
@@ -277,9 +277,13 @@
         if (caja.hidden) { $("reparto-filas").innerHTML = ""; return; }
         var previo = {};
         ((f && f.reparto) || []).forEach(function (r) { previo[r.clave] = r; });
+        var llave = $("f-anio").value + "-" + String($("f-mes").value).padStart(2, "0") + "-" + $("f-tipo").value;
         $("reparto-filas").innerHTML = suc.map(function (s) {
-            var r = previo[s.clave] || {};
-            return '<tr data-clave="' + esc(s.clave) + '"><td title="' + esc(s.nombre) + '">' + esc(s.clave) + " · " + esc(s.nombre.slice(0, 48)) + "</td>" +
+            // Sucursal nueva aún sin repartir en este periodo: vacía y marcada (el automático le daría 0)
+            var nueva = s.nueva && (s.repartida_en || []).indexOf(llave) === -1;
+            var r = nueva ? {} : (previo[s.clave] || {});
+            return '<tr data-clave="' + esc(s.clave) + '"' + (nueva ? ' class="isn-nueva" data-nueva="1"' : "") + '><td title="' + esc(s.nombre) + '">' +
+                esc(s.clave) + " · " + esc(s.nombre.slice(0, 48)) + (nueva ? ' <span class="isn-sello-nueva">nueva</span>' : "") + "</td>" +
                 '<td class="xml-num"><input type="number" min="0" step="1" class="rp-t" value="' + (r.trabajadores != null ? r.trabajadores : (suc.length === 1 ? "" : "")) + '"></td>' +
                 '<td class="xml-num"><input type="number" min="0" step="1" class="rp-i" value="' + (r.impuesto != null ? r.impuesto : "") + '"></td></tr>';
         }).join("");
@@ -290,7 +294,7 @@
     function filasReparto() {
         return Array.from(document.querySelectorAll("#reparto-filas tr")).map(function (tr) {
             var t = tr.querySelector(".rp-t").value, i = tr.querySelector(".rp-i").value;
-            return { clave: tr.dataset.clave, trabajadores: t === "" ? null : +t, impuesto: i === "" ? null : +i };
+            return { clave: tr.dataset.clave, trabajadores: t === "" ? null : +t, impuesto: i === "" ? null : +i, nueva: !!tr.dataset.nueva };
         });
     }
 
@@ -333,6 +337,13 @@
         };
         if (!$("reparto").hidden) {
             var filas = filasReparto();
+            var sinPoner = filas.filter(function (r) { return r.nueva && r.trabajadores == null; });
+            if (sinPoner.length) {
+                $("form-error").textContent = "Sucursal nueva: " + sinPoner.map(function (r) { return r.clave; }).join(", ") +
+                    ". Pon sus empleados (aunque sean 0) y reparte los demás; el reparto automático le daría 0.";
+                $("form-error").hidden = false;
+                return;
+            }
             // Vacío = automático (como el último mes). Con empleados: el impuesto vacío se reparte según empleados.
             if (filas.some(function (r) { return r.trabajadores != null || r.impuesto != null; }))
                 cuerpo.reparto = filas.map(function (r) { return { clave: r.clave, trabajadores: r.trabajadores || 0, impuesto: r.impuesto }; });
@@ -619,6 +630,7 @@
                 var r = await (await api("/api/isn/excel", { method: "POST", body: fd })).json();
                 aviso("Se cargaron " + r.cargados + " periodo(s)" + (r.empresas ? " y los datos de " + r.empresas + " empresa(s)" : "") + "." +
                       (r.ya_presentadas ? " " + r.ya_presentadas + " ya estaban presentadas (no se tocaron)." : "") +
+                      (r.sucursales_nuevas && r.sucursales_nuevas.length ? "\nSucursales nuevas (reparte sus empleados antes de presentar):\n" + r.sucursales_nuevas.join("\n") : "") +
                       (r.por_revisar && r.por_revisar.length ? "\nRevisa:\n" + r.por_revisar.join("\n") : "") +
                       (r.errores.length ? "\nNo se cargaron:\n" + r.errores.join("\n") : ""), r.errores.length > 0 || (r.por_revisar || []).length > 0);
                 await cargarEmpresas();

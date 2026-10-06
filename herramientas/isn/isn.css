@@ -9,6 +9,7 @@
 .isn-form { width: 640px; }
 .isn-rejilla { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px 12px; margin: 10px 0; }
 .isn-rejilla label { display: flex; flex-direction: column; gap: 4px; font-size: 11.5px; font-weight: 700; color: #475569; }
+.isn-rejilla [hidden], .isn-form [hidden] { display: none; }
 .isn-rejilla input, .isn-rejilla select { border: 1px solid #cbd5e1; border-radius: 8px; padding: 7px 9px; font-size: 13.5px; font-weight: 500; color: #0f172a; }
 .isn-rejilla .isn-ancho { grid-column: 1 / -1; }
 #f-rfc { text-transform: uppercase; font-family: ui-monospace, monospace; }
@@ -61,3 +62,7 @@
 .isn-avance__filas li.mal { border-color: #ef4444; }
 .isn-avance__filas li.va { border-color: #0ea5e9; }
 @media (max-width: 680px) { .isn-meses { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+
+/* Sucursal nueva: hay que repartir sus empleados a propósito */
+.isn-nueva td { background: #fef3c7; }
+.isn-sello-nueva { display: inline-block; margin-left: 4px; padding: 0 6px; border-radius: 9px; background: #f59e0b; color: #fff; font-size: 10px; font-weight: 700; text-transform: uppercase; vertical-align: middle; }
