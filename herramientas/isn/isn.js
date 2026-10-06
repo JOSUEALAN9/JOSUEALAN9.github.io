@@ -12,7 +12,9 @@
     var esc = Fiscontable.escapar;
     var $ = function (id) { return document.getElementById(id); };
     var MESES = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
-    var E = { empresa: null, empresas: [], rfc: null, anio: new Date().getFullYear(), datos: null, editando: null, periodoGeneral: null };
+    var E = { empresa: null, empresas: [], rfc: null, anio: new Date().getFullYear(), datos: null, editando: null, periodoGeneral: null,
+              modo: "totales", puedePresentar: false, job: null, reloj: null };
+    try { if (localStorage.getItem("isn:modo") === "minimo") E.modo = "minimo"; } catch (e) { /* nada */ }
 
     async function api(ruta, opciones) {
         var r = await fetch(API + ruta, Object.assign({ credentials: "include" }, opciones || {}));
@@ -37,8 +39,16 @@
         E.empresa = await Fiscontable.empresaActiva();
         E.periodoGeneral = await Fiscontable.periodoActivo();
         if (E.periodoGeneral) E.anio = +E.periodoGeneral.slice(0, 4);
+        var perfil = await Fiscontable.perfil();
+        E.puedePresentar = !!(perfil && (perfil.modulos_permitidos || []).indexOf("isn_presentar") !== -1);
+        $("btn-presentar").disabled = !E.puedePresentar;
+        $("nota-presentar").hidden = E.puedePresentar;
         await cargarEmpresas();
-        abrir(E.empresa ? E.empresa.rfc : (E.empresas[0] && E.empresas[0].rfc));
+        var q = new URLSearchParams(location.search);
+        var deUrl = (q.get("empresa") || "").toUpperCase();
+        abrir(deUrl || (E.empresa ? E.empresa.rfc : (E.empresas[0] && E.empresas[0].rfc)));
+        if (q.get("abrir")) setTimeout(function () { abrirDesdeUrl(q.get("abrir")); }, 700);
+        retomarTrabajo();
         window.addEventListener("fiscontable:empresa", function (e) { E.empresa = e.detail; if (e.detail) abrir(e.detail.rfc); });
     }
 
@@ -196,13 +206,15 @@
         $("f-anio").value = f ? f.anio : E.anio;
         $("f-mes").value = f ? f.mes : (E.periodoGeneral && +E.periodoGeneral.slice(0, 4) === +E.anio ? +E.periodoGeneral.slice(5, 7) : new Date().getMonth() + 1);
         $("f-tipo").value = f ? f.tipo : "Normal";
-        $("f-tsm").value = f ? f.trabajadores_sm : 0;
-        $("f-rsm").value = f ? f.remuneraciones_sm : 0;
-        $("f-tot").value = f ? f.trabajadores_otro : 0;
-        $("f-rot").value = f ? f.remuneraciones_otro : 0;
+        // Con días guardados = se calculó con salario mínimo; si no, se edita como totales
+        var conMinimo = f ? !!f.dias_sm : E.modo === "minimo";
+        ponerModo(conMinimo ? "minimo" : "totales", true);
+        $("f-tsm").value = f && f.dias_sm ? f.trabajadores_sm : 0;
+        $("f-dias").value = f && f.dias_sm ? f.dias_sm : "";
+        $("f-tot").value = f ? (f.dias_sm ? f.trabajadores_otro : (f.trabajadores_sm || 0) + (f.trabajadores_otro || 0)) : 0;
+        $("f-rot").value = f ? (f.dias_sm ? f.remuneraciones_otro : +(((f.remuneraciones_sm || 0) + (f.remuneraciones_otro || 0)).toFixed(2))) : 0;
         var sugerida = (E.datos.tasa_sugerida || {})[$("f-estado").value];
         $("f-tasa").value = f && f.tasa != null ? +(f.tasa * 100).toFixed(4) : (sugerida != null ? +(sugerida * 100).toFixed(4) : "");
-        $("f-notas").value = f ? (f.notas || "") : "";
         $("f-ret").value = f ? (f.retenido || 0) : 0;
         $("f-esp").value = f ? (f.trabajadores_especiales || 0) : 0;
         pintarReparto(f);
@@ -213,10 +225,39 @@
         (f ? $("f-tsm") : $("f-rfc")).focus();
     }
 
+    /* Salario mínimo del año y la zona de la empresa (lo manda el servidor con los periodos) */
+    function salarioMinimo() {
+        var tabla = E.datos.salarios_minimos || {}, anio = +$("f-anio").value, zona = (E.datos.empresa && E.datos.empresa.zona) || "general";
+        var anios = Object.keys(tabla).map(Number).filter(function (a) { return a <= anio; });
+        if (!anios.length) return null;
+        return (tabla[anio] || tabla[Math.max.apply(null, anios)])[zona];
+    }
+    function diasDelMes() { return new Date(+$("f-anio").value, +$("f-mes").value, 0).getDate(); }
+
+    function ponerModo(modo, sinGuardar) {
+        E.modo = modo;
+        if (!sinGuardar) { try { localStorage.setItem("isn:modo", modo); } catch (e) { /* nada */ } }
+        document.querySelectorAll(".isn-modo button").forEach(function (b) { b.setAttribute("aria-pressed", b.dataset.modo === modo ? "true" : "false"); });
+        document.querySelectorAll(".solo-minimo").forEach(function (x) { x.hidden = modo !== "minimo"; });
+        $("etq-tot").textContent = modo === "minimo" ? "Otros trabajadores" : "Total de trabajadores";
+        $("etq-rot").textContent = modo === "minimo" ? "Remuneraciones de otros" : "Total de remuneraciones";
+        if (modo === "minimo" && !$("f-dias").value) $("f-dias").value = diasDelMes();
+        recalcular();
+    }
+
     function totales() {
-        var base = (+$("f-rsm").value || 0) + (+$("f-rot").value || 0), tasa = +$("f-tasa").value;
+        var rsm = 0;
+        if (E.modo === "minimo") {
+            var sm = salarioMinimo();
+            rsm = sm ? Math.round((+$("f-tsm").value || 0) * (+$("f-dias").value || 0) * sm * 100) / 100 : 0;
+            $("f-rsm").value = rsm ? rsm.toFixed(2) : "0.00";
+            $("nota-minimo").textContent = sm ? $("f-tsm").value + " × " + ($("f-dias").value || 0) + " días × $" + sm.toFixed(2) + " (salario mínimo " +
+                $("f-anio").value + ", " + (((E.datos.empresa && E.datos.empresa.zona) === "frontera") ? "frontera norte" : "zona general") + ")" : "No hay salario mínimo para ese año.";
+        }
+        var base = rsm + (+$("f-rot").value || 0), tasa = +$("f-tasa").value;
         var imp = tasa ? Math.round(Math.round(base) * tasa / 100) : null;   // como el portal: A en pesos, B = A × tasa
-        return { base: base, trab: (+$("f-tsm").value || 0) + (+$("f-tot").value || 0), imp: imp, cargo: imp == null ? null : Math.max(imp - (+$("f-ret").value || 0), 0) };
+        var trab = (E.modo === "minimo" ? (+$("f-tsm").value || 0) : 0) + (+$("f-tot").value || 0);
+        return { base: base, trab: trab, imp: imp, cargo: imp == null ? null : Math.max(imp - (+$("f-ret").value || 0), 0) };
     }
 
     function recalcular() {
@@ -283,9 +324,10 @@
         var cuerpo = {
             rfc: $("f-rfc").value.trim().toUpperCase(), estado: $("f-estado").value, municipio: $("f-municipio").value.trim(),
             anio: +$("f-anio").value, mes: +$("f-mes").value, tipo: $("f-tipo").value,
-            trabajadores_sm: +$("f-tsm").value || 0, remuneraciones_sm: +$("f-rsm").value || 0,
+            trabajadores_sm: E.modo === "minimo" ? (+$("f-tsm").value || 0) : 0, remuneraciones_sm: 0,
+            dias_sm: E.modo === "minimo" && (+$("f-tsm").value || 0) > 0 ? (+$("f-dias").value || diasDelMes()) : null,
             trabajadores_otro: +$("f-tot").value || 0, remuneraciones_otro: +$("f-rot").value || 0,
-            tasa: $("f-tasa").value === "" ? null : +$("f-tasa").value, notas: $("f-notas").value.trim() || null,
+            tasa: $("f-tasa").value === "" ? null : +$("f-tasa").value,
             retenido: +$("f-ret").value || 0, trabajadores_especiales: +$("f-esp").value || 0,
             nombre: nombreDe($("f-rfc").value.trim().toUpperCase())
         };
@@ -306,6 +348,153 @@
         } catch (err) { $("form-error").textContent = err.message; $("form-error").hidden = false; }
     }
 
+    /* ------------------------------------------------------------ presentar por lote */
+    function opcionesAnios(sel, elegido) {
+        var hoy = new Date().getFullYear();
+        sel.innerHTML = [hoy, hoy - 1, hoy - 2].map(function (a) { return '<option' + (a === elegido ? " selected" : "") + ">" + a + "</option>"; }).join("");
+    }
+    function mesAnterior() { var d = new Date(); d.setDate(1); d.setMonth(d.getMonth() - 1); return { anio: d.getFullYear(), mes: d.getMonth() + 1 }; }
+
+    function abrirPresentar() {
+        if (!E.puedePresentar) return;
+        var m = mesAnterior();
+        opcionesAnios($("p-anio"), m.anio);
+        $("p-mes").innerHTML = MESES.map(function (n, i) { return '<option value="' + (i + 1) + '"' + (i + 1 === m.mes ? " selected" : "") + ">" + n + "</option>"; }).join("");
+        $("p-error").hidden = true;
+        $("modal-presentar").hidden = false;
+        cargarListos();
+    }
+
+    async function cargarListos() {
+        $("p-filas").innerHTML = '<tr><td colspan="7">Cargando…</td></tr>';
+        try {
+            var filas = await (await api("/api/isn/listos?anio=" + $("p-anio").value + "&mes=" + $("p-mes").value)).json();
+            $("p-filas").innerHTML = filas.length ? filas.map(function (f) {
+                var listo = !f.faltan.length;
+                return "<tr><td><input type=\"checkbox\" data-id=\"" + f.id + "\"" + (listo ? " checked" : " disabled") + "></td>" +
+                    "<td><b>" + esc(f.nombre || f.rfc) + "</b><br><span class=\"isn-nota\">" + esc(f.rfc) + " · " + esc(f.tipo) + "</span></td>" +
+                    '<td class="xml-num">' + f.trabajadores + '</td><td class="xml-num">' + m(f.base) + '</td><td class="xml-num">' + m(f.impuesto) +
+                    '</td><td class="xml-num">' + m(f.a_cargo) + "</td><td>" + (listo ? '<span class="xml-sello isn-sello-listo">Listo</span>'
+                    : '<span class="isn-motivo">' + esc(f.faltan.join(" ")) + "</span>") + "</td></tr>";
+            }).join("") : '<tr><td colspan="7">No hay declaraciones por presentar de ese mes. Captúralas o cárgalas con el Excel.</td></tr>';
+        } catch (e) { $("p-filas").innerHTML = ""; $("p-error").textContent = e.message; $("p-error").hidden = false; }
+        contarElegidos();
+    }
+
+    function elegidos() { return Array.from(document.querySelectorAll("#p-filas input[data-id]:checked")).map(function (c) { return +c.dataset.id; }); }
+    function contarElegidos() {
+        var n = elegidos().length;
+        $("p-enviar").disabled = !n;
+        $("p-enviar").textContent = n ? "Presentar " + n + (n === 1 ? " declaración" : " declaraciones") : "Presentar";
+        $("p-resumen").textContent = n ? n + " elegida(s)" : "";
+    }
+
+    async function enviarLote() {
+        var ids = elegidos();
+        if (!ids.length) return;
+        var mes = MESES[+$("p-mes").value - 1] + " " + $("p-anio").value;
+        if (!confirm("Se van a PRESENTAR " + ids.length + " declaración(es) de ISN de " + mes + " ante la SEFIPLAN.\n\n¿Todo bien? Esto no se puede deshacer.")) return;
+        $("p-enviar").disabled = true;
+        try {
+            $("avance").hidden = true;
+            var r = await json("/api/isn/presentar", "POST", { ids: ids });
+            $("modal-presentar").hidden = true;
+            seguir(r.job_id, "Presentando " + mes);
+        } catch (e) { $("p-error").textContent = e.message; $("p-error").hidden = false; $("p-enviar").disabled = false; }
+    }
+
+    /* ------------------------------------------------------------ descargar del portal */
+    function abrirDescargar() {
+        if (!E.rfc) { aviso("Elige una empresa.", true); return; }
+        $("d-titulo").textContent = "Descargar acuses del portal · " + nombreDe(E.rfc);
+        opcionesAnios($("d-anio"), +E.anio);
+        $("d-error").hidden = true;
+        $("modal-descargar").hidden = false;
+        pintarMesesDescarga();
+    }
+
+    async function pintarMesesDescarga() {
+        var anio = +$("d-anio").value, hoy = new Date(), tengo = {};
+        try {
+            var d = await (await api("/api/isn/periodos?rfc=" + encodeURIComponent(E.rfc) + "&anio=" + anio)).json();
+            d.periodos.forEach(function (p) { if (p.tiene_acuse && p.tipo === "Normal") tengo[p.mes] = true; });
+        } catch (e) { /* sin datos: todos sin marcar */ }
+        var ultimo = anio < hoy.getFullYear() ? 12 : hoy.getMonth();          // hasta el mes pasado
+        $("d-meses").innerHTML = MESES.map(function (n, i) {
+            var mes = i + 1, ya = !!tengo[mes], posible = mes <= ultimo;
+            return '<label class="' + (ya ? "isn-ya" : "") + '"><input type="checkbox" value="' + mes + '"' + (!ya && posible && mes === ultimo ? " checked" : "") +
+                (posible ? "" : " disabled") + ">" + n.slice(0, 3) + (ya ? " ✓" : "") + "</label>";
+        }).join("");
+    }
+
+    async function enviarDescarga() {
+        var meses = Array.from(document.querySelectorAll("#d-meses input:checked")).map(function (c) { return +c.value; });
+        if (!meses.length) { $("d-error").textContent = "Elige al menos un mes."; $("d-error").hidden = false; return; }
+        $("d-enviar").disabled = true;
+        try {
+            $("avance").hidden = true;
+            var r = await json("/api/isn/descargar", "POST", { rfc: E.rfc, anio: +$("d-anio").value, meses: meses,
+                pago_ceros: $("d-ceros").checked, forzar: $("d-forzar").checked });
+            $("modal-descargar").hidden = true;
+            if (r.job_id) seguir(r.job_id, "Descargando acuses · " + nombreDe(E.rfc));
+            else { pintarAvance({ estado: "completado", renglones: r.renglones }, "Descargar acuses"); }
+        } catch (e) { $("d-error").textContent = e.message; $("d-error").hidden = false; }
+        $("d-enviar").disabled = false;
+    }
+
+    /* ------------------------------------------------------------ avance del robot */
+    var ESTADOS_OK = { presentada: 1, descargado: 1, ya_estaba: 1, ya_lo_tenias: 1 };
+    var ESTADOS_MAL = { error: 1, rechazada: 1, sin_presentar: 1, cancelado: 1 };
+
+    function pintarAvance(t, titulo) {
+        $("avance").hidden = false;
+        $("avance-titulo").textContent = titulo || "Tributanet";
+        var corre = t.estado === "procesando";
+        var hechos = (t.renglones || []).filter(function (r) { return ESTADOS_OK[r.estado] || ESTADOS_MAL[r.estado]; }).length;
+        $("avance-estado").textContent = corre ? hechos + " de " + (t.renglones || []).length + "…" : (t.estado === "error" ? "Se detuvo con error" : "Terminó");
+        $("avance-detener").hidden = !corre;
+        $("avance-cerrar").hidden = corre;
+        $("avance-filas").innerHTML = (t.renglones || []).map(function (r) {
+            var clase = ESTADOS_OK[r.estado] ? "ok" : ESTADOS_MAL[r.estado] ? "mal" : r.estado === "trabajando" ? "va" : "";
+            return '<li class="' + clase + '"><b>' + esc((r.nombre || r.rfc) + " · " + (r.mes_nombre || "") + " " + r.anio) + "</b>" + esc(r.mensaje || "") + "</li>";
+        }).join("") + (t.error ? '<li class="mal"><b>Error</b>' + esc(t.error) + "</li>" : "");
+    }
+
+    function seguir(jobId, titulo) {
+        E.job = { id: jobId, titulo: titulo };
+        clearTimeout(E.reloj);
+        pintarAvance({ estado: "procesando", renglones: [] }, titulo);       // limpia lo del trabajo anterior
+        var paso = async function () {
+            try {
+                var t = await (await api("/api/isn/trabajo/" + encodeURIComponent(jobId))).json();
+                pintarAvance(t, titulo);
+                if (t.estado === "procesando") { E.reloj = setTimeout(paso, 2500); return; }
+                E.job = null;
+                await cargarEmpresas();
+                cargar();
+            } catch (e) { E.reloj = setTimeout(paso, 5000); }
+        };
+        paso();
+    }
+
+    async function retomarTrabajo() {
+        try {
+            var t = await (await api("/api/isn/trabajo-activo")).json();
+            if (t && t.job_id) seguir(t.job_id, t.tipo === "isn_presentar" ? "Presentando declaraciones" : "Descargando acuses");
+        } catch (e) { /* nada */ }
+    }
+
+    async function detenerTrabajo() {
+        if (!E.job || !confirm("¿Detener? Se termina el que está en curso y ya no se empiezan los siguientes.")) return;
+        try { await api("/api/isn/trabajo/" + encodeURIComponent(E.job.id) + "/detener", { method: "POST" }); } catch (e) { aviso(e.message, true); }
+    }
+
+    /* Desde Mis clientes: ?empresa=RFC&abrir=datos|acuse|descargar */
+    function abrirDesdeUrl(que) {
+        if (que === "datos" || que === "acuse") abrirDatos();     // el selector de archivos necesita un clic: ahí está "Llenar con un acuse"
+        else if (que === "descargar") abrirDescargar();
+    }
+
     /* ------------------------------------------------------------ eventos */
     function eventos() {
         $("btn-empresa").addEventListener("click", function (e) { e.stopPropagation(); var mn = $("menu-empresa"); if (mn.hidden) pintarMenu(); mn.hidden = !mn.hidden; });
@@ -321,7 +510,24 @@
             var tr = e.target.closest("tr[data-id]"); if (!tr) return;
             abrirForm(E.datos.periodos.find(function (f) { return f.id === +tr.dataset.id; }));
         });
-        ["f-tsm", "f-rsm", "f-tot", "f-rot", "f-tasa", "f-ret"].forEach(function (id) { $(id).addEventListener("input", recalcular); });
+        ["f-tsm", "f-dias", "f-tot", "f-rot", "f-ret", "f-anio"].forEach(function (id) { $(id).addEventListener("input", recalcular); });
+        $("f-mes").addEventListener("change", function () { if (E.modo === "minimo") $("f-dias").value = diasDelMes(); recalcular(); });
+        document.querySelector(".isn-modo").addEventListener("click", function (e) { var b = e.target.closest("[data-modo]"); if (b) ponerModo(b.dataset.modo); });
+        $("btn-presentar").addEventListener("click", abrirPresentar);
+        $("btn-descargar").addEventListener("click", abrirDescargar);
+        $("p-anio").addEventListener("change", cargarListos);
+        $("p-mes").addEventListener("change", cargarListos);
+        $("p-todos").addEventListener("change", function () {
+            var on = this.checked; document.querySelectorAll("#p-filas input[data-id]:not(:disabled)").forEach(function (c) { c.checked = on; }); contarElegidos();
+        });
+        $("p-filas").addEventListener("change", contarElegidos);
+        $("p-cancelar").addEventListener("click", function () { $("modal-presentar").hidden = true; });
+        $("p-enviar").addEventListener("click", enviarLote);
+        $("d-anio").addEventListener("change", pintarMesesDescarga);
+        $("d-cancelar").addEventListener("click", function () { $("modal-descargar").hidden = true; });
+        $("d-enviar").addEventListener("click", enviarDescarga);
+        $("avance-cerrar").addEventListener("click", function () { $("avance").hidden = true; });
+        $("avance-detener").addEventListener("click", detenerTrabajo);
         $("reparto-filas").addEventListener("input", sumasReparto);
         $("btn-repartir").addEventListener("click", repartirSegunEmpleados);
         $("btn-datos").addEventListener("click", abrirDatos);
@@ -344,7 +550,9 @@
         $("form").addEventListener("submit", guardar);
         $("form-cancelar").addEventListener("click", function () { $("modal").hidden = true; });
         $("modal").addEventListener("click", function (e) { if (e.target === this) this.hidden = true; });
-        document.addEventListener("keydown", function (e) { if (e.key === "Escape") { $("modal").hidden = true; $("modal-datos").hidden = true; } });
+        document.addEventListener("keydown", function (e) {
+            if (e.key === "Escape") { $("modal").hidden = true; $("modal-datos").hidden = true; $("modal-presentar").hidden = true; $("modal-descargar").hidden = true; }
+        });
         $("form-borrar").addEventListener("click", async function () {
             if (!E.editando || !confirm("¿Borrar " + E.editando.mes_nombre + " " + E.editando.anio + " (" + E.editando.tipo + ")? También se borra su acuse guardado.")) return;
             try { await api("/api/isn/periodo/" + E.editando.id, { method: "DELETE" }); $("modal").hidden = true; await cargarEmpresas(); cargar(); }

@@ -37,3 +37,27 @@
 .isn-quitar { color: #94a3b8; font-size: 16px; line-height: 1; }
 .isn-quitar:hover { color: #b91c1c; }
 .isn-sello-listo { background: #eff6ff; color: #1d4ed8; border-color: #bfdbfe; }
+.isn-modo { display: flex; align-items: center; gap: 10px; font-size: 11.5px; font-weight: 700; color: #475569; }
+.isn-calculado { background: #f1f5f9 !important; color: #334155 !important; }
+.isn-form--ancho { width: 860px; max-width: calc(100vw - 32px); }
+.isn-fila { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px; margin: 10px 0; }
+.isn-campo { display: flex; flex-direction: column; gap: 4px; font-size: 11.5px; font-weight: 700; color: #475569; }
+.isn-campo select { border: 1px solid #cbd5e1; border-radius: 8px; padding: 7px 9px; font-size: 13.5px; }
+.isn-lote { max-height: 50vh; }
+.isn-lote td { vertical-align: top; }
+.isn-motivo { color: #b45309; font-size: 11.5px; }
+.isn-meses { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 6px; margin: 6px 0 10px; }
+.isn-meses label { display: flex; align-items: center; gap: 5px; border: 1px solid #e2e8f0; border-radius: 8px; padding: 6px 8px; font-size: 12.5px; font-weight: 600; color: #334155; }
+.isn-meses label.isn-ya { background: #ecfdf5; border-color: #a7f3d0; color: #047857; }
+.isn-check { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #334155; margin: 6px 0; }
+.isn-avance { position: fixed; right: 16px; bottom: 16px; z-index: 60; width: 420px; max-width: calc(100vw - 32px); max-height: 60vh; overflow-y: auto;
+  background: #fff; border: 1px solid #e2e8f0; border-radius: 14px; box-shadow: 0 16px 40px rgba(15,23,42,.18); padding: 12px 14px; }
+.isn-avance__cabeza { display: flex; align-items: center; gap: 10px; font-size: 13px; }
+.isn-avance__cabeza span { flex: 1; color: #64748b; font-size: 12px; }
+.isn-avance__filas { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.isn-avance__filas li { font-size: 12.5px; border-left: 3px solid #cbd5e1; padding: 2px 0 2px 8px; color: #334155; }
+.isn-avance__filas li b { display: block; color: #0f172a; }
+.isn-avance__filas li.ok { border-color: #10b981; }
+.isn-avance__filas li.mal { border-color: #ef4444; }
+.isn-avance__filas li.va { border-color: #0ea5e9; }
+@media (max-width: 680px) { .isn-meses { grid-template-columns: repeat(4, minmax(0, 1fr)); } }

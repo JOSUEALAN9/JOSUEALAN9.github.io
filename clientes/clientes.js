@@ -7,8 +7,13 @@ let clientesCache = [];
 let soloLectura = false;
 let puedeGuardarEfirma = true;   // en la Demo no se guardan e.firmas (lo decide el servidor)
 let sinConexion = false;
+let conIsn = false;              // el usuario tiene el módulo ISN: se muestran las obligaciones
+let obligaciones = {};           // {rfc: {obligacion, zona, completos}}
 
 document.addEventListener("DOMContentLoaded", inicializar);
+document.addEventListener("change", (e) => {
+    if (e.target && e.target.id === "obl-isn") pintarDetalleIsn(obligaciones[rfcEnEdicion] || {});
+});
 document.addEventListener("keydown", (e) => {
     if (e.key === "Escape") { cerrarModalNuevoCliente(); cerrarModalEditar(); }
 });
@@ -63,6 +68,7 @@ async function verificarPerfil() {
 
         const perfil = await resp.json();
         soloLectura = perfil.solo_lectura;
+        conIsn = (perfil.modulos_permitidos || []).indexOf("isn") !== -1;
         puedeGuardarEfirma = perfil.puede_guardar_efirma !== false;
 
         const btnAgregar = document.getElementById("btn-agregar-cliente");
@@ -124,11 +130,22 @@ async function cargarClientes() {
             return;
         }
         clientesCache = await resp.json();
+        await cargarObligaciones();
         renderizarClientes();
     } catch (error) {
         marcarSinConexion();
     }
 }
+
+async function cargarObligaciones() {
+    if (!conIsn) { obligaciones = {}; return; }
+    try {
+        const r = await fetch(`${API_URL}/api/isn/obligaciones`, { credentials: "include" });
+        obligaciones = r.ok ? await r.json() : {};
+    } catch (e) { obligaciones = {}; }
+}
+
+function tieneIsn(rfc) { const o = obligaciones[rfc]; return !!(o && o.obligacion); }
 
 function badgeDocumento(cliente, tipo, etiqueta) {
     const doc = cliente.documentos.find(d => d.tipo === tipo);
@@ -182,6 +199,7 @@ function renderizarClientes() {
                        </span>${soloLectura ? '' : `<button data-rfc="${esc(cliente.rfc)}" onclick="olvidarEfirma(this.dataset.rfc)" class="text-xs text-slate-400 hover:text-red-500 underline transition">olvidar</button>`}`
                     : `<span class="text-xs font-semibold px-2 py-1 rounded-full bg-gray-100 text-gray-400">Sin e.firma guardada</span>`
                 }
+                ${tieneIsn(cliente.rfc) ? `<span class="text-xs font-bold px-2 py-1 rounded-full ${obligaciones[cliente.rfc].completos ? "bg-pink-100 text-pink-700" : "bg-amber-100 text-amber-700"}" title="${obligaciones[cliente.rfc].completos ? "Datos de la declaración completos" : "Faltan datos de la declaración"}">ISN QROO${obligaciones[cliente.rfc].completos ? "" : " · faltan datos"}</span>` : ""}
             </div>
 
             <div class="atajos">
@@ -189,6 +207,7 @@ function renderizarClientes() {
                 <a href="/herramientas/opinion/?rfc=${rfcCodificado}&cliente=${aliasCodificado}" style="--tono:#0F766E;--tono-suave:#E6F2F1">Opinión</a>
                 <a href="/herramientas/declaraciones/?rfc=${rfcCodificado}&cliente=${aliasCodificado}" style="--tono:#0369A1;--tono-suave:#E4F1F9">Declaraciones</a>
                 <a href="/herramientas/descarga-xml/?rfc=${rfcCodificado}&cliente=${aliasCodificado}" style="--tono:#0E7490;--tono-suave:#E0F2F7">Descargar XML</a>
+                ${tieneIsn(cliente.rfc) ? `<a href="/herramientas/isn/?empresa=${rfcCodificado}" style="--tono:#BE185D;--tono-suave:#FCE7F3">ISN</a>` : ""}
             </div>
         </div>`;
     }).join("");
@@ -262,7 +281,68 @@ function abrirModalEditar(rfc) {
         badge.className = "text-xs font-bold px-2 py-1 rounded-full flex-none bg-gray-100 text-gray-500";
     }
 
+    pintarObligaciones(cliente);
     document.getElementById("modal-editar-cliente").classList.add("modal-active");
+}
+
+/* Obligaciones (hoy ISN de Quintana Roo): al activarla, la empresa aparece en ISN lista para llenar sus datos. */
+function pintarObligaciones(cliente) {
+    const caja = document.getElementById("editar-obligaciones");
+    caja.classList.toggle("hidden", !conIsn);
+    if (!conIsn) return;
+    const o = obligaciones[cliente.rfc] || {};
+    document.getElementById("obl-isn").checked = !!o.obligacion;
+    document.getElementById("obl-zona").value = o.zona || "general";
+    document.getElementById("obl-mensaje").classList.add("hidden");
+    const r = encodeURIComponent(cliente.rfc);
+    document.getElementById("obl-isn-datos").href = `/herramientas/isn/?empresa=${r}&abrir=datos`;
+    document.getElementById("obl-isn-acuse").href = `/herramientas/isn/?empresa=${r}&abrir=acuse`;
+    document.getElementById("obl-isn-descargar").href = `/herramientas/isn/?empresa=${r}&abrir=descargar`;
+    pintarDetalleIsn(o);
+}
+
+function pintarDetalleIsn(o) {
+    const activa = document.getElementById("obl-isn").checked;
+    document.getElementById("obl-isn-detalle").classList.toggle("hidden", !activa);
+    const estado = document.getElementById("obl-isn-estado");
+    if (!o.obligacion) {
+        estado.textContent = "Al guardar, llena sus datos (domicilio, giro, firma y sucursales): con el último acuse se llenan solos.";
+        estado.className = "text-xs text-slate-500";
+    } else if (o.completos) {
+        estado.textContent = "✓ Datos de la declaración completos.";
+        estado.className = "text-xs font-semibold text-emerald-700";
+    } else {
+        estado.textContent = "Faltan datos de la declaración: llénalos o sube el último acuse.";
+        estado.className = "text-xs font-semibold text-amber-700";
+    }
+}
+
+async function guardarObligaciones() {
+    if (!rfcEnEdicion) return;
+    const boton = document.getElementById("btn-guardar-obligaciones");
+    const msj = document.getElementById("obl-mensaje");
+    const cliente = clientesCache.find(c => c.rfc === rfcEnEdicion) || {};
+    const activa = document.getElementById("obl-isn").checked;
+    const antes = obligaciones[rfcEnEdicion];
+    if (!activa && !antes) { cerrarModalEditar(); return; }
+    boton.disabled = true;
+    try {
+        const r = await fetch(`${API_URL}/api/isn/obligacion`, {
+            method: "PUT", credentials: "include", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ rfc: rfcEnEdicion, activa: activa, zona: document.getElementById("obl-zona").value, nombre: cliente.alias || null })
+        });
+        if (!r.ok) throw new Error(await Fiscontable.leerError(r));
+        await cargarObligaciones();
+        renderizarClientes();
+        const o = obligaciones[rfcEnEdicion] || {};
+        pintarDetalleIsn(o);
+        msj.textContent = activa ? (o.completos ? "Guardado." : "Guardado. Ahora llena sus datos o sube el último acuse (enlaces de arriba).") : "Obligación quitada.";
+        msj.className = "text-xs mt-2 text-emerald-700 font-semibold";
+    } catch (e) {
+        msj.textContent = e.message;
+        msj.className = "text-xs mt-2 text-red-600 font-semibold";
+    }
+    boton.disabled = false;
 }
 
 function cerrarModalEditar() {

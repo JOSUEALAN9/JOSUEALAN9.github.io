@@ -4,15 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ISN · Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/common.css?v=202610062200">
-    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202610062200">
-    <link rel="stylesheet" href="/herramientas/isn/isn.css?v=202610062200">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202610062330">
+    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202610062330">
+    <link rel="stylesheet" href="/herramientas/isn/isn.css?v=202610062330">
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-slate-50">
 <div id="app-header" data-modulo="isn" data-titulo="ISN" data-migas="Herramientas|/herramientas/"></div>
-<script src="/assets/js/nucleo.js?v=202610062200"></script>
-<script src="/assets/js/barra.js?v=202610062200"></script>
+<script src="/assets/js/nucleo.js?v=202610062330"></script>
+<script src="/assets/js/barra.js?v=202610062330"></script>
 
 <main class="xml-pagina">
     <div class="xml-cabeza">
@@ -40,11 +40,12 @@
             <button type="button" id="btn-excel" class="mod-accion" title="Varias empresas y meses a la vez"><b>▦</b>Cargar Excel</button>
             <button type="button" id="btn-plantilla" class="mod-accion" title="Con tus empresas y sus sucursales; solo llenas los números"><b>⇩</b>Plantilla de Excel</button>
             <button type="button" id="btn-acuses" class="mod-accion" title="Acuses de ISN de Quintana Roo o BCS: se guardan, se cruzan con lo calculado y llenan los datos de la declaración"><b>📄</b>Leer acuses</button>
+            <button type="button" id="btn-descargar" class="mod-accion" title="Baja de Tributanet los acuses de los meses que elijas (los que ya tienes no se vuelven a bajar)"><b>⇣</b>Descargar del portal</button>
             <p class="mod-acciones__grupo">Reportes</p>
             <button type="button" id="btn-exportar" class="mod-accion"><b>▤</b>Exportar Excel</button>
             <p class="mod-acciones__grupo">Declaración</p>
-            <button type="button" id="btn-presentar" class="mod-accion" disabled title="El robot de Tributanet va en la siguiente entrega"><b>➤</b>Presentar declaración</button>
-            <p class="mod-acciones__nota">Presentar: próximamente.</p>
+            <button type="button" id="btn-presentar" class="mod-accion" title="Elige el mes, revisa lo que se va a enviar y confirma una sola vez"><b>➤</b>Presentar declaraciones</button>
+            <p id="nota-presentar" class="mod-acciones__nota" hidden>Pide el permiso "Presentar ISN" al administrador.</p>
             <input type="file" id="in-excel" accept=".xlsx" hidden>
             <input type="file" id="in-acuses" accept=".pdf" multiple hidden>
         </aside>
@@ -71,14 +72,22 @@
             <label>Año<input id="f-anio" type="number" min="2000" max="2100" required></label>
             <label>Mes<select id="f-mes"></select></label>
             <label>Tipo<select id="f-tipo"><option>Normal</option><option>Complementaria</option></select></label>
-            <label>Trabajadores con salario mínimo<input id="f-tsm" type="number" min="0" step="1" value="0"></label>
-            <label>Remuneraciones salario mínimo<input id="f-rsm" type="number" min="0" step="0.01" value="0"></label>
-            <label>Trabajadores con otro salario<input id="f-tot" type="number" min="0" step="1" value="0"></label>
-            <label>Remuneraciones otro salario<input id="f-rot" type="number" min="0" step="0.01" value="0"></label>
+            <div class="isn-ancho isn-modo">
+                <span>Cómo capturar</span>
+                <div class="ctx-segmento" role="group" aria-label="Cómo capturar">
+                    <button type="button" data-modo="totales" aria-pressed="true">Totales</button>
+                    <button type="button" data-modo="minimo" aria-pressed="false">Con salario mínimo</button>
+                </div>
+            </div>
+            <label class="solo-minimo" hidden>Trabajadores con salario mínimo<input id="f-tsm" type="number" min="0" step="1" value="0"></label>
+            <label class="solo-minimo" hidden title="Días del mes; cámbialo si hubo faltas o incapacidades">Días<input id="f-dias" type="number" min="1" max="31" step="1"></label>
+            <label class="solo-minimo" hidden>Remuneraciones de salario mínimo<input id="f-rsm" type="number" readonly tabindex="-1" class="isn-calculado"></label>
+            <label><span id="etq-tot">Total de trabajadores</span><input id="f-tot" type="number" min="0" step="1" value="0"></label>
+            <label><span id="etq-rot">Total de remuneraciones</span><input id="f-rot" type="number" min="0" step="0.01" value="0"></label>
+            <p id="nota-minimo" class="isn-ancho isn-nota solo-minimo" hidden></p>
             <label title="Impuesto retenido por concesiones de obra pública y/o terceros">Retenido (C)<input id="f-ret" type="number" min="0" step="1" value="0"></label>
             <label title="Adultos mayores, con discapacidad, en estado de gravidez o recién egresados">Trabajadores especiales<input id="f-esp" type="number" min="0" step="1" value="0"></label>
-            <label>Tasa %<input id="f-tasa" type="number" min="0" step="0.01" placeholder="La pone el portal"></label>
-            <label class="isn-ancho">Notas<input id="f-notas"></label>
+            <input id="f-tasa" type="hidden">
         </div>
         <div class="isn-calculo">
             <span>Base <b id="c-base">0.00</b></span>
@@ -128,6 +137,58 @@
     </form>
 </div>
 
-<script src="/herramientas/isn/isn.js?v=202610062200"></script>
+<!-- Presentar por lote: se elige el mes, se revisa y se confirma una vez -->
+<div id="modal-presentar" class="xml-modal" hidden>
+    <div class="xml-modal__caja isn-form isn-form--ancho">
+        <h3>Presentar declaraciones</h3>
+        <div class="isn-fila">
+            <label class="isn-campo">Año<select id="p-anio"></select></label>
+            <label class="isn-campo">Mes<select id="p-mes"></select></label>
+            <span class="isn-nota" id="p-resumen"></span>
+        </div>
+        <div class="isn-reparto__caja isn-lote">
+            <table class="isn-reparto__tabla">
+                <thead><tr><th style="width:28px"><input type="checkbox" id="p-todos" aria-label="Todas"></th><th>Empresa</th><th class="xml-num">Trabajadores</th>
+                    <th class="xml-num">Remuneraciones</th><th class="xml-num">Impuesto (B)</th><th class="xml-num">A cargo</th><th>Estado</th></tr></thead>
+                <tbody id="p-filas"></tbody>
+            </table>
+        </div>
+        <p class="isn-nota">Se envían una por una a Tributanet. Antes de pulsar "Confirmar" en el portal se revisa que todo cuadre con lo que calcula el portal; si algo no cuadra, esa no se presenta.</p>
+        <p id="p-error" class="isn-error" hidden></p>
+        <div class="isn-botones">
+            <span style="flex:1"></span>
+            <button type="button" id="p-cancelar" class="xml-btn">Cancelar</button>
+            <button type="button" id="p-enviar" class="xml-btn xml-btn--primario" disabled>Presentar</button>
+        </div>
+    </div>
+</div>
+
+<!-- Descargar acuses del portal -->
+<div id="modal-descargar" class="xml-modal" hidden>
+    <div class="xml-modal__caja isn-form">
+        <h3 id="d-titulo">Descargar acuses del portal</h3>
+        <label class="isn-campo">Año<select id="d-anio"></select></label>
+        <p class="isn-nota">Meses (los que ya tienes salen marcados como ✓ y no se vuelven a bajar):</p>
+        <div id="d-meses" class="isn-meses"></div>
+        <label class="isn-check"><input type="checkbox" id="d-ceros" checked> También el de pago en ceros (declaraciones en $0)</label>
+        <label class="isn-check"><input type="checkbox" id="d-forzar"> Volver a bajar aunque ya lo tenga</label>
+        <p id="d-error" class="isn-error" hidden></p>
+        <div class="isn-botones">
+            <span style="flex:1"></span>
+            <button type="button" id="d-cancelar" class="xml-btn">Cancelar</button>
+            <button type="button" id="d-enviar" class="xml-btn xml-btn--primario">Descargar</button>
+        </div>
+    </div>
+</div>
+
+<!-- Avance de lo que hace el robot de Tributanet -->
+<div id="avance" class="isn-avance" hidden>
+    <div class="isn-avance__cabeza"><b id="avance-titulo">Tributanet</b><span id="avance-estado"></span>
+        <button type="button" id="avance-detener" class="xml-enlace">Detener</button>
+        <button type="button" id="avance-cerrar" class="xml-enlace" hidden>Cerrar</button></div>
+    <ol id="avance-filas" class="isn-avance__filas"></ol>
+</div>
+
+<script src="/herramientas/isn/isn.js?v=202610062330"></script>
 </body>
 </html>
