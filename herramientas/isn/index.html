@@ -4,15 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ISN · Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/common.css?v=202610070030">
-    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202610070030">
-    <link rel="stylesheet" href="/herramientas/isn/isn.css?v=202610070030">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202610070130">
+    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202610070130">
+    <link rel="stylesheet" href="/herramientas/isn/isn.css?v=202610070130">
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-slate-50">
 <div id="app-header" data-modulo="isn" data-titulo="ISN" data-migas="Herramientas|/herramientas/"></div>
-<script src="/assets/js/nucleo.js?v=202610070030"></script>
-<script src="/assets/js/barra.js?v=202610070030"></script>
+<script src="/assets/js/nucleo.js?v=202610070130"></script>
+<script src="/assets/js/barra.js?v=202610070130"></script>
 
 <main class="xml-pagina">
     <div class="xml-cabeza">
@@ -153,9 +153,11 @@
                 <tbody id="p-filas"></tbody>
             </table>
         </div>
-        <p class="isn-nota">Se envían una por una a Tributanet. Antes de pulsar "Confirmar" en el portal se revisa que todo cuadre con lo que calcula el portal; si algo no cuadra, esa no se presenta.</p>
+        <p class="isn-nota">Se envían una por una a Tributanet. Antes de pulsar "Confirmar" en el portal se revisa que todo cuadre con lo que calcula el portal; si algo no cuadra, esa no se presenta.
+            ¿Alguna se pudo haber presentado directo en el portal? Usa <b>Revisar en el portal</b>: consulta cada una sin presentar nada y quita de la lista las que ya están (con su acuse).</p>
         <p id="p-error" class="isn-error" hidden></p>
         <div class="isn-botones">
+            <button type="button" id="p-revisar" class="xml-btn">Revisar en el portal</button>
             <span style="flex:1"></span>
             <button type="button" id="p-cancelar" class="xml-btn">Cancelar</button>
             <button type="button" id="p-enviar" class="xml-btn xml-btn--primario" disabled>Presentar</button>
@@ -170,7 +172,8 @@
         <label class="isn-campo">Año<select id="d-anio"></select></label>
         <p class="isn-nota">Meses (los que ya tienes salen marcados como ✓ y no se vuelven a bajar):</p>
         <div id="d-meses" class="isn-meses"></div>
-        <label class="isn-check"><input type="checkbox" id="d-ceros" checked> También el de pago en ceros (declaraciones en $0)</label>
+        <label class="isn-check"><input type="checkbox" id="d-ceros"> También el de pago en ceros (declaraciones en $0)</label>
+        <p class="isn-nota">El pago en ceros se genera en el portal en ese momento: pídelo solo si lo necesitas.</p>
         <label class="isn-check"><input type="checkbox" id="d-forzar"> Volver a bajar aunque ya lo tenga</label>
         <p id="d-error" class="isn-error" hidden></p>
         <div class="isn-botones">
@@ -208,6 +211,6 @@
     <ol id="avance-filas" class="isn-avance__filas"></ol>
 </div>
 
-<script src="/herramientas/isn/isn.js?v=202610070030"></script>
+<script src="/herramientas/isn/isn.js?v=202610070130"></script>
 </body>
 </html>

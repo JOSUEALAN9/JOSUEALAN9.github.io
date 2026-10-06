@@ -372,9 +372,9 @@
             (sm ? " · salario mínimo zona general $" + sm.toFixed(2) : "") + ".";
     }
 
-    function abrirPresentar() {
+    function abrirPresentar(anio, mes) {
         if (!E.puedePresentar) return;
-        var m = mesAnterior();
+        var m = anio ? { anio: +anio, mes: +mes } : mesAnterior();
         opcionesAnios($("p-anio"), m.anio);
         $("p-mes").innerHTML = MESES.map(function (n, i) { return '<option value="' + (i + 1) + '"' + (i + 1 === m.mes ? " selected" : "") + ">" + n + "</option>"; }).join("");
         $("p-error").hidden = true;
@@ -388,10 +388,12 @@
             var filas = await (await api("/api/isn/listos?anio=" + $("p-anio").value + "&mes=" + $("p-mes").value)).json();
             $("p-filas").innerHTML = filas.length ? filas.map(function (f) {
                 var listo = !f.faltan.length;
-                return "<tr><td><input type=\"checkbox\" data-id=\"" + f.id + "\"" + (listo ? " checked" : " disabled") + "></td>" +
+                // "¿Presentar?" del Excel: las que dicen No salen sin marcar (se pueden marcar aquí)
+                return "<tr><td><input type=\"checkbox\" data-id=\"" + f.id + "\"" + (listo ? (f.presentar ? " checked" : "") : " disabled") + "></td>" +
                     "<td><b>" + esc(f.nombre || f.rfc) + "</b><br><span class=\"isn-nota\">" + esc(f.rfc) + " · " + esc(f.tipo) + "</span></td>" +
                     '<td class="xml-num">' + f.trabajadores + '</td><td class="xml-num">' + m(f.base) + '</td><td class="xml-num">' + m(f.impuesto) +
-                    '</td><td class="xml-num">' + m(f.a_cargo) + "</td><td>" + (listo ? '<span class="xml-sello isn-sello-listo">Listo</span>'
+                    '</td><td class="xml-num">' + m(f.a_cargo) + "</td><td>" + (listo ? '<span class="xml-sello isn-sello-listo">Listo</span>' +
+                    (f.presentar ? "" : '<br><span class="isn-nota">Excel: No</span>')
                     : '<span class="isn-motivo">' + esc(f.faltan.join(" ")) + "</span>") + "</td></tr>";
             }).join("") : '<tr><td colspan="7">No hay declaraciones por presentar de ese mes. Captúralas o cárgalas con el Excel.</td></tr>';
         } catch (e) { $("p-filas").innerHTML = ""; $("p-error").textContent = e.message; $("p-error").hidden = false; }
@@ -404,6 +406,23 @@
         $("p-enviar").disabled = !n;
         $("p-enviar").textContent = n ? "Presentar " + n + (n === 1 ? " declaración" : " declaraciones") : "Presentar";
         $("p-resumen").textContent = n ? n + " elegida(s)" : "";
+    }
+
+    async function revisarEnPortal() {
+        var ids = Array.from(document.querySelectorAll("#p-filas input[data-id]")).map(function (c) { return +c.dataset.id; });
+        if (!ids.length) return;
+        var anio = $("p-anio").value, mes = $("p-mes").value;
+        $("p-revisar").disabled = true;
+        try {
+            $("avance").hidden = true;
+            var r = await json("/api/isn/portal/revisar", "POST", { ids: ids });
+            $("modal-presentar").hidden = true;
+            // Al terminar se vuelve a abrir la lista del mismo mes, ya sin las que estaban presentadas
+            seguir(r.job_id, "Revisando en el portal · " + MESES[+mes - 1] + " " + anio, function () {
+                abrirPresentar(anio, mes);
+            });
+        } catch (e) { $("p-error").textContent = e.message; $("p-error").hidden = false; }
+        $("p-revisar").disabled = false;
     }
 
     async function enviarLote() {
@@ -447,6 +466,8 @@
     async function enviarDescarga() {
         var meses = Array.from(document.querySelectorAll("#d-meses input:checked")).map(function (c) { return +c.value; });
         if (!meses.length) { $("d-error").textContent = "Elige al menos un mes."; $("d-error").hidden = false; return; }
+        if ($("d-ceros").checked && !confirm("El pago en ceros se GENERA en el portal en este momento (puede quedar registrado otra vez, con la fecha de hoy).\n\n" +
+            "Solo aplica a las declaraciones en $0 y se salta las que ya lo tienen. ¿Lo genero?")) return;
         $("d-enviar").disabled = true;
         try {
             $("avance").hidden = true;
@@ -460,7 +481,7 @@
     }
 
     /* ------------------------------------------------------------ avance del robot */
-    var ESTADOS_OK = { presentada: 1, descargado: 1, ya_estaba: 1, ya_lo_tenias: 1 };
+    var ESTADOS_OK = { presentada: 1, descargado: 1, ya_estaba: 1, ya_lo_tenias: 1, por_presentar: 1 };
     var ESTADOS_MAL = { error: 1, rechazada: 1, sin_presentar: 1, cancelado: 1 };
 
     function pintarAvance(t, titulo) {
@@ -477,7 +498,7 @@
         }).join("") + (t.error ? '<li class="mal"><b>Error</b>' + esc(t.error) + "</li>" : "");
     }
 
-    function seguir(jobId, titulo) {
+    function seguir(jobId, titulo, despues) {
         E.job = { id: jobId, titulo: titulo };
         clearTimeout(E.reloj);
         pintarAvance({ estado: "procesando", renglones: [] }, titulo);       // limpia lo del trabajo anterior
@@ -489,6 +510,7 @@
                 E.job = null;
                 await cargarEmpresas();
                 cargar();
+                if (despues) despues();
             } catch (e) { E.reloj = setTimeout(paso, 5000); }
         };
         paso();
@@ -497,7 +519,7 @@
     async function retomarTrabajo() {
         try {
             var t = await (await api("/api/isn/trabajo-activo")).json();
-            if (t && t.job_id) seguir(t.job_id, t.tipo === "isn_presentar" ? "Presentando declaraciones" : "Descargando acuses");
+            if (t && t.job_id) seguir(t.job_id, { isn_presentar: "Presentando declaraciones", isn_revisar: "Revisando en el portal" }[t.tipo] || "Descargando acuses");
         } catch (e) { /* nada */ }
     }
 
@@ -530,7 +552,7 @@
         ["f-tsm", "f-dias", "f-tot", "f-rot", "f-ret", "f-anio"].forEach(function (id) { $(id).addEventListener("input", recalcular); });
         $("f-mes").addEventListener("change", function () { if (E.modo === "minimo") $("f-dias").value = diasDelMes(); recalcular(); });
         document.querySelector(".isn-modo").addEventListener("click", function (e) { var b = e.target.closest("[data-modo]"); if (b) ponerModo(b.dataset.modo); });
-        $("btn-presentar").addEventListener("click", abrirPresentar);
+        $("btn-presentar").addEventListener("click", function () { abrirPresentar(); });
         $("btn-descargar").addEventListener("click", abrirDescargar);
         $("p-anio").addEventListener("change", cargarListos);
         $("p-mes").addEventListener("change", cargarListos);
@@ -539,6 +561,7 @@
         });
         $("p-filas").addEventListener("change", contarElegidos);
         $("p-cancelar").addEventListener("click", function () { $("modal-presentar").hidden = true; });
+        $("p-revisar").addEventListener("click", revisarEnPortal);
         $("p-enviar").addEventListener("click", enviarLote);
         $("d-anio").addEventListener("change", pintarMesesDescarga);
         $("d-cancelar").addEventListener("click", function () { $("modal-descargar").hidden = true; $("modal-plantilla").hidden = true; });
@@ -595,6 +618,7 @@
             try {
                 var r = await (await api("/api/isn/excel", { method: "POST", body: fd })).json();
                 aviso("Se cargaron " + r.cargados + " periodo(s)" + (r.empresas ? " y los datos de " + r.empresas + " empresa(s)" : "") + "." +
+                      (r.ya_presentadas ? " " + r.ya_presentadas + " ya estaban presentadas (no se tocaron)." : "") +
                       (r.por_revisar && r.por_revisar.length ? "\nRevisa:\n" + r.por_revisar.join("\n") : "") +
                       (r.errores.length ? "\nNo se cargaron:\n" + r.errores.join("\n") : ""), r.errores.length > 0 || (r.por_revisar || []).length > 0);
                 await cargarEmpresas();
