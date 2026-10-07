@@ -309,6 +309,11 @@
         E.elegido = quien;
         E.ciecOtra = false;
         sinAlerta();
+        // Solo el RFC (sin e.firma): se entra por el portal con contraseña y captcha
+        if (!quien.cer && !quien.efirmaGuardada && !quien.esCliente && E.modo !== "portal") {
+            E.acceso = "ciec";
+            ponerModo("portal");
+        }
         $("paso-acceso").hidden = false;
         $("paso-filtros").hidden = false;
         pintarAcceso();
@@ -782,6 +787,8 @@
         E.acceso = leerLocal("descarga:acceso") === "efirma" ? "efirma" : "ciec";
         prepararPeriodo();
         ponerModo(leerLocal("descarga:modo") === "portal" ? "portal" : "webservice");
-        PasoCliente.montar({ contenedor: "paso-cliente", alElegir: alElegir, alLimpiar: alLimpiar });
+        // soloRfc: con contraseña y captcha (modo Portal) no hace falta su e.firma
+        PasoCliente.montar({ contenedor: "paso-cliente", alElegir: alElegir, alLimpiar: alLimpiar, soloRfc: true,
+                             alRegistrar: function () { pintarAcceso(); } });
     })();
 })();

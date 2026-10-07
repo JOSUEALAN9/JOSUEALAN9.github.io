@@ -21,6 +21,11 @@
  * para este trabajo, sin cambiar la empresa activa. Si cambias de empresa
  * en la barra, el paso se actualiza solo (salvo que hayas elegido a mano).
  *
+ * Con `soloRfc: true` (Descarga masiva: se puede entrar al portal con contraseña)
+ * también se acepta escribir solo el RFC, sin .cer. Si el elegido no está en el
+ * directorio, el botón "Registrar" lo da de alta ahí mismo (sin salir de la
+ * herramienta); `alRegistrar(elegido)` avisa al módulo.
+ *
  *   PasoCliente.montar({
  *       contenedor: "paso-cliente",
  *       alElegir: function (elegido) { ... },
@@ -73,6 +78,7 @@
                       "Subir su e.firma (.cer)</label>" +
                     '<input type="file" id="pc-cer" accept=".cer" ' +
                       'style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none">' +
+                    (opciones.soloRfc ? '<button type="button" class="pc-solo-rfc" id="pc-solo-rfc">o escribe solo su RFC (entrar con contraseña)</button>' : "") +
                   "</div>" +
                 "</div>" +
                 '<span class="pc-pista" id="pc-pista"></span>' +
@@ -90,6 +96,7 @@
                 "</div>" +
                 '<div class="pc-derecha">' +
                   '<span class="pc-sello" id="pc-sello" hidden></span>' +
+                  '<button type="button" class="pc-registrar" id="pc-registrar" hidden title="Darlo de alta en tu directorio">Registrar</button>' +
                   '<button type="button" class="pc-cambiar" id="pc-cambiar" title="Elegir otro cliente o a alguien sin registrar, solo para este trabajo">Otro contribuyente</button>' +
                 "</div>" +
               "</div>" +
@@ -129,6 +136,7 @@
             } else {
                 sello.hidden = true;
             }
+            caja.querySelector("#pc-registrar").hidden = !!datos.esCliente;
 
             abierto.hidden = true;
             cerrado.hidden = false;
@@ -151,6 +159,47 @@
         }
 
         caja.querySelector("#pc-cambiar").addEventListener("click", reabrir);
+
+        // Darlo de alta en el directorio sin salir de la herramienta
+        caja.querySelector("#pc-registrar").addEventListener("click", async function () {
+            if (!elegido || elegido.esCliente) return;
+            var alias = window.prompt("¿Cómo lo quieres identificar en tu directorio? (" + elegido.rfc + ")",
+                                      elegido.alias || elegido.nombreCert || "");
+            if (alias === null) return;
+            alias = alias.trim() || elegido.nombreCert || elegido.rfc;
+            var boton = this;
+            boton.disabled = true;
+            try {
+                var r = await fetch(API + "/api/clientes", {
+                    method: "POST", credentials: "include", headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ rfc: elegido.rfc, alias: alias })
+                });
+                if (!r.ok) throw new Error(await window.Fiscontable.leerError(r));
+                clientes.push({ rfc: elegido.rfc, alias: alias, efirma_guardada: false, ciec_guardada: false });
+                elegido.esCliente = true;
+                elegido.alias = alias;
+                caja.querySelector("#pc-nombre").textContent = alias;
+                caja.querySelector("#pc-inicial").textContent = alias.charAt(0).toUpperCase();
+                caja.querySelector("#pc-sello").textContent = "Registrado";
+                caja.querySelector("#pc-sello").hidden = false;
+                boton.hidden = true;
+                if (opciones.alRegistrar) opciones.alRegistrar(elegido);
+            } catch (e) {
+                window.alert("No se pudo registrar: " + (e.message || "error"));
+            }
+            boton.disabled = false;
+        });
+
+        var botonSoloRfc = caja.querySelector("#pc-solo-rfc");
+        if (botonSoloRfc) botonSoloRfc.addEventListener("click", function () {
+            select.value = "";
+            campoCer.value = "";
+            cerPendiente = null;
+            botonCer.textContent = "Subir su e.firma (.cer)";
+            limpiarPista();
+            bloqueManual.style.display = "block";
+            campoRfc.focus();
+        });
 
         select.addEventListener("change", function () {
             if (!select.value) return;

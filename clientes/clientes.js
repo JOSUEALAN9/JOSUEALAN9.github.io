@@ -13,6 +13,7 @@ let obligaciones = {};           // {rfc: {obligacion, zona, completos}}
 document.addEventListener("DOMContentLoaded", inicializar);
 document.addEventListener("change", (e) => {
     if (e.target && e.target.id === "obl-isn") pintarDetalleIsn(obligaciones[rfcEnEdicion] || {});
+    if (e.target && e.target.id === "nuevo-obl-isn") document.getElementById("nuevo-obl-zona").classList.toggle("hidden", !e.target.checked);
 });
 document.addEventListener("keydown", (e) => {
     if (e.key === "Escape") { cerrarModalNuevoCliente(); cerrarModalEditar(); }
@@ -28,6 +29,15 @@ async function inicializar() {
         return;
     }
     await cargarClientes();
+    abrirDesdeUrl();
+}
+
+/* Accesos directos desde la barra: /clientes/?editar=RFC abre su ficha; ?nuevo=1 abre el alta */
+function abrirDesdeUrl() {
+    const q = new URLSearchParams(location.search);
+    const rfc = (q.get("editar") || "").toUpperCase();
+    if (rfc && (clientesCache || []).some(c => c.rfc === rfc)) abrirModalEditar(rfc);
+    else if (q.get("nuevo")) abrirModalNuevoCliente();
 }
 
 async function reintentar() {
@@ -91,6 +101,8 @@ async function verificarPerfil() {
 
 function abrirModalNuevoCliente() {
     if (sinConexion || soloLectura) return;
+    document.getElementById("nuevo-obligaciones").classList.toggle("hidden", !conIsn);
+    document.getElementById("nuevo-obl-zona").classList.add("hidden");
     document.getElementById("modal-nuevo-cliente").classList.add("modal-active");
     document.getElementById("input-rfc").focus();
 }
@@ -234,8 +246,18 @@ async function crearCliente(e) {
             mostrarAlerta("error", await interpretarError(resp));
             return;
         }
+        // Obligaciones marcadas en el alta
+        let extra = "";
+        if (conIsn && document.getElementById("nuevo-obl-isn").checked) {
+            const r = await fetch(`${API_URL}/api/isn/obligacion`, {
+                method: "PUT", credentials: "include", headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ rfc, activa: true, zona: document.getElementById("nuevo-obl-zona").value, nombre: alias })
+            });
+            extra = r.ok ? " Con ISN Quintana Roo: llena sus datos o sube su último acuse desde su ficha."
+                         : " No se pudo guardar la obligación de ISN: márcala desde su ficha.";
+        }
         cerrarModalNuevoCliente();
-        mostrarAlerta("success", "Cliente agregado.");
+        mostrarAlerta("success", "Cliente agregado." + extra);
         await cargarClientes();
     } catch (error) {
         mostrarAlerta("error", await interpretarError(null));

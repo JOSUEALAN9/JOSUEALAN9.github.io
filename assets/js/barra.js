@@ -54,6 +54,55 @@
         admin:         { nombre: "Administración",        acento: "#BE123C", suave: "#FCE9EE", permiso: null }
     };
 
+    // "¿Cómo se usa?": pocos pasos por herramienta (clave = data-ayuda o data-modulo)
+    var AYUDA = {
+        clientes: ["Nuevo cliente: RFC, alias y sus obligaciones.",
+                   "Editar (o el lápiz ✎ del menú de empresa, arriba, desde cualquier pantalla): e.firma guardada y obligaciones.",
+                   "Los botones de cada tarjeta abren esa herramienta ya con el cliente elegido."],
+        constancias: ["Arriba eliges Por empresa (una) o Masivo (varias).",
+                      "Por empresa: toma la empresa activa; con \"Otro contribuyente\" usas a alguien más. Su e.firma (o la guardada) y Descargar.",
+                      "Masivo: llena la plantilla del lote, júntala con los .cer y .key en una carpeta y arrástrala.",
+                      "\"Programar descarga\" la deja para la madrugada. Todo queda en Mis descargas."],
+        opinion: ["Arriba eliges Por empresa (una) o Masivo (varias).",
+                  "Por empresa: toma la empresa activa; con \"Otro contribuyente\" usas a alguien más. Su e.firma (o la guardada) y Descargar.",
+                  "Masivo: llena la plantilla del lote, júntala con los .cer y .key en una carpeta y arrástrala.",
+                  "\"Programar descarga\" la deja para la madrugada. Todo queda en Mis descargas."],
+        declaraciones: ["Toma la empresa activa (o \"Otro contribuyente\").",
+                        "Entra con su e.firma y elige el periodo.",
+                        "Se baja solo lo que todavía no tienes guardado de esa empresa; lo descargas en un ZIP."],
+        descarga_xml: ["Elige la empresa o \"Otro contribuyente\" (con su e.firma o solo su RFC).",
+                       "Web service: con e.firma; el SAT prepara la solicitud y la ves en Solicitudes.",
+                       "Portal: con contraseña y captcha (o e.firma); busca y descarga al momento.",
+                       "Los XML entran solos a Administración de XML."],
+        xml: ["Elige empresa y periodo arriba.",
+              "Carga XML o tráelos con Descarga masiva.",
+              "Revisa por pestaña (recibidos, emitidos, nómina, pagos), filtra y exporta a Excel.",
+              "Marca CFDI para validarlos ante el SAT, ver listas negras o sacar su PDF."],
+        validador: ["Arrastra XML sueltos (no se guardan) o usa los de tu empresa.",
+                    "Validar: te dice si cada uno está vigente o cancelado ante el SAT.",
+                    "Descarga el resultado en Excel."],
+        listas: ["Busca cualquier RFC.",
+                 "Con la empresa activa ves cuáles de sus proveedores y clientes aparecen.",
+                 "Las listas se actualizan solas cada día."],
+        conciliacion: ["Elige empresa y periodo arriba.",
+                       "Escoge emitidas o recibidas.",
+                       "Cruza cada factura con sus pagos y notas de crédito (tipo de cambio de Banxico).",
+                       "Exporta a Excel."],
+        iva: ["Elige empresa y periodo arriba.",
+              "Emitidos = IVA cobrado; recibidos = IVA pagado.",
+              "Revisa los avisos (PPD sin pago, proveedores en 69-B).",
+              "Exporta a Excel, CFDI por CFDI."],
+        isn: ["Por empresa: Nuevo periodo (o Plantilla → Cargar Excel), revisa y Presentar.",
+              "Masivo: elige el mes, marca empresas, Plantilla de las marcadas, llénala y Cargar Excel.",
+              "Revisar en el portal quita las que ya estén presentadas; Presentar manda solo las marcadas.",
+              "El acuse queda en cada periodo; el pago en ceros solo si lo pides."],
+        voucheo: ["Elige el impuesto en las pestañas.",
+                  "Sube los acuses en PDF.",
+                  "Descarga el papel de trabajo en Excel (nuevo o actualizando uno tuyo)."],
+        descargas: ["Aquí queda todo lo que bajan las herramientas y la madrugada.",
+                    "Descarga cada archivo o reintenta los que fallaron."]
+    };
+
     var ancla = document.getElementById("app-header");
     if (!ancla) return;
 
@@ -118,6 +167,9 @@
             migas += '<span class="fc-miga fc-miga--actual">' +
                 '<span class="fc-miga__sep">' + ico(D.flecha, 2.2) + "</span>" +
                 "<span>" + esc(titulo) + "</span></span>";
+        }
+        if (AYUDA[ancla.dataset.ayuda || clave]) {
+            migas += '<button type="button" class="fc-ayuda" id="fc-ayuda" title="Cómo se usa"><span class="fc-ayuda__icono">?</span><span class="fc-ayuda__texto">Cómo se usa</span></button>';
         }
 
         ancla.outerHTML =
@@ -187,7 +239,7 @@
             '<div class="fc-empresas__lista" id="fc-empresas-lista"></div>' +
             '<div class="fc-empresas__pie">' +
               '<button type="button" class="fc-empresas__ninguna" id="fc-empresa-ninguna">Quitar empresa activa</button>' +
-              '<a class="fc-empresas__nueva" href="/clientes/">+ Registrar empresa</a>' +
+              '<a class="fc-empresas__nueva" href="/clientes/?nuevo=1">+ Registrar empresa</a>' +
             "</div></div>";
     }
 
@@ -217,10 +269,13 @@
             return;
         }
         caja.innerHTML = lista.length ? lista.map(function (c) {
-            return '<button type="button" class="fc-empresas__item' + (c.rfc === activa ? " fc-empresas__item--activa" : "") + '" data-rfc="' + esc(c.rfc) + '" role="menuitem">' +
+            // ✎ = acceso directo a su ficha (editar), sin pasar por Mis clientes
+            return '<div class="fc-empresas__fila"><button type="button" class="fc-empresas__item' + (c.rfc === activa ? " fc-empresas__item--activa" : "") + '" data-rfc="' + esc(c.rfc) + '" role="menuitem">' +
                 '<span class="fc-empresas__inicial">' + esc((c.alias || c.rfc).charAt(0).toUpperCase()) + "</span>" +
                 '<span class="fc-empresas__texto"><strong>' + esc(c.alias) + "</strong><small>" + esc(c.rfc) + "</small></span>" +
-                (c.rfc === activa ? '<span class="fc-empresas__check">✓</span>' : "") + "</button>";
+                (c.rfc === activa ? '<span class="fc-empresas__check">✓</span>' : "") + "</button>" +
+                '<a class="fc-empresas__editar" href="/clientes/?editar=' + encodeURIComponent(c.rfc) + '" title="Editar ' + esc(c.alias || c.rfc) +
+                ' (e.firma, obligaciones…)" aria-label="Editar ' + esc(c.alias || c.rfc) + '">✎</a></div>';
         }).join("") : '<p class="fc-empresas__nada">Ninguna coincide con la búsqueda.</p>';
     }
 
@@ -1155,6 +1210,26 @@
     document.getElementById("fc-panel-cuerpo").addEventListener("click", accionPanel);
 
     prepararEmpresas();
+
+    // Instructivo de la herramienta
+    var botonAyuda = document.getElementById("fc-ayuda");
+    if (botonAyuda) botonAyuda.addEventListener("click", function () {
+        var pasos = AYUDA[ancla.dataset.ayuda || clave] || [];
+        var caja = document.getElementById("fc-ayuda-modal");
+        if (!caja) {
+            caja = document.createElement("div");
+            caja.id = "fc-ayuda-modal";
+            caja.className = "fc-ayuda-modal";
+            caja.addEventListener("click", function (e) { if (e.target === caja || e.target.closest("[data-cerrar]")) caja.hidden = true; });
+            document.addEventListener("keydown", function (e) { if (e.key === "Escape") caja.hidden = true; });
+            document.body.appendChild(caja);
+        }
+        caja.innerHTML = '<div class="fc-ayuda-modal__caja" role="dialog" aria-label="Cómo se usa">' +
+            "<h2>Cómo se usa · " + esc(ancla.dataset.titulo || modulo.nombre) + "</h2>" +
+            "<ol>" + pasos.map(function (p) { return "<li>" + esc(p) + "</li>"; }).join("") + "</ol>" +
+            '<button type="button" class="fc-ayuda-modal__cerrar" data-cerrar>Entendido</button></div>';
+        caja.hidden = false;
+    });
 
     var btnPerfil = document.getElementById("fc-btn-perfil");
     var menu = document.getElementById("fc-menu");

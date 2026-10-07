@@ -5,14 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mis Clientes | Fiscontable</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="/assets/css/common.css?v=202610071600">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202610071800">
 </head>
 <body class="min-h-screen flex flex-col relative">
 
     <!-- TOP NAV -->
     <div id="app-header" data-modulo="clientes" data-titulo="Mis clientes" data-migas=""></div>
-<script src="/assets/js/nucleo.js?v=202610071600"></script>
-<script src="/assets/js/barra.js?v=202610071600"></script>
+<script src="/assets/js/nucleo.js?v=202610071800"></script>
+<script src="/assets/js/barra.js?v=202610071800"></script>
 
     <!-- ÁREA DE TRABAJO -->
     <main class="flex-grow w-full mod-pagina" style="max-width:1180px">
@@ -71,7 +71,17 @@
                     <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-2">Alias (cómo lo quieres identificar)</label>
                     <input type="text" id="input-alias" required class="w-full text-sm border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-violet-500 shadow-sm" placeholder="Ej. Constructora XYZ">
                 </div>
-                <p class="text-xs text-slate-400">Los demás datos (régimen, domicilio, contacto) se agregan más adelante — por ahora solo necesitamos identificarlo.</p>
+                <!-- Obligaciones al dar de alta (hoy ISN de Quintana Roo; solo con el módulo ISN) -->
+                <div id="nuevo-obligaciones" class="hidden">
+                    <span class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-2">Obligaciones</span>
+                    <label class="flex items-center gap-2 text-sm font-semibold text-slate-700">
+                        <input type="checkbox" id="nuevo-obl-isn" class="w-4 h-4 accent-violet-600"> Impuesto sobre nóminas · Quintana Roo
+                    </label>
+                    <select id="nuevo-obl-zona" class="mt-2 w-full text-sm border border-gray-300 rounded-lg p-2.5 hidden">
+                        <option value="general">Zona general</option>
+                        <option value="frontera">Zona libre de la frontera norte</option>
+                    </select>
+                </div>
                 <button type="submit" id="btn-guardar-cliente" class="mt-2 w-full bg-violet-600 hover:bg-violet-500 text-white font-bold py-3 rounded-lg shadow-md transition">
                     Guardar cliente
                 </button>
@@ -174,6 +184,6 @@
         </div>
     </div>
 
-<script src="/clientes/clientes.js?v=202610071600"></script>
+<script src="/clientes/clientes.js?v=202610071800"></script>
 </body>
 </html>

@@ -4,15 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ISN · Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/common.css?v=202610071600">
-    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202610071600">
-    <link rel="stylesheet" href="/herramientas/isn/isn.css?v=202610071600">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202610071800">
+    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202610071800">
+    <link rel="stylesheet" href="/herramientas/isn/isn.css?v=202610071800">
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-slate-50">
 <div id="app-header" data-modulo="isn" data-titulo="ISN" data-migas="Herramientas|/herramientas/"></div>
-<script src="/assets/js/nucleo.js?v=202610071600"></script>
-<script src="/assets/js/barra.js?v=202610071600"></script>
+<script src="/assets/js/nucleo.js?v=202610071800"></script>
+<script src="/assets/js/barra.js?v=202610071800"></script>
 
 <main class="xml-pagina">
     <div class="xml-cabeza">
@@ -57,7 +57,7 @@
                 <tbody id="mv-filas"></tbody>
             </table>
         </div>
-        <p class="xml-pie">Marca las empresas con las que vas a trabajar este mes: la plantilla trae solo esas (con lo que ya capturaste), y Revisar y Presentar usan solo las marcadas. Clic en el nombre para abrirla en "Por empresa".</p>
+        <p class="xml-pie">Todo trabaja solo con las empresas marcadas.</p>
     </section>
 
     <div class="mod-layout" id="vista-empresa">
@@ -85,7 +85,7 @@
                 <table class="xml-tabla isn-tabla"><thead id="thead"></thead><tbody id="tbody"></tbody></table>
                 <p id="sin-filas" class="xml-vacio xml-vacio--tabla" hidden></p>
             </div>
-            <p class="xml-pie">Base = remuneraciones con salario mínimo + con otro salario · Impuesto (B) = base × tasa · A cargo = B − retenido · Clic en un periodo para editarlo.</p>
+            <p class="xml-pie">Clic en un periodo para editarlo.</p>
         </div>
     </div>
 </main>
@@ -182,8 +182,7 @@
                 <tbody id="p-filas"></tbody>
             </table>
         </div>
-        <p class="isn-nota">Se envían una por una a Tributanet. Antes de pulsar "Confirmar" en el portal se revisa que todo cuadre con lo que calcula el portal; si algo no cuadra, esa no se presenta.
-            ¿Se pudo haber presentado directo en el portal? Usa <b>Revisar en el portal</b>: consulta las marcadas sin presentar nada y quita de la lista las que ya están (con su acuse).</p>
+        <p class="isn-nota">Antes de confirmar en el portal se revisa que todo cuadre; si algo no cuadra, esa no se presenta.</p>
         <p id="p-error" class="isn-error" hidden></p>
         <div class="isn-botones">
             <button type="button" id="p-revisar" class="xml-btn">Revisar en el portal</button>
@@ -240,6 +239,6 @@
     <ol id="avance-filas" class="isn-avance__filas"></ol>
 </div>
 
-<script src="/herramientas/isn/isn.js?v=202610071600"></script>
+<script src="/herramientas/isn/isn.js?v=202610071800"></script>
 </body>
 </html>
