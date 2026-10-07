@@ -352,7 +352,7 @@
     }
 
     var recargas = [];
-    /* Otra parte de la página (p. ej. "Varios a la vez") programó algo: se vuelve a pintar la lista. */
+    /* Otra parte de la página (p. ej. la pestaña "Masivo") programó algo: se vuelve a pintar la lista. */
     function refrescar(abrirId) { recargas.forEach(function (f) { f(abrirId); }); }
 
     window.Fiscontable = window.Fiscontable || {};

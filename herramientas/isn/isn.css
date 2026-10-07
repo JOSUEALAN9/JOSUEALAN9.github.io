@@ -67,10 +67,6 @@
 .isn-nueva td { background: #fef3c7; }
 .isn-sello-nueva { display: inline-block; margin-left: 4px; padding: 0 6px; border-radius: 9px; background: #f59e0b; color: #fff; font-size: 10px; font-weight: 700; text-transform: uppercase; vertical-align: middle; }
 
-/* Pestañas: Por empresa / Masivo */
-.isn-pestanas { display: inline-flex; gap: 2px; padding: 3px; border-radius: 10px; background: #e2e8f0; }
-.isn-pestanas button { border: 0; background: transparent; padding: 6px 14px; border-radius: 8px; font-size: 13px; font-weight: 700; color: #475569; cursor: pointer; }
-.isn-pestanas button[aria-selected="true"] { background: #fff; color: #0f172a; box-shadow: 0 1px 2px rgba(15, 23, 42, .12); }
 .isn-masivo[hidden], .mod-layout[hidden], .ctx[hidden] { display: none; }
 .isn-masivo__barra { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 8px 10px; margin: 10px 0; }
 .isn-masivo__barra .isn-campo select { min-width: 110px; }

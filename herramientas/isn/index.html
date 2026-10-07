@@ -4,22 +4,24 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ISN · Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/common.css?v=202610071200">
-    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202610071200">
-    <link rel="stylesheet" href="/herramientas/isn/isn.css?v=202610071200">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202610071400">
+    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202610071400">
+    <link rel="stylesheet" href="/herramientas/isn/isn.css?v=202610071400">
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-slate-50">
 <div id="app-header" data-modulo="isn" data-titulo="ISN" data-migas="Herramientas|/herramientas/"></div>
-<script src="/assets/js/nucleo.js?v=202610071200"></script>
-<script src="/assets/js/barra.js?v=202610071200"></script>
+<script src="/assets/js/nucleo.js?v=202610071400"></script>
+<script src="/assets/js/barra.js?v=202610071400"></script>
 
 <main class="xml-pagina">
     <div class="xml-cabeza">
-        <h1>Impuesto sobre nóminas</h1>
-        <div class="isn-pestanas" role="tablist" aria-label="Forma de trabajar">
-            <button type="button" role="tab" data-vista="empresa" aria-selected="true">Por empresa</button>
-            <button type="button" role="tab" data-vista="masivo" aria-selected="false">Masivo</button>
+        <div class="fc-titulo">
+            <h1>Impuesto sobre nóminas</h1>
+            <div class="fc-vista isn-pestanas" role="tablist" aria-label="Forma de trabajar">
+                <button type="button" role="tab" data-vista="empresa" aria-selected="true">Por empresa</button>
+                <button type="button" role="tab" data-vista="masivo" aria-selected="false">Masivo</button>
+            </div>
         </div>
         <div class="ctx" id="ctx-empresa">
             <div class="xml-menu">
@@ -237,6 +239,6 @@
     <ol id="avance-filas" class="isn-avance__filas"></ol>
 </div>
 
-<script src="/herramientas/isn/isn.js?v=202610071200"></script>
+<script src="/herramientas/isn/isn.js?v=202610071400"></script>
 </body>
 </html>

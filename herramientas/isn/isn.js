@@ -464,7 +464,7 @@
         document.querySelectorAll(".isn-pestanas button").forEach(function (b) { b.setAttribute("aria-selected", b.dataset.vista === v ? "true" : "false"); });
         $("vista-masivo").hidden = v !== "masivo";
         $("vista-empresa").hidden = v === "masivo";
-        $("ctx-empresa").hidden = v === "masivo";
+        $("ctx-empresa").style.visibility = v === "masivo" ? "hidden" : "";   // conserva su lugar: la cabecera no brinca
         if (!inicio) aviso("");
         if (v === "masivo") {
             if (!E.mvListo) {

@@ -2,7 +2,7 @@
  * acciones.js — Botones de acciones de los módulos de trámite (encabezado o columna).
  *
  * Solo disparan lo que la página ya tiene:
- *   data-ir-pestana="id"  → hace clic en esa pestaña (Un contribuyente / Varios a la vez)
+ *   data-ir-pestana="id"  → hace clic en esa pestaña (Por empresa / Masivo)
  *   data-programar        → abre "Programar descarga"
  */
 (function () {
