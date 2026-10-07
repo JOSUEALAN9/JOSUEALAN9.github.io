@@ -4,20 +4,24 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ISN · Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/common.css?v=202610070300">
-    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202610070300">
-    <link rel="stylesheet" href="/herramientas/isn/isn.css?v=202610070300">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202610071200">
+    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202610071200">
+    <link rel="stylesheet" href="/herramientas/isn/isn.css?v=202610071200">
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-slate-50">
 <div id="app-header" data-modulo="isn" data-titulo="ISN" data-migas="Herramientas|/herramientas/"></div>
-<script src="/assets/js/nucleo.js?v=202610070300"></script>
-<script src="/assets/js/barra.js?v=202610070300"></script>
+<script src="/assets/js/nucleo.js?v=202610071200"></script>
+<script src="/assets/js/barra.js?v=202610071200"></script>
 
 <main class="xml-pagina">
     <div class="xml-cabeza">
         <h1>Impuesto sobre nóminas</h1>
-        <div class="ctx">
+        <div class="isn-pestanas" role="tablist" aria-label="Forma de trabajar">
+            <button type="button" role="tab" data-vista="empresa" aria-selected="true">Por empresa</button>
+            <button type="button" role="tab" data-vista="masivo" aria-selected="false">Masivo</button>
+        </div>
+        <div class="ctx" id="ctx-empresa">
             <div class="xml-menu">
                 <button type="button" id="btn-empresa" class="ctx-campo" aria-haspopup="menu">
                     <span class="ctx-campo__texto"><small id="empresa-etiqueta">Empresa</small><strong id="empresa-titulo">Elegir empresa</strong></span>
@@ -31,20 +35,42 @@
 
     <div id="aviso" class="isn-aviso" hidden></div>
 
-    <div class="mod-layout">
+    <!-- Masivo: varias empresas de un mes; todo trabaja solo con las marcadas -->
+    <section id="vista-masivo" class="isn-masivo" hidden>
+        <div class="isn-masivo__barra">
+            <label class="isn-campo">Año<select id="mv-anio"></select></label>
+            <label class="isn-campo">Mes<select id="mv-mes"></select></label>
+            <span class="isn-nota" id="mv-resumen"></span>
+            <span style="flex:1"></span>
+            <button type="button" id="mv-plantilla" class="xml-btn" title="Solo las marcadas, con lo que ya capturaste de ese mes">⇩ Plantilla de las marcadas</button>
+            <button type="button" id="mv-excel" class="xml-btn">▦ Cargar Excel</button>
+            <button type="button" id="mv-revisar" class="xml-btn" title="Consulta en Tributanet si ya están presentadas (no llena ni presenta nada)">Revisar en el portal</button>
+            <button type="button" id="mv-presentar" class="xml-btn xml-btn--primario">Presentar marcadas</button>
+        </div>
+        <div class="xml-tabla-caja isn-tabla-caja">
+            <table class="xml-tabla isn-tabla">
+                <thead><tr><th style="width:32px"><input type="checkbox" id="mv-todos" aria-label="Todas"></th><th>Empresa</th><th>Estado</th>
+                    <th class="xml-num">Trabajadores</th><th class="xml-num">Base</th><th class="xml-num">Impuesto (B)</th><th class="xml-num">A cargo</th></tr></thead>
+                <tbody id="mv-filas"></tbody>
+            </table>
+        </div>
+        <p class="xml-pie">Marca las empresas con las que vas a trabajar este mes: la plantilla trae solo esas (con lo que ya capturaste), y Revisar y Presentar usan solo las marcadas. Clic en el nombre para abrirla en "Por empresa".</p>
+    </section>
+
+    <div class="mod-layout" id="vista-empresa">
         <aside class="mod-acciones" aria-label="Acciones">
             <p class="mod-acciones__grupo">Calcular</p>
             <button type="button" id="btn-nuevo" class="mod-accion mod-accion--primaria"><b>+</b>Nuevo periodo</button>
             <button type="button" id="btn-datos" class="mod-accion" title="Domicilio, giro, firma y sucursales que pide Tributanet"><b>🏢</b>Datos de la declaración</button>
             <p class="mod-acciones__grupo">Cargar</p>
-            <button type="button" id="btn-excel" class="mod-accion" title="Varias empresas y meses a la vez"><b>▦</b>Cargar Excel</button>
-            <button type="button" id="btn-plantilla" class="mod-accion" title="Con tus empresas y sus sucursales; solo llenas los números"><b>⇩</b>Plantilla de Excel</button>
+            <button type="button" id="btn-excel" class="mod-accion" title="La plantilla de esta empresa ya llena"><b>▦</b>Cargar Excel</button>
+            <button type="button" id="btn-plantilla" class="mod-accion" title="De esta empresa, con lo que ya capturaste del mes que elijas"><b>⇩</b>Plantilla de Excel</button>
             <button type="button" id="btn-acuses" class="mod-accion" title="Acuses de ISN de Quintana Roo o BCS: se guardan, se cruzan con lo calculado y llenan los datos de la declaración"><b>📄</b>Leer acuses</button>
             <button type="button" id="btn-descargar" class="mod-accion" title="Baja de Tributanet los acuses de los meses que elijas (los que ya tienes no se vuelven a bajar)"><b>⇣</b>Descargar del portal</button>
             <p class="mod-acciones__grupo">Reportes</p>
             <button type="button" id="btn-exportar" class="mod-accion"><b>▤</b>Exportar Excel</button>
             <p class="mod-acciones__grupo">Declaración</p>
-            <button type="button" id="btn-presentar" class="mod-accion" title="Elige el mes, revisa lo que se va a enviar y confirma una sola vez"><b>➤</b>Presentar declaraciones</button>
+            <button type="button" id="btn-presentar" class="mod-accion" title="Elige el mes, revisa lo que se va a enviar y confirma una sola vez"><b>➤</b>Presentar esta empresa</button>
             <p id="nota-presentar" class="mod-acciones__nota" hidden>Pide el permiso "Presentar ISN" al administrador.</p>
             <input type="file" id="in-excel" accept=".xlsx" hidden>
             <input type="file" id="in-acuses" accept=".pdf" multiple hidden>
@@ -140,7 +166,7 @@
 <!-- Presentar por lote: se elige el mes, se revisa y se confirma una vez -->
 <div id="modal-presentar" class="xml-modal" hidden>
     <div class="xml-modal__caja isn-form isn-form--ancho">
-        <h3>Presentar declaraciones</h3>
+        <h3 id="p-titulo">Presentar declaraciones</h3>
         <div class="isn-fila">
             <label class="isn-campo">Año<select id="p-anio"></select></label>
             <label class="isn-campo">Mes<select id="p-mes"></select></label>
@@ -154,7 +180,7 @@
             </table>
         </div>
         <p class="isn-nota">Se envían una por una a Tributanet. Antes de pulsar "Confirmar" en el portal se revisa que todo cuadre con lo que calcula el portal; si algo no cuadra, esa no se presenta.
-            ¿Alguna se pudo haber presentado directo en el portal? Usa <b>Revisar en el portal</b>: consulta cada una sin presentar nada y quita de la lista las que ya están (con su acuse).</p>
+            ¿Se pudo haber presentado directo en el portal? Usa <b>Revisar en el portal</b>: consulta las marcadas sin presentar nada y quita de la lista las que ya están (con su acuse).</p>
         <p id="p-error" class="isn-error" hidden></p>
         <div class="isn-botones">
             <button type="button" id="p-revisar" class="xml-btn">Revisar en el portal</button>
@@ -187,8 +213,8 @@
 <!-- Plantilla de Excel: primero el periodo -->
 <div id="modal-plantilla" class="xml-modal" hidden>
     <div class="xml-modal__caja isn-form">
-        <h3>Plantilla de Excel</h3>
-        <p class="isn-nota">¿Qué periodo vas a declarar? La plantilla trae ese año y mes en cada empresa, con los días del mes y el salario mínimo de su zona.</p>
+        <h3 id="pl-titulo">Plantilla de Excel</h3>
+        <p class="isn-nota">¿Qué periodo vas a declarar? Trae ese año y mes con lo que ya capturaste (o los días del mes y el salario mínimo de su zona, para llenar).</p>
         <div class="isn-fila">
             <label class="isn-campo">Año<select id="pl-anio"></select></label>
             <label class="isn-campo">Mes<select id="pl-mes"></select></label>
@@ -211,6 +237,6 @@
     <ol id="avance-filas" class="isn-avance__filas"></ol>
 </div>
 
-<script src="/herramientas/isn/isn.js?v=202610070300"></script>
+<script src="/herramientas/isn/isn.js?v=202610071200"></script>
 </body>
 </html>

@@ -13,7 +13,8 @@
     var $ = function (id) { return document.getElementById(id); };
     var MESES = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
     var E = { empresa: null, empresas: [], rfc: null, anio: new Date().getFullYear(), datos: null, editando: null, periodoGeneral: null,
-              modo: "totales", puedePresentar: false, job: null, reloj: null };
+              modo: "totales", puedePresentar: false, job: null, reloj: null, vista: "empresa", masivo: [], mvListo: false, mvMarcas: {} };
+    try { if (localStorage.getItem("isn:vista") === "masivo") E.vista = "masivo"; } catch (e) { /* nada */ }
     try { if (localStorage.getItem("isn:modo") === "minimo") E.modo = "minimo"; } catch (e) { /* nada */ }
 
     async function api(ruta, opciones) {
@@ -48,6 +49,7 @@
         var deUrl = (q.get("empresa") || "").toUpperCase();
         abrir(deUrl || (E.empresa ? E.empresa.rfc : (E.empresas[0] && E.empresas[0].rfc)));
         if (q.get("abrir")) setTimeout(function () { abrirDesdeUrl(q.get("abrir")); }, 700);
+        ponerVista(E.vista, true);
         retomarTrabajo();
         window.addEventListener("fiscontable:empresa", function (e) { E.empresa = e.detail; if (e.detail) abrir(e.detail.rfc); });
     }
@@ -367,7 +369,9 @@
     function mesAnterior() { var d = new Date(); d.setDate(1); d.setMonth(d.getMonth() - 1); return { anio: d.getFullYear(), mes: d.getMonth() + 1 }; }
 
     function abrirPlantilla() {
-        // Por omisión el mes pasado (el que normalmente se declara); siempre se ve antes de bajarla
+        // Solo la empresa abierta. Por omisión el mes pasado (el que normalmente se declara); siempre se ve antes de bajarla
+        if (!E.rfc) { aviso("Elige una empresa.", true); return; }
+        $("pl-titulo").textContent = "Plantilla de Excel · " + nombreDe(E.rfc);
         var m = mesAnterior();
         opcionesAnios($("pl-anio"), m.anio);
         $("pl-mes").innerHTML = MESES.map(function (n, i) { return '<option value="' + (i + 1) + '"' + (i + 1 === m.mes ? " selected" : "") + ">" + n + "</option>"; }).join("");
@@ -384,7 +388,10 @@
     }
 
     function abrirPresentar(anio, mes) {
+        // Por empresa: solo la abierta (lo de varias empresas está en la pestaña Masivo)
         if (!E.puedePresentar) return;
+        if (!E.rfc) { aviso("Elige una empresa.", true); return; }
+        $("p-titulo").textContent = "Presentar · " + nombreDe(E.rfc);
         var m = anio ? { anio: +anio, mes: +mes } : mesAnterior();
         opcionesAnios($("p-anio"), m.anio);
         $("p-mes").innerHTML = MESES.map(function (n, i) { return '<option value="' + (i + 1) + '"' + (i + 1 === m.mes ? " selected" : "") + ">" + n + "</option>"; }).join("");
@@ -396,7 +403,7 @@
     async function cargarListos() {
         $("p-filas").innerHTML = '<tr><td colspan="7">Cargando…</td></tr>';
         try {
-            var filas = await (await api("/api/isn/listos?anio=" + $("p-anio").value + "&mes=" + $("p-mes").value)).json();
+            var filas = await (await api("/api/isn/listos?anio=" + $("p-anio").value + "&mes=" + $("p-mes").value + "&rfc=" + encodeURIComponent(E.rfc))).json();
             $("p-filas").innerHTML = filas.length ? filas.map(function (f) {
                 var listo = !f.faltan.length;
                 // "¿Presentar?" del Excel: las que dicen No salen sin marcar (se pueden marcar aquí)
@@ -406,7 +413,7 @@
                     '</td><td class="xml-num">' + m(f.a_cargo) + "</td><td>" + (listo ? '<span class="xml-sello isn-sello-listo">Listo</span>' +
                     (f.presentar ? "" : '<br><span class="isn-nota">Excel: No</span>')
                     : '<span class="isn-motivo">' + esc(f.faltan.join(" ")) + "</span>") + "</td></tr>";
-            }).join("") : '<tr><td colspan="7">No hay declaraciones por presentar de ese mes. Captúralas o cárgalas con el Excel.</td></tr>';
+            }).join("") : '<tr><td colspan="7">Esta empresa no tiene declaración por presentar de ese mes. Captúrala o cárgala con el Excel.</td></tr>';
         } catch (e) { $("p-filas").innerHTML = ""; $("p-error").textContent = e.message; $("p-error").hidden = false; }
         contarElegidos();
     }
@@ -420,8 +427,8 @@
     }
 
     async function revisarEnPortal() {
-        var ids = Array.from(document.querySelectorAll("#p-filas input[data-id]")).map(function (c) { return +c.dataset.id; });
-        if (!ids.length) return;
+        var ids = elegidos();                                   // solo las marcadas
+        if (!ids.length) { $("p-error").textContent = "Marca la que quieres revisar."; $("p-error").hidden = false; return; }
         var anio = $("p-anio").value, mes = $("p-mes").value;
         $("p-revisar").disabled = true;
         try {
@@ -448,6 +455,114 @@
             $("modal-presentar").hidden = true;
             seguir(r.job_id, "Presentando " + mes);
         } catch (e) { $("p-error").textContent = e.message; $("p-error").hidden = false; $("p-enviar").disabled = false; }
+    }
+
+    /* ------------------------------------------------------------ pestañas y masivo */
+    function ponerVista(v, inicio) {
+        E.vista = v;
+        try { localStorage.setItem("isn:vista", v); } catch (e) { /* nada */ }
+        document.querySelectorAll(".isn-pestanas button").forEach(function (b) { b.setAttribute("aria-selected", b.dataset.vista === v ? "true" : "false"); });
+        $("vista-masivo").hidden = v !== "masivo";
+        $("vista-empresa").hidden = v === "masivo";
+        $("ctx-empresa").hidden = v === "masivo";
+        if (!inicio) aviso("");
+        if (v === "masivo") {
+            if (!E.mvListo) {
+                var m = mesAnterior();
+                opcionesAnios($("mv-anio"), m.anio);
+                $("mv-mes").innerHTML = MESES.map(function (n, i) { return '<option value="' + (i + 1) + '"' + (i + 1 === m.mes ? " selected" : "") + ">" + n + "</option>"; }).join("");
+                E.mvListo = true;
+            }
+            $("mv-presentar").disabled = !E.puedePresentar;
+            $("mv-presentar").title = E.puedePresentar ? "" : 'Pide el permiso "Presentar ISN" al administrador.';
+            cargarMasivo();
+        }
+    }
+
+    async function cargarMasivo() {
+        $("mv-filas").innerHTML = '<tr><td colspan="7">Cargando…</td></tr>';
+        try {
+            E.masivo = await (await api("/api/isn/masivo?anio=" + $("mv-anio").value + "&mes=" + $("mv-mes").value)).json();
+        } catch (e) { E.masivo = []; aviso(e.message, true); }
+        pintarMasivo();
+    }
+
+    function estadoMasivo(x) {
+        var p = x.periodo;
+        if (p && p.presentada) return '<span class="isn-estado-ok">Presentada' + (p.folio ? " · folio " + esc(p.folio) : "") + "</span>";
+        if (p && p.faltan.length) return '<span class="isn-estado-falta">' + esc(p.faltan.join(" ")) + "</span>";
+        if (p) return '<span class="xml-sello isn-sello-listo">Lista</span>' + (p.presentar ? "" : ' <span class="isn-nota">Excel: No</span>');
+        return '<span class="isn-estado-gris">Sin capturar' + (x.datos ? "" : " · faltan datos de la empresa") + "</span>";
+    }
+
+    function pintarMasivo() {
+        var filas = E.masivo || [];
+        $("mv-filas").innerHTML = filas.length ? filas.map(function (x) {
+            var p = x.periodo, hecha = p && p.presentada;
+            // Lo que marcaste a mano se respeta; si no, las que faltan, salvo las que en el Excel dijeron No
+            var marcada = !hecha && (x.rfc in E.mvMarcas ? E.mvMarcas[x.rfc] : (!p || p.presentar));
+            return '<tr><td><input type="checkbox" data-rfc="' + esc(x.rfc) + '"' + (marcada ? " checked" : "") + (hecha ? " disabled" : "") + "></td>" +
+                '<td><button type="button" class="isn-enlace-empresa" data-abrir="' + esc(x.rfc) + '">' + esc(x.nombre || x.rfc) + '</button><br><span class="isn-nota">' + esc(x.rfc) + "</span></td>" +
+                "<td>" + estadoMasivo(x) + "</td>" +
+                '<td class="xml-num">' + (p ? p.trabajadores : "") + '</td><td class="xml-num">' + (p ? m(p.base) : "") +
+                '</td><td class="xml-num">' + (p ? m(p.impuesto) : "") + '</td><td class="xml-num">' + (p ? m(p.a_cargo) : "") + "</td></tr>";
+        }).join("") : '<tr><td colspan="7">No hay empresas con la obligación de ISN. Actívala en Clientes (editar → Obligaciones).</td></tr>';
+        contarMasivo();
+    }
+
+    function marcadasMasivo() {
+        var rfcs = Array.from(document.querySelectorAll("#mv-filas input[data-rfc]:checked")).map(function (c) { return c.dataset.rfc; });
+        return (E.masivo || []).filter(function (x) { return rfcs.indexOf(x.rfc) !== -1; });
+    }
+
+    function contarMasivo() {
+        var marcadas = marcadasMasivo();
+        var listas = marcadas.filter(function (x) { return x.periodo && !x.periodo.presentada && !x.periodo.faltan.length; });
+        var conPeriodo = marcadas.filter(function (x) { return x.periodo && !x.periodo.presentada; });
+        $("mv-resumen").textContent = marcadas.length + " marcada(s) · " + listas.length + " lista(s) para presentar";
+        $("mv-plantilla").disabled = !marcadas.length;
+        $("mv-revisar").disabled = !conPeriodo.length;
+        $("mv-presentar").disabled = !E.puedePresentar || !listas.length;
+        $("mv-presentar").textContent = listas.length ? "Presentar " + listas.length : "Presentar marcadas";
+    }
+
+    async function plantillaMasivo() {
+        var marcadas = marcadasMasivo(), a = $("mv-anio").value, ms = $("mv-mes").value;
+        if (!marcadas.length) return;
+        try {
+            await bajar(await api("/api/isn/plantilla?anio=" + a + "&mes=" + ms + "&rfcs=" + encodeURIComponent(marcadas.map(function (x) { return x.rfc; }).join(","))),
+                        "Plantilla_ISN_" + a + "-" + String(ms).padStart(2, "0") + ".xlsx");
+        } catch (e) { aviso(e.message, true); }
+    }
+
+    async function revisarMasivo() {
+        var van = marcadasMasivo().filter(function (x) { return x.periodo && !x.periodo.presentada; });
+        if (!van.length) return;
+        var mes = MESES[+$("mv-mes").value - 1] + " " + $("mv-anio").value;
+        if (!confirm("Revisar en el portal " + van.length + " empresa(s) de " + mes + " (no se llena ni se presenta nada):\n\n" +
+                     van.map(function (x) { return "• " + (x.nombre || x.rfc); }).join("\n"))) return;
+        try {
+            $("avance").hidden = true;
+            var r = await json("/api/isn/portal/revisar", "POST", { ids: van.map(function (x) { return x.periodo.id; }) });
+            seguir(r.job_id, "Revisando en el portal · " + mes, cargarMasivo);
+        } catch (e) { aviso(e.message, true); }
+    }
+
+    async function presentarMasivo() {
+        var marcadas = marcadasMasivo();
+        var van = marcadas.filter(function (x) { return x.periodo && !x.periodo.presentada && !x.periodo.faltan.length; });
+        var noVan = marcadas.filter(function (x) { return van.indexOf(x) === -1; });
+        if (!van.length) return;
+        var mes = MESES[+$("mv-mes").value - 1] + " " + $("mv-anio").value;
+        if (!confirm("Se van a PRESENTAR " + van.length + " declaración(es) de ISN de " + mes + " ante la SEFIPLAN:\n\n" +
+                     van.map(function (x) { return "• " + (x.nombre || x.rfc) + " — a cargo $" + m(x.periodo.a_cargo); }).join("\n") +
+                     (noVan.length ? "\n\nNo van (no están listas o no tienen captura): " + noVan.map(function (x) { return x.nombre || x.rfc; }).join(", ") : "") +
+                     "\n\n¿Todo bien? Esto no se puede deshacer.")) return;
+        try {
+            $("avance").hidden = true;
+            var r = await json("/api/isn/presentar", "POST", { ids: van.map(function (x) { return x.periodo.id; }) });
+            seguir(r.job_id, "Presentando " + mes, cargarMasivo);
+        } catch (e) { aviso(e.message, true); }
     }
 
     /* ------------------------------------------------------------ descargar del portal */
@@ -573,6 +688,26 @@
         $("p-filas").addEventListener("change", contarElegidos);
         $("p-cancelar").addEventListener("click", function () { $("modal-presentar").hidden = true; });
         $("p-revisar").addEventListener("click", revisarEnPortal);
+        document.querySelectorAll(".isn-pestanas button").forEach(function (b) { b.addEventListener("click", function () { ponerVista(b.dataset.vista); }); });
+        $("mv-anio").addEventListener("change", function () { E.mvMarcas = {}; cargarMasivo(); });
+        $("mv-mes").addEventListener("change", function () { E.mvMarcas = {}; cargarMasivo(); });
+        $("mv-filas").addEventListener("change", function (e) {
+            if (e.target.dataset.rfc) E.mvMarcas[e.target.dataset.rfc] = e.target.checked;
+            contarMasivo();
+        });
+        $("mv-filas").addEventListener("click", function (e) {
+            var b = e.target.closest("[data-abrir]"); if (!b) return;
+            ponerVista("empresa"); abrir(b.dataset.abrir);
+        });
+        $("mv-todos").addEventListener("change", function () {
+            var on = this.checked;
+            document.querySelectorAll("#mv-filas input[data-rfc]:not(:disabled)").forEach(function (c) { c.checked = on; E.mvMarcas[c.dataset.rfc] = on; });
+            contarMasivo();
+        });
+        $("mv-plantilla").addEventListener("click", plantillaMasivo);
+        $("mv-excel").addEventListener("click", function () { $("in-excel").click(); });
+        $("mv-revisar").addEventListener("click", revisarMasivo);
+        $("mv-presentar").addEventListener("click", presentarMasivo);
         $("p-enviar").addEventListener("click", enviarLote);
         $("d-anio").addEventListener("change", pintarMesesDescarga);
         $("d-cancelar").addEventListener("click", function () { $("modal-descargar").hidden = true; $("modal-plantilla").hidden = true; });
@@ -617,7 +752,8 @@
             var a = +$("pl-anio").value, ms = +$("pl-mes").value, b = this;
             b.disabled = true;
             try {
-                await bajar(await api("/api/isn/plantilla?anio=" + a + "&mes=" + ms), "Plantilla_ISN_" + a + "-" + String(ms).padStart(2, "0") + ".xlsx");
+                await bajar(await api("/api/isn/plantilla?anio=" + a + "&mes=" + ms + "&rfc=" + encodeURIComponent(E.rfc)),
+                            "Plantilla_ISN_" + E.rfc + "_" + a + "-" + String(ms).padStart(2, "0") + ".xlsx");
                 $("modal-plantilla").hidden = true;
             } catch (e) { $("pl-error").textContent = e.message; $("pl-error").hidden = false; }
             b.disabled = false;
@@ -634,7 +770,11 @@
                       (r.por_revisar && r.por_revisar.length ? "\nRevisa:\n" + r.por_revisar.join("\n") : "") +
                       (r.errores.length ? "\nNo se cargaron:\n" + r.errores.join("\n") : ""), r.errores.length > 0 || (r.por_revisar || []).length > 0);
                 await cargarEmpresas();
-                if (r.rfcs.length && r.rfcs.indexOf(E.rfc) === -1) abrir(r.rfcs[0]); else cargar();
+                if (E.vista === "masivo") {
+                    r.rfcs.forEach(function (rfc) { delete E.mvMarcas[rfc]; });   // las del Excel: manda su ¿Presentar?
+                    cargarMasivo();
+                }
+                else if (r.rfcs.length && r.rfcs.indexOf(E.rfc) === -1) abrir(r.rfcs[0]); else cargar();
             } catch (e) { aviso(e.message, true); }
         });
         $("btn-acuses").addEventListener("click", function () { $("in-acuses").click(); });
