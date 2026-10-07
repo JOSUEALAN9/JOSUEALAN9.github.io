@@ -75,3 +75,5 @@
 .isn-estado-ok { color: #047857; font-weight: 700; }
 .isn-estado-falta { color: #b45309; }
 .isn-estado-gris { color: #64748b; }
+.isn-btn-quitar { color: #b91c1c; }
+.isn-btn-quitar:disabled { color: #94a3b8; }

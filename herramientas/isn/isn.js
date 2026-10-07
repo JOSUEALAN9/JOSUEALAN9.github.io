@@ -522,6 +522,7 @@
         $("mv-resumen").textContent = marcadas.length + " marcada(s) · " + listas.length + " lista(s) para presentar";
         $("mv-plantilla").disabled = !marcadas.length;
         $("mv-revisar").disabled = !conPeriodo.length;
+        $("mv-quitar").disabled = !conPeriodo.length;
         $("mv-presentar").disabled = !E.puedePresentar || !listas.length;
         $("mv-presentar").textContent = listas.length ? "Presentar " + listas.length : "Presentar marcadas";
     }
@@ -532,6 +533,24 @@
         try {
             await bajar(await api("/api/isn/plantilla?anio=" + a + "&mes=" + ms + "&rfcs=" + encodeURIComponent(marcadas.map(function (x) { return x.rfc; }).join(","))),
                         "Plantilla_ISN_" + a + "-" + String(ms).padStart(2, "0") + ".xlsx");
+        } catch (e) { aviso(e.message, true); }
+    }
+
+    async function quitarMasivo() {
+        // Borra la declaración pendiente del mes; si la empresa ya no tiene la obligación, sale de la lista
+        var van = marcadasMasivo().filter(function (x) { return x.periodo && !x.periodo.presentada; });
+        if (!van.length) return;
+        var mes = MESES[+$("mv-mes").value - 1] + " " + $("mv-anio").value;
+        if (!confirm("Se BORRA la declaración de " + mes + " (lo capturado o cargado del Excel) de:\n\n" +
+                     van.map(function (x) { return "• " + (x.nombre || x.rfc); }).join("\n") +
+                     "\n\nNo se presenta ni se toca nada en el portal. Las que todavía tengan la obligación activa siguen en la lista como \"Sin capturar\".")) return;
+        try {
+            var r = await json("/api/isn/masivo/quitar", "POST", { anio: +$("mv-anio").value, mes: +$("mv-mes").value, rfcs: van.map(function (x) { return x.rfc; }) });
+            van.forEach(function (x) { delete E.mvMarcas[x.rfc]; });
+            aviso("Se quitaron " + r.borradas.length + " declaración(es) de " + mes + "." +
+                  (r.presentadas.length ? " Las presentadas no se tocan: " + r.presentadas.join(", ") : ""));
+            await cargarEmpresas();
+            cargarMasivo();
         } catch (e) { aviso(e.message, true); }
     }
 
@@ -707,6 +726,7 @@
         $("mv-plantilla").addEventListener("click", plantillaMasivo);
         $("mv-excel").addEventListener("click", function () { $("in-excel").click(); });
         $("mv-revisar").addEventListener("click", revisarMasivo);
+        $("mv-quitar").addEventListener("click", quitarMasivo);
         $("mv-presentar").addEventListener("click", presentarMasivo);
         $("p-enviar").addEventListener("click", enviarLote);
         $("d-anio").addEventListener("change", pintarMesesDescarga);

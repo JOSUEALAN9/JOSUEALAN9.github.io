@@ -4,15 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ISN · Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/common.css?v=202610071400">
-    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202610071400">
-    <link rel="stylesheet" href="/herramientas/isn/isn.css?v=202610071400">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202610071600">
+    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202610071600">
+    <link rel="stylesheet" href="/herramientas/isn/isn.css?v=202610071600">
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-slate-50">
 <div id="app-header" data-modulo="isn" data-titulo="ISN" data-migas="Herramientas|/herramientas/"></div>
-<script src="/assets/js/nucleo.js?v=202610071400"></script>
-<script src="/assets/js/barra.js?v=202610071400"></script>
+<script src="/assets/js/nucleo.js?v=202610071600"></script>
+<script src="/assets/js/barra.js?v=202610071600"></script>
 
 <main class="xml-pagina">
     <div class="xml-cabeza">
@@ -46,6 +46,7 @@
             <span style="flex:1"></span>
             <button type="button" id="mv-plantilla" class="xml-btn" title="Solo las marcadas, con lo que ya capturaste de ese mes">⇩ Plantilla de las marcadas</button>
             <button type="button" id="mv-excel" class="xml-btn">▦ Cargar Excel</button>
+            <button type="button" id="mv-quitar" class="xml-btn isn-btn-quitar" title="Borra la declaración de este mes de las marcadas (las presentadas nunca se borran)">Quitar del mes</button>
             <button type="button" id="mv-revisar" class="xml-btn" title="Consulta en Tributanet si ya están presentadas (no llena ni presenta nada)">Revisar en el portal</button>
             <button type="button" id="mv-presentar" class="xml-btn xml-btn--primario">Presentar marcadas</button>
         </div>
@@ -239,6 +240,6 @@
     <ol id="avance-filas" class="isn-avance__filas"></ol>
 </div>
 
-<script src="/herramientas/isn/isn.js?v=202610071400"></script>
+<script src="/herramientas/isn/isn.js?v=202610071600"></script>
 </body>
 </html>
