@@ -5,15 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Administrar Usuarios | Fiscontable</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="/assets/css/common.css?v=202610271830">
-    <link rel="stylesheet" href="/admin/creditos-admin.css?v=202610271830">
-    <link rel="stylesheet" href="/admin/documentos-admin.css?v=202610271830">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202610272100">
+    <link rel="stylesheet" href="/admin/creditos-admin.css?v=202610272100">
+    <link rel="stylesheet" href="/admin/documentos-admin.css?v=202610272100">
 </head>
 <body class="min-h-screen flex flex-col relative">
 
     <div id="app-header" data-modulo="admin" data-titulo="Administración" data-migas=""></div>
-<script src="/assets/js/nucleo.js?v=202610271830"></script>
-<script src="/assets/js/barra.js?v=202610271830"></script>
+<script src="/assets/js/nucleo.js?v=202610272100"></script>
+<script src="/assets/js/barra.js?v=202610272100"></script>
 
     <main class="flex-grow p-4 sm:p-6 w-full max-w-4xl mx-auto">
         <style>
@@ -184,11 +184,16 @@
                 </div>
                 <div class="cra-caja">
                     <h2>Catálogo y precios</h2>
-                    <p class="dca-ayuda">Costo: lo que cobra UnlockerFast (se actualiza solo con cada pedido). Precio: créditos que paga el usuario. Ganancia: precio − costo contando 1 crédito = $1 (con paquetes de descuento es algo menos). <b>Sin probar</b>: aún no entrega su primer documento; pide uno tú antes de dejarlo activo para los usuarios. Los cambios se guardan solos.</p>
+                    <p class="dca-ayuda">Costo: lo que cobra UnlockerFast (se actualiza solo con cada pedido). Precio: créditos que paga el usuario. Ganancia: precio − costo contando 1 crédito = $1 (con paquetes de descuento es algo menos). <b>Sin probar</b>: aún no entrega su primer documento; pide uno tú antes de dejarlo activo para los usuarios. Cambia lo que quieras y al final pulsa <b>Guardar cambios</b>.</p>
                     <div class="overflow-x-auto"><table class="cra-tabla dca-catalogo">
                         <thead><tr><th>Activo</th><th>Documento</th><th class="num">Costo</th><th class="num">Precio (créditos)</th><th class="num">Ganancia</th><th>Estado</th></tr></thead>
                         <tbody id="dca-catalogo"></tbody>
                     </table></div>
+                    <div class="dca-guardar" id="dca-guardar" role="status" hidden>
+                        <span id="dca-guardar-n"></span>
+                        <button type="button" class="cra-btn" id="dca-descartar">Descartar</button>
+                        <button type="button" class="boton-principal" id="dca-guardar-btn">Guardar cambios</button>
+                    </div>
                 </div>
                 <div class="cra-caja">
                     <h2>Pedidos</h2>
@@ -466,8 +471,8 @@
         </div>
     </div>
 
-<script src="/admin/admin.js?v=202610271830"></script>
-<script src="/admin/creditos-admin.js?v=202610271830"></script>
-<script src="/admin/documentos-admin.js?v=202610271830"></script>
+<script src="/admin/admin.js?v=202610272100"></script>
+<script src="/admin/creditos-admin.js?v=202610272100"></script>
+<script src="/admin/documentos-admin.js?v=202610272100"></script>
 </body>
 </html>

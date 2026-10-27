@@ -8,7 +8,24 @@
 .dc-caja h2 { font-size: 16px; font-weight: 800; color: #0f172a; margin-bottom: 12px; }
 .dc-titulo-fila { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
 .dc-titulo-fila h2 { margin: 0; }
-.dc-buscar { border: 1px solid #cbd5e1; border-radius: 8px; padding: 7px 10px; font-size: 13.5px; min-width: 0; width: 260px; max-width: 100%; }
+.dc-control { border: 1px solid #cbd5e1; border-radius: 8px; padding: 7px 10px; font-size: 13.5px; min-width: 0; max-width: 100%; background: #fff; color: #0f172a; }
+.dc-buscar { width: 260px; }
+.dc-insignia { display: inline-block; min-width: 18px; padding: 0 5px; margin-left: 4px; border-radius: 999px; background: #0e7490; color: #fff; font-size: 11px; line-height: 18px; text-align: center; }
+.dc-enlace { border: 0; background: none; padding: 0; font: inherit; font-weight: 700; color: inherit; text-decoration: underline; cursor: pointer; }
+.dc-filtros { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+.dc-filtro { border: 1px solid #e2e8f0; background: #fff; border-radius: 999px; padding: 5px 12px; font: inherit; font-size: 13px; font-weight: 700; color: #475569; cursor: pointer; }
+.dc-filtro b { margin-left: 2px; color: #0f172a; }
+.dc-filtro[aria-selected="true"] { background: #0f172a; border-color: #0f172a; color: #fff; }
+.dc-filtro[aria-selected="true"] b { color: #fff; }
+.dc-filtro--proceso b { color: #0369a1; }
+.dc-filtro--entregado b { color: #166534; }
+.dc-filtro--rechazado b { color: #b91c1c; }
+.dc-filtro--revisar b { color: #b45309; }
+.dc-herramientas { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 6px; }
+.dc-herramientas .dc-btn { padding: 7px 12px; font-size: 13px; }
+.dc-actualizado { margin: 0 0 8px; font-size: 12px; }
+.dc-motivo { display: inline-block; margin-top: 3px; font-size: 12.5px; color: #7f1d1d; }
+.dc-resultado a { color: #0e7490; text-decoration: underline; overflow-wrap: anywhere; }
 
 /* Categorías y documentos */
 .dc-categorias { display: inline-flex; gap: 2px; padding: 3px; background: #f1f5f9; border-radius: 10px; margin-bottom: 12px; flex-wrap: wrap; }
@@ -63,7 +80,8 @@
 /* Celular: cada pedido como tarjeta (folio | documento | créditos; dato; estado; botones) */
 @media (max-width: 640px) {
     .dc-caja { padding: 16px 14px; }
-    .dc-buscar { width: 100%; }
+    .dc-buscar, .dc-herramientas select { width: 100%; }
+    .dc-herramientas .dc-btn { flex: 1; }
     .dc-tabla { min-width: 0; }
     .dc-tabla thead { display: none; }
     .dc-tabla tr { display: grid; grid-template-columns: auto 1fr auto; gap: 3px 12px; padding: 12px 0; border-bottom: 1px solid #f1f5f9; }

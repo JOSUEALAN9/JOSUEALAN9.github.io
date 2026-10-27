@@ -10,8 +10,15 @@
     var API = Fiscontable.API;
     var esc = Fiscontable.escapar;
     var $ = function (id) { return document.getElementById(id); };
-    var E = { datos: null, categoria: null, servicio: null, reloj: null, enviando: false };
+    var E = { datos: null, categoria: null, servicio: null, reloj: null, enviando: false, vista: "pedir", filtro: "todos", visto: null };
     var EN_CURSO = ["enviando", "en_cola", "en_proceso", "descargando"];
+    var FILTROS = [
+        { clave: "todos", nombre: "Todos", estados: null },
+        { clave: "proceso", nombre: "En proceso", estados: EN_CURSO },
+        { clave: "entregado", nombre: "Entregados", estados: ["entregado"] },
+        { clave: "rechazado", nombre: "Rechazados", estados: ["rechazado", "error", "devuelto"] },
+        { clave: "revisar", nombre: "En revisión", estados: ["revisar"] }
+    ];
     var REGLAS = {
         curp: { re: /^[A-Z]{4}\d{6}[HMX][A-Z]{5}[A-Z0-9]\d$/, max: 18, ph: "18 caracteres", error: "debe ser una CURP de 18 caracteres." },
         rfc: { re: /^[A-ZÑ&]{3,4}\d{6}[A-Z0-9]{3}$/, max: 13, ph: "12 o 13 caracteres", error: "debe ser un RFC de 12 o 13 caracteres." },
@@ -54,18 +61,28 @@
         try { E.datos = await api("/api/documentos"); } catch (e) { aviso(esc(e.message), "error"); return; }
         var cats = E.datos.categorias.filter(function (c) { return E.datos.servicios.some(function (s) { return s.categoria === c; }); });
         E.categoria = cats[0] || null;
+        E.visto = new Date();
         pintarSaldo();
         pintarCategorias(cats);
         pintarServicios();
         pintarPedidos();
+        verVista(location.hash === "#estatus" ? "estatus" : "pedir");
         vigilar();
+    }
+
+    function verVista(v) {
+        E.vista = v;
+        document.querySelectorAll("[data-vista]").forEach(function (b) { b.setAttribute("aria-selected", b.dataset.vista === v ? "true" : "false"); });
+        $("vista-pedir").hidden = v !== "pedir";
+        $("vista-estatus").hidden = v !== "estatus";
+        try { history.replaceState(null, "", v === "estatus" ? "#estatus" : location.pathname + location.search); } catch (e) { /* sin historial */ }
     }
 
     function pintarSaldo() {
         var s = $("dc-saldo");
         s.hidden = false;
         if (E.datos.sin_costo) {
-            s.innerHTML = "Administrador · <b>sin costo</b>";
+            s.innerHTML = "Administrador · <b>tú no pagas</b>";
             s.removeAttribute("href");
         } else {
             s.innerHTML = "Saldo <b>" + m(E.datos.saldo) + "</b> créditos · <u>Recargar</u>";
@@ -79,7 +96,7 @@
         if (!cats.length) $("servicios").innerHTML = '<p class="dc-vacio">Por ahora no hay documentos disponibles.</p>';
     }
 
-    function precioTexto(s) { return E.datos.sin_costo ? "Sin costo" : m(s.precio) + " créditos"; }
+    function precioTexto(s) { return m(s.precio) + " créditos"; }
 
     function pintarServicios() {
         var lista = E.datos.servicios.filter(function (s) { return s.categoria === E.categoria; });
@@ -104,10 +121,10 @@
                 ' maxlength="' + ((r.max || 20) + 4) + '" placeholder="' + esc(r.ph || "") + '"' + (r.numerico ? ' inputmode="numeric"' : ' autocapitalize="characters"') +
                 ' spellcheck="false" required>' + (c.ayuda ? '<small>' + esc(c.ayuda) + "</small>" : "") + "</label>";
         }).join("");
-        $("f-costo").innerHTML = E.datos.sin_costo ? "Sin costo para ti: se paga de tu saldo con el proveedor." :
+        $("f-costo").innerHTML = E.datos.sin_costo ? "Los usuarios pagan <b>" + m(s.precio) + " créditos</b>. A ti no se te cobra: sale de tu saldo en UnlockerFast." :
             "Cuesta <b>" + m(s.precio) + " créditos</b>. Se apartan al pedir y se cobran cuando llega; si no se puede obtener, se te devuelven." +
             (E.datos.saldo < s.precio ? ' <span class="dc-falta">Te faltan ' + m(s.precio - E.datos.saldo) + ' créditos. <a href="/creditos/">Recargar</a></span>' : "");
-        $("f-enviar").textContent = E.datos.sin_costo ? "Pedir" : "Pedir · " + m(s.precio) + " créditos";
+        $("f-enviar").textContent = E.datos.sin_costo ? "Pedir (sin costo para ti)" : "Pedir · " + m(s.precio) + " créditos";
         $("f-error").hidden = true;
         $("form").hidden = false;
         var primero = $("f-campos").querySelector("input");
@@ -145,7 +162,8 @@
             pintarSaldo();
             pintarPedidos();
             aviso("Listo: pediste <b>" + esc(r.pedido.servicio) + "</b> (folio " + r.pedido.id + "). Llega en " +
-                esc((servicioPorId(r.pedido.serviceid) || {}).tiempo || "unos minutos") + "; aparece abajo en Mis pedidos. Puedes cerrar la página.", "ok");
+                esc((servicioPorId(r.pedido.serviceid) || {}).tiempo || "unos minutos") + ". Puedes seguir pidiendo o cerrar la página; lo ves en " +
+                '<button type="button" class="dc-enlace" data-ir="estatus">Estatus de pedidos</button>.', "ok");
             $("f-campos").querySelectorAll("input").forEach(function (el) { el.value = ""; });
             $("f-nota").value = "";
             elegir(E.servicio);
@@ -165,22 +183,57 @@
         if (EN_CURSO.indexOf(p.estado) !== -1) t += s.tiempo ? '<br><small>Suele tardar ' + esc(s.tiempo) + "</small>" : "";
         else if (p.estado === "entregado") {
             t += "<br><small>" + fecha(p.entregado_en) + "</small>";
-            if (p.resultado) t += '<pre class="dc-resultado">' + esc(p.resultado) + "</pre>";
-        } else if (p.estado === "rechazado") t += "<br><small>" + esc(p.motivo) + "</small><br><small>Se te devolvieron los créditos.</small>";
-        else if (p.estado === "error") t += "<br><small>" + esc(p.motivo) + "</small><br><small>No se te cobró.</small>";
+            if (p.resultado) t += '<pre class="dc-resultado">' + conLigas(p.resultado) + "</pre>";
+        } else if (p.estado === "rechazado") t += '<br><span class="dc-motivo">' + esc(p.motivo) + "</span>" + (p.precio ? "<br><small>Se te devolvieron los créditos.</small>" : "");
+        else if (p.estado === "error") t += '<br><span class="dc-motivo">' + esc(p.motivo) + "</span>" + (p.precio ? "<br><small>No se te cobró.</small>" : "");
         else if (p.estado === "revisar") t += "<br><small>Lo está revisando el administrador. Si no se resuelve, se te devuelven los créditos.</small>";
         else if (p.estado === "devuelto") t += "<br><small>" + esc(p.motivo) + "</small>";
         return t;
     }
 
-    function pintarPedidos() {
-        var q = limpio($("buscar").value), qn = $("buscar").value.trim().toLowerCase();
-        var filas = E.datos.pedidos.filter(function (p) {
+    /* Texto ya escapado con sus ligas https clicables (respuestas del proveedor). */
+    function conLigas(texto) {
+        return esc(texto).replace(/https?:\/\/[^\s<]+/g, function (u) { return '<a href="' + u + '" target="_blank" rel="noopener noreferrer">' + u + "</a>"; });
+    }
+
+    function filtroDe(clave) { return FILTROS.filter(function (f) { return f.clave === clave; })[0]; }
+    function enFiltro(p, clave) { var f = filtroDe(clave); return !f.estados || f.estados.indexOf(p.estado) !== -1; }
+
+    function filasVisibles() {
+        var q = limpio($("buscar").value), qn = $("buscar").value.trim().toLowerCase(), doc = $("f-documento").value;
+        return E.datos.pedidos.filter(function (p) {
+            if (!enFiltro(p, E.filtro)) return false;
+            if (doc && String(p.serviceid) !== doc) return false;
             if (!q) return true;
             var datos = Object.keys(p.datos || {}).map(function (k) { return p.datos[k]; }).join(" ");
             return (p.titular + " " + datos).indexOf(q) !== -1 || (p.nota || "").toLowerCase().indexOf(qn) !== -1 ||
                 p.servicio.toLowerCase().indexOf(qn) !== -1 || String(p.id) === q;
         });
+    }
+
+    function pintarFiltros() {
+        var ped = E.datos.pedidos;
+        $("filtros").innerHTML = FILTROS.map(function (f) {
+            var n = ped.filter(function (p) { return enFiltro(p, f.clave); }).length;
+            if (!n && f.clave !== "todos" && f.clave !== E.filtro) return "";
+            return '<button type="button" role="tab" class="dc-filtro dc-filtro--' + f.clave + '" data-filtro="' + f.clave + '" aria-selected="' + (f.clave === E.filtro) + '">' +
+                f.nombre + " <b>" + n + "</b></button>";
+        }).join("");
+        // Documentos que aparecen en los pedidos (para filtrar)
+        var sel = $("f-documento"), actual = sel.value, vistos = {};
+        ped.forEach(function (p) { vistos[p.serviceid] = p.servicio; });
+        sel.innerHTML = '<option value="">Todos los documentos</option>' + Object.keys(vistos).sort(function (a, b) { return vistos[a].localeCompare(vistos[b]); })
+            .map(function (k) { return '<option value="' + k + '"' + (k === actual ? " selected" : "") + ">" + esc(vistos[k]) + "</option>"; }).join("");
+        var n = ped.filter(function (p) { return EN_CURSO.indexOf(p.estado) !== -1; }).length;
+        $("n-en-curso").hidden = !n;
+        $("n-en-curso").textContent = n;
+        $("actualizado").textContent = (E.visto ? "Actualizado a las " + E.visto.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit", second: "2-digit" }) : "") +
+            (n ? " · se actualiza sola cada 20 segundos mientras haya pedidos en proceso" : "");
+    }
+
+    function pintarPedidos() {
+        pintarFiltros();
+        var filas = filasVisibles(), hayFiltro = E.filtro !== "todos" || $("f-documento").value || $("buscar").value.trim();
         $("pedidos").innerHTML = filas.length ? filas.map(function (p) {
             var otros = Object.keys(p.datos || {}).filter(function (k) { return p.datos[k] !== p.titular; })
                 .map(function (k) { return esc(k) + ": " + esc(p.datos[k]); }).join("<br>");
@@ -194,7 +247,21 @@
                 '<td class="num">' + (p.precio ? m(p.precio) : "—") + "</td>" +
                 "<td>" + estadoHtml(p) + "</td>" +
                 '<td><div class="dc-acciones">' + acciones + "</div></td></tr>";
-        }).join("") : '<tr><td colspan="6" class="dc-vacio">' + (q ? "Nada coincide con la búsqueda." : "Aún no has pedido documentos.") + "</td></tr>";
+        }).join("") : '<tr><td colspan="6" class="dc-vacio">' + (hayFiltro ? "Nada coincide con el filtro." : "Aún no has pedido documentos.") + "</td></tr>";
+    }
+
+    /* Exportar lo que se ve (con los filtros) a CSV que Excel abre directo. */
+    function exportar() {
+        var filas = filasVisibles();
+        var campo = function (v) { v = String(v == null ? "" : v).replace(/\r?\n/g, " "); if (/^[=+\-@]/.test(v)) v = "'" + v; return '"' + v.replace(/"/g, '""') + '"'; };
+        var lineas = [["Folio", "Fecha", "Documento", "Referencia", "Dato", "Otros datos", "Créditos", "Estado", "Respuesta", "Entregado"].map(campo).join(",")];
+        filas.forEach(function (p) {
+            var otros = Object.keys(p.datos || {}).filter(function (k) { return p.datos[k] !== p.titular; }).map(function (k) { return k + ": " + p.datos[k]; }).join(" | ");
+            lineas.push([p.id, fecha(p.creado_en), p.servicio, p.nota, p.titular, otros, p.precio || 0, p.estado_texto,
+                p.estado === "entregado" ? (p.resultado || (p.tiene_archivo ? "PDF descargado" : "")) : p.motivo, fecha(p.entregado_en)].map(campo).join(","));
+        });
+        var hoy = new Date().toISOString().slice(0, 10);
+        Fiscontable.guardarArchivo(new Blob(["\ufeff" + lineas.join("\r\n")], { type: "text/csv;charset=utf-8" }), "Pedidos_documentos_" + hoy + ".csv");
     }
 
     /* Mientras haya pedidos en curso, la lista se actualiza sola (solo con la página a la vista). */
@@ -204,17 +271,19 @@
         if (hay) E.reloj = setInterval(refrescar, 20000);
     }
 
-    async function refrescar() {
-        if (document.visibilityState !== "visible") return;
+    async function refrescar(forzar) {
+        if (!forzar && document.visibilityState !== "visible") return;
         var antes = {};
         E.datos.pedidos.forEach(function (p) { antes[p.id] = p.estado; });
         try {
             var r = await api("/api/documentos/pedidos");
             E.datos.pedidos = r.pedidos;
             E.datos.saldo = r.saldo;
-        } catch (e) { return; }
+            E.visto = new Date();
+        } catch (e) { if (forzar) aviso(esc(e.message), "error"); return; }
         var llegaron = r.pedidos.filter(function (p) { return p.estado === "entregado" && antes[p.id] && antes[p.id] !== "entregado"; });
-        if (llegaron.length) aviso("Llegó: " + llegaron.map(function (p) { return "<b>" + esc(p.servicio) + "</b> (folio " + p.id + ")"; }).join(", ") + ".", "ok");
+        if (llegaron.length) aviso("Llegó: " + llegaron.map(function (p) { return "<b>" + esc(p.servicio) + "</b> (folio " + p.id + ")"; }).join(", ") + "." +
+            (E.vista !== "estatus" ? ' <button type="button" class="dc-enlace" data-ir="estatus">Ver estatus</button>' : ""), "ok");
         pintarSaldo();
         pintarPedidos();
         vigilar();
@@ -260,6 +329,23 @@
         });
         $("form").addEventListener("submit", enviar);
         $("buscar").addEventListener("input", function () { if (E.datos) pintarPedidos(); });
+        $("f-documento").addEventListener("change", function () { if (E.datos) pintarPedidos(); });
+        $("filtros").addEventListener("click", function (e) {
+            var b = e.target.closest("[data-filtro]");
+            if (b) { E.filtro = b.dataset.filtro; pintarPedidos(); }
+        });
+        document.querySelectorAll("[data-vista]").forEach(function (b) { b.addEventListener("click", function () { verVista(b.dataset.vista); }); });
+        $("aviso").addEventListener("click", function (e) { var b = e.target.closest("[data-ir]"); if (b) verVista(b.dataset.ir); });
+        $("btn-exportar").addEventListener("click", function () { if (E.datos) exportar(); });
+        $("btn-actualizar").addEventListener("click", async function () {
+            var b = this;
+            b.disabled = true; b.textContent = "Actualizando…";
+            var curso = E.datos.pedidos.filter(function (p) { return EN_CURSO.indexOf(p.estado) !== -1 && p.estado !== "enviando"; }).slice(0, 10);
+            await Promise.all(curso.map(function (p) { return api("/api/documentos/pedidos/" + p.id + "/actualizar", "POST").catch(function () { return null; }); }));
+            await refrescar(true);
+            if (curso.length) setTimeout(function () { refrescar(true); }, 4000);
+            b.disabled = false; b.textContent = "Actualizar";
+        });
         $("pedidos").addEventListener("click", function (e) {
             var b = e.target.closest("button");
             if (!b) return;

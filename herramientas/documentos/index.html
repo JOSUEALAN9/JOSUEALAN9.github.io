@@ -5,24 +5,30 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Documentos | Fiscontable</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="/assets/css/common.css?v=202610271830">
-    <link rel="stylesheet" href="/herramientas/documentos/documentos.css?v=202610271830">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202610272100">
+    <link rel="stylesheet" href="/herramientas/documentos/documentos.css?v=202610272100">
 </head>
 <body class="min-h-screen flex flex-col">
 
 <div id="app-header" data-modulo="documentos" data-titulo="Documentos" data-migas="Herramientas|/herramientas/"></div>
-<script src="/assets/js/nucleo.js?v=202610271830"></script>
-<script src="/assets/js/barra.js?v=202610271830"></script>
+<script src="/assets/js/nucleo.js?v=202610272100"></script>
+<script src="/assets/js/barra.js?v=202610272100"></script>
 
 <main class="flex-grow w-full mod-pagina" style="max-width:1120px">
     <div class="mod-cabeza">
-        <h1>Documentos</h1>
+        <div class="fc-titulo">
+            <h1>Documentos</h1>
+            <div class="fc-vista" role="tablist" aria-label="Vista">
+                <button type="button" role="tab" data-vista="pedir" aria-selected="true">Pedir</button>
+                <button type="button" role="tab" data-vista="estatus" aria-selected="false">Estatus de pedidos <span class="dc-insignia" id="n-en-curso" hidden></span></button>
+            </div>
+        </div>
         <a class="dc-saldo" id="dc-saldo" href="/creditos/" hidden></a>
     </div>
 
     <div id="aviso" class="dc-aviso" role="status" hidden></div>
 
-    <section class="dc-caja">
+    <section class="dc-caja" id="vista-pedir">
         <h2>Pedir un documento</h2>
         <div class="dc-categorias" id="categorias" role="tablist" aria-label="Tipo de documento"></div>
         <div class="dc-servicios" id="servicios" role="radiogroup" aria-label="Documento"></div>
@@ -41,18 +47,22 @@
         </form>
     </section>
 
-    <section class="dc-caja">
-        <div class="dc-titulo-fila">
-            <h2>Mis pedidos</h2>
-            <input type="search" id="buscar" class="dc-buscar" placeholder="Buscar CURP, RFC, referencia…">
+    <section class="dc-caja" id="vista-estatus" hidden>
+        <div class="dc-filtros" id="filtros" role="tablist" aria-label="Filtrar por estado"></div>
+        <div class="dc-herramientas">
+            <select id="f-documento" class="dc-control" aria-label="Documento"><option value="">Todos los documentos</option></select>
+            <input type="search" id="buscar" class="dc-control dc-buscar" placeholder="Buscar CURP, RFC, folio, referencia…">
+            <button type="button" class="dc-btn" id="btn-actualizar">Actualizar</button>
+            <button type="button" class="dc-btn" id="btn-exportar">Exportar a Excel</button>
         </div>
+        <p class="dc-nota dc-actualizado" id="actualizado"></p>
         <div class="dc-tabla-caja"><table class="dc-tabla">
-            <thead><tr><th>Folio</th><th>Documento</th><th>Dato</th><th class="num">Créditos</th><th>Estado</th><th></th></tr></thead>
+            <thead><tr><th>Folio</th><th>Documento</th><th>Dato</th><th class="num">Créditos</th><th>Estado y respuesta</th><th></th></tr></thead>
             <tbody id="pedidos"></tbody>
         </table></div>
     </section>
 </main>
 
-<script src="/herramientas/documentos/documentos.js?v=202610271830"></script>
+<script src="/herramientas/documentos/documentos.js?v=202610272100"></script>
 </body>
 </html>
