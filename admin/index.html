@@ -5,14 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Administrar Usuarios | Fiscontable</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="/assets/css/common.css?v=202610271200">
-    <link rel="stylesheet" href="/admin/creditos-admin.css?v=202610271200">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202610271830">
+    <link rel="stylesheet" href="/admin/creditos-admin.css?v=202610271830">
+    <link rel="stylesheet" href="/admin/documentos-admin.css?v=202610271830">
 </head>
 <body class="min-h-screen flex flex-col relative">
 
     <div id="app-header" data-modulo="admin" data-titulo="Administración" data-migas=""></div>
-<script src="/assets/js/nucleo.js?v=202610271200"></script>
-<script src="/assets/js/barra.js?v=202610271200"></script>
+<script src="/assets/js/nucleo.js?v=202610271830"></script>
+<script src="/assets/js/barra.js?v=202610271830"></script>
 
     <main class="flex-grow p-4 sm:p-6 w-full max-w-4xl mx-auto">
         <style>
@@ -61,6 +62,7 @@
                 <button type="button" class="pestana" role="tab" data-pestana="permisos">Permisos por rol</button>
                 <button type="button" class="pestana" role="tab" data-pestana="actividad">Actividad <span class="text-slate-400 font-semibold" id="cuenta-actividad"></span></button>
                 <button type="button" class="pestana" role="tab" data-pestana="creditos">Créditos <span class="text-amber-600 font-semibold" id="cuenta-creditos"></span></button>
+                <button type="button" class="pestana" role="tab" data-pestana="documentos">Documentos <span class="text-amber-600 font-semibold" id="cuenta-documentos"></span></button>
                 <button type="button" class="pestana" role="tab" data-pestana="sistema">Sistema <span class="text-amber-600 font-semibold" id="alerta-sistema"></span></button>
             </div>
 
@@ -158,6 +160,46 @@
                     <label class="cra-campo" style="margin-top:10px">Instrucciones (opcional, las ve el usuario)<textarea id="cra-instrucciones" rows="2" maxlength="600" class="cra-control"></textarea></label>
                     <p id="cra-config-msj" class="text-xs mt-2"></p>
                     <button type="button" class="boton-principal" id="cra-guardar-config" style="width:auto;padding:9px 18px;margin-top:10px">Guardar</button>
+                </div>
+            </section>
+
+            <!-- ============ DOCUMENTOS (admin/documentos-admin.js) ============ -->
+            <section id="panel-documentos" role="tabpanel" hidden>
+                <div class="dca-resumen">
+                    <div class="dca-tarjeta" id="dca-saldo-caja">
+                        <span>Saldo en UnlockerFast</span>
+                        <strong id="dca-saldo">—</strong>
+                        <small id="dca-saldo-cuando"></small>
+                        <button type="button" class="cra-enlace" id="dca-consultar">Consultar ahora</button>
+                    </div>
+                    <div class="dca-tarjeta"><span>Entregados este mes</span><strong id="dca-entregados">—</strong><small id="dca-en-curso"></small></div>
+                    <div class="dca-tarjeta"><span>Cobrado este mes</span><strong id="dca-cobrado">—</strong><small id="dca-costo"></small></div>
+                </div>
+                <div class="cra-caja" id="dca-revisar-caja" hidden>
+                    <h2>Por revisar <span id="dca-n-revisar" class="text-amber-600"></span></h2>
+                    <div class="overflow-x-auto"><table class="cra-tabla">
+                        <thead><tr><th>Folio</th><th>Usuario</th><th>Documento</th><th>Qué pasó</th><th></th></tr></thead>
+                        <tbody id="dca-revisar"></tbody>
+                    </table></div>
+                </div>
+                <div class="cra-caja">
+                    <h2>Catálogo y precios</h2>
+                    <p class="dca-ayuda">Costo: lo que cobra UnlockerFast (se actualiza solo con cada pedido). Precio: créditos que paga el usuario. Ganancia: precio − costo contando 1 crédito = $1 (con paquetes de descuento es algo menos). <b>Sin probar</b>: aún no entrega su primer documento; pide uno tú antes de dejarlo activo para los usuarios. Los cambios se guardan solos.</p>
+                    <div class="overflow-x-auto"><table class="cra-tabla dca-catalogo">
+                        <thead><tr><th>Activo</th><th>Documento</th><th class="num">Costo</th><th class="num">Precio (créditos)</th><th class="num">Ganancia</th><th>Estado</th></tr></thead>
+                        <tbody id="dca-catalogo"></tbody>
+                    </table></div>
+                </div>
+                <div class="cra-caja">
+                    <h2>Pedidos</h2>
+                    <div class="flex flex-wrap gap-2 items-end mb-3">
+                        <select id="dca-estado" class="cra-control"><option value="">Todos</option></select>
+                        <input type="search" id="dca-buscar" placeholder="Buscar correo, CURP, RFC…" class="cra-control" style="flex:1;min-width:180px">
+                    </div>
+                    <div class="overflow-x-auto"><table class="cra-tabla">
+                        <thead><tr><th>Folio</th><th>Usuario</th><th>Documento</th><th>Dato</th><th class="num">Créditos</th><th class="num">Costo</th><th>Estado</th></tr></thead>
+                        <tbody id="dca-pedidos"></tbody>
+                    </table></div>
                 </div>
             </section>
 
@@ -424,7 +466,8 @@
         </div>
     </div>
 
-<script src="/admin/admin.js?v=202610271200"></script>
-<script src="/admin/creditos-admin.js?v=202610271200"></script>
+<script src="/admin/admin.js?v=202610271830"></script>
+<script src="/admin/creditos-admin.js?v=202610271830"></script>
+<script src="/admin/documentos-admin.js?v=202610271830"></script>
 </body>
 </html>

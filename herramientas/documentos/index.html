@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Documentos | Fiscontable</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/assets/css/common.css?v=202610271830">
+    <link rel="stylesheet" href="/herramientas/documentos/documentos.css?v=202610271830">
+</head>
+<body class="min-h-screen flex flex-col">
+
+<div id="app-header" data-modulo="documentos" data-titulo="Documentos" data-migas="Herramientas|/herramientas/"></div>
+<script src="/assets/js/nucleo.js?v=202610271830"></script>
+<script src="/assets/js/barra.js?v=202610271830"></script>
+
+<main class="flex-grow w-full mod-pagina" style="max-width:1120px">
+    <div class="mod-cabeza">
+        <h1>Documentos</h1>
+        <a class="dc-saldo" id="dc-saldo" href="/creditos/" hidden></a>
+    </div>
+
+    <div id="aviso" class="dc-aviso" role="status" hidden></div>
+
+    <section class="dc-caja">
+        <h2>Pedir un documento</h2>
+        <div class="dc-categorias" id="categorias" role="tablist" aria-label="Tipo de documento"></div>
+        <div class="dc-servicios" id="servicios" role="radiogroup" aria-label="Documento"></div>
+
+        <form id="form" class="dc-form" autocomplete="off" hidden>
+            <h3 id="f-titulo"></h3>
+            <div class="dc-rejilla" id="f-campos"></div>
+            <label class="dc-campo dc-campo--nota">Referencia (opcional)
+                <input id="f-nota" maxlength="80" placeholder="Ej. nombre del cliente o del trámite">
+            </label>
+            <p id="f-error" class="dc-error" hidden></p>
+            <div class="dc-pie">
+                <p class="dc-nota" id="f-costo"></p>
+                <button type="submit" class="boton-principal" id="f-enviar">Pedir</button>
+            </div>
+        </form>
+    </section>
+
+    <section class="dc-caja">
+        <div class="dc-titulo-fila">
+            <h2>Mis pedidos</h2>
+            <input type="search" id="buscar" class="dc-buscar" placeholder="Buscar CURP, RFC, referencia…">
+        </div>
+        <div class="dc-tabla-caja"><table class="dc-tabla">
+            <thead><tr><th>Folio</th><th>Documento</th><th>Dato</th><th class="num">Créditos</th><th>Estado</th><th></th></tr></thead>
+            <tbody id="pedidos"></tbody>
+        </table></div>
+    </section>
+</main>
+
+<script src="/herramientas/documentos/documentos.js?v=202610271830"></script>
+</body>
+</html>
