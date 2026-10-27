@@ -51,6 +51,7 @@
         declaraciones: { nombre: "Declaraciones",         acento: "#0369A1", suave: "#E4F1F9", permiso: "declaraciones" },
         descarga_xml:  { nombre: "Descarga masiva de XML", acento: "#0E7490", suave: "#E0F2F7", permiso: "descarga_xml" },
         descargas:     { nombre: "Mis descargas",         acento: "#334155", suave: "#EEF1F5", permiso: null },
+        creditos:      { nombre: "Mis créditos",          acento: "#0E9F6E", suave: "#E8F6F0", permiso: null },
         admin:         { nombre: "Administración",        acento: "#BE123C", suave: "#FCE9EE", permiso: null }
     };
 
@@ -99,6 +100,9 @@
         voucheo: ["Elige el impuesto en las pestañas.",
                   "Sube los acuses en PDF.",
                   "Descarga el papel de trabajo en Excel (nuevo o actualizando uno tuyo)."],
+        creditos: ["1 crédito = $1. Con ellos se pagan los trámites de Unlockerfast.",
+                   "Para recargar: deposita o transfiere a una de las cuentas y reporta tu pago (banco, clave de rastreo y comprobante).",
+                   "Cuando se valida, los créditos aparecen en tu saldo. Si un trámite falla, se te devuelven solos."],
         descargas: ["Aquí queda todo lo que bajan las herramientas y la madrugada.",
                     "Descarga cada archivo o reintenta los que fallaron."]
     };
@@ -219,6 +223,8 @@
             "</div>" +
             '<div class="fc-menu__fila"><span>Plan</span><span class="fc-menu__plan" id="fc-menu-plan">—</span></div>' +
             '<div class="fc-menu__fila"><span>Vigencia</span><span class="fc-menu__valor" id="fc-menu-vigencia">—</span></div>' +
+            '<a class="fc-menu__fila fc-menu__creditos" href="/creditos/" role="menuitem"><span>Créditos</span>' +
+              '<span class="fc-menu__valor"><span id="fc-menu-creditos">—</span> · <u>Recargar</u></span></a>' +
             '<div class="fc-menu__acciones">' +
               '<button type="button" class="fc-menu__boton" id="fc-btn-editar-perfil" role="menuitem">' +
                 ico(D.persona) + "Editar mi perfil</button>" +
@@ -1024,6 +1030,7 @@
         document.getElementById("fc-menu-telefono").textContent = p.telefono || "Sin teléfono";
         document.getElementById("fc-menu-plan").textContent = p.rol || "—";
         document.getElementById("fc-menu-vigencia").textContent = vigencia(p);
+        document.getElementById("fc-menu-creditos").textContent = p.creditos == null ? "—" : Number(p.creditos).toLocaleString("es-MX");
 
         if (p.rol === "admin") document.getElementById("fc-enlace-admin").hidden = false;
         pintarLetreros(p);

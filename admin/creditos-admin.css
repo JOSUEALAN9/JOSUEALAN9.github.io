@@ -1,0 +1,20 @@
+.cra-caja { background: #fff; border: 1px solid #e2e8f0; border-radius: 14px; padding: 16px 18px; margin-bottom: 16px; }
+.cra-caja h2 { font-size: 15px; font-weight: 800; color: #0f172a; margin-bottom: 10px; }
+.cra-caja h3 { font-size: 13px; font-weight: 800; color: #334155; margin: 14px 0 6px; }
+.cra-tabla { width: 100%; border-collapse: collapse; font-size: 13.5px; min-width: 560px; }
+.cra-tabla th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: #64748b; padding: 6px 8px; border-bottom: 1px solid #e2e8f0; }
+.cra-tabla td { padding: 8px; border-bottom: 1px solid #f1f5f9; color: #334155; vertical-align: top; }
+.cra-tabla .num { text-align: right; white-space: nowrap; }
+.cra-tabla small { color: #64748b; }
+.cra-acciones { display: flex; gap: 6px; justify-content: flex-end; flex-wrap: wrap; }
+.cra-btn { border: 1px solid #cbd5e1; background: #fff; border-radius: 8px; padding: 5px 10px; font: inherit; font-size: 12.5px; font-weight: 700; cursor: pointer; color: #334155; }
+.cra-btn--si { background: #0e9f6e; border-color: #0e9f6e; color: #fff; }
+.cra-btn--no { color: #b91c1c; border-color: #fecaca; }
+.cra-control { border: 1px solid #cbd5e1; border-radius: 8px; padding: 7px 9px; font-size: 13.5px; }
+.cra-campo { display: flex; flex-direction: column; gap: 4px; font-size: 12px; font-weight: 700; color: #475569; }
+.cra-fila { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 6px; }
+.cra-fila input { border: 1px solid #cbd5e1; border-radius: 8px; padding: 6px 8px; font-size: 13.5px; }
+.cra-quitar { border: 0; background: none; color: #94a3b8; font-size: 18px; cursor: pointer; }
+.cra-quitar:hover { color: #b91c1c; }
+.cra-enlace { border: 0; background: none; color: #0e9f6e; font-weight: 700; font-size: 13px; cursor: pointer; padding: 2px 0; }
+.cra-vacio { color: #94a3b8; text-align: center; padding: 12px; }

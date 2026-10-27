@@ -5,13 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Administrar Usuarios | Fiscontable</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="/assets/css/common.css?v=202610071800">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202610271200">
+    <link rel="stylesheet" href="/admin/creditos-admin.css?v=202610271200">
 </head>
 <body class="min-h-screen flex flex-col relative">
 
     <div id="app-header" data-modulo="admin" data-titulo="Administración" data-migas=""></div>
-<script src="/assets/js/nucleo.js?v=202610071800"></script>
-<script src="/assets/js/barra.js?v=202610071800"></script>
+<script src="/assets/js/nucleo.js?v=202610271200"></script>
+<script src="/assets/js/barra.js?v=202610271200"></script>
 
     <main class="flex-grow p-4 sm:p-6 w-full max-w-4xl mx-auto">
         <style>
@@ -59,6 +60,7 @@
                 <button type="button" class="pestana pestana--activa" role="tab" data-pestana="usuarios">Usuarios <span class="text-slate-400 font-semibold" id="cuenta-usuarios"></span></button>
                 <button type="button" class="pestana" role="tab" data-pestana="permisos">Permisos por rol</button>
                 <button type="button" class="pestana" role="tab" data-pestana="actividad">Actividad <span class="text-slate-400 font-semibold" id="cuenta-actividad"></span></button>
+                <button type="button" class="pestana" role="tab" data-pestana="creditos">Créditos <span class="text-amber-600 font-semibold" id="cuenta-creditos"></span></button>
                 <button type="button" class="pestana" role="tab" data-pestana="sistema">Sistema <span class="text-amber-600 font-semibold" id="alerta-sistema"></span></button>
             </div>
 
@@ -123,6 +125,40 @@
                     <span class="ml-auto" id="actualizado-actividad"></span>
                     <button type="button" id="btn-actualizar-actividad" class="font-bold text-slate-500 hover:text-slate-800 underline">Actualizar</button>
                 </p>
+            </section>
+
+            <!-- ============ CRÉDITOS (admin/creditos-admin.js) ============ -->
+            <section id="panel-creditos" role="tabpanel" hidden>
+                <div class="cra-caja">
+                    <h2>Pagos por revisar <span id="cra-n" class="text-amber-600"></span></h2>
+                    <div class="overflow-x-auto"><table class="cra-tabla">
+                        <thead><tr><th>Usuario</th><th>Pagó</th><th>Banco · clave de rastreo</th><th class="num">Créditos</th><th></th></tr></thead>
+                        <tbody id="cra-pendientes"></tbody>
+                    </table></div>
+                </div>
+                <div class="cra-caja">
+                    <h2>Saldos</h2>
+                    <div class="flex flex-wrap gap-2 items-end mb-3">
+                        <input type="search" id="cra-buscar" placeholder="Buscar correo…" class="cra-control" style="flex:1;min-width:180px">
+                    </div>
+                    <div class="overflow-x-auto"><table class="cra-tabla">
+                        <thead><tr><th>Usuario</th><th class="num">Saldo</th><th class="num">En proceso</th><th></th></tr></thead>
+                        <tbody id="cra-saldos"></tbody>
+                    </table></div>
+                </div>
+                <div class="cra-caja">
+                    <h2>Paquetes y cuentas para depositar</h2>
+                    <label class="cra-campo">Recarga mínima ($ = créditos)<input type="number" id="cra-minimo" min="1" step="1" class="cra-control" style="max-width:140px"></label>
+                    <h3>Paquetes</h3>
+                    <div id="cra-paquetes"></div>
+                    <button type="button" class="cra-enlace" id="cra-mas-paquete">+ Agregar paquete</button>
+                    <h3>Cuentas</h3>
+                    <div id="cra-cuentas"></div>
+                    <button type="button" class="cra-enlace" id="cra-mas-cuenta">+ Agregar cuenta</button>
+                    <label class="cra-campo" style="margin-top:10px">Instrucciones (opcional, las ve el usuario)<textarea id="cra-instrucciones" rows="2" maxlength="600" class="cra-control"></textarea></label>
+                    <p id="cra-config-msj" class="text-xs mt-2"></p>
+                    <button type="button" class="boton-principal" id="cra-guardar-config" style="width:auto;padding:9px 18px;margin-top:10px">Guardar</button>
+                </div>
             </section>
 
             <!-- ============ SISTEMA ============ -->
@@ -388,6 +424,7 @@
         </div>
     </div>
 
-<script src="/admin/admin.js?v=202610071800"></script>
+<script src="/admin/admin.js?v=202610271200"></script>
+<script src="/admin/creditos-admin.js?v=202610271200"></script>
 </body>
 </html>

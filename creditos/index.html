@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mis créditos | Fiscontable</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/assets/css/common.css?v=202610271200">
+    <link rel="stylesheet" href="/creditos/creditos.css?v=202610271200">
+</head>
+<body class="min-h-screen flex flex-col">
+
+<div id="app-header" data-modulo="creditos" data-titulo="Mis créditos" data-migas=""></div>
+<script src="/assets/js/nucleo.js?v=202610271200"></script>
+<script src="/assets/js/barra.js?v=202610271200"></script>
+
+<main class="flex-grow w-full mod-pagina" style="max-width:1040px">
+    <div class="mod-cabeza"><h1>Mis créditos</h1></div>
+
+    <div id="aviso" class="cr-aviso" hidden></div>
+
+    <section class="cr-saldo">
+        <div>
+            <span class="cr-etiqueta">Saldo</span>
+            <strong id="saldo">—</strong> <span class="cr-unidad">créditos</span>
+            <p class="cr-nota" id="en-proceso" hidden></p>
+        </div>
+        <p class="cr-nota">1 crédito = $1</p>
+    </section>
+
+    <section class="cr-caja">
+        <h2>Recargar</h2>
+        <div class="cr-paquetes" id="paquetes" role="radiogroup" aria-label="Cuánto recargar"></div>
+
+        <div class="cr-cuentas" id="cuentas"></div>
+        <p class="cr-nota" id="instrucciones" hidden></p>
+
+        <form id="form-pago" class="cr-form" autocomplete="off">
+            <h3>Reporta tu pago</h3>
+            <div class="cr-rejilla">
+                <label>Monto pagado ($)<input id="p-monto" type="number" min="1" step="1" required></label>
+                <label>Banco desde el que pagaste<input id="p-banco" list="bancos" required placeholder="Ej. BBVA"></label>
+                <label>Clave de rastreo<input id="p-clave" required maxlength="40" placeholder="Como viene en tu comprobante"></label>
+                <label>Fecha del pago<input id="p-fecha" type="date" required></label>
+                <label id="caja-cuenta">Cuenta a la que depositaste<select id="p-cuenta"></select></label>
+                <label>Comprobante (PDF, JPG o PNG)<input id="p-comprobante" type="file" accept=".pdf,.jpg,.jpeg,.png"></label>
+            </div>
+            <p class="cr-nota" id="p-recibes"></p>
+            <p id="p-error" class="cr-error" hidden></p>
+            <button type="submit" class="boton-principal" id="p-enviar" style="width:auto;padding:10px 22px">Reportar pago</button>
+        </form>
+        <datalist id="bancos"></datalist>
+    </section>
+
+    <section class="cr-caja">
+        <h2>Mis pagos</h2>
+        <div class="cr-tabla-caja"><table class="cr-tabla">
+            <thead><tr><th>Reportado</th><th>Banco · clave</th><th class="num">Pagado</th><th class="num">Créditos</th><th>Estado</th></tr></thead>
+            <tbody id="pagos"></tbody>
+        </table></div>
+    </section>
+
+    <section class="cr-caja">
+        <h2>Movimientos</h2>
+        <div class="cr-tabla-caja"><table class="cr-tabla">
+            <thead><tr><th>Fecha</th><th>Concepto</th><th class="num">Créditos</th></tr></thead>
+            <tbody id="movimientos"></tbody>
+        </table></div>
+    </section>
+</main>
+
+<script src="/creditos/creditos.js?v=202610271200"></script>
+</body>
+</html>

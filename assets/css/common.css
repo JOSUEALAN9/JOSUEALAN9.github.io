@@ -290,6 +290,9 @@ a.fc-miga:hover { color: #fff; }
     color: var(--texto-tenue);
 }
 .fc-menu__valor { color: var(--texto); font-weight: 600; }
+.fc-menu__creditos { text-decoration: none; color: inherit; }
+.fc-menu__creditos:hover { background: var(--papel); }
+.fc-menu__creditos u { color: var(--acento); }
 
 .fc-menu__plan {
     text-transform: capitalize;
