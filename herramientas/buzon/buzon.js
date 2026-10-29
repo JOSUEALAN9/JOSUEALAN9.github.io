@@ -158,11 +158,13 @@
         var r = t.renglones || [];
         var listos = r.filter(function (x) { return ["ok", "parcial", "error", "cancelado"].indexOf(x.estado) !== -1; }).length;
         $("progreso").hidden = false;
-        $("progreso-titulo").textContent = t.estado === "procesando" ? "Revisando el buzón…" : "Revisión terminada";
+        var abrir = t.tipo === "buzon_abrir";
+        $("progreso-titulo").textContent = abrir ? (t.estado === "procesando" ? "Abriendo la notificación…" : "Apertura terminada")
+            : (t.estado === "procesando" ? "Revisando el buzón…" : "Revisión terminada");
         $("progreso-cuenta").textContent = listos + " de " + r.length;
-        var NOM = { en_fila: "En fila", revisando: "Revisando…", ok: "Listo", parcial: "Listo con avisos", error: "Error", cancelado: "Detenido" };
+        var NOM = { en_fila: "En fila", revisando: abrir ? "Abriendo en el SAT…" : "Revisando…", ok: "Listo", parcial: "Listo con avisos", error: "Error", cancelado: "Detenido" };
         $("progreso-lista").innerHTML = r.map(function (x) {
-            return '<li class="bz-progreso__' + esc(x.estado) + '"><b>' + esc(x.alias || x.rfc) + "</b> " + esc(NOM[x.estado] || x.estado) +
+            return '<li class="bz-progreso__' + esc(x.estado) + '"><b>' + esc(x.alias || x.rfc) + "</b>" + (x.folio ? " · folio <code>" + esc(x.folio) + "</code>" : "") + " " + esc(NOM[x.estado] || x.estado) +
                 (x.mensaje ? " · <small>" + esc(x.mensaje) + "</small>" : "") + "</li>";
         }).join("") + (t.tiene_diagnostico && t.estado !== "procesando" ? '<li>El ZIP con el diagnóstico quedó en <button type="button" class="bz-liga" id="ver-descargas">Descargas</button>.</li>' : "");
     }
@@ -358,23 +360,30 @@
 
     function notificaciones() {
         var n = E.detalle.notificaciones, pend = n.filter(function (x) { return x.estado === "pendiente"; }), notif = n.filter(function (x) { return x.estado === "notificado"; });
+        var puedeAbrir = !!(E.panel && E.panel.puede_abrir && E.detalle.empresa && E.detalle.empresa.efirma);
         var html = "";
         if (pend.length) {
             html += '<div class="bz-pendientes"><h3>Notificaciones pendientes (' + pend.length + ")</h3>" +
-                "<p><b>No las abrimos a propósito.</b> Si la abres con tu e.firma quedas notificado en ese momento y empiezan a correr los plazos. " +
+                "<p><b>Las revisiones nunca las abren.</b> Si la abres con tu e.firma quedas notificado en ese momento y empiezan a correr los plazos. " +
                 "Si no la abres, el SAT te tiene por notificado al cuarto día después del aviso.</p>" +
-                '<table class="bz-tabla"><thead><tr><th>Folio</th><th>Autoridad</th><th>Acto</th><th>Aviso</th></tr></thead><tbody>' +
-                pend.map(function (x) { return "<tr><td><code>" + esc(x.folio) + "</code></td><td>" + esc(x.autoridad) + "</td><td>" + esc(x.acto) + "</td><td>" + esc(fechaLocal(x.fecha_aviso)) + "</td></tr>"; }).join("") +
-                '</tbody></table><p><a class="bz-liga" target="_blank" rel="noopener" href="' + URL_BUZON_SAT + '">Abrirla en el Buzón del SAT</a> · después pulsa Revisar ahora y aquí aparecerán sus documentos.</p></div>';
+                '<div class="bz-tabla-caja"><table class="bz-tabla"><thead><tr><th>Folio</th><th>Autoridad</th><th>Acto</th><th>Aviso</th>' + (puedeAbrir ? "<th></th>" : "") + "</tr></thead><tbody>" +
+                pend.map(function (x) {
+                    var ap = x.apertura && x.apertura.estado === "error" ? '<span class="bz-apertura">Último intento de abrirla: ' + esc(x.apertura.mensaje) + "</span>" : "";
+                    return "<tr><td><code>" + esc(x.folio) + "</code>" + ap + "</td><td>" + esc(x.autoridad) + "</td><td>" + esc(x.acto) + "</td><td>" + esc(fechaLocal(x.fecha_aviso)) + "</td>" +
+                        (puedeAbrir ? '<td><button type="button" class="bz-btn bz-btn--peligro" data-abrir-notif="' + x.id + '"' + (E.trabajo ? " disabled" : "") + ">Abrir y quedar notificado</button></td>" : "") + "</tr>";
+                }).join("") +
+                "</tbody></table></div><p>" + (puedeAbrir ? "Puedes abrirla desde aquí (el robot firma con la e.firma guardada) o " : "") +
+                '<a class="bz-liga" target="_blank" rel="noopener" href="' + URL_BUZON_SAT + '">abrirla en el Buzón del SAT</a>' + (puedeAbrir ? "" : " y después pulsar Revisar ahora para que aquí aparezcan sus documentos") + ".</p></div>";
         }
         html += "<h3 class=\"bz-subtitulo\">Notificadas</h3>";
         if (!notif.length) return html + '<p class="bz-vacio">No hay notificaciones.</p>';
-        var NOM = { aviso: "Aviso", acto: "Acto administrativo", acuse: "Acuse" };
+        var NOM = { aviso: "Aviso", acto: "Acto administrativo", acuse: "Acuse", flujo1: "Documento 1", flujo2: "Documento 2", flujo3: "Documento 3" };
         return html + '<div class="bz-tabla-caja"><table class="bz-tabla"><thead><tr><th>Folio</th><th>Autoridad</th><th>Acto</th><th>Notificada</th><th>Documentos</th></tr></thead><tbody>' +
             notif.map(function (x) {
-                return '<tr' + (x.visto ? "" : ' class="bz-fila-nueva"') + "><td><code>" + esc(x.folio) + "</code>" + (x.visto ? "" : ' <span class="bz-sello bz-sello--azul">Nueva</span>') + "</td><td>" + esc(x.autoridad) + "</td><td>" + esc(x.acto) + "</td>" +
+                var abierta = x.abierta_en ? '<span class="bz-abierta">Abierta desde Fiscontable el ' + esc(fechaHora(x.abierta_en)) + (x.abierta_por ? " por " + esc(x.abierta_por) : "") + "</span>" : "";
+                return '<tr' + (x.visto ? "" : ' class="bz-fila-nueva"') + "><td><code>" + esc(x.folio) + "</code>" + (x.visto ? "" : ' <span class="bz-sello bz-sello--azul">Nueva</span>') + abierta + "</td><td>" + esc(x.autoridad) + "</td><td>" + esc(x.acto) + "</td>" +
                     "<td>" + esc(fechaLocal(x.fecha_notificacion)) + '</td><td><div class="bz-acciones">' +
-                    (x.documentos.length ? ["aviso", "acto", "acuse"].filter(function (k) { return x.documentos.indexOf(k) !== -1; }).map(function (k) {
+                    (x.documentos.length ? ["aviso", "acto", "acuse", "flujo1", "flujo2", "flujo3"].filter(function (k) { return x.documentos.indexOf(k) !== -1; }).map(function (k) {
                         return '<button type="button" class="bz-btn' + (k === "acto" ? " bz-btn--si" : "") + '" data-doc="' + x.id + '" data-clave="' + k + '" data-folio="' + esc(x.folio) + '">' + NOM[k] + "</button>";
                     }).join("") : '<small class="bz-tenue">Se bajan en la siguiente revisión</small>') + "</div></td></tr>";
             }).join("") + "</tbody></table></div>";
@@ -383,7 +392,7 @@
     function revisiones() {
         var r = E.detalle.revisiones;
         if (!r.length) return '<p class="bz-vacio">Esta empresa aún no se ha revisado.</p>';
-        var ORIGEN = { manual: "Revisar ahora", madrugada: "Madrugada" };
+        var ORIGEN = { manual: "Revisar ahora", madrugada: "Madrugada", abrir: "Abrir notificación" };
         return '<div class="bz-tabla-caja"><table class="bz-tabla"><thead><tr><th>Cuándo</th><th>Cómo</th><th>Resultado</th><th class="num">Nuevos</th></tr></thead><tbody>' +
             r.map(function (x) {
                 var s = x.estado === "ok" ? "verde" : x.estado === "parcial" ? "ambar" : x.estado === "revisando" ? "azul" : "roja";
@@ -411,12 +420,39 @@
         try {
             var r = await fetch(API + "/api/buzon/notificaciones/" + b.dataset.doc + "/" + b.dataset.clave, { credentials: "include" });
             if (!r.ok) throw new Error(await Fiscontable.leerError(r));
-            var nom = { aviso: "Aviso", acto: "Acto", acuse: "Acuse" }[b.dataset.clave];
+            var nom = { aviso: "Aviso", acto: "Acto", acuse: "Acuse", flujo1: "Documento_1", flujo2: "Documento_2", flujo3: "Documento_3" }[b.dataset.clave] || b.dataset.clave;
             Fiscontable.guardarArchivo(await r.blob(), E.rfc + "_" + b.dataset.folio.replace(/[^A-Za-z0-9]+/g, "_") + "_" + nom + ".pdf");
             var n = E.detalle.notificaciones.filter(function (x) { return x.id === +b.dataset.doc; })[0];
             if (n && !n.visto) marcar("/api/buzon/notificaciones/visto", [n.id], 1);
         } catch (e) { aviso(esc(e.message), "error"); }
         b.disabled = false;
+    }
+
+    // ------------------------------------------------------------------ abrir una notificación pendiente
+    function pedirApertura(id) {
+        var x = E.detalle.notificaciones.filter(function (n) { return n.id === id; })[0];
+        if (!x) return;
+        E.porAbrir = x;
+        var emp = E.detalle.empresa || {};
+        $("dlg-abrir-datos").innerHTML = "<dt>Empresa</dt><dd>" + esc((emp.alias || emp.rfc) + " — " + emp.rfc) + "</dd>" +
+            "<dt>Folio</dt><dd><code>" + esc(x.folio) + "</code></dd><dt>Autoridad</dt><dd>" + esc(x.autoridad || "—") + "</dd>" +
+            "<dt>Acto</dt><dd>" + esc(x.acto || "—") + "</dd><dt>Aviso</dt><dd>" + esc(fechaLocal(x.fecha_aviso) || "—") + "</dd>";
+        $("abrir-entiendo").checked = false;
+        $("abrir-confirmar").disabled = true;
+        $("abrir-diag-caja").hidden = !E.panel.es_admin;
+        $("dlg-abrir").showModal();
+    }
+
+    async function abrirNotificacion() {
+        var x = E.porAbrir;
+        if (!x || !$("abrir-entiendo").checked) return;
+        try {
+            var t = await api("/api/buzon/notificaciones/abrir", "POST", { rfc: E.rfc, folio: x.folio, entiendo: true,
+                diagnostico: E.panel.es_admin && $("abrir-diag").checked });
+            aviso("");
+            vigilarTrabajo(t.job_id, t);
+            pintarSeccion();
+        } catch (e) { aviso(esc(e.message), "error"); }
     }
 
     async function bajarDiagnostico(nombre) {
@@ -488,7 +524,11 @@
             } else if (b.dataset.visto) marcar("/api/buzon/comunicados/visto", [+b.dataset.visto], +b.dataset.valor);
             else if (b.dataset.archivar) { E.abierto = null; marcar("/api/buzon/comunicados/archivar", [+b.dataset.archivar], +b.dataset.valor); }
             else if (b.dataset.doc) bajarDocumento(b);
+            else if (b.dataset.abrirNotif) pedirApertura(+b.dataset.abrirNotif);
         });
+        $("abrir-entiendo").addEventListener("change", function () { $("abrir-confirmar").disabled = !this.checked; });
+        $("abrir-cancelar").addEventListener("click", function () { $("dlg-abrir").close(); });
+        $("form-abrir").addEventListener("submit", function () { if ($("abrir-entiendo").checked) abrirNotificacion(); });
         arrancar();
     });
 })();

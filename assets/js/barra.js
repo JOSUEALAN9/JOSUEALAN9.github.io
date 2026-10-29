@@ -712,7 +712,8 @@
         programada_opinion: "Programada · Opiniones",
         programada_declaraciones: "Programada · Declaraciones",
         programada_xml: "Programada · Descarga de XML",
-        buzon_revisar: "Revisión del Buzón Tributario"
+        buzon_revisar: "Revisión del Buzón Tributario",
+        buzon_abrir: "Apertura de notificación del Buzón"
     };
 
     function tituloProceso(p) {
