@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Buzón Tributario | Fiscontable</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/assets/css/common.css?v=202610291500">
+    <link rel="stylesheet" href="/herramientas/buzon/buzon.css?v=202610291500">
+</head>
+<body class="min-h-screen flex flex-col">
+
+<div id="app-header" data-modulo="buzon" data-titulo="Buzón Tributario" data-migas="Herramientas|/herramientas/"></div>
+<script src="/assets/js/nucleo.js?v=202610291500"></script>
+<script src="/assets/js/barra.js?v=202610291500"></script>
+
+<main class="flex-grow w-full mod-pagina" style="max-width:1240px">
+    <div class="mod-cabeza">
+        <div class="fc-titulo">
+            <h1>Buzón Tributario</h1>
+            <div class="fc-vista" role="tablist" aria-label="Vista">
+                <button type="button" role="tab" data-vista="todas" aria-selected="true">Todas mis empresas</button>
+                <button type="button" role="tab" data-vista="empresa" aria-selected="false">Por empresa</button>
+            </div>
+        </div>
+        <label class="bz-frecuencia">Revisión automática
+            <select id="frecuencia" class="bz-control"></select>
+        </label>
+    </div>
+
+    <div id="aviso" class="bz-aviso" role="status" hidden></div>
+
+    <!-- Progreso de "Revisar ahora" -->
+    <section class="bz-progreso" id="progreso" hidden>
+        <div class="bz-progreso__cabeza"><b id="progreso-titulo">Revisando…</b><span id="progreso-cuenta"></span></div>
+        <ul id="progreso-lista"></ul>
+    </section>
+
+    <!-- ===================== TODAS MIS EMPRESAS ===================== -->
+    <section id="vista-todas">
+        <div class="bz-resumen" id="resumen"></div>
+        <div class="bz-caja">
+            <div class="bz-herramientas">
+                <input type="search" id="buscar" class="bz-control bz-buscar" placeholder="Buscar empresa o RFC…">
+                <label class="bz-solo"><input type="checkbox" id="solo-atender"> Solo lo que hay que atender</label>
+                <span class="bz-espacio"></span>
+                <label class="bz-solo" id="caja-diagnostico" hidden><input type="checkbox" id="con-diagnostico"> Con diagnóstico completo</label>
+                <button type="button" class="boton-principal bz-revisar" id="btn-revisar" disabled>Revisar ahora</button>
+            </div>
+            <div class="bz-tabla-caja"><table class="bz-tabla" id="tabla-empresas">
+                <thead><tr>
+                    <th class="bz-check"><input type="checkbox" id="todas" aria-label="Elegir todas"></th>
+                    <th>Empresa</th><th class="num">Nuevos</th><th>Cancelaciones por responder</th>
+                    <th class="num">Notificaciones pendientes</th><th>Última revisión</th><th>Automática</th><th></th>
+                </tr></thead>
+                <tbody id="empresas"></tbody>
+            </table></div>
+        </div>
+        <section class="bz-caja" id="caja-diagnosticos" hidden>
+            <h2>Diagnósticos del robot <small>(solo administrador)</small></h2>
+            <p class="bz-nota">Cuando el robot no encuentra algo en el Buzón guarda el HTML y una captura de ese paso. Bájalos y mándaselos a soporte para ajustarlo.</p>
+            <ul id="diagnosticos" class="bz-diagnosticos"></ul>
+        </section>
+    </section>
+
+    <!-- ===================== POR EMPRESA ===================== -->
+    <section id="vista-empresa" hidden>
+        <div class="bz-caja bz-empresa">
+            <div class="bz-empresa__cabeza">
+                <select id="empresa" class="bz-control bz-empresa__selector" aria-label="Empresa"></select>
+                <div class="bz-empresa__estado" id="empresa-estado"></div>
+                <span class="bz-espacio"></span>
+                <button type="button" class="bz-btn" id="btn-vistos">Marcar todo como visto</button>
+                <button type="button" class="boton-principal bz-revisar" id="btn-revisar-una">Revisar ahora</button>
+            </div>
+            <div class="bz-pestanas" id="pestanas" role="tablist" aria-label="Sección"></div>
+            <div id="contenido"></div>
+        </div>
+    </section>
+</main>
+
+<script src="/herramientas/buzon/buzon.js?v=202610291500"></script>
+</body>
+</html>

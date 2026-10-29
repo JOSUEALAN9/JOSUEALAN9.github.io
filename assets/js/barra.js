@@ -51,6 +51,7 @@
         declaraciones: { nombre: "Declaraciones",         acento: "#0369A1", suave: "#E4F1F9", permiso: "declaraciones" },
         descarga_xml:  { nombre: "Descarga masiva de XML", acento: "#0E7490", suave: "#E0F2F7", permiso: "descarga_xml" },
         documentos:    { nombre: "Documentos",            acento: "#0E7490", suave: "#ECFEFF", permiso: "documentos" },
+        buzon:         { nombre: "Buzón Tributario",      acento: "#0F766E", suave: "#E6F2F1", permiso: "buzon" },
         descargas:     { nombre: "Mis descargas",         acento: "#334155", suave: "#EEF1F5", permiso: null },
         creditos:      { nombre: "Mis créditos",          acento: "#0E9F6E", suave: "#E8F6F0", permiso: null },
         admin:         { nombre: "Administración",        acento: "#BE123C", suave: "#FCE9EE", permiso: null }
@@ -101,6 +102,10 @@
         voucheo: ["Elige el impuesto en las pestañas.",
                   "Sube los acuses en PDF.",
                   "Descarga el papel de trabajo en Excel (nuevo o actualizando uno tuyo)."],
+        buzon: ["Todas mis empresas: lo que hay que atender en cada una (pendientes, cancelaciones por responder, nuevos).",
+                "Revisión automática: elige cada cuánto se revisa en la madrugada; o marca empresas y Revisar ahora.",
+                "Abrir (o Por empresa): comunicados completos, solicitudes de cancelación con su fecha límite y notificaciones con sus PDF.",
+                "Las notificaciones pendientes NO se abren solas: abrirlas te da por notificado. Ábrelas tú en el SAT."],
         documentos: ["Elige el tipo (SAT, Actas, IMSS, INFONAVIT) y el documento.",
                      "Escribe la CURP, RFC o NSS que pide y Pedir. Se apartan los créditos que cuesta.",
                      "Llega en minutos u horas: queda en Mis pedidos para descargarlo cuando quieras.",
@@ -706,7 +711,8 @@
         programada_csf: "Programada · Constancias",
         programada_opinion: "Programada · Opiniones",
         programada_declaraciones: "Programada · Declaraciones",
-        programada_xml: "Programada · Descarga de XML"
+        programada_xml: "Programada · Descarga de XML",
+        buzon_revisar: "Revisión del Buzón Tributario"
     };
 
     function tituloProceso(p) {

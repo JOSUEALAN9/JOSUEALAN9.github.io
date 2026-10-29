@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Herramientas | Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/common.css?v=202610272100">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202610291500">
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="min-h-screen flex flex-col">
@@ -45,6 +45,13 @@
             <span class="util__icono"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg></span>
             <h3>Descarga masiva de XML</h3>
             <p>XML emitidos y recibidos de un periodo.</p>
+            <span class="util__cta">Abrir</span>
+        </a>
+
+        <a href="/herramientas/buzon/" class="util" data-modulo="buzon" style="--tono:#0F766E;--tono-suave:#E6F2F1">
+            <span class="util__icono"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13V7a2 2 0 00-2-2H6a2 2 0 00-2 2v6m16 0v4a2 2 0 01-2 2H6a2 2 0 01-2-2v-4m16 0h-2.6a1 1 0 00-.7.3l-2.4 2.4a1 1 0 01-.7.3h-3.2a1 1 0 01-.7-.3l-2.4-2.4a1 1 0 00-.7-.3H4"/></svg></span>
+            <h3>Buzón Tributario</h3>
+            <p>Comunicados, cancelaciones y notificaciones de todas tus empresas.</p>
             <span class="util__cta">Abrir</span>
         </a>
 
@@ -170,8 +177,8 @@
     .util--vedado { opacity: .42; pointer-events: none; }
 </style>
 
-<script src="/assets/js/nucleo.js?v=202610272100"></script>
-<script src="/assets/js/barra.js?v=202610272100"></script>
+<script src="/assets/js/nucleo.js?v=202610291500"></script>
+<script src="/assets/js/barra.js?v=202610291500"></script>
 <script>
     document.addEventListener("fc:perfil", function (e) {
         var p = e.detail;
