@@ -242,8 +242,41 @@
         else $("contenido").innerHTML = revisiones();
     }
 
+    /* El contenido como lo muestra el SAT: **negritas**, tablas (celdas separadas por tabulador),
+       pasos numerados y viñetas; ligas clicables. Todo se escapa antes de dar formato. */
+    function enLinea(t) {
+        var h = esc(t).replace(/\*\*([^*]+?)\*\*/g, "<b>$1</b>").replace(/\*\*/g, "");
+        h = h.replace(/^(Nombre|RFC|Folio|Remitente|Fundamento legal):/, "<b>$1:</b>");
+        return h.replace(/https?:\/\/[^\s<]+/g, function (u) { return '<a href="' + u + '" target="_blank" rel="noopener noreferrer">' + u + "</a>"; });
+    }
+
     function contenidoHtml(texto) {
-        return esc(texto || "").replace(/https?:\/\/[^\s<]+/g, function (u) { return '<a href="' + u + '" target="_blank" rel="noopener noreferrer">' + u + "</a>"; });
+        var lineas = String(texto || "").split("\n"), html = "", i = 0, m;
+        while (i < lineas.length) {
+            var l = lineas[i];
+            if (l.indexOf("\t") !== -1) {
+                var filas = [];
+                while (i < lineas.length && lineas[i].indexOf("\t") !== -1) {
+                    filas.push(lineas[i].replace(/\t+$/, "").split("\t"));
+                    i++;
+                }
+                html += '<table class="bz-ctabla">' + filas.map(function (f, n) {
+                    var celda = n === 0 ? "th" : "td";
+                    return "<tr>" + f.map(function (c) { return "<" + celda + ">" + enLinea(c.trim()) + "</" + celda + ">"; }).join("") + "</tr>";
+                }).join("") + "</table>";
+                continue;
+            }
+            if (/^\d{1,2}\.\s+/.test(l) || /^•\s+/.test(l)) {
+                var ordenada = /^\d/.test(l), items = [];
+                while (i < lineas.length && (m = lineas[i].match(ordenada ? /^\d{1,2}\.\s+(.*)$/ : /^•\s+(.*)$/))) { items.push(m[1]); i++; }
+                var t = ordenada ? "ol" : "ul";
+                html += "<" + t + ' class="bz-clista">' + items.map(function (x) { return "<li>" + enLinea(x) + "</li>"; }).join("") + "</" + t + ">";
+                continue;
+            }
+            html += "<p>" + enLinea(l) + "</p>";
+            i++;
+        }
+        return html;
     }
 
     function listaComunicados(lista, vacio) {
@@ -260,7 +293,7 @@
                 (abierto ? '<div class="bz-msj__cuerpo">' +
                     (c.folio ? '<p class="bz-nota">Folio: <b>' + esc(c.folio) + "</b></p>" : "") +
                     (c.categoria === "cancelacion" ? tarjetaCancelacion(c, true) : "") +
-                    (c.contenido ? '<pre class="bz-texto">' + contenidoHtml(c.contenido) + "</pre>" : '<p class="bz-nota">El SAT no mandó el texto en la lista. Ábrelo en el <a href="' + URL_BUZON_SAT + '" target="_blank" rel="noopener">Buzón del SAT</a>.</p>') +
+                    (c.contenido ? '<div class="bz-texto">' + contenidoHtml(c.contenido) + "</div>" : '<p class="bz-nota">El SAT no mandó el texto en la lista. Ábrelo en el <a href="' + URL_BUZON_SAT + '" target="_blank" rel="noopener">Buzón del SAT</a>.</p>') +
                     '<div class="bz-acciones"><button type="button" class="bz-btn" data-visto="' + c.id + '" data-valor="' + (c.visto ? 0 : 1) + '">' + (c.visto ? "Marcar como nuevo" : "Marcar como visto") + "</button>" +
                     '<button type="button" class="bz-btn" data-archivar="' + c.id + '" data-valor="' + (c.archivado ? 0 : 1) + '">' + (c.archivado ? "Sacar de archivados" : "Archivar") + "</button></div></div>" : "") +
                 "</li>";
