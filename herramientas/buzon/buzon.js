@@ -246,12 +246,40 @@
        pasos numerados y viñetas; ligas clicables. Todo se escapa antes de dar formato. */
     function enLinea(t) {
         var h = esc(t).replace(/\*\*([^*]+?)\*\*/g, "<b>$1</b>").replace(/\*\*/g, "");
-        h = h.replace(/^(Nombre|RFC|Folio|Remitente|Fundamento legal):/, "<b>$1:</b>");
+        h = h.replace(/^((?:Nombre|RFC|Folio|Remitente):.*)$/, "<b>$1</b>").replace(/^(Fundamento legal:)/, "<b>$1</b>");
         return h.replace(/https?:\/\/[^\s<]+/g, function (u) { return '<a href="' + u + '" target="_blank" rel="noopener noreferrer">' + u + "</a>"; });
+    }
+
+    // Texto guardado sin marcas (revisiones viejas o el SAT sin etiquetas): se reconstruye el formato del SAT
+    // con reglas sencillas: tabla de "periodo  $importe", títulos en negritas y los pasos numerados.
+    var IMPORTE = /^(.+?)\s+(-?\$\s?[\d,]+(?:\.\d{1,2})?)$/;
+    function darFormato(lineas) {
+        var out = [], i = 0, pasos = false;
+        while (i < lineas.length) {
+            var l = lineas[i].trim(), sig = (lineas[i + 1] || "").trim();
+            if (!l) { i++; continue; }
+            // Encabezado de tabla seguido de renglones con importe
+            if (l.indexOf("$") === -1 && l.length < 90 && !/[:.]$/.test(l) && IMPORTE.test(sig) && l.indexOf(" ") > 0) {
+                var corte = l.indexOf(" ");
+                out.push(l.slice(0, corte) + "\t" + l.slice(corte + 1)); i++;
+                while (i < lineas.length && IMPORTE.test(lineas[i].trim())) {
+                    var mm = lineas[i].trim().match(IMPORTE); out.push(mm[1] + "\t" + mm[2]); i++;
+                }
+                continue;
+            }
+            if (pasos && (l.length > 260 || /^(Te |Fundamento|¡|Si requieres|En el SAT|Atentamente)/.test(l))) pasos = 0;
+            if (pasos) { out.push(pasos + ". " + l); pasos++; i++; continue; }
+            if (/^Pasos\b.*:$/i.test(l)) { pasos = 1; out.push("**" + l + "**"); i++; continue; }
+            if ((out.length === 0 && /^Comunicado$/i.test(l)) || (/^Apreciable\b.*:$/.test(l) && l.length < 120) ||
+                /^Fecha de corte\b/i.test(l) || /^¡.*!$/.test(l)) l = "**" + l + "**";
+            out.push(l); i++;
+        }
+        return out;
     }
 
     function contenidoHtml(texto) {
         var lineas = String(texto || "").split("\n"), html = "", i = 0, m;
+        if (!/[\t*]/.test(texto || "") && !lineas.some(function (x) { return /^\d{1,2}\.\s/.test(x); })) lineas = darFormato(lineas);
         while (i < lineas.length) {
             var l = lineas[i];
             if (l.indexOf("\t") !== -1) {
