@@ -721,6 +721,8 @@ function prepararEventosSistema() {
     $("tarjetas-estado").addEventListener("click", e => {
         if (e.target.closest("#btn-probar-proxy")) probarProxy();
         if (e.target.closest("#btn-actualizar-tc")) actualizarTipoCambio(e.target.closest("#btn-actualizar-tc"));
+        if (e.target.closest("#btn-respaldar")) respaldarAhora(e.target.closest("#btn-respaldar"));
+        if (e.target.closest("#btn-revisar-vps")) revisarVps();
     });
 }
 
@@ -791,10 +793,25 @@ function pintarEstado() {
         ? `<p id="texto-proxy" class="text-sm text-slate-600">Sin probar todavía.</p>
            <button type="button" id="btn-probar-proxy" class="mt-2 text-xs font-bold text-slate-700 border border-gray-200 hover:border-slate-400 rounded-lg py-1.5 px-3">Probar ahora</button>`
         : `<p class="text-sm text-amber-700">Sin configurar: falta <span class="font-mono text-xs">FISCONTABLE_PROXY_URL</span> en el servidor.</p>`;
-    const respaldo = e.ultimo_respaldo
-        ? `<p class="text-sm text-slate-700">${esc(fechaCorta(e.ultimo_respaldo))}</p>`
-        : `<p class="text-sm text-amber-700 font-semibold">Sin respaldos automáticos</p>
-           <p class="text-[11px] text-slate-500 mt-1">La base, los documentos y las e.firmas guardadas solo existen en la Vostro.</p>`;
+    const r = e.respaldo || {};
+    const hora = iso => aFecha(iso).toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" });
+    const viejo = !r.ultima_ok || (Date.now() - aFecha(r.ultima_ok)) > 26 * 3600 * 1000;
+    const respaldoMal = !r.instalado || !r.automatico || r.fallos > 0 || viejo;
+    const botonesRespaldo = `<div class="flex flex-wrap gap-2 mt-2">
+            <button type="button" id="btn-respaldar" class="text-xs font-bold text-slate-700 border border-gray-200 hover:border-slate-400 rounded-lg py-1.5 px-3 disabled:opacity-40" ${r.copiando ? "disabled" : ""}>${r.copiando ? "Copiando…" : "Respaldar ahora"}</button>
+            <button type="button" id="btn-revisar-vps" class="text-xs font-bold text-slate-700 border border-gray-200 hover:border-slate-400 rounded-lg py-1.5 px-3">Revisar la VPS</button>
+        </div><p id="texto-vps" class="text-[11px] text-slate-500 mt-1"></p>`;
+    const respaldo = !r.instalado
+        ? `<p class="text-sm text-amber-700 font-semibold">Sin respaldos automáticos</p>
+           <p class="text-[11px] text-slate-500 mt-1">La base, los documentos y las e.firmas guardadas solo existen en la Vostro.</p>`
+        : `<p class="text-sm text-slate-800">${r.copiando ? "<strong>Copiando a la VPS ahora…</strong>"
+                : r.ultima_ok ? `Última copia a la VPS: <strong>${esc(haceCuanto(r.ultima_ok))}</strong>` : "Todavía sin copias"}</p>
+           ${r.ultima_completa ? `<p class="text-[11px] text-slate-500 mt-1">Completa: ${esc(haceCuanto(r.ultima_completa))}</p>` : ""}
+           <p class="text-[11px] text-slate-500">${r.programado_para ? `Hubo cambios: la siguiente copia va a las ${esc(hora(r.programado_para))}`
+                : "Sin cambios pendientes de copiar"}${r.noche ? ` · De la noche: ${esc(hora(r.noche))}${r.noche_hecha ? " ✓" : ""}` : ""}</p>
+           ${!r.automatico ? `<p class="text-xs font-bold text-amber-700 mt-1">⚠ La copia automática está apagada (respaldo-vps.timer).</p>` : ""}
+           ${r.fallos ? `<p class="text-xs font-bold text-amber-700 mt-1">⚠ ${esc(r.fallos)} intento(s) fallido(s): ${esc(r.ultimo_error)}</p>` : ""}
+           ${botonesRespaldo}`;
 
     // Tipo de cambio de Banxico (se descarga solo a las 6:00 y 18:00)
     const tc = e.tipo_cambio || {};
@@ -814,7 +831,7 @@ function pintarEstado() {
         tarjeta("Servidor", servidor) +
         tarjeta("Disco", disco, pct > 85 ? "mal" : "") +
         tarjeta("Proxy de Oracle", proxy, e.proxy_configurado ? "" : "mal") +
-        tarjeta("Respaldo", respaldo, e.ultimo_respaldo ? "" : "mal") +
+        tarjeta("Respaldo en la VPS", respaldo, respaldoMal ? "mal" : "") +
         tarjeta("Tipo de cambio Banxico", tipoCambio, tcMal ? "mal" : "");
     $("alerta-sistema").textContent = (alertaGit || e.mantenimiento.activo) ? "•" : "";
 }
@@ -1018,6 +1035,47 @@ async function actualizarTipoCambio(boton) {
         mostrarAlerta("exito", r.mensaje || "Tipos de cambio actualizados.");
     } catch (err) { mostrarAlerta("error", err.message); }
     await cargarSistema();
+}
+
+async function respaldarAhora(boton) {
+    const completo = confirm("¿Copia COMPLETA (compara archivo por archivo, tarda más)?\n\nAceptar = completa · Cancelar = solo lo que cambió");
+    boton.disabled = true;
+    boton.textContent = "Copiando…";
+    try {
+        await api("/api/admin/sistema/respaldo", {
+            method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ completo }),
+        });
+        mostrarAlerta("ok", "Copia a la VPS en curso. Esta tarjeta se actualiza sola cuando termine.");
+    } catch (err) { mostrarAlerta("error", err.message); }
+    vigilarRespaldo();
+}
+
+let relojRespaldo = null;
+function vigilarRespaldo() {
+    clearInterval(relojRespaldo);
+    let vueltas = 0;
+    relojRespaldo = setInterval(async () => {
+        vueltas++;
+        try {
+            estadoSistema = await api("/api/admin/sistema/estado");
+            pintarEstado();
+            if (!(estadoSistema.respaldo || {}).copiando && vueltas > 1) clearInterval(relojRespaldo);
+        } catch (err) { clearInterval(relojRespaldo); }
+        if (vueltas > 120) clearInterval(relojRespaldo);
+    }, 5000);
+}
+
+async function revisarVps() {
+    const t = $("texto-vps");
+    t.textContent = "Preguntando a la VPS…";
+    try {
+        const r = await api("/api/admin/sistema/respaldo/vps");
+        t.className = "text-[11px] mt-1 " + (r.ok && !r.atendiendo ? "text-emerald-700" : "text-amber-700");
+        t.textContent = r.ok || r.atendiendo
+            ? `${r.mensaje} Datos en la VPS: ${tamano(r.datos)} · disco libre ${tamano(r.disco_libre)}` +
+              (r.copia_en_vps ? ` · última copia recibida ${haceCuanto(r.copia_en_vps)}` : "")
+            : r.mensaje;
+    } catch (err) { t.textContent = err.message; }
 }
 
 async function probarProxy() {
