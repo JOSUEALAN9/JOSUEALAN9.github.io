@@ -723,6 +723,8 @@ function prepararEventosSistema() {
         if (e.target.closest("#btn-actualizar-tc")) actualizarTipoCambio(e.target.closest("#btn-actualizar-tc"));
         if (e.target.closest("#btn-respaldar")) respaldarAhora(e.target.closest("#btn-respaldar"));
         if (e.target.closest("#btn-revisar-vps")) revisarVps();
+        if (e.target.closest("#btn-guardar-trabajos")) guardarTrabajos(e.target.closest("#btn-guardar-trabajos"));
+        if (e.target.closest("#btn-probar-trabajador")) probarTrabajador(e.target.closest("#btn-probar-trabajador"));
     });
 }
 
@@ -751,12 +753,68 @@ function tarjeta(titulo, cuerpo, tono) {
 async function cargarSistema() {
     try {
         estadoSistema = await api("/api/admin/sistema/estado");
+        try { estadoTrabajadores = await api("/api/admin/trabajadores"); } catch (e) { estadoTrabajadores = null; }
         pintarEstado();
         pintarPortal();
         await cargarEstadoSAT();
         cargarListasAdmin();
         await cargarBitacora();
     } catch (err) { mostrarAlerta("error", err.message); }
+}
+
+let estadoTrabajadores = null;
+const NOMBRE_MODO = { local: "Vostro", vps: "VPS de Oracle", alternar: "Alternar (mitad y mitad)" };
+
+function tarjetaTrabajadores() {
+    const t = estadoTrabajadores;
+    if (!t) return "";
+    const selects = Object.entries(t.tramites).map(([clave, nombre]) => `
+        <label class="flex items-center justify-between gap-2 text-xs text-slate-700 mt-1">${esc(nombre)}
+            <select data-trabajo="${esc(clave)}" class="border border-gray-200 rounded-lg py-1 px-2 text-xs">
+                ${t.modos.map(m => `<option value="${esc(m)}" ${t.ajustes[clave] === m ? "selected" : ""}>${esc(NOMBRE_MODO[m] || m)}</option>`).join("")}
+            </select></label>`).join("");
+    const semana = (t.semana || []).filter(f => f.trabajador === "vps").map(f =>
+        `${esc(t.tramites[f.tipo] || f.tipo)}: ${esc(f.bien || 0)} de ${esc(f.n)} bien${f.prom ? ` (~${esc(f.prom)} s)` : ""}`).join(" · ");
+    const ultimas = (t.ultimas || []).slice(0, 5).map(u => `<li>${u.ok ? "✓" : "✗"} ${esc(haceCuanto(u.inicio))} · ${esc(u.trabajador === "vps" ? "VPS" : "Vostro")} ·
+        ${esc(t.tramites[u.tipo] || u.tipo)} · <span class="font-mono">${esc(u.rfc || "")}</span>${u.segundos ? ` · ${esc(u.segundos)} s` : ""}
+        ${!u.ok && u.motivo ? `<span class="text-amber-700"> · ${esc(u.motivo)}</span>` : ""}</li>`).join("");
+    return `<p class="text-[11px] text-slate-500">Dónde se hacen los trámites rápidos (sin navegador). Si la VPS falla, lo hace la Vostro.</p>
+        ${selects}
+        <button type="button" id="btn-guardar-trabajos" class="mt-2 text-xs font-bold text-white bg-slate-800 hover:bg-slate-700 rounded-lg py-1.5 px-3">Guardar</button>
+        <p class="text-[11px] text-slate-500 mt-2">${semana ? `VPS, últimos 7 días: ${semana}` : "La VPS no ha hecho trámites en los últimos 7 días."}</p>
+        ${ultimas ? `<ul class="text-[11px] text-slate-600 mt-1 space-y-0.5">${ultimas}</ul>` : ""}
+        <div class="flex gap-2 mt-2"><input id="rfc-probar-vps" placeholder="RFC con e.firma" maxlength="13" class="border border-gray-200 rounded-lg py-1 px-2 text-xs w-36 uppercase">
+            <button type="button" id="btn-probar-trabajador" class="text-xs font-bold text-slate-700 border border-gray-200 hover:border-slate-400 rounded-lg py-1.5 px-3">Probar la VPS</button></div>
+        <p id="texto-probar-trabajador" class="text-[11px] text-slate-500 mt-1">Baja la constancia de ese RFC desde la VPS (sin guardarla) para ver si el SAT acepta la IP de Oracle.</p>`;
+}
+
+async function guardarTrabajos(boton) {
+    const ajustes = {};
+    document.querySelectorAll("select[data-trabajo]").forEach(s => { ajustes[s.dataset.trabajo] = s.value; });
+    boton.disabled = true;
+    try {
+        await api("/api/admin/trabajadores", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ajustes }) });
+        mostrarAlerta("ok", "Listo: los trámites nuevos ya usan esta configuración.");
+        estadoTrabajadores = await api("/api/admin/trabajadores");
+        pintarEstado();
+    } catch (err) { mostrarAlerta("error", err.message); boton.disabled = false; }
+}
+
+async function probarTrabajador(boton) {
+    const rfc = ($("rfc-probar-vps").value || "").trim().toUpperCase();
+    const t = $("texto-probar-trabajador");
+    if (rfc.length < 12) { t.textContent = "Escribe un RFC de tu directorio que tenga e.firma guardada."; return; }
+    boton.disabled = true;
+    t.className = "text-[11px] text-slate-500 mt-1";
+    t.textContent = "La VPS está bajando la constancia… (10 a 30 s)";
+    try {
+        const r = await api("/api/admin/trabajadores/probar", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ rfc }) });
+        t.className = "text-[11px] mt-1 " + (r.ok ? "text-emerald-700" : "text-amber-700");
+        t.textContent = r.ok ? `✓ El SAT aceptó la IP de Oracle: constancia en ${r.segundos} s (${tamano(r.tamano_pdf)}).`
+            : `⚠ No se pudo desde la VPS: ${r.motivo}`;
+        estadoTrabajadores = await api("/api/admin/trabajadores");
+    } catch (err) { t.textContent = err.message; }
+    boton.disabled = false;
 }
 
 function pintarEstado() {
@@ -832,6 +890,7 @@ function pintarEstado() {
         tarjeta("Disco", disco, pct > 85 ? "mal" : "") +
         tarjeta("Proxy de Oracle", proxy, e.proxy_configurado ? "" : "mal") +
         tarjeta("Respaldo en la VPS", respaldo, respaldoMal ? "mal" : "") +
+        (estadoTrabajadores ? tarjeta("Trabajadores (VPS)", tarjetaTrabajadores()) : "") +
         tarjeta("Tipo de cambio Banxico", tipoCambio, tcMal ? "mal" : "");
     $("alerta-sistema").textContent = (alertaGit || e.mantenimiento.activo) ? "•" : "";
 }
