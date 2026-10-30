@@ -359,6 +359,15 @@
         }).join("");
     }
 
+    // Fecha en que el SAT la da por notificada aunque no se abra (la calcula el servidor en días hábiles)
+    function plazo(x) {
+        if (!x.se_notifica_el) return '<small class="bz-tenue">—</small>';
+        var dia = (E.detalle.hoy || hoy());
+        if (x.se_notifica_el <= dia) return '<span class="bz-plazo bz-plazo--ya">' + esc(diaSemana(x.se_notifica_el)) + "</span>" +
+            '<small class="bz-tenue bz-plazo__nota">Ya debe estar notificada; se confirma en la siguiente revisión</small>';
+        return '<span class="bz-plazo">' + esc(diaSemana(x.se_notifica_el)) + '</span><small class="bz-tenue bz-plazo__nota">si no la abres antes (aprox.)</small>';
+    }
+
     function notificaciones() {
         var n = E.detalle.notificaciones, pend = n.filter(function (x) { return x.estado === "pendiente"; }), notif = n.filter(function (x) { return x.estado === "notificado"; });
         var puedeAbrir = !!(E.panel && E.panel.puede_abrir && E.detalle.empresa && E.detalle.empresa.efirma);
@@ -366,11 +375,11 @@
         if (pend.length) {
             html += '<div class="bz-pendientes"><h3>Notificaciones pendientes (' + pend.length + ")</h3>" +
                 "<p><b>Las revisiones nunca las abren.</b> Si la abres con tu e.firma quedas notificado en ese momento y empiezan a correr los plazos. " +
-                "Si no la abres, el SAT te tiene por notificado al cuarto día después del aviso.</p>" +
-                '<div class="bz-tabla-caja"><table class="bz-tabla"><thead><tr><th>Folio</th><th>Autoridad</th><th>Acto</th><th>Aviso</th>' + (puedeAbrir ? "<th></th>" : "") + "</tr></thead><tbody>" +
+                "Si no la abres, el SAT te tiene por notificado al cuarto día hábil después del aviso (art. 17-K del CFF); en ese momento se bajan solos sus documentos.</p>" +
+                '<div class="bz-tabla-caja"><table class="bz-tabla"><thead><tr><th>Folio</th><th>Autoridad</th><th>Acto</th><th>Aviso</th><th>Quedas notificado</th>' + (puedeAbrir ? "<th></th>" : "") + "</tr></thead><tbody>" +
                 pend.map(function (x) {
                     var ap = x.apertura && x.apertura.estado === "error" ? '<span class="bz-apertura">Último intento de abrirla: ' + esc(x.apertura.mensaje) + "</span>" : "";
-                    return "<tr><td><code>" + esc(x.folio) + "</code>" + ap + "</td><td>" + esc(x.autoridad) + "</td><td>" + esc(x.acto) + "</td><td>" + esc(fechaLocal(x.fecha_aviso)) + "</td>" +
+                    return "<tr><td><code>" + esc(x.folio) + "</code>" + ap + "</td><td>" + esc(x.autoridad) + "</td><td>" + esc(x.acto) + "</td><td>" + esc(fechaLocal(x.fecha_aviso)) + "</td><td>" + plazo(x) + "</td>" +
                         (puedeAbrir ? '<td><button type="button" class="bz-btn bz-btn--peligro" data-abrir-notif="' + x.id + '"' + (E.trabajo ? " disabled" : "") + ">Abrir y quedar notificado</button></td>" : "") + "</tr>";
                 }).join("") +
                 "</tbody></table></div><p>" + (puedeAbrir ? "Puedes abrirla desde aquí (el robot firma con la e.firma guardada) o " : "") +
