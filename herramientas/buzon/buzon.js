@@ -388,14 +388,19 @@
         html += "<h3 class=\"bz-subtitulo\">Notificadas</h3>";
         if (!notif.length) return html + '<p class="bz-vacio">No hay notificaciones.</p>';
         var NOM = { aviso: "Aviso", acto: "Acto administrativo", acuse: "Acuse", flujo1: "Documento 1", flujo2: "Documento 2", flujo3: "Documento 3" };
+        var orden = function (docs) {                 // aviso, acto, sus anexos, acuse y lo demás
+            var pos = function (k) { return k === "aviso" ? 0 : k === "acto" ? 1 : k.indexOf("anexo") === 0 ? 2 + (+k.slice(5) || 0) / 100 : k === "acuse" ? 3 : 4; };
+            return docs.slice().sort(function (a, b) { return pos(a) - pos(b) || (a < b ? -1 : 1); });
+        };
+        var nombreDoc = function (k) { return NOM[k] || (k.indexOf("anexo") === 0 ? "Anexo " + k.slice(5) : k); };
         return html + '<div class="bz-tabla-caja"><table class="bz-tabla"><thead><tr><th>Folio</th><th>Autoridad</th><th>Acto</th><th>Notificada</th><th>Documentos</th></tr></thead><tbody>' +
             notif.map(function (x) {
                 var abierta = x.abierta_en ? '<span class="bz-abierta">Abierta desde Fiscontable el ' + esc(fechaHora(x.abierta_en)) + (x.abierta_por ? " por " + esc(x.abierta_por) : "") + "</span>" : "";
                 return '<tr' + (x.visto ? "" : ' class="bz-fila-nueva"') + "><td><code>" + esc(x.folio) + "</code>" + (x.visto ? "" : ' <span class="bz-sello bz-sello--azul">Nueva</span>') + abierta + "</td><td>" + esc(x.autoridad) + "</td><td>" + esc(x.acto) + "</td>" +
                     "<td>" + esc(fechaLocal(x.fecha_notificacion)) + '</td><td><div class="bz-acciones">' +
-                    (x.documentos.length ? ["aviso", "acto", "acuse", "flujo1", "flujo2", "flujo3"].filter(function (k) { return x.documentos.indexOf(k) !== -1; }).map(function (k) {
-                        return '<button type="button" class="bz-btn' + (k === "acto" ? " bz-btn--si" : "") + '" data-doc="' + x.id + '" data-clave="' + k + '" data-folio="' + esc(x.folio) + '">' + NOM[k] + "</button>";
-                    }).join("") : '<small class="bz-tenue">Se bajan en la siguiente revisión</small>') + "</div></td></tr>";
+                    (x.documentos.length ? orden(x.documentos).map(function (k) {
+                        return '<button type="button" class="bz-btn' + (k === "acto" ? " bz-btn--si" : "") + '" data-doc="' + x.id + '" data-clave="' + esc(k) + '" data-folio="' + esc(x.folio) + '">' + esc(nombreDoc(k)) + "</button>";
+                    }).join("") : '<small class="bz-tenue">Aún no se bajan: pulsa «Revisar ahora» (se bajan hasta 15 por revisión; también en la de la madrugada)</small>') + "</div></td></tr>";
             }).join("") + "</tbody></table></div>";
     }
 
