@@ -46,6 +46,7 @@
     // ------------------------------------------------------------------ arranque
     async function arrancar() {
         if (!(await Fiscontable.exigirModulo("buzon"))) return;
+        try { E.respaldo = !!((await Fiscontable.perfil()) || {}).modo_respaldo; } catch (e) { /* */ }
         await cargarPanel();
         var activa = null;
         try { activa = await Fiscontable.empresaActiva(); } catch (e) { /* sin empresa */ }
@@ -519,7 +520,7 @@
                 var id = +b.dataset.abrirMsj;
                 E.abierto = E.abierto === id ? null : id;
                 var c = E.detalle.comunicados.filter(function (x) { return x.id === id; })[0];
-                if (E.abierto && c && !c.visto) marcar("/api/buzon/comunicados/visto", [id], 1);
+                if (E.abierto && c && !c.visto && !E.respaldo) marcar("/api/buzon/comunicados/visto", [id], 1);
                 else pintarSeccion();
             } else if (b.dataset.visto) marcar("/api/buzon/comunicados/visto", [+b.dataset.visto], +b.dataset.valor);
             else if (b.dataset.archivar) { E.abierto = null; marcar("/api/buzon/comunicados/archivar", [+b.dataset.archivar], +b.dataset.valor); }

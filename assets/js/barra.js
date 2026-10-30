@@ -885,11 +885,12 @@
             if (accion === "descargar") {
                 boton.textContent = "Descargando…";
                 var r = await fetch(API + boton.dataset.url, { credentials: "include" });
-                if (!r.ok) throw new Error();
+                if (!r.ok) throw new Error(await Fiscontable.leerError(r));
                 Fiscontable.guardarArchivo(await r.blob(), boton.dataset.nombre);
             } else if (accion === "quitar") {
-                await fetch(API + "/api/procesos/" + boton.dataset.clase + "/" + boton.dataset.id,
+                var rq = await fetch(API + "/api/procesos/" + boton.dataset.clase + "/" + boton.dataset.id,
                     { method: "DELETE", credentials: "include" });
+                if (!rq.ok) throw new Error(await Fiscontable.leerError(rq));
                 ultimoEstado.delete(boton.dataset.id);
                 await sondear();
                 return;
@@ -900,12 +901,13 @@
                     : boton.dataset.clase === "programada"
                         ? "/api/programadas/" + boton.dataset.id + "/cancelar"
                         : "/api/trabajos/" + boton.dataset.id + "/cancelar";
-                await fetch(API + ruta, { method: "POST", credentials: "include" });
+                var rd = await fetch(API + ruta, { method: "POST", credentials: "include" });
+                if (!rd.ok) throw new Error(await Fiscontable.leerError(rd));
                 await sondear();
                 return;
             }
         } catch (err) {
-            aviso("No se pudo completar esa acción. Revisa tu conexión e intenta de nuevo.");
+            aviso((err && err.message) || "No se pudo completar esa acción. Revisa tu conexión e intenta de nuevo.");
         } finally {
             boton.disabled = false;
             boton.textContent = original;
