@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Conectar esta PC | Fiscontable</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/assets/css/common.css?v=202610300205">
+</head>
+<body class="min-h-screen flex flex-col">
+
+    <div id="app-header" data-modulo="agente" data-titulo="Conectar esta PC" data-migas=""></div>
+<script src="/assets/js/nucleo.js?v=202610300205"></script>
+<script src="/assets/js/barra.js?v=202610300205"></script>
+
+    <main class="flex-grow w-full mod-pagina" style="max-width:860px">
+
+        <div class="mod-cabeza"><h1>Conectar esta PC</h1></div>
+
+        <div id="alerta" class="hidden mb-4 p-3 rounded-lg text-sm"></div>
+
+        <section class="bg-white rounded-xl card-elevated border border-gray-200 p-5 mb-5">
+            <h2 class="text-sm font-bold text-slate-800">¿Qué hace el agente?</h2>
+            <p class="text-sm text-slate-600 mt-1">
+                Es un programa pequeño para tu PC con Windows. Cuando está prendido, los trámites del SAT de tu cuenta
+                (constancia, opinión 32-D, declaraciones y la revisión del Buzón) se hacen <b>desde tu PC</b>, con tu
+                internet y tu navegador, y el resultado aparece aquí como siempre. Además guarda una copia en
+                <span class="font-mono text-xs">Documentos\Fiscontable</span>.
+            </p>
+            <ul class="text-xs text-slate-500 mt-2 space-y-1 list-disc pl-5">
+                <li>Tu PC llama al servidor; nadie entra a tu PC (no se abre ningún puerto).</li>
+                <li>La e.firma llega solo para cada trámite y se borra al terminar.</li>
+                <li>Si tu PC está apagada, los trámites se hacen en el servidor, como hoy.</li>
+                <li>Nunca abre una notificación pendiente del Buzón.</li>
+            </ul>
+            <p id="texto-modo" class="text-xs mt-3"></p>
+        </section>
+
+        <section class="bg-white rounded-xl card-elevated border border-gray-200 p-5 mb-5">
+            <h2 class="text-sm font-bold text-slate-800">Vincular una PC</h2>
+            <ol class="text-sm text-slate-600 mt-2 space-y-1 list-decimal pl-5">
+                <li>Instala el agente en la PC (te lo pasa el administrador).</li>
+                <li>Pide aquí un código. Dura 10 minutos y sirve una sola vez.</li>
+                <li>En la PC abre <b>Fiscontable Agente</b> y escribe el código (o en una terminal: <span class="font-mono text-xs">FiscontableAgente vincular CÓDIGO</span>).</li>
+            </ol>
+            <div class="flex flex-wrap items-center gap-3 mt-4">
+                <button type="button" id="btn-codigo" class="bg-slate-800 hover:bg-slate-700 text-white text-sm font-bold py-2 px-4 rounded-lg transition">Pedir código</button>
+                <div id="caja-codigo" class="hidden">
+                    <span id="codigo" class="font-mono text-2xl font-bold tracking-widest text-slate-800 select-all"></span>
+                    <span id="codigo-vence" class="text-xs text-slate-500 ml-2"></span>
+                </div>
+            </div>
+        </section>
+
+        <section class="bg-white rounded-xl card-elevated border border-gray-200 p-5">
+            <div class="flex items-center justify-between">
+                <h2 class="text-sm font-bold text-slate-800">Mis PCs conectadas</h2>
+                <button type="button" id="btn-actualizar" class="text-xs text-slate-500 hover:text-slate-800 underline">Actualizar</button>
+            </div>
+            <div id="lista" class="mt-3 text-sm text-slate-500">Cargando…</div>
+        </section>
+    </main>
+
+<script src="/agente/agente.js?v=202610300205"></script>
+</body>
+</html>

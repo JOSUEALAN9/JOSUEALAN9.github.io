@@ -763,7 +763,8 @@ async function cargarSistema() {
 }
 
 let estadoTrabajadores = null;
-const NOMBRE_MODO = { local: "Vostro", vps: "VPS de Oracle", alternar: "Alternar (mitad y mitad)" };
+const NOMBRE_MODO = { local: "Vostro", vps: "VPS de Oracle", alternar: "Alternar (mitad y mitad)", agente: "PC del contador (agente)" };
+const nombreTrabajador = (t) => t === "vps" ? "VPS" : (t || "").startsWith("agente:") ? "PC " + t.slice(7) : "Vostro";
 
 function tarjetaTrabajadores() {
     const t = estadoTrabajadores;
@@ -773,15 +774,15 @@ function tarjetaTrabajadores() {
             <select data-trabajo="${esc(clave)}" class="border border-gray-200 rounded-lg py-1 px-2 text-xs">
                 ${t.modos.map(m => `<option value="${esc(m)}" ${t.ajustes[clave] === m ? "selected" : ""}>${esc(NOMBRE_MODO[m] || m)}</option>`).join("")}
             </select></label>`).join("");
-    const semana = (t.semana || []).filter(f => f.trabajador === "vps").map(f =>
-        `${esc(t.tramites[f.tipo] || f.tipo)}: ${esc(f.bien || 0)} de ${esc(f.n)} bien${f.prom ? ` (~${esc(f.prom)} s)` : ""}`).join(" · ");
-    const ultimas = (t.ultimas || []).slice(0, 5).map(u => `<li>${u.ok ? "✓" : "✗"} ${esc(haceCuanto(u.inicio))} · ${esc(u.trabajador === "vps" ? "VPS" : "Vostro")} ·
+    const semana = (t.semana || []).filter(f => f.trabajador !== "local").map(f =>
+        `${esc(nombreTrabajador(f.trabajador))} · ${esc(t.tramites[f.tipo] || f.tipo)}: ${esc(f.bien || 0)} de ${esc(f.n)} bien${f.prom ? ` (~${esc(f.prom)} s)` : ""}`).join(" · ");
+    const ultimas = (t.ultimas || []).slice(0, 5).map(u => `<li>${u.ok ? "✓" : "✗"} ${esc(haceCuanto(u.inicio))} · ${esc(nombreTrabajador(u.trabajador))} ·
         ${esc(t.tramites[u.tipo] || u.tipo)} · <span class="font-mono">${esc(u.rfc || "")}</span>${u.segundos ? ` · ${esc(u.segundos)} s` : ""}
         ${!u.ok && u.motivo ? `<span class="text-amber-700"> · ${esc(u.motivo)}</span>` : ""}</li>`).join("");
-    return `<p class="text-[11px] text-slate-500">Dónde se hacen los trámites rápidos (sin navegador). Si la VPS falla, lo hace la Vostro.</p>
+    return `<p class="text-[11px] text-slate-500">Dónde se hacen los trámites. "PC del contador": en la PC de la cuenta que lo pide, si tiene el agente conectado (Conectar esta PC). Si el trabajador falla, lo hace la Vostro.</p>
         ${selects}
         <button type="button" id="btn-guardar-trabajos" class="mt-2 text-xs font-bold text-white bg-slate-800 hover:bg-slate-700 rounded-lg py-1.5 px-3">Guardar</button>
-        <p class="text-[11px] text-slate-500 mt-2">${semana ? `VPS, últimos 7 días: ${semana}` : "La VPS no ha hecho trámites en los últimos 7 días."}</p>
+        <p class="text-[11px] text-slate-500 mt-2">${semana ? `Trabajadores, últimos 7 días: ${semana}` : "Ni la VPS ni los agentes han hecho trámites en los últimos 7 días."}</p>
         ${ultimas ? `<ul class="text-[11px] text-slate-600 mt-1 space-y-0.5">${ultimas}</ul>` : ""}
         <div class="flex gap-2 mt-2"><input id="rfc-probar-vps" placeholder="RFC con e.firma" maxlength="13" class="border border-gray-200 rounded-lg py-1 px-2 text-xs w-36 uppercase">
             <button type="button" id="btn-probar-trabajador" class="text-xs font-bold text-slate-700 border border-gray-200 hover:border-slate-400 rounded-lg py-1.5 px-3">Probar la VPS</button></div>
@@ -890,7 +891,7 @@ function pintarEstado() {
         tarjeta("Disco", disco, pct > 85 ? "mal" : "") +
         tarjeta("Proxy de Oracle", proxy, e.proxy_configurado ? "" : "mal") +
         tarjeta("Respaldo en la VPS", respaldo, respaldoMal ? "mal" : "") +
-        (estadoTrabajadores ? tarjeta("Trabajadores (VPS)", tarjetaTrabajadores()) : "") +
+        (estadoTrabajadores ? tarjeta("Trabajadores (VPS y PCs)", tarjetaTrabajadores()) : "") +
         tarjeta("Tipo de cambio Banxico", tipoCambio, tcMal ? "mal" : "");
     $("alerta-sistema").textContent = (alertaGit || e.mantenimiento.activo) ? "•" : "";
 }
