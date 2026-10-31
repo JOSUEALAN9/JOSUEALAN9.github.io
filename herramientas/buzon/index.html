@@ -5,14 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Buzón Tributario | Fiscontable</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="/assets/css/common.css?v=202610301730">
-    <link rel="stylesheet" href="/herramientas/buzon/buzon.css?v=202610301730">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202610311000">
+    <link rel="stylesheet" href="/herramientas/buzon/buzon.css?v=202610311000">
 </head>
 <body class="min-h-screen flex flex-col">
 
 <div id="app-header" data-modulo="buzon" data-titulo="Buzón Tributario" data-migas="Herramientas|/herramientas/"></div>
-<script src="/assets/js/nucleo.js?v=202610301730"></script>
-<script src="/assets/js/barra.js?v=202610301730"></script>
+<script src="/assets/js/nucleo.js?v=202610311000"></script>
+<script src="/assets/js/barra.js?v=202610311000"></script>
 
 <main class="flex-grow w-full mod-pagina" style="max-width:1240px">
     <div class="mod-cabeza">
@@ -86,8 +86,8 @@
         <dl class="bz-dialogo__datos" id="dlg-abrir-datos"></dl>
         <div class="bz-dialogo__alerta">
             <p><b>Al abrirla, el SAT tiene al contribuyente por notificado en ese momento</b> y empiezan a correr los plazos para atender el acto.</p>
-            <p>El robot entra con la e.firma guardada de la empresa, abre el aviso, pulsa el botón del acto, firma, acepta que quedará notificado y baja el aviso, el acto administrativo y el acuse.</p>
-            <p>Si no la abres, el SAT te tiene por notificado al cuarto día hábil después del aviso.</p>
+            <p>El robot entra con la e.firma guardada de la empresa, baja el aviso, pulsa «Documento», acepta la advertencia del SAT, firma con la e.firma y baja el acto administrativo (con sus anexos) y el acuse.</p>
+            <p>La notificación surte efectos el día hábil siguiente al que se hace (art. 135 del CFF). Si no la abres, el SAT te tiene por notificado al cuarto día hábil después del aviso.</p>
         </div>
         <label class="bz-dialogo__check"><input type="checkbox" id="abrir-entiendo"> Entiendo que al abrirla queda notificado y empiezan a correr los plazos.</label>
         <label class="bz-dialogo__check" id="abrir-diag-caja" hidden><input type="checkbox" id="abrir-diag" checked> Guardar el ZIP de diagnóstico en Descargas (administrador)</label>
@@ -98,6 +98,6 @@
     </form>
 </dialog>
 
-<script src="/herramientas/buzon/buzon.js?v=202610301730"></script>
+<script src="/herramientas/buzon/buzon.js?v=202610311000"></script>
 </body>
 </html>

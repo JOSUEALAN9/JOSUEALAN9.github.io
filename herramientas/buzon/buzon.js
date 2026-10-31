@@ -365,7 +365,8 @@
         var dia = (E.detalle.hoy || hoy());
         if (x.se_notifica_el <= dia) return '<span class="bz-plazo bz-plazo--ya">' + esc(diaSemana(x.se_notifica_el)) + "</span>" +
             '<small class="bz-tenue bz-plazo__nota">Ya debe estar notificada; se confirma en la siguiente revisión</small>';
-        return '<span class="bz-plazo">' + esc(diaSemana(x.se_notifica_el)) + '</span><small class="bz-tenue bz-plazo__nota">si no la abres antes (aprox.)</small>';
+        return '<span class="bz-plazo">' + esc(diaSemana(x.se_notifica_el)) + '</span><small class="bz-tenue bz-plazo__nota">si no la abres antes' +
+            (x.surte_efectos_el ? "; surte efectos el " + esc(diaSemana(x.surte_efectos_el)) : "") + " (aprox.)</small>";
     }
 
     function notificaciones() {
@@ -451,7 +452,10 @@
         var emp = E.detalle.empresa || {};
         $("dlg-abrir-datos").innerHTML = "<dt>Empresa</dt><dd>" + esc((emp.alias || emp.rfc) + " — " + emp.rfc) + "</dd>" +
             "<dt>Folio</dt><dd><code>" + esc(x.folio) + "</code></dd><dt>Autoridad</dt><dd>" + esc(x.autoridad || "—") + "</dd>" +
-            "<dt>Acto</dt><dd>" + esc(x.acto || "—") + "</dd><dt>Aviso</dt><dd>" + esc(fechaLocal(x.fecha_aviso) || "—") + "</dd>";
+            "<dt>Acto</dt><dd>" + esc(x.acto || "—") + "</dd><dt>Aviso</dt><dd>" + esc(fechaLocal(x.fecha_aviso) || "—") + "</dd>" +
+            (x.surte_si_abre_hoy ? "<dt>Si la abres hoy</dt><dd><b>Quedas notificado hoy y surte efectos el " + esc(diaSemana(x.surte_si_abre_hoy)) + "</b> (siguiente día hábil, art. 135 CFF)</dd>" : "") +
+            (x.se_notifica_el ? "<dt>Si no la abres</dt><dd>Quedas notificado el " + esc(diaSemana(x.se_notifica_el)) +
+                (x.surte_efectos_el ? " y surte efectos el " + esc(diaSemana(x.surte_efectos_el)) : "") + " (aprox.)</dd>" : "");
         $("abrir-entiendo").checked = false;
         $("abrir-confirmar").disabled = true;
         $("abrir-diag-caja").hidden = !E.panel.es_admin;

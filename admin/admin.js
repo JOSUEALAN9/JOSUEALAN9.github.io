@@ -724,6 +724,7 @@ function prepararEventosSistema() {
         if (e.target.closest("#btn-respaldar")) respaldarAhora(e.target.closest("#btn-respaldar"));
         if (e.target.closest("#btn-revisar-vps")) revisarVps();
         if (e.target.closest("#btn-guardar-trabajos")) guardarTrabajos(e.target.closest("#btn-guardar-trabajos"));
+        if (e.target.closest("#btn-guardar-inhabiles")) guardarInhabiles(e.target.closest("#btn-guardar-inhabiles"));
         if (e.target.closest("#btn-probar-trabajador")) probarTrabajador(e.target.closest("#btn-probar-trabajador"));
     });
 }
@@ -754,6 +755,7 @@ async function cargarSistema() {
     try {
         estadoSistema = await api("/api/admin/sistema/estado");
         try { estadoTrabajadores = await api("/api/admin/trabajadores"); } catch (e) { estadoTrabajadores = null; }
+        try { diasInhabiles = await api("/api/admin/sistema/dias-inhabiles"); } catch (e) { diasInhabiles = null; }
         pintarEstado();
         pintarPortal();
         await cargarEstadoSAT();
@@ -763,6 +765,28 @@ async function cargarSistema() {
 }
 
 let estadoTrabajadores = null;
+let diasInhabiles = null;
+
+// Plazos del Buzón (cuándo queda notificada y cuándo surte efectos): los de ley se calculan solos;
+// aquí van los que declare el SAT (vacaciones, días de la RMF).
+function tarjetaInhabiles() {
+    const d = diasInhabiles;
+    const corto = (iso) => new Date(iso + "T12:00:00").toLocaleDateString("es-MX", { day: "numeric", month: "short", year: "numeric" });
+    return `<p class="text-[11px] text-slate-500">Además de los de ley (sábados, domingos, art. 12 del CFF y jueves y viernes santos), los que declare el SAT. Una fecha por renglón, AAAA-MM-DD. Se usan en los plazos del Buzón.</p>
+        <textarea id="txt-inhabiles" rows="4" class="mt-2 w-full border border-gray-200 rounded-lg p-2 text-xs font-mono" placeholder="2026-11-02">${esc((d.dias || []).join("\n"))}</textarea>
+        <button type="button" id="btn-guardar-inhabiles" class="mt-2 text-xs font-bold text-white bg-slate-800 hover:bg-slate-700 rounded-lg py-1.5 px-3">Guardar</button>
+        <p class="text-[11px] text-slate-400 mt-2">De ley: ${esc((d.de_ley || []).map(corto).join(" · "))}</p>`;
+}
+
+async function guardarInhabiles(boton) {
+    const dias = $("txt-inhabiles").value.split(/[\s,]+/).map(x => x.trim()).filter(Boolean);
+    boton.disabled = true;
+    try {
+        diasInhabiles = Object.assign(diasInhabiles || {}, await api("/api/admin/sistema/dias-inhabiles", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ dias }) }));
+        mostrarAlerta("ok", "Listo: los plazos del Buzón ya usan estos días.");
+        pintarEstado();
+    } catch (err) { mostrarAlerta("error", err.message); boton.disabled = false; }
+}
 const NOMBRE_MODO = { local: "Vostro", vps: "VPS de Oracle", alternar: "Alternar (mitad y mitad)", agente: "PC del contador (agente)" };
 const nombreTrabajador = (t) => t === "vps" ? "VPS" : (t || "").startsWith("agente:") ? "PC " + t.slice(7) : "Vostro";
 
@@ -892,6 +916,7 @@ function pintarEstado() {
         tarjeta("Proxy de Oracle", proxy, e.proxy_configurado ? "" : "mal") +
         tarjeta("Respaldo en la VPS", respaldo, respaldoMal ? "mal" : "") +
         (estadoTrabajadores ? tarjeta("Trabajadores (VPS y PCs)", tarjetaTrabajadores()) : "") +
+        (diasInhabiles ? tarjeta("Días inhábiles del SAT", tarjetaInhabiles()) : "") +
         tarjeta("Tipo de cambio Banxico", tipoCambio, tcMal ? "mal" : "");
     $("alerta-sistema").textContent = (alertaGit || e.mantenimiento.activo) ? "•" : "";
 }
