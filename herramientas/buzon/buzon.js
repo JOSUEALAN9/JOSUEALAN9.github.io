@@ -453,7 +453,9 @@
         $("dlg-abrir-datos").innerHTML = "<dt>Empresa</dt><dd>" + esc((emp.alias || emp.rfc) + " — " + emp.rfc) + "</dd>" +
             "<dt>Folio</dt><dd><code>" + esc(x.folio) + "</code></dd><dt>Autoridad</dt><dd>" + esc(x.autoridad || "—") + "</dd>" +
             "<dt>Acto</dt><dd>" + esc(x.acto || "—") + "</dd><dt>Aviso</dt><dd>" + esc(fechaLocal(x.fecha_aviso) || "—") + "</dd>" +
-            (x.surte_si_abre_hoy ? "<dt>Si la abres hoy</dt><dd><b>Quedas notificado hoy y surte efectos el " + esc(diaSemana(x.surte_si_abre_hoy)) + "</b> (siguiente día hábil, art. 135 CFF)</dd>" : "") +
+            (x.surte_si_abre_hoy ? "<dt>Si la abres hoy</dt><dd><b>" + (x.notificada_si_abre_hoy && x.notificada_si_abre_hoy !== (E.detalle.hoy || hoy())
+                ? "Hoy es inhábil: quedas notificado el " + esc(diaSemana(x.notificada_si_abre_hoy))
+                : "Quedas notificado hoy") + " y surte efectos el " + esc(diaSemana(x.surte_si_abre_hoy)) + "</b> (siguiente día hábil, art. 135 CFF)</dd>" : "") +
             (x.se_notifica_el ? "<dt>Si no la abres</dt><dd>Quedas notificado el " + esc(diaSemana(x.se_notifica_el)) +
                 (x.surte_efectos_el ? " y surte efectos el " + esc(diaSemana(x.surte_efectos_el)) : "") + " (aprox.)</dd>" : "");
         $("abrir-entiendo").checked = false;
