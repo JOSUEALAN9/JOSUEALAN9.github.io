@@ -83,7 +83,7 @@
         E.periodoGeneral = await Fiscontable.periodoActivo();
         // Periodo de ESTA página (cuadros como en Administración de XML): arranca en el general;
         // cambiarlo aquí no mueve el general.
-        E.selPeriodo = FCPeriodoMeses.crear({ contenedor: $("periodo-conc"), alCambiar: function () { cargarDatos(); } });
+        E.selPeriodo = FCPeriodoMeses.crear({ contenedor: $("periodo-conc"), alCambiar: function () { cargarDatos(); }, conBoton: true });
         $("btn-ir-xml").hidden = !puede("validador");
         await refrescarBibliotecas(q.get("rfc"));
         window.addEventListener("fiscontable:empresa", async function (ev) {
@@ -190,6 +190,7 @@
     function mostrarVacio() {
         $("contenido").hidden = true;
         $("ayuda-base").hidden = true;
+        $("btn-agregar").hidden = true;          // el aviso de abajo ya trae su botón: no dos «Agregar XML»
         var caja = $("sin-empresa");
         caja.hidden = false;
         if (E.empresa) {
@@ -274,6 +275,7 @@
         if (!E.rfc) return;
         pintarBase();
         $("sin-empresa").hidden = true;
+        $("btn-agregar").hidden = false;
         $("contenido").hidden = false;
         var hay = E.selPeriodo.hayEleccion();
         $("elige-periodo").hidden = hay;

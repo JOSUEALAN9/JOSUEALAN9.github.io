@@ -657,6 +657,7 @@
     }
 
     function cerrarResultados() {
+        Fiscontable.url({ ver: null });
         E.abierta = null;
         E.detalle = null;
         $("resultados").hidden = true;
@@ -668,6 +669,7 @@
         try {
             var d = await api("/api/descarga-xml/solicitudes/" + encodeURIComponent(id));
             E.abierta = id;
+            Fiscontable.url({ ver: id });               // con F5 se vuelve a abrir este resultado
             pintarResultados(d);
         } catch (e) { alerta(e.message); }
     }
@@ -790,5 +792,6 @@
         // soloRfc: con contraseña y captcha (modo Portal) no hace falta su e.firma
         PasoCliente.montar({ contenedor: "paso-cliente", alElegir: alElegir, alLimpiar: alLimpiar, soloRfc: true,
                              alRegistrar: function () { pintarAcceso(); } });
+        if (Fiscontable.url("ver")) verResultados(Fiscontable.url("ver"));
     })();
 })();

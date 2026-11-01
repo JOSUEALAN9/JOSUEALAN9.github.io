@@ -252,3 +252,8 @@ button.ctx-resumen__dato:hover { background: #f8fafc; }
 /* Pestaña Pagos: periodo por fecha de emisión o de pago */
 .xml-pagos-por { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: #64748b; font-weight: 600; }
 @media (max-width: 640px) { .xml-pagos-por { margin-left: 0; flex-wrap: wrap; } }
+/* Periodo con botón: se marcan varios meses y se carga una sola vez */
+.xml-periodo__aplicar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding-top: 4px; border-top: 1px dashed #e2e8f0; }
+.xml-periodo__aplicar[hidden] { display: none; }
+.xml-periodo__aplicar .xml-btn { animation: fc-latido 1.6s ease-in-out 2; }
+@keyframes fc-latido { 50% { box-shadow: 0 0 0 5px rgba(14,116,144,.18); } }

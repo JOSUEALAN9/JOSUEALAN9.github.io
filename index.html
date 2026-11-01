@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611012100">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611020100">
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="min-h-screen flex flex-col">
@@ -13,85 +13,115 @@
 
 <main class="flex-grow w-full" style="max-width:1180px;margin:0 auto;padding:0 20px">
 
-    <section style="padding:56px 0 40px">
-        <h1 id="saludo" class="display" style="font-size:clamp(34px,5vw,48px)">
+    <section style="padding:44px 0 22px">
+        <h1 id="saludo" class="display" style="font-size:clamp(30px,4.6vw,44px)">
             <span class="fc-esqueleto" style="display:inline-block;width:min(340px,70vw);height:1em;vertical-align:-.12em"></span>
         </h1>
-        <p style="margin-top:12px;font-size:17px;color:var(--texto-tenue)">¿Con qué quieres trabajar hoy?</p>
+        <p style="margin-top:10px;font-size:16.5px;color:var(--texto-tenue)">¿Con qué quieres trabajar hoy? <span class="inicio-atajo">Tip: <kbd>Ctrl</kbd> + <kbd>K</kbd> abre cualquier módulo desde donde estés.</span></p>
     </section>
 
-    <section class="grid gap-5 md:grid-cols-2" style="padding-bottom:64px">
+    <!-- La empresa con la que trabajas y lo que le falta -->
+    <section id="inicio-empresa" class="inicio-empresa" hidden></section>
 
-        <a href="/clientes/" class="tarjeta" style="--tono:#6D28D9;--tono-suave:#F1EBFD">
-            <span class="tarjeta__icono">
-                <svg fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
-                    <path d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-1.13a4 4 0 10-4-4 4 4 0 004 4zm6 0a4 4 0 10-4-4"/>
-                </svg>
-            </span>
-            <h2 class="display" style="font-size:25px;margin-bottom:9px">Espacio Contador</h2>
-            <p class="tarjeta__texto">
-                Tus clientes, sus documentos y obligaciones.
-            </p>
-            <span class="tarjeta__cta">Entrar</span>
-        </a>
-
-        <a href="/herramientas/" class="tarjeta" style="--tono:#0E9F6E;--tono-suave:#E8F6F0">
-            <span class="tarjeta__icono">
-                <svg fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
-                    <path d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z"/><path d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z"/>
-                </svg>
-            </span>
-            <h2 class="display" style="font-size:25px;margin-bottom:9px">Herramientas</h2>
-            <p class="tarjeta__texto">
-                Constancias, opiniones, declaraciones, XML, ISN y más.
-            </p>
-            <span class="tarjeta__cta">Entrar</span>
-        </a>
-
+    <section id="inicio-recientes" hidden>
+        <h2 class="inicio-grupo">Lo último que usaste</h2>
+        <div class="inicio-rejilla inicio-rejilla--recientes" id="inicio-recientes-lista"></div>
     </section>
+
+    <div id="inicio-modulos" style="padding-bottom:64px"></div>
 </main>
 
 <footer class="fc-pie">© 2026 Alan Sánchez</footer>
 
 <style>
-    .tarjeta {
-        display: block;
-        background: #fff;
-        border: 1px solid var(--linea);
-        border-radius: 18px;
-        padding: 30px;
-        text-decoration: none;
-        color: inherit;
-        box-shadow: var(--sombra-media);
-        transition: border-color .18s, transform .18s;
-    }
-    .tarjeta:hover { border-color: var(--tono); transform: translateY(-2px); }
-    .tarjeta__icono {
-        width: 52px; height: 52px;
-        border-radius: 14px;
-        background: var(--tono-suave);
-        color: var(--tono);
-        display: grid; place-items: center;
-        margin-bottom: 22px;
-    }
-    .tarjeta__icono svg { width: 26px; height: 26px; }
-    .tarjeta__texto { font-size: 14.5px; line-height: 1.6; color: var(--texto-tenue); max-width: 46ch; }
-    .tarjeta__cta {
-        display: inline-block;
-        margin-top: 20px;
-        font-size: 14px; font-weight: 700;
-        color: var(--tono);
-    }
+    .inicio-atajo { display: inline-block; margin-left: 6px; font-size: 13px; }
+    .inicio-atajo kbd { font: 600 11.5px ui-monospace, monospace; border: 1px solid var(--linea); border-bottom-width: 2px; border-radius: 5px; padding: 1px 5px; background: #fff; }
+    @media (max-width: 760px) { .inicio-atajo { display: none; } }
+    .inicio-grupo { font-size: 14px; font-weight: 700; color: var(--texto-tenue); margin: 26px 0 12px; }
+    .inicio-rejilla { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); }
+    .inicio-mod { display: flex; gap: 12px; align-items: flex-start; background: #fff; border: 1px solid var(--linea); border-radius: 14px;
+                  padding: 14px; text-decoration: none; color: inherit; box-shadow: var(--sombra-baja); transition: border-color .15s, transform .15s; }
+    .inicio-mod:hover { border-color: var(--tono); transform: translateY(-1px); }
+    .inicio-mod__icono { width: 38px; height: 38px; border-radius: 10px; flex: none; display: grid; place-items: center; background: var(--tono-suave); color: var(--tono); }
+    .inicio-mod__icono svg { width: 20px; height: 20px; }
+    .inicio-mod h3 { font-size: 14.5px; font-weight: 700; line-height: 1.3; }
+    .inicio-mod p { font-size: 12.5px; color: var(--texto-tenue); margin-top: 2px; line-height: 1.4; }
+    .inicio-mod--vedado { opacity: .45; cursor: not-allowed; }
+    .inicio-rejilla--recientes .inicio-mod { border-color: color-mix(in srgb, var(--tono) 35%, var(--linea)); }
+    .inicio-empresa { display: flex; flex-wrap: wrap; gap: 14px 22px; align-items: center; justify-content: space-between; background: #fff; border: 1px solid var(--linea);
+                      border-radius: 16px; padding: 16px 18px; box-shadow: var(--sombra-baja); }
+    .inicio-empresa__nombre { font-size: 17px; font-weight: 800; color: #0f172a; }
+    .inicio-empresa__dato { font-size: 12.5px; color: var(--texto-tenue); font-family: ui-monospace, monospace; }
+    .inicio-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+    .inicio-chip { font-size: 12px; font-weight: 700; padding: 3px 9px; border-radius: 999px; background: #F1F5F9; color: #475569; text-decoration: none; }
+    .inicio-chip--ok { background: #E8F6F0; color: #047857; }
+    .inicio-chip--falta { background: #FEF3C7; color: #92400E; }
+    .inicio-empresa__acciones { display: flex; flex-wrap: wrap; gap: 8px; }
 </style>
 
-<script src="/assets/js/nucleo.js?v=202611012100"></script>
-<script src="/assets/js/barra.js?v=202611012100"></script>
+<script src="/assets/js/nucleo.js?v=202611020100"></script>
+<script src="/assets/js/barra.js?v=202611020100"></script>
 <script>
-    document.addEventListener("fc:perfil", function (e) {
-        var p = e.detail;
-        var nombre = p && (p.nombre || (p.correo || "").split("@")[0]);
-        document.getElementById("saludo").textContent = nombre ? "Hola, " + nombre : "Bienvenido";
-    });
+    (function () {
+        var esc = Fiscontable.escapar;
+        function svg(d) { return '<svg fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="' + d + '"/></svg>'; }
+        function tarjeta(m) {
+            var ok = Fiscontable.permitido(m);
+            return '<a class="inicio-mod' + (ok ? "" : " inicio-mod--vedado") + '" href="' + (ok ? esc(m.url) : "#") + '" style="--tono:' + m.tono + ';--tono-suave:' + m.suave + '"' +
+                (ok ? "" : ' title="Tu plan actual no incluye este módulo" aria-disabled="true" onclick="return false"') + ">" +
+                '<span class="inicio-mod__icono">' + svg(m.icono) + '</span><span><h3>' + esc(m.nombre) + (ok ? "" : " 🔒") + "</h3><p>" + esc(m.desc) + "</p></span></a>";
+        }
+        function pintar() {
+            var cat = Fiscontable.catalogo || [];
+            var rec = Fiscontable.recientes().slice(0, 4).map(function (c) { return cat.filter(function (m) { return m.clave === c; })[0]; }).filter(Boolean);
+            document.getElementById("inicio-recientes").hidden = !rec.length;
+            document.getElementById("inicio-recientes-lista").innerHTML = rec.map(tarjeta).join("");
+            var grupos = [];
+            cat.forEach(function (m) { if (grupos.indexOf(m.grupo) === -1) grupos.push(m.grupo); });
+            document.getElementById("inicio-modulos").innerHTML = grupos.map(function (g) {
+                return '<h2 class="inicio-grupo">' + esc(g) + '</h2><div class="inicio-rejilla">' +
+                    cat.filter(function (m) { return m.grupo === g; }).map(tarjeta).join("") + "</div>";
+            }).join("");
+        }
+        async function empresa(p) {
+            var caja = document.getElementById("inicio-empresa");
+            var e = p && p.empresa_activa;
+            if (!e) {
+                caja.hidden = false;
+                caja.innerHTML = '<div><div class="inicio-empresa__nombre">Elige la empresa con la que vas a trabajar</div>' +
+                    '<div style="font-size:13px;color:var(--texto-tenue);margin-top:4px">Arriba, en «Elegir empresa». Si todavía no tienes ninguna, regístrala: solo su nombre y su e.firma.</div></div>' +
+                    '<div class="inicio-empresa__acciones"><a class="boton-principal" style="width:auto;margin:0;padding:9px 16px" href="/clientes/?nuevo=1">+ Registrar empresa</a></div>';
+                return;
+            }
+            var c = null;
+            try {
+                var r = await fetch(Fiscontable.API + "/api/clientes", { credentials: "include" });
+                if (r.ok) c = (await r.json()).filter(function (x) { return x.rfc === e.rfc; })[0] || null;
+            } catch (err) { /* sin datos extra */ }
+            var docs = c ? c.documentos || [] : [];
+            function chip(ok, texto, href) { return '<a class="inicio-chip ' + (ok ? "inicio-chip--ok" : "inicio-chip--falta") + '" href="' + href + '">' + (ok ? "✓ " : "") + esc(texto) + "</a>"; }
+            var r2 = encodeURIComponent(e.rfc);
+            caja.hidden = false;
+            caja.innerHTML = '<div><div class="inicio-empresa__nombre">' + esc(e.alias || e.rfc) + '</div><div class="inicio-empresa__dato">' + esc(e.rfc) +
+                (p.periodo_activo ? " · " + esc(Fiscontable.textoPeriodo ? Fiscontable.textoPeriodo("m:" + p.periodo_activo) : p.periodo_activo) : "") + "</div>" +
+                (c ? '<div class="inicio-chips">' +
+                    chip(c.efirma_guardada, c.efirma_guardada ? "e.firma guardada" : "Falta su e.firma", "/clientes/?editar=" + r2) +
+                    chip(c.ciec_guardada, c.ciec_guardada ? "Contraseña SAT guardada" : "Sin contraseña SAT", "/clientes/?editar=" + r2) +
+                    chip(docs.some(function (d) { return d.tipo === "csf"; }), "Constancia del mes", "/herramientas/constancias/") +
+                    chip(docs.some(function (d) { return d.tipo === "opinion"; }), "Opinión 32-D del mes", "/herramientas/opinion/") + "</div>" : "") + "</div>" +
+                '<div class="inicio-empresa__acciones"><a class="fc-btn" href="/herramientas/xml/">Sus XML</a><a class="fc-btn" href="/herramientas/buzon/">Su buzón</a>' +
+                '<a class="fc-btn" href="/clientes/?editar=' + r2 + '">Ficha</a></div>';
+        }
+        pintar();
+        document.addEventListener("fc:perfil", function (ev) {
+            var p = ev.detail;
+            var nombre = p && (p.nombre || (p.correo || "").split("@")[0]);
+            document.getElementById("saludo").textContent = nombre ? "Hola, " + nombre.split(" ")[0] : "Bienvenido";
+            pintar();
+            if (p) empresa(p);
+        });
+        window.addEventListener("fiscontable:empresa", function () { Fiscontable.perfil().then(function (p) { if (p && !p._error) empresa(p); }); });
+    })();
 </script>
 </body>
 </html>

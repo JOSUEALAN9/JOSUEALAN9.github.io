@@ -69,7 +69,7 @@
     // ------------------------------------------------------------ empresa
     async function iniciar() {
         if (!(await Fiscontable.exigirModulo("validador"))) return;
-        E.P = FCPeriodoMeses.crear({ contenedor: $("periodo-ls"), alCambiar: function () { alCambiarPeriodo(); } });
+        E.P = FCPeriodoMeses.crear({ contenedor: $("periodo-ls"), alCambiar: function () { alCambiarPeriodo(); }, conBoton: true });
         prepararEventos();
         cargarEstado();
         E.empresa = await Fiscontable.empresaActiva();

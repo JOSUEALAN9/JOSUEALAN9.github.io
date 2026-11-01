@@ -117,6 +117,53 @@
                     "Descarga cada archivo o reintenta los que fallaron."]
     };
 
+    // Todos los módulos en un solo lugar: el botón «Módulos» de la barra, la portada y los recientes salen de aquí.
+    var I = {
+        doc: "M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z",
+        escudo: "M9 12l2 2 4-4m5.6-4A11.9 11.9 0 0112 2.9 11.9 11.9 0 013.4 6 12 12 0 003 9c0 5.6 3.8 10.3 9 11.6 5.2-1.3 9-6 9-11.6 0-1-.1-2-.4-3z",
+        bajarDoc: "M12 10v6m0 0l-3-3m3 3l3-3M7 21h10a2 2 0 002-2V7.4a1 1 0 00-.3-.7l-3.4-3.4a1 1 0 00-.7-.3H7a2 2 0 00-2 2v14a2 2 0 002 2z",
+        bajar: "M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4",
+        buzon: "M20 13V7a2 2 0 00-2-2H6a2 2 0 00-2 2v6m16 0v4a2 2 0 01-2 2H6a2 2 0 01-2-2v-4m16 0h-2.6a1 1 0 00-.7.3l-2.4 2.4a1 1 0 01-.7.3h-3.2a1 1 0 01-.7-.3l-2.4-2.4a1 1 0 00-.7-.3H4",
+        ticket: "M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z",
+        gente: "M17 20h5v-2a3 3 0 00-5.4-1.8M17 20H7m10 0v-2c0-.7-.1-1.3-.4-1.8M7 20H2v-2a3 3 0 015.4-1.8M7 20v-2c0-.7.1-1.3.4-1.8m0 0a5 5 0 019.2 0M15 7a3 3 0 11-6 0 3 3 0 016 0z",
+        grafica: "M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z",
+        recibo: "M9 7h6m-6 4h6m-6 4h3M5 3h14a1 1 0 011 1v16l-3-2-2 2-2-2-2 2-2-2-3 2V4a1 1 0 011-1z",
+        alerta: "M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z",
+        palomita: "M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z",
+        credencial: "M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2",
+        clientes: "M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-1.13a4 4 0 10-4-4 4 4 0 004 4zm6 0a4 4 0 10-4-4",
+        moneda: "M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+    };
+    var CATALOGO = [
+        { clave: "clientes", grupo: "Mi despacho", nombre: "Mis clientes", desc: "Empresas, e.firma y obligaciones", url: "/clientes/", permiso: null, icono: I.clientes, tono: "#6D28D9", suave: "#F1EBFD" },
+        { clave: "descargas", grupo: "Mi despacho", nombre: "Mis descargas", desc: "Todo lo que bajan las herramientas", url: "/descargas/", permiso: null, icono: I.bajar, tono: "#334155", suave: "#EEF1F5" },
+        { clave: "constancias", grupo: "Trámites ante el SAT", nombre: "Constancia de Situación Fiscal", desc: "De una empresa o de varias a la vez", url: "/herramientas/constancias/", permiso: "constancias", icono: I.doc, tono: "#4338CA", suave: "#ECEBFB" },
+        { clave: "opinion", grupo: "Trámites ante el SAT", nombre: "Opinión de cumplimiento 32-D", desc: "De una empresa o de varias a la vez", url: "/herramientas/opinion/", permiso: "opinion", icono: I.escudo, tono: "#0F766E", suave: "#E6F2F1" },
+        { clave: "declaraciones", grupo: "Trámites ante el SAT", nombre: "Declaraciones presentadas", desc: "Acuses, pagos y recibos", url: "/herramientas/declaraciones/", permiso: "declaraciones", icono: I.bajarDoc, tono: "#0369A1", suave: "#E4F1F9" },
+        { clave: "descarga_xml", grupo: "Trámites ante el SAT", nombre: "Descarga masiva de XML", desc: "Emitidos y recibidos de un periodo", url: "/herramientas/descarga-xml/", permiso: "descarga_xml", icono: I.bajar, tono: "#0E7490", suave: "#E0F2F7" },
+        { clave: "buzon", grupo: "Trámites ante el SAT", nombre: "Buzón Tributario", desc: "Comunicados, cancelaciones y notificaciones", url: "/herramientas/buzon/", permiso: "buzon", icono: I.buzon, tono: "#0F766E", suave: "#E6F2F1" },
+        { clave: "xml", grupo: "Revisión y papeles de trabajo", nombre: "Administración de XML", desc: "Tus XML por tipo, con reportes en Excel", url: "/herramientas/xml/", permiso: "validador", icono: I.doc, tono: "#0E7490", suave: "#E0F2F7" },
+        { clave: "conciliacion", grupo: "Revisión y papeles de trabajo", nombre: "Conciliación", desc: "Facturas contra pagos y notas de crédito", url: "/herramientas/conciliacion/", permiso: "conciliacion", icono: I.grafica, tono: "#1D4ED8", suave: "#E8EFFD" },
+        { clave: "iva", grupo: "Revisión y papeles de trabajo", nombre: "Papel de trabajo de IVA", desc: "IVA cobrado y pagado del mes", url: "/herramientas/iva/", permiso: "iva", icono: I.recibo, tono: "#7C3AED", suave: "#F1EBFE" },
+        { clave: "isn", grupo: "Revisión y papeles de trabajo", nombre: "ISN (impuesto sobre nóminas)", desc: "Calcula, presenta y lleva el control", url: "/herramientas/isn/", permiso: "isn", icono: I.gente, tono: "#BE185D", suave: "#FCE7F3" },
+        { clave: "voucheo", grupo: "Revisión y papeles de trabajo", nombre: "Voucheo de impuestos", desc: "Acuses estatales a tu papel de trabajo", url: "/herramientas/voucheo/", permiso: "voucheo", icono: I.ticket, tono: "#B45309", suave: "#FBF0E2" },
+        { clave: "listas", grupo: "Revisión y papeles de trabajo", nombre: "Listas del SAT", desc: "69, 69-B y demás listas negras", url: "/herramientas/listas-sat/", permiso: "validador", icono: I.alerta, tono: "#B91C1C", suave: "#FDECEC" },
+        { clave: "validador", grupo: "Revisión y papeles de trabajo", nombre: "Validador de XML", desc: "¿Vigente o cancelado ante el SAT?", url: "/herramientas/validador/", permiso: "validador", icono: I.palomita, tono: "#047857", suave: "#E6F4EF" },
+        { clave: "documentos", grupo: "Documentos con créditos", nombre: "Documentos", desc: "Actas, constancias, IMSS e INFONAVIT", url: "/herramientas/documentos/", permiso: "documentos", icono: I.credencial, tono: "#0E7490", suave: "#ECFEFF" },
+        { clave: "creditos", grupo: "Documentos con créditos", nombre: "Mis créditos", desc: "Saldo y recargas", url: "/creditos/", permiso: null, icono: I.moneda, tono: "#0E9F6E", suave: "#E8F6F0" }
+    ];
+
+    // Lo último que usaste (para el menú «Módulos» y la portada)
+    function recientes() {
+        try { return JSON.parse(localStorage.getItem("fc-recientes") || "[]").filter(function (c) { return CATALOGO.some(function (m) { return m.clave === c; }); }); }
+        catch (e) { return []; }
+    }
+    function anotarReciente(c) {
+        if (!CATALOGO.some(function (m) { return m.clave === c; })) return;
+        try { localStorage.setItem("fc-recientes", JSON.stringify([c].concat(recientes().filter(function (x) { return x !== c; })).slice(0, 6))); }
+        catch (e) { /* sin almacenamiento: no pasa nada */ }
+    }
+
     var ancla = document.getElementById("app-header");
     if (!ancla) return;
 
@@ -141,6 +188,7 @@
         descarga: "M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4",
         engrane:  "M10.3 4.3c.4-1.7 2.9-1.7 3.4 0a1.7 1.7 0 002.5 1.1c1.6-.9 3.3.8 2.4 2.4a1.7 1.7 0 001.1 2.5c1.7.4 1.7 2.9 0 3.4a1.7 1.7 0 00-1.1 2.5c.9 1.6-.8 3.3-2.4 2.4a1.7 1.7 0 00-2.5 1.1c-.4 1.7-2.9 1.7-3.4 0a1.7 1.7 0 00-2.5-1.1c-1.6.9-3.3-.8-2.4-2.4a1.7 1.7 0 00-1.1-2.5c-1.7-.4-1.7-2.9 0-3.4a1.7 1.7 0 001.1-2.5c-.9-1.6.8-3.3 2.4-2.4 1 .6 2.3.1 2.5-1.1zM15 12a3 3 0 11-6 0 3 3 0 016 0z",
         persona:  "M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z",
+        rejilla:  "M4 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1V5zm10 0a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM4 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1v-4zm10 0a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z",
         salir:    "M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1",
         cerrar:   "M6 18L18 6M6 6l12 12",
         pc:       "M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z",
@@ -154,7 +202,6 @@
 
     function migasDesdeDatos() {
         var tramos = [];
-        if (clave !== "portada") tramos.push({ texto: "Inicio", href: "/" });
         (ancla.dataset.migas || "").split(";").forEach(function (t) {
             if (!t.trim()) return;
             var p = t.split("|");
@@ -170,9 +217,12 @@
         // En el teléfono no cabe la ruta completa, así que el último
         // tramo (el "padre") se convierte en una flecha de regresar y el
         // resto se esconde. En pantalla grande se ve la ruta entera.
+        if (clave !== "portada" && !tramos.length) tramos.push({ texto: "Inicio", href: "/" });
         var migas = tramos.map(function (t, i) {
             var esPadre = i === tramos.length - 1;
-            return '<a class="fc-miga' + (esPadre ? " fc-miga--padre" : "") + '" href="' + esc(t.href) + '"' +
+            // En computadora el botón «Módulos» ya lleva a cualquier herramienta: "Herramientas" e "Inicio" sobran
+            var soloMovil = t.href === "/herramientas/" || t.href === "/";
+            return '<a class="fc-miga' + (esPadre ? " fc-miga--padre" : "") + (soloMovil ? " fc-miga--solo-movil" : "") + '" href="' + esc(t.href) + '"' +
                 (esPadre ? ' aria-label="Regresar a ' + esc(t.texto) + '"' : "") + ">" +
                 '<span class="fc-miga__sep">' + ico(D.flecha, 2.2) + "</span>" +
                 "<span>" + esc(t.texto) + "</span></a>";
@@ -194,6 +244,8 @@
                   '<span class="fc-marca__sello">' + ico(D.rayo) + "</span>" +
                   '<span class="fc-marca__nombre">Fiscontable</span>' +
                 "</a>" +
+                '<button type="button" class="fc-modulos-btn" id="fc-btn-modulos" aria-haspopup="dialog" aria-expanded="false" title="Ir a otro módulo (Ctrl+K)">' +
+                  ico(D.rejilla) + '<span class="fc-modulos-btn__texto">Módulos</span></button>' +
                 '<nav class="fc-migas" aria-label="Ruta">' + migas + "</nav>" +
                 '<div class="fc-acciones">' +
                   '<button type="button" class="fc-accion fc-empresa" id="fc-btn-empresa" aria-haspopup="menu" aria-expanded="false" hidden>' +
@@ -219,7 +271,7 @@
                     '<span class="fc-accion__etiqueta" id="fc-nombre-corto"></span>' +
                   "</button>" +
                 "</div>" +
-                menuPerfilHTML() + menuEmpresasHTML() +
+                menuPerfilHTML() + menuEmpresasHTML() + menuModulosHTML() +
               "</div>" +
             "</header>" +
             avisoHTML();
@@ -244,6 +296,118 @@
               '<a class="fc-menu__boton fc-menu__boton--salir" href="/cdn-cgi/access/logout" role="menuitem">' +
                 ico(D.salir) + "Cerrar sesión</a>" +
             "</div></div>";
+    }
+
+    /* --------------------------------------------- menú «Módulos» (y Ctrl+K) */
+    // El módulo de esta página, por su dirección (Listas y Validador comparten permiso, no dirección)
+    var aqui = CATALOGO.filter(function (m) { return location.pathname.indexOf(m.url) === 0; })
+        .sort(function (a, b) { return b.url.length - a.url.length; })[0] || null;
+
+    function menuModulosHTML() {
+        return '<div class="fc-menu fc-modulos" id="fc-modulos" role="dialog" aria-label="Ir a un módulo" hidden>' +
+            '<input type="search" class="fc-modulos__buscar" id="fc-modulos-buscar" placeholder="Buscar módulo… (Ctrl+K)" autocomplete="off">' +
+            '<div class="fc-modulos__cuerpo" id="fc-modulos-cuerpo"></div></div>';
+    }
+
+    function permitido(m) {
+        if (!m.permiso) return true;
+        var p = perfilActual;
+        if (!p || p._error) return true;            // mientras carga no se ve nada como bloqueado
+        return !p.solo_lectura && (p.modulos_permitidos || []).indexOf(m.permiso) !== -1;
+    }
+
+    function itemModulo(m) {
+        var ok = permitido(m), actual = aqui && m.clave === aqui.clave;
+        return '<a class="fc-modulos__item' + (ok ? "" : " fc-modulos__item--vedado") + (actual ? " fc-modulos__item--actual" : "") + '" href="' + esc(m.url) + '"' +
+            ' style="--tono:' + m.tono + ';--tono-suave:' + m.suave + '"' + (ok ? "" : ' title="Tu plan actual no incluye este módulo" aria-disabled="true"') + ">" +
+            '<span class="fc-modulos__icono">' + ico(m.icono, 1.7) + "</span>" +
+            '<span class="fc-modulos__texto"><strong>' + esc(m.nombre) + (ok ? "" : " 🔒") + "</strong><small>" + esc(m.desc) + "</small></span></a>";
+    }
+
+    function pintarModulos() {
+        var q = (document.getElementById("fc-modulos-buscar").value || "").trim().toLowerCase()
+            .normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        var cuerpo = document.getElementById("fc-modulos-cuerpo");
+        if (q) {
+            var hallados = CATALOGO.filter(function (m) {
+                return (m.nombre + " " + m.desc + " " + m.grupo).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").indexOf(q) !== -1;
+            });
+            cuerpo.innerHTML = hallados.length ? '<div class="fc-modulos__rejilla">' + hallados.map(itemModulo).join("") + "</div>"
+                : '<p class="fc-empresas__nada">Ningún módulo coincide con «' + esc(q) + "».</p>";
+            return;
+        }
+        var html = "";
+        var rec = recientes().filter(function (c) { return !aqui || c !== aqui.clave; }).slice(0, 4);
+        if (rec.length) {
+            html += '<div class="fc-modulos__grupo">Recientes</div><div class="fc-modulos__rejilla">' +
+                rec.map(function (c) { return itemModulo(CATALOGO.filter(function (m) { return m.clave === c; })[0]); }).join("") + "</div>";
+        }
+        var grupos = [];
+        CATALOGO.forEach(function (m) { if (grupos.indexOf(m.grupo) === -1) grupos.push(m.grupo); });
+        grupos.forEach(function (g) {
+            html += '<div class="fc-modulos__grupo">' + esc(g) + '</div><div class="fc-modulos__rejilla">' +
+                CATALOGO.filter(function (m) { return m.grupo === g; }).map(itemModulo).join("") + "</div>";
+        });
+        cuerpo.innerHTML = html;
+    }
+
+    function abrirModulos() {
+        var panel = document.getElementById("fc-modulos"), boton = document.getElementById("fc-btn-modulos");
+        cerrarEmpresas();
+        document.getElementById("fc-menu").hidden = true;
+        var buscar = document.getElementById("fc-modulos-buscar");
+        buscar.value = "";
+        pintarModulos();
+        panel.hidden = false;
+        boton.setAttribute("aria-expanded", "true");
+        var interior = panel.parentElement.getBoundingClientRect(), r = boton.getBoundingClientRect();
+        panel.style.left = Math.max(12, r.left - interior.left) + "px";
+        if (window.innerWidth > 700) buscar.focus();
+    }
+
+    function cerrarModulos() {
+        var panel = document.getElementById("fc-modulos");
+        if (!panel || panel.hidden) return false;
+        panel.hidden = true;
+        document.getElementById("fc-btn-modulos").setAttribute("aria-expanded", "false");
+        return true;
+    }
+
+    function prepararModulos() {
+        var boton = document.getElementById("fc-btn-modulos"), panel = document.getElementById("fc-modulos");
+        boton.addEventListener("click", function (e) { e.stopPropagation(); if (panel.hidden) abrirModulos(); else cerrarModulos(); });
+        panel.addEventListener("click", function (e) {
+            var a = e.target.closest(".fc-modulos__item--vedado");
+            if (a) { e.preventDefault(); }
+        });
+        var buscar = document.getElementById("fc-modulos-buscar");
+        buscar.addEventListener("input", pintarModulos);
+        buscar.addEventListener("keydown", function (e) {
+            if (e.key === "Enter") {
+                var primero = panel.querySelector(".fc-modulos__item:not(.fc-modulos__item--vedado)");
+                if (primero) location.href = primero.getAttribute("href");
+            } else if (e.key === "ArrowDown") {
+                var p = panel.querySelector(".fc-modulos__item"); if (p) { e.preventDefault(); p.focus(); }
+            }
+        });
+        panel.addEventListener("keydown", function (e) {
+            if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
+            var items = [].slice.call(panel.querySelectorAll(".fc-modulos__item")), i = items.indexOf(document.activeElement);
+            if (i === -1) return;
+            e.preventDefault();
+            var sig = items[i + (e.key === "ArrowDown" ? 1 : -1)];
+            if (sig) sig.focus(); else if (e.key === "ArrowUp") buscar.focus();
+        });
+        document.addEventListener("pointerdown", function (e) {
+            if (!panel.hidden && !panel.contains(e.target) && !boton.contains(e.target)) cerrarModulos();
+        });
+        document.addEventListener("keydown", function (e) {
+            if ((e.ctrlKey || e.metaKey) && (e.key === "k" || e.key === "K")) {
+                e.preventDefault();
+                if (panel.hidden) abrirModulos(); else cerrarModulos();
+            }
+        });
+        if (aqui) anotarReciente(aqui.clave);
     }
 
     /* --------------------------------------------- selector de empresa */
@@ -302,6 +466,7 @@
         var panel = document.getElementById("fc-empresas");
         var boton = document.getElementById("fc-btn-empresa");
         document.getElementById("fc-menu").hidden = true;
+        cerrarModulos();
         panel.hidden = false;
         boton.setAttribute("aria-expanded", "true");
         var interior = panel.parentElement.getBoundingClientRect();
@@ -561,7 +726,7 @@
             selectorGeneral = selectorPeriodo({
                 boton: boton, etiqueta: document.getElementById("fc-periodo-nombre"),
                 valor: p ? "m:" + p : null, permitirQuitar: true,
-                alAbrir: function () { cerrarEmpresas(); var m = document.getElementById("fc-menu"); if (m) m.hidden = true; },
+                alAbrir: function () { cerrarEmpresas(); cerrarModulos(); var m = document.getElementById("fc-menu"); if (m) m.hidden = true; },
                 alCambiar: elegirPeriodoGeneral
             });
         } else {
@@ -1263,6 +1428,7 @@
     document.getElementById("fc-panel-cuerpo").addEventListener("click", accionPanel);
 
     prepararEmpresas();
+    prepararModulos();
 
     // Instructivo de la herramienta
     var botonAyuda = document.getElementById("fc-ayuda");
@@ -1309,6 +1475,7 @@
     // 3 de las 12 páginas, y con reglas distintas en cada una.
     document.addEventListener("keydown", function (e) {
         if (e.key !== "Escape") return;
+        if (cerrarModulos()) return;
         if (panelAbierto) { cerrarDescargas(); return; }
         if (!menu.hidden) { menu.hidden = true; btnPerfil.setAttribute("aria-expanded", "false"); return; }
         document.querySelectorAll(".modal-active").forEach(function (m) {
@@ -1341,6 +1508,10 @@
 
     Object.assign(window.Fiscontable, {
         modulo: clave,
+        catalogo: CATALOGO,
+        recientes: recientes,
+        permitido: function (m) { return permitido(m); },
+        abrirModulos: abrirModulos,
         perfil: perfil,
         exigirModulo: exigirModulo,
         bloquear: bloquear,

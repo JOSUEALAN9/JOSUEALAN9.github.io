@@ -866,6 +866,7 @@
             $("tab-" + m).setAttribute("aria-selected", String(esta));
             $("panel-" + m).hidden = !esta;
         });
+        Fiscontable.url({ modo: modo === "masivo" ? "masivo" : null });     // con F5 se queda en la misma pestaña
         sinAlerta();
     }
 
@@ -890,5 +891,6 @@
 
         prepararDropzone();
         mostrarCuota();
+        if (Fiscontable.url("modo") === "masivo") cambiarPestana("masivo");
     });
 })();

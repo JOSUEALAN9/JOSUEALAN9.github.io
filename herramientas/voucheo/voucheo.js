@@ -5,7 +5,7 @@ const API_URL = Fiscontable.API;          // la dirección vive solo en assets/j
 const esc = Fiscontable.escapar;          // todo texto del servidor pasa por aquí antes de ir al HTML
 
 document.addEventListener("DOMContentLoaded", async () => {
-    await verificarPermisos();
+    if (await verificarPermisos() && Fiscontable.url("tab") === "actualizar") switchTab("actualizar");   // F5 = misma pestaña
 });
 
 function bloquearModulo(mensaje) {
@@ -62,6 +62,7 @@ function switchTab(modo) {
 
     ocultarAlerta();
     ocultarResultado();
+    Fiscontable.url({ tab: isNuevo ? null : "actualizar" });
 }
 
 function limpiarFormularios() {

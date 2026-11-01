@@ -32,13 +32,15 @@
     /* ------------------------------------------------------------ arranque */
     async function iniciar() {
         if (!(await Fiscontable.exigirModulo("iva"))) return;
-        E.P = FCPeriodoMeses.crear({ contenedor: $("periodo-iva"), alCambiar: cargar, alAvisar: avisar });
+        E.P = FCPeriodoMeses.crear({ contenedor: $("periodo-iva"), alCambiar: cargar, alAvisar: avisar, conBoton: true });
         eventos();
         E.perfil = await Fiscontable.perfil();
         $("btn-conc").hidden = !(E.perfil && (E.perfil.modulos_permitidos || []).indexOf("conciliacion") !== -1);
         $("btn-xml").hidden = !(E.perfil && (E.perfil.modulos_permitidos || []).indexOf("validador") !== -1);
         E.empresa = await Fiscontable.empresaActiva();
         E.periodoGeneral = await Fiscontable.periodoActivo();
+        E.urlPeriodo = Fiscontable.periodoDeUrl();                  // con F5 se vuelve al mismo periodo y lado
+        if (Fiscontable.url("lado")) E.lado = Fiscontable.url("lado");
         try { E.empresas = await apiJSON("/api/iva/empresas"); } catch (e) { avisar(e.message); }
         abrirEmpresa(E.empresa && E.empresa.rfc);
         window.addEventListener("fiscontable:empresa", function (e) { E.empresa = e.detail; abrirEmpresa(e.detail && e.detail.rfc); });
@@ -73,7 +75,8 @@
         $("sin-empresa").hidden = true;
         $("contenido").hidden = false;
         E.P.conteos(c.periodos || {});
-        E.P.poner(E.periodoGeneral ? { anio: E.periodoGeneral.slice(0, 4), meses: [E.periodoGeneral.slice(5, 7)] } : null);
+        var deUrl = E.urlPeriodo; E.urlPeriodo = null;
+        E.P.poner(deUrl || (E.periodoGeneral ? { anio: E.periodoGeneral.slice(0, 4), meses: [E.periodoGeneral.slice(5, 7)] } : null));
         cargar();
     }
 
@@ -101,6 +104,7 @@
         var q = new URLSearchParams({ rfc: E.rfc, desde: r.desde || "2000-01-01", hasta: r.hasta || new Date().toISOString().slice(0, 10) });
         if (meses) q.set("meses", meses.join(","));
         var pedido = q.toString();
+        Fiscontable.url(Fiscontable.periodoAUrl(E.P.estado(), E.P.porFechas()));
         $("conteo").textContent = "Calculando…";
         try {
             var datos = await apiJSON("/api/iva/papel?" + pedido);
@@ -240,7 +244,7 @@
         $("sin-empresa").addEventListener("click", function (e) {
             if (e.target.closest("[data-elegir]")) { e.stopPropagation(); pintarMenu(); $("menu-empresa").hidden = false; }
         });
-        $("pestanas").addEventListener("click", function (e) { var b = e.target.closest("[data-lado]"); if (b) { E.lado = b.dataset.lado; E.origen = ""; pintar(); } });
+        $("pestanas").addEventListener("click", function (e) { var b = e.target.closest("[data-lado]"); if (b) { E.lado = b.dataset.lado; E.origen = ""; Fiscontable.url({ lado: E.lado }); pintar(); } });
         $("origenes").addEventListener("click", function (e) { var b = e.target.closest("[data-origen]"); if (b) { E.origen = b.dataset.origen; pintar(); } });
         var reloj = null;
         $("buscar").addEventListener("input", function () { clearTimeout(reloj); var v = this.value; reloj = setTimeout(function () { E.busqueda = v; if (E.datos) pintar(); }, 150); });

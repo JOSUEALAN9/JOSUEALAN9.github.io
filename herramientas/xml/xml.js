@@ -95,12 +95,16 @@
         if (!(await Fiscontable.exigirModulo("validador"))) return;
         prepararBandeja();
         // Periodo de ESTA página (cuadros de año, meses y fechas; el mismo de Conciliación y Listas)
-        E.P = FCPeriodoMeses.crear({ contenedor: $("periodo-xml"), alCambiar: function () { alCambiarPeriodo(); }, alAvisar: avisar });
+        E.P = FCPeriodoMeses.crear({ contenedor: $("periodo-xml"), alCambiar: function () { alCambiarPeriodo(); }, alAvisar: avisar,
+                                     conBoton: true, alcanza: periodoYaCargado });
         prepararEventos();
         var perfil = await Fiscontable.perfil();
         $("btn-conciliacion").hidden = !(perfil && (perfil.modulos_permitidos || []).indexOf("conciliacion") !== -1);
         await cargarVistas();
         E.empresa = await Fiscontable.empresaActiva();
+        E.urlPeriodo = Fiscontable.periodoDeUrl();
+        var tab = Fiscontable.url("tab");
+        if (tab && MODULOS.some(function (m) { return m.clave === tab; })) E.modulo = tab;
         E.periodoGeneral = await Fiscontable.periodoActivo();
         // Periodo de ESTA página (como en Mi Admin): año + meses, varios a la vez. Arranca en
         // el general; cambiarlo aquí no mueve el general.
@@ -164,6 +168,7 @@
 
     function mostrarVacio() {
         $("contenido").hidden = true;
+        $("btn-agregar").hidden = true;          // el aviso de abajo ya trae su botón: no dos «Agregar XML»
         var caja = $("sin-empresa");
         caja.hidden = false;
         if (E.empresa) {
@@ -242,7 +247,10 @@
         E.cuentasPago = null;                                  // por mes de pago: se vuelven a pedir
         (c.periodos || []).forEach(function (p) { if (p.periodo) E.cuentas[p.periodo] = { n: p.n, modulos: p.modulos || {} }; });
         E.cargado = null;
-        E.P.poner(E.periodoGeneral ? { anio: E.periodoGeneral.slice(0, 4), meses: [E.periodoGeneral.slice(5, 7)] } : null);
+        // Con F5 o un enlace se vuelve al mismo periodo; si no, el periodo general
+        var deUrl = E.urlPeriodo;
+        E.urlPeriodo = null;
+        E.P.poner(deUrl || (E.periodoGeneral ? { anio: E.periodoGeneral.slice(0, 4), meses: [E.periodoGeneral.slice(5, 7)] } : null));
         pintarPeriodo();
     }
 
@@ -288,12 +296,17 @@
     }
 
     /* Si lo elegido cabe en lo que ya se cargó, se filtra aquí; si no, se pide al servidor. */
+    // ¿Lo elegido cabe en lo que ya se trajo? Entonces se filtra aquí, sin botón ni espera.
+    function periodoYaCargado() {
+        var r = rangoPeriodo();
+        return !!(E.cargado && E.cargado.rfc === E.rfc && hayEleccion() && !porFechas() && !E.cargado.fechas && E.cargado.pagosPor === E.pagosPor &&
+            r.desde >= E.cargado.desde && r.hasta <= E.cargado.hasta);
+    }
+
     function alCambiarPeriodo() {
         E.seleccion.clear();
-        var r = rangoPeriodo();
-        var cabe = E.cargado && E.cargado.rfc === E.rfc && hayEleccion() && !porFechas() && !E.cargado.fechas && E.cargado.pagosPor === E.pagosPor &&
-            r.desde >= E.cargado.desde && r.hasta <= E.cargado.hasta;
-        if (cabe) {
+        Fiscontable.url(Fiscontable.periodoAUrl(E.P.estado(), porFechas()));
+        if (periodoYaCargado()) {
             pintarPeriodo(); pintarPestanas(); pintarSubfiltros(); aplicar();
         } else {
             cargarRegistros();
@@ -303,6 +316,7 @@
     async function cargarRegistros() {
         if (!E.rfc) return;
         $("sin-empresa").hidden = true;
+        $("btn-agregar").hidden = false;
         $("contenido").hidden = false;
         pintarPeriodo();
         var r = rangoPeriodo();
@@ -315,6 +329,7 @@
             E.datos = (await apiJSON("/api/xml/registros" + q)).modulos;
         } catch (e) { avisar(e.message); return; }
         E.cargado = hayEleccion() ? { rfc: E.rfc, desde: r.desde, hasta: r.hasta, fechas: porFechas(), pagosPor: E.pagosPor } : null;
+        Fiscontable.url(Fiscontable.periodoAUrl(E.P.estado(), porFechas()));
         cargarCuentasPago();
         E.seleccion.clear();
         pintarPestanas();
@@ -352,6 +367,7 @@
 
     function cambiarModulo(modulo, conservarSub) {
         E.modulo = modulo;
+        Fiscontable.url({ tab: modulo });
         if (!conservarSub) E.sub = "";
         E.rapidos = {};
         E.av = {};

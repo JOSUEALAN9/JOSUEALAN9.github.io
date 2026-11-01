@@ -8,6 +8,10 @@
  *   p.hayEleccion(), p.porFechas(), p.rango() -> {desde, hasta}, p.meses() -> ["2026-08", ...] | null,
  *   p.texto() -> "agosto de 2026", p.dentro("2026-08-10") -> true/false
  *
+ * Con conBoton: true los clics no recargan: aparece «Cargar …» y la página carga hasta que lo pulsas
+ * (se pueden marcar varios meses sin esperar). Si cfg.alcanza() dice que lo nuevo ya está cargado,
+ * se aplica al momento sin botón.
+ *
  * Reglas: "Todo el año" marca los 12 meses; con todos marcados, un clic en un mes quita solo
  * ese; un clic en el año activo lo desmarca. Las fechas exactas mandan sobre año y meses.
  * Sin año o sin meses no hay periodo (la página no carga nada).
@@ -29,7 +33,9 @@
             '<div class="xml-periodo__fila"><span class="xml-periodo__etiqueta">Meses</span><div class="xml-periodo__chips" data-p="meses"></div></div>' +
             '<div class="xml-periodo__fila"><span class="xml-periodo__etiqueta">Fechas</span><div class="xml-periodo__chips xml-periodo__fechas">' +
             '<label>Del <input type="date" data-p="desde"></label><label>al <input type="date" data-p="hasta"></label>' +
-            '<button type="button" class="xml-enlace" data-p="quitar" hidden>Quitar fechas</button></div></div>';
+            '<button type="button" class="xml-enlace" data-p="quitar" hidden>Quitar fechas</button></div></div>' +
+            '<div class="xml-periodo__aplicar" data-p="aplicar" hidden><button type="button" class="xml-btn xml-btn--primario" data-p="cargar">Cargar</button>' +
+            '<span class="xml-tenue" data-p="nota-aplicar">Lo de abajo todavía es el periodo anterior.</span></div>';
         function $(n) { return raiz.querySelector('[data-p="' + n + '"]'); }
 
         function porFechas() { return !!(E.fechas.desde || E.fechas.hasta); }
@@ -60,7 +66,20 @@
             E.fechas = { desde: "", hasta: "" };
             $("desde").value = ""; $("hasta").value = ""; $("quitar").hidden = true;
         }
-        function cambio() { pintar(); if (cfg.alCambiar) cfg.alCambiar(); }
+        var pendiente = false;
+        function aplicar() {
+            pendiente = false; $("aplicar").hidden = true;
+            if (cfg.alCambiar) cfg.alCambiar();
+        }
+        function cambio() {
+            pintar();
+            if (!cfg.conBoton || (cfg.alcanza && hayEleccion() && cfg.alcanza())) { aplicar(); return; }
+            pendiente = true;
+            var caja = $("aplicar");
+            caja.hidden = !hayEleccion();
+            $("cargar").textContent = "Cargar " + api.texto();
+        }
+        $("cargar").addEventListener("click", aplicar);
 
         $("anios").addEventListener("click", function (e) {
             var b = e.target.closest("[data-anio]"); if (!b) return;
@@ -93,6 +112,7 @@
             conteos: function (c) { E.conteos = c || {}; pintar(); },
             poner: function (v) {
                 limpiarFechas(); E.anio = ""; E.meses = new Set();
+                pendiente = false; $("aplicar").hidden = true;
                 if (v && (v.desde || v.hasta)) {
                     E.fechas = { desde: v.desde || "", hasta: v.hasta || "" };
                     $("desde").value = E.fechas.desde; $("hasta").value = E.fechas.hasta; $("quitar").hidden = false;
@@ -125,6 +145,7 @@
                 if (porFechas()) return (!E.fechas.desde || fecha >= E.fechas.desde) && (!E.fechas.hasta || fecha <= E.fechas.hasta);
                 return !!E.anio && fecha.slice(0, 4) === E.anio && E.meses.has(fecha.slice(5, 7));
             },
+            pendiente: function () { return pendiente; },
             estado: function () { return { anio: E.anio, meses: Array.from(E.meses).sort(), desde: E.fechas.desde, hasta: E.fechas.hasta }; }
         };
         pintar();

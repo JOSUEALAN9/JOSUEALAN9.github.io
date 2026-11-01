@@ -204,16 +204,32 @@
                 var caja = document.getElementById("resultado");
                 caja.hidden = false;
 
-                if (elegido) cargarAlmacen(elegido.rfc, document.getElementById("ejercicio").value);
+                var almacenListo = elegido ? cargarAlmacen(elegido.rfc, document.getElementById("ejercicio").value) : Promise.resolve();
                 if (t.estado === "completado") {
                     caja.innerHTML =
                         '<div style="background:#ECFDF3;border:1px solid #A9E5C3;border-radius:10px;padding:13px;font-size:13.5px;color:#05603A">' +
-                        Fiscontable.escapar(t.progreso || "Listo.") +
-                        '</div><button type="button" id="btn-bajar" class="boton-principal" style="margin-top:12px">Descargar</button>';
-                    document.getElementById("btn-bajar").addEventListener("click", function () {
-                        bajar(jobId, t.nombre_descarga, this);
-                    });
-                    if (t.en_pc && t.en_pc.rutas && t.en_pc.rutas.length) caja.appendChild(Fiscontable.cajaEnPc(t.en_pc));
+                        Fiscontable.escapar(t.progreso || "Listo.") + "</div>";
+                    if (t.en_pc && t.en_pc.rutas && t.en_pc.rutas.length) {
+                        // Ya quedó en la PC del contador: no se vuelve a bajar solo (botón «Descargar aquí» por si lo quiere)
+                        caja.appendChild(Fiscontable.cajaEnPc(t.en_pc, function (b) { bajar(jobId, t.nombre_descarga, b, "Descargar aquí"); }));
+                    } else {
+                        // Un solo lugar para descargar: el almacén de abajo (por documento o todo en ZIP).
+                        // Si el almacén no aparece (sin acceso), aquí queda el botón.
+                        almacenListo.then(function () {
+                            if (!document.getElementById("almacen").hidden) {
+                                var ir = document.createElement("button");
+                                ir.type = "button"; ir.className = "fc-btn"; ir.style.marginTop = "12px";
+                                ir.textContent = "Ver en el almacén ↓";
+                                ir.addEventListener("click", function () { document.getElementById("almacen").scrollIntoView({ behavior: "smooth", block: "start" }); });
+                                caja.appendChild(ir);
+                            } else {
+                                var d = document.createElement("button");
+                                d.type = "button"; d.className = "boton-principal"; d.style.marginTop = "12px"; d.textContent = "Descargar";
+                                d.addEventListener("click", function () { bajar(jobId, t.nombre_descarga, d); });
+                                caja.appendChild(d);
+                            }
+                        });
+                    }
                 } else {
                     caja.innerHTML =
                         '<div style="background:#FFFBF3;border:1px solid #FCD9A6;border-radius:10px;padding:13px;font-size:13.5px;color:#7A4A05">' +
@@ -230,7 +246,7 @@
         sondeo = null;
     }
 
-    async function bajar(jobId, nombre, boton) {
+    async function bajar(jobId, nombre, boton, texto) {
         boton.disabled = true;
         boton.textContent = "Descargando…";
         try {
@@ -241,7 +257,7 @@
             alerta("El archivo se generó, pero no se pudo bajar. Búscalo en Mis descargas.");
         } finally {
             boton.disabled = false;
-            boton.textContent = "Descargar";
+            boton.textContent = texto || "Descargar";
         }
     }
 

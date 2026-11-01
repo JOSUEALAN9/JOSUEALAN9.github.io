@@ -14,7 +14,7 @@
 (function () {
     "use strict";
 
-    var VERSION = "202611012100";
+    var VERSION = "202611020100";
     var API = "https://api.josuealan.com";
 
     function escapar(valor) {
@@ -123,6 +123,31 @@
         return caja;
     }
 
+    /* Lo que se ve en la página (pestaña, periodo…) queda en la dirección: con F5 o un enlace
+       compartido se vuelve exactamente a la misma vista. url("tab") lee; url({tab: "x", anio: null}) escribe (null borra). */
+    function url(cambios) {
+        var q = new URLSearchParams(location.search);
+        if (typeof cambios === "string") return q.get(cambios);
+        Object.keys(cambios || {}).forEach(function (k) {
+            var v = cambios[k];
+            if (v === null || v === undefined || v === "") q.delete(k); else q.set(k, v);
+        });
+        var texto = q.toString();
+        try { history.replaceState(history.state, "", location.pathname + (texto ? "?" + texto : "") + location.hash); } catch (e) { /* sin historial */ }
+    }
+
+    /* Periodo de los cuadros (año+meses o fechas) ⇄ dirección */
+    function periodoAUrl(est, porFechas) {
+        return porFechas ? { anio: null, meses: null, desde: est.desde || null, hasta: est.hasta || null }
+            : { anio: est.anio || null, meses: (est.meses || []).join(",") || null, desde: null, hasta: null };
+    }
+    function periodoDeUrl() {
+        var q = new URLSearchParams(location.search);
+        if (q.get("anio")) return { anio: q.get("anio"), meses: (q.get("meses") || "").split(",").filter(function (m) { return /^\d\d$/.test(m); }) };
+        if (q.get("desde") || q.get("hasta")) return { desde: q.get("desde") || "", hasta: q.get("hasta") || "" };
+        return null;
+    }
+
     console.info("Fiscontable — interfaz " + VERSION);
 
     window.Fiscontable = Object.assign(window.Fiscontable || {}, {
@@ -133,6 +158,9 @@
         guardarArchivo: guardarArchivo,
         textoEnPc: textoEnPc,
         mostrarEnPc: mostrarEnPc,
-        cajaEnPc: cajaEnPc
+        cajaEnPc: cajaEnPc,
+        url: url,
+        periodoAUrl: periodoAUrl,
+        periodoDeUrl: periodoDeUrl
     });
 })();

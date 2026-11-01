@@ -87,7 +87,7 @@ body {
 
 .fc-barra__interior {
     width: 100%;
-    max-width: 1180px;
+    max-width: 1560px;
     margin: 0 auto;
     padding: 0 20px;
     display: flex;
@@ -996,3 +996,53 @@ a.mod-accion { text-decoration: none; }
 .fc-ayuda-modal__caja h2 { font-size: 17px; font-weight: 800; color: #0f172a; margin-bottom: 12px; }
 .fc-ayuda-modal__caja ol { padding-left: 20px; display: grid; gap: 8px; font-size: 14px; color: #334155; list-style: decimal; }
 .fc-ayuda-modal__cerrar { margin-top: 18px; border: 0; border-radius: 10px; background: #0f172a; color: #fff; font: inherit; font-weight: 700; padding: 9px 18px; cursor: pointer; }
+
+/* ============================================================
+   BOTÓN «MÓDULOS» Y SU MENÚ (Ctrl+K) — saltar a cualquier herramienta
+   ============================================================ */
+.fc-modulos-btn {
+    display: inline-flex; align-items: center; gap: 7px; flex: none;
+    height: 34px; padding: 0 11px; border: 1px solid rgba(255,255,255,.16); border-radius: 9px;
+    background: rgba(255,255,255,.06); color: rgba(255,255,255,.88); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
+    transition: background .15s, border-color .15s;
+}
+.fc-modulos-btn:hover, .fc-modulos-btn[aria-expanded="true"] { background: rgba(255,255,255,.14); border-color: rgba(255,255,255,.3); color: #fff; }
+.fc-modulos-btn svg { width: 16px; height: 16px; }
+.fc-modulos { width: min(760px, calc(100vw - 24px)); right: auto; padding: 0; max-height: min(78vh, 720px); display: flex; flex-direction: column; }
+.fc-modulos[hidden] { display: none; }
+.fc-modulos__buscar { margin: 12px 12px 4px; padding: 10px 12px; border: 1px solid var(--linea); border-radius: 10px; font: inherit; font-size: 14px; outline: none; }
+.fc-modulos__buscar:focus { border-color: var(--acento); box-shadow: 0 0 0 3px var(--acento-suave); }
+.fc-modulos__cuerpo { overflow-y: auto; padding: 4px 12px 14px; }
+.fc-modulos__grupo { font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--texto-tenue); margin: 12px 4px 6px; }
+.fc-modulos__rejilla { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 4px; }
+.fc-modulos__item { display: flex; align-items: center; gap: 10px; padding: 8px; border-radius: 10px; text-decoration: none; color: inherit; outline: none; }
+.fc-modulos__item:hover, .fc-modulos__item:focus { background: var(--tono-suave); }
+.fc-modulos__item--actual { box-shadow: inset 0 0 0 1.5px var(--tono); }
+.fc-modulos__item--vedado { opacity: .45; cursor: not-allowed; }
+.fc-modulos__icono { width: 34px; height: 34px; border-radius: 9px; flex: none; display: grid; place-items: center; background: var(--tono-suave); color: var(--tono); }
+.fc-modulos__icono svg { width: 18px; height: 18px; }
+.fc-modulos__texto { display: flex; flex-direction: column; min-width: 0; }
+.fc-modulos__texto strong { font-size: 13.5px; font-weight: 700; color: #0f172a; line-height: 1.25; }
+.fc-modulos__texto small { font-size: 11.5px; color: var(--texto-tenue); line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* La ruta: el nombre del módulo completo (antes salía «Administración d…»). Lo que sobra se encoge
+   del lado derecho: en pantallas medianas las acciones quedan solo con su ícono. */
+.fc-miga--solo-movil { display: none; }
+.fc-miga--actual { flex: 0 1 auto; }
+.fc-miga--actual > span:last-child { overflow: hidden; text-overflow: ellipsis; }
+@media (max-width: 1400px) {
+    #fc-btn-descargas .fc-accion__etiqueta, #fc-enlace-admin .fc-accion__etiqueta, #fc-nombre-corto { display: none; }
+    .fc-empresa__nombre { max-width: 150px; }
+}
+@media (max-width: 1060px) {
+    .fc-modulos-btn__texto { display: none; }
+    .fc-modulos-btn { padding: 0 9px; }
+    .fc-empresa__nombre { max-width: 110px; }
+}
+@media (max-width: 760px) {
+    .fc-miga--solo-movil.fc-miga--padre { display: inline-flex; }
+    /* En el teléfono el nombre del módulo ya está en el título de la página: la barra deja solo regresar y acciones */
+    .fc-miga--actual { display: none; }
+    .fc-empresa__flecha { display: none; }
+    .fc-modulos { left: 12px !important; }
+}
