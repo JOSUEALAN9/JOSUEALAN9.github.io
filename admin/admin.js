@@ -725,6 +725,8 @@ function prepararEventosSistema() {
         if (e.target.closest("#btn-revisar-vps")) revisarVps();
         if (e.target.closest("#btn-guardar-trabajos")) guardarTrabajos(e.target.closest("#btn-guardar-trabajos"));
         if (e.target.closest("#btn-guardar-inhabiles")) guardarInhabiles(e.target.closest("#btn-guardar-inhabiles"));
+        if (e.target.closest("#btn-max-pcs")) guardarMaxPcs(e.target.closest("#btn-max-pcs"));
+        if (e.target.closest("[data-quitar-pc]")) quitarPc(e.target.closest("[data-quitar-pc]"));
         if (e.target.closest("#btn-probar-trabajador")) probarTrabajador(e.target.closest("#btn-probar-trabajador"));
     });
 }
@@ -756,6 +758,7 @@ async function cargarSistema() {
         estadoSistema = await api("/api/admin/sistema/estado");
         try { estadoTrabajadores = await api("/api/admin/trabajadores"); } catch (e) { estadoTrabajadores = null; }
         try { diasInhabiles = await api("/api/admin/sistema/dias-inhabiles"); } catch (e) { diasInhabiles = null; }
+        try { pcsAgentes = await api("/api/admin/agentes"); } catch (e) { pcsAgentes = null; }
         pintarEstado();
         pintarPortal();
         await cargarEstadoSAT();
@@ -766,6 +769,39 @@ async function cargarSistema() {
 
 let estadoTrabajadores = null;
 let diasInhabiles = null;
+let pcsAgentes = null;
+
+function tarjetaPcs() {
+    const d = pcsAgentes;
+    const filas = (d.agentes || []).map(a => `<li class="flex items-start justify-between gap-2 py-1">
+        <span><span class="inline-block w-2 h-2 rounded-full mr-1 ${a.conectado ? "bg-emerald-500" : "bg-gray-300"}"></span>
+        <b>${esc(a.nombre)}</b> · ${esc(a.owner_email)}${a.aprobado ? "" : ' · <span class="text-amber-700 font-bold">por aprobar</span>'}
+        <span class="block text-slate-400">${a.ip ? "red " + esc(a.ip) + " · " : ""}${a.conectado ? "conectada" : "visto " + esc(haceCuanto(a.ultimo_contacto))}</span></span>
+        <button type="button" data-quitar-pc="${esc(a.id)}" data-nombre="${esc(a.nombre)}" class="text-[11px] text-slate-500 hover:text-red-600 border border-gray-200 rounded-lg py-0.5 px-2 flex-none">Desconectar</button></li>`).join("");
+    return `<p class="text-[11px] text-slate-500">Todas las PCs vinculadas, de todas las cuentas. Una PC nueva no recibe trámites hasta que su dueño la aprueba.</p>
+        ${filas ? `<ul class="text-[11px] text-slate-600 mt-1 divide-y divide-gray-100">${filas}</ul>` : '<p class="text-[11px] text-slate-400 mt-1">Ninguna todavía.</p>'}
+        <div class="flex items-center gap-2 mt-2 text-xs">Máximo de PCs por cuenta
+            <input id="max-pcs" type="number" min="1" max="50" value="${esc(d.max_pcs)}" class="border border-gray-200 rounded-lg py-1 px-2 w-16">
+            <button type="button" id="btn-max-pcs" class="text-xs font-bold text-white bg-slate-800 hover:bg-slate-700 rounded-lg py-1 px-3">Guardar</button></div>`;
+}
+
+async function guardarMaxPcs(boton) {
+    boton.disabled = true; boton.textContent = "Guardando…";
+    try {
+        const r = await api("/api/admin/agentes/max", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ max_pcs: +$("max-pcs").value }) });
+        pcsAgentes.max_pcs = r.max_pcs;
+        boton.textContent = "✓ Guardado"; setTimeout(() => { boton.textContent = "Guardar"; boton.disabled = false; }, 2000);
+    } catch (err) { mostrarAlerta("error", err.message); boton.textContent = "Guardar"; boton.disabled = false; }
+}
+
+async function quitarPc(boton) {
+    if (!confirm(`¿Desconectar "${boton.dataset.nombre}"? Dejará de hacer trámites hasta que su dueño la vuelva a vincular.`)) return;
+    try {
+        await api(`/api/admin/agentes/${boton.dataset.quitarPc}`, { method: "DELETE" });
+        pcsAgentes = await api("/api/admin/agentes");
+        pintarEstado();
+    } catch (err) { mostrarAlerta("error", err.message); }
+}
 
 // Plazos del Buzón (cuándo queda notificada y cuándo surte efectos): los de ley se calculan solos;
 // aquí van los que declare el SAT (vacaciones, días de la RMF).
@@ -917,6 +953,7 @@ function pintarEstado() {
         tarjeta("Respaldo en la VPS", respaldo, respaldoMal ? "mal" : "") +
         (estadoTrabajadores ? tarjeta("Trabajadores (VPS y PCs)", tarjetaTrabajadores()) : "") +
         (diasInhabiles ? tarjeta("Días inhábiles del SAT", tarjetaInhabiles()) : "") +
+        (pcsAgentes ? tarjeta("PCs con el agente", tarjetaPcs()) : "") +
         tarjeta("Tipo de cambio Banxico", tipoCambio, tcMal ? "mal" : "");
     $("alerta-sistema").textContent = (alertaGit || e.mantenimiento.activo) ? "•" : "";
 }

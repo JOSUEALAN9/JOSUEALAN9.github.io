@@ -1098,7 +1098,7 @@
         var caja = document.createElement("div");
         caja.id = "fc-letreros";
 
-        function letrero(texto, colores, cerrable, alCerrar) {
+        function letrero(texto, colores, cerrable, alCerrar, enlace) {
             var fila = document.createElement("div");
             fila.setAttribute("role", "status");
             fila.style.cssText = "display:flex;align-items:flex-start;gap:12px;justify-content:center;" +
@@ -1107,6 +1107,12 @@
             t.textContent = texto;
             t.style.maxWidth = "900px";
             fila.appendChild(t);
+            if (enlace) {
+                var a = document.createElement("a");
+                a.href = enlace.href; a.textContent = enlace.texto;
+                a.style.cssText = "color:inherit;text-decoration:underline;white-space:nowrap";
+                fila.appendChild(a);
+            }
             if (cerrable) {
                 var b = document.createElement("button");
                 b.type = "button";
@@ -1152,6 +1158,12 @@
                     true,
                     function () { try { localStorage.setItem("fc-sat-oculto", claveSat); } catch (e) { /* nada */ } });
             }
+        }
+        // Una PC se vinculó a esta cuenta y no recibe trámites hasta que su dueño la apruebe
+        if (p.pcs_por_aprobar && p.pcs_por_aprobar.length && location.pathname.indexOf("/agente/") !== 0) {
+            letrero("Se conectó una PC nueva a tu cuenta (" + p.pcs_por_aprobar.join(", ") + "). Si fuiste tú, apruébala; si no, desconéctala.",
+                "background:#FFF7ED;color:#9A3412;border-bottom:1px solid #FDBA74", false, null,
+                { href: "/agente/", texto: "Revisar" });
         }
         if (caja.children.length) barra.insertAdjacentElement("afterend", caja);
     }
