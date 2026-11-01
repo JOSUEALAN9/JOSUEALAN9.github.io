@@ -5,13 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Conectar esta PC | Fiscontable</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611011900">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611012000">
 </head>
 <body class="min-h-screen flex flex-col">
 
     <div id="app-header" data-modulo="agente" data-titulo="Conectar esta PC" data-migas=""></div>
-<script src="/assets/js/nucleo.js?v=202611011900"></script>
-<script src="/assets/js/barra.js?v=202611011900"></script>
+<script src="/assets/js/nucleo.js?v=202611012000"></script>
+<script src="/assets/js/barra.js?v=202611012000"></script>
 
     <main class="flex-grow w-full mod-pagina" style="max-width:860px">
 
@@ -40,7 +40,13 @@
         <section class="bg-white rounded-xl card-elevated border border-gray-200 p-5 mb-5">
             <h2 class="text-sm font-bold text-slate-800">Vincular una PC</h2>
             <ol class="text-sm text-slate-600 mt-2 space-y-1 list-decimal pl-5">
-                <li>Instala el agente en la PC (te lo pasa el administrador).</li>
+                <li>En la PC con Windows, baja e instala el agente: un solo archivo, doble clic y listo (no pide permisos de administrador).
+                    <div class="flex flex-wrap items-center gap-2 mt-2 mb-1">
+                        <button type="button" id="btn-instalador" class="bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold py-2 px-4 rounded-lg transition" disabled>Descargar el agente (Windows)</button>
+                        <span id="texto-instalador" class="text-xs text-slate-500"></span>
+                    </div>
+                    <span class="text-xs text-slate-500">Si Windows dice «Windows protegió su PC», pulsa <b>Más información → Ejecutar de todas formas</b>
+                    (el programa todavía no tiene firma de editor). Las actualizaciones después se hacen desde el ícono junto al reloj → <b>Buscar actualizaciones</b>.</span></li>
                 <li>Pide aquí un código. Dura 10 minutos y sirve una sola vez.</li>
                 <li>En la PC abre <b>Fiscontable Agente</b> y escribe el código (o en una terminal: <span class="font-mono text-xs">FiscontableAgente vincular CÓDIGO</span>).</li>
             </ol>
@@ -62,6 +68,6 @@
         </section>
     </main>
 
-<script src="/agente/agente.js?v=202611011900"></script>
+<script src="/agente/agente.js?v=202611012000"></script>
 </body>
 </html>

@@ -80,6 +80,7 @@ async function cargar(forzar) {
             ? `Hoy se hacen en tu PC (si está conectada y aprobada): ${d.tramites_en_agente.join(", ")}.`
             : "Por ahora el administrador no ha activado ningún trámite para los agentes: puedes vincular tu PC desde ya.";
         document.getElementById("cuantas").textContent = `${d.agentes.length} de ${d.max_pcs}`;
+        pintarInstalador(d.instalador);
         if (!d.agentes.length) { lista.innerHTML = '<p class="text-slate-400">Todavía no hay PCs conectadas a tu cuenta.</p>'; return; }
         lista.innerHTML = '<ul class="divide-y divide-gray-100">' + d.agentes.map(a => `
             <li class="py-3 ${a.aprobado ? "" : "bg-amber-50 -mx-2 px-2 rounded-lg"}">
@@ -87,7 +88,8 @@ async function cargar(forzar) {
                     <div>
                         <span class="inline-block w-2 h-2 rounded-full mr-1 ${a.conectado && a.aprobado ? "bg-emerald-500" : a.aprobado ? "bg-gray-300" : "bg-amber-500"}"></span>
                         <b class="text-slate-800">${esc(a.nombre)}</b> ${estadoPc(a)}
-                        <div class="text-xs text-slate-400">${esc(a.sistema || "")}${a.version ? " · agente " + esc(a.version) : ""}${a.ip ? " · red " + esc(a.ip) : ""} · vinculada ${esc(haceCuanto(a.creado))}</div>
+                        <div class="text-xs text-slate-400">${esc(a.sistema || "")}${a.version ? " · agente " + esc(a.version) : ""}${d.instalador && a.version && masNueva(d.instalador.version, a.version)
+                            ? ` <span class="text-amber-700 font-bold">· hay ${esc(d.instalador.version)}: en esa PC, ícono junto al reloj → Buscar actualizaciones</span>` : ""}${a.ip ? " · red " + esc(a.ip) : ""} · vinculada ${esc(haceCuanto(a.creado))}</div>
                     </div>
                     <div class="flex gap-2">
                         ${a.aprobado ? "" : `<button type="button" data-aprobar="${esc(a.id)}" class="text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-500 rounded-lg py-1 px-3">Sí, es mi PC</button>`}
@@ -98,6 +100,32 @@ async function cargar(forzar) {
                 ${ajustesPc(a, d.tramites)}
             </li>`).join("") + "</ul>";
     } catch (e) { lista.textContent = e.message; }
+}
+
+function masNueva(nueva, actual) {
+    const n = String(nueva || "").split(/\D+/).filter(Boolean).map(Number), a = String(actual || "").split(/\D+/).filter(Boolean).map(Number);
+    for (let i = 0; i < Math.max(n.length, a.length); i++) {
+        if ((n[i] || 0) !== (a[i] || 0)) return (n[i] || 0) > (a[i] || 0);
+    }
+    return false;
+}
+
+function pintarInstalador(inst) {
+    const b = document.getElementById("btn-instalador"), t = document.getElementById("texto-instalador");
+    if (b.dataset.bajando) return;
+    b.disabled = !inst;
+    t.textContent = inst ? `versión ${inst.version} · ${Math.round(inst.tamano / 1048576)} MB` : "Todavía no está en el servidor: avísale al administrador.";
+}
+
+async function bajarInstalador(b) {
+    b.disabled = true; b.dataset.bajando = "1"; b.textContent = "Bajando…";
+    try {
+        const resp = await fetch(API + "/api/agentes/instalador", { credentials: "include" });
+        if (!resp.ok) throw new Error(await Fiscontable.leerError(resp));
+        Fiscontable.guardarArchivo(await resp.blob(), "FiscontableAgente-Setup.exe");
+        alerta("ok", "Listo: abre FiscontableAgente-Setup.exe en esa PC. Al terminar se abre el agente y te pide el código (botón «Pedir código»).");
+    } catch (e) { alerta("error", e.message || "No se pudo bajar el instalador."); }
+    delete b.dataset.bajando; b.disabled = false; b.textContent = "Descargar el agente (Windows)";
 }
 
 // Guardar: se activa solo con cambios, dice "Guardando…" y luego "✓ Guardado"
@@ -176,5 +204,6 @@ document.getElementById("lista").addEventListener("click", async (ev) => {
 });
 
 document.getElementById("btn-actualizar").addEventListener("click", () => cargar(true));
+document.getElementById("btn-instalador").addEventListener("click", (ev) => bajarInstalador(ev.currentTarget));
 cargar(true);
 setInterval(() => cargar(false), 30000);

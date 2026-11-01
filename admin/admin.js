@@ -731,6 +731,7 @@ function prepararEventosSistema() {
         if (e.target.closest("#btn-guardar-trabajos")) guardarTrabajos(e.target.closest("#btn-guardar-trabajos"));
         if (e.target.closest("#btn-guardar-inhabiles")) guardarInhabiles(e.target.closest("#btn-guardar-inhabiles"));
         if (e.target.closest("#btn-max-pcs")) guardarMaxPcs(e.target.closest("#btn-max-pcs"));
+        if (e.target.closest("#btn-revisar-instalador")) revisarInstalador(e.target.closest("#btn-revisar-instalador"));
         if (e.target.closest("#btn-max-sesiones")) guardarMaxSesiones(e.target.closest("#btn-max-sesiones"));
         if (e.target.closest("#btn-historial-sesiones")) { verHistorialSesiones = !verHistorialSesiones; pintarEstado(); }
         if (e.target.closest("[data-cerrar-sesion]")) cerrarSesionWeb(e.target.closest("[data-cerrar-sesion]"));
@@ -828,9 +829,30 @@ function tarjetaPcs() {
         <button type="button" data-quitar-pc="${esc(a.id)}" data-nombre="${esc(a.nombre)}" class="text-[11px] text-slate-500 hover:text-red-600 border border-gray-200 rounded-lg py-0.5 px-2 flex-none">Desconectar</button></li>`).join("");
     return `<p class="text-[11px] text-slate-500">Todas las PCs vinculadas, de todas las cuentas. Una PC nueva no recibe trámites hasta que su dueño la aprueba.</p>
         ${filas ? `<ul class="text-[11px] text-slate-600 mt-1 divide-y divide-gray-100">${filas}</ul>` : '<p class="text-[11px] text-slate-400 mt-1">Ninguna todavía.</p>'}
+        ${tarjetaInstalador(d.instalador)}
         <div class="flex items-center gap-2 mt-2 text-xs">Máximo de PCs por cuenta
             <input id="max-pcs" data-guarda="btn-max-pcs" type="number" min="1" max="50" value="${esc(d.max_pcs)}" class="border border-gray-200 rounded-lg py-1 px-2 w-16">
             ${botonGuardar("btn-max-pcs")}</div>`;
+}
+
+function tarjetaInstalador(i) {
+    if (!i) return "";
+    const a = i.actual;
+    const linea = a ? `Instalador en la Vostro: <b>versión ${esc(a.version)}</b> · ${Math.round(a.tamano / 1048576)} MB · bajado ${esc(haceCuanto(a.bajado))}`
+                    : "La Vostro todavía no tiene el instalador.";
+    const falta = !i.configurado ? '<span class="block text-amber-700">Falta la llave de GitHub de solo lectura (FISCONTABLE_GITHUB_TOKEN en /etc/fiscontable.env). Sin ella no se bajan versiones nuevas.</span>' : "";
+    const error = i.error ? `<span class="block text-red-700">${esc(i.error)}</span>` : "";
+    const revisado = i.intento ? `<span class="block text-slate-400">Última revisión en GitHub: ${esc(haceCuanto(i.intento))} (sola cada hora)</span>` : "";
+    return `<div class="mt-3 pt-2 border-t border-gray-100 text-[11px] text-slate-600">${linea}${falta}${error}${revisado}
+        <button type="button" id="btn-revisar-instalador" class="mt-1 text-[11px] border border-gray-200 rounded-lg py-0.5 px-2 hover:bg-gray-50">Revisar ahora en GitHub</button></div>`;
+}
+
+async function revisarInstalador(boton) {
+    boton.disabled = true; boton.textContent = "Revisando…";
+    try {
+        pcsAgentes.instalador = await api("/api/admin/agentes/instalador/revisar", { method: "POST" });
+        pintarEstado();
+    } catch (err) { mostrarAlerta("error", err.message); boton.disabled = false; boton.textContent = "Revisar ahora en GitHub"; }
 }
 
 async function guardarMaxPcs(boton) {
