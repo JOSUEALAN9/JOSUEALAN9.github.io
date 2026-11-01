@@ -880,7 +880,7 @@ function tarjetaTrabajadores() {
     const selects = Object.entries(t.tramites).map(([clave, nombre]) => `
         <label class="flex items-center justify-between gap-2 text-xs text-slate-700 mt-1">${esc(nombre)}
             <select data-trabajo="${esc(clave)}" data-guarda="btn-guardar-trabajos" class="border border-gray-200 rounded-lg py-1 px-2 text-xs">
-                ${t.modos.map(m => `<option value="${esc(m)}" ${t.ajustes[clave] === m ? "selected" : ""}>${esc(NOMBRE_MODO[m] || m)}</option>`).join("")}
+                ${((t.modos_de || {})[clave] || t.modos).map(m => `<option value="${esc(m)}" ${t.ajustes[clave] === m ? "selected" : ""}>${esc(NOMBRE_MODO[m] || m)}</option>`).join("")}
             </select></label>`).join("");
     const semana = (t.semana || []).filter(f => f.trabajador !== "local").map(f =>
         `${esc(nombreTrabajador(f.trabajador))} · ${esc(t.tramites[f.tipo] || f.tipo)}: ${esc(f.bien || 0)} de ${esc(f.n)} bien${f.prom ? ` (~${esc(f.prom)} s)` : ""}`).join(" · ");
