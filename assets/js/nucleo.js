@@ -14,7 +14,7 @@
 (function () {
     "use strict";
 
-    var VERSION = "202611011500";
+    var VERSION = "202611011600";
     var API = "https://api.josuealan.com";
 
     function escapar(valor) {
@@ -69,6 +69,60 @@
         setTimeout(function () { URL.revokeObjectURL(url); }, 120000);
     }
 
+    /* Lo que hizo el agente (la PC del contador) ya quedó guardado en esa PC: no se vuelve a bajar solo.
+       Se dice dónde quedó y un botón le pide a esa PC que abra la carpeta (Mostrar en mi PC). */
+    function carpetaEnPc(ruta) {
+        var r = String(ruta || "").replace(/\//g, "\\");
+        var i = Math.max(r.lastIndexOf("\\"), 0);
+        var carpeta = i ? r.slice(0, i) : r;
+        var m = carpeta.match(/(Documents|Documentos)\\.*/i);
+        return m ? m[0] : carpeta;
+    }
+
+    function textoEnPc(enPc) {
+        if (!enPc || !enPc.rutas || !enPc.rutas.length) return "";
+        var n = enPc.rutas.length;
+        return "Quedó guardado en tu PC «" + (enPc.pc || "PC") + "»: " + carpetaEnPc(enPc.rutas[0]) +
+            (n > 1 ? " (" + n + " archivos)" : "");
+    }
+
+    async function mostrarEnPc(enPc, boton) {
+        if (boton) { boton.disabled = true; boton.textContent = "Avisando a tu PC…"; }
+        try {
+            var r = await fetch(API + "/api/agentes/" + enPc.agente_id + "/abrir", {
+                method: "POST", credentials: "include", headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ ruta: enPc.rutas[0] })
+            });
+            if (!r.ok) throw new Error(await leerError(r));
+            if (boton) boton.textContent = "✓ Se abrirá en «" + (enPc.pc || "tu PC") + "»";
+        } catch (e) {
+            if (boton) { boton.textContent = "No se pudo: " + e.message; }
+        }
+        if (boton) setTimeout(function () { boton.disabled = false; boton.textContent = "Mostrar en mi PC"; }, 5000);
+    }
+
+    function cajaEnPc(enPc, alDescargar) {
+        var caja = document.createElement("div");
+        caja.className = "fc-en-pc";
+        caja.style.cssText = "margin-top:10px;padding:11px 13px;border:1px solid #BBE5D2;background:#F0FBF6;border-radius:10px;" +
+            "font-size:13px;color:#065F46;display:flex;flex-wrap:wrap;gap:8px;align-items:center";
+        var t = document.createElement("span");
+        t.textContent = textoEnPc(enPc);
+        t.style.flex = "1 1 260px";
+        caja.appendChild(t);
+        var b = document.createElement("button");
+        b.type = "button"; b.className = "fc-btn"; b.textContent = "Mostrar en mi PC";
+        b.addEventListener("click", function () { mostrarEnPc(enPc, b); });
+        caja.appendChild(b);
+        if (alDescargar) {
+            var d = document.createElement("button");
+            d.type = "button"; d.className = "fc-btn fc-btn--discreto"; d.textContent = "Descargar aquí";
+            d.addEventListener("click", function () { alDescargar(d); });
+            caja.appendChild(d);
+        }
+        return caja;
+    }
+
     console.info("Fiscontable — interfaz " + VERSION);
 
     window.Fiscontable = Object.assign(window.Fiscontable || {}, {
@@ -76,6 +130,9 @@
         VERSION: VERSION,
         escapar: escapar,
         leerError: leerError,
-        guardarArchivo: guardarArchivo
+        guardarArchivo: guardarArchivo,
+        textoEnPc: textoEnPc,
+        mostrarEnPc: mostrarEnPc,
+        cajaEnPc: cajaEnPc
     });
 })();

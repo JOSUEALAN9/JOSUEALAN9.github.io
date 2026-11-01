@@ -756,7 +756,9 @@
             }
             return '<div class="fc-item' + (incompleta ? " fc-item--alerta" : "") + '"><div class="fc-item__titulo">' + nuevo + t + "</div>" +
                 '<div class="fc-item__detalle">' + esc(resumen) + "</div>" +
+                (p.en_pc && p.en_pc.rutas && p.en_pc.rutas.length ? '<div class="fc-item__detalle" style="color:#065F46">' + esc(Fiscontable.textoEnPc(p.en_pc)) + "</div>" : "") +
                 '<div class="fc-item__acciones">' +
+                (p.en_pc && p.en_pc.rutas && p.en_pc.rutas.length ? '<button type="button" class="fc-btn" data-accion="mostrar-pc" data-id="' + esc(p.id) + '">Mostrar en mi PC</button>' : "") +
                 '<button type="button" class="fc-btn fc-btn--principal" data-accion="descargar" ' +
                 'data-url="' + esc(p.url_descarga) + '" data-nombre="' + esc(p.nombre_descarga || "documento") + '">Descargar</button>' +
                 '<button type="button" class="fc-btn fc-btn--discreto" data-accion="quitar" ' +
@@ -885,7 +887,10 @@
         boton.disabled = true;
 
         try {
-            if (accion === "descargar") {
+            if (accion === "mostrar-pc") {
+                var proc = (ultimaLista || []).filter(function (x) { return String(x.id) === boton.dataset.id; })[0];
+                if (proc && proc.en_pc) { await Fiscontable.mostrarEnPc(proc.en_pc, boton); return; }
+            } else if (accion === "descargar") {
                 boton.textContent = "Descargando…";
                 var r = await fetch(API + boton.dataset.url, { credentials: "include" });
                 if (!r.ok) throw new Error(await Fiscontable.leerError(r));

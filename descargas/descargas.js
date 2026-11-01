@@ -164,8 +164,10 @@ function tarjetaLista(p) {
                 <h3 class="font-bold text-slate-800">${esc(titulo(p))}</h3>
                 <p class="text-xs text-slate-500 mt-0.5">${esc(resumen)}</p>
                 ${avisoFallidos}${avisoNoche}
+                ${p.en_pc && p.en_pc.rutas && p.en_pc.rutas.length ? `<p class="text-xs text-emerald-700 mt-1">${esc(Fiscontable.textoEnPc(p.en_pc))}</p>` : ""}
             </div>
             <div class="flex items-center gap-2 flex-none">
+                ${p.en_pc && p.en_pc.rutas && p.en_pc.rutas.length ? `<button data-id="${esc(p.id)}" onclick="mostrarPc(this.dataset.id, this)" class="border border-emerald-300 text-emerald-800 hover:bg-emerald-50 text-xs font-bold py-2 px-4 rounded-lg transition">Mostrar en mi PC</button>` : ""}
                 <button data-url="${esc(p.url_descarga)}" data-nombre="${esc(p.nombre_descarga || "")}" onclick="descargar(this.dataset.url, this.dataset.nombre, this)" class="bg-green-600 hover:bg-green-500 text-white text-xs font-bold py-2 px-4 rounded-lg transition">Descargar</button>
                 <button data-clase="${esc(p.clase)}" data-id="${esc(p.id)}" onclick="quitar(this.dataset.clase, this.dataset.id, this)" title="Quitar de la lista" class="text-gray-300 hover:text-red-500 transition p-1">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
@@ -364,4 +366,11 @@ async function cargarDescargas(silencioso = false) {
     } catch (error) {
         if (!silencioso) mostrarAviso("No pudimos conectar con el servidor. Verifica tu conexión.");
     }
+}
+
+
+// Lo hizo el agente: le pide a esa PC que abra la carpeta donde quedó
+function mostrarPc(id, boton) {
+    const p = (window._ultimosProcesos || []).find(x => String(x.id) === String(id));
+    if (p && p.en_pc) Fiscontable.mostrarEnPc(p.en_pc, boton);
 }

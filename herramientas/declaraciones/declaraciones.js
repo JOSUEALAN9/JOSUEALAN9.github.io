@@ -213,6 +213,7 @@
                     document.getElementById("btn-bajar").addEventListener("click", function () {
                         bajar(jobId, t.nombre_descarga, this);
                     });
+                    if (t.en_pc && t.en_pc.rutas && t.en_pc.rutas.length) caja.appendChild(Fiscontable.cajaEnPc(t.en_pc));
                 } else {
                     caja.innerHTML =
                         '<div style="background:#FFFBF3;border:1px solid #FCD9A6;border-radius:10px;padding:13px;font-size:13.5px;color:#7A4A05">' +

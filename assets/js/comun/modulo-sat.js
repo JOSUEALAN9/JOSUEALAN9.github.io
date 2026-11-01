@@ -462,6 +462,19 @@
             if (t.estado === "completado") {
                 var fillFinal = $("progreso-fill");
                 if (fillFinal) fillFinal.style.width = "100%";
+                document.querySelectorAll(".fc-en-pc").forEach(function (x) { x.remove(); });
+                if (t.en_pc && t.en_pc.rutas && t.en_pc.rutas.length) {
+                    // Lo hizo el agente: ya está en esa PC, no se baja otra vez
+                    alerta("bien", "Listo. Lo hizo tu PC y ya quedó guardado ahí (no se descargó otra vez).");
+                    var nombreArchivo = t.nombre_descarga || (MODULO.prefijoArchivo + "_" + rfc + ".pdf");
+                    $("alerta").insertAdjacentElement("afterend", Fiscontable.cajaEnPc(t.en_pc, function (b) {
+                        b.disabled = true;
+                        bajarBlob("/api/trabajos/" + jobId + "/descargar", nombreArchivo).finally(function () { b.disabled = false; });
+                    }));
+                    estado.cache = { generado_en: new Date().toISOString().slice(0, 19) };
+                    vistaCache();
+                    return;
+                }
                 try {
                     await bajarBlob("/api/trabajos/" + jobId + "/descargar",
                         t.nombre_descarga || (MODULO.prefijoArchivo + "_" + rfc + ".pdf"));
