@@ -14,7 +14,7 @@
 (function () {
     "use strict";
 
-    var VERSION = "202611011400";
+    var VERSION = "202611011500";
     var API = "https://api.josuealan.com";
 
     function escapar(valor) {
@@ -25,11 +25,13 @@
 
     async function leerError(resp) {
         if (!resp) return "No pudimos conectar con el servidor. Revisa tu conexión e intenta de nuevo.";
-        if (resp.status === 401 || resp.status === 403) return "Tu sesión expiró. Recarga la página para entrar otra vez.";
-        try {
-            var d = await resp.json();
-            if (typeof d.detail === "string" && d.detail) return d.detail;
-        } catch (e) { /* sin cuerpo JSON */ }
+        var d = null;
+        try { d = await resp.json(); } catch (e) { /* sin cuerpo JSON */ }
+        var detalle = d && typeof d.detail === "string" ? d.detail : "";
+        // 401/403 del inicio de sesión (Access) = sesión vencida; otros 403 traen su motivo (plan, sesión cerrada…)
+        if (resp.status === 401 || (resp.status === 403 && (!detalle || /token de (cloudflare )?access|access no trae/i.test(detalle))))
+            return "Tu sesión expiró. Recarga la página para entrar otra vez.";
+        if (detalle) return detalle;
         if (resp.status >= 500) return "Error inesperado en el servidor. Intenta en unos minutos.";
         return "Hubo un problema al procesar la solicitud (código " + resp.status + ").";
     }

@@ -726,6 +726,9 @@ function prepararEventosSistema() {
         if (e.target.closest("#btn-guardar-trabajos")) guardarTrabajos(e.target.closest("#btn-guardar-trabajos"));
         if (e.target.closest("#btn-guardar-inhabiles")) guardarInhabiles(e.target.closest("#btn-guardar-inhabiles"));
         if (e.target.closest("#btn-max-pcs")) guardarMaxPcs(e.target.closest("#btn-max-pcs"));
+        if (e.target.closest("#btn-max-sesiones")) guardarMaxSesiones(e.target.closest("#btn-max-sesiones"));
+        if (e.target.closest("#btn-historial-sesiones")) { verHistorialSesiones = !verHistorialSesiones; pintarEstado(); }
+        if (e.target.closest("[data-cerrar-sesion]")) cerrarSesionWeb(e.target.closest("[data-cerrar-sesion]"));
         if (e.target.closest("[data-quitar-pc]")) quitarPc(e.target.closest("[data-quitar-pc]"));
         if (e.target.closest("#btn-probar-trabajador")) probarTrabajador(e.target.closest("#btn-probar-trabajador"));
     });
@@ -759,6 +762,7 @@ async function cargarSistema() {
         try { estadoTrabajadores = await api("/api/admin/trabajadores"); } catch (e) { estadoTrabajadores = null; }
         try { diasInhabiles = await api("/api/admin/sistema/dias-inhabiles"); } catch (e) { diasInhabiles = null; }
         try { pcsAgentes = await api("/api/admin/agentes"); } catch (e) { pcsAgentes = null; }
+        try { sesionesWeb = await api("/api/admin/sesiones"); } catch (e) { sesionesWeb = null; }
         pintarEstado();
         pintarPortal();
         await cargarEstadoSAT();
@@ -770,6 +774,45 @@ async function cargarSistema() {
 let estadoTrabajadores = null;
 let diasInhabiles = null;
 let pcsAgentes = null;
+let sesionesWeb = null;
+let verHistorialSesiones = false;
+
+function tarjetaSesiones() {
+    const d = sesionesWeb;
+    const fila = (x, conBoton) => `<li class="flex items-start justify-between gap-2 py-1">
+        <span><span class="inline-block w-2 h-2 rounded-full mr-1 ${x.activa ? "bg-emerald-500" : x.cerrada_en ? "bg-red-400" : "bg-gray-300"}"></span>
+        <b>${esc(x.correo)}</b> · ${esc(x.navegador || "?")}
+        <span class="block text-slate-400">red ${esc(x.ip || "?")}${x.pais ? " (" + esc(x.pais) + ")" : ""} · entró ${esc(haceCuanto(x.inicio))} · ${x.activa ? "activa ahora" : "última actividad " + esc(haceCuanto(x.ultimo))}${x.cerrada_en ? " · cerrada por " + esc(x.cerrada_por) : ""}</span></span>
+        ${conBoton && !x.cerrada_en ? `<button type="button" data-cerrar-sesion="${esc(x.clave)}" data-correo="${esc(x.correo)}" class="text-[11px] text-slate-500 hover:text-red-600 border border-gray-200 rounded-lg py-0.5 px-2 flex-none">Cerrar</button>` : ""}</li>`;
+    const activas = d.activas.map(x => fila(x, true)).join("");
+    const historial = verHistorialSesiones ? `<ul class="text-[11px] text-slate-600 mt-1 divide-y divide-gray-100 max-h-72 overflow-y-auto">${d.historial.map(x => fila(x, true)).join("")}</ul>` : "";
+    return `<p class="text-[11px] text-slate-500">Conectados ahora (actividad en los últimos ${esc(d.activa_min)} min): ${d.activas.length}</p>
+        ${activas ? `<ul class="text-[11px] text-slate-600 mt-1 divide-y divide-gray-100">${activas}</ul>` : '<p class="text-[11px] text-slate-400 mt-1">Nadie más en este momento.</p>'}
+        <button type="button" id="btn-historial-sesiones" class="mt-2 text-[11px] text-slate-500 underline">${verHistorialSesiones ? "Ocultar historial" : "Ver historial (" + d.historial.length + ")"}</button>
+        ${historial}
+        <div class="flex flex-wrap items-center gap-2 mt-2 text-xs">Sesiones al mismo tiempo por cuenta
+            <input id="max-sesiones" type="number" min="0" max="20" value="${esc(d.max_por_cuenta)}" class="border border-gray-200 rounded-lg py-1 px-2 w-16">
+            <button type="button" id="btn-max-sesiones" class="text-xs font-bold text-white bg-slate-800 hover:bg-slate-700 rounded-lg py-1 px-3">Guardar</button>
+            <span class="text-[11px] text-slate-400">0 = sin tope · los administradores no tienen tope</span></div>`;
+}
+
+async function guardarMaxSesiones(boton) {
+    boton.disabled = true; boton.textContent = "Guardando…";
+    try {
+        const r = await api("/api/admin/sesiones/max", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ max_por_cuenta: +$("max-sesiones").value }) });
+        sesionesWeb.max_por_cuenta = r.max_por_cuenta;
+        boton.textContent = "✓ Guardado"; setTimeout(() => { boton.textContent = "Guardar"; boton.disabled = false; }, 2000);
+    } catch (err) { mostrarAlerta("error", err.message); boton.textContent = "Guardar"; boton.disabled = false; }
+}
+
+async function cerrarSesionWeb(boton) {
+    if (!confirm(`¿Cerrar esta sesión de ${boton.dataset.correo}? Ya no podrá usar la web desde ahí hasta que cierre sesión y vuelva a entrar.`)) return;
+    try {
+        await api(`/api/admin/sesiones/${boton.dataset.cerrarSesion}/cerrar`, { method: "POST" });
+        sesionesWeb = await api("/api/admin/sesiones");
+        pintarEstado();
+    } catch (err) { mostrarAlerta("error", err.message); }
+}
 
 function tarjetaPcs() {
     const d = pcsAgentes;
@@ -954,6 +997,7 @@ function pintarEstado() {
         (estadoTrabajadores ? tarjeta("Trabajadores (VPS y PCs)", tarjetaTrabajadores()) : "") +
         (diasInhabiles ? tarjeta("Días inhábiles del SAT", tarjetaInhabiles()) : "") +
         (pcsAgentes ? tarjeta("PCs con el agente", tarjetaPcs()) : "") +
+        (sesionesWeb ? tarjeta("Sesiones en la web", tarjetaSesiones()) : "") +
         tarjeta("Tipo de cambio Banxico", tipoCambio, tcMal ? "mal" : "");
     $("alerta-sistema").textContent = (alertaGit || e.mantenimiento.activo) ? "•" : "";
 }

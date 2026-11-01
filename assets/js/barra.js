@@ -1017,7 +1017,13 @@
             promesaPerfil = (async function () {
                 try {
                     var resp = await fetch(API + "/api/mi-perfil", { credentials: "include" });
-                    if (resp.status === 401 || resp.status === 403) return { _error: "sesion" };
+                    if (resp.status === 401 || resp.status === 403) {
+                        // Sesión cerrada por el administrador o tope de sesiones: el servidor dice el motivo
+                        var motivo = "";
+                        try { motivo = (await resp.json()).detail || ""; } catch (e) { /* sin cuerpo */ }
+                        if (/cerró el administrador|ya está abierta en/i.test(motivo)) return { _error: "bloqueada", motivo: motivo };
+                        return { _error: "sesion" };
+                    }
                     if (!resp.ok) return { _error: "servidor" };
                     return await resp.json();
                 } catch (e) {
@@ -1063,7 +1069,13 @@
         document.dispatchEvent(new CustomEvent("fc:perfil", { detail: p }));
     }
 
-    function manejarErrorPerfil(tipo) {
+    function manejarErrorPerfil(tipo, motivo) {
+        if (tipo === "bloqueada") {
+            aviso(motivo, [{ texto: "Cerrar sesión", href: "/cdn-cgi/access/logout" },
+                           { texto: "Reintentar", accion: function () { promesaPerfil = null; iniciarPerfil(); } }]);
+            document.dispatchEvent(new CustomEvent("fc:perfil", { detail: null }));
+            return;
+        }
         var acciones = [
             { texto: "Reconectar sesión", href: API + "/" },
             { texto: "Reintentar", accion: function () { promesaPerfil = null; iniciarPerfil(); } }
@@ -1080,7 +1092,7 @@
     async function iniciarPerfil() {
         ocultarAviso();
         var p = await perfil();
-        if (p && p._error) { manejarErrorPerfil(p._error); return; }
+        if (p && p._error) { manejarErrorPerfil(p._error, p.motivo); return; }
         pintarPerfil(p);
     }
 
@@ -1216,7 +1228,7 @@
         var p = await perfil();
 
         if (!p || p._error) {
-            bloquear(p && p._error === "sesion"
+            bloquear(p && p._error === "bloqueada" ? p.motivo : p && p._error === "sesion"
                 ? "Tu sesión expiró. Recarga la página para entrar de nuevo."
                 : "No pudimos conectar con el servidor. Intenta más tarde o contacta al administrador.");
             return false;
