@@ -1,7 +1,7 @@
 /* agente/agente.js — Conectar esta PC: código de vinculación y PCs conectadas (core/agentes.py). */
 "use strict";
 const API = Fiscontable.API, esc = Fiscontable.escapar;
-let reloj = null;
+let reloj = null, vigia = null, codigoActual = "";
 
 async function api(ruta, opciones) {
     let resp;
@@ -159,19 +159,60 @@ document.getElementById("btn-codigo").addEventListener("click", async (ev) => {
     const b = ev.currentTarget; b.disabled = true;
     try {
         const d = await api("/api/agentes/codigo", { method: "POST" });
-        document.getElementById("codigo").textContent = d.codigo;
-        document.getElementById("caja-codigo").classList.remove("hidden");
-        const vence = new Date(d.expira).getTime();
-        clearInterval(reloj);
-        const pinta = () => {
-            const s = Math.round((vence - Date.now()) / 1000);
-            document.getElementById("codigo-vence").textContent = s > 0 ? `vence en ${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}` : "venció; pide otro";
-            if (s <= 0) clearInterval(reloj);
-        };
-        pinta(); reloj = setInterval(pinta, 1000);
+        mostrarCodigo(d);
         b.textContent = "Pedir otro código";
     } catch (e) { alerta("error", e.message); }
     b.disabled = false;
+});
+
+// El código: se ve, se copia, cuenta hacia atrás y se apaga solo en cuanto una PC lo usa (o vence)
+function mostrarCodigo(d) {
+    codigoActual = d.codigo;
+    const caja = document.getElementById("caja-codigo"), cod = document.getElementById("codigo"), copiar = document.getElementById("btn-copiar");
+    cod.textContent = d.codigo; cod.className = "font-mono text-2xl font-bold tracking-widest text-slate-800 select-all";
+    copiar.style.display = ""; copiar.disabled = false; copiar.textContent = "Copiar";
+    caja.classList.remove("hidden");
+    const vence = new Date(d.expira).getTime();
+    clearInterval(reloj); clearInterval(vigia);
+    const pinta = () => {
+        const s = Math.round((vence - Date.now()) / 1000);
+        if (s <= 0) return apagarCodigo("Venció. Pide otro.", false);
+        document.getElementById("codigo-vence").textContent = `vence en ${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+    };
+    pinta(); reloj = setInterval(pinta, 1000);
+    vigia = setInterval(revisarCodigo, 2500);
+}
+
+function apagarCodigo(texto, usado) {
+    clearInterval(reloj); clearInterval(vigia);
+    const cod = document.getElementById("codigo");
+    cod.className = "font-mono text-2xl font-bold tracking-widest text-slate-300 line-through select-none";
+    document.getElementById("btn-copiar").style.display = "none";
+    const v = document.getElementById("codigo-vence");
+    v.textContent = texto; v.className = "text-xs " + (usado ? "font-bold text-emerald-700" : "text-slate-500");
+    codigoActual = "";
+}
+
+async function revisarCodigo() {
+    if (!codigoActual) return;
+    try {
+        const r = await api("/api/agentes/codigo/" + encodeURIComponent(codigoActual));
+        if (r.estado === "usado") {
+            apagarCodigo(`✓ Ya se usó: se conectó «${r.pc}». Apruébala abajo con «Sí, es mi PC».`, true);
+            cargar(true);
+        } else if (r.estado === "vencido") apagarCodigo("Venció. Pide otro.", false);
+    } catch (e) { /* se reintenta en la siguiente vuelta */ }
+}
+
+document.getElementById("btn-copiar").addEventListener("click", async (ev) => {
+    const b = ev.currentTarget, texto = document.getElementById("codigo").textContent;
+    try { await navigator.clipboard.writeText(texto); }
+    catch (e) {
+        const r = document.createRange(); r.selectNodeContents(document.getElementById("codigo"));
+        const s = getSelection(); s.removeAllRanges(); s.addRange(r); document.execCommand("copy");
+    }
+    b.textContent = "✓ Copiado";
+    setTimeout(() => { if (b.style.display !== "none") b.textContent = "Copiar"; }, 2000);
 });
 
 document.getElementById("lista").addEventListener("input", marcarCambio);

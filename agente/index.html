@@ -5,13 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Conectar esta PC | Fiscontable</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611012000">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611012100">
 </head>
 <body class="min-h-screen flex flex-col">
 
     <div id="app-header" data-modulo="agente" data-titulo="Conectar esta PC" data-migas=""></div>
-<script src="/assets/js/nucleo.js?v=202611012000"></script>
-<script src="/assets/js/barra.js?v=202611012000"></script>
+<script src="/assets/js/nucleo.js?v=202611012100"></script>
+<script src="/assets/js/barra.js?v=202611012100"></script>
 
     <main class="flex-grow w-full mod-pagina" style="max-width:860px">
 
@@ -47,14 +47,15 @@
                     </div>
                     <span class="text-xs text-slate-500">Si Windows dice «Windows protegió su PC», pulsa <b>Más información → Ejecutar de todas formas</b>
                     (el programa todavía no tiene firma de editor). Las actualizaciones después se hacen desde el ícono junto al reloj → <b>Buscar actualizaciones</b>.</span></li>
-                <li>Pide aquí un código. Dura 10 minutos y sirve una sola vez.</li>
+                <li>Pide aquí un código. Dura 2 minutos y sirve una sola vez.</li>
                 <li>En la PC abre <b>Fiscontable Agente</b> y escribe el código (o en una terminal: <span class="font-mono text-xs">FiscontableAgente vincular CÓDIGO</span>).</li>
             </ol>
             <div class="flex flex-wrap items-center gap-3 mt-4">
                 <button type="button" id="btn-codigo" class="bg-slate-800 hover:bg-slate-700 text-white text-sm font-bold py-2 px-4 rounded-lg transition">Pedir código</button>
-                <div id="caja-codigo" class="hidden">
+                <div id="caja-codigo" class="hidden flex flex-wrap items-center gap-2">
                     <span id="codigo" class="font-mono text-2xl font-bold tracking-widest text-slate-800 select-all"></span>
-                    <span id="codigo-vence" class="text-xs text-slate-500 ml-2"></span>
+                    <button type="button" id="btn-copiar" class="text-xs font-bold text-slate-700 border border-gray-200 hover:border-slate-400 rounded-lg py-1.5 px-3">Copiar</button>
+                    <span id="codigo-vence" class="text-xs text-slate-500"></span>
                 </div>
             </div>
         </section>
@@ -68,6 +69,6 @@
         </section>
     </main>
 
-<script src="/agente/agente.js?v=202611012000"></script>
+<script src="/agente/agente.js?v=202611012100"></script>
 </body>
 </html>

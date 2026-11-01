@@ -733,7 +733,7 @@ function prepararEventosSistema() {
         if (e.target.closest("#btn-max-pcs")) guardarMaxPcs(e.target.closest("#btn-max-pcs"));
         if (e.target.closest("#btn-revisar-instalador")) revisarInstalador(e.target.closest("#btn-revisar-instalador"));
         if (e.target.closest("#btn-max-sesiones")) guardarMaxSesiones(e.target.closest("#btn-max-sesiones"));
-        if (e.target.closest("#btn-historial-sesiones")) { verHistorialSesiones = !verHistorialSesiones; pintarEstado(); }
+        if (e.target.closest("#btn-registro-sesiones")) abrirRegistroSesiones();
         if (e.target.closest("[data-cerrar-sesion]")) cerrarSesionWeb(e.target.closest("[data-cerrar-sesion]"));
         if (e.target.closest("[data-quitar-pc]")) quitarPc(e.target.closest("[data-quitar-pc]"));
         if (e.target.closest("#btn-probar-trabajador")) probarTrabajador(e.target.closest("#btn-probar-trabajador"));
@@ -781,7 +781,6 @@ let estadoTrabajadores = null;
 let diasInhabiles = null;
 let pcsAgentes = null;
 let sesionesWeb = null;
-let verHistorialSesiones = false;
 
 function tarjetaSesiones() {
     const d = sesionesWeb;
@@ -791,15 +790,13 @@ function tarjetaSesiones() {
         <span class="block text-slate-400">red ${esc(x.ip || "?")}${x.pais ? " (" + esc(x.pais) + ")" : ""} · entró ${esc(haceCuanto(x.inicio))} · ${x.activa ? "activa ahora" : "última actividad " + esc(haceCuanto(x.ultimo))}${x.cerrada_en ? " · cerrada por " + esc(x.cerrada_por) : ""}</span></span>
         ${conBoton && !x.cerrada_en ? `<button type="button" data-cerrar-sesion="${esc(x.clave)}" data-correo="${esc(x.correo)}" class="text-[11px] text-slate-500 hover:text-red-600 border border-gray-200 rounded-lg py-0.5 px-2 flex-none">Cerrar</button>` : ""}</li>`;
     const activas = d.activas.map(x => fila(x, true)).join("");
-    const historial = verHistorialSesiones ? `<ul class="text-[11px] text-slate-600 mt-1 divide-y divide-gray-100 max-h-72 overflow-y-auto">${d.historial.map(x => fila(x, true)).join("")}</ul>` : "";
     return `<p class="text-[11px] text-slate-500">Conectados ahora (actividad en los últimos ${esc(d.activa_min)} min): ${d.activas.length}</p>
         ${activas ? `<ul class="text-[11px] text-slate-600 mt-1 divide-y divide-gray-100">${activas}</ul>` : '<p class="text-[11px] text-slate-400 mt-1">Nadie más en este momento.</p>'}
-        <button type="button" id="btn-historial-sesiones" class="mt-2 text-[11px] text-slate-500 underline">${verHistorialSesiones ? "Ocultar historial" : "Ver historial (" + d.historial.length + ")"}</button>
-        ${historial}
         <div class="flex flex-wrap items-center gap-2 mt-2 text-xs">Sesiones al mismo tiempo por cuenta
             <input id="max-sesiones" data-guarda="btn-max-sesiones" type="number" min="0" max="20" value="${esc(d.max_por_cuenta)}" class="border border-gray-200 rounded-lg py-1 px-2 w-16">
             ${botonGuardar("btn-max-sesiones")}
-            <span class="text-[11px] text-slate-400">0 = sin tope · los administradores no tienen tope</span></div>`;
+            <span class="text-[11px] text-slate-400">0 = sin tope · los administradores no tienen tope</span></div>
+        <div class="mt-2"><button type="button" id="btn-registro-sesiones" class="text-xs font-bold text-slate-700 border border-gray-200 hover:border-slate-400 rounded-lg py-1.5 px-3">Ver registro</button></div>`;
 }
 
 async function guardarMaxSesiones(boton) {
@@ -817,6 +814,8 @@ async function cerrarSesionWeb(boton) {
         await api(`/api/admin/sesiones/${boton.dataset.cerrarSesion}/cerrar`, { method: "POST" });
         sesionesWeb = await api("/api/admin/sesiones");
         pintarEstado();
+        const dlg = document.getElementById("dlg-sesiones");
+        if (dlg && dlg.open) buscarSesiones();
     } catch (err) { mostrarAlerta("error", err.message); }
 }
 
@@ -904,18 +903,11 @@ function tarjetaTrabajadores() {
             <select data-trabajo="${esc(clave)}" data-guarda="btn-guardar-trabajos" class="border border-gray-200 rounded-lg py-1 px-2 text-xs">
                 ${((t.modos_de || {})[clave] || t.modos).map(m => `<option value="${esc(m)}" ${t.ajustes[clave] === m ? "selected" : ""}>${esc(NOMBRE_MODO[m] || m)}</option>`).join("")}
             </select></label>`).join("");
-    const semana = (t.semana || []).filter(f => f.trabajador !== "local").map(f =>
-        `${esc(nombreTrabajador(f.trabajador))} · ${esc(t.tramites[f.tipo] || f.tipo)}: ${esc(f.bien || 0)} de ${esc(f.n)} bien${f.prom ? ` (~${esc(f.prom)} s)` : ""}`).join(" · ");
-    const ultimas = (t.ultimas || []).slice(0, 5).map(u => `<li>${u.ok ? "✓" : "✗"} ${esc(haceCuanto(u.inicio))} · ${esc(nombreTrabajador(u.trabajador))} ·
-        ${esc(t.tramites[u.tipo] || u.tipo)} · <span class="font-mono">${esc(u.rfc || "")}</span>${u.segundos ? ` · ${esc(u.segundos)} s` : ""}
-        ${!u.ok && u.motivo ? `<span class="text-amber-700"> · ${esc(u.motivo)}</span>` : ""}</li>`).join("");
     return `<p class="text-[11px] text-slate-500">Dónde se hacen los trámites. "PC del contador": en la PC de la cuenta que lo pide, si tiene el agente conectado (Conectar esta PC). Si el trabajador falla, lo hace la Vostro.</p>
         ${selects}
         <div class="flex gap-2 mt-2">${botonGuardar("btn-guardar-trabajos")}
             <button type="button" id="btn-ver-registro" class="text-xs font-bold text-slate-700 border border-gray-200 hover:border-slate-400 rounded-lg py-1.5 px-3">Ver registro</button></div>
-        <p class="text-[11px] text-slate-500 mt-2">${semana ? `Trabajadores, últimos 7 días: ${semana}` : "Ni la VPS ni los agentes han hecho trámites en los últimos 7 días."}</p>
-        ${ultimas ? `<ul class="text-[11px] text-slate-600 mt-1 space-y-0.5">${ultimas}</ul>` : ""}
-        <div class="flex gap-2 mt-2"><input id="rfc-probar-vps" placeholder="RFC con e.firma" maxlength="13" class="border border-gray-200 rounded-lg py-1 px-2 text-xs w-36 uppercase">
+        <div class="flex gap-2 mt-3 pt-2 border-t border-gray-100"><input id="rfc-probar-vps" placeholder="RFC con e.firma" maxlength="13" class="border border-gray-200 rounded-lg py-1 px-2 text-xs w-36 uppercase">
             <button type="button" id="btn-probar-trabajador" class="text-xs font-bold text-slate-700 border border-gray-200 hover:border-slate-400 rounded-lg py-1.5 px-3">Probar la VPS</button></div>
         <p id="texto-probar-trabajador" class="text-[11px] text-slate-500 mt-1">Baja la constancia de ese RFC desde la VPS (sin guardarla) para ver si el SAT acepta la IP de Oracle.</p>`;
 }
@@ -1478,43 +1470,60 @@ function pintarBitacoraToda() {
 }
 
 
-// ------------------------------------------------------------ registro completo de trabajadores
+// ------------------------------------------------------------ ventanas "Ver registro" (mismo diseño para todas)
+// filtros: html de los <label> con sus campos; cabeceras: títulos de la tabla. Buscar = Enter o el botón.
+function dialogoRegistro(id, titulo, filtros, cabeceras, buscar, exportar) {
+    let d = document.getElementById(id);
+    if (!d) {
+        d = document.createElement("dialog");
+        d.id = id;
+        d.style.cssText = "width:min(1000px,calc(100vw - 32px));max-height:85vh;border:0;border-radius:14px;padding:0;box-shadow:0 20px 50px rgba(15,23,42,.35)";
+        d.innerHTML = `<div style="padding:16px 18px;border-bottom:1px solid #E5E7EB;display:flex;justify-content:space-between;align-items:center">
+                <b>${esc(titulo)}</b><button type="button" data-cerrar class="text-slate-400 hover:text-red-500 text-lg">✕</button></div>
+            <div style="padding:12px 18px" class="flex flex-wrap gap-2 items-end text-xs">${filtros}
+                <button type="button" data-buscar class="font-bold text-white bg-slate-800 hover:bg-slate-700 rounded-lg py-1.5 px-3">Buscar</button>
+                <button type="button" data-csv class="font-bold text-slate-700 border border-gray-200 rounded-lg py-1.5 px-3">Exportar CSV</button>
+                <span data-total class="text-slate-500 ml-auto"></span></div>
+            <div style="padding:0 18px 16px;overflow:auto;max-height:60vh"><table class="w-full text-xs"><thead class="text-left text-slate-500"><tr>
+                ${cabeceras.map((c, i) => `<th class="${i ? "" : "py-1"}">${esc(c)}</th>`).join("")}</tr></thead><tbody data-filas></tbody></table></div>`;
+        document.body.appendChild(d);
+        d.querySelector("[data-cerrar]").addEventListener("click", () => d.close());
+        d.querySelector("[data-buscar]").addEventListener("click", buscar);
+        d.querySelector("[data-csv]").addEventListener("click", exportar);
+        d.addEventListener("keydown", e => { if (e.key === "Enter") buscar(); });
+    }
+    d.showModal();
+    buscar();
+    return d;
+}
+
+function csvDe(nombre, cabeceras, filas) {
+    const celda = x => '"' + String(x == null ? "" : x).replace(/"/g, '""') + '"';
+    const lineas = [cabeceras.map(celda).join(",")].concat(filas.map(f => f.map(celda).join(",")));
+    Fiscontable.guardarArchivo(new Blob(["\ufeff" + lineas.join("\r\n")], { type: "text/csv;charset=utf-8" }), nombre);
+}
+
+const CAMPO = "border border-gray-200 rounded-lg py-1 px-2";
+
+// ------------------------------------------------------------ registro de trabajadores
 let registroActual = [];
 
 function abrirRegistro() {
-    let d = document.getElementById("dlg-registro");
-    if (!d) {
-        d = document.createElement("dialog");
-        d.id = "dlg-registro";
-        d.style.cssText = "width:min(1000px,calc(100vw - 32px));max-height:85vh;border:0;border-radius:14px;padding:0;box-shadow:0 20px 50px rgba(15,23,42,.35)";
-        d.innerHTML = `<div style="padding:16px 18px;border-bottom:1px solid #E5E7EB;display:flex;justify-content:space-between;align-items:center">
-                <b>Registro de trabajadores</b><button type="button" id="reg-cerrar" class="text-slate-400 hover:text-red-500 text-lg">✕</button></div>
-            <div style="padding:12px 18px" class="flex flex-wrap gap-2 items-end text-xs">
-                <label>Quién<br><select id="reg-trabajador" class="border border-gray-200 rounded-lg py-1 px-2"></select></label>
-                <label>Trámite<br><select id="reg-tipo" class="border border-gray-200 rounded-lg py-1 px-2"></select></label>
-                <label>RFC<br><input id="reg-rfc" class="border border-gray-200 rounded-lg py-1 px-2 w-32 uppercase"></label>
-                <label>Resultado<br><select id="reg-ok" class="border border-gray-200 rounded-lg py-1 px-2"><option value="">Todos</option><option value="1">Bien</option><option value="0">Falló</option></select></label>
-                <label>Desde<br><input id="reg-desde" type="date" class="border border-gray-200 rounded-lg py-1 px-2"></label>
-                <label>Hasta<br><input id="reg-hasta" type="date" class="border border-gray-200 rounded-lg py-1 px-2"></label>
-                <button type="button" id="reg-buscar" class="font-bold text-white bg-slate-800 hover:bg-slate-700 rounded-lg py-1.5 px-3">Buscar</button>
-                <button type="button" id="reg-csv" class="font-bold text-slate-700 border border-gray-200 rounded-lg py-1.5 px-3">Exportar CSV</button>
-                <span id="reg-total" class="text-slate-500 ml-auto"></span></div>
-            <div style="padding:0 18px 16px;overflow:auto;max-height:60vh"><table class="w-full text-xs"><thead class="text-left text-slate-500"><tr>
-                <th class="py-1">Cuándo</th><th>Quién</th><th>Trámite</th><th>RFC</th><th>Seg.</th><th>Resultado</th></tr></thead><tbody id="reg-filas"></tbody></table></div>`;
-        document.body.appendChild(d);
-        d.querySelector("#reg-cerrar").addEventListener("click", () => d.close());
-        d.querySelector("#reg-buscar").addEventListener("click", buscarRegistro);
-        d.querySelector("#reg-csv").addEventListener("click", exportarRegistro);
-        d.addEventListener("keydown", e => { if (e.key === "Enter") buscarRegistro(); });
-    }
-    d.showModal();
-    buscarRegistro();
+    dialogoRegistro("dlg-registro", "Registro de trabajadores", `
+        <label>Quién<br><select id="reg-trabajador" class="${CAMPO}"></select></label>
+        <label>Trámite<br><select id="reg-tipo" class="${CAMPO}"></select></label>
+        <label>RFC<br><input id="reg-rfc" class="${CAMPO} w-32 uppercase"></label>
+        <label>Resultado<br><select id="reg-ok" class="${CAMPO}"><option value="">Todos</option><option value="1">Bien</option><option value="0">Falló</option></select></label>
+        <label>Desde<br><input id="reg-desde" type="date" class="${CAMPO}"></label>
+        <label>Hasta<br><input id="reg-hasta" type="date" class="${CAMPO}"></label>`,
+        ["Cuándo", "Quién", "Trámite", "RFC", "Seg.", "Resultado"], buscarRegistro, exportarRegistro);
 }
 
 async function buscarRegistro() {
     const v = id => (document.getElementById(id).value || "").trim();
     const q = new URLSearchParams({ trabajador: v("reg-trabajador"), tipo: v("reg-tipo"), rfc: v("reg-rfc"), ok: v("reg-ok"), desde: v("reg-desde"), hasta: v("reg-hasta") });
-    $("reg-total").textContent = "Buscando…";
+    const total = document.querySelector("#dlg-registro [data-total]"), cuerpo = document.querySelector("#dlg-registro [data-filas]");
+    total.textContent = "Buscando…";
     try {
         const r = await api("/api/admin/trabajadores/registro?" + q);
         registroActual = r.filas;
@@ -1524,13 +1533,13 @@ async function buscarRegistro() {
         const selP = $("reg-tipo"), actualP = selP.value;
         selP.innerHTML = '<option value="">Todos</option>' + Object.entries(r.tramites).map(([k, n]) => `<option value="${esc(k)}">${esc(n)}</option>`).join("");
         selP.value = actualP;
-        $("reg-total").textContent = `${r.filas.length} registro${r.filas.length === 1 ? "" : "s"}` + (r.filas.length >= 500 ? " (los 500 más recientes)" : "");
-        $("reg-filas").innerHTML = r.filas.map(f => `<tr class="border-t border-gray-100">
+        total.textContent = `${r.filas.length} registro${r.filas.length === 1 ? "" : "s"}` + (r.filas.length >= 500 ? " (los 500 más recientes)" : "");
+        cuerpo.innerHTML = r.filas.map(f => `<tr class="border-t border-gray-100">
             <td class="py-1">${esc(fechaHoraCorta(f.inicio))}</td><td>${esc(f.trabajador === "local" ? "Vostro" : nombreTrabajador(f.trabajador))}</td>
             <td>${esc(r.tramites[f.tipo] || f.tipo)}</td><td class="font-mono">${esc(f.rfc || "")}</td><td>${f.segundos ? esc(f.segundos) : ""}</td>
             <td>${f.ok ? '<span class="text-emerald-700">✓ bien</span>' : '<span class="text-red-700">✗ ' + esc(f.motivo || "falló") + "</span>"}</td></tr>`).join("") ||
             '<tr><td colspan="6" class="py-3 text-slate-400">Sin registros con esos filtros.</td></tr>';
-    } catch (err) { $("reg-total").textContent = err.message; }
+    } catch (err) { total.textContent = err.message; }
 }
 
 function fechaHoraCorta(iso) {
@@ -1539,8 +1548,47 @@ function fechaHoraCorta(iso) {
 }
 
 function exportarRegistro() {
-    const celda = x => '"' + String(x == null ? "" : x).replace(/"/g, '""') + '"';
-    const lineas = [["Cuando", "Quien", "Tramite", "RFC", "Segundos", "Resultado", "Motivo"].map(celda).join(",")]
-        .concat(registroActual.map(f => [fechaHoraCorta(f.inicio), f.trabajador, f.tipo, f.rfc, f.segundos, f.ok ? "bien" : "fallo", f.motivo].map(celda).join(",")));
-    Fiscontable.guardarArchivo(new Blob(["\ufeff" + lineas.join("\r\n")], { type: "text/csv;charset=utf-8" }), "Registro_trabajadores.csv");
+    csvDe("Registro_trabajadores.csv", ["Cuando", "Quien", "Tramite", "RFC", "Segundos", "Resultado", "Motivo"],
+        registroActual.map(f => [fechaHoraCorta(f.inicio), f.trabajador, f.tipo, f.rfc, f.segundos, f.ok ? "bien" : "fallo", f.motivo]));
+}
+
+// ------------------------------------------------------------ registro de sesiones en la web
+let sesionesActual = [];
+
+function abrirRegistroSesiones() {
+    const d = dialogoRegistro("dlg-sesiones", "Registro de sesiones en la web", `
+        <label>Cuenta<br><input id="ses-correo" list="ses-correos" class="${CAMPO} w-48" placeholder="correo"><datalist id="ses-correos"></datalist></label>
+        <label>Red (IP)<br><input id="ses-ip" class="${CAMPO} w-32"></label>
+        <label>Estado<br><select id="ses-estado" class="${CAMPO}"><option value="">Todas</option><option value="activas">Conectadas ahora</option><option value="cerradas">Cerradas por Administración</option></select></label>
+        <label>Desde<br><input id="ses-desde" type="date" class="${CAMPO}"></label>
+        <label>Hasta<br><input id="ses-hasta" type="date" class="${CAMPO}"></label>`,
+        ["Entró", "Última actividad", "Cuenta", "Navegador", "Red", "Peticiones", "Estado", ""], buscarSesiones, exportarSesiones);
+    if (!d.dataset.listo) {
+        d.dataset.listo = "1";
+        d.addEventListener("click", e => { const b = e.target.closest("[data-cerrar-sesion]"); if (b) cerrarSesionWeb(b); });
+    }
+}
+
+async function buscarSesiones() {
+    const d = document.getElementById("dlg-sesiones"), total = d.querySelector("[data-total]"), cuerpo = d.querySelector("[data-filas]");
+    const v = id => (document.getElementById(id).value || "").trim();
+    total.textContent = "Buscando…";
+    try {
+        const r = await api("/api/admin/sesiones/registro?" + new URLSearchParams({ correo: v("ses-correo"), ip: v("ses-ip"), estado: v("ses-estado"), desde: v("ses-desde"), hasta: v("ses-hasta") }));
+        sesionesActual = r.filas;
+        $("ses-correos").innerHTML = r.correos.map(c => `<option value="${esc(c)}">`).join("");
+        total.textContent = `${r.filas.length} sesi${r.filas.length === 1 ? "ón" : "ones"}` + (r.filas.length >= r.limite ? ` (las ${r.limite} más recientes)` : "");
+        cuerpo.innerHTML = r.filas.map(x => `<tr class="border-t border-gray-100 align-top">
+            <td class="py-1">${esc(fechaHoraCorta(x.inicio))}</td><td>${esc(fechaHoraCorta(x.ultimo))}</td><td>${esc(x.correo)}</td>
+            <td>${esc(x.navegador || "?")}</td><td>${esc(x.ip || "?")}${x.pais ? " (" + esc(x.pais) + ")" : ""}</td><td>${esc(x.peticiones)}</td>
+            <td>${x.cerrada_en ? `<span class="text-red-700">cerrada por ${esc(x.cerrada_por)}</span>` : x.activa ? '<span class="text-emerald-700">conectada</span>' : "terminó"}</td>
+            <td>${!x.cerrada_en ? `<button type="button" data-cerrar-sesion="${esc(x.clave)}" data-correo="${esc(x.correo)}" class="text-[11px] text-slate-500 hover:text-red-600 border border-gray-200 rounded-lg py-0.5 px-2">Cerrar</button>` : ""}</td></tr>`).join("") ||
+            '<tr><td colspan="8" class="py-3 text-slate-400">Sin sesiones con esos filtros.</td></tr>';
+    } catch (err) { total.textContent = err.message; }
+}
+
+function exportarSesiones() {
+    csvDe("Registro_sesiones.csv", ["Entro", "Ultima actividad", "Cuenta", "Navegador", "Red", "Pais", "Peticiones", "Estado"],
+        sesionesActual.map(x => [fechaHoraCorta(x.inicio), fechaHoraCorta(x.ultimo), x.correo, x.navegador, x.ip, x.pais, x.peticiones,
+            x.cerrada_en ? "cerrada por " + x.cerrada_por : x.activa ? "conectada" : "termino"]));
 }
