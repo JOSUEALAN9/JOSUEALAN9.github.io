@@ -5,21 +5,21 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mis Clientes | Fiscontable</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611020100">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611020200">
 </head>
 <body class="min-h-screen flex flex-col relative">
 
     <!-- TOP NAV -->
     <div id="app-header" data-modulo="clientes" data-titulo="Mis clientes" data-migas=""></div>
-<script src="/assets/js/nucleo.js?v=202611020100"></script>
-<script src="/assets/js/barra.js?v=202611020100"></script>
+<script src="/assets/js/nucleo.js?v=202611020200"></script>
+<script src="/assets/js/barra.js?v=202611020200"></script>
 
     <!-- ÁREA DE TRABAJO -->
     <main class="flex-grow w-full mod-pagina" style="max-width:1180px">
 
         <div class="mod-cabeza"><h1>Mis clientes</h1>
             <div class="mod-cabeza__acciones">
-                <button type="button" id="btn-agregar-cliente" onclick="abrirModalNuevoCliente()" class="boton-principal" style="width:auto;margin:0;padding:9px 18px">Nuevo cliente</button>
+                <button type="button" id="btn-agregar-cliente" onclick="abrirModalNuevoCliente()" class="boton-principal" style="width:auto;margin:0;padding:9px 18px">+ Registrar empresa</button>
             </div>
         </div>
 
@@ -49,31 +49,67 @@
         <div id="estado-vacio" class="hidden bg-white rounded-xl card-elevated border border-dashed border-gray-300 p-12 text-center">
             <svg class="w-12 h-12 text-gray-300 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-1.13a4 4 0 10-4-4 4 4 0 004 4zm6 0a4 4 0 10-4-4"></path></svg>
             <p class="text-slate-500 font-semibold">Todavía no tienes clientes registrados</p>
-            <p class="text-sm text-slate-400 mt-1">Agrega tus clientes con «Nuevo cliente».</p>
+            <p class="text-sm text-slate-400 mt-1">Regístralas con «+ Registrar empresa»: con su e.firma, el RFC sale solo.</p>
         </div>
 
         <div id="lista-clientes" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
     </main>
 
-    <!-- MODAL: AGREGAR CLIENTE -->
+    <!-- MODAL: REGISTRAR EMPRESA (con su e.firma el RFC sale solo del certificado) -->
     <div id="modal-nuevo-cliente" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden justify-center items-center p-4">
-        <div class="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden flex flex-col">
+        <div class="bg-white w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
             <div class="p-5 border-b flex justify-between items-center bg-slate-50">
-                <h2 class="text-lg font-bold text-slate-800">Agregar cliente</h2>
-                <button onclick="cerrarModalNuevoCliente()" class="text-gray-400 hover:text-red-500 transition"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
+                <div>
+                    <h2 class="text-lg font-bold text-slate-800">Registrar empresa</h2>
+                    <p class="text-xs text-slate-500 mt-0.5">Con su e.firma no escribes el RFC: sale del certificado.</p>
+                </div>
+                <button type="button" onclick="cerrarModalNuevoCliente()" class="text-gray-400 hover:text-red-500 transition" aria-label="Cerrar"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
             </div>
-            <form id="form-nuevo-cliente" class="p-6 flex flex-col gap-4" onsubmit="crearCliente(event)">
-                <div>
-                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-2">RFC</label>
-                    <input type="text" id="input-rfc" required class="w-full text-sm border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-violet-500 shadow-sm uppercase" placeholder="Ej. XAXX010101000">
+            <form id="form-nuevo-cliente" class="p-6 flex flex-col gap-4 overflow-y-auto" onsubmit="crearCliente(event)" novalidate>
+                <div class="alta-modo" role="tablist" aria-label="Cómo registrarla">
+                    <button type="button" class="alta-modo__op alta-modo__op--activa" data-alta="efirma" role="tab" aria-selected="true">Con su e.firma <small>recomendado</small></button>
+                    <button type="button" class="alta-modo__op" data-alta="rfc" role="tab" aria-selected="false">Solo con el RFC</button>
                 </div>
-                <div>
-                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-2">Alias (cómo lo quieres identificar)</label>
-                    <input type="text" id="input-alias" required class="w-full text-sm border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-violet-500 shadow-sm" placeholder="Ej. Constructora XYZ">
+
+                <div id="alta-efirma" class="flex flex-col gap-3">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <label class="block"><span class="alta-etiqueta">Certificado (.cer)</span>
+                            <input type="file" id="alta-cer" accept=".cer" class="alta-archivo"></label>
+                        <label class="block"><span class="alta-etiqueta">Clave privada (.key)</span>
+                            <input type="file" id="alta-key" accept=".key" class="alta-archivo"></label>
+                    </div>
+                    <p id="alta-cer-info" class="alta-info" hidden></p>
+                    <label class="block"><span class="alta-etiqueta">Contraseña de la e.firma</span>
+                        <span class="relative block"><input type="password" id="alta-password" autocomplete="new-password" class="alta-control pr-10">
+                        <button type="button" class="alta-ojo" data-ojo="alta-password" aria-label="Mostrar contraseña">👁</button></span></label>
+                    <p id="alta-nota-demo" class="text-xs text-slate-500" hidden>En la versión de prueba la e.firma solo se usa para sacar el RFC; no se guarda.</p>
                 </div>
+
+                <label id="alta-rfc-caja" style="display:block" hidden><span class="alta-etiqueta">RFC</span>
+                    <input type="text" id="input-rfc" maxlength="18" class="alta-control uppercase font-mono" placeholder="Ej. GAB190101AB1" autocomplete="off"></label>
+
+                <div class="grid grid-cols-1 sm:grid-cols-5 gap-3">
+                    <label class="block sm:col-span-3"><span class="alta-etiqueta">Nombre de la empresa</span>
+                        <input type="text" id="input-alias" maxlength="120" class="alta-control" placeholder="Ej. Constructora del Caribe" autocomplete="off"></label>
+                    <label class="block sm:col-span-2"><span class="alta-etiqueta">Tipo de sociedad</span>
+                        <select id="input-tipo" class="alta-control">
+                            <option value="">Elegir…</option>
+                            <option>S.A. de C.V.</option><option>S.A.</option><option>S. de R.L. de C.V.</option><option>S. de R.L.</option>
+                            <option>S.C.</option><option>S.A.S.</option><option>S.A.S. de C.V.</option><option>S.A.P.I. de C.V.</option>
+                            <option>A.C.</option><option>S.C. de R.L. de C.V.</option><option>Persona física</option><option>Otra</option>
+                        </select></label>
+                </div>
+
+                <details id="alta-ciec-caja" class="alta-opcional">
+                    <summary>Contraseña del SAT (CIEC) <small>opcional · para bajar XML del portal</small></summary>
+                    <span class="relative block mt-2"><input type="password" id="alta-ciec" autocomplete="new-password" class="alta-control pr-10" placeholder="La del portal del SAT">
+                    <button type="button" class="alta-ojo" data-ojo="alta-ciec" aria-label="Mostrar contraseña">👁</button></span>
+                    <p class="text-xs text-slate-500 mt-1">Se guarda cifrada. Si no la pones, se pide cuando haga falta.</p>
+                </details>
+
                 <!-- Obligaciones al dar de alta (hoy ISN de Quintana Roo; solo con el módulo ISN) -->
                 <div id="nuevo-obligaciones" class="hidden">
-                    <span class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-2">Obligaciones</span>
+                    <span class="alta-etiqueta">Obligaciones</span>
                     <label class="flex items-center gap-2 text-sm font-semibold text-slate-700">
                         <input type="checkbox" id="nuevo-obl-isn" class="w-4 h-4 accent-violet-600"> Impuesto sobre nóminas · Quintana Roo
                     </label>
@@ -82,8 +118,10 @@
                         <option value="frontera">Zona libre de la frontera norte</option>
                     </select>
                 </div>
-                <button type="submit" id="btn-guardar-cliente" class="mt-2 w-full bg-violet-600 hover:bg-violet-500 text-white font-bold py-3 rounded-lg shadow-md transition">
-                    Guardar cliente
+
+                <p id="alta-error" class="alta-error" role="alert" hidden></p>
+                <button type="submit" id="btn-guardar-cliente" class="mt-1 w-full bg-violet-600 hover:bg-violet-500 text-white font-bold py-3 rounded-lg shadow-md transition disabled:opacity-60">
+                    Registrar empresa
                 </button>
             </form>
         </div>
@@ -102,11 +140,18 @@
 
             <div class="p-6 overflow-y-auto flex flex-col gap-6">
                 <div>
-                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-2">Alias</label>
-                    <div class="flex gap-2">
-                        <input type="text" id="editar-alias" class="flex-grow text-sm border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-violet-500 shadow-sm">
-                        <button onclick="guardarAlias()" id="btn-guardar-alias" class="bg-violet-600 hover:bg-violet-500 text-white font-bold px-5 rounded-lg transition text-sm flex-none">Guardar</button>
+                    <div class="grid grid-cols-1 sm:grid-cols-5 gap-2 items-end">
+                        <label class="block sm:col-span-3"><span class="alta-etiqueta">Nombre</span>
+                            <input type="text" id="editar-alias" maxlength="120" class="alta-control"></label>
+                        <label class="block sm:col-span-2"><span class="alta-etiqueta">Tipo de sociedad</span>
+                            <select id="editar-tipo" class="alta-control">
+                                <option value="">Sin elegir</option>
+                                <option>S.A. de C.V.</option><option>S.A.</option><option>S. de R.L. de C.V.</option><option>S. de R.L.</option>
+                                <option>S.C.</option><option>S.A.S.</option><option>S.A.S. de C.V.</option><option>S.A.P.I. de C.V.</option>
+                                <option>A.C.</option><option>S.C. de R.L. de C.V.</option><option>Persona física</option><option>Otra</option>
+                            </select></label>
                     </div>
+                    <button onclick="guardarAlias()" id="btn-guardar-alias" class="mt-2 bg-violet-600 hover:bg-violet-500 text-white font-bold py-2 px-5 rounded-lg transition text-sm">Guardar nombre</button>
                 </div>
 
                 <div class="border-t border-gray-100 pt-5">
@@ -156,6 +201,24 @@
                     </div>
                 </div>
 
+                <!-- Contraseña del SAT (CIEC): para la Descarga masiva por el portal -->
+                <div id="editar-ciec" class="border-t border-gray-100 pt-5">
+                    <div class="flex items-start justify-between gap-3 mb-3">
+                        <div>
+                            <h3 class="text-sm font-bold text-slate-800">Contraseña del SAT (CIEC)</h3>
+                            <p class="text-xs text-slate-500 mt-0.5">Para bajar sus XML del portal sin escribirla cada vez.</p>
+                        </div>
+                        <span id="editar-estado-ciec" class="text-xs font-bold px-2 py-1 rounded-full flex-none"></span>
+                    </div>
+                    <div class="flex gap-2">
+                        <span class="relative block flex-grow"><input type="password" id="editar-ciec-valor" autocomplete="new-password" class="alta-control pr-10" placeholder="Contraseña del portal del SAT">
+                        <button type="button" class="alta-ojo" data-ojo="editar-ciec-valor" aria-label="Mostrar contraseña">👁</button></span>
+                        <button onclick="guardarCiec()" id="btn-guardar-ciec" class="bg-violet-600 hover:bg-violet-500 text-white font-bold px-4 rounded-lg transition text-sm flex-none">Guardar</button>
+                        <button onclick="olvidarCiec()" id="btn-olvidar-ciec" class="hidden bg-white border border-red-200 text-red-600 hover:bg-red-50 font-bold px-3 rounded-lg transition text-sm flex-none">Olvidar</button>
+                    </div>
+                    <p id="editar-mensaje-ciec" class="text-xs mt-2 hidden"></p>
+                </div>
+
                 <!-- Obligaciones: hoy ISN de Quintana Roo (solo con el módulo ISN) -->
                 <div id="editar-obligaciones" class="border-t border-gray-100 pt-5 hidden">
                     <h3 class="text-sm font-bold text-slate-800">Obligaciones</h3>
@@ -184,6 +247,24 @@
         </div>
     </div>
 
-<script src="/clientes/clientes.js?v=202611020100"></script>
+<script src="/assets/js/comun/leer-cer.js?v=202611020200"></script>
+<style>
+    .alta-etiqueta { display: block; font-size: 11.5px; font-weight: 700; color: #334155; text-transform: uppercase; letter-spacing: .03em; margin-bottom: 6px; }
+    .alta-control { width: 100%; font-size: 14px; border: 1px solid #d1d5db; border-radius: 10px; padding: 10px 12px; background: #fff; }
+    .alta-control:focus { outline: none; border-color: #7c3aed; box-shadow: 0 0 0 3px #ede9fe; }
+    .alta-archivo { width: 100%; font-size: 12px; border: 1px dashed #c4b5fd; border-radius: 10px; padding: 8px; background: #faf7ff; }
+    .alta-ojo { position: absolute; top: 0; bottom: 0; right: 8px; border: 0; background: none; cursor: pointer; opacity: .55; font-size: 15px; }
+    .alta-modo { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; background: #f1f5f9; border-radius: 12px; }
+    .alta-modo__op { border: 0; background: none; border-radius: 9px; padding: 9px 8px; font: inherit; font-size: 13px; font-weight: 700; color: #475569; cursor: pointer; }
+    .alta-modo__op small { display: block; font-size: 10.5px; font-weight: 600; color: #7c3aed; }
+    .alta-modo__op--activa { background: #fff; color: #0f172a; box-shadow: 0 1px 3px rgba(15,23,42,.12); }
+    .alta-info { font-size: 12.5px; border-radius: 10px; padding: 9px 11px; background: #ecfdf5; border: 1px solid #a7f3d0; color: #065f46; }
+    .alta-info--mal { background: #fffbeb; border-color: #fde68a; color: #92400e; }
+    .alta-opcional { border: 1px solid #e5e7eb; border-radius: 10px; padding: 10px 12px; }
+    .alta-opcional summary { cursor: pointer; font-size: 13px; font-weight: 700; color: #334155; }
+    .alta-opcional summary small { font-weight: 500; color: #64748b; }
+    .alta-error { font-size: 13px; font-weight: 600; border-radius: 10px; padding: 10px 12px; background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; }
+</style>
+<script src="/clientes/clientes.js?v=202611020200"></script>
 </body>
 </html>

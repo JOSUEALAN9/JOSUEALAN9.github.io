@@ -59,7 +59,7 @@
 
     // "¿Cómo se usa?": pocos pasos por herramienta (clave = data-ayuda o data-modulo)
     var AYUDA = {
-        clientes: ["Nuevo cliente: RFC, alias y sus obligaciones.",
+        clientes: ["+ Registrar empresa: sube su e.firma (el RFC sale solo del certificado), su nombre y tipo de sociedad; la contraseña del SAT es opcional.",
                    "Editar (o el lápiz ✎ del menú de empresa, arriba, desde cualquier pantalla): e.firma guardada y obligaciones.",
                    "Los botones de cada tarjeta abren esa herramienta ya con el cliente elegido."],
         constancias: ["Arriba eliges Por empresa (una) o Masivo (varias).",

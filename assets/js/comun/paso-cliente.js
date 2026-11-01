@@ -100,6 +100,17 @@
                   '<button type="button" class="pc-cambiar" id="pc-cambiar" title="Elegir otro cliente o a alguien sin registrar, solo para este trabajo">Otro contribuyente</button>' +
                 "</div>" +
               "</div>" +
+              // Alta rápida sin salir de la herramienta: nombre y tipo de sociedad (antes era una ventanita del navegador)
+              '<form class="pc-alta" id="pc-alta" hidden>' +
+                '<label class="pc-campo"><span class="pc-etiqueta">Nombre en tu directorio</span><input class="pc-control" id="pc-alta-nombre" maxlength="120" autocomplete="off"></label>' +
+                '<label class="pc-campo"><span class="pc-etiqueta">Tipo de sociedad</span><select class="pc-control" id="pc-alta-tipo">' +
+                  ["", "S.A. de C.V.", "S.A.", "S. de R.L. de C.V.", "S. de R.L.", "S.C.", "S.A.S.", "S.A.S. de C.V.", "S.A.P.I. de C.V.", "A.C.", "Persona física", "Otra"]
+                    .map(function (t) { return '<option value="' + t + '">' + (t || "Elegir…") + "</option>"; }).join("") +
+                "</select></label>" +
+                '<div class="pc-alta__botones"><button type="submit" class="fc-btn fc-btn--principal" id="pc-alta-guardar">Registrar</button>' +
+                '<button type="button" class="fc-btn fc-btn--discreto" id="pc-alta-cancelar">Cancelar</button></div>' +
+                '<p class="pc-pista" id="pc-alta-error" hidden></p>' +
+              "</form>" +
             "</div>";
 
         var select = caja.querySelector("#pc-select");
@@ -161,18 +172,33 @@
         caja.querySelector("#pc-cambiar").addEventListener("click", reabrir);
 
         // Darlo de alta en el directorio sin salir de la herramienta
-        caja.querySelector("#pc-registrar").addEventListener("click", async function () {
+        var alta = caja.querySelector("#pc-alta");
+        caja.querySelector("#pc-registrar").addEventListener("click", function () {
             if (!elegido || elegido.esCliente) return;
-            var alias = window.prompt("¿Cómo lo quieres identificar en tu directorio? (" + elegido.rfc + ")",
-                                      elegido.alias || elegido.nombreCert || "");
-            if (alias === null) return;
-            alias = alias.trim() || elegido.nombreCert || elegido.rfc;
-            var boton = this;
-            boton.disabled = true;
+            var base = (elegido.alias || elegido.nombreCert || "").trim();
+            var tipo = "";
+            [[/,?\s*S\.?\s*A\.?\s*DE\s*C\.?\s*V\.?$/i, "S.A. de C.V."], [/,?\s*S\.?\s*DE\s*R\.?\s*L\.?\s*DE\s*C\.?\s*V\.?$/i, "S. de R.L. de C.V."],
+             [/,?\s*S\.?\s*C\.?$/i, "S.C."], [/,?\s*S\.?\s*A\.?$/i, "S.A."]].some(function (x) {
+                if (x[0].test(base)) { tipo = x[1]; base = base.replace(x[0], "").trim(); return true; } return false;
+            });
+            caja.querySelector("#pc-alta-nombre").value = base;
+            caja.querySelector("#pc-alta-tipo").value = elegido.rfc.length === 13 ? "Persona física" : tipo;
+            caja.querySelector("#pc-alta-error").hidden = true;
+            alta.hidden = false;
+            caja.querySelector("#pc-alta-nombre").focus();
+        });
+        caja.querySelector("#pc-alta-cancelar").addEventListener("click", function () { alta.hidden = true; });
+        alta.addEventListener("submit", async function (ev) {
+            ev.preventDefault();
+            var alias = caja.querySelector("#pc-alta-nombre").value.trim();
+            var error = caja.querySelector("#pc-alta-error");
+            if (!alias) { error.textContent = "Escribe el nombre."; error.className = "pc-pista pc-pista--mal"; error.hidden = false; return; }
+            var boton = caja.querySelector("#pc-registrar"), guardar = caja.querySelector("#pc-alta-guardar");
+            guardar.disabled = true;
             try {
                 var r = await fetch(API + "/api/clientes", {
                     method: "POST", credentials: "include", headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ rfc: elegido.rfc, alias: alias })
+                    body: JSON.stringify({ rfc: elegido.rfc, alias: alias, tipo_sociedad: caja.querySelector("#pc-alta-tipo").value })
                 });
                 if (!r.ok) throw new Error(await window.Fiscontable.leerError(r));
                 clientes.push({ rfc: elegido.rfc, alias: alias, efirma_guardada: false, ciec_guardada: false });
@@ -183,11 +209,13 @@
                 caja.querySelector("#pc-sello").textContent = "Registrado";
                 caja.querySelector("#pc-sello").hidden = false;
                 boton.hidden = true;
+                alta.hidden = true;
                 if (opciones.alRegistrar) opciones.alRegistrar(elegido);
             } catch (e) {
-                window.alert("No se pudo registrar: " + (e.message || "error"));
+                error.textContent = "No se pudo registrar: " + (e.message || "error");
+                error.className = "pc-pista pc-pista--mal"; error.hidden = false;
             }
-            boton.disabled = false;
+            guardar.disabled = false;
         });
 
         var botonSoloRfc = caja.querySelector("#pc-solo-rfc");

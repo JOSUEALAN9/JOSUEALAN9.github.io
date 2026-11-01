@@ -99,17 +99,107 @@ async function verificarPerfil() {
     }
 }
 
+/* ---------------------------------------------------------------- alta de empresa
+   Con su e.firma: el RFC, el nombre y la vigencia salen del .cer (se leen aquí, en el navegador).
+   Sin e.firma: se escribe el RFC. El tipo de sociedad se adivina del nombre; la CIEC es opcional. */
+let altaModo = "efirma";
+let altaCer = null;                 // {rfc, nombre, vigenteHasta, vencido}
+
+const SUFIJOS = [
+    [/,?\s*S\.?\s*A\.?\s*P\.?\s*I\.?\s*DE\s*C\.?\s*V\.?$/i, "S.A.P.I. de C.V."],
+    [/,?\s*S\.?\s*A\.?\s*S\.?\s*DE\s*C\.?\s*V\.?$/i, "S.A.S. de C.V."],
+    [/,?\s*S\.?\s*C\.?\s*DE\s*R\.?\s*L\.?\s*DE\s*C\.?\s*V\.?$/i, "S.C. de R.L. de C.V."],
+    [/,?\s*S\.?\s*DE\s*R\.?\s*L\.?\s*DE\s*C\.?\s*V\.?$/i, "S. de R.L. de C.V."],
+    [/,?\s*S\.?\s*DE\s*R\.?\s*L\.?$/i, "S. de R.L."],
+    [/,?\s*S\.?\s*A\.?\s*DE\s*C\.?\s*V\.?$/i, "S.A. de C.V."],
+    [/,?\s*S\.?\s*A\.?\s*S\.?$/i, "S.A.S."],
+    [/,?\s*S\.\s*C\.?$|,?\s+SC$/i, "S.C."],
+    [/,?\s*A\.\s*C\.?$|,?\s+AC$/i, "A.C."],
+    [/,?\s*S\.\s*A\.?$|,?\s+SA$/i, "S.A."],
+];
+function separarTipo(nombre) {
+    nombre = (nombre || "").trim();
+    for (const [re, tipo] of SUFIJOS) if (re.test(nombre)) return { nombre: nombre.replace(re, "").trim(), tipo };
+    return { nombre, tipo: "" };
+}
+
+function ponerModoAlta(modo) {
+    altaModo = modo;
+    document.querySelectorAll("[data-alta]").forEach(b => {
+        const on = b.dataset.alta === modo;
+        b.classList.toggle("alta-modo__op--activa", on); b.setAttribute("aria-selected", String(on));
+    });
+    document.getElementById("alta-efirma").hidden = modo !== "efirma";
+    document.getElementById("alta-rfc-caja").hidden = modo !== "rfc";
+    errorAlta("");
+    if (modo === "rfc") document.getElementById("input-rfc").focus();
+}
+
+function errorAlta(texto) {
+    const p = document.getElementById("alta-error");
+    p.textContent = texto; p.hidden = !texto;
+}
+
+async function alElegirCer() {
+    const archivo = document.getElementById("alta-cer").files[0];
+    const info = document.getElementById("alta-cer-info");
+    altaCer = null; errorAlta("");
+    if (!archivo) { info.hidden = true; return; }
+    const d = window.leerCertificado ? await leerCertificado(archivo) : null;
+    info.hidden = false;
+    if (!d || !d.rfc) {
+        info.className = "alta-info alta-info--mal";
+        info.textContent = "No se pudo leer ese archivo. Elige el certificado (.cer) de la e.firma, no el .key.";
+        return;
+    }
+    altaCer = d;
+    const hasta = d.vigenteHasta ? d.vigenteHasta.toLocaleDateString("es-MX", { day: "numeric", month: "short", year: "numeric" }) : "";
+    info.className = "alta-info" + (d.vencido ? " alta-info--mal" : "");
+    info.textContent = d.vencido ? `RFC ${d.rfc} · esta e.firma venció el ${hasta}: hay que renovarla en el SAT.`
+        : `✓ RFC ${d.rfc}${d.nombre ? " · " + d.nombre : ""} · vigente hasta ${hasta}`;
+    const nombre = document.getElementById("input-alias"), tipo = document.getElementById("input-tipo");
+    const sep = separarTipo(d.nombre);
+    if (!nombre.value.trim() && sep.nombre) nombre.value = sep.nombre;
+    if (!tipo.value) tipo.value = d.rfc.length === 13 ? "Persona física" : sep.tipo;
+    if (!document.getElementById("alta-key").files[0]) document.getElementById("alta-key").focus();
+    else document.getElementById("alta-password").focus();
+}
+
 function abrirModalNuevoCliente() {
     if (sinConexion || soloLectura) return;
     document.getElementById("nuevo-obligaciones").classList.toggle("hidden", !conIsn);
     document.getElementById("nuevo-obl-zona").classList.add("hidden");
+    document.getElementById("alta-nota-demo").hidden = puedeGuardarEfirma;
+    document.getElementById("alta-ciec-caja").hidden = !puedeGuardarEfirma;
+    document.getElementById("alta-cer-info").hidden = true;
+    altaCer = null;
+    ponerModoAlta("efirma");
     document.getElementById("modal-nuevo-cliente").classList.add("modal-active");
-    document.getElementById("input-rfc").focus();
 }
 function cerrarModalNuevoCliente() {
     document.getElementById("modal-nuevo-cliente").classList.remove("modal-active");
     document.getElementById("form-nuevo-cliente").reset();
+    errorAlta("");
 }
+
+document.addEventListener("click", (e) => {
+    const m = e.target.closest("[data-alta]");
+    if (m) { ponerModoAlta(m.dataset.alta); return; }
+    const ojo = e.target.closest("[data-ojo]");
+    if (ojo) { const c = document.getElementById(ojo.dataset.ojo); c.type = c.type === "password" ? "text" : "password"; }
+});
+document.addEventListener("DOMContentLoaded", () => {
+    document.getElementById("alta-cer").addEventListener("change", alElegirCer);
+    document.getElementById("input-alias").addEventListener("blur", (e) => {
+        // Si escribieron "Constructora XYZ SA de CV", el tipo se separa solo
+        const sep = separarTipo(e.target.value), tipo = document.getElementById("input-tipo");
+        if (sep.tipo) { tipo.value = sep.tipo; e.target.value = sep.nombre; }
+    });
+    document.getElementById("input-rfc").addEventListener("input", (e) => {
+        const tipo = document.getElementById("input-tipo");
+        if (e.target.value.trim().length === 13 && !tipo.value) tipo.value = "Persona física";
+    });
+});
 
 function mostrarAlerta(tipo, mensaje) {
     const container = document.getElementById("alert-container");
@@ -189,7 +279,7 @@ function renderizarClientes() {
             <div class="flex justify-between items-start gap-2">
                 <div>
                     <h3 class="font-bold text-slate-800 leading-tight">${esc(cliente.alias)}</h3>
-                    <p class="text-xs text-slate-400 font-mono">${esc(cliente.rfc)}</p>
+                    <p class="text-xs text-slate-400"><span class="font-mono">${esc(cliente.rfc)}</span>${cliente.tipo_sociedad ? " · " + esc(cliente.tipo_sociedad) : ""}</p>
                 </div>
                 <div class="flex items-center gap-1 flex-none">
                     <button data-rfc="${esc(cliente.rfc)}" onclick="abrirModalEditar(this.dataset.rfc)" title="Editar cliente" class="text-gray-300 hover:text-violet-600 transition ${soloLectura ? 'hidden' : ''}">
@@ -211,6 +301,7 @@ function renderizarClientes() {
                        </span>${soloLectura ? '' : `<button data-rfc="${esc(cliente.rfc)}" onclick="olvidarEfirma(this.dataset.rfc)" class="text-xs text-slate-400 hover:text-red-500 underline transition">olvidar</button>`}`
                     : `<span class="text-xs font-semibold px-2 py-1 rounded-full bg-gray-100 text-gray-400">Sin e.firma guardada</span>`
                 }
+                ${cliente.ciec_guardada ? `<span class="text-xs font-bold px-2 py-1 rounded-full bg-violet-50 text-violet-700">Contraseña SAT ✓</span>` : ""}
                 ${tieneIsn(cliente.rfc) ? `<span class="text-xs font-bold px-2 py-1 rounded-full ${obligaciones[cliente.rfc].completos ? "bg-pink-100 text-pink-700" : "bg-amber-100 text-amber-700"}" title="${obligaciones[cliente.rfc].completos ? "Datos de la declaración completos" : "Faltan datos de la declaración"}">ISN QROO${obligaciones[cliente.rfc].completos ? "" : " · faltan datos"}</span>` : ""}
             </div>
 
@@ -225,27 +316,51 @@ function renderizarClientes() {
     }).join("");
 }
 
+const RFC_VALIDO = /^[A-ZÑ&]{3,4}\d{6}[A-Z0-9]{3}$/;
+
 async function crearCliente(e) {
     e.preventDefault();
+    errorAlta("");
+    const alias = document.getElementById("input-alias").value.trim();
+    const datos = new FormData();
+    let rfc = "";
+    // Lo que se puede revisar aquí se revisa aquí: el aviso sale al lado, sin perder lo escrito
+    if (altaModo === "efirma") {
+        const cer = document.getElementById("alta-cer").files[0], key = document.getElementById("alta-key").files[0];
+        const password = document.getElementById("alta-password").value;
+        if (!cer) return errorAlta("Elige el certificado (.cer) de su e.firma, o cambia a «Solo con el RFC».");
+        if (!altaCer) return errorAlta("Ese archivo no es un certificado (.cer) válido.");
+        if (altaCer.vencido) return errorAlta("Esa e.firma ya venció. Regístrala «Solo con el RFC» y sube la nueva cuando la renueven.");
+        if (!key) return errorAlta("Falta la clave privada (.key) de la e.firma.");
+        if (!/\.key$/i.test(key.name)) return errorAlta("La clave privada debe ser el archivo .key (elegiste " + key.name + ").");
+        if (!password) return errorAlta("Falta la contraseña de la e.firma.");
+        rfc = altaCer.rfc;
+        datos.append("cer", cer); datos.append("key", key); datos.append("password", password);
+    } else {
+        rfc = document.getElementById("input-rfc").value.trim().toUpperCase().replace(/[\s-]/g, "");
+        if (!RFC_VALIDO.test(rfc)) return errorAlta("Ese RFC no tiene la forma correcta: 12 caracteres para empresas (ABC010101AB1) o 13 para personas físicas.");
+        datos.append("rfc", rfc);
+    }
+    if (!alias) { document.getElementById("input-alias").focus(); return errorAlta("Escribe el nombre de la empresa (como la quieres ver en el sistema)."); }
+    if ((clientesCache || []).some(c => c.rfc === rfc)) return errorAlta(`Ya tienes registrada esa empresa (${rfc}).`);
+    datos.append("nombre", alias);
+    datos.append("tipo_sociedad", document.getElementById("input-tipo").value);
+    const ciec = (document.getElementById("alta-ciec") || {}).value || "";
+    if (ciec.trim()) datos.append("ciec", ciec.trim());
+
     const boton = document.getElementById("btn-guardar-cliente");
     const originalTexto = boton.textContent;
     boton.disabled = true;
-    boton.textContent = "Guardando...";
-
-    const rfc = document.getElementById("input-rfc").value.trim().toUpperCase();
-    const alias = document.getElementById("input-alias").value.trim();
+    boton.textContent = altaModo === "efirma" ? "Revisando la e.firma…" : "Registrando…";
 
     try {
-        const resp = await fetch(`${API_URL}/api/clientes`, {
-            method: "POST",
-            credentials: "include",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ rfc, alias }),
-        });
+        const resp = await fetch(`${API_URL}/api/clientes/registrar`, { method: "POST", credentials: "include", body: datos });
         if (!resp.ok) {
-            mostrarAlerta("error", await interpretarError(resp));
+            errorAlta(await interpretarError(resp));
             return;
         }
+        const r = await resp.json();
+        rfc = r.rfc;
         // Obligaciones marcadas en el alta
         let extra = "";
         if (conIsn && document.getElementById("nuevo-obl-isn").checked) {
@@ -257,8 +372,13 @@ async function crearCliente(e) {
                          : " No se pudo guardar la obligación de ISN: márcala desde su ficha.";
         }
         cerrarModalNuevoCliente();
-        mostrarAlerta("success", "Cliente agregado." + extra);
+        const partes = [`${alias} quedó registrada (${rfc})`];
+        if (r.efirma_guardada) partes.push("con su e.firma guardada");
+        if (r.ciec_guardada) partes.push("y su contraseña del SAT");
+        mostrarAlerta("success", partes.join(" ") + "." + (r.avisos && r.avisos.length ? " " + r.avisos.join(" ") : "") + extra);
         await cargarClientes();
+        // Si no había empresa activa, la recién registrada queda como activa
+        try { const p = await Fiscontable.perfil(); if (p && !p.empresa_activa) await Fiscontable.elegirEmpresa(rfc); } catch (err) { /* no pasa nada */ }
     } catch (error) {
         mostrarAlerta("error", await interpretarError(null));
     } finally {
@@ -277,6 +397,8 @@ function abrirModalEditar(rfc) {
     rfcEnEdicion = rfc;
     document.getElementById("editar-rfc").textContent = rfc;
     document.getElementById("editar-alias").value = cliente.alias;
+    document.getElementById("editar-tipo").value = cliente.tipo_sociedad || "";
+    pintarCiec(cliente);
     document.getElementById("editar-cer").value = "";
     document.getElementById("editar-key").value = "";
     document.getElementById("editar-password").value = "";
@@ -367,6 +489,51 @@ async function guardarObligaciones() {
     boton.disabled = false;
 }
 
+/* Contraseña del SAT (CIEC) en la ficha */
+function pintarCiec(cliente) {
+    const caja = document.getElementById("editar-ciec");
+    caja.classList.toggle("hidden", !puedeGuardarEfirma);
+    const badge = document.getElementById("editar-estado-ciec");
+    badge.textContent = cliente.ciec_guardada ? "Guardada" : "No guardada";
+    badge.className = "text-xs font-bold px-2 py-1 rounded-full flex-none " + (cliente.ciec_guardada ? "bg-violet-100 text-violet-700" : "bg-gray-100 text-gray-500");
+    document.getElementById("btn-olvidar-ciec").classList.toggle("hidden", !cliente.ciec_guardada);
+    document.getElementById("btn-guardar-ciec").textContent = cliente.ciec_guardada ? "Cambiar" : "Guardar";
+    const campo = document.querySelector("#editar-ciec input"); if (campo) campo.value = "";
+    document.getElementById("editar-mensaje-ciec").classList.add("hidden");
+}
+
+function mensajeCiec(ok, texto) {
+    const p = document.getElementById("editar-mensaje-ciec");
+    p.textContent = texto; p.className = "text-xs mt-2 font-semibold " + (ok ? "text-emerald-700" : "text-red-600");
+}
+
+async function guardarCiec() {
+    const campo = document.querySelector("#editar-ciec input");
+    if (!campo.value.trim()) { mensajeCiec(false, "Escribe la contraseña del SAT."); campo.focus(); return; }
+    const b = document.getElementById("btn-guardar-ciec"); b.disabled = true;
+    try {
+        const r = await fetch(`${API_URL}/api/clientes/${encodeURIComponent(rfcEnEdicion)}/ciec`, {
+            method: "PUT", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ciec: campo.value.trim() })
+        });
+        if (!r.ok) throw new Error(await interpretarError(r));
+        await cargarClientes();
+        pintarCiec(clientesCache.find(c => c.rfc === rfcEnEdicion) || { ciec_guardada: true });
+        mensajeCiec(true, "✓ Contraseña guardada (cifrada).");
+    } catch (e) { mensajeCiec(false, e.message); }
+    b.disabled = false;
+}
+
+async function olvidarCiec() {
+    if (!confirm("¿Olvidar la contraseña del SAT de este cliente?")) return;
+    try {
+        const r = await fetch(`${API_URL}/api/clientes/${encodeURIComponent(rfcEnEdicion)}/ciec`, { method: "DELETE", credentials: "include" });
+        if (!r.ok) throw new Error(await interpretarError(r));
+        await cargarClientes();
+        pintarCiec(clientesCache.find(c => c.rfc === rfcEnEdicion) || { ciec_guardada: false });
+        mensajeCiec(true, "Contraseña olvidada.");
+    } catch (e) { mensajeCiec(false, e.message); }
+}
+
 function cerrarModalEditar() {
     document.getElementById("modal-editar-cliente").classList.remove("modal-active");
     rfcEnEdicion = null;
@@ -393,7 +560,7 @@ function ocultarMensajeEfirma() {
 async function guardarAlias() {
     const boton = document.getElementById("btn-guardar-alias");
     const alias = document.getElementById("editar-alias").value.trim();
-    if (!alias) { mostrarAlerta("error", "El alias no puede estar vacío."); return; }
+    if (!alias) { mostrarAlerta("error", "El nombre no puede quedar vacío."); return; }
 
     const textoOriginal = boton.textContent;
     boton.disabled = true;
@@ -403,10 +570,10 @@ async function guardarAlias() {
             method: "PUT",
             credentials: "include",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ alias }),
+            body: JSON.stringify({ alias, tipo_sociedad: document.getElementById("editar-tipo").value }),
         });
         if (!resp.ok) { mostrarAlerta("error", await interpretarError(resp)); return; }
-        mostrarAlerta("success", "Alias actualizado.");
+        mostrarAlerta("success", "Nombre actualizado.");
         await cargarClientes();
     } catch (error) {
         mostrarAlerta("error", "No se pudo conectar con el servidor.");
