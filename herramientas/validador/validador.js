@@ -256,16 +256,17 @@ document.getElementById('btnProcesarStaged').addEventListener('click', async () 
 
     const parser = new DOMParser();
     const yaEstan = new Set(rawDataForFilters.map(f => f.uuid));
-    let facturasTemp = [];
+    let facturasTemp = [], noCfdi = [], repetidos = 0;
     for (let file of xmlFilesStage) {
         const text = await file.text();
         const xmlDoc = parser.parseFromString(text, "text/xml");
 
         const comprobante = xmlDoc.getElementsByTagName("cfdi:Comprobante")[0] || xmlDoc.getElementsByTagName("Comprobante")[0];
         const timbre = xmlDoc.getElementsByTagName("tfd:TimbreFiscalDigital")[0] || xmlDoc.getElementsByTagName("TimbreFiscalDigital")[0];
-        if (!comprobante || !timbre) continue;
+        if (!comprobante || !timbre) { noCfdi.push(file.name); continue; }
         const uuid = timbre.getAttribute("UUID")?.toUpperCase();
-        if (!uuid || yaEstan.has(uuid)) continue;          // los que ya se consultaron no se vuelven a pedir
+        if (!uuid) { noCfdi.push(file.name); continue; }
+        if (yaEstan.has(uuid)) { repetidos++; continue; }  // los que ya se consultaron no se vuelven a pedir
         yaEstan.add(uuid);
 
         const emisor = xmlDoc.getElementsByTagName("cfdi:Emisor")[0] || xmlDoc.getElementsByTagName("Emisor")[0];
@@ -294,6 +295,11 @@ document.getElementById('btnProcesarStaged').addEventListener('click', async () 
     }
     // La bandeja se vacía: lo siguiente que agregues se suma a la tabla sin repetir consultas
     xmlFilesStage = [];
+    // Que se sepa qué se dejó fuera (antes se omitían en silencio)
+    const avisos = [];
+    if (noCfdi.length) avisos.push(`${noCfdi.length} archivo(s) no son CFDI timbrados y no se validaron: ${noCfdi.slice(0, 3).join(", ")}${noCfdi.length > 3 ? "…" : ""}.`);
+    if (repetidos) avisos.push(`${repetidos} ya estaban en la tabla (no se consultan otra vez).`);
+    if (avisos.length && window.Fiscontable && Fiscontable.aviso) Fiscontable.aviso(avisos.join(" "));
     document.getElementById('lblStagedCount').innerText = "0";
     document.getElementById('btnProcesarStaged').disabled = true;
     await consultarSAT(facturasTemp);

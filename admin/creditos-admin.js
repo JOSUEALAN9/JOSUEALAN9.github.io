@@ -126,9 +126,11 @@
         $("panel-creditos").addEventListener("click", function (e) { var q = e.target.closest(".cra-quitar"); if (q) q.parentNode.remove(); });
         $("cra-guardar-config").addEventListener("click", guardarConfig);
         // Cuántos pagos esperan revisión, en la pestaña (sin abrirla)
-        setTimeout(function () {
-            api("/api/admin/creditos").then(function (d) { datos = d; contar(d.pendientes.length); }).catch(function () { /* no es admin */ });
-        }, 1200);
+        // (solo para administradores: así nadie más ve un 403 en la consola)
+        Fiscontable.perfil().then(function (p) {
+            if (!p || p.rol !== "admin") return;
+            api("/api/admin/creditos").then(function (d) { datos = d; contar(d.pendientes.length); }).catch(function () { /* sin datos */ });
+        });
     });
 
     window.CreditosAdmin = { cargar: cargar };

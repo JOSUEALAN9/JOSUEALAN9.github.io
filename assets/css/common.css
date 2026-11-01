@@ -1053,3 +1053,8 @@ a.mod-accion { text-decoration: none; }
 @media (min-width: 700px) { .pc-alta { grid-template-columns: 2fr 1fr auto; align-items: end; } }
 .pc-alta__botones { display: flex; gap: 8px; }
 .pc-alta .pc-pista { grid-column: 1 / -1; margin: 0; }
+
+/* Pestañas que no caben (teléfono): se deslizan de lado en vez de salirse de la pantalla */
+.pestanas { overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+.pestanas::-webkit-scrollbar { display: none; }
+.pestana { flex: none; white-space: nowrap; }

@@ -1495,13 +1495,32 @@
     // Tablas anchas: se envuelven en un carril con desplazamiento lateral
     // para que en el teléfono se puedan ver de lado en vez de romper la
     // página. Funciona en cualquier módulo, presente o futuro.
-    document.querySelectorAll("main table").forEach(function (tabla) {
-        if (tabla.closest(".fc-carril")) return;
+    function enCarril(tabla) {
+        if (tabla.closest(".fc-carril") || tabla.closest("dialog")) return;
+        // Si ya vive en una caja que se desplaza sola (tablas de XML, Conciliación…), no se toca
+        for (var e = tabla.parentElement; e && e.tagName !== "MAIN"; e = e.parentElement) {
+            var o = getComputedStyle(e).overflowX;
+            if (o === "auto" || o === "scroll") return;
+        }
         var carril = document.createElement("div");
         carril.className = "fc-carril";
         tabla.parentNode.insertBefore(carril, tabla);
         carril.appendChild(tabla);
-    });
+    }
+    document.querySelectorAll("main table").forEach(enCarril);
+    // También las tablas que se dibujan después (Administración, Créditos, Documentos…)
+    var principal = document.querySelector("main");
+    if (principal && window.MutationObserver) {
+        new MutationObserver(function (cambios) {
+            cambios.forEach(function (c) {
+                c.addedNodes.forEach(function (n) {
+                    if (n.nodeType !== 1) return;
+                    if (n.tagName === "TABLE") enCarril(n);
+                    else if (n.querySelectorAll) n.querySelectorAll("table").forEach(enCarril);
+                });
+            });
+        }).observe(principal, { childList: true, subtree: true });
+    }
 
     iniciarPerfil();
     sondear();
