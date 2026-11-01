@@ -718,7 +718,12 @@ function prepararEventosSistema() {
         const b = e.target.closest("[data-sat-revisar]");
         if (b) revisarSAT(b.dataset.satRevisar);
     });
+    ["input", "change"].forEach(ev => $("tarjetas-estado").addEventListener(ev, e => {
+        const campo = e.target.closest("[data-guarda]");
+        if (campo) marcarPorGuardar(campo);
+    }));
     $("tarjetas-estado").addEventListener("click", e => {
+        if (e.target.closest("#btn-ver-registro")) abrirRegistro();
         if (e.target.closest("#btn-probar-proxy")) probarProxy();
         if (e.target.closest("#btn-actualizar-tc")) actualizarTipoCambio(e.target.closest("#btn-actualizar-tc"));
         if (e.target.closest("#btn-respaldar")) respaldarAhora(e.target.closest("#btn-respaldar"));
@@ -791,18 +796,18 @@ function tarjetaSesiones() {
         <button type="button" id="btn-historial-sesiones" class="mt-2 text-[11px] text-slate-500 underline">${verHistorialSesiones ? "Ocultar historial" : "Ver historial (" + d.historial.length + ")"}</button>
         ${historial}
         <div class="flex flex-wrap items-center gap-2 mt-2 text-xs">Sesiones al mismo tiempo por cuenta
-            <input id="max-sesiones" type="number" min="0" max="20" value="${esc(d.max_por_cuenta)}" class="border border-gray-200 rounded-lg py-1 px-2 w-16">
-            <button type="button" id="btn-max-sesiones" class="text-xs font-bold text-white bg-slate-800 hover:bg-slate-700 rounded-lg py-1 px-3">Guardar</button>
+            <input id="max-sesiones" data-guarda="btn-max-sesiones" type="number" min="0" max="20" value="${esc(d.max_por_cuenta)}" class="border border-gray-200 rounded-lg py-1 px-2 w-16">
+            ${botonGuardar("btn-max-sesiones")}
             <span class="text-[11px] text-slate-400">0 = sin tope · los administradores no tienen tope</span></div>`;
 }
 
 async function guardarMaxSesiones(boton) {
-    boton.disabled = true; boton.textContent = "Guardando…";
+    estadoGuardar(boton, "guardando");
     try {
         const r = await api("/api/admin/sesiones/max", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ max_por_cuenta: +$("max-sesiones").value }) });
-        sesionesWeb.max_por_cuenta = r.max_por_cuenta;
-        boton.textContent = "✓ Guardado"; setTimeout(() => { boton.textContent = "Guardar"; boton.disabled = false; }, 2000);
-    } catch (err) { mostrarAlerta("error", err.message); boton.textContent = "Guardar"; boton.disabled = false; }
+        sesionesWeb.max_por_cuenta = r.max_por_cuenta; $("max-sesiones").value = r.max_por_cuenta;
+        estadoGuardar(boton, "ok");
+    } catch (err) { mostrarAlerta("error", err.message); estadoGuardar(boton, "error"); }
 }
 
 async function cerrarSesionWeb(boton) {
@@ -824,17 +829,17 @@ function tarjetaPcs() {
     return `<p class="text-[11px] text-slate-500">Todas las PCs vinculadas, de todas las cuentas. Una PC nueva no recibe trámites hasta que su dueño la aprueba.</p>
         ${filas ? `<ul class="text-[11px] text-slate-600 mt-1 divide-y divide-gray-100">${filas}</ul>` : '<p class="text-[11px] text-slate-400 mt-1">Ninguna todavía.</p>'}
         <div class="flex items-center gap-2 mt-2 text-xs">Máximo de PCs por cuenta
-            <input id="max-pcs" type="number" min="1" max="50" value="${esc(d.max_pcs)}" class="border border-gray-200 rounded-lg py-1 px-2 w-16">
-            <button type="button" id="btn-max-pcs" class="text-xs font-bold text-white bg-slate-800 hover:bg-slate-700 rounded-lg py-1 px-3">Guardar</button></div>`;
+            <input id="max-pcs" data-guarda="btn-max-pcs" type="number" min="1" max="50" value="${esc(d.max_pcs)}" class="border border-gray-200 rounded-lg py-1 px-2 w-16">
+            ${botonGuardar("btn-max-pcs")}</div>`;
 }
 
 async function guardarMaxPcs(boton) {
-    boton.disabled = true; boton.textContent = "Guardando…";
+    estadoGuardar(boton, "guardando");
     try {
         const r = await api("/api/admin/agentes/max", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ max_pcs: +$("max-pcs").value }) });
-        pcsAgentes.max_pcs = r.max_pcs;
-        boton.textContent = "✓ Guardado"; setTimeout(() => { boton.textContent = "Guardar"; boton.disabled = false; }, 2000);
-    } catch (err) { mostrarAlerta("error", err.message); boton.textContent = "Guardar"; boton.disabled = false; }
+        pcsAgentes.max_pcs = r.max_pcs; $("max-pcs").value = r.max_pcs;
+        estadoGuardar(boton, "ok");
+    } catch (err) { mostrarAlerta("error", err.message); estadoGuardar(boton, "error"); }
 }
 
 async function quitarPc(boton) {
@@ -852,19 +857,19 @@ function tarjetaInhabiles() {
     const d = diasInhabiles;
     const corto = (iso) => new Date(iso + "T12:00:00").toLocaleDateString("es-MX", { day: "numeric", month: "short", year: "numeric" });
     return `<p class="text-[11px] text-slate-500">Además de los de ley (sábados, domingos, art. 12 del CFF y jueves y viernes santos), los que declare el SAT. Una fecha por renglón, AAAA-MM-DD. Se usan en los plazos del Buzón.</p>
-        <textarea id="txt-inhabiles" rows="4" class="mt-2 w-full border border-gray-200 rounded-lg p-2 text-xs font-mono" placeholder="2026-11-02">${esc((d.dias || []).join("\n"))}</textarea>
-        <button type="button" id="btn-guardar-inhabiles" class="mt-2 text-xs font-bold text-white bg-slate-800 hover:bg-slate-700 rounded-lg py-1.5 px-3">Guardar</button>
+        <textarea id="txt-inhabiles" data-guarda="btn-guardar-inhabiles" rows="4" class="mt-2 w-full border border-gray-200 rounded-lg p-2 text-xs font-mono" placeholder="2026-11-02">${esc((d.dias || []).join("\n"))}</textarea>
+        <div class="mt-2">${botonGuardar("btn-guardar-inhabiles")}</div>
         <p class="text-[11px] text-slate-400 mt-2">De ley: ${esc((d.de_ley || []).map(corto).join(" · "))}</p>`;
 }
 
 async function guardarInhabiles(boton) {
     const dias = $("txt-inhabiles").value.split(/[\s,]+/).map(x => x.trim()).filter(Boolean);
-    boton.disabled = true;
+    estadoGuardar(boton, "guardando");
     try {
         diasInhabiles = Object.assign(diasInhabiles || {}, await api("/api/admin/sistema/dias-inhabiles", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ dias }) }));
-        mostrarAlerta("ok", "Listo: los plazos del Buzón ya usan estos días.");
-        pintarEstado();
-    } catch (err) { mostrarAlerta("error", err.message); boton.disabled = false; }
+        $("txt-inhabiles").value = (diasInhabiles.dias || []).join("\n");
+        estadoGuardar(boton, "ok");
+    } catch (err) { mostrarAlerta("error", err.message); estadoGuardar(boton, "error"); }
 }
 const NOMBRE_MODO = { local: "Vostro", vps: "VPS de Oracle", alternar: "Alternar (mitad y mitad)", agente: "PC del contador (agente)" };
 const nombreTrabajador = (t) => t === "vps" ? "VPS" : (t || "").startsWith("agente:") ? "PC " + t.slice(7) : "Vostro";
@@ -874,7 +879,7 @@ function tarjetaTrabajadores() {
     if (!t) return "";
     const selects = Object.entries(t.tramites).map(([clave, nombre]) => `
         <label class="flex items-center justify-between gap-2 text-xs text-slate-700 mt-1">${esc(nombre)}
-            <select data-trabajo="${esc(clave)}" class="border border-gray-200 rounded-lg py-1 px-2 text-xs">
+            <select data-trabajo="${esc(clave)}" data-guarda="btn-guardar-trabajos" class="border border-gray-200 rounded-lg py-1 px-2 text-xs">
                 ${t.modos.map(m => `<option value="${esc(m)}" ${t.ajustes[clave] === m ? "selected" : ""}>${esc(NOMBRE_MODO[m] || m)}</option>`).join("")}
             </select></label>`).join("");
     const semana = (t.semana || []).filter(f => f.trabajador !== "local").map(f =>
@@ -884,7 +889,8 @@ function tarjetaTrabajadores() {
         ${!u.ok && u.motivo ? `<span class="text-amber-700"> · ${esc(u.motivo)}</span>` : ""}</li>`).join("");
     return `<p class="text-[11px] text-slate-500">Dónde se hacen los trámites. "PC del contador": en la PC de la cuenta que lo pide, si tiene el agente conectado (Conectar esta PC). Si el trabajador falla, lo hace la Vostro.</p>
         ${selects}
-        <button type="button" id="btn-guardar-trabajos" class="mt-2 text-xs font-bold text-white bg-slate-800 hover:bg-slate-700 rounded-lg py-1.5 px-3">Guardar</button>
+        <div class="flex gap-2 mt-2">${botonGuardar("btn-guardar-trabajos")}
+            <button type="button" id="btn-ver-registro" class="text-xs font-bold text-slate-700 border border-gray-200 hover:border-slate-400 rounded-lg py-1.5 px-3">Ver registro</button></div>
         <p class="text-[11px] text-slate-500 mt-2">${semana ? `Trabajadores, últimos 7 días: ${semana}` : "Ni la VPS ni los agentes han hecho trámites en los últimos 7 días."}</p>
         ${ultimas ? `<ul class="text-[11px] text-slate-600 mt-1 space-y-0.5">${ultimas}</ul>` : ""}
         <div class="flex gap-2 mt-2"><input id="rfc-probar-vps" placeholder="RFC con e.firma" maxlength="13" class="border border-gray-200 rounded-lg py-1 px-2 text-xs w-36 uppercase">
@@ -892,16 +898,34 @@ function tarjetaTrabajadores() {
         <p id="texto-probar-trabajador" class="text-[11px] text-slate-500 mt-1">Baja la constancia de ese RFC desde la VPS (sin guardarla) para ver si el SAT acepta la IP de Oracle.</p>`;
 }
 
+// Botones Guardar de las tarjetas: "Sin cambios" (apagado) → "Guardar cambios" al tocar algo →
+// "Guardando…" → "✓ Guardado". Cada campo dice qué botón activa con data-guarda.
+const CLASE_GUARDAR = "text-xs font-bold text-white rounded-lg py-1.5 px-3 ";
+function botonGuardar(id) {
+    return `<button type="button" id="${id}" disabled class="${CLASE_GUARDAR}bg-slate-400">Sin cambios</button>`;
+}
+function marcarPorGuardar(campo) {
+    const b = document.getElementById(campo.dataset.guarda);
+    if (!b) return;
+    b.disabled = false; b.textContent = "Guardar cambios"; b.className = CLASE_GUARDAR + "bg-amber-600 hover:bg-amber-500";
+}
+function estadoGuardar(boton, estado) {
+    if (estado === "guardando") { boton.disabled = true; boton.textContent = "Guardando…"; return; }
+    if (estado === "error") { boton.disabled = false; boton.textContent = "Guardar cambios"; return; }
+    boton.disabled = true; boton.textContent = "✓ Guardado"; boton.className = CLASE_GUARDAR + "bg-emerald-600";
+    setTimeout(() => { if (boton.textContent === "✓ Guardado") { boton.textContent = "Sin cambios"; boton.className = CLASE_GUARDAR + "bg-slate-400"; } }, 2500);
+}
+
 async function guardarTrabajos(boton) {
     const ajustes = {};
     document.querySelectorAll("select[data-trabajo]").forEach(s => { ajustes[s.dataset.trabajo] = s.value; });
-    boton.disabled = true;
+    estadoGuardar(boton, "guardando");
     try {
         await api("/api/admin/trabajadores", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ajustes }) });
-        mostrarAlerta("ok", "Listo: los trámites nuevos ya usan esta configuración.");
-        estadoTrabajadores = await api("/api/admin/trabajadores");
-        pintarEstado();
-    } catch (err) { mostrarAlerta("error", err.message); boton.disabled = false; }
+        estadoTrabajadores.ajustes = ajustes;
+        estadoGuardar(boton, "ok");
+        return;
+    } catch (err) { mostrarAlerta("error", err.message); estadoGuardar(boton, "error"); }
 }
 
 async function probarTrabajador(boton) {
@@ -1429,4 +1453,72 @@ function pintarBitacoraToda() {
     $("cuenta-bitacora").textContent = `${filas.length} de ${bitacoraCache.length} registros (los más recientes primero).`;
     $("lista-bitacora-toda").innerHTML = filas.map(filaBitacora).join("") ||
         `<p class="p-6 text-center text-sm text-slate-400">Nada coincide.</p>`;
+}
+
+
+// ------------------------------------------------------------ registro completo de trabajadores
+let registroActual = [];
+
+function abrirRegistro() {
+    let d = document.getElementById("dlg-registro");
+    if (!d) {
+        d = document.createElement("dialog");
+        d.id = "dlg-registro";
+        d.style.cssText = "width:min(1000px,calc(100vw - 32px));max-height:85vh;border:0;border-radius:14px;padding:0;box-shadow:0 20px 50px rgba(15,23,42,.35)";
+        d.innerHTML = `<div style="padding:16px 18px;border-bottom:1px solid #E5E7EB;display:flex;justify-content:space-between;align-items:center">
+                <b>Registro de trabajadores</b><button type="button" id="reg-cerrar" class="text-slate-400 hover:text-red-500 text-lg">✕</button></div>
+            <div style="padding:12px 18px" class="flex flex-wrap gap-2 items-end text-xs">
+                <label>Quién<br><select id="reg-trabajador" class="border border-gray-200 rounded-lg py-1 px-2"></select></label>
+                <label>Trámite<br><select id="reg-tipo" class="border border-gray-200 rounded-lg py-1 px-2"></select></label>
+                <label>RFC<br><input id="reg-rfc" class="border border-gray-200 rounded-lg py-1 px-2 w-32 uppercase"></label>
+                <label>Resultado<br><select id="reg-ok" class="border border-gray-200 rounded-lg py-1 px-2"><option value="">Todos</option><option value="1">Bien</option><option value="0">Falló</option></select></label>
+                <label>Desde<br><input id="reg-desde" type="date" class="border border-gray-200 rounded-lg py-1 px-2"></label>
+                <label>Hasta<br><input id="reg-hasta" type="date" class="border border-gray-200 rounded-lg py-1 px-2"></label>
+                <button type="button" id="reg-buscar" class="font-bold text-white bg-slate-800 hover:bg-slate-700 rounded-lg py-1.5 px-3">Buscar</button>
+                <button type="button" id="reg-csv" class="font-bold text-slate-700 border border-gray-200 rounded-lg py-1.5 px-3">Exportar CSV</button>
+                <span id="reg-total" class="text-slate-500 ml-auto"></span></div>
+            <div style="padding:0 18px 16px;overflow:auto;max-height:60vh"><table class="w-full text-xs"><thead class="text-left text-slate-500"><tr>
+                <th class="py-1">Cuándo</th><th>Quién</th><th>Trámite</th><th>RFC</th><th>Seg.</th><th>Resultado</th></tr></thead><tbody id="reg-filas"></tbody></table></div>`;
+        document.body.appendChild(d);
+        d.querySelector("#reg-cerrar").addEventListener("click", () => d.close());
+        d.querySelector("#reg-buscar").addEventListener("click", buscarRegistro);
+        d.querySelector("#reg-csv").addEventListener("click", exportarRegistro);
+        d.addEventListener("keydown", e => { if (e.key === "Enter") buscarRegistro(); });
+    }
+    d.showModal();
+    buscarRegistro();
+}
+
+async function buscarRegistro() {
+    const v = id => (document.getElementById(id).value || "").trim();
+    const q = new URLSearchParams({ trabajador: v("reg-trabajador"), tipo: v("reg-tipo"), rfc: v("reg-rfc"), ok: v("reg-ok"), desde: v("reg-desde"), hasta: v("reg-hasta") });
+    $("reg-total").textContent = "Buscando…";
+    try {
+        const r = await api("/api/admin/trabajadores/registro?" + q);
+        registroActual = r.filas;
+        const selT = $("reg-trabajador"), actualT = selT.value;
+        selT.innerHTML = '<option value="">Todos</option>' + r.trabajadores.map(t => `<option value="${esc(t)}">${esc(t === "local" ? "Vostro (sin navegador)" : nombreTrabajador(t))}</option>`).join("");
+        selT.value = actualT;
+        const selP = $("reg-tipo"), actualP = selP.value;
+        selP.innerHTML = '<option value="">Todos</option>' + Object.entries(r.tramites).map(([k, n]) => `<option value="${esc(k)}">${esc(n)}</option>`).join("");
+        selP.value = actualP;
+        $("reg-total").textContent = `${r.filas.length} registro${r.filas.length === 1 ? "" : "s"}` + (r.filas.length >= 500 ? " (los 500 más recientes)" : "");
+        $("reg-filas").innerHTML = r.filas.map(f => `<tr class="border-t border-gray-100">
+            <td class="py-1">${esc(fechaHoraCorta(f.inicio))}</td><td>${esc(f.trabajador === "local" ? "Vostro" : nombreTrabajador(f.trabajador))}</td>
+            <td>${esc(r.tramites[f.tipo] || f.tipo)}</td><td class="font-mono">${esc(f.rfc || "")}</td><td>${f.segundos ? esc(f.segundos) : ""}</td>
+            <td>${f.ok ? '<span class="text-emerald-700">✓ bien</span>' : '<span class="text-red-700">✗ ' + esc(f.motivo || "falló") + "</span>"}</td></tr>`).join("") ||
+            '<tr><td colspan="6" class="py-3 text-slate-400">Sin registros con esos filtros.</td></tr>';
+    } catch (err) { $("reg-total").textContent = err.message; }
+}
+
+function fechaHoraCorta(iso) {
+    const f = new Date(iso);
+    return isNaN(f) ? iso : f.toLocaleString("es-MX", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+}
+
+function exportarRegistro() {
+    const celda = x => '"' + String(x == null ? "" : x).replace(/"/g, '""') + '"';
+    const lineas = [["Cuando", "Quien", "Tramite", "RFC", "Segundos", "Resultado", "Motivo"].map(celda).join(",")]
+        .concat(registroActual.map(f => [fechaHoraCorta(f.inicio), f.trabajador, f.tipo, f.rfc, f.segundos, f.ok ? "bien" : "fallo", f.motivo].map(celda).join(",")));
+    Fiscontable.guardarArchivo(new Blob(["\ufeff" + lineas.join("\r\n")], { type: "text/csv;charset=utf-8" }), "Registro_trabajadores.csv");
 }
