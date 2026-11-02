@@ -718,11 +718,17 @@ function prepararEventosSistema() {
         const b = e.target.closest("[data-sat-revisar]");
         if (b) revisarSAT(b.dataset.satRevisar);
     });
-    ["input", "change"].forEach(ev => $("tarjetas-estado").addEventListener(ev, e => {
-        const campo = e.target.closest("[data-guarda]");
-        if (campo) marcarPorGuardar(campo);
-    }));
-    $("tarjetas-estado").addEventListener("click", e => {
+    ["input", "change"].forEach(ev => $("tarjetas-estado").addEventListener(ev, cambioCampo));
+    $("tarjetas-estado").addEventListener("click", clicTarjeta);
+}
+
+function cambioCampo(e) {
+    const campo = e.target.closest("[data-guarda]");
+    if (campo) marcarPorGuardar(campo);
+}
+
+function clicTarjeta(e) {
+    {
         if (e.target.closest("#btn-ver-registro")) abrirRegistro();
         if (e.target.closest("#btn-config-trabajos")) abrirTrabajadores();
         if (e.target.closest("#btn-probar-proxy")) probarProxy();
@@ -738,7 +744,10 @@ function prepararEventosSistema() {
         if (e.target.closest("[data-cerrar-sesion]")) cerrarSesionWeb(e.target.closest("[data-cerrar-sesion]"));
         if (e.target.closest("[data-quitar-pc]")) quitarPc(e.target.closest("[data-quitar-pc]"));
         if (e.target.closest("#btn-probar-trabajador")) probarTrabajador(e.target.closest("#btn-probar-trabajador"));
-    });
+        if (e.target.closest("#btn-ver-inhabiles")) ventana("dlg-inhabiles", "Días inhábiles del SAT", cuerpoInhabiles);
+        if (e.target.closest("#btn-ver-pcs")) ventana("dlg-pcs", "PCs con el agente", cuerpoPcs);
+        if (e.target.closest("#btn-ver-conectados")) ventana("dlg-conectados", "Conectados ahora", cuerpoConectados);
+    }
 }
 
 function tamano(bytes) {
@@ -783,7 +792,44 @@ let diasInhabiles = null;
 let pcsAgentes = null;
 let sesionesWeb = null;
 
+// Ventanas de las tarjetas (mismo diseño que «Ver registro"): el contenido sale de una función,
+// así se vuelve a pintar después de cada acción (desconectar, cerrar sesión…)
+const VENTANAS = {};
+function ventana(id, titulo, cuerpo) {
+    VENTANAS[id] = { titulo, cuerpo };
+    let d = document.getElementById(id);
+    if (!d) {
+        d = document.createElement("dialog");
+        d.id = id;
+        d.style.cssText = "width:min(640px,calc(100vw - 32px));max-height:88vh;border:0;border-radius:14px;padding:0;box-shadow:0 20px 50px rgba(15,23,42,.35)";
+        document.body.appendChild(d);
+        ["input", "change"].forEach(ev => d.addEventListener(ev, cambioCampo));
+        d.addEventListener("click", e => { if (e.target.closest("[data-cerrar]")) d.close(); else clicTarjeta(e); });
+    }
+    pintarVentana(id);
+    d.showModal();
+}
+function pintarVentana(id) {
+    const v = VENTANAS[id], d = document.getElementById(id);
+    if (!v || !d) return;
+    d.innerHTML = `<div style="padding:16px 18px;border-bottom:1px solid #E5E7EB;display:flex;justify-content:space-between;align-items:center">
+        <b>${esc(v.titulo)}</b><button type="button" data-cerrar class="text-slate-400 hover:text-red-500 text-lg">✕</button></div>
+        <div style="padding:14px 18px;overflow:auto;max-height:calc(88vh - 60px)">${v.cuerpo()}</div>`;
+}
+function refrescarVentana(id) { const d = document.getElementById(id); if (d && d.open) pintarVentana(id); }
+
+const botonVer = (id, texto) => `<button type="button" id="${id}" class="text-xs font-bold text-slate-700 border border-gray-200 hover:border-slate-400 rounded-lg py-1.5 px-3">${texto}</button>`;
+
+// Sesiones: de entrada solo cuántos hay; la lista y el tope, en su ventana
 function tarjetaSesiones() {
+    const d = sesionesWeb, n = d.activas.length;
+    const cuentas = new Set(d.activas.map(x => x.correo)).size;
+    return `<p class="text-3xl font-extrabold text-slate-800">${n}<span class="text-sm font-semibold text-slate-500 ml-2">conectado${n === 1 ? "" : "s"} ahora</span></p>
+        <p class="text-[11px] text-slate-500 mt-1">${n ? `${cuentas} cuenta${cuentas === 1 ? "" : "s"} · actividad en los últimos ${esc(d.activa_min)} min` : "Nadie más en este momento."}${d.max_por_cuenta ? ` · tope: ${esc(d.max_por_cuenta)} por cuenta` : ""}</p>
+        <div class="flex gap-2 mt-3">${botonVer("btn-ver-conectados", "Ver conectados")}${botonVer("btn-registro-sesiones", "Ver registro")}</div>`;
+}
+
+function cuerpoConectados() {
     const d = sesionesWeb;
     const fila = (x, conBoton) => `<li class="flex items-start justify-between gap-2 py-1">
         <span><span class="inline-block w-2 h-2 rounded-full mr-1 ${x.activa ? "bg-emerald-500" : x.cerrada_en ? "bg-red-400" : "bg-gray-300"}"></span>
@@ -792,12 +838,11 @@ function tarjetaSesiones() {
         ${conBoton && !x.cerrada_en ? `<button type="button" data-cerrar-sesion="${esc(x.clave)}" data-correo="${esc(x.correo)}" class="text-[11px] text-slate-500 hover:text-red-600 border border-gray-200 rounded-lg py-0.5 px-2 flex-none">Cerrar</button>` : ""}</li>`;
     const activas = d.activas.map(x => fila(x, true)).join("");
     return `<p class="text-[11px] text-slate-500">Conectados ahora (actividad en los últimos ${esc(d.activa_min)} min): ${d.activas.length}</p>
-        ${activas ? `<ul class="text-[11px] text-slate-600 mt-1 divide-y divide-gray-100">${activas}</ul>` : '<p class="text-[11px] text-slate-400 mt-1">Nadie más en este momento.</p>'}
+        ${activas ? `<ul class="text-xs text-slate-600 mt-1 divide-y divide-gray-100">${activas}</ul>` : '<p class="text-xs text-slate-400 mt-1">Nadie más en este momento.</p>'}
         <div class="flex flex-wrap items-center gap-2 mt-2 text-xs">Sesiones al mismo tiempo por cuenta
             <input id="max-sesiones" data-guarda="btn-max-sesiones" type="number" min="0" max="20" value="${esc(d.max_por_cuenta)}" class="border border-gray-200 rounded-lg py-1 px-2 w-16">
             ${botonGuardar("btn-max-sesiones")}
-            <span class="text-[11px] text-slate-400">0 = sin tope · los administradores no tienen tope</span></div>
-        <div class="mt-2"><button type="button" id="btn-registro-sesiones" class="text-xs font-bold text-slate-700 border border-gray-200 hover:border-slate-400 rounded-lg py-1.5 px-3">Ver registro</button></div>`;
+            <span class="text-[11px] text-slate-400">0 = sin tope · los administradores no tienen tope</span></div>`;
 }
 
 async function guardarMaxSesiones(boton) {
@@ -815,12 +860,24 @@ async function cerrarSesionWeb(boton) {
         await api(`/api/admin/sesiones/${boton.dataset.cerrarSesion}/cerrar`, { method: "POST" });
         sesionesWeb = await api("/api/admin/sesiones");
         pintarEstado();
+        refrescarVentana("dlg-conectados");
         const dlg = document.getElementById("dlg-sesiones");
         if (dlg && dlg.open) buscarSesiones();
     } catch (err) { mostrarAlerta("error", err.message); }
 }
 
 function tarjetaPcs() {
+    const d = pcsAgentes, ag = d.agentes || [];
+    const con = ag.filter(a => a.conectado).length, porAprobar = ag.filter(a => !a.aprobado).length;
+    const i = d.instalador || {}, a = i.actual;
+    const instalador = !i.configurado ? '<span class="text-amber-700">Falta la llave de GitHub</span>'
+        : i.error ? '<span class="text-red-700">Instalador: revisar</span>' : a ? `Instalador ${esc(a.version)}` : "Sin instalador";
+    return `<p class="text-3xl font-extrabold text-slate-800">${ag.length}<span class="text-sm font-semibold text-slate-500 ml-2">PC${ag.length === 1 ? "" : "s"} vinculada${ag.length === 1 ? "" : "s"}</span></p>
+        <p class="text-[11px] text-slate-500 mt-1">${con} conectada${con === 1 ? "" : "s"} ahora${porAprobar ? ` · <b class="text-amber-700">${porAprobar} por aprobar</b>` : ""} · máx. ${esc(d.max_pcs)} por cuenta · ${instalador}</p>
+        <div class="flex gap-2 mt-3">${botonVer("btn-ver-pcs", "Ver PCs")}</div>`;
+}
+
+function cuerpoPcs() {
     const d = pcsAgentes;
     const filas = (d.agentes || []).map(a => `<li class="flex items-start justify-between gap-2 py-1">
         <span><span class="inline-block w-2 h-2 rounded-full mr-1 ${a.conectado ? "bg-emerald-500" : "bg-gray-300"}"></span>
@@ -852,6 +909,7 @@ async function revisarInstalador(boton) {
     try {
         pcsAgentes.instalador = await api("/api/admin/agentes/instalador/revisar", { method: "POST" });
         pintarEstado();
+        refrescarVentana("dlg-pcs");
     } catch (err) { mostrarAlerta("error", err.message); boton.disabled = false; boton.textContent = "Revisar ahora en GitHub"; }
 }
 
@@ -870,14 +928,25 @@ async function quitarPc(boton) {
         await api(`/api/admin/agentes/${boton.dataset.quitarPc}`, { method: "DELETE" });
         pcsAgentes = await api("/api/admin/agentes");
         pintarEstado();
+        refrescarVentana("dlg-pcs");
     } catch (err) { mostrarAlerta("error", err.message); }
 }
 
 // Plazos del Buzón (cuándo queda notificada y cuándo surte efectos): los de ley se calculan solos;
 // aquí van los que declare el SAT (vacaciones, días de la RMF).
+const fechaLarga = (iso) => new Date(iso + "T12:00:00").toLocaleDateString("es-MX", { day: "numeric", month: "short", year: "numeric" });
 function tarjetaInhabiles() {
+    const d = diasInhabiles, hoy = new Date().toISOString().slice(0, 10);
+    const extra = (d.dias || []).filter(x => x >= hoy).sort();
+    const proximo = (d.dias || []).concat(d.de_ley || []).filter(x => x >= hoy).sort()[0];
+    return `<p class="text-sm text-slate-800">${proximo ? `Próximo inhábil: <b>${esc(fechaLarga(proximo))}</b>` : "Sin próximos días inhábiles"}</p>
+        <p class="text-[11px] text-slate-500 mt-1">${extra.length ? `${extra.length} declarado${extra.length === 1 ? "" : "s"} por el SAT por venir` : "Ninguno extra del SAT por venir"} · además de los de ley</p>
+        <div class="flex gap-2 mt-3">${botonVer("btn-ver-inhabiles", "Ver y editar")}</div>`;
+}
+
+function cuerpoInhabiles() {
     const d = diasInhabiles;
-    const corto = (iso) => new Date(iso + "T12:00:00").toLocaleDateString("es-MX", { day: "numeric", month: "short", year: "numeric" });
+    const corto = fechaLarga;
     return `<p class="text-[11px] text-slate-500">Además de los de ley (sábados, domingos, art. 12 del CFF y jueves y viernes santos), los que declare el SAT. Una fecha por renglón, AAAA-MM-DD. Se usan en los plazos del Buzón.</p>
         <textarea id="txt-inhabiles" data-guarda="btn-guardar-inhabiles" rows="4" class="mt-2 w-full border border-gray-200 rounded-lg p-2 text-xs font-mono" placeholder="2026-11-02">${esc((d.dias || []).join("\n"))}</textarea>
         <div class="mt-2">${botonGuardar("btn-guardar-inhabiles")}</div>
@@ -891,6 +960,7 @@ async function guardarInhabiles(boton) {
         diasInhabiles = Object.assign(diasInhabiles || {}, await api("/api/admin/sistema/dias-inhabiles", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ dias }) }));
         $("txt-inhabiles").value = (diasInhabiles.dias || []).join("\n");
         estadoGuardar(boton, "ok");
+        pintarEstado();
     } catch (err) { mostrarAlerta("error", err.message); estadoGuardar(boton, "error"); }
 }
 const NOMBRE_MODO = { local: "Vostro", vps: "VPS de Oracle", alternar: "Alternar (mitad y mitad)", agente: "PC del contador (agente)" };
@@ -902,7 +972,11 @@ function tarjetaTrabajadores() {
     const t = estadoTrabajadores;
     if (!t) return "";
     const grupos = {};
-    Object.keys(t.tramites).forEach(k => { const m = t.ajustes[k] || "local"; (grupos[m] = grupos[m] || []).push(t.tramites[k].replace(/ \(.*\)$/, "")); });
+    const CORTO_RESP = { local: "Vostro", vps: "VPS", alternar: "alternar" };
+    Object.keys(t.tramites).forEach(k => {
+        const m = t.ajustes[k] || "local", r = (t.respaldos || {})[k] || "local";
+        (grupos[m] = grupos[m] || []).push(t.tramites[k].replace(/ \(.*\)$/, "") + (m === "agente" && r !== "local" ? ` (sin PC: ${CORTO_RESP[r]})` : ""));
+    });
     const filas = ["agente", "alternar", "vps", "local"].filter(m => grupos[m]).map(m =>
         `<li class="flex items-start gap-2 py-1"><span class="text-[11px] font-bold px-2 py-0.5 rounded-full flex-none ${COLOR_MODO[m]}">${esc(NOMBRE_MODO[m] || m)}</span>
          <span class="text-xs text-slate-700">${grupos[m].map(esc).join(" · ")}</span></li>`).join("");
@@ -920,18 +994,30 @@ function abrirTrabajadores() {
         d.id = "dlg-trabajos";
         d.style.cssText = "width:min(640px,calc(100vw - 32px));max-height:88vh;border:0;border-radius:14px;padding:0;box-shadow:0 20px 50px rgba(15,23,42,.35)";
         document.body.appendChild(d);
-        ["input", "change"].forEach(ev => d.addEventListener(ev, e => { const c = e.target.closest("[data-guarda]"); if (c) marcarPorGuardar(c); }));
+        ["input", "change"].forEach(ev => d.addEventListener(ev, e => {
+            const c = e.target.closest("[data-guarda]"); if (c) marcarPorGuardar(c);
+            const sel = e.target.closest("[data-trabajo]");                       // «PC del contador» muestra su respaldo
+            if (sel) { const r = d.querySelector(`[data-sin-pc="${sel.dataset.trabajo}"]`); if (r) r.hidden = sel.value !== "agente"; }
+        }));
         d.addEventListener("click", e => {
             if (e.target.closest("[data-cerrar]")) d.close();
             if (e.target.closest("#btn-guardar-trabajos")) guardarTrabajos(e.target.closest("#btn-guardar-trabajos"));
             if (e.target.closest("#btn-probar-trabajador")) probarTrabajador(e.target.closest("#btn-probar-trabajador"));
         });
     }
-    const filas = Object.entries(t.tramites).map(([clave, nombre]) => `<tr class="border-t border-gray-100">
+    const resp = t.respaldos || {};
+    const filas = Object.entries(t.tramites).map(([clave, nombre]) => {
+        const soloVostro = !!(t.modos_de || {})[clave];
+        const sinPc = soloVostro ? '<span class="text-xs text-slate-500">Vostro</span>'
+            : `<select data-respaldo="${esc(clave)}" data-guarda="btn-guardar-trabajos" class="border border-gray-200 rounded-lg py-1 px-2 text-xs">
+                ${["local", "vps", "alternar"].map(m => `<option value="${m}" ${(resp[clave] || "local") === m ? "selected" : ""}>${esc(NOMBRE_MODO[m])}</option>`).join("")}</select>`;
+        return `<tr class="border-t border-gray-100">
         <td class="py-2 pr-3 text-sm text-slate-800">${esc(nombre)}</td>
         <td class="py-2 text-right"><select data-trabajo="${esc(clave)}" data-guarda="btn-guardar-trabajos" class="border border-gray-200 rounded-lg py-1.5 px-2 text-sm">
             ${((t.modos_de || {})[clave] || t.modos).map(m => `<option value="${esc(m)}" ${t.ajustes[clave] === m ? "selected" : ""}>${esc(NOMBRE_MODO[m] || m)}</option>`).join("")}
-        </select></td></tr>`).join("");
+        </select>
+        <div class="mt-1 text-xs text-slate-500" data-sin-pc="${esc(clave)}" ${t.ajustes[clave] === "agente" ? "" : "hidden"}>Si no tiene su PC lista: ${sinPc}</div></td></tr>`;
+    }).join("");
     d.innerHTML = `<div style="padding:16px 18px;border-bottom:1px solid #E5E7EB;display:flex;justify-content:space-between;align-items:center">
             <b>¿Dónde se hace cada trámite?</b><button type="button" data-cerrar class="text-slate-400 hover:text-red-500 text-lg">✕</button></div>
         <div style="padding:14px 18px;overflow:auto;max-height:calc(88vh - 60px)">
@@ -942,7 +1028,8 @@ function abrirTrabajadores() {
                 <li><b>VPS de Oracle:</b> el servidor en la nube (otra IP). <b>Alternar:</b> mitad y mitad entre los dos.</li>
                 <li><b>PC del contador (agente):</b> en la PC de la cuenta que lo pide, con su internet. Si esa cuenta no tiene una PC
                     conectada y aprobada (o está apagada, en pausa, fuera de su horario o ese trámite no está marcado en esa PC),
-                    lo hace la Vostro al momento, sin esperar. Si la PC empieza y falla, también lo termina la Vostro.</li>
+                    va al momento a lo que elijas en «Si no tiene su PC lista» (Vostro, VPS o alternar), sin esperar.
+                    Si la PC empieza y falla, lo termina la Vostro.</li>
             </ul>
             <div class="mt-4 pt-3 border-t border-gray-100">
                 <p class="text-sm font-bold text-slate-800">Probar la VPS</p>
@@ -973,12 +1060,14 @@ function estadoGuardar(boton, estado) {
 }
 
 async function guardarTrabajos(boton) {
-    const ajustes = {};
+    const ajustes = {}, respaldos = {};
     document.querySelectorAll("select[data-trabajo]").forEach(s => { ajustes[s.dataset.trabajo] = s.value; });
+    document.querySelectorAll("select[data-respaldo]").forEach(s => { respaldos[s.dataset.respaldo] = s.value; });
     estadoGuardar(boton, "guardando");
     try {
-        await api("/api/admin/trabajadores", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ajustes }) });
+        await api("/api/admin/trabajadores", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ajustes, respaldos }) });
         estadoTrabajadores.ajustes = ajustes;
+        estadoTrabajadores.respaldos = Object.assign(estadoTrabajadores.respaldos || {}, respaldos);
         estadoGuardar(boton, "ok");
         pintarEstado();                     // la tarjeta resumen se actualiza detrás de la ventana
         return;
