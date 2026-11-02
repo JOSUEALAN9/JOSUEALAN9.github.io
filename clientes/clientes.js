@@ -260,18 +260,101 @@ function badgeDocumento(cliente, tipo, etiqueta) {
     return `<span class="text-xs font-semibold px-2 py-1 rounded-full bg-gray-100 text-gray-400">${etiqueta} —</span>`;
 }
 
+/* ---------------------------------------------------------------- buscar, filtrar y vista
+   El filtro y la búsqueda quedan en la dirección (F5 / enlace), la vista (tarjetas o lista) en este navegador. */
+const tieneDoc = (c, tipo) => (c.documentos || []).some(d => d.tipo === tipo);
+const FILTROS = [
+    ["", "Todos", () => true],
+    ["sin-efirma", "Sin e.firma", c => !c.efirma_guardada],
+    ["sin-ciec", "Sin contraseña SAT", c => !c.ciec_guardada],
+    ["sin-constancia", "Sin constancia del mes", c => !tieneDoc(c, "csf")],
+    ["sin-opinion", "Sin opinión del mes", c => !tieneDoc(c, "opinion")],
+    ["con-efirma", "Con e.firma", c => !!c.efirma_guardada],
+];
+let filtroCli = Fiscontable.url("filtro") || "";
+let busquedaCli = Fiscontable.url("q") || "";
+let vistaCli = (() => { try { return localStorage.getItem("clientes:vista") || "tarjetas"; } catch (e) { return "tarjetas"; } })();
+
+function sinAcentos(t) { return String(t || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""); }
+
+function clientesVisibles() {
+    const f = (FILTROS.find(x => x[0] === filtroCli) || FILTROS[0])[2], q = sinAcentos(busquedaCli.trim());
+    return clientesCache.filter(c => f(c) && (!q || sinAcentos(c.alias + " " + c.rfc + " " + (c.razon_social || "")).includes(q)));
+}
+
+function pintarHerramientas() {
+    const caja = document.getElementById("cli-herramientas");
+    caja.hidden = clientesCache.length === 0;
+    document.getElementById("cli-filtros").innerHTML = FILTROS.map(([clave, texto, fn]) =>
+        `<button type="button" class="cli-filtro${clave === filtroCli ? " cli-filtro--activo" : ""}" data-filtro="${clave}">${esc(texto)}<b>${clientesCache.filter(fn).length}</b></button>`).join("");
+    document.querySelectorAll("[data-vista]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.vista === vistaCli)));
+    const buscar = document.getElementById("cli-buscar");
+    if (buscar.value !== busquedaCli) buscar.value = busquedaCli;
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+    document.getElementById("cli-filtros").addEventListener("click", e => {
+        const b = e.target.closest("[data-filtro]"); if (!b) return;
+        filtroCli = b.dataset.filtro; Fiscontable.url({ filtro: filtroCli || null }); renderizarClientes();
+    });
+    document.querySelector(".cli-vista").addEventListener("click", e => {
+        const b = e.target.closest("[data-vista]"); if (!b) return;
+        vistaCli = b.dataset.vista;
+        try { localStorage.setItem("clientes:vista", vistaCli); } catch (err) { /* sin almacenamiento */ }
+        renderizarClientes();
+    });
+    document.getElementById("cli-buscar").addEventListener("input", e => {
+        busquedaCli = e.target.value; Fiscontable.url({ q: busquedaCli.trim() || null }); renderizarClientes();
+    });
+});
+
+function filaLista(c) {
+    const r = encodeURIComponent(c.rfc), a = encodeURIComponent(c.alias);
+    const marca = (ok, si, no) => ok ? `<span class="cli-si">✓ ${si}</span>` : `<span class="cli-no">${no}</span>`;
+    return `<tr>
+        <td><b class="text-slate-800">${esc(c.alias)}</b></td>
+        <td class="font-mono text-xs text-slate-500">${esc(c.rfc)}</td>
+        <td class="text-xs text-slate-500">${esc(c.tipo_sociedad || "")}</td>
+        <td>${c.efirma_guardada ? '<span class="cli-si">✓ Guardada</span>' : (puedeGuardarEfirma && !soloLectura ? `<button type="button" class="text-xs font-bold text-violet-700 underline" data-rfc="${esc(c.rfc)}" onclick="abrirModalEditar(this.dataset.rfc)">Subir e.firma</button>` : '<span class="cli-no">Falta</span>')}</td>
+        <td>${marca(c.ciec_guardada, "Sí", "—")}</td>
+        <td>${marca(tieneDoc(c, "csf"), "Al día", "Falta")}</td>
+        <td>${marca(tieneDoc(c, "opinion"), "Al día", "Falta")}</td>
+        <td class="text-right whitespace-nowrap">
+            <a class="text-xs font-semibold text-slate-600 hover:text-violet-700 mr-2" href="/herramientas/constancias/?rfc=${r}&cliente=${a}">Constancia</a>
+            <a class="text-xs font-semibold text-slate-600 hover:text-violet-700 mr-2" href="/herramientas/descarga-xml/?rfc=${r}&cliente=${a}">XML</a>
+            ${soloLectura ? "" : `<button type="button" class="text-xs font-semibold text-slate-600 hover:text-violet-700" data-rfc="${esc(c.rfc)}" onclick="abrirModalEditar(this.dataset.rfc)">Editar</button>`}
+        </td></tr>`;
+}
+
 function renderizarClientes() {
     const contenedor = document.getElementById("lista-clientes");
     const estadoVacio = document.getElementById("estado-vacio");
+    const sinRes = document.getElementById("cli-sin-resultados");
 
+    pintarHerramientas();
     if (clientesCache.length === 0) {
         contenedor.innerHTML = "";
+        sinRes.hidden = true;
         estadoVacio.classList.remove("hidden");
         return;
     }
     estadoVacio.classList.add("hidden");
 
-    contenedor.innerHTML = clientesCache.map(cliente => {
+    const visibles = clientesVisibles();
+    sinRes.hidden = visibles.length > 0;
+    if (!visibles.length) {
+        const f = FILTROS.find(x => x[0] === filtroCli);
+        sinRes.textContent = busquedaCli.trim() ? "Ninguna empresa coincide con la búsqueda." : `Ninguna empresa en «${f ? f[1] : ""}». ✓`;
+    }
+    if (vistaCli === "lista") {
+        contenedor.className = "";
+        contenedor.innerHTML = visibles.length ? `<table class="cli-tabla"><thead><tr><th>Empresa</th><th>RFC</th><th>Tipo</th><th>e.firma</th><th>Contraseña SAT</th>
+            <th>Constancia</th><th>Opinión</th><th></th></tr></thead><tbody>${visibles.map(filaLista).join("")}</tbody></table>` : "";
+        return;
+    }
+    contenedor.className = "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4";
+
+    contenedor.innerHTML = visibles.map(cliente => {
         const rfcCodificado = encodeURIComponent(cliente.rfc);
         const aliasCodificado = encodeURIComponent(cliente.alias);
         return `

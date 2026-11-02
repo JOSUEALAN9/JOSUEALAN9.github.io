@@ -5,14 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mis Clientes | Fiscontable</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611021000">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611021100">
 </head>
 <body class="min-h-screen flex flex-col relative">
 
     <!-- TOP NAV -->
     <div id="app-header" data-modulo="clientes" data-titulo="Mis clientes" data-migas=""></div>
-<script src="/assets/js/nucleo.js?v=202611021000"></script>
-<script src="/assets/js/barra.js?v=202611021000"></script>
+<script src="/assets/js/nucleo.js?v=202611021100"></script>
+<script src="/assets/js/barra.js?v=202611021100"></script>
 
     <!-- ÁREA DE TRABAJO -->
     <main class="flex-grow w-full mod-pagina" style="max-width:1180px">
@@ -51,6 +51,17 @@
             <p class="text-slate-500 font-semibold">Todavía no tienes clientes registrados</p>
             <p class="text-sm text-slate-400 mt-1">Regístralas con «+ Registrar empresa»: con su e.firma, el RFC sale solo.</p>
         </div>
+
+        <!-- Buscar, filtrar (¿a quién le falta su e.firma?) y ver en tarjetas o en lista -->
+        <div id="cli-herramientas" class="cli-herr" hidden>
+            <input type="search" id="cli-buscar" class="cli-buscar" placeholder="Buscar por nombre o RFC…" autocomplete="off">
+            <div class="cli-filtros" id="cli-filtros" role="group" aria-label="Filtrar"></div>
+            <div class="cli-vista" role="group" aria-label="Vista">
+                <button type="button" data-vista="tarjetas" title="Tarjetas" aria-label="Ver en tarjetas">▦</button>
+                <button type="button" data-vista="lista" title="Lista" aria-label="Ver en lista">☰</button>
+            </div>
+        </div>
+        <p id="cli-sin-resultados" class="text-sm text-slate-500 py-6 text-center" hidden></p>
 
         <div id="lista-clientes" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
     </main>
@@ -247,8 +258,25 @@
         </div>
     </div>
 
-<script src="/assets/js/comun/leer-cer.js?v=202611021000"></script>
+<script src="/assets/js/comun/leer-cer.js?v=202611021100"></script>
 <style>
+    .cli-herr { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 14px; }
+    .cli-buscar { flex: 1 1 220px; max-width: 320px; font-size: 14px; border: 1px solid #e5e7eb; border-radius: 10px; padding: 8px 12px; background: #fff; }
+    .cli-buscar:focus { outline: none; border-color: #7c3aed; box-shadow: 0 0 0 3px #ede9fe; }
+    .cli-filtros { display: flex; flex-wrap: wrap; gap: 6px; flex: 1 1 auto; }
+    .cli-filtro { border: 1px solid #e5e7eb; background: #fff; border-radius: 999px; padding: 5px 11px; font: inherit; font-size: 12.5px; font-weight: 600; color: #475569; cursor: pointer; }
+    .cli-filtro b { font-weight: 800; color: #94a3b8; margin-left: 3px; }
+    .cli-filtro--activo { background: #6d28d9; border-color: #6d28d9; color: #fff; }
+    .cli-filtro--activo b { color: #ddd6fe; }
+    .cli-vista { display: flex; border: 1px solid #e5e7eb; border-radius: 10px; overflow: hidden; background: #fff; }
+    .cli-vista button { border: 0; background: none; padding: 6px 11px; font-size: 15px; cursor: pointer; color: #64748b; }
+    .cli-vista button[aria-pressed="true"] { background: #f1ebfd; color: #6d28d9; }
+    .cli-tabla { width: 100%; background: #fff; border: 1px solid #e5e7eb; border-radius: 14px; border-collapse: separate; border-spacing: 0; font-size: 13px; overflow: hidden; }
+    .cli-tabla th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: #64748b; background: #f8fafc; padding: 9px 12px; border-bottom: 1px solid #e5e7eb; white-space: nowrap; }
+    .cli-tabla td { padding: 9px 12px; border-bottom: 1px solid #f1f5f9; vertical-align: middle; }
+    .cli-tabla tr:last-child td { border-bottom: 0; }
+    .cli-tabla tr:hover td { background: #faf7ff; }
+    .cli-si { color: #047857; font-weight: 700; } .cli-no { color: #b45309; font-weight: 600; } .cli-nada { color: #cbd5e1; }
     .alta-etiqueta { display: block; font-size: 11.5px; font-weight: 700; color: #334155; text-transform: uppercase; letter-spacing: .03em; margin-bottom: 6px; }
     .alta-control { width: 100%; font-size: 14px; border: 1px solid #d1d5db; border-radius: 10px; padding: 10px 12px; background: #fff; }
     .alta-control:focus { outline: none; border-color: #7c3aed; box-shadow: 0 0 0 3px #ede9fe; }
@@ -265,6 +293,6 @@
     .alta-opcional summary small { font-weight: 500; color: #64748b; }
     .alta-error { font-size: 13px; font-weight: 600; border-radius: 10px; padding: 10px 12px; background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; }
 </style>
-<script src="/clientes/clientes.js?v=202611021000"></script>
+<script src="/clientes/clientes.js?v=202611021100"></script>
 </body>
 </html>
