@@ -75,7 +75,7 @@
                 return "Error inesperado en el servidor.";
             }
         }
-        return "Hubo un problema al procesar la solicitud (código " + resp.status + ").";
+        return Fiscontable.leerError(resp);         // 4xx: el servidor ya trae el motivo en palabras (cuota, plan…)
     }
 
     function fechaLarga(iso) {
@@ -519,6 +519,76 @@
         } catch (e) { /* si no se puede consultar, no se dice nada */ }
     }
 
+    // Lote que se cortó a la mitad (se reinició el servidor): aquí mismo se baja lo que sí salió y se reanudan
+    // los que faltan, sin volver a subir la carpeta ni gastar del contador lo que ya estaba hecho.
+    async function mostrarCortados() {
+        var caja = $("lotes-cortados");
+        if (!caja) {
+            caja = document.createElement("div");
+            caja.id = "lotes-cortados";
+            $("linea-cuota").insertAdjacentElement("afterend", caja);
+        }
+        var lotes = [];
+        try {
+            var resp = await fetch(API + "/api/procesos", { credentials: "include" });
+            if (resp.ok) lotes = (await resp.json()).filter(function (p) {
+                return p.clase === "lote" && p.tipo === MODULO.tipo && p.estado === "interrumpido" &&
+                    (p.se_puede_reanudar || p.parcial);
+            });
+        } catch (e) { /* sin aviso */ }
+        caja.innerHTML = lotes.map(function (p) {
+            var faltan = Math.max((p.total || 0) - (p.exitosos || 0), 0);
+            return '<div class="nota nota--alerta" style="margin-bottom:14px">' +
+                "<p><strong>Un lote de " + (p.total || "varios") + " contribuyentes se cortó a la mitad</strong> " +
+                "(se reinició el servidor). Ya salieron " + (p.exitosos || 0) + (faltan ? "; faltan " + faltan : "") + ".</p>" +
+                (p.se_puede_reanudar ? "" : '<p style="margin-top:6px">Ya no se puede reanudar (pasaron más de 72 h). ' +
+                    "Vuelve a subir el lote: lo que ya salió se aprovecha y no cuenta para el límite del día.</p>") +
+                '<div class="botonera botonera--chica">' +
+                (p.parcial ? '<button type="button" class="boton-secundario" data-cortado="bajar" data-id="' + esc(p.id) +
+                    '" data-url="' + esc(p.url_descarga) + '">Bajar lo que salió (' + (p.exitosos || 0) + ")</button>" : "") +
+                (p.se_puede_reanudar ? '<button type="button" class="boton-principal" data-cortado="reanudar" data-id="' + esc(p.id) +
+                    '">Reanudar ' + (faltan ? "los " + faltan + " que faltan" : "el lote") + "</button>" : "") +
+                '<button type="button" class="boton-secundario" data-cortado="quitar" data-id="' + esc(p.id) + '">Quitar aviso</button>' +
+                "</div></div>";
+        }).join("");
+    }
+
+    async function accionCortado(e) {
+        var boton = e.target.closest("[data-cortado]");
+        if (!boton) return;
+        var accion = boton.dataset.cortado, id = boton.dataset.id, original = boton.textContent;
+        sinAlerta();
+        boton.disabled = true;
+        try {
+            if (accion === "bajar") {
+                boton.textContent = "Bajando…";
+                await bajarBlob(boton.dataset.url, "Lote_parcial.zip");
+            } else if (accion === "reanudar") {
+                boton.textContent = "Reanudando…";
+                var resp = await fetch(API + "/api/lotes/" + id + "/reanudar", { method: "POST", credentials: "include" });
+                if (!resp.ok) { alerta("error", await leerError(resp)); return; }
+                mostrarCortados();                 // si había otro lote cortado, su aviso se queda
+                alerta("bien", "Se reanudó el lote. Sigue donde se quedó; lo que ya salió no se vuelve a pedir al SAT.");
+                vigilarLote(id, $("btn-masivo"), $("btn-masivo").textContent);
+                $("btn-masivo").disabled = true;
+                Fiscontable.refrescarDescargas();
+                return;
+            } else if (accion === "quitar") {
+                if (!confirm("¿Quitar este lote? Ya no se podrá reanudar.")) return;
+                await fetch(API + "/api/lotes/" + id + "/descartar", { method: "DELETE", credentials: "include" }).catch(function () {});
+                await fetch(API + "/api/procesos/lote/" + id, { method: "DELETE", credentials: "include" });
+                await mostrarCortados();
+                Fiscontable.refrescarDescargas();
+                return;
+            }
+        } catch (err) {
+            alerta("error", err && err.status ? await leerError(err) : await leerError(null));
+        } finally {
+            boton.disabled = false;
+            boton.textContent = original;
+        }
+    }
+
     function prepararDropzone() {
         var zona = $("dropzone");
         var input = $("folder_input");
@@ -891,6 +961,8 @@
 
         prepararDropzone();
         mostrarCuota();
+        mostrarCortados();
+        $("panel-masivo").addEventListener("click", accionCortado);
         if (Fiscontable.url("modo") === "masivo") cambiarPestana("masivo");
     });
 })();

@@ -735,6 +735,10 @@ body.fc-sin-scroll { overflow: hidden; }
     .botonera > * { flex: 1; margin-top: 18px; }
 }
 
+/* Botones en línea dentro de un aviso (lote cortado): del tamaño de su texto, no a todo lo ancho */
+.botonera.botonera--chica { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.botonera.botonera--chica > * { flex: 0 1 auto; margin-top: 0; width: auto; padding: 8px 14px; font-size: 13px; }
+
 /* Pestañas individual / masivo */
 .pestanas { display: flex; border-bottom: 1px solid var(--linea); margin-bottom: 20px; gap: 4px; }
 .pestana {

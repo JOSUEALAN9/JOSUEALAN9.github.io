@@ -880,6 +880,7 @@
         programada_opinion: "Programada · Opiniones",
         programada_declaraciones: "Programada · Declaraciones",
         programada_xml: "Programada · Descarga de XML",
+        programada_buzon: "Programada · Buzón Tributario",
         buzon_revisar: "Revisión del Buzón Tributario",
         buzon_abrir: "Apertura de notificación del Buzón"
     };
@@ -931,10 +932,19 @@
                 "</div></div>";
         }
 
+        // Lote que se cortó: bajar lo que sí salió y reanudar los que faltan, sin ir a Mis descargas
+        var parcial = p.clase === "lote" && p.parcial
+            ? '<button type="button" class="fc-btn fc-btn--principal" data-accion="descargar" data-url="' + esc(p.url_descarga) +
+              '" data-nombre="' + esc(p.nombre_descarga || "Lote_parcial.zip") + '">Bajar lo que salió (' + (p.exitosos || 0) + ")</button>" : "";
+        var faltan = Math.max((p.total || 0) - (p.exitosos || 0), 0);
+        var reanudar = p.clase === "lote" && p.se_puede_reanudar
+            ? '<button type="button" class="fc-btn" data-accion="reanudar" data-id="' + esc(p.id) + '">Reanudar' +
+              (faltan ? " los " + faltan : "") + "</button>" : "";
         return '<div class="fc-item fc-item--alerta"><div class="fc-item__titulo">' + nuevo + t + "</div>" +
             '<div class="fc-item__detalle">' + esc(p.mensaje_error || "No se pudo completar.") + "</div>" +
-            '<div class="fc-item__acciones">' +
-            '<a class="fc-btn" href="/descargas/">Ver detalle</a>' +
+            (p.clase === "lote" && p.total ? '<div class="fc-item__detalle">' + (p.exitosos || 0) + " de " + p.total + " listos</div>" : "") +
+            '<div class="fc-item__acciones">' + parcial + reanudar +
+            (parcial || reanudar ? "" : '<a class="fc-btn" href="/descargas/">Ver detalle</a>') +
             '<button type="button" class="fc-btn fc-btn--discreto" data-accion="quitar" ' +
             'data-clase="' + esc(p.clase) + '" data-id="' + esc(p.id) + '">Quitar</button>' +
             "</div></div>";
@@ -1065,6 +1075,13 @@
                     { method: "DELETE", credentials: "include" });
                 if (!rq.ok) throw new Error(await Fiscontable.leerError(rq));
                 ultimoEstado.delete(boton.dataset.id);
+                await sondear();
+                return;
+            } else if (accion === "reanudar") {
+                boton.textContent = "Reanudando…";
+                var rr = await fetch(API + "/api/lotes/" + boton.dataset.id + "/reanudar", { method: "POST", credentials: "include" });
+                if (!rr.ok) throw new Error(await Fiscontable.leerError(rr));
+                aviso("Se reanudó el lote. Sigue donde se quedó; lo que ya salió no se vuelve a pedir al SAT.");
                 await sondear();
                 return;
             } else if (accion === "detener") {
