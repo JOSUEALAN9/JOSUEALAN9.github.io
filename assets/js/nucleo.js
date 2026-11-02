@@ -14,7 +14,7 @@
 (function () {
     "use strict";
 
-    var VERSION = "202611021600";
+    var VERSION = "202611021700";
     var API = "https://api.josuealan.com";
 
     function escapar(valor) {
@@ -150,6 +150,28 @@
 
     console.info("Fiscontable — interfaz " + VERSION);
 
+    /* <option> de "Descargar desde" (descarga automática de XML): "Solo lo reciente" y los meses del mínimo al
+       actual (AAAA-MM), del más nuevo al más viejo. */
+    var MESES_LARGOS = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre",
+        "Octubre", "Noviembre", "Diciembre"];
+    function nombreMes(aaaaMm) {
+        return aaaaMm ? MESES_LARGOS[+aaaaMm.slice(5, 7) - 1] + " " + aaaaMm.slice(0, 4) : "";
+    }
+    function opcionesDesde(minimo, actual, elegido) {
+        var html = '<option value="">Solo lo reciente</option>', a = +actual.slice(0, 4), m = +actual.slice(5, 7);
+        var hay = false;
+        while (true) {
+            var v = a + "-" + (m < 10 ? "0" : "") + m;
+            if (v < minimo) break;
+            if (v === elegido) hay = true;
+            html += '<option value="' + v + '"' + (v === elegido ? " selected" : "") + ">Desde " + nombreMes(v) + "</option>";
+            if (--m === 0) { m = 12; a--; }
+        }
+        // Lo eligió el admin antes que el mínimo de hoy: se respeta y se muestra
+        if (elegido && !hay) html += '<option value="' + elegido + '" selected>Desde ' + nombreMes(elegido) + "</option>";
+        return html;
+    }
+
     window.Fiscontable = Object.assign(window.Fiscontable || {}, {
         API: API,
         VERSION: VERSION,
@@ -161,6 +183,8 @@
         cajaEnPc: cajaEnPc,
         url: url,
         periodoAUrl: periodoAUrl,
-        periodoDeUrl: periodoDeUrl
+        periodoDeUrl: periodoDeUrl,
+        nombreMes: nombreMes,
+        opcionesDesde: opcionesDesde
     });
 })();

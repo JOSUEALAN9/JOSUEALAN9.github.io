@@ -4,9 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Descarga masiva de XML | Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611021600">
-    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611021600">
-    <link rel="stylesheet" href="/herramientas/descarga-xml/descarga-xml.css?v=202611021600">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611021700">
+    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611021700">
+    <link rel="stylesheet" href="/herramientas/descarga-xml/descarga-xml.css?v=202611021700">
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="min-h-screen flex flex-col">
@@ -217,11 +217,11 @@
         <input type="search" id="auto-buscar" placeholder="Buscar empresa…" autocomplete="off">
         <button type="button" id="auto-todas" class="fc-btn">Activar todas las que tienen e.firma</button>
     </div>
-    <div class="dm-auto__lista"><table><thead><tr><th>Empresa</th><th>Automática</th><th>Qué</th><th>Cada cuánto</th><th>Estado</th></tr></thead>
-        <tbody id="auto-filas"><tr><td colspan="5">Cargando…</td></tr></tbody></table></div>
+    <div class="dm-auto__lista"><table><thead><tr><th>Empresa</th><th>Automática</th><th>Qué</th><th>Cada cuánto</th><th>Desde</th><th>Estado</th></tr></thead>
+        <tbody id="auto-filas"><tr><td colspan="6">Cargando…</td></tr></tbody></table></div>
 </dialog>
 <style>
-    .dm-auto { width: min(860px, calc(100vw - 24px)); height: min(640px, calc(100vh - 32px)); border: 0; border-radius: 16px; padding: 0; box-shadow: 0 20px 50px rgba(15,23,42,.35); }
+    .dm-auto { width: min(980px, calc(100vw - 24px)); height: min(640px, calc(100vh - 32px)); border: 0; border-radius: 16px; padding: 0; box-shadow: 0 20px 50px rgba(15,23,42,.35); }
     .dm-auto[open] { display: flex; flex-direction: column; }
     .dm-auto__cabeza { display: flex; justify-content: space-between; gap: 12px; padding: 16px 18px; border-bottom: 1px solid #e5e7eb; }
     .dm-auto__cabeza p { font-size: 12.5px; color: #64748b; margin-top: 3px; }
@@ -243,6 +243,7 @@
     .dm-sw input:checked + span::after { transform: translateX(16px); }
     .dm-sw input:disabled + span { opacity: .4; cursor: not-allowed; }
     .dm-auto__estado { font-size: 12px; color: #475569; }
+    .dm-auto__hist { color: #6d28d9; font-weight: 600; }
     .dm-auto__falta { font-size: 12px; font-weight: 700; color: #b45309; }
     .dm-auto__ahora { display: block; margin-top: 5px; border: 1px solid #a5d8e6; background: #f0fafc; color: #0e7490; border-radius: 8px; padding: 3px 9px; font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; }
     .dm-auto__ahora:disabled { opacity: .6; cursor: wait; }
@@ -282,12 +283,12 @@
 
 <footer class="fc-pie">© 2026 Alan Sánchez</footer>
 
-<script src="/assets/js/nucleo.js?v=202611021600"></script>
-<script src="/assets/js/barra.js?v=202611021600"></script>
-<script src="/assets/js/comun/leer-cer.js?v=202611021600"></script>
-<script src="/assets/js/comun/paso-cliente.js?v=202611021600"></script>
-<script src="/assets/js/comun/tabla.js?v=202611021600"></script>
-<script src="/herramientas/descarga-xml/descarga-xml.js?v=202611021600"></script>
+<script src="/assets/js/nucleo.js?v=202611021700"></script>
+<script src="/assets/js/barra.js?v=202611021700"></script>
+<script src="/assets/js/comun/leer-cer.js?v=202611021700"></script>
+<script src="/assets/js/comun/paso-cliente.js?v=202611021700"></script>
+<script src="/assets/js/comun/tabla.js?v=202611021700"></script>
+<script src="/herramientas/descarga-xml/descarga-xml.js?v=202611021700"></script>
 <!-- Programar descargas de XML en la madrugada: pendiente para otra entrega (el motor ya lo soporta). -->
 </body>
 </html>

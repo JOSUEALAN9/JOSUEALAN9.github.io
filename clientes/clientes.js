@@ -8,6 +8,8 @@ let soloLectura = false;
 let puedeGuardarEfirma = true;   // en la Demo no se guardan e.firmas (lo decide el servidor)
 let sinConexion = false;
 let conIsn = false;              // el usuario tiene el módulo ISN: se muestran las obligaciones
+let conXml = false;              // tiene Descarga masiva de XML: pestaña "Descarga de XML" en la ficha
+let xmlAuto = null;              // configuración de la descarga automática (todas sus empresas)
 let obligaciones = {};           // {rfc: {obligacion, zona, completos}}
 
 document.addEventListener("DOMContentLoaded", inicializar);
@@ -79,6 +81,7 @@ async function verificarPerfil() {
         const perfil = await resp.json();
         soloLectura = perfil.solo_lectura;
         conIsn = (perfil.modulos_permitidos || []).indexOf("isn") !== -1;
+        conXml = (perfil.modulos_permitidos || []).indexOf("descarga_xml") !== -1;
         puedeGuardarEfirma = perfil.puede_guardar_efirma !== false;
 
         const btnAgregar = document.getElementById("btn-agregar-cliente");
@@ -497,6 +500,7 @@ let rfcEnEdicion = null;
 let fichaActual = "general";
 function ponerFicha(nombre) {
     if (nombre === "obligaciones" && document.getElementById("tab-obligaciones").hidden) nombre = "general";
+    if (nombre === "xml" && document.getElementById("tab-xml").hidden) nombre = "general";
     fichaActual = nombre;
     document.querySelectorAll("[data-ficha]").forEach(b => b.setAttribute("aria-selected", String(b.dataset.ficha === nombre)));
     document.querySelectorAll("#modal-editar-cliente [data-panel]").forEach(p => { p.hidden = p.dataset.panel !== nombre; });
@@ -550,6 +554,7 @@ function abrirModalEditar(rfc, ficha) {
     pintarEfirmaFicha(cliente);
     pintarResumenFicha(cliente);
     pintarObligaciones(cliente);
+    pintarXmlAuto(cliente);
     ponerFicha(ficha || "general");
     document.getElementById("modal-editar-cliente").classList.add("modal-active");
 }
@@ -571,6 +576,72 @@ document.addEventListener("click", (e) => {
         eliminarCliente(rfc);
     }
 });
+
+/* Descarga automática de sus XML: desde qué mes, qué y cada cuánto. El mes más antiguo lo fija el admin. */
+const fechaCorta = (iso) => new Date(iso + "T12:00:00").toLocaleDateString("es-MX", { day: "numeric", month: "short", year: "numeric" });
+async function pintarXmlAuto(cliente) {
+    document.getElementById("tab-xml").hidden = !conXml;
+    if (!conXml) return;
+    document.getElementById("xml-mensaje").classList.add("hidden");
+    try {
+        const r = await fetch(`${API_URL}/api/descarga-xml/automatica`, { credentials: "include" });
+        if (!r.ok) throw new Error(await Fiscontable.leerError(r));
+        xmlAuto = await r.json();
+    } catch (e) {
+        document.getElementById("xml-explica").textContent = e.message;
+        return;
+    }
+    if (rfcEnEdicion !== cliente.rfc) return;
+    const cfg = xmlAuto.empresas.find(x => x.rfc === cliente.rfc) || { activo: false, tipo: "ambos", frecuencia: "diaria" };
+    const opciones = (mapa, actual) => Object.keys(mapa).map(k => `<option value="${k}"${k === actual ? " selected" : ""}>${esc(mapa[k])}</option>`).join("");
+    document.getElementById("xml-tipo").innerHTML = opciones(xmlAuto.tipos, cfg.tipo);
+    document.getElementById("xml-frecuencia").innerHTML = opciones(xmlAuto.frecuencias, cfg.frecuencia);
+    document.getElementById("xml-desde").innerHTML = Fiscontable.opcionesDesde(xmlAuto.desde_minimo, xmlAuto.mes_actual, cfg.desde || "");
+    document.getElementById("xml-activo").checked = !!cfg.activo && !!cliente.efirma_guardada;
+    document.getElementById("xml-activo").disabled = !cliente.efirma_guardada;
+    document.getElementById("xml-sin-efirma").hidden = !!cliente.efirma_guardada;
+    explicarXmlAuto(cfg);
+}
+
+function explicarXmlAuto(cfg) {
+    const p = document.getElementById("xml-explica");
+    if (!cfg || !cfg.activo) {
+        p.textContent = "Apagada. Al prenderla, elige desde qué mes: la primera vez baja todo desde ahí hasta ayer y después sigue al día.";
+        return;
+    }
+    const partes = [];
+    if (cfg.proxima && cfg.periodo) partes.push(`Próxima: ${fechaCorta(cfg.proxima)}, del ${fechaCorta(cfg.periodo.desde)} al ${fechaCorta(cfg.periodo.hasta)}.`);
+    if (cfg.falta_historico) partes.push(`Esa vez baja todo desde ${Fiscontable.nombreMes(cfg.desde).toLowerCase()}; después, solo lo reciente.`);
+    else if (cfg.desde) partes.push(`Ya está bajado desde ${Fiscontable.nombreMes(cfg.desde).toLowerCase()}; sigue al día.`);
+    if (cfg.ultima) partes.push(`Última: ${fechaCorta(cfg.ultima)}.`);
+    p.textContent = partes.join(" ");
+}
+
+async function guardarXmlAuto() {
+    if (!rfcEnEdicion) return;
+    const boton = document.getElementById("btn-guardar-xml"), msj = document.getElementById("xml-mensaje");
+    boton.disabled = true;
+    try {
+        const r = await fetch(`${API_URL}/api/descarga-xml/automatica/${encodeURIComponent(rfcEnEdicion)}`, {
+            method: "PUT", credentials: "include", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                activo: document.getElementById("xml-activo").checked,
+                tipo: document.getElementById("xml-tipo").value,
+                frecuencia: document.getElementById("xml-frecuencia").value,
+                desde: document.getElementById("xml-desde").value || null
+            })
+        });
+        if (!r.ok) throw new Error(await Fiscontable.leerError(r));
+        const cfg = await r.json();
+        explicarXmlAuto(cfg);
+        msj.textContent = "Guardado.";
+        msj.className = "text-xs text-emerald-700 font-semibold";
+    } catch (e) {
+        msj.textContent = e.message;
+        msj.className = "text-xs text-red-600 font-semibold";
+    }
+    boton.disabled = false;
+}
 
 /* Obligaciones (hoy ISN de Quintana Roo): al activarla, la empresa aparece en ISN lista para llenar sus datos. */
 function pintarObligaciones(cliente) {

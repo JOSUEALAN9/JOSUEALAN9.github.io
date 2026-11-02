@@ -832,13 +832,17 @@
         };
         var estado = !ok ? '<a class="dm-auto__falta" href="/clientes/?editar=' + encodeURIComponent(e.rfc) + '&ficha=accesos">Falta su e.firma · subirla</a>'
             : !e.activo ? '<span class="dm-auto__estado">Apagada</span>'
-            : '<span class="dm-auto__estado">Próxima: <b>' + esc(diaCorto(e.proxima)) + "</b>" + (e.ultima ? "<br>Última: " + esc(diaCorto(e.ultima)) : "") + "</span>";
+            : '<span class="dm-auto__estado">Próxima: <b>' + esc(diaCorto(e.proxima)) + "</b>" +
+                (e.falta_historico ? '<br><span class="dm-auto__hist">Esa noche baja desde ' + esc(Fiscontable.nombreMes(e.desde).toLowerCase()) + "</span>" : "") +
+                (e.ultima ? "<br>Última: " + esc(diaCorto(e.ultima)) : "") + "</span>";
         if (ok) estado += '<button type="button" class="dm-auto__ahora" data-ahora title="Pedir al SAT ahora el mismo periodo de la madrugada">Bajar ahora</button>';
         if (AUTO.hecho[e.rfc]) estado += '<span class="dm-auto__hecho">' + esc(AUTO.hecho[e.rfc]) + "</span>";
         return '<tr data-rfc="' + esc(e.rfc) + '"><td><b>' + esc(e.alias) + '</b><span class="dm-auto__rfc">' + esc(e.rfc) + "</span></td>" +
             '<td><label class="dm-sw" title="' + (ok ? "Prender o apagar" : "Primero guarda su e.firma") + '"><input type="checkbox" data-auto="activo"' + (e.activo && ok ? " checked" : "") + (ok ? "" : " disabled") + "><span></span></label></td>" +
             '<td><select data-auto="tipo"' + (e.activo && ok ? "" : " disabled") + ">" + opciones(d.tipos, e.tipo) + "</select></td>" +
             '<td><select data-auto="frecuencia"' + (e.activo && ok ? "" : " disabled") + ">" + opciones(d.frecuencias, e.frecuencia) + "</select></td>" +
+            '<td><select data-auto="desde" title="La primera vez baja todo desde ese mes; luego sigue al día"' + (e.activo && ok ? "" : " disabled") + ">" +
+                Fiscontable.opcionesDesde(d.desde_minimo, d.mes_actual, e.desde || "") + "</select></td>" +
             "<td>" + estado + "</td></tr>";
     }
     function pintarAutomatica() {
@@ -846,10 +850,10 @@
         var q = ($("auto-buscar").value || "").trim().toLowerCase();
         var lista = d.empresas.filter(function (e) { return !q || (e.alias + " " + e.rfc).toLowerCase().indexOf(q) !== -1; });
         $("auto-filas").innerHTML = lista.length ? lista.map(filaAuto).join("")
-            : '<tr><td colspan="5">' + (d.empresas.length ? "Ninguna coincide." : 'Todavía no tienes empresas. <a href="/clientes/?nuevo=1">Registrar empresa</a>') + "</td></tr>";
+            : '<tr><td colspan="6">' + (d.empresas.length ? "Ninguna coincide." : 'Todavía no tienes empresas. <a href="/clientes/?nuevo=1">Registrar empresa</a>') + "</td></tr>";
         $("auto-nota").textContent = "Cada madrugada se bajan solos por el web service del SAT, con la e.firma guardada de cada empresa, y entran a Administración de XML. " +
             "Esta noche tocaría del " + diaCorto(d.periodo_esta_noche.desde) + " al " + diaCorto(d.periodo_esta_noche.hasta) +
-            " (hasta ayer; los primeros días del mes también el mes anterior completo).";
+            " (hasta ayer; los primeros días del mes también el mes anterior completo). Con «Desde», la primera vez baja todo desde ese mes.";
         var activas = d.empresas.filter(function (e) { return e.activo && e.efirma_guardada; }).length;
         $("insignia-auto").textContent = activas; $("insignia-auto").hidden = !activas;
     }
@@ -857,11 +861,11 @@
         $("dlg-automatica").showModal();
         Fiscontable.url({ auto: "1" });
         try { await cargarAutomatica(); pintarAutomatica(); }
-        catch (e) { $("auto-filas").innerHTML = '<tr><td colspan="5">' + esc(e.message) + "</td></tr>"; }
+        catch (e) { $("auto-filas").innerHTML = '<tr><td colspan="6">' + esc(e.message) + "</td></tr>"; }
     }
     async function guardarAuto(rfc, cambios) {
         var e = AUTO.datos.empresas.filter(function (x) { return x.rfc === rfc; })[0];
-        var cuerpo = { activo: e.activo, tipo: e.tipo, frecuencia: e.frecuencia };
+        var cuerpo = { activo: e.activo, tipo: e.tipo, frecuencia: e.frecuencia, desde: e.desde || null };
         Object.assign(cuerpo, cambios);
         var r = await fetch(API + "/api/descarga-xml/automatica/" + encodeURIComponent(rfc), {
             method: "PUT", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify(cuerpo)

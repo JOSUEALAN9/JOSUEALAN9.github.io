@@ -739,6 +739,7 @@ function clicTarjeta(e) {
         if (e.target.closest("#btn-revisar-vps")) revisarVps();
         if (e.target.closest("#btn-guardar-trabajos")) guardarTrabajos(e.target.closest("#btn-guardar-trabajos"));
         if (e.target.closest("#btn-guardar-inhabiles")) guardarInhabiles(e.target.closest("#btn-guardar-inhabiles"));
+        if (e.target.closest("#btn-guardar-xml-auto")) guardarXmlAutoAdmin(e.target.closest("#btn-guardar-xml-auto"));
         if (e.target.closest("#btn-max-pcs")) guardarMaxPcs(e.target.closest("#btn-max-pcs"));
         if (e.target.closest("#btn-revisar-instalador")) revisarInstalador(e.target.closest("#btn-revisar-instalador"));
         if (e.target.closest("#btn-max-sesiones")) guardarMaxSesiones(e.target.closest("#btn-max-sesiones"));
@@ -779,6 +780,7 @@ async function cargarSistema() {
         estadoSistema = await api("/api/admin/sistema/estado");
         try { estadoTrabajadores = await api("/api/admin/trabajadores"); } catch (e) { estadoTrabajadores = null; }
         try { diasInhabiles = await api("/api/admin/sistema/dias-inhabiles"); } catch (e) { diasInhabiles = null; }
+        try { xmlAutoAdmin = await api("/api/admin/sistema/xml-automatica"); } catch (e) { xmlAutoAdmin = null; }
         try { pcsAgentes = await api("/api/admin/agentes"); } catch (e) { pcsAgentes = null; }
         try { sesionesWeb = await api("/api/admin/sesiones"); } catch (e) { sesionesWeb = null; }
         pintarEstado();
@@ -791,6 +793,7 @@ async function cargarSistema() {
 
 let estadoTrabajadores = null;
 let diasInhabiles = null;
+let xmlAutoAdmin = null;
 let pcsAgentes = null;
 let sesionesWeb = null;
 
@@ -972,6 +975,29 @@ async function guardarInhabiles(boton) {
         $("txt-inhabiles").value = (diasInhabiles.dias || []).join("\n");
         estadoGuardar(boton, "ok");
         pintarEstado();
+    } catch (err) { mostrarAlerta("error", err.message); estadoGuardar(boton, "error"); }
+}
+// Desde qué mes pueden pedir sus XML en automático las cuentas ("Descargar desde" de cada empresa).
+// El admin no tiene ese tope en sus propias empresas.
+function tarjetaXmlAuto() {
+    const d = xmlAutoAdmin, hoy = new Date();
+    const actual = hoy.getFullYear() + "-" + String(hoy.getMonth() + 1).padStart(2, "0");
+    return `<p class="text-sm text-slate-800">Las cuentas pueden bajar desde <b>${esc(Fiscontable.nombreMes(d.desde_minimo).toLowerCase())}</b></p>
+        <p class="text-[11px] text-slate-500 mt-1">Cada quien elige en la ficha de la empresa desde qué mes; no pueden ir antes de este. Tú sí, en tus empresas.</p>
+        <div class="flex items-center gap-2 mt-3">
+            <input type="month" id="xml-auto-minimo" data-guarda="btn-guardar-xml-auto" value="${esc(d.desde_minimo)}" min="${esc(d.tope_admin)}" max="${actual}" class="border border-gray-200 rounded-lg p-1.5 text-xs">
+            ${botonGuardar("btn-guardar-xml-auto")}
+        </div>`;
+}
+
+async function guardarXmlAutoAdmin(boton) {
+    estadoGuardar(boton, "guardando");
+    try {
+        xmlAutoAdmin = Object.assign(xmlAutoAdmin || {}, await api("/api/admin/sistema/xml-automatica", {
+            method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ desde_minimo: $("xml-auto-minimo").value })
+        }));
+        pintarEstado();
+        estadoGuardar($("btn-guardar-xml-auto"), "ok");
     } catch (err) { mostrarAlerta("error", err.message); estadoGuardar(boton, "error"); }
 }
 const NOMBRE_MODO = { local: "Vostro", vps: "VPS de Oracle", alternar: "Alternar (mitad y mitad)", agente: "PC del contador (agente)" };
@@ -1177,6 +1203,7 @@ function pintarEstado() {
         tarjeta("Respaldo en la VPS", respaldo, respaldoMal ? "mal" : "") +
         (estadoTrabajadores ? tarjeta("Trabajadores (VPS y PCs)", tarjetaTrabajadores()) : "") +
         (diasInhabiles ? tarjeta("Días inhábiles del SAT", tarjetaInhabiles()) : "") +
+        (xmlAutoAdmin ? tarjeta("Descarga automática de XML", tarjetaXmlAuto()) : "") +
         (pcsAgentes ? tarjeta("PCs con el agente", tarjetaPcs()) : "") +
         tarjeta("Tipo de cambio Banxico", tipoCambio, tcMal ? "mal" : "");
     $("alerta-sistema").textContent = (alertaGit || e.mantenimiento.activo) ? "•" : "";
