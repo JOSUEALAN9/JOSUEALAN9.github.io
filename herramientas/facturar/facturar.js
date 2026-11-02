@@ -117,13 +117,15 @@
     function pintarEmisor() {
         var e = F.emisor, prod = F.cfg.produccion;
         var chip = $("chip-timbres");
-        chip.hidden = !(prod && e.timbres !== null);
+        chip.hidden = !prod;
         chip.textContent = "Timbres: " + (e.timbres || 0);
         chip.className = "fa-chip" + ((e.timbres || 0) < 1 ? " fa-chip--mal" : "");
         $("punto-config").hidden = e.listo;
         var falta = $("falta-config");
-        if (prod && !e.listo) {
-            falta.innerHTML = "Para timbrar con <b>" + esc(e.alias) + "</b> falta: " + esc(e.faltan.join(", ")) +
+        var faltan = e.faltan.slice();
+        if (prod && (e.timbres || 0) < 1) faltan.push("pasarle timbres");
+        if (prod && faltan.length) {
+            falta.innerHTML = "Para timbrar con <b>" + esc(e.alias) + "</b> falta: " + esc(faltan.join(", ")) +
                 '. <button type="button" data-ir="config">Completar en Configuración</button>';
             falta.className = "fa-aviso fa-aviso--alerta";
             falta.hidden = false;
@@ -156,9 +158,12 @@
         $("c-csd-form").hidden = !!e.csd;
         $("btn-reemplazar-csd").hidden = !e.csd;
         $("btn-quitar-csd").hidden = !e.csd;
-        $("caja-timbres").hidden = e.timbres === null;
         $("c-timbres-empresa").textContent = e.timbres || 0;
-        $("c-timbres-cuenta").textContent = F.cfg.timbres_cuenta || 0;
+        $("c-timbres-cuenta").textContent = F.cfg.timbres_cuenta === null ? "Sin tope" : (F.cfg.timbres_cuenta || 0);
+        $("c-timbres-pac").textContent = !prod ? "En modo de pruebas no se gastan timbres; lo que repartas aquí se usará cuando se active producción."
+            : !F.cfg.panel ? "Falta configurar en el servidor el acceso al panel de MultiFacturas: avísale al administrador."
+            : e.alta_pac ? "✓ Dada de alta en MultiFacturas. Lo que le pases aquí se le pasa también allá."
+            : "La primera vez que le pases timbres se da de alta sola en MultiFacturas.";
         pintarFolio();
     }
 
@@ -221,8 +226,8 @@
         try {
             var r = await enviar("/api/facturacion/timbres/" + encodeURIComponent(F.emisor.rfc), "PUT", { cantidad: signo * n });
             F.cfg.timbres_cuenta = r.timbres_cuenta;
-            actualizarEmisor(Object.assign({}, F.emisor, { timbres: r.timbres_empresa }));
-            $("msj-timbres").textContent = "✓ Listo.";
+            actualizarEmisor(Object.assign({}, F.emisor, { timbres: r.timbres_empresa, alta_pac: F.emisor.alta_pac || !!r.en_pac }));
+            $("msj-timbres").textContent = r.en_pac ? "✓ Listo. En MultiFacturas puede tardar hasta 5 minutos en aplicarse." : "✓ Listo.";
         } catch (e) { $("msj-timbres").textContent = e.message; }
     }
 
@@ -354,7 +359,7 @@
             $("dlg-confirmar").close();
             F.ultimo = r;
             if (F.tipo === "I") F.emisor.folio_i = parseInt(r.folio, 10) + 1; else F.emisor.folio_e = parseInt(r.folio, 10) + 1;
-            if (F.cfg.produccion && F.emisor.timbres !== null) F.emisor.timbres = Math.max((F.emisor.timbres || 0) - 1, 0);
+            if (F.cfg.produccion) F.emisor.timbres = Math.max((F.emisor.timbres || 0) - 1, 0);
             pintarEmisor();
             $("listo-titulo").textContent = (F.tipo === "I" ? "Factura " : "Nota de crédito ") + (r.serie ? r.serie + "-" : "") + r.folio + " timbrada";
             $("listo-texto").textContent = "Total " + dinero(r.total) + (r.pruebas ? " · modo de pruebas (sin validez fiscal)" : r.biblioteca ? " · ya está en Administración de XML" : "");

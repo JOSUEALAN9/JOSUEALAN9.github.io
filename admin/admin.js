@@ -1009,6 +1009,7 @@ function tarjetaTimbres() {
     const d = timbresAdmin, con = d.cuentas.filter(c => c.bolsa || c.en_empresas);
     const total = d.cuentas.reduce((a, c) => a + c.bolsa + c.en_empresas, 0);
     return `<p class="text-sm text-slate-800">${d.produccion ? "<b>Producción</b>: se timbra de verdad" : "<b>Modo de pruebas</b>: sin validez fiscal"}</p>
+        <p class="text-[11px] ${d.panel ? "text-emerald-700" : "text-amber-700"} mt-1">${d.panel ? "✓ Conectado al panel de MultiFacturas" : "Sin conexión al panel de MultiFacturas (faltan sus claves en el servidor)"}</p>
         <p class="text-[11px] text-slate-500 mt-1">${con.length} cuenta${con.length === 1 ? "" : "s"} con timbres · ${total.toLocaleString("es-MX")} asignados en total</p>
         <div class="flex gap-2 mt-3">${botonVer("btn-ver-timbres", "Ver y asignar")}</div>`;
 }
