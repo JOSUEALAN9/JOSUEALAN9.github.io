@@ -82,6 +82,10 @@
         $("rel-tipo").innerHTML = opciones(c.tipos_relacion, "01", true);
         $("c-regimen").innerHTML = opciones(c.regimenes, "", true, "Elige…");
         $("can-motivo").innerHTML = opciones(c.motivos_cancelacion, "02", true);
+        var hoy = new Date();
+        $("g-periodicidad").innerHTML = opciones(c.periodicidades, "04", true);
+        $("g-meses").innerHTML = opciones(c.meses_global, String(hoy.getMonth() + 1).padStart(2, "0"), true);
+        $("g-anio").value = hoy.getFullYear();
         $("chip-modo").hidden = F.cfg.produccion;
         eventos();
         F.empresa = await Fiscontable.empresaActiva();
@@ -242,6 +246,7 @@
         $("r-regimen").value = "";
         $("r-uso").value = F.tipo === "E" ? "G02" : "G03";
         $("t-error").hidden = true;
+        verGlobal();
         pintarConceptos();
     }
 
@@ -252,6 +257,7 @@
         if (tipo === "E" && $("r-uso").value === "G03") $("r-uso").value = "G02";
         if (tipo === "I" && $("r-uso").value === "G02") $("r-uso").value = "G03";
         pintarFolio();
+        verGlobal();
     }
 
     function filaConcepto(c, i) {
@@ -316,6 +322,7 @@
             receptor: { rfc: $("r-rfc").value.trim().toUpperCase(), nombre: $("r-nombre").value.trim().toUpperCase(),
                         cp: $("r-cp").value.trim(), regimen: $("r-regimen").value, uso: $("r-uso").value },
             relacionados: F.tipo === "E" && rel ? { tipo_relacion: $("rel-tipo").value, uuids: [rel] } : null,
+            global: { periodicidad: $("g-periodicidad").value, meses: $("g-meses").value, anio: $("g-anio").value.trim() },
             conceptos: F.conceptos.map(function (c) {
                 return { cantidad: c.cantidad, clave_prod: (c.clave_prod || "").trim(), clave_unidad: c.clave_unidad,
                          descripcion: c.descripcion, valor_unitario: c.valor_unitario, descuento: c.descuento || 0,
@@ -390,12 +397,17 @@
         } catch (e) { /* sin datos previos */ }
     }
 
+    function verGlobal() {
+        $("caja-global").hidden = !(F.tipo === "I" && $("r-rfc").value.trim().toUpperCase() === "XAXX010101000");
+    }
+
     function publico() {
         $("r-rfc").value = "XAXX010101000";
         $("r-nombre").value = "PUBLICO EN GENERAL";
         $("r-cp").value = F.emisor && F.emisor.cp || "";
         $("r-regimen").value = "616";
         $("r-uso").value = "S01";
+        verGlobal();
     }
 
     /* ---------------------------------------------------- emitidas */
@@ -426,6 +438,7 @@
                 '<td class="fa-num">' + dinero(x.total) + "</td><td>" + estado + "</td>" +
                 '<td class="fa-acc"><button type="button" class="fa-link" data-acc="xml">XML</button>' +
                 '<button type="button" class="fa-link" data-acc="pdf">PDF</button>' +
+                (x.hay_acuse ? '<button type="button" class="fa-link" data-acc="acuse">Acuse</button>' : "") +
                 (x.estado !== "cancelado" ? '<button type="button" class="fa-link fa-link--rojo" data-acc="cancelar">Cancelar</button>' : "") + "</td></tr>";
         }).join("") : '<tr><td colspan="6">' + (F.emitidas.length ? "Nada coincide." : "Todavía no hay facturas de esta empresa.") + "</td></tr>";
     }
@@ -437,6 +450,14 @@
             var x = F.emitidas.filter(function (e) { return e.id === id; })[0];
             var nombre = m ? m[1] : x ? x.rfc_emisor + "_" + (x.serie || "") + x.folio + "_" + x.uuid + ".xml" : "factura.xml";
             Fiscontable.guardarArchivo(await resp.blob(), nombre);
+        } catch (e) { aviso(e.message, "error"); }
+    }
+
+    async function bajarAcuse(id) {
+        try {
+            var resp = await api("/api/facturacion/comprobantes/" + id + "/acuse");
+            var x = F.emitidas.filter(function (e) { return e.id === id; })[0];
+            Fiscontable.guardarArchivo(await resp.blob(), "Acuse_cancelacion_" + (x ? (x.serie || "") + x.folio : id) + ".xml");
         } catch (e) { aviso(e.message, "error"); }
     }
 
@@ -500,10 +521,10 @@
         var b = $("btn-cancelar-ok");
         b.disabled = true; b.textContent = "Cancelando…";
         try {
-            await enviar("/api/facturacion/comprobantes/" + F.cancelando.id + "/cancelar", "POST",
+            var r = await enviar("/api/facturacion/comprobantes/" + F.cancelando.id + "/cancelar", "POST",
                 { motivo: $("can-motivo").value, uuid_sustitucion: $("can-sust").value.trim() || null });
             $("dlg-cancelar").close();
-            aviso("Se mandó la cancelación de " + $("can-folio").textContent + " al SAT.");
+            aviso($("can-folio").textContent + ": " + r.mensaje + (r.acuse ? " El acuse queda en Emitidas." : ""));
             cargarEmitidas();
         } catch (e) { $("can-error").textContent = e.message; $("can-error").hidden = false; }
         b.disabled = false; b.textContent = "Cancelar ante el SAT";
@@ -519,6 +540,7 @@
         document.querySelectorAll("[data-tipo]").forEach(function (b) { b.addEventListener("click", function () { ponerTipo(b.dataset.tipo); }); });
         $("btn-publico").addEventListener("click", publico);
         $("r-rfc").addEventListener("change", llenarReceptor);
+        $("r-rfc").addEventListener("input", verGlobal);
         $("p-metodo").addEventListener("change", function () {
             if (this.value === "PPD") $("p-forma").value = "99";
             else if ($("p-forma").value === "99") $("p-forma").value = "03";
@@ -551,6 +573,7 @@
             var b = ev.target.closest("[data-acc]"); if (!b) return;
             var id = b.closest("tr").dataset.id;
             if (b.dataset.acc === "xml") bajarXml(id);
+            else if (b.dataset.acc === "acuse") bajarAcuse(id);
             else if (b.dataset.acc === "pdf") verPdf(id);
             else abrirCancelar(id);
         });

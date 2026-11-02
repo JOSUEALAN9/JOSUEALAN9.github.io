@@ -5,14 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Facturar | Fiscontable</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611021900">
-    <link rel="stylesheet" href="/herramientas/facturar/facturar.css?v=202611021900">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611022000">
+    <link rel="stylesheet" href="/herramientas/facturar/facturar.css?v=202611022000">
 </head>
 <body class="min-h-screen flex flex-col">
 
 <div id="app-header" data-modulo="facturar" data-titulo="Facturar" data-migas="Herramientas|/herramientas/"></div>
-<script src="/assets/js/nucleo.js?v=202611021900"></script>
-<script src="/assets/js/barra.js?v=202611021900"></script>
+<script src="/assets/js/nucleo.js?v=202611022000"></script>
+<script src="/assets/js/barra.js?v=202611022000"></script>
 
 <main class="flex-grow w-full mod-pagina fa-pagina">
     <div class="mod-cabeza">
@@ -64,6 +64,14 @@
                         <label class="fa-campo fa-c2"><span>Uso del CFDI</span><select id="r-uso"></select></label>
                     </div>
                     <datalist id="lista-receptores"></datalist>
+                    <div id="caja-global" class="fa-global" hidden>
+                        <p class="fa-nota"><b>Factura global (público en general):</b> el SAT pide el periodo de las ventas que ampara.</p>
+                        <div class="fa-rejilla">
+                            <label class="fa-campo fa-c2"><span>Periodicidad</span><select id="g-periodicidad"></select></label>
+                            <label class="fa-campo fa-c2"><span>Mes</span><select id="g-meses"></select></label>
+                            <label class="fa-campo fa-c2"><span>Año</span><input id="g-anio" inputmode="numeric" maxlength="4"></label>
+                        </div>
+                    </div>
                 </div>
 
                 <div id="caja-relacion" class="fa-caja" hidden>
@@ -234,6 +242,6 @@
     <div id="impresion" class="fa-impresion"></div>
 </dialog>
 
-<script src="/herramientas/facturar/facturar.js?v=202611021900"></script>
+<script src="/herramientas/facturar/facturar.js?v=202611022000"></script>
 </body>
 </html>
