@@ -102,7 +102,6 @@ async function verificarPerfil() {
 /* ---------------------------------------------------------------- alta de empresa
    Con su e.firma: el RFC, el nombre y la vigencia salen del .cer (se leen aquí, en el navegador).
    Sin e.firma: se escribe el RFC. El tipo de sociedad se adivina del nombre; la CIEC es opcional. */
-let altaModo = "efirma";
 let altaCer = null;                 // {rfc, nombre, vigenteHasta, vencido}
 
 const SUFIJOS = [
@@ -123,16 +122,25 @@ function separarTipo(nombre) {
     return { nombre, tipo: "" };
 }
 
-function ponerModoAlta(modo) {
-    altaModo = modo;
-    document.querySelectorAll("[data-alta]").forEach(b => {
-        const on = b.dataset.alta === modo;
-        b.classList.toggle("alta-modo__op--activa", on); b.setAttribute("aria-selected", String(on));
-    });
-    document.getElementById("alta-efirma").hidden = modo !== "efirma";
-    document.getElementById("alta-rfc-caja").hidden = modo !== "rfc";
-    errorAlta("");
-    if (modo === "rfc") document.getElementById("input-rfc").focus();
+/* Pestañas del alta (las mismas que la ficha): Datos generales · Accesos · Obligaciones */
+function ponerFichaAlta(nombre) {
+    if (nombre === "obligaciones" && document.getElementById("alta-tab-obligaciones").hidden) nombre = "general";
+    document.querySelectorAll("[data-alta-ficha][role=tab]").forEach(b => b.setAttribute("aria-selected", String(b.dataset.altaFicha === nombre)));
+    document.querySelectorAll("[data-alta-panel]").forEach(p => { p.hidden = p.dataset.altaPanel !== nombre; });
+}
+
+/* Con un .cer bueno el RFC queda fijo (sale del certificado); sin él, se escribe */
+function rfcDesdeCer(d) {
+    const campo = document.getElementById("input-rfc");
+    campo.readOnly = !!d;
+    campo.classList.toggle("bg-slate-50", !!d);
+    if (d) campo.value = d.rfc;
+    document.getElementById("alta-pista-efirma").hidden = !!d;
+    document.getElementById("alta-punto-accesos").hidden = !d || d.vencido;
+    const nombre = document.getElementById("input-alias").value.trim();
+    document.getElementById("alta-titulo").textContent = nombre || "Registrar empresa";
+    document.getElementById("alta-inicial").textContent = nombre ? nombre.charAt(0).toUpperCase() : "+";
+    document.getElementById("alta-sub").textContent = d ? `${d.rfc} · tomado de su e.firma` : "Con su e.firma no escribes el RFC: sale del certificado.";
 }
 
 function errorAlta(texto) {
@@ -144,12 +152,13 @@ async function alElegirCer() {
     const archivo = document.getElementById("alta-cer").files[0];
     const info = document.getElementById("alta-cer-info");
     altaCer = null; errorAlta("");
-    if (!archivo) { info.hidden = true; return; }
+    if (!archivo) { info.hidden = true; rfcDesdeCer(null); return; }
     const d = window.leerCertificado ? await leerCertificado(archivo) : null;
     info.hidden = false;
     if (!d || !d.rfc) {
         info.className = "alta-info alta-info--mal";
         info.textContent = "No se pudo leer ese archivo. Elige el certificado (.cer) de la e.firma, no el .key.";
+        rfcDesdeCer(null);
         return;
     }
     altaCer = d;
@@ -161,19 +170,22 @@ async function alElegirCer() {
     const sep = separarTipo(d.nombre);
     if (!nombre.value.trim() && sep.nombre) nombre.value = sep.nombre;
     if (!tipo.value) tipo.value = d.rfc.length === 13 ? "Persona física" : sep.tipo;
+    rfcDesdeCer(d);
     if (!document.getElementById("alta-key").files[0]) document.getElementById("alta-key").focus();
     else document.getElementById("alta-password").focus();
 }
 
 function abrirModalNuevoCliente() {
     if (sinConexion || soloLectura) return;
-    document.getElementById("nuevo-obligaciones").classList.toggle("hidden", !conIsn);
+    document.getElementById("alta-tab-obligaciones").hidden = !conIsn;
     document.getElementById("nuevo-obl-zona").classList.add("hidden");
     document.getElementById("alta-nota-demo").hidden = puedeGuardarEfirma;
     document.getElementById("alta-ciec-caja").hidden = !puedeGuardarEfirma;
     document.getElementById("alta-cer-info").hidden = true;
     altaCer = null;
-    ponerModoAlta("efirma");
+    errorAlta("");
+    rfcDesdeCer(null);
+    ponerFichaAlta("general");
     document.getElementById("modal-nuevo-cliente").classList.add("modal-active");
 }
 function cerrarModalNuevoCliente() {
@@ -183,13 +195,16 @@ function cerrarModalNuevoCliente() {
 }
 
 document.addEventListener("click", (e) => {
-    const m = e.target.closest("[data-alta]");
-    if (m) { ponerModoAlta(m.dataset.alta); return; }
+    const m = e.target.closest("[data-alta-ficha]");
+    if (m) { ponerFichaAlta(m.dataset.altaFicha); return; }
     const ojo = e.target.closest("[data-ojo]");
     if (ojo) { const c = document.getElementById(ojo.dataset.ojo); c.type = c.type === "password" ? "text" : "password"; }
 });
 document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("alta-cer").addEventListener("change", alElegirCer);
+    // En cuanto corriges algo, el aviso de abajo se quita
+    ["input", "change"].forEach(ev => document.getElementById("form-nuevo-cliente").addEventListener(ev, (e) => { if (e.target.id !== "alta-cer") errorAlta(""); }));
+    document.getElementById("input-alias").addEventListener("input", () => rfcDesdeCer(altaCer && !altaCer.vencido ? altaCer : null));
     document.getElementById("input-alias").addEventListener("blur", (e) => {
         // Si escribieron "Constructora XYZ SA de CV", el tipo se separa solo
         const sep = separarTipo(e.target.value), tipo = document.getElementById("input-tipo");
@@ -407,25 +422,28 @@ async function crearCliente(e) {
     const alias = document.getElementById("input-alias").value.trim();
     const datos = new FormData();
     let rfc = "";
-    // Lo que se puede revisar aquí se revisa aquí: el aviso sale al lado, sin perder lo escrito
-    if (altaModo === "efirma") {
-        const cer = document.getElementById("alta-cer").files[0], key = document.getElementById("alta-key").files[0];
+    // Lo que se puede revisar aquí se revisa aquí: el aviso sale abajo y te lleva a la pestaña donde se arregla
+    const aviso = (pestana, texto, campo) => { ponerFichaAlta(pestana); errorAlta(texto); if (campo) document.getElementById(campo).focus(); };
+    const cer = document.getElementById("alta-cer").files[0];
+    const conEfirma = !!cer;
+    if (conEfirma) {
+        const key = document.getElementById("alta-key").files[0];
         const password = document.getElementById("alta-password").value;
-        if (!cer) return errorAlta("Elige el certificado (.cer) de su e.firma, o cambia a «Solo con el RFC».");
-        if (!altaCer) return errorAlta("Ese archivo no es un certificado (.cer) válido.");
-        if (altaCer.vencido) return errorAlta("Esa e.firma ya venció. Regístrala «Solo con el RFC» y sube la nueva cuando la renueven.");
-        if (!key) return errorAlta("Falta la clave privada (.key) de la e.firma.");
-        if (!/\.key$/i.test(key.name)) return errorAlta("La clave privada debe ser el archivo .key (elegiste " + key.name + ").");
-        if (!password) return errorAlta("Falta la contraseña de la e.firma.");
+        if (!altaCer) return aviso("accesos", "Ese archivo no es un certificado (.cer) válido. Quítalo o elige el correcto.");
+        if (altaCer.vencido) return aviso("accesos", "Esa e.firma ya venció. Quítala y regístrala solo con el RFC; sube la nueva cuando la renueven.");
+        if (!key) return aviso("accesos", "Falta la clave privada (.key) de la e.firma.");
+        if (!/\.key$/i.test(key.name)) return aviso("accesos", "La clave privada debe ser el archivo .key (elegiste " + key.name + ").");
+        if (!password) return aviso("accesos", "Falta la contraseña de la e.firma.", "alta-password");
         rfc = altaCer.rfc;
         datos.append("cer", cer); datos.append("key", key); datos.append("password", password);
     } else {
         rfc = document.getElementById("input-rfc").value.trim().toUpperCase().replace(/[\s-]/g, "");
-        if (!RFC_VALIDO.test(rfc)) return errorAlta("Ese RFC no tiene la forma correcta: 12 caracteres para empresas (ABC010101AB1) o 13 para personas físicas.");
+        if (!rfc) return aviso("general", "Escribe su RFC, o sube su e.firma en Accesos y sale solo.", "input-rfc");
+        if (!RFC_VALIDO.test(rfc)) return aviso("general", "Ese RFC no tiene la forma correcta: 12 caracteres para empresas (ABC010101AB1) o 13 para personas físicas.", "input-rfc");
         datos.append("rfc", rfc);
     }
-    if (!alias) { document.getElementById("input-alias").focus(); return errorAlta("Escribe el nombre de la empresa (como la quieres ver en el sistema)."); }
-    if ((clientesCache || []).some(c => c.rfc === rfc)) return errorAlta(`Ya tienes registrada esa empresa (${rfc}).`);
+    if (!alias) return aviso("general", "Escribe el nombre de la empresa (como la quieres ver en el sistema).", "input-alias");
+    if ((clientesCache || []).some(c => c.rfc === rfc)) return aviso("general", `Ya tienes registrada esa empresa (${rfc}).`);
     datos.append("nombre", alias);
     datos.append("tipo_sociedad", document.getElementById("input-tipo").value);
     const ciec = (document.getElementById("alta-ciec") || {}).value || "";
@@ -434,12 +452,14 @@ async function crearCliente(e) {
     const boton = document.getElementById("btn-guardar-cliente");
     const originalTexto = boton.textContent;
     boton.disabled = true;
-    boton.textContent = altaModo === "efirma" ? "Revisando la e.firma…" : "Registrando…";
+    boton.textContent = conEfirma ? "Revisando la e.firma…" : "Registrando…";
 
     try {
         const resp = await fetch(`${API_URL}/api/clientes/registrar`, { method: "POST", credentials: "include", body: datos });
         if (!resp.ok) {
-            errorAlta(await interpretarError(resp));
+            const msg = await interpretarError(resp);
+            ponerFichaAlta(/e\.firma|\.key|\.cer|certificado|contraseña/i.test(msg) ? "accesos" : "general");
+            errorAlta(msg);
             return;
         }
         const r = await resp.json();
