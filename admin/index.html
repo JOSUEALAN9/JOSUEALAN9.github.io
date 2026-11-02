@@ -5,15 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Administrar Usuarios | Fiscontable</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611021300">
-    <link rel="stylesheet" href="/admin/creditos-admin.css?v=202611021300">
-    <link rel="stylesheet" href="/admin/documentos-admin.css?v=202611021300">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611021400">
+    <link rel="stylesheet" href="/admin/creditos-admin.css?v=202611021400">
+    <link rel="stylesheet" href="/admin/documentos-admin.css?v=202611021400">
 </head>
 <body class="min-h-screen flex flex-col relative">
 
     <div id="app-header" data-modulo="admin" data-titulo="Administración" data-migas=""></div>
-<script src="/assets/js/nucleo.js?v=202611021300"></script>
-<script src="/assets/js/barra.js?v=202611021300"></script>
+<script src="/assets/js/nucleo.js?v=202611021400"></script>
+<script src="/assets/js/barra.js?v=202611021400"></script>
 
     <main class="flex-grow p-4 sm:p-6 w-full max-w-4xl mx-auto">
         <style>
@@ -98,6 +98,8 @@
 
             <!-- ============ ACTIVIDAD ============ -->
             <section id="panel-actividad" role="tabpanel" hidden>
+                <!-- Quién está en la web ahora (antes era una tarjeta en Sistema) -->
+                <div id="actividad-sesiones" class="bg-white rounded-xl card-elevated border border-gray-200 p-4 mb-4 flex flex-wrap items-center gap-3"></div>
                 <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4" id="resumen-actividad"></div>
                 <div class="flex items-center gap-3 mb-2">
                     <h2 class="text-xs font-bold text-slate-500 uppercase tracking-wide">Lo más reciente</h2>
@@ -471,8 +473,8 @@
         </div>
     </div>
 
-<script src="/admin/admin.js?v=202611021300"></script>
-<script src="/admin/creditos-admin.js?v=202611021300"></script>
-<script src="/admin/documentos-admin.js?v=202611021300"></script>
+<script src="/admin/admin.js?v=202611021400"></script>
+<script src="/admin/creditos-admin.js?v=202611021400"></script>
+<script src="/admin/documentos-admin.js?v=202611021400"></script>
 </body>
 </html>

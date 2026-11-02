@@ -64,7 +64,13 @@
         return isNaN(f) ? null : f;
     }
     function inicioMes(ym) { return new Date(+ym.slice(0, 4), +ym.slice(5, 7) - 1, 1, 0, 0, 0); }
-    function finMes(ym) { return new Date(+ym.slice(0, 4), +ym.slice(5, 7), 0, 23, 59, 59); }
+    /* Último día del mes; si es el mes en curso (o uno que no ha terminado), ayer a las 23:59:59:
+       lo de hoy todavía no está completo en el SAT. El 1.º del mes, ayer es el último día del mes anterior. */
+    function finMes(ym) {
+        var fin = new Date(+ym.slice(0, 4), +ym.slice(5, 7), 0, 23, 59, 59);
+        var ayer = new Date(); ayer.setDate(ayer.getDate() - 1); ayer.setHours(23, 59, 59, 0);
+        return fin > ayer ? ayer : fin;
+    }
     function mesDe(f) { return f.getFullYear() + "-" + dos(f.getMonth() + 1); }
     function fechaBonita(iso, conHora) {
         if (!iso) return "";
@@ -262,7 +268,9 @@
     }
 
     function aplicarMes(ym) {
-        ponerRango(inicioMes(ym), finMes(ym));
+        var ini = inicioMes(ym), fin = finMes(ym);
+        if (fin < ini) ini = inicioMes(mesDe(fin));      // hoy es día 1: el mes en curso aún no tiene días completos
+        ponerRango(ini, fin);
     }
 
     ["inicio", "fin"].forEach(function (id) {
@@ -290,7 +298,7 @@
                 if (!v || v.indexOf("m:") !== 0) return;
                 E.periodoTocado = true;
                 var fin = finMes(v.slice(2)), ini = rango().inicio;
-                if (!ini || ini > fin) ini = inicioMes(v.slice(2));
+                if (!ini || ini > fin) ini = inicioMes(mesDe(fin));
                 ponerRango(ini, fin);              // el final se estira hasta ese mes
             }
         });
@@ -793,5 +801,90 @@
         PasoCliente.montar({ contenedor: "paso-cliente", alElegir: alElegir, alLimpiar: alLimpiar, soloRfc: true,
                              alRegistrar: function () { pintarAcceso(); } });
         if (Fiscontable.url("ver")) verResultados(Fiscontable.url("ver"));
+        contarAutomaticas();
+        if (Fiscontable.url("auto")) abrirAutomatica();
     })();
+
+    /* ================================================================ descarga automática
+       Por empresa: prendida o apagada, qué (emitidos, recibidos o ambos) y cada cuánto. Cada cambio se guarda solo. */
+    var AUTO = { datos: null };
+    function diaCorto(iso) {
+        if (!iso) return "";
+        return new Date(iso.slice(0, 10) + "T12:00:00").toLocaleDateString("es-MX", { weekday: "short", day: "numeric", month: "short" });
+    }
+    async function cargarAutomatica() {
+        var r = await fetch(API + "/api/descarga-xml/automatica", { credentials: "include" });
+        if (!r.ok) throw new Error(await Fiscontable.leerError(r));
+        AUTO.datos = await r.json();
+        return AUTO.datos;
+    }
+    async function contarAutomaticas() {
+        try {
+            var d = await cargarAutomatica();
+            var n = d.empresas.filter(function (e) { return e.activo && e.efirma_guardada; }).length;
+            $("insignia-auto").textContent = n; $("insignia-auto").hidden = !n;
+        } catch (e) { /* sin permiso o sin conexión: el botón queda sin número */ }
+    }
+    function filaAuto(e) {
+        var d = AUTO.datos, ok = e.efirma_guardada;
+        var opciones = function (mapa, actual) {
+            return Object.keys(mapa).map(function (k) { return '<option value="' + k + '"' + (k === actual ? " selected" : "") + ">" + esc(mapa[k]) + "</option>"; }).join("");
+        };
+        var estado = !ok ? '<a class="dm-auto__falta" href="/clientes/?editar=' + encodeURIComponent(e.rfc) + '&ficha=accesos">Falta su e.firma · subirla</a>'
+            : !e.activo ? '<span class="dm-auto__estado">Apagada</span>'
+            : '<span class="dm-auto__estado">Próxima: <b>' + esc(diaCorto(e.proxima)) + "</b>" + (e.ultima ? "<br>Última: " + esc(diaCorto(e.ultima)) : "") + "</span>";
+        return '<tr data-rfc="' + esc(e.rfc) + '"><td><b>' + esc(e.alias) + '</b><span class="dm-auto__rfc">' + esc(e.rfc) + "</span></td>" +
+            '<td><label class="dm-sw" title="' + (ok ? "Prender o apagar" : "Primero guarda su e.firma") + '"><input type="checkbox" data-auto="activo"' + (e.activo && ok ? " checked" : "") + (ok ? "" : " disabled") + "><span></span></label></td>" +
+            '<td><select data-auto="tipo"' + (e.activo && ok ? "" : " disabled") + ">" + opciones(d.tipos, e.tipo) + "</select></td>" +
+            '<td><select data-auto="frecuencia"' + (e.activo && ok ? "" : " disabled") + ">" + opciones(d.frecuencias, e.frecuencia) + "</select></td>" +
+            "<td>" + estado + "</td></tr>";
+    }
+    function pintarAutomatica() {
+        var d = AUTO.datos;
+        var q = ($("auto-buscar").value || "").trim().toLowerCase();
+        var lista = d.empresas.filter(function (e) { return !q || (e.alias + " " + e.rfc).toLowerCase().indexOf(q) !== -1; });
+        $("auto-filas").innerHTML = lista.length ? lista.map(filaAuto).join("")
+            : '<tr><td colspan="5">' + (d.empresas.length ? "Ninguna coincide." : 'Todavía no tienes empresas. <a href="/clientes/?nuevo=1">Registrar empresa</a>') + "</td></tr>";
+        $("auto-nota").textContent = "Cada madrugada se bajan solos por el web service del SAT, con la e.firma guardada de cada empresa, y entran a Administración de XML. " +
+            "Esta noche tocaría del " + diaCorto(d.periodo_esta_noche.desde) + " al " + diaCorto(d.periodo_esta_noche.hasta) +
+            " (hasta ayer; los primeros días del mes también el mes anterior completo).";
+        var activas = d.empresas.filter(function (e) { return e.activo && e.efirma_guardada; }).length;
+        $("insignia-auto").textContent = activas; $("insignia-auto").hidden = !activas;
+    }
+    async function abrirAutomatica() {
+        $("dlg-automatica").showModal();
+        Fiscontable.url({ auto: "1" });
+        try { await cargarAutomatica(); pintarAutomatica(); }
+        catch (e) { $("auto-filas").innerHTML = '<tr><td colspan="5">' + esc(e.message) + "</td></tr>"; }
+    }
+    async function guardarAuto(rfc, cambios) {
+        var e = AUTO.datos.empresas.filter(function (x) { return x.rfc === rfc; })[0];
+        var cuerpo = { activo: e.activo, tipo: e.tipo, frecuencia: e.frecuencia };
+        Object.assign(cuerpo, cambios);
+        var r = await fetch(API + "/api/descarga-xml/automatica/" + encodeURIComponent(rfc), {
+            method: "PUT", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify(cuerpo)
+        });
+        if (!r.ok) throw new Error(await Fiscontable.leerError(r));
+        Object.assign(e, await r.json());
+    }
+    $("btn-automatica").addEventListener("click", abrirAutomatica);
+    $("dlg-automatica").addEventListener("close", function () { Fiscontable.url({ auto: null }); });
+    $("dlg-automatica").addEventListener("click", function (ev) { if (ev.target.closest("[data-cerrar-auto]")) $("dlg-automatica").close(); });
+    $("auto-buscar").addEventListener("input", pintarAutomatica);
+    $("auto-filas").addEventListener("change", async function (ev) {
+        var campo = ev.target.closest("[data-auto]"); if (!campo) return;
+        var rfc = campo.closest("tr").dataset.rfc, cambio = {};
+        cambio[campo.dataset.auto] = campo.type === "checkbox" ? campo.checked : campo.value;
+        campo.disabled = true;
+        try { await guardarAuto(rfc, cambio); } catch (e) { alerta(e.message); }
+        pintarAutomatica();
+    });
+    $("auto-todas").addEventListener("click", async function () {
+        var b = this, faltan = AUTO.datos ? AUTO.datos.empresas.filter(function (e) { return e.efirma_guardada && !e.activo; }) : [];
+        if (!faltan.length) { b.textContent = "Ya están todas"; setTimeout(function () { b.textContent = "Activar todas las que tienen e.firma"; }, 1800); return; }
+        b.disabled = true; b.textContent = "Activando…";
+        for (var i = 0; i < faltan.length; i++) { try { await guardarAuto(faltan[i].rfc, { activo: true }); } catch (e) { alerta(e.message); break; } }
+        b.disabled = false; b.textContent = "Activar todas las que tienen e.firma";
+        pintarAutomatica();
+    });
 })();

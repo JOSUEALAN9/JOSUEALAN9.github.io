@@ -4,9 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Descarga masiva de XML | Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611021300">
-    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611021300">
-    <link rel="stylesheet" href="/herramientas/descarga-xml/descarga-xml.css?v=202611021300">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611021400">
+    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611021400">
+    <link rel="stylesheet" href="/herramientas/descarga-xml/descarga-xml.css?v=202611021400">
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="min-h-screen flex flex-col">
@@ -22,9 +22,14 @@
     <!-- Cabecera: título y el acceso a las solicitudes (panel lateral) -->
     <div class="dm-cabeza">
         <h1>Descarga masiva de XML</h1>
-        <button type="button" id="btn-solicitudes" class="dm-btn-solicitudes" aria-haspopup="dialog">
-            Solicitudes<span id="insignia" class="dm-insignia" hidden></span>
-        </button>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button type="button" id="btn-automatica" class="dm-btn-solicitudes" aria-haspopup="dialog" title="Que los XML de tus empresas se bajen solos cada madrugada">
+                Descarga automática<span id="insignia-auto" class="dm-insignia" hidden></span>
+            </button>
+            <button type="button" id="btn-solicitudes" class="dm-btn-solicitudes" aria-haspopup="dialog">
+                Solicitudes<span id="insignia" class="dm-insignia" hidden></span>
+            </button>
+        </div>
     </div>
 
     <!-- Las dos formas de bajar -->
@@ -202,6 +207,46 @@
 
 </main>
 
+<dialog id="dlg-automatica" class="dm-auto">
+    <div class="dm-auto__cabeza">
+        <div><b>Descarga automática de XML</b>
+            <p id="auto-nota">Cada madrugada se bajan solos por el web service del SAT, con la e.firma guardada de cada empresa. Entran solos a Administración de XML.</p></div>
+        <button type="button" data-cerrar-auto aria-label="Cerrar">✕</button>
+    </div>
+    <div class="dm-auto__barra">
+        <input type="search" id="auto-buscar" placeholder="Buscar empresa…" autocomplete="off">
+        <button type="button" id="auto-todas" class="fc-btn">Activar todas las que tienen e.firma</button>
+    </div>
+    <div class="dm-auto__lista"><table><thead><tr><th>Empresa</th><th>Automática</th><th>Qué</th><th>Cada cuánto</th><th>Estado</th></tr></thead>
+        <tbody id="auto-filas"><tr><td colspan="5">Cargando…</td></tr></tbody></table></div>
+</dialog>
+<style>
+    .dm-auto { width: min(860px, calc(100vw - 24px)); height: min(640px, calc(100vh - 32px)); border: 0; border-radius: 16px; padding: 0; box-shadow: 0 20px 50px rgba(15,23,42,.35); }
+    .dm-auto[open] { display: flex; flex-direction: column; }
+    .dm-auto__cabeza { display: flex; justify-content: space-between; gap: 12px; padding: 16px 18px; border-bottom: 1px solid #e5e7eb; }
+    .dm-auto__cabeza p { font-size: 12.5px; color: #64748b; margin-top: 3px; }
+    .dm-auto__cabeza button { border: 0; background: none; font-size: 18px; color: #94a3b8; cursor: pointer; }
+    .dm-auto__barra { display: flex; flex-wrap: wrap; gap: 8px; padding: 10px 18px; }
+    .dm-auto__barra input { flex: 1 1 200px; border: 1px solid #e5e7eb; border-radius: 10px; padding: 8px 11px; font: inherit; font-size: 13.5px; }
+    .dm-auto__lista { flex: 1; overflow: auto; padding: 0 18px 16px; }
+    .dm-auto table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .dm-auto th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: #64748b; padding: 8px 6px; border-bottom: 1px solid #e5e7eb; position: sticky; top: 0; background: #fff; }
+    .dm-auto td { padding: 8px 6px; border-bottom: 1px solid #f1f5f9; vertical-align: middle; }
+    .dm-auto select { border: 1px solid #e5e7eb; border-radius: 8px; padding: 4px 6px; font: inherit; font-size: 12.5px; background: #fff; }
+    .dm-auto select:disabled { opacity: .45; }
+    .dm-auto__rfc { display: block; font: 11.5px ui-monospace, monospace; color: #94a3b8; }
+    .dm-sw { position: relative; display: inline-block; width: 38px; height: 22px; }
+    .dm-sw input { opacity: 0; width: 0; height: 0; }
+    .dm-sw span { position: absolute; inset: 0; border-radius: 99px; background: #cbd5e1; transition: .15s; cursor: pointer; }
+    .dm-sw span::after { content: ""; position: absolute; width: 16px; height: 16px; left: 3px; top: 3px; border-radius: 50%; background: #fff; transition: .15s; }
+    .dm-sw input:checked + span { background: #0e7490; }
+    .dm-sw input:checked + span::after { transform: translateX(16px); }
+    .dm-sw input:disabled + span { opacity: .4; cursor: not-allowed; }
+    .dm-auto__estado { font-size: 12px; color: #475569; }
+    .dm-auto__falta { font-size: 12px; font-weight: 700; color: #b45309; }
+</style>
+
+
 <!-- Solicitudes al SAT: panel lateral -->
 <div id="velo" class="dm-velo" hidden></div>
 <aside id="cajon" class="dm-cajon" hidden aria-label="Solicitudes al SAT" role="dialog">
@@ -234,12 +279,12 @@
 
 <footer class="fc-pie">© 2026 Alan Sánchez</footer>
 
-<script src="/assets/js/nucleo.js?v=202611021300"></script>
-<script src="/assets/js/barra.js?v=202611021300"></script>
-<script src="/assets/js/comun/leer-cer.js?v=202611021300"></script>
-<script src="/assets/js/comun/paso-cliente.js?v=202611021300"></script>
-<script src="/assets/js/comun/tabla.js?v=202611021300"></script>
-<script src="/herramientas/descarga-xml/descarga-xml.js?v=202611021300"></script>
+<script src="/assets/js/nucleo.js?v=202611021400"></script>
+<script src="/assets/js/barra.js?v=202611021400"></script>
+<script src="/assets/js/comun/leer-cer.js?v=202611021400"></script>
+<script src="/assets/js/comun/paso-cliente.js?v=202611021400"></script>
+<script src="/assets/js/comun/tabla.js?v=202611021400"></script>
+<script src="/herramientas/descarga-xml/descarga-xml.js?v=202611021400"></script>
 <!-- Programar descargas de XML en la madrugada: pendiente para otra entrega (el motor ya lo soporta). -->
 </body>
 </html>

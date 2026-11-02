@@ -135,7 +135,7 @@ function abrirPestana(nombre) {
 
     // La actividad se refresca sola solo mientras está a la vista.
     clearInterval(relojActividad);
-    if (nombre === "actividad") relojActividad = setInterval(cargarProcesosAdmin, 30000);
+    if (nombre === "actividad") { pintarSesionesActividad(true); relojActividad = setInterval(() => { cargarProcesosAdmin(); pintarSesionesActividad(true); }, 30000); }
     if (nombre === "sistema") cargarSistema();
     if (nombre === "creditos" && window.CreditosAdmin) window.CreditosAdmin.cargar();
     if (nombre === "documentos" && window.DocumentosAdmin) window.DocumentosAdmin.cargar();
@@ -720,6 +720,8 @@ function prepararEventosSistema() {
     });
     ["input", "change"].forEach(ev => $("tarjetas-estado").addEventListener(ev, cambioCampo));
     $("tarjetas-estado").addEventListener("click", clicTarjeta);
+    $("actividad-sesiones").addEventListener("click", clicTarjeta);
+    ["input", "change"].forEach(ev => $("actividad-sesiones").addEventListener(ev, cambioCampo));
 }
 
 function cambioCampo(e) {
@@ -820,7 +822,15 @@ function refrescarVentana(id) { const d = document.getElementById(id); if (d && 
 
 const botonVer = (id, texto) => `<button type="button" id="${id}" class="text-xs font-bold text-slate-700 border border-gray-200 hover:border-slate-400 rounded-lg py-1.5 px-3">${texto}</button>`;
 
-// Sesiones: de entrada solo cuántos hay; la lista y el tope, en su ventana
+// Sesiones (pestaña Actividad): de entrada solo cuántos hay; la lista y el tope, en su ventana
+async function pintarSesionesActividad(recargar) {
+    const caja = $("actividad-sesiones");
+    if (!caja) return;
+    if (recargar || !sesionesWeb) { try { sesionesWeb = await api("/api/admin/sesiones"); } catch (e) { caja.hidden = true; return; } }
+    caja.hidden = false;
+    caja.innerHTML = `<div class="flex-1 min-w-[200px]"><p class="text-xs font-bold text-slate-500 uppercase tracking-wide">En la web ahora</p>${tarjetaSesiones()}</div>`;
+}
+
 function tarjetaSesiones() {
     const d = sesionesWeb, n = d.activas.length;
     const cuentas = new Set(d.activas.map(x => x.correo)).size;
@@ -860,6 +870,7 @@ async function cerrarSesionWeb(boton) {
         await api(`/api/admin/sesiones/${boton.dataset.cerrarSesion}/cerrar`, { method: "POST" });
         sesionesWeb = await api("/api/admin/sesiones");
         pintarEstado();
+        pintarSesionesActividad();
         refrescarVentana("dlg-conectados");
         const dlg = document.getElementById("dlg-sesiones");
         if (dlg && dlg.open) buscarSesiones();
@@ -1167,7 +1178,6 @@ function pintarEstado() {
         (estadoTrabajadores ? tarjeta("Trabajadores (VPS y PCs)", tarjetaTrabajadores()) : "") +
         (diasInhabiles ? tarjeta("Días inhábiles del SAT", tarjetaInhabiles()) : "") +
         (pcsAgentes ? tarjeta("PCs con el agente", tarjetaPcs()) : "") +
-        (sesionesWeb ? tarjeta("Sesiones en la web", tarjetaSesiones()) : "") +
         tarjeta("Tipo de cambio Banxico", tipoCambio, tcMal ? "mal" : "");
     $("alerta-sistema").textContent = (alertaGit || e.mantenimiento.activo) ? "•" : "";
 }
