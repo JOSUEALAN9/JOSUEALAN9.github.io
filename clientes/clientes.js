@@ -36,7 +36,7 @@ async function inicializar() {
 function abrirDesdeUrl() {
     const q = new URLSearchParams(location.search);
     const rfc = (q.get("editar") || "").toUpperCase();
-    if (rfc && (clientesCache || []).some(c => c.rfc === rfc)) abrirModalEditar(rfc);
+    if (rfc && (clientesCache || []).some(c => c.rfc === rfc)) abrirModalEditar(rfc, q.get("ficha"));
     else if (q.get("nuevo")) abrirModalNuevoCliente();
 }
 
@@ -315,7 +315,7 @@ function filaLista(c) {
         <td><b class="text-slate-800">${esc(c.alias)}</b></td>
         <td class="font-mono text-xs text-slate-500">${esc(c.rfc)}</td>
         <td class="text-xs text-slate-500">${esc(c.tipo_sociedad || "")}</td>
-        <td>${c.efirma_guardada ? '<span class="cli-si">✓ Guardada</span>' : (puedeGuardarEfirma && !soloLectura ? `<button type="button" class="text-xs font-bold text-violet-700 underline" data-rfc="${esc(c.rfc)}" onclick="abrirModalEditar(this.dataset.rfc)">Subir e.firma</button>` : '<span class="cli-no">Falta</span>')}</td>
+        <td>${c.efirma_guardada ? '<span class="cli-si">✓ Guardada</span>' : (puedeGuardarEfirma && !soloLectura ? `<button type="button" class="text-xs font-bold text-violet-700 underline" data-rfc="${esc(c.rfc)}" onclick="abrirModalEditar(this.dataset.rfc, 'accesos')">Subir e.firma</button>` : '<span class="cli-no">Falta</span>')}</td>
         <td>${marca(c.ciec_guardada, "Sí", "—")}</td>
         <td>${marca(tieneDoc(c, "csf"), "Al día", "Falta")}</td>
         <td>${marca(tieneDoc(c, "opinion"), "Al día", "Falta")}</td>
@@ -472,50 +472,91 @@ async function crearCliente(e) {
 
 let rfcEnEdicion = null;
 
-function abrirModalEditar(rfc) {
+/* ---------------------------------------------------------------- ficha del cliente (pestañas)
+   Datos generales · Accesos (e.firma y contraseña del SAT) · Obligaciones. ?editar=RFC&ficha=accesos abre directo. */
+let fichaActual = "general";
+function ponerFicha(nombre) {
+    if (nombre === "obligaciones" && document.getElementById("tab-obligaciones").hidden) nombre = "general";
+    fichaActual = nombre;
+    document.querySelectorAll("[data-ficha]").forEach(b => b.setAttribute("aria-selected", String(b.dataset.ficha === nombre)));
+    document.querySelectorAll("#modal-editar-cliente [data-panel]").forEach(p => { p.hidden = p.dataset.panel !== nombre; });
+}
+
+function pintarEfirmaFicha(cliente, conservarMensaje) {
+    const badge = document.getElementById("editar-estado-efirma");
+    const guardada = !!cliente.efirma_guardada;
+    badge.textContent = !puedeGuardarEfirma ? "No disponible en la prueba" : guardada ? "Guardada" : "No guardada";
+    badge.className = "text-xs font-bold px-2 py-1 rounded-full flex-none " + (guardada ? "bg-violet-100 text-violet-700" : "bg-gray-100 text-gray-500");
+    // Guardada: solo su estado y «Reemplazar»; el formulario aparece al pedirlo
+    const cuando = cliente.efirma_guardada_en ? new Date(cliente.efirma_guardada_en + "Z").toLocaleDateString("es-MX", { day: "numeric", month: "short", year: "numeric" }) : "";
+    document.getElementById("efirma-guardada").hidden = !guardada || !puedeGuardarEfirma;
+    document.getElementById("efirma-guardada-texto").textContent = "✓ Lista para los trámites" + (cuando ? " · guardada el " + cuando : "");
+    document.getElementById("editar-efirma-form").classList.toggle("hidden", guardada || !puedeGuardarEfirma);
+    document.getElementById("btn-olvidar-efirma").classList.toggle("hidden", !guardada);
+    document.getElementById("btn-guardar-efirma").textContent = guardada ? "Guardar la nueva e.firma" : "Guardar e.firma";
+    if (!conservarMensaje) ocultarMensajeEfirma();
+}
+
+function pintarResumenFicha(cliente) {
+    const r = encodeURIComponent(cliente.rfc);
+    const chip = (ok, si, no, accion) => `<button type="button" class="ficha-chip ${ok ? "ficha-chip--ok" : "ficha-chip--falta"}" ${accion}>${ok ? "✓ " + si : no}</button>`;
+    document.getElementById("editar-resumen").innerHTML =
+        chip(cliente.efirma_guardada, "e.firma", "Falta su e.firma", 'data-ir-ficha="accesos"') +
+        chip(cliente.ciec_guardada, "Contraseña SAT", "Sin contraseña SAT", 'data-ir-ficha="accesos"') +
+        chip(tieneDoc(cliente, "csf"), "Constancia del mes", "Sin constancia del mes", `onclick="location.href='/herramientas/constancias/?rfc=${r}'"`) +
+        chip(tieneDoc(cliente, "opinion"), "Opinión del mes", "Sin opinión del mes", `onclick="location.href='/herramientas/opinion/?rfc=${r}'"`);
+    document.getElementById("ficha-aviso-accesos").hidden = !!cliente.efirma_guardada || !puedeGuardarEfirma;
+}
+
+function abrirModalEditar(rfc, ficha) {
     if (sinConexion || soloLectura) return;
     const cliente = clientesCache.find(c => c.rfc === rfc);
     if (!cliente) return;
 
     rfcEnEdicion = rfc;
-    document.getElementById("editar-rfc").textContent = rfc;
+    document.getElementById("editar-titulo").textContent = cliente.alias;
+    document.getElementById("editar-inicial").textContent = (cliente.alias || rfc).charAt(0).toUpperCase();
+    document.getElementById("editar-rfc").textContent = rfc + (cliente.tipo_sociedad ? " · " + cliente.tipo_sociedad : "");
     document.getElementById("editar-alias").value = cliente.alias;
-    document.getElementById("editar-tipo").value = cliente.tipo_sociedad || "";
+    // Sin tipo y con RFC de 13 caracteres: casi seguro es persona física (se propone; se guarda con «Guardar»)
+    document.getElementById("editar-tipo").value = cliente.tipo_sociedad || (rfc.length === 13 ? "Persona física" : "");
+    document.getElementById("editar-dato-rfc").textContent = rfc;
+    document.getElementById("editar-dato-razon").textContent = cliente.razon_social || cliente.alias;
+    document.getElementById("editar-dato-alta").textContent = cliente.creado_en ? new Date(cliente.creado_en + "Z").toLocaleDateString("es-MX", { day: "numeric", month: "long", year: "numeric" }) : "—";
     pintarCiec(cliente);
     document.getElementById("editar-cer").value = "";
     document.getElementById("editar-key").value = "";
     document.getElementById("editar-password").value = "";
-    ocultarMensajeEfirma();
-
-    const badge = document.getElementById("editar-estado-efirma");
-    const btnOlvidar = document.getElementById("btn-olvidar-efirma");
-    if (cliente.efirma_guardada) {
-        badge.textContent = "Guardada";
-        badge.className = "text-xs font-bold px-2 py-1 rounded-full flex-none bg-violet-100 text-violet-700";
-        btnOlvidar.classList.remove("hidden");
-        document.getElementById("btn-guardar-efirma").textContent = "Reemplazar e.firma";
-    } else {
-        badge.textContent = "No guardada";
-        badge.className = "text-xs font-bold px-2 py-1 rounded-full flex-none bg-gray-100 text-gray-500";
-        btnOlvidar.classList.add("hidden");
-        document.getElementById("btn-guardar-efirma").textContent = "Guardar e.firma";
-    }
-
-    // Demo: la ficha no ofrece guardar e.firma (el servidor también lo rechaza).
-    document.getElementById("editar-efirma-form").classList.toggle("hidden", !puedeGuardarEfirma);
-    if (!puedeGuardarEfirma) {
-        badge.textContent = "No disponible en la versión de prueba";
-        badge.className = "text-xs font-bold px-2 py-1 rounded-full flex-none bg-gray-100 text-gray-500";
-    }
-
+    pintarEfirmaFicha(cliente);
+    pintarResumenFicha(cliente);
     pintarObligaciones(cliente);
+    ponerFicha(ficha || "general");
     document.getElementById("modal-editar-cliente").classList.add("modal-active");
 }
+
+document.addEventListener("click", (e) => {
+    const t = e.target.closest("[data-ficha]");
+    if (t) { ponerFicha(t.dataset.ficha); return; }
+    const ir = e.target.closest("[data-ir-ficha]");
+    if (ir) { ponerFicha(ir.dataset.irFicha); return; }
+    if (e.target.closest("#btn-reemplazar-efirma")) {
+        document.getElementById("efirma-guardada").hidden = true;
+        document.getElementById("editar-efirma-form").classList.remove("hidden");
+        document.getElementById("editar-cer").focus();
+        return;
+    }
+    if (e.target.closest("#btn-quitar-cliente") && rfcEnEdicion) {
+        const rfc = rfcEnEdicion;
+        cerrarModalEditar();
+        eliminarCliente(rfc);
+    }
+});
 
 /* Obligaciones (hoy ISN de Quintana Roo): al activarla, la empresa aparece en ISN lista para llenar sus datos. */
 function pintarObligaciones(cliente) {
     const caja = document.getElementById("editar-obligaciones");
     caja.classList.toggle("hidden", !conIsn);
+    document.getElementById("tab-obligaciones").hidden = !conIsn;
     if (!conIsn) return;
     const o = obligaciones[cliente.rfc] || {};
     document.getElementById("obl-isn").checked = !!o.obligacion;
@@ -658,6 +699,12 @@ async function guardarAlias() {
         if (!resp.ok) { mostrarAlerta("error", await interpretarError(resp)); return; }
         mostrarAlerta("success", "Nombre actualizado.");
         await cargarClientes();
+        const c = clientesCache.find(x => x.rfc === rfcEnEdicion);
+        if (c) {
+            document.getElementById("editar-titulo").textContent = c.alias;
+            document.getElementById("editar-rfc").textContent = c.rfc + (c.tipo_sociedad ? " · " + c.tipo_sociedad : "");
+            document.getElementById("editar-dato-razon").textContent = c.razon_social || c.alias;
+        }
     } catch (error) {
         mostrarAlerta("error", "No se pudo conectar con el servidor.");
     } finally {
@@ -716,11 +763,8 @@ async function guardarEfirma() {
 }
 
 function abrirModalEditarSinLimpiarMensaje(cliente) {
-    const badge = document.getElementById("editar-estado-efirma");
-    badge.textContent = "Guardada";
-    badge.className = "text-xs font-bold px-2 py-1 rounded-full flex-none bg-violet-100 text-violet-700";
-    document.getElementById("btn-olvidar-efirma").classList.remove("hidden");
-    document.getElementById("btn-guardar-efirma").textContent = "Reemplazar e.firma";
+    pintarEfirmaFicha(cliente, true);
+    pintarResumenFicha(cliente);
 }
 
 async function olvidarEfirmaDesdeModal() {
@@ -732,12 +776,9 @@ async function olvidarEfirmaDesdeModal() {
         });
         if (!resp.ok) { mostrarMensajeEfirma("error", await interpretarError(resp)); return; }
         mostrarMensajeEfirma("exito", "e.firma eliminada.");
-        const badge = document.getElementById("editar-estado-efirma");
-        badge.textContent = "No guardada";
-        badge.className = "text-xs font-bold px-2 py-1 rounded-full flex-none bg-gray-100 text-gray-500";
-        document.getElementById("btn-olvidar-efirma").classList.add("hidden");
-        document.getElementById("btn-guardar-efirma").textContent = "Guardar e.firma";
         await cargarClientes();
+        const c = clientesCache.find(x => x.rfc === rfcEnEdicion);
+        if (c) abrirModalEditarSinLimpiarMensaje(c);
     } catch (error) {
         mostrarMensajeEfirma("error", "No se pudo conectar con el servidor.");
     }
