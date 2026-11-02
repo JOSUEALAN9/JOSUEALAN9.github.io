@@ -807,7 +807,7 @@
 
     /* ================================================================ descarga automática
        Por empresa: prendida o apagada, qué (emitidos, recibidos o ambos) y cada cuánto. Cada cambio se guarda solo. */
-    var AUTO = { datos: null };
+    var AUTO = { datos: null, hecho: {} };
     function diaCorto(iso) {
         if (!iso) return "";
         return new Date(iso.slice(0, 10) + "T12:00:00").toLocaleDateString("es-MX", { weekday: "short", day: "numeric", month: "short" });
@@ -833,6 +833,8 @@
         var estado = !ok ? '<a class="dm-auto__falta" href="/clientes/?editar=' + encodeURIComponent(e.rfc) + '&ficha=accesos">Falta su e.firma · subirla</a>'
             : !e.activo ? '<span class="dm-auto__estado">Apagada</span>'
             : '<span class="dm-auto__estado">Próxima: <b>' + esc(diaCorto(e.proxima)) + "</b>" + (e.ultima ? "<br>Última: " + esc(diaCorto(e.ultima)) : "") + "</span>";
+        if (ok) estado += '<button type="button" class="dm-auto__ahora" data-ahora title="Pedir al SAT ahora el mismo periodo de la madrugada">Bajar ahora</button>';
+        if (AUTO.hecho[e.rfc]) estado += '<span class="dm-auto__hecho">' + esc(AUTO.hecho[e.rfc]) + "</span>";
         return '<tr data-rfc="' + esc(e.rfc) + '"><td><b>' + esc(e.alias) + '</b><span class="dm-auto__rfc">' + esc(e.rfc) + "</span></td>" +
             '<td><label class="dm-sw" title="' + (ok ? "Prender o apagar" : "Primero guarda su e.firma") + '"><input type="checkbox" data-auto="activo"' + (e.activo && ok ? " checked" : "") + (ok ? "" : " disabled") + "><span></span></label></td>" +
             '<td><select data-auto="tipo"' + (e.activo && ok ? "" : " disabled") + ">" + opciones(d.tipos, e.tipo) + "</select></td>" +
@@ -871,6 +873,23 @@
     $("dlg-automatica").addEventListener("close", function () { Fiscontable.url({ auto: null }); });
     $("dlg-automatica").addEventListener("click", function (ev) { if (ev.target.closest("[data-cerrar-auto]")) $("dlg-automatica").close(); });
     $("auto-buscar").addEventListener("input", pintarAutomatica);
+    // «Bajar ahora»: mismo periodo y tipo que la madrugada, en este momento (sigue en Solicitudes)
+    $("auto-filas").addEventListener("click", async function (ev) {
+        var b = ev.target.closest("[data-ahora]"); if (!b) return;
+        var rfc = b.closest("tr").dataset.rfc;
+        b.disabled = true; b.textContent = "Pidiendo al SAT…";
+        try {
+            var r = await fetch(API + "/api/descarga-xml/automatica/" + encodeURIComponent(rfc) + "/ahora", { method: "POST", credentials: "include" });
+            if (!r.ok) throw new Error(await Fiscontable.leerError(r));
+            var d = await r.json();
+            AUTO.hecho[rfc] = "✓ Pedido: del " + diaCorto(d.desde) + " al " + diaCorto(d.hasta) + " (" +
+                d.solicitudes.map(function (x) { return x.tipo; }).join(" y ") + "). Sigue en Solicitudes." + (d.avisos.length ? " " + d.avisos.join(" ") : "");
+            Fiscontable.refrescarDescargas();
+            if (E.elegido && E.elegido.rfc === rfc) cargarSolicitudes();
+            await cargarAutomatica();
+        } catch (e) { AUTO.hecho[rfc] = "✗ " + e.message; }
+        pintarAutomatica();
+    });
     $("auto-filas").addEventListener("change", async function (ev) {
         var campo = ev.target.closest("[data-auto]"); if (!campo) return;
         var rfc = campo.closest("tr").dataset.rfc, cambio = {};

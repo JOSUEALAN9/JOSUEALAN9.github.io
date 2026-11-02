@@ -4,9 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Descarga masiva de XML | Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611021400">
-    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611021400">
-    <link rel="stylesheet" href="/herramientas/descarga-xml/descarga-xml.css?v=202611021400">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611021500">
+    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611021500">
+    <link rel="stylesheet" href="/herramientas/descarga-xml/descarga-xml.css?v=202611021500">
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="min-h-screen flex flex-col">
@@ -244,6 +244,9 @@
     .dm-sw input:disabled + span { opacity: .4; cursor: not-allowed; }
     .dm-auto__estado { font-size: 12px; color: #475569; }
     .dm-auto__falta { font-size: 12px; font-weight: 700; color: #b45309; }
+    .dm-auto__ahora { display: block; margin-top: 5px; border: 1px solid #a5d8e6; background: #f0fafc; color: #0e7490; border-radius: 8px; padding: 3px 9px; font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; }
+    .dm-auto__ahora:disabled { opacity: .6; cursor: wait; }
+    .dm-auto__hecho { display: block; margin-top: 4px; font-size: 11.5px; color: #475569; max-width: 240px; }
 </style>
 
 
@@ -279,12 +282,12 @@
 
 <footer class="fc-pie">© 2026 Alan Sánchez</footer>
 
-<script src="/assets/js/nucleo.js?v=202611021400"></script>
-<script src="/assets/js/barra.js?v=202611021400"></script>
-<script src="/assets/js/comun/leer-cer.js?v=202611021400"></script>
-<script src="/assets/js/comun/paso-cliente.js?v=202611021400"></script>
-<script src="/assets/js/comun/tabla.js?v=202611021400"></script>
-<script src="/herramientas/descarga-xml/descarga-xml.js?v=202611021400"></script>
+<script src="/assets/js/nucleo.js?v=202611021500"></script>
+<script src="/assets/js/barra.js?v=202611021500"></script>
+<script src="/assets/js/comun/leer-cer.js?v=202611021500"></script>
+<script src="/assets/js/comun/paso-cliente.js?v=202611021500"></script>
+<script src="/assets/js/comun/tabla.js?v=202611021500"></script>
+<script src="/herramientas/descarga-xml/descarga-xml.js?v=202611021500"></script>
 <!-- Programar descargas de XML en la madrugada: pendiente para otra entrega (el motor ya lo soporta). -->
 </body>
 </html>
