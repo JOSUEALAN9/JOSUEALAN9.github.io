@@ -724,6 +724,7 @@ function prepararEventosSistema() {
     }));
     $("tarjetas-estado").addEventListener("click", e => {
         if (e.target.closest("#btn-ver-registro")) abrirRegistro();
+        if (e.target.closest("#btn-config-trabajos")) abrirTrabajadores();
         if (e.target.closest("#btn-probar-proxy")) probarProxy();
         if (e.target.closest("#btn-actualizar-tc")) actualizarTipoCambio(e.target.closest("#btn-actualizar-tc"));
         if (e.target.closest("#btn-respaldar")) respaldarAhora(e.target.closest("#btn-respaldar"));
@@ -895,21 +896,62 @@ async function guardarInhabiles(boton) {
 const NOMBRE_MODO = { local: "Vostro", vps: "VPS de Oracle", alternar: "Alternar (mitad y mitad)", agente: "PC del contador (agente)" };
 const nombreTrabajador = (t) => t === "vps" ? "VPS" : (t || "").startsWith("agente:") ? "PC " + t.slice(7) : "Vostro";
 
+// Tarjeta corta: dónde va cada trámite, agrupado; lo demás (cambiar, probar la VPS) en su ventana
+const COLOR_MODO = { local: "bg-slate-100 text-slate-700", vps: "bg-sky-100 text-sky-800", alternar: "bg-indigo-100 text-indigo-800", agente: "bg-emerald-100 text-emerald-800" };
 function tarjetaTrabajadores() {
     const t = estadoTrabajadores;
     if (!t) return "";
-    const selects = Object.entries(t.tramites).map(([clave, nombre]) => `
-        <label class="flex items-center justify-between gap-2 text-xs text-slate-700 mt-1">${esc(nombre)}
-            <select data-trabajo="${esc(clave)}" data-guarda="btn-guardar-trabajos" class="border border-gray-200 rounded-lg py-1 px-2 text-xs">
-                ${((t.modos_de || {})[clave] || t.modos).map(m => `<option value="${esc(m)}" ${t.ajustes[clave] === m ? "selected" : ""}>${esc(NOMBRE_MODO[m] || m)}</option>`).join("")}
-            </select></label>`).join("");
-    return `<p class="text-[11px] text-slate-500">Dónde se hacen los trámites. "PC del contador": en la PC de la cuenta que lo pide, si tiene el agente conectado (Conectar esta PC). Si el trabajador falla, lo hace la Vostro.</p>
-        ${selects}
-        <div class="flex gap-2 mt-2">${botonGuardar("btn-guardar-trabajos")}
-            <button type="button" id="btn-ver-registro" class="text-xs font-bold text-slate-700 border border-gray-200 hover:border-slate-400 rounded-lg py-1.5 px-3">Ver registro</button></div>
-        <div class="flex gap-2 mt-3 pt-2 border-t border-gray-100"><input id="rfc-probar-vps" placeholder="RFC con e.firma" maxlength="13" class="border border-gray-200 rounded-lg py-1 px-2 text-xs w-36 uppercase">
-            <button type="button" id="btn-probar-trabajador" class="text-xs font-bold text-slate-700 border border-gray-200 hover:border-slate-400 rounded-lg py-1.5 px-3">Probar la VPS</button></div>
-        <p id="texto-probar-trabajador" class="text-[11px] text-slate-500 mt-1">Baja la constancia de ese RFC desde la VPS (sin guardarla) para ver si el SAT acepta la IP de Oracle.</p>`;
+    const grupos = {};
+    Object.keys(t.tramites).forEach(k => { const m = t.ajustes[k] || "local"; (grupos[m] = grupos[m] || []).push(t.tramites[k].replace(/ \(.*\)$/, "")); });
+    const filas = ["agente", "alternar", "vps", "local"].filter(m => grupos[m]).map(m =>
+        `<li class="flex items-start gap-2 py-1"><span class="text-[11px] font-bold px-2 py-0.5 rounded-full flex-none ${COLOR_MODO[m]}">${esc(NOMBRE_MODO[m] || m)}</span>
+         <span class="text-xs text-slate-700">${grupos[m].map(esc).join(" · ")}</span></li>`).join("");
+    return `<ul class="divide-y divide-gray-100">${filas}</ul>
+        <div class="flex gap-2 mt-3">
+            <button type="button" id="btn-config-trabajos" class="text-xs font-bold text-white bg-slate-800 hover:bg-slate-700 rounded-lg py-1.5 px-3">Cambiar</button>
+            <button type="button" id="btn-ver-registro" class="text-xs font-bold text-slate-700 border border-gray-200 hover:border-slate-400 rounded-lg py-1.5 px-3">Ver registro</button></div>`;
+}
+
+function abrirTrabajadores() {
+    const t = estadoTrabajadores;
+    let d = document.getElementById("dlg-trabajos");
+    if (!d) {
+        d = document.createElement("dialog");
+        d.id = "dlg-trabajos";
+        d.style.cssText = "width:min(640px,calc(100vw - 32px));max-height:88vh;border:0;border-radius:14px;padding:0;box-shadow:0 20px 50px rgba(15,23,42,.35)";
+        document.body.appendChild(d);
+        ["input", "change"].forEach(ev => d.addEventListener(ev, e => { const c = e.target.closest("[data-guarda]"); if (c) marcarPorGuardar(c); }));
+        d.addEventListener("click", e => {
+            if (e.target.closest("[data-cerrar]")) d.close();
+            if (e.target.closest("#btn-guardar-trabajos")) guardarTrabajos(e.target.closest("#btn-guardar-trabajos"));
+            if (e.target.closest("#btn-probar-trabajador")) probarTrabajador(e.target.closest("#btn-probar-trabajador"));
+        });
+    }
+    const filas = Object.entries(t.tramites).map(([clave, nombre]) => `<tr class="border-t border-gray-100">
+        <td class="py-2 pr-3 text-sm text-slate-800">${esc(nombre)}</td>
+        <td class="py-2 text-right"><select data-trabajo="${esc(clave)}" data-guarda="btn-guardar-trabajos" class="border border-gray-200 rounded-lg py-1.5 px-2 text-sm">
+            ${((t.modos_de || {})[clave] || t.modos).map(m => `<option value="${esc(m)}" ${t.ajustes[clave] === m ? "selected" : ""}>${esc(NOMBRE_MODO[m] || m)}</option>`).join("")}
+        </select></td></tr>`).join("");
+    d.innerHTML = `<div style="padding:16px 18px;border-bottom:1px solid #E5E7EB;display:flex;justify-content:space-between;align-items:center">
+            <b>¿Dónde se hace cada trámite?</b><button type="button" data-cerrar class="text-slate-400 hover:text-red-500 text-lg">✕</button></div>
+        <div style="padding:14px 18px;overflow:auto;max-height:calc(88vh - 60px)">
+            <table class="w-full"><tbody>${filas}</tbody></table>
+            <div class="flex gap-2 mt-3">${botonGuardar("btn-guardar-trabajos")}</div>
+            <ul class="mt-4 text-xs text-slate-600 space-y-1.5 list-disc pl-5">
+                <li><b>Vostro:</b> el servidor de la oficina.</li>
+                <li><b>VPS de Oracle:</b> el servidor en la nube (otra IP). <b>Alternar:</b> mitad y mitad entre los dos.</li>
+                <li><b>PC del contador (agente):</b> en la PC de la cuenta que lo pide, con su internet. Si esa cuenta no tiene una PC
+                    conectada y aprobada (o está apagada, en pausa, fuera de su horario o ese trámite no está marcado en esa PC),
+                    lo hace la Vostro al momento, sin esperar. Si la PC empieza y falla, también lo termina la Vostro.</li>
+            </ul>
+            <div class="mt-4 pt-3 border-t border-gray-100">
+                <p class="text-sm font-bold text-slate-800">Probar la VPS</p>
+                <div class="flex gap-2 mt-2"><input id="rfc-probar-vps" placeholder="RFC con e.firma guardada" maxlength="13" class="border border-gray-200 rounded-lg py-1.5 px-2 text-sm w-48 uppercase">
+                    <button type="button" id="btn-probar-trabajador" class="text-xs font-bold text-slate-700 border border-gray-200 hover:border-slate-400 rounded-lg py-1.5 px-3">Probar</button></div>
+                <p id="texto-probar-trabajador" class="text-[11px] text-slate-500 mt-1">Baja la constancia de ese RFC desde la VPS (sin guardarla) para ver si el SAT acepta la IP de Oracle.</p>
+            </div>
+        </div>`;
+    d.showModal();
 }
 
 // Botones Guardar de las tarjetas: "Sin cambios" (apagado) → "Guardar cambios" al tocar algo →
@@ -938,6 +980,7 @@ async function guardarTrabajos(boton) {
         await api("/api/admin/trabajadores", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ajustes }) });
         estadoTrabajadores.ajustes = ajustes;
         estadoGuardar(boton, "ok");
+        pintarEstado();                     // la tarjeta resumen se actualiza detrás de la ventana
         return;
     } catch (err) { mostrarAlerta("error", err.message); estadoGuardar(boton, "error"); }
 }
