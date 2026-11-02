@@ -1,0 +1,149 @@
+/* herramientas/facturar — Facturar (CFDI 4.0) */
+.fa-pagina { max-width: 1240px; }
+.fa-pagina [hidden] { display: none !important; }
+
+.fa-chip { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; padding: 5px 10px; border-radius: 999px; background: #eef2ff; color: #3730a3; white-space: nowrap; }
+.fa-chip--prueba { background: #fef3c7; color: #92400e; }
+.fa-chip--ok { background: #e8f6f0; color: #047857; }
+.fa-chip--mal { background: #fdecec; color: #b91c1c; }
+.fa-chip--gris { background: #f1f5f9; color: #64748b; }
+.fa-punto { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #f59e0b; margin-left: 4px; vertical-align: middle; }
+
+.fa-aviso { font-size: 13.5px; border-radius: 12px; padding: 11px 14px; background: #eef2ff; border: 1px solid #c7d2fe; color: #312e81; margin-bottom: 14px; }
+.fa-aviso--alerta { background: #fffbeb; border-color: #fde68a; color: #92400e; }
+.fa-aviso--error { background: #fef2f2; border-color: #fecaca; color: #991b1b; }
+.fa-aviso button, .fa-aviso a { font-weight: 700; text-decoration: underline; background: none; border: 0; color: inherit; cursor: pointer; font: inherit; }
+
+.fa-vacio { background: #fff; border: 1px dashed #cbd5e1; border-radius: 16px; padding: 44px 24px; text-align: center; color: #64748b; font-size: 14px; }
+.fa-vacio__titulo { font-size: 17px; font-weight: 800; color: #0f172a; margin-bottom: 6px; }
+
+.fa-layout { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 16px; align-items: start; }
+.fa-columna { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.fa-lateral { position: sticky; top: 76px; }
+@media (max-width: 960px) { .fa-layout { grid-template-columns: 1fr; } .fa-lateral { position: static; } }
+
+.fa-caja { background: #fff; border: 1px solid #e5e7eb; border-radius: 14px; padding: 16px; box-shadow: 0 1px 2px rgba(15, 23, 42, .04); }
+.fa-caja__cabeza { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
+.fa-caja h2 { font-size: 14.5px; font-weight: 800; color: #0f172a; }
+
+.fa-tipo { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; padding: 4px; background: #f1f5f9; border-radius: 12px; }
+.fa-tipo button { border: 0; background: none; border-radius: 9px; padding: 10px; cursor: pointer; text-align: center; color: #475569; font: inherit; }
+.fa-tipo b { display: block; font-size: 14px; }
+.fa-tipo small { display: block; font-size: 11.5px; color: #64748b; margin-top: 1px; }
+.fa-tipo button[aria-pressed="true"] { background: #fff; color: #312e81; box-shadow: 0 1px 3px rgba(15, 23, 42, .14); }
+
+.fa-rejilla { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 10px 12px; }
+.fa-c1 { grid-column: span 1; } .fa-c2 { grid-column: span 2; } .fa-c3 { grid-column: span 3; } .fa-c4 { grid-column: span 4; } .fa-c6 { grid-column: span 6; }
+@media (max-width: 640px) { .fa-rejilla { grid-template-columns: repeat(2, minmax(0, 1fr)); } .fa-c3, .fa-c4, .fa-c6 { grid-column: span 2; } .fa-c1 { grid-column: span 1; } }
+.fa-campo { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.fa-campo > span { font-size: 11.5px; font-weight: 700; color: #334155; text-transform: uppercase; letter-spacing: .03em; }
+.fa-campo > span i { text-transform: none; font-style: normal; font-weight: 500; color: #94a3b8; letter-spacing: 0; }
+.fa-campo input, .fa-campo select, .fa-barra input, .fa-barra select {
+    width: 100%; font: inherit; font-size: 14px; border: 1px solid #d1d5db; border-radius: 10px; padding: 9px 11px; background: #fff; color: #0f172a; min-width: 0; }
+.fa-campo input:focus, .fa-campo select:focus, .fa-barra input:focus { outline: none; border-color: #6366f1; box-shadow: 0 0 0 3px #e0e7ff; }
+.fa-campo input.fa-mal, .fa-campo select.fa-mal { border-color: #f87171; box-shadow: 0 0 0 3px #fee2e2; }
+.fa-mayus { text-transform: uppercase; }
+.fa-mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px !important; }
+.fa-archivo { font-size: 12px !important; border-style: dashed !important; background: #f8fafc !important; }
+.fa-al-fondo { justify-content: flex-end; }
+.fa-fila { flex-direction: row; gap: 8px; flex-wrap: wrap; align-items: flex-end; }
+
+.fa-btn { border: 0; border-radius: 10px; padding: 9px 14px; font: inherit; font-size: 13.5px; font-weight: 700; cursor: pointer; white-space: nowrap; }
+.fa-btn:disabled { opacity: .55; cursor: default; }
+.fa-btn--principal { background: #4f46e5; color: #fff; }
+.fa-btn--principal:hover:not(:disabled) { background: #4338ca; }
+.fa-btn--suave { background: #eef2ff; color: #3730a3; }
+.fa-btn--suave:hover:not(:disabled) { background: #e0e7ff; }
+.fa-btn--rojo { background: #dc2626; color: #fff; }
+.fa-ancho { width: 100%; }
+.fa-link { border: 0; background: none; color: #4f46e5; font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; padding: 2px 0; }
+.fa-link:hover { text-decoration: underline; }
+.fa-link--rojo { color: #dc2626; }
+.fa-interruptor { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: #475569; cursor: pointer; }
+.fa-acciones { display: flex; align-items: center; gap: 12px; margin-top: 12px; flex-wrap: wrap; }
+.fa-nota { font-size: 12.5px; color: #64748b; line-height: 1.45; }
+.fa-error { font-size: 13px; font-weight: 600; color: #b91c1c; background: #fef2f2; border: 1px solid #fecaca; border-radius: 10px; padding: 9px 11px; margin-top: 10px; }
+
+/* Conceptos: una tarjeta por renglón (cabe en el celular) */
+.fa-concepto { border: 1px solid #eef0f3; border-radius: 12px; padding: 12px; margin-bottom: 10px; background: #fcfcfd; }
+.fa-concepto__cabeza { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-size: 12px; font-weight: 800; color: #64748b; text-transform: uppercase; letter-spacing: .04em; }
+.fa-concepto__cabeza b { color: #0f172a; font-size: 14px; text-transform: none; letter-spacing: 0; }
+.fa-quitar { border: 0; background: none; color: #94a3b8; cursor: pointer; font-size: 17px; line-height: 1; padding: 2px 6px; }
+.fa-quitar:hover { color: #dc2626; }
+.fa-rejilla--concepto { grid-template-columns: repeat(12, minmax(0, 1fr)); }
+.fa-rejilla--concepto .k2 { grid-column: span 2; } .fa-rejilla--concepto .k3 { grid-column: span 3; } .fa-rejilla--concepto .k4 { grid-column: span 4; }
+.fa-rejilla--concepto .k5 { grid-column: span 5; } .fa-rejilla--concepto .k6 { grid-column: span 6; } .fa-rejilla--concepto .k12 { grid-column: span 12; }
+@media (max-width: 640px) { .fa-rejilla--concepto { grid-template-columns: repeat(2, minmax(0, 1fr)); } .fa-rejilla--concepto > * { grid-column: span 1 !important; } .fa-rejilla--concepto .k12, .fa-rejilla--concepto .k6 { grid-column: span 2 !important; } }
+
+.fa-totales dl { display: grid; grid-template-columns: 1fr auto; gap: 7px 10px; font-size: 14px; margin: 12px 0 6px; }
+.fa-totales dt { color: #64748b; } .fa-totales dd { text-align: right; font-variant-numeric: tabular-nums; color: #0f172a; font-weight: 600; }
+.fa-totales .fa-total { font-size: 18px; font-weight: 800; color: #0f172a; border-top: 1px solid #e5e7eb; padding-top: 8px; }
+.fa-letra { font-size: 11.5px; color: #64748b; margin-bottom: 8px; text-transform: uppercase; }
+.fa-totales .fa-nota { margin-bottom: 12px; }
+
+.fa-barra { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+.fa-barra input { flex: 1 1 260px; max-width: 420px; }
+.fa-barra select { width: auto; }
+.fa-tabla-caja { background: #fff; border: 1px solid #e5e7eb; border-radius: 14px; overflow-x: auto; }
+.fa-tabla { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+.fa-tabla th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: #64748b; background: #f8fafc; padding: 9px 12px; border-bottom: 1px solid #e5e7eb; white-space: nowrap; }
+.fa-tabla td { padding: 10px 12px; border-bottom: 1px solid #f1f5f9; vertical-align: middle; }
+.fa-tabla tr:last-child td { border-bottom: 0; }
+.fa-tabla small { display: block; color: #94a3b8; font-size: 11.5px; }
+.fa-num { text-align: right !important; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.fa-tabla .fa-acc { white-space: nowrap; text-align: right; }
+.fa-tabla .fa-acc .fa-link { margin-left: 10px; }
+
+.fa-config { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; align-items: start; }
+.fa-config > .fa-caja:first-child { grid-column: span 2; }
+@media (max-width: 900px) { .fa-config { grid-template-columns: 1fr; } .fa-config > .fa-caja:first-child { grid-column: span 1; } }
+.fa-csd { font-size: 13.5px; color: #065f46; background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 10px; padding: 9px 11px; margin: 8px 0; }
+.fa-timbres { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+.fa-timbres div { background: #f8fafc; border-radius: 12px; padding: 10px 12px; }
+.fa-timbres small { display: block; font-size: 12px; color: #64748b; }
+.fa-timbres b { font-size: 22px; font-weight: 800; color: #0f172a; }
+
+.fa-dialogo { width: min(560px, calc(100vw - 24px)); border: 0; border-radius: 16px; padding: 0; box-shadow: 0 20px 50px rgba(15, 23, 42, .35); }
+.fa-dialogo::backdrop { background: rgba(15, 23, 42, .45); }
+.fa-dialogo__cuerpo { padding: 20px 22px 8px; display: flex; flex-direction: column; gap: 12px; }
+.fa-dialogo__cuerpo h2 { font-size: 17px; font-weight: 800; color: #0f172a; }
+.fa-dialogo__pie { display: flex; gap: 8px; justify-content: flex-end; align-items: center; flex-wrap: wrap; padding: 14px 22px 18px; }
+.fa-centro { align-items: center; text-align: center; }
+.fa-palomita { width: 52px; height: 52px; border-radius: 50%; background: #e8f6f0; color: #047857; font-size: 26px; font-weight: 800; display: grid; place-items: center; }
+.fa-uuid { background: #f8fafc; border-radius: 8px; padding: 6px 10px; word-break: break-all; }
+.fa-resumen { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; font-size: 14px; }
+.fa-resumen dt { color: #64748b; } .fa-resumen dd { margin: 0; font-weight: 600; color: #0f172a; }
+
+/* Representación impresa */
+.fa-dialogo--pdf { width: min(900px, calc(100vw - 24px)); max-height: calc(100vh - 32px); }
+.fa-impresion { padding: 0 22px 22px; color: #111827; font-size: 12px; }
+.fi-cabeza { display: flex; justify-content: space-between; gap: 16px; border-bottom: 2px solid #111827; padding-bottom: 10px; margin-bottom: 10px; }
+.fi-cabeza h1 { font-size: 17px; font-weight: 800; }
+.fi-folio { text-align: right; }
+.fi-folio b { display: block; font-size: 16px; }
+.fi-prueba { border: 2px dashed #d97706; color: #92400e; text-align: center; font-weight: 800; padding: 6px; margin-bottom: 10px; letter-spacing: .05em; }
+.fi-cancelada { border: 2px solid #dc2626; color: #b91c1c; text-align: center; font-weight: 800; padding: 6px; margin-bottom: 10px; letter-spacing: .08em; }
+.fi-dos { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 10px; }
+.fi-bloque { border: 1px solid #d1d5db; border-radius: 6px; padding: 8px 10px; }
+.fi-bloque h3 { font-size: 10px; text-transform: uppercase; letter-spacing: .06em; color: #6b7280; margin-bottom: 4px; }
+.fi-tabla { width: 100%; border-collapse: collapse; margin: 8px 0; }
+.fi-tabla th { background: #f3f4f6; font-size: 10px; text-transform: uppercase; text-align: left; padding: 5px 6px; border-bottom: 1px solid #d1d5db; }
+.fi-tabla td { padding: 5px 6px; border-bottom: 1px solid #e5e7eb; vertical-align: top; }
+.fi-tabla .n { text-align: right; white-space: nowrap; }
+.fi-pie { display: grid; grid-template-columns: 1fr 230px; gap: 12px; margin-top: 6px; }
+.fi-totales { width: 100%; border-collapse: collapse; }
+.fi-totales td { padding: 3px 6px; } .fi-totales td.n { text-align: right; }
+.fi-totales tr.t td { font-size: 14px; font-weight: 800; border-top: 1px solid #111827; }
+.fi-sellos { display: grid; grid-template-columns: 120px 1fr; gap: 10px; margin-top: 12px; border-top: 1px solid #d1d5db; padding-top: 10px; }
+.fi-sellos img { width: 120px; height: 120px; }
+.fi-sellos p { font-size: 8.5px; word-break: break-all; margin-bottom: 5px; color: #374151; }
+.fi-sellos b { font-size: 9px; color: #111827; }
+.fi-leyenda { text-align: center; font-size: 9.5px; color: #6b7280; margin-top: 10px; }
+
+@media print {
+    body * { visibility: hidden !important; }
+    #dlg-pdf, #dlg-pdf * { visibility: visible !important; }
+    #dlg-pdf { position: absolute; inset: 0; width: 100%; max-height: none; box-shadow: none; border-radius: 0; }
+    .fa-solo-pantalla { display: none !important; }
+    .fa-impresion { padding: 0; }
+}

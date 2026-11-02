@@ -50,6 +50,7 @@
         isn:           { nombre: "ISN",                   acento: "#BE185D", suave: "#FCE7F3", permiso: "isn" },
         declaraciones: { nombre: "Declaraciones",         acento: "#0369A1", suave: "#E4F1F9", permiso: "declaraciones" },
         descarga_xml:  { nombre: "Descarga masiva de XML", acento: "#0E7490", suave: "#E0F2F7", permiso: "descarga_xml" },
+        facturar:      { nombre: "Facturar",              acento: "#4F46E5", suave: "#EEF2FF", permiso: "facturacion" },
         documentos:    { nombre: "Documentos",            acento: "#0E7490", suave: "#ECFEFF", permiso: "documentos" },
         buzon:         { nombre: "Buzón Tributario",      acento: "#0F766E", suave: "#E6F2F1", permiso: "buzon" },
         descargas:     { nombre: "Mis descargas",         acento: "#334155", suave: "#EEF1F5", permiso: null },
@@ -73,6 +74,10 @@
         declaraciones: ["Toma la empresa activa (o \"Otro contribuyente\").",
                         "Entra con su e.firma y elige el periodo.",
                         "Se baja solo lo que todavía no tienes guardado de esa empresa; lo descargas en un ZIP."],
+        facturar: ["Elige arriba la empresa que factura. La primera vez, en Configuración: régimen, C.P., series y su CSD (sello digital).",
+                   "Nueva factura: cliente, pago y conceptos; los totales se calculan solos.",
+                   "Antes de timbrar se revisa todo sin gastar timbre; al confirmar se manda al SAT.",
+                   "En Emitidas bajas el XML, imprimes el PDF o cancelas. Una nota de crédito se relaciona con su factura."],
         descarga_xml: ["Elige la empresa o \"Otro contribuyente\" (con su e.firma o solo su RFC).",
                        "Web service: con e.firma; el SAT prepara la solicitud y la ves en Solicitudes.",
                        "Portal: con contraseña y captcha (o e.firma); busca y descarga al momento.",
@@ -136,6 +141,7 @@
     };
     var CATALOGO = [
         { clave: "clientes", grupo: "Mi despacho", nombre: "Mis clientes", desc: "Empresas, e.firma y obligaciones", url: "/clientes/", permiso: null, icono: I.clientes, tono: "#6D28D9", suave: "#F1EBFD" },
+        { clave: "facturar", grupo: "Mi despacho", nombre: "Facturar", desc: "Facturas y notas de crédito (CFDI 4.0)", url: "/herramientas/facturar/", permiso: "facturacion", icono: I.recibo, tono: "#4F46E5", suave: "#EEF2FF" },
         { clave: "descargas", grupo: "Mi despacho", nombre: "Mis descargas", desc: "Todo lo que bajan las herramientas", url: "/descargas/", permiso: null, icono: I.bajar, tono: "#334155", suave: "#EEF1F5" },
         { clave: "constancias", grupo: "Trámites ante el SAT", nombre: "Constancia de Situación Fiscal", desc: "De una empresa o de varias a la vez", url: "/herramientas/constancias/", permiso: "constancias", icono: I.doc, tono: "#4338CA", suave: "#ECEBFB" },
         { clave: "opinion", grupo: "Trámites ante el SAT", nombre: "Opinión de cumplimiento 32-D", desc: "De una empresa o de varias a la vez", url: "/herramientas/opinion/", permiso: "opinion", icono: I.escudo, tono: "#0F766E", suave: "#E6F2F1" },

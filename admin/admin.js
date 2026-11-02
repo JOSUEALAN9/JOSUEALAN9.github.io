@@ -740,6 +740,8 @@ function clicTarjeta(e) {
         if (e.target.closest("#btn-guardar-trabajos")) guardarTrabajos(e.target.closest("#btn-guardar-trabajos"));
         if (e.target.closest("#btn-guardar-inhabiles")) guardarInhabiles(e.target.closest("#btn-guardar-inhabiles"));
         if (e.target.closest("#btn-guardar-xml-auto")) guardarXmlAutoAdmin(e.target.closest("#btn-guardar-xml-auto"));
+        if (e.target.closest("#btn-ver-timbres")) ventana("dlg-timbres", "Timbres de facturación", cuerpoTimbres);
+        if (e.target.closest("#btn-asignar-timbres")) asignarTimbres(e.target.closest("#btn-asignar-timbres"));
         if (e.target.closest("#btn-max-pcs")) guardarMaxPcs(e.target.closest("#btn-max-pcs"));
         if (e.target.closest("#btn-revisar-instalador")) revisarInstalador(e.target.closest("#btn-revisar-instalador"));
         if (e.target.closest("#btn-max-sesiones")) guardarMaxSesiones(e.target.closest("#btn-max-sesiones"));
@@ -781,6 +783,7 @@ async function cargarSistema() {
         try { estadoTrabajadores = await api("/api/admin/trabajadores"); } catch (e) { estadoTrabajadores = null; }
         try { diasInhabiles = await api("/api/admin/sistema/dias-inhabiles"); } catch (e) { diasInhabiles = null; }
         try { xmlAutoAdmin = await api("/api/admin/sistema/xml-automatica"); } catch (e) { xmlAutoAdmin = null; }
+        try { timbresAdmin = await api("/api/admin/facturacion/timbres"); } catch (e) { timbresAdmin = null; }
         try { pcsAgentes = await api("/api/admin/agentes"); } catch (e) { pcsAgentes = null; }
         try { sesionesWeb = await api("/api/admin/sesiones"); } catch (e) { sesionesWeb = null; }
         pintarEstado();
@@ -794,6 +797,7 @@ async function cargarSistema() {
 let estadoTrabajadores = null;
 let diasInhabiles = null;
 let xmlAutoAdmin = null;
+let timbresAdmin = null;
 let pcsAgentes = null;
 let sesionesWeb = null;
 
@@ -1000,6 +1004,41 @@ async function guardarXmlAutoAdmin(boton) {
         estadoGuardar($("btn-guardar-xml-auto"), "ok");
     } catch (err) { mostrarAlerta("error", err.message); estadoGuardar(boton, "error"); }
 }
+// Facturar: el admin le da timbres a cada cuenta; la cuenta los reparte entre sus empresas.
+function tarjetaTimbres() {
+    const d = timbresAdmin, con = d.cuentas.filter(c => c.bolsa || c.en_empresas);
+    const total = d.cuentas.reduce((a, c) => a + c.bolsa + c.en_empresas, 0);
+    return `<p class="text-sm text-slate-800">${d.produccion ? "<b>Producción</b>: se timbra de verdad" : "<b>Modo de pruebas</b>: sin validez fiscal"}</p>
+        <p class="text-[11px] text-slate-500 mt-1">${con.length} cuenta${con.length === 1 ? "" : "s"} con timbres · ${total.toLocaleString("es-MX")} asignados en total</p>
+        <div class="flex gap-2 mt-3">${botonVer("btn-ver-timbres", "Ver y asignar")}</div>`;
+}
+
+function cuerpoTimbres() {
+    const d = timbresAdmin;
+    const filas = d.cuentas.map(c => `<tr><td class="py-1.5 pr-3">${esc(c.correo)}${c.nombre ? `<span class="block text-[11px] text-slate-400">${esc(c.nombre)}</span>` : ""}</td>
+        <td class="py-1.5 pr-3 text-right">${c.bolsa}</td><td class="py-1.5 pr-3 text-right">${c.en_empresas}</td><td class="py-1.5 text-right">${c.emitidas}</td></tr>`).join("");
+    return `<p class="text-[11px] text-slate-500">La cuenta reparte sus timbres entre sus empresas (Facturar → Configuración). Cada factura timbrada gasta uno de su empresa. Tú no tienes tope. Con número negativo se los quitas (solo de lo que no ha repartido).</p>
+        <div class="flex flex-wrap items-end gap-2 mt-3">
+            <label class="text-xs font-bold text-slate-600">Cuenta<select id="timbres-correo" class="block mt-1 border border-gray-200 rounded-lg p-1.5 text-xs">${d.cuentas.map(c => `<option>${esc(c.correo)}</option>`).join("")}</select></label>
+            <label class="text-xs font-bold text-slate-600">Timbres<input id="timbres-n" type="number" value="100" class="block mt-1 w-24 border border-gray-200 rounded-lg p-1.5 text-xs"></label>
+            <button type="button" id="btn-asignar-timbres" class="text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-500 rounded-lg py-2 px-3">Asignar</button>
+        </div>
+        <table class="w-full text-xs mt-4"><thead><tr class="text-left text-slate-500"><th class="pb-1">Cuenta</th><th class="pb-1 text-right pr-3">Sin repartir</th><th class="pb-1 text-right pr-3">En sus empresas</th><th class="pb-1 text-right">Facturas</th></tr></thead><tbody>${filas || '<tr><td colspan="4" class="py-2 text-slate-400">Sin cuentas.</td></tr>'}</tbody></table>`;
+}
+
+async function asignarTimbres(boton) {
+    const correo = $("timbres-correo").value, n = parseInt($("timbres-n").value, 10);
+    if (!correo || !n) return mostrarAlerta("error", "Elige la cuenta y cuántos timbres.");
+    boton.disabled = true;
+    try {
+        await api("/api/admin/facturacion/timbres", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ correo, cantidad: n }) });
+        timbresAdmin = await api("/api/admin/facturacion/timbres");
+        pintarEstado();
+        refrescarVentana("dlg-timbres");
+        mostrarAlerta("success", `${n > 0 ? "Se asignaron" : "Se quitaron"} ${Math.abs(n)} timbres a ${correo}.`);
+    } catch (err) { mostrarAlerta("error", err.message); boton.disabled = false; }
+}
+
 const NOMBRE_MODO = { local: "Vostro", vps: "VPS de Oracle", alternar: "Alternar (mitad y mitad)", agente: "PC del contador (agente)" };
 const nombreTrabajador = (t) => t === "vps" ? "VPS" : (t || "").startsWith("agente:") ? "PC " + t.slice(7) : "Vostro";
 
@@ -1204,6 +1243,7 @@ function pintarEstado() {
         (estadoTrabajadores ? tarjeta("Trabajadores (VPS y PCs)", tarjetaTrabajadores()) : "") +
         (diasInhabiles ? tarjeta("Días inhábiles del SAT", tarjetaInhabiles()) : "") +
         (xmlAutoAdmin ? tarjeta("Descarga automática de XML", tarjetaXmlAuto()) : "") +
+        (timbresAdmin ? tarjeta("Timbres de facturación", tarjetaTimbres()) : "") +
         (pcsAgentes ? tarjeta("PCs con el agente", tarjetaPcs()) : "") +
         tarjeta("Tipo de cambio Banxico", tipoCambio, tcMal ? "mal" : "");
     $("alerta-sistema").textContent = (alertaGit || e.mantenimiento.activo) ? "•" : "";

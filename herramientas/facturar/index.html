@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Facturar | Fiscontable</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611021800">
+    <link rel="stylesheet" href="/herramientas/facturar/facturar.css?v=202611021800">
+</head>
+<body class="min-h-screen flex flex-col">
+
+<div id="app-header" data-modulo="facturar" data-titulo="Facturar" data-migas="Herramientas|/herramientas/"></div>
+<script src="/assets/js/nucleo.js?v=202611021800"></script>
+<script src="/assets/js/barra.js?v=202611021800"></script>
+
+<main class="flex-grow w-full mod-pagina fa-pagina">
+    <div class="mod-cabeza">
+        <div class="fc-titulo">
+            <h1>Facturar</h1>
+            <div class="fc-vista" role="tablist" aria-label="Vista">
+                <button type="button" role="tab" data-vista="nueva" aria-selected="true">Nueva factura</button>
+                <button type="button" role="tab" data-vista="emitidas" aria-selected="false">Emitidas</button>
+                <button type="button" role="tab" data-vista="config" aria-selected="false">Configuración <span id="punto-config" class="fa-punto" hidden></span></button>
+            </div>
+        </div>
+        <div class="mod-cabeza__acciones">
+            <span id="chip-timbres" class="fa-chip" hidden></span>
+            <span id="chip-modo" class="fa-chip fa-chip--prueba" hidden title="Se timbra con el RFC de prueba del SAT: no gasta timbres ni tiene validez fiscal">Modo de pruebas</span>
+        </div>
+    </div>
+
+    <div id="aviso" class="fa-aviso" hidden></div>
+    <div id="sin-empresa" class="fa-vacio" hidden>
+        <p class="fa-vacio__titulo">Elige la empresa que va a facturar</p>
+        <p>Usa el selector de empresa de arriba. Cada empresa de tu directorio puede facturar con su propio sello digital (CSD), serie y folios.</p>
+    </div>
+
+    <!-- ======================== NUEVA FACTURA ======================== -->
+    <section id="vista-nueva" data-panel="nueva" hidden>
+        <div id="falta-config" class="fa-aviso fa-aviso--alerta" hidden></div>
+        <div class="fa-layout">
+            <div class="fa-columna">
+                <div class="fa-caja">
+                    <div class="fa-tipo" role="radiogroup" aria-label="Tipo de comprobante">
+                        <button type="button" data-tipo="I" aria-pressed="true"><b>Factura</b><small>Ingreso</small></button>
+                        <button type="button" data-tipo="E" aria-pressed="false"><b>Nota de crédito</b><small>Egreso · corrige una factura</small></button>
+                    </div>
+                </div>
+
+                <div class="fa-caja">
+                    <div class="fa-caja__cabeza">
+                        <h2>Cliente</h2>
+                        <button type="button" id="btn-publico" class="fa-link">Público en general</button>
+                    </div>
+                    <div class="fa-rejilla">
+                        <label class="fa-campo fa-c2"><span>RFC</span>
+                            <input id="r-rfc" list="lista-receptores" maxlength="13" autocomplete="off" placeholder="XAXX010101000" class="fa-mayus"></label>
+                        <label class="fa-campo fa-c4"><span>Nombre o razón social <i>(como en su constancia, sin S.A. de C.V.)</i></span>
+                            <input id="r-nombre" maxlength="254" class="fa-mayus"></label>
+                        <label class="fa-campo fa-c1"><span>C.P. fiscal</span>
+                            <input id="r-cp" inputmode="numeric" maxlength="5"></label>
+                        <label class="fa-campo fa-c3"><span>Régimen fiscal</span><select id="r-regimen"></select></label>
+                        <label class="fa-campo fa-c2"><span>Uso del CFDI</span><select id="r-uso"></select></label>
+                    </div>
+                    <datalist id="lista-receptores"></datalist>
+                </div>
+
+                <div id="caja-relacion" class="fa-caja" hidden>
+                    <div class="fa-caja__cabeza"><h2>Factura que corrige</h2></div>
+                    <div class="fa-rejilla">
+                        <label class="fa-campo fa-c4"><span>Folio fiscal (UUID) de la factura original</span>
+                            <input id="rel-uuid" list="lista-facturas" maxlength="36" class="fa-mayus fa-mono" placeholder="Elige una de tus facturas o pega el UUID"></label>
+                        <label class="fa-campo fa-c2"><span>Tipo de relación</span><select id="rel-tipo"></select></label>
+                    </div>
+                    <datalist id="lista-facturas"></datalist>
+                </div>
+
+                <div class="fa-caja">
+                    <div class="fa-caja__cabeza"><h2>Pago</h2></div>
+                    <div class="fa-rejilla">
+                        <label class="fa-campo fa-c3"><span>Método de pago</span><select id="p-metodo"></select></label>
+                        <label class="fa-campo fa-c3"><span>Forma de pago</span><select id="p-forma"></select></label>
+                        <label class="fa-campo fa-c6"><span>Condiciones de pago <i>(opcional)</i></span><input id="p-condiciones" maxlength="200" placeholder="Por ejemplo: Contado, 30 días"></label>
+                    </div>
+                </div>
+
+                <div class="fa-caja">
+                    <div class="fa-caja__cabeza">
+                        <h2>Conceptos</h2>
+                        <label class="fa-interruptor"><input type="checkbox" id="ver-retenciones"> Retenciones</label>
+                    </div>
+                    <div id="conceptos"></div>
+                    <button type="button" id="btn-concepto" class="fa-btn fa-btn--suave">+ Agregar concepto</button>
+                </div>
+            </div>
+
+            <aside class="fa-lateral">
+                <div class="fa-caja fa-totales">
+                    <h2>Resumen</h2>
+                    <dl>
+                        <dt>Subtotal</dt><dd id="t-subtotal">$0.00</dd>
+                        <dt data-fila="descuento" hidden>Descuento</dt><dd data-fila="descuento" id="t-descuento" hidden>$0.00</dd>
+                        <dt>IVA trasladado</dt><dd id="t-iva">$0.00</dd>
+                        <dt data-fila="retenciones" hidden>Retenciones</dt><dd data-fila="retenciones" id="t-ret" hidden>$0.00</dd>
+                        <dt class="fa-total">Total</dt><dd class="fa-total" id="t-total">$0.00</dd>
+                    </dl>
+                    <p id="t-letra" class="fa-letra"></p>
+                    <p id="t-folio" class="fa-nota"></p>
+                    <button type="button" id="btn-timbrar" class="fa-btn fa-btn--principal fa-ancho">Timbrar factura</button>
+                    <p id="t-error" class="fa-error" hidden></p>
+                </div>
+            </aside>
+        </div>
+    </section>
+
+    <!-- ======================== EMITIDAS ======================== -->
+    <section id="vista-emitidas" data-panel="emitidas" hidden>
+        <div class="fa-barra">
+            <input type="search" id="buscar-emitidas" placeholder="Buscar por cliente, RFC, folio o UUID…" autocomplete="off">
+            <select id="filtro-tipo"><option value="">Todas</option><option value="I">Facturas</option><option value="E">Notas de crédito</option><option value="cancelado">Canceladas</option></select>
+        </div>
+        <div class="fa-tabla-caja">
+            <table class="fa-tabla">
+                <thead><tr><th>Fecha</th><th>Folio</th><th>Cliente</th><th class="fa-num">Total</th><th>Estado</th><th></th></tr></thead>
+                <tbody id="filas-emitidas"><tr><td colspan="6">Cargando…</td></tr></tbody>
+            </table>
+        </div>
+    </section>
+
+    <!-- ======================== CONFIGURACIÓN ======================== -->
+    <section id="vista-config" data-panel="config" hidden>
+        <div class="fa-config">
+            <div class="fa-caja">
+                <div class="fa-caja__cabeza"><h2>Datos del emisor</h2></div>
+                <p class="fa-nota" id="c-emisor"></p>
+                <div class="fa-rejilla">
+                    <label class="fa-campo fa-c4"><span>Régimen fiscal</span><select id="c-regimen"></select></label>
+                    <label class="fa-campo fa-c2"><span>C.P. de expedición</span><input id="c-cp" inputmode="numeric" maxlength="5"></label>
+                    <label class="fa-campo fa-c2"><span>Serie de facturas</span><input id="c-serie-i" maxlength="10" class="fa-mayus"></label>
+                    <label class="fa-campo fa-c1"><span>Folio siguiente</span><input id="c-folio-i" type="number" min="1"></label>
+                    <label class="fa-campo fa-c2"><span>Serie de notas de crédito</span><input id="c-serie-e" maxlength="10" class="fa-mayus"></label>
+                    <label class="fa-campo fa-c1"><span>Folio siguiente</span><input id="c-folio-e" type="number" min="1"></label>
+                </div>
+                <div class="fa-acciones"><button type="button" id="btn-guardar-config" class="fa-btn fa-btn--principal">Guardar</button><span id="msj-config" class="fa-nota"></span></div>
+            </div>
+
+            <div class="fa-caja">
+                <div class="fa-caja__cabeza">
+                    <h2>Sello digital (CSD)</h2>
+                    <span id="c-csd-estado" class="fa-chip"></span>
+                </div>
+                <p class="fa-nota">Es distinto de la e.firma: se tramita en el SAT (aplicación Certifica) y sirve solo para facturar. Se guarda cifrado.</p>
+                <p id="c-csd-guardado" class="fa-csd" hidden></p>
+                <div id="c-csd-form" class="fa-rejilla">
+                    <label class="fa-campo fa-c3"><span>Certificado (.cer)</span><input type="file" id="c-cer" accept=".cer" class="fa-archivo"></label>
+                    <label class="fa-campo fa-c3"><span>Clave privada (.key)</span><input type="file" id="c-key" accept=".key" class="fa-archivo"></label>
+                    <label class="fa-campo fa-c4"><span>Contraseña del CSD</span><input type="password" id="c-pass" autocomplete="new-password"></label>
+                    <div class="fa-campo fa-c2 fa-al-fondo"><button type="button" id="btn-guardar-csd" class="fa-btn fa-btn--principal fa-ancho">Guardar CSD</button></div>
+                </div>
+                <div class="fa-acciones"><button type="button" id="btn-reemplazar-csd" class="fa-link" hidden>Reemplazar</button><button type="button" id="btn-quitar-csd" class="fa-link fa-link--rojo" hidden>Quitar el CSD</button><span id="msj-csd" class="fa-nota"></span></div>
+            </div>
+
+            <div class="fa-caja" id="caja-timbres">
+                <div class="fa-caja__cabeza"><h2>Timbres</h2></div>
+                <div class="fa-timbres">
+                    <div><small>De esta empresa</small><b id="c-timbres-empresa">0</b></div>
+                    <div><small>Sin repartir en tu cuenta</small><b id="c-timbres-cuenta">0</b></div>
+                </div>
+                <div class="fa-rejilla">
+                    <label class="fa-campo fa-c2"><span>Cuántos</span><input id="c-timbres-n" type="number" min="1" value="10"></label>
+                    <div class="fa-campo fa-c4 fa-al-fondo fa-fila">
+                        <button type="button" id="btn-dar-timbres" class="fa-btn fa-btn--principal">Pasar a esta empresa</button>
+                        <button type="button" id="btn-quitar-timbres" class="fa-btn fa-btn--suave">Regresar a la cuenta</button>
+                    </div>
+                </div>
+                <p id="msj-timbres" class="fa-nota"></p>
+            </div>
+        </div>
+    </section>
+</main>
+
+<!-- Confirmar el timbrado -->
+<dialog id="dlg-confirmar" class="fa-dialogo">
+    <div class="fa-dialogo__cuerpo">
+        <h2 id="conf-titulo">¿Timbrar esta factura?</h2>
+        <div id="conf-resumen" class="fa-resumen"></div>
+        <p id="conf-nota" class="fa-nota"></p>
+    </div>
+    <div class="fa-dialogo__pie">
+        <button type="button" data-cerrar class="fa-btn fa-btn--suave">Revisar otra vez</button>
+        <button type="button" id="btn-confirmar" class="fa-btn fa-btn--principal">Timbrar</button>
+    </div>
+</dialog>
+
+<!-- Resultado -->
+<dialog id="dlg-listo" class="fa-dialogo">
+    <div class="fa-dialogo__cuerpo fa-centro">
+        <div class="fa-palomita">✓</div>
+        <h2 id="listo-titulo">Factura timbrada</h2>
+        <p id="listo-texto" class="fa-nota"></p>
+        <p id="listo-uuid" class="fa-mono fa-uuid"></p>
+    </div>
+    <div class="fa-dialogo__pie">
+        <button type="button" id="listo-xml" class="fa-btn fa-btn--suave">Descargar XML</button>
+        <button type="button" id="listo-pdf" class="fa-btn fa-btn--suave">Ver e imprimir PDF</button>
+        <button type="button" id="listo-otra" class="fa-btn fa-btn--principal">Otra factura</button>
+    </div>
+</dialog>
+
+<!-- Cancelar -->
+<dialog id="dlg-cancelar" class="fa-dialogo">
+    <div class="fa-dialogo__cuerpo">
+        <h2>Cancelar <span id="can-folio"></span></h2>
+        <p class="fa-nota">La cancelación se manda al SAT. Si el cliente tiene que aceptarla, queda pendiente hasta que responda.</p>
+        <label class="fa-campo"><span>Motivo</span><select id="can-motivo"></select></label>
+        <label class="fa-campo" id="can-sust-caja" hidden><span>Folio fiscal (UUID) de la factura que la sustituye</span><input id="can-sust" maxlength="36" class="fa-mayus fa-mono" list="lista-facturas"></label>
+        <p id="can-error" class="fa-error" hidden></p>
+    </div>
+    <div class="fa-dialogo__pie">
+        <button type="button" data-cerrar class="fa-btn fa-btn--suave">No cancelar</button>
+        <button type="button" id="btn-cancelar-ok" class="fa-btn fa-btn--rojo">Cancelar ante el SAT</button>
+    </div>
+</dialog>
+
+<!-- Representación impresa (lo que sale al imprimir / guardar PDF) -->
+<dialog id="dlg-pdf" class="fa-dialogo fa-dialogo--pdf">
+    <div class="fa-dialogo__pie fa-solo-pantalla">
+        <span class="fa-nota">En la ventana de impresión elige «Guardar como PDF».</span>
+        <button type="button" data-cerrar class="fa-btn fa-btn--suave">Cerrar</button>
+        <button type="button" id="btn-imprimir" class="fa-btn fa-btn--principal">Imprimir / Guardar PDF</button>
+    </div>
+    <div id="impresion" class="fa-impresion"></div>
+</dialog>
+
+<script src="/herramientas/facturar/facturar.js?v=202611021800"></script>
+</body>
+</html>
