@@ -1657,6 +1657,23 @@
         zona.addEventListener("drop", function (e) { var f = e.dataTransfer.files[0]; if (f) alElegir(f); });
     }
 
+    /* Cómo queda cada concepto, para no revolverse: unitario sin IVA, lo que equivale con IVA (como en el ticket),
+       importe, descuento, IVA y total. filas: [{descripcion, cantidad, unitario, con_iva, importe, descuento, iva, retenciones, total}] */
+    function tablaDesglose(filas) {
+        var n = function (v, dec) { return Number(v || 0).toLocaleString("es-MX", { minimumFractionDigits: dec == null ? 2 : dec, maximumFractionDigits: 6 }); };
+        var t = filas.reduce(function (a, x) { a.imp += x.importe; a.desc += x.descuento; a.iva += x.iva; a.ret += x.retenciones; a.total += x.total; return a; }, { imp: 0, desc: 0, iva: 0, ret: 0, total: 0 });
+        var conRet = t.ret > 0;
+        return '<table class="fa-desglose"><thead><tr><th>Concepto</th><th class="fa-num">Cant.</th><th class="fa-num">P. unitario<small>sin IVA</small></th><th class="fa-num">Equivale<small>con IVA</small></th>' +
+            '<th class="fa-num">Importe</th><th class="fa-num">Descuento</th><th class="fa-num">IVA</th>' + (conRet ? '<th class="fa-num">Retenciones</th>' : "") + '<th class="fa-num">Total</th></tr></thead><tbody>' +
+            filas.map(function (x) {
+                return "<tr><td>" + esc(x.descripcion) + '</td><td class="fa-num">' + n(x.cantidad, 0) + '</td><td class="fa-num">$' + n(x.unitario) + '</td><td class="fa-num"><b>$' + n(x.con_iva) + "</b></td>" +
+                    '<td class="fa-num">$' + n(x.importe) + '</td><td class="fa-num">' + (x.descuento ? "−$" + n(x.descuento) : "—") + '</td><td class="fa-num">$' + n(x.iva) + "</td>" +
+                    (conRet ? '<td class="fa-num">' + (x.retenciones ? "−$" + n(x.retenciones) : "—") + "</td>" : "") + '<td class="fa-num"><b>' + dinero(x.total) + "</b></td></tr>";
+            }).join("") + '</tbody><tfoot><tr><td colspan="4">Totales</td><td class="fa-num">$' + n(t.imp) + '</td><td class="fa-num">' + (t.desc ? "−$" + n(t.desc) : "—") +
+            '</td><td class="fa-num">$' + n(t.iva) + "</td>" + (conRet ? '<td class="fa-num">−$' + n(t.ret) + "</td>" : "") + '<td class="fa-num"><b>' + dinero(r2(t.total)) + "</b></td></tr></tfoot></table>" +
+            '<p class="fa-nota">«Equivale con IVA» es el precio unitario con IVA, antes del descuento: compáralo con el de tu ticket.</p>';
+    }
+
     function abrirExcel() {
         F.xe = null; $("xe-resultado").hidden = true; $("btn-xe-ok").disabled = true; $("btn-xe-ok").textContent = "Agregar conceptos";
         $("dlg-excel").showModal();
@@ -1674,8 +1691,15 @@
             caja.innerHTML = (np.length ? '<label class="fa-interruptor fa-conf-pref" style="margin-bottom:10px"><input type="checkbox" id="xe-guardar-prod" checked> Guardar en tu catálogo ' +
                     np.filter(function (x) { return x.accion === "nuevo"; }).length + " producto(s) nuevo(s) y corregir " + np.filter(function (x) { return x.accion !== "nuevo"; }).length + " de la hoja «Productos nuevos»</label>" : "") +
                 '<p class="fa-xe-ok">' + (r.conceptos.length ? "✓ " + r.conceptos.length + " concepto" + (r.conceptos.length === 1 ? "" : "s") + " listo" + (r.conceptos.length === 1 ? "" : "s") + " para agregar" : "No hay conceptos que agregar") + "</p>" +
-                (r.avisos.length ? '<p class="fa-nota" style="margin-top:8px"><b>Entran, pero completa en la tabla:</b></p>' + lista(r.avisos, "fa-xe-aviso") : "") +
+                (r.avisos.length ? '<p class="fa-nota" style="margin-top:8px"><b>Entran, pero revisa:</b></p>' + lista(r.avisos, "fa-xe-aviso") : "") +
                 (r.errores.length ? '<p class="fa-nota" style="margin-top:8px"><b>Estos renglones no entraron:</b></p>' + lista(r.errores, "fa-xe-mal") : "");
+            if (r.conceptos.length) {
+                caja.innerHTML += tablaDesglose(r.conceptos.map(function (c0) {
+                    var c = Object.assign(conceptoVacio(), c0, { seis: !!c0.seis_decimales }), t = totalConcepto(c), x = tasas(c);
+                    return { descripcion: c.descripcion, cantidad: num(c.cantidad), unitario: num(c.valor_unitario), con_iva: r2(num(c.valor_unitario) * (1 + x.t)),
+                             importe: t.importeExacto, descuento: num(c.descuento), iva: t.iva, retenciones: t.ret, total: t.total };
+                }));
+            }
             $("btn-xe-ok").disabled = !r.conceptos.length;
             $("btn-xe-ok").textContent = r.conceptos.length ? "Agregar " + r.conceptos.length + " concepto" + (r.conceptos.length === 1 ? "" : "s") : "Agregar conceptos";
         } catch (e) { caja.innerHTML = '<p class="fa-error">' + esc(e.message) + "</p>"; }
@@ -1733,7 +1757,8 @@
                 var fecha = f.captura.fecha ? fechaCorta(f.captura.fecha + ":00") + " " + f.captura.fecha.slice(11, 16) : "Al timbrar";
                 return '<tr data-xm="' + esc(f.clave) + '" class="' + (f.errores.length ? "fa-fila-mal" : "") + '"><td><b>' + esc(f.clave) + "</b></td><td>" + esc(f.cliente.nombre || "—") + "<small>" + esc(f.cliente.rfc || "") + "</small></td>" +
                     "<td>" + esc(fecha) + (f.vence ? "<small>timbrar antes del " + esc(fechaCorta(f.vence + ":00") + " " + f.vence.slice(11, 16)) + "</small>" : "") + "</td>" +
-                    '<td class="fa-num">' + f.conceptos + '</td><td class="fa-num">' + (f.total != null ? dinero(f.total) : "—") + (f.nota ? "<small>" + esc(f.nota) + "</small>" : "") + "</td><td data-estado>" +
+                    '<td class="fa-num">' + f.conceptos + '</td><td class="fa-num">' + (f.total != null ? dinero(f.total) : "—") + (f.nota ? "<small>" + esc(f.nota) + "</small>" : "") +
+                    (f.desglose ? '<button type="button" class="fa-link" data-desglose="' + esc(f.clave) + '">Ver desglose</button>' : "") + "</td><td data-estado>" +
                     (f.errores.length ? '<span class="fa-estado-mal">' + f.errores.map(esc).join("<br>") + "</span>" : '<span class="fa-estado-ok">✓ Lista</span>') +
                     ((f.avisos || []).length ? '<small class="fa-xe-aviso">' + f.avisos.map(esc).join("<br>") + "</small>" : "") + "</td></tr>";
             }).join("");
@@ -2148,6 +2173,14 @@
         zonaArchivo($("xm-zona"), $("xm-archivo"), leerMasiva);
         $("btn-xm-ok").addEventListener("click", guardarMasiva);
         $("btn-xm-timbrar").addEventListener("click", timbrarMasiva);
+        $("xm-filas").addEventListener("click", function (ev) {
+            var b = ev.target.closest("[data-desglose]"); if (!b) return;
+            var tr = b.closest("tr"), sig = tr.nextElementSibling;
+            if (sig && sig.classList.contains("fa-fila-desglose")) { sig.remove(); b.textContent = "Ver desglose"; return; }
+            var f = (F.xm || []).filter(function (x) { return x.clave === b.dataset.desglose; })[0]; if (!f) return;
+            tr.insertAdjacentHTML("afterend", '<tr class="fa-fila-desglose"><td colspan="6">' + tablaDesglose(f.desglose) + "</td></tr>");
+            b.textContent = "Ocultar desglose";
+        });
         $("c-pref-dias").addEventListener("change", async function () {
             var v = +this.value;
             try { await enviar("/api/facturacion/preferencias", "PUT", { prefacturas_dias: v }); F.cfg.prefacturas_dias = v; $("msj-pref").textContent = "✓ Guardado. Al timbrar te lo pregunta con esto ya marcado."; }

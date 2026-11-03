@@ -425,3 +425,11 @@ tr.fa-fila-mal td { background: #fef2f2; }
 .fa-item--timbrada { opacity: .78; }
 .fa-chip-mini--corregir { background: #fef3c7; color: #92400e; }
 tr.fa-conc__fila.fa-conc--pendiente td { background: #fffbeb; }
+.fa-desglose { width: 100%; border-collapse: collapse; font-size: 12.5px; margin: 10px 0 4px; background: #fff; border: 1px solid #e5e7eb; border-radius: 10px; overflow: hidden; }
+.fa-desglose th { font-size: 10.5px; text-transform: uppercase; letter-spacing: .04em; color: #64748b; background: #f8fafc; padding: 7px 8px; text-align: left; white-space: nowrap; }
+.fa-desglose th small { display: block; text-transform: none; letter-spacing: 0; font-weight: 500; color: #94a3b8; }
+.fa-desglose th.fa-num, .fa-desglose td.fa-num { text-align: right; }
+.fa-desglose td { padding: 7px 8px; border-top: 1px solid #f1f5f9; font-variant-numeric: tabular-nums; }
+.fa-desglose tfoot td { background: #f8fafc; font-weight: 700; }
+tr.fa-fila-desglose > td { background: #fafaff; padding: 4px 12px 12px; }
+#xm-filas [data-desglose] { display: block; margin: 4px 0 0 auto; font-size: 12.5px; }
