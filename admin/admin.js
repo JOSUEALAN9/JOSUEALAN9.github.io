@@ -1012,7 +1012,8 @@ function tarjetaTimbres() {
     const total = d.cuentas.reduce((a, c) => a + c.bolsa + c.en_empresas, 0);
     return `<p class="text-sm text-slate-800">${d.produccion ? "<b>Producción</b>: se timbra de verdad" : "<b>Modo de pruebas</b>: sin validez fiscal"}</p>
         <p class="text-[11px] ${d.panel ? "text-emerald-700" : "text-amber-700"} mt-1">${d.panel ? "✓ Conectado al panel de MultiFacturas" : "Sin conexión al panel de MultiFacturas (faltan sus claves en el servidor)"}</p>
-        ${d.bolsa && d.bolsa.timbres != null ? `<p class="text-sm text-slate-800 mt-1">Bolsa en MultiFacturas: <b>${Number(d.bolsa.timbres).toLocaleString("es-MX")}</b></p>` : `<p class="text-[11px] text-amber-700 mt-1">Bolsa de MultiFacturas sin registrar: escríbela en Facturar → Mis timbres</p>`}
+        ${d.bolsa && d.bolsa.timbres != null ? `<p class="text-sm text-slate-800 mt-1">Bolsa en MultiFacturas: <b>${Number(d.bolsa.timbres).toLocaleString("es-MX")}</b> <span class="text-[11px] ${d.bolsa.fuente === "panel" ? "text-emerald-700" : "text-slate-500"}">${d.bolsa.fuente === "panel" ? "✓ real, leída de tu panel" : "(escrita a mano)"}</span></p>` : `<p class="text-[11px] text-amber-700 mt-1">Bolsa de MultiFacturas sin registrar: escríbela en Facturar → Mis timbres</p>`}
+        ${d.bolsa && d.bolsa.error ? `<p class="text-[11px] text-amber-700 mt-1">No se pudo leer de tu panel: ${esc(d.bolsa.error)}</p>` : ""}
         <p class="text-[11px] text-slate-500 mt-1">${con.length} cuenta${con.length === 1 ? "" : "s"} con timbres · ${total.toLocaleString("es-MX")} asignados en total</p>
         <div class="flex gap-2 mt-3">${botonVer("btn-ver-timbres", "Ver y asignar")}${botonVer("btn-errores-pac", "Errores del PAC")}</div>`;
 }
