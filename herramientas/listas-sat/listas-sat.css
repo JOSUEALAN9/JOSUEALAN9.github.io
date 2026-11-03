@@ -56,7 +56,7 @@
 .ls-fila--cancelada td { color: #94a3b8; }
 .ls-mes--hay small { color: #b91c1c; font-weight: 800; }
 .xml-mes--activo.ls-mes--hay small { color: #fecaca; }
-.ls-ventana { width: 620px; max-height: 85vh; overflow: auto; }
+.ls-ventana { width: var(--modal-mediana); max-height: calc(100vh - 48px); overflow: auto; }
 .ls-ventana__cabeza { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
 .ls-ventana__cabeza h3 { margin: 0; }
 .ls-ventana .ls-nota, .ls-ventana p { margin-bottom: 6px; }

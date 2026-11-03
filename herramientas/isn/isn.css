@@ -6,8 +6,8 @@
 .isn-tabla tbody tr:hover td { background: #f8fafc; }
 .isn-tabla-caja { height: auto; min-height: 300px; max-height: calc(100vh - 300px); }
 .isn-dif { color: #b91c1c; font-weight: 800; }
-.isn-form { width: 640px; }
-.isn-rejilla { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px 12px; margin: 10px 0; }
+.isn-form { width: var(--modal-mediana); }
+.isn-rejilla { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin: 14px 0; }
 .isn-rejilla label { display: flex; flex-direction: column; gap: 4px; font-size: 11.5px; font-weight: 700; color: #475569; }
 .isn-rejilla [hidden], .isn-form [hidden] { display: none; }
 .isn-rejilla input, .isn-rejilla select { border: 1px solid #cbd5e1; border-radius: 8px; padding: 7px 9px; font-size: 13.5px; font-weight: 500; color: #0f172a; }
@@ -18,7 +18,7 @@
 .isn-error { color: #b91c1c; font-size: 13px; margin-top: 8px; }
 .isn-botones { display: flex; gap: 8px; margin-top: 14px; }
 @media (max-width: 680px) { .isn-rejilla { grid-template-columns: 1fr 1fr; } }
-.isn-form { max-height: 92vh; overflow-y: auto; }
+.isn-form { max-height: calc(100vh - 48px); overflow-y: auto; }
 .isn-datos { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px 14px; margin-bottom: 12px; font-size: 13px; color: #334155; display: flex; flex-wrap: wrap; gap: 6px 18px; align-items: center; }
 .isn-datos b { color: #0f172a; }
 .isn-datos--vacio { background: #fffbeb; border-color: #fde68a; color: #92400e; }
@@ -40,7 +40,7 @@
 .isn-sello-listo { background: #eff6ff; color: #1d4ed8; border-color: #bfdbfe; }
 .isn-modo { display: flex; align-items: center; gap: 10px; font-size: 11.5px; font-weight: 700; color: #475569; }
 .isn-calculado { background: #f1f5f9 !important; color: #334155 !important; }
-.isn-form--ancho { width: 860px; max-width: calc(100vw - 32px); }
+.isn-form--ancho { width: var(--modal-grande); max-width: calc(100vw - 32px); }
 .isn-fila { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px; margin: 10px 0; }
 .isn-campo { display: flex; flex-direction: column; gap: 4px; font-size: 11.5px; font-weight: 700; color: #475569; }
 .isn-campo select { border: 1px solid #cbd5e1; border-radius: 8px; padding: 7px 9px; font-size: 13.5px; }

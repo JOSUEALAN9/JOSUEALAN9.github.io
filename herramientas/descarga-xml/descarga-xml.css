@@ -110,13 +110,13 @@
 /* Captcha */
 .dm-modal { position: fixed; inset: 0; z-index: 80; background: rgba(16, 27, 45, .45); display: grid; place-items: center; padding: 16px; }
 .dm-modal[hidden] { display: none; }
-.dm-modal__caja { width: min(400px, 100%); background: #fff; border-radius: var(--radio); box-shadow: var(--sombra-alta); padding: 20px; }
-.dm-modal__caja h3 { font-size: 17px; font-weight: 800; }
-.dm-modal__caja p { font-size: 13px; color: var(--texto-tenue); margin: 4px 0 12px; }
+.dm-modal__caja { width: min(var(--modal-chica), 100%); background: #fff; border-radius: 20px; box-shadow: var(--sombra-alta); padding: var(--modal-pad); }
+.dm-modal__caja h3 { font-size: 19px; font-weight: 800; }
+.dm-modal__caja p { font-size: 13.5px; color: var(--texto-tenue); margin: 6px 0 16px; line-height: 1.45; }
 .dm-modal__caja img { display: block; width: 100%; max-height: 110px; object-fit: contain; background: #fff;
     border: 1px solid var(--linea); border-radius: var(--radio-chico); margin-bottom: 10px; image-rendering: auto; }
 .dm-modal__caja input { text-transform: none; letter-spacing: .08em; font-size: 16px; }
-.dm-modal__acciones { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }
+.dm-modal__acciones { display: flex; justify-content: flex-end; gap: 10px; margin-top: 22px; }
 
 .dm-toast { position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%); z-index: 90; background: var(--tinta); color: #fff;
     padding: 10px 14px; border-radius: 10px; font-size: 13px; box-shadow: var(--sombra-alta); display: flex; gap: 12px; align-items: center; }

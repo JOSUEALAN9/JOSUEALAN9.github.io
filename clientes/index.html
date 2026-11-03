@@ -5,14 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mis Clientes | Fiscontable</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611032030">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611032130">
 </head>
 <body class="min-h-screen flex flex-col relative">
 
     <!-- TOP NAV -->
     <div id="app-header" data-modulo="clientes" data-titulo="Mis clientes" data-migas=""></div>
-<script src="/assets/js/nucleo.js?v=202611032030"></script>
-<script src="/assets/js/barra.js?v=202611032030"></script>
+<script src="/assets/js/nucleo.js?v=202611032130"></script>
+<script src="/assets/js/barra.js?v=202611032130"></script>
 
     <!-- ÁREA DE TRABAJO -->
     <main class="flex-grow w-full mod-pagina" style="max-width:1180px">
@@ -68,14 +68,14 @@
 
     <!-- MODAL: REGISTRAR EMPRESA (mismas pestañas que la ficha; con su e.firma el RFC sale solo del certificado) -->
     <div id="modal-nuevo-cliente" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden justify-center items-center p-4">
-        <form id="form-nuevo-cliente" class="ficha-caja-modal bg-white w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden flex flex-col" onsubmit="crearCliente(event)" novalidate>
-            <div class="px-5 pt-5 pb-0 border-b bg-slate-50">
+        <form id="form-nuevo-cliente" class="ficha-caja-modal bg-white w-full rounded-[20px] shadow-2xl overflow-hidden flex flex-col" onsubmit="crearCliente(event)" novalidate>
+            <div class="px-7 pt-6 pb-0 border-b bg-slate-50">
                 <div class="flex justify-between items-start gap-3">
                     <div class="flex items-center gap-3 min-w-0">
                         <span id="alta-inicial" class="ficha-inicial">+</span>
                         <div class="min-w-0">
-                            <h2 id="alta-titulo" class="text-lg font-bold text-slate-800 leading-tight truncate">Registrar empresa</h2>
-                            <p id="alta-sub" class="text-xs text-slate-500 mt-0.5">Con su e.firma no escribes el RFC: sale del certificado.</p>
+                            <h2 id="alta-titulo" class="text-xl font-bold text-slate-800 leading-tight truncate">Registrar empresa</h2>
+                            <p id="alta-sub" class="text-sm text-slate-500 mt-1">Con su e.firma no escribes el RFC: sale del certificado.</p>
                         </div>
                     </div>
                     <button type="button" onclick="cerrarModalNuevoCliente()" class="text-gray-400 hover:text-red-500 transition flex-none" aria-label="Cerrar"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
@@ -87,16 +87,16 @@
                 </div>
             </div>
 
-            <div class="p-6 overflow-y-auto flex-1">
+            <div class="px-7 py-6 overflow-y-auto flex-1">
                 <!-- ===== Datos generales ===== -->
-                <section data-alta-panel="general" class="flex flex-col gap-4">
+                <section data-alta-panel="general" class="flex flex-col gap-6">
                     <div id="alta-pista-efirma" class="alta-pista">
                         <span>¿Tienes su e.firma? Súbela en <b>Accesos</b> y el RFC, el nombre y el tipo se llenan solos.</span>
                         <button type="button" data-alta-ficha="accesos" class="alta-pista__boton">Subir e.firma →</button>
                     </div>
                     <label class="block"><span class="alta-etiqueta">RFC</span>
                         <input type="text" id="input-rfc" maxlength="18" class="alta-control uppercase font-mono" placeholder="Sale de su e.firma, o escríbelo" autocomplete="off"></label>
-                    <div class="grid grid-cols-1 sm:grid-cols-5 gap-3">
+                    <div class="grid grid-cols-1 sm:grid-cols-5 gap-4">
                         <label class="block sm:col-span-3"><span class="alta-etiqueta">Nombre de la empresa</span>
                             <input type="text" id="input-alias" maxlength="120" class="alta-control" placeholder="Ej. Constructora del Caribe" autocomplete="off"></label>
                         <label class="block sm:col-span-2"><span class="alta-etiqueta">Tipo de sociedad</span>
@@ -110,12 +110,12 @@
                 </section>
 
                 <!-- ===== Accesos ===== -->
-                <section data-alta-panel="accesos" class="flex flex-col gap-4" hidden>
+                <section data-alta-panel="accesos" class="flex flex-col gap-6" hidden>
                     <div class="ficha-caja">
-                        <h3 class="text-sm font-bold text-slate-800">e.firma <small class="font-semibold text-violet-700">recomendado</small></h3>
-                        <p class="text-xs text-slate-500 mt-0.5 mb-3">Con ella no escribes el RFC y no se vuelve a pedir en cada trámite.</p>
-                        <div class="flex flex-col gap-3">
-                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <h3 class="text-[15px] font-bold text-slate-800">e.firma <small class="font-semibold text-violet-700">recomendado</small></h3>
+                        <p class="text-[13px] text-slate-500 mt-1 mb-4 leading-relaxed">Con ella no escribes el RFC y no se vuelve a pedir en cada trámite.</p>
+                        <div class="flex flex-col gap-4">
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <label class="block"><span class="alta-etiqueta">Certificado (.cer)</span>
                                     <input type="file" id="alta-cer" accept=".cer" class="alta-archivo"></label>
                                 <label class="block"><span class="alta-etiqueta">Clave privada (.key)</span>
@@ -129,8 +129,8 @@
                         </div>
                     </div>
                     <div class="ficha-caja" id="alta-ciec-caja">
-                        <h3 class="text-sm font-bold text-slate-800">Contraseña del SAT (CIEC) <small class="font-medium text-slate-500">opcional</small></h3>
-                        <p class="text-xs text-slate-500 mt-0.5 mb-3">Para bajar sus XML del portal sin escribirla cada vez. Se guarda cifrada.</p>
+                        <h3 class="text-[15px] font-bold text-slate-800">Contraseña del SAT (CIEC) <small class="font-medium text-slate-500">opcional</small></h3>
+                        <p class="text-[13px] text-slate-500 mt-1 mb-4 leading-relaxed">Para bajar sus XML del portal sin escribirla cada vez. Se guarda cifrada.</p>
                         <span class="relative block"><input type="password" id="alta-ciec" autocomplete="new-password" class="alta-control pr-10" placeholder="La del portal del SAT">
                         <button type="button" class="alta-ojo" data-ojo="alta-ciec" aria-label="Mostrar contraseña">👁</button></span>
                     </div>
@@ -139,8 +139,8 @@
                 <!-- ===== Obligaciones (hoy ISN de Quintana Roo; solo con el módulo ISN) ===== -->
                 <section data-alta-panel="obligaciones" hidden>
                     <div id="nuevo-obligaciones" class="ficha-caja">
-                        <h3 class="text-sm font-bold text-slate-800">Obligaciones</h3>
-                        <p class="text-xs text-slate-500 mt-0.5 mb-3">Lo que actives aquí aparece en su módulo, listo para declarar.</p>
+                        <h3 class="text-[15px] font-bold text-slate-800">Obligaciones</h3>
+                        <p class="text-[13px] text-slate-500 mt-1 mb-4 leading-relaxed">Lo que actives aquí aparece en su módulo, listo para declarar.</p>
                         <label class="flex items-center gap-2 text-sm font-semibold text-slate-700">
                             <input type="checkbox" id="nuevo-obl-isn" class="w-4 h-4 accent-violet-600"> Impuesto sobre nóminas · Quintana Roo
                         </label>
@@ -152,23 +152,23 @@
                 </section>
             </div>
 
-            <div class="px-6 py-4 border-t bg-white flex flex-col gap-2">
+            <div class="px-7 py-5 border-t bg-white flex flex-col gap-3">
                 <p id="alta-error" class="alta-error" role="alert" hidden></p>
-                <button type="submit" id="btn-guardar-cliente" class="w-full bg-violet-600 hover:bg-violet-500 text-white font-bold py-3 rounded-lg shadow-md transition disabled:opacity-60">Registrar empresa</button>
+                <button type="submit" id="btn-guardar-cliente" class="w-full sm:w-auto sm:self-end sm:px-10 bg-violet-600 hover:bg-violet-500 text-white font-bold py-3 rounded-xl shadow-md transition disabled:opacity-60">Registrar empresa</button>
             </div>
         </form>
     </div>
 
     <!-- MODAL: FICHA DEL CLIENTE (pestañas: datos generales · accesos · obligaciones) -->
     <div id="modal-editar-cliente" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden justify-center items-center p-4">
-        <div class="ficha-caja-modal bg-white w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden flex flex-col">
-            <div class="px-5 pt-5 pb-0 border-b bg-slate-50">
+        <div class="ficha-caja-modal bg-white w-full rounded-[20px] shadow-2xl overflow-hidden flex flex-col">
+            <div class="px-7 pt-6 pb-0 border-b bg-slate-50">
                 <div class="flex justify-between items-start gap-3">
                     <div class="flex items-center gap-3 min-w-0">
                         <span id="editar-inicial" class="ficha-inicial">·</span>
                         <div class="min-w-0">
-                            <h2 id="editar-titulo" class="text-lg font-bold text-slate-800 leading-tight truncate">Cliente</h2>
-                            <p id="editar-rfc" class="text-xs text-slate-500 font-mono mt-0.5"></p>
+                            <h2 id="editar-titulo" class="text-xl font-bold text-slate-800 leading-tight truncate">Cliente</h2>
+                            <p id="editar-rfc" class="text-sm text-slate-500 font-mono mt-1"></p>
                         </div>
                     </div>
                     <button onclick="cerrarModalEditar()" class="text-gray-400 hover:text-red-500 transition flex-none" aria-label="Cerrar"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
@@ -182,11 +182,11 @@
                 </div>
             </div>
 
-            <div class="p-6 overflow-y-auto flex-1">
+            <div class="px-7 py-6 overflow-y-auto flex-1">
                 <!-- ===== Datos generales ===== -->
-                <section data-panel="general" class="flex flex-col gap-5">
+                <section data-panel="general" class="flex flex-col gap-6">
                     <div>
-                        <div class="grid grid-cols-1 sm:grid-cols-5 gap-2 items-end">
+                        <div class="grid grid-cols-1 sm:grid-cols-5 gap-4 items-end">
                             <label class="block sm:col-span-3"><span class="alta-etiqueta">Nombre</span>
                                 <input type="text" id="editar-alias" maxlength="120" class="alta-control"></label>
                             <label class="block sm:col-span-2"><span class="alta-etiqueta">Tipo de sociedad</span>
@@ -212,11 +212,11 @@
                 </section>
 
                 <!-- ===== Accesos: e.firma y contraseña del SAT ===== -->
-                <section data-panel="accesos" class="flex flex-col gap-5" hidden>
+                <section data-panel="accesos" class="flex flex-col gap-6" hidden>
                     <div class="ficha-caja">
                         <div class="flex items-start justify-between gap-3 mb-3">
                             <div>
-                                <h3 class="text-sm font-bold text-slate-800">e.firma</h3>
+                                <h3 class="text-[15px] font-bold text-slate-800">e.firma</h3>
                                 <p class="text-xs text-slate-500 mt-0.5">Se guarda cifrada para no volver a pedirla en cada trámite.</p>
                             </div>
                             <span id="editar-estado-efirma" class="text-xs font-bold px-2 py-1 rounded-full flex-none"></span>
@@ -227,7 +227,7 @@
                         </div>
 
                         <div id="editar-efirma-form" class="flex flex-col gap-3">
-                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <label class="block"><span class="alta-etiqueta">Certificado (.cer)</span>
                                     <input type="file" id="editar-cer" accept=".cer" class="alta-archivo"></label>
                                 <label class="block"><span class="alta-etiqueta">Clave privada (.key)</span>
@@ -249,7 +249,7 @@
                 <div id="editar-ciec" class="ficha-caja">
                     <div class="flex items-start justify-between gap-3 mb-3">
                         <div>
-                            <h3 class="text-sm font-bold text-slate-800">Contraseña del SAT (CIEC)</h3>
+                            <h3 class="text-[15px] font-bold text-slate-800">Contraseña del SAT (CIEC)</h3>
                             <p class="text-xs text-slate-500 mt-0.5">Para bajar sus XML del portal sin escribirla cada vez.</p>
                         </div>
                         <span id="editar-estado-ciec" class="text-xs font-bold px-2 py-1 rounded-full flex-none"></span>
@@ -267,7 +267,7 @@
                 <div id="editar-csd" class="ficha-caja" hidden>
                     <div class="flex items-start justify-between gap-3 mb-3">
                         <div>
-                            <h3 class="text-sm font-bold text-slate-800">Sello digital (CSD) para facturar</h3>
+                            <h3 class="text-[15px] font-bold text-slate-800">Sello digital (CSD) para facturar</h3>
                             <p class="text-xs text-slate-500 mt-0.5">Es distinto de la e.firma: se tramita en el SAT con la app Certifica. Se guarda cifrado.</p>
                         </div>
                         <span id="editar-estado-csd" class="text-xs font-bold px-2 py-1 rounded-full flex-none"></span>
@@ -283,7 +283,7 @@
                         <button type="button" id="btn-reemplazar-csd" class="text-xs font-bold text-violet-700 border border-violet-200 hover:bg-violet-50 rounded-lg py-1.5 px-3">Reemplazar</button>
                     </div>
                     <div id="csd-form" class="flex flex-col gap-3 mb-3">
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <label class="block"><span class="alta-etiqueta">Certificado del sello (.cer)</span>
                                 <input type="file" id="csd-cer" accept=".cer" class="alta-archivo"></label>
                             <label class="block"><span class="alta-etiqueta">Llave del sello (.key)</span>
@@ -305,10 +305,10 @@
                 </section>
 
                 <!-- ===== Sus clientes: a quién le factura esta empresa (para elegirlos al timbrar) ===== -->
-                <section data-panel="receptores" class="flex flex-col gap-4" hidden>
+                <section data-panel="receptores" class="flex flex-col gap-6" hidden>
                     <div class="flex items-start justify-between gap-3">
                         <div>
-                            <h3 class="text-sm font-bold text-slate-800">Sus clientes para facturar</h3>
+                            <h3 class="text-[15px] font-bold text-slate-800">Sus clientes para facturar</h3>
                             <p class="text-xs text-slate-500 mt-0.5">Los datos fiscales de a quién le factura esta empresa. En Facturar se eligen con buscar; también se guardan solos al timbrar.</p>
                         </div>
                         <div class="flex gap-2 flex-none">
@@ -321,7 +321,7 @@
                             <p class="text-xs font-bold text-slate-700 uppercase tracking-wide" id="form-receptor-titulo">Nuevo cliente</p>
                             <label class="text-xs font-bold text-violet-700 cursor-pointer hover:underline">Leer su constancia (PDF)<input type="file" id="rec-constancia" accept="application/pdf,.pdf" hidden></label>
                         </div>
-                        <div class="grid grid-cols-1 sm:grid-cols-6 gap-2">
+                        <div class="grid grid-cols-1 sm:grid-cols-6 gap-4">
                             <label class="block sm:col-span-2"><span class="alta-etiqueta">RFC</span><input id="rec-rfc" maxlength="13" class="alta-control font-mono uppercase" autocomplete="off"></label>
                             <label class="block sm:col-span-4"><span class="alta-etiqueta">Nombre o razón social</span><input id="rec-nombre" maxlength="254" class="alta-control uppercase" placeholder="Como en su constancia, sin S.A. de C.V."></label>
                             <label class="block sm:col-span-2"><span class="alta-etiqueta">C.P. fiscal</span><input id="rec-cp" maxlength="5" inputmode="numeric" class="alta-control font-mono"></label>
@@ -344,16 +344,16 @@
                 </section>
 
                 <!-- ===== Descarga automática de sus XML ===== -->
-                <section data-panel="xml" class="flex flex-col gap-4" hidden>
+                <section data-panel="xml" class="flex flex-col gap-6" hidden>
                     <div>
-                        <h3 class="text-sm font-bold text-slate-800">Descarga automática de XML</h3>
+                        <h3 class="text-[15px] font-bold text-slate-800">Descarga automática de XML</h3>
                         <p class="text-xs text-slate-500 mt-0.5">Cada madrugada se bajan solos del SAT con su e.firma guardada y entran a Administración de XML.</p>
                     </div>
                     <p id="xml-sin-efirma" class="alta-info alta-info--mal" hidden>Primero guarda su e.firma en la pestaña <button type="button" class="underline font-bold" data-ir-ficha="accesos">Accesos</button>.</p>
                     <label class="flex items-center gap-2 text-sm font-semibold text-slate-700">
                         <input type="checkbox" id="xml-activo" class="w-4 h-4 accent-violet-600"> Bajar sus XML en automático
                     </label>
-                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                         <label class="block"><span class="alta-etiqueta">Descargar desde</span>
                             <select id="xml-desde" class="alta-control"></select></label>
                         <label class="block"><span class="alta-etiqueta">Qué</span>
@@ -370,8 +370,8 @@
                 <section data-panel="obligaciones" hidden>
                 <!-- Obligaciones: hoy ISN de Quintana Roo (solo con el módulo ISN) -->
                 <div id="editar-obligaciones" class="hidden">
-                    <h3 class="text-sm font-bold text-slate-800">Obligaciones</h3>
-                    <p class="text-xs text-slate-500 mt-0.5 mb-3">Lo que activas aquí aparece en su módulo, listo para declarar.</p>
+                    <h3 class="text-[15px] font-bold text-slate-800">Obligaciones</h3>
+                    <p class="text-[13px] text-slate-500 mt-1 mb-4 leading-relaxed">Lo que activas aquí aparece en su módulo, listo para declarar.</p>
                     <label class="flex items-center gap-2 text-sm font-semibold text-slate-700">
                         <input type="checkbox" id="obl-isn" class="w-4 h-4 accent-violet-600"> Impuesto sobre nóminas · Quintana Roo
                     </label>
@@ -397,7 +397,7 @@
         </div>
     </div>
 
-<script src="/assets/js/comun/leer-cer.js?v=202611032030"></script>
+<script src="/assets/js/comun/leer-cer.js?v=202611032130"></script>
 <style>
     .cli-herr { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 14px; }
     .cli-buscar { flex: 1 1 220px; max-width: 320px; font-size: 14px; border: 1px solid #e5e7eb; border-radius: 10px; padding: 8px 12px; background: #fff; }
@@ -417,25 +417,28 @@
     .cli-tabla tr:hover td { background: #faf7ff; }
     .cli-si { color: #047857; font-weight: 700; } .cli-no { color: #b45309; font-weight: 600; } .cli-nada { color: #cbd5e1; }
     /* Mismo tamaño en todas las pestañas: la ventana no brinca al cambiar */
-    .ficha-caja-modal { height: min(640px, calc(100vh - 32px)); }
+    .ficha-caja-modal { width: min(var(--modal-mediana), 100%); height: var(--modal-alto); }
+    @media (max-width: 640px) { #modal-nuevo-cliente, #modal-editar-cliente { padding: 0 !important; } .ficha-caja-modal { width: 100vw; height: 100dvh; border-radius: 0 !important; } }
     .ficha-punto.ficha-punto--ok { background: #10b981; }
     .alta-pista { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; font-size: 13px; color: #4c1d95; background: #f5f3ff; border: 1px solid #ddd6fe; border-radius: 12px; padding: 10px 12px; }
     .alta-pista span { flex: 1 1 220px; }
     .alta-pista__boton { border: 0; background: #6d28d9; color: #fff; font: inherit; font-size: 12.5px; font-weight: 700; border-radius: 8px; padding: 6px 10px; cursor: pointer; }
-    .ficha-inicial { width: 40px; height: 40px; border-radius: 12px; flex: none; display: grid; place-items: center; background: #f1ebfd; color: #6d28d9; font-weight: 800; font-size: 17px; }
-    .ficha-tabs { display: flex; gap: 2px; margin-top: 14px; overflow-x: auto; }
-    .ficha-tabs button { border: 0; background: none; font: inherit; font-size: 13.5px; font-weight: 600; color: #64748b; padding: 9px 12px; border-bottom: 2px solid transparent; margin-bottom: -1px; cursor: pointer; white-space: nowrap; }
+    .ficha-inicial { width: 48px; height: 48px; border-radius: 12px; flex: none; display: grid; place-items: center; background: #f1ebfd; color: #6d28d9; font-weight: 800; font-size: 17px; }
+    .ficha-tabs { display: flex; gap: 4px; margin-top: 18px; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; }
+    .ficha-tabs::-webkit-scrollbar { display: none; }
+    @media (max-width: 640px) { .ficha-tabs { -webkit-mask-image: linear-gradient(to right, #000 82%, transparent); mask-image: linear-gradient(to right, #000 82%, transparent); padding-right: 28px; } }
+    .ficha-tabs button { border: 0; background: none; font: inherit; font-size: 14px; font-weight: 600; color: #64748b; padding: 11px 14px; border-bottom: 2px solid transparent; margin-bottom: -1px; cursor: pointer; white-space: nowrap; }
     .ficha-tabs button[aria-selected="true"] { color: #6d28d9; border-bottom-color: #6d28d9; }
     .ficha-punto { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #f59e0b; margin-left: 4px; vertical-align: middle; }
-    .ficha-caja { border: 1px solid #eef0f3; border-radius: 12px; padding: 14px; }
-    .ficha-datos { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; font-size: 13px; margin: 0; }
+    .ficha-caja { border: 1px solid #eef0f3; border-radius: 14px; padding: 20px; }
+    .ficha-datos { display: grid; grid-template-columns: auto 1fr; gap: 10px 20px; font-size: 14px; margin: 0; }
     .ficha-datos dt { color: #64748b; } .ficha-datos dd { margin: 0; color: #0f172a; }
     .ficha-chip { font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 999px; border: 0; cursor: pointer; }
     .ficha-chip--ok { background: #e8f6f0; color: #047857; } .ficha-chip--falta { background: #fef3c7; color: #92400e; }
-    .alta-etiqueta { display: block; font-size: 11.5px; font-weight: 700; color: #334155; text-transform: uppercase; letter-spacing: .03em; margin-bottom: 6px; }
-    .alta-control { width: 100%; font-size: 14px; border: 1px solid #d1d5db; border-radius: 10px; padding: 10px 12px; background: #fff; }
+    .alta-etiqueta { display: block; font-size: 11.5px; font-weight: 700; color: #334155; text-transform: uppercase; letter-spacing: .03em; margin-bottom: 8px; }
+    .alta-control { width: 100%; font-size: 14.5px; border: 1px solid #d1d5db; border-radius: 10px; padding: 11px 13px; background: #fff; }
     .alta-control:focus { outline: none; border-color: #7c3aed; box-shadow: 0 0 0 3px #ede9fe; }
-    .alta-archivo { width: 100%; font-size: 12px; border: 1px dashed #c4b5fd; border-radius: 10px; padding: 8px; background: #faf7ff; }
+    .alta-archivo { width: 100%; font-size: 13px; border: 1px dashed #c4b5fd; border-radius: 10px; padding: 12px; background: #faf7ff; }
     .alta-ojo { position: absolute; top: 0; bottom: 0; right: 8px; border: 0; background: none; cursor: pointer; opacity: .55; font-size: 15px; }
     .alta-modo { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; background: #f1f5f9; border-radius: 12px; }
     .alta-modo__op { border: 0; background: none; border-radius: 9px; padding: 9px 8px; font: inherit; font-size: 13px; font-weight: 700; color: #475569; cursor: pointer; }
@@ -448,7 +451,7 @@
     .alta-opcional summary small { font-weight: 500; color: #64748b; }
     .alta-error { font-size: 13px; font-weight: 600; border-radius: 10px; padding: 10px 12px; background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; }
 </style>
-<script src="/assets/js/comun/importar-clientes.js?v=202611032030"></script>
-<script src="/clientes/clientes.js?v=202611032030"></script>
+<script src="/assets/js/comun/importar-clientes.js?v=202611032130"></script>
+<script src="/clientes/clientes.js?v=202611032130"></script>
 </body>
 </html>

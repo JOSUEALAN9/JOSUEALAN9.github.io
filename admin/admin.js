@@ -810,7 +810,7 @@ function ventana(id, titulo, cuerpo) {
     if (!d) {
         d = document.createElement("dialog");
         d.id = id;
-        d.style.cssText = "width:min(640px,calc(100vw - 32px));max-height:88vh;border:0;border-radius:14px;padding:0;box-shadow:0 20px 50px rgba(15,23,42,.35)";
+        d.className = "adm-js"; d.style.cssText = "width:min(var(--modal-mediana),calc(100vw - 32px));max-height:calc(100vh - 48px);border:0;border-radius:20px;padding:0;box-shadow:var(--sombra-alta)";
         document.body.appendChild(d);
         ["input", "change"].forEach(ev => d.addEventListener(ev, cambioCampo));
         d.addEventListener("click", e => { if (e.target.closest("[data-cerrar]")) d.close(); else clicTarjeta(e); });
@@ -1070,7 +1070,7 @@ function abrirTrabajadores() {
     if (!d) {
         d = document.createElement("dialog");
         d.id = "dlg-trabajos";
-        d.style.cssText = "width:min(640px,calc(100vw - 32px));max-height:88vh;border:0;border-radius:14px;padding:0;box-shadow:0 20px 50px rgba(15,23,42,.35)";
+        d.className = "adm-js"; d.style.cssText = "width:min(var(--modal-mediana),calc(100vw - 32px));max-height:calc(100vh - 48px);border:0;border-radius:20px;padding:0;box-shadow:var(--sombra-alta)";
         document.body.appendChild(d);
         ["input", "change"].forEach(ev => d.addEventListener(ev, e => {
             const c = e.target.closest("[data-guarda]"); if (c) marcarPorGuardar(c);
@@ -1688,7 +1688,7 @@ function dialogoRegistro(id, titulo, filtros, cabeceras, buscar, exportar) {
     if (!d) {
         d = document.createElement("dialog");
         d.id = id;
-        d.style.cssText = "width:min(1000px,calc(100vw - 32px));max-height:85vh;border:0;border-radius:14px;padding:0;box-shadow:0 20px 50px rgba(15,23,42,.35)";
+        d.className = "adm-js"; d.style.cssText = "width:min(var(--modal-grande),calc(100vw - 32px));max-height:calc(100vh - 48px);border:0;border-radius:20px;padding:0;box-shadow:var(--sombra-alta)";
         d.innerHTML = `<div style="padding:16px 18px;border-bottom:1px solid #E5E7EB;display:flex;justify-content:space-between;align-items:center">
                 <b>${esc(titulo)}</b><button type="button" data-cerrar class="text-slate-400 hover:text-red-500 text-lg">✕</button></div>
             <div style="padding:12px 18px" class="flex flex-wrap gap-2 items-end text-xs">${filtros}

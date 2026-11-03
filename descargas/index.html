@@ -5,13 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mis Descargas | Fiscontable</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611032030">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611032130">
 </head>
 <body class="min-h-screen flex flex-col">
 
     <div id="app-header" data-modulo="descargas" data-titulo="Mis descargas" data-migas=""></div>
-<script src="/assets/js/nucleo.js?v=202611032030"></script>
-<script src="/assets/js/barra.js?v=202611032030"></script>
+<script src="/assets/js/nucleo.js?v=202611032130"></script>
+<script src="/assets/js/barra.js?v=202611032130"></script>
 
     <main class="flex-grow w-full mod-pagina" style="max-width:1024px">
 
@@ -68,8 +68,8 @@
 
     <!-- MODAL: MOTIVOS DE LOS QUE NO SE PUDIERON -->
     <div id="modal-motivos" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden justify-center items-center p-4">
-        <div class="bg-white w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh]">
-            <div class="p-5 border-b flex justify-between items-center bg-slate-50">
+        <div class="bg-white w-full rounded-[20px] shadow-2xl overflow-hidden flex flex-col" style="max-width:var(--modal-mediana);max-height:calc(100vh - 48px)">
+            <div class="px-7 pt-6 pb-5 border-b flex justify-between items-center bg-slate-50">
                 <div>
                     <h2 class="text-lg font-bold text-slate-800">Contribuyentes sin resultado</h2>
                     <p class="text-xs text-slate-500 mt-0.5">Qué pasó con cada uno y si se puede volver a intentar</p>
@@ -78,10 +78,10 @@
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                 </button>
             </div>
-            <div id="contenido-motivos" class="p-6 overflow-y-auto"></div>
+            <div id="contenido-motivos" class="px-7 py-6 overflow-y-auto"></div>
         </div>
     </div>
 
-<script src="/descargas/descargas.js?v=202611032030"></script>
+<script src="/descargas/descargas.js?v=202611032130"></script>
 </body>
 </html>

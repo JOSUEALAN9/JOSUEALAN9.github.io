@@ -5,15 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Administrar Usuarios | Fiscontable</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611032030">
-    <link rel="stylesheet" href="/admin/creditos-admin.css?v=202611032030">
-    <link rel="stylesheet" href="/admin/documentos-admin.css?v=202611032030">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611032130">
+    <link rel="stylesheet" href="/admin/creditos-admin.css?v=202611032130">
+    <link rel="stylesheet" href="/admin/documentos-admin.css?v=202611032130">
 </head>
 <body class="min-h-screen flex flex-col relative">
 
     <div id="app-header" data-modulo="admin" data-titulo="Administración" data-migas=""></div>
-<script src="/assets/js/nucleo.js?v=202611032030"></script>
-<script src="/assets/js/barra.js?v=202611032030"></script>
+<script src="/assets/js/nucleo.js?v=202611032130"></script>
+<script src="/assets/js/barra.js?v=202611032130"></script>
 
     <main class="flex-grow p-4 sm:p-6 w-full max-w-4xl mx-auto fc-principal">
         <style>
@@ -28,13 +28,20 @@
             .adm-filtro--activo { background:#0f172a; color:#fff; }
             .adm-filtro:not(.adm-filtro--activo):hover { border-color:#e2e8f0; }
             .adm-avatar { width:32px; height:32px; border-radius:999px; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:800; flex:none; }
-            .adm-ventana { position:fixed; inset:0; background:rgba(15,23,42,.45); z-index:60; display:flex; align-items:flex-start; justify-content:center; padding:4vh 16px; }
+            .adm-ventana { position:fixed; inset:0; background:rgba(16,27,45,.5); backdrop-filter:blur(2px); z-index:60; display:flex; align-items:flex-start; justify-content:center; padding:4vh 16px; }
+            .adm-dlg { width:min(var(--modal-mediana), calc(100vw - 32px)); max-height:calc(100vh - 48px); border:0; border-radius:20px; box-shadow:var(--sombra-alta); }
+            .adm-dlg::backdrop, dialog.adm-js::backdrop { background:rgba(16,27,45,.5); backdrop-filter:blur(2px); }
+            .adm-dlg__form { padding:26px var(--modal-pad) 24px; }
+            .adm-dlg__form h3 { font-size:19px; }
+            dialog.adm-js > div:first-child { padding:22px var(--modal-pad) 18px !important; font-size:17px; }
+            dialog.adm-js > div:not(:first-child) { padding-left:var(--modal-pad) !important; padding-right:var(--modal-pad) !important; }
+            @media (max-width:640px) { .adm-dlg, dialog.adm-js { width:100vw !important; max-width:100vw; height:100dvh; max-height:100dvh !important; margin:0; border-radius:0 !important; } }
             .adm-ventana[hidden] { display:none; }
-            .adm-ventana__caja { background:#f8fafc; border-radius:16px; width:min(980px,100%); max-height:92vh; display:flex; flex-direction:column; box-shadow:0 20px 50px rgba(15,23,42,.3); }
-            .adm-ventana__cabeza { display:flex; align-items:center; gap:12px; padding:14px 18px; border-bottom:1px solid #e2e8f0; background:#fff; border-radius:16px 16px 0 0; }
-            .adm-ventana__cabeza h3 { font-weight:800; color:#0f172a; font-size:15px; flex:1; }
+            .adm-ventana__caja { background:#f8fafc; border-radius:20px; width:min(var(--modal-grande),100%); max-height:calc(100vh - 48px); display:flex; flex-direction:column; box-shadow:0 20px 50px rgba(15,23,42,.3); }
+            .adm-ventana__cabeza { display:flex; align-items:center; gap:12px; padding:22px var(--modal-pad) 18px; border-bottom:1px solid #e2e8f0; background:#fff; border-radius:16px 16px 0 0; }
+            .adm-ventana__cabeza h3 { font-weight:800; color:#0f172a; font-size:19px; flex:1; }
             .adm-ventana__cabeza button { font-size:16px; color:#64748b; background:none; border:0; cursor:pointer; padding:4px 8px; }
-            .adm-ventana__cuerpo { padding:16px 18px; overflow:auto; }
+            .adm-ventana__cuerpo { padding:24px var(--modal-pad); overflow:auto; }
             .adm-subpestanas { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:16px; }
             .adm-sub { font-size:12.5px; font-weight:700; color:#475569; background:#fff; border:1px solid #e2e8f0; border-radius:999px; padding:6px 14px; cursor:pointer; }
             .adm-sub--activa { background:#0f172a; border-color:#0f172a; color:#fff; }
@@ -396,8 +403,8 @@
         </div>
 
         <!-- Agregar / editar usuario -->
-        <dialog id="dlg-usuario" class="rounded-xl p-0 w-full max-w-md shadow-2xl">
-            <form id="form-usuario" class="p-6 flex flex-col gap-4">
+        <dialog id="dlg-usuario" class="adm-dlg p-0 w-full">
+            <form id="form-usuario" class="adm-dlg__form flex flex-col gap-5">
                 <div>
                     <h3 class="font-bold text-slate-800" id="titulo-dlg-usuario">Agregar usuario</h3>
                     <p class="text-xs text-slate-500 mt-0.5">Si el correo ya existe, se actualiza.</p>
@@ -429,8 +436,8 @@
         </dialog>
 
         <!-- Ajustes propios de un usuario -->
-        <dialog id="dlg-ajustes" class="rounded-xl p-0 w-full max-w-lg shadow-2xl">
-            <form id="form-ajustes" class="p-6 flex flex-col gap-4">
+        <dialog id="dlg-ajustes" class="adm-dlg p-0 w-full">
+            <form id="form-ajustes" class="adm-dlg__form flex flex-col gap-5">
                 <div>
                     <h3 class="font-bold text-slate-800">Ajustes propios</h3>
                     <p class="text-xs text-slate-500 mt-0.5 font-mono" id="ajustes-correo"></p>
@@ -473,8 +480,8 @@
         </div>
     </div>
 
-<script src="/admin/admin.js?v=202611032030"></script>
-<script src="/admin/creditos-admin.js?v=202611032030"></script>
-<script src="/admin/documentos-admin.js?v=202611032030"></script>
+<script src="/admin/admin.js?v=202611032130"></script>
+<script src="/admin/creditos-admin.js?v=202611032130"></script>
+<script src="/admin/documentos-admin.js?v=202611032130"></script>
 </body>
 </html>
