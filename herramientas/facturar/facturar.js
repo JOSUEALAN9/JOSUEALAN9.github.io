@@ -362,7 +362,7 @@
         if (g.periodicidad) $("g-periodicidad").value = g.periodicidad;
         if (g.meses) $("g-meses").value = g.meses;
         if (g.anio) $("g-anio").value = g.anio;
-        F.conceptos = (cap.conceptos || []).map(function (c) { return Object.assign(conceptoVacio(), c, { descuento: c.descuento || "", seis: !!c.seis_decimales }); });
+        F.conceptos = (cap.conceptos || []).map(function (c) { return Object.assign(conceptoVacio(), c, { descuento: c.descuento || "", seis: !!c.seis_decimales, abierto: !!c.pendiente }); });
         if (!F.conceptos.length) F.conceptos = [conceptoVacio()];
 
         var claveR = (r.rfc || "").toUpperCase() === "XEXX010101000" ? "XEXX010101000:" + String(r.num_reg_id || "").replace(/[^A-Za-z0-9]/g, "").toUpperCase() : (r.rfc || "").toUpperCase();
@@ -527,7 +527,7 @@
               '<small class="fa-conc__sub">' + subPrecio(c) + "</small>"
             : '<input data-c="valor_unitario" inputmode="decimal" class="fa-num" value="' + esc(c.valor_unitario) + '" placeholder="0.00">';
         var clave = c.clave_prod ? esc(c.clave_prod) + " · " + esc(c.clave_unidad) : "Sin clave";
-        var fila = '<tr class="fa-conc__fila" data-i="' + i + '">' +
+        var fila = '<tr class="fa-conc__fila' + (c.pendiente ? " fa-conc--pendiente" : "") + '" data-i="' + i + '"' + (c.pendiente ? ' title="Este renglón venía con un problema en el Excel: revísalo"' : "") + ">" +
             '<td><input data-c="cantidad" inputmode="decimal" class="fa-num" value="' + esc(c.cantidad) + '"></td>' +
             '<td class="fa-conc__prod"><div class="fa-prod"><input data-c="descripcion" maxlength="1000" value="' + esc(c.descripcion) + '" placeholder="Escribe o busca un producto…" autocomplete="off">' +
             '<div class="fa-prod__sug" hidden></div></div><small class="fa-conc__sub">' + clave + (c.no_identificacion ? " · " + esc(c.no_identificacion) : "") + (c.cuenta_predial ? " · predial " + esc(c.cuenta_predial) : "") + "</small></td>" +
@@ -1593,7 +1593,7 @@
 
     function abrirPrefactura(x, recurrente) {
         if (F.vista !== "nueva") vista("nueva");
-        ponerCaptura(x.captura);
+        ponerCaptura(x.captura, (x.captura || {}).avisos_excel);
         F.borradorId = x.id;
         F.recurrenteId = recurrente ? x.id : null;
         estadoCaptura(recurrente ? "Recurrente «" + x.nombre + "»: revísala y timbra; la próxima fecha se calcula sola." : "Prefactura «" + x.nombre + "» abierta.");
@@ -1603,7 +1603,7 @@
     function pintarBorradores() {
         $("lista-borradores").innerHTML = F.borradores.length ? F.borradores.map(function (x) {
             var marca = (x.timbrada_en ? '<span class="fa-chip-mini fa-chip-mini--timbrada" title="' + esc(x.expira_en ? "Se borra sola el " + fechaCorta(x.expira_en + "Z") : "Se conserva") + '">Timbrada ' + esc(x.folio_timbrado || "") + "</span>" : "") +
-                (x.origen === "excel" && !x.timbrada_en ? '<span class="fa-chip-mini fa-chip-mini--excel">Excel</span>' : "");
+                (x.origen === "excel" && !x.timbrada_en ? ((x.captura && x.captura.avisos_excel || []).length ? '<span class="fa-chip-mini fa-chip-mini--corregir">Por corregir</span>' : '<span class="fa-chip-mini fa-chip-mini--excel">Excel</span>') : "");
             return '<div class="fa-item' + (x.timbrada_en ? " fa-item--timbrada" : "") + '" data-id="' + esc(x.id) + '"><div class="fa-item__txt"><b>' + esc(x.nombre) + marca + "</b><small>" +
                 esc((x.tipo === "E" ? "Nota de crédito · " : "") + x.receptor + " · " + (x.timbrada_en ? "timbrada el " + fechaCorta(x.timbrada_en + "Z") + (x.expira_en ? " · se borra el " + fechaCorta(x.expira_en + "Z") : "") : fechaCorta(x.actualizado_en + "Z"))) + "</small></div>" +
                 (x.total != null ? '<span class="fa-item__monto">' + dinero(x.total) + "</span>" : "") +
@@ -1726,17 +1726,19 @@
             $("xm-resumen").innerHTML = "<b>" + r.facturas.length + " factura" + (r.facturas.length === 1 ? "" : "s") + " en el archivo:</b> " + buenas.length + " lista" + (buenas.length === 1 ? "" : "s") +
                 " (" + dinero(total) + ")" + (r.facturas.length - buenas.length ? " y " + (r.facturas.length - buenas.length) + " con algo que corregir en el Excel." : ".") +
                 (altas.length ? '<label class="fa-interruptor fa-conf-pref" style="margin-top:10px;display:flex"><input type="checkbox" id="xm-guardar-altas" checked> Guardar en tu catálogo y en sus clientes: ' + esc(altas.join(" · ")) + "</label>" : "") +
+                (r.facturas.length - buenas.length ? '<label class="fa-interruptor fa-conf-pref" style="margin-top:10px;display:flex"><input type="checkbox" id="xm-con-errores" checked> Guardar también ' +
+                    (r.facturas.length - buenas.length === 1 ? "la que tiene errores como prefactura" : "las " + (r.facturas.length - buenas.length) + " con errores como prefacturas") + " «por corregir» (con lo que sí entró y los renglones a revisar), para terminarlas aquí en la web</label>" : "") +
                 (r.errores_catalogo.length ? '<ul class="fa-xe-lista fa-xe-mal">' + r.errores_catalogo.map(function (x) { return "<li>" + esc(x) + "</li>"; }).join("") + "</ul>" : "");
             $("xm-filas").innerHTML = r.facturas.map(function (f) {
                 var fecha = f.captura.fecha ? fechaCorta(f.captura.fecha + ":00") + " " + f.captura.fecha.slice(11, 16) : "Al timbrar";
                 return '<tr data-xm="' + esc(f.clave) + '" class="' + (f.errores.length ? "fa-fila-mal" : "") + '"><td><b>' + esc(f.clave) + "</b></td><td>" + esc(f.cliente.nombre || "—") + "<small>" + esc(f.cliente.rfc || "") + "</small></td>" +
                     "<td>" + esc(fecha) + (f.vence ? "<small>timbrar antes del " + esc(fechaCorta(f.vence + ":00") + " " + f.vence.slice(11, 16)) + "</small>" : "") + "</td>" +
-                    '<td class="fa-num">' + f.conceptos + '</td><td class="fa-num">' + (f.total != null ? dinero(f.total) : "—") + "</td><td data-estado>" +
+                    '<td class="fa-num">' + f.conceptos + '</td><td class="fa-num">' + (f.total != null ? dinero(f.total) : "—") + (f.nota ? "<small>" + esc(f.nota) + "</small>" : "") + "</td><td data-estado>" +
                     (f.errores.length ? '<span class="fa-estado-mal">' + f.errores.map(esc).join("<br>") + "</span>" : '<span class="fa-estado-ok">✓ Lista</span>') + "</td></tr>";
             }).join("");
             $("xm-tabla").hidden = false;
-            $("btn-xm-ok").disabled = !buenas.length; $("btn-xm-timbrar").disabled = !buenas.length;
-            $("btn-xm-ok").textContent = buenas.length ? "Solo guardar como prefactura" + (buenas.length === 1 ? "" : "s") : "Guardar como prefacturas";
+            $("btn-xm-ok").disabled = !r.facturas.length; $("btn-xm-timbrar").disabled = !buenas.length;
+            $("btn-xm-ok").textContent = buenas.length ? "Solo guardar como prefactura" + (buenas.length === 1 ? "" : "s") : "Guardar como prefacturas por corregir";
             $("btn-xm-timbrar").textContent = buenas.length ? "Timbrar " + buenas.length + " factura" + (buenas.length === 1 ? "" : "s") : "Timbrar";
         } catch (e) { $("xm-resumen").hidden = true; $("xm-error").textContent = e.message; $("xm-error").hidden = false; }
     }
@@ -1775,20 +1777,35 @@
                 if (celda) celda.innerHTML = '<span class="fa-estado-mal">' + esc(e.message) + "<br><b>Quedó como prefactura.</b></span>";
             }
         }
+        var corregir = 0;
+        try { corregir = await guardarPorCorregir(); } catch (e) { aviso(e.message, "error"); }
         F.xmCorriendo = false;
         bT.textContent = "Listo"; $("dlg-masiva").querySelector("[data-cerrar]").textContent = "Cerrar";
-        $("xm-resumen").innerHTML = "<b>Listo:</b> " + bien + " timbrada" + (bien === 1 ? "" : "s") + (mal ? " y " + mal + " con error (quedaron como prefactura)." : ".") + " Ya están en Emitidas.";
+        $("xm-resumen").innerHTML = "<b>Listo:</b> " + bien + " timbrada" + (bien === 1 ? "" : "s") + (mal ? " y " + mal + " con error al timbrar (quedaron como prefactura)." : ".") +
+            (corregir ? " " + corregir + " quedaron en Prefacturas «por corregir»." : "") + " Las timbradas ya están en Emitidas.";
         cargarEmitidas(); cargarBorradores(); cargarRecurrentes();
         if (F.cfg.produccion) json("/api/facturacion/config").then(function (c) { F.cfg.empresas = c.empresas; F.emisor = c.empresas.filter(function (x) { return x.rfc === F.emisor.rfc; })[0] || F.emisor; pintarEmisor(); }).catch(function () {});
     }
 
+    function porCorregir() {
+        if (!$("xm-con-errores") || !$("xm-con-errores").checked) return [];
+        return (F.xm || []).filter(function (f) { return f.errores.length && f.errores[0] !== "timbrada" && !f.yaGuardada; });
+    }
+
+    async function guardarPorCorregir() {
+        var malas = porCorregir();
+        if (!malas.length) return 0;
+        await enviar("/api/facturacion/excel/masiva/guardar", "POST", { rfc: F.emisor.rfc, facturas: malas.map(function (f) { f.yaGuardada = true; return { clave: f.clave, captura: f.captura, total: null, errores: f.errores }; }) });
+        return malas.length;
+    }
+
     async function guardarMasiva() {
-        var buenas = (F.xm || []).filter(function (f) { return !f.errores.length; });
+        var buenas = (F.xm || []).filter(function (f) { return !f.errores.length; }).concat(porCorregir());
         if (!buenas.length) return;
         var b = $("btn-xm-ok"); b.disabled = true; b.textContent = "Guardando…";
         try {
             await guardarAltasExcel();
-            var r = await enviar("/api/facturacion/excel/masiva/guardar", "POST", { rfc: F.emisor.rfc, facturas: buenas.map(function (f) { return { clave: f.clave, captura: f.captura, total: f.total }; }) });
+            var r = await enviar("/api/facturacion/excel/masiva/guardar", "POST", { rfc: F.emisor.rfc, facturas: buenas.map(function (f) { return { clave: f.clave, captura: f.captura, total: f.total, errores: f.errores }; }) });
             $("dlg-masiva").close();
             await cargarBorradores(); pintarBorradores();
             if (!$("dlg-borradores").open) $("dlg-borradores").showModal();
@@ -2087,6 +2104,7 @@
         $("conceptos").addEventListener("input", function (ev) {
             var campo = ev.target.closest("[data-c]"); if (!campo) return;
             var i = +campo.closest("[data-i]").dataset.i, c = F.conceptos[i], k = campo.dataset.c;
+            if (c.pendiente) { c.pendiente = false; var tr = document.querySelector('.fa-conc__fila[data-i="' + i + '"]'); if (tr) tr.classList.remove("fa-conc--pendiente"); }
             if (k === "modo") { c.modo = campo.checked ? "final" : "unitario"; if (c.modo === "final" && !c.final) c.final = String(totalConcepto(c).total || ""); if (c.modo !== "final") { c.seis = false; c.difFinal = null; } aplicarFinal(c); pintarConceptos(); return; }
             if (k === "impuesto") { if (campo.value === "otro") { c.abierto = true; } else ponerImpuesto(c, campo.value); aplicarFinal(c); pintarConceptos(); return; }
             c[k] = campo.value;
