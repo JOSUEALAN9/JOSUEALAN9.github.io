@@ -404,3 +404,22 @@ b.fa-mal, small.fa-mal { color: #dc2626; }
     .fa-dialogo__cuerpo { flex: 1; overflow: auto; }
     .fa-dialogo__pie { border-top: 1px solid #eef0f3; }
 }
+
+/* ---------- Excel: conceptos y facturación masiva ---------- */
+.fa-dlg-cabeza { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.fa-pasos-excel { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 8px; font-size: 14px; color: #334155; line-height: 1.5; }
+.fa-pasos-excel .fa-link { margin-left: 6px; }
+.fa-zona { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; border: 2px dashed #c7d2fe; border-radius: 16px; padding: 30px 16px; background: #fafaff; cursor: pointer; text-align: center; }
+.fa-zona b { font-size: 15px; color: #312e81; }
+.fa-zona span { font-size: 13px; color: #64748b; }
+.fa-zona:hover, .fa-zona--sobre { border-color: #6366f1; background: #eef2ff; }
+.fa-xe-lista { margin: 6px 0 0; padding-left: 18px; font-size: 13px; line-height: 1.55; max-height: 180px; overflow: auto; }
+.fa-xe-ok { font-size: 14px; font-weight: 700; color: #047857; }
+.fa-xe-aviso { color: #92400e; } .fa-xe-mal { color: #b91c1c; }
+.fa-estado-ok { color: #047857; font-weight: 700; white-space: nowrap; }
+.fa-estado-mal { color: #b91c1c; font-size: 12.5px; }
+tr.fa-fila-mal td { background: #fef2f2; }
+.fa-conf-pref { margin-top: 4px; padding: 12px 14px; border-radius: 12px; background: #f8fafc; border: 1px solid #e5e7eb; font-size: 13.5px; }
+.fa-chip-mini { display: inline-block; font-size: 10.5px; font-weight: 800; border-radius: 999px; padding: 1px 8px; margin-left: 6px; vertical-align: middle; }
+.fa-chip-mini--timbrada { background: #dcfce7; color: #166534; } .fa-chip-mini--excel { background: #e0e7ff; color: #3730a3; }
+.fa-item--timbrada { opacity: .78; }

@@ -5,14 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Facturar | Fiscontable</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611040100">
-    <link rel="stylesheet" href="/herramientas/facturar/facturar.css?v=202611040100">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611040200">
+    <link rel="stylesheet" href="/herramientas/facturar/facturar.css?v=202611040200">
 </head>
 <body class="min-h-screen flex flex-col">
 
 <div id="app-header" data-modulo="facturar" data-titulo="Facturar" data-migas="Herramientas|/herramientas/"></div>
-<script src="/assets/js/nucleo.js?v=202611040100"></script>
-<script src="/assets/js/barra.js?v=202611040100"></script>
+<script src="/assets/js/nucleo.js?v=202611040200"></script>
+<script src="/assets/js/barra.js?v=202611040200"></script>
 
 <main class="flex-grow w-full mod-pagina fa-pagina">
     <div class="mod-cabeza">
@@ -180,6 +180,7 @@
                         <div class="fa-seccion__cabeza">
                             <h3>Conceptos</h3>
                             <div class="fa-fila-links">
+                                <button type="button" id="btn-conc-excel" class="fa-link" title="Sube los conceptos desde la plantilla de Excel de esta empresa">⬆ Desde Excel</button>
                                 <label class="fa-link fa-subir" title="Lee los conceptos de un XML y los agrega a esta factura">⬆ Importar de XML<input type="file" id="conc-xml" accept=".xml,.zip" multiple hidden></label>
                                 <button type="button" id="btn-catalogo" class="fa-link" title="Catálogo de productos de esta empresa">Catálogo</button>
                             </div>
@@ -318,6 +319,19 @@
                 <div class="fa-acciones"><button type="button" id="btn-guardar-config" class="fa-btn fa-btn--principal">Guardar</button><span id="msj-config" class="fa-nota"></span></div>
             </div>
 
+            <div class="fa-caja" data-subpanel="emisor">
+                <div class="fa-caja__cabeza"><h2>Prefacturas</h2></div>
+                <div class="fa-rejilla">
+                    <label class="fa-campo fa-c3"><span>Al timbrar una prefactura</span>
+                        <select id="c-pref-dias">
+                            <option value="0">Borrarla</option><option value="1">Conservarla 1 día</option><option value="3">Conservarla 3 días</option>
+                            <option value="7">Conservarla 7 días</option><option value="15">Conservarla 15 días</option><option value="30">Conservarla 30 días</option>
+                            <option value="-1">Conservarla siempre</option>
+                        </select></label>
+                    <div class="fa-campo fa-c3"><span>&nbsp;</span><p class="fa-nota" id="msj-pref">Al timbrar te lo pregunta con esto ya marcado. Las recurrentes nunca se borran.</p></div>
+                </div>
+            </div>
+
             <div class="fa-caja" data-subpanel="logo" hidden>
                 <div class="fa-caja__cabeza"><h2>Logo en el PDF</h2></div>
                 <div class="fa-logo" style="margin-top:0;padding-top:0;border-top:0">
@@ -427,6 +441,7 @@
         <h2 id="conf-titulo">¿Timbrar esta factura?</h2>
         <div id="conf-resumen" class="fa-resumen"></div>
         <p id="conf-nota" class="fa-nota"></p>
+        <label class="fa-interruptor fa-conf-pref" id="conf-pref" hidden><input type="checkbox" id="conf-pref-chk"> <span id="conf-pref-txt"></span></label>
     </div>
     <div class="fa-dialogo__pie">
         <button type="button" data-cerrar class="fa-btn fa-btn--suave">Revisar otra vez</button>
@@ -551,11 +566,53 @@
     </div>
 </dialog>
 
+<!-- Conceptos desde Excel -->
+<dialog id="dlg-excel" class="fa-dialogo fa-dialogo--ancho">
+    <div class="fa-dialogo__cuerpo">
+        <h2>Conceptos desde Excel</h2>
+        <ol class="fa-pasos-excel">
+            <li><b>Descarga la plantilla de esta empresa.</b> Trae tu catálogo de productos y los impuestos en listas desplegables.
+                <button type="button" id="btn-xe-plantilla" class="fa-link">Descargar plantilla (.xlsx)</button></li>
+            <li><b>Llénala y súbela.</b> También sirve la de Contalink.</li>
+        </ol>
+        <label class="fa-zona" id="xe-zona"><input type="file" id="xe-archivo" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden>
+            <b>Arrastra tu Excel aquí</b><span>o haz clic para elegirlo</span></label>
+        <div id="xe-resultado" hidden></div>
+    </div>
+    <div class="fa-dialogo__pie">
+        <button type="button" data-cerrar class="fa-btn fa-btn--suave">Cancelar</button>
+        <button type="button" id="btn-xe-ok" class="fa-btn fa-btn--principal" disabled>Agregar conceptos</button>
+    </div>
+</dialog>
+
+<!-- Facturación masiva desde Excel → prefacturas -->
+<dialog id="dlg-masiva" class="fa-dialogo fa-dialogo--grande">
+    <div class="fa-dialogo__cuerpo">
+        <h2>Facturación masiva desde Excel</h2>
+        <ol class="fa-pasos-excel">
+            <li><b>Descarga la plantilla de esta empresa.</b> Trae sus clientes, su catálogo de productos y los catálogos del SAT en listas.
+                <button type="button" id="btn-xm-plantilla" class="fa-link">Descargar plantilla (.xlsx)</button></li>
+            <li><b>Un renglón por concepto.</b> La columna «Factura» junta los de cada factura; los datos del cliente van en su primer renglón.</li>
+            <li><b>Súbela:</b> se revisa cada factura con las mismas reglas que al timbrar y las que estén bien quedan como prefacturas para que las revises y timbres.</li>
+        </ol>
+        <label class="fa-zona" id="xm-zona"><input type="file" id="xm-archivo" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden>
+            <b>Arrastra tu Excel aquí</b><span>o haz clic para elegirlo</span></label>
+        <p id="xm-resumen" class="fa-nota" hidden></p>
+        <div class="fa-tabla-caja fa-im-caja" id="xm-tabla" hidden><table class="fa-tabla"><thead><tr><th>Factura</th><th>Cliente</th><th class="fa-num">Conceptos</th><th class="fa-num">Total</th><th>Revisión</th></tr></thead><tbody id="xm-filas"></tbody></table></div>
+        <p id="xm-error" class="fa-error" hidden></p>
+    </div>
+    <div class="fa-dialogo__pie">
+        <button type="button" data-cerrar class="fa-btn fa-btn--suave">Cancelar</button>
+        <button type="button" id="btn-xm-ok" class="fa-btn fa-btn--principal" disabled>Guardar como prefacturas</button>
+    </div>
+</dialog>
+
 <!-- Prefacturas -->
 <dialog id="dlg-borradores" class="fa-dialogo fa-dialogo--ancho">
     <div class="fa-dialogo__cuerpo">
-        <h2>Prefacturas de esta empresa</h2>
-        <p class="fa-nota">Facturas a medio hacer o que se repiten (igualas, rentas…). Ábrela, revisa y timbra; la prefactura se queda para la próxima.</p>
+        <div class="fa-dlg-cabeza"><h2>Prefacturas de esta empresa</h2>
+            <button type="button" id="btn-masiva" class="fa-btn fa-btn--suave fa-btn--chico" title="Varias facturas a la vez desde Excel">⬆ Facturación masiva (Excel)</button></div>
+        <p class="fa-nota">Facturas a medio hacer, que se repiten (igualas, rentas…) o que subiste desde Excel. Ábrela, revisa y timbra. Al timbrarla se conserva los días que elijas en Configuración, por si la quieres reutilizar.</p>
         <div id="lista-borradores" class="fa-lista"></div>
     </div>
     <div class="fa-dialogo__pie"><button type="button" data-cerrar class="fa-btn fa-btn--suave">Cerrar</button></div>
@@ -588,7 +645,7 @@
     </div>
 </dialog>
 
-<script src="/assets/js/comun/importar-clientes.js?v=202611040100"></script>
-<script src="/herramientas/facturar/facturar.js?v=202611040100"></script>
+<script src="/assets/js/comun/importar-clientes.js?v=202611040200"></script>
+<script src="/herramientas/facturar/facturar.js?v=202611040200"></script>
 </body>
 </html>
