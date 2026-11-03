@@ -1734,7 +1734,8 @@
                 return '<tr data-xm="' + esc(f.clave) + '" class="' + (f.errores.length ? "fa-fila-mal" : "") + '"><td><b>' + esc(f.clave) + "</b></td><td>" + esc(f.cliente.nombre || "—") + "<small>" + esc(f.cliente.rfc || "") + "</small></td>" +
                     "<td>" + esc(fecha) + (f.vence ? "<small>timbrar antes del " + esc(fechaCorta(f.vence + ":00") + " " + f.vence.slice(11, 16)) + "</small>" : "") + "</td>" +
                     '<td class="fa-num">' + f.conceptos + '</td><td class="fa-num">' + (f.total != null ? dinero(f.total) : "—") + (f.nota ? "<small>" + esc(f.nota) + "</small>" : "") + "</td><td data-estado>" +
-                    (f.errores.length ? '<span class="fa-estado-mal">' + f.errores.map(esc).join("<br>") + "</span>" : '<span class="fa-estado-ok">✓ Lista</span>') + "</td></tr>";
+                    (f.errores.length ? '<span class="fa-estado-mal">' + f.errores.map(esc).join("<br>") + "</span>" : '<span class="fa-estado-ok">✓ Lista</span>') +
+                    ((f.avisos || []).length ? '<small class="fa-xe-aviso">' + f.avisos.map(esc).join("<br>") + "</small>" : "") + "</td></tr>";
             }).join("");
             $("xm-tabla").hidden = false;
             $("btn-xm-ok").disabled = !r.facturas.length; $("btn-xm-timbrar").disabled = !buenas.length;
