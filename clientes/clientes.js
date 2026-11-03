@@ -925,6 +925,11 @@ async function quitarReceptor(rfc) {
 
 document.addEventListener("click", (e) => {
     if (e.target.closest("#btn-nuevo-receptor")) { abrirFormReceptor(null); return; }
+    if (e.target.closest("#btn-importar-receptores")) {
+        const rfc = rfcEnEdicion, nombre = document.getElementById("editar-titulo").textContent;
+        Fiscontable.importarClientes({ rfc, nombre, alTerminar: () => { const c = { rfc }; if (rfcEnEdicion === rfc) pintarReceptores(c); } });
+        return;
+    }
     if (e.target.closest("#btn-cancelar-receptor")) { document.getElementById("form-receptor").hidden = true; return; }
     if (e.target.closest("#btn-guardar-receptor")) { guardarReceptor(); return; }
     const ed = e.target.closest("[data-rec-editar]");

@@ -1105,3 +1105,62 @@ a.mod-accion { text-decoration: none; }
 .fc-pdf__hoja .fc-pdf__cargando { color: #64748b; }
 .fc-pdf__hoja .fc-pdf__pagina { box-shadow: 0 2px 10px rgba(15, 23, 42, .15); }
 @media (max-width: 640px) { .fc-pdf__titulo { max-width: 100%; flex-basis: 100%; } .fc-pdf__barra { gap: 6px; } }
+
+/* ======================================================================
+   Ventanas emergentes (estándar de todo Fiscontable)
+   Tres tamaños fijos: chica 520 (confirmar, preguntas cortas), mediana 760 (formularios y fichas con pestañas),
+   grande 1080 (tablas e importaciones). Márgenes de 28 px, 18 px entre bloques. En el celular ocupan toda la pantalla.
+   ====================================================================== */
+:root { --modal-chica: 520px; --modal-mediana: 760px; --modal-grande: 1080px; --modal-pad: 28px; --modal-alto: min(720px, calc(100vh - 48px)); }
+dialog.fc-modal { width: min(var(--modal-mediana), calc(100vw - 32px)); max-height: calc(100vh - 48px); border: 0; border-radius: 20px; padding: 0;
+                  box-shadow: var(--sombra-alta); color: var(--texto); background: #fff; overflow: hidden; }
+dialog.fc-modal[open] { display: flex; flex-direction: column; }
+dialog.fc-modal::backdrop { background: rgba(16, 27, 45, .5); backdrop-filter: blur(2px); }
+.fc-modal--chica { width: min(var(--modal-chica), calc(100vw - 32px)) !important; }
+.fc-modal--grande { width: min(var(--modal-grande), calc(100vw - 32px)) !important; }
+.fc-modal--fija { height: var(--modal-alto); }
+.fc-modal__cabeza { display: flex; align-items: flex-start; gap: 14px; padding: 24px var(--modal-pad) 18px; border-bottom: 1px solid var(--linea); flex: none; }
+.fc-modal__cabeza > div { flex: 1; min-width: 0; }
+.fc-modal__cabeza h2 { font-size: 19px; font-weight: 800; line-height: 1.25; color: var(--texto); }
+.fc-modal__cabeza p { font-size: 13.5px; color: var(--texto-tenue); margin-top: 4px; line-height: 1.45; }
+.fc-modal__cerrar { flex: none; width: 36px; height: 36px; border: 0; border-radius: 10px; background: none; color: var(--texto-tenue); font-size: 20px; cursor: pointer; }
+.fc-modal__cerrar:hover { background: var(--papel); color: #dc2626; }
+.fc-modal__cuerpo { padding: 24px var(--modal-pad); overflow: auto; flex: 1; display: flex; flex-direction: column; gap: 18px; }
+.fc-modal__pie { display: flex; align-items: center; justify-content: flex-end; gap: 10px; flex-wrap: wrap; padding: 16px var(--modal-pad) 22px; border-top: 1px solid var(--linea); flex: none; background: #fff; }
+.fc-modal__pie .fc-btn { padding: 10px 18px; font-size: 14px; border-radius: 10px; }
+.fc-modal__pie > :first-child:not(.fc-btn) { margin-right: auto; }
+.fc-modal [hidden] { display: none !important; }
+@media (max-width: 640px) {
+    :root { --modal-pad: 18px; }
+    dialog.fc-modal, .fc-modal--chica, .fc-modal--grande { width: 100vw !important; max-width: 100vw; height: 100dvh; max-height: 100dvh; margin: 0; border-radius: 0; }
+}
+
+/* ---------- importar clientes desde XML (componente común) ---------- */
+.fc-ic-fuentes { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.fc-ic-fuente { display: flex; gap: 12px; align-items: center; text-align: left; border: 1.5px dashed #cbd5e1; border-radius: 14px; padding: 16px; background: #fff; cursor: pointer; font: inherit; color: var(--texto); }
+.fc-ic-fuente:hover { border-color: var(--acento); background: var(--acento-suave); }
+.fc-ic-fuente b { display: block; font-size: 14px; }
+.fc-ic-fuente small { display: block; font-size: 12.5px; color: var(--texto-tenue); margin-top: 2px; }
+.fc-ic-fuente span:first-child { font-size: 22px; flex: none; }
+.fc-ic-resumen { font-size: 13.5px; color: var(--texto); background: var(--papel); border-radius: 12px; padding: 12px 14px; line-height: 1.5; }
+.fc-ic-barra { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.fc-ic-barra input[type=search] { flex: 1 1 220px; font: inherit; font-size: 14px; border: 1px solid #d1d5db; border-radius: 10px; padding: 10px 12px; }
+.fc-ic-filtro { border: 1px solid var(--linea); background: #fff; border-radius: 999px; padding: 6px 12px; font: inherit; font-size: 12.5px; font-weight: 700; color: var(--texto-tenue); cursor: pointer; }
+.fc-ic-filtro[aria-pressed="true"] { background: var(--texto); border-color: var(--texto); color: #fff; }
+.fc-ic-tabla-caja { border: 1px solid var(--linea); border-radius: 14px; overflow: auto; }
+.fc-ic-tabla { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+.fc-ic-tabla th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: var(--texto-tenue); background: var(--papel); padding: 10px 12px; white-space: nowrap; position: sticky; top: 0; z-index: 1; }
+.fc-ic-tabla td { padding: 10px 12px; border-top: 1px solid #f1f5f9; vertical-align: middle; }
+.fc-ic-tabla input:not([type=checkbox]), .fc-ic-tabla select { width: 100%; font: inherit; font-size: 13px; border: 1px solid #e5e7eb; border-radius: 8px; padding: 7px 9px; background: #fff; }
+.fc-ic-tabla td small { display: block; font-family: ui-monospace, monospace; font-size: 11.5px; color: var(--texto-tenue); margin-top: 3px; }
+.fc-ic-tabla .fc-ic-cp { width: 84px; }
+.fc-ic-tabla tr.fc-ic--igual td { color: var(--texto-tenue); }
+.fc-ic-chip { display: inline-block; font-size: 11.5px; font-weight: 700; border-radius: 999px; padding: 3px 9px; white-space: nowrap; }
+.fc-ic-chip--nuevo { background: #dcfce7; color: #166534; } .fc-ic-chip--distinto { background: #fef3c7; color: #92400e; }
+.fc-ic-chip--igual { background: #f1f5f9; color: #64748b; } .fc-ic-chip--falta { background: #fee2e2; color: #991b1b; margin-left: 4px; }
+.fc-ic-error { font-size: 13px; font-weight: 600; color: #991b1b; background: #fef2f2; border: 1px solid #fecaca; border-radius: 10px; padding: 10px 12px; }
+@media (max-width: 640px) { .fc-ic-fuentes { grid-template-columns: 1fr; } }
+.fc-ic-tabla td:nth-child(2) { width: 32%; min-width: 240px; }
+.fc-ic-tabla td:nth-child(3) { width: 96px; min-width: 96px; }
+.fc-ic-tabla td:nth-child(4), .fc-ic-tabla td:nth-child(5) { width: 19%; }
+.fc-ic-tabla td:nth-child(1), .fc-ic-tabla th:nth-child(1) { width: 1%; }

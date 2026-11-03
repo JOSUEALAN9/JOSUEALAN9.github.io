@@ -290,7 +290,7 @@
 
     function conceptoVacio() {
         return { cantidad: 1, clave_unidad: "E48", clave_prod: "01010101", descripcion: "", valor_unitario: "", descuento: "", iva: "16", objeto_imp: "02",
-                 ret_isr: "", ret_iva: "", no_identificacion: "", cuenta_predial: "", modo: "unitario", final: "", abierto: false, producto_id: null };
+                 ret_isr: "", ret_iva: "", no_identificacion: "", cuenta_predial: "", modo: "unitario", final: "", abierto: false, producto_id: null, seis: false };
     }
 
     function nuevaFactura() {
@@ -356,9 +356,13 @@
         if (g.periodicidad) $("g-periodicidad").value = g.periodicidad;
         if (g.meses) $("g-meses").value = g.meses;
         if (g.anio) $("g-anio").value = g.anio;
-        F.conceptos = (cap.conceptos || []).map(function (c) { return Object.assign(conceptoVacio(), c, { descuento: c.descuento || "" }); });
+        F.conceptos = (cap.conceptos || []).map(function (c) { return Object.assign(conceptoVacio(), c, { descuento: c.descuento || "", seis: !!c.seis_decimales }); });
         if (!F.conceptos.length) F.conceptos = [conceptoVacio()];
 
+        var claveR = (r.rfc || "").toUpperCase() === "XEXX010101000" ? "XEXX010101000:" + String(r.num_reg_id || "").replace(/[^A-Za-z0-9]/g, "").toUpperCase() : (r.rfc || "").toUpperCase();
+        var yaGuardado = (F.receptores || []).filter(function (x) { return (x.clave || x.rfc) === claveR; })[0];
+        F.clienteGuardado = yaGuardado ? { nombre: yaGuardado.nombre || "", cp: yaGuardado.cp || "", regimen: yaGuardado.regimen || "" } : null;
+        F.clienteNuevo = false; $("r-actualizar").checked = false;
         verMoneda(); verFecha(); verGlobal(); verExtranjero(); pintarConceptos(); pintarRelaciones(); verRelaciones(); pintarCliente();
         verFecha();
         $("t-error").hidden = true;
@@ -406,49 +410,115 @@
         if (c.objeto_imp !== "02") return { t: 0, ri: 0, rs: 0 };
         return { t: { "16": 0.16, "8": 0.08 }[c.iva] || 0, ri: { "10.6667": 0.106667, "4": 0.04, "6": 0.06, "16": 0.16 }[c.ret_iva] || 0, rs: { "10": 0.10, "1.25": 0.0125 }[c.ret_isr] || 0 };
     }
-    /* El total de un concepto con las mismas cuentas que el servidor: importe y cada impuesto redondeados a centavos */
-    function totalConcepto(c, unitario) {
-        var importe = r2(num(c.cantidad) * num(unitario == null ? c.valor_unitario : unitario)), d = r2(num(c.descuento)), base = r2(importe - d), x = tasas(c);
-        return { importe: importe, base: base, iva: r2(base * x.t), ret: r2(base * x.ri) + r2(base * x.rs), total: r2(importe - d + r2(base * x.t) - r2(base * x.ri) - r2(base * x.rs)) };
+    /* ---------- cuentas exactas, iguales a las del servidor (enteros en millonésimas, sin errores de punto flotante) ----------
+       Concepto normal: importe, base e impuestos al centavo. Concepto con «seis» (precio final que no cuadra al centavo):
+       hasta 6 decimales, como permite el Anexo 20. El resumen (subtotal, descuento, impuestos por tasa y total) va al centavo. */
+    var MIL = 1000000n;
+    function aMicro(v) {
+        var s = String(v == null ? "" : v).replace(/[,\s$]/g, "");
+        if (!s || isNaN(+s)) return 0n;
+        if (/e/i.test(s)) s = (+s).toFixed(8);
+        var neg = s.charAt(0) === "-"; if (neg) s = s.slice(1);
+        var p = s.split("."), fr = (p[1] || "") + "0000000";
+        var x = BigInt(p[0] || "0") * MIL + BigInt(fr.slice(0, 6)) + (+fr.charAt(6) >= 5 ? 1n : 0n);
+        return neg ? -x : x;
     }
-    /* Precio final → unitario: busca el importe al centavo que da exactamente el total y un unitario de hasta 6 decimales
-       que, multiplicado por la cantidad, dé ese importe. Si no hay forma exacta, el más cercano y la diferencia. */
-    function resolverUnitario(c, objetivo) {
-        var q = num(c.cantidad) || 1, d = r2(num(c.descuento)), x = tasas(c), k = 1 + x.t - x.ri - x.rs;
+    function porRed(a, b, dec) {          // a·b (millonésimas) redondeado (mitad hacia arriba) a 2 o 6 decimales
+        var u = dec === 2 ? 10000n * MIL : MIL, p = a * b;
+        return (p + u / 2n) / u * (u / MIL);
+    }
+    function red2(x) { return (x + 5000n) / 10000n * 10000n; }
+    function deMicro(x) { return Number(x) / 1e6; }
+    var TASA_IVA = { "16": 160000n, "8": 80000n, "0": 0n }, TASA_RIVA = { "10.6667": 106667n, "4": 40000n, "6": 60000n, "16": 160000n }, TASA_RISR = { "10": 100000n, "1.25": 12500n };
+    function cuentasConcepto(c, unitario) {
+        var dec = c.seis ? 6 : 2;
+        var imp = porRed(aMicro(c.cantidad), aMicro(unitario == null ? c.valor_unitario : unitario), dec);
+        var ds = dec === 2 ? red2(aMicro(c.descuento)) : aMicro(c.descuento);
+        if (ds > imp) ds = imp;
+        var base = imp - ds, obj = c.objeto_imp === "02";
+        var tasa = obj ? TASA_IVA[c.iva] : undefined;
+        return { imp: imp, ds: ds, base: base, grupoIva: tasa === undefined ? null : c.iva,
+                 iva: tasa ? porRed(base, tasa, dec) : 0n, riva: obj && TASA_RIVA[c.ret_iva] ? porRed(base, TASA_RIVA[c.ret_iva], dec) : 0n,
+                 risr: obj && TASA_RISR[c.ret_isr] ? porRed(base, TASA_RISR[c.ret_isr], dec) : 0n };
+    }
+    function totalesDe(lista) {
+        var sub = 0n, ds = 0n, ivas = {}, riva = 0n, risr = 0n;
+        lista.forEach(function (c) {
+            var x = c._cuentas || cuentasConcepto(c);
+            sub += x.imp; ds += x.ds; riva += x.riva; risr += x.risr;
+            if (x.grupoIva) ivas[x.grupoIva] = (ivas[x.grupoIva] || 0n) + x.iva;
+        });
+        var iva = Object.keys(ivas).reduce(function (a, k) { return a + red2(ivas[k]); }, 0n), ret = red2(riva) + red2(risr);
+        sub = red2(sub); ds = red2(ds);
+        return { importe: deMicro(sub), descuento: deMicro(ds), base: deMicro(sub - ds), iva: deMicro(iva), ret: deMicro(ret), total: deMicro(sub - ds + iva - ret) };
+    }
+    /* El total de un solo concepto (como si fuera la única línea de la factura) */
+    function totalConcepto(c, unitario) {
+        var x = cuentasConcepto(c, unitario), t = totalesDe([{ _cuentas: x }]);
+        t.importeExacto = deMicro(x.imp);
+        return t;
+    }
+    /* Precio final → unitario. Primero busca un importe al centavo (la factura queda «normal»); si con centavos no existe
+       ese total (el IVA redondeado se salta algunos), usa hasta 6 decimales en ese concepto. evaluar(c) da el total que
+       se quiere cuadrar (por defecto el del concepto solo); resto es lo que le toca a este concepto, para el arranque. */
+    function resolverUnitario(c, objetivo, evaluar, resto) {
+        evaluar = evaluar || function (cc) { return totalConcepto(cc).total; };
         objetivo = r2(objetivo);
-        var est = r2(objetivo / k + d), mejor = null;
-        for (var paso = 0; paso <= 60; paso++) {
-            for (var signo = 1; signo >= -1; signo -= 2) {
-                var imp = r2(est + signo * paso * 0.01);
-                if (imp <= 0) continue;
-                for (var aj = 0; aj <= 40; aj++) {
-                    for (var s2 = 1; s2 >= -1; s2 -= 2) {
-                        var u = Math.round((imp / q + s2 * aj * 0.000001) * 1e6) / 1e6;
-                        if (u <= 0 || r2(q * u) !== imp) continue;
-                        var t = totalConcepto(c, u).total, dif = r2(t - objetivo);
-                        if (!mejor || Math.abs(dif) < Math.abs(mejor.dif)) mejor = { unitario: u, total: t, dif: dif };
-                        if (dif === 0) return mejor;
-                        break;
-                    }
-                }
-                if (paso === 0) break;
+        var q = num(c.cantidad) || 1, x = tasas(c), k = 1 + x.t - x.ri - x.rs;
+        var est = (resto == null ? objetivo : resto) / k + num(c.descuento), mejor = null;
+        function u6(imp) { return Math.round(imp / q * 1e6) / 1e6; }
+        function anota(u, seis) {
+            var t = evaluar(Object.assign({}, c, { valor_unitario: String(u), seis: seis })), dif = r2(t - objetivo);
+            if (!mejor || Math.abs(dif) < Math.abs(mejor.dif) - 1e-9) mejor = { unitario: u, seis: seis, dif: dif, total: t };
+            return { exacto: dif === 0, t: t };
+        }
+        for (var p = 0; p <= 80; p++) {
+            for (var sg = 1; sg >= -1; sg -= 2) {
+                var imp = r2(est + sg * p * 0.01);
+                if (imp > 0 && anota(u6(imp), false).exacto) return mejor;
+                if (!p) break;
             }
         }
-        return mejor || { unitario: r2(objetivo / k / q), total: 0, dif: objetivo };
+        var centro = r2(est);
+        for (var a = 0; a <= 6; a++) {
+            for (var sg2 = 1; sg2 >= -1; sg2 -= 2) {
+                var previo = null;
+                for (var m = -5000; m < 5000; m += 25) {
+                    var imp6 = Math.round((centro + sg2 * a * 0.01) * 1e6 + m) / 1e6;
+                    if (imp6 <= 0) continue;
+                    var r = anota(u6(imp6), true);
+                    if (r.exacto) return mejor;
+                    if (previo !== null && (previo - objetivo) * (r.t - objetivo) < 0) {    // brincó el objetivo: revisa de una en una
+                        for (var m2 = m - 24; m2 < m; m2++) if (anota(u6(Math.round((centro + sg2 * a * 0.01) * 1e6 + m2) / 1e6), true).exacto) return mejor;
+                    }
+                    previo = r.t;
+                }
+                if (!a) break;
+            }
+        }
+        return mejor;
     }
     function aplicarFinal(c) {
         if (c.modo !== "final") return;
         var objetivo = num(c.final);
-        if (!(objetivo > 0)) { c.valor_unitario = ""; c.difFinal = null; return; }
+        if (!(objetivo > 0)) { c.valor_unitario = ""; c.difFinal = null; c.seis = false; return; }
         var r = resolverUnitario(c, objetivo);
-        c.valor_unitario = String(r.unitario); c.difFinal = r.dif;
+        c.valor_unitario = String(r.unitario); c.seis = r.seis; c.difFinal = r.dif;
+    }
+    function dineroExacto(v) {     // con los decimales que lleve (2 a 6)
+        var t = Math.abs(v).toFixed(6).replace(/0+$/, ""), p = t.split(".");
+        return (v < 0 ? "-$" : "$") + Number(p[0]).toLocaleString("es-MX") + "." + (p[1] || "").padEnd(2, "0");
+    }
+    function subPrecio(c) {
+        return (num(c.valor_unitario) ? "unit. " + esc(c.valor_unitario) : "precio final") + (c.seis ? ' · <span class="fa-seis" title="Para cuadrar al centavo, este concepto lleva hasta 6 decimales (lo permite el SAT); los totales van al centavo.">6 dec.</span>' : "") +
+            (c.difFinal ? ' <b class="fa-mal">dif ' + dinero(c.difFinal) + "</b>" : "");
     }
 
     function filaConcepto(c, i) {
         var cat = F.cfg.catalogos, imp = impuestoDe(c), t = totalConcepto(c);
         var precio = c.modo === "final"
             ? '<input data-c="final" inputmode="decimal" class="fa-num fa-conc__final" value="' + esc(c.final) + '" placeholder="Total" title="Precio final: lo que paga el cliente">' +
-              '<small class="fa-conc__sub">' + (num(c.valor_unitario) ? "unit. " + esc(c.valor_unitario) : "precio final") + (c.difFinal ? ' <b class="fa-mal">dif ' + dinero(c.difFinal) + "</b>" : "") + "</small>"
+              '<small class="fa-conc__sub">' + subPrecio(c) + "</small>"
             : '<input data-c="valor_unitario" inputmode="decimal" class="fa-num" value="' + esc(c.valor_unitario) + '" placeholder="0.00">';
         var clave = c.clave_prod ? esc(c.clave_prod) + " · " + esc(c.clave_unidad) : "Sin clave";
         var fila = '<tr class="fa-conc__fila" data-i="' + i + '">' +
@@ -458,7 +528,7 @@
             "<td>" + precio + "</td>" +
             '<td><input data-c="descuento" inputmode="decimal" class="fa-num" value="' + esc(c.descuento) + '" placeholder="0.00"></td>' +
             '<td><select data-c="impuesto" title="' + esc(DETALLE_IMP[imp] || IMPUESTOS[imp][0]) + '">' + Object.keys(IMPUESTOS).map(function (k) { return '<option value="' + k + '"' + (k === imp ? " selected" : "") + ">" + esc(IMPUESTOS[k][0]) + "</option>"; }).join("") + "</select></td>" +
-            '<td class="fa-num fa-conc__importe" data-importe>' + dinero(t.importe) + "</td>" +
+            '<td class="fa-num fa-conc__importe" data-importe>' + (c.seis ? dineroExacto(t.importeExacto) : dinero(t.importe)) + "</td>" +
             '<td class="fa-conc__acc"><button type="button" class="fa-mini" data-abrir title="Clave del SAT, unidad, código, predial, precio final">' + (c.abierto ? "▾" : "▸") + "</button>" +
             '<button type="button" class="fa-mini" data-duplicar title="Duplicar">⧉</button>' +
             (F.conceptos.length > 1 ? '<button type="button" class="fa-mini fa-mini--rojo" data-quitar title="Quitar">✕</button>' : "") + "</td></tr>";
@@ -500,14 +570,11 @@
     }
 
     function calcular() {
-        var sub = 0, desc = 0, iva = 0, ret = 0;
         F.conceptos.forEach(function (c, i) {
-            var t = totalConcepto(c);
-            sub += t.importe; desc += r2(num(c.descuento)); iva += t.iva; ret += t.ret;
             var el = document.querySelector('.fa-conc__fila[data-i="' + i + '"] [data-importe]');
-            if (el) el.textContent = dinero(t.importe);
+            if (el) { var t = totalConcepto(c); el.textContent = c.seis ? dineroExacto(t.importeExacto) : dinero(t.importe); }
         });
-        var total = r2(sub - desc + iva - ret);
+        var tt = totalesDe(F.conceptos), sub = tt.importe, desc = tt.descuento, iva = tt.iva, ret = tt.ret, total = tt.total;
         $("t-subtotal").textContent = dinero(sub);
         $("t-descuento").textContent = "-" + dinero(desc);
         $("t-iva").textContent = dinero(iva);
@@ -524,28 +591,28 @@
         return { total: total };
     }
 
-    /* «El total debe ser X»: el último concepto pasa a precio final por lo que falte */
+    /* «El total debe ser X»: el último concepto pasa a precio final y se resuelve contra el total de TODA la factura */
     function cuadrarTotal() {
         var obj = r2(num($("t-objetivo").value));
         if (!(obj > 0) || !F.conceptos.length) return;
-        var ultimo = F.conceptos[F.conceptos.length - 1];
-        var otros = F.conceptos.slice(0, -1).reduce(function (a, c) { return a + totalConcepto(c).total; }, 0);
+        var n = F.conceptos.length - 1, ultimo = F.conceptos[n];
+        var otros = totalesDe(F.conceptos.slice(0, -1)).total;
+        var evaluar = function (cc) { var lista = F.conceptos.slice(); lista[n] = cc; return totalesDe(lista).total; };
+        var r = resolverUnitario(ultimo, obj, evaluar, r2(obj - otros));
         ultimo.modo = "final"; ultimo.final = String(r2(obj - otros));
-        aplicarFinal(ultimo);
-        F.cuadrando = !!ultimo.difFinal;
+        ultimo.valor_unitario = String(r.unitario); ultimo.seis = r.seis; ultimo.difFinal = r.dif;
+        F.cuadrando = !!r.dif;
         pintarConceptos();
         F.cuadrando = false;
-        if (!ultimo.difFinal) return;
-        /* El IVA se redondea al centavo, así que algunos totales no existen: busca los posibles más cercanos */
+        if (!r.dif) return;
         var cerca = [];
         [-1, 1].forEach(function (sg) {
             for (var k = 1; k <= 5; k++) {
-                var prueba = Object.assign({}, ultimo, { final: String(r2(obj - otros + sg * k * 0.01)) });
-                if (!resolverUnitario(prueba, num(prueba.final)).dif) { cerca.push(r2(obj + sg * k * 0.01)); break; }
+                if (!resolverUnitario(ultimo, r2(obj + sg * k * 0.01), evaluar, r2(obj - otros + sg * k * 0.01)).dif) { cerca.push(r2(obj + sg * k * 0.01)); break; }
             }
         });
-        $("t-objetivo-nota").innerHTML = "Con el IVA redondeado al centavo, " + dinero(obj) + " no sale exacto con " + (num(ultimo.cantidad) === 1 ? "este concepto" : "esa cantidad") + ". Lo más cerca: " +
-            cerca.map(function (x) { return '<button type="button" class="fa-link" data-objetivo="' + x + '">' + dinero(x) + "</button>"; }).join(" o ") + ". También puedes cambiar el precio de otro concepto.";
+        $("t-objetivo-nota").innerHTML = dinero(obj) + " no sale exacto con esa cantidad. Lo más cerca: " +
+            cerca.map(function (x) { return '<button type="button" class="fa-link" data-objetivo="' + x + '">' + dinero(x) + "</button>"; }).join(" o ") + ". También puedes dejar la cantidad en 1.";
     }
 
     /* ---------- buscador de claves del SAT (producto o unidad) ---------- */
@@ -745,7 +812,8 @@
                 return { cantidad: c.cantidad, clave_prod: (c.clave_prod || "").trim(), clave_unidad: c.clave_unidad,
                          descripcion: c.descripcion, valor_unitario: c.valor_unitario, descuento: c.descuento || 0,
                          objeto_imp: c.objeto_imp, iva: c.iva, ret_isr: c.ret_isr, ret_iva: c.ret_iva, no_identificacion: c.no_identificacion || "",
-                         cuenta_predial: c.cuenta_predial || "", modo: c.modo, final: c.final, producto_id: c.producto_id || null, unidad: c.unidad || null };
+                         cuenta_predial: c.cuenta_predial || "", modo: c.modo, final: c.final, producto_id: c.producto_id || null, unidad: c.unidad || null,
+                         seis_decimales: !!c.seis };
             })
         };
     }
@@ -1610,7 +1678,7 @@
     async function copiarDeArchivo(archivo) {
         if (!archivo) return;
         try {
-            var cuerpo = new FormData(); cuerpo.append("archivo", archivo);
+            var cuerpo = new FormData(); cuerpo.append("archivo", archivo); cuerpo.append("rfc", F.emisor.rfc);
             var r = await json("/api/facturacion/leer-xml", { method: "POST", body: cuerpo });
             F.borradorId = null;
             ponerCaptura(r.captura, r.avisos);
@@ -1757,6 +1825,10 @@
             if (ev.key === "Escape") abrirSelector(false);
         });
         $("btn-elegir-cliente").addEventListener("click", function () { abrirSelector($("sel-cliente-panel").hidden); });
+        $("btn-importar-clientes").addEventListener("click", function () {
+            abrirSelector(false);
+            Fiscontable.importarClientes({ rfc: F.emisor.rfc, nombre: F.emisor.razon_social || F.emisor.alias, alTerminar: function (n) { cargarReceptores(); if (n) aviso("✓ " + n + " cliente" + (n === 1 ? "" : "s") + " en sus clientes."); } });
+        });
         $("btn-cli-quitar").addEventListener("click", function () { quitarCliente(); F.clienteNuevo = false; pintarCliente(); });
         $("sel-cliente-lista").addEventListener("click", function (ev) {
             var b = ev.target.closest(".fa-opcion"); if (!b) return;
@@ -1857,7 +1929,7 @@
         $("conceptos").addEventListener("input", function (ev) {
             var campo = ev.target.closest("[data-c]"); if (!campo) return;
             var i = +campo.closest("[data-i]").dataset.i, c = F.conceptos[i], k = campo.dataset.c;
-            if (k === "modo") { c.modo = campo.checked ? "final" : "unitario"; if (c.modo === "final" && !c.final) c.final = String(totalConcepto(c).total || ""); aplicarFinal(c); pintarConceptos(); return; }
+            if (k === "modo") { c.modo = campo.checked ? "final" : "unitario"; if (c.modo === "final" && !c.final) c.final = String(totalConcepto(c).total || ""); if (c.modo !== "final") { c.seis = false; c.difFinal = null; } aplicarFinal(c); pintarConceptos(); return; }
             if (k === "impuesto") { if (campo.value === "otro") { c.abierto = true; } else ponerImpuesto(c, campo.value); aplicarFinal(c); pintarConceptos(); return; }
             c[k] = campo.value;
             if (k === "descripcion") { c.producto_id = null; sugerirProductos(campo); }
@@ -1865,7 +1937,7 @@
             if (k === "final" || ((k === "cantidad" || k === "descuento") && c.modo === "final")) {
                 aplicarFinal(c);
                 var sub = campo.closest("tr").querySelector("td:nth-child(3) .fa-conc__sub");
-                if (sub) sub.innerHTML = (num(c.valor_unitario) ? "unit. " + esc(c.valor_unitario) : "precio final") + (c.difFinal ? ' <b class="fa-mal">dif ' + dinero(c.difFinal) + "</b>" : "");
+                if (sub) sub.innerHTML = subPrecio(c);
             }
             if (k === "no_identificacion" || k === "cuenta_predial") refrescarSub(i);
             calcular();

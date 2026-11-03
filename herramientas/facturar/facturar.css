@@ -395,3 +395,4 @@ b.fa-mal, small.fa-mal { color: #dc2626; }
 .fa-im td:nth-child(2) { min-width: 240px; }
 .fa-im select { min-width: 180px; }
 .fa-im--mal td { background: #fef2f2; }
+.fa-seis { display: inline-block; font-size: 10px; font-weight: 800; color: #7c3aed; background: #f3e8ff; border-radius: 6px; padding: 0 5px; cursor: help; }

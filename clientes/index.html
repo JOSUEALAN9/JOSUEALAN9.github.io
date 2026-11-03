@@ -5,14 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mis Clientes | Fiscontable</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611031800">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611032030">
 </head>
 <body class="min-h-screen flex flex-col relative">
 
     <!-- TOP NAV -->
     <div id="app-header" data-modulo="clientes" data-titulo="Mis clientes" data-migas=""></div>
-<script src="/assets/js/nucleo.js?v=202611031800"></script>
-<script src="/assets/js/barra.js?v=202611031800"></script>
+<script src="/assets/js/nucleo.js?v=202611032030"></script>
+<script src="/assets/js/barra.js?v=202611032030"></script>
 
     <!-- ÁREA DE TRABAJO -->
     <main class="flex-grow w-full mod-pagina" style="max-width:1180px">
@@ -311,7 +311,10 @@
                             <h3 class="text-sm font-bold text-slate-800">Sus clientes para facturar</h3>
                             <p class="text-xs text-slate-500 mt-0.5">Los datos fiscales de a quién le factura esta empresa. En Facturar se eligen con buscar; también se guardan solos al timbrar.</p>
                         </div>
-                        <button type="button" id="btn-nuevo-receptor" class="bg-violet-600 hover:bg-violet-500 text-white font-bold py-1.5 px-3 rounded-lg text-xs flex-none">+ Agregar</button>
+                        <div class="flex gap-2 flex-none">
+                            <button type="button" id="btn-importar-receptores" class="border border-violet-200 text-violet-700 hover:bg-violet-50 font-bold py-1.5 px-3 rounded-lg text-xs">Importar de XML</button>
+                            <button type="button" id="btn-nuevo-receptor" class="bg-violet-600 hover:bg-violet-500 text-white font-bold py-1.5 px-3 rounded-lg text-xs">+ Agregar</button>
+                        </div>
                     </div>
                     <div id="form-receptor" class="ficha-caja flex flex-col gap-3" hidden>
                         <div class="flex items-center justify-between gap-2">
@@ -394,7 +397,7 @@
         </div>
     </div>
 
-<script src="/assets/js/comun/leer-cer.js?v=202611031800"></script>
+<script src="/assets/js/comun/leer-cer.js?v=202611032030"></script>
 <style>
     .cli-herr { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 14px; }
     .cli-buscar { flex: 1 1 220px; max-width: 320px; font-size: 14px; border: 1px solid #e5e7eb; border-radius: 10px; padding: 8px 12px; background: #fff; }
@@ -445,6 +448,7 @@
     .alta-opcional summary small { font-weight: 500; color: #64748b; }
     .alta-error { font-size: 13px; font-weight: 600; border-radius: 10px; padding: 10px 12px; background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; }
 </style>
-<script src="/clientes/clientes.js?v=202611031800"></script>
+<script src="/assets/js/comun/importar-clientes.js?v=202611032030"></script>
+<script src="/clientes/clientes.js?v=202611032030"></script>
 </body>
 </html>
