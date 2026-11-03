@@ -9,6 +9,8 @@ let puedeGuardarEfirma = true;   // en la Demo no se guardan e.firmas (lo decide
 let sinConexion = false;
 let conIsn = false;              // el usuario tiene el módulo ISN: se muestran las obligaciones
 let conXml = false;              // tiene Descarga masiva de XML: pestaña "Descarga de XML" en la ficha
+let conFacturar = false;         // tiene Facturar: en Accesos va su sello digital (CSD), régimen y C.P.
+let factCfg = null;              // /api/facturacion/config: catálogos y cómo va cada empresa para facturar
 let xmlAuto = null;              // configuración de la descarga automática (todas sus empresas)
 let obligaciones = {};           // {rfc: {obligacion, zona, completos}}
 
@@ -82,6 +84,7 @@ async function verificarPerfil() {
         soloLectura = perfil.solo_lectura;
         conIsn = (perfil.modulos_permitidos || []).indexOf("isn") !== -1;
         conXml = (perfil.modulos_permitidos || []).indexOf("descarga_xml") !== -1;
+        conFacturar = (perfil.modulos_permitidos || []).indexOf("facturacion") !== -1;
         puedeGuardarEfirma = perfil.puede_guardar_efirma !== false;
 
         const btnAgregar = document.getElementById("btn-agregar-cliente");
@@ -548,6 +551,7 @@ function abrirModalEditar(rfc, ficha) {
     document.getElementById("editar-dato-razon").textContent = cliente.razon_social || cliente.alias;
     document.getElementById("editar-dato-alta").textContent = cliente.creado_en ? new Date(cliente.creado_en + "Z").toLocaleDateString("es-MX", { day: "numeric", month: "long", year: "numeric" }) : "—";
     pintarCiec(cliente);
+    pintarCsd(cliente);
     document.getElementById("editar-cer").value = "";
     document.getElementById("editar-key").value = "";
     document.getElementById("editar-password").value = "";
@@ -568,6 +572,20 @@ document.addEventListener("click", (e) => {
         document.getElementById("efirma-guardada").hidden = true;
         document.getElementById("editar-efirma-form").classList.remove("hidden");
         document.getElementById("editar-cer").focus();
+        return;
+    }
+    if (e.target.closest("#btn-reemplazar-csd")) {
+        document.getElementById("csd-guardado").classList.add("hidden");
+        document.getElementById("csd-form").classList.remove("hidden");
+        document.getElementById("csd-cer").focus();
+        return;
+    }
+    const irFacturar = e.target.closest("#csd-ir-facturar");
+    if (irFacturar && rfcEnEdicion) {
+        // Facturar trabaja con la empresa del selector de arriba: primero se elige esta
+        e.preventDefault();
+        const destino = irFacturar.href;
+        Promise.resolve(Fiscontable.elegirEmpresa && Fiscontable.elegirEmpresa(rfcEnEdicion)).finally(() => { location.href = destino; });
         return;
     }
     if (e.target.closest("#btn-quitar-cliente") && rfcEnEdicion) {
@@ -747,6 +765,104 @@ async function olvidarCiec() {
         pintarCiec(clientesCache.find(c => c.rfc === rfcEnEdicion) || { ciec_guardada: false });
         mensajeCiec(true, "Contraseña olvidada.");
     } catch (e) { mensajeCiec(false, e.message); }
+}
+
+/* Sello digital (CSD), régimen y C.P. para facturar: lo mismo que Facturar › Configuración, a la mano en la ficha */
+async function pintarCsd(cliente) {
+    const caja = document.getElementById("editar-csd");
+    caja.hidden = !conFacturar || !puedeGuardarEfirma;
+    if (caja.hidden) return;
+    ["csd-cer", "csd-key", "csd-pass"].forEach(id => { document.getElementById(id).value = ""; });
+    document.getElementById("editar-mensaje-csd").classList.add("hidden");
+    const badge = document.getElementById("editar-estado-csd");
+    badge.textContent = "Revisando…";
+    badge.className = "text-xs font-bold px-2 py-1 rounded-full flex-none bg-gray-100 text-gray-500";
+    try {
+        if (!factCfg) {
+            const r = await fetch(`${API_URL}/api/facturacion/config`, { credentials: "include" });
+            if (!r.ok) throw new Error(await Fiscontable.leerError(r));
+            factCfg = await r.json();
+        }
+    } catch (e) {
+        badge.textContent = "";
+        mensajeCsd(false, e.message);
+        return;
+    }
+    if (rfcEnEdicion !== cliente.rfc) return;
+    const em = factCfg.empresas.find(x => x.rfc === cliente.rfc) || { csd: null };
+    const regimenes = factCfg.catalogos.regimenes;
+    document.getElementById("csd-regimen").innerHTML = '<option value="">Elige…</option>' + Object.keys(regimenes)
+        .map(k => `<option value="${esc(k)}"${k === em.regimen ? " selected" : ""}>${esc(k + " · " + regimenes[k])}</option>`).join("");
+    document.getElementById("csd-cp").value = em.cp || "";
+    const vencido = em.csd && em.csd.vence && em.csd.vence < new Date().toISOString().slice(0, 10);
+    badge.textContent = !em.csd ? "No guardado" : vencido ? "Vencido" : "Guardado";
+    badge.className = "text-xs font-bold px-2 py-1 rounded-full flex-none " +
+        (!em.csd ? "bg-gray-100 text-gray-500" : vencido ? "bg-red-100 text-red-700" : "bg-violet-100 text-violet-700");
+    document.getElementById("csd-guardado").classList.toggle("hidden", !em.csd);
+    document.getElementById("csd-guardado-texto").textContent = em.csd
+        ? "✓ Certificado " + (em.csd.no || "") + (em.csd.vence ? (vencido ? " · venció el " : " · vence el ") + fechaCorta(em.csd.vence) : "") : "";
+    document.getElementById("csd-form").classList.toggle("hidden", !!em.csd);
+    document.getElementById("btn-quitar-csd").hidden = !em.csd;
+}
+
+function mensajeCsd(ok, texto) {
+    const p = document.getElementById("editar-mensaje-csd");
+    p.textContent = texto;
+    p.className = "text-xs mb-2 font-semibold " + (ok ? "text-emerald-700" : "text-red-600");
+}
+
+function ponerEmisor(nuevo) {
+    if (factCfg) factCfg.empresas = factCfg.empresas.map(x => x.rfc === nuevo.rfc ? nuevo : x);
+}
+
+async function guardarFacturacion() {
+    const rfc = rfcEnEdicion;
+    if (!rfc || !factCfg) return;
+    const em = factCfg.empresas.find(x => x.rfc === rfc) || {};
+    const regimen = document.getElementById("csd-regimen").value, cp = document.getElementById("csd-cp").value.trim();
+    const cer = document.getElementById("csd-cer").files[0], key = document.getElementById("csd-key").files[0];
+    const pass = document.getElementById("csd-pass").value;
+    const conArchivos = !!(cer || key || pass);
+    if (cp && !/^\d{5}$/.test(cp)) { mensajeCsd(false, "El código postal son 5 dígitos (el de su constancia de situación fiscal)."); return; }
+    if (conArchivos && (!cer || !key || !pass)) { mensajeCsd(false, "Para el sello elige el .cer, el .key y escribe su contraseña."); return; }
+    const cambioDatos = (regimen || null) !== (em.regimen || null) || (cp || null) !== (em.cp || null);
+    if (!cambioDatos && !conArchivos) { mensajeCsd(false, "No hay cambios que guardar."); return; }
+    const b = document.getElementById("btn-guardar-csd");
+    b.disabled = true; b.textContent = conArchivos ? "Revisando el sello…" : "Guardando…";
+    try {
+        if (cambioDatos) {
+            const r = await fetch(`${API_URL}/api/facturacion/emisores/${encodeURIComponent(rfc)}`, {
+                method: "PUT", credentials: "include", headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ regimen: regimen || null, cp: cp || null })
+            });
+            if (!r.ok) throw new Error(await Fiscontable.leerError(r));
+            ponerEmisor(await r.json());
+        }
+        if (conArchivos) {
+            const cuerpo = new FormData();
+            cuerpo.append("cer", cer); cuerpo.append("key", key); cuerpo.append("password", pass);
+            const r = await fetch(`${API_URL}/api/facturacion/emisores/${encodeURIComponent(rfc)}/csd`, { method: "POST", credentials: "include", body: cuerpo });
+            if (!r.ok) throw new Error(await Fiscontable.leerError(r));
+            ponerEmisor(await r.json());
+        }
+        await pintarCsd(clientesCache.find(c => c.rfc === rfc) || { rfc: rfc });
+        const ahora = factCfg.empresas.find(x => x.rfc === rfc) || {};
+        mensajeCsd(true, (conArchivos ? "✓ Sello guardado (cifrado)." : "✓ Guardado.") +
+            (ahora.faltan && ahora.faltan.length ? " Para facturar falta: " + ahora.faltan.join(", ") + "." : " Ya puede facturar."));
+    } catch (e) { mensajeCsd(false, e.message); }
+    b.disabled = false; b.textContent = "Guardar";
+}
+
+async function quitarCsd() {
+    const rfc = rfcEnEdicion;
+    if (!rfc || !confirm("¿Quitar el sello digital (CSD) de esta empresa? Ya no podrá facturar hasta que subas otro.")) return;
+    try {
+        const r = await fetch(`${API_URL}/api/facturacion/emisores/${encodeURIComponent(rfc)}/csd`, { method: "DELETE", credentials: "include" });
+        if (!r.ok) throw new Error(await Fiscontable.leerError(r));
+        factCfg = null;                  // se vuelve a pedir para que diga bien lo que falta
+        await pintarCsd(clientesCache.find(c => c.rfc === rfc) || { rfc: rfc });
+        mensajeCsd(true, "Sello quitado.");
+    } catch (e) { mensajeCsd(false, e.message); }
 }
 
 function cerrarModalEditar() {
