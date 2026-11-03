@@ -270,3 +270,6 @@
 .fa-incrustado__cabeza { display: none; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
 .fa-incrustado__cabeza h2 { font-size: 18px; font-weight: 800; color: #0f172a; }
 .fa-incrustado .fa-incrustado__cabeza { display: flex; }
+.fc-dentro .fa-incrustado__cabeza { display: none !important; }
+.fc-dentro .fa-pagina { max-width: none; padding: 14px 18px 24px; }
+.fc-dentro .fa-config--tabs { max-width: 980px; }

@@ -1,8 +1,14 @@
 /* configuracion/ — Configuración general (menú a la izquierda, sección a la derecha) */
-.cf-pagina { flex: 1; width: 100%; max-width: 1280px; margin: 0 auto; padding: 18px 20px 32px; display: grid; grid-template-columns: 260px minmax(0, 1fr); gap: 22px; align-items: start; }
-.cf-menu { position: sticky; top: 78px; min-width: 0; }
-.cf-menu__titulo { font-size: 24px; color: #0f172a; margin: 4px 6px 14px; }
-.cf-buscar { display: flex; align-items: center; gap: 8px; background: #fff; border: 1px solid var(--linea); border-radius: 999px; padding: 8px 14px; color: #64748b; margin-bottom: 14px; }
+/* El menú va pegado a la izquierda, a todo lo alto (como la configuración de Chrome) */
+.cf-pagina { flex: 1; width: 100%; display: grid; grid-template-columns: 272px minmax(0, 1fr); align-items: stretch; transition: grid-template-columns .18s ease; }
+.cf-menu { position: sticky; top: 60px; align-self: start; height: calc(100vh - 60px); overflow-y: auto; min-width: 0; background: #fff;
+           border-right: 1px solid var(--linea); padding: 18px 14px 18px 0; }
+.cf-menu__cabeza { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 0 0 14px 18px; }
+.cf-menu__titulo { font-size: 23px; color: #0f172a; white-space: nowrap; }
+.cf-fijar { flex: none; width: 34px; height: 34px; border-radius: 10px; border: 1px solid var(--linea); background: #fff; color: #475569; display: grid; place-items: center; cursor: pointer; }
+.cf-fijar:hover, .cf-fijar[aria-pressed="true"] { background: #eef2ff; color: #4338ca; border-color: #c7d2fe; }
+.cf-contenido { min-width: 0; padding: 22px 28px 32px; }
+.cf-buscar { display: flex; align-items: center; gap: 8px; background: #f8fafc; border: 1px solid var(--linea); border-radius: 999px; padding: 8px 14px; color: #64748b; margin: 0 0 12px 14px; }
 .cf-buscar:focus-within { border-color: #a5b4fc; box-shadow: 0 0 0 3px #e0e7ff; }
 .cf-buscar input { border: 0; outline: 0; background: none; font: inherit; font-size: 14px; width: 100%; color: #0f172a; }
 .cf-grupo { font-size: 11px; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: .06em; margin: 14px 12px 6px; }
@@ -12,7 +18,6 @@
 .cf-item svg { flex: none; color: currentColor; }
 .cf-vacio { font-size: 13px; color: #94a3b8; padding: 10px 12px; }
 
-.cf-contenido { min-width: 0; }
 .cf-cabeza { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
 .cf-cabeza h2 { font-size: 20px; font-weight: 800; color: #0f172a; }
 .cf-cabeza p { font-size: 13.5px; color: #64748b; margin-top: 2px; }
@@ -48,10 +53,22 @@
 .cf-switch input:checked + span { background: #4f46e5; }
 .cf-switch input:checked + span::after { transform: translateX(16px); }
 .cf-switch input:disabled + span { opacity: .45; }
-.cf-atajos { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
-.cf-atajos button { border: 1px solid var(--linea); background: #fff; border-radius: 999px; padding: 6px 12px; font: inherit; font-size: 12.5px; font-weight: 700; color: #475569; cursor: pointer; }
-.cf-atajos button:hover, .cf-atajos .cf-atajo--activo { background: #eef2ff; border-color: #c7d2fe; color: #312e81; }
-.cf-marco { width: 100%; height: calc(100vh - 220px); min-height: 520px; border: 1px solid var(--linea); border-radius: 16px; background: var(--papel); }
+.cf-marco { display: block; width: 100%; height: calc(100vh - 170px); min-height: 560px; border: 1px solid var(--linea); border-radius: 16px; background: var(--papel); }
+.cf-con-marco .cf-contenido { padding: 16px 20px 18px; }
+.cf-con-marco .cf-cabeza { margin-bottom: 10px; }
+
+/* Menú compacto: solo íconos; al pasar el cursor se abre encima sin mover el contenido */
+.cf-compacto .cf-pagina { grid-template-columns: 68px minmax(0, 1fr); }
+.cf-compacto .cf-menu { padding: 14px 8px; overflow: visible; z-index: 20; }
+.cf-compacto .cf-menu .cf-menu__titulo, .cf-compacto .cf-menu .cf-buscar, .cf-compacto .cf-menu .cf-grupo, .cf-compacto .cf-menu .cf-item span { display: none; }
+.cf-compacto .cf-menu__cabeza { margin: 0 0 12px; justify-content: center; }
+.cf-compacto .cf-item { justify-content: center; padding: 10px; border-radius: 12px; }
+.cf-compacto .cf-menu:hover { width: 272px; box-shadow: var(--sombra-alta); padding: 14px 14px 14px 0; }
+.cf-compacto .cf-menu:hover .cf-menu__titulo, .cf-compacto .cf-menu:hover .cf-buscar, .cf-compacto .cf-menu:hover .cf-grupo { display: block; }
+.cf-compacto .cf-menu:hover .cf-buscar { display: flex; }
+.cf-compacto .cf-menu:hover .cf-item span { display: inline; }
+.cf-compacto .cf-menu:hover .cf-menu__cabeza { margin: 0 0 14px 18px; justify-content: space-between; }
+.cf-compacto .cf-menu:hover .cf-item { justify-content: flex-start; padding: 10px 12px; border-radius: 0 999px 999px 0; }
 
 /* Dentro de la ventana de un módulo: solo la sección */
 .cf-incrustado .cf-pagina { grid-template-columns: 1fr; padding-top: 12px; }
@@ -59,8 +76,13 @@
 .cf-incrustado .cf-marco { height: calc(100vh - 150px); }
 
 @media (max-width: 860px) {
-    .cf-pagina { grid-template-columns: 1fr; }
-    .cf-menu { position: static; min-width: 0; }
+    .cf-pagina, .cf-compacto .cf-pagina { grid-template-columns: 1fr; }
+    .cf-menu, .cf-compacto .cf-menu { position: static; height: auto; width: auto; border-right: 0; border-bottom: 1px solid var(--linea); padding: 12px 14px; min-width: 0; box-shadow: none; }
+    .cf-fijar { display: none; }
+    .cf-compacto .cf-menu .cf-menu__titulo, .cf-compacto .cf-menu .cf-buscar { display: none; }
+    .cf-compacto .cf-menu .cf-item span { display: inline; }
+    .cf-menu__cabeza, .cf-buscar { margin-left: 0; }
+    .cf-contenido, .cf-con-marco .cf-contenido { padding: 14px; }
     .cf-contenido { min-width: 0; }
     #cf-secciones { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; padding-bottom: 4px; }
     .cf-grupo { display: none; }
@@ -68,3 +90,5 @@
     .cf-campos { grid-template-columns: 1fr; }
     .cf-marco { height: 75vh; }
 }
+.cf-incrustado.cf-compacto .cf-pagina { grid-template-columns: 1fr; }
+.cf-incrustado .cf-contenido { padding: 14px 18px; }

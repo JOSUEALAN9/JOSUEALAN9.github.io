@@ -1080,3 +1080,6 @@ a.mod-accion { text-decoration: none; }
 .fc-config__marco { flex: 1; width: 100%; border: 0; background: var(--papel); }
 .fc-incrustado .fc-barra, .fc-incrustado .fc-aviso-global { display: none !important; }
 .fc-incrustado body { background: var(--papel); }
+/* Página abierta dentro de la Configuración general: sin título repetido y aprovechando todo el ancho */
+.fc-dentro .fc-solo-pagina { display: none !important; }
+.fc-dentro .fc-principal { max-width: none !important; padding: 14px 18px !important; }

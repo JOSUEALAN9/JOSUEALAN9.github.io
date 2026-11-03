@@ -173,6 +173,8 @@
 
     // Abierta dentro de la ventana de Configuración: sin barra superior (la ventana pone la suya)
     if (/[?&]incrustado=1\b/.test(location.search)) document.documentElement.classList.add("fc-incrustado");
+    // …y además dentro de la página de Configuración (que ya pone título y pestañas): sin su propio encabezado
+    if (/[?&]dentro=1\b/.test(location.search)) document.documentElement.classList.add("fc-dentro");
     var ancla = document.getElementById("app-header");
     if (!ancla) return;
 

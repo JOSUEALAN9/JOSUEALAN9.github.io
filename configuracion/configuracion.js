@@ -47,8 +47,7 @@
         { id: "facturacion", grupo: "Módulos", titulo: "Facturar", ico: ICO.factura, modulo: "facturacion",
           desc: "Emisor, series y folios, sello digital, logo del PDF, correo a clientes y timbres.",
           palabras: "facturar cfdi timbres serie folio csd sello logo pdf correo smtp gmail régimen código postal multifacturas",
-          marco: function (sub) { return "/herramientas/facturar/?vista=config&incrustado=1" + (sub ? "&sub=" + encodeURIComponent(sub) : ""); },
-          subs: [["emisor", "Emisor y folios"], ["sello", "Sello digital"], ["logo", "Logo y PDF"], ["correo", "Correo"], ["timbres", "Timbres"]] },
+          marco: function (sub) { return "/herramientas/facturar/?vista=config&incrustado=1&dentro=1" + (sub ? "&sub=" + encodeURIComponent(sub) : ""); } },
         { id: "buzon", grupo: "Módulos", titulo: "Buzón tributario", ico: ICO.buzon, modulo: "buzon",
           desc: "Cada cuánto se revisan solos los buzones de tus empresas.", palabras: "buzón tributario notificaciones revisión automática frecuencia",
           pintar: pintarBuzon },
@@ -57,8 +56,7 @@
           pintar: pintarXmlAuto },
         { id: "admin", grupo: "Administración", titulo: "Panel de administración", ico: ICO.admin, solo_admin: true,
           desc: "Usuarios, permisos por rol, actividad, créditos, documentos y sistema.", palabras: "usuarios permisos roles actividad créditos documentos sistema servidor respaldo trabajadores timbres bolsa",
-          marco: function (sub) { return "/admin/?incrustado=1" + (sub ? "#" + sub : ""); },
-          subs: [["usuarios", "Usuarios"], ["permisos", "Permisos por rol"], ["actividad", "Actividad"], ["creditos", "Créditos"], ["documentos", "Documentos"], ["sistema", "Sistema"]] }
+          marco: function (sub) { return "/admin/?incrustado=1&dentro=1" + (sub ? "#" + sub : ""); } }
     ];
 
     function visibles() {
@@ -81,7 +79,7 @@
         });
         $("cf-secciones").innerHTML = orden.length ? orden.map(function (g) {
             return '<p class="cf-grupo">' + esc(g) + "</p>" + grupos[g].map(function (s) {
-                return '<button type="button" class="cf-item' + (s.id === actual ? " cf-item--activo" : "") + '" data-seccion="' + s.id + '">' + ico(s.ico) + "<span>" + esc(s.titulo) + "</span></button>";
+                return '<button type="button" class="cf-item' + (s.id === actual ? " cf-item--activo" : "") + '" data-seccion="' + s.id + '" title="' + esc(s.titulo) + '">' + ico(s.ico) + "<span>" + esc(s.titulo) + "</span></button>";
             }).join("");
         }).join("") : '<p class="cf-vacio">Nada coincide con «' + esc($("cf-buscar").value) + "».</p>";
     }
@@ -98,13 +96,21 @@
             (s.subs && !s.marco ? "" : "") + '<div id="cf-seccion"></div>';
         if (incrustado) $("cf-listo").addEventListener("click", listo);
         var caja = $("cf-seccion");
+        document.body.classList.toggle("cf-con-marco", !!s.marco);
+        compactar(!!s.marco);
         if (s.marco) {
-            var subs = s.subs ? '<div class="cf-atajos">' + s.subs.map(function (x) { return '<button type="button" data-sub="' + x[0] + '"' + (x[0] === sub ? ' class="cf-atajo--activo"' : "") + ">" + esc(x[1]) + "</button>"; }).join("") + "</div>" : "";
-            caja.innerHTML = subs + '<iframe class="cf-marco" title="' + esc(s.titulo) + '" src="' + esc(s.marco(sub)) + '"></iframe>';
-            caja.querySelectorAll("[data-sub]").forEach(function (b) { b.addEventListener("click", function () { abrir(s.id, b.dataset.sub); }); });
+            caja.innerHTML = '<iframe class="cf-marco" title="' + esc(s.titulo) + '" src="' + esc(s.marco(sub)) + '"></iframe>';
             return;
         }
         s.pintar(caja);
+    }
+
+    var FIJO = "fiscontable.config.menu";
+    function fijado() { try { return localStorage.getItem(FIJO) === "abierto"; } catch (e) { return false; } }
+    function compactar(quiere) {
+        document.body.classList.toggle("cf-compacto", quiere && !fijado());
+        var b = $("cf-fijar");
+        if (b) { b.title = fijado() ? "Reducir el menú a íconos" : "Dejar el menú abierto"; b.setAttribute("aria-pressed", String(fijado())); }
     }
 
     function listo() {
@@ -208,6 +214,10 @@
             if (primero && $("cf-buscar").value.trim()) abrir(primero.dataset.seccion);
         });
         $("cf-secciones").addEventListener("click", function (ev) { var b = ev.target.closest("[data-seccion]"); if (b) abrir(b.dataset.seccion); });
+        $("cf-fijar").addEventListener("click", function () {
+            try { localStorage.setItem(FIJO, fijado() ? "compacto" : "abierto"); } catch (e) { /* sin almacenamiento */ }
+            compactar(document.body.classList.contains("cf-con-marco"));
+        });
         abrir(Fiscontable.url("seccion") || "perfil", Fiscontable.url("sub"));
     }
 
