@@ -742,6 +742,8 @@ function clicTarjeta(e) {
         if (e.target.closest("#btn-guardar-xml-auto")) guardarXmlAutoAdmin(e.target.closest("#btn-guardar-xml-auto"));
         if (e.target.closest("#btn-ver-timbres")) ventana("dlg-timbres", "Timbres de facturación", cuerpoTimbres);
         if (e.target.closest("#btn-asignar-timbres")) asignarTimbres(e.target.closest("#btn-asignar-timbres"));
+        if (e.target.closest("#btn-errores-pac")) abrirErroresPac();
+        if (e.target.closest("[data-copiar-error]")) copiarErrorPac(e.target.closest("[data-copiar-error]"));
         if (e.target.closest("#btn-max-pcs")) guardarMaxPcs(e.target.closest("#btn-max-pcs"));
         if (e.target.closest("#btn-revisar-instalador")) revisarInstalador(e.target.closest("#btn-revisar-instalador"));
         if (e.target.closest("#btn-max-sesiones")) guardarMaxSesiones(e.target.closest("#btn-max-sesiones"));
@@ -1012,7 +1014,37 @@ function tarjetaTimbres() {
         <p class="text-[11px] ${d.panel ? "text-emerald-700" : "text-amber-700"} mt-1">${d.panel ? "✓ Conectado al panel de MultiFacturas" : "Sin conexión al panel de MultiFacturas (faltan sus claves en el servidor)"}</p>
         ${d.bolsa && d.bolsa.timbres != null ? `<p class="text-sm text-slate-800 mt-1">Bolsa en MultiFacturas: <b>${Number(d.bolsa.timbres).toLocaleString("es-MX")}</b></p>` : `<p class="text-[11px] text-amber-700 mt-1">Bolsa de MultiFacturas sin registrar: escríbela en Facturar → Mis timbres</p>`}
         <p class="text-[11px] text-slate-500 mt-1">${con.length} cuenta${con.length === 1 ? "" : "s"} con timbres · ${total.toLocaleString("es-MX")} asignados en total</p>
-        <div class="flex gap-2 mt-3">${botonVer("btn-ver-timbres", "Ver y asignar")}</div>`;
+        <div class="flex gap-2 mt-3">${botonVer("btn-ver-timbres", "Ver y asignar")}${botonVer("btn-errores-pac", "Errores del PAC")}</div>`;
+}
+
+// Rastreo de errores (como lo pide MultiFacturas): cada rechazo del PAC queda con su número de seguimiento (FC-…),
+// que también le sale al contador en el mensaje; «Copiar para soporte» junta todo lo que piden (con su bitácora).
+let erroresPac = [];
+async function abrirErroresPac() {
+    try { erroresPac = await api("/api/admin/facturacion/errores-pac"); } catch (err) { return mostrarAlerta("error", err.message); }
+    ventana("dlg-errores-pac", "Errores del PAC (rastreo para soporte)", cuerpoErroresPac);
+}
+function cuerpoErroresPac() {
+    const filas = erroresPac.map(x => `<tr class="border-t border-gray-100 align-top">
+        <td class="py-2 pr-3 whitespace-nowrap"><b class="font-mono">${esc(x.id)}</b><span class="block text-[11px] text-slate-400">${esc((x.creado_en || "").slice(0, 16).replace("T", " "))} UTC</span></td>
+        <td class="py-2 pr-3">${esc(x.operacion)}${x.pruebas ? ' <span class="text-[10px] font-bold text-amber-700">PRUEBA</span>' : ""}<span class="block text-[11px] text-slate-400">${esc(x.rfc || "")} · ${esc(x.referencia || "")}</span><span class="block text-[11px] text-slate-400">${esc(x.owner_email)}</span></td>
+        <td class="py-2 pr-3">${esc(x.mensaje)}</td>
+        <td class="py-2 text-right"><button type="button" data-copiar-error="${esc(x.id)}" class="text-xs font-bold text-slate-700 border border-gray-200 hover:border-slate-400 rounded-lg py-1.5 px-3 whitespace-nowrap">Copiar para soporte</button></td></tr>`).join("");
+    return `<p class="text-xs text-slate-500 mb-3">Los rechazos de los últimos 90 días. A soporte de MultiFacturas mándale el número de seguimiento con lo que copia el botón (código, servidor, tiempo, versión y su bitácora).</p>
+        <table class="w-full text-xs"><thead><tr class="text-left text-slate-500"><th class="pb-2">Seguimiento</th><th class="pb-2">Qué</th><th class="pb-2">Mensaje</th><th></th></tr></thead>
+        <tbody>${filas || '<tr><td colspan="4" class="py-6 text-center text-slate-400">Sin errores del PAC. 🎉</td></tr>'}</tbody></table>`;
+}
+async function copiarErrorPac(boton) {
+    boton.disabled = true;
+    try {
+        const x = await api("/api/admin/facturacion/errores-pac/" + encodeURIComponent(boton.dataset.copiarError));
+        const texto = [`Seguimiento: ${x.id}`, `Fecha (UTC): ${x.creado_en}`, `RFC emisor: ${x.rfc}`, `Operación: ${x.operacion} · ${x.referencia}`,
+            `Modo: ${x.pruebas ? "pruebas" : "producción"}`, `Código MF: ${x.codigo}`, `Mensaje: ${x.mensaje}`, `Servidor: ${x.servidor}`,
+            `Ejecución: ${x.ejecucion}`, `Versión del kit: ${x.version_kit}`, `Respuesta del PAC: ${x.original}`, `Bitácora (error_debug_log_xml_pac):`, x.debug].join("\n");
+        try { await navigator.clipboard.writeText(texto); boton.textContent = "✓ Copiado"; }
+        catch (e) { Fiscontable.guardarArchivo(new Blob([texto], { type: "text/plain;charset=utf-8" }), `Error_PAC_${x.id}.txt`); boton.textContent = "✓ Descargado"; }
+    } catch (err) { mostrarAlerta("error", err.message); }
+    setTimeout(() => { boton.disabled = false; boton.textContent = "Copiar para soporte"; }, 2500);
 }
 
 function cuerpoTimbres() {
