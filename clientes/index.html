@@ -5,14 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mis Clientes | Fiscontable</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611030130">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611030300">
 </head>
 <body class="min-h-screen flex flex-col relative">
 
     <!-- TOP NAV -->
     <div id="app-header" data-modulo="clientes" data-titulo="Mis clientes" data-migas=""></div>
-<script src="/assets/js/nucleo.js?v=202611030130"></script>
-<script src="/assets/js/barra.js?v=202611030130"></script>
+<script src="/assets/js/nucleo.js?v=202611030300"></script>
+<script src="/assets/js/barra.js?v=202611030300"></script>
 
     <!-- ÁREA DE TRABAJO -->
     <main class="flex-grow w-full mod-pagina" style="max-width:1180px">
@@ -324,8 +324,12 @@
                             <label class="block sm:col-span-2"><span class="alta-etiqueta">C.P. fiscal</span><input id="rec-cp" maxlength="5" inputmode="numeric" class="alta-control font-mono"></label>
                             <label class="block sm:col-span-4"><span class="alta-etiqueta">Régimen fiscal</span><select id="rec-regimen" class="alta-control"></select></label>
                             <label class="block sm:col-span-3"><span class="alta-etiqueta">Uso del CFDI habitual</span><select id="rec-uso" class="alta-control"></select></label>
-                            <label class="block sm:col-span-3"><span class="alta-etiqueta">Correo <i class="normal-case font-normal text-slate-400">(opcional)</i></span><input id="rec-correo" type="email" maxlength="120" class="alta-control"></label>
+                            <label class="block sm:col-span-3"><span class="alta-etiqueta">Correo <i class="normal-case font-normal text-slate-400">(opcional, varios con coma)</i></span><input id="rec-correo" maxlength="300" class="alta-control"></label>
+                            <label class="block sm:col-span-3"><span class="alta-etiqueta">WhatsApp <i class="normal-case font-normal text-slate-400">(opcional)</i></span><input id="rec-telefono" inputmode="tel" maxlength="20" class="alta-control" placeholder="998 123 4567"></label>
+                            <label class="block sm:col-span-3 rec-ext" hidden><span class="alta-etiqueta">País (extranjero)</span><select id="rec-pais" class="alta-control"></select></label>
+                            <label class="block sm:col-span-3 rec-ext" hidden><span class="alta-etiqueta">Tax ID (extranjero)</span><input id="rec-taxid" maxlength="40" class="alta-control font-mono uppercase"></label>
                         </div>
+                        <p class="text-xs text-slate-500">Cliente extranjero: RFC <span class="font-mono">XEXX010101000</span>, su país y su número fiscal de allá.</p>
                         <p id="rec-mensaje" class="text-xs hidden"></p>
                         <div class="flex gap-2">
                             <button type="button" id="btn-guardar-receptor" class="bg-violet-600 hover:bg-violet-500 text-white font-bold py-2 px-5 rounded-lg transition text-sm">Guardar</button>
@@ -390,7 +394,7 @@
         </div>
     </div>
 
-<script src="/assets/js/comun/leer-cer.js?v=202611030130"></script>
+<script src="/assets/js/comun/leer-cer.js?v=202611030300"></script>
 <style>
     .cli-herr { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 14px; }
     .cli-buscar { flex: 1 1 220px; max-width: 320px; font-size: 14px; border: 1px solid #e5e7eb; border-radius: 10px; padding: 8px 12px; background: #fff; }
@@ -441,6 +445,6 @@
     .alta-opcional summary small { font-weight: 500; color: #64748b; }
     .alta-error { font-size: 13px; font-weight: 600; border-radius: 10px; padding: 10px 12px; background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; }
 </style>
-<script src="/clientes/clientes.js?v=202611030130"></script>
+<script src="/clientes/clientes.js?v=202611030300"></script>
 </body>
 </html>

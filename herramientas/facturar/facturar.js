@@ -18,11 +18,16 @@
     var $ = function (id) { return document.getElementById(id); };
 
     var F = { empresa: null, cfg: null, emisor: null, tipo: "I", conceptos: [], emitidas: [], detalles: {}, cancelando: null, ultimo: null,
-              receptores: [], borradores: [], borradorId: null, tcManual: false, origen: "emitidas", vistaUrl: null, vistaNombre: "" };
+              receptores: [], borradores: [], borradorId: null, tcManual: false, origen: "emitidas", vistaUrl: null, vistaNombre: "",
+              relaciones: [], claveEnvio: null, sustituye: null, pendientes: [], pgSel: {}, pgClave: null, correo: null, waId: null, coId: null };
+    function nuevaClave() {
+        return window.crypto && crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2);
+    }
+    function fechaLocal(d) { return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16); }
 
     async function api(ruta, opciones) {
         var resp = await fetch(API + ruta, Object.assign({ credentials: "include" }, opciones || {}));
-        if (!resp.ok) throw new Error(await Fiscontable.leerError(resp));
+        if (!resp.ok) { var err = new Error(await Fiscontable.leerError(resp)); err.status = resp.status; throw err; }
         return resp;
     }
     async function json(ruta, opciones) { return (await api(ruta, opciones)).json(); }
@@ -93,6 +98,10 @@
         $("c-regimen").innerHTML = opciones(c.regimenes, "", true, "Elige…");
         $("can-motivo").innerHTML = opciones(c.motivos_cancelacion, "02", true);
         $("p-moneda").innerHTML = opciones(c.monedas || { MXN: "Peso mexicano" }, "MXN", true);
+        $("pg-moneda").innerHTML = opciones(c.monedas || { MXN: "Peso mexicano" }, "MXN", true);
+        $("pg-forma").innerHTML = opciones(Object.keys(c.formas_pago).filter(function (k) { return k !== "99"; })
+            .reduce(function (o, k) { o[k] = c.formas_pago[k]; return o; }, {}), "03", true);
+        $("r-pais").innerHTML = opciones(c.paises || {}, "USA", true, "Elige el país…");
         var hoy = new Date();
         $("g-periodicidad").innerHTML = opciones(c.periodicidades, "04", true);
         $("g-meses").innerHTML = opciones(c.meses_global, String(hoy.getMonth() + 1).padStart(2, "0"), true);
@@ -120,6 +129,7 @@
         cargarEmitidas();
         cargarReceptores();
         cargarBorradores();
+        cargarPendientes();
     }
 
     function vista(nombre) {
@@ -128,6 +138,8 @@
         if (!F.empresa) return;
         document.querySelectorAll("[data-panel]").forEach(function (p) { p.hidden = p.dataset.panel !== nombre; });
         Fiscontable.url({ vista: nombre === "nueva" ? null : nombre });
+        if (nombre === "config" && !F.correo) cargarCorreo();
+        if (nombre === "pagos") cargarPendientes();
     }
 
     /* ---------------------------------------------------- emisor (encabezado, avisos y configuración) */
@@ -161,6 +173,8 @@
         $("c-folio-i").value = e.folio_i;
         $("c-serie-e").value = e.serie_e;
         $("c-folio-e").value = e.folio_e;
+        $("c-serie-p").value = e.serie_p || "P";
+        $("c-folio-p").value = e.folio_p || 1;
         var csd = $("c-csd-estado");
         if (e.csd) {
             var vencido = e.csd.vence && e.csd.vence < new Date().toISOString().slice(0, 10);
@@ -207,7 +221,8 @@
             actualizarEmisor(await enviar("/api/facturacion/emisores/" + encodeURIComponent(F.emisor.rfc), "PUT", {
                 regimen: $("c-regimen").value || null, cp: $("c-cp").value.trim() || null,
                 serie_i: $("c-serie-i").value.trim(), serie_e: $("c-serie-e").value.trim(),
-                folio_i: parseInt($("c-folio-i").value, 10) || 1, folio_e: parseInt($("c-folio-e").value, 10) || 1
+                folio_i: parseInt($("c-folio-i").value, 10) || 1, folio_e: parseInt($("c-folio-e").value, 10) || 1,
+                serie_p: $("c-serie-p").value.trim(), folio_p: parseInt($("c-folio-p").value, 10) || 1
             }));
             $("msj-config").textContent = "✓ Guardado.";
         } catch (e) { $("msj-config").textContent = e.message; }
@@ -256,8 +271,9 @@
 
     function nuevaFactura() {
         F.conceptos = [conceptoVacio()];
-        F.borradorId = null; F.tcManual = false;
-        ["r-rfc", "r-nombre", "r-cp", "rel-uuid", "p-condiciones", "r-buscar", "p-tc", "p-fecha", "p-notas"].forEach(function (id) { $(id).value = ""; });
+        F.borradorId = null; F.tcManual = false; F.relaciones = []; F.claveEnvio = nuevaClave(); F.sustituye = null;
+        ["r-rfc", "r-nombre", "r-cp", "rel-uuid", "p-condiciones", "r-buscar", "p-tc", "p-fecha", "p-notas", "r-taxid"].forEach(function (id) { $(id).value = ""; });
+        pintarRelaciones();
         $("r-regimen").value = "";
         $("r-uso").value = F.tipo === "E" ? "G02" : "G03";
         $("p-moneda").value = "MXN";
@@ -268,6 +284,7 @@
         verMoneda();
         verFecha();
         verGlobal();
+        verExtranjero();
         pintarConceptos();
     }
 
@@ -285,12 +302,24 @@
         $("p-condiciones").value = cap.condiciones || "";
         $("p-moneda").value = cap.moneda === "USD" ? "USD" : "MXN";
         $("p-tc").value = cap.tipo_cambio || ""; F.tcManual = !!cap.tipo_cambio;
-        $("p-fecha").value = "";                   // la fecha es la de hoy (o la que elijas), no la de la original
+        $("p-fecha").value = "";
+        F.notaFecha = "";
+        if (cap.fecha_original) {
+            // La original dentro de las 72 horas: se queda su fecha; si es más vieja, la más antigua que el SAT acepta
+            var orig = new Date(cap.fecha_original.slice(0, 19)), min = new Date(Date.now() - 71 * 3600000 + 10 * 60000);
+            if (!isNaN(orig)) {
+                if (orig >= min && orig <= new Date()) { $("p-fecha").value = cap.fecha_original.slice(0, 16); F.notaFecha = "Se quedó la fecha de la original."; }
+                else { $("p-fecha").value = fechaLocal(min); F.notaFecha = "La original es del " + fechaCorta(cap.fecha_original) + ": quedó la fecha más antigua que el SAT acepta (72 horas). Bórrala para usar la de hoy."; }
+            }
+        }
         $("p-notas").value = cap.notas || "";
         $("r-guardar").checked = cap.guardar_cliente !== false;
-        var rel = cap.relacionados || {};
-        $("rel-uuid").value = (rel.uuids || [])[0] || "";
-        if (rel.tipo_relacion) $("rel-tipo").value = rel.tipo_relacion;
+        var rel = cap.relacionados || [];
+        F.relaciones = (Array.isArray(rel) ? rel : [rel]).filter(function (g) { return g && (g.uuids || []).length; })
+            .map(function (g) { return { tipo_relacion: g.tipo_relacion || (F.tipo === "E" ? "01" : "04"), uuids: g.uuids.slice() }; });
+        $("rel-uuid").value = "";
+        $("r-pais").value = r.residencia || "USA"; $("r-taxid").value = r.num_reg_id || "";
+        F.claveEnvio = nuevaClave();
         var g = cap.global || {};
         if (g.periodicidad) $("g-periodicidad").value = g.periodicidad;
         if (g.meses) $("g-meses").value = g.meses;
@@ -298,7 +327,8 @@
         F.conceptos = (cap.conceptos || []).map(function (c) { return Object.assign(conceptoVacio(), c, { descuento: c.descuento || "" }); });
         if (!F.conceptos.length) F.conceptos = [conceptoVacio()];
         if (F.conceptos.some(function (c) { return c.ret_isr || c.ret_iva; })) $("ver-retenciones").checked = true;
-        verMoneda(); verFecha(); verGlobal(); pintarConceptos();
+        verMoneda(); verFecha(); verGlobal(); verExtranjero(); pintarConceptos(); pintarRelaciones();
+        if (F.notaFecha) $("p-nota").textContent = F.notaFecha;
         $("t-error").hidden = true;
         var a = $("r-aviso");
         a.hidden = !(avisos && avisos.length);
@@ -310,7 +340,9 @@
     function ponerTipo(tipo) {
         F.tipo = tipo;
         document.querySelectorAll("[data-tipo]").forEach(function (b) { b.setAttribute("aria-pressed", String(b.dataset.tipo === tipo)); });
-        $("caja-relacion").hidden = tipo !== "E";
+        $("rel-obligatorio").textContent = tipo === "E" ? "(obligatorio: la factura que corrige)" : "(opcional)";
+        $("rel-tipo").value = tipo === "E" ? "01" : "04";
+        $("btn-anticipo").hidden = tipo !== "I";
         if (tipo === "E" && $("r-uso").value === "G03") $("r-uso").value = "G02";
         if (tipo === "I" && $("r-uso").value === "G02") $("r-uso").value = "G03";
         pintarFolio();
@@ -374,15 +406,17 @@
     }
 
     function captura() {
-        var rel = $("rel-uuid").value.trim();
+        var rfcR = $("r-rfc").value.trim().toUpperCase();
         return {
+            clave_envio: F.claveEnvio,
             tipo: F.tipo, metodo_pago: $("p-metodo").value, forma_pago: $("p-forma").value,
             condiciones: $("p-condiciones").value.trim() || null,
             moneda: $("p-moneda").value, tipo_cambio: $("p-moneda").value === "USD" ? $("p-tc").value.trim() : null,
             fecha: $("p-fecha").value || null, notas: $("p-notas").value.trim() || null, guardar_cliente: $("r-guardar").checked,
             receptor: { rfc: $("r-rfc").value.trim().toUpperCase(), nombre: $("r-nombre").value.trim().toUpperCase(),
-                        cp: $("r-cp").value.trim(), regimen: $("r-regimen").value, uso: $("r-uso").value },
-            relacionados: F.tipo === "E" && rel ? { tipo_relacion: $("rel-tipo").value, uuids: [rel] } : null,
+                        cp: $("r-cp").value.trim(), regimen: $("r-regimen").value, uso: $("r-uso").value,
+                        residencia: rfcR === "XEXX010101000" ? $("r-pais").value : null, num_reg_id: rfcR === "XEXX010101000" ? $("r-taxid").value.trim() : null },
+            relacionados: F.relaciones.length ? F.relaciones : null,
             global: { periodicidad: $("g-periodicidad").value, meses: $("g-meses").value, anio: $("g-anio").value.trim() },
             conceptos: F.conceptos.map(function (c) {
                 return { cantidad: c.cantidad, clave_prod: (c.clave_prod || "").trim(), clave_unidad: c.clave_unidad,
@@ -400,7 +434,7 @@
         try {
             var cap = captura();
             var r = await enviar("/api/facturacion/revisar", "POST", { rfc: F.emisor.rfc, captura: cap });
-            F.pendiente = cap;
+            F.pendiente = cap; F.confirmando = null;
             var t = r.totales, serie = F.tipo === "I" ? F.emisor.serie_i : F.emisor.serie_e, folio = F.tipo === "I" ? F.emisor.folio_i : F.emisor.folio_e;
             $("conf-titulo").textContent = F.tipo === "I" ? "¿Timbrar esta factura?" : "¿Timbrar esta nota de crédito?";
             $("conf-resumen").innerHTML = '<dl class="fa-resumen">' +
@@ -421,10 +455,18 @@
     }
 
     async function timbrar() {
+        if (F.confirmando === "pago") return timbrarPago();
         var b = $("btn-confirmar");
+        if (b.disabled) return;
         b.disabled = true; b.textContent = "Timbrando…";
         try {
-            var r = await enviar("/api/facturacion/timbrar", "POST", { rfc: F.emisor.rfc, captura: F.pendiente });
+            var r;
+            try { r = await enviar("/api/facturacion/timbrar", "POST", { rfc: F.emisor.rfc, captura: F.pendiente }); }
+            catch (e) {
+                if (e.status !== 409 || !confirm(e.message + "\n\nAcepta solo si de verdad es otra factura.")) throw e;
+                F.pendiente.confirmar_duplicado = true;
+                r = await enviar("/api/facturacion/timbrar", "POST", { rfc: F.emisor.rfc, captura: F.pendiente });
+            }
             $("dlg-confirmar").close();
             F.ultimo = r;
             if (F.tipo === "I") F.emisor.folio_i = parseInt(r.folio, 10) + 1; else F.emisor.folio_e = parseInt(r.folio, 10) + 1;
@@ -434,9 +476,18 @@
             $("listo-texto").textContent = "Total " + dinero(r.total) + (r.pruebas ? " · modo de pruebas (sin validez fiscal)" : r.biblioteca ? " · ya está en Administración de XML" : "");
             $("listo-uuid").textContent = r.uuid;
             $("dlg-listo").showModal();
+            var sustituye = F.sustituye;
             nuevaFactura();                 // ya quedó timbrada: el formulario se limpia para no repetirla por error
             await cargarEmitidas();
             cargarReceptores();
+            cargarPendientes();
+            if (sustituye) {                // ya está la correcta: sigue cancelar la original con motivo 01
+                $("dlg-listo").close();
+                abrirCancelar(sustituye);
+                $("can-motivo").value = "01"; $("can-sust").value = r.uuid; $("can-sust-caja").hidden = false;
+                $("can-error").textContent = "La que la sustituye ya quedó timbrada (" + (r.serie ? r.serie + "-" : "") + r.folio + "). Ahora cancela la original con motivo 01.";
+                $("can-error").hidden = false;
+            }
         } catch (e) {
             $("dlg-confirmar").close();
             $("t-error").textContent = e.message; $("t-error").hidden = false;
@@ -450,7 +501,7 @@
         try { F.receptores = await json("/api/facturacion/receptores?rfc=" + encodeURIComponent(F.empresa.rfc)); }
         catch (e) { F.receptores = []; }
         var vistos = {};
-        var opciones = F.receptores.map(function (r) { vistos[r.rfc] = 1; return '<option value="' + esc(r.rfc + " · " + r.nombre) + '"></option>'; });
+        var opciones = F.receptores.map(function (r) { vistos[r.rfc] = 1; return '<option value="' + esc((r.clave || r.rfc) + " · " + r.nombre) + '"></option>'; });
         F.emitidas.forEach(function (x) {
             if (!vistos[x.receptor_rfc] && x.receptor_rfc !== "XAXX010101000") { vistos[x.receptor_rfc] = 1; opciones.push('<option value="' + esc(x.receptor_rfc + " · " + x.receptor_nombre) + '"></option>'); }
         });
@@ -459,6 +510,9 @@
 
     function ponerReceptor(r) {
         $("r-rfc").value = r.rfc || ""; $("r-nombre").value = r.nombre || ""; $("r-cp").value = r.cp || "";
+        if (r.residencia) $("r-pais").value = r.residencia;
+        $("r-taxid").value = r.num_reg_id || "";
+        verExtranjero();
         if (r.regimen) $("r-regimen").value = r.regimen;
         if (r.uso && !(F.tipo === "E" && r.uso !== "G02")) $("r-uso").value = F.tipo === "E" ? "G02" : r.uso;
         verGlobal();
@@ -467,7 +521,7 @@
     function elegirDelBuscador() {
         var rfc = ($("r-buscar").value.split(" · ")[0] || "").trim().toUpperCase();
         if (!rfc) return;
-        var r = F.receptores.filter(function (x) { return x.rfc === rfc; })[0];
+        var r = F.receptores.filter(function (x) { return (x.clave || x.rfc) === rfc; })[0];
         if (r) ponerReceptor(r);
         else { $("r-rfc").value = rfc; $("r-nombre").value = ""; $("r-cp").value = ""; $("r-regimen").value = ""; llenarReceptor(); }
         $("r-buscar").value = "";
@@ -532,7 +586,7 @@
         try { F.emitidas = await json("/api/facturacion/comprobantes?rfc=" + encodeURIComponent(F.empresa.rfc)); }
         catch (e) { F.emitidas = []; $("filas-emitidas").innerHTML = '<tr><td colspan="6">' + esc(e.message) + "</td></tr>"; return; }
         cargarReceptores();
-        $("lista-facturas").innerHTML = F.emitidas.filter(function (x) { return x.tipo === "I" && x.estado !== "cancelado"; })
+        $("lista-facturas").innerHTML = F.emitidas.filter(function (x) { return x.tipo !== "P" && x.estado !== "cancelado"; })
             .map(function (x) { return '<option value="' + esc(x.uuid) + '">' + esc((x.serie ? x.serie + "-" : "") + x.folio + " · " + x.receptor_nombre + " · " + dinero(x.total)) + "</option>"; }).join("");
         pintarEmitidas();
     }
@@ -544,18 +598,25 @@
             return !q || [x.receptor_nombre, x.receptor_rfc, (x.serie || "") + x.folio, (x.serie || "") + "-" + x.folio, x.uuid].join(" ").toLowerCase().indexOf(q) !== -1;
         });
         $("filas-emitidas").innerHTML = filas.length ? filas.map(function (x) {
-            var estado = x.estado === "cancelado" ? '<span class="fa-chip fa-chip--mal">Cancelada</span>' : '<span class="fa-chip fa-chip--ok">Vigente</span>';
+            var estado = x.estado === "cancelado" ? '<span class="fa-chip fa-chip--mal">Cancelada</span>'
+                : x.estado === "cancelando" ? '<span class="fa-chip fa-chip--proceso" title="Se pidió la cancelación; el SAT la está procesando">Cancelación en proceso</span>'
+                : '<span class="fa-chip fa-chip--ok">Vigente</span>';
             if (x.pruebas) estado += ' <span class="fa-chip fa-chip--prueba">Prueba</span>';
             return '<tr data-id="' + esc(x.id) + '"><td>' + esc(fechaCorta(x.fecha)) + "</td>" +
-                "<td><b>" + esc((x.serie ? x.serie + "-" : "") + x.folio) + "</b><small>" + (x.tipo === "I" ? "Factura" : "Nota de crédito") + "</small></td>" +
+                "<td><b>" + esc((x.serie ? x.serie + "-" : "") + x.folio) + "</b><small>" + ({ I: "Factura", E: "Nota de crédito", P: "Recibo de pago" }[x.tipo] || "") + (x.metodo === "PPD" ? " · PPD" : "") + "</small></td>" +
                 "<td>" + esc(x.receptor_nombre) + "<small>" + esc(x.receptor_rfc) + "</small></td>" +
-                '<td class="fa-num">' + dinero(x.total) + "</td><td>" + estado + "</td>" +
+                '<td class="fa-num">' + dinero(x.total) + (x.moneda === "USD" ? " <small>USD</small>" : "") +
+                (x.saldo != null && x.estado !== "cancelado" ? (x.saldo > 0.004 ? '<span class="fa-saldo">Saldo ' + dinero(x.saldo) + "</span>" : '<span class="fa-saldo fa-saldo--ok">Pagada</span>') : "") +
+                "</td><td>" + estado + "</td>" +
                 '<td class="fa-acc"><button type="button" class="fa-link" data-acc="pdf">PDF</button>' +
                 '<button type="button" class="fa-link" data-acc="xml">XML</button>' +
-                '<button type="button" class="fa-link" data-acc="copiar" title="Una nueva igual a esta">Copiar</button>' +
+                '<button type="button" class="fa-link" data-acc="correo" title="Mandarla por correo">Correo</button>' +
+                '<button type="button" class="fa-link" data-acc="whatsapp" title="Mandarla por WhatsApp">WhatsApp</button>' +
+                (x.tipo !== "P" ? '<button type="button" class="fa-link" data-acc="copiar" title="Una nueva igual a esta">Copiar</button>' : "") +
+                (x.saldo > 0.004 && x.estado === "timbrado" ? '<button type="button" class="fa-link" data-acc="pago" title="Registrar un pago (complemento de pago)">Pago</button>' : "") +
                 (x.pruebas ? "" : '<button type="button" class="fa-link" data-acc="sat" title="Consultar si está vigente o cancelada en el SAT">SAT</button>') +
                 (x.hay_acuse ? '<button type="button" class="fa-link" data-acc="acuse">Acuse</button>' : "") +
-                (x.estado !== "cancelado" ? '<button type="button" class="fa-link fa-link--rojo" data-acc="cancelar">Cancelar</button>' : "") + "</td></tr>";
+                (x.estado === "timbrado" ? '<button type="button" class="fa-link fa-link--rojo" data-acc="cancelar">Cancelar</button>' : "") + "</td></tr>";
         }).join("") : '<tr><td colspan="6">' + (F.emitidas.length ? "Nada coincide." : "Todavía no hay facturas de esta empresa.") + "</td></tr>";
     }
 
@@ -609,15 +670,298 @@
 
     async function cancelar() {
         var b = $("btn-cancelar-ok");
+        if (b.disabled) return;
         b.disabled = true; b.textContent = "Cancelando…";
         try {
             var r = await enviar("/api/facturacion/comprobantes/" + F.cancelando.id + "/cancelar", "POST",
                 { motivo: $("can-motivo").value, uuid_sustitucion: $("can-sust").value.trim() || null });
             $("dlg-cancelar").close();
-            aviso($("can-folio").textContent + ": " + r.mensaje + (r.acuse ? " El acuse queda en Emitidas." : ""));
+            aviso($("can-folio").textContent + ": " + r.mensaje + (r.acuse ? " El acuse queda en Emitidas." : ""), r.pendiente ? "alerta" : "");
             cargarEmitidas();
         } catch (e) { $("can-error").textContent = e.message; $("can-error").hidden = false; cargarEmitidas(); }
         b.disabled = false; b.textContent = "Cancelar ante el SAT";
+    }
+
+    /* ---------------------------------------------------- CFDI relacionados */
+    function nombreDe(uuid) {
+        var x = F.emitidas.filter(function (e) { return e.uuid === uuid; })[0];
+        return x ? (x.serie ? x.serie + "-" : "") + x.folio : "";
+    }
+
+    function pintarRelaciones() {
+        var cat = F.cfg.catalogos.tipos_relacion;
+        $("rel-lista").innerHTML = F.relaciones.map(function (g, i) {
+            return '<div class="fa-rel" data-g="' + i + '"><b>' + esc(g.tipo_relacion + " · " + (cat[g.tipo_relacion] || "")) + '</b><div class="fa-rel__uuids">' +
+                g.uuids.map(function (u, j) { var n = nombreDe(u); return "<span>" + (n ? "<b>" + esc(n) + "</b> " : "") + esc(u) + ' <button type="button" data-quitar-rel="' + i + ":" + j + '" title="Quitar">✕</button></span>'; }).join("") +
+                "</div></div>";
+        }).join("");
+        var tipos = F.relaciones.map(function (g) { return g.tipo_relacion; });
+        $("rel-nota").textContent = tipos.indexOf("07") !== -1 && F.tipo === "I"
+            ? "Anticipo: esta es la factura del total. Después timbra una nota de crédito por el anticipo, relación 07 a esta factura, forma de pago 30 «Aplicación de anticipos»."
+            : tipos.indexOf("04") !== -1 ? "Sustitución: después cancela la original con motivo 01 y el folio fiscal de esta." : "";
+    }
+
+    function agregarRelacion() {
+        var texto = $("rel-uuid").value.trim(), tipo = $("rel-tipo").value;
+        var m = /[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}/.exec(texto);
+        if (!m) { $("rel-nota").textContent = "Elige una factura de la lista o pega su folio fiscal (UUID)."; return; }
+        var uuid = m[0].toUpperCase(), g = F.relaciones.filter(function (x) { return x.tipo_relacion === tipo; })[0];
+        if (!g) { g = { tipo_relacion: tipo, uuids: [] }; F.relaciones.push(g); }
+        if (g.uuids.indexOf(uuid) === -1) g.uuids.push(uuid);
+        $("rel-uuid").value = "";
+        pintarRelaciones();
+    }
+
+    function aplicarAnticipo() {
+        $("rel-tipo").value = "07";
+        $("rel-uuid").focus();
+        $("rel-nota").textContent = "Elige la factura del anticipo (clave 84111506) y da «Agregar»: esta factura del total queda relacionada 07.";
+    }
+
+    function verExtranjero() {
+        var ext = $("r-rfc").value.trim().toUpperCase() === "XEXX010101000";
+        $("caja-extranjero").hidden = !ext;
+    }
+
+    function extranjero() {
+        $("r-rfc").value = "XEXX010101000";
+        if ($("r-nombre").value === "PUBLICO EN GENERAL") $("r-nombre").value = "";
+        $("r-cp").value = F.emisor && F.emisor.cp || "";
+        $("r-regimen").value = "616";
+        $("r-uso").value = "S01";
+        verExtranjero(); verGlobal();
+        $("r-nombre").focus();
+    }
+
+    /* ---------------------------------------------------- complemento de pago (Pagos) */
+    async function cargarPendientes() {
+        if (!F.empresa) return;
+        try { F.pendientes = await json("/api/facturacion/pagos/pendientes?rfc=" + encodeURIComponent(F.empresa.rfc)); }
+        catch (e) { F.pendientes = []; }
+        $("n-pendientes").textContent = F.pendientes.length;
+        $("n-pendientes").hidden = !F.pendientes.length;
+        Object.keys(F.pgSel).forEach(function (u) { if (!F.pendientes.some(function (x) { return x.uuid === u; })) delete F.pgSel[u]; });
+        if (!$("pg-fecha").value) $("pg-fecha").value = fechaLocal(new Date());
+        $("pg-fecha").max = fechaLocal(new Date());
+        pintarPendientes();
+    }
+
+    function receptorSel() {
+        var u = Object.keys(F.pgSel)[0], x = F.pendientes.filter(function (p) { return p.uuid === u; })[0];
+        return x ? x.receptor.rfc : null;
+    }
+
+    function equivalencia(x) {
+        var mp = $("pg-moneda").value, tc = num($("pg-tc").value);
+        if (x.moneda === mp) return 1;
+        if (x.moneda === "USD" && mp === "MXN") return tc ? 1 / tc : 0;
+        if (x.moneda === "MXN" && mp === "USD") return tc || 0;
+        return 0;
+    }
+
+    function pintarPendientes() {
+        var q = $("pg-buscar").value.trim().toLowerCase(), rsel = receptorSel();
+        var filas = F.pendientes.filter(function (x) {
+            return !q || [x.receptor.nombre, x.receptor.rfc, x.serie_folio].join(" ").toLowerCase().indexOf(q) !== -1;
+        });
+        $("pg-lista").innerHTML = filas.length ? filas.map(function (x) {
+            var sel = F.pgSel[x.uuid] != null, otro = rsel && rsel !== x.receptor.rfc;
+            return '<div class="fa-pg' + (sel ? " fa-pg--sel" : "") + '" data-uuid="' + esc(x.uuid) + '"' + (otro ? ' style="opacity:.45"' : "") + ">" +
+                '<input type="checkbox" data-pg-sel' + (sel ? " checked" : "") + (otro ? ' disabled title="Un recibo de pago es de un solo cliente"' : "") + ">" +
+                '<div class="fa-item__txt"><b>' + esc(x.serie_folio + " · " + x.receptor.nombre) + "</b><small>" +
+                esc(fechaCorta(x.fecha) + " · total " + dinero(x.total) + (x.moneda === "USD" ? " USD" : "") + (x.pagado ? " · pagado " + dinero(x.pagado) : "") + " · parcialidad " + x.parcialidad) + "</small></div>" +
+                '<div class="fa-pg__abono"><small>Saldo ' + dinero(x.saldo) + '</small><input data-pg-monto inputmode="decimal" value="' + esc(sel ? F.pgSel[x.uuid] : "") + '" placeholder="' + esc(x.saldo.toFixed(2)) + '"' + (sel ? "" : " disabled") + "></div></div>";
+        }).join("") : '<p class="fa-vacio-chico">' + (F.pendientes.length ? "Nada coincide." : "No hay facturas PPD pendientes de pago. Las facturas a crédito se timbran con método PPD y forma 99.") + "</p>";
+        resumenPago();
+    }
+
+    function resumenPago() {
+        var mp = $("pg-moneda").value, total = 0, n = 0, faltaEq = false, lineas = [];
+        $("pg-caja-tc").hidden = mp === "MXN" && !Object.keys(F.pgSel).some(function (u) { var x = F.pendientes.filter(function (p) { return p.uuid === u; })[0]; return x && x.moneda !== "MXN"; });
+        Object.keys(F.pgSel).forEach(function (u) {
+            var x = F.pendientes.filter(function (p) { return p.uuid === u; })[0]; if (!x) return;
+            var abono = num(F.pgSel[u] === "" ? x.saldo : F.pgSel[u]), eq = equivalencia(x);
+            if (!eq) faltaEq = true; else total += abono / eq;
+            n++; lineas.push(esc(x.serie_folio) + ": " + dinero(abono) + (x.moneda !== mp ? " " + x.moneda : ""));
+        });
+        $("pg-resumen").innerHTML = n ? lineas.join("<br>") + '<br><b style="font-size:17px;color:#0f172a">Pago: ' + dinero(r2(total)) + " " + mp + "</b>" +
+            (faltaEq ? '<br><span style="color:#b91c1c">Escribe el tipo de cambio del día del pago.</span>' : "") : "Marca al menos una factura.";
+        $("btn-pg-timbrar").disabled = !n || faltaEq;
+        $("pg-folio").textContent = F.emisor ? "Será el recibo " + (F.emisor.serie_p || "P") + "-" + (F.emisor.folio_p || 1) + "." : "";
+    }
+
+    /* Si el pago o alguna factura es en dólares, trae el FIX de Banxico del día del pago (se puede cambiar) */
+    function tcDelPago() {
+        var mp = $("pg-moneda").value;
+        var hace = mp !== "MXN" || Object.keys(F.pgSel).some(function (u) { var x = F.pendientes.filter(function (p) { return p.uuid === u; })[0]; return x && x.moneda !== mp; });
+        if (!hace || $("pg-tc").value) return;
+        json("/api/facturacion/tipo-cambio?fecha=" + ($("pg-fecha").value || hoyLocal()).slice(0, 10)).then(function (r) {
+            if (r.valor && !$("pg-tc").value) { $("pg-tc").value = r.valor; resumenPago(); }
+        }).catch(function () {});
+    }
+
+    function pagoCaptura() {
+        return { clave_envio: F.pgClave || (F.pgClave = nuevaClave()), fecha: $("pg-fecha").value, forma_pago: $("pg-forma").value,
+                 moneda: $("pg-moneda").value, tipo_cambio: $("pg-tc").value.trim() || null, num_operacion: $("pg-operacion").value.trim() || null,
+                 monto: $("pg-monto").value.trim() || null,
+                 doctos: Object.keys(F.pgSel).map(function (u) {
+                     var x = F.pendientes.filter(function (p) { return p.uuid === u; })[0];
+                     return { uuid: u, pagado: F.pgSel[u] === "" ? x.saldo : F.pgSel[u], equivalencia: equivalencia(x) };
+                 }) };
+    }
+
+    async function prepararPago() {
+        var err = $("pg-error"); err.hidden = true;
+        try {
+            var cap = pagoCaptura();
+            var r = await enviar("/api/facturacion/pagos/revisar", "POST", { rfc: F.emisor.rfc, pago: cap });
+            F.pendientePago = cap; F.confirmando = "pago";
+            $("conf-titulo").textContent = "¿Timbrar el recibo de pago?";
+            $("conf-resumen").innerHTML = '<dl class="fa-resumen"><dt>Folio</dt><dd>' + esc(r.serie + "-" + r.folio) + "</dd><dt>Cliente</dt><dd>" + esc(r.receptor_nombre + " · " + r.receptor_rfc) +
+                "</dd><dt>Fecha del pago</dt><dd>" + esc(cap.fecha.replace("T", " ")) + "</dd><dt>Pago</dt><dd>" + dinero(r.monto) + " " + esc(r.moneda) + "</dd>" +
+                r.doctos.map(function (d) { var x = F.pendientes.filter(function (p) { return p.uuid === d.uuid; })[0]; return "<dt>" + esc(x ? x.serie_folio : d.uuid.slice(0, 8)) + "</dt><dd>parcialidad " + d.parcialidad + " · " + dinero(d.pagado) + " · queda " + dinero(d.saldo_insoluto) + "</dd>"; }).join("") + "</dl>";
+            $("conf-nota").textContent = F.cfg.produccion ? "Se manda al SAT y gasta 1 timbre de la empresa." : "Modo de pruebas: no gasta timbres ni tiene validez fiscal.";
+            $("dlg-confirmar").showModal();
+        } catch (e) { err.textContent = e.message; err.hidden = false; }
+    }
+
+    async function timbrarPago() {
+        var b = $("btn-confirmar");
+        if (b.disabled) return;
+        b.disabled = true; b.textContent = "Timbrando…";
+        try {
+            var r = await enviar("/api/facturacion/pagos/timbrar", "POST", { rfc: F.emisor.rfc, pago: F.pendientePago });
+            $("dlg-confirmar").close();
+            F.ultimo = r; F.pgSel = {}; F.pgClave = null; F.confirmando = null;
+            F.emisor.folio_p = parseInt(r.folio, 10) + 1;
+            if (F.cfg.produccion) F.emisor.timbres = Math.max((F.emisor.timbres || 0) - 1, 0);
+            pintarEmisor();
+            ["pg-operacion", "pg-monto"].forEach(function (id) { $(id).value = ""; });
+            $("listo-titulo").textContent = "Recibo de pago " + r.serie + "-" + r.folio + " timbrado";
+            $("listo-texto").textContent = "Pago " + dinero(r.total) + (r.pruebas ? " · modo de pruebas (sin validez fiscal)" : "");
+            $("listo-uuid").textContent = r.uuid;
+            $("dlg-listo").showModal();
+            await cargarEmitidas();
+            cargarPendientes();
+        } catch (e) { $("dlg-confirmar").close(); $("pg-error").textContent = e.message; $("pg-error").hidden = false; }
+        F.confirmando = null;
+        b.disabled = false; b.textContent = "Timbrar";
+    }
+
+    /* ---------------------------------------------------- correo y WhatsApp */
+    var PROVEEDORES = { gmail: ["smtp.gmail.com", 587, "(en Gmail: «contraseña de aplicación», no la normal)"], outlook: ["smtp.office365.com", 587, "(la de tu cuenta de Outlook)"],
+                        zoho: ["smtp.zoho.com", 587, "(o una contraseña de aplicación de Zoho)"], otro: ["", 587, "(la que te dio tu proveedor de correo)"] };
+
+    async function cargarCorreo() {
+        try { F.correo = await json("/api/facturacion/correo"); } catch (e) { $("msj-correo").textContent = e.message; return; }
+        var c = F.correo;
+        ponerModoCorreo(c.modo);
+        $("c-correo-sistema").textContent = c.sistema ? "Sale de " + c.sistema + " y te responden a ti" : "Todavía no está configurado en el servidor";
+        document.querySelector('[data-modo-correo="fiscontable"]').disabled = !c.sistema;
+        $("c-smtp-host").value = c.smtp_host; $("c-smtp-puerto").value = c.smtp_puerto; $("c-smtp-usuario").value = c.smtp_usuario;
+        $("c-smtp-clave").value = ""; $("c-smtp-clave").placeholder = c.clave_guardada ? "Guardada (escribe otra para cambiarla)" : "••••••••";
+        $("c-proveedor").value = /gmail/.test(c.smtp_host) ? "gmail" : /office365|outlook/.test(c.smtp_host) ? "outlook" : /zoho/.test(c.smtp_host) ? "zoho" : c.smtp_host ? "otro" : "gmail";
+        if (!c.smtp_host) ponerProveedor();
+        $("c-correo-nombre").value = c.remitente_nombre || (F.emisor && (F.emisor.razon_social || F.emisor.alias)) || "";
+        $("c-correo-responder").value = c.responder_a; $("c-correo-cc").value = c.cc;
+        $("c-correo-asunto").value = c.asunto; $("c-correo-cuerpo").value = c.cuerpo;
+        $("c-correo-pdf").checked = c.adjuntar_pdf; $("c-correo-xml").checked = c.adjuntar_xml; $("c-correo-enlace").checked = c.con_enlace; $("c-correo-auto").checked = c.al_timbrar;
+        $("c-correo-vars").innerHTML = "Puedes usar: " + Object.keys(c.variables).map(function (k) { return "<b>{" + esc(k) + "}</b> " + esc(c.variables[k]); }).join(" · ");
+        var listo = c.modo === "fiscontable" ? !!c.sistema : !!(c.smtp_host && c.smtp_usuario && c.clave_guardada);
+        $("c-correo-estado").textContent = listo ? "Listo" : "Sin configurar";
+        $("c-correo-estado").className = "fa-chip " + (listo ? "fa-chip--ok" : "fa-chip--gris");
+    }
+
+    function ponerModoCorreo(modo) {
+        F.modoCorreo = modo;
+        document.querySelectorAll("[data-modo-correo]").forEach(function (b) { b.setAttribute("aria-pressed", String(b.dataset.modoCorreo === modo)); });
+        $("c-smtp").hidden = modo !== "propio";
+    }
+
+    function ponerProveedor() {
+        var p = PROVEEDORES[$("c-proveedor").value];
+        if (p[0]) $("c-smtp-host").value = p[0];
+        $("c-smtp-puerto").value = p[1];
+        $("c-smtp-ayuda").textContent = p[2];
+    }
+
+    async function guardarCorreo() {
+        $("msj-correo").textContent = "Guardando…";
+        try {
+            var puerto = parseInt($("c-smtp-puerto").value, 10) || 587;
+            F.correo = await enviar("/api/facturacion/correo", "PUT", {
+                modo: F.modoCorreo, smtp_host: $("c-smtp-host").value.trim(), smtp_puerto: puerto, smtp_usuario: $("c-smtp-usuario").value.trim(),
+                smtp_clave: $("c-smtp-clave").value || null, smtp_seguridad: puerto === 465 ? "ssl" : "starttls",
+                remitente: $("c-smtp-usuario").value.trim(), remitente_nombre: $("c-correo-nombre").value.trim(), responder_a: $("c-correo-responder").value.trim(),
+                cc: $("c-correo-cc").value.trim(), asunto: $("c-correo-asunto").value.trim(), cuerpo: $("c-correo-cuerpo").value,
+                adjuntar_pdf: $("c-correo-pdf").checked, adjuntar_xml: $("c-correo-xml").checked, con_enlace: $("c-correo-enlace").checked, al_timbrar: $("c-correo-auto").checked });
+            await cargarCorreo();
+            $("msj-correo").textContent = "✓ Guardado. Manda una prueba para confirmar.";
+        } catch (e) { $("msj-correo").textContent = e.message; }
+    }
+
+    async function probarCorreo() {
+        var para = $("c-correo-prueba").value.trim() || $("c-correo-responder").value.trim();
+        if (!para) { $("msj-correo").textContent = "Escribe a qué correo mandar la prueba."; return; }
+        $("msj-correo").textContent = "Mandando prueba…";
+        try { await enviar("/api/facturacion/correo/probar", "POST", { para: para }); $("msj-correo").textContent = "✓ Se mandó a " + para + ". Revisa la bandeja (y spam)."; }
+        catch (e) { $("msj-correo").textContent = e.message; }
+    }
+
+    async function abrirCorreo(id) {
+        var x = F.emitidas.filter(function (e) { return e.id === id; })[0];
+        F.coId = id;
+        $("co-folio").textContent = x ? (x.serie ? x.serie + "-" : "") + x.folio : "";
+        $("co-error").hidden = true;
+        try {
+            var b = await json("/api/facturacion/comprobantes/" + id + "/correo");
+            $("co-para").value = b.para; $("co-cc").value = b.cc; $("co-asunto").value = b.asunto; $("co-cuerpo").value = b.cuerpo;
+            $("co-pdf").checked = b.adjuntar_pdf; $("co-xml").checked = b.adjuntar_xml; $("co-enlace").checked = b.con_enlace;
+            $("co-historial").innerHTML = b.envios.length ? "<b>Envíos:</b> " + b.envios.map(function (e) {
+                return esc(fechaCorta(e.cuando + "Z") + " · " + e.canal + (e.para ? " a " + e.para : "") + " · " + (e.estado === "ok" ? "✓" : "✗ " + (e.detalle || "")));
+            }).join("<br>") : "";
+            $("dlg-correo").showModal();
+            if (!b.para) $("co-para").focus();
+        } catch (e) { aviso(e.message, "error"); }
+    }
+
+    async function mandarCorreo() {
+        var b = $("btn-co-enviar");
+        if (b.disabled) return;
+        b.disabled = true; b.textContent = "Mandando…"; $("co-error").hidden = true;
+        try {
+            var r = await enviar("/api/facturacion/comprobantes/" + F.coId + "/enviar", "POST", {
+                para: $("co-para").value, cc: $("co-cc").value, asunto: $("co-asunto").value, cuerpo: $("co-cuerpo").value,
+                adjuntar_pdf: $("co-pdf").checked, adjuntar_xml: $("co-xml").checked, con_enlace: $("co-enlace").checked, guardar_correo: $("co-guardar").checked });
+            $("dlg-correo").close();
+            aviso("✓ " + $("co-folio").textContent + " se mandó a " + r.para.join(", ") + ".");
+            cargarReceptores();
+        } catch (e) { $("co-error").textContent = e.message; $("co-error").hidden = false; }
+        b.disabled = false; b.textContent = "Mandar";
+    }
+
+    async function abrirWhatsapp(id, nuevo) {
+        var x = F.emitidas.filter(function (e) { return e.id === id; })[0];
+        F.waId = id;
+        $("wa-folio").textContent = x ? (x.serie ? x.serie + "-" : "") + x.folio : "";
+        $("wa-error").hidden = true;
+        try {
+            var r = await json("/api/facturacion/comprobantes/" + id + "/enlace" + (nuevo ? "?nuevo=true" : ""), { method: "POST" });
+            if (!nuevo || !$("wa-tel").value) $("wa-tel").value = r.telefono || "";
+            $("wa-texto").value = r.mensaje; $("wa-url").textContent = r.url;
+            if (!$("dlg-whatsapp").open) $("dlg-whatsapp").showModal();
+        } catch (e) { aviso(e.message, "error"); }
+    }
+
+    function abrirWa() {
+        var tel = $("wa-tel").value.replace(/[^\d]/g, "");
+        if (tel.length === 10) tel = "52" + tel;
+        window.open("https://wa.me/" + tel + "?text=" + encodeURIComponent($("wa-texto").value), "_blank", "noopener");
+        var x = F.emitidas.filter(function (e) { return e.id === F.waId; })[0];
+        var r = x && F.receptores.filter(function (c) { return c.rfc === x.receptor_rfc && c.clave === c.rfc; })[0];
+        if (r && tel && ("+" + tel) !== r.telefono) {               // el número queda en sus clientes para la próxima
+            enviar("/api/facturacion/receptores", "PUT", Object.assign({}, r, { rfc_emisor: F.emisor.rfc, telefono: "+" + tel })).then(cargarReceptores).catch(function () {});
+        }
     }
 
     /* ---------------------------------------------------- moneda y fecha */
@@ -736,6 +1080,7 @@
     }
 
     async function copiarDe(clave) {
+        if (F.vista === "pagos") vista("nueva");
         try {
             var r = clave.slice(0, 2) === "e:" ? await json("/api/facturacion/comprobantes/" + clave.slice(2) + "/captura")
                 : await json("/api/facturacion/desde-xml?rfc=" + encodeURIComponent(F.empresa.rfc) + "&uuid=" + encodeURIComponent(clave.slice(2)));
@@ -839,6 +1184,54 @@
         });
         document.querySelectorAll("[data-tipo]").forEach(function (b) { b.addEventListener("click", function () { ponerTipo(b.dataset.tipo); }); });
         $("btn-publico").addEventListener("click", publico);
+        $("btn-extranjero").addEventListener("click", extranjero);
+        $("r-rfc").addEventListener("input", verExtranjero);
+        $("btn-relacionar").addEventListener("click", agregarRelacion);
+        $("rel-uuid").addEventListener("keydown", function (ev) { if (ev.key === "Enter") { ev.preventDefault(); agregarRelacion(); } });
+        $("btn-anticipo").addEventListener("click", aplicarAnticipo);
+        $("rel-lista").addEventListener("click", function (ev) {
+            var q = ev.target.closest("[data-quitar-rel]"); if (!q) return;
+            var ij = q.dataset.quitarRel.split(":"), g = F.relaciones[+ij[0]];
+            g.uuids.splice(+ij[1], 1);
+            if (!g.uuids.length) F.relaciones.splice(+ij[0], 1);
+            pintarRelaciones();
+        });
+        $("pg-buscar").addEventListener("input", pintarPendientes);
+        $("pg-lista").addEventListener("change", function (ev) {
+            var fila = ev.target.closest("[data-uuid]"); if (!fila || !ev.target.matches("[data-pg-sel]")) return;
+            if (ev.target.checked) F.pgSel[fila.dataset.uuid] = ""; else delete F.pgSel[fila.dataset.uuid];
+            pintarPendientes();
+            tcDelPago();
+        });
+        $("pg-lista").addEventListener("input", function (ev) {
+            var fila = ev.target.closest("[data-uuid]"); if (!fila || !ev.target.matches("[data-pg-monto]")) return;
+            F.pgSel[fila.dataset.uuid] = ev.target.value.trim();
+            resumenPago();
+        });
+        ["pg-moneda", "pg-tc"].forEach(function (id) { $(id).addEventListener("input", resumenPago); });
+        $("pg-moneda").addEventListener("change", function () { tcDelPago(); resumenPago(); });
+        $("pg-fecha").addEventListener("change", function () { $("pg-tc").value = ""; tcDelPago(); });
+        $("btn-pg-timbrar").addEventListener("click", prepararPago);
+        document.querySelectorAll("[data-modo-correo]").forEach(function (b) { b.addEventListener("click", function () { if (!b.disabled) ponerModoCorreo(b.dataset.modoCorreo); }); });
+        $("c-proveedor").addEventListener("change", ponerProveedor);
+        $("btn-guardar-correo").addEventListener("click", guardarCorreo);
+        $("btn-probar-correo").addEventListener("click", probarCorreo);
+        $("btn-co-enviar").addEventListener("click", mandarCorreo);
+        $("btn-wa-abrir").addEventListener("click", abrirWa);
+        $("btn-wa-nuevo").addEventListener("click", function () { if (confirm("El enlace anterior dejará de servir. ¿Crear uno nuevo?")) abrirWhatsapp(F.waId, true); });
+        $("btn-wa-copiar").addEventListener("click", function () {
+            navigator.clipboard && navigator.clipboard.writeText($("wa-url").textContent).then(function () { $("btn-wa-copiar").textContent = "✓ Copiado"; });
+        });
+        $("btn-sustituta").addEventListener("click", function () {
+            var orig = F.cancelando;
+            $("dlg-cancelar").close();
+            copiarDe("e:" + orig.id).then(function () {
+                F.sustituye = orig.id;
+                F.relaciones = [{ tipo_relacion: "04", uuids: [orig.uuid] }];
+                pintarRelaciones();
+                $("estado-borrador").textContent = "Sustituye a " + (orig.serie ? orig.serie + "-" : "") + orig.folio + ": corrige lo necesario y timbra; luego se cancela la original con motivo 01.";
+            });
+        });
         $("r-buscar").addEventListener("change", elegirDelBuscador);
         $("r-constancia").addEventListener("change", function () { leerConstancia(this.files[0]); });
         $("p-moneda").addEventListener("change", verMoneda);
@@ -898,8 +1291,10 @@
         $("btn-timbrar").addEventListener("click", prepararTimbrado);
         $("btn-confirmar").addEventListener("click", timbrar);
         $("listo-xml").addEventListener("click", function () { bajarXml(F.ultimo.id); });
+        $("listo-correo").addEventListener("click", function () { $("dlg-listo").close(); abrirCorreo(F.ultimo.id); });
+        $("listo-wa").addEventListener("click", function () { $("dlg-listo").close(); abrirWhatsapp(F.ultimo.id); });
         $("listo-pdf").addEventListener("click", function () { verPdf(F.ultimo.id); });
-        $("listo-otra").addEventListener("click", function () { $("dlg-listo").close(); $("r-rfc").focus(); });
+        $("listo-otra").addEventListener("click", function () { $("dlg-listo").close(); if (F.vista === "nueva") $("r-rfc").focus(); });
         $("buscar-emitidas").addEventListener("input", pintarEmitidas);
         $("filtro-tipo").addEventListener("change", pintarEmitidas);
         $("filas-emitidas").addEventListener("click", function (ev) {
@@ -909,6 +1304,13 @@
             else if (b.dataset.acc === "acuse") bajarAcuse(id);
             else if (b.dataset.acc === "pdf") verPdf(id);
             else if (b.dataset.acc === "copiar") copiarDe("e:" + id);
+            else if (b.dataset.acc === "correo") abrirCorreo(id);
+            else if (b.dataset.acc === "whatsapp") abrirWhatsapp(id);
+            else if (b.dataset.acc === "pago") {
+                var x = F.emitidas.filter(function (e) { return e.id === id; })[0];
+                F.pgSel = {}; F.pgSel[x.uuid] = "";
+                vista("pagos");
+            }
             else if (b.dataset.acc === "sat") revisarSat(id, b);
             else abrirCancelar(id);
         });

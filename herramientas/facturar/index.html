@@ -5,14 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Facturar | Fiscontable</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611030130">
-    <link rel="stylesheet" href="/herramientas/facturar/facturar.css?v=202611030130">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611030300">
+    <link rel="stylesheet" href="/herramientas/facturar/facturar.css?v=202611030300">
 </head>
 <body class="min-h-screen flex flex-col">
 
 <div id="app-header" data-modulo="facturar" data-titulo="Facturar" data-migas="Herramientas|/herramientas/"></div>
-<script src="/assets/js/nucleo.js?v=202611030130"></script>
-<script src="/assets/js/barra.js?v=202611030130"></script>
+<script src="/assets/js/nucleo.js?v=202611030300"></script>
+<script src="/assets/js/barra.js?v=202611030300"></script>
 
 <main class="flex-grow w-full mod-pagina fa-pagina">
     <div class="mod-cabeza">
@@ -21,6 +21,7 @@
             <div class="fc-vista" role="tablist" aria-label="Vista">
                 <button type="button" role="tab" data-vista="nueva" aria-selected="true">Nueva factura</button>
                 <button type="button" role="tab" data-vista="emitidas" aria-selected="false">Emitidas</button>
+                <button type="button" role="tab" data-vista="pagos" aria-selected="false">Pagos <span id="n-pendientes" class="fa-contador" hidden></span></button>
                 <button type="button" role="tab" data-vista="config" aria-selected="false">Configuración <span id="punto-config" class="fa-punto" hidden></span></button>
             </div>
         </div>
@@ -61,6 +62,7 @@
                         <div class="fa-fila-links">
                             <label class="fa-link fa-subir">Leer su constancia (PDF)<input type="file" id="r-constancia" accept="application/pdf,.pdf" hidden></label>
                             <button type="button" id="btn-publico" class="fa-link">Público en general</button>
+                            <button type="button" id="btn-extranjero" class="fa-link">Cliente extranjero</button>
                         </div>
                     </div>
                     <label class="fa-campo fa-buscar-cliente"><span>Buscar en sus clientes</span>
@@ -76,6 +78,13 @@
                         <label class="fa-campo fa-c3"><span>Régimen fiscal</span><select id="r-regimen"></select></label>
                         <label class="fa-campo fa-c2"><span>Uso del CFDI</span><select id="r-uso"></select></label>
                     </div>
+                    <div id="caja-extranjero" class="fa-global" hidden>
+                        <p class="fa-nota"><b>Cliente extranjero:</b> RFC genérico XEXX010101000, régimen 616, uso S01 y el C.P. de tu lugar de expedición. El SAT pide su país y su número fiscal de allá.</p>
+                        <div class="fa-rejilla">
+                            <label class="fa-campo fa-c3"><span>País de residencia fiscal</span><select id="r-pais"></select></label>
+                            <label class="fa-campo fa-c3"><span>Número fiscal (Tax ID)</span><input id="r-taxid" maxlength="40" class="fa-mayus fa-mono" placeholder="Por ejemplo 123456789"></label>
+                        </div>
+                    </div>
                     <label class="fa-interruptor fa-guardar-cliente"><input type="checkbox" id="r-guardar" checked> Guardarlo en sus clientes al timbrar</label>
                     <datalist id="lista-receptores"></datalist>
                     <div id="caja-global" class="fa-global" hidden>
@@ -88,13 +97,19 @@
                     </div>
                 </div>
 
-                <div id="caja-relacion" class="fa-caja" hidden>
-                    <div class="fa-caja__cabeza"><h2>Factura que corrige</h2></div>
-                    <div class="fa-rejilla">
-                        <label class="fa-campo fa-c4"><span>Folio fiscal (UUID) de la factura original</span>
-                            <input id="rel-uuid" list="lista-facturas" maxlength="36" class="fa-mayus fa-mono" placeholder="Elige una de tus facturas o pega el UUID"></label>
-                        <label class="fa-campo fa-c2"><span>Tipo de relación</span><select id="rel-tipo"></select></label>
+                <div id="caja-relacion" class="fa-caja">
+                    <div class="fa-caja__cabeza">
+                        <h2>CFDI relacionados <i class="fa-opcional" id="rel-obligatorio">(opcional)</i></h2>
+                        <button type="button" id="btn-anticipo" class="fa-link" title="Factura del total que descuenta un anticipo ya facturado">Aplicar un anticipo</button>
                     </div>
+                    <div id="rel-lista" class="fa-relaciones"></div>
+                    <div class="fa-rejilla">
+                        <label class="fa-campo fa-c2"><span>Tipo de relación</span><select id="rel-tipo"></select></label>
+                        <label class="fa-campo fa-c3"><span>Folio fiscal (UUID)</span>
+                            <input id="rel-uuid" list="lista-facturas" maxlength="60" class="fa-mono" placeholder="Elige una factura o pega el UUID"></label>
+                        <div class="fa-campo fa-c1 fa-al-fondo"><button type="button" id="btn-relacionar" class="fa-btn fa-btn--suave fa-ancho">Agregar</button></div>
+                    </div>
+                    <p id="rel-nota" class="fa-nota" style="margin-top:8px"></p>
                     <datalist id="lista-facturas"></datalist>
                 </div>
 
@@ -163,6 +178,42 @@
         </div>
     </section>
 
+    <!-- ======================== PAGOS (complemento de pago) ======================== -->
+    <section id="vista-pagos" data-panel="pagos" hidden>
+        <div class="fa-layout">
+            <div class="fa-columna">
+                <div class="fa-caja">
+                    <div class="fa-caja__cabeza">
+                        <h2>Facturas por cobrar (PPD)</h2>
+                        <input type="search" id="pg-buscar" class="fa-buscar fa-buscar--chico" placeholder="Cliente o folio…" autocomplete="off">
+                    </div>
+                    <p class="fa-nota">Las facturas en parcialidades o diferido (PPD) necesitan un <b>recibo de pago (complemento de pago)</b> cada vez que el cliente paga. Marca las que cubre este pago (de un mismo cliente) y cuánto se abona a cada una.</p>
+                    <div id="pg-lista" class="fa-lista fa-lista--alta"></div>
+                </div>
+                <div class="fa-caja">
+                    <div class="fa-caja__cabeza"><h2>Datos del pago</h2></div>
+                    <div class="fa-rejilla">
+                        <label class="fa-campo fa-c2"><span>Fecha del pago</span><input id="pg-fecha" type="datetime-local" step="60"></label>
+                        <label class="fa-campo fa-c2"><span>Forma de pago</span><select id="pg-forma"></select></label>
+                        <label class="fa-campo fa-c1"><span>Moneda</span><select id="pg-moneda"></select></label>
+                        <label class="fa-campo fa-c1" id="pg-caja-tc" hidden><span>T. de cambio</span><input id="pg-tc" inputmode="decimal"></label>
+                        <label class="fa-campo fa-c3"><span>Número de operación <i>(opcional)</i></span><input id="pg-operacion" maxlength="100" placeholder="Referencia SPEI, cheque…"></label>
+                        <label class="fa-campo fa-c3"><span>Monto recibido <i>(vacío = la suma)</i></span><input id="pg-monto" inputmode="decimal" placeholder="0.00"></label>
+                    </div>
+                </div>
+            </div>
+            <aside class="fa-lateral">
+                <div class="fa-caja fa-totales">
+                    <h2>Recibo de pago</h2>
+                    <div id="pg-resumen" class="fa-nota" style="margin:10px 0">Marca al menos una factura.</div>
+                    <p id="pg-folio" class="fa-nota"></p>
+                    <button type="button" id="btn-pg-timbrar" class="fa-btn fa-btn--principal fa-ancho" disabled>Timbrar recibo de pago</button>
+                    <p id="pg-error" class="fa-error" hidden></p>
+                </div>
+            </aside>
+        </div>
+    </section>
+
     <!-- ======================== CONFIGURACIÓN ======================== -->
     <section id="vista-config" data-panel="config" hidden>
         <div class="fa-config">
@@ -176,6 +227,8 @@
                     <label class="fa-campo fa-c1"><span>Folio siguiente</span><input id="c-folio-i" type="number" min="1"></label>
                     <label class="fa-campo fa-c2"><span>Serie de notas de crédito</span><input id="c-serie-e" maxlength="10" class="fa-mayus"></label>
                     <label class="fa-campo fa-c1"><span>Folio siguiente</span><input id="c-folio-e" type="number" min="1"></label>
+                    <label class="fa-campo fa-c2"><span>Serie de recibos de pago</span><input id="c-serie-p" maxlength="10" class="fa-mayus"></label>
+                    <label class="fa-campo fa-c1"><span>Folio siguiente</span><input id="c-folio-p" type="number" min="1"></label>
                 </div>
                 <div class="fa-acciones"><button type="button" id="btn-guardar-config" class="fa-btn fa-btn--principal">Guardar</button><span id="msj-config" class="fa-nota"></span></div>
                 <div class="fa-logo">
@@ -206,6 +259,42 @@
                     <div class="fa-campo fa-c2 fa-al-fondo"><button type="button" id="btn-guardar-csd" class="fa-btn fa-btn--principal fa-ancho">Guardar CSD</button></div>
                 </div>
                 <div class="fa-acciones"><button type="button" id="btn-reemplazar-csd" class="fa-link" hidden>Reemplazar</button><button type="button" id="btn-quitar-csd" class="fa-link fa-link--rojo" hidden>Quitar el CSD</button><span id="msj-csd" class="fa-nota"></span></div>
+            </div>
+
+            <div class="fa-caja fa-caja--doble" id="caja-correo">
+                <div class="fa-caja__cabeza"><h2>Correo a tus clientes</h2><span id="c-correo-estado" class="fa-chip fa-chip--gris"></span></div>
+                <p class="fa-nota">Las facturas salen al correo del cliente con su PDF y XML. Elige de qué correo salen y cómo se ven.</p>
+                <div class="fa-tipo fa-tipo--chico" style="margin:10px 0">
+                    <button type="button" data-modo-correo="propio" aria-pressed="true"><b>Mi propio correo</b><small>Gmail, Outlook, el de tu dominio…</small></button>
+                    <button type="button" data-modo-correo="fiscontable" aria-pressed="false"><b>Correo de Fiscontable</b><small id="c-correo-sistema">Sale de facturas@… y responden a ti</small></button>
+                </div>
+                <div id="c-smtp" class="fa-rejilla">
+                    <label class="fa-campo fa-c2"><span>Proveedor</span><select id="c-proveedor"><option value="gmail">Gmail</option><option value="outlook">Outlook / Hotmail</option><option value="zoho">Zoho</option><option value="otro">Otro (mi dominio)</option></select></label>
+                    <label class="fa-campo fa-c3"><span>Servidor SMTP</span><input id="c-smtp-host" placeholder="smtp.gmail.com"></label>
+                    <label class="fa-campo fa-c1"><span>Puerto</span><input id="c-smtp-puerto" type="number" placeholder="587"></label>
+                    <label class="fa-campo fa-c3"><span>Usuario (tu correo)</span><input id="c-smtp-usuario" type="email" autocomplete="off"></label>
+                    <label class="fa-campo fa-c3"><span>Contraseña <i id="c-smtp-ayuda">(en Gmail: «contraseña de aplicación»)</i></span><input id="c-smtp-clave" type="password" autocomplete="new-password" placeholder="••••••••"></label>
+                </div>
+                <div class="fa-rejilla" style="margin-top:10px">
+                    <label class="fa-campo fa-c3"><span>Nombre que ven</span><input id="c-correo-nombre" maxlength="80" placeholder="Despacho Sánchez"></label>
+                    <label class="fa-campo fa-c3"><span>Responder a</span><input id="c-correo-responder" type="email"></label>
+                    <label class="fa-campo fa-c6"><span>Copia siempre a <i>(opcional, separa con comas)</i></span><input id="c-correo-cc"></label>
+                    <label class="fa-campo fa-c6"><span>Asunto</span><input id="c-correo-asunto" maxlength="200"></label>
+                    <label class="fa-campo fa-c6"><span>Mensaje</span><textarea id="c-correo-cuerpo" class="fa-texto" rows="6"></textarea></label>
+                </div>
+                <p class="fa-nota" id="c-correo-vars" style="margin-top:6px"></p>
+                <div class="fa-fila-checks">
+                    <label class="fa-interruptor"><input type="checkbox" id="c-correo-pdf"> Adjuntar PDF</label>
+                    <label class="fa-interruptor"><input type="checkbox" id="c-correo-xml"> Adjuntar XML</label>
+                    <label class="fa-interruptor"><input type="checkbox" id="c-correo-enlace"> Con enlace de descarga</label>
+                    <label class="fa-interruptor"><input type="checkbox" id="c-correo-auto"> Mandarlo solo al timbrar (si el cliente tiene correo)</label>
+                </div>
+                <div class="fa-acciones">
+                    <button type="button" id="btn-guardar-correo" class="fa-btn fa-btn--principal">Guardar</button>
+                    <input id="c-correo-prueba" type="email" class="fa-buscar fa-buscar--chico" placeholder="Correo para la prueba">
+                    <button type="button" id="btn-probar-correo" class="fa-btn fa-btn--suave">Mandar prueba</button>
+                    <span id="msj-correo" class="fa-nota"></span>
+                </div>
             </div>
 
             <div class="fa-caja" id="caja-timbres">
@@ -252,6 +341,8 @@
     <div class="fa-dialogo__pie">
         <button type="button" id="listo-xml" class="fa-btn fa-btn--suave">Descargar XML</button>
         <button type="button" id="listo-pdf" class="fa-btn fa-btn--suave">Descargar PDF</button>
+        <button type="button" id="listo-correo" class="fa-btn fa-btn--suave">Correo</button>
+        <button type="button" id="listo-wa" class="fa-btn fa-btn--suave">WhatsApp</button>
         <button type="button" id="listo-otra" class="fa-btn fa-btn--principal">Otra factura</button>
     </div>
 </dialog>
@@ -262,7 +353,10 @@
         <h2>Cancelar <span id="can-folio"></span></h2>
         <p class="fa-nota">La cancelación se manda al SAT. Si el cliente tiene que aceptarla, queda pendiente hasta que responda.</p>
         <label class="fa-campo"><span>Motivo</span><select id="can-motivo"></select></label>
-        <label class="fa-campo" id="can-sust-caja" hidden><span>Folio fiscal (UUID) de la factura que la sustituye</span><input id="can-sust" maxlength="36" class="fa-mayus fa-mono" list="lista-facturas"></label>
+        <div id="can-sust-caja" class="fa-global" hidden>
+            <label class="fa-campo"><span>Folio fiscal (UUID) de la factura que la sustituye</span><input id="can-sust" maxlength="36" class="fa-mayus fa-mono" list="lista-facturas"></label>
+            <p class="fa-nota">Con motivo 01 primero se timbra la factura correcta, relacionada (04) a esta. <button type="button" id="btn-sustituta" class="fa-link">Hacer la que la sustituye →</button></p>
+        </div>
         <p id="can-error" class="fa-error" hidden></p>
     </div>
     <div class="fa-dialogo__pie">
@@ -279,6 +373,48 @@
         <button type="button" data-cerrar class="fa-btn fa-btn--principal">Cerrar</button>
     </div>
     <iframe id="vista-marco" class="fa-marco" title="Vista previa del PDF"></iframe>
+</dialog>
+
+<!-- Mandar por correo -->
+<dialog id="dlg-correo" class="fa-dialogo fa-dialogo--ancho">
+    <div class="fa-dialogo__cuerpo">
+        <h2>Mandar <span id="co-folio"></span> por correo</h2>
+        <div class="fa-rejilla">
+            <label class="fa-campo fa-c6"><span>Para <i>(separa con comas)</i></span><input id="co-para"></label>
+            <label class="fa-campo fa-c6"><span>Copia</span><input id="co-cc"></label>
+            <label class="fa-campo fa-c6"><span>Asunto</span><input id="co-asunto" maxlength="200"></label>
+            <label class="fa-campo fa-c6"><span>Mensaje</span><textarea id="co-cuerpo" class="fa-texto" rows="7"></textarea></label>
+        </div>
+        <div class="fa-fila-checks">
+            <label class="fa-interruptor"><input type="checkbox" id="co-pdf"> PDF</label>
+            <label class="fa-interruptor"><input type="checkbox" id="co-xml"> XML</label>
+            <label class="fa-interruptor"><input type="checkbox" id="co-enlace"> Enlace de descarga</label>
+            <label class="fa-interruptor"><input type="checkbox" id="co-guardar" checked> Guardar el correo en sus clientes</label>
+        </div>
+        <div id="co-historial" class="fa-nota"></div>
+        <p id="co-error" class="fa-error" hidden></p>
+    </div>
+    <div class="fa-dialogo__pie">
+        <button type="button" data-cerrar class="fa-btn fa-btn--suave">Cancelar</button>
+        <button type="button" id="btn-co-enviar" class="fa-btn fa-btn--principal">Mandar</button>
+    </div>
+</dialog>
+
+<!-- WhatsApp -->
+<dialog id="dlg-whatsapp" class="fa-dialogo">
+    <div class="fa-dialogo__cuerpo">
+        <h2>Mandar <span id="wa-folio"></span> por WhatsApp</h2>
+        <p class="fa-nota">Se abre tu WhatsApp con el mensaje listo; el cliente descarga el PDF y el XML con el enlace (vence en 60 días).</p>
+        <label class="fa-campo"><span>WhatsApp del cliente <i>(10 dígitos o con lada)</i></span><input id="wa-tel" inputmode="tel" placeholder="998 123 4567"></label>
+        <label class="fa-campo"><span>Mensaje</span><textarea id="wa-texto" class="fa-texto" rows="4"></textarea></label>
+        <p class="fa-nota">Enlace: <span id="wa-url" class="fa-mono"></span> <button type="button" id="btn-wa-copiar" class="fa-link">Copiar</button></p>
+        <p id="wa-error" class="fa-error" hidden></p>
+    </div>
+    <div class="fa-dialogo__pie">
+        <button type="button" id="btn-wa-nuevo" class="fa-link" style="margin-right:auto" title="El enlace anterior deja de servir">Cambiar enlace</button>
+        <button type="button" data-cerrar class="fa-btn fa-btn--suave">Cerrar</button>
+        <button type="button" id="btn-wa-abrir" class="fa-btn fa-btn--principal">Abrir WhatsApp</button>
+    </div>
 </dialog>
 
 <!-- Prefacturas -->
@@ -318,6 +454,6 @@
     </div>
 </dialog>
 
-<script src="/herramientas/facturar/facturar.js?v=202611030130"></script>
+<script src="/herramientas/facturar/facturar.js?v=202611030300"></script>
 </body>
 </html>
