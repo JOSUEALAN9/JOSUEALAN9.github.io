@@ -1674,9 +1674,16 @@
             '<p class="fa-nota">«Equivale con IVA» es el precio unitario con IVA, antes del descuento: compáralo con el de tu ticket.</p>';
     }
 
+    function modoResultado(dlg, hay) {
+        dlg.querySelectorAll(".fa-pasos-excel, .fa-zona").forEach(function (x) { x.hidden = hay; });
+        var otro = dlg.querySelector(".fa-otro-archivo");
+        if (otro) otro.hidden = !hay;
+    }
+
     function abrirExcel() {
         F.xe = null; $("xe-resultado").hidden = true; $("btn-xe-ok").disabled = true; $("btn-xe-ok").textContent = "Agregar conceptos";
-        $("dlg-excel").showModal();
+        modoResultado($("dlg-excel"), false);
+        if (!$("dlg-excel").open) $("dlg-excel").showModal();
     }
 
     async function leerExcelConceptos(archivo) {
@@ -1686,6 +1693,7 @@
         try {
             var r = await json("/api/facturacion/excel/conceptos", { method: "POST", body: cuerpo });
             F.xe = r;
+            modoResultado($("dlg-excel"), true);
             var lista = function (xs, clase) { return xs.length ? '<ul class="fa-xe-lista ' + clase + '">' + xs.map(function (x) { return "<li>" + esc(x) + "</li>"; }).join("") + "</ul>" : ""; };
             var np = r.productos_nuevos || [];
             caja.innerHTML = (np.length ? '<label class="fa-interruptor fa-conf-pref" style="margin-bottom:10px"><input type="checkbox" id="xe-guardar-prod" checked> Guardar en tu catálogo ' +
@@ -1731,7 +1739,8 @@
         $("btn-xm-ok").disabled = true; $("btn-xm-ok").textContent = "Guardar como prefacturas";
         $("btn-xm-timbrar").disabled = true; $("btn-xm-timbrar").textContent = "Timbrar";
         $("dlg-masiva").querySelector("[data-cerrar]").textContent = "Cancelar";
-        $("dlg-masiva").showModal();
+        modoResultado($("dlg-masiva"), false);
+        if (!$("dlg-masiva").open) $("dlg-masiva").showModal();
     }
 
     async function leerMasiva(archivo) {
@@ -1742,6 +1751,7 @@
         try {
             var r = await json("/api/facturacion/excel/masiva", { method: "POST", body: cuerpo });
             F.xm = r.facturas;
+            modoResultado($("dlg-masiva"), true);
             var buenas = r.facturas.filter(function (f) { return !f.errores.length; });
             var total = buenas.reduce(function (a, f) { return a + (f.total || 0); }, 0);
             F.xmAltas = { productos: r.productos_nuevos || [], clientes: r.clientes_nuevos || [] };
@@ -2173,6 +2183,13 @@
         zonaArchivo($("xm-zona"), $("xm-archivo"), leerMasiva);
         $("btn-xm-ok").addEventListener("click", guardarMasiva);
         $("btn-xm-timbrar").addEventListener("click", timbrarMasiva);
+        document.querySelectorAll(".fa-otro-archivo").forEach(function (b) {
+            b.addEventListener("click", function () {
+                var dlg = b.closest("dialog");
+                if (F.xmCorriendo) return;
+                if (dlg.id === "dlg-masiva") abrirMasiva(); else abrirExcel();
+            });
+        });
         $("xm-filas").addEventListener("click", function (ev) {
             var b = ev.target.closest("[data-desglose]"); if (!b) return;
             var tr = b.closest("tr"), sig = tr.nextElementSibling;

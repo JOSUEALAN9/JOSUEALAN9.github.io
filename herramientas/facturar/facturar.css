@@ -433,3 +433,4 @@ tr.fa-conc__fila.fa-conc--pendiente td { background: #fffbeb; }
 .fa-desglose tfoot td { background: #f8fafc; font-weight: 700; }
 tr.fa-fila-desglose > td { background: #fafaff; padding: 4px 12px 12px; }
 #xm-filas [data-desglose] { display: block; margin: 4px 0 0 auto; font-size: 12.5px; }
+.fa-pasos-excel[hidden], .fa-zona[hidden], .fa-otro-archivo[hidden] { display: none !important; }

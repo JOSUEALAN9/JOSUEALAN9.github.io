@@ -5,14 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Facturar | Fiscontable</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611040430">
-    <link rel="stylesheet" href="/herramientas/facturar/facturar.css?v=202611040430">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611040500">
+    <link rel="stylesheet" href="/herramientas/facturar/facturar.css?v=202611040500">
 </head>
 <body class="min-h-screen flex flex-col">
 
 <div id="app-header" data-modulo="facturar" data-titulo="Facturar" data-migas="Herramientas|/herramientas/"></div>
-<script src="/assets/js/nucleo.js?v=202611040430"></script>
-<script src="/assets/js/barra.js?v=202611040430"></script>
+<script src="/assets/js/nucleo.js?v=202611040500"></script>
+<script src="/assets/js/barra.js?v=202611040500"></script>
 
 <main class="flex-grow w-full mod-pagina fa-pagina">
     <div class="mod-cabeza">
@@ -569,7 +569,7 @@
 <!-- Conceptos desde Excel -->
 <dialog id="dlg-excel" class="fa-dialogo fa-dialogo--ancho">
     <div class="fa-dialogo__cuerpo">
-        <h2>Conceptos desde Excel</h2>
+        <div class="fa-dlg-cabeza"><h2>Conceptos desde Excel</h2><button type="button" class="fa-link fa-otro-archivo" hidden>Subir otro archivo</button></div>
         <ol class="fa-pasos-excel">
             <li><b>Descarga la plantilla de esta empresa</b>, con tu catálogo de productos de hoy.
                 <button type="button" id="btn-xe-plantilla" class="fa-link">Descargar plantilla (.xlsx)</button></li>
@@ -589,7 +589,7 @@
 <!-- Facturación masiva desde Excel → prefacturas -->
 <dialog id="dlg-masiva" class="fa-dialogo fa-dialogo--grande">
     <div class="fa-dialogo__cuerpo">
-        <h2>Facturación masiva desde Excel</h2>
+        <div class="fa-dlg-cabeza"><h2>Facturación masiva desde Excel</h2><button type="button" class="fa-link fa-otro-archivo" hidden>Subir otro archivo</button></div>
         <ol class="fa-pasos-excel">
             <li><b>Descarga la plantilla de esta empresa</b>, con sus clientes y su catálogo de hoy.
                 <button type="button" id="btn-xm-plantilla" class="fa-link">Descargar plantilla (.xlsx)</button></li>
@@ -647,7 +647,7 @@
     </div>
 </dialog>
 
-<script src="/assets/js/comun/importar-clientes.js?v=202611040430"></script>
-<script src="/herramientas/facturar/facturar.js?v=202611040430"></script>
+<script src="/assets/js/comun/importar-clientes.js?v=202611040500"></script>
+<script src="/herramientas/facturar/facturar.js?v=202611040500"></script>
 </body>
 </html>
