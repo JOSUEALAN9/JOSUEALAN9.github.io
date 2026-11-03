@@ -5,14 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Facturar | Fiscontable</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611040600">
-    <link rel="stylesheet" href="/herramientas/facturar/facturar.css?v=202611040600">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611040630">
+    <link rel="stylesheet" href="/herramientas/facturar/facturar.css?v=202611040630">
 </head>
 <body class="min-h-screen flex flex-col">
 
 <div id="app-header" data-modulo="facturar" data-titulo="Facturar" data-migas="Herramientas|/herramientas/"></div>
-<script src="/assets/js/nucleo.js?v=202611040600"></script>
-<script src="/assets/js/barra.js?v=202611040600"></script>
+<script src="/assets/js/nucleo.js?v=202611040630"></script>
+<script src="/assets/js/barra.js?v=202611040630"></script>
 
 <main class="flex-grow w-full mod-pagina fa-pagina">
     <div class="mod-cabeza">
@@ -242,12 +242,14 @@
     <section id="vista-emitidas" data-panel="emitidas" hidden>
         <div class="fa-barra">
             <input type="search" id="buscar-emitidas" placeholder="Buscar por cliente, RFC, folio o UUID…" autocomplete="off">
+            <button type="button" id="btn-enlaces" class="fa-btn fa-btn--suave" title="Los paquetes que has compartido por enlace">Enlaces compartidos</button>
             <select id="filtro-tipo"><option value="">Todas</option><option value="I">Facturas</option><option value="E">Notas de crédito</option><option value="cancelado">Canceladas</option></select>
         </div>
         <div class="fa-sel-barra" id="sel-emitidas" hidden>
             <b id="sel-cuenta">0 marcadas</b>
             <select id="sel-contenido" aria-label="Qué bajar"><option value="ambos">PDF y XML</option><option value="pdf">Solo PDF</option><option value="xml">Solo XML</option></select>
             <button type="button" id="btn-zip" class="fa-btn fa-btn--principal fa-btn--chico">Descargar ZIP</button>
+            <button type="button" id="btn-compartir-sel" class="fa-btn fa-btn--suave fa-btn--chico" title="Un solo enlace para tu cliente con todas las marcadas">Compartir por enlace</button>
             <button type="button" id="btn-sel-quitar" class="fa-link fa-link--gris">Quitar selección</button>
         </div>
         <div class="fa-tabla-caja fa-emitidas-caja">
@@ -543,6 +545,7 @@
         <div class="fa-fila-checks">
             <label class="fa-interruptor"><input type="checkbox" id="co-pdf"> PDF</label>
             <label class="fa-interruptor"><input type="checkbox" id="co-xml"> XML</label>
+            <label class="fa-interruptor"><input type="checkbox" id="co-zip"> PDF y XML en un ZIP</label>
             <label class="fa-interruptor"><input type="checkbox" id="co-enlace"> Enlace de descarga</label>
             <label class="fa-interruptor"><input type="checkbox" id="co-guardar" checked> Guardar el correo en sus clientes</label>
         </div>
@@ -653,7 +656,8 @@
     </div>
 </dialog>
 
-<script src="/assets/js/comun/importar-clientes.js?v=202611040600"></script>
-<script src="/herramientas/facturar/facturar.js?v=202611040600"></script>
+<script src="/assets/js/comun/importar-clientes.js?v=202611040630"></script>
+<script src="/assets/js/comun/compartir.js?v=202611040630"></script>
+<script src="/herramientas/facturar/facturar.js?v=202611040630"></script>
 </body>
 </html>

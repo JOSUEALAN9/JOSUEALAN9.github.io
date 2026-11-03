@@ -1430,7 +1430,7 @@
         try {
             var b = await json("/api/facturacion/comprobantes/" + id + "/correo");
             $("co-para").value = b.para; $("co-cc").value = b.cc; $("co-asunto").value = b.asunto; $("co-cuerpo").value = b.cuerpo;
-            $("co-pdf").checked = b.adjuntar_pdf; $("co-xml").checked = b.adjuntar_xml; $("co-enlace").checked = b.con_enlace;
+            $("co-pdf").checked = b.adjuntar_pdf; $("co-xml").checked = b.adjuntar_xml; $("co-enlace").checked = b.con_enlace; $("co-zip").checked = false;
             $("co-historial").innerHTML = b.envios.length ? "<b>Envíos:</b> " + b.envios.map(function (e) {
                 return esc(fechaCorta(e.cuando + "Z") + " · " + e.canal + (e.para ? " a " + e.para : "") + " · " + (e.estado === "ok" ? "✓" : "✗ " + (e.detalle || "")));
             }).join("<br>") : "";
@@ -1446,7 +1446,7 @@
         try {
             var r = await enviar("/api/facturacion/comprobantes/" + F.coId + "/enviar", "POST", {
                 para: $("co-para").value, cc: $("co-cc").value, asunto: $("co-asunto").value, cuerpo: $("co-cuerpo").value,
-                adjuntar_pdf: $("co-pdf").checked, adjuntar_xml: $("co-xml").checked, con_enlace: $("co-enlace").checked, guardar_correo: $("co-guardar").checked });
+                adjuntar_pdf: $("co-pdf").checked, adjuntar_xml: $("co-xml").checked, adjuntar_zip: $("co-zip").checked, con_enlace: $("co-enlace").checked, guardar_correo: $("co-guardar").checked });
             $("dlg-correo").close();
             aviso("✓ " + $("co-folio").textContent + " se mandó a " + r.para.join(", ") + ".");
             cargarReceptores();
@@ -2285,6 +2285,15 @@
         });
         $("btn-sel-quitar").addEventListener("click", function () { F.selEmit = {}; pintarEmitidas(); });
         $("btn-zip").addEventListener("click", bajarZip);
+        $("btn-compartir-sel").addEventListener("click", function () {
+            var ids = Object.keys(F.selEmit || {}); if (!ids.length) return;
+            var xs = F.emitidas.filter(function (e) { return F.selEmit[e.id]; });
+            var clientes = Array.from(new Set(xs.map(function (e) { return e.receptor_nombre; })));
+            var r = (F.receptores || []).filter(function (c) { return xs.length && c.rfc === xs[0].receptor_rfc; })[0];
+            Fiscontable.compartir({ rfc: F.emisor.rfc, items: ids.map(function (id) { return { tipo: "comprobante", id: id }; }),
+                titulo: "Facturas de " + (F.emisor.razon_social || F.emisor.alias) + (clientes.length === 1 ? " para " + clientes[0] : ""), correo: clientes.length === 1 && r ? r.correo : "" });
+        });
+        $("btn-enlaces").addEventListener("click", function () { Fiscontable.enlacesCompartidos({ rfc: F.emisor.rfc }); });
         document.addEventListener("click", function (ev) {
             if (!ev.target.closest(".fa-mas")) document.querySelectorAll(".fa-mas__menu").forEach(function (m) { m.hidden = true; });
         });

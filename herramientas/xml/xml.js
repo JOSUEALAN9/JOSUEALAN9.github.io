@@ -347,7 +347,7 @@
         var n = uuidsParaAcciones().length;
         $("acciones-alcance").textContent = !n ? "No hay XML en la tabla."
             : E.seleccion.size ? "Sobre los " + n.toLocaleString("es-MX") + " seleccionados." : "Sobre los " + n.toLocaleString("es-MX") + " XML que ves.";
-        $("btn-zip").disabled = $("btn-pdf").disabled = !n;
+        $("btn-zip").disabled = $("btn-pdf").disabled = $("btn-zip-completo").disabled = $("btn-compartir").disabled = !n;
     }
 
     /* ============================================================ minimódulos */
@@ -882,6 +882,26 @@
         boton.disabled = false; boton.innerHTML = texto;
     }
 
+    async function descargarZipCompleto() {
+        var uuids = uuidsParaAcciones();
+        if (uuids.length > 300) { avisar("Con PDF van hasta 300 a la vez: selecciona o filtra menos (hay " + uuids.length.toLocaleString("es-MX") + "). Para más, baja solo los XML."); return; }
+        var boton = $("btn-zip-completo"), texto = boton.innerHTML;
+        boton.disabled = true; boton.innerHTML = "<b>⏳</b>Generando " + uuids.length + "…";
+        try {
+            var resp = await postJSON("/api/xml/zip-completo", { rfc: E.rfc, uuids: uuids });
+            descargarBlob(await resp.blob(), nombreArchivo(resp, "pdf_y_xml.zip"));
+        } catch (e) { avisar(e.message); }
+        boton.disabled = false; boton.innerHTML = texto;
+    }
+
+    function compartirXml() {
+        var uuids = uuidsParaAcciones();
+        if (!uuids.length) { avisar("No hay XML en lo que ves."); return; }
+        if (uuids.length > 300) { avisar("Comparte hasta 300 a la vez: selecciona o filtra menos (hay " + uuids.length.toLocaleString("es-MX") + ")."); return; }
+        var nombre = (E.empresa && (E.empresa.alias || E.empresa.nombre)) || E.rfc;
+        Fiscontable.compartir({ rfc: E.rfc, items: uuids.map(function (u) { return { tipo: "xml", rfc: E.rfc, uuid: u }; }), titulo: "CFDI de " + nombre });
+    }
+
     /* Pagos: los XML de las facturas que pagaron los complementos que ves (o los seleccionados). */
     async function descargarZipOrigen() {
         var elegidos = E.seleccion.size ? E.seleccion : null;
@@ -1024,9 +1044,35 @@
 
     async function reanudarValidacion() {
         try {
-            var r = await apiJSON("/api/xml/validacion?desde=0");
+            var r = await apiJSON("/api/xml/validacion?desde=0&rfc=" + encodeURIComponent(E.rfc || ""));
             if (r.estado === "corriendo" && r.rfc === E.rfc) { VAL.siguiente = 0; seguirValidacion(); }
+            vigilarFondo(r.en_fondo || 0);
         } catch (e) { /* nada */ }
+    }
+
+    /* Los XML que entran por la descarga del SAT se validan solos en segundo plano: aviso discreto y, al terminar,
+       la tabla se actualiza sola con su estado (Vigente / Cancelado). */
+    var FONDO = { reloj: null, habia: 0 };
+    function vigilarFondo(n) {
+        var caja = $("aviso-fondo");
+        if (!caja) {
+            caja = document.createElement("p");
+            caja.id = "aviso-fondo"; caja.className = "xml-aviso-fondo";
+            $("contenido").insertBefore(caja, $("contenido").firstChild);
+        }
+        clearTimeout(FONDO.reloj);
+        if (n > 0) {
+            caja.hidden = false;
+            caja.innerHTML = '<span class="xml-giro"></span> Validando ' + n.toLocaleString("es-MX") + " XML ante el SAT en segundo plano (vigente, cancelado, si es cancelable). Se actualizan solos.";
+            FONDO.habia = Math.max(FONDO.habia, n);
+            FONDO.reloj = setTimeout(async function () {
+                try { var r = await apiJSON("/api/xml/validacion?desde=0&rfc=" + encodeURIComponent(E.rfc || "")); vigilarFondo(r.en_fondo || 0); }
+                catch (e) { vigilarFondo(n); }
+            }, 15000);
+        } else {
+            caja.hidden = true;
+            if (FONDO.habia) { FONDO.habia = 0; cargarRegistros(); }      // ya terminó: la tabla con los estados nuevos
+        }
     }
 
     /* ============================================================ bandeja de carga */
@@ -1363,6 +1409,9 @@
             var b = e.target.closest("[data-excel]"); if (b && !b.disabled) exportarExcel(b.dataset.excel);
         });
         $("btn-zip").addEventListener("click", descargarZip);
+        $("btn-zip-completo").addEventListener("click", descargarZipCompleto);
+        $("btn-compartir").addEventListener("click", compartirXml);
+        $("btn-enlaces").addEventListener("click", function () { Fiscontable.enlacesCompartidos({ rfc: E.rfc }); });
         $("btn-zip-origen").addEventListener("click", descargarZipOrigen);
         $("btn-listas").addEventListener("click", abrirListas);
         $("btn-pdf").addEventListener("click", descargarPdf);
