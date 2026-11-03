@@ -690,7 +690,14 @@
         $("sel-anio").addEventListener("change", function () { E.anio = +this.value; cargar(); });
         $("btn-nuevo").addEventListener("click", function () { abrirForm(null); });
         $("tbody").addEventListener("click", function (e) {
-            if (e.target.closest("[data-acuse]")) return;
+            var acuse = e.target.closest("[data-acuse]");
+            if (acuse) {          // se abre en el visor (ahí mismo se descarga o se imprime)
+                e.preventDefault();
+                var f = E.datos.periodos.find(function (x) { return x.id === +acuse.dataset.acuse; }) || {};
+                var nombre = (acuse.textContent === "Ceros" ? "Pago_en_ceros_" : "Acuse_ISN_") + E.rfc + "_" + (f.anio || "") + "_" + String(f.mes || "").padStart(2, "0") + ".pdf";
+                Fiscontable.verPdf(acuse.href, { titulo: (acuse.textContent === "Ceros" ? "Pago en ceros" : "Acuse ISN") + " · " + E.rfc + (f.mes ? " · " + f.mes + "/" + f.anio : ""), nombre: nombre });
+                return;
+            }
             var tr = e.target.closest("tr[data-id]"); if (!tr) return;
             abrirForm(E.datos.periodos.find(function (f) { return f.id === +tr.dataset.id; }));
         });

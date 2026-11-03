@@ -34,7 +34,7 @@
             '<div class="xml-periodo__fila"><span class="xml-periodo__etiqueta">Fechas</span><div class="xml-periodo__chips xml-periodo__fechas">' +
             '<label>Del <input type="date" data-p="desde"></label><label>al <input type="date" data-p="hasta"></label>' +
             '<button type="button" class="xml-enlace" data-p="quitar" hidden>Quitar fechas</button></div></div>' +
-            '<div class="xml-periodo__aplicar" data-p="aplicar" hidden><button type="button" class="xml-btn xml-btn--primario" data-p="cargar">Cargar</button>' +
+            '<div class="xml-periodo__aplicar" data-p="aplicar" hidden><button type="button" class="xml-btn xml-btn--primario" data-p="cargar">Procesar</button>' +
             '<span class="xml-tenue" data-p="nota-aplicar">Lo de abajo todavía es el periodo anterior.</span></div>';
         function $(n) { return raiz.querySelector('[data-p="' + n + '"]'); }
 
@@ -77,7 +77,9 @@
             pendiente = true;
             var caja = $("aplicar");
             caja.hidden = !hayEleccion();
-            $("cargar").textContent = "Cargar " + api.texto();
+            // El botón siempre dice lo mismo (no crece al marcar meses); lo elegido va en la nota, resumido
+            var n = E.meses.size, txt = porFechas() || n <= 2 ? api.texto() : (n === 12 ? "todo " + E.anio : n + " meses de " + E.anio);
+            $("nota-aplicar").textContent = "Elegiste " + txt + ". Lo de abajo todavía es el periodo anterior.";
         }
         $("cargar").addEventListener("click", aplicar);
 

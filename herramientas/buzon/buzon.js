@@ -437,7 +437,8 @@
             var r = await fetch(API + "/api/buzon/notificaciones/" + b.dataset.doc + "/" + b.dataset.clave, { credentials: "include" });
             if (!r.ok) throw new Error(await Fiscontable.leerError(r));
             var nom = { aviso: "Aviso", acto: "Acto", acuse: "Acuse", flujo1: "Documento_1", flujo2: "Documento_2", flujo3: "Documento_3" }[b.dataset.clave] || b.dataset.clave;
-            Fiscontable.guardarArchivo(await r.blob(), E.rfc + "_" + b.dataset.folio.replace(/[^A-Za-z0-9]+/g, "_") + "_" + nom + ".pdf");
+            // Se abre en el visor de Fiscontable; ahí mismo se descarga o se imprime
+            Fiscontable.verPdf(await r.blob(), { titulo: nombreDoc(b.dataset.clave) + " · folio " + b.dataset.folio, nombre: E.rfc + "_" + b.dataset.folio.replace(/[^A-Za-z0-9]+/g, "_") + "_" + nom + ".pdf" });
             var n = E.detalle.notificaciones.filter(function (x) { return x.id === +b.dataset.doc; })[0];
             if (n && !n.visto) marcar("/api/buzon/notificaciones/visto", [n.id], 1);
         } catch (e) { aviso(esc(e.message), "error"); }

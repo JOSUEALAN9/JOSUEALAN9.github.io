@@ -1164,3 +1164,65 @@ dialog.fc-modal::backdrop { background: rgba(16, 27, 45, .5); backdrop-filter: b
 .fc-ic-tabla td:nth-child(3) { width: 96px; min-width: 96px; }
 .fc-ic-tabla td:nth-child(4), .fc-ic-tabla td:nth-child(5) { width: 19%; }
 .fc-ic-tabla td:nth-child(1), .fc-ic-tabla th:nth-child(1) { width: 1%; }
+
+/* Barras de pestañas: se deslizan de lado sin mostrar barra de desplazamiento (en Windows salían flechitas ▲▼) */
+.pestanas, .fc-vista, .fa-subtabs, .fa-pasos, .ficha-tabs, .xml-pestanas { overflow-y: hidden; scrollbar-width: none; }
+.pestanas::-webkit-scrollbar, .fc-vista::-webkit-scrollbar, .fa-subtabs::-webkit-scrollbar, .fa-pasos::-webkit-scrollbar,
+.ficha-tabs::-webkit-scrollbar, .xml-pestanas::-webkit-scrollbar { display: none; width: 0; height: 0; }
+
+/* ---------- documentos guardados (componente común) ---------- */
+.fc-docs-barra { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+.fc-docs-filtro { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; color: var(--texto-tenue); }
+.fc-docs-filtro select { font: inherit; font-size: 14px; font-weight: 600; color: var(--texto); border: 1px solid #d1d5db; border-radius: 10px; padding: 9px 12px; background: #fff; }
+.fc-docs-barra input[type=search] { flex: 1 1 240px; font: inherit; font-size: 14px; border: 1px solid #d1d5db; border-radius: 10px; padding: 10px 12px; }
+.fc-docs-barra input[type=search]:focus, .fc-docs-filtro select:focus { outline: none; border-color: var(--acento); box-shadow: 0 0 0 3px var(--acento-suave); }
+.fc-docs-nota { flex-basis: 100%; font-size: 12.5px; color: var(--texto-tenue); }
+.fc-docs-tabla-caja { border: 1px solid var(--linea); border-radius: 14px; overflow: auto; flex: 1; min-height: 0; }
+.fc-docs-tabla { width: 100%; border-collapse: collapse; font-size: 14px; }
+.fc-docs-tabla th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--texto-tenue); background: var(--papel); padding: 12px 14px; white-space: nowrap; position: sticky; top: 0; z-index: 1; }
+.fc-docs-tabla td { padding: 12px 14px; border-top: 1px solid #f1f5f9; white-space: nowrap; color: var(--texto); }
+.fc-docs-tabla tbody tr:hover td { background: #fafbfc; }
+.fc-docs-principal { font-weight: 700; }
+.fc-docs-check { width: 1%; padding-right: 4px !important; }
+.fc-docs-check input { width: 16px; height: 16px; accent-color: var(--acento); }
+.fc-docs-acc { width: 1%; text-align: right; }
+.fc-docs-btn { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--linea); background: #fff; border-radius: 9px; padding: 7px 12px; font: inherit; font-size: 13px; font-weight: 700; color: var(--texto); cursor: pointer; margin-left: 6px; }
+.fc-docs-btn:hover { border-color: var(--acento); color: var(--acento); background: var(--acento-suave); }
+.fc-docs-btn--icono { padding: 7px 9px; }
+.fc-docs-btn:disabled { opacity: .5; cursor: default; }
+.fc-docs-vacio { text-align: center; color: var(--texto-tenue); padding: 40px 16px !important; white-space: normal !important; }
+.fc-docs-cuenta { font-size: 13.5px; color: var(--texto-tenue); }
+.fc-modal--fija .fc-modal__cuerpo { min-height: 0; }
+
+/* ---------- progreso dentro de la misma tarjeta (sin tarjeta aparte) ---------- */
+.fc-avance { margin-top: 16px; border: 1px solid var(--linea); border-radius: 14px; padding: 16px 18px; background: var(--papel); }
+.fc-avance__fila { display: flex; align-items: center; gap: 12px; }
+.fc-avance__texto { flex: 1; font-size: 14px; font-weight: 600; color: var(--texto); }
+.fc-avance__giro { width: 20px; height: 20px; flex: none; border-radius: 50%; border: 3px solid var(--acento-suave); border-top-color: var(--acento); animation: fc-giro .8s linear infinite; }
+@keyframes fc-giro { to { transform: rotate(360deg); } }
+.fc-avance__barra { height: 6px; border-radius: 999px; background: #e5e7eb; overflow: hidden; margin-top: 12px; }
+.fc-avance__barra > div { height: 100%; width: 8%; background: var(--acento); border-radius: 999px; transition: width .6s ease; }
+.fc-avance__detener { border: 0; background: none; font: inherit; font-size: 13px; font-weight: 700; color: var(--texto-tenue); cursor: pointer; padding: 4px 0; }
+.fc-avance__detener:hover { color: #dc2626; }
+.fc-resultado { margin-top: 14px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; border-radius: 12px; padding: 13px 16px; font-size: 14px; }
+.fc-resultado--bien { background: #ecfdf3; border: 1px solid #a9e5c3; color: #05603a; }
+.fc-resultado--mal { background: #fffbf3; border: 1px solid #fcd9a6; color: #7a4a05; }
+.fc-resultado span { flex: 1 1 220px; }
+.fc-resultado button { border: 0; background: none; font: inherit; font-size: 14px; font-weight: 800; color: inherit; text-decoration: underline; cursor: pointer; padding: 0; }
+.fc-guardadas { display: inline-flex; align-items: center; gap: 8px; border: 1px solid var(--linea); background: #fff; border-radius: 10px; padding: 8px 14px; font: inherit; font-size: 13.5px; font-weight: 700; color: var(--texto); cursor: pointer; }
+.fc-guardadas:hover { border-color: var(--acento); color: var(--acento); }
+.fc-guardadas b { background: var(--acento-suave); color: var(--acento); border-radius: 999px; padding: 1px 8px; font-size: 12px; }
+@media (max-width: 640px) {
+    .fc-docs-tabla thead { display: none; }
+    .fc-docs-tabla, .fc-docs-tabla tbody { display: block; }
+    .fc-docs-tabla tr { display: grid; grid-template-columns: 26px minmax(0, 1fr) auto; column-gap: 10px; row-gap: 1px; padding: 12px; border-top: 1px solid #f1f5f9; align-items: center; }
+    .fc-docs-tabla tr:first-child { border-top: 0; }
+    .fc-docs-tabla td { border: 0 !important; padding: 0 !important; white-space: normal; grid-column: 2; font-size: 12.5px; color: var(--texto-tenue); }
+    .fc-docs-tabla td.fc-docs-check { grid-column: 1; grid-row: 1 / span 5; width: auto; }
+    .fc-docs-tabla td.fc-docs-principal { font-size: 14.5px; color: var(--texto); }
+    .fc-docs-tabla td.fc-docs-acc { grid-column: 3; grid-row: 1 / span 5; display: flex; flex-direction: column; gap: 6px; width: auto; }
+    .fc-docs-tabla td:nth-child(n+6):not(.fc-docs-acc) { display: none; }
+    .fc-docs-tabla td.fc-docs-vacio { grid-column: 1 / -1; }
+    .fc-docs-btn { margin-left: 0; justify-content: center; }
+    .fc-docs-tabla-caja { flex: none; }
+}

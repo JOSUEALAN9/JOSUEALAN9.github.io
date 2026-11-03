@@ -39,7 +39,8 @@
 .xml-filtros-sup select { min-width: 240px; font-size: 14px; font-weight: 600; text-transform: none; letter-spacing: 0; color: #0f172a;
   border: 1px solid #cbd5e1; border-radius: 10px; padding: 9px 10px; background: #fff; }
 
-.xml-pestanas { margin-bottom: 10px; overflow-x: auto; scrollbar-width: thin; }
+.xml-pestanas { margin-bottom: 10px; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; }
+.xml-pestanas::-webkit-scrollbar { display: none; }
 .xml-pestanas .pestana { flex: none; white-space: nowrap; }
 .pestana .xml-cuenta { color: #94a3b8; font-weight: 700; margin-left: 4px; }
 .pestana[disabled] { opacity: .4; cursor: default; }

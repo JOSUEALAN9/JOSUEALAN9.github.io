@@ -12,7 +12,6 @@
 
     var fEfirma   = document.getElementById("paso-efirma");
     var fOpciones = document.getElementById("paso-opciones");
-    var fProgreso = document.getElementById("paso-progreso");
     var btnBuscar = document.getElementById("btn-buscar");
 
     /* ---- Ejercicios: se generan del año en curso hacia atrás, para no
@@ -63,49 +62,66 @@
         // 12 caracteres = persona moral, 13 = persona física.
         document.getElementById("tipo-persona").value = quien.rfc.length === 13 ? "pf" : "pm";
         fOpciones.hidden = false;
+        document.getElementById("resultado").hidden = true;
         fOpciones.scrollIntoView({ behavior: "smooth", block: "nearest" });
         cargarAlmacen(quien.rfc);
     }
 
-    /* -------------------------------------------------- almacén */
+    /* -------------------------------------------------- guardadas (almacén) */
     var MESES = ["", "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+    var almacen = null;
 
-    async function cargarAlmacen(rfc, ejercicio) {
-        var caja = document.getElementById("almacen");
-        try {
-            var q = "?rfc=" + encodeURIComponent(rfc) + (ejercicio ? "&ejercicio=" + encodeURIComponent(ejercicio) : "");
-            var resp = await fetch(API + "/api/declaraciones/almacen" + q, { credentials: "include" });
-            if (!resp.ok) { caja.hidden = true; return; }
-            var a = await resp.json();
-            if (!elegido || elegido.rfc !== rfc) return;
-            caja.hidden = !a.acceso || !a.ejercicios.length;
-            if (caja.hidden) return;
-            var esc = Fiscontable.escapar;
-            document.getElementById("almacen-empresa").textContent = "· " + rfc;
-            var sel = document.getElementById("almacen-ejercicio");
-            sel.innerHTML = a.ejercicios.map(function (e) { return '<option value="' + esc(e) + '"' + (e === a.ejercicio ? " selected" : "") + ">" + esc(e) + "</option>"; }).join("");
-            document.getElementById("almacen-nota").textContent = a.documentos.length + " documento(s) guardados del " + a.ejercicio +
-                ". Se guardan un año; si tu suscripción sigue vigente, se quedan.";
-            document.getElementById("almacen-filas").innerHTML = a.documentos.map(function (d) {
-                return "<tr><td>" + esc(MESES[+d.mes] || d.mes || "") + "</td><td>" + esc(d.tipo_declaracion || "") + "</td><td>" + esc(d.documento) +
-                    "</td><td>" + esc(d.num_operacion) + "</td><td>" + esc(d.descargado_por || "") + "</td><td>" + esc((d.descargado_en || "").slice(0, 10)) +
-                    '</td><td><a href="' + API + "/api/declaraciones/almacen/archivo?id=" + d.id + '">PDF</a></td></tr>';
-            }).join("");
-        } catch (e) { caja.hidden = true; }
+    async function pedirAlmacen(rfc, ejercicio) {
+        var q = "?rfc=" + encodeURIComponent(rfc) + (ejercicio ? "&ejercicio=" + encodeURIComponent(ejercicio) : "");
+        var resp = await fetch(API + "/api/declaraciones/almacen" + q, { credentials: "include" });
+        if (!resp.ok) throw new Error(await leerError(resp));
+        return resp.json();
     }
 
-    document.getElementById("almacen-ejercicio").addEventListener("change", function () { if (elegido) cargarAlmacen(elegido.rfc, this.value); });
-    document.getElementById("almacen-zip").addEventListener("click", function () {
-        if (!elegido) return;
-        location.href = API + "/api/declaraciones/almacen/zip?rfc=" + encodeURIComponent(elegido.rfc) + "&ejercicio=" + encodeURIComponent(document.getElementById("almacen-ejercicio").value);
-    });
+    /* El almacén no se muestra solo: un botón con cuántas hay y la ventana con la tabla */
+    async function cargarAlmacen(rfc) {
+        var b = document.getElementById("btn-guardadas");
+        try {
+            var a = await pedirAlmacen(rfc);
+            if (!elegido || elegido.rfc !== rfc) return;
+            almacen = a;
+            b.hidden = !a.acceso || !a.ejercicios.length;
+            document.getElementById("n-guardadas").textContent = a.documentos.length;
+            b.title = a.documentos.length + " documento(s) del " + a.ejercicio;
+        } catch (e) { b.hidden = true; }
+    }
+
+    function abrirGuardadas() {
+        if (!elegido || !almacen) return;
+        var rfc = elegido.rfc;
+        Fiscontable.documentosGuardados({
+            titulo: "Declaraciones guardadas",
+            subtitulo: (elegido.alias ? elegido.alias + " · " : "") + rfc + ". Se guardan un año; si tu suscripción sigue vigente, se quedan.",
+            filtro: { etiqueta: "Ejercicio", valor: almacen.ejercicio, opciones: almacen.ejercicios.map(function (e) { return { valor: e, texto: e }; }) },
+            columnas: ["Mes", "Declaración", "Documento", "No. operación", "Descargó", "Fecha"],
+            nombreZip: "Declaraciones_" + rfc,
+            cargar: async function (ej) {
+                var a = await pedirAlmacen(rfc, ej);
+                return { nota: a.documentos.length + " documento(s) del " + a.ejercicio + ".",
+                         documentos: a.documentos.map(function (d) {
+                             var mes = MESES[+d.mes] || d.mes || "";
+                             return { id: d.id, nombre: d.nombre, titulo: d.documento + " · " + mes + " " + a.ejercicio + " · " + rfc,
+                                      url: API + "/api/declaraciones/almacen/archivo?id=" + d.id,
+                                      celdas: [mes, d.tipo_declaracion || "", d.documento, d.num_operacion || "", d.descargado_por || "", (d.descargado_en || "").slice(0, 10)] };
+                         }) };
+            },
+            zip: function (ids, ej) { return API + "/api/declaraciones/almacen/zip?rfc=" + encodeURIComponent(rfc) + "&ejercicio=" + encodeURIComponent(ej) + "&ids=" + ids.join(","); }
+        });
+    }
+    document.getElementById("btn-guardadas").addEventListener("click", abrirGuardadas);
 
     function alLimpiar() {
         elegido = null;
-        document.getElementById("almacen").hidden = true;
+        almacen = null;
+        document.getElementById("btn-guardadas").hidden = true;
+        document.getElementById("resultado").hidden = true;
         fEfirma.hidden = true;
         fOpciones.hidden = true;
-        fProgreso.hidden = true;
     }
 
     /* ------------------------------------------------ arranque */
@@ -171,16 +187,34 @@
 
     function liberarBoton() {
         btnBuscar.disabled = false;
+        btnBuscar.hidden = false;
         btnBuscar.textContent = "Buscar y descargar";
+        document.getElementById("avance").hidden = true;
     }
 
+    /* Mientras corre, el botón se cambia por el avance en la misma tarjeta */
+    var inicio = 0;
     function mostrarProgreso() {
-        fProgreso.hidden = false;
-        document.getElementById("giro").style.display = "";
+        inicio = Date.now();
+        btnBuscar.hidden = true;
+        document.getElementById("avance").hidden = false;
         document.getElementById("resultado").hidden = true;
         document.getElementById("btn-detener").hidden = false;
         document.getElementById("texto-progreso").textContent = "Arrancando…";
-        fProgreso.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        document.getElementById("barra-fill").style.width = "8%";
+    }
+
+    function resultado(tipo, texto, accion) {
+        var caja = document.getElementById("resultado");
+        caja.className = "fc-resultado fc-resultado--" + tipo;
+        caja.innerHTML = "<span>" + Fiscontable.escapar(texto) + "</span>";
+        if (accion) {
+            var b = document.createElement("button");
+            b.type = "button"; b.textContent = accion.texto;
+            b.addEventListener("click", function () { accion.hacer(b); });
+            caja.appendChild(b);
+        }
+        caja.hidden = false;
     }
 
     function vigilar(jobId) {
@@ -192,48 +226,27 @@
                 var t = await resp.json();
 
                 document.getElementById("texto-progreso").textContent = t.progreso || "Procesando…";
+                document.getElementById("barra-fill").style.width = Math.min(8 + (Date.now() - inicio) / 1500, 92) + "%";
 
                 if (t.estado === "procesando") return;
 
                 detenerSondeo();
-                document.getElementById("giro").style.display = "none";
-                document.getElementById("btn-detener").hidden = true;
                 liberarBoton();
                 Fiscontable.refrescarDescargas();
 
-                var caja = document.getElementById("resultado");
-                caja.hidden = false;
-
-                var almacenListo = elegido ? cargarAlmacen(elegido.rfc, document.getElementById("ejercicio").value) : Promise.resolve();
                 if (t.estado === "completado") {
-                    caja.innerHTML =
-                        '<div style="background:#ECFDF3;border:1px solid #A9E5C3;border-radius:10px;padding:13px;font-size:13.5px;color:#05603A">' +
-                        Fiscontable.escapar(t.progreso || "Listo.") + "</div>";
                     if (t.en_pc && t.en_pc.rutas && t.en_pc.rutas.length) {
-                        // Ya quedó en la PC del contador: no se vuelve a bajar solo (botón «Descargar aquí» por si lo quiere)
-                        caja.appendChild(Fiscontable.cajaEnPc(t.en_pc, function (b) { bajar(jobId, t.nombre_descarga, b, "Descargar aquí"); }));
+                        // Ya quedó en la PC del contador: no se vuelve a bajar solo
+                        resultado("bien", t.progreso || "Listo.");
+                        document.getElementById("resultado").appendChild(Fiscontable.cajaEnPc(t.en_pc, function (b) { bajar(jobId, t.nombre_descarga, b, "Descargar aquí"); }));
                     } else {
-                        // Un solo lugar para descargar: el almacén de abajo (por documento o todo en ZIP).
-                        // Si el almacén no aparece (sin acceso), aquí queda el botón.
-                        almacenListo.then(function () {
-                            if (!document.getElementById("almacen").hidden) {
-                                var ir = document.createElement("button");
-                                ir.type = "button"; ir.className = "fc-btn"; ir.style.marginTop = "12px";
-                                ir.textContent = "Ver en el almacén ↓";
-                                ir.addEventListener("click", function () { document.getElementById("almacen").scrollIntoView({ behavior: "smooth", block: "start" }); });
-                                caja.appendChild(ir);
-                            } else {
-                                var d = document.createElement("button");
-                                d.type = "button"; d.className = "boton-principal"; d.style.marginTop = "12px"; d.textContent = "Descargar";
-                                d.addEventListener("click", function () { bajar(jobId, t.nombre_descarga, d); });
-                                caja.appendChild(d);
-                            }
-                        });
+                        await (elegido ? cargarAlmacen(elegido.rfc) : Promise.resolve());
+                        // Un solo lugar para verlas y bajarlas: la ventana de guardadas (si no hay acceso, el ZIP del trabajo)
+                        if (!document.getElementById("btn-guardadas").hidden) resultado("bien", t.progreso || "Listo.", { texto: "Ver declaraciones", hacer: abrirGuardadas });
+                        else resultado("bien", t.progreso || "Listo.", { texto: "Descargar", hacer: function (b) { bajar(jobId, t.nombre_descarga, b); } });
                     }
                 } else {
-                    caja.innerHTML =
-                        '<div style="background:#FFFBF3;border:1px solid #FCD9A6;border-radius:10px;padding:13px;font-size:13.5px;color:#7A4A05">' +
-                        Fiscontable.escapar(t.mensaje_error || "No se pudo completar.") + "</div>";
+                    resultado("mal", t.mensaje_error || "No se pudo completar.");
                 }
             } catch (e) {
                 // Un tropiezo de red no mata el seguimiento: se reintenta.

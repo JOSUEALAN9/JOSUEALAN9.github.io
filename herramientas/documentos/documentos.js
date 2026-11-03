@@ -238,7 +238,7 @@
             var otros = Object.keys(p.datos || {}).filter(function (k) { return p.datos[k] !== p.titular; })
                 .map(function (k) { return esc(k) + ": " + esc(p.datos[k]); }).join("<br>");
             var acciones = "";
-            if (p.tiene_archivo) acciones += '<button type="button" class="dc-btn dc-btn--si" data-bajar="' + p.id + '">Descargar</button>';
+            if (p.tiene_archivo) acciones += '<button type="button" class="dc-btn" data-ver="' + p.id + '">Ver</button><button type="button" class="dc-btn dc-btn--si" data-bajar="' + p.id + '">Descargar</button>';
             if (p.resultado) acciones += '<button type="button" class="dc-btn" data-copiar="' + p.id + '">Copiar</button>';
             if (EN_CURSO.indexOf(p.estado) !== -1 && p.estado !== "enviando") acciones += '<button type="button" class="dc-btn" data-actualizar="' + p.id + '">Actualizar</button>';
             return "<tr><td>" + p.id + "<br><small>" + fecha(p.creado_en) + "</small></td>" +
@@ -287,6 +287,20 @@
         pintarSaldo();
         pintarPedidos();
         vigilar();
+    }
+
+    async function ver(id, boton) {
+        var p = E.datos.pedidos.filter(function (x) { return x.id === id; })[0];
+        boton.disabled = true;
+        try {
+            var r = await fetch(API + "/api/documentos/pedidos/" + id + "/archivo", { credentials: "include" });
+            if (!r.ok) throw new Error(await Fiscontable.leerError(r));
+            var blob = await r.blob();
+            var base = (p ? p.servicio : "Documento").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^A-Za-z0-9]+/g, "_").replace(/^_|_$/g, "");
+            if (/pdf/.test(blob.type)) Fiscontable.verPdf(blob, { titulo: (p ? p.servicio + " · " + p.titular : "Documento"), nombre: base + "_" + (p ? p.titular : id) + ".pdf" });
+            else window.open(URL.createObjectURL(blob), "_blank");       // imagen: en otra pestaña
+        } catch (e) { aviso(esc(e.message || "No se pudo abrir."), "error"); }
+        boton.disabled = false;
     }
 
     async function bajar(id, boton) {
@@ -350,6 +364,7 @@
             var b = e.target.closest("button");
             if (!b) return;
             if (b.dataset.bajar) bajar(Number(b.dataset.bajar), b);
+            if (b.dataset.ver) ver(Number(b.dataset.ver), b);
             else if (b.dataset.actualizar) actualizarUno(Number(b.dataset.actualizar), b);
             else if (b.dataset.copiar) {
                 var p = E.datos.pedidos.filter(function (x) { return x.id === Number(b.dataset.copiar); })[0];

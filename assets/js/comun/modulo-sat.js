@@ -183,9 +183,14 @@
               '<p class="ficha__nota">Se generó el ' + esc(fechaLarga(estado.cache.generado_en)) +
               ". Puedes bajar esa misma o pedir una nueva al SAT.</p>" +
               '<div class="botonera">' +
-                '<button type="button" class="boton-principal" id="btn-cache">Descargar la que ya tengo</button>' +
+                '<button type="button" class="boton-principal" id="btn-ver-cache">Ver</button>' +
+                '<button type="button" class="boton-secundario" id="btn-cache">Descargar</button>' +
                 '<button type="button" class="boton-secundario" id="btn-nueva">Pedir una nueva al SAT</button>' +
               "</div></div>");
+        $("btn-ver-cache").addEventListener("click", function () {
+            Fiscontable.verPdf(API + "/api/documentos/descargar?rfc=" + encodeURIComponent(elegido.rfc) + "&tipo=" + MODULO.tipo,
+                { titulo: MODULO.nombre.charAt(0).toUpperCase() + MODULO.nombre.slice(1) + " · " + elegido.rfc, nombre: MODULO.prefijoArchivo + "_" + elegido.rfc + ".pdf" });
+        });
 
         $("btn-cache").addEventListener("click", async function () {
             var b = this;
@@ -198,7 +203,7 @@
                 alerta("error", "No se pudo bajar el documento guardado. Prueba pidiendo uno nuevo.");
             } finally {
                 b.disabled = false;
-                b.textContent = "Descargar la que ya tengo";
+                b.textContent = "Descargar";
             }
         });
 
