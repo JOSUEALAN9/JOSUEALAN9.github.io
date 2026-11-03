@@ -335,6 +335,11 @@
         $("p-tc").value = cap.tipo_cambio || ""; F.tcManual = !!cap.tipo_cambio;
         $("p-fecha").value = "";
         F.notaFecha = "";
+        if (cap.fecha && !cap.fecha_original) {
+            var fp = new Date(cap.fecha.slice(0, 19)), minp = new Date(Date.now() - 71 * 3600000 + 10 * 60000);
+            if (!isNaN(fp) && fp >= minp && fp <= new Date()) { $("p-fecha").value = cap.fecha.slice(0, 16); F.notaFecha = "Fecha de la prefactura: se timbra con ella (el SAT la acepta hasta " + fechaCorta(new Date(fp.getTime() + 71 * 3600000 + 50 * 60000).toISOString()) + ")."; }
+            else if (!isNaN(fp)) { $("p-fecha").value = fechaLocal(minp); F.notaFecha = "La prefactura tenía fecha del " + fechaCorta(cap.fecha) + ", que el SAT ya no acepta: quedó la más antigua posible (72 horas). Bórrala para usar la de hoy."; }
+        }
         if (cap.fecha_original) {
             // La original dentro de las 72 horas: se queda su fecha; si es más vieja, la más antigua que el SAT acepta
             var orig = new Date(cap.fecha_original.slice(0, 19)), min = new Date(Date.now() - 71 * 3600000 + 10 * 60000);
@@ -1665,7 +1670,10 @@
             var r = await json("/api/facturacion/excel/conceptos", { method: "POST", body: cuerpo });
             F.xe = r;
             var lista = function (xs, clase) { return xs.length ? '<ul class="fa-xe-lista ' + clase + '">' + xs.map(function (x) { return "<li>" + esc(x) + "</li>"; }).join("") + "</ul>" : ""; };
-            caja.innerHTML = '<p class="fa-xe-ok">' + (r.conceptos.length ? "✓ " + r.conceptos.length + " concepto" + (r.conceptos.length === 1 ? "" : "s") + " listo" + (r.conceptos.length === 1 ? "" : "s") + " para agregar" : "No hay conceptos que agregar") + "</p>" +
+            var np = r.productos_nuevos || [];
+            caja.innerHTML = (np.length ? '<label class="fa-interruptor fa-conf-pref" style="margin-bottom:10px"><input type="checkbox" id="xe-guardar-prod" checked> Guardar en tu catálogo ' +
+                    np.filter(function (x) { return x.accion === "nuevo"; }).length + " producto(s) nuevo(s) y corregir " + np.filter(function (x) { return x.accion !== "nuevo"; }).length + " de la hoja «Productos nuevos»</label>" : "") +
+                '<p class="fa-xe-ok">' + (r.conceptos.length ? "✓ " + r.conceptos.length + " concepto" + (r.conceptos.length === 1 ? "" : "s") + " listo" + (r.conceptos.length === 1 ? "" : "s") + " para agregar" : "No hay conceptos que agregar") + "</p>" +
                 (r.avisos.length ? '<p class="fa-nota" style="margin-top:8px"><b>Entran, pero completa en la tabla:</b></p>' + lista(r.avisos, "fa-xe-aviso") : "") +
                 (r.errores.length ? '<p class="fa-nota" style="margin-top:8px"><b>Estos renglones no entraron:</b></p>' + lista(r.errores, "fa-xe-mal") : "");
             $("btn-xe-ok").disabled = !r.conceptos.length;
@@ -1673,8 +1681,18 @@
         } catch (e) { caja.innerHTML = '<p class="fa-error">' + esc(e.message) + "</p>"; }
     }
 
-    function agregarExcel() {
+    async function guardarAltasProductos(lista) {
+        if (!lista || !lista.length) return;
+        var r = await enviar("/api/facturacion/productos/lote", "POST", { rfc: F.emisor.rfc, productos: lista });
+        await cargarProductos();
+        if (r.errores.length) aviso("Productos: " + r.guardados + " guardados; " + r.errores.slice(0, 2).join(" · "), "alerta");
+    }
+
+    async function agregarExcel() {
         if (!F.xe || !F.xe.conceptos.length) return;
+        if ($("xe-guardar-prod") && $("xe-guardar-prod").checked) {
+            try { await guardarAltasProductos(F.xe.productos_nuevos); } catch (e) { aviso(e.message, "error"); }
+        }
         var nuevos = F.xe.conceptos.map(function (c) { return Object.assign(conceptoVacio(), c, { seis: !!c.seis_decimales, abierto: !c.clave_prod }); });
         var vacio = F.conceptos.length === 1 && !F.conceptos[0].descripcion && !num(F.conceptos[0].valor_unitario);
         F.conceptos = (vacio ? [] : F.conceptos).concat(nuevos);
@@ -1687,6 +1705,8 @@
         F.xm = null;
         ["xm-resumen", "xm-tabla", "xm-error"].forEach(function (id) { $(id).hidden = true; });
         $("btn-xm-ok").disabled = true; $("btn-xm-ok").textContent = "Guardar como prefacturas";
+        $("btn-xm-timbrar").disabled = true; $("btn-xm-timbrar").textContent = "Timbrar";
+        $("dlg-masiva").querySelector("[data-cerrar]").textContent = "Cancelar";
         $("dlg-masiva").showModal();
     }
 
@@ -1700,17 +1720,66 @@
             F.xm = r.facturas;
             var buenas = r.facturas.filter(function (f) { return !f.errores.length; });
             var total = buenas.reduce(function (a, f) { return a + (f.total || 0); }, 0);
+            F.xmAltas = { productos: r.productos_nuevos || [], clientes: r.clientes_nuevos || [] };
+            var cuenta = function (xs, que) { var n = xs.filter(function (x) { return x.accion === "nuevo"; }).length, c = xs.length - n; return (n ? n + " " + que + (n === 1 ? " nuevo" : "s nuevos") : "") + (n && c ? " y " : "") + (c ? c + " por corregir" : ""); };
+            var altas = [F.xmAltas.productos.length ? cuenta(F.xmAltas.productos, "producto") : "", F.xmAltas.clientes.length ? cuenta(F.xmAltas.clientes, "cliente") : ""].filter(Boolean);
             $("xm-resumen").innerHTML = "<b>" + r.facturas.length + " factura" + (r.facturas.length === 1 ? "" : "s") + " en el archivo:</b> " + buenas.length + " lista" + (buenas.length === 1 ? "" : "s") +
-                " (" + dinero(total) + ")" + (r.facturas.length - buenas.length ? " y " + (r.facturas.length - buenas.length) + " con algo que corregir en el Excel." : ".");
+                " (" + dinero(total) + ")" + (r.facturas.length - buenas.length ? " y " + (r.facturas.length - buenas.length) + " con algo que corregir en el Excel." : ".") +
+                (altas.length ? '<label class="fa-interruptor fa-conf-pref" style="margin-top:10px;display:flex"><input type="checkbox" id="xm-guardar-altas" checked> Guardar en tu catálogo y en sus clientes: ' + esc(altas.join(" · ")) + "</label>" : "") +
+                (r.errores_catalogo.length ? '<ul class="fa-xe-lista fa-xe-mal">' + r.errores_catalogo.map(function (x) { return "<li>" + esc(x) + "</li>"; }).join("") + "</ul>" : "");
             $("xm-filas").innerHTML = r.facturas.map(function (f) {
-                return '<tr class="' + (f.errores.length ? "fa-fila-mal" : "") + '"><td><b>' + esc(f.clave) + "</b></td><td>" + esc(f.cliente.nombre || "—") + "<small>" + esc(f.cliente.rfc || "") + "</small></td>" +
-                    '<td class="fa-num">' + f.conceptos + '</td><td class="fa-num">' + (f.total != null ? dinero(f.total) : "—") + "</td><td>" +
+                var fecha = f.captura.fecha ? fechaCorta(f.captura.fecha + ":00") + " " + f.captura.fecha.slice(11, 16) : "Al timbrar";
+                return '<tr data-xm="' + esc(f.clave) + '" class="' + (f.errores.length ? "fa-fila-mal" : "") + '"><td><b>' + esc(f.clave) + "</b></td><td>" + esc(f.cliente.nombre || "—") + "<small>" + esc(f.cliente.rfc || "") + "</small></td>" +
+                    "<td>" + esc(fecha) + (f.vence ? "<small>timbrar antes del " + esc(fechaCorta(f.vence + ":00") + " " + f.vence.slice(11, 16)) + "</small>" : "") + "</td>" +
+                    '<td class="fa-num">' + f.conceptos + '</td><td class="fa-num">' + (f.total != null ? dinero(f.total) : "—") + "</td><td data-estado>" +
                     (f.errores.length ? '<span class="fa-estado-mal">' + f.errores.map(esc).join("<br>") + "</span>" : '<span class="fa-estado-ok">✓ Lista</span>') + "</td></tr>";
             }).join("");
             $("xm-tabla").hidden = false;
-            $("btn-xm-ok").disabled = !buenas.length;
-            $("btn-xm-ok").textContent = buenas.length ? "Guardar " + buenas.length + " como prefactura" + (buenas.length === 1 ? "" : "s") : "Guardar como prefacturas";
+            $("btn-xm-ok").disabled = !buenas.length; $("btn-xm-timbrar").disabled = !buenas.length;
+            $("btn-xm-ok").textContent = buenas.length ? "Solo guardar como prefactura" + (buenas.length === 1 ? "" : "s") : "Guardar como prefacturas";
+            $("btn-xm-timbrar").textContent = buenas.length ? "Timbrar " + buenas.length + " factura" + (buenas.length === 1 ? "" : "s") : "Timbrar";
         } catch (e) { $("xm-resumen").hidden = true; $("xm-error").textContent = e.message; $("xm-error").hidden = false; }
+    }
+
+    async function guardarAltasExcel() {
+        if (!$("xm-guardar-altas") || !$("xm-guardar-altas").checked || !F.xmAltas) return;
+        await guardarAltasProductos(F.xmAltas.productos);
+        if (F.xmAltas.clientes.length) { await enviar("/api/facturacion/receptores/lote", "POST", { rfc: F.emisor.rfc, clientes: F.xmAltas.clientes }); cargarReceptores(); }
+        F.xmAltas = null;
+    }
+
+    /* Timbrar de una vez las que estén bien, una por una (cada una con su clave de envío: el mismo Excel no se timbra
+       dos veces). La que falle se queda como prefactura con el motivo. */
+    async function timbrarMasiva() {
+        var buenas = (F.xm || []).filter(function (f) { return !f.errores.length; });
+        if (!buenas.length) return;
+        var total = buenas.reduce(function (a, f) { return a + (f.total || 0); }, 0);
+        if (!confirm("¿Timbrar " + buenas.length + " factura" + (buenas.length === 1 ? "" : "s") + " por " + dinero(total) + "?" +
+                     (F.cfg.produccion ? "\n\nSe mandan al SAT y gastan " + buenas.length + " timbre" + (buenas.length === 1 ? "" : "s") + " de la empresa." : "\n\nModo de pruebas: no gasta timbres.") +
+                     "\nLas que fallen quedan como prefactura.")) return;
+        var bT = $("btn-xm-timbrar"), bG = $("btn-xm-ok");
+        bT.disabled = true; bG.disabled = true; F.xmCorriendo = true;
+        try { await guardarAltasExcel(); } catch (e) { aviso(e.message, "error"); }
+        var bien = 0, mal = 0;
+        for (var i = 0; i < buenas.length; i++) {
+            var f = buenas[i], celda = document.querySelector('[data-xm="' + CSS.escape(f.clave) + '"] [data-estado]');
+            bT.textContent = "Timbrando " + (i + 1) + " de " + buenas.length + "…";
+            if (celda) celda.innerHTML = '<span class="fa-nota">Timbrando…</span>';
+            try {
+                var r = await enviar("/api/facturacion/timbrar", "POST", { rfc: F.emisor.rfc, captura: Object.assign({}, f.captura, { confirmar_duplicado: true }) });
+                bien++; f.errores = ["timbrada"];
+                if (celda) celda.innerHTML = '<span class="fa-estado-ok">✓ ' + esc((r.serie ? r.serie + "-" : "") + r.folio) + (r.repetido ? " (ya estaba)" : "") + "</span>";
+            } catch (e) {
+                mal++; f.errores = [e.message];
+                try { await enviar("/api/facturacion/borradores", "POST", { rfc: F.emisor.rfc, nombre: "Excel · " + f.clave + " · " + (f.cliente.nombre || f.cliente.rfc), captura: f.captura, total: f.total }); } catch (e2) { /* se ve en la tabla */ }
+                if (celda) celda.innerHTML = '<span class="fa-estado-mal">' + esc(e.message) + "<br><b>Quedó como prefactura.</b></span>";
+            }
+        }
+        F.xmCorriendo = false;
+        bT.textContent = "Listo"; $("dlg-masiva").querySelector("[data-cerrar]").textContent = "Cerrar";
+        $("xm-resumen").innerHTML = "<b>Listo:</b> " + bien + " timbrada" + (bien === 1 ? "" : "s") + (mal ? " y " + mal + " con error (quedaron como prefactura)." : ".") + " Ya están en Emitidas.";
+        cargarEmitidas(); cargarBorradores(); cargarRecurrentes();
+        if (F.cfg.produccion) json("/api/facturacion/config").then(function (c) { F.cfg.empresas = c.empresas; F.emisor = c.empresas.filter(function (x) { return x.rfc === F.emisor.rfc; })[0] || F.emisor; pintarEmisor(); }).catch(function () {});
     }
 
     async function guardarMasiva() {
@@ -1718,6 +1787,7 @@
         if (!buenas.length) return;
         var b = $("btn-xm-ok"); b.disabled = true; b.textContent = "Guardando…";
         try {
+            await guardarAltasExcel();
             var r = await enviar("/api/facturacion/excel/masiva/guardar", "POST", { rfc: F.emisor.rfc, facturas: buenas.map(function (f) { return { clave: f.clave, captura: f.captura, total: f.total }; }) });
             $("dlg-masiva").close();
             await cargarBorradores(); pintarBorradores();
@@ -2058,6 +2128,7 @@
         $("btn-xm-plantilla").addEventListener("click", function () { bajarPlantilla("/api/facturacion/excel/plantilla-masiva", this); });
         zonaArchivo($("xm-zona"), $("xm-archivo"), leerMasiva);
         $("btn-xm-ok").addEventListener("click", guardarMasiva);
+        $("btn-xm-timbrar").addEventListener("click", timbrarMasiva);
         $("c-pref-dias").addEventListener("change", async function () {
             var v = +this.value;
             try { await enviar("/api/facturacion/preferencias", "PUT", { prefacturas_dias: v }); F.cfg.prefacturas_dias = v; $("msj-pref").textContent = "✓ Guardado. Al timbrar te lo pregunta con esto ya marcado."; }
