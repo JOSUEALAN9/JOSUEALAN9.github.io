@@ -5,14 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Facturar | Fiscontable</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611022330">
-    <link rel="stylesheet" href="/herramientas/facturar/facturar.css?v=202611022330">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611030130">
+    <link rel="stylesheet" href="/herramientas/facturar/facturar.css?v=202611030130">
 </head>
 <body class="min-h-screen flex flex-col">
 
 <div id="app-header" data-modulo="facturar" data-titulo="Facturar" data-migas="Herramientas|/herramientas/"></div>
-<script src="/assets/js/nucleo.js?v=202611022330"></script>
-<script src="/assets/js/barra.js?v=202611022330"></script>
+<script src="/assets/js/nucleo.js?v=202611030130"></script>
+<script src="/assets/js/barra.js?v=202611030130"></script>
 
 <main class="flex-grow w-full mod-pagina fa-pagina">
     <div class="mod-cabeza">
@@ -25,7 +25,7 @@
             </div>
         </div>
         <div class="mod-cabeza__acciones">
-            <span id="chip-timbres" class="fa-chip" hidden></span>
+            <button type="button" id="chip-timbres" class="fa-chip fa-chip--boton" title="Ver mis timbres">Timbres</button>
             <span id="chip-modo" class="fa-chip fa-chip--prueba" hidden title="Se timbra con el RFC de prueba del SAT: no gasta timbres ni tiene validez fiscal">Modo de pruebas</span>
         </div>
     </div>
@@ -41,6 +41,13 @@
         <div id="falta-config" class="fa-aviso fa-aviso--alerta" hidden></div>
         <div class="fa-layout">
             <div class="fa-columna">
+                <div class="fa-cargar">
+                    <button type="button" id="btn-ver-borradores" class="fa-btn fa-btn--suave">Prefacturas <span id="n-borradores" class="fa-contador" hidden></span></button>
+                    <button type="button" id="btn-copiar" class="fa-btn fa-btn--suave">Copiar otra factura</button>
+                    <label class="fa-btn fa-btn--suave fa-subir">Subir XML para copiar<input type="file" id="subir-xml" accept=".xml,text/xml" hidden></label>
+                    <button type="button" id="btn-limpiar" class="fa-link">Empezar de cero</button>
+                    <span id="estado-borrador" class="fa-nota"></span>
+                </div>
                 <div class="fa-caja">
                     <div class="fa-tipo" role="radiogroup" aria-label="Tipo de comprobante">
                         <button type="button" data-tipo="I" aria-pressed="true"><b>Factura</b><small>Ingreso</small></button>
@@ -51,11 +58,17 @@
                 <div class="fa-caja">
                     <div class="fa-caja__cabeza">
                         <h2>Cliente</h2>
-                        <button type="button" id="btn-publico" class="fa-link">Público en general</button>
+                        <div class="fa-fila-links">
+                            <label class="fa-link fa-subir">Leer su constancia (PDF)<input type="file" id="r-constancia" accept="application/pdf,.pdf" hidden></label>
+                            <button type="button" id="btn-publico" class="fa-link">Público en general</button>
+                        </div>
                     </div>
+                    <label class="fa-campo fa-buscar-cliente"><span>Buscar en sus clientes</span>
+                        <input id="r-buscar" list="lista-receptores" autocomplete="off" placeholder="Nombre o RFC de un cliente guardado…"></label>
+                    <p id="r-aviso" class="fa-nota" hidden></p>
                     <div class="fa-rejilla">
                         <label class="fa-campo fa-c2"><span>RFC</span>
-                            <input id="r-rfc" list="lista-receptores" maxlength="13" autocomplete="off" placeholder="XAXX010101000" class="fa-mayus"></label>
+                            <input id="r-rfc" maxlength="13" autocomplete="off" placeholder="XAXX010101000" class="fa-mayus"></label>
                         <label class="fa-campo fa-c4"><span>Nombre o razón social <i>(como en su constancia, sin S.A. de C.V.)</i></span>
                             <input id="r-nombre" maxlength="254" class="fa-mayus"></label>
                         <label class="fa-campo fa-c1"><span>C.P. fiscal</span>
@@ -63,6 +76,7 @@
                         <label class="fa-campo fa-c3"><span>Régimen fiscal</span><select id="r-regimen"></select></label>
                         <label class="fa-campo fa-c2"><span>Uso del CFDI</span><select id="r-uso"></select></label>
                     </div>
+                    <label class="fa-interruptor fa-guardar-cliente"><input type="checkbox" id="r-guardar" checked> Guardarlo en sus clientes al timbrar</label>
                     <datalist id="lista-receptores"></datalist>
                     <div id="caja-global" class="fa-global" hidden>
                         <p class="fa-nota"><b>Factura global (público en general):</b> el SAT pide el periodo de las ventas que ampara.</p>
@@ -85,12 +99,16 @@
                 </div>
 
                 <div class="fa-caja">
-                    <div class="fa-caja__cabeza"><h2>Pago</h2></div>
+                    <div class="fa-caja__cabeza"><h2>Pago, moneda y fecha</h2></div>
                     <div class="fa-rejilla">
                         <label class="fa-campo fa-c3"><span>Método de pago</span><select id="p-metodo"></select></label>
                         <label class="fa-campo fa-c3"><span>Forma de pago</span><select id="p-forma"></select></label>
+                        <label class="fa-campo fa-c2"><span>Moneda</span><select id="p-moneda"></select></label>
+                        <label class="fa-campo fa-c2" id="caja-tc" hidden><span>Tipo de cambio</span><input id="p-tc" inputmode="decimal" placeholder="18.8148"></label>
+                        <label class="fa-campo fa-c2"><span>Fecha de emisión</span><input id="p-fecha" type="datetime-local" step="60"></label>
                         <label class="fa-campo fa-c6"><span>Condiciones de pago <i>(opcional)</i></span><input id="p-condiciones" maxlength="200" placeholder="Por ejemplo: Contado, 30 días"></label>
                     </div>
+                    <p id="p-nota" class="fa-nota" style="margin-top:8px"></p>
                 </div>
 
                 <div class="fa-caja">
@@ -100,6 +118,11 @@
                     </div>
                     <div id="conceptos"></div>
                     <button type="button" id="btn-concepto" class="fa-btn fa-btn--suave">+ Agregar concepto</button>
+                </div>
+
+                <div class="fa-caja">
+                    <div class="fa-caja__cabeza"><h2>Notas en el PDF <i class="fa-opcional">(opcional, no van en el XML)</i></h2></div>
+                    <textarea id="p-notas" class="fa-texto" maxlength="600" rows="2" placeholder="Por ejemplo: datos de la cuenta para el pago, número de pedido…"></textarea>
                 </div>
             </div>
 
@@ -116,6 +139,10 @@
                     <p id="t-letra" class="fa-letra"></p>
                     <p id="t-folio" class="fa-nota"></p>
                     <button type="button" id="btn-timbrar" class="fa-btn fa-btn--principal fa-ancho">Timbrar factura</button>
+                    <div class="fa-dos-botones">
+                        <button type="button" id="btn-vista" class="fa-btn fa-btn--suave" title="Pasa por las mismas revisiones que al timbrar, sin gastar timbre">Vista previa PDF</button>
+                        <button type="button" id="btn-borrador" class="fa-btn fa-btn--suave">Guardar prefactura</button>
+                    </div>
                     <p id="t-error" class="fa-error" hidden></p>
                 </div>
             </aside>
@@ -151,6 +178,18 @@
                     <label class="fa-campo fa-c1"><span>Folio siguiente</span><input id="c-folio-e" type="number" min="1"></label>
                 </div>
                 <div class="fa-acciones"><button type="button" id="btn-guardar-config" class="fa-btn fa-btn--principal">Guardar</button><span id="msj-config" class="fa-nota"></span></div>
+                <div class="fa-logo">
+                    <div class="fa-logo__vista" id="c-logo-vista"><span>Sin logo</span></div>
+                    <div>
+                        <p class="fa-campo-titulo">Logo en el PDF <i>(opcional)</i></p>
+                        <p class="fa-nota">PNG o JPG. Sale arriba, a la izquierda; si no subes uno, el PDF va sin logo.</p>
+                        <div class="fa-acciones" style="margin-top:6px">
+                            <label class="fa-btn fa-btn--suave fa-subir">Subir logo<input type="file" id="c-logo" accept="image/png,image/jpeg" hidden></label>
+                            <button type="button" id="btn-quitar-logo" class="fa-link fa-link--rojo" hidden>Quitar</button>
+                            <span id="msj-logo" class="fa-nota"></span>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <div class="fa-caja">
@@ -212,7 +251,7 @@
     </div>
     <div class="fa-dialogo__pie">
         <button type="button" id="listo-xml" class="fa-btn fa-btn--suave">Descargar XML</button>
-        <button type="button" id="listo-pdf" class="fa-btn fa-btn--suave">Ver e imprimir PDF</button>
+        <button type="button" id="listo-pdf" class="fa-btn fa-btn--suave">Descargar PDF</button>
         <button type="button" id="listo-otra" class="fa-btn fa-btn--principal">Otra factura</button>
     </div>
 </dialog>
@@ -232,16 +271,53 @@
     </div>
 </dialog>
 
-<!-- Representación impresa (lo que sale al imprimir / guardar PDF) -->
-<dialog id="dlg-pdf" class="fa-dialogo fa-dialogo--pdf">
-    <div class="fa-dialogo__pie fa-solo-pantalla">
-        <span class="fa-nota">En la ventana de impresión elige «Guardar como PDF».</span>
-        <button type="button" data-cerrar class="fa-btn fa-btn--suave">Cerrar</button>
-        <button type="button" id="btn-imprimir" class="fa-btn fa-btn--principal">Imprimir / Guardar PDF</button>
+<!-- Vista previa (PDF sin validez) -->
+<dialog id="dlg-vista" class="fa-dialogo fa-dialogo--pdf">
+    <div class="fa-dialogo__pie">
+        <span class="fa-nota" style="margin-right:auto">Vista previa: pasó las mismas revisiones que al timbrar. No gasta timbre ni tiene validez fiscal.</span>
+        <button type="button" id="vista-bajar" class="fa-btn fa-btn--suave">Descargar</button>
+        <button type="button" data-cerrar class="fa-btn fa-btn--principal">Cerrar</button>
     </div>
-    <div id="impresion" class="fa-impresion"></div>
+    <iframe id="vista-marco" class="fa-marco" title="Vista previa del PDF"></iframe>
 </dialog>
 
-<script src="/herramientas/facturar/facturar.js?v=202611022330"></script>
+<!-- Prefacturas -->
+<dialog id="dlg-borradores" class="fa-dialogo fa-dialogo--ancho">
+    <div class="fa-dialogo__cuerpo">
+        <h2>Prefacturas de esta empresa</h2>
+        <p class="fa-nota">Facturas a medio hacer o que se repiten (igualas, rentas…). Ábrela, revisa y timbra; la prefactura se queda para la próxima.</p>
+        <div id="lista-borradores" class="fa-lista"></div>
+    </div>
+    <div class="fa-dialogo__pie"><button type="button" data-cerrar class="fa-btn fa-btn--suave">Cerrar</button></div>
+</dialog>
+
+<!-- Copiar otra factura -->
+<dialog id="dlg-copiar" class="fa-dialogo fa-dialogo--ancho">
+    <div class="fa-dialogo__cuerpo">
+        <h2>Copiar otra factura</h2>
+        <p class="fa-nota">Se copian el cliente, el pago y los conceptos para timbrar una nueva igual. Puede ser una emitida aquí o cualquier CFDI de Administración de XML de esta empresa (emitido o recibido).</p>
+        <div class="fa-tipo fa-tipo--chico" role="tablist">
+            <button type="button" data-origen="emitidas" aria-pressed="true"><b>Emitidas aquí</b></button>
+            <button type="button" data-origen="biblioteca" aria-pressed="false"><b>Administración de XML</b></button>
+        </div>
+        <input type="search" id="copiar-buscar" class="fa-buscar" placeholder="Buscar por cliente, RFC o folio…" autocomplete="off">
+        <div id="lista-copiar" class="fa-lista"></div>
+    </div>
+    <div class="fa-dialogo__pie"><button type="button" data-cerrar class="fa-btn fa-btn--suave">Cerrar</button></div>
+</dialog>
+
+<!-- Mis timbres -->
+<dialog id="dlg-timbres" class="fa-dialogo fa-dialogo--ancho">
+    <div class="fa-dialogo__cuerpo">
+        <h2>Mis timbres</h2>
+        <div id="timbres-cuerpo"><p class="fa-nota">Cargando…</p></div>
+    </div>
+    <div class="fa-dialogo__pie">
+        <button type="button" data-ir="config" data-cerrar class="fa-btn fa-btn--suave">Repartir en Configuración</button>
+        <button type="button" data-cerrar class="fa-btn fa-btn--principal">Cerrar</button>
+    </div>
+</dialog>
+
+<script src="/herramientas/facturar/facturar.js?v=202611030130"></script>
 </body>
 </html>

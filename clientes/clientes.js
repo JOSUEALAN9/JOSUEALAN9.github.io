@@ -504,6 +504,7 @@ let fichaActual = "general";
 function ponerFicha(nombre) {
     if (nombre === "obligaciones" && document.getElementById("tab-obligaciones").hidden) nombre = "general";
     if (nombre === "xml" && document.getElementById("tab-xml").hidden) nombre = "general";
+    if (nombre === "receptores" && document.getElementById("tab-receptores").hidden) nombre = "general";
     fichaActual = nombre;
     document.querySelectorAll("[data-ficha]").forEach(b => b.setAttribute("aria-selected", String(b.dataset.ficha === nombre)));
     document.querySelectorAll("#modal-editar-cliente [data-panel]").forEach(p => { p.hidden = p.dataset.panel !== nombre; });
@@ -552,6 +553,7 @@ function abrirModalEditar(rfc, ficha) {
     document.getElementById("editar-dato-alta").textContent = cliente.creado_en ? new Date(cliente.creado_en + "Z").toLocaleDateString("es-MX", { day: "numeric", month: "long", year: "numeric" }) : "—";
     pintarCiec(cliente);
     pintarCsd(cliente);
+    pintarReceptores(cliente);
     document.getElementById("editar-cer").value = "";
     document.getElementById("editar-key").value = "";
     document.getElementById("editar-password").value = "";
@@ -804,6 +806,123 @@ async function pintarCsd(cliente) {
     document.getElementById("csd-form").classList.toggle("hidden", !!em.csd);
     document.getElementById("btn-quitar-csd").hidden = !em.csd;
 }
+
+/* Sus clientes: a quién le factura esta empresa (los mismos que se eligen en Facturar) */
+let receptoresFicha = [];
+let editandoReceptor = null;
+async function pintarReceptores(cliente) {
+    const tab = document.getElementById("tab-receptores");
+    tab.hidden = !conFacturar;
+    document.getElementById("form-receptor").hidden = true;
+    document.getElementById("rec-buscar").value = "";
+    if (!conFacturar) return;
+    const lista = document.getElementById("lista-receptores-ficha");
+    lista.innerHTML = '<p class="text-xs text-slate-400">Cargando…</p>';
+    try {
+        if (!factCfg) {
+            const r = await fetch(`${API_URL}/api/facturacion/config`, { credentials: "include" });
+            if (!r.ok) throw new Error(await Fiscontable.leerError(r));
+            factCfg = await r.json();
+        }
+        const r = await fetch(`${API_URL}/api/facturacion/receptores?rfc=${encodeURIComponent(cliente.rfc)}`, { credentials: "include" });
+        if (!r.ok) throw new Error(await Fiscontable.leerError(r));
+        receptoresFicha = await r.json();
+    } catch (e) { lista.innerHTML = `<p class="text-xs text-red-600">${esc(e.message)}</p>`; return; }
+    if (rfcEnEdicion !== cliente.rfc) return;
+    const opc = (mapa, vacio) => `<option value="">${vacio}</option>` + Object.keys(mapa).map(k => `<option value="${esc(k)}">${esc(k + " · " + mapa[k])}</option>`).join("");
+    document.getElementById("rec-regimen").innerHTML = opc(factCfg.catalogos.regimenes, "Elige…");
+    document.getElementById("rec-uso").innerHTML = opc(factCfg.catalogos.usos, "Sin definir");
+    listarReceptores();
+}
+
+function listarReceptores() {
+    const q = sinAcentos(document.getElementById("rec-buscar").value.trim());
+    const cat = factCfg ? factCfg.catalogos.regimenes : {};
+    const filas = receptoresFicha.filter(r => !q || sinAcentos(r.nombre + " " + r.rfc).includes(q));
+    document.getElementById("lista-receptores-ficha").innerHTML = filas.length ? filas.map(r => `
+        <div class="ficha-caja flex items-center gap-3" style="padding:10px 12px">
+            <div class="min-w-0 flex-1"><p class="text-sm font-bold text-slate-800 truncate">${esc(r.nombre)}</p>
+                <p class="text-xs text-slate-500"><span class="font-mono">${esc(r.rfc)}</span>${r.cp ? " · C.P. " + esc(r.cp) : ""}${r.regimen ? " · " + esc(r.regimen + " " + (cat[r.regimen] || "")) : ""}${r.correo ? " · " + esc(r.correo) : ""}</p></div>
+            <button type="button" class="text-xs font-bold text-violet-700 hover:underline" data-rec-editar="${esc(r.rfc)}">Editar</button>
+            <button type="button" class="text-xs font-bold text-red-600 hover:underline" data-rec-quitar="${esc(r.rfc)}">Quitar</button>
+        </div>`).join("") : `<p class="text-xs text-slate-400 text-center py-4">${receptoresFicha.length ? "Nada coincide." : "Todavía no hay clientes. Agrégalos aquí o se guardan solos al timbrar."}</p>`;
+}
+
+function abrirFormReceptor(r) {
+    editandoReceptor = r ? r.rfc : null;
+    document.getElementById("form-receptor-titulo").textContent = r ? "Editar cliente" : "Nuevo cliente";
+    document.getElementById("rec-rfc").value = r ? r.rfc : "";
+    document.getElementById("rec-rfc").disabled = !!r;
+    document.getElementById("rec-nombre").value = r ? r.nombre : "";
+    document.getElementById("rec-cp").value = r && r.cp || "";
+    document.getElementById("rec-regimen").value = r && r.regimen || "";
+    document.getElementById("rec-uso").value = r && r.uso || "";
+    document.getElementById("rec-correo").value = r && r.correo || "";
+    document.getElementById("rec-mensaje").classList.add("hidden");
+    document.getElementById("form-receptor").hidden = false;
+    document.getElementById(r ? "rec-nombre" : "rec-rfc").focus();
+}
+
+function mensajeReceptor(ok, texto) {
+    const p = document.getElementById("rec-mensaje");
+    p.textContent = texto; p.className = "text-xs font-semibold " + (ok ? "text-emerald-700" : "text-red-600");
+}
+
+async function guardarReceptor() {
+    const val = id => document.getElementById(id).value.trim();
+    try {
+        const r = await fetch(`${API_URL}/api/facturacion/receptores`, {
+            method: "PUT", credentials: "include", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ rfc_emisor: rfcEnEdicion, rfc: val("rec-rfc").toUpperCase(), nombre: val("rec-nombre"), cp: val("rec-cp") || null,
+                                   regimen: val("rec-regimen") || null, uso: val("rec-uso") || null, correo: val("rec-correo") || null })
+        });
+        if (!r.ok) throw new Error(await Fiscontable.leerError(r));
+        const guardado = await r.json();
+        receptoresFicha = receptoresFicha.filter(x => x.rfc !== guardado.rfc).concat([guardado]).sort((a, b) => a.nombre.localeCompare(b.nombre));
+        document.getElementById("form-receptor").hidden = true;
+        listarReceptores();
+    } catch (e) { mensajeReceptor(false, e.message); }
+}
+
+async function leerConstanciaReceptor(archivo) {
+    if (!archivo) return;
+    mensajeReceptor(true, "Leyendo la constancia…");
+    try {
+        const cuerpo = new FormData(); cuerpo.append("archivo", archivo);
+        const r = await fetch(`${API_URL}/api/facturacion/leer-constancia`, { method: "POST", credentials: "include", body: cuerpo });
+        if (!r.ok) throw new Error(await Fiscontable.leerError(r));
+        const d = await r.json();
+        if (!editandoReceptor) document.getElementById("rec-rfc").value = d.rfc;
+        else if (d.rfc !== editandoReceptor) throw new Error(`Esa constancia es de ${d.rfc}, no de ${editandoReceptor}.`);
+        if (d.nombre) document.getElementById("rec-nombre").value = d.nombre;
+        if (d.cp) document.getElementById("rec-cp").value = d.cp;
+        if (d.regimenes.length) document.getElementById("rec-regimen").value = d.regimenes[0];
+        mensajeReceptor(true, d.regimenes.length > 1 ? `✓ Leída. Tiene varios regímenes (${d.regimenes.join(", ")}): elige el que le corresponda.` : "✓ Leída: revisa y guarda.");
+    } catch (e) { mensajeReceptor(false, e.message); }
+    document.getElementById("rec-constancia").value = "";
+}
+
+async function quitarReceptor(rfc) {
+    if (!confirm(`¿Quitar a ${rfc} de sus clientes?`)) return;
+    try {
+        const r = await fetch(`${API_URL}/api/facturacion/receptores/${encodeURIComponent(rfcEnEdicion)}/${encodeURIComponent(rfc)}`, { method: "DELETE", credentials: "include" });
+        if (!r.ok) throw new Error(await Fiscontable.leerError(r));
+        receptoresFicha = receptoresFicha.filter(x => x.rfc !== rfc);
+        listarReceptores();
+    } catch (e) { alert(e.message); }
+}
+
+document.addEventListener("click", (e) => {
+    if (e.target.closest("#btn-nuevo-receptor")) { abrirFormReceptor(null); return; }
+    if (e.target.closest("#btn-cancelar-receptor")) { document.getElementById("form-receptor").hidden = true; return; }
+    if (e.target.closest("#btn-guardar-receptor")) { guardarReceptor(); return; }
+    const ed = e.target.closest("[data-rec-editar]");
+    if (ed) { abrirFormReceptor(receptoresFicha.find(x => x.rfc === ed.dataset.recEditar)); return; }
+    const qu = e.target.closest("[data-rec-quitar]");
+    if (qu) quitarReceptor(qu.dataset.recQuitar);
+});
+document.addEventListener("input", (e) => { if (e.target && e.target.id === "rec-buscar") listarReceptores(); });
+document.addEventListener("change", (e) => { if (e.target && e.target.id === "rec-constancia") leerConstanciaReceptor(e.target.files[0]); });
 
 function mensajeCsd(ok, texto) {
     const p = document.getElementById("editar-mensaje-csd");

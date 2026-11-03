@@ -5,7 +5,10 @@
  *   Nueva factura  cliente, pago, conceptos y totales en vivo; antes de timbrar el servidor lo revisa
  *                  (sin gastar timbre) y se confirma con el resumen.
  *   Emitidas       sus facturas y notas de crédito: XML, PDF (representación impresa) y cancelar.
- *   Configuración  régimen, C.P., series y folios, el CSD (sello digital) y sus timbres.
+ *   Configuración  régimen, C.P., series y folios, logo, el CSD (sello digital) y sus timbres.
+ * Además: sus clientes guardados (y leer su constancia), prefacturas, copiar otra factura (emitida aquí, de
+ * Administración de XML o subiendo el XML), fecha de emisión, dólares con su tipo de cambio y la vista previa en PDF.
+ * El PDF lo arma el servidor (el mismo formato que Administración de XML).
  * Los totales se calculan igual que en el servidor (cada importe redondeado a centavos).
  */
 (function () {
@@ -14,7 +17,8 @@
     var esc = Fiscontable.escapar;
     var $ = function (id) { return document.getElementById(id); };
 
-    var F = { empresa: null, cfg: null, emisor: null, tipo: "I", conceptos: [], emitidas: [], detalles: {}, cancelando: null, ultimo: null };
+    var F = { empresa: null, cfg: null, emisor: null, tipo: "I", conceptos: [], emitidas: [], detalles: {}, cancelando: null, ultimo: null,
+              receptores: [], borradores: [], borradorId: null, tcManual: false, origen: "emitidas", vistaUrl: null, vistaNombre: "" };
 
     async function api(ruta, opciones) {
         var resp = await fetch(API + ruta, Object.assign({ credentials: "include" }, opciones || {}));
@@ -40,6 +44,11 @@
             return '<option value="' + esc(k) + '"' + (k === actual ? " selected" : "") + ">" + esc(conClave === false ? mapa[k] : k + " · " + mapa[k]) + "</option>";
         }).join("");
     }
+    function bajarRespuesta(resp, nombre) {
+        var m = /filename="?([^";]+)"?/i.exec(resp.headers.get("Content-Disposition") || "");
+        return resp.blob().then(function (b) { Fiscontable.guardarArchivo(b, m ? m[1] : nombre); });
+    }
+    function hoyLocal() { var d = new Date(); return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10); }
     function fechaCorta(iso) {
         if (!iso) return "";
         var d = new Date(iso.length <= 19 ? iso : iso);
@@ -58,7 +67,7 @@
         if (r) t += (t ? " " : "") + (r < 30 ? UNI[r] : DEC[Math.floor(r / 10)] + (r % 10 ? " Y " + UNI[r % 10] : ""));
         return t;
     }
-    function enLetra(total) {
+    function enLetra(total, moneda) {
         var entero = Math.floor(total + 1e-9), cent = Math.round((total - entero) * 100);
         if (cent === 100) { entero += 1; cent = 0; }
         var partes = [], mill = Math.floor(entero / 1e6), miles = Math.floor((entero % 1e6) / 1000), resto = entero % 1000;
@@ -66,7 +75,8 @@
         if (miles) partes.push(miles === 1 ? "MIL" : cientos(miles) + " MIL");
         if (resto) partes.push(cientos(resto));
         var texto = partes.join(" ") || "CERO";
-        return texto + (mill && !miles && !resto ? " DE" : "") + " PESOS " + String(cent).padStart(2, "0") + "/100 M.N.";
+        var nombre = moneda === "USD" ? " DOLARES " : " PESOS ", suf = moneda === "USD" ? "/100 USD" : "/100 M.N.";
+        return texto + (mill && !miles && !resto ? " DE" : "") + nombre + String(cent).padStart(2, "0") + suf;
     }
 
     /* ---------------------------------------------------- arranque */
@@ -82,6 +92,7 @@
         $("rel-tipo").innerHTML = opciones(c.tipos_relacion, "01", true);
         $("c-regimen").innerHTML = opciones(c.regimenes, "", true, "Elige…");
         $("can-motivo").innerHTML = opciones(c.motivos_cancelacion, "02", true);
+        $("p-moneda").innerHTML = opciones(c.monedas || { MXN: "Peso mexicano" }, "MXN", true);
         var hoy = new Date();
         $("g-periodicidad").innerHTML = opciones(c.periodicidades, "04", true);
         $("g-meses").innerHTML = opciones(c.meses_global, String(hoy.getMonth() + 1).padStart(2, "0"), true);
@@ -107,6 +118,8 @@
         pintarEmisor();
         vista(F.vista || "nueva");
         cargarEmitidas();
+        cargarReceptores();
+        cargarBorradores();
     }
 
     function vista(nombre) {
@@ -121,9 +134,9 @@
     function pintarEmisor() {
         var e = F.emisor, prod = F.cfg.produccion;
         var chip = $("chip-timbres");
-        chip.hidden = !prod;
-        chip.textContent = "Timbres: " + (e.timbres || 0);
-        chip.className = "fa-chip" + ((e.timbres || 0) < 1 ? " fa-chip--mal" : "");
+        chip.hidden = false;
+        chip.textContent = prod ? "Timbres: " + (e.timbres || 0) : "Mis timbres";
+        chip.className = "fa-chip fa-chip--boton" + (prod && (e.timbres || 0) < 1 ? " fa-chip--mal" : "");
         $("punto-config").hidden = e.listo;
         var falta = $("falta-config");
         var faltan = e.faltan.slice();
@@ -162,6 +175,7 @@
         $("c-csd-form").hidden = !!e.csd;
         $("btn-reemplazar-csd").hidden = !e.csd;
         $("btn-quitar-csd").hidden = !e.csd;
+        pintarLogo();
         $("c-timbres-empresa").textContent = e.timbres || 0;
         $("c-timbres-cuenta").textContent = F.cfg.timbres_cuenta === null ? "Sin tope" : (F.cfg.timbres_cuenta || 0);
         $("c-timbres-pac").textContent = !prod ? "En modo de pruebas no se gastan timbres; lo que repartas aquí se usará cuando se active producción."
@@ -237,17 +251,60 @@
 
     /* ---------------------------------------------------- nueva factura */
     function conceptoVacio() {
-        return { cantidad: 1, clave_unidad: "E48", clave_prod: "01010101", descripcion: "", valor_unitario: "", descuento: "", iva: "16", objeto_imp: "02", ret_isr: "", ret_iva: "" };
+        return { cantidad: 1, clave_unidad: "E48", clave_prod: "01010101", descripcion: "", valor_unitario: "", descuento: "", iva: "16", objeto_imp: "02", ret_isr: "", ret_iva: "", no_identificacion: "" };
     }
 
     function nuevaFactura() {
         F.conceptos = [conceptoVacio()];
-        ["r-rfc", "r-nombre", "r-cp", "rel-uuid", "p-condiciones"].forEach(function (id) { $(id).value = ""; });
+        F.borradorId = null; F.tcManual = false;
+        ["r-rfc", "r-nombre", "r-cp", "rel-uuid", "p-condiciones", "r-buscar", "p-tc", "p-fecha", "p-notas"].forEach(function (id) { $(id).value = ""; });
         $("r-regimen").value = "";
         $("r-uso").value = F.tipo === "E" ? "G02" : "G03";
+        $("p-moneda").value = "MXN";
+        $("r-guardar").checked = true;
+        $("r-aviso").hidden = true;
         $("t-error").hidden = true;
+        $("estado-borrador").textContent = "";
+        verMoneda();
+        verFecha();
         verGlobal();
         pintarConceptos();
+    }
+
+    /* Llena el formulario con una captura (prefactura o factura copiada) */
+    function ponerCaptura(cap, avisos) {
+        cap = cap || {};
+        ponerTipo(cap.tipo === "E" ? "E" : "I");
+        var r = cap.receptor || {};
+        $("r-rfc").value = r.rfc || ""; $("r-nombre").value = r.nombre || ""; $("r-cp").value = r.cp || "";
+        $("r-regimen").value = r.regimen || ""; $("r-uso").value = r.uso || (F.tipo === "E" ? "G02" : "G03");
+        $("r-buscar").value = "";
+        $("p-metodo").value = cap.metodo_pago || "PUE";
+        $("p-forma").value = cap.forma_pago || "03";
+        $("p-forma").disabled = $("p-metodo").value === "PPD";
+        $("p-condiciones").value = cap.condiciones || "";
+        $("p-moneda").value = cap.moneda === "USD" ? "USD" : "MXN";
+        $("p-tc").value = cap.tipo_cambio || ""; F.tcManual = !!cap.tipo_cambio;
+        $("p-fecha").value = "";                   // la fecha es la de hoy (o la que elijas), no la de la original
+        $("p-notas").value = cap.notas || "";
+        $("r-guardar").checked = cap.guardar_cliente !== false;
+        var rel = cap.relacionados || {};
+        $("rel-uuid").value = (rel.uuids || [])[0] || "";
+        if (rel.tipo_relacion) $("rel-tipo").value = rel.tipo_relacion;
+        var g = cap.global || {};
+        if (g.periodicidad) $("g-periodicidad").value = g.periodicidad;
+        if (g.meses) $("g-meses").value = g.meses;
+        if (g.anio) $("g-anio").value = g.anio;
+        F.conceptos = (cap.conceptos || []).map(function (c) { return Object.assign(conceptoVacio(), c, { descuento: c.descuento || "" }); });
+        if (!F.conceptos.length) F.conceptos = [conceptoVacio()];
+        if (F.conceptos.some(function (c) { return c.ret_isr || c.ret_iva; })) $("ver-retenciones").checked = true;
+        verMoneda(); verFecha(); verGlobal(); pintarConceptos();
+        $("t-error").hidden = true;
+        var a = $("r-aviso");
+        a.hidden = !(avisos && avisos.length);
+        a.innerHTML = avisos && avisos.length ? "<b>Revisa:</b> " + avisos.map(esc).join(" · ") : "";
+        vista("nueva");
+        window.scrollTo({ top: 0, behavior: "smooth" });
     }
 
     function ponerTipo(tipo) {
@@ -310,7 +367,9 @@
         $("t-total").textContent = dinero(total);
         document.querySelectorAll('[data-fila="descuento"]').forEach(function (x) { x.hidden = !desc; });
         document.querySelectorAll('[data-fila="retenciones"]').forEach(function (x) { x.hidden = !ret; });
-        $("t-letra").textContent = total > 0 ? enLetra(total) : "";
+        var mon = $("p-moneda").value;
+        $("t-letra").textContent = total > 0 ? enLetra(total, mon) : "";
+        document.querySelector("dt.fa-total").textContent = "Total " + (mon === "USD" ? "USD" : "");
         return { total: total };
     }
 
@@ -319,6 +378,8 @@
         return {
             tipo: F.tipo, metodo_pago: $("p-metodo").value, forma_pago: $("p-forma").value,
             condiciones: $("p-condiciones").value.trim() || null,
+            moneda: $("p-moneda").value, tipo_cambio: $("p-moneda").value === "USD" ? $("p-tc").value.trim() : null,
+            fecha: $("p-fecha").value || null, notas: $("p-notas").value.trim() || null, guardar_cliente: $("r-guardar").checked,
             receptor: { rfc: $("r-rfc").value.trim().toUpperCase(), nombre: $("r-nombre").value.trim().toUpperCase(),
                         cp: $("r-cp").value.trim(), regimen: $("r-regimen").value, uso: $("r-uso").value },
             relacionados: F.tipo === "E" && rel ? { tipo_relacion: $("rel-tipo").value, uuids: [rel] } : null,
@@ -326,7 +387,7 @@
             conceptos: F.conceptos.map(function (c) {
                 return { cantidad: c.cantidad, clave_prod: (c.clave_prod || "").trim(), clave_unidad: c.clave_unidad,
                          descripcion: c.descripcion, valor_unitario: c.valor_unitario, descuento: c.descuento || 0,
-                         objeto_imp: c.objeto_imp, iva: c.iva, ret_isr: c.ret_isr, ret_iva: c.ret_iva };
+                         objeto_imp: c.objeto_imp, iva: c.iva, ret_isr: c.ret_isr, ret_iva: c.ret_iva, no_identificacion: c.no_identificacion || "" };
             })
         };
     }
@@ -346,8 +407,9 @@
                 "<dt>Folio</dt><dd>" + esc((serie ? serie + "-" : "") + folio) + "</dd>" +
                 "<dt>Emisor</dt><dd>" + esc(r.emisor.nombre + " · " + r.emisor.rfc) + "</dd>" +
                 "<dt>Cliente</dt><dd>" + esc(cap.receptor.nombre + " · " + cap.receptor.rfc) + "</dd>" +
+                "<dt>Fecha de emisión</dt><dd>" + esc((r.fecha || "").replace("T", " ")) + (cap.fecha ? "" : " <small>(se pone al timbrar)</small>") + "</dd>" +
                 "<dt>Conceptos</dt><dd>" + cap.conceptos.length + "</dd>" +
-                "<dt>Total</dt><dd>" + dinero(t.total) + "</dd></dl>";
+                "<dt>Total</dt><dd>" + dinero(t.total) + (r.moneda === "USD" ? " USD · T.C. " + esc(r.tipo_cambio) : "") + "</dd></dl>";
             $("conf-nota").textContent = F.cfg.produccion
                 ? "Se manda al SAT y gasta 1 timbre de la empresa. Una vez timbrada ya no se puede editar: solo cancelar."
                 : "Modo de pruebas: no gasta timbres ni tiene validez fiscal.";
@@ -374,6 +436,7 @@
             $("dlg-listo").showModal();
             nuevaFactura();                 // ya quedó timbrada: el formulario se limpia para no repetirla por error
             await cargarEmitidas();
+            cargarReceptores();
         } catch (e) {
             $("dlg-confirmar").close();
             $("t-error").textContent = e.message; $("t-error").hidden = false;
@@ -381,10 +444,63 @@
         b.disabled = false; b.textContent = "Timbrar";
     }
 
-    /* Clientes a los que ya les facturó: al escribir su RFC se llenan sus datos */
+    /* Sus clientes (guardados en Mis clientes o al timbrar): al elegirlo o escribir su RFC se llenan sus datos */
+    async function cargarReceptores() {
+        if (!F.empresa) return;
+        try { F.receptores = await json("/api/facturacion/receptores?rfc=" + encodeURIComponent(F.empresa.rfc)); }
+        catch (e) { F.receptores = []; }
+        var vistos = {};
+        var opciones = F.receptores.map(function (r) { vistos[r.rfc] = 1; return '<option value="' + esc(r.rfc + " · " + r.nombre) + '"></option>'; });
+        F.emitidas.forEach(function (x) {
+            if (!vistos[x.receptor_rfc] && x.receptor_rfc !== "XAXX010101000") { vistos[x.receptor_rfc] = 1; opciones.push('<option value="' + esc(x.receptor_rfc + " · " + x.receptor_nombre) + '"></option>'); }
+        });
+        $("lista-receptores").innerHTML = opciones.join("");
+    }
+
+    function ponerReceptor(r) {
+        $("r-rfc").value = r.rfc || ""; $("r-nombre").value = r.nombre || ""; $("r-cp").value = r.cp || "";
+        if (r.regimen) $("r-regimen").value = r.regimen;
+        if (r.uso && !(F.tipo === "E" && r.uso !== "G02")) $("r-uso").value = F.tipo === "E" ? "G02" : r.uso;
+        verGlobal();
+    }
+
+    function elegirDelBuscador() {
+        var rfc = ($("r-buscar").value.split(" · ")[0] || "").trim().toUpperCase();
+        if (!rfc) return;
+        var r = F.receptores.filter(function (x) { return x.rfc === rfc; })[0];
+        if (r) ponerReceptor(r);
+        else { $("r-rfc").value = rfc; $("r-nombre").value = ""; $("r-cp").value = ""; $("r-regimen").value = ""; llenarReceptor(); }
+        $("r-buscar").value = "";
+    }
+
+    async function leerConstancia(archivo) {
+        if (!archivo) return;
+        var a = $("r-aviso");
+        a.hidden = false; a.textContent = "Leyendo la constancia…";
+        try {
+            var cuerpo = new FormData(); cuerpo.append("archivo", archivo);
+            var r = await json("/api/facturacion/leer-constancia", { method: "POST", body: cuerpo });
+            ponerReceptor({ rfc: r.rfc, nombre: r.nombre, cp: r.cp, regimen: r.regimenes[0] || "" });
+            var cat = F.cfg.catalogos.regimenes;
+            a.innerHTML = "✓ Datos de su constancia" + (r.regimenes.length > 1
+                ? ". Tiene varios regímenes: " + r.regimenes.map(function (k) { return esc(k + " " + (cat[k] || "")); }).join(", ") + "; elige el que corresponda a esta factura."
+                : r.regimenes.length ? "." : ". No trae régimen vigente: elígelo.");
+            if ($("r-guardar").checked && r.nombre) {
+                try {
+                    await enviar("/api/facturacion/receptores", "PUT", { rfc_emisor: F.emisor.rfc, rfc: r.rfc, nombre: r.nombre, cp: r.cp, regimen: r.regimenes[0] || null });
+                    cargarReceptores();
+                    a.innerHTML += " Quedó en sus clientes.";
+                } catch (e) { /* se guarda al timbrar */ }
+            }
+        } catch (e) { a.textContent = e.message; }
+        $("r-constancia").value = "";
+    }
+
     async function llenarReceptor() {
         var rfc = $("r-rfc").value.trim().toUpperCase();
         if (rfc === "XAXX010101000") { publico(); return; }
+        var guardado = F.receptores.filter(function (x) { return x.rfc === rfc; })[0];
+        if (guardado) { if (!$("r-nombre").value) ponerReceptor(guardado); return; }
         var previo = F.emitidas.filter(function (x) { return x.receptor_rfc === rfc; })[0];
         if (!previo) return;
         try {
@@ -415,9 +531,7 @@
         if (!F.empresa) return;
         try { F.emitidas = await json("/api/facturacion/comprobantes?rfc=" + encodeURIComponent(F.empresa.rfc)); }
         catch (e) { F.emitidas = []; $("filas-emitidas").innerHTML = '<tr><td colspan="6">' + esc(e.message) + "</td></tr>"; return; }
-        var vistos = {};
-        $("lista-receptores").innerHTML = F.emitidas.filter(function (x) { if (vistos[x.receptor_rfc]) return false; vistos[x.receptor_rfc] = 1; return true; })
-            .map(function (x) { return '<option value="' + esc(x.receptor_rfc) + '">' + esc(x.receptor_nombre) + "</option>"; }).join("");
+        cargarReceptores();
         $("lista-facturas").innerHTML = F.emitidas.filter(function (x) { return x.tipo === "I" && x.estado !== "cancelado"; })
             .map(function (x) { return '<option value="' + esc(x.uuid) + '">' + esc((x.serie ? x.serie + "-" : "") + x.folio + " · " + x.receptor_nombre + " · " + dinero(x.total)) + "</option>"; }).join("");
         pintarEmitidas();
@@ -436,8 +550,10 @@
                 "<td><b>" + esc((x.serie ? x.serie + "-" : "") + x.folio) + "</b><small>" + (x.tipo === "I" ? "Factura" : "Nota de crédito") + "</small></td>" +
                 "<td>" + esc(x.receptor_nombre) + "<small>" + esc(x.receptor_rfc) + "</small></td>" +
                 '<td class="fa-num">' + dinero(x.total) + "</td><td>" + estado + "</td>" +
-                '<td class="fa-acc"><button type="button" class="fa-link" data-acc="xml">XML</button>' +
-                '<button type="button" class="fa-link" data-acc="pdf">PDF</button>' +
+                '<td class="fa-acc"><button type="button" class="fa-link" data-acc="pdf">PDF</button>' +
+                '<button type="button" class="fa-link" data-acc="xml">XML</button>' +
+                '<button type="button" class="fa-link" data-acc="copiar" title="Una nueva igual a esta">Copiar</button>' +
+                (x.pruebas ? "" : '<button type="button" class="fa-link" data-acc="sat" title="Consultar si está vigente o cancelada en el SAT">SAT</button>') +
                 (x.hay_acuse ? '<button type="button" class="fa-link" data-acc="acuse">Acuse</button>' : "") +
                 (x.estado !== "cancelado" ? '<button type="button" class="fa-link fa-link--rojo" data-acc="cancelar">Cancelar</button>' : "") + "</td></tr>";
         }).join("") : '<tr><td colspan="6">' + (F.emitidas.length ? "Nada coincide." : "Todavía no hay facturas de esta empresa.") + "</td></tr>";
@@ -463,46 +579,20 @@
 
     async function verPdf(id) {
         try {
-            var d = await json("/api/facturacion/comprobantes/" + id);
-            $("impresion").innerHTML = representacion(d);
-            $("dlg-pdf").showModal();
+            var x = F.emitidas.filter(function (e) { return e.id === id; })[0];
+            await bajarRespuesta(await api("/api/facturacion/comprobantes/" + id + "/pdf"), x ? (x.serie || "") + x.folio + ".pdf" : "factura.pdf");
         } catch (e) { aviso(e.message, "error"); }
     }
 
-    function representacion(d) {
-        var x = d.datos, f = x.factura, em = x.emisor, re = x.receptor, t = d.timbre || {}, cat = F.cfg.catalogos;
-        var titulo = d.tipo === "I" ? "Factura" : "Nota de crédito";
-        var filas = (x.conceptos || []).map(function (c) {
-            var impuestos = ((c.Impuestos || {}).Traslados || []).map(function (i) { return i.TipoFactor === "Exento" ? "IVA exento" : "IVA " + (num(i.TasaOCuota) * 100).toFixed(0) + "%"; })
-                .concat(((c.Impuestos || {}).Retenciones || []).map(function (i) { return "Ret. " + (i.Impuesto === "001" ? "ISR" : "IVA") + " " + (num(i.TasaOCuota) * 100).toFixed(4).replace(/\.?0+$/, "") + "%"; }));
-            return "<tr><td>" + esc(c.ClaveProdServ) + "</td><td class='n'>" + esc(c.cantidad) + "</td><td>" + esc(c.ClaveUnidad + " " + (c.unidad || "")) + "</td>" +
-                "<td>" + esc(c.descripcion) + (impuestos.length ? "<br><small>" + esc(impuestos.join(" · ")) + "</small>" : "") + "</td>" +
-                "<td class='n'>" + dinero(c.valorunitario) + "</td><td class='n'>" + (c.Descuento ? dinero(c.Descuento) : "") + "</td><td class='n'>" + dinero(c.importe) + "</td></tr>";
-        }).join("");
-        var imp = x.impuestos || {};
-        var rel = (x.CfdisRelacionados || []).map(function (r) { return "Relación " + r.TipoRelacion + ": " + (r.UUID || []).join(", "); }).join("<br>");
-        return (d.pruebas ? '<div class="fi-prueba">MODO DE PRUEBAS · SIN VALIDEZ FISCAL</div>' : "") +
-            (d.estado === "cancelado" ? '<div class="fi-cancelada">CANCELADA</div>' : "") +
-            '<div class="fi-cabeza"><div><h1>' + esc(em.nombre) + "</h1><div>RFC " + esc(em.rfc) + "</div><div>Régimen " + esc(em.RegimenFiscal + " " + (cat.regimenes[em.RegimenFiscal] || "")) + "</div>" +
-            "<div>Lugar de expedición " + esc(f.LugarExpedicion) + "</div></div>" +
-            '<div class="fi-folio"><b>' + titulo + " " + esc((f.serie ? f.serie + "-" : "") + f.folio) + "</b><div>Fecha " + esc((f.fecha_expedicion || "").replace("T", " ")) + "</div>" +
-            "<div>Folio fiscal</div><div class='fa-mono'>" + esc(d.uuid) + "</div></div></div>" +
-            '<div class="fi-dos"><div class="fi-bloque"><h3>Cliente</h3><b>' + esc(re.nombre) + "</b><div>RFC " + esc(re.rfc) + "</div><div>C.P. " + esc(re.DomicilioFiscalReceptor) +
-            " · Régimen " + esc(re.RegimenFiscalReceptor) + "</div><div>Uso CFDI " + esc(re.UsoCFDI + " " + (cat.usos[re.UsoCFDI] || "")) + "</div></div>" +
-            '<div class="fi-bloque"><h3>Pago</h3><div>Método ' + esc(f.metodo_pago + " " + (cat.metodos_pago[f.metodo_pago] || "")) + "</div><div>Forma " + esc(f.forma_pago + " " + (cat.formas_pago[f.forma_pago] || "")) +
-            "</div><div>Moneda MXN · Exportación 01</div>" + (f.condicionesDePago ? "<div>Condiciones: " + esc(f.condicionesDePago) + "</div>" : "") + (rel ? "<div>" + rel + "</div>" : "") + "</div></div>" +
-            '<table class="fi-tabla"><thead><tr><th>Clave</th><th class="n">Cant.</th><th>Unidad</th><th>Descripción</th><th class="n">P. unitario</th><th class="n">Desc.</th><th class="n">Importe</th></tr></thead><tbody>' + filas + "</tbody></table>" +
-            '<div class="fi-pie"><div><b>Importe con letra:</b> ' + esc(enLetra(num(f.total))) + "</div><table class='fi-totales'>" +
-            "<tr><td>Subtotal</td><td class='n'>" + dinero(f.subtotal) + "</td></tr>" +
-            (f.descuento ? "<tr><td>Descuento</td><td class='n'>-" + dinero(f.descuento) + "</td></tr>" : "") +
-            (imp.TotalImpuestosTrasladados ? "<tr><td>IVA trasladado</td><td class='n'>" + dinero(imp.TotalImpuestosTrasladados) + "</td></tr>" : "") +
-            (imp.TotalImpuestosRetenidos ? "<tr><td>Retenciones</td><td class='n'>-" + dinero(imp.TotalImpuestosRetenidos) + "</td></tr>" : "") +
-            "<tr class='t'><td>Total</td><td class='n'>" + dinero(f.total) + "</td></tr></table></div>" +
-            '<div class="fi-sellos">' + (d.qr ? '<img alt="Código QR" src="data:image/png;base64,' + esc(d.qr) + '">' : "<div></div>") + "<div>" +
-            "<p><b>No. de certificado del emisor:</b> " + esc(t.certificado_no || "") + " · <b>Certificado del SAT:</b> " + esc(t.certificadoSAT || "") + " · <b>Fecha de timbrado:</b> " + esc(t.fecha_timbrado || "") + "</p>" +
-            "<p><b>Sello digital del CFDI:</b> " + esc(t.sello || "") + "</p><p><b>Sello del SAT:</b> " + esc(t.selloSAT || "") + "</p>" +
-            "<p><b>Cadena original del complemento de certificación digital del SAT:</b> " + esc(t.cadena || "") + "</p></div></div>" +
-            '<p class="fi-leyenda">Este documento es una representación impresa de un CFDI 4.0.</p>';
+    async function revisarSat(id, boton) {
+        if (boton) { boton.disabled = true; boton.textContent = "…"; }
+        try {
+            var r = await json("/api/facturacion/comprobantes/" + id + "/estado-sat", { method: "POST" });
+            var x = F.emitidas.filter(function (e) { return e.id === id; })[0];
+            aviso((x ? (x.serie ? x.serie + "-" : "") + x.folio + ": " : "") + "en el SAT está " + r.estado.toLowerCase() +
+                  (r.estatus_cancelacion ? " (" + r.estatus_cancelacion.toLowerCase() + ")" : "") + (r.es_cancelable && r.estado === "Vigente" ? " · " + r.es_cancelable : "") + ".");
+            await cargarEmitidas();
+        } catch (e) { aviso(e.message, "error"); if (boton) { boton.disabled = false; boton.textContent = "SAT"; } }
     }
 
     function abrirCancelar(id) {
@@ -526,8 +616,218 @@
             $("dlg-cancelar").close();
             aviso($("can-folio").textContent + ": " + r.mensaje + (r.acuse ? " El acuse queda en Emitidas." : ""));
             cargarEmitidas();
-        } catch (e) { $("can-error").textContent = e.message; $("can-error").hidden = false; }
+        } catch (e) { $("can-error").textContent = e.message; $("can-error").hidden = false; cargarEmitidas(); }
         b.disabled = false; b.textContent = "Cancelar ante el SAT";
+    }
+
+    /* ---------------------------------------------------- moneda y fecha */
+    function verMoneda() {
+        var usd = $("p-moneda").value === "USD";
+        $("caja-tc").hidden = !usd;
+        if (usd && !F.tcManual && !$("p-tc").value) traerTipoCambio();
+        calcular();
+    }
+
+    async function traerTipoCambio() {
+        var dia = ($("p-fecha").value || hoyLocal()).slice(0, 10);
+        try {
+            var r = await json("/api/facturacion/tipo-cambio?fecha=" + dia);
+            if (F.tcManual) return;
+            if (r.valor) { $("p-tc").value = r.valor; $("p-nota").textContent = "Tipo de cambio: FIX de Banxico del " + fechaCorta(r.fecha + "T12:00:00") + " (publicado en el DOF). Puedes cambiarlo."; }
+            else $("p-nota").textContent = r.motivo || "";
+        } catch (e) { $("p-nota").textContent = "No se pudo traer el tipo de cambio: escríbelo."; }
+    }
+
+    function verFecha() {
+        var ahora = new Date(), min = new Date(ahora.getTime() - 71 * 3600000);
+        var local = function (d) { return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16); };
+        $("p-fecha").max = local(ahora); $("p-fecha").min = local(min);
+        if (!$("p-moneda").value || $("p-moneda").value === "MXN")
+            $("p-nota").textContent = $("p-fecha").value ? "Fecha de emisión elegida (el SAT acepta hasta 72 horas atrás)." : "Sin fecha: se pone la hora en que timbres. Puedes elegir una de hasta 72 horas atrás.";
+    }
+
+    /* ---------------------------------------------------- vista previa */
+    async function vistaPrevia() {
+        var err = $("t-error"), b = $("btn-vista");
+        err.hidden = true; b.disabled = true; b.textContent = "Revisando…";
+        try {
+            var resp = await api("/api/facturacion/vista-previa", { method: "POST", headers: { "Content-Type": "application/json" },
+                                                                    body: JSON.stringify({ rfc: F.emisor.rfc, captura: captura() }) });
+            var m = /filename="?([^";]+)"?/i.exec(resp.headers.get("Content-Disposition") || "");
+            var blob = await resp.blob();
+            if (F.vistaUrl) URL.revokeObjectURL(F.vistaUrl);
+            F.vistaUrl = URL.createObjectURL(blob); F.vistaBlob = blob; F.vistaNombre = m ? m[1] : "Vista_previa.pdf";
+            $("vista-marco").src = F.vistaUrl;
+            $("dlg-vista").showModal();
+        } catch (e) { err.textContent = e.message; err.hidden = false; }
+        b.disabled = false; b.textContent = "Vista previa PDF";
+    }
+
+    /* ---------------------------------------------------- prefacturas */
+    async function cargarBorradores() {
+        if (!F.empresa) return;
+        try { F.borradores = await json("/api/facturacion/borradores?rfc=" + encodeURIComponent(F.empresa.rfc)); }
+        catch (e) { F.borradores = []; }
+        $("n-borradores").textContent = F.borradores.length;
+        $("n-borradores").hidden = !F.borradores.length;
+    }
+
+    async function guardarBorrador() {
+        var cap = captura(), actual = F.borradores.filter(function (x) { return x.id === F.borradorId; })[0];
+        var nombre = prompt("Nombre de la prefactura", actual ? actual.nombre : (cap.receptor.nombre || cap.receptor.rfc || "Prefactura"));
+        if (nombre === null) return;
+        try {
+            var r = await enviar("/api/facturacion/borradores", "POST", { id: F.borradorId, rfc: F.emisor.rfc, nombre: nombre, captura: cap, total: calcular().total });
+            F.borradorId = r.id;
+            $("estado-borrador").textContent = "✓ Prefactura «" + r.nombre + "» guardada.";
+            cargarBorradores();
+        } catch (e) { $("t-error").textContent = e.message; $("t-error").hidden = false; }
+    }
+
+    function pintarBorradores() {
+        $("lista-borradores").innerHTML = F.borradores.length ? F.borradores.map(function (x) {
+            return '<div class="fa-item" data-id="' + esc(x.id) + '"><div class="fa-item__txt"><b>' + esc(x.nombre) + "</b><small>" +
+                esc((x.tipo === "E" ? "Nota de crédito · " : "") + x.receptor + " · " + fechaCorta(x.actualizado_en + "Z")) + "</small></div>" +
+                (x.total != null ? '<span class="fa-item__monto">' + dinero(x.total) + "</span>" : "") +
+                '<button type="button" class="fa-btn fa-btn--suave" data-abrir>Abrir</button><button type="button" class="fa-quitar" data-borrar title="Borrar">✕</button></div>';
+        }).join("") : '<p class="fa-vacio-chico">Todavía no hay prefacturas. Llena una factura y usa «Guardar prefactura».</p>';
+    }
+
+    /* ---------------------------------------------------- copiar otra factura */
+    function abrirCopiar() {
+        $("copiar-buscar").value = "";
+        ponerOrigen(F.origen);
+        $("dlg-copiar").showModal();
+    }
+
+    function ponerOrigen(origen) {
+        F.origen = origen;
+        document.querySelectorAll("[data-origen]").forEach(function (b) { b.setAttribute("aria-pressed", String(b.dataset.origen === origen)); });
+        pintarCopiar();
+    }
+
+    var esperaCopiar = null;
+    async function pintarCopiar() {
+        var q = $("copiar-buscar").value.trim().toLowerCase(), cont = $("lista-copiar");
+        var item = function (id, titulo, sub, total) {
+            return '<div class="fa-item" data-copiar="' + esc(id) + '"><div class="fa-item__txt"><b>' + esc(titulo) + "</b><small>" + esc(sub) + "</small></div>" +
+                '<span class="fa-item__monto">' + dinero(total) + '</span><button type="button" class="fa-btn fa-btn--suave">Copiar</button></div>';
+        };
+        if (F.origen === "emitidas") {
+            var filas = F.emitidas.filter(function (x) {
+                return !q || [x.receptor_nombre, x.receptor_rfc, (x.serie || "") + x.folio, (x.serie || "") + "-" + x.folio].join(" ").toLowerCase().indexOf(q) !== -1;
+            }).slice(0, 60);
+            cont.innerHTML = filas.length ? filas.map(function (x) {
+                return item("e:" + x.id, (x.serie ? x.serie + "-" : "") + x.folio + " · " + x.receptor_nombre, fechaCorta(x.fecha) + " · " + x.receptor_rfc + (x.pruebas ? " · prueba" : ""), x.total);
+            }).join("") : '<p class="fa-vacio-chico">' + (F.emitidas.length ? "Nada coincide." : "Todavía no hay facturas emitidas aquí.") + "</p>";
+            return;
+        }
+        cont.innerHTML = '<p class="fa-vacio-chico">Buscando…</p>';
+        clearTimeout(esperaCopiar);
+        esperaCopiar = setTimeout(async function () {
+            try {
+                var xs = await json("/api/facturacion/xml-recientes?rfc=" + encodeURIComponent(F.empresa.rfc) + "&q=" + encodeURIComponent(q));
+                cont.innerHTML = xs.length ? xs.map(function (x) {
+                    return item("x:" + x.uuid, (x.serie || x.folio ? (x.serie ? x.serie + "-" : "") + (x.folio || "") + " · " : "") + (x.nombre || x.rfc),
+                                (x.rol === "emitido" ? "Emitido a " : "Recibido de ") + x.rfc + " · " + fechaCorta(x.fecha) + " · " + x.conceptos + " concepto" + (x.conceptos === 1 ? "" : "s"), x.total);
+                }).join("") : '<p class="fa-vacio-chico">No hay XML de esta empresa en Administración de XML' + (q ? " que coincidan" : "") + ".</p>";
+            } catch (e) { cont.innerHTML = '<p class="fa-vacio-chico">' + esc(e.message) + "</p>"; }
+        }, 250);
+    }
+
+    async function copiarDe(clave) {
+        try {
+            var r = clave.slice(0, 2) === "e:" ? await json("/api/facturacion/comprobantes/" + clave.slice(2) + "/captura")
+                : await json("/api/facturacion/desde-xml?rfc=" + encodeURIComponent(F.empresa.rfc) + "&uuid=" + encodeURIComponent(clave.slice(2)));
+            $("dlg-copiar").close();
+            F.borradorId = null;
+            ponerCaptura(r.captura, r.avisos);
+            $("estado-borrador").textContent = "Copiada: revisa y timbra.";
+        } catch (e) { aviso(e.message, "error"); }
+    }
+
+    async function copiarDeArchivo(archivo) {
+        if (!archivo) return;
+        try {
+            var cuerpo = new FormData(); cuerpo.append("archivo", archivo);
+            var r = await json("/api/facturacion/leer-xml", { method: "POST", body: cuerpo });
+            F.borradorId = null;
+            ponerCaptura(r.captura, r.avisos);
+            $("estado-borrador").textContent = "Copiada de " + archivo.name + ": revisa y timbra.";
+        } catch (e) { aviso(e.message, "error"); }
+        $("subir-xml").value = "";
+    }
+
+    /* ---------------------------------------------------- logo */
+    async function pintarLogo() {
+        var caja = $("c-logo-vista");
+        $("btn-quitar-logo").hidden = !F.emisor.logo;
+        if (!F.emisor.logo) { caja.innerHTML = "<span>Sin logo</span>"; return; }
+        try {
+            var b = await (await api("/api/facturacion/emisores/" + encodeURIComponent(F.emisor.rfc) + "/logo?_=" + Date.now())).blob();
+            caja.innerHTML = '<img alt="Logo" src="' + URL.createObjectURL(b) + '">';
+        } catch (e) { caja.innerHTML = "<span>Sin logo</span>"; }
+    }
+
+    async function subirLogo(archivo) {
+        if (!archivo) return;
+        $("msj-logo").textContent = "Subiendo…";
+        try {
+            var cuerpo = new FormData(); cuerpo.append("logo", archivo);
+            actualizarEmisor(await json("/api/facturacion/emisores/" + encodeURIComponent(F.emisor.rfc) + "/logo", { method: "POST", body: cuerpo }));
+            $("msj-logo").textContent = "✓ Logo guardado: ya sale en los PDF.";
+        } catch (e) { $("msj-logo").textContent = e.message; }
+        $("c-logo").value = "";
+    }
+
+    async function quitarLogo() {
+        try {
+            await api("/api/facturacion/emisores/" + encodeURIComponent(F.emisor.rfc) + "/logo", { method: "DELETE" });
+            actualizarEmisor(Object.assign({}, F.emisor, { logo: false }));
+            $("msj-logo").textContent = "Logo quitado.";
+        } catch (e) { $("msj-logo").textContent = e.message; }
+    }
+
+    /* ---------------------------------------------------- mis timbres */
+    async function verTimbres() {
+        $("timbres-cuerpo").innerHTML = '<p class="fa-nota">Consultando MultiFacturas…</p>';
+        $("dlg-timbres").showModal();
+        try {
+            var t = await json("/api/facturacion/timbres-resumen");
+            var tarjeta = function (titulo, valor, nota, clase) {
+                return '<div class="' + (clase || "") + '"><small>' + esc(titulo) + "</small><b>" + (valor == null ? "—" : Number(valor).toLocaleString("es-MX")) + "</b>" + (nota ? "<em>" + nota + "</em>" : "") + "</div>";
+            };
+            var h = "";
+            if (!t.produccion) h += '<p class="fa-aviso">Modo de pruebas: no se gastan timbres. Los que repartas se usarán cuando se active producción.</p>';
+            h += '<div class="fa-timbres-grande">';
+            if (t.bolsa !== undefined) {
+                var b = t.bolsa || {};
+                h += tarjeta("Bolsa general en MultiFacturas", b.timbres, b.timbres == null ? "Escríbela abajo una vez" :
+                    (b.ultimo ? "Último movimiento: " + esc(b.ultimo.detalle) : "Ajustada el " + esc(fechaCorta((b.ajustado || "") + "Z"))), "fa-destacado");
+            }
+            if (!t.sin_tope) h += tarjeta("Sin repartir en tu cuenta", t.cuenta, "Te los asigna el administrador", "fa-destacado");
+            h += tarjeta("Repartidos en tus empresas", t.en_empresas, t.empresas.length + " empresa" + (t.empresas.length === 1 ? "" : "s"));
+            h += tarjeta("Facturas reales timbradas", t.facturas_reales, "Desde que se activó producción");
+            h += "</div>";
+            if (t.bolsa !== undefined) {
+                h += '<p class="fa-nota">MultiFacturas no deja consultar la bolsa general por su API: escribe el «SALDO» que ves arriba en su panel y Fiscontable lo va bajando cada vez que le pasas timbres a una empresa.</p>' +
+                     '<div class="fa-ajustar"><label class="fa-campo"><span>Saldo en el panel</span><input id="bolsa-n" type="number" min="0" value="' + esc((t.bolsa || {}).timbres == null ? "" : t.bolsa.timbres) + '"></label>' +
+                     '<button type="button" id="btn-bolsa" class="fa-btn fa-btn--principal">Guardar</button><span id="msj-bolsa" class="fa-nota"></span></div>';
+            }
+            h += t.empresas.length ? '<table class="fa-tabla"><thead><tr><th>Empresa</th><th class="fa-num">En Fiscontable</th><th class="fa-num">En MultiFacturas</th></tr></thead><tbody>' +
+                t.empresas.map(function (e) {
+                    return "<tr><td>" + esc(e.nombre) + "<small>" + esc(e.rfc) + "</small></td><td class='fa-num'>" + e.timbres + "</td><td class='fa-num'>" +
+                        (e.real != null ? e.real + (e.real !== e.timbres ? ' <small>(se iguala al timbrar)</small>' : "") : e.alta ? "—" : "<small>Sin alta aún</small>") + "</td></tr>";
+                }).join("") + "</tbody></table>" : '<p class="fa-vacio-chico">Todavía no le has pasado timbres a ninguna empresa.</p>';
+            $("timbres-cuerpo").innerHTML = h;
+        } catch (e) { $("timbres-cuerpo").innerHTML = '<p class="fa-error">' + esc(e.message) + "</p>"; }
+    }
+
+    async function guardarBolsa() {
+        var n = parseInt($("bolsa-n").value, 10);
+        if (isNaN(n) || n < 0) { $("msj-bolsa").textContent = "Escribe el saldo."; return; }
+        try { await enviar("/api/admin/facturacion/bolsa", "PUT", { timbres: n }); verTimbres(); }
+        catch (e) { $("msj-bolsa").textContent = e.message; }
     }
 
     /* ---------------------------------------------------- eventos */
@@ -539,6 +839,39 @@
         });
         document.querySelectorAll("[data-tipo]").forEach(function (b) { b.addEventListener("click", function () { ponerTipo(b.dataset.tipo); }); });
         $("btn-publico").addEventListener("click", publico);
+        $("r-buscar").addEventListener("change", elegirDelBuscador);
+        $("r-constancia").addEventListener("change", function () { leerConstancia(this.files[0]); });
+        $("p-moneda").addEventListener("change", verMoneda);
+        $("p-tc").addEventListener("input", function () { F.tcManual = true; });
+        $("p-fecha").addEventListener("change", function () { verFecha(); if ($("p-moneda").value === "USD" && !F.tcManual) { $("p-tc").value = ""; traerTipoCambio(); } });
+        $("btn-vista").addEventListener("click", vistaPrevia);
+        $("vista-bajar").addEventListener("click", function () { if (F.vistaBlob) Fiscontable.guardarArchivo(F.vistaBlob, F.vistaNombre); });
+        $("btn-borrador").addEventListener("click", guardarBorrador);
+        $("btn-ver-borradores").addEventListener("click", function () { pintarBorradores(); $("dlg-borradores").showModal(); });
+        $("lista-borradores").addEventListener("click", async function (ev) {
+            var it = ev.target.closest("[data-id]"); if (!it) return;
+            var x = F.borradores.filter(function (b) { return b.id === it.dataset.id; })[0]; if (!x) return;
+            if (ev.target.closest("[data-borrar]")) {
+                if (!confirm("¿Borrar la prefactura «" + x.nombre + "»?")) return;
+                try { await api("/api/facturacion/borradores/" + x.id, { method: "DELETE" }); if (F.borradorId === x.id) F.borradorId = null; await cargarBorradores(); pintarBorradores(); }
+                catch (e) { aviso(e.message, "error"); }
+                return;
+            }
+            $("dlg-borradores").close();
+            ponerCaptura(x.captura);
+            F.borradorId = x.id;
+            $("estado-borrador").textContent = "Prefactura «" + x.nombre + "» abierta.";
+        });
+        $("btn-copiar").addEventListener("click", abrirCopiar);
+        document.querySelectorAll("[data-origen]").forEach(function (b) { b.addEventListener("click", function () { ponerOrigen(b.dataset.origen); }); });
+        $("copiar-buscar").addEventListener("input", pintarCopiar);
+        $("lista-copiar").addEventListener("click", function (ev) { var it = ev.target.closest("[data-copiar]"); if (it) copiarDe(it.dataset.copiar); });
+        $("subir-xml").addEventListener("change", function () { copiarDeArchivo(this.files[0]); });
+        $("btn-limpiar").addEventListener("click", function () { if (confirm("¿Borrar lo capturado y empezar una factura nueva?")) nuevaFactura(); });
+        $("chip-timbres").addEventListener("click", verTimbres);
+        $("timbres-cuerpo").addEventListener("click", function (ev) { if (ev.target.closest("#btn-bolsa")) guardarBolsa(); });
+        $("c-logo").addEventListener("change", function () { subirLogo(this.files[0]); });
+        $("btn-quitar-logo").addEventListener("click", quitarLogo);
         $("r-rfc").addEventListener("change", llenarReceptor);
         $("r-rfc").addEventListener("input", verGlobal);
         $("p-metodo").addEventListener("change", function () {
@@ -565,7 +898,7 @@
         $("btn-timbrar").addEventListener("click", prepararTimbrado);
         $("btn-confirmar").addEventListener("click", timbrar);
         $("listo-xml").addEventListener("click", function () { bajarXml(F.ultimo.id); });
-        $("listo-pdf").addEventListener("click", function () { $("dlg-listo").close(); verPdf(F.ultimo.id); });
+        $("listo-pdf").addEventListener("click", function () { verPdf(F.ultimo.id); });
         $("listo-otra").addEventListener("click", function () { $("dlg-listo").close(); $("r-rfc").focus(); });
         $("buscar-emitidas").addEventListener("input", pintarEmitidas);
         $("filtro-tipo").addEventListener("change", pintarEmitidas);
@@ -575,11 +908,12 @@
             if (b.dataset.acc === "xml") bajarXml(id);
             else if (b.dataset.acc === "acuse") bajarAcuse(id);
             else if (b.dataset.acc === "pdf") verPdf(id);
+            else if (b.dataset.acc === "copiar") copiarDe("e:" + id);
+            else if (b.dataset.acc === "sat") revisarSat(id, b);
             else abrirCancelar(id);
         });
         $("can-motivo").addEventListener("change", function () { $("can-sust-caja").hidden = this.value !== "01"; });
         $("btn-cancelar-ok").addEventListener("click", cancelar);
-        $("btn-imprimir").addEventListener("click", function () { window.print(); });
         $("btn-guardar-config").addEventListener("click", guardarConfig);
         $("btn-guardar-csd").addEventListener("click", guardarCsd);
         $("btn-reemplazar-csd").addEventListener("click", function () { $("c-csd-form").hidden = false; this.hidden = true; });

@@ -115,36 +115,49 @@
 .fa-resumen { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; font-size: 14px; }
 .fa-resumen dt { color: #64748b; } .fa-resumen dd { margin: 0; font-weight: 600; color: #0f172a; }
 
-/* Representación impresa */
-.fa-dialogo--pdf { width: min(900px, calc(100vw - 24px)); max-height: calc(100vh - 32px); }
-.fa-impresion { padding: 0 22px 22px; color: #111827; font-size: 12px; }
-.fi-cabeza { display: flex; justify-content: space-between; gap: 16px; border-bottom: 2px solid #111827; padding-bottom: 10px; margin-bottom: 10px; }
-.fi-cabeza h1 { font-size: 17px; font-weight: 800; }
-.fi-folio { text-align: right; }
-.fi-folio b { display: block; font-size: 16px; }
-.fi-prueba { border: 2px dashed #d97706; color: #92400e; text-align: center; font-weight: 800; padding: 6px; margin-bottom: 10px; letter-spacing: .05em; }
-.fi-cancelada { border: 2px solid #dc2626; color: #b91c1c; text-align: center; font-weight: 800; padding: 6px; margin-bottom: 10px; letter-spacing: .08em; }
-.fi-dos { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 10px; }
-.fi-bloque { border: 1px solid #d1d5db; border-radius: 6px; padding: 8px 10px; }
-.fi-bloque h3 { font-size: 10px; text-transform: uppercase; letter-spacing: .06em; color: #6b7280; margin-bottom: 4px; }
-.fi-tabla { width: 100%; border-collapse: collapse; margin: 8px 0; }
-.fi-tabla th { background: #f3f4f6; font-size: 10px; text-transform: uppercase; text-align: left; padding: 5px 6px; border-bottom: 1px solid #d1d5db; }
-.fi-tabla td { padding: 5px 6px; border-bottom: 1px solid #e5e7eb; vertical-align: top; }
-.fi-tabla .n { text-align: right; white-space: nowrap; }
-.fi-pie { display: grid; grid-template-columns: 1fr 230px; gap: 12px; margin-top: 6px; }
-.fi-totales { width: 100%; border-collapse: collapse; }
-.fi-totales td { padding: 3px 6px; } .fi-totales td.n { text-align: right; }
-.fi-totales tr.t td { font-size: 14px; font-weight: 800; border-top: 1px solid #111827; }
-.fi-sellos { display: grid; grid-template-columns: 120px 1fr; gap: 10px; margin-top: 12px; border-top: 1px solid #d1d5db; padding-top: 10px; }
-.fi-sellos img { width: 120px; height: 120px; }
-.fi-sellos p { font-size: 8.5px; word-break: break-all; margin-bottom: 5px; color: #374151; }
-.fi-sellos b { font-size: 9px; color: #111827; }
-.fi-leyenda { text-align: center; font-size: 9.5px; color: #6b7280; margin-top: 10px; }
+/* Barra de arriba: prefacturas y copiar */
+.fa-cargar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.fa-subir { cursor: pointer; display: inline-flex; align-items: center; }
+.fa-contador { display: inline-block; min-width: 18px; padding: 1px 6px; margin-left: 4px; border-radius: 999px; background: #4f46e5; color: #fff; font-size: 11px; text-align: center; }
+.fa-chip--boton { border: 0; cursor: pointer; font: inherit; font-size: 12px; font-weight: 700; }
+.fa-chip--boton:hover { filter: brightness(.96); }
+.fa-fila-links { display: flex; gap: 14px; flex-wrap: wrap; justify-content: flex-end; }
+.fa-buscar-cliente { margin-bottom: 10px; }
+.fa-guardar-cliente { margin-top: 10px; }
+.fa-texto { width: 100%; font: inherit; font-size: 14px; border: 1px solid #d1d5db; border-radius: 10px; padding: 9px 11px; resize: vertical; }
+.fa-texto:focus { outline: none; border-color: #6366f1; box-shadow: 0 0 0 3px #e0e7ff; }
+.fa-opcional { font-style: normal; font-weight: 500; color: #94a3b8; font-size: 12px; }
+.fa-dos-botones { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
+.fa-dos-botones .fa-btn { white-space: normal; line-height: 1.2; padding: 9px 8px; font-size: 12.5px; }
 
-@media print {
-    body * { visibility: hidden !important; }
-    #dlg-pdf, #dlg-pdf * { visibility: visible !important; }
-    #dlg-pdf { position: absolute; inset: 0; width: 100%; max-height: none; box-shadow: none; border-radius: 0; }
-    .fa-solo-pantalla { display: none !important; }
-    .fa-impresion { padding: 0; }
-}
+/* Logo del emisor */
+.fa-logo { display: flex; gap: 14px; align-items: center; margin-top: 16px; padding-top: 14px; border-top: 1px dashed #e5e7eb; }
+.fa-logo__vista { width: 150px; height: 64px; flex: none; border: 1px dashed #cbd5e1; border-radius: 10px; display: grid; place-items: center; background: #f8fafc; overflow: hidden; }
+.fa-logo__vista span { font-size: 12px; color: #94a3b8; }
+.fa-logo__vista img { max-width: 140px; max-height: 56px; }
+.fa-campo-titulo { font-size: 11.5px; font-weight: 700; color: #334155; text-transform: uppercase; letter-spacing: .03em; }
+.fa-campo-titulo i { text-transform: none; font-style: normal; font-weight: 500; color: #94a3b8; }
+
+/* Listas de los diálogos (prefacturas, copiar, timbres) */
+.fa-dialogo--ancho { width: min(720px, calc(100vw - 24px)); }
+.fa-buscar { width: 100%; font: inherit; font-size: 14px; border: 1px solid #d1d5db; border-radius: 10px; padding: 9px 11px; }
+.fa-lista { display: flex; flex-direction: column; gap: 6px; max-height: min(52vh, 460px); overflow-y: auto; }
+.fa-item { display: flex; align-items: center; gap: 10px; border: 1px solid #eef0f3; border-radius: 12px; padding: 9px 12px; background: #fff; }
+.fa-item:hover { border-color: #c7d2fe; background: #fafaff; }
+.fa-item__txt { flex: 1; min-width: 0; }
+.fa-item__txt b { display: block; font-size: 13.5px; color: #0f172a; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fa-item__txt small { display: block; font-size: 12px; color: #64748b; }
+.fa-item__monto { font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; color: #0f172a; }
+.fa-tipo--chico button { padding: 7px; }
+.fa-tipo--chico b { font-size: 13px; }
+.fa-vacio-chico { font-size: 13px; color: #94a3b8; text-align: center; padding: 18px; }
+.fa-timbres-grande { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 12px; }
+.fa-timbres-grande div { background: #f8fafc; border-radius: 12px; padding: 12px 14px; }
+.fa-timbres-grande div.fa-destacado { background: #eef2ff; }
+.fa-timbres-grande small { display: block; font-size: 12px; color: #64748b; }
+.fa-timbres-grande b { font-size: 24px; font-weight: 800; color: #0f172a; font-variant-numeric: tabular-nums; }
+.fa-timbres-grande em { display: block; font-style: normal; font-size: 11.5px; color: #64748b; margin-top: 2px; }
+.fa-ajustar { display: flex; gap: 8px; align-items: flex-end; flex-wrap: wrap; margin: 4px 0 14px; }
+.fa-ajustar input { width: 140px; font: inherit; font-size: 14px; border: 1px solid #d1d5db; border-radius: 10px; padding: 8px 10px; }
+.fa-dialogo--pdf { width: min(920px, calc(100vw - 24px)); }
+.fa-marco { display: block; width: 100%; height: min(78vh, 1000px); border: 0; border-top: 1px solid #e5e7eb; background: #f1f5f9; }
