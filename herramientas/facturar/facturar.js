@@ -42,7 +42,7 @@
         a.hidden = !texto;
     }
     var r2 = function (v) { return Math.round((Number(v) + Number.EPSILON) * 100) / 100; };
-    var dinero = function (v) { return "$" + Number(v || 0).toLocaleString("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 }); };
+    var dinero = function (v) { v = Number(v || 0); return (v < 0 ? "-$" : "$") + Math.abs(v).toLocaleString("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 }); };
     var num = function (v) { var n = parseFloat(String(v == null ? "" : v).replace(/,/g, "")); return isNaN(n) ? 0 : n; };
     function opciones(mapa, actual, conClave, vacio) {
         return (vacio ? '<option value="">' + esc(vacio) + "</option>" : "") + Object.keys(mapa).map(function (k) {
@@ -134,6 +134,18 @@
         cargarReceptores();
         cargarBorradores();
         cargarPendientes();
+        cargarProductos();
+        cargarRecurrentes();
+    }
+
+    async function cargarRecurrentes() {
+        var caja = $("recurrentes-hoy");
+        try { F.recurrentes = await json("/api/facturacion/recurrentes?rfc=" + encodeURIComponent(F.empresa.rfc)); } catch (e) { F.recurrentes = []; }
+        caja.hidden = !F.recurrentes.length;
+        caja.innerHTML = F.recurrentes.length ? "<b>Hoy toca facturar:</b> " + F.recurrentes.map(function (x) {
+            return '<button type="button" class="fa-link" data-recurrente="' + esc(x.id) + '">' + esc(x.nombre) + (x.total != null ? " (" + dinero(x.total) + ")" : "") + "</button>" +
+                (x.recurrente.error ? ' <small class="fa-mal">no se pudo timbrar sola: ' + esc(x.recurrente.error) + "</small>" : "");
+        }).join(" · ") : "";
     }
 
     function vista(nombre) {
@@ -170,6 +182,8 @@
         } else {
             falta.hidden = true;
         }
+        $("cinta-nombre").textContent = e.razon_social || e.alias;
+        $("cinta-datos").textContent = [e.rfc, e.regimen ? "Régimen " + e.regimen : "", e.cp ? "C.P. " + e.cp : ""].filter(Boolean).join(" · ");
         $("c-emisor").textContent = (e.razon_social || e.alias) + " · " + e.rfc;
         $("c-emisor-cab").textContent = (e.razon_social || e.alias) + " · " + e.rfc;
         $("punto-sello").hidden = !!e.csd;
@@ -210,6 +224,7 @@
         var serie = F.tipo === "I" ? F.emisor.serie_i : F.emisor.serie_e;
         var folio = F.tipo === "I" ? F.emisor.folio_i : F.emisor.folio_e;
         $("t-folio").textContent = "Será " + (F.tipo === "I" ? "la factura " : "la nota de crédito ") + (serie ? serie + "-" : "") + folio + ".";
+        $("cinta-folio").innerHTML = "<small>" + (F.tipo === "I" ? "Siguiente factura" : "Siguiente nota") + "</small><b>" + esc((serie ? serie + "-" : "") + folio) + "</b>";
         $("btn-timbrar").textContent = F.tipo === "I" ? "Timbrar factura" : "Timbrar nota de crédito";
     }
 
@@ -271,15 +286,19 @@
     }
 
     /* ---------------------------------------------------- nueva factura */
+    function estadoCaptura(texto) { $("estado-borrador").textContent = texto; $("estado-borrador").hidden = !texto; }
+
     function conceptoVacio() {
-        return { cantidad: 1, clave_unidad: "E48", clave_prod: "01010101", descripcion: "", valor_unitario: "", descuento: "", iva: "16", objeto_imp: "02", ret_isr: "", ret_iva: "", no_identificacion: "" };
+        return { cantidad: 1, clave_unidad: "E48", clave_prod: "01010101", descripcion: "", valor_unitario: "", descuento: "", iva: "16", objeto_imp: "02",
+                 ret_isr: "", ret_iva: "", no_identificacion: "", cuenta_predial: "", modo: "unitario", final: "", abierto: false, producto_id: null };
     }
 
     function nuevaFactura() {
         F.conceptos = [conceptoVacio()];
         F.borradorId = null; F.tcManual = false; F.relaciones = []; F.claveEnvio = nuevaClave(); F.sustituye = null; F.notaFecha = "";
         $("rel-activar").checked = false; $("p-nota").textContent = "";
-        ["r-rfc", "r-nombre", "r-cp", "rel-uuid", "p-condiciones", "r-buscar", "p-tc", "p-fecha", "p-notas", "r-taxid"].forEach(function (id) { $(id).value = ""; });
+        ["r-rfc", "r-nombre", "r-cp", "rel-uuid", "p-condiciones", "r-buscar", "p-tc", "p-fecha", "p-notas", "r-taxid", "p-pedido", "t-objetivo"].forEach(function (id) { $(id).value = ""; });
+        F.clienteGuardado = null; F.clienteNuevo = false; F.recurrenteId = null;
         pintarRelaciones();
         $("r-regimen").value = "";
         $("r-uso").value = F.tipo === "E" ? "G02" : "G03";
@@ -287,7 +306,7 @@
         $("r-guardar").checked = true;
         $("r-aviso").hidden = true;
         $("t-error").hidden = true;
-        $("estado-borrador").textContent = "";
+        estadoCaptura("");
         verMoneda();
         verFecha();
         verGlobal();
@@ -295,7 +314,7 @@
         verRelaciones();
         pintarRelaciones();
         pintarConceptos();
-        if ($("sel-cliente-texto")) pintarCliente();
+        pintarCliente();
         if (F.paso) irPaso(1);
     }
 
@@ -324,6 +343,7 @@
             }
         }
         $("p-notas").value = cap.notas || "";
+        $("p-pedido").value = cap.pedido || "";
         $("r-guardar").checked = cap.guardar_cliente !== false;
         var rel = cap.relacionados || [];
         F.relaciones = (Array.isArray(rel) ? rel : [rel]).filter(function (g) { return g && (g.uuids || []).length; })
@@ -338,7 +358,7 @@
         if (g.anio) $("g-anio").value = g.anio;
         F.conceptos = (cap.conceptos || []).map(function (c) { return Object.assign(conceptoVacio(), c, { descuento: c.descuento || "" }); });
         if (!F.conceptos.length) F.conceptos = [conceptoVacio()];
-        if (F.conceptos.some(function (c) { return c.ret_isr || c.ret_iva; })) $("ver-retenciones").checked = true;
+
         verMoneda(); verFecha(); verGlobal(); verExtranjero(); pintarConceptos(); pintarRelaciones(); verRelaciones(); pintarCliente();
         verFecha();
         $("t-error").hidden = true;
@@ -363,47 +383,129 @@
         verGlobal();
     }
 
+    /* Impuestos más comunes en un solo menú; «Personalizado» abre los de cada tipo en el detalle del concepto */
+    var IMPUESTOS = {
+        "16": ["IVA 16%", "02", "16", "", ""], "8": ["IVA 8% (frontera)", "02", "8", "", ""], "0": ["IVA 0%", "02", "0", "", ""],
+        "exento": ["Exento de IVA", "02", "exento", "", ""], "no": ["No objeto de imp.", "01", "16", "", ""],
+        "hon": ["IVA 16% · honorarios", "02", "16", "10", "10.6667"], "resico": ["IVA 16% · RESICO", "02", "16", "1.25", ""],
+        "resico2": ["IVA 16% · RESICO e IVA", "02", "16", "1.25", "10.6667"], "flete": ["IVA 16% · fletes", "02", "16", "", "4"],
+        "sub": ["IVA 16% · subcontrat.", "02", "16", "", "6"], "exhon": ["Exento · ret. ISR 10%", "02", "exento", "10", ""], "otro": ["Personalizado…", null, null, null, null]
+    };
+    var DETALLE_IMP = { hon: "Retiene ISR 10 % e IVA 2/3 (persona moral que paga honorarios o arrendamiento)", resico: "Retiene ISR 1.25 % (RESICO persona física a persona moral)",
+        resico2: "Retiene ISR 1.25 % e IVA 2/3", exhon: "Exento de IVA y retiene ISR 10 % (p. ej. honorarios médicos a una persona moral)", flete: "Retiene IVA 4 % (autotransporte de carga)", sub: "Retiene IVA 6 % (servicios con personal puesto a disposición)" };
+    function impuestoDe(c) {
+        if (c.objeto_imp === "01") return "no";
+        var k = Object.keys(IMPUESTOS).filter(function (k) { var x = IMPUESTOS[k]; return x[1] === "02" && x[2] === c.iva && x[3] === (c.ret_isr || "") && x[4] === (c.ret_iva || ""); })[0];
+        return k || "otro";
+    }
+    function ponerImpuesto(c, k) {
+        var x = IMPUESTOS[k]; if (!x || !x[1]) return;
+        c.objeto_imp = x[1]; c.iva = x[2]; c.ret_isr = x[3]; c.ret_iva = x[4];
+    }
+    function tasas(c) {
+        if (c.objeto_imp !== "02") return { t: 0, ri: 0, rs: 0 };
+        return { t: { "16": 0.16, "8": 0.08 }[c.iva] || 0, ri: { "10.6667": 0.106667, "4": 0.04, "6": 0.06, "16": 0.16 }[c.ret_iva] || 0, rs: { "10": 0.10, "1.25": 0.0125 }[c.ret_isr] || 0 };
+    }
+    /* El total de un concepto con las mismas cuentas que el servidor: importe y cada impuesto redondeados a centavos */
+    function totalConcepto(c, unitario) {
+        var importe = r2(num(c.cantidad) * num(unitario == null ? c.valor_unitario : unitario)), d = r2(num(c.descuento)), base = r2(importe - d), x = tasas(c);
+        return { importe: importe, base: base, iva: r2(base * x.t), ret: r2(base * x.ri) + r2(base * x.rs), total: r2(importe - d + r2(base * x.t) - r2(base * x.ri) - r2(base * x.rs)) };
+    }
+    /* Precio final → unitario: busca el importe al centavo que da exactamente el total y un unitario de hasta 6 decimales
+       que, multiplicado por la cantidad, dé ese importe. Si no hay forma exacta, el más cercano y la diferencia. */
+    function resolverUnitario(c, objetivo) {
+        var q = num(c.cantidad) || 1, d = r2(num(c.descuento)), x = tasas(c), k = 1 + x.t - x.ri - x.rs;
+        objetivo = r2(objetivo);
+        var est = r2(objetivo / k + d), mejor = null;
+        for (var paso = 0; paso <= 60; paso++) {
+            for (var signo = 1; signo >= -1; signo -= 2) {
+                var imp = r2(est + signo * paso * 0.01);
+                if (imp <= 0) continue;
+                for (var aj = 0; aj <= 40; aj++) {
+                    for (var s2 = 1; s2 >= -1; s2 -= 2) {
+                        var u = Math.round((imp / q + s2 * aj * 0.000001) * 1e6) / 1e6;
+                        if (u <= 0 || r2(q * u) !== imp) continue;
+                        var t = totalConcepto(c, u).total, dif = r2(t - objetivo);
+                        if (!mejor || Math.abs(dif) < Math.abs(mejor.dif)) mejor = { unitario: u, total: t, dif: dif };
+                        if (dif === 0) return mejor;
+                        break;
+                    }
+                }
+                if (paso === 0) break;
+            }
+        }
+        return mejor || { unitario: r2(objetivo / k / q), total: 0, dif: objetivo };
+    }
+    function aplicarFinal(c) {
+        if (c.modo !== "final") return;
+        var objetivo = num(c.final);
+        if (!(objetivo > 0)) { c.valor_unitario = ""; c.difFinal = null; return; }
+        var r = resolverUnitario(c, objetivo);
+        c.valor_unitario = String(r.unitario); c.difFinal = r.dif;
+    }
+
     function filaConcepto(c, i) {
-        var cat = F.cfg.catalogos, ret = $("ver-retenciones").checked;
-        var ivas = { "16": "16 %", "8": "8 % (frontera)", "0": "0 %", "exento": "Exento", "no": "No objeto de impuesto" };
-        var ivaActual = c.objeto_imp === "01" ? "no" : c.iva;
+        var cat = F.cfg.catalogos, imp = impuestoDe(c), t = totalConcepto(c);
+        var precio = c.modo === "final"
+            ? '<input data-c="final" inputmode="decimal" class="fa-num fa-conc__final" value="' + esc(c.final) + '" placeholder="Total" title="Precio final: lo que paga el cliente">' +
+              '<small class="fa-conc__sub">' + (num(c.valor_unitario) ? "unit. " + esc(c.valor_unitario) : "precio final") + (c.difFinal ? ' <b class="fa-mal">dif ' + dinero(c.difFinal) + "</b>" : "") + "</small>"
+            : '<input data-c="valor_unitario" inputmode="decimal" class="fa-num" value="' + esc(c.valor_unitario) + '" placeholder="0.00">';
+        var clave = c.clave_prod ? esc(c.clave_prod) + " · " + esc(c.clave_unidad) : "Sin clave";
+        var fila = '<tr class="fa-conc__fila" data-i="' + i + '">' +
+            '<td><input data-c="cantidad" inputmode="decimal" class="fa-num" value="' + esc(c.cantidad) + '"></td>' +
+            '<td class="fa-conc__prod"><div class="fa-prod"><input data-c="descripcion" maxlength="1000" value="' + esc(c.descripcion) + '" placeholder="Escribe o busca un producto…" autocomplete="off">' +
+            '<div class="fa-prod__sug" hidden></div></div><small class="fa-conc__sub">' + clave + (c.no_identificacion ? " · " + esc(c.no_identificacion) : "") + (c.cuenta_predial ? " · predial " + esc(c.cuenta_predial) : "") + "</small></td>" +
+            "<td>" + precio + "</td>" +
+            '<td><input data-c="descuento" inputmode="decimal" class="fa-num" value="' + esc(c.descuento) + '" placeholder="0.00"></td>' +
+            '<td><select data-c="impuesto" title="' + esc(DETALLE_IMP[imp] || IMPUESTOS[imp][0]) + '">' + Object.keys(IMPUESTOS).map(function (k) { return '<option value="' + k + '"' + (k === imp ? " selected" : "") + ">" + esc(IMPUESTOS[k][0]) + "</option>"; }).join("") + "</select></td>" +
+            '<td class="fa-num fa-conc__importe" data-importe>' + dinero(t.importe) + "</td>" +
+            '<td class="fa-conc__acc"><button type="button" class="fa-mini" data-abrir title="Clave del SAT, unidad, código, predial, precio final">' + (c.abierto ? "▾" : "▸") + "</button>" +
+            '<button type="button" class="fa-mini" data-duplicar title="Duplicar">⧉</button>' +
+            (F.conceptos.length > 1 ? '<button type="button" class="fa-mini fa-mini--rojo" data-quitar title="Quitar">✕</button>' : "") + "</td></tr>";
+        if (!c.abierto) return fila;
         var retIsr = { "": "Sin retención", "10": "10 %", "1.25": "1.25 % (RESICO)" };
-        var retIva = { "": "Sin retención", "10.6667": "2/3 del IVA (10.6667 %)", "4": "4 % (fletes)", "6": "6 % (subcontratación)", "16": "16 %" };
-        return '<div class="fa-concepto" data-i="' + i + '">' +
-            '<div class="fa-concepto__cabeza"><span>Concepto ' + (i + 1) + ' · <b data-importe>' + dinero(r2(num(c.cantidad) * num(c.valor_unitario))) + "</b></span>" +
-            (F.conceptos.length > 1 ? '<button type="button" class="fa-quitar" data-quitar title="Quitar">✕</button>' : "") + "</div>" +
-            '<div class="fa-rejilla fa-rejilla--concepto">' +
-            '<label class="fa-campo k12"><span>Descripción</span><input data-c="descripcion" maxlength="1000" value="' + esc(c.descripcion) + '" placeholder="Lo que vendes o el servicio que das"></label>' +
-            '<label class="fa-campo k2"><span>Cantidad</span><input data-c="cantidad" inputmode="decimal" value="' + esc(c.cantidad) + '"></label>' +
-            '<label class="fa-campo k3"><span>Precio unitario</span><input data-c="valor_unitario" inputmode="decimal" value="' + esc(c.valor_unitario) + '" placeholder="0.00"></label>' +
-            '<label class="fa-campo k2"><span>Descuento</span><input data-c="descuento" inputmode="decimal" value="' + esc(c.descuento) + '" placeholder="0.00"></label>' +
-            '<label class="fa-campo k5"><span>IVA</span><select data-c="iva">' + opciones(ivas, ivaActual, false) + "</select></label>" +
-            '<label class="fa-campo k6"><span>Clave de producto o servicio (SAT)</span><input data-c="clave_prod" inputmode="numeric" maxlength="8" class="fa-mono" value="' + esc(c.clave_prod) + '" title="8 dígitos del catálogo del SAT; 01010101 si no aplica otra"></label>' +
-            '<label class="fa-campo k6"><span>Unidad</span><select data-c="clave_unidad">' + opciones(cat.unidades, c.clave_unidad, true) + "</select></label>" +
-            (ret ? '<label class="fa-campo k6"><span>Retención de ISR</span><select data-c="ret_isr">' + opciones(retIsr, c.ret_isr, false) + "</select></label>" +
-                   '<label class="fa-campo k6"><span>Retención de IVA</span><select data-c="ret_iva">' + opciones(retIva, c.ret_iva, false) + "</select></label>" : "") +
-            "</div></div>";
+        var retIva = { "": "Sin retención", "10.6667": "2/3 del IVA", "4": "4 % (fletes)", "6": "6 % (subcontratación)", "16": "16 %" };
+        var ivas = { "16": "16 %", "8": "8 %", "0": "0 %", "exento": "Exento" };
+        return fila + '<tr class="fa-conc__detalle" data-i="' + i + '"><td colspan="7"><div class="fa-rejilla fa-rejilla--detalle">' +
+            '<div class="fa-campo fa-c3"><span>Clave del SAT</span><div class="fa-clave" data-clave="prod" data-i="' + i + '"></div></div>' +
+            '<div class="fa-campo fa-c3"><span>Unidad del SAT</span><div class="fa-clave" data-clave="unidad" data-i="' + i + '"></div></div>' +
+            '<label class="fa-campo fa-c2"><span>Código <i>(no. identificación)</i></span><input data-c="no_identificacion" maxlength="100" value="' + esc(c.no_identificacion) + '"></label>' +
+            '<label class="fa-campo fa-c2"><span>Cuenta predial</span><input data-c="cuenta_predial" maxlength="150" value="' + esc(c.cuenta_predial) + '"></label>' +
+            '<div class="fa-campo fa-c2"><span>Precio</span><label class="fa-switch"><input type="checkbox" data-c="modo"' + (c.modo === "final" ? " checked" : "") + '><span></span><b>Escribir el precio final</b></label></div>' +
+            (imp === "otro" ? '<label class="fa-campo fa-c2"><span>IVA</span><select data-c="iva">' + opciones(ivas, c.iva, false) + "</select></label>" +
+                '<label class="fa-campo fa-c2"><span>Retención de ISR</span><select data-c="ret_isr">' + opciones(retIsr, c.ret_isr || "", false) + "</select></label>" +
+                '<label class="fa-campo fa-c2"><span>Retención de IVA</span><select data-c="ret_iva">' + opciones(retIva, c.ret_iva || "", false) + "</select></label>" : "") +
+            '<div class="fa-campo fa-c6 fa-conc__nota"><span>&nbsp;</span><p class="fa-nota">Base ' + dinero(t.base) + " · IVA " + dinero(t.iva) + (t.ret ? " · retenciones " + dinero(t.ret) : "") +
+            " · <b>total del concepto " + dinero(t.total) + '</b> · <button type="button" class="fa-link" data-guardar-prod>' + (c.producto_id ? "Actualizar en el catálogo" : "Guardar en el catálogo") + "</button></p></div>" +
+            "</div></td></tr>";
     }
 
     function pintarConceptos() {
         $("conceptos").innerHTML = F.conceptos.map(filaConcepto).join("");
+        document.querySelectorAll("#conceptos .fa-clave").forEach(function (caja) {
+            var c = F.conceptos[+caja.dataset.i];
+            widgetClave(caja, caja.dataset.clave, caja.dataset.clave === "prod" ? c.clave_prod : c.clave_unidad, function (clave, texto) {
+                if (caja.dataset.clave === "prod") c.clave_prod = clave; else { c.clave_unidad = clave; c.unidad = texto; }
+                refrescarSub(+caja.dataset.i);
+            });
+        });
         calcular();
+    }
+
+    function refrescarSub(i) {
+        var c = F.conceptos[i], fila = document.querySelector('.fa-conc__fila[data-i="' + i + '"]');
+        if (!fila) return;
+        fila.querySelector(".fa-conc__prod .fa-conc__sub").textContent = (c.clave_prod ? c.clave_prod + " · " + c.clave_unidad : "Sin clave") +
+            (c.no_identificacion ? " · " + c.no_identificacion : "") + (c.cuenta_predial ? " · predial " + c.cuenta_predial : "");
     }
 
     function calcular() {
         var sub = 0, desc = 0, iva = 0, ret = 0;
         F.conceptos.forEach(function (c, i) {
-            var importe = r2(num(c.cantidad) * num(c.valor_unitario)), d = r2(num(c.descuento)), base = importe - d;
-            sub += importe; desc += d;
-            if (c.objeto_imp === "02") {
-                var tasa = { "16": 0.16, "8": 0.08 }[c.iva] || 0;
-                iva += r2(base * tasa);
-                var ri = { "10.6667": 0.106667, "4": 0.04, "6": 0.06, "16": 0.16 }[c.ret_iva] || 0;
-                var rs = { "10": 0.10, "1.25": 0.0125 }[c.ret_isr] || 0;
-                ret += r2(base * ri) + r2(base * rs);
-            }
-            var el = document.querySelector('.fa-concepto[data-i="' + i + '"] [data-importe]');
-            if (el) el.textContent = dinero(importe);
+            var t = totalConcepto(c);
+            sub += t.importe; desc += r2(num(c.descuento)); iva += t.iva; ret += t.ret;
+            var el = document.querySelector('.fa-conc__fila[data-i="' + i + '"] [data-importe]');
+            if (el) el.textContent = dinero(t.importe);
         });
         var total = r2(sub - desc + iva - ret);
         $("t-subtotal").textContent = dinero(sub);
@@ -416,7 +518,213 @@
         var mon = $("p-moneda").value;
         $("t-letra").textContent = total > 0 ? enLetra(total, mon) : "";
         document.querySelector("dt.fa-total").textContent = "Total " + (mon === "USD" ? "USD" : "");
+        var obj = num($("t-objetivo").value);
+        if (!F.cuadrando) $("t-objetivo-nota").innerHTML = obj > 0 ? (r2(obj) === total ? '<b class="fa-bien">✓ Cuadra exacto con ' + dinero(obj) + "</b>" : "Diferencia " + dinero(r2(total - obj)) + ": usa «Cuadrar».")
+            : "Ajusta el último concepto para llegar exacto al centavo.";
         return { total: total };
+    }
+
+    /* «El total debe ser X»: el último concepto pasa a precio final por lo que falte */
+    function cuadrarTotal() {
+        var obj = r2(num($("t-objetivo").value));
+        if (!(obj > 0) || !F.conceptos.length) return;
+        var ultimo = F.conceptos[F.conceptos.length - 1];
+        var otros = F.conceptos.slice(0, -1).reduce(function (a, c) { return a + totalConcepto(c).total; }, 0);
+        ultimo.modo = "final"; ultimo.final = String(r2(obj - otros));
+        aplicarFinal(ultimo);
+        F.cuadrando = !!ultimo.difFinal;
+        pintarConceptos();
+        F.cuadrando = false;
+        if (!ultimo.difFinal) return;
+        /* El IVA se redondea al centavo, así que algunos totales no existen: busca los posibles más cercanos */
+        var cerca = [];
+        [-1, 1].forEach(function (sg) {
+            for (var k = 1; k <= 5; k++) {
+                var prueba = Object.assign({}, ultimo, { final: String(r2(obj - otros + sg * k * 0.01)) });
+                if (!resolverUnitario(prueba, num(prueba.final)).dif) { cerca.push(r2(obj + sg * k * 0.01)); break; }
+            }
+        });
+        $("t-objetivo-nota").innerHTML = "Con el IVA redondeado al centavo, " + dinero(obj) + " no sale exacto con " + (num(ultimo.cantidad) === 1 ? "este concepto" : "esa cantidad") + ". Lo más cerca: " +
+            cerca.map(function (x) { return '<button type="button" class="fa-link" data-objetivo="' + x + '">' + dinero(x) + "</button>"; }).join(" o ") + ". También puedes cambiar el precio de otro concepto.";
+    }
+
+    /* ---------- buscador de claves del SAT (producto o unidad) ---------- */
+    var esperaClave = null;
+    function widgetClave(caja, tipo, valor, alCambiar) {
+        caja.innerHTML = '<input class="fa-clave__in" autocomplete="off" placeholder="' + (tipo === "prod" ? "Busca por palabra o clave…" : "Pieza, servicio, hora…") + '" value="' + esc(valor || "") + '"><div class="fa-clave__lista" hidden></div>';
+        var input = caja.querySelector("input"), lista = caja.querySelector(".fa-clave__lista");
+        if (valor) json("/api/facturacion/sat/claves?tipo=" + tipo + "&q=" + encodeURIComponent(valor) + "&rfc=" + encodeURIComponent(F.emisor ? F.emisor.rfc : ""))
+            .then(function (r) { var x = r.filter(function (y) { return y.clave === valor; })[0]; if (x && document.activeElement !== input) input.value = x.clave + " · " + x.texto; }).catch(function () {});
+        function buscar() {
+            clearTimeout(esperaClave);
+            esperaClave = setTimeout(async function () {
+                try {
+                    var r = await json("/api/facturacion/sat/claves?tipo=" + tipo + "&q=" + encodeURIComponent(input.value.split(" · ")[0].trim()) + "&rfc=" + encodeURIComponent(F.emisor ? F.emisor.rfc : ""));
+                    lista.innerHTML = r.length ? r.map(function (x) { return '<button type="button" data-k="' + esc(x.clave) + '" data-t="' + esc(x.texto) + '"><b>' + esc(x.clave) + "</b> " + esc(x.texto) + (x.similares ? "<small>" + esc(x.similares) + "</small>" : "") + "</button>"; }).join("")
+                        : '<p class="fa-vacio-chico">Nada coincide.</p>';
+                    lista.hidden = false;
+                } catch (e) { lista.hidden = true; }
+            }, 180);
+        }
+        input.addEventListener("focus", function () { input.select(); buscar(); });
+        input.addEventListener("input", buscar);
+        input.addEventListener("blur", function () { setTimeout(function () { lista.hidden = true; }, 180); });
+        lista.addEventListener("mousedown", function (ev) {
+            var b = ev.target.closest("[data-k]"); if (!b) return;
+            ev.preventDefault();
+            input.value = b.dataset.k + " · " + b.dataset.t; lista.hidden = true; input.blur();
+            alCambiar(b.dataset.k, b.dataset.t);
+        });
+        caja.valor = function () { return input.value.split(" · ")[0].trim(); };
+    }
+
+    /* ---------- catálogo de productos (por empresa) ---------- */
+    async function cargarProductos() {
+        if (!F.empresa) return;
+        try { F.productos = await json("/api/facturacion/productos?rfc=" + encodeURIComponent(F.empresa.rfc)); } catch (e) { F.productos = []; }
+        pintarProductos();
+    }
+
+    function textoImpuesto(p) { return (IMPUESTOS[impuestoDe(p)] || IMPUESTOS.otro)[0].replace("Personalizado…", "Personalizado"); }
+
+    function pintarProductos() {
+        if (!$("prod-lista")) return;
+        var q = ($("prod-buscar").value || "").trim().toLowerCase(), lista = F.productos || [];
+        var filas = lista.filter(function (p) { return !q || [p.nombre, p.codigo, p.clave_prod, p.descripcion].join(" ").toLowerCase().indexOf(q) !== -1; });
+        $("prod-cuenta").textContent = lista.length ? "(" + lista.length + ")" : "";
+        $("prod-lista").innerHTML = filas.length ? filas.map(function (p) {
+            return '<div class="fa-item" data-prod="' + esc(p.id) + '"><span class="fa-opcion__ini">' + esc((p.nombre || "·").charAt(0)) + '</span><div class="fa-item__txt"><b>' + esc(p.nombre) + "</b><small>" +
+                esc([p.codigo, p.clave_prod + " · " + p.clave_unidad, textoImpuesto(p), p.cuenta_predial ? "predial " + p.cuenta_predial : ""].filter(Boolean).join(" · ")) + "</small></div>" +
+                '<span class="fa-item__monto">' + (p.precio != null ? dinero(p.precio) + (p.precio_con_impuestos ? " <small>final</small>" : "") : "") + "</span></div>";
+        }).join("") : '<p class="fa-vacio-chico">' + (lista.length ? "Nada coincide." : "Todavía no hay productos. Agrégalos o impórtalos de tus XML.") + "</p>";
+    }
+
+    function abrirProducto(p) {
+        F.prodEditando = p || null;
+        $("pr-titulo").textContent = p ? "Editar producto" : "Nuevo producto o servicio";
+        $("pr-codigo").value = p ? p.codigo || "" : ""; $("pr-nombre").value = p ? p.nombre : "";
+        $("pr-precio").value = p && p.precio != null ? p.precio : ""; $("pr-con").value = p && p.precio_con_impuestos ? "1" : "0";
+        $("pr-predial").value = p ? p.cuenta_predial || "" : ""; $("pr-descripcion").value = p ? p.descripcion || "" : "";
+        var propio = p && impuestoDe(p) === "otro";
+        $("pr-impuesto").innerHTML = Object.keys(IMPUESTOS).filter(function (k) { return k !== "otro"; }).map(function (k) { return '<option value="' + k + '">' + esc(IMPUESTOS[k][0]) + "</option>"; }).join("") +
+            (propio ? '<option value="otro">Personalizado (se queda como está)</option>' : "");
+        $("pr-impuesto").value = p ? impuestoDe(p) : "16";
+        F.prClave = p ? p.clave_prod : ""; F.prUnidad = p ? p.clave_unidad : "E48";
+        widgetClave($("pr-clave"), "prod", F.prClave, function (k) { F.prClave = k; });
+        widgetClave($("pr-unidad"), "unidad", F.prUnidad, function (k) { F.prUnidad = k; });
+        $("btn-pr-borrar").hidden = !p; $("pr-error").hidden = true;
+        $("dlg-producto").showModal();
+    }
+
+    function productoDeFormulario() {
+        var k = IMPUESTOS[$("pr-impuesto").value], e = F.prodEditando;
+        if (!k[1] && e) k = [null, e.objeto_imp, e.iva, e.ret_isr || "", e.ret_iva || ""];
+        return { id: F.prodEditando ? F.prodEditando.id : null, rfc: F.emisor.rfc, codigo: $("pr-codigo").value.trim(), nombre: $("pr-nombre").value.trim(),
+                 descripcion: $("pr-descripcion").value.trim() || null, clave_prod: $("pr-clave").valor ? $("pr-clave").valor() : F.prClave,
+                 clave_unidad: $("pr-unidad").valor ? $("pr-unidad").valor() : F.prUnidad, precio: $("pr-precio").value === "" ? null : num($("pr-precio").value),
+                 precio_con_impuestos: $("pr-con").value === "1", objeto_imp: k[1], iva: k[2], ret_isr: k[3] || null, ret_iva: k[4] || null,
+                 cuenta_predial: $("pr-predial").value.trim() || null };
+    }
+
+    async function guardarProducto() {
+        try {
+            await enviar("/api/facturacion/productos", "PUT", productoDeFormulario());
+            $("dlg-producto").close();
+            await cargarProductos();
+        } catch (e) { $("pr-error").textContent = e.message; $("pr-error").hidden = false; }
+    }
+
+    /* Un producto del catálogo llena el concepto */
+    function usarProducto(c, p) {
+        c.descripcion = p.descripcion || p.nombre; c.clave_prod = p.clave_prod; c.clave_unidad = p.clave_unidad; c.unidad = p.unidad;
+        c.no_identificacion = p.codigo || ""; c.cuenta_predial = p.cuenta_predial || ""; c.producto_id = p.id;
+        ponerImpuesto(c, impuestoDe(p)); if (impuestoDe(p) === "otro") { c.objeto_imp = p.objeto_imp; c.iva = p.iva; c.ret_isr = p.ret_isr || ""; c.ret_iva = p.ret_iva || ""; }
+        if (p.precio != null) {
+            if (p.precio_con_impuestos) { c.modo = "final"; c.final = String(r2(p.precio * (num(c.cantidad) || 1))); aplicarFinal(c); }
+            else { c.modo = "unitario"; c.valor_unitario = String(p.precio); }
+        }
+        api("/api/facturacion/productos/" + p.id + "/usado", { method: "POST" }).catch(function () {});
+    }
+
+    function sugerirProductos(input) {
+        var caja = input.parentNode.querySelector(".fa-prod__sug"), q = input.value.trim().toLowerCase();
+        var lista = (F.productos || []).filter(function (p) { return !q || [p.nombre, p.codigo, p.clave_prod].join(" ").toLowerCase().indexOf(q) !== -1; }).slice(0, 8);
+        caja.innerHTML = lista.map(function (p) { return '<button type="button" data-prod="' + esc(p.id) + '"><b>' + esc(p.nombre) + "</b><small>" + esc((p.codigo ? p.codigo + " · " : "") + p.clave_prod + " · " + textoImpuesto(p)) + "</small><span>" + (p.precio != null ? dinero(p.precio) : "") + "</span></button>"; }).join("");
+        caja.hidden = !lista.length;
+    }
+
+    async function guardarConceptoEnCatalogo(i) {
+        var c = F.conceptos[i];
+        try {
+            var p = await enviar("/api/facturacion/productos", "PUT", { id: c.producto_id, rfc: F.emisor.rfc, codigo: c.no_identificacion, nombre: (c.descripcion || "").slice(0, 200),
+                clave_prod: c.clave_prod, clave_unidad: c.clave_unidad, precio: c.modo === "final" ? r2(num(c.final) / (num(c.cantidad) || 1)) : num(c.valor_unitario),
+                precio_con_impuestos: c.modo === "final", objeto_imp: c.objeto_imp, iva: c.iva, ret_isr: c.ret_isr || null, ret_iva: c.ret_iva || null, cuenta_predial: c.cuenta_predial || null });
+            c.producto_id = p.id;
+            await cargarProductos();
+            aviso("✓ «" + p.nombre + "» quedó en el catálogo de esta empresa.");
+        } catch (e) { aviso(e.message, "error"); }
+    }
+
+    /* ---------- importar productos de XML (al catálogo o a esta factura) ---------- */
+    function abrirImportar(r, destino) {
+        F.importar = { lista: r.productos.map(function (x) { return Object.assign({ sel: x.clave_valida !== false }, x); }), destino: destino };
+        $("im-titulo").textContent = destino === "factura" ? "Conceptos para esta factura" : "Productos para el catálogo";
+        $("im-resumen").textContent = r.leidos + " XML leídos · " + r.productos.length + " productos distintos" + (r.rechazados ? " · " + r.rechazados + " archivo(s) no eran CFDI" : "") +
+            ". Revisa el nombre, el precio y el impuesto antes de " + (destino === "factura" ? "agregarlos." : "guardarlos.");
+        $("im-guardar-caja").hidden = destino !== "factura";
+        $("btn-im-ok").textContent = destino === "factura" ? "Agregar a la factura" : "Guardar en el catálogo";
+        $("im-buscar").value = ""; $("im-error").hidden = true;
+        pintarImportar();
+        $("dlg-importar").showModal();
+    }
+
+    function pintarImportar() {
+        var q = $("im-buscar").value.trim().toLowerCase(), imp = Object.keys(IMPUESTOS).filter(function (k) { return k !== "otro"; });
+        $("im-filas").innerHTML = F.importar.lista.map(function (x, i) {
+            if (q && [x.nombre, x.clave_prod].join(" ").toLowerCase().indexOf(q) === -1) return "";
+            var k = impuestoDe(x);
+            return '<tr data-im="' + i + '"' + (x.clave_valida === false ? ' class="fa-im--mal" title="La clave ya no está vigente: cámbiala antes de usarlo"' : "") + '><td><input type="checkbox" data-im-c="sel"' + (x.sel ? " checked" : "") + "></td>" +
+                '<td><input data-im-c="nombre" value="' + esc(x.nombre) + '"></td><td class="fa-mono">' + esc(x.clave_prod) + "</td><td>" + esc(x.clave_unidad) + "</td>" +
+                '<td><input data-im-c="precio" class="fa-num" inputmode="decimal" value="' + esc(x.precio == null ? "" : x.precio) + '"></td>' +
+                '<td><select data-im-c="impuesto">' + imp.map(function (z) { return '<option value="' + z + '"' + (z === k ? " selected" : "") + ">" + esc(IMPUESTOS[z][0]) + "</option>"; }).join("") +
+                (k === "otro" ? '<option value="otro" selected>Como en el XML</option>' : "") + "</select></td><td class='fa-num'>" + x.veces + "</td></tr>";
+        }).join("") || '<tr><td colspan="7" class="fa-vacio-chico">Nada coincide.</td></tr>';
+    }
+
+    async function confirmarImportar() {
+        var elegidos = F.importar.lista.filter(function (x) { return x.sel; });
+        if (!elegidos.length) { $("im-error").textContent = "Marca al menos uno."; $("im-error").hidden = false; return; }
+        var b = $("btn-im-ok"); b.disabled = true;
+        try {
+            if (F.importar.destino !== "factura" || $("im-guardar").checked) {
+                var r = await enviar("/api/facturacion/productos/lote", "POST", { rfc: F.emisor.rfc, productos: elegidos.map(function (x) {
+                    return { codigo: x.codigo, nombre: x.nombre, clave_prod: x.clave_prod, clave_unidad: x.clave_unidad, precio: x.precio === "" ? null : num(x.precio),
+                             precio_con_impuestos: false, objeto_imp: x.objeto_imp, iva: x.iva, ret_isr: x.ret_isr || null, ret_iva: x.ret_iva || null };
+                }) });
+                await cargarProductos();
+                if (r.errores.length) aviso(r.guardados + " guardados; " + r.errores.length + " con algo que corregir: " + r.errores.slice(0, 2).join(" · "), "alerta");
+                else if (F.importar.destino !== "factura") aviso("✓ " + r.guardados + " productos en el catálogo.");
+            }
+            if (F.importar.destino === "factura") {
+                var nuevos = elegidos.map(function (x) {
+                    return Object.assign(conceptoVacio(), { descripcion: x.nombre, clave_prod: x.clave_prod, clave_unidad: x.clave_unidad, valor_unitario: String(x.precio == null ? "" : x.precio),
+                        objeto_imp: x.objeto_imp, iva: x.iva, ret_isr: x.ret_isr || "", ret_iva: x.ret_iva || "", no_identificacion: x.codigo || "" });
+                });
+                var vacio = F.conceptos.length === 1 && !F.conceptos[0].descripcion && !num(F.conceptos[0].valor_unitario);
+                F.conceptos = (vacio ? [] : F.conceptos).concat(nuevos);
+                pintarConceptos();
+            }
+            $("dlg-importar").close();
+        } catch (e) { $("im-error").textContent = e.message; $("im-error").hidden = false; }
+        b.disabled = false;
+    }
+
+    async function leerXmlProductos(archivos, destino) {
+        if (!archivos || !archivos.length) return;
+        var cuerpo = new FormData();
+        Array.prototype.forEach.call(archivos, function (a) { cuerpo.append("archivos", a); });
+        try { abrirImportar(await json("/api/facturacion/productos/leer-xml", { method: "POST", body: cuerpo }), destino); }
+        catch (e) { aviso(e.message, "error"); }
     }
 
     function captura() {
@@ -426,7 +734,8 @@
             tipo: F.tipo, metodo_pago: $("p-metodo").value, forma_pago: $("p-forma").value,
             condiciones: $("p-condiciones").value.trim() || null,
             moneda: $("p-moneda").value, tipo_cambio: $("p-moneda").value === "USD" ? $("p-tc").value.trim() : null,
-            fecha: $("p-fecha").value || null, notas: $("p-notas").value.trim() || null, guardar_cliente: $("r-guardar").checked,
+            fecha: $("p-fecha").value || null, notas: $("p-notas").value.trim() || null, pedido: $("p-pedido").value.trim() || null,
+            guardar_cliente: F.clienteGuardado ? $("r-actualizar").checked : $("r-guardar").checked,
             receptor: { rfc: $("r-rfc").value.trim().toUpperCase(), nombre: $("r-nombre").value.trim().toUpperCase(),
                         cp: $("r-cp").value.trim(), regimen: $("r-regimen").value, uso: $("r-uso").value,
                         residencia: rfcR === "XEXX010101000" ? $("r-pais").value : null, num_reg_id: rfcR === "XEXX010101000" ? $("r-taxid").value.trim() : null },
@@ -435,7 +744,8 @@
             conceptos: F.conceptos.map(function (c) {
                 return { cantidad: c.cantidad, clave_prod: (c.clave_prod || "").trim(), clave_unidad: c.clave_unidad,
                          descripcion: c.descripcion, valor_unitario: c.valor_unitario, descuento: c.descuento || 0,
-                         objeto_imp: c.objeto_imp, iva: c.iva, ret_isr: c.ret_isr, ret_iva: c.ret_iva, no_identificacion: c.no_identificacion || "" };
+                         objeto_imp: c.objeto_imp, iva: c.iva, ret_isr: c.ret_isr, ret_iva: c.ret_iva, no_identificacion: c.no_identificacion || "",
+                         cuenta_predial: c.cuenta_predial || "", modo: c.modo, final: c.final, producto_id: c.producto_id || null, unidad: c.unidad || null };
             })
         };
     }
@@ -483,6 +793,7 @@
             }
             $("dlg-confirmar").close();
             F.ultimo = r;
+            if (F.recurrenteId) { api("/api/facturacion/borradores/" + F.recurrenteId + "/recurrente/hecha", { method: "POST" }).then(cargarRecurrentes).catch(function () {}); }
             if (F.tipo === "I") F.emisor.folio_i = parseInt(r.folio, 10) + 1; else F.emisor.folio_e = parseInt(r.folio, 10) + 1;
             if (F.cfg.produccion) F.emisor.timbres = Math.max((F.emisor.timbres || 0) - 1, 0);
             pintarEmisor();
@@ -523,7 +834,9 @@
         $("lista-receptores").innerHTML = opciones.join("");
     }
 
-    function ponerReceptor(r) {
+    function ponerReceptor(r, guardado) {
+        F.clienteGuardado = guardado ? { nombre: r.nombre || "", cp: r.cp || "", regimen: r.regimen || "" } : null;
+        F.clienteNuevo = false;
         $("r-rfc").value = r.rfc || ""; $("r-nombre").value = r.nombre || ""; $("r-cp").value = r.cp || "";
         if (r.residencia) $("r-pais").value = r.residencia;
         $("r-taxid").value = r.num_reg_id || "";
@@ -553,31 +866,47 @@
 
     function pintarSelector() {
         var q = $("r-buscar").value.trim().toLowerCase(), cat = F.cfg.catalogos.regimenes;
-        var lista = clientesDisponibles().filter(function (r) { return !q || (r.nombre + " " + r.rfc).toLowerCase().indexOf(q) !== -1; }).slice(0, 80);
+        var lista = clientesDisponibles().filter(function (r) { return !q || (r.nombre + " " + r.rfc + " " + (r.num_reg_id || "")).toLowerCase().indexOf(q) !== -1; }).slice(0, 80);
         var rfcQ = q.toUpperCase();
         var nuevo = /^[A-ZÑ&]{3,4}\d{6}[A-Z0-9]{3}$/.test(rfcQ) && !lista.some(function (r) { return r.rfc === rfcQ; });
-        $("sel-cliente-lista").innerHTML = (nuevo ? '<button type="button" class="fa-opcion" data-rfc-nuevo="' + esc(rfcQ) + '"><b>Usar ' + esc(rfcQ) + "</b><small>RFC nuevo: completa sus datos</small></button>" : "") +
+        $("sel-cliente-lista").innerHTML = (nuevo ? '<button type="button" class="fa-opcion" data-rfc-nuevo="' + esc(rfcQ) + '"><span class="fa-opcion__ini">+</span><span><b>Usar ' + esc(rfcQ) + "</b><small>RFC nuevo: completa sus datos</small></span></button>" : "") +
             (lista.length ? lista.map(function (r, i) {
                 return '<button type="button" class="fa-opcion" role="option" data-i="' + i + '"><span class="fa-opcion__ini">' + esc((r.nombre || r.rfc).charAt(0)) + "</span><span><b>" + esc(r.nombre || r.rfc) + "</b><small>" +
                     esc(r.rfc + (r.residencia ? " · " + r.residencia + " " + (r.num_reg_id || "") : "") + (r.cp ? " · C.P. " + r.cp : "") + (r.regimen ? " · " + r.regimen + " " + (cat[r.regimen] || "") : "")) + "</small></span></button>";
-            }).join("") : (nuevo ? "" : '<p class="fa-vacio-chico">' + (q ? "Nadie coincide. Escribe el RFC completo para usarlo." : "Todavía no hay clientes guardados: usa «Cliente nuevo» o lee su constancia.") + "</p>"));
+            }).join("") : (nuevo ? "" : '<p class="fa-vacio-chico">' + (q ? "Nadie coincide. Escribe el RFC completo para usarlo." : "Todavía no hay clientes guardados.") + "</p>"));
         F.selLista = lista;
     }
 
     function elegirCliente(r) {
         abrirSelector(false);
-        if (r.previo && !r.cp) { $("r-rfc").value = r.rfc; $("r-nombre").value = ""; $("r-cp").value = ""; $("r-regimen").value = ""; llenarReceptor().then(pintarCliente); }
-        else ponerReceptor(r);
+        if (r.previo && !r.cp) { quitarCliente(); $("r-rfc").value = r.rfc; llenarReceptor().then(pintarCliente); }
+        else ponerReceptor(r, true);
         pintarCliente();
+    }
+
+    /* Quitar al cliente de ESTA factura (no lo borra de sus clientes guardados) */
+    function quitarCliente() {
+        ["r-rfc", "r-nombre", "r-cp", "r-taxid"].forEach(function (id) { $(id).value = ""; });
+        $("r-regimen").value = ""; $("r-uso").value = F.tipo === "E" ? "G02" : "G03";
+        F.clienteGuardado = null; $("r-actualizar").checked = false;
+        verExtranjero(); verGlobal(); pintarCliente();
+    }
+
+    function cambioVsGuardado() {
+        var g = F.clienteGuardado; if (!g) return false;
+        return ($("r-nombre").value.trim().toUpperCase() !== (g.nombre || "").toUpperCase()) || $("r-cp").value.trim() !== (g.cp || "") || $("r-regimen").value !== (g.regimen || "");
     }
 
     function pintarCliente() {
         var rfc = $("r-rfc").value.trim().toUpperCase(), nombre = $("r-nombre").value.trim().toUpperCase();
-        var falta = !rfc || !nombre || !$("r-cp").value.trim() || !$("r-regimen").value;
-        $("sel-cliente-texto").innerHTML = rfc ? "<b>" + esc(nombre || "Sin nombre") + "</b> <small>" + esc(rfc) + "</small>" : "Elige un cliente o escribe su RFC…";
-        $("sel-cliente-texto").className = rfc ? "fa-selector__valor" : "fa-selector__vacio";
-        $("r-resumen").textContent = rfc ? (falta ? "· faltan datos" : "· C.P. " + $("r-cp").value + " · régimen " + $("r-regimen").value + " · uso " + $("r-uso").value) : "";
-        if (rfc && falta) $("r-datos").open = true;
+        $("cli-tarjeta").hidden = !(rfc || nombre || F.clienteNuevo);
+        $("cli-vacio").hidden = !$("cli-tarjeta").hidden;
+        $("btn-elegir-texto").textContent = $("cli-tarjeta").hidden ? "Elegir cliente" : "Cambiar cliente";
+        $("cli-nombre").textContent = nombre || (rfc ? "Sin nombre" : "Cliente nuevo");
+        $("cli-ini").textContent = (nombre || rfc || "+").charAt(0);
+        $("cli-origen").textContent = rfc === "XAXX010101000" ? "Público en general" : rfc === "XEXX010101000" ? "Extranjero" : F.clienteGuardado ? "De sus clientes" : rfc ? "Nuevo: se guarda al timbrar" : "";
+        $("fila-guardar").hidden = !!F.clienteGuardado || rfc === "XAXX010101000";
+        $("fila-actualizar").hidden = !cambioVsGuardado();
         $("t-cliente").textContent = rfc ? (nombre || rfc) + " · " + rfc : "Sin cliente";
     }
 
@@ -592,7 +921,6 @@
             var r = await json("/api/facturacion/leer-constancia", { method: "POST", body: cuerpo });
             abrirSelector(false);
             ponerReceptor({ rfc: r.rfc, nombre: r.nombre, cp: r.cp, regimen: r.regimenes[0] || "" });
-            $("r-datos").open = true;
             var cat = F.cfg.catalogos.regimenes;
             a.innerHTML = "✓ Datos de su constancia" + (r.regimenes.length > 1
                 ? ". Tiene varios regímenes: " + r.regimenes.map(function (k) { return esc(k + " " + (cat[k] || "")); }).join(", ") + "; elige el que corresponda a esta factura."
@@ -612,7 +940,7 @@
         var rfc = $("r-rfc").value.trim().toUpperCase();
         if (rfc === "XAXX010101000") { publico(); return; }
         var guardado = F.receptores.filter(function (x) { return x.rfc === rfc; })[0];
-        if (guardado) { if (!$("r-nombre").value) ponerReceptor(guardado); return; }
+        if (guardado) { if (!$("r-nombre").value) ponerReceptor(guardado, true); return; }
         var previo = F.emitidas.filter(function (x) { return x.receptor_rfc === rfc; })[0];
         if (!previo) return;
         try {
@@ -700,7 +1028,10 @@
     async function verPdf(id) {
         try {
             var x = F.emitidas.filter(function (e) { return e.id === id; })[0];
-            await bajarRespuesta(await api("/api/facturacion/comprobantes/" + id + "/pdf"), x ? (x.serie || "") + x.folio + ".pdf" : "factura.pdf");
+            var resp = await api("/api/facturacion/comprobantes/" + id + "/pdf");
+            var m = /filename="?([^";]+)"?/i.exec(resp.headers.get("Content-Disposition") || "");
+            Fiscontable.verPdf(await resp.blob(), { titulo: x ? ({ I: "Factura ", E: "Nota de crédito ", P: "Recibo de pago " }[x.tipo] || "") + (x.serie ? x.serie + "-" : "") + x.folio + " · " + x.receptor_nombre : "Comprobante",
+                                                   nombre: m ? m[1] : "comprobante.pdf" });
         } catch (e) { aviso(e.message, "error"); }
     }
 
@@ -798,8 +1129,8 @@
         $("r-cp").value = F.emisor && F.emisor.cp || "";
         $("r-regimen").value = "616";
         $("r-uso").value = "S01";
+        F.clienteGuardado = null; F.clienteNuevo = true;
         verExtranjero(); verGlobal(); pintarCliente();
-        $("r-datos").open = true;
         $("r-nombre").focus();
     }
 
@@ -1100,7 +1431,7 @@
     function faltaPaso(n) {
         if (n === 1) {
             if (!$("r-rfc").value.trim()) return "Elige el cliente.";
-            if (!$("r-nombre").value.trim() || !$("r-cp").value.trim() || !$("r-regimen").value) { $("r-datos").open = true; return "Completa los datos fiscales del cliente (nombre, C.P. y régimen)."; }
+            if (!$("r-nombre").value.trim() || !$("r-cp").value.trim() || !$("r-regimen").value) return "Completa los datos fiscales del cliente (nombre, C.P. y régimen).";
             if ($("p-moneda").value === "USD" && !num($("p-tc").value)) return "Escribe el tipo de cambio.";
         }
         if (n === 2 && F.tipo === "E" && !F.relaciones.length) return "La nota de crédito necesita la factura que corrige.";
@@ -1118,7 +1449,7 @@
     async function revisarPaso4() {
         var cont = $("revision"), cap = captura();
         cont.innerHTML = '<p class="fa-nota">Revisando con las mismas reglas del timbrado…</p>';
-        $("paso4-marco").removeAttribute("src");
+        $("paso4-marco").innerHTML = "";
         try {
             var r = await enviar("/api/facturacion/revisar", "POST", { rfc: F.emisor.rfc, captura: cap });
             var serie = F.tipo === "I" ? F.emisor.serie_i : F.emisor.serie_e, folio = F.tipo === "I" ? F.emisor.folio_i : F.emisor.folio_e;
@@ -1133,7 +1464,7 @@
             var blob = await resp.blob();
             if (F.vistaUrl) URL.revokeObjectURL(F.vistaUrl);
             F.vistaUrl = URL.createObjectURL(blob); F.vistaBlob = blob; F.vistaNombre = m ? m[1] : "Vista_previa.pdf";
-            $("paso4-marco").src = F.vistaUrl + "#view=FitH";
+            Fiscontable.pdfEn($("paso4-marco"), blob);
         } catch (e) {
             cont.innerHTML = '<div class="fa-error">' + esc(e.message) + "</div>";
         }
@@ -1150,8 +1481,7 @@
             var blob = await resp.blob();
             if (F.vistaUrl) URL.revokeObjectURL(F.vistaUrl);
             F.vistaUrl = URL.createObjectURL(blob); F.vistaBlob = blob; F.vistaNombre = m ? m[1] : "Vista_previa.pdf";
-            $("vista-marco").src = F.vistaUrl;
-            $("dlg-vista").showModal();
+            Fiscontable.verPdf(blob, { titulo: "Vista previa · sin validez fiscal", nombre: F.vistaNombre });
         } catch (e) { err.textContent = e.message; err.hidden = false; }
         b.disabled = false; b.textContent = "Vista previa PDF";
     }
@@ -1172,9 +1502,18 @@
         try {
             var r = await enviar("/api/facturacion/borradores", "POST", { id: F.borradorId, rfc: F.emisor.rfc, nombre: nombre, captura: cap, total: calcular().total });
             F.borradorId = r.id;
-            $("estado-borrador").textContent = "✓ Prefactura «" + r.nombre + "» guardada.";
+            estadoCaptura("✓ Prefactura «" + r.nombre + "» guardada.");
             cargarBorradores();
         } catch (e) { $("t-error").textContent = e.message; $("t-error").hidden = false; }
+    }
+
+    function abrirPrefactura(x, recurrente) {
+        if (F.vista !== "nueva") vista("nueva");
+        ponerCaptura(x.captura);
+        F.borradorId = x.id;
+        F.recurrenteId = recurrente ? x.id : null;
+        estadoCaptura(recurrente ? "Recurrente «" + x.nombre + "»: revísala y timbra; la próxima fecha se calcula sola." : "Prefactura «" + x.nombre + "» abierta.");
+        irPaso(1);
     }
 
     function pintarBorradores() {
@@ -1182,8 +1521,36 @@
             return '<div class="fa-item" data-id="' + esc(x.id) + '"><div class="fa-item__txt"><b>' + esc(x.nombre) + "</b><small>" +
                 esc((x.tipo === "E" ? "Nota de crédito · " : "") + x.receptor + " · " + fechaCorta(x.actualizado_en + "Z")) + "</small></div>" +
                 (x.total != null ? '<span class="fa-item__monto">' + dinero(x.total) + "</span>" : "") +
-                '<button type="button" class="fa-btn fa-btn--suave" data-abrir>Abrir</button><button type="button" class="fa-quitar" data-borrar title="Borrar">✕</button></div>';
+                '<button type="button" class="fa-ico' + (x.recurrente && x.recurrente.activo ? " fa-ico--activo" : "") + '" data-repetir title="' +
+                esc(x.recurrente && x.recurrente.activo ? textoRepetir(x.recurrente) : "Repetirla cada semana, quincena o mes") + '">↻</button>' +
+                '<button type="button" class="fa-btn fa-btn--suave" data-abrir>Abrir</button><button type="button" class="fa-quitar" data-borrar title="Borrar">✕</button></div>' +
+                (F.repitiendo === x.id ? formaRepetir(x) : "");
         }).join("") : '<p class="fa-vacio-chico">Todavía no hay prefacturas. Llena una factura y usa «Guardar prefactura».</p>';
+    }
+
+    var DIAS = ["lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo"];
+    function textoRepetir(r) {
+        var cada = r.cada === "semana" ? "Cada " + DIAS[r.dia || 0] : r.cada === "quincena" ? "Cada quincena (1 y 16)" : "Cada mes, el día " + (r.dia || 1);
+        return cada + " · " + (r.modo === "timbrar" ? "se timbra sola" : "te avisa") + (r.proxima ? " · próxima " + fechaCorta(r.proxima + "T12:00:00") : "");
+    }
+    function formaRepetir(x) {
+        var r = x.recurrente || { activo: true, cada: "mes", dia: 1, modo: "avisar" };
+        var dias = r.cada === "semana" ? DIAS.map(function (d, i) { return '<option value="' + i + '"' + (+r.dia === i ? " selected" : "") + ">" + d + "</option>"; }).join("")
+            : Array.from({ length: 28 }, function (_, i) { return '<option value="' + (i + 1) + '"' + (+r.dia === i + 1 ? " selected" : "") + ">" + (i + 1) + "</option>"; }).join("");
+        return '<div class="fa-repetir" data-rep-id="' + esc(x.id) + '"><label class="fa-campo"><span>Cada</span><select data-rep="cada">' +
+            '<option value="semana"' + (r.cada === "semana" ? " selected" : "") + '>Semana</option><option value="quincena"' + (r.cada === "quincena" ? " selected" : "") + '>Quincena</option><option value="mes"' + (r.cada === "mes" ? " selected" : "") + ">Mes</option></select></label>" +
+            '<label class="fa-campo"' + (r.cada === "quincena" ? " hidden" : "") + "><span>" + (r.cada === "semana" ? "Día" : "Día del mes") + '</span><select data-rep="dia">' + dias + "</select></label>" +
+            '<label class="fa-campo"><span>Ese día</span><select data-rep="modo"><option value="avisar"' + (r.modo !== "timbrar" ? " selected" : "") + '>Avisarme para revisarla</option><option value="timbrar"' + (r.modo === "timbrar" ? " selected" : "") + ">Timbrarla sola</option></select></label>" +
+            '<div class="fa-repetir__acc">' + (x.recurrente && x.recurrente.activo ? '<button type="button" class="fa-link fa-link--rojo" data-rep-quitar>Dejar de repetir</button>' : "") +
+            '<button type="button" class="fa-btn fa-btn--principal fa-btn--chico" data-rep-guardar>Guardar</button></div>' +
+            '<p class="fa-nota">' + (r.modo === "timbrar" ? "Se timbra a las 7 de la mañana con la fecha de ese día, sin preguntarte; si falla, te aparece el aviso en Facturar." : "Ese día te aparece arriba de la factura para abrirla, revisarla y timbrarla.") + "</p></div>";
+    }
+    async function guardarRepetir(caja, activo) {
+        var datos = { activo: activo, cada: caja.querySelector('[data-rep="cada"]').value, dia: +(caja.querySelector('[data-rep="dia"]').value || 1), modo: caja.querySelector('[data-rep="modo"]').value };
+        try {
+            await enviar("/api/facturacion/borradores/" + caja.dataset.repId + "/recurrente", "PUT", datos);
+            F.repitiendo = null; await cargarBorradores(); pintarBorradores(); cargarRecurrentes();
+        } catch (e) { aviso(e.message, "error"); }
     }
 
     /* ---------------------------------------------------- copiar otra factura */
@@ -1236,7 +1603,7 @@
             $("dlg-copiar").close();
             F.borradorId = null;
             ponerCaptura(r.captura, r.avisos);
-            $("estado-borrador").textContent = "Copiada: revisa y timbra.";
+            estadoCaptura("Copiada: revisa y timbra.");
         } catch (e) { aviso(e.message, "error"); }
     }
 
@@ -1247,7 +1614,7 @@
             var r = await json("/api/facturacion/leer-xml", { method: "POST", body: cuerpo });
             F.borradorId = null;
             ponerCaptura(r.captura, r.avisos);
-            $("estado-borrador").textContent = "Copiada de " + archivo.name + ": revisa y timbra.";
+            estadoCaptura("Copiada de " + archivo.name + ": revisa y timbra.");
         } catch (e) { aviso(e.message, "error"); }
         $("subir-xml").value = "";
     }
@@ -1256,11 +1623,14 @@
     async function pintarLogo() {
         var caja = $("c-logo-vista");
         $("btn-quitar-logo").hidden = !F.emisor.logo;
-        if (!F.emisor.logo) { caja.innerHTML = "<span>Sin logo</span>"; return; }
+        var cinta = $("cinta-logo"), inicial = (F.emisor.razon_social || F.emisor.alias || "·").charAt(0);
+        if (!F.emisor.logo) { caja.innerHTML = "<span>Sin logo</span>"; cinta.textContent = inicial; return; }
         try {
             var b = await (await api("/api/facturacion/emisores/" + encodeURIComponent(F.emisor.rfc) + "/logo?_=" + Date.now())).blob();
-            caja.innerHTML = '<img alt="Logo" src="' + URL.createObjectURL(b) + '">';
-        } catch (e) { caja.innerHTML = "<span>Sin logo</span>"; }
+            var url = URL.createObjectURL(b);
+            caja.innerHTML = '<img alt="Logo" src="' + url + '">';
+            cinta.innerHTML = '<img alt="" src="' + url + '">';
+        } catch (e) { caja.innerHTML = "<span>Sin logo</span>"; cinta.textContent = inicial; }
     }
 
     async function subirLogo(archivo) {
@@ -1378,7 +1748,7 @@
                 F.sustituye = orig.id;
                 F.relaciones = [{ tipo_relacion: "04", uuids: [orig.uuid] }];
                 pintarRelaciones();
-                $("estado-borrador").textContent = "Sustituye a " + (orig.serie ? orig.serie + "-" : "") + orig.folio + ": corrige lo necesario y timbra; luego se cancela la original con motivo 01.";
+                estadoCaptura("Sustituye a " + (orig.serie ? orig.serie + "-" : "") + orig.folio + ": corrige lo necesario y timbra; luego se cancela la original con motivo 01.");
             });
         });
         $("r-buscar").addEventListener("input", pintarSelector);
@@ -1386,20 +1756,20 @@
             if (ev.key === "Enter") { ev.preventDefault(); var b = $("sel-cliente-lista").querySelector(".fa-opcion"); if (b) b.click(); }
             if (ev.key === "Escape") abrirSelector(false);
         });
-        $("sel-cliente-boton").addEventListener("click", function () { abrirSelector($("sel-cliente-panel").hidden); });
+        $("btn-elegir-cliente").addEventListener("click", function () { abrirSelector($("sel-cliente-panel").hidden); });
+        $("btn-cli-quitar").addEventListener("click", function () { quitarCliente(); F.clienteNuevo = false; pintarCliente(); });
         $("sel-cliente-lista").addEventListener("click", function (ev) {
             var b = ev.target.closest(".fa-opcion"); if (!b) return;
-            if (b.dataset.rfcNuevo) { abrirSelector(false); $("r-rfc").value = b.dataset.rfcNuevo; $("r-nombre").value = ""; $("r-cp").value = ""; $("r-regimen").value = ""; $("r-datos").open = true; llenarReceptor().then(pintarCliente); pintarCliente(); $("r-nombre").focus(); return; }
+            if (b.dataset.rfcNuevo) { abrirSelector(false); quitarCliente(); F.clienteNuevo = true; $("r-rfc").value = b.dataset.rfcNuevo; llenarReceptor().then(pintarCliente); pintarCliente(); $("r-nombre").focus(); return; }
             elegirCliente(F.selLista[+b.dataset.i]);
         });
         document.addEventListener("click", function (ev) { if (!ev.target.closest("#sel-cliente")) abrirSelector(false); });
         $("btn-nuevo-cliente").addEventListener("click", function () {
             abrirSelector(false);
-            ["r-rfc", "r-nombre", "r-cp", "r-taxid"].forEach(function (id) { $(id).value = ""; }); $("r-regimen").value = "";
-            verExtranjero(); verGlobal(); pintarCliente();
-            $("r-datos").open = true; $("r-rfc").focus();
+            quitarCliente(); F.clienteNuevo = true; pintarCliente();
+            $("r-rfc").focus();
         });
-        ["r-rfc", "r-nombre", "r-cp", "r-regimen", "r-uso"].forEach(function (id) { $(id).addEventListener("change", pintarCliente); });
+        ["r-rfc", "r-nombre", "r-cp", "r-regimen", "r-uso"].forEach(function (id) { $(id).addEventListener("change", pintarCliente); $(id).addEventListener("input", function () { $("fila-actualizar").hidden = !cambioVsGuardado(); }); });
         $("rel-activar").addEventListener("change", verRelaciones);
         document.querySelectorAll("[data-paso]").forEach(function (b) {
             b.addEventListener("click", function () {
@@ -1416,11 +1786,24 @@
         $("p-tc").addEventListener("input", function () { F.tcManual = true; });
         $("p-fecha").addEventListener("change", function () { verFecha(); if ($("p-moneda").value === "USD" && !F.tcManual) { $("p-tc").value = ""; traerTipoCambio(); } });
         $("btn-vista").addEventListener("click", vistaPrevia);
-        $("vista-bajar").addEventListener("click", function () { if (F.vistaBlob) Fiscontable.guardarArchivo(F.vistaBlob, F.vistaNombre); });
         $("btn-borrador").addEventListener("click", guardarBorrador);
         $("btn-ver-borradores").addEventListener("click", function () { pintarBorradores(); $("dlg-borradores").showModal(); });
+        $("lista-borradores").addEventListener("change", function (ev) {
+            var rep = ev.target.closest(".fa-repetir"); if (!rep || ev.target.dataset.rep === "dia") return;
+            var x = F.borradores.filter(function (b) { return b.id === rep.dataset.repId; })[0];
+            x.recurrente = Object.assign({}, x.recurrente || { activo: false }, { cada: rep.querySelector('[data-rep="cada"]').value, modo: rep.querySelector('[data-rep="modo"]').value });
+            if (ev.target.dataset.rep === "cada") x.recurrente.dia = x.recurrente.cada === "semana" ? 0 : 1;
+            pintarBorradores();
+        });
         $("lista-borradores").addEventListener("click", async function (ev) {
+            var rep = ev.target.closest(".fa-repetir");
+            if (rep) {
+                if (ev.target.closest("[data-rep-guardar]")) guardarRepetir(rep, true);
+                if (ev.target.closest("[data-rep-quitar]")) guardarRepetir(rep, false);
+                return;
+            }
             var it = ev.target.closest("[data-id]"); if (!it) return;
+            if (ev.target.closest("[data-repetir]")) { F.repitiendo = F.repitiendo === it.dataset.id ? null : it.dataset.id; pintarBorradores(); return; }
             var x = F.borradores.filter(function (b) { return b.id === it.dataset.id; })[0]; if (!x) return;
             if (ev.target.closest("[data-borrar]")) {
                 if (!confirm("¿Borrar la prefactura «" + x.nombre + "»?")) return;
@@ -1429,15 +1812,29 @@
                 return;
             }
             $("dlg-borradores").close();
-            ponerCaptura(x.captura);
-            F.borradorId = x.id;
-            $("estado-borrador").textContent = "Prefactura «" + x.nombre + "» abierta.";
+            abrirPrefactura(x);
         });
         $("btn-copiar").addEventListener("click", abrirCopiar);
         document.querySelectorAll("[data-origen]").forEach(function (b) { b.addEventListener("click", function () { ponerOrigen(b.dataset.origen); }); });
         $("copiar-buscar").addEventListener("input", pintarCopiar);
         $("lista-copiar").addEventListener("click", function (ev) { var it = ev.target.closest("[data-copiar]"); if (it) copiarDe(it.dataset.copiar); });
         $("subir-xml").addEventListener("change", function () { copiarDeArchivo(this.files[0]); });
+        $("btn-cambiar-emisor").addEventListener("click", function (ev) { ev.stopPropagation(); var b = document.getElementById("fc-btn-empresa"); if (b) b.click(); });
+        $("recurrentes-hoy").addEventListener("click", async function (ev) {
+            var b = ev.target.closest("[data-recurrente]"); if (!b) return;
+            await cargarBorradores();
+            var x = F.borradores.filter(function (y) { return y.id === b.dataset.recurrente; })[0];
+            if (x) abrirPrefactura(x, true);
+        });
+        /* Atajos: Ctrl+Enter siguiente paso / timbrar · Ctrl+S prefactura · Alt+N nueva · Alt+C agregar concepto */
+        document.addEventListener("keydown", function (ev) {
+            if (F.vista !== "nueva" || !F.emisor || document.querySelector("dialog[open]")) return;
+            var ctrl = ev.ctrlKey || ev.metaKey;
+            if (ctrl && ev.key === "Enter") { ev.preventDefault(); siguientePaso(); }
+            else if (ctrl && (ev.key === "s" || ev.key === "S")) { ev.preventDefault(); guardarBorrador(); }
+            else if (ev.altKey && (ev.key === "n" || ev.key === "N")) { ev.preventDefault(); if (confirm("¿Empezar una factura nueva? Se borra lo capturado.")) { nuevaFactura(); irPaso(1); } }
+            else if (ev.altKey && (ev.key === "c" || ev.key === "C")) { ev.preventDefault(); if (F.paso !== 3) irPaso(3); $("btn-concepto").click(); }
+        });
         $("btn-limpiar").addEventListener("click", function () { if (confirm("¿Borrar lo capturado y empezar una factura nueva?")) nuevaFactura(); });
         document.querySelectorAll("[data-sub]").forEach(function (b) { b.addEventListener("click", function () { ponerSub(b.dataset.sub); }); });
         $("btn-configurar").addEventListener("click", function () { abrirConfig(); });
@@ -1453,22 +1850,76 @@
             else if ($("p-forma").value === "99") $("p-forma").value = "03";
             $("p-forma").disabled = this.value === "PPD";
         });
-        $("btn-concepto").addEventListener("click", function () { F.conceptos.push(conceptoVacio()); pintarConceptos(); });
-        $("ver-retenciones").addEventListener("change", pintarConceptos);
+        $("btn-concepto").addEventListener("click", function () {
+            F.conceptos.push(conceptoVacio()); pintarConceptos();
+            var ult = document.querySelector('.fa-conc__fila:last-of-type [data-c="descripcion"]'); if (ult) ult.focus();
+        });
         $("conceptos").addEventListener("input", function (ev) {
             var campo = ev.target.closest("[data-c]"); if (!campo) return;
-            var i = +campo.closest("[data-i]").dataset.i, c = F.conceptos[i];
-            if (campo.dataset.c === "iva") {
-                c.objeto_imp = campo.value === "no" ? "01" : "02";
-                c.iva = campo.value === "no" ? "16" : campo.value;
-            } else c[campo.dataset.c] = campo.value;
+            var i = +campo.closest("[data-i]").dataset.i, c = F.conceptos[i], k = campo.dataset.c;
+            if (k === "modo") { c.modo = campo.checked ? "final" : "unitario"; if (c.modo === "final" && !c.final) c.final = String(totalConcepto(c).total || ""); aplicarFinal(c); pintarConceptos(); return; }
+            if (k === "impuesto") { if (campo.value === "otro") { c.abierto = true; } else ponerImpuesto(c, campo.value); aplicarFinal(c); pintarConceptos(); return; }
+            c[k] = campo.value;
+            if (k === "descripcion") { c.producto_id = null; sugerirProductos(campo); }
+            if (k === "iva" || k === "ret_isr" || k === "ret_iva") { aplicarFinal(c); pintarConceptos(); return; }
+            if (k === "final" || ((k === "cantidad" || k === "descuento") && c.modo === "final")) {
+                aplicarFinal(c);
+                var sub = campo.closest("tr").querySelector("td:nth-child(3) .fa-conc__sub");
+                if (sub) sub.innerHTML = (num(c.valor_unitario) ? "unit. " + esc(c.valor_unitario) : "precio final") + (c.difFinal ? ' <b class="fa-mal">dif ' + dinero(c.difFinal) + "</b>" : "");
+            }
+            if (k === "no_identificacion" || k === "cuenta_predial") refrescarSub(i);
             calcular();
         });
-        $("conceptos").addEventListener("click", function (ev) {
-            if (!ev.target.closest("[data-quitar]")) return;
-            F.conceptos.splice(+ev.target.closest("[data-i]").dataset.i, 1);
-            pintarConceptos();
+        $("conceptos").addEventListener("change", function (ev) { if (ev.target.matches('select[data-c="impuesto"], input[data-c="modo"]')) ev.target.dispatchEvent(new Event("input", { bubbles: true })); });
+        $("conceptos").addEventListener("focusin", function (ev) { if (ev.target.matches('[data-c="descripcion"]')) sugerirProductos(ev.target); });
+        $("conceptos").addEventListener("focusout", function (ev) {
+            if (!ev.target.matches('[data-c="descripcion"]')) return;
+            var caja = ev.target.parentNode.querySelector(".fa-prod__sug"); setTimeout(function () { caja.hidden = true; }, 180);
         });
+        $("conceptos").addEventListener("mousedown", function (ev) {
+            var b = ev.target.closest(".fa-prod__sug [data-prod]"); if (!b) return;
+            ev.preventDefault();
+            var i = +b.closest("[data-i]").dataset.i, p = (F.productos || []).filter(function (x) { return x.id === b.dataset.prod; })[0];
+            if (p) { usarProducto(F.conceptos[i], p); pintarConceptos(); }
+        });
+        $("conceptos").addEventListener("click", function (ev) {
+            var fila = ev.target.closest("[data-i]"); if (!fila) return;
+            var i = +fila.dataset.i;
+            if (ev.target.closest("[data-quitar]")) { F.conceptos.splice(i, 1); pintarConceptos(); }
+            else if (ev.target.closest("[data-duplicar]")) { F.conceptos.splice(i + 1, 0, Object.assign({}, F.conceptos[i], { abierto: false })); pintarConceptos(); }
+            else if (ev.target.closest("[data-abrir]")) { F.conceptos[i].abierto = !F.conceptos[i].abierto; pintarConceptos(); }
+            else if (ev.target.closest("[data-guardar-prod]")) guardarConceptoEnCatalogo(i);
+        });
+        $("conc-xml").addEventListener("change", function () { leerXmlProductos(this.files, "factura"); this.value = ""; });
+        $("btn-catalogo").addEventListener("click", function () { abrirConfig("productos"); });
+        $("btn-objetivo").addEventListener("click", cuadrarTotal);
+        $("t-objetivo-nota").addEventListener("click", function (ev) { var b = ev.target.closest("[data-objetivo]"); if (b) { $("t-objetivo").value = b.dataset.objetivo; cuadrarTotal(); } });
+        $("t-objetivo").addEventListener("input", calcular);
+        $("prod-buscar").addEventListener("input", pintarProductos);
+        $("btn-prod-nuevo").addEventListener("click", function () { abrirProducto(null); });
+        $("prod-lista").addEventListener("click", function (ev) { var it = ev.target.closest("[data-prod]"); if (it) abrirProducto((F.productos || []).filter(function (p) { return p.id === it.dataset.prod; })[0]); });
+        $("btn-pr-guardar").addEventListener("click", guardarProducto);
+        $("btn-pr-borrar").addEventListener("click", async function () {
+            if (!F.prodEditando || !confirm("¿Borrar «" + F.prodEditando.nombre + "» del catálogo?")) return;
+            try { await api("/api/facturacion/productos/" + F.prodEditando.id, { method: "DELETE" }); $("dlg-producto").close(); cargarProductos(); } catch (e) { $("pr-error").textContent = e.message; $("pr-error").hidden = false; }
+        });
+        $("prod-xml").addEventListener("change", function () { leerXmlProductos(this.files, "catalogo"); this.value = ""; });
+        $("btn-prod-biblioteca").addEventListener("click", async function () {
+            var b = this; b.disabled = true; b.textContent = "Leyendo XML…";
+            try { abrirImportar(await enviar("/api/facturacion/productos/desde-biblioteca", "POST", { rfc: F.emisor.rfc }), "catalogo"); } catch (e) { aviso(e.message, "error"); }
+            b.disabled = false; b.textContent = "Desde Administración de XML";
+        });
+        $("im-buscar").addEventListener("input", pintarImportar);
+        $("im-todos").addEventListener("change", function () { var v = this.checked; F.importar.lista.forEach(function (x) { x.sel = v; }); pintarImportar(); });
+        $("im-filas").addEventListener("input", function (ev) {
+            var tr = ev.target.closest("[data-im]"); if (!tr) return;
+            var x = F.importar.lista[+tr.dataset.im], k = ev.target.dataset.imC;
+            if (k === "sel") x.sel = ev.target.checked;
+            else if (k === "impuesto") { if (ev.target.value !== "otro") ponerImpuesto(x, ev.target.value); }
+            else x[k] = ev.target.value;
+        });
+        $("im-filas").addEventListener("change", function (ev) { if (ev.target.matches("select, input[type=checkbox]")) ev.target.dispatchEvent(new Event("input", { bubbles: true })); });
+        $("btn-im-ok").addEventListener("click", confirmarImportar);
         $("btn-timbrar").addEventListener("click", prepararTimbrado);
         $("btn-confirmar").addEventListener("click", timbrar);
         $("listo-xml").addEventListener("click", function () { bajarXml(F.ultimo.id); });

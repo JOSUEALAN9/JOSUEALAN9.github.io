@@ -5,14 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Facturar | Fiscontable</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611030630">
-    <link rel="stylesheet" href="/herramientas/facturar/facturar.css?v=202611030630">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611031800">
+    <link rel="stylesheet" href="/herramientas/facturar/facturar.css?v=202611031800">
 </head>
 <body class="min-h-screen flex flex-col">
 
 <div id="app-header" data-modulo="facturar" data-titulo="Facturar" data-migas="Herramientas|/herramientas/"></div>
-<script src="/assets/js/nucleo.js?v=202611030630"></script>
-<script src="/assets/js/barra.js?v=202611030630"></script>
+<script src="/assets/js/nucleo.js?v=202611031800"></script>
+<script src="/assets/js/barra.js?v=202611031800"></script>
 
 <main class="flex-grow w-full mod-pagina fa-pagina">
     <div class="mod-cabeza">
@@ -41,6 +41,13 @@
     <!-- ======================== NUEVA FACTURA (asistente por pasos) ======================== -->
     <section id="vista-nueva" data-panel="nueva" hidden>
         <div id="falta-config" class="fa-aviso fa-aviso--alerta" hidden></div>
+        <div id="recurrentes-hoy" class="fa-aviso fa-aviso--alerta" hidden></div>
+        <div class="fa-cinta" id="cinta-emisor">
+            <span class="fa-cinta__logo" id="cinta-logo"></span>
+            <div class="fa-cinta__txt"><small>Emitiendo como</small><b id="cinta-nombre">—</b><span id="cinta-datos"></span></div>
+            <span class="fa-cinta__folio" id="cinta-folio"></span>
+            <button type="button" id="btn-cambiar-emisor" class="fa-btn fa-btn--suave fa-btn--chico">Cambiar empresa</button>
+        </div>
         <div class="fa-layout">
             <div class="fa-columna">
                 <div class="fa-caja fa-asistente">
@@ -73,53 +80,60 @@
                         <div class="fa-seccion">
                             <div class="fa-seccion__cabeza"><h3>Cliente</h3>
                                 <div class="fa-fila-links">
+                                    <div class="fa-selector" id="sel-cliente">
+                                        <button type="button" id="btn-elegir-cliente" class="fa-btn fa-btn--suave fa-btn--chico" aria-haspopup="listbox">
+                                            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>
+                                            <span id="btn-elegir-texto">Elegir cliente</span></button>
+                                        <div class="fa-selector__panel" id="sel-cliente-panel" hidden>
+                                            <input type="search" id="r-buscar" class="fa-buscar" placeholder="Nombre o RFC…" autocomplete="off">
+                                            <div id="sel-cliente-lista" class="fa-selector__lista" role="listbox"></div>
+                                            <div class="fa-selector__pie">
+                                                <button type="button" id="btn-nuevo-cliente" class="fa-link">+ Cliente nuevo</button>
+                                                <label class="fa-link fa-subir">Leer constancia (PDF)<input type="file" id="r-constancia" accept="application/pdf,.pdf" hidden></label>
+                                            </div>
+                                        </div>
+                                    </div>
                                     <button type="button" id="btn-publico" class="fa-link">Público en general</button>
                                     <button type="button" id="btn-extranjero" class="fa-link">Extranjero</button>
                                 </div>
                             </div>
-                            <div class="fa-selector" id="sel-cliente">
-                                <button type="button" class="fa-selector__boton" id="sel-cliente-boton" aria-haspopup="listbox">
-                                    <span class="fa-selector__vacio" id="sel-cliente-texto">Elige un cliente o escribe su RFC…</span><span aria-hidden="true">▾</span>
-                                </button>
-                                <div class="fa-selector__panel" id="sel-cliente-panel" hidden>
-                                    <input type="search" id="r-buscar" class="fa-buscar" placeholder="Buscar por nombre o RFC…" autocomplete="off">
-                                    <div id="sel-cliente-lista" class="fa-selector__lista" role="listbox"></div>
-                                    <div class="fa-selector__pie">
-                                        <button type="button" id="btn-nuevo-cliente" class="fa-btn fa-btn--suave">+ Cliente nuevo</button>
-                                        <label class="fa-btn fa-btn--suave fa-subir">Leer constancia (PDF)<input type="file" id="r-constancia" accept="application/pdf,.pdf" hidden></label>
-                                    </div>
+                            <div id="cli-vacio" class="fa-cli-vacio">Elige un cliente guardado, escribe uno nuevo o lee su constancia.</div>
+                            <div id="cli-tarjeta" class="fa-cli" hidden>
+                                <div class="fa-cli__cabeza">
+                                    <span class="fa-opcion__ini" id="cli-ini">·</span>
+                                    <div class="fa-cli__nombre"><b id="cli-nombre"></b><small id="cli-origen"></small></div>
+                                    <button type="button" id="btn-cli-quitar" class="fa-link fa-link--gris" title="Quitarlo de esta factura (no lo borra de sus clientes)">✕ Quitar</button>
                                 </div>
-                            </div>
-                            <p id="r-aviso" class="fa-nota" hidden></p>
-                            <details class="fa-detalle" id="r-datos">
-                                <summary>Datos fiscales del cliente <small id="r-resumen"></small></summary>
                                 <div class="fa-rejilla">
                                     <label class="fa-campo fa-c2"><span>RFC</span><input id="r-rfc" maxlength="13" autocomplete="off" class="fa-mayus fa-mono"></label>
                                     <label class="fa-campo fa-c4"><span>Nombre o razón social <i>(como en su constancia)</i></span><input id="r-nombre" maxlength="254" class="fa-mayus"></label>
-                                    <label class="fa-campo fa-c1"><span>C.P. fiscal</span><input id="r-cp" inputmode="numeric" maxlength="5"></label>
-                                    <label class="fa-campo fa-c3"><span>Régimen fiscal</span><select id="r-regimen"></select></label>
-                                    <label class="fa-campo fa-c2"><span>Uso del CFDI</span><select id="r-uso"></select></label>
+                                    <label class="fa-campo fa-c2"><span>C.P. fiscal</span><input id="r-cp" inputmode="numeric" maxlength="5"></label>
+                                    <label class="fa-campo fa-c4"><span>Régimen fiscal</span><select id="r-regimen"></select></label>
                                 </div>
                                 <div id="caja-extranjero" class="fa-global" hidden>
-                                    <p class="fa-nota"><b>Extranjero:</b> RFC genérico XEXX010101000, régimen 616, uso S01 y tu C.P. de expedición.</p>
+                                    <p class="fa-nota"><b>Extranjero:</b> RFC genérico XEXX010101000, régimen 616 y tu C.P. de expedición.</p>
                                     <div class="fa-rejilla">
                                         <label class="fa-campo fa-c3"><span>País de residencia fiscal</span><select id="r-pais"></select></label>
                                         <label class="fa-campo fa-c3"><span>Número fiscal (Tax ID)</span><input id="r-taxid" maxlength="40" class="fa-mayus fa-mono"></label>
                                     </div>
                                 </div>
-                                <label class="fa-interruptor fa-guardar-cliente"><input type="checkbox" id="r-guardar" checked> Guardarlo en sus clientes al timbrar</label>
-                            </details>
+                                <label class="fa-interruptor fa-guardar-cliente" id="fila-guardar"><input type="checkbox" id="r-guardar" checked> Guardarlo en sus clientes al timbrar</label>
+                                <label class="fa-interruptor fa-guardar-cliente" id="fila-actualizar" hidden><input type="checkbox" id="r-actualizar"> Actualizar también sus datos en sus clientes</label>
+                            </div>
+                            <p id="r-aviso" class="fa-nota" hidden></p>
                             <datalist id="lista-receptores"></datalist>
                         </div>
 
                         <div class="fa-seccion">
-                            <div class="fa-seccion__cabeza"><h3>Pago y moneda</h3></div>
+                            <div class="fa-seccion__cabeza"><h3>Datos de la factura</h3></div>
                             <div class="fa-rejilla">
+                                <label class="fa-campo fa-c3"><span>Uso del CFDI</span><select id="r-uso"></select></label>
                                 <label class="fa-campo fa-c3"><span>Método de pago</span><select id="p-metodo"></select></label>
                                 <label class="fa-campo fa-c3"><span>Forma de pago</span><select id="p-forma"></select></label>
                                 <label class="fa-campo fa-c2"><span>Moneda</span><select id="p-moneda"></select></label>
-                                <label class="fa-campo fa-c2" id="caja-tc" hidden><span>Tipo de cambio</span><input id="p-tc" inputmode="decimal"></label>
-                                <label class="fa-campo fa-c6"><span>Condiciones de pago <i>(opcional)</i></span><input id="p-condiciones" maxlength="200" placeholder="Contado, 30 días…"></label>
+                                <label class="fa-campo fa-c1" id="caja-tc" hidden><span>T. de cambio</span><input id="p-tc" inputmode="decimal"></label>
+                                <label class="fa-campo fa-c3"><span>Condiciones de pago <i>(opcional)</i></span><input id="p-condiciones" maxlength="200" placeholder="Contado, 30 días…"></label>
+                                <label class="fa-campo fa-c3"><span>Pedido u orden de compra <i>(opcional, sale en el PDF)</i></span><input id="p-pedido" maxlength="60"></label>
                             </div>
                             <p id="p-nota" class="fa-nota" style="margin-top:6px"></p>
                         </div>
@@ -164,16 +178,27 @@
                     <div data-paso-panel="3" hidden>
                         <div class="fa-seccion__cabeza">
                             <h3>Conceptos</h3>
-                            <label class="fa-interruptor"><input type="checkbox" id="ver-retenciones"> Retenciones</label>
+                            <div class="fa-fila-links">
+                                <label class="fa-link fa-subir" title="Lee los conceptos de un XML y los agrega a esta factura">⬆ Importar de XML<input type="file" id="conc-xml" accept=".xml,.zip" multiple hidden></label>
+                                <button type="button" id="btn-catalogo" class="fa-link" title="Catálogo de productos de esta empresa">Catálogo</button>
+                            </div>
                         </div>
-                        <div id="conceptos"></div>
-                        <button type="button" id="btn-concepto" class="fa-btn fa-btn--suave">+ Agregar concepto</button>
+                        <div class="fa-tabla-caja fa-conc-caja">
+                            <table class="fa-conc">
+                                <thead><tr><th class="fa-conc__cant">Cant.</th><th>Producto o servicio</th><th class="fa-num fa-conc__precio">Precio</th><th class="fa-num fa-conc__desc">Desc.</th><th class="fa-conc__imp">Impuesto</th><th class="fa-num">Importe</th><th></th></tr></thead>
+                                <tbody id="conceptos"></tbody>
+                            </table>
+                        </div>
+                        <div class="fa-conc-pie">
+                            <button type="button" id="btn-concepto" class="fa-btn fa-btn--suave">+ Agregar concepto</button>
+                            <span class="fa-nota">Toca ▸ para la clave del SAT, la unidad, el código, la cuenta predial o escribir el precio final.</span>
+                        </div>
                     </div>
 
                     <!-- Paso 4 -->
                     <div data-paso-panel="4" hidden>
                         <div id="revision" class="fa-revision"><p class="fa-nota">Revisando…</p></div>
-                        <div class="fa-marco-caja"><iframe id="paso4-marco" class="fa-marco fa-marco--paso" title="Vista previa del PDF"></iframe></div>
+                        <div class="fa-marco-caja"><div id="paso4-marco" class="fa-vista-pdf"></div></div>
                         <p class="fa-nota" style="margin-top:6px">Vista previa sin validez fiscal: pasó las mismas revisiones que al timbrar. <button type="button" id="paso4-bajar" class="fa-link">Descargarla</button></p>
                     </div>
 
@@ -197,6 +222,11 @@
                         <dt class="fa-total">Total</dt><dd class="fa-total" id="t-total">$0.00</dd>
                     </dl>
                     <p id="t-letra" class="fa-letra"></p>
+                    <details class="fa-objetivo" id="caja-objetivo">
+                        <summary>¿El total debe ser una cantidad exacta?</summary>
+                        <div class="fa-objetivo__fila"><input id="t-objetivo" inputmode="decimal" placeholder="0.00"><button type="button" id="btn-objetivo" class="fa-btn fa-btn--suave fa-btn--chico">Cuadrar</button></div>
+                        <p class="fa-nota" id="t-objetivo-nota">Ajusta el último concepto para llegar exacto al centavo.</p>
+                    </details>
                     <p id="t-folio" class="fa-nota"></p>
                     <button type="button" id="btn-timbrar" class="fa-btn fa-btn--principal fa-ancho">Timbrar factura</button>
                     <button type="button" id="btn-vista" class="fa-btn fa-btn--suave fa-ancho" style="margin-top:8px">Vista previa PDF</button>
@@ -266,6 +296,7 @@
             <button type="button" data-sub="emisor" aria-selected="true">Emisor y folios</button>
             <button type="button" data-sub="sello" aria-selected="false">Sello digital <span id="punto-sello" class="fa-punto" hidden></span></button>
             <button type="button" data-sub="logo" aria-selected="false">Logo y PDF</button>
+            <button type="button" data-sub="productos" aria-selected="false">Productos</button>
             <button type="button" data-sub="correo" aria-selected="false">Correo</button>
             <button type="button" data-sub="timbres" aria-selected="false">Timbres</button>
         </div>
@@ -317,6 +348,20 @@
                     <div class="fa-campo fa-c2 fa-al-fondo"><button type="button" id="btn-guardar-csd" class="fa-btn fa-btn--principal fa-ancho">Guardar CSD</button></div>
                 </div>
                 <div class="fa-acciones"><button type="button" id="btn-reemplazar-csd" class="fa-link" hidden>Reemplazar</button><button type="button" id="btn-quitar-csd" class="fa-link fa-link--rojo" hidden>Quitar el CSD</button><span id="msj-csd" class="fa-nota"></span></div>
+            </div>
+
+            <div class="fa-caja" data-subpanel="productos" hidden>
+                <div class="fa-caja__cabeza">
+                    <h2>Productos y servicios <span class="fa-opcional" id="prod-cuenta"></span></h2>
+                    <div class="fa-fila-links">
+                        <button type="button" id="btn-prod-nuevo" class="fa-btn fa-btn--principal fa-btn--chico">+ Producto</button>
+                        <label class="fa-btn fa-btn--suave fa-btn--chico fa-subir">Importar de XML<input type="file" id="prod-xml" accept=".xml,.zip" multiple hidden></label>
+                        <button type="button" id="btn-prod-biblioteca" class="fa-btn fa-btn--suave fa-btn--chico" title="Los conceptos de las facturas emitidas que están en Administración de XML">Desde Administración de XML</button>
+                    </div>
+                </div>
+                <p class="fa-nota">El catálogo es de esta empresa. Cada producto trae su clave y unidad del SAT, su precio y su impuesto, para llenar los conceptos con un clic.</p>
+                <input type="search" id="prod-buscar" class="fa-buscar" placeholder="Buscar por nombre, código o clave…" style="margin:10px 0">
+                <div id="prod-lista" class="fa-lista fa-lista--alta"></div>
             </div>
 
             <div class="fa-caja" id="caja-correo" data-subpanel="correo" hidden>
@@ -423,14 +468,44 @@
     </div>
 </dialog>
 
-<!-- Vista previa (PDF sin validez) -->
-<dialog id="dlg-vista" class="fa-dialogo fa-dialogo--pdf">
-    <div class="fa-dialogo__pie">
-        <span class="fa-nota" style="margin-right:auto">Vista previa: pasó las mismas revisiones que al timbrar. No gasta timbre ni tiene validez fiscal.</span>
-        <button type="button" id="vista-bajar" class="fa-btn fa-btn--suave">Descargar</button>
-        <button type="button" data-cerrar class="fa-btn fa-btn--principal">Cerrar</button>
+<!-- Producto del catálogo -->
+<dialog id="dlg-producto" class="fa-dialogo fa-dialogo--ancho">
+    <div class="fa-dialogo__cuerpo">
+        <h2 id="pr-titulo">Producto o servicio</h2>
+        <div class="fa-rejilla">
+            <label class="fa-campo fa-c2"><span>Código interno <i>(opcional)</i></span><input id="pr-codigo" maxlength="100"></label>
+            <label class="fa-campo fa-c4"><span>Nombre</span><input id="pr-nombre" maxlength="200"></label>
+            <div class="fa-campo fa-c3"><span>Clave del SAT</span><div class="fa-clave" data-clave="prod" id="pr-clave"></div></div>
+            <div class="fa-campo fa-c3"><span>Unidad del SAT</span><div class="fa-clave" data-clave="unidad" id="pr-unidad"></div></div>
+            <label class="fa-campo fa-c2"><span>Precio</span><input id="pr-precio" inputmode="decimal" placeholder="0.00"></label>
+            <label class="fa-campo fa-c2"><span>El precio</span><select id="pr-con"><option value="0">es antes de impuestos</option><option value="1">ya incluye impuestos</option></select></label>
+            <label class="fa-campo fa-c2"><span>Impuesto</span><select id="pr-impuesto"></select></label>
+            <label class="fa-campo fa-c2"><span>Cuenta predial <i>(arrendamiento)</i></span><input id="pr-predial" maxlength="150"></label>
+            <label class="fa-campo fa-c4"><span>Descripción en la factura <i>(opcional; si no, el nombre)</i></span><input id="pr-descripcion" maxlength="1000"></label>
+        </div>
+        <p id="pr-error" class="fa-error" hidden></p>
     </div>
-    <iframe id="vista-marco" class="fa-marco" title="Vista previa del PDF"></iframe>
+    <div class="fa-dialogo__pie">
+        <button type="button" id="btn-pr-borrar" class="fa-link fa-link--rojo" style="margin-right:auto" hidden>Borrar</button>
+        <button type="button" data-cerrar class="fa-btn fa-btn--suave">Cancelar</button>
+        <button type="button" id="btn-pr-guardar" class="fa-btn fa-btn--principal">Guardar</button>
+    </div>
+</dialog>
+
+<!-- Importar productos de XML -->
+<dialog id="dlg-importar" class="fa-dialogo fa-dialogo--grande">
+    <div class="fa-dialogo__cuerpo">
+        <h2 id="im-titulo">Productos encontrados</h2>
+        <p class="fa-nota" id="im-resumen"></p>
+        <div class="fa-barra" style="margin:0"><input type="search" id="im-buscar" placeholder="Filtrar…"><label class="fa-interruptor"><input type="checkbox" id="im-todos" checked> Todos</label></div>
+        <div class="fa-tabla-caja fa-im-caja"><table class="fa-tabla fa-im"><thead><tr><th></th><th>Nombre (editable)</th><th>Clave SAT</th><th>Unidad</th><th class="fa-num">Precio</th><th>Impuesto</th><th class="fa-num">Veces</th></tr></thead><tbody id="im-filas"></tbody></table></div>
+        <p id="im-error" class="fa-error" hidden></p>
+    </div>
+    <div class="fa-dialogo__pie">
+        <label class="fa-interruptor" id="im-guardar-caja" style="margin-right:auto"><input type="checkbox" id="im-guardar" checked> Guardarlos también en el catálogo</label>
+        <button type="button" data-cerrar class="fa-btn fa-btn--suave">Cancelar</button>
+        <button type="button" id="btn-im-ok" class="fa-btn fa-btn--principal">Agregar</button>
+    </div>
 </dialog>
 
 <!-- Mandar por correo -->
@@ -512,6 +587,6 @@
     </div>
 </dialog>
 
-<script src="/herramientas/facturar/facturar.js?v=202611030630"></script>
+<script src="/herramientas/facturar/facturar.js?v=202611031800"></script>
 </body>
 </html>

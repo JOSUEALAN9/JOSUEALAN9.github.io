@@ -14,7 +14,7 @@
 (function () {
     "use strict";
 
-    var VERSION = "202611030630";
+    var VERSION = "202611031800";
     var API = "https://api.josuealan.com";
 
     function escapar(valor) {
@@ -63,7 +63,17 @@
         cerrar.style.cssText = "background:none;border:0;color:#94a3b8;font-size:18px;line-height:1;cursor:pointer;padding:0 2px";
         cerrar.addEventListener("click", function () { caja.remove(); });
         enlace.addEventListener("click", function () { setTimeout(function () { caja.remove(); }, 400); });
-        caja.appendChild(texto); caja.appendChild(enlace); caja.appendChild(cerrar);
+        caja.appendChild(texto); caja.appendChild(enlace);
+        // Un PDF también se puede ver ahí mismo, con el visor de Fiscontable
+        if ((/pdf/i.test(blob.type) || /\.pdf$/i.test(nombre)) && window.Fiscontable && window.Fiscontable.verPdf) {
+            var ver = document.createElement("button");
+            ver.type = "button"; ver.textContent = "Ver";
+            ver.style.cssText = "background:#5eead4;color:#0f172a;border:0;border-radius:8px;padding:5px 10px;font:inherit;font-weight:700;cursor:pointer";
+            ver.addEventListener("click", function () { caja.remove(); window.Fiscontable.verPdf(blob, { nombre: nombre }); });
+            caja.appendChild(ver);
+            texto.textContent = "Listo:";
+        }
+        caja.appendChild(cerrar);
         document.body.appendChild(caja);
         setTimeout(function () { caja.remove(); }, 60000);
         setTimeout(function () { URL.revokeObjectURL(url); }, 120000);

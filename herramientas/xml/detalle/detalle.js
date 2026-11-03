@@ -71,7 +71,7 @@
         var html = [];
         html.push('<div class="det-cabeza"><div><h1>' + esc(titulo) + '</h1><div class="det-uuid">' + esc(d.uuid) + '</div><div class="det-sellos">' + sellos.join("") + "</div></div>" +
             '<div class="det-acciones"><button type="button" class="xml-btn" id="btn-validar-uno">Validar ante el SAT</button><a class="xml-btn" href="' + API + "/api/xml/archivo?rfc=" + encodeURIComponent(RFC) + "&uuid=" + encodeURIComponent(d.uuid) + '">Descargar XML</a>' +
-            '<a class="xml-btn" title="Representación impresa del CFDI" href="' + API + "/api/xml/pdf?rfc=" + encodeURIComponent(RFC) + "&uuid=" + encodeURIComponent(d.uuid) + '">Descargar PDF</a>' +
+            '<button type="button" class="xml-btn" id="btn-ver-pdf" title="Representación impresa del CFDI">Ver PDF</button>' +
             '<button class="xml-btn" onclick="window.print()">Imprimir</button></div></div>');
 
         if (r.alertas && r.alertas.length) {
@@ -117,6 +117,16 @@
         $("det").innerHTML = html.join("");
         $("det").hidden = false;
         $("btn-validar-uno").addEventListener("click", validarAhora);
+        $("btn-ver-pdf").addEventListener("click", async function () {
+            var b = this; b.disabled = true; b.textContent = "Abriendo…";
+            try {
+                var resp = await fetch(API + "/api/xml/pdf?rfc=" + encodeURIComponent(RFC) + "&uuid=" + encodeURIComponent(d.uuid), { credentials: "include" });
+                if (!resp.ok) throw new Error("No se pudo armar el PDF.");
+                var m = /filename="?([^";]+)"?/i.exec(resp.headers.get("Content-Disposition") || "");
+                Fiscontable.verPdf(await resp.blob(), { titulo: titulo, nombre: m ? m[1] : d.uuid + ".pdf" });
+            } catch (e) { alert(e.message); }
+            b.disabled = false; b.textContent = "Ver PDF";
+        });
     }
 
     // En qué listas del SAT aparece el emisor o el receptor (69-B, 49 Bis, no localizados…)

@@ -273,3 +273,125 @@
 .fc-dentro .fa-incrustado__cabeza { display: none !important; }
 .fc-dentro .fa-pagina { max-width: none; padding: 14px 18px 24px; }
 .fc-dentro .fa-config--tabs { max-width: 980px; }
+
+/* ---------- cinta: con qué empresa estás timbrando ---------- */
+.fa-cinta { display: flex; align-items: center; gap: 14px; background: linear-gradient(90deg, #eef2ff, #fff 70%); border: 1px solid #c7d2fe; border-left: 4px solid #4f46e5; border-radius: 14px; padding: 10px 14px; margin-bottom: 14px; }
+.fa-cinta__logo { width: 42px; height: 42px; flex: none; border-radius: 12px; background: #4f46e5; color: #fff; font-weight: 800; font-size: 18px; display: grid; place-items: center; overflow: hidden; }
+.fa-cinta__logo img { width: 100%; height: 100%; object-fit: contain; background: #fff; }
+.fa-cinta__txt { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.fa-cinta__txt small { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: #6366f1; }
+.fa-cinta__txt b { font-size: 15px; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fa-cinta__txt span { font-size: 12px; color: #64748b; font-family: ui-monospace, monospace; }
+.fa-cinta__folio { display: flex; flex-direction: column; align-items: flex-end; padding: 0 10px; border-right: 1px solid #e0e7ff; }
+.fa-cinta__folio small { font-size: 10.5px; color: #94a3b8; text-transform: uppercase; letter-spacing: .05em; font-weight: 700; }
+.fa-cinta__folio b { font-size: 15px; color: #312e81; font-variant-numeric: tabular-nums; }
+@media (max-width: 640px) {
+    .fa-cinta { flex-wrap: wrap; gap: 8px 12px; }
+    .fa-cinta__txt { flex: 1 1 calc(100% - 60px); }
+    .fa-cinta__txt span { white-space: normal; }
+    .fa-cinta__folio { flex: 1; border: 0; padding: 0; align-items: flex-start; flex-direction: row; gap: 8px; align-items: baseline; }
+}
+
+.fa-btn--chico { padding: 6px 12px; font-size: 13px; border-radius: 9px; display: inline-flex; align-items: center; gap: 6px; }
+.fa-link--gris { color: #64748b; }
+.fa-link--gris:hover { color: #dc2626; }
+b.fa-mal, small.fa-mal { color: #dc2626; }
+.fa-bien { color: #059669; }
+.fa-ico--activo { color: #4f46e5; border-color: #a5b4fc; background: #eef2ff; }
+
+/* ---------- cliente ---------- */
+#sel-cliente .fa-selector__panel { left: auto; right: 0; width: min(440px, calc(100vw - 40px)); }
+.fa-cli-vacio { border: 1.5px dashed #d1d5db; border-radius: 12px; padding: 16px; text-align: center; font-size: 13px; color: #94a3b8; }
+.fa-cli { border: 1px solid #e5e7eb; border-radius: 14px; padding: 12px 14px 14px; background: #fcfcff; display: flex; flex-direction: column; gap: 10px; }
+.fa-cli__cabeza { display: flex; align-items: center; gap: 10px; }
+.fa-cli__nombre { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.fa-cli__nombre b { font-size: 14.5px; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fa-cli__nombre small { font-size: 12px; color: #6366f1; font-weight: 600; }
+
+/* ---------- conceptos en tabla ---------- */
+.fa-conc-caja { overflow: visible; }
+.fa-conc { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+.fa-conc th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: #64748b; background: #f8fafc; padding: 9px 8px; border-bottom: 1px solid #e5e7eb; white-space: nowrap; }
+.fa-conc th:first-child { border-top-left-radius: 14px; } .fa-conc th:last-child { border-top-right-radius: 14px; }
+.fa-conc th.fa-num { text-align: right; }
+.fa-conc td { padding: 8px; border-bottom: 1px solid #f1f5f9; vertical-align: top; }
+.fa-conc input, .fa-conc select { width: 100%; font: inherit; font-size: 13.5px; border: 1px solid transparent; border-radius: 8px; padding: 7px 8px; background: transparent; color: #0f172a; }
+.fa-conc input:hover, .fa-conc select:hover { border-color: #e5e7eb; background: #fff; }
+.fa-conc input:focus, .fa-conc select:focus { outline: none; border-color: #6366f1; background: #fff; box-shadow: 0 0 0 3px #e0e7ff; }
+.fa-conc input.fa-num { text-align: right; font-variant-numeric: tabular-nums; }
+.fa-conc__cant { width: 70px; } .fa-conc__precio { width: 130px; } .fa-conc__desc { width: 92px; } .fa-conc__imp { width: 190px; }
+.fa-conc td:first-child { width: 70px; }
+.fa-conc__importe { text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; padding-top: 15px !important; }
+.fa-conc__sub { display: block; font-size: 11px; color: #94a3b8; padding: 0 9px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.fa-conc__final { background: #fefce8 !important; border-color: #fde68a !important; }
+.fa-conc__acc { white-space: nowrap; width: 1%; padding-top: 10px !important; }
+.fa-mini { width: 26px; height: 26px; border: 0; border-radius: 7px; background: none; color: #64748b; cursor: pointer; font-size: 13px; }
+.fa-mini:hover { background: #eef2ff; color: #4f46e5; }
+.fa-mini--rojo:hover { background: #fee2e2; color: #dc2626; }
+.fa-conc__fila:hover td { background: #fcfcff; }
+.fa-conc__detalle td { background: #f8fafc; padding: 12px 12px 14px; }
+.fa-rejilla--detalle { gap: 10px; }
+.fa-conc__nota .fa-nota { margin: 0; }
+.fa-conc-pie { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 10px; }
+.fa-prod { position: relative; }
+.fa-prod__sug { position: absolute; z-index: 25; left: 0; right: 0; top: calc(100% + 4px); background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; box-shadow: 0 18px 40px -12px rgba(15, 23, 42, .28); padding: 6px; max-height: 280px; overflow-y: auto; min-width: 280px; }
+.fa-prod__sug button { display: grid; grid-template-columns: 1fr auto; gap: 0 10px; width: 100%; text-align: left; border: 0; background: none; font: inherit; padding: 7px 9px; border-radius: 8px; cursor: pointer; }
+.fa-prod__sug button:hover { background: #f5f7ff; }
+.fa-prod__sug b { font-size: 13px; color: #0f172a; }
+.fa-prod__sug small { grid-column: 1; font-size: 11.5px; color: #64748b; }
+.fa-prod__sug span { grid-row: 1 / span 2; grid-column: 2; align-self: center; font-weight: 700; font-size: 13px; font-variant-numeric: tabular-nums; }
+@media (max-width: 760px) {
+    .fa-conc thead { display: none; }
+    .fa-conc, .fa-conc tbody { display: block; }
+    .fa-conc-caja { border: 0; background: none; }
+    .fa-conc__fila { display: grid; grid-template-columns: 64px minmax(0, 1fr) minmax(0, 1fr); grid-template-areas: "prod prod prod" "cant precio desc" "imp imp importe" "acc acc acc";
+                     gap: 4px 6px; padding: 10px; margin-bottom: 8px; border: 1px solid #e5e7eb; border-radius: 12px; background: #fff; }
+    .fa-conc__fila td { border: 0; padding: 0 !important; width: auto !important; min-width: 0; }
+    .fa-conc__fila td:nth-child(1) { grid-area: cant; } .fa-conc__fila td:nth-child(2) { grid-area: prod; } .fa-conc__fila td:nth-child(3) { grid-area: precio; }
+    .fa-conc__fila td:nth-child(4) { grid-area: desc; } .fa-conc__fila td:nth-child(5) { grid-area: imp; } .fa-conc__fila td:nth-child(6) { grid-area: importe; align-self: center; }
+    .fa-conc__fila td:nth-child(1) input, .fa-conc__fila td:nth-child(3) input, .fa-conc__fila td:nth-child(4) input, .fa-conc__fila td:nth-child(5) select { border-color: #e5e7eb; background: #fff; }
+    .fa-conc__acc { grid-area: acc; text-align: right; }
+    .fa-prod__sug { min-width: 0; }
+    .fa-conc__detalle { margin: -6px 0 8px; }
+    .fa-conc__detalle { display: block; } .fa-conc__detalle td { display: block; border-radius: 10px; }
+}
+
+/* ---------- buscador de claves del SAT ---------- */
+.fa-clave { position: relative; }
+.fa-clave__in { width: 100%; font: inherit; font-size: 13.5px; border: 1px solid #d1d5db; border-radius: 10px; padding: 9px 11px; background: #fff; }
+.fa-clave__in:focus { outline: none; border-color: #6366f1; box-shadow: 0 0 0 3px #e0e7ff; }
+.fa-clave__lista { position: absolute; z-index: 40; left: 0; top: calc(100% + 4px); width: max(100%, 360px); max-width: calc(100vw - 40px); max-height: 280px; overflow-y: auto; background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; box-shadow: 0 18px 40px -12px rgba(15, 23, 42, .28); padding: 6px; }
+.fa-clave__lista button { display: block; width: 100%; text-align: left; border: 0; background: none; font: inherit; font-size: 13px; padding: 7px 9px; border-radius: 8px; cursor: pointer; color: #0f172a; }
+.fa-clave__lista button:hover { background: #f5f7ff; }
+.fa-clave__lista b { font-family: ui-monospace, monospace; color: #4f46e5; margin-right: 4px; }
+.fa-clave__lista small { display: block; font-size: 11px; color: #94a3b8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* ---------- vista previa dentro del paso 4 (visor propio) ---------- */
+.fa-vista-pdf { height: 560px; border-radius: 12px; overflow: hidden; background: #e2e8f0; }
+.fa-vista-pdf:empty::before { content: "Preparando la vista previa…"; display: grid; place-items: center; height: 100%; color: #64748b; font-size: 13px; }
+@media (max-width: 640px) { .fa-vista-pdf { height: 440px; } }
+
+/* ---------- «el total debe ser» ---------- */
+.fa-objetivo { margin: 4px 0 10px; border-top: 1px dashed #e5e7eb; padding-top: 8px; }
+.fa-objetivo summary { font-size: 12.5px; font-weight: 700; color: #4f46e5; cursor: pointer; list-style: none; }
+.fa-objetivo summary::-webkit-details-marker { display: none; }
+.fa-objetivo summary::before { content: "＝ "; }
+.fa-objetivo__fila { display: flex; gap: 6px; margin: 8px 0 4px; }
+.fa-objetivo__fila input { flex: 1; min-width: 0; font: inherit; font-size: 14px; text-align: right; border: 1px solid #d1d5db; border-radius: 10px; padding: 7px 10px; font-variant-numeric: tabular-nums; }
+.fa-objetivo__fila input:focus { outline: none; border-color: #6366f1; box-shadow: 0 0 0 3px #e0e7ff; }
+
+/* ---------- prefacturas que se repiten ---------- */
+.fa-repetir { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px; background: #f8fafc; border: 1px solid #e5e7eb; border-radius: 12px; padding: 12px; margin: -2px 0 6px; }
+.fa-repetir .fa-campo { flex: 1 1 140px; }
+.fa-repetir__acc { display: flex; gap: 12px; align-items: center; margin-left: auto; }
+.fa-repetir .fa-nota { flex-basis: 100%; margin: 0; }
+
+/* ---------- importar productos de XML ---------- */
+.fa-dialogo--grande { width: min(1020px, calc(100vw - 24px)); }
+.fa-im-caja { max-height: 52vh; overflow: auto; }
+.fa-im td { padding: 6px 8px; }
+.fa-im input:not([type=checkbox]), .fa-im select { width: 100%; font: inherit; font-size: 13px; border: 1px solid #e5e7eb; border-radius: 8px; padding: 6px 8px; background: #fff; }
+.fa-im input.fa-num { text-align: right; width: 100px; }
+.fa-im td:nth-child(2) { min-width: 240px; }
+.fa-im select { min-width: 180px; }
+.fa-im--mal td { background: #fef2f2; }

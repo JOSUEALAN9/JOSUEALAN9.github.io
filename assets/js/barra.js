@@ -503,6 +503,113 @@
         document.getElementById("fc-btn-empresa").setAttribute("aria-expanded", "false");
     }
 
+    /* ---------- Visor de PDF de Fiscontable (PDF.js) ----------
+       El de Chrome dentro de una página se ve oscuro y en el teléfono casi nunca abre. Este dibuja cada página como
+       imagen, igual en todos lados, con zoom, descargar e imprimir. verPdf(blob|url, {titulo, nombre}) abre la ventana;
+       pdfEn(elemento, blob) lo pinta dentro de una caja (por ejemplo, la vista previa del último paso). */
+    var PDFJS = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/";
+    var pdfjsListo = null;
+    function cargarPdfjs() {
+        if (!pdfjsListo) {
+            pdfjsListo = new Promise(function (ok, mal) {
+                var s = document.createElement("script");
+                s.src = PDFJS + "pdf.min.js";
+                s.onload = function () { window.pdfjsLib.GlobalWorkerOptions.workerSrc = PDFJS + "pdf.worker.min.js"; ok(window.pdfjsLib); };
+                s.onerror = function () { pdfjsListo = null; mal(new Error("No se pudo cargar el visor de PDF.")); };
+                document.head.appendChild(s);
+            });
+        }
+        return pdfjsListo;
+    }
+
+    async function abrirDoc(fuente) {
+        var lib = await cargarPdfjs();
+        var datos = fuente instanceof Blob ? new Uint8Array(await fuente.arrayBuffer()) : null;
+        return lib.getDocument(datos ? { data: datos } : { url: fuente, withCredentials: true }).promise;
+    }
+
+    async function pintarPaginas(doc, cont, escala, ancho) {
+        cont.innerHTML = "";
+        for (var n = 1; n <= doc.numPages; n++) {
+            var pag = await doc.getPage(n);
+            var base = pag.getViewport({ scale: 1 });
+            var zoom = ancho ? Math.max(0.3, (ancho - 24) / base.width) : escala;
+            var vista = pag.getViewport({ scale: zoom });
+            var px = window.devicePixelRatio || 1;
+            var lienzo = document.createElement("canvas");
+            lienzo.className = "fc-pdf__pagina";
+            lienzo.width = Math.floor(vista.width * px); lienzo.height = Math.floor(vista.height * px);
+            lienzo.style.width = Math.floor(vista.width) + "px"; lienzo.style.height = Math.floor(vista.height) + "px";
+            cont.appendChild(lienzo);
+            await pag.render({ canvasContext: lienzo.getContext("2d"), viewport: vista, transform: px !== 1 ? [px, 0, 0, px, 0, 0] : null }).promise;
+        }
+    }
+
+    async function pdfEn(elemento, fuente) {
+        elemento.classList.add("fc-pdf__hoja");
+        elemento.innerHTML = '<p class="fc-pdf__cargando">Cargando vista previa…</p>';
+        try {
+            var doc = await abrirDoc(fuente);
+            await pintarPaginas(doc, elemento, 1, elemento.clientWidth || 700);
+        } catch (e) { elemento.innerHTML = '<p class="fc-pdf__cargando">No se pudo mostrar el PDF (' + (e.message || "error") + ").</p>"; }
+    }
+
+    function verPdf(fuente, opciones) {
+        opciones = opciones || {};
+        var dlg = document.getElementById("fc-pdf");
+        if (!dlg) {
+            dlg = document.createElement("dialog");
+            dlg.id = "fc-pdf"; dlg.className = "fc-pdf";
+            dlg.innerHTML = '<div class="fc-pdf__barra"><span class="fc-pdf__titulo" id="fc-pdf-titulo"></span><span class="fc-pdf__paginas" id="fc-pdf-paginas"></span>' +
+                '<div class="fc-pdf__zoom"><button type="button" data-zoom="-1" aria-label="Alejar">−</button><button type="button" data-zoom="0" title="Ajustar al ancho">Ajustar</button><button type="button" data-zoom="1" aria-label="Acercar">+</button></div>' +
+                '<button type="button" class="fc-pdf__accion" id="fc-pdf-imprimir">Imprimir</button><button type="button" class="fc-pdf__accion fc-pdf__accion--principal" id="fc-pdf-bajar">Descargar</button>' +
+                '<button type="button" class="fc-pdf__cerrar" aria-label="Cerrar">✕</button></div><div class="fc-pdf__cuerpo" id="fc-pdf-cuerpo"></div>';
+            document.body.appendChild(dlg);
+            dlg.querySelector(".fc-pdf__cerrar").addEventListener("click", function () { dlg.close(); });
+            dlg.addEventListener("click", function (ev) { if (ev.target === dlg) dlg.close(); });
+            dlg.querySelectorAll("[data-zoom]").forEach(function (b) {
+                b.addEventListener("click", function () {
+                    var d = +b.dataset.zoom;
+                    dlg._escala = d === 0 ? null : Math.min(3, Math.max(0.4, (dlg._escala || dlg._ajuste || 1) + d * 0.25));
+                    redibujar();
+                });
+            });
+            dlg.querySelector("#fc-pdf-bajar").addEventListener("click", function () {
+                if (dlg._blob) window.Fiscontable.guardarArchivo(dlg._blob, dlg._nombre);
+            });
+            dlg.querySelector("#fc-pdf-imprimir").addEventListener("click", function () {
+                if (!dlg._url) return;
+                var marco = document.getElementById("fc-pdf-impresion") || document.body.appendChild(Object.assign(document.createElement("iframe"), { id: "fc-pdf-impresion" }));
+                marco.style.cssText = "position:fixed;width:0;height:0;border:0;right:0;bottom:0";
+                marco.onload = function () { try { marco.contentWindow.focus(); marco.contentWindow.print(); } catch (e) { window.open(dlg._url, "_blank"); } };
+                marco.src = dlg._url;
+            });
+        }
+        var cuerpo = dlg.querySelector("#fc-pdf-cuerpo");
+        async function redibujar() {
+            if (!dlg._doc) return;
+            var ancho = Math.min(cuerpo.clientWidth, 1100);
+            dlg._ajuste = (ancho - 24) / (await dlg._doc.getPage(1)).getViewport({ scale: 1 }).width;
+            await pintarPaginas(dlg._doc, cuerpo, dlg._escala || dlg._ajuste, null);
+        }
+        dlg.querySelector("#fc-pdf-titulo").textContent = opciones.titulo || opciones.nombre || "Documento";
+        dlg.querySelector("#fc-pdf-paginas").textContent = "";
+        cuerpo.innerHTML = '<p class="fc-pdf__cargando">Abriendo…</p>';
+        dlg._escala = null; dlg._doc = null;
+        dlg._nombre = opciones.nombre || "documento.pdf";
+        if (!dlg.open) dlg.showModal();
+        (async function () {
+            try {
+                var blob = fuente instanceof Blob ? fuente : await (await fetch(fuente, { credentials: "include" })).blob();
+                if (dlg._url) URL.revokeObjectURL(dlg._url);
+                dlg._blob = blob; dlg._url = URL.createObjectURL(blob);
+                dlg._doc = await abrirDoc(blob);
+                dlg.querySelector("#fc-pdf-paginas").textContent = dlg._doc.numPages + (dlg._doc.numPages === 1 ? " página" : " páginas");
+                await redibujar();
+            } catch (e) { cuerpo.innerHTML = '<p class="fc-pdf__cargando">No se pudo abrir el PDF (' + (e.message || "error") + ").</p>"; }
+        })();
+    }
+
     var SECCIONES_CONFIG = {
         facturacion: function (sub) { return "/herramientas/facturar/?vista=config&incrustado=1" + (sub ? "&sub=" + encodeURIComponent(sub) : ""); }
     };
@@ -1604,6 +1711,8 @@
         // Configuración en una ventana sobre el módulo: al dar «Listo» se cierra, se queda en el módulo y avisa con
         // window "fiscontable:config" ({seccion}) para que el módulo vuelva a leer lo que cambió.
         abrirConfiguracion: abrirConfiguracion,
+        verPdf: verPdf,
+        pdfEn: pdfEn,
         empresaActiva: function () {
             return perfil().then(function (p) { return p && !p._error ? (p.empresa_activa || null) : null; });
         },
