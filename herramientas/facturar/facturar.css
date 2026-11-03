@@ -434,3 +434,26 @@ tr.fa-conc__fila.fa-conc--pendiente td { background: #fffbeb; }
 tr.fa-fila-desglose > td { background: #fafaff; padding: 4px 12px 12px; }
 #xm-filas [data-desglose] { display: block; margin: 4px 0 0 auto; font-size: 12.5px; }
 .fa-pasos-excel[hidden], .fa-zona[hidden], .fa-otro-archivo[hidden] { display: none !important; }
+
+/* ---------- Emitidas: selección para ZIP y acciones compactas ---------- */
+.fa-sel-barra { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; background: #eef2ff; border: 1px solid #c7d2fe; border-radius: 12px; padding: 10px 14px; margin-bottom: 10px; }
+.fa-sel-barra b { font-size: 14px; color: #312e81; }
+.fa-sel-barra select { font: inherit; font-size: 13.5px; border: 1px solid #c7d2fe; border-radius: 9px; padding: 6px 10px; background: #fff; }
+.fa-sel-barra .fa-link { margin-left: auto; }
+.fa-col-check { width: 1%; padding-right: 0 !important; }
+.fa-col-check input { width: 16px; height: 16px; accent-color: #4f46e5; cursor: pointer; }
+.fa-emitidas tr.fa-fila-sel td { background: #f5f7ff; }
+@media (min-width: 761px) { .fa-emitidas-caja { overflow: visible; } }
+.fa-acc__caja { display: flex; justify-content: flex-end; align-items: center; gap: 6px; }
+.fa-acc-btn { display: inline-flex; align-items: center; gap: 5px; border: 1px solid #e5e7eb; background: #fff; border-radius: 9px; padding: 6px 10px; font: inherit; font-size: 12.5px; font-weight: 700; color: #334155; cursor: pointer; white-space: nowrap; }
+.fa-acc-btn:hover { border-color: #a5b4fc; color: #4f46e5; background: #f5f7ff; }
+.fa-acc-btn--mas { font-size: 16px; line-height: 1; padding: 5px 10px; }
+.fa-mas { position: relative; }
+.fa-mas__menu { position: absolute; right: 0; top: calc(100% + 6px); z-index: 30; min-width: 220px; background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; box-shadow: 0 18px 40px -12px rgba(15, 23, 42, .28); padding: 6px; display: flex; flex-direction: column; }
+.fa-mas__menu--arriba { top: auto; bottom: calc(100% + 6px); }
+.fa-mas__menu[hidden] { display: none; }
+.fa-mas__menu button { text-align: left; border: 0; background: none; font: inherit; font-size: 13.5px; color: #0f172a; padding: 9px 12px; border-radius: 8px; cursor: pointer; }
+.fa-mas__menu button:hover { background: #f5f7ff; color: #4f46e5; }
+.fa-mas__menu .fa-mas__rojo { color: #dc2626; border-top: 1px solid #f1f5f9; margin-top: 4px; border-radius: 0 0 8px 8px; }
+.fa-mas__menu .fa-mas__rojo:hover { background: #fef2f2; color: #b91c1c; }
+@media (max-width: 760px) { .fa-acc-btn { padding: 6px 8px; } .fa-acc-btn svg { display: none; } }

@@ -1068,27 +1068,56 @@
             if (f === "cancelado" ? x.estado !== "cancelado" : f && x.tipo !== f) return false;
             return !q || [x.receptor_nombre, x.receptor_rfc, (x.serie || "") + x.folio, (x.serie || "") + "-" + x.folio, x.uuid].join(" ").toLowerCase().indexOf(q) !== -1;
         });
+        F.emitVisibles = filas.map(function (x) { return x.id; });
+        F.selEmit = F.selEmit || {};
         $("filas-emitidas").innerHTML = filas.length ? filas.map(function (x) {
             var estado = x.estado === "cancelado" ? '<span class="fa-chip fa-chip--mal">Cancelada</span>'
                 : x.estado === "cancelando" ? '<span class="fa-chip fa-chip--proceso" title="Se pidió la cancelación; el SAT la está procesando">Cancelación en proceso</span>'
                 : '<span class="fa-chip fa-chip--ok">Vigente</span>';
             if (x.pruebas) estado += ' <span class="fa-chip fa-chip--prueba">Prueba</span>';
-            return '<tr data-id="' + esc(x.id) + '"><td>' + esc(fechaCorta(x.fecha)) + "</td>" +
+            var mas = [
+                ["correo", "Mandar por correo"], ["whatsapp", "Mandar por WhatsApp"],
+                x.tipo !== "P" ? ["copiar", "Copiar (una nueva igual)"] : null,
+                x.saldo > 0.004 && x.estado === "timbrado" ? ["pago", "Registrar un pago"] : null,
+                x.pruebas ? null : ["sat", "Revisar en el SAT"],
+                x.hay_acuse ? ["acuse", "Acuse de cancelación"] : null,
+                x.estado === "timbrado" ? ["cancelar", "Cancelar", true] : null
+            ].filter(Boolean);
+            return '<tr data-id="' + esc(x.id) + '"' + (F.selEmit[x.id] ? ' class="fa-fila-sel"' : "") + '><td class="fa-col-check"><input type="checkbox" data-sel' + (F.selEmit[x.id] ? " checked" : "") + "></td><td>" + esc(fechaCorta(x.fecha)) + "</td>" +
                 "<td><b>" + esc((x.serie ? x.serie + "-" : "") + x.folio) + "</b><small>" + ({ I: "Factura", E: "Nota de crédito", P: "Recibo de pago" }[x.tipo] || "") + (x.metodo === "PPD" ? " · PPD" : "") + "</small></td>" +
                 "<td>" + esc(x.receptor_nombre) + "<small>" + esc(x.receptor_rfc) + "</small></td>" +
                 '<td class="fa-num">' + dinero(x.total) + (x.moneda === "USD" ? " <small>USD</small>" : "") +
                 (x.saldo != null && x.estado !== "cancelado" ? (x.saldo > 0.004 ? '<span class="fa-saldo">Saldo ' + dinero(x.saldo) + "</span>" : '<span class="fa-saldo fa-saldo--ok">Pagada</span>') : "") +
                 "</td><td>" + estado + "</td>" +
-                '<td class="fa-acc"><button type="button" class="fa-link" data-acc="pdf">PDF</button>' +
-                '<button type="button" class="fa-link" data-acc="xml">XML</button>' +
-                '<button type="button" class="fa-link" data-acc="correo" title="Mandarla por correo">Correo</button>' +
-                '<button type="button" class="fa-link" data-acc="whatsapp" title="Mandarla por WhatsApp">WhatsApp</button>' +
-                (x.tipo !== "P" ? '<button type="button" class="fa-link" data-acc="copiar" title="Una nueva igual a esta">Copiar</button>' : "") +
-                (x.saldo > 0.004 && x.estado === "timbrado" ? '<button type="button" class="fa-link" data-acc="pago" title="Registrar un pago (complemento de pago)">Pago</button>' : "") +
-                (x.pruebas ? "" : '<button type="button" class="fa-link" data-acc="sat" title="Consultar si está vigente o cancelada en el SAT">SAT</button>') +
-                (x.hay_acuse ? '<button type="button" class="fa-link" data-acc="acuse">Acuse</button>' : "") +
-                (x.estado === "timbrado" ? '<button type="button" class="fa-link fa-link--rojo" data-acc="cancelar">Cancelar</button>' : "") + "</td></tr>";
-        }).join("") : '<tr><td colspan="6">' + (F.emitidas.length ? "Nada coincide." : "Todavía no hay facturas de esta empresa.") + "</td></tr>";
+                '<td class="fa-acc"><div class="fa-acc__caja">' +
+                '<button type="button" class="fa-acc-btn" data-acc="pdf" title="Ver el PDF"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2.5 12C4 7.5 7.7 5 12 5s8 2.5 9.5 7c-1.5 4.5-5.2 7-9.5 7s-8-2.5-9.5-7z"/><circle cx="12" cy="12" r="3"/></svg>PDF</button>' +
+                '<button type="button" class="fa-acc-btn" data-acc="xml" title="Descargar el XML"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>XML</button>' +
+                '<div class="fa-mas"><button type="button" class="fa-acc-btn fa-acc-btn--mas" data-menu aria-label="Más acciones" title="Más acciones">⋯</button>' +
+                '<div class="fa-mas__menu" hidden>' + mas.map(function (m) { return '<button type="button" data-acc="' + m[0] + '"' + (m[2] ? ' class="fa-mas__rojo"' : "") + ">" + m[1] + "</button>"; }).join("") + "</div></div>" +
+                "</div></td></tr>";
+        }).join("") : '<tr><td colspan="7">' + (F.emitidas.length ? "Nada coincide." : "Todavía no hay facturas de esta empresa.") + "</td></tr>";
+        pintarSeleccion();
+    }
+
+    function pintarSeleccion() {
+        var ids = Object.keys(F.selEmit || {}), n = ids.length;
+        $("sel-emitidas").hidden = !n;
+        $("sel-cuenta").textContent = n + (n === 1 ? " marcada" : " marcadas");
+        var vis = F.emitVisibles || [];
+        $("sel-todas").checked = vis.length > 0 && vis.every(function (id) { return F.selEmit[id]; });
+        $("sel-todas").indeterminate = !$("sel-todas").checked && vis.some(function (id) { return F.selEmit[id]; });
+    }
+
+    async function bajarZip() {
+        var ids = Object.keys(F.selEmit || {}), b = $("btn-zip");
+        if (!ids.length) return;
+        b.disabled = true; b.textContent = "Preparando ZIP…";
+        try {
+            var resp = await api("/api/facturacion/comprobantes/zip", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ids: ids, contenido: $("sel-contenido").value }) });
+            var m = /filename="?([^";]+)"?/i.exec(resp.headers.get("Content-Disposition") || "");
+            Fiscontable.guardarArchivo(await resp.blob(), m ? m[1] : "Facturas.zip");
+        } catch (e) { aviso(e.message, "error"); }
+        b.disabled = false; b.textContent = "Descargar ZIP";
     }
 
     async function bajarXml(id) {
@@ -2242,8 +2271,37 @@
         $("listo-otra").addEventListener("click", function () { $("dlg-listo").close(); if (F.vista === "nueva") $("r-rfc").focus(); });
         $("buscar-emitidas").addEventListener("input", pintarEmitidas);
         $("filtro-tipo").addEventListener("change", pintarEmitidas);
+        $("filas-emitidas").addEventListener("change", function (ev) {
+            if (!ev.target.matches("[data-sel]")) return;
+            var tr = ev.target.closest("tr"), id = tr.dataset.id;
+            if (ev.target.checked) F.selEmit[id] = 1; else delete F.selEmit[id];
+            tr.classList.toggle("fa-fila-sel", ev.target.checked);
+            pintarSeleccion();
+        });
+        $("sel-todas").addEventListener("change", function () {
+            var v = this.checked;
+            (F.emitVisibles || []).forEach(function (id) { if (v) F.selEmit[id] = 1; else delete F.selEmit[id]; });
+            pintarEmitidas();
+        });
+        $("btn-sel-quitar").addEventListener("click", function () { F.selEmit = {}; pintarEmitidas(); });
+        $("btn-zip").addEventListener("click", bajarZip);
+        document.addEventListener("click", function (ev) {
+            if (!ev.target.closest(".fa-mas")) document.querySelectorAll(".fa-mas__menu").forEach(function (m) { m.hidden = true; });
+        });
         $("filas-emitidas").addEventListener("click", function (ev) {
+            var menu = ev.target.closest("[data-menu]");
+            if (menu) {
+                var caja = menu.nextElementSibling, abrir = caja.hidden;
+                document.querySelectorAll(".fa-mas__menu").forEach(function (m) { m.hidden = true; });
+                caja.hidden = !abrir;
+                if (abrir) {                 // si no cabe abajo, se abre hacia arriba
+                    caja.classList.remove("fa-mas__menu--arriba");
+                    if (caja.getBoundingClientRect().bottom > window.innerHeight - 8) caja.classList.add("fa-mas__menu--arriba");
+                }
+                return;
+            }
             var b = ev.target.closest("[data-acc]"); if (!b) return;
+            var m0 = b.closest(".fa-mas__menu"); if (m0) m0.hidden = true;
             var id = b.closest("tr").dataset.id;
             if (b.dataset.acc === "xml") bajarXml(id);
             else if (b.dataset.acc === "acuse") bajarAcuse(id);

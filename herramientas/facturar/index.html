@@ -5,14 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Facturar | Fiscontable</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611040500">
-    <link rel="stylesheet" href="/herramientas/facturar/facturar.css?v=202611040500">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611040530">
+    <link rel="stylesheet" href="/herramientas/facturar/facturar.css?v=202611040530">
 </head>
 <body class="min-h-screen flex flex-col">
 
 <div id="app-header" data-modulo="facturar" data-titulo="Facturar" data-migas="Herramientas|/herramientas/"></div>
-<script src="/assets/js/nucleo.js?v=202611040500"></script>
-<script src="/assets/js/barra.js?v=202611040500"></script>
+<script src="/assets/js/nucleo.js?v=202611040530"></script>
+<script src="/assets/js/barra.js?v=202611040530"></script>
 
 <main class="flex-grow w-full mod-pagina fa-pagina">
     <div class="mod-cabeza">
@@ -244,10 +244,16 @@
             <input type="search" id="buscar-emitidas" placeholder="Buscar por cliente, RFC, folio o UUID…" autocomplete="off">
             <select id="filtro-tipo"><option value="">Todas</option><option value="I">Facturas</option><option value="E">Notas de crédito</option><option value="cancelado">Canceladas</option></select>
         </div>
-        <div class="fa-tabla-caja">
-            <table class="fa-tabla">
-                <thead><tr><th>Fecha</th><th>Folio</th><th>Cliente</th><th class="fa-num">Total</th><th>Estado</th><th></th></tr></thead>
-                <tbody id="filas-emitidas"><tr><td colspan="6">Cargando…</td></tr></tbody>
+        <div class="fa-sel-barra" id="sel-emitidas" hidden>
+            <b id="sel-cuenta">0 marcadas</b>
+            <select id="sel-contenido" aria-label="Qué bajar"><option value="ambos">PDF y XML</option><option value="pdf">Solo PDF</option><option value="xml">Solo XML</option></select>
+            <button type="button" id="btn-zip" class="fa-btn fa-btn--principal fa-btn--chico">Descargar ZIP</button>
+            <button type="button" id="btn-sel-quitar" class="fa-link fa-link--gris">Quitar selección</button>
+        </div>
+        <div class="fa-tabla-caja fa-emitidas-caja">
+            <table class="fa-tabla fa-emitidas">
+                <thead><tr><th class="fa-col-check"><input type="checkbox" id="sel-todas" title="Marcar todas las que se ven"></th><th>Fecha</th><th>Folio</th><th>Cliente</th><th class="fa-num">Total</th><th>Estado</th><th></th></tr></thead>
+                <tbody id="filas-emitidas"><tr><td colspan="7">Cargando…</td></tr></tbody>
             </table>
         </div>
     </section>
@@ -647,7 +653,7 @@
     </div>
 </dialog>
 
-<script src="/assets/js/comun/importar-clientes.js?v=202611040500"></script>
-<script src="/herramientas/facturar/facturar.js?v=202611040500"></script>
+<script src="/assets/js/comun/importar-clientes.js?v=202611040530"></script>
+<script src="/herramientas/facturar/facturar.js?v=202611040530"></script>
 </body>
 </html>
