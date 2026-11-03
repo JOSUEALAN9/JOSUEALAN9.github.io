@@ -536,12 +536,23 @@
             var zoom = ancho ? Math.max(0.3, (ancho - 24) / base.width) : escala;
             var vista = pag.getViewport({ scale: zoom });
             var px = window.devicePixelRatio || 1;
+            // La página es una imagen (canvas) con una capa de texto invisible encima: así se puede seleccionar y copiar
+            var hoja = document.createElement("div");
+            hoja.className = "fc-pdf__pagina";
+            hoja.style.width = Math.floor(vista.width) + "px"; hoja.style.height = Math.floor(vista.height) + "px";
             var lienzo = document.createElement("canvas");
-            lienzo.className = "fc-pdf__pagina";
             lienzo.width = Math.floor(vista.width * px); lienzo.height = Math.floor(vista.height * px);
             lienzo.style.width = Math.floor(vista.width) + "px"; lienzo.style.height = Math.floor(vista.height) + "px";
-            cont.appendChild(lienzo);
+            hoja.appendChild(lienzo);
+            cont.appendChild(hoja);
             await pag.render({ canvasContext: lienzo.getContext("2d"), viewport: vista, transform: px !== 1 ? [px, 0, 0, px, 0, 0] : null }).promise;
+            try {
+                var capa = document.createElement("div");
+                capa.className = "textLayer";
+                capa.style.setProperty("--scale-factor", vista.scale);
+                hoja.appendChild(capa);
+                await window.pdfjsLib.renderTextLayer({ textContentSource: pag.streamTextContent(), container: capa, viewport: vista, textDivs: [] }).promise;
+            } catch (e) { /* sin capa de texto: la página se ve igual, solo no se puede copiar */ }
         }
     }
 

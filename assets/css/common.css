@@ -1100,6 +1100,14 @@ a.mod-accion { text-decoration: none; }
 .fc-pdf__cerrar { border: 0; background: rgba(255, 255, 255, .1); color: #fff; width: 32px; height: 32px; border-radius: 9px; cursor: pointer; }
 .fc-pdf__cuerpo { flex: 1; overflow: auto; padding: 18px 12px 40px; display: flex; flex-direction: column; align-items: center; gap: 14px; }
 .fc-pdf__pagina { background: #fff; box-shadow: 0 6px 24px rgba(0, 0, 0, .28); border-radius: 4px; max-width: none; }
+.fc-pdf__pagina { position: relative; flex: none; overflow: hidden; }
+.fc-pdf__pagina canvas { display: block; }
+/* Capa de texto de PDF.js (texto transparente encima de la imagen, para seleccionar y copiar) */
+.fc-pdf__pagina .textLayer { position: absolute; inset: 0; overflow: hidden; line-height: 1; text-align: initial; -webkit-text-size-adjust: none; text-size-adjust: none;
+                             forced-color-adjust: none; transform-origin: 0 0; z-index: 1; }
+.fc-pdf__pagina .textLayer span, .fc-pdf__pagina .textLayer br { color: transparent; position: absolute; white-space: pre; cursor: text; transform-origin: 0% 0%; }
+.fc-pdf__pagina .textLayer ::selection { background: rgba(79, 70, 229, .3); color: transparent; }
+.fc-pdf__pagina .textLayer .endOfContent { display: block; position: absolute; inset: 100% 0 0; z-index: -1; cursor: default; user-select: none; }
 .fc-pdf__cargando { color: #e2e8f0; font-size: 14px; padding: 30px; text-align: center; }
 .fc-pdf__hoja { background: #eef0f3; display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 12px; overflow: auto; }
 .fc-pdf__hoja .fc-pdf__cargando { color: #64748b; }
