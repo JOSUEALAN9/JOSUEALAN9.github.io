@@ -1062,3 +1062,21 @@ a.mod-accion { text-decoration: none; }
 .pestanas { overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
 .pestanas::-webkit-scrollbar { display: none; }
 .pestana { flex: none; white-space: nowrap; }
+
+/* ---------- Configuración en ventana lateral (sobre cualquier módulo) ---------- */
+.fc-config { position: fixed; inset: 0 0 0 auto; margin: 0; height: 100vh; max-height: 100vh; width: min(980px, 100vw); border: 0; padding: 0;
+             background: var(--papel); box-shadow: var(--sombra-alta); display: flex; flex-direction: column; }
+.fc-config:not([open]) { display: none; }
+.fc-config::backdrop { background: rgba(16, 27, 45, .42); backdrop-filter: blur(2px); }
+.fc-config[open] { animation: fc-config-entra .18s ease-out; }
+@keyframes fc-config-entra { from { transform: translateX(24px); opacity: .6; } to { transform: none; opacity: 1; } }
+.fc-config__barra { display: flex; align-items: center; gap: 12px; padding: 12px 16px; background: var(--tinta); color: #fff; }
+.fc-config__titulo { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 14px; margin-right: auto; }
+.fc-config__titulo svg { width: 18px; height: 18px; }
+.fc-config__todo { color: #cbd5e1; font-size: 12.5px; font-weight: 600; text-decoration: none; }
+.fc-config__todo:hover { color: #fff; text-decoration: underline; }
+.fc-config__cerrar { border: 0; background: rgba(255, 255, 255, .1); color: #fff; width: 32px; height: 32px; border-radius: 9px; cursor: pointer; font-size: 15px; }
+.fc-config__cerrar:hover { background: rgba(255, 255, 255, .2); }
+.fc-config__marco { flex: 1; width: 100%; border: 0; background: var(--papel); }
+.fc-incrustado .fc-barra, .fc-incrustado .fc-aviso-global { display: none !important; }
+.fc-incrustado body { background: var(--papel); }

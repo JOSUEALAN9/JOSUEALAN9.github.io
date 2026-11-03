@@ -86,6 +86,8 @@
 
     /* ---------------------------------------------------- arranque */
     async function iniciar() {
+        F.incrustado = Fiscontable.url("incrustado") === "1";      // abierta dentro de Configuración (ventana sobre otro módulo)
+        if (F.incrustado) document.body.classList.add("fa-incrustado");
         if (!(await Fiscontable.exigirModulo("facturacion"))) return;
         try { F.cfg = await json("/api/facturacion/config"); }
         catch (e) { aviso(e.message, "error"); return; }
@@ -110,8 +112,10 @@
         eventos();
         F.empresa = await Fiscontable.empresaActiva();
         window.addEventListener("fiscontable:empresa", function (ev) { F.empresa = ev.detail; elegirEmpresa(); });
-        F.vista = Fiscontable.url("vista") || "nueva";     // con F5 se queda en la misma vista
+        F.vista = F.incrustado ? "config" : (Fiscontable.url("vista") || "nueva");     // con F5 se queda en la misma vista
+        window.addEventListener("fiscontable:config", recargarConfig);
         nuevaFactura();
+        irPaso(1);
         elegirEmpresa();
         vista(F.vista);
     }
@@ -138,7 +142,7 @@
         if (!F.empresa) return;
         document.querySelectorAll("[data-panel]").forEach(function (p) { p.hidden = p.dataset.panel !== nombre; });
         Fiscontable.url({ vista: nombre === "nueva" ? null : nombre });
-        if (nombre === "config" && !F.correo) cargarCorreo();
+        if (nombre === "config") ponerSub(Fiscontable.url("sub") || F.sub || "emisor");
         if (nombre === "pagos") cargarPendientes();
     }
 
@@ -167,6 +171,8 @@
             falta.hidden = true;
         }
         $("c-emisor").textContent = (e.razon_social || e.alias) + " · " + e.rfc;
+        $("c-emisor-cab").textContent = (e.razon_social || e.alias) + " · " + e.rfc;
+        $("punto-sello").hidden = !!e.csd;
         $("c-regimen").value = e.regimen || "";
         $("c-cp").value = e.cp || "";
         $("c-serie-i").value = e.serie_i;
@@ -271,7 +277,8 @@
 
     function nuevaFactura() {
         F.conceptos = [conceptoVacio()];
-        F.borradorId = null; F.tcManual = false; F.relaciones = []; F.claveEnvio = nuevaClave(); F.sustituye = null;
+        F.borradorId = null; F.tcManual = false; F.relaciones = []; F.claveEnvio = nuevaClave(); F.sustituye = null; F.notaFecha = "";
+        $("rel-activar").checked = false; $("p-nota").textContent = "";
         ["r-rfc", "r-nombre", "r-cp", "rel-uuid", "p-condiciones", "r-buscar", "p-tc", "p-fecha", "p-notas", "r-taxid"].forEach(function (id) { $(id).value = ""; });
         pintarRelaciones();
         $("r-regimen").value = "";
@@ -285,7 +292,11 @@
         verFecha();
         verGlobal();
         verExtranjero();
+        verRelaciones();
+        pintarRelaciones();
         pintarConceptos();
+        if ($("sel-cliente-texto")) pintarCliente();
+        if (F.paso) irPaso(1);
     }
 
     /* Llena el formulario con una captura (prefactura o factura copiada) */
@@ -317,6 +328,7 @@
         var rel = cap.relacionados || [];
         F.relaciones = (Array.isArray(rel) ? rel : [rel]).filter(function (g) { return g && (g.uuids || []).length; })
             .map(function (g) { return { tipo_relacion: g.tipo_relacion || (F.tipo === "E" ? "01" : "04"), uuids: g.uuids.slice() }; });
+        $("rel-activar").checked = F.relaciones.length > 0;
         $("rel-uuid").value = "";
         $("r-pais").value = r.residencia || "USA"; $("r-taxid").value = r.num_reg_id || "";
         F.claveEnvio = nuevaClave();
@@ -327,22 +339,24 @@
         F.conceptos = (cap.conceptos || []).map(function (c) { return Object.assign(conceptoVacio(), c, { descuento: c.descuento || "" }); });
         if (!F.conceptos.length) F.conceptos = [conceptoVacio()];
         if (F.conceptos.some(function (c) { return c.ret_isr || c.ret_iva; })) $("ver-retenciones").checked = true;
-        verMoneda(); verFecha(); verGlobal(); verExtranjero(); pintarConceptos(); pintarRelaciones();
-        if (F.notaFecha) $("p-nota").textContent = F.notaFecha;
+        verMoneda(); verFecha(); verGlobal(); verExtranjero(); pintarConceptos(); pintarRelaciones(); verRelaciones(); pintarCliente();
+        verFecha();
         $("t-error").hidden = true;
         var a = $("r-aviso");
         a.hidden = !(avisos && avisos.length);
         a.innerHTML = avisos && avisos.length ? "<b>Revisa:</b> " + avisos.map(esc).join(" · ") : "";
         vista("nueva");
+        irPaso(1);
         window.scrollTo({ top: 0, behavior: "smooth" });
     }
 
     function ponerTipo(tipo) {
         F.tipo = tipo;
-        document.querySelectorAll("[data-tipo]").forEach(function (b) { b.setAttribute("aria-pressed", String(b.dataset.tipo === tipo)); });
-        $("rel-obligatorio").textContent = tipo === "E" ? "(obligatorio: la factura que corrige)" : "(opcional)";
+        $("tipo-doc").value = tipo;
+        $("t-titulo").textContent = tipo === "E" ? "Nota de crédito" : "Factura";
         $("rel-tipo").value = tipo === "E" ? "01" : "04";
         $("btn-anticipo").hidden = tipo !== "I";
+        verRelaciones();
         if (tipo === "E" && $("r-uso").value === "G03") $("r-uso").value = "G02";
         if (tipo === "I" && $("r-uso").value === "G02") $("r-uso").value = "G03";
         pintarFolio();
@@ -416,7 +430,7 @@
             receptor: { rfc: $("r-rfc").value.trim().toUpperCase(), nombre: $("r-nombre").value.trim().toUpperCase(),
                         cp: $("r-cp").value.trim(), regimen: $("r-regimen").value, uso: $("r-uso").value,
                         residencia: rfcR === "XEXX010101000" ? $("r-pais").value : null, num_reg_id: rfcR === "XEXX010101000" ? $("r-taxid").value.trim() : null },
-            relacionados: F.relaciones.length ? F.relaciones : null,
+            relacionados: ($("rel-activar").checked || F.tipo === "E") && F.relaciones.length ? F.relaciones : null,
             global: { periodicidad: $("g-periodicidad").value, meses: $("g-meses").value, anio: $("g-anio").value.trim() },
             conceptos: F.conceptos.map(function (c) {
                 return { cantidad: c.cantidad, clave_prod: (c.clave_prod || "").trim(), clave_unidad: c.clave_unidad,
@@ -478,6 +492,7 @@
             $("dlg-listo").showModal();
             var sustituye = F.sustituye;
             nuevaFactura();                 // ya quedó timbrada: el formulario se limpia para no repetirla por error
+            irPaso(1);
             await cargarEmitidas();
             cargarReceptores();
             cargarPendientes();
@@ -516,16 +531,57 @@
         if (r.regimen) $("r-regimen").value = r.regimen;
         if (r.uso && !(F.tipo === "E" && r.uso !== "G02")) $("r-uso").value = F.tipo === "E" ? "G02" : r.uso;
         verGlobal();
+        pintarCliente();
     }
 
-    function elegirDelBuscador() {
-        var rfc = ($("r-buscar").value.split(" · ")[0] || "").trim().toUpperCase();
-        if (!rfc) return;
-        var r = F.receptores.filter(function (x) { return (x.clave || x.rfc) === rfc; })[0];
-        if (r) ponerReceptor(r);
-        else { $("r-rfc").value = rfc; $("r-nombre").value = ""; $("r-cp").value = ""; $("r-regimen").value = ""; llenarReceptor(); }
-        $("r-buscar").value = "";
+    /* Selector de cliente: sus clientes guardados (y a quién ya le facturó), con búsqueda */
+    function clientesDisponibles() {
+        var vistos = {}, lista = F.receptores.map(function (r) { vistos[r.rfc] = 1; return r; });
+        F.emitidas.forEach(function (x) {
+            if (!vistos[x.receptor_rfc] && x.receptor_rfc !== "XAXX010101000" && x.receptor_rfc !== "XEXX010101000") {
+                vistos[x.receptor_rfc] = 1; lista.push({ rfc: x.receptor_rfc, nombre: x.receptor_nombre, previo: x.id });
+            }
+        });
+        return lista;
     }
+
+    function abrirSelector(abrir) {
+        var panel = $("sel-cliente-panel");
+        panel.hidden = !abrir;
+        if (abrir) { $("r-buscar").value = ""; pintarSelector(); setTimeout(function () { $("r-buscar").focus(); }, 30); }
+    }
+
+    function pintarSelector() {
+        var q = $("r-buscar").value.trim().toLowerCase(), cat = F.cfg.catalogos.regimenes;
+        var lista = clientesDisponibles().filter(function (r) { return !q || (r.nombre + " " + r.rfc).toLowerCase().indexOf(q) !== -1; }).slice(0, 80);
+        var rfcQ = q.toUpperCase();
+        var nuevo = /^[A-ZÑ&]{3,4}\d{6}[A-Z0-9]{3}$/.test(rfcQ) && !lista.some(function (r) { return r.rfc === rfcQ; });
+        $("sel-cliente-lista").innerHTML = (nuevo ? '<button type="button" class="fa-opcion" data-rfc-nuevo="' + esc(rfcQ) + '"><b>Usar ' + esc(rfcQ) + "</b><small>RFC nuevo: completa sus datos</small></button>" : "") +
+            (lista.length ? lista.map(function (r, i) {
+                return '<button type="button" class="fa-opcion" role="option" data-i="' + i + '"><span class="fa-opcion__ini">' + esc((r.nombre || r.rfc).charAt(0)) + "</span><span><b>" + esc(r.nombre || r.rfc) + "</b><small>" +
+                    esc(r.rfc + (r.residencia ? " · " + r.residencia + " " + (r.num_reg_id || "") : "") + (r.cp ? " · C.P. " + r.cp : "") + (r.regimen ? " · " + r.regimen + " " + (cat[r.regimen] || "") : "")) + "</small></span></button>";
+            }).join("") : (nuevo ? "" : '<p class="fa-vacio-chico">' + (q ? "Nadie coincide. Escribe el RFC completo para usarlo." : "Todavía no hay clientes guardados: usa «Cliente nuevo» o lee su constancia.") + "</p>"));
+        F.selLista = lista;
+    }
+
+    function elegirCliente(r) {
+        abrirSelector(false);
+        if (r.previo && !r.cp) { $("r-rfc").value = r.rfc; $("r-nombre").value = ""; $("r-cp").value = ""; $("r-regimen").value = ""; llenarReceptor().then(pintarCliente); }
+        else ponerReceptor(r);
+        pintarCliente();
+    }
+
+    function pintarCliente() {
+        var rfc = $("r-rfc").value.trim().toUpperCase(), nombre = $("r-nombre").value.trim().toUpperCase();
+        var falta = !rfc || !nombre || !$("r-cp").value.trim() || !$("r-regimen").value;
+        $("sel-cliente-texto").innerHTML = rfc ? "<b>" + esc(nombre || "Sin nombre") + "</b> <small>" + esc(rfc) + "</small>" : "Elige un cliente o escribe su RFC…";
+        $("sel-cliente-texto").className = rfc ? "fa-selector__valor" : "fa-selector__vacio";
+        $("r-resumen").textContent = rfc ? (falta ? "· faltan datos" : "· C.P. " + $("r-cp").value + " · régimen " + $("r-regimen").value + " · uso " + $("r-uso").value) : "";
+        if (rfc && falta) $("r-datos").open = true;
+        $("t-cliente").textContent = rfc ? (nombre || rfc) + " · " + rfc : "Sin cliente";
+    }
+
+    function elegirDelBuscador() { pintarSelector(); }
 
     async function leerConstancia(archivo) {
         if (!archivo) return;
@@ -534,7 +590,9 @@
         try {
             var cuerpo = new FormData(); cuerpo.append("archivo", archivo);
             var r = await json("/api/facturacion/leer-constancia", { method: "POST", body: cuerpo });
+            abrirSelector(false);
             ponerReceptor({ rfc: r.rfc, nombre: r.nombre, cp: r.cp, regimen: r.regimenes[0] || "" });
+            $("r-datos").open = true;
             var cat = F.cfg.catalogos.regimenes;
             a.innerHTML = "✓ Datos de su constancia" + (r.regimenes.length > 1
                 ? ". Tiene varios regímenes: " + r.regimenes.map(function (k) { return esc(k + " " + (cat[k] || "")); }).join(", ") + "; elige el que corresponda a esta factura."
@@ -577,7 +635,8 @@
         $("r-cp").value = F.emisor && F.emisor.cp || "";
         $("r-regimen").value = "616";
         $("r-uso").value = "S01";
-        verGlobal();
+        verGlobal(); verExtranjero(); pintarCliente();
+        if (F.tipo === "I") $("p-nota").textContent = "Público en general: en el paso 2 elige el periodo de la factura global.";
     }
 
     /* ---------------------------------------------------- emitidas */
@@ -688,6 +747,16 @@
         return x ? (x.serie ? x.serie + "-" : "") + x.folio : "";
     }
 
+    function verRelaciones() {
+        var forzado = F.tipo === "E";
+        if (forzado) $("rel-activar").checked = true;
+        $("rel-activar").disabled = forzado;
+        $("rel-obligatorio").textContent = forzado ? "Obligatorio en notas de crédito" : $("rel-activar").checked ? "Activado" : "Agregar";
+        $("rel-explica").textContent = forzado ? "La nota de crédito se relaciona con la factura que corrige (tipo 01)."
+            : "Solo si sustituye a otra (04), aplica un anticipo (07) u otra relación. Apagado no se manda nada.";
+        $("rel-cuerpo").hidden = !$("rel-activar").checked;
+    }
+
     function pintarRelaciones() {
         var cat = F.cfg.catalogos.tipos_relacion;
         $("rel-lista").innerHTML = F.relaciones.map(function (g, i) {
@@ -729,7 +798,8 @@
         $("r-cp").value = F.emisor && F.emisor.cp || "";
         $("r-regimen").value = "616";
         $("r-uso").value = "S01";
-        verExtranjero(); verGlobal();
+        verExtranjero(); verGlobal(); pintarCliente();
+        $("r-datos").open = true;
         $("r-nombre").focus();
     }
 
@@ -986,8 +1056,87 @@
         var ahora = new Date(), min = new Date(ahora.getTime() - 71 * 3600000);
         var local = function (d) { return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16); };
         $("p-fecha").max = local(ahora); $("p-fecha").min = local(min);
-        if (!$("p-moneda").value || $("p-moneda").value === "MXN")
-            $("p-nota").textContent = $("p-fecha").value ? "Fecha de emisión elegida (el SAT acepta hasta 72 horas atrás)." : "Sin fecha: se pone la hora en que timbres. Puedes elegir una de hasta 72 horas atrás.";
+        $("p-nota-fecha").textContent = F.notaFecha || ($("p-fecha").value ? "Elegida: el SAT acepta hasta 72 horas atrás." : "Vacía: la hora en que timbres (o elige una de hasta 72 h atrás).");
+    }
+
+    /* ---------------------------------------------------- configuración (sub-pestañas, ventana sobre el módulo) */
+    function ponerSub(sub) {
+        F.sub = sub;
+        document.querySelectorAll("[data-sub]").forEach(function (b) { b.setAttribute("aria-selected", String(b.dataset.sub === sub)); });
+        document.querySelectorAll("[data-subpanel]").forEach(function (p) { p.hidden = p.dataset.subpanel !== sub; });
+        if (sub === "correo" && !F.correo) cargarCorreo();
+        if (!F.incrustado) Fiscontable.url({ sub: sub === "emisor" ? null : sub });
+    }
+
+    function abrirConfig(sub) {
+        if (Fiscontable.abrirConfiguracion) Fiscontable.abrirConfiguracion("facturacion", sub || (F.emisor && !F.emisor.csd ? "sello" : null));
+        else { vista("config"); if (sub) ponerSub(sub); }
+    }
+
+    async function recargarConfig() {
+        try { F.cfg = await json("/api/facturacion/config"); } catch (e) { return; }
+        elegirEmpresa();
+    }
+
+    function configListo() {
+        if (F.incrustado && window.parent !== window) window.parent.postMessage({ fiscontable: "config-listo", seccion: "facturacion" }, location.origin);
+        else vista("nueva");
+    }
+
+    /* ---------------------------------------------------- pasos */
+    function irPaso(n) {
+        F.paso = n;
+        document.querySelectorAll("[data-paso]").forEach(function (b) {
+            b.setAttribute("aria-selected", String(+b.dataset.paso === n));
+            b.classList.toggle("fa-paso--hecho", +b.dataset.paso < n);
+        });
+        document.querySelectorAll("[data-paso-panel]").forEach(function (p) { p.hidden = +p.dataset.pasoPanel !== n; });
+        $("btn-paso-atras").hidden = n === 1;
+        $("btn-paso-sig").textContent = n === 4 ? (F.tipo === "E" ? "Timbrar nota de crédito" : "Timbrar factura") : "Siguiente →";
+        $("paso-error").hidden = true;
+        if (n === 4) revisarPaso4();
+    }
+
+    function faltaPaso(n) {
+        if (n === 1) {
+            if (!$("r-rfc").value.trim()) return "Elige el cliente.";
+            if (!$("r-nombre").value.trim() || !$("r-cp").value.trim() || !$("r-regimen").value) { $("r-datos").open = true; return "Completa los datos fiscales del cliente (nombre, C.P. y régimen)."; }
+            if ($("p-moneda").value === "USD" && !num($("p-tc").value)) return "Escribe el tipo de cambio.";
+        }
+        if (n === 2 && F.tipo === "E" && !F.relaciones.length) return "La nota de crédito necesita la factura que corrige.";
+        if (n === 3 && !F.conceptos.some(function (c) { return (c.descripcion || "").trim() && num(c.valor_unitario) > 0; })) return "Agrega al menos un concepto con descripción y precio.";
+        return "";
+    }
+
+    function siguientePaso() {
+        if (F.paso === 4) return prepararTimbrado();
+        var falta = faltaPaso(F.paso || 1);
+        if (falta) { $("paso-error").textContent = falta; $("paso-error").hidden = false; return; }
+        irPaso((F.paso || 1) + 1);
+    }
+
+    async function revisarPaso4() {
+        var cont = $("revision"), cap = captura();
+        cont.innerHTML = '<p class="fa-nota">Revisando con las mismas reglas del timbrado…</p>';
+        $("paso4-marco").removeAttribute("src");
+        try {
+            var r = await enviar("/api/facturacion/revisar", "POST", { rfc: F.emisor.rfc, captura: cap });
+            var serie = F.tipo === "I" ? F.emisor.serie_i : F.emisor.serie_e, folio = F.tipo === "I" ? F.emisor.folio_i : F.emisor.folio_e;
+            var rel = (cap.relacionados || []).map(function (g) { return g.tipo_relacion + " · " + g.uuids.length + " CFDI"; }).join(", ");
+            cont.innerHTML = '<div class="fa-revision__ok">✓ Todo en orden para timbrar</div><dl class="fa-resumen fa-resumen--dos">' +
+                "<dt>Folio</dt><dd>" + esc((serie ? serie + "-" : "") + folio) + "</dd><dt>Fecha</dt><dd>" + esc((r.fecha || "").replace("T", " ")) + (cap.fecha ? "" : " <small>(al timbrar)</small>") + "</dd>" +
+                "<dt>Emisor</dt><dd>" + esc(r.emisor.nombre) + "</dd><dt>Cliente</dt><dd>" + esc(cap.receptor.nombre + " · " + cap.receptor.rfc) + "</dd>" +
+                "<dt>Pago</dt><dd>" + esc(cap.metodo_pago + " · forma " + cap.forma_pago) + "</dd><dt>Total</dt><dd><b>" + dinero(r.totales.total) + "</b>" + (r.moneda === "USD" ? " USD · T.C. " + esc(r.tipo_cambio) : "") + "</dd>" +
+                (rel ? "<dt>Relacionados</dt><dd>" + esc(rel) + "</dd>" : "") + "</dl>";
+            var resp = await api("/api/facturacion/vista-previa", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ rfc: F.emisor.rfc, captura: cap }) });
+            var m = /filename="?([^";]+)"?/i.exec(resp.headers.get("Content-Disposition") || "");
+            var blob = await resp.blob();
+            if (F.vistaUrl) URL.revokeObjectURL(F.vistaUrl);
+            F.vistaUrl = URL.createObjectURL(blob); F.vistaBlob = blob; F.vistaNombre = m ? m[1] : "Vista_previa.pdf";
+            $("paso4-marco").src = F.vistaUrl + "#view=FitH";
+        } catch (e) {
+            cont.innerHTML = '<div class="fa-error">' + esc(e.message) + "</div>";
+        }
     }
 
     /* ---------------------------------------------------- vista previa */
@@ -1179,10 +1328,10 @@
     function eventos() {
         document.querySelectorAll("[data-vista]").forEach(function (b) { b.addEventListener("click", function () { vista(b.dataset.vista); }); });
         document.addEventListener("click", function (ev) {
-            var ir = ev.target.closest("[data-ir]"); if (ir) vista(ir.dataset.ir);
+            var ir = ev.target.closest("[data-ir]"); if (ir) { if (ir.dataset.ir === "config") abrirConfig(ir.dataset.irSub); else vista(ir.dataset.ir); }
             var cerrar = ev.target.closest("[data-cerrar]"); if (cerrar) cerrar.closest("dialog").close();
         });
-        document.querySelectorAll("[data-tipo]").forEach(function (b) { b.addEventListener("click", function () { ponerTipo(b.dataset.tipo); }); });
+        $("tipo-doc").addEventListener("change", function () { ponerTipo(this.value); });
         $("btn-publico").addEventListener("click", publico);
         $("btn-extranjero").addEventListener("click", extranjero);
         $("r-rfc").addEventListener("input", verExtranjero);
@@ -1232,7 +1381,36 @@
                 $("estado-borrador").textContent = "Sustituye a " + (orig.serie ? orig.serie + "-" : "") + orig.folio + ": corrige lo necesario y timbra; luego se cancela la original con motivo 01.";
             });
         });
-        $("r-buscar").addEventListener("change", elegirDelBuscador);
+        $("r-buscar").addEventListener("input", pintarSelector);
+        $("r-buscar").addEventListener("keydown", function (ev) {
+            if (ev.key === "Enter") { ev.preventDefault(); var b = $("sel-cliente-lista").querySelector(".fa-opcion"); if (b) b.click(); }
+            if (ev.key === "Escape") abrirSelector(false);
+        });
+        $("sel-cliente-boton").addEventListener("click", function () { abrirSelector($("sel-cliente-panel").hidden); });
+        $("sel-cliente-lista").addEventListener("click", function (ev) {
+            var b = ev.target.closest(".fa-opcion"); if (!b) return;
+            if (b.dataset.rfcNuevo) { abrirSelector(false); $("r-rfc").value = b.dataset.rfcNuevo; $("r-nombre").value = ""; $("r-cp").value = ""; $("r-regimen").value = ""; $("r-datos").open = true; llenarReceptor().then(pintarCliente); pintarCliente(); $("r-nombre").focus(); return; }
+            elegirCliente(F.selLista[+b.dataset.i]);
+        });
+        document.addEventListener("click", function (ev) { if (!ev.target.closest("#sel-cliente")) abrirSelector(false); });
+        $("btn-nuevo-cliente").addEventListener("click", function () {
+            abrirSelector(false);
+            ["r-rfc", "r-nombre", "r-cp", "r-taxid"].forEach(function (id) { $(id).value = ""; }); $("r-regimen").value = "";
+            verExtranjero(); verGlobal(); pintarCliente();
+            $("r-datos").open = true; $("r-rfc").focus();
+        });
+        ["r-rfc", "r-nombre", "r-cp", "r-regimen", "r-uso"].forEach(function (id) { $(id).addEventListener("change", pintarCliente); });
+        $("rel-activar").addEventListener("change", verRelaciones);
+        document.querySelectorAll("[data-paso]").forEach(function (b) {
+            b.addEventListener("click", function () {
+                var n = +b.dataset.paso;
+                if (n > (F.paso || 1)) { for (var k = F.paso || 1; k < n; k++) { var f = faltaPaso(k); if (f) { irPaso(k); $("paso-error").textContent = f; $("paso-error").hidden = false; return; } } }
+                irPaso(n);
+            });
+        });
+        $("btn-paso-sig").addEventListener("click", siguientePaso);
+        $("btn-paso-atras").addEventListener("click", function () { irPaso(Math.max(1, (F.paso || 1) - 1)); });
+        $("paso4-bajar").addEventListener("click", function () { if (F.vistaBlob) Fiscontable.guardarArchivo(F.vistaBlob, F.vistaNombre); });
         $("r-constancia").addEventListener("change", function () { leerConstancia(this.files[0]); });
         $("p-moneda").addEventListener("change", verMoneda);
         $("p-tc").addEventListener("input", function () { F.tcManual = true; });
@@ -1261,6 +1439,9 @@
         $("lista-copiar").addEventListener("click", function (ev) { var it = ev.target.closest("[data-copiar]"); if (it) copiarDe(it.dataset.copiar); });
         $("subir-xml").addEventListener("change", function () { copiarDeArchivo(this.files[0]); });
         $("btn-limpiar").addEventListener("click", function () { if (confirm("¿Borrar lo capturado y empezar una factura nueva?")) nuevaFactura(); });
+        document.querySelectorAll("[data-sub]").forEach(function (b) { b.addEventListener("click", function () { ponerSub(b.dataset.sub); }); });
+        $("btn-configurar").addEventListener("click", function () { abrirConfig(); });
+        $("btn-config-listo").addEventListener("click", configListo);
         $("chip-timbres").addEventListener("click", verTimbres);
         $("timbres-cuerpo").addEventListener("click", function (ev) { if (ev.target.closest("#btn-bolsa")) guardarBolsa(); });
         $("c-logo").addEventListener("change", function () { subirLogo(this.files[0]); });

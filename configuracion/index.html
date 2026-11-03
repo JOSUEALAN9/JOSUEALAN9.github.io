@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Configuración | Fiscontable</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611030530">
+    <link rel="stylesheet" href="/configuracion/configuracion.css?v=202611030530">
+</head>
+<body class="min-h-screen flex flex-col">
+
+<div id="app-header" data-modulo="configuracion" data-titulo="Configuración"></div>
+<script src="/assets/js/nucleo.js?v=202611030530"></script>
+<script src="/assets/js/barra.js?v=202611030530"></script>
+
+<main class="cf-pagina">
+    <aside class="cf-menu" aria-label="Secciones de la configuración">
+        <h1 class="cf-menu__titulo display">Configuración</h1>
+        <label class="cf-buscar"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+            <input type="search" id="cf-buscar" placeholder="Buscar en la configuración" autocomplete="off"></label>
+        <nav id="cf-secciones"></nav>
+    </aside>
+    <section class="cf-contenido">
+        <div id="cf-cuerpo"></div>
+    </section>
+</main>
+
+<script src="/configuracion/configuracion.js?v=202611030530"></script>
+</body>
+</html>

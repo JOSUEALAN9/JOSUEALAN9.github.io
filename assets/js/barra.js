@@ -55,7 +55,8 @@
         buzon:         { nombre: "Buzón Tributario",      acento: "#0F766E", suave: "#E6F2F1", permiso: "buzon" },
         descargas:     { nombre: "Mis descargas",         acento: "#334155", suave: "#EEF1F5", permiso: null },
         creditos:      { nombre: "Mis créditos",          acento: "#0E9F6E", suave: "#E8F6F0", permiso: null },
-        admin:         { nombre: "Administración",        acento: "#BE123C", suave: "#FCE9EE", permiso: null }
+        admin:         { nombre: "Administración",        acento: "#BE123C", suave: "#FCE9EE", permiso: null },
+        configuracion: { nombre: "Configuración",         acento: "#4F46E5", suave: "#EEF2FF", permiso: null }
     };
 
     // "¿Cómo se usa?": pocos pasos por herramienta (clave = data-ayuda o data-modulo)
@@ -170,6 +171,8 @@
         catch (e) { /* sin almacenamiento: no pasa nada */ }
     }
 
+    // Abierta dentro de la ventana de Configuración: sin barra superior (la ventana pone la suya)
+    if (/[?&]incrustado=1\b/.test(location.search)) document.documentElement.classList.add("fc-incrustado");
     var ancla = document.getElementById("app-header");
     if (!ancla) return;
 
@@ -269,8 +272,8 @@
                     '<span class="fc-accion__etiqueta">Descargas</span>' +
                     '<span class="fc-contador" id="fc-contador" hidden>0</span>' +
                   "</button>" +
-                  '<a class="fc-accion" id="fc-enlace-admin" href="/admin/" hidden>' +
-                    ico(D.engrane) + '<span class="fc-accion__etiqueta">Administración</span>' +
+                  '<a class="fc-accion" id="fc-enlace-admin" href="/configuracion/" title="Configuración">' +
+                    ico(D.engrane) + '<span class="fc-accion__etiqueta">Configuración</span>' +
                   "</a>" +
                   '<button type="button" class="fc-accion" id="fc-btn-perfil" aria-haspopup="menu" aria-expanded="false">' +
                     '<span class="fc-avatar" id="fc-avatar">·</span>' +
@@ -496,6 +499,36 @@
         if (!panel || panel.hidden) return;
         panel.hidden = true;
         document.getElementById("fc-btn-empresa").setAttribute("aria-expanded", "false");
+    }
+
+    var SECCIONES_CONFIG = {
+        facturacion: function (sub) { return "/herramientas/facturar/?vista=config&incrustado=1" + (sub ? "&sub=" + encodeURIComponent(sub) : ""); }
+    };
+    function abrirConfiguracion(seccion, sub) {
+        var url = SECCIONES_CONFIG[seccion] ? SECCIONES_CONFIG[seccion](sub) : "/configuracion/?incrustado=1&seccion=" + encodeURIComponent(seccion || "") + (sub ? "&sub=" + encodeURIComponent(sub) : "");
+        var dlg = document.getElementById("fc-config");
+        if (!dlg) {
+            dlg = document.createElement("dialog");
+            dlg.id = "fc-config";
+            dlg.className = "fc-config";
+            dlg.innerHTML = '<div class="fc-config__barra"><span class="fc-config__titulo">' + ico(D.engrane) + 'Configuración</span>' +
+                '<a class="fc-config__todo" href="/configuracion/" title="Abrir toda la configuración">Toda la configuración ↗</a>' +
+                '<button type="button" class="fc-config__cerrar" aria-label="Cerrar">✕</button></div><iframe class="fc-config__marco" title="Configuración"></iframe>';
+            document.body.appendChild(dlg);
+            var cerrar = function () { if (dlg.open) dlg.close(); };
+            dlg.querySelector(".fc-config__cerrar").addEventListener("click", cerrar);
+            dlg.addEventListener("click", function (ev) { if (ev.target === dlg) cerrar(); });
+            dlg.addEventListener("close", function () {
+                window.dispatchEvent(new CustomEvent("fiscontable:config", { detail: { seccion: dlg.dataset.seccion } }));
+                dlg.querySelector("iframe").src = "about:blank";
+            });
+            window.addEventListener("message", function (ev) {
+                if (ev.origin === location.origin && ev.data && ev.data.fiscontable === "config-listo") cerrar();
+            });
+        }
+        dlg.dataset.seccion = seccion || "";
+        dlg.querySelector("iframe").src = url;
+        dlg.showModal();
     }
 
     async function elegirEmpresa(rfc) {
@@ -1248,7 +1281,7 @@
         document.getElementById("fc-menu-vigencia").textContent = vigencia(p);
         document.getElementById("fc-menu-creditos").textContent = p.creditos == null ? "—" : Number(p.creditos).toLocaleString("es-MX");
 
-        if (p.rol === "admin") document.getElementById("fc-enlace-admin").hidden = false;
+        // Configuración la ven todos; la parte de Administración solo el admin (adentro de Configuración)
         pintarLetreros(p);
         pintarEmpresa();
         pintarPeriodo();
@@ -1566,6 +1599,9 @@
         // La empresa elegida en el selector general (o null). Los módulos también
         // pueden escuchar window "fiscontable:empresa" para enterarse de un cambio.
         elegirEmpresa: function (rfc) { return elegirEmpresa(rfc); },
+        // Configuración en una ventana sobre el módulo: al dar «Listo» se cierra, se queda en el módulo y avisa con
+        // window "fiscontable:config" ({seccion}) para que el módulo vuelva a leer lo que cambió.
+        abrirConfiguracion: abrirConfiguracion,
         empresaActiva: function () {
             return perfil().then(function (p) { return p && !p._error ? (p.empresa_activa || null) : null; });
         },

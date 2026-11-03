@@ -189,3 +189,84 @@
 .fa-pagina .fc-vista { max-width: 100%; overflow-x: auto; scrollbar-width: none; }
 .fa-pagina .fc-vista::-webkit-scrollbar { display: none; }
 .fa-pagina .fc-vista button { flex: none; }
+
+/* ============ Asistente de Nueva factura ============ */
+.fa-asistente { padding: 0; overflow: visible; }
+.fa-asistente > [data-paso-panel] { padding: 18px 20px 6px; }
+.fa-asistente__cabeza { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 14px 0 14px; border-bottom: 1px solid #eef0f3; flex-wrap: wrap; }
+.fa-pasos { display: flex; gap: 2px; list-style: none; margin: 0; padding: 0; overflow-x: auto; scrollbar-width: none; }
+.fa-pasos::-webkit-scrollbar { display: none; }
+.fa-pasos button { border: 0; background: none; font: inherit; font-size: 13.5px; font-weight: 700; color: #64748b; padding: 10px 12px 12px; border-bottom: 2px solid transparent; margin-bottom: -1px; cursor: pointer; white-space: nowrap; display: flex; align-items: center; gap: 8px; }
+.fa-pasos button span { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; background: #eef2ff; color: #4f46e5; font-size: 12px; }
+.fa-pasos button[aria-selected="true"] { color: #312e81; border-bottom-color: #4f46e5; }
+.fa-pasos button[aria-selected="true"] span { background: #4f46e5; color: #fff; }
+.fa-pasos button.fa-paso--hecho span { background: #10b981; color: #fff; }
+.fa-herramientas { display: flex; gap: 4px; padding-bottom: 8px; }
+.fa-ico { position: relative; width: 36px; height: 36px; border-radius: 10px; border: 1px solid #e5e7eb; background: #fff; color: #475569; display: grid; place-items: center; cursor: pointer; }
+.fa-ico:hover { background: #f5f7ff; color: #4f46e5; border-color: #c7d2fe; }
+.fa-contador--ico { position: absolute; top: -6px; right: -6px; margin: 0; }
+.fa-estado { margin: 10px 20px 0; font-size: 12.5px; color: #3730a3; background: #eef2ff; border-radius: 10px; padding: 7px 10px; }
+.fa-estado:empty { display: none; }
+.fa-asistente__pie { display: flex; align-items: center; gap: 10px; padding: 12px 20px 16px; border-top: 1px solid #f1f5f9; margin-top: 10px; }
+.fa-asistente__pie #btn-paso-sig { margin-left: auto; }
+.fa-error--linea { margin: 0; padding: 6px 10px; }
+.fa-seccion { margin-top: 18px; }
+.fa-seccion:first-child { margin-top: 0; }
+.fa-seccion__cabeza { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+.fa-seccion__cabeza h3 { font-size: 13px; font-weight: 800; color: #0f172a; text-transform: uppercase; letter-spacing: .04em; }
+.fa-fecha-nota { justify-content: flex-end; }
+.fa-fecha-nota .fa-nota { padding-bottom: 9px; }
+.fa-detalle { margin-top: 10px; border: 1px solid #eef0f3; border-radius: 12px; padding: 10px 12px; background: #fcfcfd; }
+.fa-detalle summary { cursor: pointer; font-size: 13px; font-weight: 700; color: #334155; }
+.fa-detalle summary small { font-weight: 500; color: #64748b; }
+.fa-detalle[open] summary { margin-bottom: 10px; }
+
+/* Selector de cliente */
+.fa-selector { position: relative; }
+.fa-selector__boton { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 10px; text-align: left; font: inherit; font-size: 14px; border: 1px solid #d1d5db; border-radius: 12px; padding: 11px 14px; background: #fff; cursor: pointer; }
+.fa-selector__boton:hover { border-color: #a5b4fc; }
+.fa-selector__vacio { color: #94a3b8; }
+.fa-selector__valor small { color: #64748b; font-family: ui-monospace, monospace; font-size: 12px; margin-left: 6px; }
+.fa-selector__panel { position: absolute; z-index: 30; left: 0; right: 0; top: calc(100% + 6px); background: #fff; border: 1px solid #e5e7eb; border-radius: 14px; box-shadow: 0 18px 40px -12px rgba(15, 23, 42, .28); padding: 10px; }
+.fa-selector__lista { max-height: 300px; overflow-y: auto; margin: 8px 0; display: flex; flex-direction: column; gap: 2px; }
+.fa-opcion { display: flex; gap: 10px; align-items: center; text-align: left; width: 100%; border: 0; background: none; font: inherit; padding: 8px 10px; border-radius: 10px; cursor: pointer; }
+.fa-opcion:hover, .fa-opcion:focus { background: #f5f7ff; outline: none; }
+.fa-opcion b { display: block; font-size: 13.5px; color: #0f172a; }
+.fa-opcion small { display: block; font-size: 12px; color: #64748b; }
+.fa-opcion__ini { width: 32px; height: 32px; flex: none; border-radius: 10px; background: #eef2ff; color: #4f46e5; font-weight: 800; display: grid; place-items: center; }
+.fa-selector__pie { display: flex; gap: 8px; flex-wrap: wrap; border-top: 1px solid #f1f5f9; padding-top: 8px; }
+
+/* Interruptor */
+.fa-switch { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13px; }
+.fa-switch input { position: absolute; opacity: 0; width: 0; height: 0; }
+.fa-switch span { width: 38px; height: 22px; border-radius: 999px; background: #cbd5e1; position: relative; transition: background .15s; flex: none; }
+.fa-switch span::after { content: ""; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: #fff; transition: transform .15s; box-shadow: 0 1px 2px rgba(0, 0, 0, .2); }
+.fa-switch input:checked + span { background: #4f46e5; }
+.fa-switch input:checked + span::after { transform: translateX(16px); }
+.fa-switch input:disabled + span { opacity: .6; }
+.fa-switch b { font-weight: 700; color: #334155; }
+
+/* Paso 4 */
+.fa-revision { margin-bottom: 12px; }
+.fa-revision__ok { display: inline-block; font-size: 13px; font-weight: 800; color: #047857; background: #e8f6f0; border-radius: 999px; padding: 5px 12px; margin-bottom: 10px; }
+.fa-resumen--dos { grid-template-columns: auto 1fr auto 1fr; }
+@media (max-width: 640px) { .fa-resumen--dos { grid-template-columns: auto 1fr; } }
+.fa-marco-caja { border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden; }
+.fa-marco--paso { height: min(70vh, 820px); border-top: 0; }
+.fa-t-cliente { margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Configuración en pestañas */
+.fa-subtabs { display: flex; gap: 2px; padding: 3px; border-radius: 12px; background: #eef0f3; margin-bottom: 14px; overflow-x: auto; scrollbar-width: none; }
+.fa-subtabs button { flex: none; border: 0; background: none; font: inherit; font-size: 13px; font-weight: 700; color: #475569; padding: 8px 14px; border-radius: 9px; cursor: pointer; white-space: nowrap; }
+.fa-subtabs button[aria-selected="true"] { background: #fff; color: #312e81; box-shadow: 0 1px 3px rgba(15, 23, 42, .12); }
+.fa-config--tabs { display: block; max-width: 860px; }
+.fa-config--tabs > .fa-caja { margin-bottom: 14px; }
+
+/* Abierta dentro de Configuración (ventana sobre el módulo) */
+.fa-incrustado #app-header, .fa-incrustado .fc-header, .fa-incrustado header.fc-barra { display: none !important; }
+.fa-incrustado .mod-cabeza { display: none; }
+.fa-incrustado .fa-pagina { padding-top: 10px; }
+.fa-btn--ico { display: inline-flex; align-items: center; gap: 6px; }
+.fa-incrustado__cabeza { display: none; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
+.fa-incrustado__cabeza h2 { font-size: 18px; font-weight: 800; color: #0f172a; }
+.fa-incrustado .fa-incrustado__cabeza { display: flex; }
