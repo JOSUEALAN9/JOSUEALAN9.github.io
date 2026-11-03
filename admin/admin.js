@@ -743,6 +743,7 @@ function clicTarjeta(e) {
         if (e.target.closest("#btn-ver-timbres")) ventana("dlg-timbres", "Timbres de facturación", cuerpoTimbres);
         if (e.target.closest("#btn-asignar-timbres")) asignarTimbres(e.target.closest("#btn-asignar-timbres"));
         if (e.target.closest("#btn-errores-pac")) abrirErroresPac();
+        if (e.target.closest("#btn-bolsa")) guardarBolsa(e.target.closest("#btn-bolsa"));
         if (e.target.closest("[data-copiar-error]")) copiarErrorPac(e.target.closest("[data-copiar-error]"));
         if (e.target.closest("#btn-max-pcs")) guardarMaxPcs(e.target.closest("#btn-max-pcs"));
         if (e.target.closest("#btn-revisar-instalador")) revisarInstalador(e.target.closest("#btn-revisar-instalador"));
@@ -1009,10 +1010,12 @@ async function guardarXmlAutoAdmin(boton) {
 // Facturar: el admin le da timbres a cada cuenta; la cuenta los reparte entre sus empresas.
 function tarjetaTimbres() {
     const d = timbresAdmin, con = d.cuentas.filter(c => c.bolsa || c.en_empresas);
-    const total = d.cuentas.reduce((a, c) => a + c.bolsa + c.en_empresas, 0);
+    const total = d.cuentas.reduce((a, c) => a + (c.sin_tope ? 0 : c.bolsa) + c.en_empresas, 0);
     return `<p class="text-sm text-slate-800">${d.produccion ? "<b>Producción</b>: se timbra de verdad" : "<b>Modo de pruebas</b>: sin validez fiscal"}</p>
         <p class="text-[11px] ${d.panel ? "text-emerald-700" : "text-amber-700"} mt-1">${d.panel ? "✓ Conectado al panel de MultiFacturas" : "Sin conexión al panel de MultiFacturas (faltan sus claves en el servidor)"}</p>
-        ${d.bolsa && d.bolsa.timbres != null ? `<p class="text-sm text-slate-800 mt-1">Bolsa en MultiFacturas: <b>${Number(d.bolsa.timbres).toLocaleString("es-MX")}</b> <span class="text-[11px] ${d.bolsa.fuente === "panel" ? "text-emerald-700" : "text-slate-500"}">${d.bolsa.fuente === "panel" ? "✓ real, leída de tu panel" : "(escrita a mano)"}</span></p>` : `<p class="text-[11px] text-amber-700 mt-1">Bolsa de MultiFacturas sin registrar: escríbela en Facturar → Mis timbres</p>`}
+        ${d.bolsa && d.bolsa.timbres != null ? `<div class="mt-2 rounded-xl bg-indigo-50 border border-indigo-100 px-4 py-3"><p class="text-[11px] font-bold uppercase tracking-wide text-indigo-700">Saldo general en MultiFacturas</p>
+            <p class="text-2xl font-extrabold text-slate-900 leading-tight">${Number(d.bolsa.timbres).toLocaleString("es-MX")}</p>
+            <p class="text-[11px] ${d.bolsa.fuente === "panel" ? "text-emerald-700" : "text-slate-500"}">${d.bolsa.fuente === "panel" ? "✓ Real, leído de tu panel de MultiFacturas" : "Escrito a mano (se baja al repartir)"}</p></div>` : `<p class="text-[11px] text-amber-700 mt-1">Saldo general de MultiFacturas sin registrar: escríbelo en «Ver y asignar».</p>`}
         ${d.bolsa && d.bolsa.error ? `<p class="text-[11px] text-amber-700 mt-1">No se pudo leer de tu panel: ${esc(d.bolsa.error)}</p>` : ""}
         <p class="text-[11px] text-slate-500 mt-1">${con.length} cuenta${con.length === 1 ? "" : "s"} con timbres · ${total.toLocaleString("es-MX")} asignados en total</p>
         <div class="flex gap-2 mt-3">${botonVer("btn-ver-timbres", "Ver y asignar")}${botonVer("btn-errores-pac", "Errores del PAC")}</div>`;
@@ -1050,15 +1053,35 @@ async function copiarErrorPac(boton) {
 
 function cuerpoTimbres() {
     const d = timbresAdmin;
-    const filas = d.cuentas.map(c => `<tr><td class="py-1.5 pr-3">${esc(c.correo)}${c.nombre ? `<span class="block text-[11px] text-slate-400">${esc(c.nombre)}</span>` : ""}</td>
-        <td class="py-1.5 pr-3 text-right">${c.bolsa}</td><td class="py-1.5 pr-3 text-right">${c.en_empresas}</td><td class="py-1.5 text-right">${c.emitidas}</td></tr>`).join("");
-    return `<p class="text-[11px] text-slate-500">La cuenta reparte sus timbres entre sus empresas (Facturar → Configuración). Cada factura timbrada gasta uno de su empresa. Tú no tienes tope. Con número negativo se los quitas (solo de lo que no ha repartido).</p>
+    const filas = d.cuentas.filter(c => !c.sin_tope || c.empresas.length || c.en_empresas).map(c => `<tr class="border-t border-gray-100 align-top"><td class="py-2 pr-3">${esc(c.correo)}${c.sin_tope ? ' <span class="text-[10px] font-bold text-indigo-700">TÚ · ADMIN</span>' : ""}${c.nombre ? `<span class="block text-[11px] text-slate-400">${esc(c.nombre)}</span>` : ""}
+            ${c.empresas.length ? `<span class="block mt-1 text-[11px] text-slate-600">${c.empresas.map(e => `${esc(e.nombre)} <span class="font-mono text-slate-400">${esc(e.rfc)}</span> · <b>${e.timbres}</b>`).join("<br>")}</span>` : ""}</td>
+        <td class="py-2 pr-3 text-right">${c.sin_tope ? '<span class="text-slate-400">Sin tope</span>' : c.bolsa}</td><td class="py-2 pr-3 text-right font-bold">${c.en_empresas}</td><td class="py-2 text-right">${c.emitidas}</td></tr>`).join("");
+    const b = d.bolsa || {};
+    const bolsa = b.fuente === "panel"
+        ? `<p class="text-sm text-slate-800 mb-3">Saldo general en MultiFacturas: <b>${Number(b.timbres).toLocaleString("es-MX")}</b> <span class="text-[11px] text-emerald-700">✓ real, leído de tu panel</span></p>`
+        : `${b.error ? `<p class="text-[11px] text-amber-700 mb-1">No se pudo leer de tu panel: ${esc(b.error)}</p>` : ""}
+           <div class="flex flex-wrap items-end gap-2 mb-3"><label class="text-xs font-bold text-slate-600">Saldo general en MultiFacturas <span class="font-normal text-slate-400">(el «SALDO» de arriba en tu panel)</span>
+           <input id="bolsa-n" type="number" min="0" value="${b.timbres == null ? "" : b.timbres}" class="block mt-1 w-32 border border-gray-200 rounded-lg p-1.5 text-xs"></label>
+           <button type="button" id="btn-bolsa" class="text-xs font-bold text-white bg-slate-800 hover:bg-slate-700 rounded-lg py-2 px-3">Guardar</button></div>`;
+    return bolsa + `<p class="text-[11px] text-slate-500">La cuenta reparte sus timbres entre sus empresas (Facturar → Configuración). Cada factura timbrada gasta uno de su empresa. Tú no tienes tope. Con número negativo se los quitas (solo de lo que no ha repartido).</p>
         <div class="flex flex-wrap items-end gap-2 mt-3">
-            <label class="text-xs font-bold text-slate-600">Cuenta<select id="timbres-correo" class="block mt-1 border border-gray-200 rounded-lg p-1.5 text-xs">${d.cuentas.map(c => `<option>${esc(c.correo)}</option>`).join("")}</select></label>
+            <label class="text-xs font-bold text-slate-600">Cuenta<select id="timbres-correo" class="block mt-1 border border-gray-200 rounded-lg p-1.5 text-xs">${d.cuentas.filter(c => !c.sin_tope).map(c => `<option>${esc(c.correo)}</option>`).join("")}</select></label>
             <label class="text-xs font-bold text-slate-600">Timbres<input id="timbres-n" type="number" value="100" class="block mt-1 w-24 border border-gray-200 rounded-lg p-1.5 text-xs"></label>
             <button type="button" id="btn-asignar-timbres" class="text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-500 rounded-lg py-2 px-3">Asignar</button>
         </div>
         <table class="w-full text-xs mt-4"><thead><tr class="text-left text-slate-500"><th class="pb-1">Cuenta</th><th class="pb-1 text-right pr-3">Sin repartir</th><th class="pb-1 text-right pr-3">En sus empresas</th><th class="pb-1 text-right">Facturas</th></tr></thead><tbody>${filas || '<tr><td colspan="4" class="py-2 text-slate-400">Sin cuentas.</td></tr>'}</tbody></table>`;
+}
+
+async function guardarBolsa(boton) {
+    const n = parseInt($("bolsa-n").value, 10);
+    if (isNaN(n) || n < 0) return mostrarAlerta("error", "Escribe el saldo general.");
+    boton.disabled = true;
+    try {
+        await api("/api/admin/facturacion/bolsa", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ timbres: n }) });
+        timbresAdmin = await api("/api/admin/facturacion/timbres");
+        pintarEstado(); refrescarVentana("dlg-timbres");
+        mostrarAlerta("success", "Saldo general guardado.");
+    } catch (err) { mostrarAlerta("error", err.message); boton.disabled = false; }
 }
 
 async function asignarTimbres(boton) {

@@ -1732,21 +1732,11 @@
             var h = "";
             if (!t.produccion) h += '<p class="fa-aviso">Modo de pruebas: no se gastan timbres. Los que repartas se usarán cuando se active producción.</p>';
             h += '<div class="fa-timbres-grande">';
-            if (t.bolsa !== undefined) {
-                var b = t.bolsa || {};
-                h += tarjeta("Bolsa general en MultiFacturas", b.timbres, b.fuente === "panel" ? "✓ Real, leída de tu panel de MultiFacturas" : b.timbres == null ? "Escríbela abajo una vez" :
-                    (b.ultimo ? "Último movimiento: " + esc(b.ultimo.detalle) : "Ajustada el " + esc(fechaCorta((b.ajustado || "") + "Z"))), "fa-destacado");
-            }
             if (!t.sin_tope) h += tarjeta("Sin repartir en tu cuenta", t.cuenta, "Te los asigna el administrador", "fa-destacado");
-            h += tarjeta("Repartidos en tus empresas", t.en_empresas, t.empresas.length + " empresa" + (t.empresas.length === 1 ? "" : "s"));
+            // Solo lo de este usuario: los timbres de sus empresas (RFC). La bolsa general de MultiFacturas está en Administración.
+            h += tarjeta("En tus empresas", t.en_empresas, t.empresas.length + " empresa" + (t.empresas.length === 1 ? "" : "s"), t.sin_tope ? "fa-destacado" : "");
             h += tarjeta("Facturas reales timbradas", t.facturas_reales, "Desde que se activó producción");
             h += "</div>";
-            if (t.bolsa !== undefined && (t.bolsa || {}).fuente !== "panel") {
-                h += ((t.bolsa || {}).error ? '<p class="fa-aviso fa-aviso--alerta">No se pudo leer el saldo de tu panel: ' + esc(t.bolsa.error) + "</p>" : "") +
-                     '<p class="fa-nota">Para que se lea solo, guarda en el servidor el usuario y la contraseña de tu panel de MultiFacturas. Mientras, escribe el «SALDO» que ves arriba en su panel y Fiscontable lo va bajando cada vez que le pasas timbres a una empresa.</p>' +
-                     '<div class="fa-ajustar"><label class="fa-campo"><span>Saldo en el panel</span><input id="bolsa-n" type="number" min="0" value="' + esc((t.bolsa || {}).timbres == null ? "" : t.bolsa.timbres) + '"></label>' +
-                     '<button type="button" id="btn-bolsa" class="fa-btn fa-btn--principal">Guardar</button><span id="msj-bolsa" class="fa-nota"></span></div>';
-            }
             h += t.empresas.length ? '<table class="fa-tabla"><thead><tr><th>Empresa</th><th class="fa-num">En Fiscontable</th><th class="fa-num">En MultiFacturas</th></tr></thead><tbody>' +
                 t.empresas.map(function (e) {
                     return "<tr><td>" + esc(e.nombre) + "<small>" + esc(e.rfc) + "</small></td><td class='fa-num'>" + e.timbres + "</td><td class='fa-num'>" +
@@ -1754,13 +1744,6 @@
                 }).join("") + "</tbody></table>" : '<p class="fa-vacio-chico">Todavía no le has pasado timbres a ninguna empresa.</p>';
             $("timbres-cuerpo").innerHTML = h;
         } catch (e) { $("timbres-cuerpo").innerHTML = '<p class="fa-error">' + esc(e.message) + "</p>"; }
-    }
-
-    async function guardarBolsa() {
-        var n = parseInt($("bolsa-n").value, 10);
-        if (isNaN(n) || n < 0) { $("msj-bolsa").textContent = "Escribe el saldo."; return; }
-        try { await enviar("/api/admin/facturacion/bolsa", "PUT", { timbres: n }); verTimbres(); }
-        catch (e) { $("msj-bolsa").textContent = e.message; }
     }
 
     /* ---------------------------------------------------- eventos */
@@ -1913,7 +1896,6 @@
         $("btn-configurar").addEventListener("click", function () { abrirConfig(); });
         $("btn-config-listo").addEventListener("click", configListo);
         $("chip-timbres").addEventListener("click", verTimbres);
-        $("timbres-cuerpo").addEventListener("click", function (ev) { if (ev.target.closest("#btn-bolsa")) guardarBolsa(); });
         $("c-logo").addEventListener("change", function () { subirLogo(this.files[0]); });
         $("btn-quitar-logo").addEventListener("click", quitarLogo);
         $("r-rfc").addEventListener("change", llenarReceptor);
