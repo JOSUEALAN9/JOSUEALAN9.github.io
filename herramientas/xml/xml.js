@@ -1414,6 +1414,15 @@
         $("btn-enlaces").addEventListener("click", function () { Fiscontable.enlacesCompartidos({ rfc: E.rfc }); });
         $("btn-zip-origen").addEventListener("click", descargarZipOrigen);
         $("btn-listas").addEventListener("click", abrirListas);
+        $("btn-fiscal").addEventListener("click", function () {
+            var est = E.P.estado(), q = new URLSearchParams({ rfc: E.rfc || "" });
+            var mes = (hayEleccion() && est.meses && est.meses.length) ? String(est.meses[0]).slice(-2) : (est.desde || "").slice(5, 7);
+            var anio = hayEleccion() ? est.anio : (est.desde || "").slice(0, 4);
+            if (anio) q.set("anio", anio);
+            if (mes) q.set("mes", +mes);
+            q.set("lado", E.modulo === "recibidos" ? "recibidos" : "emitidos");
+            location.href = "/herramientas/xml/fiscal.html?" + q.toString();
+        });
         $("btn-pdf").addEventListener("click", descargarPdf);
         $("btn-quitar").addEventListener("click", quitarSeleccion);
         $("btn-limpiar-sel").addEventListener("click", function () { E.seleccion.clear(); pintarTabla(); });

@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Marcas fiscales · Fiscontable</title>
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611050130">
+    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611050130">
+    <link rel="stylesheet" href="/herramientas/isn/isn.css?v=202611050130">
+    <link rel="stylesheet" href="/herramientas/xml/fiscal.css?v=202611050130">
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-50">
+<div id="app-header" data-modulo="xml" data-titulo="Marcas fiscales" data-migas="Herramientas|/herramientas/|Administración de XML|/herramientas/xml/"></div>
+<script src="/assets/js/nucleo.js?v=202611050130"></script>
+<script src="/assets/js/barra.js?v=202611050130"></script>
+
+<main class="xml-pagina">
+    <div class="xml-cabeza">
+        <div class="fc-titulo">
+            <h1>Marcas fiscales</h1>
+            <div class="fc-vista isn-pestanas" role="tablist" aria-label="Lado">
+                <button type="button" role="tab" data-lado="emitidos" aria-selected="true">Emitidas</button>
+                <button type="button" role="tab" data-lado="recibidos" aria-selected="false">Recibidas</button>
+            </div>
+        </div>
+        <div class="ctx">
+            <div class="xml-menu">
+                <button type="button" id="btn-empresa" class="ctx-campo" aria-haspopup="menu">
+                    <span class="ctx-campo__texto"><small id="empresa-etiqueta">Empresa</small><strong id="empresa-titulo">Elegir empresa</strong></span>
+                    <span class="ctx-campo__flecha" aria-hidden="true">▾</span>
+                </button>
+                <div id="menu-empresa" class="xml-menu__lista xml-menu__lista--otra" hidden></div>
+            </div>
+            <select id="sel-mes" class="isn-anio" aria-label="Mes"></select>
+            <select id="sel-anio" class="isn-anio" aria-label="Año"></select>
+            <button type="button" id="btn-config" class="fi-config" title="Reglas de esta empresa: momento de cada impuesto, alcohol, reglas generales y aprendidas">⚙ Reglas</button>
+        </div>
+    </div>
+
+    <div id="aviso" class="isn-aviso" hidden></div>
+    <div id="avisos-cancel" class="fi-alertas" hidden></div>
+    <p id="paquete" class="fi-paquete"></p>
+
+    <div id="tarjetas" class="fi-tarjetas"></div>
+
+    <div class="fi-barra">
+        <div class="fi-filtros" role="group" aria-label="Filtro">
+            <button type="button" data-filtro="todos" aria-pressed="true">Todas</button>
+            <button type="button" data-filtro="revisar" aria-pressed="false">Por revisar <b id="n-revisar"></b></button>
+            <button type="button" data-filtro="cuentan" aria-pressed="false">Cuentan</button>
+            <button type="button" data-filtro="no" aria-pressed="false">No cuentan</button>
+            <button type="button" data-filtro="mano" aria-pressed="false">Marcadas a mano</button>
+        </div>
+        <input id="buscar" class="fi-buscar" type="search" placeholder="Buscar folio, nombre o RFC">
+    </div>
+
+    <div id="seleccion" class="fi-seleccion" hidden>
+        <b id="sel-n"></b>
+        <button type="button" id="btn-marcar" class="xml-btn xml-btn--primario">Marcar como…</button>
+        <button type="button" id="btn-revisado" class="xml-btn">✓ Revisado</button>
+        <button type="button" id="btn-auto" class="xml-btn" title="Quita lo marcado a mano y vuelve a lo que dicen las reglas">↺ Automático</button>
+        <button type="button" id="btn-limpiar" class="xml-enlace">Quitar selección</button>
+    </div>
+
+    <div class="xml-tabla-caja isn-tabla-caja">
+        <table class="xml-tabla fi-tabla">
+            <thead id="thead"></thead>
+            <tbody id="tbody"></tbody>
+        </table>
+        <p id="sin-filas" class="xml-vacio xml-vacio--tabla" hidden></p>
+    </div>
+    <p class="xml-pie">Casi todo se marca solo y dice por qué. Solo revisa «Por revisar». Clic en una fila para seleccionarla.</p>
+</main>
+
+<!-- Marcar como… -->
+<div id="modal-marcar" class="xml-modal" hidden>
+    <div class="xml-modal__caja isn-form">
+        <h3 id="mk-titulo">Marcar</h3>
+        <div class="isn-rejilla">
+            <label>Para<select id="mk-imp"></select></label>
+            <label>¿Cuenta?<select id="mk-cuenta"><option value="1">Sí cuenta</option><option value="0">No cuenta</option></select></label>
+            <label>Porcentaje<input id="mk-pct" type="number" min="0" max="100" step="0.01" placeholder="100"></label>
+            <label class="isn-ancho">Motivo (lo verás en la tabla)<input id="mk-motivo" maxlength="200" placeholder="p. ej. Uso personal, Regalo, Parte de bebidas alcohólicas"></label>
+        </div>
+        <p class="isn-nota">¿Siempre así? Fiscontable lo aprende para esta empresa (lo puedes quitar en ⚙ Reglas):</p>
+        <div class="fi-siempre" id="mk-siempre">
+            <label><input type="radio" name="siempre" value="" checked> Solo estas</label>
+            <label><input type="radio" name="siempre" value="contraparte"> <span id="mk-contra">Siempre con este proveedor</span></label>
+            <label><input type="radio" name="siempre" value="clave"> Siempre con estas claves de producto</label>
+        </div>
+        <p id="mk-error" class="isn-error" hidden></p>
+        <div class="isn-botones">
+            <span style="flex:1"></span>
+            <button type="button" id="mk-cancelar" class="xml-btn">Cancelar</button>
+            <button type="button" id="mk-aplicar" class="xml-btn xml-btn--primario">Aplicar</button>
+        </div>
+    </div>
+</div>
+
+<!-- Reglas de la empresa -->
+<div id="modal-config" class="xml-modal" hidden>
+    <div class="xml-modal__caja isn-form isn-form--ancho">
+        <h3 id="cf-titulo">Reglas de la empresa</h3>
+        <p class="isn-nota" id="cf-paquete"></p>
+        <div class="fi-cf-grupo">
+            <b>¿Cuándo cuenta cada impuesto?</b>
+            <div class="isn-rejilla" id="cf-momentos"></div>
+        </div>
+        <div class="fi-cf-grupo">
+            <b>Impuestos estatales</b>
+            <label class="isn-check"><input type="checkbox" id="cf-prof"> Ejercicio de profesiones (todo lo cobrado)</label>
+            <label class="isn-check"><input type="checkbox" id="cf-alc"> Venta de bebidas alcohólicas</label>
+            <label class="isn-campo fi-cf-pct">Porcentaje por defecto al marcar una factura como «aplica alcohol»<input id="cf-alc-pct" type="number" min="0" max="100" step="0.01"></label>
+            <p class="isn-nota">Los conceptos con clave SAT o descripción de bebidas alcohólicas cuentan solos al 100 %.</p>
+        </div>
+        <div class="fi-cf-grupo">
+            <b>Reglas generales</b>
+            <div id="cf-reglas" class="fi-cf-reglas"></div>
+        </div>
+        <div class="fi-cf-grupo">
+            <b>Reglas aprendidas de esta empresa</b>
+            <div id="cf-aprendidas"></div>
+        </div>
+        <p id="cf-error" class="isn-error" hidden></p>
+        <div class="isn-botones">
+            <button type="button" id="cf-restablecer" class="xml-btn" title="Vuelve al paquete de su régimen (no borra lo aprendido)">Restablecer paquete</button>
+            <span style="flex:1"></span>
+            <button type="button" id="cf-cancelar" class="xml-btn">Cancelar</button>
+            <button type="button" id="cf-guardar" class="xml-btn xml-btn--primario">Guardar</button>
+        </div>
+    </div>
+</div>
+
+<script src="/herramientas/xml/fiscal.js?v=202611050130"></script>
+</body>
+</html>

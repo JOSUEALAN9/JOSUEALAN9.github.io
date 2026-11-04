@@ -742,6 +742,12 @@
         $("d-enviar").addEventListener("click", enviarDescarga);
         $("avance-cerrar").addEventListener("click", function () { $("avance").hidden = true; });
         $("avance-detener").addEventListener("click", detenerTrabajo);
+        $("btn-facturas").hidden = !(IMP === "prof" || IMP === "alc");
+        $("btn-facturas").addEventListener("click", function () {
+            if (!E.rfc) { aviso("Elige una empresa.", true); return; }
+            var ma = mesAnterior();
+            location.href = "/herramientas/xml/fiscal.html?rfc=" + encodeURIComponent(E.rfc) + "&anio=" + ma.anio + "&mes=" + ma.mes + "&lado=emitidos";
+        });
         $("btn-exportar").addEventListener("click", async function () {
             if (!E.rfc) return;
             try { await bajar(await api("/api/estatales/" + IMP + "/exportar?rfc=" + encodeURIComponent(E.rfc) + "&anio=" + E.anio), E.rfc + "_" + IMP + "_" + E.anio + ".xlsx"); }

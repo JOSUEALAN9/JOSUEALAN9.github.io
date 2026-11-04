@@ -1,0 +1,56 @@
+/* Marcas fiscales: tarjetas de resumen, filtros, tabla con etiquetas por impuesto */
+.fi-config { border: 1px solid #e2e8f0; background: #fff; border-radius: 10px; padding: 9px 12px; font-size: 13px; font-weight: 700; color: #334155; }
+.fi-config:hover { border-color: #94a3b8; }
+.fi-paquete { font-size: 12.5px; color: #64748b; margin: 0 0 10px; }
+.fi-tarjetas { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 10px; margin-bottom: 14px; }
+.fi-tarjeta { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px 14px; display: flex; flex-direction: column; gap: 4px; }
+.fi-tarjeta small { font-size: 11px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; color: #64748b; }
+.fi-tarjeta b { font-size: 20px; font-weight: 800; color: #0f172a; font-variant-numeric: tabular-nums; }
+.fi-tarjeta span { font-size: 12px; color: #64748b; }
+.fi-tarjeta--alerta { border-color: #fde68a; background: #fffbeb; }
+.fi-tarjeta--alerta b { color: #b45309; }
+.fi-tarjeta button { align-self: flex-start; margin-top: 4px; font-size: 12px; font-weight: 700; color: #4f46e5; background: #eef2ff; border: 1px solid #c7d2fe; border-radius: 8px; padding: 5px 10px; }
+.fi-tarjeta button:hover { background: #e0e7ff; }
+.fi-tarjeta em { font-style: normal; font-size: 11.5px; color: #047857; font-weight: 700; }
+.fi-alertas { background: #fff7ed; border: 1px solid #fed7aa; color: #9a3412; border-radius: 12px; padding: 10px 14px; font-size: 13px; margin-bottom: 12px; display: flex; flex-direction: column; gap: 6px; }
+.fi-alertas button { font-weight: 800; color: #9a3412; text-decoration: underline; margin-left: 6px; }
+.fi-barra { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.fi-filtros { display: flex; flex-wrap: wrap; gap: 6px; }
+.fi-filtros button { border: 1px solid #e2e8f0; background: #fff; border-radius: 999px; padding: 6px 12px; font-size: 12.5px; font-weight: 700; color: #475569; }
+.fi-filtros button[aria-pressed="true"] { background: #0f172a; border-color: #0f172a; color: #fff; }
+.fi-filtros button b { color: inherit; margin-left: 2px; }
+.fi-buscar { border: 1px solid #e2e8f0; border-radius: 10px; padding: 8px 12px; font-size: 13px; min-width: 240px; background: #fff; }
+.fi-seleccion { position: sticky; top: 8px; z-index: 5; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; background: #0f172a; color: #fff;
+  border-radius: 12px; padding: 8px 12px; margin-bottom: 8px; box-shadow: 0 8px 24px rgba(15, 23, 42, .18); }
+.fi-seleccion[hidden] { display: none; }
+.fi-seleccion b { font-size: 13px; margin-right: 4px; }
+.fi-seleccion .xml-enlace { color: #cbd5e1; }
+.fi-tabla { width: max-content; min-width: 100%; }
+.fi-tabla tbody tr { cursor: pointer; }
+.fi-tabla tbody tr:hover td { background: #f8fafc; }
+.fi-tabla tbody tr.fi-sel td { background: #eef2ff; }
+.fi-tabla td { vertical-align: top; }
+.fi-tabla .fi-nombre { max-width: 240px; white-space: normal; }
+.fi-tabla .fi-nombre small { display: block; color: #94a3b8; font-family: ui-monospace, monospace; font-size: 11px; }
+.fi-como { color: #475569; font-size: 12px; white-space: normal; max-width: 210px; }
+.fi-etqs { display: flex; flex-wrap: wrap; gap: 4px; max-width: 320px; }
+.fi-etq { display: inline-flex; align-items: center; gap: 4px; border-radius: 7px; padding: 2px 7px; font-size: 11.5px; font-weight: 700; border: 1px solid; white-space: nowrap; }
+.fi-etq--si { background: #ecfdf5; border-color: #a7f3d0; color: #047857; }
+.fi-etq--no { background: #f8fafc; border-color: #e2e8f0; color: #94a3b8; text-decoration: line-through; }
+.fi-etq--parcial { background: #fffbeb; border-color: #fde68a; color: #b45309; }
+.fi-etq i { font-style: normal; font-size: 10px; opacity: .8; }
+.fi-motivo { font-size: 12px; color: #334155; white-space: normal; max-width: 320px; }
+.fi-motivo .fi-rev { display: block; color: #b45309; font-weight: 700; margin-top: 2px; }
+.fi-motivo .fi-mano { color: #4f46e5; font-weight: 700; }
+.fi-cancelada td { color: #94a3b8; }
+.fi-siempre { display: flex; flex-direction: column; gap: 6px; margin: 6px 0 4px; font-size: 13px; color: #334155; }
+.fi-siempre label { display: flex; align-items: center; gap: 8px; }
+.fi-cf-grupo { border-top: 1px solid #f1f5f9; padding-top: 12px; margin-top: 12px; display: flex; flex-direction: column; gap: 6px; font-size: 13px; }
+.fi-cf-grupo > b { font-size: 13.5px; color: #0f172a; }
+.fi-cf-reglas { display: flex; flex-direction: column; gap: 6px; }
+.fi-cf-pct input { width: 120px; border: 1px solid #cbd5e1; border-radius: 8px; padding: 6px 8px; }
+.fi-aprendida { display: flex; align-items: center; gap: 10px; border: 1px solid #e2e8f0; border-radius: 10px; padding: 7px 10px; font-size: 12.5px; }
+.fi-aprendida span { flex: 1; }
+.fi-aprendida button { color: #94a3b8; font-size: 16px; }
+.fi-aprendida button:hover { color: #b91c1c; }
+@media (max-width: 680px) { .fi-buscar { min-width: 0; width: 100%; } .fi-tarjetas { grid-template-columns: 1fr 1fr; } .fi-tarjeta b { font-size: 16px; } }
