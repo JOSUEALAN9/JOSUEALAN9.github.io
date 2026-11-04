@@ -5,14 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Facturar | Fiscontable</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611050500">
-    <link rel="stylesheet" href="/herramientas/facturar/facturar.css?v=202611050500">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611050600">
+    <link rel="stylesheet" href="/herramientas/facturar/facturar.css?v=202611050600">
 </head>
 <body class="min-h-screen flex flex-col">
 
 <div id="app-header" data-modulo="facturar" data-titulo="Facturar" data-migas="Herramientas|/herramientas/"></div>
-<script src="/assets/js/nucleo.js?v=202611050500"></script>
-<script src="/assets/js/barra.js?v=202611050500"></script>
+<script src="/assets/js/nucleo.js?v=202611050600"></script>
+<script src="/assets/js/barra.js?v=202611050600"></script>
 
 <main class="flex-grow w-full mod-pagina fa-pagina">
     <div class="mod-cabeza">
@@ -305,6 +305,7 @@
         <div class="fa-subtabs" role="tablist">
             <button type="button" data-sub="emisor" aria-selected="true">Emisor y folios</button>
             <button type="button" data-sub="sello" aria-selected="false">Sello digital <span id="punto-sello" class="fa-punto" hidden></span></button>
+            <button type="button" data-sub="manifiesto" aria-selected="false">Manifiesto <span id="punto-manifiesto" class="fa-punto" hidden></span></button>
             <button type="button" data-sub="logo" aria-selected="false">Logo y PDF</button>
             <button type="button" data-sub="productos" aria-selected="false">Productos</button>
             <button type="button" data-sub="correo" aria-selected="false">Correo</button>
@@ -371,6 +372,22 @@
                     <div class="fa-campo fa-c2 fa-al-fondo"><button type="button" id="btn-guardar-csd" class="fa-btn fa-btn--principal fa-ancho">Guardar CSD</button></div>
                 </div>
                 <div class="fa-acciones"><button type="button" id="btn-reemplazar-csd" class="fa-link" hidden>Reemplazar</button><button type="button" id="btn-quitar-csd" class="fa-link fa-link--rojo" hidden>Quitar el CSD</button><span id="msj-csd" class="fa-nota"></span></div>
+            </div>
+
+            <div class="fa-caja" data-subpanel="manifiesto" hidden>
+                <div class="fa-caja__cabeza">
+                    <h2>Manifiesto del PAC</h2>
+                    <span id="c-man-estado" class="fa-chip fa-chip--gris"></span>
+                </div>
+                <p class="fa-nota">El SAT pide que <b>cada empresa</b> autorice al PAC a timbrar sus facturas firmando un manifiesto con <b>su e.firma</b> (no con el sello digital). Se firma una sola vez y nadie puede hacerlo por ella. MultiFacturas timbra a través de dos PAC; si no sabes cuál le toca, firma los dos.</p>
+                <ol class="fa-man-pasos">
+                    <li><b>Abre el portal del PAC</b> con el botón de abajo (se abre en otra pestaña).</li>
+                    <li>Ahí sube la <b>e.firma de la empresa</b> (.cer, .key y contraseña) y un correo. Fiscontable no ve ni guarda esos datos.</li>
+                    <li>Al terminar, el portal te deja <b>descargar el acuse en PDF y XML</b>: guárdalos.</li>
+                    <li><b>Súbelos aquí</b> para tenerlos a la mano y saber qué empresas ya firmaron.</li>
+                </ol>
+                <div id="c-man-pacs" class="fa-man-pacs"></div>
+                <p id="msj-man" class="fa-nota" role="status"></p>
             </div>
 
             <div class="fa-caja" data-subpanel="productos" hidden>
@@ -656,8 +673,8 @@
     </div>
 </dialog>
 
-<script src="/assets/js/comun/importar-clientes.js?v=202611050500"></script>
-<script src="/assets/js/comun/compartir.js?v=202611050500"></script>
-<script src="/herramientas/facturar/facturar.js?v=202611050500"></script>
+<script src="/assets/js/comun/importar-clientes.js?v=202611050600"></script>
+<script src="/assets/js/comun/compartir.js?v=202611050600"></script>
+<script src="/herramientas/facturar/facturar.js?v=202611050600"></script>
 </body>
 </html>

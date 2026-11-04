@@ -179,9 +179,17 @@
                 "). No gasta timbres ni tiene validez fiscal; sirve para conocer el módulo. Tus series y folios sí avanzan.";
             falta.className = "fa-aviso";
             falta.hidden = false;
+        } else if (!e.manifiesto) {
+            falta.innerHTML = "Falta guardar el <b>manifiesto del PAC</b> de " + esc(e.alias) + " (lo pide el SAT a cada empresa que timbra). " +
+                '<button type="button" data-ir="config" data-ir-sub="manifiesto">Ver cómo se firma</button>';
+            falta.className = "fa-aviso";
+            falta.hidden = false;
         } else {
             falta.hidden = true;
         }
+        $("punto-manifiesto").hidden = !!e.manifiesto || !prod;
+        if (F.man && F.man.rfc !== e.rfc) F.man = null;
+        if (F.sub === "manifiesto") cargarManifiesto();
         $("cinta-nombre").textContent = e.razon_social || e.alias;
         $("cinta-datos").textContent = [e.rfc, e.regimen ? "Régimen " + e.regimen : "", e.cp ? "C.P. " + e.cp : ""].filter(Boolean).join(" · ");
         $("c-emisor").textContent = (e.razon_social || e.alias) + " · " + e.rfc;
@@ -218,6 +226,86 @@
             : e.alta_pac ? "✓ Dada de alta en MultiFacturas. Lo que le pases aquí se le pasa también allá."
             : "La primera vez que le pases timbres se da de alta sola en MultiFacturas.";
         pintarFolio();
+    }
+
+    /* ---------------------------------------------------- manifiesto del PAC (uno por empresa y PAC) */
+    async function cargarManifiesto() {
+        if (!F.emisor) return;
+        if (F.man && F.man.rfc === F.emisor.rfc) { pintarManifiesto(); return; }
+        $("c-man-pacs").innerHTML = '<p class="fa-nota">Cargando…</p>';
+        try { F.man = await json("/api/facturacion/manifiesto/" + encodeURIComponent(F.emisor.rfc)); }
+        catch (e) { $("c-man-pacs").innerHTML = '<p class="fa-nota">' + esc(e.message) + "</p>"; return; }
+        pintarManifiesto();
+    }
+
+    function pintarManifiesto() {
+        var m = F.man;
+        $("c-man-estado").textContent = m.firmado ? "Guardado" : "Falta";
+        $("c-man-estado").className = "fa-chip " + (m.firmado ? "fa-chip--ok" : "fa-chip--gris");
+        $("c-man-pacs").innerHTML = m.pacs.map(function (p) {
+            var g = p.guardado;
+            var abrir = p.metodo === "post"
+                ? '<form method="post" action="' + esc(p.url) + '" target="_blank" rel="noopener" class="fa-man-form">' +
+                  Object.keys(p.campos).map(function (k) { return '<input type="hidden" name="' + esc(k) + '" value="' + esc(p.campos[k]) + '">'; }).join("") +
+                  '<button type="submit" class="fa-btn fa-btn--suave">Abrir portal para firmar ↗</button></form>'
+                : '<a class="fa-btn fa-btn--suave" href="' + esc(p.url) + '" target="_blank" rel="noopener">Abrir portal para firmar ↗</a>';
+            return '<div class="fa-man-pac' + (g ? " fa-man-pac--ok" : "") + '" data-pac="' + p.id + '">' +
+                '<div class="fa-man-pac__cabeza"><div><small>' + esc(p.etiqueta) + "</small><b>" + esc(p.nombre) + "</b></div>" +
+                '<span class="fa-chip ' + (g ? "fa-chip--ok" : "fa-chip--gris") + '">' + (g ? "✓ Firmado" + (g.firmado_en ? " el " + fechaCorta(g.firmado_en + "T12:00:00") : "") : "Sin acuse") + "</span></div>" +
+                (g ? '<p class="fa-nota">Acuse guardado' + (g.hay_pdf ? ' · <button type="button" class="fa-link" data-man-bajar="pdf">PDF</button>' : "") +
+                     (g.hay_xml ? ' · <button type="button" class="fa-link" data-man-bajar="xml">XML</button>' : "") +
+                     (g.rfc_leido ? "" : " · <i>no se pudo leer el RFC del acuse; revisa que sea de esta empresa</i>") + "</p>" : "") +
+                '<div class="fa-man-acciones">' + abrir +
+                (g ? '<button type="button" class="fa-link" data-man-reemplazar>Reemplazar acuse</button><button type="button" class="fa-link fa-link--rojo" data-man-quitar>Quitar</button>' : "") + "</div>" +
+                '<div class="fa-rejilla fa-man-subir"' + (g ? " hidden" : "") + ">" +
+                '<label class="fa-campo fa-c3"><span>Acuse en PDF</span><input type="file" accept=".pdf,application/pdf" class="fa-archivo" data-man-pdf></label>' +
+                '<label class="fa-campo fa-c3"><span>Acuse en XML <i class="fa-opcional">(opcional)</i></span><input type="file" accept=".xml,text/xml,application/xml" class="fa-archivo" data-man-xml></label>' +
+                '<label class="fa-campo fa-c2"><span>Fecha de firma <i class="fa-opcional">(si no se lee sola)</i></span><input type="date" data-man-fecha></label>' +
+                '<div class="fa-campo fa-c2 fa-al-fondo"><button type="button" class="fa-btn fa-btn--principal fa-ancho" data-man-guardar>Guardar acuse</button></div></div></div>';
+        }).join("");
+    }
+
+    async function manifiestoClic(ev) {
+        var caja = ev.target.closest("[data-pac]"); if (!caja || !F.emisor) return;
+        var pac = caja.dataset.pac, base = "/api/facturacion/manifiesto/" + encodeURIComponent(F.emisor.rfc);
+        if (ev.target.closest("[data-man-reemplazar]")) { caja.querySelector(".fa-man-subir").hidden = false; return; }
+        var b = ev.target.closest("[data-man-bajar]");
+        if (b) {
+            try {
+                var r = await api(base + "/" + pac + "/" + b.dataset.manBajar);
+                var url = URL.createObjectURL(await r.blob()), a = document.createElement("a");
+                a.href = url; a.download = "Manifiesto_" + pac + "_" + F.emisor.rfc + "." + b.dataset.manBajar;
+                document.body.appendChild(a); a.click(); a.remove(); setTimeout(function () { URL.revokeObjectURL(url); }, 2000);
+            } catch (e) { $("msj-man").textContent = e.message; }
+            return;
+        }
+        if (ev.target.closest("[data-man-quitar]")) {
+            if (!confirm("¿Quitar el acuse guardado de este PAC? (no cambia nada en el PAC ni en el SAT)")) return;
+            try { F.man = await json(base + "/" + pac, { method: "DELETE" }); despuesManifiesto("Acuse quitado."); }
+            catch (e) { $("msj-man").textContent = e.message; }
+            return;
+        }
+        var g = ev.target.closest("[data-man-guardar]");
+        if (g) {
+            var pdf = caja.querySelector("[data-man-pdf]").files[0], xml = caja.querySelector("[data-man-xml]").files[0];
+            if (!pdf && !xml) { $("msj-man").textContent = "Elige el acuse en PDF (y el XML si lo tienes)."; return; }
+            var cuerpo = new FormData();
+            cuerpo.append("pac", pac);
+            if (pdf) cuerpo.append("pdf", pdf);
+            if (xml) cuerpo.append("xml", xml);
+            var f = caja.querySelector("[data-man-fecha]").value;
+            if (f) cuerpo.append("fecha", f);
+            g.disabled = true; g.textContent = "Guardando…"; $("msj-man").textContent = "";
+            try {
+                F.man = await json(base, { method: "POST", body: cuerpo });
+                despuesManifiesto(F.man.rfc_leido ? "✓ Acuse guardado." : "✓ Acuse guardado. No se pudo leer el RFC dentro del archivo: revisa que sea de esta empresa.");
+            } catch (e) { $("msj-man").textContent = e.message; g.disabled = false; g.textContent = "Guardar acuse"; }
+        }
+    }
+
+    function despuesManifiesto(texto) {
+        $("msj-man").textContent = texto;
+        actualizarEmisor(Object.assign({}, F.emisor, { manifiesto: F.man.firmado }));
     }
 
     function pintarFolio() {
@@ -1509,6 +1597,7 @@
         document.querySelectorAll("[data-sub]").forEach(function (b) { b.setAttribute("aria-selected", String(b.dataset.sub === sub)); });
         document.querySelectorAll("[data-subpanel]").forEach(function (p) { p.hidden = p.dataset.subpanel !== sub; });
         if (sub === "correo" && !F.correo) cargarCorreo();
+        if (sub === "manifiesto") cargarManifiesto();
         if (!F.incrustado) Fiscontable.url({ sub: sub === "emisor" ? null : sub });
     }
 
@@ -2330,6 +2419,7 @@
         $("btn-cancelar-ok").addEventListener("click", cancelar);
         $("btn-guardar-config").addEventListener("click", guardarConfig);
         $("btn-guardar-csd").addEventListener("click", guardarCsd);
+        $("c-man-pacs").addEventListener("click", manifiestoClic);
         $("btn-reemplazar-csd").addEventListener("click", function () { $("c-csd-form").hidden = false; this.hidden = true; });
         $("btn-quitar-csd").addEventListener("click", quitarCsd);
         $("btn-dar-timbres").addEventListener("click", function () { moverTimbres(1); });

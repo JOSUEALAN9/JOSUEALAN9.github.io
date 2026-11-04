@@ -457,3 +457,15 @@ tr.fa-fila-desglose > td { background: #fafaff; padding: 4px 12px 12px; }
 .fa-mas__menu .fa-mas__rojo { color: #dc2626; border-top: 1px solid #f1f5f9; margin-top: 4px; border-radius: 0 0 8px 8px; }
 .fa-mas__menu .fa-mas__rojo:hover { background: #fef2f2; color: #b91c1c; }
 @media (max-width: 760px) { .fa-acc-btn { padding: 6px 8px; } .fa-acc-btn svg { display: none; } }
+/* Manifiesto del PAC */
+.fa-man-pasos { margin: 10px 0 14px; padding-left: 20px; font-size: 13px; color: #334155; display: grid; gap: 4px; list-style: decimal; }
+.fa-man-pacs { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 12px; }
+.fa-man-pac { border: 1px solid #e5e7eb; border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 10px; background: #fff; }
+.fa-man-pac--ok { border-color: #a7f3d0; background: #f6fdf9; }
+.fa-man-pac__cabeza { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+.fa-man-pac__cabeza small { display: block; font-size: 11px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; color: #64748b; }
+.fa-man-pac__cabeza b { font-size: 16px; color: #0f172a; }
+.fa-man-acciones { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.fa-man-form { display: inline; margin: 0; }
+.fa-man-subir[hidden] { display: none; }
+.fa-man-subir { margin: 0; }
