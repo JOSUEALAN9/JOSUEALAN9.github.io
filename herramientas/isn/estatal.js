@@ -69,8 +69,10 @@
         await cargarEmpresas();
         var q = new URLSearchParams(location.search);
         abrir((q.get("empresa") || "").toUpperCase() || (E.empresa ? E.empresa.rfc : (E.empresas[0] && E.empresas[0].rfc)));
+        if (q.get("abrir")) E.vista = "empresa";              // desde Mis clientes: va directo a la empresa
         ponerVista(E.vista, true);
         retomarTrabajo();
+        if (q.get("abrir")) setTimeout(function () { abrirDesdeUrl(q.get("abrir")); }, 700);
         window.addEventListener("fiscontable:empresa", function (e) { E.empresa = e.detail; if (e.detail) abrir(e.detail.rfc); });
     }
 
@@ -620,6 +622,12 @@
             var buenos = r.resultados.filter(function (x) { return !x.error && x.impuesto === IMP; });
             if (buenos.length) { E.anio = buenos[0].anio; abrir(buenos.some(function (x) { return x.rfc === E.rfc; }) ? E.rfc : buenos[0].rfc); }
         } catch (e) { aviso(e.message, true); }
+    }
+
+    /* Desde Mis clientes: ?empresa=RFC&abrir=datos|acuse|descargar */
+    function abrirDesdeUrl(que) {
+        if (que === "datos" || que === "acuse") abrirDatos();     // el selector de archivos necesita un clic: ahí está «Llenar con un acuse»
+        else if (que === "descargar") abrirDescargar();
     }
 
     /* ------------------------------------------------------------ eventos */

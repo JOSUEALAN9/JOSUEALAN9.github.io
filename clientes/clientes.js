@@ -260,13 +260,23 @@ async function cargarClientes() {
     }
 }
 
+// Otros impuestos estatales de Quintana Roo (módulo Impuestos estatales): clave, nombre largo, nombre corto
+const ESTATALES = [["ish", "Impuesto al hospedaje", "Hospedaje"], ["ish_inf", "Informativa del hospedaje", "ISH informativa"],
+                   ["prof", "Ejercicio de profesiones", "Profesiones"], ["alc", "Venta de bebidas alcohólicas", "Alcohol"]];
+let obligacionesEst = {};
+
 async function cargarObligaciones() {
-    if (!conIsn) { obligaciones = {}; return; }
+    if (!conIsn) { obligaciones = {}; obligacionesEst = {}; return; }
     try {
         const r = await fetch(`${API_URL}/api/isn/obligaciones`, { credentials: "include" });
         obligaciones = r.ok ? await r.json() : {};
     } catch (e) { obligaciones = {}; }
+    try {
+        const r = await fetch(`${API_URL}/api/estatales/obligaciones`, { credentials: "include" });
+        obligacionesEst = r.ok ? await r.json() : {};
+    } catch (e) { obligacionesEst = {}; }
 }
+function estatalesDe(rfc) { return ESTATALES.filter(([k]) => obligacionesEst[rfc] && obligacionesEst[rfc][k]); }
 
 function tieneIsn(rfc) { const o = obligaciones[rfc]; return !!(o && o.obligacion); }
 
@@ -406,6 +416,8 @@ function renderizarClientes() {
                     : `<span class="text-xs font-semibold px-2 py-1 rounded-full bg-gray-100 text-gray-400">Sin e.firma guardada</span>`
                 }
                 ${cliente.ciec_guardada ? `<span class="text-xs font-bold px-2 py-1 rounded-full bg-violet-50 text-violet-700">Contraseña SAT ✓</span>` : ""}
+                ${estatalesDe(cliente.rfc).map(([k, , corto]) => { const ok = obligacionesEst[cliente.rfc][k].completos;
+                    return `<span class="text-xs font-bold px-2 py-1 rounded-full ${ok ? "bg-pink-100 text-pink-700" : "bg-amber-100 text-amber-700"}" title="${ok ? "Datos de la declaración completos" : "Faltan datos de la declaración"}">${esc(corto)}${ok ? "" : " · faltan datos"}</span>`; }).join("")}
                 ${tieneIsn(cliente.rfc) ? `<span class="text-xs font-bold px-2 py-1 rounded-full ${obligaciones[cliente.rfc].completos ? "bg-pink-100 text-pink-700" : "bg-amber-100 text-amber-700"}" title="${obligaciones[cliente.rfc].completos ? "Datos de la declaración completos" : "Faltan datos de la declaración"}">ISN QROO${obligaciones[cliente.rfc].completos ? "" : " · faltan datos"}</span>` : ""}
             </div>
 
@@ -415,6 +427,7 @@ function renderizarClientes() {
                 <a href="/herramientas/declaraciones/?rfc=${rfcCodificado}&cliente=${aliasCodificado}" style="--tono:#0369A1;--tono-suave:#E4F1F9">Declaraciones</a>
                 <a href="/herramientas/descarga-xml/?rfc=${rfcCodificado}&cliente=${aliasCodificado}" style="--tono:#0E7490;--tono-suave:#E0F2F7">Descargar XML</a>
                 ${tieneIsn(cliente.rfc) ? `<a href="/herramientas/isn/?empresa=${rfcCodificado}" style="--tono:#BE185D;--tono-suave:#FCE7F3">ISN</a>` : ""}
+                ${estatalesDe(cliente.rfc).map(([k, , corto]) => `<a href="/herramientas/isn/estatal.html?i=${k}&empresa=${rfcCodificado}" style="--tono:#BE185D;--tono-suave:#FCE7F3">${corto}</a>`).join("")}
             </div>
         </div>`;
     }).join("");
@@ -480,6 +493,18 @@ async function crearCliente(e) {
             extra = r.ok ? " Con ISN Quintana Roo: llena sus datos o sube su último acuse desde su ficha."
                          : " No se pudo guardar la obligación de ISN: márcala desde su ficha.";
         }
+        const est = conIsn ? Array.from(document.querySelectorAll("[data-nuevo-est]:checked")).map(c => c.dataset.nuevoEst) : [];
+        let fallaron = 0;
+        for (const k of est) {
+            try {
+                const re = await fetch(`${API_URL}/api/estatales/${k}/obligacion`, {
+                    method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ rfcs: [rfc], activa: true })
+                });
+                if (!re.ok) fallaron++;
+            } catch (err) { fallaron++; }
+        }
+        if (est.length) extra += fallaron ? " No se pudieron guardar todas sus obligaciones estatales: márcalas desde su ficha."
+                                          : " Con " + est.map(k => ESTATALES.find(x => x[0] === k)[2].toLowerCase()).join(", ") + ": sube su último acuse desde su ficha y se llenan sus datos.";
         cerrarModalNuevoCliente();
         const partes = [`${alias} quedó registrada (${rfc})`];
         if (r.efirma_guardada) partes.push("con su e.firma guardada");
@@ -678,6 +703,22 @@ function pintarObligaciones(cliente) {
     document.getElementById("obl-isn-acuse").href = `/herramientas/isn/?empresa=${r}&abrir=acuse`;
     document.getElementById("obl-isn-descargar").href = `/herramientas/isn/?empresa=${r}&abrir=descargar`;
     pintarDetalleIsn(o);
+    pintarEstatales(cliente.rfc);
+}
+
+function pintarEstatales(rfc) {
+    const r = encodeURIComponent(rfc), act = obligacionesEst[rfc] || {};
+    document.getElementById("obl-estatales").innerHTML = ESTATALES.map(([k, largo]) => {
+        const o = act[k], url = `/herramientas/isn/estatal.html?i=${k}&empresa=${r}&abrir=`;
+        const estado = !o ? "" : o.completos ? '<span class="text-emerald-700">✓ Datos completos.</span>'
+                                             : '<span class="text-amber-700">Faltan datos: sube el último acuse y se llenan solos.</span>';
+        return `<div><label class="flex items-center gap-2 text-sm font-semibold text-slate-700">
+                <input type="checkbox" data-obl-est="${k}" class="w-4 h-4 accent-violet-600"${o ? " checked" : ""}> ${largo}</label>
+            ${o ? `<div class="ml-6 mt-1 text-xs font-semibold flex flex-wrap" style="gap:4px 14px">${estado}
+                <a class="text-violet-700 underline" href="${url}acuse">Subir el último acuse</a>
+                <a class="text-violet-700 underline" href="${url}descargar">Descargarlo del portal</a>
+                <a class="text-violet-700 underline" href="${url}datos">Datos de la declaración</a></div>` : ""}</div>`;
+    }).join("");
 }
 
 function pintarDetalleIsn(o) {
@@ -703,19 +744,33 @@ async function guardarObligaciones() {
     const cliente = clientesCache.find(c => c.rfc === rfcEnEdicion) || {};
     const activa = document.getElementById("obl-isn").checked;
     const antes = obligaciones[rfcEnEdicion];
-    if (!activa && !antes) { cerrarModalEditar(); return; }
+    const antesEst = obligacionesEst[rfcEnEdicion] || {};
+    const cambiosEst = Array.from(document.querySelectorAll("[data-obl-est]")).filter(c => c.checked !== !!antesEst[c.dataset.oblEst]);
+    const cambiaIsn = activa || !!antes;
+    if (!cambiaIsn && !cambiosEst.length) { cerrarModalEditar(); return; }
     boton.disabled = true;
     try {
-        const r = await fetch(`${API_URL}/api/isn/obligacion`, {
-            method: "PUT", credentials: "include", headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ rfc: rfcEnEdicion, activa: activa, zona: document.getElementById("obl-zona").value, nombre: cliente.alias || null })
-        });
-        if (!r.ok) throw new Error(await Fiscontable.leerError(r));
+        if (cambiaIsn) {
+            const r = await fetch(`${API_URL}/api/isn/obligacion`, {
+                method: "PUT", credentials: "include", headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ rfc: rfcEnEdicion, activa: activa, zona: document.getElementById("obl-zona").value, nombre: cliente.alias || null })
+            });
+            if (!r.ok) throw new Error(await Fiscontable.leerError(r));
+        }
+        for (const c of cambiosEst) {
+            const r = await fetch(`${API_URL}/api/estatales/${c.dataset.oblEst}/obligacion`, {
+                method: "POST", credentials: "include", headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ rfcs: [rfcEnEdicion], activa: c.checked })
+            });
+            if (!r.ok) throw new Error(await Fiscontable.leerError(r));
+        }
         await cargarObligaciones();
         renderizarClientes();
         const o = obligaciones[rfcEnEdicion] || {};
         pintarDetalleIsn(o);
-        msj.textContent = activa ? (o.completos ? "Guardado." : "Guardado. Ahora llena sus datos o sube el último acuse (enlaces de arriba).") : "Obligación quitada.";
+        pintarEstatales(rfcEnEdicion);
+        const nuevasEst = cambiosEst.filter(c => c.checked).length;
+        msj.textContent = "Guardado." + ((activa && !o.completos) || nuevasEst ? " Para llenar sus datos, sube el último acuse (enlaces de arriba)." : "");
         msj.className = "text-xs mt-2 text-emerald-700 font-semibold";
     } catch (e) {
         msj.textContent = e.message;

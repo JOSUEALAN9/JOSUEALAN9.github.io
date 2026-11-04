@@ -5,14 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mis Clientes | Fiscontable</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611042130">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611050030">
 </head>
 <body class="min-h-screen flex flex-col relative">
 
     <!-- TOP NAV -->
     <div id="app-header" data-modulo="clientes" data-titulo="Mis clientes" data-migas=""></div>
-<script src="/assets/js/nucleo.js?v=202611042130"></script>
-<script src="/assets/js/barra.js?v=202611042130"></script>
+<script src="/assets/js/nucleo.js?v=202611050030"></script>
+<script src="/assets/js/barra.js?v=202611050030"></script>
 
     <!-- ÁREA DE TRABAJO -->
     <main class="flex-grow w-full mod-pagina" style="max-width:1180px">
@@ -136,7 +136,7 @@
                     </div>
                 </section>
 
-                <!-- ===== Obligaciones (hoy ISN de Quintana Roo; solo con el módulo ISN) ===== -->
+                <!-- ===== Obligaciones estatales de Quintana Roo (solo con el módulo de impuestos estatales) ===== -->
                 <section data-alta-panel="obligaciones" hidden>
                     <div id="nuevo-obligaciones" class="ficha-caja">
                         <h3 class="text-[15px] font-bold text-slate-800">Obligaciones</h3>
@@ -148,6 +148,13 @@
                             <option value="general">Zona general</option>
                             <option value="frontera">Zona libre de la frontera norte</option>
                         </select>
+                        <p class="mt-5 text-[11px] font-bold text-slate-500 uppercase tracking-wide">Otros impuestos estatales · Quintana Roo</p>
+                        <div class="mt-2 flex flex-col gap-2">
+                            <label class="flex items-center gap-2 text-sm font-semibold text-slate-700"><input type="checkbox" data-nuevo-est="ish" class="w-4 h-4 accent-violet-600"> Impuesto al hospedaje</label>
+                            <label class="flex items-center gap-2 text-sm font-semibold text-slate-700"><input type="checkbox" data-nuevo-est="ish_inf" class="w-4 h-4 accent-violet-600"> Informativa del hospedaje</label>
+                            <label class="flex items-center gap-2 text-sm font-semibold text-slate-700"><input type="checkbox" data-nuevo-est="prof" class="w-4 h-4 accent-violet-600"> Ejercicio de profesiones</label>
+                            <label class="flex items-center gap-2 text-sm font-semibold text-slate-700"><input type="checkbox" data-nuevo-est="alc" class="w-4 h-4 accent-violet-600"> Venta de bebidas alcohólicas</label>
+                        </div>
                     </div>
                 </section>
             </div>
@@ -368,7 +375,7 @@
 
                 <!-- ===== Obligaciones ===== -->
                 <section data-panel="obligaciones" hidden>
-                <!-- Obligaciones: hoy ISN de Quintana Roo (solo con el módulo ISN) -->
+                <!-- Obligaciones estatales de Quintana Roo (solo con el módulo de impuestos estatales) -->
                 <div id="editar-obligaciones" class="hidden">
                     <h3 class="text-[15px] font-bold text-slate-800">Obligaciones</h3>
                     <p class="text-[13px] text-slate-500 mt-1 mb-4 leading-relaxed">Lo que activas aquí aparece en su módulo, listo para declarar.</p>
@@ -389,6 +396,8 @@
                             <a id="obl-isn-descargar" class="text-violet-700 underline" href="#">Descargarlo del portal</a>
                         </div>
                     </div>
+                    <p class="mt-5 text-[11px] font-bold text-slate-500 uppercase tracking-wide">Otros impuestos estatales · Quintana Roo</p>
+                    <div id="obl-estatales" class="mt-2 flex flex-col gap-3"></div>
                     <p id="obl-mensaje" class="text-xs mt-2 hidden"></p>
                     <button onclick="guardarObligaciones()" id="btn-guardar-obligaciones" class="mt-3 w-full bg-violet-600 hover:bg-violet-500 text-white font-bold py-2.5 rounded-lg transition text-sm">Guardar obligaciones</button>
                 </div>
@@ -397,7 +406,7 @@
         </div>
     </div>
 
-<script src="/assets/js/comun/leer-cer.js?v=202611042130"></script>
+<script src="/assets/js/comun/leer-cer.js?v=202611050030"></script>
 <style>
     .cli-herr { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 14px; }
     .cli-buscar { flex: 1 1 220px; max-width: 320px; font-size: 14px; border: 1px solid #e5e7eb; border-radius: 10px; padding: 8px 12px; background: #fff; }
@@ -451,7 +460,7 @@
     .alta-opcional summary small { font-weight: 500; color: #64748b; }
     .alta-error { font-size: 13px; font-weight: 600; border-radius: 10px; padding: 10px 12px; background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; }
 </style>
-<script src="/assets/js/comun/importar-clientes.js?v=202611042130"></script>
-<script src="/clientes/clientes.js?v=202611042130"></script>
+<script src="/assets/js/comun/importar-clientes.js?v=202611050030"></script>
+<script src="/clientes/clientes.js?v=202611050030"></script>
 </body>
 </html>
