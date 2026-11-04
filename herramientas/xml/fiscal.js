@@ -40,7 +40,8 @@
         ponerLado(E.lado, true);
         ponerFiltro(E.filtro, true);
         titulo();
-        cargar();
+        await cargar();
+        if (q.get("config") === "1") abrirConfig();          // desde Configuración → Impuestos por empresa
     }
 
     function nombreEmpresa(rfc) {

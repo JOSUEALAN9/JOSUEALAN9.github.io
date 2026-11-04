@@ -32,7 +32,8 @@
         buzon: "M4 6h16v12H4zM4 7l8 6 8-6",
         xml: "M8 9l-4 3 4 3M16 9l4 3-4 3M13 6l-2 12",
         admin: "M12 3l8 4v5c0 5-3.4 8.5-8 9-4.6-.5-8-4-8-9V7z",
-        sistema: "M4 6h16M4 12h16M4 18h10"
+        sistema: "M4 6h16M4 12h16M4 18h10",
+        balanza: "M12 3v18M5 7h14M5 7l-3 7a4 4 0 006 0zM19 7l-3 7a4 4 0 006 0zM8 21h8"
     };
     function ico(d) { return '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="' + d + '"/></svg>'; }
 
@@ -54,6 +55,10 @@
         { id: "descarga_xml", grupo: "Módulos", titulo: "Descarga automática de XML", ico: ICO.xml, modulo: "descarga_xml",
           desc: "Qué empresas bajan solas sus XML del SAT, desde qué mes y cada cuánto.", palabras: "descarga masiva xml automática sat madrugada",
           pintar: pintarXmlAuto },
+        { id: "impuestos", grupo: "Módulos", titulo: "Impuestos por empresa", ico: ICO.balanza, modulo: "validador",
+          desc: "Cuándo cuenta cada impuesto (flujo o devengado), estatales, alcohol y las reglas que Fiscontable aprendió de cada empresa.",
+          palabras: "impuestos reglas fiscales isr iva diot deducible no deducible flujo devengado cobrado facturado profesiones alcohol régimen paquete marcas",
+          pintar: pintarImpuestos },
         { id: "admin", grupo: "Administración", titulo: "Panel de administración", ico: ICO.admin, solo_admin: true,
           desc: "Usuarios, permisos por rol, actividad, créditos, documentos y sistema.", palabras: "usuarios permisos roles actividad créditos documentos sistema servidor respaldo trabajadores timbres bolsa",
           marco: function (sub) { return "/admin/?incrustado=1&dentro=1" + (sub ? "#" + sub : ""); } }
@@ -169,6 +174,27 @@
     }
 
     /* ---------- Descarga automática de XML ---------- */
+    /* Impuestos por empresa: el paquete de reglas según su régimen y lo que se cambió o aprendió */
+    async function pintarImpuestos(c) {
+        c.innerHTML = '<div class="cf-tarjeta"><p class="cf-texto">Cargando…</p></div>';
+        try {
+            var lista = await api("/api/fiscal/paquetes");
+            var mom = function (v) { return v === "cobrado" ? "flujo" : "devengado"; };
+            c.innerHTML = '<div class="cf-tarjeta"><p class="cf-texto">Cada empresa recibe un paquete según su régimen: <b>persona física y RESICO al flujo</b> (cobrado y pagado); ' +
+                "<b>persona moral</b> con ISR devengado e IVA al flujo. Encima van las reglas de ley (efectivo de más de $2,000, combustible en efectivo, S01, 69-B, restaurantes al 8.5 %) " +
+                "y las sugerencias de lo que no suele ser indispensable. Lo que marcas a mano con «¿siempre así?» se vuelve regla de esa empresa.</p></div>" +
+                '<div class="cf-tarjeta cf-tarjeta--tabla" style="margin-top:12px"><table class="cf-tabla"><thead><tr><th>Empresa</th><th>Paquete</th><th>ISR · IVA</th><th>Estatales</th><th>Aprendidas</th><th></th></tr></thead><tbody>' +
+                (lista.length ? lista.map(function (x) {
+                    return "<tr><td><b>" + esc(x.nombre) + "</b><small>" + esc(x.rfc) + (x.regimen ? " · régimen " + esc(x.regimen) : "") + "</small></td>" +
+                        "<td>" + esc(x.paquete) + (x.personalizada ? ' <small>con ajustes</small>' : "") + "</td>" +
+                        "<td>" + mom(x.momento.isr) + " · " + mom(x.momento.iva) + "</td>" +
+                        "<td>" + ([x.prof ? "Profesiones" : "", x.alc ? "Alcohol" : ""].filter(Boolean).join(", ") || "—") + "</td>" +
+                        "<td>" + (x.aprendidas || "—") + "</td>" +
+                        '<td><a class="cf-btn cf-btn--chico" href="/herramientas/xml/fiscal.html?rfc=' + encodeURIComponent(x.rfc) + '&config=1">Ver y cambiar</a></td></tr>';
+                }).join("") : '<tr><td colspan="6">Registra tus empresas en Mis clientes.</td></tr>') + "</tbody></table></div>";
+        } catch (e) { c.innerHTML = '<div class="cf-tarjeta"><p class="cf-msj cf-msj--mal">' + esc(e.message) + "</p></div>"; }
+    }
+
     async function pintarXmlAuto(c) {
         c.innerHTML = '<div class="cf-tarjeta"><p class="cf-texto">Cargando…</p></div>';
         try {
