@@ -95,3 +95,13 @@
 .est-lista span { display: flex; flex-direction: column; min-width: 0; }
 .est-lista small { color: #64748b; font-family: ui-monospace, monospace; font-size: 11.5px; }
 @media (max-width: 680px) { .est-inf { grid-template-columns: 1fr 1fr; } }
+/* Candado: la empresa no tiene esta obligación */
+.est-impuestos a.est-sin { color: #94a3b8; }
+.est-impuestos a.est-sin::after { content: " 🔒"; font-size: 11px; }
+.est-candado { max-width: 620px; margin: 28px auto; background: #fff; border: 1px solid #e2e8f0; border-radius: 16px; padding: 28px 28px 22px; text-align: center; box-shadow: 0 10px 30px rgba(15, 23, 42, .06); }
+.est-candado[hidden] { display: none; }
+.est-candado__icono { width: 56px; height: 56px; margin: 0 auto 12px; border-radius: 50%; background: #f1f5f9; display: grid; place-items: center; font-size: 26px; }
+.est-candado h2 { font-size: 18px; font-weight: 800; color: #0f172a; margin: 0 0 8px; }
+.est-candado p { font-size: 13.5px; color: #475569; margin: 0 auto 16px; max-width: 480px; line-height: 1.5; }
+.est-candado__botones { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+.est-candado__nota { color: #b91c1c; font-size: 13px; margin-top: 10px !important; }

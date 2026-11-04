@@ -66,7 +66,7 @@
         E.puedePresentar = !!(perfil && (perfil.modulos_permitidos || []).indexOf("isn_presentar") !== -1);
         $("btn-presentar").disabled = !E.puedePresentar;
         $("nota-presentar").hidden = E.puedePresentar;
-        await cargarEmpresas();
+        await Promise.all([cargarEmpresas(), window.EstObligaciones ? EstObligaciones.cargar() : null]);
         var q = new URLSearchParams(location.search);
         abrir((q.get("empresa") || "").toUpperCase() || (E.empresa ? E.empresa.rfc : (E.empresas[0] && E.empresas[0].rfc)));
         if (q.get("abrir")) E.vista = "empresa";              // desde Mis clientes: va directo a la empresa
@@ -125,7 +125,15 @@
         return '<span class="xml-sello isn-sello-listo">Por presentar · lista</span>';
     }
 
+    function candadoObligacion() {
+        if (!window.EstObligaciones) return false;
+        var c = E.empresas.find(function (x) { return x.rfc === E.rfc; });
+        return EstObligaciones.aplicar({ imp: IMP, rfc: E.rfc, nombre: nombreDe(E.rfc), periodos: (c && c.periodos) || 0, vista: E.vista,
+            alActivar: function () { cargarEmpresas().then(cargar); } });
+    }
+
     function pintar() {
+        candadoObligacion();
         var anios = new Set((E.datos.anios || []).concat([E.anio, new Date().getFullYear()]));
         $("sel-anio").innerHTML = Array.from(anios).sort().reverse().map(function (a) { return '<option value="' + a + '"' + (+a === +E.anio ? " selected" : "") + ">" + a + "</option>"; }).join("");
         var filas = E.datos.periodos, cols = columnas();
@@ -389,6 +397,7 @@
         document.querySelectorAll(".isn-pestanas button").forEach(function (b) { b.setAttribute("aria-selected", b.dataset.vista === v ? "true" : "false"); });
         $("vista-masivo").hidden = v !== "masivo";
         $("vista-empresa").hidden = v === "masivo";
+        if (!inicio) candadoObligacion();
         $("ctx-empresa").style.visibility = v === "masivo" ? "hidden" : "";
         if (!inicio) aviso("");
         if (v === "masivo") {

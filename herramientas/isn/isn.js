@@ -44,7 +44,7 @@
         E.puedePresentar = !!(perfil && (perfil.modulos_permitidos || []).indexOf("isn_presentar") !== -1);
         $("btn-presentar").disabled = !E.puedePresentar;
         $("nota-presentar").hidden = E.puedePresentar;
-        await cargarEmpresas();
+        await Promise.all([cargarEmpresas(), window.EstObligaciones ? EstObligaciones.cargar() : null]);
         var q = new URLSearchParams(location.search);
         var deUrl = (q.get("empresa") || "").toUpperCase();
         abrir(deUrl || (E.empresa ? E.empresa.rfc : (E.empresas[0] && E.empresas[0].rfc)));
@@ -102,7 +102,15 @@
                 ["presentada", "Estatus", 120], ["acuse_importe", "Pagado (acuse)", 120, 1], ["diferencia", "Diferencia", 100, 1],
                 ["folio", "Folio", 110], ["fecha_presentacion", "Presentada el", 110], ["acuse", "PDF", 110], ["avisos", "Avisos", 260]];
 
+    function candadoObligacion() {
+        if (!window.EstObligaciones) return false;
+        var c = E.empresas.find(function (x) { return x.rfc === E.rfc; });
+        return EstObligaciones.aplicar({ imp: "isn", rfc: E.rfc, nombre: nombreDe(E.rfc), periodos: (c && c.periodos) || 0, vista: E.vista,
+            alActivar: function () { cargarEmpresas().then(cargar); } });
+    }
+
     function pintar() {
+        candadoObligacion();
         pintarAnios();
         var filas = E.datos.periodos;
         var porPresentar = filas.filter(function (f) { return !f.presentada; });
@@ -464,6 +472,7 @@
         document.querySelectorAll(".isn-pestanas button").forEach(function (b) { b.setAttribute("aria-selected", b.dataset.vista === v ? "true" : "false"); });
         $("vista-masivo").hidden = v !== "masivo";
         $("vista-empresa").hidden = v === "masivo";
+        if (!inicio) candadoObligacion();
         $("ctx-empresa").style.visibility = v === "masivo" ? "hidden" : "";   // conserva su lugar: la cabecera no brinca
         if (!inicio) aviso("");
         if (v === "masivo") {

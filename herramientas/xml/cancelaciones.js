@@ -183,7 +183,7 @@
         $("mc-motivo").innerHTML = '<option value="">Elige…</option>' + Object.keys(mot).map(function (k) { return '<option value="' + k + '">' + k + " · " + esc(mot[k]) + "</option>"; }).join("");
         $("mc-sust").value = ""; $("mc-sust-caja").hidden = true; $("mc-confirmo").checked = false; $("mc-error").hidden = true;
         $("mc-nota").textContent = (E.datos.estado.pruebas ? "Modo de pruebas: no tendrá efecto ante el SAT. " : "") +
-            "Si el total pasa de $1,000 o ya pasaron 24 horas, el receptor tendrá que aceptarla (72 horas). Los motivos 02 y 03 suelen pedir aceptación; el 01 necesita la factura que la sustituye.";
+            "Normalmente el receptor tiene que aceptarla (tiene 72 horas; si no responde, se cancela sola). No hace falta su aceptación si el total es de hasta $1,000, si es a público en general o si es nota de crédito, nómina o traslado. El motivo 01 necesita el folio de la factura que la sustituye.";
         validarCancelar();
         $("modal-cancelar").hidden = false;
     }
