@@ -141,33 +141,41 @@
         });
     }
 
-    function etiqueta(imp, x) {
-        if (!x.cuenta) return '<span class="fi-etq fi-etq--no" title="' + esc(x.motivo) + '">' + nombre(imp) + "</span>";
-        var valor = x.base * x.pct / 100;
-        return '<span class="fi-etq ' + (x.pct < 100 ? "fi-etq--parcial" : "fi-etq--si") + '" title="' + esc(x.motivo) + '">' + nombre(imp) + " " + m(valor) +
-               (x.pct < 100 ? " <i>" + x.pct + " %</i>" : "") + "</span>";
+    function celda(f, imp) {
+        var x = f.marcas[imp];
+        if (!x) return '<td class="fi-col-imp"><span class="fi-gris">—</span></td>';
+        var mano = x.origen !== "auto" ? '<i class="fi-punto" title="' + (x.origen === "regla" ? "Regla de la empresa" : "Marcado a mano") + '"></i>' : "";
+        var clase = !x.cuenta ? "no" : x.pct < 100 ? "parcial" : "si";
+        var texto = !x.cuenta ? "✗ No" : "✓ " + m(x.base * x.pct / 100) + (x.pct < 100 ? ' <small>' + x.pct + " %</small>" : "");
+        return '<td class="fi-col-imp"><button type="button" class="fi-celda fi-celda--' + clase + '" data-celda="' + imp + '" title="' +
+            esc(nombre(imp) + ": " + (x.motivo || "") + " · Toca para cambiar") + '">' + texto + mano + "</button></td>";
+    }
+
+    function motivoCorto(f, imps) {
+        if (f.revisar.length) return '<span class="fi-rev">⚑ ' + esc(f.revisar[0]) + (f.revisar.length > 1 ? " (+" + (f.revisar.length - 1) + ")" : "") + "</span>";
+        // El motivo que más dice: el de una marca a mano, si no el de la que no cuenta, si no el primero
+        var ks = imps.filter(function (k) { return f.marcas[k]; });
+        var k = ks.find(function (k) { return f.marcas[k].origen !== "auto"; }) || ks.find(function (k) { return !f.marcas[k].cuenta; }) || ks[0];
+        var x = k && f.marcas[k];
+        if (!x) return "";
+        return (x.origen !== "auto" ? '<span class="fi-mano">' + (x.origen === "regla" ? "Regla · " : "A mano · ") + "</span>" : "") + esc(x.motivo || "");
     }
 
     function pintarTabla() {
         var filas = visibles(), imps = impuestosDelLado();
         var todas = filas.length && filas.every(function (f) { return E.sel.has(f.uuid); });
-        $("thead").innerHTML = '<tr><th style="width:32px"><input type="checkbox" id="sel-todas"' + (todas ? " checked" : "") + ' aria-label="Seleccionar todas"></th>' +
+        $("thead").innerHTML = '<tr><th class="fi-col-sel"><input type="checkbox" id="sel-todas"' + (todas ? " checked" : "") + ' aria-label="Seleccionar todas"></th>' +
             "<th>Fecha</th><th>Folio</th><th>" + (E.lado === "emitidos" ? "Cliente" : "Proveedor") + '</th><th class="xml-num">Total</th>' +
-            "<th>" + (E.lado === "emitidos" ? "Cobro" : "Pago") + "</th><th>Cuenta para</th><th>Motivo</th></tr>";
+            imps.map(function (k) { return '<th class="fi-col-imp">' + esc(nombre(k)) + "</th>"; }).join("") + "<th>Por qué</th></tr>";
         $("tbody").innerHTML = filas.map(function (f) {
-            var primero = f.marcas[imps[0]] || {};
-            var mano = imps.some(function (k) { return f.marcas[k] && f.marcas[k].origen !== "auto"; });
-            var origen = imps.map(function (k) { return f.marcas[k] && f.marcas[k].origen; }).find(function (o) { return o && o !== "auto"; });
-            return '<tr data-uuid="' + esc(f.uuid) + '" class="' + (E.sel.has(f.uuid) ? "fi-sel " : "") + (f.cancelado ? "fi-cancelada" : "") + '">' +
-                '<td><input type="checkbox" data-check="' + esc(f.uuid) + '"' + (E.sel.has(f.uuid) ? " checked" : "") + "></td>" +
-                "<td>" + esc(f.fecha.slice(8, 10) + "/" + f.fecha.slice(5, 7)) + "</td>" +
+            return '<tr data-uuid="' + esc(f.uuid) + '" class="' + (E.sel.has(f.uuid) ? "fi-sel " : "") + (f.cancelado ? "fi-cancelada " : "") + (f.revisar.length ? "fi-fila-rev" : "") + '">' +
+                '<td class="fi-col-sel"><input type="checkbox" data-check="' + esc(f.uuid) + '"' + (E.sel.has(f.uuid) ? " checked" : "") + ' aria-label="Seleccionar"></td>' +
+                '<td title="' + esc(f.como || "") + '">' + esc(f.fecha.slice(8, 10) + "/" + f.fecha.slice(5, 7)) + '<small class="fi-sub">' + esc(f.metodo || "") + "</small></td>" +
                 "<td>" + esc(f.folio || f.uuid.slice(0, 8)) + (f.tipo === "E" ? ' <span class="xml-sello">NC</span>' : "") + "</td>" +
-                '<td class="fi-nombre">' + esc(f.contraparte.nombre || "—") + "<small>" + esc(f.contraparte.rfc || "") + "</small></td>" +
+                '<td class="fi-nombre" title="' + esc((f.contraparte.nombre || "") + " · " + (f.contraparte.rfc || "")) + '">' + esc(f.contraparte.nombre || "—") + "<small>" + esc(f.contraparte.rfc || "") + "</small></td>" +
                 '<td class="xml-num">' + m(f.total) + "</td>" +
-                '<td class="fi-como">' + esc(f.como || "—") + "</td>" +
-                '<td><div class="fi-etqs">' + imps.filter(function (k) { return f.marcas[k]; }).map(function (k) { return etiqueta(k, f.marcas[k]); }).join("") + "</div></td>" +
-                '<td class="fi-motivo">' + (mano ? '<span class="fi-mano">' + (origen === "regla" ? "Regla de la empresa · " : "A mano · ") + "</span>" : "") +
-                esc(primero.motivo || "") + f.revisar.map(function (r) { return '<span class="fi-rev">⚑ ' + esc(r) + "</span>"; }).join("") + "</td></tr>";
+                imps.map(function (k) { return celda(f, k); }).join("") +
+                '<td class="fi-motivo">' + motivoCorto(f, imps) + "</td></tr>";
         }).join("");
         $("sin-filas").hidden = filas.length > 0;
         $("sin-filas").textContent = !E.rfc ? "Elige una empresa." : !E.datos ? "" :
@@ -181,28 +189,51 @@
         $("sel-n").textContent = n + (n === 1 ? " seleccionada" : " seleccionadas");
     }
 
-    /* ------------------------------------------------------------ marcar */
-    function abrirMarcar() {
-        var imps = impuestosDelLado();
-        $("mk-titulo").textContent = "Marcar " + E.sel.size + (E.sel.size === 1 ? " CFDI" : " CFDI");
-        $("mk-imp").innerHTML = '<option value="*">Todo (' + imps.map(nombre).join(", ") + ")</option>" +
+    /* ------------------------------------------------------------ marcar: una casilla o varias facturas */
+    function fila(uuid) { return E.datos.filas.find(function (f) { return f.uuid === uuid; }); }
+
+    function prepararModal(uuids, imp) {
+        E.mk = { uuids: uuids, imp: imp, cuenta: null };
+        var imps = impuestosDelLado(), una = uuids.length === 1 ? fila(uuids[0]) : null;
+        $("mk-para").hidden = !!imp;
+        $("mk-imp").innerHTML = '<option value="*">Todos (' + imps.map(nombre).join(", ") + ")</option>" +
             imps.map(function (k) { return '<option value="' + k + '">' + nombre(k) + "</option>"; }).join("");
-        $("mk-cuenta").value = "0";
-        $("mk-pct").value = "";
-        $("mk-motivo").value = "";
+        $("mk-titulo").textContent = imp ? "¿Cuenta para " + nombre(imp) + "?" : "¿Cuentan estas " + uuids.length + " facturas?";
+        $("mk-de").innerHTML = una ? "<b>" + esc(una.folio || una.uuid.slice(0, 8)) + "</b> · " + esc(una.contraparte.nombre || "") + " · " + m(una.total) : "";
+        $("mk-de").hidden = !una;
+        var x = imp && una && una.marcas[imp];
+        $("mk-ahora").innerHTML = x ? "Ahora: <b>" + (x.cuenta ? "sí cuenta" + (x.pct < 100 ? " (" + x.pct + " %)" : "") : "no cuenta") + "</b>" +
+            (x.motivo ? " — " + esc(x.motivo) : "") + (x.origen === "manual" ? " · lo marcaste a mano" : x.origen === "regla" ? " · regla de la empresa" : " · automático") : "";
+        $("mk-ahora").hidden = !x;
+        $("mk-pct").value = x && x.cuenta && x.pct < 100 ? x.pct : "";
+        $("mk-motivo").value = x && x.origen === "manual" ? (x.motivo || "") : "";
         $("mk-contra").textContent = E.lado === "emitidos" ? "Siempre con este cliente" : "Siempre con este proveedor";
         document.querySelector('input[name="siempre"][value=""]').checked = true;
+        document.querySelector(".fi-mk__siempre").open = false;
+        $("mk-auto").hidden = !(una && (imp ? x && x.origen === "manual" : imps.some(function (k) { return una.marcas[k] && una.marcas[k].origen === "manual"; })));
         $("mk-error").hidden = true;
+        elegirCuenta(null);
         $("modal-marcar").hidden = false;
     }
+    function elegirCuenta(v) {
+        E.mk.cuenta = v;
+        document.querySelectorAll(".fi-mk__si-no [data-cuenta]").forEach(function (b) { b.setAttribute("aria-pressed", String(b.dataset.cuenta === v)); });
+        $("mk-pct-caja").hidden = v !== "1";
+        if (v === "1" && !$("mk-pct").value && (E.mk.imp || $("mk-imp").value) === "alc" && E.datos) $("mk-pct").value = E.datos.config.alcohol_pct;
+        $("mk-aplicar").disabled = v == null;
+    }
+    function abrirMarcar() { prepararModal(Array.from(E.sel), null); }
+    function abrirCelda(uuid, imp) { prepararModal([uuid], imp); }
 
     async function aplicarMarca() {
-        var imp = $("mk-imp").value, imps = imp === "*" ? impuestosDelLado() : [imp];
+        if (!E.mk || E.mk.cuenta == null) return;
+        var imp = E.mk.imp || $("mk-imp").value, imps = imp === "*" ? impuestosDelLado() : [imp];
         var siempre = document.querySelector('input[name="siempre"]:checked').value;
         if (siempre === "contraparte") siempre = E.lado === "emitidos" ? "cliente" : "proveedor";
-        var pct = $("mk-pct").value === "" ? null : +$("mk-pct").value;
-        if (imp === "alc" && pct == null && $("mk-cuenta").value === "1") pct = E.datos.config.alcohol_pct;
-        var cuerpo = { uuids: Array.from(E.sel), cuenta: $("mk-cuenta").value === "1", pct: pct, motivo: $("mk-motivo").value.trim() || null, siempre: siempre || null };
+        var cuenta = E.mk.cuenta === "1";
+        var pct = cuenta && $("mk-pct").value !== "" ? +$("mk-pct").value : null;
+        var cuerpo = { uuids: E.mk.uuids, cuenta: cuenta, pct: pct, motivo: $("mk-motivo").value.trim() || null, siempre: siempre || null };
+        $("mk-aplicar").disabled = true;
         try {
             var aprendidas = 0;
             for (var i = 0; i < imps.length; i++) {
@@ -210,7 +241,18 @@
                 aprendidas += r.reglas;
             }
             $("modal-marcar").hidden = true;
-            aviso("Listo: " + cuerpo.uuids.length + " CFDI marcados." + (aprendidas ? " Fiscontable lo aprendió para esta empresa (" + aprendidas + " regla(s); las ves en ⚙ Reglas)." : ""));
+            aviso("Guardado: " + (cuenta ? "sí cuenta" : "no cuenta") + (imp === "*" ? "" : " para " + esc(nombre(imp))) + " en " + cuerpo.uuids.length + " factura(s)." +
+                  (aprendidas ? " Fiscontable lo hará así siempre en esta empresa (lo ves o quitas en ⚙ Reglas)." : ""));
+            E.sel.clear();
+            cargar();
+        } catch (e) { $("mk-error").textContent = e.message; $("mk-error").hidden = false; $("mk-aplicar").disabled = false; }
+    }
+
+    async function automaticoDelModal() {
+        try {
+            await enviar("/api/fiscal/" + encodeURIComponent(E.rfc) + "/automatico", "POST", { uuids: E.mk.uuids, impuesto: E.mk.imp || null });
+            $("modal-marcar").hidden = true;
+            aviso("Volvió a lo automático.");
             cargar();
         } catch (e) { $("mk-error").textContent = e.message; $("mk-error").hidden = false; }
     }
@@ -218,7 +260,8 @@
     async function marcarRevisado() {
         try {
             await enviar("/api/fiscal/" + encodeURIComponent(E.rfc) + "/marcar", "POST", { uuids: Array.from(E.sel), impuesto: "revisado", cuenta: true });
-            aviso("Marcadas como revisadas.");
+            aviso("Listo: ya no salen como «Por revisar».");
+            E.sel.clear();
             cargar();
         } catch (e) { aviso(esc(e.message), true); }
     }
@@ -227,6 +270,7 @@
         if (!confirm("Esos CFDI vuelven a lo que dicen las reglas (se quita lo marcado a mano). Las reglas aprendidas se quedan.")) return;
         try {
             await enviar("/api/fiscal/" + encodeURIComponent(E.rfc) + "/automatico", "POST", { uuids: Array.from(E.sel) });
+            E.sel.clear();
             aviso("Volvieron a lo automático.");
             cargar();
         } catch (e) { aviso(esc(e.message), true); }
@@ -313,7 +357,10 @@
         $("buscar").addEventListener("input", function () { E.buscar = this.value; pintarTabla(); });
         $("tbody").addEventListener("click", function (e) {
             var tr = e.target.closest("tr[data-uuid]"); if (!tr) return;
+            var c = e.target.closest("[data-celda]");
+            if (c) { abrirCelda(tr.dataset.uuid, c.dataset.celda); return; }
             var u = tr.dataset.uuid;
+            if (!e.target.closest("[data-check]") && e.target.closest("button, a")) return;
             if (E.sel.has(u)) E.sel.delete(u); else E.sel.add(u);
             tr.classList.toggle("fi-sel", E.sel.has(u));
             tr.querySelector("[data-check]").checked = E.sel.has(u);
@@ -338,7 +385,9 @@
         $("btn-limpiar").addEventListener("click", function () { E.sel.clear(); pintarTabla(); });
         $("mk-cancelar").addEventListener("click", function () { $("modal-marcar").hidden = true; });
         $("mk-aplicar").addEventListener("click", aplicarMarca);
-        $("mk-imp").addEventListener("change", function () { if (this.value === "alc" && E.datos) { $("mk-cuenta").value = "1"; $("mk-pct").value = E.datos.config.alcohol_pct; } });
+        $("mk-imp").addEventListener("change", function () { if (E.mk) elegirCuenta(E.mk.cuenta); });
+        document.querySelectorAll(".fi-mk__si-no [data-cuenta]").forEach(function (b) { b.addEventListener("click", function () { elegirCuenta(b.dataset.cuenta); }); });
+        $("mk-auto").addEventListener("click", automaticoDelModal);
         $("btn-config").addEventListener("click", abrirConfig);
         $("cf-cancelar").addEventListener("click", function () { $("modal-config").hidden = true; });
         $("cf-guardar").addEventListener("click", function () { guardarConfig(false); });

@@ -4,16 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Marcas fiscales · Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611050200">
-    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611050200">
-    <link rel="stylesheet" href="/herramientas/isn/isn.css?v=202611050200">
-    <link rel="stylesheet" href="/herramientas/xml/fiscal.css?v=202611050200">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611050300">
+    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611050300">
+    <link rel="stylesheet" href="/herramientas/isn/isn.css?v=202611050300">
+    <link rel="stylesheet" href="/herramientas/xml/fiscal.css?v=202611050300">
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-slate-50">
 <div id="app-header" data-modulo="xml" data-titulo="Marcas fiscales" data-migas="Herramientas|/herramientas/|Administración de XML|/herramientas/xml/"></div>
-<script src="/assets/js/nucleo.js?v=202611050200"></script>
-<script src="/assets/js/barra.js?v=202611050200"></script>
+<script src="/assets/js/nucleo.js?v=202611050300"></script>
+<script src="/assets/js/barra.js?v=202611050300"></script>
 
 <main class="xml-pagina">
     <div class="xml-cabeza">
@@ -44,6 +44,7 @@
 
     <div id="tarjetas" class="fi-tarjetas"></div>
 
+    <p class="fi-guia"><b>¿Cómo cambio una?</b> Toca la casilla del impuesto en la fila (por ejemplo <span class="fi-celda fi-celda--si fi-celda--demo">✓ $1,000.00</span> o <span class="fi-celda fi-celda--no fi-celda--demo">✗ No</span>) y elige «Sí cuenta» o «No cuenta».</p>
     <div class="fi-barra">
         <div class="fi-filtros" role="group" aria-label="Filtro">
             <button type="button" data-filtro="todos" aria-pressed="true">Todas</button>
@@ -57,8 +58,8 @@
 
     <div id="seleccion" class="fi-seleccion" hidden>
         <b id="sel-n"></b>
-        <button type="button" id="btn-marcar" class="xml-btn xml-btn--primario">Marcar como…</button>
-        <button type="button" id="btn-revisado" class="xml-btn">✓ Revisado</button>
+        <button type="button" id="btn-marcar" class="xml-btn xml-btn--primario">¿Cuentan o no?</button>
+        <button type="button" id="btn-revisado" class="xml-btn" title="Quita el ⚑ sin cambiar nada">✓ Ya las revisé</button>
         <button type="button" id="btn-auto" class="xml-btn" title="Quita lo marcado a mano y vuelve a lo que dicen las reglas">↺ Automático</button>
         <button type="button" id="btn-limpiar" class="xml-enlace">Quitar selección</button>
     </div>
@@ -70,30 +71,36 @@
         </table>
         <p id="sin-filas" class="xml-vacio xml-vacio--tabla" hidden></p>
     </div>
-    <p class="xml-pie">Casi todo se marca solo y dice por qué. Solo revisa «Por revisar». Clic en una fila para seleccionarla.</p>
+    <p class="xml-pie">Casi todo se marca solo y dice por qué. Para cambiar una, toca su casilla de ISR, IVA… Para cambiar varias a la vez, palomea sus casillas de la izquierda.</p>
 </main>
 
-<!-- Marcar como… -->
+<!-- ¿Cuenta o no? (una casilla o varias facturas) -->
 <div id="modal-marcar" class="xml-modal" hidden>
-    <div class="xml-modal__caja isn-form">
-        <h3 id="mk-titulo">Marcar</h3>
-        <div class="isn-rejilla">
-            <label>Para<select id="mk-imp"></select></label>
-            <label>¿Cuenta?<select id="mk-cuenta"><option value="1">Sí cuenta</option><option value="0">No cuenta</option></select></label>
-            <label>Porcentaje<input id="mk-pct" type="number" min="0" max="100" step="0.01" placeholder="100"></label>
-            <label class="isn-ancho">Motivo (lo verás en la tabla)<input id="mk-motivo" maxlength="200" placeholder="p. ej. Uso personal, Regalo, Parte de bebidas alcohólicas"></label>
+    <div class="xml-modal__caja isn-form fi-mk">
+        <h3 id="mk-titulo">¿Cuenta?</h3>
+        <p id="mk-de" class="fi-mk__de"></p>
+        <p id="mk-ahora" class="fi-mk__ahora"></p>
+        <label class="fi-mk__para" id="mk-para" hidden>Para<select id="mk-imp"></select></label>
+        <div class="fi-mk__si-no" role="group" aria-label="¿Cuenta?">
+            <button type="button" data-cuenta="1"><b>✓</b>Sí cuenta</button>
+            <button type="button" data-cuenta="0"><b>✗</b>No cuenta</button>
         </div>
-        <p class="isn-nota">¿Siempre así? Fiscontable lo aprende para esta empresa (lo puedes quitar en ⚙ Reglas):</p>
-        <div class="fi-siempre" id="mk-siempre">
-            <label><input type="radio" name="siempre" value="" checked> Solo estas</label>
-            <label><input type="radio" name="siempre" value="contraparte"> <span id="mk-contra">Siempre con este proveedor</span></label>
-            <label><input type="radio" name="siempre" value="clave"> Siempre con estas claves de producto</label>
-        </div>
+        <label class="fi-mk__pct" id="mk-pct-caja" hidden>Solo una parte (opcional)<span><input id="mk-pct" type="number" min="0" max="100" step="0.01" placeholder="100"> %</span></label>
+        <label class="fi-mk__motivo">¿Por qué? (opcional)<input id="mk-motivo" maxlength="200" placeholder="p. ej. Uso personal, Regalo, Parte de bebidas alcohólicas"></label>
+        <details class="fi-mk__siempre">
+            <summary>¿Que se haga así siempre?</summary>
+            <div class="fi-siempre" id="mk-siempre">
+                <label><input type="radio" name="siempre" value="" checked> No, solo esta vez</label>
+                <label><input type="radio" name="siempre" value="contraparte"> <span id="mk-contra">Siempre con este proveedor</span></label>
+                <label><input type="radio" name="siempre" value="clave"> Siempre con estos productos (misma clave SAT)</label>
+            </div>
+        </details>
         <p id="mk-error" class="isn-error" hidden></p>
         <div class="isn-botones">
+            <button type="button" id="mk-auto" class="xml-enlace" title="Quita lo que pusiste a mano y deja lo que dicen las reglas">Volver a automático</button>
             <span style="flex:1"></span>
             <button type="button" id="mk-cancelar" class="xml-btn">Cancelar</button>
-            <button type="button" id="mk-aplicar" class="xml-btn xml-btn--primario">Aplicar</button>
+            <button type="button" id="mk-aplicar" class="xml-btn xml-btn--primario" disabled>Guardar</button>
         </div>
     </div>
 </div>
@@ -132,6 +139,6 @@
     </div>
 </div>
 
-<script src="/herramientas/xml/fiscal.js?v=202611050200"></script>
+<script src="/herramientas/xml/fiscal.js?v=202611050300"></script>
 </body>
 </html>

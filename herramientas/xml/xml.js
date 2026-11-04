@@ -1414,6 +1414,11 @@
         $("btn-enlaces").addEventListener("click", function () { Fiscontable.enlacesCompartidos({ rfc: E.rfc }); });
         $("btn-zip-origen").addEventListener("click", descargarZipOrigen);
         $("btn-listas").addEventListener("click", abrirListas);
+        $("btn-cancelaciones").addEventListener("click", function () {
+            var q = new URLSearchParams({ rfc: E.rfc || "" });
+            if (E.modulo === "emitidos") q.set("vista", "emitidas");
+            location.href = "/herramientas/xml/cancelaciones.html?" + q.toString();
+        });
         $("btn-fiscal").addEventListener("click", function () {
             var est = E.P.estado(), q = new URLSearchParams({ rfc: E.rfc || "" });
             var mes = (hayEleccion() && est.meses && est.meses.length) ? String(est.meses[0]).slice(-2) : (est.desde || "").slice(5, 7);

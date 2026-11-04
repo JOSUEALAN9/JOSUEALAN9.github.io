@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cancelaciones · Fiscontable</title>
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611050300">
+    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611050300">
+    <link rel="stylesheet" href="/herramientas/isn/isn.css?v=202611050300">
+    <link rel="stylesheet" href="/herramientas/xml/fiscal.css?v=202611050300">
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-50">
+<div id="app-header" data-modulo="xml" data-titulo="Cancelaciones" data-migas="Herramientas|/herramientas/|Administración de XML|/herramientas/xml/"></div>
+<script src="/assets/js/nucleo.js?v=202611050300"></script>
+<script src="/assets/js/barra.js?v=202611050300"></script>
+
+<main class="xml-pagina">
+    <div class="xml-cabeza">
+        <div class="fc-titulo">
+            <h1>Cancelaciones</h1>
+            <div class="fc-vista isn-pestanas" role="tablist" aria-label="Qué ver">
+                <button type="button" role="tab" data-vista="recibidas" aria-selected="true">Te piden cancelar <b id="n-pend"></b></button>
+                <button type="button" role="tab" data-vista="emitidas" aria-selected="false">Cancelar emitidas</button>
+                <button type="button" role="tab" data-vista="historial" aria-selected="false">Historial <b id="n-proc"></b></button>
+            </div>
+        </div>
+        <div class="ctx">
+            <div class="xml-menu">
+                <button type="button" id="btn-empresa" class="ctx-campo" aria-haspopup="menu">
+                    <span class="ctx-campo__texto"><small id="empresa-etiqueta">Empresa</small><strong id="empresa-titulo">Elegir empresa</strong></span>
+                    <span class="ctx-campo__flecha" aria-hidden="true">▾</span>
+                </button>
+                <div id="menu-empresa" class="xml-menu__lista xml-menu__lista--otra" hidden></div>
+            </div>
+            <select id="sel-mes" class="isn-anio" aria-label="Mes" hidden></select>
+            <select id="sel-anio" class="isn-anio" aria-label="Año" hidden></select>
+        </div>
+    </div>
+
+    <div id="aviso" class="isn-aviso" hidden></div>
+    <div id="estado" class="ca-estado" hidden></div>
+
+    <!-- Te piden cancelar (como receptor) -->
+    <section id="v-recibidas">
+        <div class="ca-cabeza">
+            <p class="ca-texto">Facturas que un proveedor pidió cancelar y esperan tu respuesta. Tienes <b>72 horas</b>; si no respondes, el SAT las da por aceptadas.</p>
+            <button type="button" id="btn-buscar" class="xml-btn xml-btn--primario">Buscar en el SAT</button>
+        </div>
+        <p id="consultado" class="ca-nota"></p>
+        <div class="xml-tabla-caja isn-tabla-caja">
+            <table class="xml-tabla fi-tabla">
+                <thead><tr><th>Folio fiscal</th><th>Emisor</th><th>Fecha</th><th class="xml-num">Total</th><th>Estado en el SAT</th><th></th></tr></thead>
+                <tbody id="tb-pend"></tbody>
+            </table>
+        </div>
+    </section>
+
+    <!-- Cancelar emitidas -->
+    <section id="v-emitidas" hidden>
+        <div class="ca-cabeza">
+            <p class="ca-texto">Cualquier factura emitida por esta empresa, aunque no se haya timbrado en Fiscontable. Se firma con su CSD.</p>
+            <input id="buscar" class="fi-buscar" type="search" placeholder="Buscar folio, cliente, RFC o UUID">
+        </div>
+        <div class="xml-tabla-caja isn-tabla-caja">
+            <table class="xml-tabla fi-tabla">
+                <thead><tr><th>Fecha</th><th>Folio</th><th>Tipo</th><th>Cliente</th><th class="xml-num">Total</th><th>Estado en el SAT</th><th></th></tr></thead>
+                <tbody id="tb-emit"></tbody>
+            </table>
+        </div>
+    </section>
+
+    <!-- Historial -->
+    <section id="v-historial" hidden>
+        <div class="xml-tabla-caja isn-tabla-caja">
+            <table class="xml-tabla fi-tabla">
+                <thead><tr><th>Cuándo</th><th>Qué</th><th>Folio fiscal</th><th>Contraparte</th><th class="xml-num">Total</th><th>Resultado</th><th></th></tr></thead>
+                <tbody id="tb-hist"></tbody>
+            </table>
+        </div>
+    </section>
+</main>
+
+<!-- Cancelar una emitida -->
+<div id="modal-cancelar" class="xml-modal" hidden>
+    <div class="xml-modal__caja isn-form">
+        <h3>Cancelar ante el SAT</h3>
+        <p id="mc-resumen" class="ca-resumen"></p>
+        <div class="isn-rejilla">
+            <label class="isn-ancho">Motivo<select id="mc-motivo"></select></label>
+            <label class="isn-ancho" id="mc-sust-caja" hidden>Folio fiscal (UUID) de la factura que la sustituye<input id="mc-sust" maxlength="36" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"></label>
+        </div>
+        <p class="isn-nota" id="mc-nota"></p>
+        <label class="isn-check ca-confirmo"><input type="checkbox" id="mc-confirmo"> Revisé el folio y quiero cancelarla</label>
+        <p id="mc-error" class="isn-error" hidden></p>
+        <div class="isn-botones">
+            <span style="flex:1"></span>
+            <button type="button" id="mc-cerrar" class="xml-btn">No, volver</button>
+            <button type="button" id="mc-enviar" class="xml-btn ca-peligro" disabled>Cancelar factura</button>
+        </div>
+    </div>
+</div>
+
+<!-- Aceptar o rechazar -->
+<div id="modal-responder" class="xml-modal" hidden>
+    <div class="xml-modal__caja isn-form">
+        <h3 id="mr-titulo">Responder</h3>
+        <p id="mr-resumen" class="ca-resumen"></p>
+        <p class="isn-nota" id="mr-nota"></p>
+        <label class="isn-check ca-confirmo"><input type="checkbox" id="mr-confirmo"> <span id="mr-confirmo-txt">Confirmo</span></label>
+        <p id="mr-error" class="isn-error" hidden></p>
+        <div class="isn-botones">
+            <span style="flex:1"></span>
+            <button type="button" id="mr-cerrar" class="xml-btn">No, volver</button>
+            <button type="button" id="mr-enviar" class="xml-btn xml-btn--primario" disabled>Enviar</button>
+        </div>
+    </div>
+</div>
+
+<script src="/herramientas/xml/cancelaciones.js?v=202611050300"></script>
+</body>
+</html>
