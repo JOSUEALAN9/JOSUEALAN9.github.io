@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Impuestos estatales · Fiscontable</title>
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611042130">
+    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611042130">
+    <link rel="stylesheet" href="/herramientas/isn/isn.css?v=202611042130">
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-50">
+<div id="app-header" data-modulo="isn" data-titulo="Impuestos estatales" data-migas="Herramientas|/herramientas/"></div>
+<script src="/assets/js/nucleo.js?v=202611042130"></script>
+<script src="/assets/js/barra.js?v=202611042130"></script>
+
+<main class="xml-pagina">
+    <nav class="est-impuestos" aria-label="Impuesto">
+        <a href="/herramientas/isn/">ISN</a>
+        <a href="/herramientas/isn/estatal.html?i=ish" data-imp="ish">Hospedaje</a>
+        <a href="/herramientas/isn/estatal.html?i=ish_inf" data-imp="ish_inf">Informativa de hospedaje</a>
+        <a href="/herramientas/isn/estatal.html?i=prof" data-imp="prof">Profesiones</a>
+        <a href="/herramientas/isn/estatal.html?i=alc" data-imp="alc">Alcohol</a>
+    </nav>
+    <div class="xml-cabeza">
+        <div class="fc-titulo">
+            <h1 id="titulo">Impuestos estatales</h1>
+            <div class="fc-vista isn-pestanas" role="tablist" aria-label="Forma de trabajar">
+                <button type="button" role="tab" data-vista="empresa" aria-selected="true">Por empresa</button>
+                <button type="button" role="tab" data-vista="masivo" aria-selected="false">Masivo</button>
+            </div>
+        </div>
+        <div class="ctx" id="ctx-empresa">
+            <div class="xml-menu">
+                <button type="button" id="btn-empresa" class="ctx-campo" aria-haspopup="menu">
+                    <span class="ctx-campo__texto"><small id="empresa-etiqueta">Empresa</small><strong id="empresa-titulo">Elegir empresa</strong></span>
+                    <span class="ctx-campo__flecha" aria-hidden="true">▾</span>
+                </button>
+                <div id="menu-empresa" class="xml-menu__lista xml-menu__lista--otra" hidden></div>
+            </div>
+            <select id="sel-anio" class="isn-anio" aria-label="Año"></select>
+        </div>
+    </div>
+
+    <div id="aviso" class="isn-aviso" hidden></div>
+
+    <section id="vista-masivo" class="isn-masivo" hidden>
+        <div class="isn-masivo__barra">
+            <label class="isn-campo">Año<select id="mv-anio"></select></label>
+            <label class="isn-campo">Mes<select id="mv-mes"></select></label>
+            <span class="isn-nota" id="mv-resumen"></span>
+            <span style="flex:1"></span>
+            <button type="button" id="mv-agregar" class="xml-btn" title="Empresas de tus clientes que presentan este impuesto cada mes">+ Agregar empresas</button>
+            <button type="button" id="mv-ceros" class="xml-btn" title="Crea la declaración en ceros de las marcadas que todavía no la tienen">0 En ceros</button>
+            <button type="button" id="mv-plantilla" class="xml-btn">⇩ Plantilla de las marcadas</button>
+            <button type="button" id="mv-excel" class="xml-btn">▦ Cargar Excel</button>
+            <button type="button" id="mv-quitar" class="xml-btn isn-btn-quitar" title="Borra la declaración de este mes de las marcadas (las presentadas nunca se borran)">Quitar del mes</button>
+            <button type="button" id="mv-revisar" class="xml-btn" title="Consulta en Tributanet si ya están presentadas (no llena ni presenta nada)">Revisar en el portal</button>
+            <button type="button" id="mv-presentar" class="xml-btn xml-btn--primario">Presentar marcadas</button>
+        </div>
+        <div class="xml-tabla-caja isn-tabla-caja">
+            <table class="xml-tabla isn-tabla">
+                <thead><tr><th style="width:32px"><input type="checkbox" id="mv-todos" aria-label="Todas"></th><th>Empresa</th><th>Estado</th>
+                    <th class="xml-num" id="mv-th-importe">Importe (A)</th><th class="xml-num" id="mv-th-imp">Impuesto (B)</th><th class="xml-num">A cargo</th></tr></thead>
+                <tbody id="mv-filas"></tbody>
+            </table>
+        </div>
+        <p class="xml-pie">Todo trabaja solo con las empresas marcadas.</p>
+    </section>
+
+    <div class="mod-layout" id="vista-empresa">
+        <aside class="mod-acciones" aria-label="Acciones">
+            <p class="mod-acciones__grupo">Capturar</p>
+            <button type="button" id="btn-nuevo" class="mod-accion mod-accion--primaria"><b>+</b>Nuevo periodo</button>
+            <button type="button" id="btn-datos" class="mod-accion" title="Domicilio, giro, firma y establecimientos que pide Tributanet"><b>🏢</b>Datos de la declaración</button>
+            <p class="mod-acciones__grupo">Cargar</p>
+            <button type="button" id="btn-excel" class="mod-accion"><b>▦</b>Cargar Excel</button>
+            <button type="button" id="btn-plantilla" class="mod-accion" title="De esta empresa, con lo que ya capturaste del mes que elijas"><b>⇩</b>Plantilla de Excel</button>
+            <button type="button" id="btn-acuses" class="mod-accion" title="Acuses de hospedaje, informativa, profesiones o alcohol: cada uno se reconoce solo"><b>📄</b>Leer acuses</button>
+            <button type="button" id="btn-descargar" class="mod-accion" title="Baja de Tributanet los acuses de los meses que elijas"><b>⇣</b>Descargar del portal</button>
+            <p class="mod-acciones__grupo">Reportes</p>
+            <button type="button" id="btn-exportar" class="mod-accion"><b>▤</b>Exportar Excel</button>
+            <p class="mod-acciones__grupo">Declaración</p>
+            <button type="button" id="btn-presentar" class="mod-accion" title="Elige el mes, revisa lo que se va a enviar y confirma una sola vez"><b>➤</b>Presentar esta empresa</button>
+            <p id="nota-presentar" class="mod-acciones__nota" hidden>Pide el permiso "Presentar impuestos estatales" al administrador.</p>
+            <input type="file" id="in-excel" accept=".xlsx" hidden>
+            <input type="file" id="in-acuses" accept=".pdf" multiple hidden>
+        </aside>
+        <div class="mod-layout__principal">
+            <div id="resumen" class="ctx-resumen"></div>
+            <div id="datos-empresa" class="isn-datos" hidden></div>
+            <div class="xml-tabla-caja isn-tabla-caja">
+                <table class="xml-tabla isn-tabla"><thead id="thead"></thead><tbody id="tbody"></tbody></table>
+                <p id="sin-filas" class="xml-vacio xml-vacio--tabla" hidden></p>
+            </div>
+            <p class="xml-pie">Clic en un periodo para editarlo.</p>
+        </div>
+    </div>
+</main>
+
+<!-- Captura de un periodo -->
+<div id="modal" class="xml-modal" hidden>
+    <form id="form" class="xml-modal__caja isn-form isn-form--ancho" autocomplete="off">
+        <h3 id="form-titulo">Nuevo periodo</h3>
+        <div class="isn-rejilla">
+            <label>RFC<input id="f-rfc" maxlength="13" required></label>
+            <label>Año<input id="f-anio" type="number" min="2000" max="2100" required></label>
+            <label>Mes<select id="f-mes"></select></label>
+            <label>Tipo<select id="f-tipo"><option>Normal</option><option>Complementaria</option></select></label>
+            <label>Municipio<input id="f-municipio" placeholder="p. ej. BENITO JUAREZ"></label>
+            <label class="solo-sistema" hidden>Sistema<select id="f-sistema"></select></label>
+            <label class="solo-inf" hidden>Establecimiento<select id="f-est"></select></label>
+            <label class="solo-pago"><span id="etq-importe">Importe (A)</span><input id="f-importe" type="number" min="0" step="1" value="0"></label>
+            <label class="solo-saldo" hidden>Saldo a favor por compensar<input id="f-saldo" type="number" min="0" step="1" value="0"></label>
+        </div>
+        <div class="isn-calculo solo-pago">
+            <span>Tasa <b id="c-tasa">—</b></span>
+            <span>Impuesto (B) <b id="c-imp">—</b></span>
+            <span>A cargo <b id="c-cargo">—</b></span>
+        </div>
+        <div id="desglose" class="isn-reparto" hidden>
+            <div class="isn-reparto__cabeza"><b>Desglose por establecimiento</b>
+                <button type="button" id="btn-repartir" class="xml-enlace">Repartir el impuesto según la base</button></div>
+            <div class="isn-reparto__caja">
+                <table class="isn-reparto__tabla"><thead><tr><th>Establecimiento</th><th class="xml-num" id="th-base">Base</th><th class="xml-num" id="th-imp">Impuesto</th></tr></thead>
+                    <tbody id="desglose-filas"></tbody><tfoot><tr><td>Suma</td><td class="xml-num" id="dg-base"></td><td class="xml-num" id="dg-imp"></td></tr></tfoot></table>
+            </div>
+            <p class="isn-nota">Si dejas todo vacío se reparte como el último mes; el impuesto vacío se reparte según la base.</p>
+        </div>
+        <div id="inf" class="solo-inf" hidden>
+            <div class="isn-reparto__cabeza"><b>Datos de la informativa</b><button type="button" id="btn-ceros" class="xml-enlace">Todo en ceros</button></div>
+            <div id="inf-campos" class="est-inf"></div>
+            <p class="isn-nota">El desglose de ingresos no base y los datos de intermediarios (tablas del portal) se capturan en Tributanet.</p>
+        </div>
+        <p id="form-error" class="isn-error" hidden></p>
+        <div class="isn-botones">
+            <button type="button" id="form-borrar" class="xml-btn xml-btn--peligro" hidden>Borrar</button>
+            <span style="flex:1"></span>
+            <button type="button" id="form-cancelar" class="xml-btn">Cancelar</button>
+            <button type="submit" class="xml-btn xml-btn--primario">Guardar</button>
+        </div>
+    </form>
+</div>
+
+<!-- Datos de la declaración -->
+<div id="modal-datos" class="xml-modal" hidden>
+    <form id="form-datos" class="xml-modal__caja isn-form" autocomplete="off">
+        <h3 id="datos-titulo">Datos de la declaración</h3>
+        <p class="isn-nota" id="datos-nota">Se llenan solos con el acuse más reciente. Así quedan en Tributanet.</p>
+        <div id="datos-campos" class="isn-rejilla"></div>
+        <label class="isn-check"><input type="checkbox" id="datos-obligacion"> La presenta cada mes (sale en Masivo)</label>
+        <div class="isn-reparto__cabeza"><b>Establecimientos</b><button type="button" id="btn-establecimiento" class="xml-enlace">+ Agregar establecimiento</button></div>
+        <div class="isn-reparto__caja">
+            <table class="isn-reparto__tabla"><thead><tr><th style="width:90px">Clave</th><th>Nombre</th><th style="width:30px"></th></tr></thead>
+                <tbody id="est-filas"></tbody></table>
+        </div>
+        <p class="isn-nota">Con un solo establecimiento no hace falta: lleva todo. La clave es la del portal (p. ej. 01001).</p>
+        <p id="datos-error" class="isn-error" hidden></p>
+        <div class="isn-botones">
+            <button type="button" id="datos-acuse" class="xml-btn">Llenar con un acuse</button>
+            <span style="flex:1"></span>
+            <button type="button" id="datos-cancelar" class="xml-btn">Cancelar</button>
+            <button type="submit" class="xml-btn xml-btn--primario">Guardar</button>
+        </div>
+    </form>
+</div>
+
+<!-- Agregar empresas (masivo) -->
+<div id="modal-agregar" class="xml-modal" hidden>
+    <div class="xml-modal__caja isn-form">
+        <h3 id="ag-titulo">Agregar empresas</h3>
+        <p class="isn-nota">Marca las empresas que presentan este impuesto cada mes. Las que quites dejan de salir en Masivo (sus declaraciones se quedan).</p>
+        <input id="ag-buscar" class="est-buscar" placeholder="Buscar por nombre o RFC">
+        <div id="ag-lista" class="est-lista"></div>
+        <p id="ag-error" class="isn-error" hidden></p>
+        <div class="isn-botones">
+            <span style="flex:1"></span>
+            <button type="button" id="ag-cancelar" class="xml-btn">Cancelar</button>
+            <button type="button" id="ag-guardar" class="xml-btn xml-btn--primario">Guardar</button>
+        </div>
+    </div>
+</div>
+
+<!-- Presentar (una empresa) -->
+<div id="modal-presentar" class="xml-modal" hidden>
+    <div class="xml-modal__caja isn-form isn-form--ancho">
+        <h3 id="p-titulo">Presentar declaraciones</h3>
+        <div class="isn-fila">
+            <label class="isn-campo">Año<select id="p-anio"></select></label>
+            <label class="isn-campo">Mes<select id="p-mes"></select></label>
+            <span class="isn-nota" id="p-resumen"></span>
+        </div>
+        <div class="isn-reparto__caja isn-lote">
+            <table class="isn-reparto__tabla">
+                <thead><tr><th style="width:28px"><input type="checkbox" id="p-todos" aria-label="Todas"></th><th>Declaración</th><th class="xml-num">Importe (A)</th>
+                    <th class="xml-num">Impuesto (B)</th><th class="xml-num">A cargo</th><th>Estado</th></tr></thead>
+                <tbody id="p-filas"></tbody>
+            </table>
+        </div>
+        <p class="isn-nota">Antes de confirmar en el portal se revisa que todo cuadre; si algo no cuadra, esa no se presenta.</p>
+        <p id="p-error" class="isn-error" hidden></p>
+        <div class="isn-botones">
+            <button type="button" id="p-revisar" class="xml-btn">Revisar en el portal</button>
+            <span style="flex:1"></span>
+            <button type="button" id="p-cancelar" class="xml-btn">Cancelar</button>
+            <button type="button" id="p-enviar" class="xml-btn xml-btn--primario" disabled>Presentar</button>
+        </div>
+    </div>
+</div>
+
+<!-- Descargar acuses -->
+<div id="modal-descargar" class="xml-modal" hidden>
+    <div class="xml-modal__caja isn-form">
+        <h3 id="d-titulo">Descargar acuses del portal</h3>
+        <div class="isn-fila">
+            <label class="isn-campo">Año<select id="d-anio"></select></label>
+            <label class="isn-campo solo-inf" hidden>Establecimiento<select id="d-est"></select></label>
+        </div>
+        <p class="isn-nota">Meses (los que ya tienes salen con ✓ y no se vuelven a bajar):</p>
+        <div id="d-meses" class="isn-meses"></div>
+        <label class="isn-check solo-pago"><input type="checkbox" id="d-ceros"> También el de pago en ceros (declaraciones en $0)</label>
+        <label class="isn-check"><input type="checkbox" id="d-forzar"> Volver a bajar aunque ya lo tenga</label>
+        <p id="d-error" class="isn-error" hidden></p>
+        <div class="isn-botones">
+            <span style="flex:1"></span>
+            <button type="button" id="d-cancelar" class="xml-btn">Cancelar</button>
+            <button type="button" id="d-enviar" class="xml-btn xml-btn--primario">Descargar</button>
+        </div>
+    </div>
+</div>
+
+<!-- Plantilla de Excel -->
+<div id="modal-plantilla" class="xml-modal" hidden>
+    <div class="xml-modal__caja isn-form">
+        <h3 id="pl-titulo">Plantilla de Excel</h3>
+        <p class="isn-nota">¿Qué periodo vas a declarar? Trae ese año y mes con lo que ya capturaste.</p>
+        <div class="isn-fila">
+            <label class="isn-campo">Año<select id="pl-anio"></select></label>
+            <label class="isn-campo">Mes<select id="pl-mes"></select></label>
+        </div>
+        <p id="pl-error" class="isn-error" hidden></p>
+        <div class="isn-botones">
+            <span style="flex:1"></span>
+            <button type="button" id="pl-cancelar" class="xml-btn">Cancelar</button>
+            <button type="button" id="pl-bajar" class="xml-btn xml-btn--primario">Descargar plantilla</button>
+        </div>
+    </div>
+</div>
+
+<div id="avance" class="isn-avance" hidden>
+    <div class="isn-avance__cabeza"><b id="avance-titulo">Tributanet</b><span id="avance-estado"></span>
+        <button type="button" id="avance-detener" class="xml-enlace">Detener</button>
+        <button type="button" id="avance-cerrar" class="xml-enlace" hidden>Cerrar</button></div>
+    <ol id="avance-filas" class="isn-avance__filas"></ol>
+</div>
+
+<script src="/herramientas/isn/estatal.js?v=202611042130"></script>
+</body>
+</html>
