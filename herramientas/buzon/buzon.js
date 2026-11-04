@@ -388,12 +388,10 @@
         }
         html += "<h3 class=\"bz-subtitulo\">Notificadas</h3>";
         if (!notif.length) return html + '<p class="bz-vacio">No hay notificaciones.</p>';
-        var NOM = { aviso: "Aviso", acto: "Acto administrativo", acuse: "Acuse", flujo1: "Documento 1", flujo2: "Documento 2", flujo3: "Documento 3" };
         var orden = function (docs) {                 // aviso, acto, sus anexos, acuse y lo demás
             var pos = function (k) { return k === "aviso" ? 0 : k === "acto" ? 1 : k.indexOf("anexo") === 0 ? 2 + (+k.slice(5) || 0) / 100 : k === "acuse" ? 3 : 4; };
             return docs.slice().sort(function (a, b) { return pos(a) - pos(b) || (a < b ? -1 : 1); });
         };
-        var nombreDoc = function (k) { return NOM[k] || (k.indexOf("anexo") === 0 ? "Anexo " + k.slice(5) : k); };
         return html + '<div class="bz-tabla-caja"><table class="bz-tabla"><thead><tr><th>Folio</th><th>Autoridad</th><th>Acto</th><th>Notificada</th><th>Documentos</th></tr></thead><tbody>' +
             notif.map(function (x) {
                 var abierta = x.abierta_en ? '<span class="bz-abierta">Abierta desde Fiscontable el ' + esc(fechaHora(x.abierta_en)) + (x.abierta_por ? " por " + esc(x.abierta_por) : "") + "</span>" : "";
@@ -430,6 +428,10 @@
     async function refrescarConteoPanel() {
         try { E.panel = await api("/api/buzon"); pintarResumen(); pintarEmpresas(); pintarSelectorEmpresa(); } catch (e) { /* */ }
     }
+
+    // Nombre de cada documento de una notificación (lo usan la tabla y el visor)
+    var NOMBRES_DOC = { aviso: "Aviso", acto: "Acto administrativo", acuse: "Acuse", flujo1: "Documento 1", flujo2: "Documento 2", flujo3: "Documento 3" };
+    function nombreDoc(k) { return NOMBRES_DOC[k] || (k.indexOf("anexo") === 0 ? "Anexo " + k.slice(5) : k); }
 
     async function bajarDocumento(b) {
         b.disabled = true;
