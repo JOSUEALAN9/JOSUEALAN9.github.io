@@ -743,6 +743,7 @@ function clicTarjeta(e) {
         if (e.target.closest("#btn-ver-timbres")) ventana("dlg-timbres", "Timbres de facturación", cuerpoTimbres);
         if (e.target.closest("#btn-asignar-timbres")) asignarTimbres(e.target.closest("#btn-asignar-timbres"));
         if (e.target.closest("#btn-errores-pac")) abrirErroresPac();
+        if (e.target.closest("#btn-actualizar-saldo")) actualizarSaldoPac(e.target.closest("#btn-actualizar-saldo"));
         if (e.target.closest("#btn-bolsa")) guardarBolsa(e.target.closest("#btn-bolsa"));
         if (e.target.closest("[data-copiar-error]")) copiarErrorPac(e.target.closest("[data-copiar-error]"));
         if (e.target.closest("#btn-max-pcs")) guardarMaxPcs(e.target.closest("#btn-max-pcs"));
@@ -1015,10 +1016,24 @@ function tarjetaTimbres() {
         <p class="text-[11px] ${d.panel ? "text-emerald-700" : "text-amber-700"} mt-1">${d.panel ? "✓ Conectado al panel de MultiFacturas" : "Sin conexión al panel de MultiFacturas (faltan sus claves en el servidor)"}</p>
         ${d.bolsa && d.bolsa.timbres != null ? `<div class="mt-2 rounded-xl bg-indigo-50 border border-indigo-100 px-4 py-3"><p class="text-[11px] font-bold uppercase tracking-wide text-indigo-700">Saldo general en MultiFacturas</p>
             <p class="text-2xl font-extrabold text-slate-900 leading-tight">${Number(d.bolsa.timbres).toLocaleString("es-MX")}</p>
-            <p class="text-[11px] ${d.bolsa.fuente === "panel" ? "text-emerald-700" : "text-slate-500"}">${d.bolsa.fuente === "panel" ? "✓ Real, leído de tu panel de MultiFacturas" : "Escrito a mano (se baja al repartir)"}</p></div>` : `<p class="text-[11px] text-amber-700 mt-1">Saldo general de MultiFacturas sin registrar: escríbelo en «Ver y asignar».</p>`}
+            <p class="text-[11px] ${d.bolsa.fuente === "panel" ? "text-emerald-700" : "text-slate-500"}">${d.bolsa.fuente === "panel" ? "✓ Real, leído de tu panel de MultiFacturas" + (d.bolsa.leido_en ? " " + haceCuanto(d.bolsa.leido_en) : "") : "Escrito a mano (se baja al repartir)"}</p>
+            ${d.bolsa.fuente === "panel" || d.bolsa.error ? `<div class="flex items-center gap-2 mt-2"><button type="button" id="btn-actualizar-saldo" class="whitespace-nowrap text-xs font-bold text-slate-700 bg-white border border-gray-200 hover:border-slate-400 rounded-lg py-1.5 px-3">↻ Actualizar</button>
+            <span class="text-[11px] text-slate-500">Se vuelve a leer solo al abrir esta página si pasaron ${d.bolsa.cada_min || 5} min, y al pasar o quitar timbres.</span></div>` : ""}</div>` : `<p class="text-[11px] text-amber-700 mt-1">Saldo general de MultiFacturas sin registrar: escríbelo en «Ver y asignar».</p>`}
         ${d.bolsa && d.bolsa.error ? `<p class="text-[11px] text-amber-700 mt-1">No se pudo leer de tu panel: ${esc(d.bolsa.error)}</p>` : ""}
         <p class="text-[11px] text-slate-500 mt-1">${con.length} cuenta${con.length === 1 ? "" : "s"} con timbres · ${total.toLocaleString("es-MX")} asignados en total</p>
         <div class="flex gap-2 mt-3">${botonVer("btn-ver-timbres", "Ver y asignar")}${botonVer("btn-errores-pac", "Errores del PAC")}</div>`;
+}
+
+// «↻ Actualizar»: vuelve a leer en este momento el saldo general del panel de MultiFacturas.
+async function actualizarSaldoPac(boton) {
+    boton.disabled = true;
+    boton.textContent = "Leyendo del panel…";
+    try {
+        timbresAdmin = await api("/api/admin/facturacion/timbres?actualizar=true");
+        if (timbresAdmin.bolsa && timbresAdmin.bolsa.error) mostrarAlerta("error", "No se pudo leer de tu panel: " + timbresAdmin.bolsa.error);
+        else mostrarAlerta("exito", "Saldo general actualizado: " + Number(timbresAdmin.bolsa.timbres).toLocaleString("es-MX") + " timbres.");
+    } catch (err) { mostrarAlerta("error", err.message); }
+    pintarEstado();
 }
 
 // Rastreo de errores (como lo pide MultiFacturas): cada rechazo del PAC queda con su número de seguimiento (FC-…),
