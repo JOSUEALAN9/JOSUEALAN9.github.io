@@ -80,6 +80,7 @@
         var d = E.datos;
         $("paquete").textContent = d ? "Reglas: " + d.config.paquete + (d.config.personalizada ? " · con ajustes tuyos" : "") : "";
         pintarAvisos();
+        pintarCandado();
         pintarTarjetas();
         $("n-revisar").textContent = d && d.por_revisar ? "(" + d.por_revisar + ")" : "";
         pintarTabla();
@@ -93,6 +94,30 @@
                 (a.presentada ? " Esa declaración ya está presentada: revisa si toca una complementaria." :
                  '<button type="button" data-actualizar="' + a.impuesto + '" data-anio="' + a.anio + '" data-mes="' + a.mes + '">Actualizar el cálculo</button>') + "</div>";
         }).join("");
+    }
+
+    function pintarCandado() {
+        var c = E.datos && E.datos.candado, b = $("btn-candado");
+        b.hidden = !E.datos;
+        b.textContent = c ? "🔒 Mes cerrado" : "🔓 Cerrar mes";
+        b.title = c ? "Abrir el mes para volver a cambiar marcas" : "Ya no se podrán cambiar las marcas de este mes (por ejemplo, cuando ya presentaste)";
+        $("candado").hidden = !c;
+        if (c) $("candado").innerHTML = "🔒 <b>" + MESES[E.mes - 1] + " " + E.anio + " está cerrado</b>" +
+            (c.por.length ? ": ya se presentó " + esc(c.por.join(" y ")) + "." : c.quien ? " (lo cerró " + esc(c.quien) + ")." : ".") +
+            " Las marcas se ven pero no se cambian. Si de verdad hay que corregir, usa «🔒 Mes cerrado» para abrirlo.";
+        document.body.classList.toggle("fi-cerrado", !!c);
+    }
+
+    async function cambiarCandado() {
+        var c = E.datos && E.datos.candado;
+        if (c && !confirm((c.por.length ? "Ya se presentó " + c.por.join(" y ") + " de este mes. " : "") +
+                          "¿Abrir " + MESES[E.mes - 1] + " " + E.anio + " para cambiar marcas? Si cambias algo, revisa si toca una complementaria.")) return;
+        try {
+            var r = await enviar("/api/fiscal/" + encodeURIComponent(E.rfc) + "/candado", "POST", { anio: E.anio, mes: E.mes, cerrar: !c });
+            E.datos.candado = r.candado;
+            aviso(r.candado ? "Mes cerrado: sus marcas ya no se cambian." : "Mes abierto: ya puedes cambiar marcas.");
+            pintarCandado(); pintarTabla();
+        } catch (e) { aviso(esc(e.message), true); }
     }
 
     function uso(imp) {
@@ -147,8 +172,9 @@
         var mano = x.origen !== "auto" ? '<i class="fi-punto" title="' + (x.origen === "regla" ? "Regla de la empresa" : "Marcado a mano") + '"></i>' : "";
         var clase = !x.cuenta ? "no" : x.pct < 100 ? "parcial" : "si";
         var texto = !x.cuenta ? "✗ No" : "✓ " + m(x.base * x.pct / 100) + (x.pct < 100 ? ' <small>' + x.pct + " %</small>" : "");
-        return '<td class="fi-col-imp"><button type="button" class="fi-celda fi-celda--' + clase + '" data-celda="' + imp + '" title="' +
-            esc(nombre(imp) + ": " + (x.motivo || "") + " · Toca para cambiar") + '">' + texto + mano + "</button></td>";
+        var cerrado = E.datos && E.datos.candado;
+        return '<td class="fi-col-imp"><button type="button" class="fi-celda fi-celda--' + clase + '" data-celda="' + imp + '"' + (cerrado ? " disabled" : "") + ' title="' +
+            esc(nombre(imp) + ": " + (x.motivo || "") + (cerrado ? " · Mes cerrado" : " · Toca para cambiar")) + '">' + texto + mano + "</button></td>";
     }
 
     function motivoCorto(f, imps) {
@@ -185,7 +211,7 @@
 
     function pintarSeleccion() {
         var n = E.sel.size;
-        $("seleccion").hidden = !n;
+        $("seleccion").hidden = !n || !!(E.datos && E.datos.candado);
         $("sel-n").textContent = n + (n === 1 ? " seleccionada" : " seleccionadas");
     }
 
@@ -232,7 +258,7 @@
         if (siempre === "contraparte") siempre = E.lado === "emitidos" ? "cliente" : "proveedor";
         var cuenta = E.mk.cuenta === "1";
         var pct = cuenta && $("mk-pct").value !== "" ? +$("mk-pct").value : null;
-        var cuerpo = { uuids: E.mk.uuids, cuenta: cuenta, pct: pct, motivo: $("mk-motivo").value.trim() || null, siempre: siempre || null };
+        var cuerpo = { uuids: E.mk.uuids, cuenta: cuenta, pct: pct, motivo: $("mk-motivo").value.trim() || null, siempre: siempre || null, anio: E.anio, mes: E.mes };
         $("mk-aplicar").disabled = true;
         try {
             var aprendidas = 0;
@@ -250,7 +276,7 @@
 
     async function automaticoDelModal() {
         try {
-            await enviar("/api/fiscal/" + encodeURIComponent(E.rfc) + "/automatico", "POST", { uuids: E.mk.uuids, impuesto: E.mk.imp || null });
+            await enviar("/api/fiscal/" + encodeURIComponent(E.rfc) + "/automatico", "POST", { uuids: E.mk.uuids, impuesto: E.mk.imp || null, anio: E.anio, mes: E.mes });
             $("modal-marcar").hidden = true;
             aviso("Volvió a lo automático.");
             cargar();
@@ -259,7 +285,7 @@
 
     async function marcarRevisado() {
         try {
-            await enviar("/api/fiscal/" + encodeURIComponent(E.rfc) + "/marcar", "POST", { uuids: Array.from(E.sel), impuesto: "revisado", cuenta: true });
+            await enviar("/api/fiscal/" + encodeURIComponent(E.rfc) + "/marcar", "POST", { uuids: Array.from(E.sel), impuesto: "revisado", cuenta: true, anio: E.anio, mes: E.mes });
             aviso("Listo: ya no salen como «Por revisar».");
             E.sel.clear();
             cargar();
@@ -269,7 +295,7 @@
     async function volverAutomatico() {
         if (!confirm("Esos CFDI vuelven a lo que dicen las reglas (se quita lo marcado a mano). Las reglas aprendidas se quedan.")) return;
         try {
-            await enviar("/api/fiscal/" + encodeURIComponent(E.rfc) + "/automatico", "POST", { uuids: Array.from(E.sel) });
+            await enviar("/api/fiscal/" + encodeURIComponent(E.rfc) + "/automatico", "POST", { uuids: Array.from(E.sel), anio: E.anio, mes: E.mes });
             E.sel.clear();
             aviso("Volvieron a lo automático.");
             cargar();
@@ -389,6 +415,7 @@
         document.querySelectorAll(".fi-mk__si-no [data-cuenta]").forEach(function (b) { b.addEventListener("click", function () { elegirCuenta(b.dataset.cuenta); }); });
         $("mk-auto").addEventListener("click", automaticoDelModal);
         $("btn-config").addEventListener("click", abrirConfig);
+        $("btn-candado").addEventListener("click", cambiarCandado);
         $("cf-cancelar").addEventListener("click", function () { $("modal-config").hidden = true; });
         $("cf-guardar").addEventListener("click", function () { guardarConfig(false); });
         $("cf-restablecer").addEventListener("click", function () { if (confirm("¿Volver al paquete de su régimen? Lo aprendido se queda.")) guardarConfig(true); });

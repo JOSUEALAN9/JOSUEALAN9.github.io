@@ -102,3 +102,8 @@
 .xml-btn.ca-peligro-suave { color: #b91c1c; border-color: #fecaca; }
 .xml-btn.ca-peligro-suave:hover { background: #fef2f2; }
 #v-recibidas[hidden], #v-emitidas[hidden], #v-historial[hidden] { display: none; }
+.fi-candado { background: #f1f5f9; border: 1px solid #cbd5e1; color: #334155; border-radius: 12px; padding: 10px 14px; font-size: 13px; margin-bottom: 12px; }
+.fi-candado[hidden] { display: none; }
+.fi-celda:disabled { cursor: default; opacity: .75; }
+.fi-celda:disabled:hover { box-shadow: none; }
+.fi-cerrado .fi-guia { display: none; }
