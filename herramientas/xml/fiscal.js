@@ -181,7 +181,9 @@
         if (f.revisar.length) return '<span class="fi-rev">⚑ ' + esc(f.revisar[0]) + (f.revisar.length > 1 ? " (+" + (f.revisar.length - 1) + ")" : "") + "</span>";
         // El motivo que más dice: el de una marca a mano, si no el de la que no cuenta, si no el primero
         var ks = imps.filter(function (k) { return f.marcas[k]; });
-        var k = ks.find(function (k) { return f.marcas[k].origen !== "auto"; }) || ks.find(function (k) { return !f.marcas[k].cuenta; }) || ks[0];
+        // (el «no» automático de alcohol es lo normal: no se repite en cada fila)
+        var k = ks.find(function (k) { return f.marcas[k].origen !== "auto"; }) ||
+                ks.find(function (k) { return !f.marcas[k].cuenta && !(k === "alc" && f.marcas[k].origen === "auto"); }) || ks[0];
         var x = k && f.marcas[k];
         if (!x) return "";
         return (x.origen !== "auto" ? '<span class="fi-mano">' + (x.origen === "regla" ? "Regla · " : "A mano · ") + "</span>" : "") + esc(x.motivo || "");
