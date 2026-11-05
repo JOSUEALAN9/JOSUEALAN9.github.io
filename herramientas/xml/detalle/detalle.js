@@ -185,7 +185,8 @@
             var html = "<h2>Cancelación</h2>";
             if (c.cancelada) html += '<p class="det-enlace__estado det-enlace__estado--no">Cancelada en el SAT.</p>';
             else if (c.en_proceso) html += '<p class="det-enlace__estado det-enlace__estado--proc">Se pidió su cancelación y el SAT la está procesando.</p>';
-            else if (c.pendiente_de_responder) html += '<p class="det-enlace__estado det-enlace__estado--proc">El emisor pidió cancelarla y espera tu respuesta (72 horas; si no respondes, se cancela sola).</p>';
+            else if (c.pendiente_de_responder) html += '<p class="det-enlace__estado det-enlace__estado--proc">El emisor pidió cancelarla y espera tu respuesta' +
+                (c.limite_respuesta ? " (a más tardar el " + esc(f(c.limite_respuesta)) + ")" : " (72 horas)") + '. Si no respondes, se cancela sola.</p>';
             else html += '<p class="det-enlace__estado">Vigente' + (c.es_cancelable ? " · " + esc(c.es_cancelable) : "") + (c.estatus_cancelacion ? " · " + esc(c.estatus_cancelacion) : "") + ".</p>";
             if (c.historial.length) {
                 html += '<ul class="det-enlace__hist">' + c.historial.slice(0, 4).map(function (h) {

@@ -32,6 +32,10 @@
     }
     function detalleUrl(u) { return "/herramientas/xml/detalle/?rfc=" + encodeURIComponent(E.rfc) + "&uuid=" + encodeURIComponent(u); }
     // El folio fiscal abre la factura (si su XML está en la biblioteca)
+    function fechaCorta(iso) {
+        var d = new Date((iso || "").slice(0, 10) + "T12:00:00");
+        return isNaN(d) ? iso : d.toLocaleDateString("es-MX", { weekday: "short", day: "numeric", month: "short" });
+    }
     function uuidCorto(u) { return '<a class="ca-uuid ca-liga" href="' + detalleUrl(u) + '" target="_blank" rel="noopener" title="Abrir la factura · ' + esc(u) + '">' + esc(u.slice(0, 8)) + "…" + esc(u.slice(-4)) + "</a>"; }
     function estadoSat(x) {
         if (!x || !x.estado_sat) return '<span class="ca-gris">Sin revisar</span>';
@@ -113,15 +117,22 @@
         caja.hidden = !t.length;
         $("n-pend").textContent = d.pendientes.length ? "(" + d.pendientes.length + ")" : "";
         $("n-proc").textContent = d.en_proceso ? "(" + d.en_proceso + " en proceso)" : "";
-        $("consultado").textContent = d.consultado_en ? "Última búsqueda: " + fecha(d.consultado_en) + "." : "Todavía no se ha buscado en el SAT.";
+        var rs = d.respuesta_sat;
+        $("consultado").textContent = d.consultado_en ? "Última búsqueda en el SAT: " + fecha(d.consultado_en) +
+            (rs && (rs.codigo || rs.texto) ? " · contestó: " + [rs.codigo, rs.texto].filter(Boolean).join(" ") + " (" + (rs.n || 0) + " solicitud(es))" : "") + "." :
+            "Todavía no se ha buscado en el SAT. Las que avisa el Buzón Tributario salen aquí solas.";
     }
 
     function pintarPendientes() {
         var lista = (E.datos && E.datos.pendientes) || [];
         $("tb-pend").innerHTML = lista.length ? lista.map(function (p) {
             var x = p.xml;
-            return "<tr><td>" + uuidCorto(p.uuid) + (p.pruebas ? ' <span class="ca-gris">(pruebas)</span>' : "") + "</td>" +
-                "<td class=\"fi-nombre\">" + (x ? esc(x.emisor.nombre || "") + "<small>" + esc(x.emisor.rfc || "") + "</small>" : '<span class="ca-gris">No tienes este XML en la biblioteca</span>') + "</td>" +
+            var origen = p.origen === "buzon" ? '<span class="ca-pill ca-pill--proc" title="El SAT la avisó en el Buzón Tributario">Avisada en el Buzón</span>'
+                                              : '<span class="ca-pill ca-pill--si" title="La trajo la consulta del SAT">Encontrada en el SAT</span>';
+            return "<tr><td>" + uuidCorto(p.uuid) + (p.pruebas ? ' <span class="ca-gris">(pruebas)</span>' : "") + '<span class="ca-bloque">' + origen + "</span>" +
+                (p.limite ? '<span class="ca-gris ca-bloque">Responde a más tardar el ' + esc(fechaCorta(p.limite)) + "</span>" : "") + "</td>" +
+                "<td class=\"fi-nombre\">" + (x ? esc(x.emisor.nombre || "") + "<small>" + esc(x.emisor.rfc || "") + "</small>"
+                    : (p.emisor ? esc(p.emisor) + "<small>No tienes este XML en la biblioteca</small>" : '<span class="ca-gris">No tienes este XML en la biblioteca</span>')) + "</td>" +
                 "<td>" + (x ? esc(x.fecha) : "") + "</td><td class=\"xml-num\">" + (x ? m(x.total) : "") + "</td><td>" + (x ? estadoSat(x) : "") + "</td>" +
                 '<td class="ca-acciones"><button type="button" class="xml-btn" data-responder="1" data-uuid="' + esc(p.uuid) + '">Aceptar</button>' +
                 '<button type="button" class="xml-btn" data-responder="0" data-uuid="' + esc(p.uuid) + '">Rechazar</button></td></tr>';
@@ -171,7 +182,7 @@
         var b = $("btn-buscar"); b.disabled = true; b.textContent = "Buscando…";
         try {
             var r = await enviar(base() + "/pendientes");
-            E.datos.pendientes = r.pendientes; E.datos.consultado_en = r.consultado_en;
+            E.datos.pendientes = r.pendientes; E.datos.consultado_en = r.consultado_en; E.datos.respuesta_sat = r.respuesta_sat;
             aviso(r.pendientes.length ? r.pendientes.length + " solicitud(es) esperan tu respuesta." : "No hay solicitudes de cancelación esperando tu respuesta.");
             pintarEstado(); pintarPendientes();
         } catch (e) { aviso(esc(e.message), true); }
