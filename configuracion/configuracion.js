@@ -55,7 +55,7 @@
         { id: "descarga_xml", grupo: "Módulos", titulo: "Descarga automática de XML", ico: ICO.xml, modulo: "descarga_xml",
           desc: "Qué empresas bajan solas sus XML del SAT, desde qué mes y cada cuánto.", palabras: "descarga masiva xml automática sat madrugada",
           pintar: pintarXmlAuto },
-        { id: "impuestos", grupo: "Módulos", titulo: "Impuestos por empresa", ico: ICO.balanza, modulo: "validador",
+        { id: "impuestos", grupo: "Módulos", titulo: "Impuestos por empresa", ico: ICO.balanza, modulo: "marcas",
           desc: "Cuándo cuenta cada impuesto (flujo o devengado), estatales, alcohol y las reglas que Fiscontable aprendió de cada empresa.",
           palabras: "impuestos reglas fiscales isr iva diot deducible no deducible flujo devengado cobrado facturado profesiones alcohol régimen paquete marcas",
           pintar: pintarImpuestos },

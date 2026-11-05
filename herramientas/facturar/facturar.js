@@ -2383,6 +2383,8 @@
                 titulo: "Facturas de " + (F.emisor.razon_social || F.emisor.alias) + (clientes.length === 1 ? " para " + clientes[0] : ""), correo: clientes.length === 1 && r ? r.correo : "" });
         });
         $("btn-enlaces").addEventListener("click", function () { Fiscontable.enlacesCompartidos({ rfc: F.emisor.rfc }); });
+        Fiscontable.perfil().then(function (pf) { $("btn-ir-cancelaciones").hidden = ((pf && pf.modulos_permitidos) || []).indexOf("cancelaciones") === -1; });
+        $("btn-ir-cancelaciones").addEventListener("click", function () { if (F.emisor) this.href = "/herramientas/xml/cancelaciones.html?rfc=" + encodeURIComponent(F.emisor.rfc); });
         document.addEventListener("click", function (ev) {
             if (!ev.target.closest(".fa-mas")) document.querySelectorAll(".fa-mas__menu").forEach(function (m) { m.hidden = true; });
         });

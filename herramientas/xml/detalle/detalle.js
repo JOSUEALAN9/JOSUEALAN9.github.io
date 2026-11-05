@@ -97,6 +97,7 @@
             dato("Lugar de expedición", d.lugar_expedicion) + dato("Condiciones de pago", d.condiciones_pago) +
             dato("Exportación", C("exportacion", d.exportacion)) + dato("Complementos", (d.complementos || []).join(", ")) +
             dato("PAC", d.pac_rfc) + dato("Certificado SAT", d.no_cert_sat) + "</div></div>");
+        html.push('<div id="det-enlaces" class="det-enlaces"></div>');
 
         if (d.tipo === "N" && d.nomina) html.push(nomina(d));
         else if (d.tipo === "P" && d.pagos) html.push(pagos(d, r));
@@ -117,6 +118,7 @@
         $("det").innerHTML = html.join("");
         $("det").hidden = false;
         $("btn-validar-uno").addEventListener("click", validarAhora);
+        enlaces(r);
         $("btn-ver-pdf").addEventListener("click", async function () {
             var b = this; b.disabled = true; b.textContent = "Abriendo…";
             try {
@@ -127,6 +129,77 @@
             } catch (e) { alert(e.message); }
             b.disabled = false; b.textContent = "Ver PDF";
         });
+    }
+
+    /* ------------------------------------------------------------ enlaces con Marcas fiscales y Cancelaciones */
+    var MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
+    async function enlaces(r) {
+        var pf = await Fiscontable.perfil();
+        var mods = (pf && pf.modulos_permitidos) || [];
+        var caja = $("det-enlaces"), partes = [];
+        if (mods.indexOf("marcas") !== -1 && (r.cfdi.tipo === "I" || r.cfdi.tipo === "E")) partes.push('<div class="det-tarjeta det-enlace" id="det-marcas"><h2>Marcas fiscales</h2><p class="xml-tenue">Cargando…</p></div>');
+        if (mods.indexOf("cancelaciones") !== -1) partes.push('<div class="det-tarjeta det-enlace" id="det-cancel"><h2>Cancelación</h2><p class="xml-tenue">Cargando…</p></div>');
+        caja.innerHTML = partes.join("");
+        caja.hidden = !partes.length;
+        if (mods.indexOf("marcas") !== -1 && $("det-marcas")) marcas(r);
+        if (mods.indexOf("cancelaciones") !== -1) cancelacion(r);
+    }
+
+    function chip(nombre, x) {
+        var clase = !x.cuenta ? "no" : x.pct < 100 ? "parcial" : "si";
+        var texto = !x.cuenta ? "✗ No" : "✓ $" + m(x.base * x.pct / 100) + (x.pct < 100 ? " · " + x.pct + " %" : "");
+        return '<span class="det-marca det-marca--' + clase + '" title="' + esc(x.motivo || "") + '"><b>' + esc(nombre) + "</b> " + texto +
+            (x.origen !== "auto" ? ' <i title="' + (x.origen === "regla" ? "Regla de la empresa" : "Marcado a mano") + '">●</i>' : "") + "</span>";
+    }
+
+    async function marcas(r) {
+        var caja = $("det-marcas");
+        try {
+            var resp = await fetch(API + "/api/fiscal/" + encodeURIComponent(RFC) + "/cfdi/" + encodeURIComponent(UUID), { credentials: "include" });
+            if (!resp.ok) throw new Error(await Fiscontable.leerError(resp));
+            var x = await resp.json();
+            var lado = x.lado;
+            if (!x.meses.length) { caja.innerHTML = "<h2>Marcas fiscales</h2><p class=\"xml-tenue\">" + esc(x.motivo || "Todavía no cuenta en ningún mes (por ejemplo, PPD sin pagos).") + "</p>"; return; }
+            caja.innerHTML = "<h2>Marcas fiscales</h2>" + x.meses.map(function (mm) {
+                var url = "/herramientas/xml/fiscal.html?rfc=" + encodeURIComponent(RFC) + "&anio=" + mm.anio + "&mes=" + mm.mes + "&lado=" + lado + "&uuid=" + encodeURIComponent(UUID);
+                var motivo = (Object.keys(mm.marcas).filter(function (k) { var v = mm.marcas[k]; return v.origen !== "auto" || (!v.cuenta && k !== "alc"); })
+                    .map(function (k) { return mm.marcas[k]; })[0] || mm.marcas.isr || {}).motivo;     // el «no» automático de alcohol es lo normal
+                return '<div class="det-enlace__mes"><div class="det-enlace__cab"><b>' + esc(MESES[mm.mes - 1] + " " + mm.anio) + "</b>" +
+                    (mm.como ? ' <span class="xml-tenue">' + esc(mm.como) + "</span>" : "") + (mm.candado ? ' <span class="xml-tenue">🔒 mes cerrado</span>' : "") + "</div>" +
+                    '<div class="det-marcas">' + Object.keys(mm.marcas).map(function (k) { return chip(x.nombres[k] || k, mm.marcas[k]); }).join("") + "</div>" +
+                    (motivo ? '<p class="det-enlace__motivo">' + esc(motivo) + "</p>" : "") +
+                    (mm.revisar.length ? '<p class="det-enlace__revisar">⚑ ' + mm.revisar.map(esc).join(" · ") + "</p>" : "") +
+                    '<a class="xml-btn det-enlace__ir" href="' + url + '">' + (mm.candado ? "Ver en Marcas fiscales →" : "Cambiar en Marcas fiscales →") + "</a></div>";
+            }).join("");
+        } catch (e) { caja.innerHTML = "<h2>Marcas fiscales</h2><p class=\"xml-tenue\">" + esc(e.message) + "</p>"; }
+    }
+
+    async function cancelacion(r) {
+        var caja = $("det-cancel");
+        try {
+            var resp = await fetch(API + "/api/cancelaciones/" + encodeURIComponent(RFC) + "/cfdi/" + encodeURIComponent(UUID), { credentials: "include" });
+            if (!resp.ok) throw new Error(await Fiscontable.leerError(resp));
+            var c = await resp.json();
+            var base = "/herramientas/xml/cancelaciones.html?rfc=" + encodeURIComponent(RFC);
+            var fecha = (c.fecha || r.cfdi.fecha_emision || "").slice(0, 7);
+            var html = "<h2>Cancelación</h2>";
+            if (c.cancelada) html += '<p class="det-enlace__estado det-enlace__estado--no">Cancelada en el SAT.</p>';
+            else if (c.en_proceso) html += '<p class="det-enlace__estado det-enlace__estado--proc">Se pidió su cancelación y el SAT la está procesando.</p>';
+            else if (c.pendiente_de_responder) html += '<p class="det-enlace__estado det-enlace__estado--proc">El emisor pidió cancelarla y espera tu respuesta (72 horas; si no respondes, se cancela sola).</p>';
+            else html += '<p class="det-enlace__estado">Vigente' + (c.es_cancelable ? " · " + esc(c.es_cancelable) : "") + (c.estatus_cancelacion ? " · " + esc(c.estatus_cancelacion) : "") + ".</p>";
+            if (c.historial.length) {
+                html += '<ul class="det-enlace__hist">' + c.historial.slice(0, 4).map(function (h) {
+                    var que = h.accion === "cancelar" ? "Solicitud de cancelación (motivo " + esc(h.motivo || "") + ")" : h.accion === "aceptar" ? "Aceptaste la cancelación" : "Rechazaste la cancelación";
+                    return "<li>" + esc(f(h.en).slice(0, 10)) + " · " + que + " → <b>" + esc(h.estado_texto) + "</b>" + (h.pruebas ? " (pruebas)" : "") + "</li>";
+                }).join("") + "</ul>";
+            }
+            var botones = [];
+            if (c.puede_cancelar) botones.push('<a class="xml-btn det-enlace__peligro" href="' + base + "&vista=emitidas" + (fecha ? "&anio=" + fecha.slice(0, 4) + "&mes=" + (+fecha.slice(5, 7)) : "") + "&cancelar=" + encodeURIComponent(UUID) + '">Cancelar ante el SAT…</a>');
+            if (c.pendiente_de_responder) botones.push('<a class="xml-btn xml-btn--primario" href="' + base + '&vista=recibidas">Aceptar o rechazar →</a>');
+            if (c.historial.length) botones.push('<a class="xml-btn" href="' + base + '&vista=historial">Ver historial y acuses →</a>');
+            if (!botones.length && c.rol === "recibido" && !c.cancelada) botones.push('<a class="xml-btn" href="' + base + '&vista=recibidas">¿Te piden cancelarla? Buscar en el SAT →</a>');
+            caja.innerHTML = html + (botones.length ? '<div class="det-enlace__botones">' + botones.join("") + "</div>" : "");
+        } catch (e) { caja.innerHTML = "<h2>Cancelación</h2><p class=\"xml-tenue\">" + esc(e.message) + "</p>"; }
     }
 
     // En qué listas del SAT aparece el emisor o el receptor (69-B, 49 Bis, no localizados…)

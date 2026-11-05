@@ -34,3 +34,28 @@
 .det-alertas li { font-size: 13.5px; color: #92400e; font-weight: 600; margin: 3px 0; }
 
 .det-consultado { font-size: 12px; color: #94a3b8; font-weight: 600; margin-left: 2px; white-space: nowrap; }
+/* Enlaces con Marcas fiscales y Cancelaciones */
+.det-enlaces { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 14px; margin-bottom: 14px; }
+.det-enlaces:empty, .det-enlaces[hidden] { display: none; }
+.det-enlaces > .det-tarjeta { margin: 0; }
+.det-enlace__mes + .det-enlace__mes { border-top: 1px solid #f1f5f9; margin-top: 12px; padding-top: 12px; }
+.det-enlace__cab { font-size: 13.5px; margin-bottom: 8px; text-transform: capitalize; }
+.det-enlace__cab .xml-tenue { text-transform: none; margin-left: 6px; }
+.det-marcas { display: flex; flex-wrap: wrap; gap: 6px; }
+.det-marca { display: inline-flex; align-items: center; gap: 5px; border-radius: 8px; padding: 4px 9px; font-size: 12.5px; font-weight: 700; border: 1px solid; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.det-marca b { font-weight: 800; }
+.det-marca i { font-style: normal; color: #4f46e5; font-size: 9px; }
+.det-marca--si { background: #ecfdf5; border-color: #a7f3d0; color: #047857; }
+.det-marca--no { background: #f8fafc; border-color: #e2e8f0; color: #94a3b8; }
+.det-marca--parcial { background: #fffbeb; border-color: #fde68a; color: #b45309; }
+.det-enlace__motivo { font-size: 12.5px; color: #475569; margin: 8px 0 0; }
+.det-enlace__revisar { font-size: 12.5px; color: #b45309; font-weight: 700; margin: 6px 0 0; }
+.det-enlace__ir { margin-top: 10px; display: inline-flex; }
+.det-enlace__estado { font-size: 13.5px; font-weight: 700; color: #047857; margin: 0 0 8px; }
+.det-enlace__estado--no { color: #b91c1c; }
+.det-enlace__estado--proc { color: #b45309; }
+.det-enlace__hist { font-size: 12.5px; color: #475569; margin: 0 0 10px; padding-left: 18px; list-style: disc; }
+.det-enlace__botones { display: flex; flex-wrap: wrap; gap: 8px; }
+.xml-btn.det-enlace__peligro { color: #b91c1c; border-color: #fecaca; }
+.xml-btn.det-enlace__peligro:hover { background: #fef2f2; }
+@media print { .det-enlaces { display: none; } }

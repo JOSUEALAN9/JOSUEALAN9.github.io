@@ -113,6 +113,13 @@
                 "Revisión automática: elige cada cuánto se revisa en la madrugada; o marca empresas y Revisar ahora.",
                 "Abrir (o Por empresa): comunicados completos, solicitudes de cancelación con su fecha límite y notificaciones con sus PDF.",
                 "Las notificaciones pendientes NO se abren solas: abrirlas te da por notificado. Ábrelas tú en el SAT."],
+        marcas: ["Elige empresa, mes y Emitidas o Recibidas.",
+                 "Casi todo se marca solo y dice por qué; revisa «Por revisar».",
+                 "Toca la casilla de un impuesto para decir si cuenta o no; el folio abre la factura.",
+                 "⚙ Reglas: momento de cada impuesto, alcohol y lo aprendido. «Cerrar mes» cuando ya presentaste."],
+        cancelaciones: ["«Te piden cancelar»: Buscar en el SAT y aceptar o rechazar una por una (72 horas).",
+                        "«Cancelar emitidas»: elige el mes y Cancelar… en la factura (necesita el CSD en Facturar).",
+                        "«Historial»: lo enviado, su resultado, Revisar en el SAT y el acuse."],
         documentos: ["Elige el tipo (SAT, Actas, IMSS, INFONAVIT) y el documento.",
                      "Escribe la CURP, RFC o NSS que pide y Pedir. Se apartan los créditos que cuesta.",
                      "Llega en minutos u horas: queda en Mis pedidos para descargarlo cuando quieras.",
@@ -139,6 +146,8 @@
         palomita: "M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z",
         credencial: "M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2",
         clientes: "M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-1.13a4 4 0 10-4-4 4 4 0 004 4zm6 0a4 4 0 10-4-4",
+        balanza: "M12 3v18m0-18l-7 3m7-3l7 3M5 6l-3 7a3 3 0 006 0L5 6zm14 0l-3 7a3 3 0 006 0l-3-7zM8 21h8",
+        prohibido: "M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636",
         moneda: "M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
     };
     var CATALOGO = [
@@ -150,7 +159,9 @@
         { clave: "declaraciones", grupo: "Trámites ante el SAT", nombre: "Declaraciones presentadas", desc: "Acuses, pagos y recibos", url: "/herramientas/declaraciones/", permiso: "declaraciones", icono: I.bajarDoc, tono: "#0369A1", suave: "#E4F1F9" },
         { clave: "descarga_xml", grupo: "Trámites ante el SAT", nombre: "Descarga masiva de XML", desc: "Emitidos y recibidos de un periodo", url: "/herramientas/descarga-xml/", permiso: "descarga_xml", icono: I.bajar, tono: "#0E7490", suave: "#E0F2F7" },
         { clave: "buzon", grupo: "Trámites ante el SAT", nombre: "Buzón Tributario", desc: "Comunicados, cancelaciones y notificaciones", url: "/herramientas/buzon/", permiso: "buzon", icono: I.buzon, tono: "#0F766E", suave: "#E6F2F1" },
+        { clave: "cancelaciones", grupo: "Trámites ante el SAT", nombre: "Cancelaciones", desc: "Cancela emitidas y responde las que te piden", url: "/herramientas/xml/cancelaciones.html", permiso: "cancelaciones", icono: I.prohibido, tono: "#B91C1C", suave: "#FDECEC" },
         { clave: "xml", grupo: "Revisión y papeles de trabajo", nombre: "Administración de XML", desc: "Tus XML por tipo, con reportes en Excel", url: "/herramientas/xml/", permiso: "validador", icono: I.doc, tono: "#0E7490", suave: "#E0F2F7" },
+        { clave: "marcas", grupo: "Revisión y papeles de trabajo", nombre: "Marcas fiscales", desc: "Para qué impuesto cuenta cada CFDI y por qué", url: "/herramientas/xml/fiscal.html", permiso: "marcas", icono: I.balanza, tono: "#4F46E5", suave: "#EEF2FF" },
         { clave: "conciliacion", grupo: "Revisión y papeles de trabajo", nombre: "Conciliación", desc: "Facturas contra pagos y notas de crédito", url: "/herramientas/conciliacion/", permiso: "conciliacion", icono: I.grafica, tono: "#1D4ED8", suave: "#E8EFFD" },
         { clave: "iva", grupo: "Revisión y papeles de trabajo", nombre: "Papel de trabajo de IVA", desc: "IVA cobrado y pagado del mes", url: "/herramientas/iva/", permiso: "iva", icono: I.recibo, tono: "#7C3AED", suave: "#F1EBFE" },
         { clave: "isn", grupo: "Revisión y papeles de trabajo", nombre: "Impuestos estatales", desc: "ISN, hospedaje, profesiones y alcohol (Q. Roo): calcula, presenta y lleva el control", url: "/herramientas/isn/", permiso: "isn", icono: I.gente, tono: "#BE185D", suave: "#FCE7F3" },

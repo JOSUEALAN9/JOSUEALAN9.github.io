@@ -5,14 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Facturar | Fiscontable</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611050700">
-    <link rel="stylesheet" href="/herramientas/facturar/facturar.css?v=202611050700">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611050800">
+    <link rel="stylesheet" href="/herramientas/facturar/facturar.css?v=202611050800">
 </head>
 <body class="min-h-screen flex flex-col">
 
 <div id="app-header" data-modulo="facturar" data-titulo="Facturar" data-migas="Herramientas|/herramientas/"></div>
-<script src="/assets/js/nucleo.js?v=202611050700"></script>
-<script src="/assets/js/barra.js?v=202611050700"></script>
+<script src="/assets/js/nucleo.js?v=202611050800"></script>
+<script src="/assets/js/barra.js?v=202611050800"></script>
 
 <main class="flex-grow w-full mod-pagina fa-pagina">
     <div class="mod-cabeza">
@@ -243,6 +243,7 @@
         <div class="fa-barra">
             <input type="search" id="buscar-emitidas" placeholder="Buscar por cliente, RFC, folio o UUID…" autocomplete="off">
             <button type="button" id="btn-enlaces" class="fa-btn fa-btn--suave" title="Los paquetes que has compartido por enlace">Enlaces compartidos</button>
+            <a id="btn-ir-cancelaciones" class="fa-btn fa-btn--suave" href="/herramientas/xml/cancelaciones.html" hidden title="Cancelar facturas que no se timbraron aquí y responder las cancelaciones que te piden">⊘ Cancelaciones</a>
             <select id="filtro-tipo"><option value="">Todas</option><option value="I">Facturas</option><option value="E">Notas de crédito</option><option value="cancelado">Canceladas</option></select>
         </div>
         <div class="fa-sel-barra" id="sel-emitidas" hidden>
@@ -673,8 +674,8 @@
     </div>
 </dialog>
 
-<script src="/assets/js/comun/importar-clientes.js?v=202611050700"></script>
-<script src="/assets/js/comun/compartir.js?v=202611050700"></script>
-<script src="/herramientas/facturar/facturar.js?v=202611050700"></script>
+<script src="/assets/js/comun/importar-clientes.js?v=202611050800"></script>
+<script src="/assets/js/comun/compartir.js?v=202611050800"></script>
+<script src="/herramientas/facturar/facturar.js?v=202611050800"></script>
 </body>
 </html>

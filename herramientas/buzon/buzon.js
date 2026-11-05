@@ -46,6 +46,7 @@
     // ------------------------------------------------------------------ arranque
     async function arrancar() {
         if (!(await Fiscontable.exigirModulo("buzon"))) return;
+        Fiscontable.perfil().then(function (pf) { E.puedeCancelar = ((pf && pf.modulos_permitidos) || []).indexOf("cancelaciones") !== -1; });
         try { E.respaldo = !!((await Fiscontable.perfil()) || {}).modo_respaldo; } catch (e) { /* */ }
         await cargarPanel();
         var activa = null;
@@ -355,7 +356,8 @@
         lista.sort(function (a, b) { var va = (a.datos.limite || "") < h, vb = (b.datos.limite || "") < h; return va - vb || (a.datos.limite || "").localeCompare(b.datos.limite || ""); });
         return lista.map(function (c) {
             return tarjetaCancelacion(c, false).replace("</div></div>", "</div></div>") +
-                '<div class="bz-acciones bz-acciones--cancel"><button type="button" class="bz-btn" data-archivar="' + c.id + '" data-valor="1">Ya la respondí · archivar</button></div>';
+                '<div class="bz-acciones bz-acciones--cancel">' + (E.puedeCancelar ? '<a class="bz-btn bz-btn--si" href="/herramientas/xml/cancelaciones.html?rfc=' + encodeURIComponent(E.rfc || "") + '&vista=recibidas">Aceptar o rechazar en Cancelaciones →</a>' : "") +
+                '<button type="button" class="bz-btn" data-archivar="' + c.id + '" data-valor="1">Ya la respondí · archivar</button></div>';
         }).join("");
     }
 

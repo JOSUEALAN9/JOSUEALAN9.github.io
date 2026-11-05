@@ -107,3 +107,6 @@
 .fi-celda:disabled { cursor: default; opacity: .75; }
 .fi-celda:disabled:hover { box-shadow: none; }
 .fi-cerrado .fi-guia { display: none; }
+.fi-folio, .ca-liga { color: #4338ca; font-weight: 700; text-decoration: none; border-bottom: 1px dashed #c7d2fe; }
+.fi-folio:hover, .ca-liga:hover { color: #312e81; border-bottom-color: #4338ca; }
+a.ca-uuid { font-weight: 500; }

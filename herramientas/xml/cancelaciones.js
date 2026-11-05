@@ -30,7 +30,9 @@
         var d = new Date(iso.length > 10 && !/Z|[+-]\d\d:\d\d$/.test(iso) ? iso + "Z" : iso);
         return isNaN(d) ? iso : d.toLocaleString("es-MX", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
     }
-    function uuidCorto(u) { return '<code class="ca-uuid" title="' + esc(u) + '">' + esc(u.slice(0, 8)) + "…" + esc(u.slice(-4)) + "</code>"; }
+    function detalleUrl(u) { return "/herramientas/xml/detalle/?rfc=" + encodeURIComponent(E.rfc) + "&uuid=" + encodeURIComponent(u); }
+    // El folio fiscal abre la factura (si su XML está en la biblioteca)
+    function uuidCorto(u) { return '<a class="ca-uuid ca-liga" href="' + detalleUrl(u) + '" target="_blank" rel="noopener" title="Abrir la factura · ' + esc(u) + '">' + esc(u.slice(0, 8)) + "…" + esc(u.slice(-4)) + "</a>"; }
     function estadoSat(x) {
         if (!x || !x.estado_sat) return '<span class="ca-gris">Sin revisar</span>';
         var t = x.estado_sat + (x.estatus_cancelacion ? " · " + x.estatus_cancelacion : "");
@@ -39,7 +41,7 @@
 
     /* ------------------------------------------------------------ inicio */
     async function iniciar() {
-        if (!(await Fiscontable.exigirModulo("validador"))) return;
+        if (!(await Fiscontable.exigirModulo("cancelaciones"))) return;
         try { E.empresas = await api("/api/xml/contribuyentes"); } catch (e) { E.empresas = []; }
         var activa = await Fiscontable.empresaActiva();
         E.rfc = (q.get("rfc") || (activa && activa.rfc) || (E.empresas[0] && E.empresas[0].rfc) || "").toUpperCase() || null;
@@ -96,6 +98,8 @@
         try { E.emitidas = (await api(base() + "/emitidas?anio=" + E.anio + "&mes=" + E.mes)).filas; }
         catch (e) { E.emitidas = []; aviso(esc(e.message), true); }
         pintarEmitidas();
+        var pedido = (q.get("cancelar") || "").toUpperCase();
+        if (pedido && !E.yaAbierto && E.emitidas.some(function (x) { return x.uuid === pedido; })) { E.yaAbierto = true; abrirCancelar(pedido); }
     }
 
     function pintarEstado() {
@@ -132,7 +136,7 @@
         $("tb-emit").innerHTML = lista.length ? lista.map(function (x) {
             var s = x.solicitud, cancelada = x.estado_sat === "Cancelado" || (s && s.estado === "cancelado");
             var proceso = s && (s.estado === "en_proceso" || s.estado === "sin_confirmar");
-            return '<tr class="' + (cancelada ? "fi-cancelada" : "") + '"><td>' + esc(x.fecha) + "</td><td>" + esc(x.folio || "—") +
+            return '<tr class="' + (cancelada ? "fi-cancelada" : "") + '"><td>' + esc(x.fecha) + '</td><td><a class="ca-liga" href="' + detalleUrl(x.uuid) + '" target="_blank" rel="noopener" title="Abrir la factura">' + esc(x.folio || x.uuid.slice(0, 8)) + "</a>" +
                 (x.en_fiscontable ? ' <span class="ca-gris" title="Timbrada en Fiscontable">· Facturar</span>' : "") + "</td><td>" + esc(TIPOS[x.tipo] || x.tipo) + "</td>" +
                 '<td class="fi-nombre">' + esc(x.receptor.nombre || "") + "<small>" + esc(x.receptor.rfc || "") + "</small></td>" +
                 '<td class="xml-num">' + m(x.total) + "</td><td>" + estadoSat(x) + (s && !cancelada ? '<br><span class="ca-gris">' + esc(estadoTexto(s.estado)) + "</span>" : "") + "</td>" +

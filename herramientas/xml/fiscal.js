@@ -25,7 +25,7 @@
 
     /* ------------------------------------------------------------ inicio */
     async function iniciar() {
-        if (!(await Fiscontable.exigirModulo("validador"))) return;
+        if (!(await Fiscontable.exigirModulo("marcas"))) return;
         try { E.cat = await api("/api/fiscal/catalogos"); } catch (e) { aviso(esc(e.message), true); return; }
         try { E.empresas = await api("/api/xml/contribuyentes"); } catch (e) { E.empresas = []; }
         var activa = await Fiscontable.empresaActiva();
@@ -37,6 +37,7 @@
         $("sel-anio").innerHTML = anios.map(function (x) { return "<option" + (x === E.anio ? " selected" : "") + ">" + x + "</option>"; }).join("");
         $("sel-mes").innerHTML = MESES.map(function (n, i) { return '<option value="' + (i + 1) + '"' + (i + 1 === E.mes ? " selected" : "") + ">" + n + "</option>"; }).join("");
         eventos();
+        if (q.get("uuid")) { E.buscar = q.get("uuid"); $("buscar").value = E.buscar; }      // desde el detalle de la factura
         ponerLado(E.lado, true);
         ponerFiltro(E.filtro, true);
         titulo();
@@ -166,6 +167,8 @@
         });
     }
 
+    function detalleUrl(uuid) { return "/herramientas/xml/detalle/?rfc=" + encodeURIComponent(E.rfc) + "&uuid=" + encodeURIComponent(uuid); }
+
     function celda(f, imp) {
         var x = f.marcas[imp];
         if (!x) return '<td class="fi-col-imp"><span class="fi-gris">—</span></td>';
@@ -199,7 +202,7 @@
             return '<tr data-uuid="' + esc(f.uuid) + '" class="' + (E.sel.has(f.uuid) ? "fi-sel " : "") + (f.cancelado ? "fi-cancelada " : "") + (f.revisar.length ? "fi-fila-rev" : "") + '">' +
                 '<td class="fi-col-sel"><input type="checkbox" data-check="' + esc(f.uuid) + '"' + (E.sel.has(f.uuid) ? " checked" : "") + ' aria-label="Seleccionar"></td>' +
                 '<td title="' + esc(f.como || "") + '">' + esc(f.fecha.slice(8, 10) + "/" + f.fecha.slice(5, 7)) + '<small class="fi-sub">' + esc(f.metodo || "") + "</small></td>" +
-                "<td>" + esc(f.folio || f.uuid.slice(0, 8)) + (f.tipo === "E" ? ' <span class="xml-sello">NC</span>' : "") + "</td>" +
+                '<td><a class="fi-folio" href="' + detalleUrl(f.uuid) + '" target="_blank" rel="noopener" title="Abrir la factura">' + esc(f.folio || f.uuid.slice(0, 8)) + "</a>" + (f.tipo === "E" ? ' <span class="xml-sello">NC</span>' : "") + "</td>" +
                 '<td class="fi-nombre" title="' + esc((f.contraparte.nombre || "") + " · " + (f.contraparte.rfc || "")) + '">' + esc(f.contraparte.nombre || "—") + "<small>" + esc(f.contraparte.rfc || "") + "</small></td>" +
                 '<td class="xml-num">' + m(f.total) + "</td>" +
                 imps.map(function (k) { return celda(f, k); }).join("") +

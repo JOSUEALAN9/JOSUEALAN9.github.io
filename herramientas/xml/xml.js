@@ -93,6 +93,11 @@
 
     async function iniciar() {
         if (!(await Fiscontable.exigirModulo("validador"))) return;
+        Fiscontable.perfil().then(function (pf) {          // Marcas fiscales y Cancelaciones tienen su propio permiso
+            var m = (pf && pf.modulos_permitidos) || [];
+            $("btn-fiscal").hidden = m.indexOf("marcas") === -1;
+            $("btn-cancelaciones").hidden = m.indexOf("cancelaciones") === -1;
+        });
         prepararBandeja();
         // Periodo de ESTA página (cuadros de año, meses y fechas; el mismo de Conciliación y Listas)
         E.P = FCPeriodoMeses.crear({ contenedor: $("periodo-xml"), alCambiar: function () { alCambiarPeriodo(); }, alAvisar: avisar,
