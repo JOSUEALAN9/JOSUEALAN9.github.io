@@ -102,7 +102,7 @@
         if (incrustado) $("cf-listo").addEventListener("click", listo);
         var caja = $("cf-seccion");
         document.body.classList.toggle("cf-con-marco", !!s.marco);
-        compactar(!!s.marco);
+        compactar(true);                 // en todas las secciones: íconos con nombre al pasar el cursor; ☰ lo deja abierto
         if (s.marco) {
             caja.innerHTML = '<iframe class="cf-marco" title="' + esc(s.titulo) + '" src="' + esc(s.marco(sub)) + '"></iframe>';
             return;
@@ -242,7 +242,7 @@
         $("cf-secciones").addEventListener("click", function (ev) { var b = ev.target.closest("[data-seccion]"); if (b) abrir(b.dataset.seccion); });
         $("cf-fijar").addEventListener("click", function () {
             try { localStorage.setItem(FIJO, fijado() ? "compacto" : "abierto"); } catch (e) { /* sin almacenamiento */ }
-            compactar(document.body.classList.contains("cf-con-marco"));
+            compactar(true);
         });
         abrir(Fiscontable.url("seccion") || "perfil", Fiscontable.url("sub"));
     }

@@ -77,11 +77,15 @@
 .cf-incrustado .cf-marco { height: calc(100vh - 150px); }
 
 @media (max-width: 860px) {
-    .cf-pagina, .cf-compacto .cf-pagina { grid-template-columns: 1fr; }
+    .cf-pagina, .cf-compacto .cf-pagina { grid-template-columns: 1fr; align-content: start; }
     .cf-menu, .cf-compacto .cf-menu { position: static; height: auto; width: auto; border-right: 0; border-bottom: 1px solid var(--linea); padding: 12px 14px; min-width: 0; box-shadow: none; }
     .cf-fijar { display: none; }
     .cf-compacto .cf-menu .cf-menu__titulo, .cf-compacto .cf-menu .cf-buscar { display: none; }
-    .cf-compacto .cf-menu .cf-item span { display: inline; }
+    .cf-compacto .cf-menu .cf-item span { display: inline; position: static; transform: none; background: none; color: inherit; padding: 0;
+                                          box-shadow: none; font-size: inherit; pointer-events: auto; }
+    .cf-compacto .cf-item span::before { display: none; }
+    .cf-compacto .cf-item { justify-content: flex-start; padding: 8px 12px; border-radius: 999px; }
+    .cf-compacto .cf-menu__cabeza { margin: 0 0 8px; justify-content: space-between; }
     .cf-menu__cabeza, .cf-buscar { margin-left: 0; }
     .cf-contenido, .cf-con-marco .cf-contenido { padding: 14px; }
     .cf-contenido { min-width: 0; }
