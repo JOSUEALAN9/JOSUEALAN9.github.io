@@ -390,21 +390,52 @@
         abrirVentana("Cambios recientes", "cambios");
     }
 
-    async function buscarRfc(e) {
-        e.preventDefault();
-        var rfc = $("rfc-buscar").value.trim().toUpperCase();
+    // Detalle de cada lista donde aparece: lo que publica el SAT en su renglón (oficios, fechas, DOF, entidad…)
+    var OMITIR = /^(no\.?|n[°º]\.?|#|num|número|rfc|nombre|nombre del contribuyente|razón social|razon social)$/i;
+    function tarjetaHit(h) {
+        var det = h.detalle || {};
+        var filas = Object.keys(det).filter(function (k) { return !OMITIR.test(k.trim()) && String(det[k]).trim(); }).map(function (k) {
+            var et = k.replace(/_/g, " ").trim();
+            return "<dt>" + esc(et.charAt(0).toUpperCase() + et.slice(1)) + "</dt><dd>" + esc(det[k]) + "</dd>";
+        }).join("");
+        return '<div class="ls-hit ls-hit--' + esc(h.gravedad) + '"><div class="ls-hit__cab"><b>' + esc(h.nombre_lista) + "</b>" + sello(h, false).replace(esc(h.nombre_lista) + ": ", "") +
+            '<span class="ls-hit__grav">' + esc(GRAVEDAD[h.gravedad] || "") + "</span></div>" +
+            '<p class="ls-hit__desc">' + esc(h.descripcion || "") + (h.fecha ? " · " + esc((h.fecha_tipo || "Fecha") + " " + dmy(h.fecha)) : "") + "</p>" +
+            (filas ? '<dl class="ls-hit__det">' + filas + "</dl>" : '<p class="ls-nota">El SAT no publica más datos en esta lista.</p>') + "</div>";
+    }
+
+    function pintarUno(r) {
+        var n = Object.keys(r.fechas || {}).length;
+        var html = !r.listas.length
+            ? '<p class="ls-limpio">✓ ' + esc(r.rfc) + " no aparece en ninguna de las " + n + " listas descargadas.</p>"
+            : '<p class="ls-item__nombre">' + esc(r.listas[0].nombre || r.rfc) + '</p><p class="ls-rfc">' + esc(r.rfc) + " · aparece en " + r.listas.length +
+              (r.listas.length === 1 ? " lista" : " listas") + "</p>" + r.listas.map(tarjetaHit).join("");
+        if (r.cambios && r.cambios.length) html += '<p class="ls-nota">Historial: ' + r.cambios.map(function (c) { return esc(dmy(c.momento) + " " + textoCambio(c)); }).join(" · ") + "</p>";
+        return html;
+    }
+
+    async function buscarRfc(e, texto) {
+        if (e) e.preventDefault();
+        var t = (texto || $("rfc-buscar").value).trim();
+        if (texto) $("rfc-buscar").value = texto;
         var caja = $("resultado-buscar");
+        if (!t) { caja.innerHTML = '<p class="ls-nota">Escribe un RFC o un nombre.</p>'; return; }
         caja.innerHTML = '<p class="ls-nota">Buscando…</p>';
         try {
-            var r = await apiJSON("/api/listas-sat/buscar?rfc=" + encodeURIComponent(rfc));
-            var n = Object.keys(r.fechas || {}).length;
-            caja.innerHTML = !r.listas.length
-                ? '<p class="ls-limpio">✓ ' + esc(r.rfc) + " no aparece en ninguna de las " + n + " listas descargadas.</p>"
-                : '<p class="ls-item__nombre">' + esc(r.listas[0].nombre || r.rfc) + '</p><p class="ls-rfc">' + esc(r.rfc) + '</p><div class="ls-sellos">' +
-                  r.listas.map(function (h) { return sello(h, false); }).join("") + "</div>";
-            if (r.cambios.length) caja.innerHTML += '<p class="ls-nota">Historial: ' + r.cambios.map(function (c) { return esc(dmy(c.momento) + " " + textoCambio(c)); }).join(" · ") + "</p>";
+            var r = await apiJSON("/api/listas-sat/buscar?q=" + encodeURIComponent(t));
+            if (r.modo === "rfc") { caja.innerHTML = pintarUno(r); return; }
+            caja.innerHTML = !r.resultados.length
+                ? '<p class="ls-limpio">✓ Nadie con «' + esc(r.q) + "» aparece en las listas descargadas.</p>"
+                : '<p class="ls-nota">' + r.resultados.length + (r.mas ? "+ coincidencias (escribe más para afinar)" : r.resultados.length === 1 ? " coincidencia" : " coincidencias") + ". Elige una para ver el detalle:</p>" +
+                  '<div class="ls-coinc">' + r.resultados.map(function (x) {
+                      return '<button type="button" class="ls-coinc__fila" data-ver-rfc="' + esc(x.rfc) + '"><span><b>' + esc(x.nombre || x.rfc) + '</b><span class="ls-rfc">' + esc(x.rfc) + "</span></span>" +
+                          '<span class="ls-sellos">' + x.listas.map(function (h) { return sello(h, true); }).join("") + "</span></button>";
+                  }).join("") + "</div>";
         } catch (err) { caja.innerHTML = '<p class="ls-nota">' + esc(err.message) + "</p>"; }
     }
+
+    // Desde la tabla: clic en los sellos de una fila = ver dónde aparece ese RFC (en vez de abrir el CFDI)
+    function verDetalleRfc(rfc) { abrirVentana("¿Dónde aparece?", "rfc"); buscarRfc(null, rfc); }
 
     // ------------------------------------------------------------ actualización de las listas
     var antesDeBuscar = null;
@@ -496,6 +527,10 @@
         $("tbody").addEventListener("click", function (e) {
             var tr = e.target.closest("tr[data-uuid]"); if (!tr) return;
             var u = tr.dataset.uuid;
+            if (e.target.closest(".ls-sellos")) {
+                var f = E.filas.find(function (x) { return x.uuid === u; });
+                if (f) { verDetalleRfc(f.rfc); return; }
+            }
             if (e.target.closest(".ls-chk")) {
                 if (e.target.matches("[data-sel]") ? !e.target.checked : E.seleccion.has(u)) E.seleccion.delete(u); else E.seleccion.add(u);
                 pintarTabla(); return;
@@ -508,13 +543,16 @@
         $("btn-acuse").addEventListener("click", descargarAcuses);
         $("btn-rfc").addEventListener("click", function () { abrirVentana("Buscar un RFC", "rfc"); });
         $("btn-cambios").addEventListener("click", abrirCambios);
-        $("form-buscar").addEventListener("submit", buscarRfc);
+        $("form-buscar").addEventListener("submit", function (e) { buscarRfc(e); });
+        $("resultado-buscar").addEventListener("click", function (e) {
+            var b = e.target.closest("[data-ver-rfc]"); if (b) buscarRfc(null, b.dataset.verRfc);
+        });
         $("ventana-cerrar").addEventListener("click", cerrarVentana);
         $("ventana").addEventListener("click", function (e) { if (e.target === this) cerrarVentana(); });
         document.addEventListener("keydown", function (e) { if (e.key === "Escape" && !$("ventana").hidden) cerrarVentana(); });
 
         var rfc = new URLSearchParams(location.search).get("rfc");
-        if (rfc) { $("rfc-buscar").value = rfc; abrirVentana("Buscar un RFC", "rfc"); buscarRfc(new Event("submit")); }
+        if (rfc) { abrirVentana("Buscar un RFC", "rfc"); buscarRfc(null, rfc); }
     }
 
     document.addEventListener("DOMContentLoaded", iniciar);

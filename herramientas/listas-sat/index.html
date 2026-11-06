@@ -4,15 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Listas del SAT · Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611050900">
-    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611050900">
-    <link rel="stylesheet" href="/herramientas/listas-sat/listas-sat.css?v=202611050900">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611051000">
+    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611051000">
+    <link rel="stylesheet" href="/herramientas/listas-sat/listas-sat.css?v=202611051000">
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-slate-50">
 <div id="app-header" data-modulo="validador" data-ayuda="listas" data-titulo="Listas del SAT" data-migas="Herramientas|/herramientas/"></div>
-<script src="/assets/js/nucleo.js?v=202611050900"></script>
-<script src="/assets/js/barra.js?v=202611050900"></script>
+<script src="/assets/js/nucleo.js?v=202611051000"></script>
+<script src="/assets/js/barra.js?v=202611051000"></script>
 
 <main class="xml-pagina">
     <!-- Igual que sus hermanas: de quién, qué periodo y la revisión de las listas -->
@@ -74,7 +74,7 @@
                 </table>
                 <p id="sin-filas" class="xml-vacio xml-vacio--tabla" hidden></p>
             </div>
-            <p class="xml-pie"><span id="conteo-filas"></span> · Clic en un registro para abrir su detalle en otra pestaña.</p>
+            <p class="xml-pie"><span id="conteo-filas"></span> · Clic en los sellos de una fila para ver dónde aparece y el detalle del SAT; en el resto de la fila, para abrir el CFDI.</p>
         </div>
     </div>
 </main>
@@ -88,7 +88,7 @@
         </div>
         <div id="bloque-rfc" hidden>
             <form id="form-buscar" class="ls-buscar" autocomplete="off">
-                <input type="text" id="rfc-buscar" maxlength="13" placeholder="RFC del proveedor o cliente" aria-label="RFC a buscar">
+                <input type="text" id="rfc-buscar" maxlength="120" placeholder="RFC completo, parte del RFC o nombre" aria-label="RFC o nombre a buscar">
                 <button type="submit" class="xml-btn xml-btn--primario">Buscar</button>
             </form>
             <div id="resultado-buscar" class="ls-resultado"></div>
@@ -100,7 +100,7 @@
     </div>
 </div>
 
-<script src="/assets/js/comun/periodo-meses.js?v=202611050900"></script>
-<script src="/herramientas/listas-sat/listas-sat.js?v=202611050900"></script>
+<script src="/assets/js/comun/periodo-meses.js?v=202611051000"></script>
+<script src="/herramientas/listas-sat/listas-sat.js?v=202611051000"></script>
 </body>
 </html>
