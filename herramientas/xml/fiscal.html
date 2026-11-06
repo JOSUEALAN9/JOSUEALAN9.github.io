@@ -4,16 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Marcas fiscales · Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611051300">
-    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611051300">
-    <link rel="stylesheet" href="/herramientas/isn/isn.css?v=202611051300">
-    <link rel="stylesheet" href="/herramientas/xml/fiscal.css?v=202611051300">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611051400">
+    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611051400">
+    <link rel="stylesheet" href="/herramientas/isn/isn.css?v=202611051400">
+    <link rel="stylesheet" href="/herramientas/xml/fiscal.css?v=202611051400">
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-slate-50">
 <div id="app-header" data-modulo="marcas" data-titulo="Marcas fiscales" data-migas="Herramientas|/herramientas/"></div>
-<script src="/assets/js/nucleo.js?v=202611051300"></script>
-<script src="/assets/js/barra.js?v=202611051300"></script>
+<script src="/assets/js/nucleo.js?v=202611051400"></script>
+<script src="/assets/js/barra.js?v=202611051400"></script>
 
 <main class="xml-pagina">
     <div class="xml-cabeza">
@@ -87,6 +87,10 @@
             <button type="button" data-cuenta="1"><b>✓</b>Sí cuenta</button>
             <button type="button" data-cuenta="0"><b>✗</b>No cuenta</button>
         </div>
+        <div class="fi-mk__conceptos" id="mk-conceptos" hidden>
+            <p class="fi-mk__sub">¿Qué conceptos cuentan? <small>Desmarca los que no; la factura queda parcial.</small></p>
+            <div id="mk-lista"></div>
+        </div>
         <label class="fi-mk__pct" id="mk-pct-caja" hidden>Solo una parte (opcional)<span><input id="mk-pct" type="number" min="0" max="100" step="0.01" placeholder="100"> %</span></label>
         <label class="fi-mk__motivo">¿Por qué? (opcional)<input id="mk-motivo" maxlength="200" placeholder="p. ej. Uso personal, Regalo, Parte de bebidas alcohólicas"></label>
         <details class="fi-mk__siempre">
@@ -94,8 +98,10 @@
             <div class="fi-siempre" id="mk-siempre">
                 <label><input type="radio" name="siempre" value="" checked> No, solo esta vez</label>
                 <label><input type="radio" name="siempre" value="contraparte"> <span id="mk-contra">Siempre con este proveedor</span></label>
-                <label><input type="radio" name="siempre" value="clave"> Siempre con estos productos (misma clave SAT)</label>
+                <label><input type="radio" name="siempre" value="clave"> Siempre con estos productos (misma clave SAT), de cualquier proveedor</label>
+                <label id="mk-prov-clave"><input type="radio" name="siempre" value="proveedor_clave"> Siempre con este proveedor <b>y</b> estos productos</label>
             </div>
+            <p class="fi-mk__ley">⚖ Las reglas de la empresa nunca pasan por encima de la ley: efectivo de más de $2,000, combustible en efectivo, uso S01, proveedor en 69-B y restaurantes al 8.5 %. Una regla «sí cuenta» solo quita la duda de si es indispensable.</p>
         </details>
         <p id="mk-error" class="isn-error" hidden></p>
         <div class="isn-botones">
@@ -141,6 +147,6 @@
     </div>
 </div>
 
-<script src="/herramientas/xml/fiscal.js?v=202611051300"></script>
+<script src="/herramientas/xml/fiscal.js?v=202611051400"></script>
 </body>
 </html>

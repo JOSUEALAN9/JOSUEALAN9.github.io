@@ -143,8 +143,13 @@
                     '<button type="button" data-usar="' + k + '">' + (u ? "Volver a usar" : "Usar en la declaración") + "</button>"));
             });
         } else {
-            t.push(tarjeta("Deducible (ISR)", m(r.isr.base), r.isr.cfdi + " CFDI · " + (d.config.momento.isr === "cobrado" ? "pagado" : "facturado")));
-            t.push(tarjeta("IVA acreditable", m(r.iva.base), r.iva.cfdi + " CFDI"));
+            // Neto, con su amarre: de cuánto viene y cuánto no cuenta
+            var desglose = function (x) {
+                return x.no_cuenta ? '<span class="fi-desglose">de ' + m(x.bruto) + " en CFDI · −" + m(x.no_cuenta) + " no cuenta" +
+                    (x.parciales ? " · " + x.parciales + " parcial" + (x.parciales === 1 ? "" : "es") : "") + "</span>" : "";
+            };
+            t.push(tarjeta("Deducible (ISR)", m(r.isr.base), r.isr.cfdi + " CFDI · " + (d.config.momento.isr === "cobrado" ? "pagado" : "facturado"), desglose(r.isr)));
+            t.push(tarjeta("IVA acreditable", m(r.iva.base), r.iva.cfdi + " CFDI", desglose(r.iva)));
             t.push(tarjeta("Para la DIOT", m(r.diot.base), r.diot.cfdi + " CFDI pagados"));
         }
         t.push('<div class="fi-tarjeta' + (d.por_revisar ? " fi-tarjeta--alerta" : "") + '"><small>Por revisar</small><b>' + d.por_revisar + "</b><span>" +
@@ -174,14 +179,15 @@
         if (!x) return '<td class="fi-col-imp"><span class="fi-gris">—</span></td>';
         var mano = x.origen !== "auto" ? '<i class="fi-punto" title="' + (x.origen === "regla" ? "Regla de la empresa" : "Marcado a mano") + '"></i>' : "";
         var clase = !x.cuenta ? "no" : x.pct < 100 ? "parcial" : "si";
-        var texto = !x.cuenta ? "✗ No" : "✓ " + m(x.base * x.pct / 100) + (x.pct < 100 ? ' <small>' + x.pct + " %</small>" : "");
+        var texto = !x.cuenta ? "✗ No" : "✓ " + m(x.base * x.pct / 100) + (x.pct < 100 ? ' <small>' + (Math.round(x.pct * 100) / 100) + " %</small>" : "");
         var cerrado = E.datos && E.datos.candado;
         return '<td class="fi-col-imp"><button type="button" class="fi-celda fi-celda--' + clase + '" data-celda="' + imp + '"' + (cerrado ? " disabled" : "") + ' title="' +
             esc(nombre(imp) + ": " + (x.motivo || "") + (cerrado ? " · Mes cerrado" : " · Toca para cambiar")) + '">' + texto + mano + "</button></td>";
     }
 
     function motivoCorto(f, imps) {
-        if (f.revisar.length) return '<span class="fi-rev">⚑ ' + esc(f.revisar[0]) + (f.revisar.length > 1 ? " (+" + (f.revisar.length - 1) + ")" : "") + "</span>";
+        var ley = f.contra_ley ? '<span class="fi-contra-ley" title="Lo marcaste a mano aunque la ley dice que no cuenta. Solo cambia esta factura.">⚠ A mano contra la ley: ' + esc(f.contra_ley) + "</span>" : "";
+        if (f.revisar.length) return ley + '<span class="fi-rev">⚑ ' + esc(f.revisar[0]) + (f.revisar.length > 1 ? " (+" + (f.revisar.length - 1) + ")" : "") + "</span>";
         // El motivo que más dice: el de una marca a mano, si no el de la que no cuenta, si no el primero
         var ks = imps.filter(function (k) { return f.marcas[k]; });
         // (el «no» automático de alcohol es lo normal: no se repite en cada fila)
@@ -189,7 +195,7 @@
                 ks.find(function (k) { return !f.marcas[k].cuenta && !(k === "alc" && f.marcas[k].origen === "auto"); }) || ks[0];
         var x = k && f.marcas[k];
         if (!x) return "";
-        return (x.origen !== "auto" ? '<span class="fi-mano">' + (x.origen === "regla" ? "Regla · " : "A mano · ") + "</span>" : "") + esc(x.motivo || "");
+        return ley + (x.origen !== "auto" ? '<span class="fi-mano">' + (x.origen === "regla" ? "Regla · " : "A mano · ") + "</span>" : "") + esc(x.motivo || "");
     }
 
     function pintarTabla() {
@@ -229,14 +235,26 @@
         $("mk-para").hidden = !!imp;
         $("mk-imp").innerHTML = '<option value="*">Todos (' + imps.map(nombre).join(", ") + ")</option>" +
             imps.map(function (k) { return '<option value="' + k + '">' + nombre(k) + "</option>"; }).join("");
-        $("mk-titulo").textContent = imp ? "¿Cuenta para " + nombre(imp) + "?" : "¿Cuentan estas " + uuids.length + " facturas?";
+        $("mk-titulo").textContent = imp ? "¿Cuenta para " + nombre(imp) + "?" : uuids.length === 1 ? "¿Cuenta esta factura?" : "¿Cuentan estas " + uuids.length + " facturas?";
         $("mk-de").innerHTML = una ? "<b>" + esc(una.folio || una.uuid.slice(0, 8)) + "</b> · " + esc(una.contraparte.nombre || "") + " · " + m(una.total) : "";
         $("mk-de").hidden = !una;
         var x = imp && una && una.marcas[imp];
-        $("mk-ahora").innerHTML = x ? "Ahora: <b>" + (x.cuenta ? "sí cuenta" + (x.pct < 100 ? " (" + x.pct + " %)" : "") : "no cuenta") + "</b>" +
+        $("mk-ahora").innerHTML = x ? "Ahora: <b>" + (x.cuenta ? "sí cuenta" + (x.pct < 100 ? " (" + (Math.round(x.pct * 100) / 100) + " %)" : "") : "no cuenta") + "</b>" +
             (x.motivo ? " — " + esc(x.motivo) : "") + (x.origen === "manual" ? " · lo marcaste a mano" : x.origen === "regla" ? " · regla de la empresa" : " · automático") : "";
         $("mk-ahora").hidden = !x;
-        $("mk-pct").value = x && x.cuenta && x.pct < 100 ? x.pct : "";
+        $("mk-ahora").classList.toggle("fi-mk__ahora--ley", !!(x && x.ley));
+        if (x && x.ley) $("mk-ahora").innerHTML += "<br>⚖ Es regla de ley: si la marcas que sí cuenta, solo cambia esta factura y queda un aviso.";
+        // Por concepto: una factura recibida con varios conceptos
+        var conc = una && E.lado === "recibidos" && una.conceptos && una.conceptos.length > 1 && (!imp || imp === "isr" || imp === "iva") ? una.conceptos : null;
+        E.mk.conceptos = conc;
+        $("mk-prov-clave").hidden = !(una && E.lado === "recibidos");
+        $("mk-lista").innerHTML = conc ? conc.map(function (p) {
+            var k = imp || "isr", pm = p.m[k] || { pct: 100 };
+            return '<label class="fi-mk__concepto"><input type="checkbox" data-concepto="' + p.idx + '"' + (pm.pct > 0 ? " checked" : "") + ' data-pct="' + pm.pct + '">' +
+                "<span>" + esc(p.descripcion || "Concepto") + "<small>Clave " + esc(p.clave) + (pm.pct > 0 && pm.pct < 100 ? " · cuenta " + pm.pct + " %" : "") +
+                (p.sugerencia ? " · <em>" + esc(p.sugerencia) + "</em>" : "") + "</small></span><b>" + m(p.importe) + "</b></label>";
+        }).join("") : "";
+        $("mk-pct").value = x && x.cuenta && x.pct < 100 && !(una && una.conceptos && una.conceptos.length > 1) ? Math.round(x.pct * 100) / 100 : "";
         $("mk-motivo").value = x && x.origen === "manual" ? (x.motivo || "") : "";
         $("mk-contra").textContent = E.lado === "emitidos" ? "Siempre con este cliente" : "Siempre con este proveedor";
         document.querySelector('input[name="siempre"][value=""]').checked = true;
@@ -249,7 +267,8 @@
     function elegirCuenta(v) {
         E.mk.cuenta = v;
         document.querySelectorAll(".fi-mk__si-no [data-cuenta]").forEach(function (b) { b.setAttribute("aria-pressed", String(b.dataset.cuenta === v)); });
-        $("mk-pct-caja").hidden = v !== "1";
+        $("mk-pct-caja").hidden = v !== "1" || !!E.mk.conceptos;
+        $("mk-conceptos").hidden = !(E.mk.conceptos && v === "1");
         if (v === "1" && !$("mk-pct").value && (E.mk.imp || $("mk-imp").value) === "alc" && E.datos) $("mk-pct").value = E.datos.config.alcohol_pct;
         $("mk-aplicar").disabled = v == null;
     }
@@ -262,13 +281,25 @@
         var siempre = document.querySelector('input[name="siempre"]:checked').value;
         if (siempre === "contraparte") siempre = E.lado === "emitidos" ? "cliente" : "proveedor";
         var cuenta = E.mk.cuenta === "1";
-        var pct = cuenta && $("mk-pct").value !== "" ? +$("mk-pct").value : null;
-        var cuerpo = { uuids: E.mk.uuids, cuenta: cuenta, pct: pct, motivo: $("mk-motivo").value.trim() || null, siempre: siempre || null, anio: E.anio, mes: E.mes };
+        var pct = cuenta && !$("mk-pct-caja").hidden && $("mk-pct").value !== "" ? +$("mk-pct").value : null;
+        // Si desmarcó conceptos: va por concepto (lo que cuenta conserva su %, p. ej. restaurante 8.5 %)
+        var conceptos = null;
+        if (cuenta && E.mk.conceptos) {
+            var cajas = Array.from(document.querySelectorAll("#mk-lista [data-concepto]"));
+            if (cajas.some(function (c) { return !c.checked; })) {
+                conceptos = {};
+                cajas.forEach(function (c) { conceptos[c.dataset.concepto] = c.checked ? (pct != null ? pct : (+c.dataset.pct > 0 ? +c.dataset.pct : 100)) : 0; });
+                if (!cajas.some(function (c) { return c.checked; })) { cuenta = false; conceptos = null; }
+            }
+        }
+        var cuerpo = { uuids: E.mk.uuids, cuenta: cuenta, pct: conceptos ? null : pct, motivo: $("mk-motivo").value.trim() || null, siempre: siempre || null, anio: E.anio, mes: E.mes };
         $("mk-aplicar").disabled = true;
         try {
             var aprendidas = 0;
             for (var i = 0; i < imps.length; i++) {
-                var r = await enviar("/api/fiscal/" + encodeURIComponent(E.rfc) + "/marcar", "POST", Object.assign({ impuesto: imps[i] }, cuerpo));
+                var porConcepto = conceptos && (imps[i] === "isr" || imps[i] === "iva");
+                var r = await enviar("/api/fiscal/" + encodeURIComponent(E.rfc) + "/marcar", "POST",
+                    Object.assign({ impuesto: imps[i] }, cuerpo, porConcepto ? { conceptos: conceptos } : {}));
                 aprendidas += r.reglas;
             }
             $("modal-marcar").hidden = true;
@@ -345,7 +376,7 @@
     async function pintarAprendidas() {
         try {
             var reglas = await api("/api/fiscal/" + encodeURIComponent(E.rfc) + "/reglas");
-            var tipos = { proveedor: "Proveedor", cliente: "Cliente", clave: "Clave" };
+            var tipos = { proveedor: "Proveedor", cliente: "Cliente", clave: "Clave", proveedor_clave: "Proveedor + clave" };
             $("cf-aprendidas").innerHTML = reglas.length ? reglas.map(function (r) {
                 return '<div class="fi-aprendida"><span><b>' + tipos[r.tipo] + " " + esc(r.valor) + "</b>" + (r.nombre ? " · " + esc(r.nombre) : "") + " → " + nombre(r.impuesto) + ": " +
                     (r.cuenta ? "cuenta" + (r.pct != null && r.pct !== 100 ? " al " + r.pct + " %" : "") : "no cuenta") + (r.motivo ? " · " + esc(r.motivo) : "") +
