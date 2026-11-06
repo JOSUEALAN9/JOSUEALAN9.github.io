@@ -77,7 +77,9 @@
         $("contenido").hidden = false;
         E.P.conteos(c.periodos || {});
         var deUrl = E.urlPeriodo; E.urlPeriodo = null;
-        E.P.poner(deUrl || (E.periodoGeneral ? { anio: E.periodoGeneral.slice(0, 4), meses: [E.periodoGeneral.slice(5, 7)] } : null));
+        // Al cambiar de empresa se queda el periodo que estabas viendo; si no había, el general
+        var actual = E.P.hayEleccion() ? E.P.estado() : null;
+        E.P.poner(deUrl || actual || (E.periodoGeneral ? { anio: E.periodoGeneral.slice(0, 4), meses: [E.periodoGeneral.slice(5, 7)] } : null));
         cargar();
     }
 
@@ -85,7 +87,7 @@
         $("menu-empresa").innerHTML = '<div class="xml-otra__grupo">Empresas con XML</div>' +
             (E.empresas.length ? E.empresas.map(function (c) {
                 return '<button type="button" data-rfc="' + esc(c.rfc) + '"' + (c.rfc === E.rfc ? ' class="xml-activa"' : "") + ">" +
-                    esc(c.nombre || c.rfc) + " <span>" + esc(c.rfc) + "</span></button>";
+                    esc(c.nombre || c.rfc) + " <span>" + esc(c.rfc) + " · " + Object.keys(c.periodos || {}).reduce(function (t, k) { return t + (c.periodos[k] || 0); }, 0).toLocaleString("es-MX") + " XML</span></button>";
             }).join("") : '<p class="xml-otra__nota">Todavía no hay XML cargados.</p>');
     }
 

@@ -453,6 +453,7 @@
 
     function pintarEmpresa() {
         var e = perfilActual && perfilActual.empresa_activa;
+        if (e && !cambio) ponerTitulo(e.alias || e.nombre || e.rfc);
         var boton = document.getElementById("fc-btn-empresa");
         if (!boton) return;
         boton.hidden = false;
@@ -663,8 +664,90 @@
         dlg.showModal();
     }
 
+    /* ------------------------------------------------ cambio de empresa: que se note
+       Al cambiar de empresa (arriba o en el selector del módulo) se cubre el contenido con «Cargando datos de…» hasta
+       que terminan las consultas al servidor que dispara el cambio (mínimo medio segundo, máximo 8), aparece con un
+       destello suave, sale un aviso con la empresa y la pestaña del navegador dice cuál es. */
+    var enCurso = [];                      // inicio (ms) de cada consulta al servidor que no ha terminado
+    function pendientesDesde(t) { return enCurso.filter(function (x) { return x >= t; }).length; }
+    (function vigilarConsultas() {
+        var original = window.fetch;
+        if (!original || original.__fc) return;
+        var envuelto = function (recurso) {
+            var url = typeof recurso === "string" ? recurso : (recurso && recurso.url) || "";
+            var nuestra = url.indexOf(API) === 0;
+            var marca = Date.now();
+            if (nuestra) enCurso.push(marca);
+            var p = original.apply(this, arguments);
+            var fin = function () { var i = enCurso.indexOf(marca); if (i !== -1) enCurso.splice(i, 1); };
+            if (nuestra) p.then(fin, fin);
+            return p;
+        };
+        envuelto.__fc = true;
+        window.fetch = envuelto;
+    })();
+
+    var cambio = null;
+    function mostrarCambio(nombre, rfc) {
+        var velo = document.getElementById("fc-cambio");
+        if (!velo) {
+            velo = document.createElement("div");
+            velo.id = "fc-cambio"; velo.className = "fc-cambio"; velo.setAttribute("role", "status"); velo.setAttribute("aria-live", "polite");
+            velo.innerHTML = '<div class="fc-cambio__caja"><span class="fc-cambio__giro" aria-hidden="true"></span><p>Cargando datos de <b></b></p><small></small></div>';
+            document.body.appendChild(velo);
+        }
+        velo.querySelector("b").textContent = nombre || rfc || "la empresa";
+        velo.querySelector("small").textContent = rfc && nombre && nombre !== rfc ? rfc : "";
+        velo.hidden = false;
+        requestAnimationFrame(function () { velo.classList.add("fc-cambio--ve"); });
+        ponerTitulo(nombre || rfc);
+        var yo = cambio = { inicio: Date.now(), nombre: nombre, rfc: rfc, quieto: 0 };
+        (function revisar() {
+            if (cambio !== yo) return;
+            var t = Date.now() - yo.inicio;
+            yo.quieto = pendientesDesde(yo.inicio - 50) ? 0 : yo.quieto + 1;     // solo lo que pidió el cambio, no lo de fondo
+            if ((t >= 500 && yo.quieto >= 3) || t > 8000) return terminarCambio(yo);
+            setTimeout(revisar, 60);
+        })();
+    }
+    function terminarCambio(yo) {
+        cambio = null;
+        var velo = document.getElementById("fc-cambio");
+        velo.classList.remove("fc-cambio--ve");
+        setTimeout(function () { if (!cambio) velo.hidden = true; }, 200);
+        var main = document.querySelector("main");
+        if (main) { main.classList.remove("fc-recien"); void main.offsetWidth; main.classList.add("fc-recien"); }
+        brindis("Ahora ves: <b>" + esc(yo.nombre || yo.rfc || "") + "</b>" + (yo.rfc && yo.nombre && yo.nombre !== yo.rfc ? " · " + esc(yo.rfc) : ""));
+    }
+    function brindis(html) {
+        var t = document.getElementById("fc-brindis");
+        if (!t) {
+            t = document.createElement("div");
+            t.id = "fc-brindis"; t.className = "fc-brindis"; t.setAttribute("role", "status");
+            document.body.appendChild(t);
+        }
+        t.innerHTML = '<span aria-hidden="true">✓</span> ' + html;
+        t.classList.remove("fc-brindis--ve"); void t.offsetWidth; t.classList.add("fc-brindis--ve");
+        clearTimeout(t._reloj);
+        t._reloj = setTimeout(function () { t.classList.remove("fc-brindis--ve"); }, 2800);
+    }
+    var tituloBase = document.title;
+    function ponerTitulo(nombre) {
+        var m = /^(.*?)\s*([·|])\s*Fiscontable$/.exec(tituloBase);
+        document.title = nombre && m ? m[1] + " · " + nombre + " " + m[2] + " Fiscontable" : tituloBase;
+    }
+    // El selector de empresa propio de cada módulo (#menu-empresa) también avisa, aunque la empresa no esté registrada
+    document.addEventListener("click", function (e) {
+        var b = e.target.closest && e.target.closest(".xml-menu__lista--otra [data-rfc], .xml-menu__lista--otra [data-empresa], .xml-menu__lista--otra [data-otra]");
+        if (!b || b.classList.contains("xml-activa")) return;
+        var span = b.querySelector("span");
+        var nombre = (b.textContent.replace(span ? span.textContent : "", "") || "").trim();
+        mostrarCambio(nombre, b.dataset.rfc || b.dataset.empresa || b.dataset.otra);
+    }, true);
+
     async function elegirEmpresa(rfc) {
         cerrarEmpresas();
+        var previa = perfilActual && perfilActual.empresa_activa;
         try {
             var resp = await fetch(API + "/api/mi-perfil/empresa", {
                 method: "PUT", credentials: "include",
@@ -675,6 +758,9 @@
             perfilActual.empresa_activa = r.empresa_activa;
             promesaPerfil = Promise.resolve(perfilActual);
             pintarEmpresa();
+            var e = r.empresa_activa;
+            if (e && (!previa || previa.rfc !== e.rfc) && !cambio) mostrarCambio(e.alias || e.nombre || e.rfc, e.rfc);
+            else if (e) ponerTitulo(e.alias || e.nombre || e.rfc);
             window.dispatchEvent(new CustomEvent("fiscontable:empresa", { detail: r.empresa_activa }));
         } catch (e) {
             aviso(e.message || "No se pudo cambiar de empresa.");

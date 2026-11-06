@@ -138,7 +138,9 @@
         Object.keys(E.porDia).forEach(function (d) { porMes[d.slice(0, 7)] = (porMes[d.slice(0, 7)] || 0) + E.porDia[d]; });
         E.P.conteos(porMes);
         var pedido = E.pedido; E.pedido = null;         // lo que mandó Administración de XML o Conciliación
+        var actual = E.P.hayEleccion() ? E.P.estado() : null;      // al cambiar de empresa se queda el periodo que veías
         if (pedido && (pedido.desde || pedido.hasta || pedido.anio)) E.P.poner(pedido);
+        else if (actual) E.P.poner(actual);
         else if (E.periodoGeneral) E.P.poner({ anio: E.periodoGeneral.slice(0, 4), meses: [E.periodoGeneral.slice(5, 7)] });
         else E.P.poner(null);
         alCambiarPeriodo();

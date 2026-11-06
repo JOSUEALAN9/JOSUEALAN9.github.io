@@ -255,7 +255,8 @@
         // Con F5 o un enlace se vuelve al mismo periodo; si no, el periodo general
         var deUrl = E.urlPeriodo;
         E.urlPeriodo = null;
-        E.P.poner(deUrl || (E.periodoGeneral ? { anio: E.periodoGeneral.slice(0, 4), meses: [E.periodoGeneral.slice(5, 7)] } : null));
+        var actual = E.P.hayEleccion() ? E.P.estado() : null;      // al cambiar de empresa se queda el periodo que veías
+        E.P.poner(deUrl || actual || (E.periodoGeneral ? { anio: E.periodoGeneral.slice(0, 4), meses: [E.periodoGeneral.slice(5, 7)] } : null));
         pintarPeriodo();
     }
 
