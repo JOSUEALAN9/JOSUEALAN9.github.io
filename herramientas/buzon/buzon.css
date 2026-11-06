@@ -173,3 +173,7 @@ ul.bz-clista { list-style: disc; }
 .bz-dialogo__pie { display: flex; justify-content: flex-end; gap: 10px; margin-top: 24px; flex-wrap: wrap; }
 .bz-dialogo [hidden] { display: none; }
 .bz-dialogo__alerta p { margin: 0; }
+
+/* Solicitud de cancelación: lo que ya se respondió antes */
+.bz-historial { margin: 8px 0 0; font-size: 12.5px; color: #9a3412; background: #fff7ed; border: 1px solid #fed7aa; border-radius: 10px; padding: 7px 10px; }
+.bz-historial--ok { color: #065f46; background: #ecfdf5; border-color: #a7f3d0; }

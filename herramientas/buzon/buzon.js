@@ -211,11 +211,23 @@
         pintarSeccion();
     }
 
+    // El SAT a veces manda dos comunicados iguales de la misma solicitud: se juntan por folio(s) y plazo
+    function solicitudes() {
+        var grupos = {};
+        E.detalle.comunicados.forEach(function (c) {
+            if (c.categoria !== "cancelacion" || c.archivado) return;
+            var k = (c.datos.uuids || []).slice().sort().join(",") + "|" + (c.datos.limite || "") || ("id" + c.id);
+            if (!grupos[k]) grupos[k] = Object.assign({}, c, { ids: [], avisos: 0 });
+            grupos[k].ids.push(c.id); grupos[k].avisos++;
+        });
+        return Object.keys(grupos).map(function (k) { return grupos[k]; });
+    }
+
     function conteos() {
         var c = E.detalle.comunicados, n = E.detalle.notificaciones, h = E.detalle.hoy;
         return {
             comunicados: c.filter(function (x) { return !x.archivado && !x.visto; }).length,
-            cancelaciones: c.filter(function (x) { return x.categoria === "cancelacion" && !x.archivado && (x.datos.limite || "") >= h; }).length,
+            cancelaciones: solicitudes().filter(function (x) { return (x.datos.limite || "") >= h; }).length,
             notificaciones: n.filter(function (x) { return x.estado === "pendiente"; }).length,
             notificaciones_nuevas: n.filter(function (x) { return x.estado === "notificado" && !x.visto; }).length,
             archivados: c.filter(function (x) { return x.archivado; }).length
@@ -332,6 +344,16 @@
         }).join("") + "</ul>";
     }
 
+    // Lo que ya se contestó de esa factura desde Fiscontable: antes del aviso (la volvieron a pedir) o después (ya quedó)
+    function historialCancel(d) {
+        var verbo = function (r) { return r.accion === "aceptar" ? "aceptaste" : "rechazaste"; };
+        var antes = (d.antes || [])[(d.antes || []).length - 1], despues = (d.despues || [])[(d.despues || []).length - 1];
+        if (despues) return '<p class="bz-historial bz-historial--ok">✓ Ya la ' + verbo(despues) + " el " + esc(fechaHora(despues.en)) + ". Puedes archivarla.</p>";
+        if (antes) return '<p class="bz-historial">↻ <b>Es otra solicitud:</b> la ' + verbo(antes) + " el " + esc(fechaHora(antes.en)) +
+            " y el emisor la volvió a pedir. Hay que responder de nuevo.</p>";
+        return "";
+    }
+
     function tarjetaCancelacion(c, dentro) {
         var d = c.datos || {}, h = E.detalle.hoy, vencida = d.limite && d.limite < h;
         var urg = !vencida && d.limite && (new Date(d.limite) - new Date(h)) / 864e5 <= 1;
@@ -343,21 +365,21 @@
         }).join("");
         return '<div class="bz-cancel' + (vencida ? " bz-cancel--vencida" : urg ? " bz-cancel--urgente" : "") + (dentro ? " bz-cancel--dentro" : "") + '">' +
             '<div class="bz-cancel__cabeza"><div><b>' + esc(d.emisor || "Emisor sin nombre") + "</b> pide cancelar " + ((d.uuids || []).length === 1 ? "una factura" : (d.uuids || []).length + " facturas") +
-            '<br><small>Recibida el ' + esc(fechaLocal(c.fecha)) + "</small></div>" +
+            '<br><small>Recibida el ' + esc(fechaLocal(c.fecha)) + (c.avisos > 1 ? " · el SAT te avisó " + c.avisos + " veces (es la misma solicitud)" : "") + "</small></div>" +
             '<div class="bz-cancel__plazo">' + (d.limite ? (vencida ? "Plazo vencido el " + esc(diaSemana(d.limite)) : "Responde a más tardar el <b>" + esc(diaSemana(d.limite)) + "</b>") : "") + "</div></div>" +
-            (cfdis ? '<ul class="bz-uuids">' + cfdis + "</ul>" : "") +
+            (cfdis ? '<ul class="bz-uuids">' + cfdis + "</ul>" : "") + historialCancel(d) +
             '<p class="bz-nota">Acepta o rechaza en el <a class="bz-liga" target="_blank" rel="noopener" href="' + URL_CANCELACION_SAT + '">portal de facturas del SAT</a> (Cancelación → solicitudes recibidas). Plazo: 3 días hábiles desde que la recibiste.</p></div>';
     }
 
     function cancelaciones() {
-        var lista = E.detalle.comunicados.filter(function (c) { return c.categoria === "cancelacion" && !c.archivado; });
+        var lista = solicitudes();
         if (!lista.length) return '<p class="bz-vacio">No hay solicitudes de cancelación.</p>';
         var h = E.detalle.hoy;
         lista.sort(function (a, b) { var va = (a.datos.limite || "") < h, vb = (b.datos.limite || "") < h; return va - vb || (a.datos.limite || "").localeCompare(b.datos.limite || ""); });
         return lista.map(function (c) {
             return tarjetaCancelacion(c, false).replace("</div></div>", "</div></div>") +
                 '<div class="bz-acciones bz-acciones--cancel">' + (E.puedeCancelar ? '<a class="bz-btn bz-btn--si" href="/herramientas/xml/cancelaciones.html?rfc=' + encodeURIComponent(E.rfc || "") + '&vista=recibidas">Aceptar o rechazar en Cancelaciones →</a>' : "") +
-                '<button type="button" class="bz-btn" data-archivar="' + c.id + '" data-valor="1">Ya la respondí · archivar</button></div>';
+                '<button type="button" class="bz-btn" data-archivar="' + c.ids.join(",") + '" data-valor="1">Ya la respondí · archivar</button></div>';
         }).join("");
     }
 
@@ -548,7 +570,7 @@
                 if (E.abierto && c && !c.visto && !E.respaldo) marcar("/api/buzon/comunicados/visto", [id], 1);
                 else pintarSeccion();
             } else if (b.dataset.visto) marcar("/api/buzon/comunicados/visto", [+b.dataset.visto], +b.dataset.valor);
-            else if (b.dataset.archivar) { E.abierto = null; marcar("/api/buzon/comunicados/archivar", [+b.dataset.archivar], +b.dataset.valor); }
+            else if (b.dataset.archivar) { E.abierto = null; marcar("/api/buzon/comunicados/archivar", b.dataset.archivar.split(",").map(Number), +b.dataset.valor); }
             else if (b.dataset.doc) bajarDocumento(b);
             else if (b.dataset.abrirNotif) pedirApertura(+b.dataset.abrirNotif);
         });

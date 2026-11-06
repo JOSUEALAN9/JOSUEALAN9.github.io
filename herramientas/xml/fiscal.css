@@ -125,3 +125,4 @@ a.ca-uuid { font-weight: 500; }
 .fi-mk__ahora--ley { background: #fff7ed; border-color: #fed7aa; color: #9a3412; }
 .fi-contra-ley { display: block; color: #b45309; font-weight: 700; font-size: 11.5px; }
 .fi-tarjeta span.fi-desglose { color: #64748b; }
+.ca-otra-vez { display: block; margin-top: 4px; font-size: 11.5px; font-weight: 700; color: #9a3412; background: #fff7ed; border: 1px solid #fed7aa; border-radius: 8px; padding: 3px 7px; }

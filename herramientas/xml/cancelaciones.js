@@ -129,7 +129,13 @@
             var x = p.xml;
             var origen = p.origen === "buzon" ? '<span class="ca-pill ca-pill--proc" title="El SAT la avisó en el Buzón Tributario">Avisada en el Buzón</span>'
                                               : '<span class="ca-pill ca-pill--si" title="La trajo la consulta del SAT">Encontrada en el SAT</span>';
-            return "<tr><td>" + uuidCorto(p.uuid) + (p.pruebas ? ' <span class="ca-gris">(pruebas)</span>' : "") + '<span class="ca-bloque">' + origen + "</span>" +
+            // Ya se había respondido y el emisor la volvió a pedir
+            var previas = p.respuestas || [];
+            var ultima = previas[previas.length - 1] || (p.antes ? { accion: p.antes.respuesta, en: p.antes.en } : null);
+            var otraVez = ultima ? '<span class="ca-otra-vez">↻ ' + (p.veces > 1 ? p.veces + "ª solicitud" : "Otra solicitud") + " · la " +
+                (ultima.accion === "aceptar" ? "aceptaste" : ultima.accion === "rechazar" ? "rechazaste" : "respondiste") +
+                (ultima.en ? " el " + esc(fechaCorta(ultima.en.slice(0, 10))) : "") + " y el emisor la volvió a pedir</span>" : "";
+            return "<tr><td>" + uuidCorto(p.uuid) + (p.pruebas ? ' <span class="ca-gris">(pruebas)</span>' : "") + '<span class="ca-bloque">' + origen + "</span>" + otraVez +
                 (p.limite ? '<span class="ca-gris ca-bloque">Responde a más tardar el ' + esc(fechaCorta(p.limite)) + "</span>" : "") + "</td>" +
                 "<td class=\"fi-nombre\">" + (x ? esc(x.emisor.nombre || "") + "<small>" + esc(x.emisor.rfc || "") + "</small>"
                     : (p.emisor ? esc(p.emisor) + "<small>No tienes este XML en la biblioteca</small>" : '<span class="ca-gris">No tienes este XML en la biblioteca</span>')) + "</td>" +
