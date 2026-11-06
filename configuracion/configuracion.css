@@ -57,18 +57,19 @@
 .cf-con-marco .cf-contenido { padding: 16px 20px 18px; }
 .cf-con-marco .cf-cabeza { margin-bottom: 10px; }
 
-/* Menú compacto: solo íconos; al pasar el cursor se abre encima sin mover el contenido */
+/* Menú compacto: solo íconos. Al pasar el cursor sale solo el nombre junto al ícono (no se abre el menú);
+   el botón ☰ lo deja abierto. */
 .cf-compacto .cf-pagina { grid-template-columns: 68px minmax(0, 1fr); }
 .cf-compacto .cf-menu { padding: 14px 8px; overflow: visible; z-index: 20; }
-.cf-compacto .cf-menu .cf-menu__titulo, .cf-compacto .cf-menu .cf-buscar, .cf-compacto .cf-menu .cf-grupo, .cf-compacto .cf-menu .cf-item span { display: none; }
+.cf-compacto .cf-menu .cf-menu__titulo, .cf-compacto .cf-menu .cf-buscar, .cf-compacto .cf-menu .cf-grupo { display: none; }
 .cf-compacto .cf-menu__cabeza { margin: 0 0 12px; justify-content: center; }
-.cf-compacto .cf-item { justify-content: center; padding: 10px; border-radius: 12px; }
-.cf-compacto .cf-menu:hover { width: 272px; box-shadow: var(--sombra-alta); padding: 14px 14px 14px 0; }
-.cf-compacto .cf-menu:hover .cf-menu__titulo, .cf-compacto .cf-menu:hover .cf-buscar, .cf-compacto .cf-menu:hover .cf-grupo { display: block; }
-.cf-compacto .cf-menu:hover .cf-buscar { display: flex; }
-.cf-compacto .cf-menu:hover .cf-item span { display: inline; }
-.cf-compacto .cf-menu:hover .cf-menu__cabeza { margin: 0 0 14px 18px; justify-content: space-between; }
-.cf-compacto .cf-menu:hover .cf-item { justify-content: flex-start; padding: 10px 12px; border-radius: 0 999px 999px 0; }
+.cf-compacto .cf-item { position: relative; justify-content: center; padding: 10px; border-radius: 12px; }
+.cf-compacto .cf-item span { display: none; position: absolute; left: calc(100% + 12px); top: 50%; transform: translateY(-50%); z-index: 30;
+                             white-space: nowrap; pointer-events: none; background: #3730a3; color: #fff; font-size: 13px; font-weight: 700;
+                             padding: 6px 12px; border-radius: 8px; box-shadow: 0 6px 16px rgba(15, 23, 42, .18); }
+.cf-compacto .cf-item span::before { content: ""; position: absolute; right: 100%; top: 50%; transform: translateY(-50%);
+                                     border: 6px solid transparent; border-right-color: #3730a3; }
+.cf-compacto .cf-item:hover span, .cf-compacto .cf-item:focus-visible span { display: block; }
 
 /* Dentro de la ventana de un módulo: solo la sección */
 .cf-incrustado .cf-pagina { grid-template-columns: 1fr; padding-top: 12px; }

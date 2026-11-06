@@ -84,7 +84,7 @@
         });
         $("cf-secciones").innerHTML = orden.length ? orden.map(function (g) {
             return '<p class="cf-grupo">' + esc(g) + "</p>" + grupos[g].map(function (s) {
-                return '<button type="button" class="cf-item' + (s.id === actual ? " cf-item--activo" : "") + '" data-seccion="' + s.id + '" title="' + esc(s.titulo) + '">' + ico(s.ico) + "<span>" + esc(s.titulo) + "</span></button>";
+                return '<button type="button" class="cf-item' + (s.id === actual ? " cf-item--activo" : "") + '" data-seccion="' + s.id + '" aria-label="' + esc(s.titulo) + '">'  + ico(s.ico) + "<span>" + esc(s.titulo) + "</span></button>";
             }).join("");
         }).join("") : '<p class="cf-vacio">Nada coincide con «' + esc($("cf-buscar").value) + "».</p>";
     }

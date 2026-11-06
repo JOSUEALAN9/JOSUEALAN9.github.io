@@ -13,6 +13,7 @@
     var esc = Fiscontable.escapar;
     var $ = function (id) { return document.getElementById(id); };
     var ORIGEN = { PUE: "Factura PUE", PAGO: "Pago", NOTA: "Nota de crédito" };
+    var MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
 
     var E = { empresa: null, periodoGeneral: null, empresas: [], rfc: null, P: null, datos: null,
               lado: "emitido", origen: "", busqueda: "", perfil: null };
@@ -113,6 +114,7 @@
         } catch (e) { $("conteo").textContent = e.message; return; }
         $("saldo-favor").value = leerLocal("saldo:" + clavePeriodo()) || "";
         pintarResumen();
+        pintarMarcas();
         pintar();
     }
 
@@ -128,12 +130,15 @@
             filaRes("Retenido por tus clientes", m(te.ret));
         $("res-acreditable").innerHTML =
             filaRes("Facturas PUE", m(tr.iva_pue)) + filaRes("Pagado con pagos", m(tr.iva_pago)) +
-            filaRes("Notas de crédito", m(tr.iva_nota)) + filaRes("IVA acreditable", m(tr.iva), "iva-total") +
+            filaRes("Notas de crédito", m(tr.iva_nota)) +
+            (tr.no_acred ? filaRes("IVA pagado", m(tr.iva)) +
+                filaRes('<button type="button" class="iva-link" data-ver-noacred>− No acreditable (marcas)</button>', m(-tr.no_acred), "iva-noacred") : "") +
+            filaRes("IVA acreditable", m(tr.acreditable), "iva-total") +
             filaRes("Retuviste (a enterar)", m(tr.ret));
         var saldo = parseFloat($("saldo-favor").value) || 0;
         var final = Math.round((s.resultado_antes_saldo - saldo) * 100) / 100;
         $("res-resultado").innerHTML =
-            filaRes("Cobrado − retenido", m(te.iva - te.ret)) + filaRes("− Acreditable", m(-tr.iva)) +
+            filaRes("Cobrado − retenido", m(te.iva - te.ret)) + filaRes("− Acreditable", m(-tr.acreditable)) +
             (saldo ? filaRes("− Saldo a favor anterior", m(-saldo)) : "") +
             filaRes(final >= 0 ? "IVA a cargo" : "IVA a favor", m(Math.abs(final)), "iva-total " + (final >= 0 ? "iva-cargo" : "iva-favor"));
     }
@@ -144,8 +149,51 @@
         ["b0", "Base 0 %", 100, 1], ["bex", "Exentos", 100, 1], ["ret", "IVA retenido", 104, 1], ["avisos", "Avisos", 260]
     ];
 
+    var COLS_RECIBIDO = COLS.slice(0, 12).concat([["no_acred", "No acreditable", 112, 1], ["marca", "Marca fiscal", 220], COLS[12]]);
+    function columnas() { return E.lado === "recibido" ? COLS_RECIBIDO : COLS; }
+    function puedeMarcas() { return !!(E.perfil && (E.perfil.modulos_permitidos || []).indexOf("marcas") !== -1); }
+
+    // Liga a Marcas fiscales: la empresa, el mes y, si se da, el CFDI (o solo los «Por revisar»)
+    function urlMarcas(lado, ym, uuid) {
+        var q = new URLSearchParams({ rfc: E.rfc, anio: ym.slice(0, 4), mes: String(+ym.slice(5, 7)), lado: lado });
+        if (uuid) q.set("uuid", uuid); else q.set("filtro", "revisar");
+        return "/herramientas/xml/fiscal.html?" + q.toString();
+    }
+
+    function pintarMarcas() {
+        var rv = E.datos.marcas_revisar || { emitidos: [], recibidos: [] }, caja = $("aviso-marcas");
+        var n = rv.recibidos.length + rv.emitidos.length;
+        E.porRevisar = {};
+        rv.recibidos.forEach(function (x) { E.porRevisar[x.uuid] = x; });
+        if (!n) { caja.hidden = true; return; }
+        var lado = rv.recibidos.length ? "recibidos" : "emitidos", lista = rv[lado];
+        var meses = {};
+        rv.recibidos.concat(rv.emitidos).forEach(function (x) { meses[x.mes] = (meses[x.mes] || 0) + 1; });
+        var porMes = Object.keys(meses).sort().map(function (k) { return MESES[+k.slice(5, 7) - 1] + " " + meses[k]; }).join(", ");
+        caja.innerHTML = '<span class="iva-marcas__ico" aria-hidden="true">⚑</span><span><b>' + n + (n === 1 ? " CFDI está" : " CFDI están") +
+            " «Por revisar» en Marcas fiscales</b> (" + [rv.recibidos.length ? rv.recibidos.length + " recibido(s)" : "", rv.emitidos.length ? rv.emitidos.length + " emitido(s)" : ""].filter(Boolean).join(", ") +
+            (Object.keys(meses).length > 1 ? " · " + esc(porMes) : "") + "). Lo que marques ahí cambia este IVA; mientras no los revises, aquí se calculan tal como vienen en el XML." +
+            '<br><small>Por ejemplo: ' + esc((lista[0].nombre || lista[0].rfc || "") + " — " + lista[0].texto) + "</small></span>" +
+            (puedeMarcas() ? '<a class="xml-btn xml-btn--primario" target="_blank" rel="noopener" href="' + esc(urlMarcas(lado, lista[0].mes)) + '">Revisar en Marcas →</a>'
+                           : '<small class="xml-tenue">Pide acceso al módulo Marcas fiscales para revisarlos.</small>');
+        caja.hidden = false;
+    }
+
+    function celdaMarca(f) {
+        var pend = E.porRevisar && E.porRevisar[f.uuid_factura || f.uuid];
+        var texto = f.marca ? (f.marca.pct ? "Acreditable " + f.marca.pct + " %" : "No acreditable") + " · " + f.marca.motivo
+                  : pend ? "⚑ Por revisar · " + pend.texto : "";
+        if (!texto) return "<td></td>";
+        var clase = f.marca ? "iva-marca" : "iva-marca iva-marca--rev";
+        var liga = puedeMarcas() ? '<a class="' + clase + '" data-marca target="_blank" rel="noopener" href="' +
+            esc(urlMarcas("recibidos", (pend && pend.mes) || f.fecha.slice(0, 7), f.uuid_factura || f.uuid)) + '" title="' + esc(texto + " — abrir en Marcas fiscales") + '">' + esc(texto) + "</a>"
+            : '<span class="' + clase + '" title="' + esc(texto) + '">' + esc(texto) + "</span>";
+        return "<td>" + liga + "</td>";
+    }
+
     function pintar() {
         var d = E.datos, lado = d[E.lado === "ppd" ? "emitido" : E.lado];
+        var COLS = columnas();
         var avisos = d.emitido.avisos.length + d.recibido.avisos.length;
         var ppd = d.emitido.ppd_sin_pago.length + d.recibido.ppd_sin_pago.length;
         var pest = [["emitido", "Emitidos (cobrado)", d.emitido.filas.length], ["recibido", "Recibidos (pagado)", d.recibido.filas.length]];
@@ -161,8 +209,13 @@
             var n = o[0] ? lado.filas.filter(function (f) { return f.origen === o[0]; }).length : lado.filas.length;
             return '<button type="button" class="xml-chip' + (E.origen === o[0] ? " xml-chip--activo" : "") + '" data-origen="' + o[0] + '">' + o[1] + "<span>" + n + "</span></button>";
         }).join("") + (avisos ? '<span class="xml-tenue" style="margin-left:6px">⚠ ' + avisos + " aviso(s)</span>" : "");
+        if (E.lado === "recibido" && lado.totales.no_acred) {
+            $("origenes").innerHTML += '<button type="button" class="xml-chip' + (E.origen === "NOACRED" ? " xml-chip--activo" : "") + '" data-origen="NOACRED">Con IVA no acreditable<span>' +
+                lado.filas.filter(function (f) { return f.no_acred; }).length + "</span></button>";
+        }
         var filas = lado.filas.filter(function (f) {
-            if (E.origen && f.origen !== E.origen) return false;
+            if (E.origen === "NOACRED") { if (!f.no_acred) return false; }
+            else if (E.origen && f.origen !== E.origen) return false;
             return !q || [f.rfc, f.nombre, f.serie_folio, f.uuid, f.uuid_factura].join(" ").toLowerCase().indexOf(q) !== -1;
         });
         $("thead").innerHTML = "<tr>" + COLS.map(function (c) {
@@ -173,7 +226,9 @@
                 var v = f[c[0]];
                 if (c[0] === "fecha") v = dmy(v);
                 else if (c[0] === "origen") v = ORIGEN[v] || v;
-                else if (c[0] === "avisos") return '<td class="iva-aviso" title="' + esc(v.join(" · ")) + '">' + esc(v.join(" · ")) + "</td>";
+                else if (c[0] === "marca") return celdaMarca(f);
+                else if (c[0] === "avisos" && f.marca) v = v.filter(function (x) { return !/^IVA (no acreditable|acreditable al)/.test(x); });
+                if (c[0] === "avisos") return '<td class="iva-aviso" title="' + esc(v.join(" · ")) + '">' + esc(v.join(" · ")) + "</td>";
                 else if (c[3]) return '<td class="xml-num' + (v < 0 ? " iva-neg" : "") + '">' + (v ? m(v) : "") + "</td>";
                 return "<td>" + esc(v || "") + "</td>";
             }).join("") + "</tr>";
@@ -245,6 +300,11 @@
             if (e.target.closest("[data-elegir]")) { e.stopPropagation(); pintarMenu(); $("menu-empresa").hidden = false; }
         });
         $("pestanas").addEventListener("click", function (e) { var b = e.target.closest("[data-lado]"); if (b) { E.lado = b.dataset.lado; E.origen = ""; Fiscontable.url({ lado: E.lado }); pintar(); } });
+        $("res-acreditable").addEventListener("click", function (e) {
+            if (!e.target.closest("[data-ver-noacred]")) return;
+            E.lado = "recibido"; E.origen = "NOACRED"; Fiscontable.url({ lado: E.lado }); pintar();
+            $("pestanas").scrollIntoView({ behavior: "smooth", block: "start" });
+        });
         $("origenes").addEventListener("click", function (e) { var b = e.target.closest("[data-origen]"); if (b) { E.origen = b.dataset.origen; pintar(); } });
         var reloj = null;
         $("buscar").addEventListener("input", function () { clearTimeout(reloj); var v = this.value; reloj = setTimeout(function () { E.busqueda = v; if (E.datos) pintar(); }, 150); });
@@ -253,6 +313,7 @@
         $("btn-xml").addEventListener("click", function () { irA("/herramientas/xml/"); });
         $("btn-conc").addEventListener("click", function () { irA("/herramientas/conciliacion/"); });
         $("tbody").addEventListener("click", function (e) {
+            if (e.target.closest("[data-marca]")) return;               // la liga a Marcas se abre sola
             var tr = e.target.closest("tr[data-uuid]"); if (!tr || !E.perfil || (E.perfil.modulos_permitidos || []).indexOf("validador") === -1) return;
             window.open("/herramientas/xml/detalle/?rfc=" + encodeURIComponent(E.rfc) + "&uuid=" + encodeURIComponent(tr.dataset.uuid), "_blank", "noopener");
         });
