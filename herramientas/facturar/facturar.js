@@ -190,6 +190,7 @@
         $("punto-manifiesto").hidden = !!e.manifiesto || !prod;
         if (F.man && F.man.rfc !== e.rfc) F.man = null;
         if (F.sub === "manifiesto") cargarManifiesto();
+        else setTimeout(recordarManifiesto, 400);
         $("cinta-nombre").textContent = e.razon_social || e.alias;
         $("cinta-datos").textContent = [e.rfc, e.regimen ? "Régimen " + e.regimen : "", e.cp ? "C.P. " + e.cp : ""].filter(Boolean).join(" · ");
         $("c-emisor").textContent = (e.razon_social || e.alias) + " · " + e.rfc;
@@ -908,7 +909,47 @@
         };
     }
 
+    // En producción no se timbra sin manifiesto: en vez de un error, la ventana que explica y deja subirlo
+    function faltaManifiesto() {
+        if (!F.cfg || !F.cfg.produccion || !F.emisor || F.emisor.manifiesto) return false;
+        abrirManifiesto(true);
+        return true;
+    }
+
+    function abrirManifiesto(alTimbrar) {
+        var d = $("dlg-manifiesto");
+        $("mdlg-rfc").textContent = F.emisor.rfc;
+        $("mdlg-pdf").value = ""; $("mdlg-subir").disabled = true;
+        $("mdlg-msj").textContent = ""; $("mdlg-msj").className = "fa-nota";
+        $("mdlg-despues").textContent = alTimbrar ? "Ahora no" : "Recordármelo después";
+        if (!d.open) d.showModal();
+    }
+
+    async function subirManifiestoDlg() {
+        var pdf = $("mdlg-pdf").files[0], b = $("mdlg-subir");
+        if (!pdf) return;
+        var cuerpo = new FormData();
+        cuerpo.append("pac", "lunasoft"); cuerpo.append("pdf", pdf);
+        b.disabled = true; b.textContent = "Revisando…"; $("mdlg-msj").textContent = "";
+        try {
+            F.man = await json("/api/facturacion/manifiesto/" + encodeURIComponent(F.emisor.rfc), { method: "POST", body: cuerpo });
+            actualizarEmisor(Object.assign({}, F.emisor, { manifiesto: F.man.firmado }));
+            $("dlg-manifiesto").close();
+            aviso("✓ Manifiesto revisado y guardado" + (F.man.revision && F.man.revision.folio ? " (" + F.man.revision.folio + ")" : "") + ". Ya puedes timbrar con " + (F.emisor.alias || F.emisor.rfc) + ".", "ok");
+        } catch (e) { $("mdlg-msj").textContent = e.message; $("mdlg-msj").className = "fa-error"; }
+        b.disabled = !$("mdlg-pdf").files[0]; b.textContent = "Subir y revisar";
+    }
+
+    // Al entrar con una empresa sin manifiesto (producción) se recuerda una vez por sesión
+    function recordarManifiesto() {
+        if (!F.cfg || !F.cfg.produccion || !F.emisor || F.emisor.manifiesto || F.emisor.faltan.length) return;
+        var clave = "fa-man-recordado:" + F.emisor.rfc;
+        try { if (sessionStorage.getItem(clave)) return; sessionStorage.setItem(clave, "1"); } catch (e) { /* sin almacenamiento */ }
+        abrirManifiesto(false);
+    }
+
     async function prepararTimbrado() {
+        if (faltaManifiesto()) return;
         var err = $("t-error");
         err.hidden = true;
         var b = $("btn-timbrar");
@@ -954,6 +995,7 @@
             if (F.borradorId) F.pendiente.prefactura = { id: F.borradorId, conservar: $("conf-pref").hidden ? null : $("conf-pref-chk").checked };
             try { r = await enviar("/api/facturacion/timbrar", "POST", { rfc: F.emisor.rfc, captura: F.pendiente }); }
             catch (e) {
+                if (e.status === 428) { $("dlg-confirmar").close(); F.emisor.manifiesto = false; abrirManifiesto(true); return; }
                 if (e.status !== 409 || !confirm(e.message + "\n\nAcepta solo si de verdad es otra factura.")) throw e;
                 F.pendiente.confirmar_duplicado = true;
                 r = await enviar("/api/facturacion/timbrar", "POST", { rfc: F.emisor.rfc, captura: F.pendiente });
@@ -1409,6 +1451,7 @@
     }
 
     async function prepararPago() {
+        if (faltaManifiesto()) return;
         var err = $("pg-error"); err.hidden = true;
         try {
             var cap = pagoCaptura();
@@ -1904,7 +1947,7 @@
        dos veces). La que falle se queda como prefactura con el motivo. */
     async function timbrarMasiva() {
         var buenas = (F.xm || []).filter(function (f) { return !f.errores.length; });
-        if (!buenas.length) return;
+        if (!buenas.length || faltaManifiesto()) return;
         var total = buenas.reduce(function (a, f) { return a + (f.total || 0); }, 0);
         if (!confirm("¿Timbrar " + buenas.length + " factura" + (buenas.length === 1 ? "" : "s") + " por " + dinero(total) + "?" +
                      (F.cfg.produccion ? "\n\nSe mandan al SAT y gastan " + buenas.length + " timbre" + (buenas.length === 1 ? "" : "s") + " de la empresa." : "\n\nModo de pruebas: no gasta timbres.") +
@@ -2418,6 +2461,9 @@
         $("btn-guardar-config").addEventListener("click", guardarConfig);
         $("btn-guardar-csd").addEventListener("click", guardarCsd);
         $("c-man-pacs").addEventListener("click", manifiestoClic);
+        $("mdlg-pdf").addEventListener("change", function () { $("mdlg-subir").disabled = !this.files[0]; });
+        $("mdlg-subir").addEventListener("click", subirManifiestoDlg);
+        $("mdlg-despues").addEventListener("click", function () { $("dlg-manifiesto").close(); });
         $("btn-reemplazar-csd").addEventListener("click", function () { $("c-csd-form").hidden = false; this.hidden = true; });
         $("btn-quitar-csd").addEventListener("click", quitarCsd);
         $("btn-dar-timbres").addEventListener("click", function () { moverTimbres(1); });

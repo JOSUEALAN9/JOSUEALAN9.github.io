@@ -5,14 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Facturar | Fiscontable</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611051200">
-    <link rel="stylesheet" href="/herramientas/facturar/facturar.css?v=202611051200">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611051300">
+    <link rel="stylesheet" href="/herramientas/facturar/facturar.css?v=202611051300">
 </head>
 <body class="min-h-screen flex flex-col">
 
 <div id="app-header" data-modulo="facturar" data-titulo="Facturar" data-migas="Herramientas|/herramientas/"></div>
-<script src="/assets/js/nucleo.js?v=202611051200"></script>
-<script src="/assets/js/barra.js?v=202611051200"></script>
+<script src="/assets/js/nucleo.js?v=202611051300"></script>
+<script src="/assets/js/barra.js?v=202611051300"></script>
 
 <main class="flex-grow w-full mod-pagina fa-pagina">
     <div class="mod-cabeza">
@@ -475,6 +475,38 @@
     </div>
 </dialog>
 
+<!-- Falta el manifiesto del PAC (sale al querer timbrar sin él, en producción) -->
+<dialog id="dlg-manifiesto" class="fa-dialogo fa-dialogo--ancho">
+    <div class="fa-dialogo__cuerpo fa-man-dlg">
+        <div class="fa-man-dlg__ico" aria-hidden="true"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M9 13h6M9 17h6"/></svg></div>
+        <div>
+            <h2>Acción requerida: firma el manifiesto del PAC</h2>
+            <span class="fa-man-dlg__rfc">RFC <b id="mdlg-rfc"></b></span>
+        </div>
+        <p class="fa-man-dlg__alerta">⚠ Sin el manifiesto guardado esta empresa no puede timbrar.</p>
+        <div class="fa-man-dlg__texto">
+            <h3>¿Qué es?</h3>
+            <p>Es el documento con el que la empresa autoriza al Proveedor de Certificación (PAC) a timbrar sus CFDI. En Fiscontable el PAC es <b>Luna Soft</b>.</p>
+            <h3>¿Por qué hay que firmarlo?</h3>
+            <p>El SAT pide que cada RFC que factura autorice a su PAC y le permita entregarle copia de sus comprobantes. Se firma una sola vez, con la <b>e.firma de la empresa</b> (no con el sello digital).</p>
+            <p class="fa-man-dlg__fund"><b>Fundamento:</b> Resolución Miscelánea Fiscal, reglas 2.7.2.5, fracción II, y 2.7.2.7.</p>
+        </div>
+        <ol class="fa-man-pasos">
+            <li><b>Abre la página de Luna Soft</b>, sube el .cer y luego el .key de la e.firma, escribe un correo y la contraseña, y da «Firmar el manifiesto».</li>
+            <li>Da <b>«Descargar MAN-LSO-….pdf»</b> y súbelo aquí. Fiscontable revisa que sea de esta empresa y listo.</li>
+        </ol>
+        <div class="fa-man-dlg__subir">
+            <a id="mdlg-abrir" class="fa-btn fa-btn--suave" href="https://firmamanifiesto.lunasoft.net/" target="_blank" rel="noopener">1. Abrir Luna Soft ↗</a>
+            <label class="fa-campo"><span>2. El PDF que descargaste</span><input type="file" id="mdlg-pdf" accept=".pdf,application/pdf" class="fa-archivo"></label>
+        </div>
+        <p id="mdlg-msj" class="fa-nota" role="status"></p>
+    </div>
+    <div class="fa-dialogo__pie">
+        <button type="button" id="mdlg-despues" class="fa-btn fa-btn--suave">Recordármelo después</button>
+        <button type="button" id="mdlg-subir" class="fa-btn fa-btn--principal" disabled>Subir y revisar</button>
+    </div>
+</dialog>
+
 <!-- Resultado -->
 <dialog id="dlg-listo" class="fa-dialogo">
     <div class="fa-dialogo__cuerpo fa-centro">
@@ -674,8 +706,8 @@
     </div>
 </dialog>
 
-<script src="/assets/js/comun/importar-clientes.js?v=202611051200"></script>
-<script src="/assets/js/comun/compartir.js?v=202611051200"></script>
-<script src="/herramientas/facturar/facturar.js?v=202611051200"></script>
+<script src="/assets/js/comun/importar-clientes.js?v=202611051300"></script>
+<script src="/assets/js/comun/compartir.js?v=202611051300"></script>
+<script src="/herramientas/facturar/facturar.js?v=202611051300"></script>
 </body>
 </html>

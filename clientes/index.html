@@ -5,14 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mis Clientes | Fiscontable</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611051200">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611051300">
 </head>
 <body class="min-h-screen flex flex-col relative">
 
     <!-- TOP NAV -->
     <div id="app-header" data-modulo="clientes" data-titulo="Mis clientes" data-migas=""></div>
-<script src="/assets/js/nucleo.js?v=202611051200"></script>
-<script src="/assets/js/barra.js?v=202611051200"></script>
+<script src="/assets/js/nucleo.js?v=202611051300"></script>
+<script src="/assets/js/barra.js?v=202611051300"></script>
 
     <!-- ÁREA DE TRABAJO -->
     <main class="flex-grow w-full mod-pagina" style="max-width:1180px">
@@ -84,6 +84,7 @@
                     <button type="button" role="tab" data-alta-ficha="general">Datos generales</button>
                     <button type="button" role="tab" data-alta-ficha="accesos">Accesos <span id="alta-punto-accesos" class="ficha-punto ficha-punto--ok" hidden></span></button>
                     <button type="button" role="tab" data-alta-ficha="obligaciones" id="alta-tab-obligaciones" hidden>Obligaciones</button>
+                    <button type="button" role="tab" data-alta-ficha="facturar" id="alta-tab-facturar" hidden>Facturar <span id="alta-punto-facturar" class="ficha-punto ficha-punto--ok" hidden></span></button>
                 </div>
             </div>
 
@@ -133,6 +134,44 @@
                         <p class="text-[13px] text-slate-500 mt-1 mb-4 leading-relaxed">Para bajar sus XML del portal sin escribirla cada vez. Se guarda cifrada.</p>
                         <span class="relative block"><input type="password" id="alta-ciec" autocomplete="new-password" class="alta-control pr-10" placeholder="La del portal del SAT">
                         <button type="button" class="alta-ojo" data-ojo="alta-ciec" aria-label="Mostrar contraseña">👁</button></span>
+                    </div>
+                </section>
+
+                <!-- ===== Facturar: régimen, C.P., sello digital y manifiesto (opcional; solo con el módulo Facturar) ===== -->
+                <section data-alta-panel="facturar" class="flex flex-col gap-6" hidden>
+                    <div class="ficha-caja">
+                        <h3 class="text-[15px] font-bold text-slate-800">Datos para facturar <small class="font-medium text-slate-500">opcional</small></h3>
+                        <p class="text-[13px] text-slate-500 mt-1 mb-4 leading-relaxed">Si la empresa va a timbrar en Fiscontable, déjala lista desde aquí. Los ves en su constancia de situación fiscal.</p>
+                        <div class="grid grid-cols-1 sm:grid-cols-5 gap-4">
+                            <label class="block sm:col-span-3"><span class="alta-etiqueta">Régimen fiscal</span>
+                                <select id="alta-regimen" class="alta-control"><option value="">Elige…</option></select></label>
+                            <label class="block sm:col-span-2"><span class="alta-etiqueta">C.P. fiscal</span>
+                                <input type="text" id="alta-cp" inputmode="numeric" maxlength="5" class="alta-control font-mono" placeholder="77500"></label>
+                        </div>
+                    </div>
+                    <div class="ficha-caja">
+                        <h3 class="text-[15px] font-bold text-slate-800">Sello digital (CSD)</h3>
+                        <p class="text-[13px] text-slate-500 mt-1 mb-4 leading-relaxed">Es distinto de la e.firma: se tramita en el SAT con la app Certifica. Se guarda cifrado.</p>
+                        <div class="flex flex-col gap-4">
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <label class="block"><span class="alta-etiqueta">Certificado del sello (.cer)</span>
+                                    <input type="file" id="alta-csd-cer" accept=".cer" class="alta-archivo"></label>
+                                <label class="block"><span class="alta-etiqueta">Llave del sello (.key)</span>
+                                    <input type="file" id="alta-csd-key" accept=".key" class="alta-archivo"></label>
+                            </div>
+                            <label class="block"><span class="alta-etiqueta">Contraseña del CSD</span>
+                                <span class="relative block"><input type="password" id="alta-csd-pass" autocomplete="new-password" class="alta-control pr-10">
+                                <button type="button" class="alta-ojo" data-ojo="alta-csd-pass" aria-label="Mostrar contraseña">👁</button></span></label>
+                        </div>
+                    </div>
+                    <div class="ficha-caja">
+                        <h3 class="text-[15px] font-bold text-slate-800">Manifiesto del PAC</h3>
+                        <p class="text-[13px] text-slate-500 mt-1 mb-4 leading-relaxed">Sin él no se puede timbrar. Se firma una vez con la <b>e.firma</b> de la empresa en la página de Luna Soft; al terminar descargas un PDF y lo subes aquí.</p>
+                        <div class="flex flex-wrap items-end gap-4">
+                            <a href="https://firmamanifiesto.lunasoft.net/" target="_blank" rel="noopener" class="text-sm font-bold text-violet-700 border border-violet-200 hover:bg-violet-50 rounded-lg py-2 px-4">Abrir Luna Soft ↗</a>
+                            <label class="block flex-1 min-w-[220px]"><span class="alta-etiqueta">PDF del manifiesto</span>
+                                <input type="file" id="alta-man-pdf" accept=".pdf,application/pdf" class="alta-archivo"></label>
+                        </div>
                     </div>
                 </section>
 
@@ -309,6 +348,25 @@
                     <p class="text-xs text-slate-400 mt-3">🔒 Antes de guardar revisamos que sea un CSD (no la e.firma), que sea de este RFC y que la contraseña abra la llave.</p>
                 </div>
 
+                <!-- Manifiesto del PAC: solo con el módulo Facturar -->
+                <div id="editar-man" class="ficha-caja" hidden>
+                    <div class="flex items-start justify-between gap-3 mb-2">
+                        <div>
+                            <h3 class="text-[15px] font-bold text-slate-800">Manifiesto del PAC (Luna Soft)</h3>
+                            <p class="text-xs text-slate-500 mt-0.5">Sin él no se puede timbrar. Se firma una vez con la e.firma de la empresa en la página de Luna Soft y se sube el PDF.</p>
+                        </div>
+                        <span id="editar-estado-man" class="text-xs font-bold px-2 py-1 rounded-full flex-none"></span>
+                    </div>
+                    <p id="man-guardado-texto" class="text-sm text-slate-700 mb-3 hidden"></p>
+                    <div class="flex flex-wrap items-end gap-3">
+                        <a href="https://firmamanifiesto.lunasoft.net/" target="_blank" rel="noopener" class="text-xs font-bold text-violet-700 border border-violet-200 hover:bg-violet-50 rounded-lg py-2 px-3">Abrir Luna Soft ↗</a>
+                        <label class="block flex-1 min-w-[200px]"><span class="alta-etiqueta" id="man-etiqueta">PDF del manifiesto</span>
+                            <input type="file" id="man-pdf" accept=".pdf,application/pdf" class="alta-archivo"></label>
+                        <button type="button" onclick="subirManifiestoFicha()" id="btn-subir-man" class="bg-violet-600 hover:bg-violet-500 text-white font-bold py-2 px-5 rounded-lg transition text-sm">Subir y revisar</button>
+                    </div>
+                    <p id="editar-mensaje-man" class="text-xs mt-2 hidden"></p>
+                </div>
+
                 </section>
 
                 <!-- ===== Sus clientes: a quién le factura esta empresa (para elegirlos al timbrar) ===== -->
@@ -406,7 +464,7 @@
         </div>
     </div>
 
-<script src="/assets/js/comun/leer-cer.js?v=202611051200"></script>
+<script src="/assets/js/comun/leer-cer.js?v=202611051300"></script>
 <style>
     .cli-herr { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 14px; }
     .cli-buscar { flex: 1 1 220px; max-width: 320px; font-size: 14px; border: 1px solid #e5e7eb; border-radius: 10px; padding: 8px 12px; background: #fff; }
@@ -460,7 +518,7 @@
     .alta-opcional summary small { font-weight: 500; color: #64748b; }
     .alta-error { font-size: 13px; font-weight: 600; border-radius: 10px; padding: 10px 12px; background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; }
 </style>
-<script src="/assets/js/comun/importar-clientes.js?v=202611051200"></script>
-<script src="/clientes/clientes.js?v=202611051200"></script>
+<script src="/assets/js/comun/importar-clientes.js?v=202611051300"></script>
+<script src="/clientes/clientes.js?v=202611051300"></script>
 </body>
 </html>

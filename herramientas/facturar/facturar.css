@@ -12,6 +12,7 @@
 .fa-aviso { font-size: 13.5px; border-radius: 12px; padding: 11px 14px; background: #eef2ff; border: 1px solid #c7d2fe; color: #312e81; margin-bottom: 14px; }
 .fa-aviso--alerta { background: #fffbeb; border-color: #fde68a; color: #92400e; }
 .fa-aviso--error { background: #fef2f2; border-color: #fecaca; color: #991b1b; }
+.fa-aviso--ok { background: #ecfdf5; border-color: #a7f3d0; color: #065f46; }
 .fa-aviso button, .fa-aviso a { font-weight: 700; text-decoration: underline; background: none; border: 0; color: inherit; cursor: pointer; font: inherit; }
 
 .fa-vacio { background: #fff; border: 1px dashed #cbd5e1; border-radius: 16px; padding: 44px 24px; text-align: center; color: #64748b; font-size: 14px; }
@@ -469,3 +470,17 @@ tr.fa-fila-desglose > td { background: #fafaff; padding: 4px 12px 12px; }
 .fa-man-form { display: inline; margin: 0; }
 .fa-man-subir[hidden] { display: none; }
 .fa-man-subir { margin: 0; }
+
+/* Ventana «Acción requerida: firma el manifiesto» */
+.fa-man-dlg { gap: 14px; }
+.fa-man-dlg__ico { width: 52px; height: 52px; border-radius: 14px; background: #eef2ff; color: #3730a3; display: grid; place-items: center; }
+.fa-man-dlg h2 { font-size: 21px; }
+.fa-man-dlg__rfc { display: inline-block; margin-top: 6px; font-size: 12.5px; color: #64748b; background: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 8px; padding: 3px 9px; }
+.fa-man-dlg__rfc b { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; color: #0f172a; }
+.fa-man-dlg__alerta { background: #fffbeb; border: 1px solid #fcd34d; color: #92400e; font-weight: 700; font-size: 14px; border-radius: 12px; padding: 11px 14px; }
+.fa-man-dlg__texto h3 { font-size: 14px; font-weight: 800; color: #0f172a; margin-top: 4px; }
+.fa-man-dlg__texto p { font-size: 13.5px; color: #475569; line-height: 1.5; margin: 2px 0 8px; }
+.fa-man-dlg__fund { font-size: 12.5px !important; color: #64748b !important; }
+.fa-man-dlg .fa-man-pasos { margin: 0; }
+.fa-man-dlg__subir { display: grid; grid-template-columns: auto 1fr; gap: 12px; align-items: end; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px; }
+@media (max-width: 600px) { .fa-man-dlg__subir { grid-template-columns: 1fr; } }

@@ -131,6 +131,7 @@ function separarTipo(nombre) {
 /* Pestañas del alta (las mismas que la ficha): Datos generales · Accesos · Obligaciones */
 function ponerFichaAlta(nombre) {
     if (nombre === "obligaciones" && document.getElementById("alta-tab-obligaciones").hidden) nombre = "general";
+    if (nombre === "facturar" && document.getElementById("alta-tab-facturar").hidden) nombre = "general";
     document.querySelectorAll("[data-alta-ficha][role=tab]").forEach(b => b.setAttribute("aria-selected", String(b.dataset.altaFicha === nombre)));
     document.querySelectorAll("[data-alta-panel]").forEach(p => { p.hidden = p.dataset.altaPanel !== nombre; });
 }
@@ -184,6 +185,8 @@ async function alElegirCer() {
 function abrirModalNuevoCliente() {
     if (sinConexion || soloLectura) return;
     document.getElementById("alta-tab-obligaciones").hidden = !conIsn;
+    document.getElementById("alta-tab-facturar").hidden = !conFacturar || !puedeGuardarEfirma;
+    if (conFacturar && puedeGuardarEfirma) llenarRegimenesAlta();
     document.getElementById("nuevo-obl-zona").classList.add("hidden");
     document.getElementById("alta-nota-demo").hidden = puedeGuardarEfirma;
     document.getElementById("alta-ciec-caja").hidden = !puedeGuardarEfirma;
@@ -463,6 +466,8 @@ async function crearCliente(e) {
     }
     if (!alias) return aviso("general", "Escribe el nombre de la empresa (como la quieres ver en el sistema).", "input-alias");
     if ((clientesCache || []).some(c => c.rfc === rfc)) return aviso("general", `Ya tienes registrada esa empresa (${rfc}).`);
+    const fac = datosFacturarAlta();
+    if (fac.error) return aviso("facturar", fac.error, fac.campo);
     datos.append("nombre", alias);
     datos.append("tipo_sociedad", document.getElementById("input-tipo").value);
     const ciec = (document.getElementById("alta-ciec") || {}).value || "";
@@ -505,6 +510,7 @@ async function crearCliente(e) {
         }
         if (est.length) extra += fallaron ? " No se pudieron guardar todas sus obligaciones estatales: márcalas desde su ficha."
                                           : " Con " + est.map(k => ESTATALES.find(x => x[0] === k)[2].toLowerCase()).join(", ") + ": sube su último acuse desde su ficha y se llenan sus datos.";
+        if (fac.hay) extra += await guardarFacturarAlta(rfc, fac);
         cerrarModalNuevoCliente();
         const partes = [`${alias} quedó registrada (${rfc})`];
         if (r.efirma_guardada) partes.push("con su e.firma guardada");
@@ -519,6 +525,115 @@ async function crearCliente(e) {
         boton.disabled = false;
         boton.textContent = originalTexto;
     }
+}
+
+/* Pestaña «Facturar» del alta: régimen, C.P., sello digital y manifiesto. Todo opcional; se guarda después de
+   registrar la empresa con los mismos servicios que Facturar (que revisan el sello y el PDF). */
+async function cargarFactCfg() {
+    if (factCfg) return factCfg;
+    const r = await fetch(`${API_URL}/api/facturacion/config`, { credentials: "include" });
+    if (!r.ok) throw new Error(await Fiscontable.leerError(r));
+    factCfg = await r.json();
+    return factCfg;
+}
+
+async function llenarRegimenesAlta() {
+    const sel = document.getElementById("alta-regimen");
+    if (sel.options.length > 1) return;
+    try {
+        const reg = (await cargarFactCfg()).catalogos.regimenes;
+        sel.innerHTML = '<option value="">Elige…</option>' + Object.keys(reg).map(k => `<option value="${esc(k)}">${esc(k + " · " + reg[k])}</option>`).join("");
+    } catch (e) { /* sin catálogo: se llena en Facturar */ }
+}
+
+function datosFacturarAlta() {
+    if (document.getElementById("alta-tab-facturar").hidden) return { hay: false };
+    const v = id => document.getElementById(id);
+    const d = { regimen: v("alta-regimen").value, cp: v("alta-cp").value.trim(), cer: v("alta-csd-cer").files[0],
+                key: v("alta-csd-key").files[0], pass: v("alta-csd-pass").value, pdf: v("alta-man-pdf").files[0] };
+    if (d.cp && !/^\d{5}$/.test(d.cp)) return { error: "El código postal son 5 dígitos (el de su constancia de situación fiscal).", campo: "alta-cp" };
+    const algoDelSello = d.cer || d.key || d.pass;
+    if (algoDelSello && (!d.cer || !d.key || !d.pass)) return { error: "Para el sello digital elige el .cer, el .key y escribe su contraseña (o déjalo vacío y súbelo después).", campo: d.pass ? null : "alta-csd-pass" };
+    if (d.cer && !/\.cer$/i.test(d.cer.name)) return { error: "El certificado del sello debe ser un archivo .cer." };
+    if (d.key && !/\.key$/i.test(d.key.name)) return { error: "La llave del sello debe ser un archivo .key." };
+    d.hay = !!(d.regimen || d.cp || algoDelSello || d.pdf);
+    return d;
+}
+
+async function guardarFacturarAlta(rfc, d) {
+    const fallas = [], hecho = [];
+    const pedir = async (ruta, opciones) => {
+        const r = await fetch(`${API_URL}${ruta}`, Object.assign({ credentials: "include" }, opciones));
+        if (!r.ok) throw new Error(await Fiscontable.leerError(r));
+        return r.json();
+    };
+    const base = `/api/facturacion/emisores/${encodeURIComponent(rfc)}`;
+    if (d.regimen || d.cp) {
+        try { await pedir(base, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ regimen: d.regimen || null, cp: d.cp || null }) }); hecho.push("régimen y C.P."); }
+        catch (e) { fallas.push("régimen y C.P.: " + e.message); }
+    }
+    if (d.cer) {
+        const c = new FormData(); c.append("cer", d.cer); c.append("key", d.key); c.append("password", d.pass);
+        try { await pedir(base + "/csd", { method: "POST", body: c }); hecho.push("sello digital"); }
+        catch (e) { fallas.push("sello digital: " + e.message); }
+    }
+    if (d.pdf) {
+        const c = new FormData(); c.append("pac", "lunasoft"); c.append("pdf", d.pdf);
+        try { await pedir(`/api/facturacion/manifiesto/${encodeURIComponent(rfc)}`, { method: "POST", body: c }); hecho.push("manifiesto"); }
+        catch (e) { fallas.push("manifiesto: " + e.message); }
+    }
+    factCfg = null;                              // que Facturar y la ficha vuelvan a leer cómo quedó
+    return (hecho.length ? " Para facturar quedó guardado: " + hecho.join(", ") + "." : "") +
+           (fallas.length ? " No se guardó — " + fallas.join(" · ") + " Corrígelo en su ficha → Accesos." : "");
+}
+
+/* Manifiesto en la ficha (Accesos) */
+async function pintarManifiestoFicha(cliente) {
+    const caja = document.getElementById("editar-man");
+    caja.hidden = !conFacturar || !puedeGuardarEfirma;
+    if (caja.hidden) return;
+    document.getElementById("man-pdf").value = "";
+    document.getElementById("editar-mensaje-man").classList.add("hidden");
+    const badge = document.getElementById("editar-estado-man");
+    badge.textContent = "Revisando…";
+    badge.className = "text-xs font-bold px-2 py-1 rounded-full flex-none bg-gray-100 text-gray-500";
+    let m;
+    try {
+        const r = await fetch(`${API_URL}/api/facturacion/manifiesto/${encodeURIComponent(cliente.rfc)}`, { credentials: "include" });
+        if (!r.ok) throw new Error(await Fiscontable.leerError(r));
+        m = await r.json();
+    } catch (e) { badge.textContent = ""; mensajeMan(false, e.message); return; }
+    if (rfcEnEdicion !== cliente.rfc) return;
+    const g = (m.pacs[0] || {}).guardado;
+    badge.textContent = g ? "Firmado" : "Falta";
+    badge.className = "text-xs font-bold px-2 py-1 rounded-full flex-none " + (g ? "bg-violet-100 text-violet-700" : "bg-amber-100 text-amber-800");
+    const t = document.getElementById("man-guardado-texto");
+    t.classList.toggle("hidden", !g);
+    t.textContent = g ? "✓ " + [g.folio, g.firmado_en ? "firmado el " + fechaCorta(g.firmado_en) : "", g.revision && g.revision.nombre ? "por " + g.revision.nombre : ""].filter(Boolean).join(" · ") : "";
+    document.getElementById("man-etiqueta").textContent = g ? "Reemplazar con otro PDF" : "PDF del manifiesto";
+}
+
+function mensajeMan(ok, texto) {
+    const p = document.getElementById("editar-mensaje-man");
+    p.textContent = texto; p.className = "text-xs mt-2 font-semibold " + (ok ? "text-emerald-700" : "text-red-600");
+}
+
+async function subirManifiestoFicha() {
+    const rfc = rfcEnEdicion, pdf = document.getElementById("man-pdf").files[0];
+    if (!rfc) return;
+    if (!pdf) { mensajeMan(false, "Elige el PDF que descargaste de Luna Soft al firmar."); return; }
+    const b = document.getElementById("btn-subir-man");
+    b.disabled = true; b.textContent = "Revisando…";
+    try {
+        const c = new FormData(); c.append("pac", "lunasoft"); c.append("pdf", pdf);
+        const r = await fetch(`${API_URL}/api/facturacion/manifiesto/${encodeURIComponent(rfc)}`, { method: "POST", credentials: "include", body: c });
+        if (!r.ok) throw new Error(await Fiscontable.leerError(r));
+        const d = await r.json();
+        factCfg = null;
+        await pintarManifiestoFicha(clientesCache.find(c => c.rfc === rfc) || { rfc });
+        mensajeMan(true, "✓ Manifiesto revisado y guardado" + (d.revision && d.revision.folio ? " (" + d.revision.folio + ")" : "") + ". Ya puede timbrar.");
+    } catch (e) { mensajeMan(false, e.message); }
+    b.disabled = false; b.textContent = "Subir y revisar";
 }
 
 let rfcEnEdicion = null;
@@ -578,6 +693,7 @@ function abrirModalEditar(rfc, ficha) {
     document.getElementById("editar-dato-alta").textContent = cliente.creado_en ? new Date(cliente.creado_en + "Z").toLocaleDateString("es-MX", { day: "numeric", month: "long", year: "numeric" }) : "—";
     pintarCiec(cliente);
     pintarCsd(cliente);
+    pintarManifiestoFicha(cliente);
     pintarReceptores(cliente);
     document.getElementById("editar-cer").value = "";
     document.getElementById("editar-key").value = "";
