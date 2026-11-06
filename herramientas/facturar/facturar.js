@@ -180,9 +180,9 @@
             falta.className = "fa-aviso";
             falta.hidden = false;
         } else if (!e.manifiesto) {
-            falta.innerHTML = "Falta guardar el <b>manifiesto del PAC</b> de " + esc(e.alias) + " (lo pide el SAT a cada empresa que timbra). " +
-                '<button type="button" data-ir="config" data-ir-sub="manifiesto">Ver cómo se firma</button>';
-            falta.className = "fa-aviso";
+            falta.innerHTML = "Para timbrar con <b>" + esc(e.alias) + "</b> falta su <b>manifiesto del PAC</b> (lo pide el SAT a cada empresa que timbra). " +
+                '<button type="button" data-ir="config" data-ir-sub="manifiesto">Firmarlo y subirlo</button>';
+            falta.className = "fa-aviso fa-aviso--alerta";
             falta.hidden = false;
         } else {
             falta.hidden = true;
@@ -243,25 +243,23 @@
         $("c-man-estado").textContent = m.firmado ? "Guardado" : "Falta";
         $("c-man-estado").className = "fa-chip " + (m.firmado ? "fa-chip--ok" : "fa-chip--gris");
         $("c-man-pacs").innerHTML = m.pacs.map(function (p) {
-            var g = p.guardado;
-            var abrir = p.metodo === "post"
-                ? '<form method="post" action="' + esc(p.url) + '" target="_blank" rel="noopener" class="fa-man-form">' +
-                  Object.keys(p.campos).map(function (k) { return '<input type="hidden" name="' + esc(k) + '" value="' + esc(p.campos[k]) + '">'; }).join("") +
-                  '<button type="submit" class="fa-btn fa-btn--suave">Abrir portal para firmar ↗</button></form>'
-                : '<a class="fa-btn fa-btn--suave" href="' + esc(p.url) + '" target="_blank" rel="noopener">Abrir portal para firmar ↗</a>';
+            var g = p.guardado, rv = (g && g.revision) || {};
+            var abrir = '<a class="fa-btn ' + (g ? "fa-btn--suave" : "fa-btn--principal") + '" href="' + esc(p.url) + '" target="_blank" rel="noopener">Abrir página de ' + esc(p.nombre) + " para firmar ↗</a>";
+            var datos = g ? [
+                g.folio ? "Folio <b>" + esc(g.folio) + "</b>" : "",
+                rv.nombre ? "Firmó <b>" + esc(rv.nombre) + "</b>" : "",
+                rv.serie ? "e.firma núm. " + esc(rv.serie) : "",
+                rv.sello_verificado ? "✓ Sello comprobado con la e.firma guardada" : ""
+            ].filter(Boolean).join(" · ") : "";
             return '<div class="fa-man-pac' + (g ? " fa-man-pac--ok" : "") + '" data-pac="' + p.id + '">' +
                 '<div class="fa-man-pac__cabeza"><div><small>' + esc(p.etiqueta) + "</small><b>" + esc(p.nombre) + "</b></div>" +
-                '<span class="fa-chip ' + (g ? "fa-chip--ok" : "fa-chip--gris") + '">' + (g ? "✓ Firmado" + (g.firmado_en ? " el " + fechaCorta(g.firmado_en + "T12:00:00") : "") : "Sin acuse") + "</span></div>" +
-                (g ? '<p class="fa-nota">Acuse guardado' + (g.hay_pdf ? ' · <button type="button" class="fa-link" data-man-bajar="pdf">PDF</button>' : "") +
-                     (g.hay_xml ? ' · <button type="button" class="fa-link" data-man-bajar="xml">XML</button>' : "") +
-                     (g.rfc_leido ? "" : " · <i>no se pudo leer el RFC del acuse; revisa que sea de esta empresa</i>") + "</p>" : "") +
+                '<span class="fa-chip ' + (g ? "fa-chip--ok" : "fa-chip--gris") + '">' + (g ? "✓ Firmado" + (g.firmado_en ? " el " + fechaCorta(g.firmado_en + "T12:00:00") : "") : "Sin manifiesto") + "</span></div>" +
+                (g ? '<p class="fa-nota">' + datos + (g.hay_pdf ? ' · <button type="button" class="fa-link" data-man-bajar="pdf">Ver PDF</button>' : "") + "</p>" : "") +
                 '<div class="fa-man-acciones">' + abrir +
-                (g ? '<button type="button" class="fa-link" data-man-reemplazar>Reemplazar acuse</button><button type="button" class="fa-link fa-link--rojo" data-man-quitar>Quitar</button>' : "") + "</div>" +
+                (g ? '<button type="button" class="fa-link" data-man-reemplazar>Reemplazar PDF</button><button type="button" class="fa-link fa-link--rojo" data-man-quitar>Quitar</button>' : "") + "</div>" +
                 '<div class="fa-rejilla fa-man-subir"' + (g ? " hidden" : "") + ">" +
-                '<label class="fa-campo fa-c3"><span>Acuse en PDF</span><input type="file" accept=".pdf,application/pdf" class="fa-archivo" data-man-pdf></label>' +
-                '<label class="fa-campo fa-c3"><span>Acuse en XML <i class="fa-opcional">(opcional)</i></span><input type="file" accept=".xml,text/xml,application/xml" class="fa-archivo" data-man-xml></label>' +
-                '<label class="fa-campo fa-c2"><span>Fecha de firma <i class="fa-opcional">(si no se lee sola)</i></span><input type="date" data-man-fecha></label>' +
-                '<div class="fa-campo fa-c2 fa-al-fondo"><button type="button" class="fa-btn fa-btn--principal fa-ancho" data-man-guardar>Guardar acuse</button></div></div></div>';
+                '<label class="fa-campo fa-c4"><span>Manifiesto en PDF (el que descargaste al firmar)</span><input type="file" accept=".pdf,application/pdf" class="fa-archivo" data-man-pdf></label>' +
+                '<div class="fa-campo fa-c2 fa-al-fondo"><button type="button" class="fa-btn fa-btn--principal fa-ancho" data-man-guardar>Subir y revisar</button></div></div></div>';
         }).join("");
     }
 
@@ -287,19 +285,17 @@
         }
         var g = ev.target.closest("[data-man-guardar]");
         if (g) {
-            var pdf = caja.querySelector("[data-man-pdf]").files[0], xml = caja.querySelector("[data-man-xml]").files[0];
-            if (!pdf && !xml) { $("msj-man").textContent = "Elige el acuse en PDF (y el XML si lo tienes)."; return; }
+            var pdf = caja.querySelector("[data-man-pdf]").files[0];
+            if (!pdf) { $("msj-man").textContent = "Elige el PDF del manifiesto que descargaste de Luna Soft."; return; }
             var cuerpo = new FormData();
             cuerpo.append("pac", pac);
-            if (pdf) cuerpo.append("pdf", pdf);
-            if (xml) cuerpo.append("xml", xml);
-            var f = caja.querySelector("[data-man-fecha]").value;
-            if (f) cuerpo.append("fecha", f);
-            g.disabled = true; g.textContent = "Guardando…"; $("msj-man").textContent = "";
+            cuerpo.append("pdf", pdf);
+            g.disabled = true; g.textContent = "Revisando…"; $("msj-man").textContent = "";
             try {
                 F.man = await json(base, { method: "POST", body: cuerpo });
-                despuesManifiesto(F.man.rfc_leido ? "✓ Acuse guardado." : "✓ Acuse guardado. No se pudo leer el RFC dentro del archivo: revisa que sea de esta empresa.");
-            } catch (e) { $("msj-man").textContent = e.message; g.disabled = false; g.textContent = "Guardar acuse"; }
+                var rv = F.man.revision || {};
+                despuesManifiesto("✓ Manifiesto revisado y guardado" + (rv.folio ? " (" + rv.folio + ")" : "") + ". Ya puedes timbrar con esta empresa.");
+            } catch (e) { $("msj-man").textContent = e.message; g.disabled = false; g.textContent = "Subir y revisar"; }
         }
     }
 

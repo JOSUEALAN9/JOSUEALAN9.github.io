@@ -5,14 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Facturar | Fiscontable</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611051000">
-    <link rel="stylesheet" href="/herramientas/facturar/facturar.css?v=202611051000">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611051100">
+    <link rel="stylesheet" href="/herramientas/facturar/facturar.css?v=202611051100">
 </head>
 <body class="min-h-screen flex flex-col">
 
 <div id="app-header" data-modulo="facturar" data-titulo="Facturar" data-migas="Herramientas|/herramientas/"></div>
-<script src="/assets/js/nucleo.js?v=202611051000"></script>
-<script src="/assets/js/barra.js?v=202611051000"></script>
+<script src="/assets/js/nucleo.js?v=202611051100"></script>
+<script src="/assets/js/barra.js?v=202611051100"></script>
 
 <main class="flex-grow w-full mod-pagina fa-pagina">
     <div class="mod-cabeza">
@@ -380,12 +380,12 @@
                     <h2>Manifiesto del PAC</h2>
                     <span id="c-man-estado" class="fa-chip fa-chip--gris"></span>
                 </div>
-                <p class="fa-nota">El SAT pide que <b>cada empresa</b> autorice al PAC a timbrar sus facturas firmando un manifiesto con <b>su e.firma</b> (no con el sello digital). Se firma una sola vez y nadie puede hacerlo por ella. MultiFacturas timbra a través de dos PAC; si no sabes cuál le toca, firma los dos.</p>
+                <p class="fa-nota">El SAT pide que <b>cada empresa</b> autorice al PAC (Luna Soft) a timbrar sus facturas firmando un manifiesto con <b>su e.firma</b> (no con el sello digital). Se firma una sola vez y nadie puede hacerlo por ella. Sin el manifiesto guardado no se puede timbrar.</p>
                 <ol class="fa-man-pasos">
-                    <li><b>Abre el portal del PAC</b> con el botón de abajo (se abre en otra pestaña).</li>
-                    <li>Ahí sube la <b>e.firma de la empresa</b> (.cer, .key y contraseña) y un correo. Fiscontable no ve ni guarda esos datos.</li>
-                    <li>Al terminar, el portal te deja <b>descargar el acuse en PDF y XML</b>: guárdalos.</li>
-                    <li><b>Súbelos aquí</b> para tenerlos a la mano y saber qué empresas ya firmaron.</li>
+                    <li><b>Abre la página de Luna Soft</b> con el botón de abajo (se abre en otra pestaña).</li>
+                    <li>Sube el <b>.cer</b> de la e.firma de la empresa. Cuando lo lea, te pide el <b>.key</b>.</li>
+                    <li>Escribe un correo y la <b>contraseña de la llave privada</b> y da <b>«Firmar el manifiesto»</b>. Fiscontable no ve ni guarda esos datos.</li>
+                    <li>Da <b>«Descargar MAN-LSO-….pdf»</b> y <b>súbelo aquí</b>. Fiscontable revisa que sea de esta empresa y listo: ya puedes timbrar.</li>
                 </ol>
                 <div id="c-man-pacs" class="fa-man-pacs"></div>
                 <p id="msj-man" class="fa-nota" role="status"></p>
@@ -674,8 +674,8 @@
     </div>
 </dialog>
 
-<script src="/assets/js/comun/importar-clientes.js?v=202611051000"></script>
-<script src="/assets/js/comun/compartir.js?v=202611051000"></script>
-<script src="/herramientas/facturar/facturar.js?v=202611051000"></script>
+<script src="/assets/js/comun/importar-clientes.js?v=202611051100"></script>
+<script src="/assets/js/comun/compartir.js?v=202611051100"></script>
+<script src="/herramientas/facturar/facturar.js?v=202611051100"></script>
 </body>
 </html>
