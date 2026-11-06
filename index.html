@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611051600">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611051700">
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="min-h-screen flex flex-col">
@@ -46,7 +46,8 @@
     .inicio-mod__icono svg { width: 20px; height: 20px; }
     .inicio-mod h3 { font-size: 14.5px; font-weight: 700; line-height: 1.3; }
     .inicio-mod p { font-size: 12.5px; color: var(--texto-tenue); margin-top: 2px; line-height: 1.4; }
-    .inicio-mod--vedado { opacity: .45; cursor: not-allowed; }
+    .inicio-mod--vedado { opacity: .75; filter: grayscale(.6); }
+    .inicio-mod--vedado:hover { border-color: #f59e0b; }
     .inicio-rejilla--recientes .inicio-mod { border-color: color-mix(in srgb, var(--tono) 35%, var(--linea)); }
     .inicio-empresa { display: flex; flex-wrap: wrap; gap: 14px 22px; align-items: center; justify-content: space-between; background: #fff; border: 1px solid var(--linea);
                       border-radius: 16px; padding: 16px 18px; box-shadow: var(--sombra-baja); }
@@ -59,8 +60,8 @@
     .inicio-empresa__acciones { display: flex; flex-wrap: wrap; gap: 8px; }
 </style>
 
-<script src="/assets/js/nucleo.js?v=202611051600"></script>
-<script src="/assets/js/barra.js?v=202611051600"></script>
+<script src="/assets/js/nucleo.js?v=202611051700"></script>
+<script src="/assets/js/barra.js?v=202611051700"></script>
 <script>
     (function () {
         var esc = Fiscontable.escapar;
@@ -68,8 +69,9 @@
         function tarjeta(m) {
             var ok = Fiscontable.permitido(m);
             return '<a class="inicio-mod' + (ok ? "" : " inicio-mod--vedado") + '" href="' + (ok ? esc(m.url) : "#") + '" style="--tono:' + m.tono + ';--tono-suave:' + m.suave + '"' +
-                (ok ? "" : ' title="Tu plan actual no incluye este módulo" aria-disabled="true" onclick="return false"') + ">" +
-                '<span class="inicio-mod__icono">' + svg(m.icono) + '</span><span><h3>' + esc(m.nombre) + (ok ? "" : " 🔒") + "</h3><p>" + esc(m.desc) + "</p></span></a>";
+                (ok ? "" : ' data-plan="' + esc(m.clave) + '" title="No incluido en tu plan"') + ">" +
+                '<span class="inicio-mod__icono">' + svg(m.icono) + '</span><span><h3>' + esc(m.nombre) + (ok ? "" : " 🔒") + "</h3><p>" +
+                (ok ? esc(m.desc) : '<em class="fc-plan-chip">No incluido en tu plan</em>') + "</p></span></a>";
         }
         function pintar() {
             var cat = Fiscontable.catalogo || [];

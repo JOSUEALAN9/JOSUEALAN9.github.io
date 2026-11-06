@@ -5,15 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Administrar Usuarios | Fiscontable</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611051600">
-    <link rel="stylesheet" href="/admin/creditos-admin.css?v=202611051600">
-    <link rel="stylesheet" href="/admin/documentos-admin.css?v=202611051600">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611051700">
+    <link rel="stylesheet" href="/admin/creditos-admin.css?v=202611051700">
+    <link rel="stylesheet" href="/admin/documentos-admin.css?v=202611051700">
 </head>
 <body class="min-h-screen flex flex-col relative">
 
     <div id="app-header" data-modulo="admin" data-titulo="Administración" data-migas=""></div>
-<script src="/assets/js/nucleo.js?v=202611051600"></script>
-<script src="/assets/js/barra.js?v=202611051600"></script>
+<script src="/assets/js/nucleo.js?v=202611051700"></script>
+<script src="/assets/js/barra.js?v=202611051700"></script>
 
     <main class="flex-grow p-4 sm:p-6 w-full max-w-4xl mx-auto fc-principal">
         <style>
@@ -96,6 +96,28 @@
             <section id="panel-permisos" role="tabpanel" hidden>
                 <p class="text-sm text-slate-500 mb-4">Qué módulos ve cada rol y cuántos RFC nuevos al día puede sacar en descargas masivas. Aplica en cuanto guardas; cada usuario lo ve al recargar su página. A quien tenga <strong>ajustes propios</strong> no le cambia lo que tenga personalizado.</p>
                 <div id="tarjetas-roles" class="flex flex-col gap-4"></div>
+                <!-- Lo que ven los usuarios en los módulos que su plan no incluye, y los próximos desarrollos -->
+                <div class="bg-white rounded-xl card-elevated border border-gray-200 p-5 mt-4" id="caja-planes">
+                    <h3 class="text-[15px] font-bold text-slate-800">Para mejorar el plan y próximos desarrollos</h3>
+                    <p class="text-xs text-slate-500 mt-1 mb-4">Quien toque un módulo que su plan no incluye ve este mensaje y estos botones. Los próximos desarrollos salen en Herramientas para todos.</p>
+                    <div class="grid grid-cols-1 sm:grid-cols-6 gap-3">
+                        <label class="block sm:col-span-6"><span class="text-xs font-bold text-slate-600">Mensaje</span>
+                            <input id="plan-texto" maxlength="200" class="mt-1 w-full text-sm border border-gray-300 rounded-lg p-2.5" placeholder="Contacta al administrador para mejorar tu plan."></label>
+                        <label class="block sm:col-span-3"><span class="text-xs font-bold text-slate-600">WhatsApp <i class="font-normal text-slate-400">(opcional)</i></span>
+                            <input id="plan-wa" inputmode="numeric" maxlength="16" class="mt-1 w-full text-sm border border-gray-300 rounded-lg p-2.5 font-mono" placeholder="998 123 4567"></label>
+                        <label class="block sm:col-span-3"><span class="text-xs font-bold text-slate-600">Correo <i class="font-normal text-slate-400">(opcional)</i></span>
+                            <input id="plan-correo" type="email" maxlength="120" class="mt-1 w-full text-sm border border-gray-300 rounded-lg p-2.5" placeholder="contacto@josuealan.com"></label>
+                    </div>
+                    <div class="flex items-center gap-2 mt-5 mb-2">
+                        <p class="text-xs font-bold text-slate-600 uppercase tracking-wide">Próximos desarrollos</p>
+                        <button type="button" id="btn-proximo-mas" class="ml-auto text-xs font-bold text-violet-700 border border-violet-200 hover:bg-violet-50 rounded-lg py-1.5 px-3">+ Agregar</button>
+                    </div>
+                    <div id="lista-proximos" class="flex flex-col gap-2"></div>
+                    <div class="flex items-center gap-3 mt-4">
+                        <button type="button" id="btn-guardar-planes" class="bg-violet-600 hover:bg-violet-500 text-white font-bold py-2 px-5 rounded-lg text-sm">Guardar</button>
+                        <span id="msj-planes" class="text-xs font-semibold"></span>
+                    </div>
+                </div>
                 <div class="bg-slate-50 border border-slate-200 rounded-lg p-4 text-xs text-slate-500 mt-4">
                     <p class="font-bold text-slate-700 mb-1">Reglas fijas</p>
                     <p><strong>Admin</strong> tiene todo, sin límite, y no se edita ni se personaliza. <strong>Demo</strong> siempre vence (7 días si no pones fecha) y no puede guardar e.firmas. Quien entra por primera vez queda como Demo.</p>
@@ -480,8 +502,8 @@
         </div>
     </div>
 
-<script src="/admin/admin.js?v=202611051600"></script>
-<script src="/admin/creditos-admin.js?v=202611051600"></script>
-<script src="/admin/documentos-admin.js?v=202611051600"></script>
+<script src="/admin/admin.js?v=202611051700"></script>
+<script src="/admin/creditos-admin.js?v=202611051700"></script>
+<script src="/admin/documentos-admin.js?v=202611051700"></script>
 </body>
 </html>

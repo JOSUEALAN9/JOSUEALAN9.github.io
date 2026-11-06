@@ -342,9 +342,10 @@
     function itemModulo(m) {
         var ok = permitido(m), actual = aqui && m.clave === aqui.clave;
         return '<a class="fc-modulos__item' + (ok ? "" : " fc-modulos__item--vedado") + (actual ? " fc-modulos__item--actual" : "") + '" href="' + esc(m.url) + '"' +
-            ' style="--tono:' + m.tono + ';--tono-suave:' + m.suave + '"' + (ok ? "" : ' title="Tu plan actual no incluye este módulo" aria-disabled="true"') + ">" +
+            ' style="--tono:' + m.tono + ';--tono-suave:' + m.suave + '"' + (ok ? "" : ' data-plan="' + m.clave + '" title="No incluido en tu plan"') + ">" +
             '<span class="fc-modulos__icono">' + ico(m.icono, 1.7) + "</span>" +
-            '<span class="fc-modulos__texto"><strong>' + esc(m.nombre) + (ok ? "" : " 🔒") + "</strong><small>" + esc(m.desc) + "</small></span></a>";
+            '<span class="fc-modulos__texto"><strong>' + esc(m.nombre) + (ok ? "" : " 🔒") + "</strong><small>" +
+            (ok ? esc(m.desc) : '<em class="fc-plan-chip">No incluido en tu plan</em>') + "</small></span></a>";
     }
 
     function pintarModulos() {
@@ -1654,12 +1655,54 @@
         if (caja) caja.hidden = true;
     }
 
-    function bloquear(mensaje) {
+    /* ------------------------------------------------ módulos que el plan no incluye
+       Todo sale de los permisos reales del usuario (su rol y sus ajustes propios): si el admin le da un módulo, se
+       desbloquea solo. Al tocar uno bloqueado sale este aviso con el contacto que el admin puso en Permisos por rol. */
+    var NOMBRE_PLAN = { admin: "Admin", pro: "Pro", plus: "Plus", demo: "Demo" };
+    function planInfo() { return (perfilActual && perfilActual.planes) || { contacto: { texto: "Contacta al administrador para mejorar tu plan." }, proximos: [] }; }
+    function nombrePlan() { var r = perfilActual && perfilActual.rol; return NOMBRE_PLAN[r] || (r ? r.charAt(0).toUpperCase() + r.slice(1) : ""); }
+    function botonesContacto(modulo) {
+        var c = planInfo().contacto || {}, correo = (perfilActual && perfilActual.correo) || "";
+        var texto = "Hola, quiero " + (modulo ? "agregar «" + modulo + "» a" : "mejorar") + " mi plan de Fiscontable" + (correo ? " (" + correo + ")" : "") + ".";
+        var b = "";
+        if (c.whatsapp) b += '<a class="fc-btn fc-btn--principal" target="_blank" rel="noopener" href="https://wa.me/' + esc(c.whatsapp) + "?text=" + encodeURIComponent(texto) + '">WhatsApp</a>';
+        if (c.correo) b += '<a class="fc-btn" href="mailto:' + esc(c.correo) + "?subject=" + encodeURIComponent("Mejorar mi plan de Fiscontable") + "&body=" + encodeURIComponent(texto) + '">Correo</a>';
+        return b;
+    }
+    function avisoPlan(clave) {
+        var m = CATALOGO.filter(function (x) { return x.clave === clave; })[0];
+        var dlg = document.getElementById("fc-plan");
+        if (!dlg) {
+            dlg = document.createElement("dialog");
+            dlg.id = "fc-plan"; dlg.className = "fc-plan";
+            document.body.appendChild(dlg);
+            dlg.addEventListener("click", function (e) { if (e.target === dlg || e.target.closest("[data-cerrar]")) dlg.close(); });
+        }
+        var plan = nombrePlan();
+        dlg.innerHTML = '<div class="fc-plan__caja"><div class="fc-plan__ico" style="--tono:' + (m ? m.tono : "#475569") + ";--tono-suave:" + (m ? m.suave : "#EEF1F5") + '">' +
+            (m ? ico(m.icono, 1.7) : "") + '<span class="fc-plan__candado">' + ico(D.candado, 2) + "</span></div>" +
+            "<h3>" + esc(m ? m.nombre : "Este módulo") + "</h3>" +
+            "<p>No está incluido en tu plan" + (plan ? " <b>" + esc(plan) + "</b>" : "") + ".</p>" +
+            (m ? '<p class="fc-plan__desc">' + esc(m.desc) + ".</p>" : "") +
+            '<p class="fc-plan__contacto">' + esc((planInfo().contacto || {}).texto || "Contacta al administrador para mejorar tu plan.") + "</p>" +
+            '<div class="fc-plan__botones">' + botonesContacto(m && m.nombre) + '<button type="button" class="fc-btn" data-cerrar>Entendido</button></div></div>';
+        dlg.showModal();
+    }
+    // Cualquier módulo bloqueado (menú «Módulos», Herramientas, portada) lleva data-plan
+    document.addEventListener("click", function (e) {
+        var a = e.target.closest && e.target.closest("[data-plan]");
+        if (!a) return;
+        e.preventDefault(); e.stopPropagation();
+        avisoPlan(a.dataset.plan);
+    }, true);
+
+    function bloquear(mensaje, extra) {
         var main = document.querySelector("main");
         if (!main) return;
         main.innerHTML = '<div class="fc-bloqueo">' + ico(D.candado, 1.6) +
             "<p>" + esc(mensaje) + "</p>" +
-            '<a class="fc-btn fc-btn--principal" style="margin-top:16px" href="/herramientas/">Ver mis herramientas</a></div>';
+            '<div class="fc-plan__botones" style="margin-top:16px">' + (extra || "") +
+            '<a class="fc-btn' + (extra ? "" : " fc-btn--principal") + '" href="/herramientas/">Ver mis herramientas</a></div></div>';
     }
 
     /**
@@ -1679,12 +1722,13 @@
         }
         if (p.solo_lectura) {
             bloquear("Tu acceso venció. No puedes generar documentos hasta que se renueve. " +
-                "Contacta al administrador.");
+                "Contacta al administrador.", botonesContacto(null));
             return false;
         }
         if (requerido && !(p.modulos_permitidos || []).includes(requerido)) {
-            bloquear("Tu plan actual no incluye " + modulo.nombre + ". " +
-                "Contacta al administrador si necesitas acceso.");
+            var plan = nombrePlan();
+            bloquear("Tu plan" + (plan ? " " + plan : " actual") + " no incluye " + modulo.nombre + ". " +
+                ((planInfo().contacto || {}).texto || "Contacta al administrador para mejorar tu plan."), botonesContacto(modulo.nombre));
             return false;
         }
         return true;
@@ -1802,6 +1846,9 @@
     Object.assign(window.Fiscontable, {
         modulo: clave,
         catalogo: CATALOGO,
+        avisoPlan: avisoPlan,
+        planInfo: planInfo,
+        nombrePlan: nombrePlan,
         recientes: recientes,
         permitido: function (m) { return permitido(m); },
         abrirModulos: abrirModulos,

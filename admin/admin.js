@@ -381,7 +381,68 @@ async function cargarRoles() {
         rolesCache = await api("/api/admin/roles");
         renderizarRoles();
     } catch (e) { mostrarAlerta("error", e.message); }
+    cargarPlanesInfo();
 }
+
+/* Mensaje para mejorar el plan (con WhatsApp y correo) y próximos desarrollos: lo ven todos los usuarios */
+let planesCargados = false;
+async function cargarPlanesInfo() {
+    if (planesCargados) return;
+    try {
+        const d = await api("/api/admin/planes-info");
+        planesCargados = true;
+        $("plan-texto").value = d.contacto.texto || "";
+        $("plan-wa").value = d.contacto.whatsapp || "";
+        $("plan-correo").value = d.contacto.correo || "";
+        $("lista-proximos").innerHTML = "";
+        (d.proximos || []).forEach(filaProximo);
+        if (!d.proximos.length) filaProximo();
+    } catch (e) { $("msj-planes").textContent = e.message; $("msj-planes").className = "text-xs font-semibold text-red-600"; }
+}
+
+function filaProximo(x) {
+    x = x || {};
+    const fila = document.createElement("div");
+    fila.className = "grid grid-cols-1 sm:grid-cols-12 gap-2 items-center border border-gray-200 rounded-lg p-2";
+    fila.innerHTML = `
+        <input data-p="titulo" maxlength="80" class="sm:col-span-4 text-sm border border-gray-300 rounded-lg p-2" placeholder="Nombre (ej. Voucheo federal)">
+        <input data-p="desc" maxlength="240" class="sm:col-span-5 text-sm border border-gray-300 rounded-lg p-2" placeholder="Qué hará">
+        <input data-p="etiqueta" maxlength="24" class="sm:col-span-2 text-sm border border-gray-300 rounded-lg p-2" placeholder="En camino" list="etiquetas-proximos">
+        <button type="button" data-quitar class="sm:col-span-1 text-xs font-bold text-red-600 hover:underline" title="Quitar">Quitar</button>`;
+    fila.querySelector('[data-p="titulo"]').value = x.titulo || "";
+    fila.querySelector('[data-p="desc"]').value = x.desc || "";
+    fila.querySelector('[data-p="etiqueta"]').value = x.etiqueta || "";
+    $("lista-proximos").appendChild(fila);
+}
+
+async function guardarPlanesInfo() {
+    const msj = $("msj-planes"), b = $("btn-guardar-planes");
+    const proximos = Array.from($("lista-proximos").children).map(f => ({
+        titulo: f.querySelector('[data-p="titulo"]').value.trim(), desc: f.querySelector('[data-p="desc"]').value.trim(),
+        etiqueta: f.querySelector('[data-p="etiqueta"]').value.trim()
+    })).filter(x => x.titulo);
+    b.disabled = true; msj.textContent = "Guardando…"; msj.className = "text-xs font-semibold text-slate-500";
+    try {
+        const d = await api("/api/admin/planes-info", {
+            method: "PUT", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ contacto: { texto: $("plan-texto").value, whatsapp: $("plan-wa").value, correo: $("plan-correo").value }, proximos })
+        });
+        $("plan-wa").value = d.contacto.whatsapp || "";
+        msj.textContent = "✓ Guardado. Cada usuario lo ve al recargar su página."; msj.className = "text-xs font-semibold text-emerald-700";
+    } catch (e) { msj.textContent = e.message; msj.className = "text-xs font-semibold text-red-600"; }
+    b.disabled = false;
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+    if (!$("caja-planes")) return;
+    $("btn-proximo-mas").addEventListener("click", () => filaProximo());
+    $("lista-proximos").addEventListener("click", e => { const q = e.target.closest("[data-quitar]"); if (q) q.parentElement.remove(); });
+    $("btn-guardar-planes").addEventListener("click", guardarPlanesInfo);
+    const dl = document.createElement("datalist");
+    dl.id = "etiquetas-proximos";
+    dl.innerHTML = ["En camino", "Pronto", "En pruebas", "Este mes"].map(t => `<option value="${t}">`).join("");
+    document.body.appendChild(dl);
+});
 
 function modoLimite(limite) {
     if (limite === null || limite === undefined) return "sin";
