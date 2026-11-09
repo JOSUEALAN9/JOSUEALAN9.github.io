@@ -750,6 +750,16 @@
         $("d-cancelar").addEventListener("click", function () { $("modal-descargar").hidden = true; });
         $("d-enviar").addEventListener("click", enviarDescarga);
         $("avance-cerrar").addEventListener("click", function () { $("avance").hidden = true; });
+        // Ocultar / ver el detalle del avance (sigue trabajando); Esc lo oculta, o lo cierra si ya terminó
+        $("avance-min").addEventListener("click", function () {
+            var min = $("avance").classList.toggle("isn-avance--min");
+            this.textContent = min ? "Ver" : "Ocultar"; this.setAttribute("aria-expanded", String(!min));
+        });
+        document.addEventListener("keydown", function (e) {
+            if (e.key !== "Escape" || $("avance").hidden || document.querySelector("dialog[open]")) return;
+            if (!$("avance-cerrar").hidden) $("avance").hidden = true;
+            else if (!$("avance").classList.contains("isn-avance--min")) $("avance-min").click();
+        });
         $("avance-detener").addEventListener("click", detenerTrabajo);
         $("btn-facturas").hidden = !(IMP === "prof" || IMP === "alc");
         $("btn-facturas").addEventListener("click", function () {
