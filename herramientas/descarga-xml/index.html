@@ -4,10 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Descarga masiva | Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611102000">
-    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611102000">
-    <link rel="stylesheet" href="/herramientas/descarga-xml/descarga-xml.css?v=202611102000">
-    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611102000">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611102100">
+    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611102100">
+    <link rel="stylesheet" href="/herramientas/descarga-xml/descarga-xml.css?v=202611102100">
+    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611102100">
 </head>
 <body class="min-h-screen flex flex-col">
 
@@ -26,7 +26,7 @@
             <button type="button" id="btn-automatica" class="dm-btn-solicitudes" aria-haspopup="dialog" title="Que los XML de tus empresas se bajen solos cada madrugada">
                 Descarga automática<span id="insignia-auto" class="dm-insignia" hidden></span>
             </button>
-            <button type="button" id="btn-solicitudes" class="dm-btn-solicitudes" aria-haspopup="dialog">
+            <button type="button" id="btn-solicitudes" class="dm-btn-solicitudes" title="Ir a las solicitudes de este contribuyente">
                 Solicitudes<span id="insignia" class="dm-insignia" hidden></span>
             </button>
         </div>
@@ -106,27 +106,62 @@
         </div>
     </section>
 
-    <!-- 2. Qué bajar -->
+    <!-- 2. Qué bajar: todo en una fila (M-06) -->
     <section id="paso-filtros" class="ficha dm-ficha" hidden>
-        <div class="dm-fila-titulo">
-            <h2 class="ficha__titulo">Qué comprobantes</h2>
-            <div class="ctx-segmento dm-segmento" id="tipo" role="group" aria-label="Emitidas o recibidas">
-                <button type="button" data-tipo="emitidos" aria-pressed="true">Emitidas</button>
-                <button type="button" data-tipo="recibidos" aria-pressed="false">Recibidas</button>
+        <div class="dm-fila">
+            <div class="dm-f">
+                <span class="dm-f__et">Comprobantes</span>
+                <div class="ctx-segmento dm-segmento" id="tipo" role="group" aria-label="Emitidas, recibidas o ambas">
+                    <button type="button" data-tipo="emitidos" aria-pressed="true">Emitidas</button>
+                    <button type="button" data-tipo="recibidos" aria-pressed="false">Recibidas</button>
+                    <button type="button" data-tipo="ambos" aria-pressed="false" title="Dos solicitudes al SAT: una de emitidas y otra de recibidas">Ambas</button>
+                </div>
+            </div>
+            <div class="dm-f dm-periodo" id="dm-periodo">
+                <span class="dm-f__et">Periodo</span>
+                <div class="dm-periodo__botones">
+                    <button type="button" id="btn-desde" class="ctx-campo" aria-haspopup="dialog">
+                        <span class="ctx-campo__texto"><small>Desde</small><strong id="txt-desde">Elegir mes</strong></span>
+                        <span class="ctx-campo__flecha" aria-hidden="true">▾</span>
+                    </button>
+                    <button type="button" id="btn-hasta" class="ctx-campo" aria-haspopup="dialog">
+                        <span class="ctx-campo__texto"><small>Hasta</small><strong id="txt-hasta">Elegir mes</strong></span>
+                        <span class="ctx-campo__flecha" aria-hidden="true">▾</span>
+                    </button>
+                </div>
+            </div>
+            <label class="dm-f">
+                <span class="dm-f__et">Estado</span>
+                <select id="estado" class="campo__control">
+                    <option value="Todos">Todos</option>
+                    <option value="Vigente">Vigentes</option>
+                    <option value="Cancelado">Cancelados</option>
+                </select>
+            </label>
+            <label class="dm-f">
+                <span class="dm-f__et">Tipo</span>
+                <select id="tipo-comprobante" class="campo__control">
+                    <option value="">Todos</option>
+                    <option value="I">Ingreso</option>
+                    <option value="E">Egreso</option>
+                    <option value="T">Traslado</option>
+                    <option value="N">Nómina</option>
+                    <option value="P">Pago</option>
+                </select>
+            </label>
+            <label class="dm-f dm-f--rfc">
+                <span class="dm-f__et" id="etq-contraparte">RFC receptor <span class="dm-opcional">(opcional)</span></span>
+                <input type="text" id="rfc-contraparte" maxlength="13" autocomplete="off" spellcheck="false" class="campo__control dm-rfc" placeholder="Todos">
+            </label>
+            <div class="dm-f dm-f--boton">
+                <button type="button" id="btn-buscar" class="ui-btn ui-btn--secundario" hidden>Buscar CFDI</button>
+                <button type="button" id="btn-descargar" class="ui-btn ui-btn--primario">Solicitar descarga</button>
             </div>
         </div>
-
-        <!-- Periodo: atajos por mes (Desde / Hasta) y, si hace falta, días y horas exactos -->
-        <div class="dm-periodo">
-            <button type="button" id="btn-desde" class="ctx-campo" aria-haspopup="dialog">
-                <span class="ctx-campo__texto"><small>Desde</small><strong id="txt-desde">Elegir mes</strong></span>
-                <span class="ctx-campo__flecha" aria-hidden="true">▾</span>
-            </button>
-            <button type="button" id="btn-hasta" class="ctx-campo" aria-haspopup="dialog">
-                <span class="ctx-campo__texto"><small>Hasta</small><strong id="txt-hasta">Elegir mes</strong></span>
-                <span class="ctx-campo__flecha" aria-hidden="true">▾</span>
-            </button>
+        <div class="dm-fila-sec">
             <button type="button" id="btn-exacto" class="dm-enlace" aria-expanded="false">Días y horas exactos</button>
+            <span id="estado-nota" class="dm-pista" hidden>Las recibidas se piden solo vigentes: es lo único que entrega el web service del SAT.</span>
+            <span id="resumen-rango" class="dm-pista" hidden></span>
         </div>
         <div id="exacto" class="dos" style="margin-top:10px" hidden>
             <label class="campo">
@@ -138,42 +173,15 @@
                 <input type="datetime-local" id="fin" step="1" class="campo__control">
             </label>
         </div>
-        <p id="resumen-rango" class="dm-pista" style="margin-top:6px"></p>
-
-        <div class="dm-tres-campos" style="margin-top:12px">
-            <label class="campo">
-                <span class="campo__etiqueta" id="etq-contraparte">RFC receptor <span class="dm-opcional">(opcional)</span></span>
-                <input type="text" id="rfc-contraparte" maxlength="13" autocomplete="off" spellcheck="false" class="campo__control dm-rfc" placeholder="Todos">
-            </label>
-            <label class="campo">
-                <span class="campo__etiqueta">Estado</span>
-                <select id="estado" class="campo__control">
-                    <option value="Todos">Todos</option>
-                    <option value="Vigente">Vigentes</option>
-                    <option value="Cancelado">Cancelados</option>
-                </select>
-                <span id="estado-nota" class="dm-pista" hidden>En recibidas el SAT solo entrega XML vigentes</span>
-            </label>
-            <label class="campo">
-                <span class="campo__etiqueta">Tipo de comprobante</span>
-                <select id="tipo-comprobante" class="campo__control">
-                    <option value="">Todos</option>
-                    <option value="I">Ingreso</option>
-                    <option value="E">Egreso</option>
-                    <option value="T">Traslado</option>
-                    <option value="N">Nómina</option>
-                    <option value="P">Pago</option>
-                </select>
-            </label>
-        </div>
-
-        <div class="dm-acciones">
-            <button type="button" id="btn-buscar" class="boton-secundario" hidden>Buscar CFDI</button>
-            <button type="button" id="btn-descargar" class="boton-principal">Descargar XML</button>
-        </div>
         <p id="nota-modo" class="dm-pista" style="margin-top:8px"></p>
     </section>
   </div>
+
+    <!-- Solicitudes al SAT de este contribuyente: tabla estándar debajo del formulario (antes, panel lateral) -->
+    <section id="seccion-solicitudes" class="dm-solicitudes" hidden>
+        <div class="dm-solicitudes__cabeza"><h2>Solicitudes al SAT</h2><span id="cajon-sub" class="dm-pista"></span></div>
+        <div id="tabla-solicitudes"></div>
+    </section>
 
     <!-- Resultados de una solicitud: tabla y, a la derecha, sus acciones (como los demás módulos) -->
     <section id="resultados" class="dm-resultados mod-layout" hidden>
@@ -258,19 +266,6 @@
 </style>
 
 
-<!-- Solicitudes al SAT: panel lateral -->
-<div id="velo" class="dm-velo" hidden></div>
-<aside id="cajon" class="dm-cajon" hidden aria-label="Solicitudes al SAT" role="dialog">
-    <div class="dm-cajon__cabeza">
-        <div>
-            <strong>Solicitudes al SAT</strong>
-            <span id="cajon-sub"></span>
-        </div>
-        <button type="button" id="cajon-cerrar" class="dm-cajon__cerrar" aria-label="Cerrar">×</button>
-    </div>
-    <div id="lista-solicitudes" class="dm-cajon__cuerpo"></div>
-</aside>
-
 <!-- Captcha del portal -->
 <div id="modal-captcha" class="dm-modal" hidden>
     <div class="dm-modal__caja" role="dialog" aria-modal="true" aria-labelledby="captcha-titulo">
@@ -288,13 +283,13 @@
 
 <div id="aviso-flotante" class="dm-toast" hidden></div>
 
-<script src="/assets/js/nucleo.js?v=202611102000"></script>
-<script src="/assets/js/barra.js?v=202611102000"></script>
-<script src="/assets/js/comun/leer-cer.js?v=202611102000"></script>
-<script src="/assets/js/comun/paso-cliente.js?v=202611102000"></script>
-<script src="/assets/js/comun/tabla.js?v=202611102000"></script>
-<script src="/assets/js/comun/programacion.js?v=202611102000"></script>
-<script src="/herramientas/descarga-xml/descarga-xml.js?v=202611102000"></script>
+<script src="/assets/js/nucleo.js?v=202611102100"></script>
+<script src="/assets/js/barra.js?v=202611102100"></script>
+<script src="/assets/js/comun/leer-cer.js?v=202611102100"></script>
+<script src="/assets/js/comun/paso-cliente.js?v=202611102100"></script>
+<script src="/assets/js/comun/tabla.js?v=202611102100"></script>
+<script src="/assets/js/comun/programacion.js?v=202611102100"></script>
+<script src="/herramientas/descarga-xml/descarga-xml.js?v=202611102100"></script>
 <script>FCProgramacion.linea({ modulo: "xml", contenedor: document.getElementById("linea-programa") });
 (function () {
     function metodo() { var b = document.querySelector('.dm-modo[aria-selected="true"]'); if (b) document.getElementById("metodo-texto").textContent = b.querySelector("strong").textContent; }
