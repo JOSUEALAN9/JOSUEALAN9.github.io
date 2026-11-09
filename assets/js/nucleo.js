@@ -14,8 +14,10 @@
 (function () {
     "use strict";
 
-    var VERSION = "202611101400";
-    var API = "https://api.josuealan.com";
+    var VERSION = "202611101500";
+    // Ambiente de pruebas (pruebas.josuealan.com, solo para el dueño): habla con su propio servidor de pruebas
+    var PRUEBAS = /^pruebas\./.test(location.hostname);
+    var API = PRUEBAS ? "https://api-pruebas.josuealan.com" : "https://api.josuealan.com";
 
     function escapar(valor) {
         return String(valor == null ? "" : valor)
@@ -184,6 +186,7 @@
 
     window.Fiscontable = Object.assign(window.Fiscontable || {}, {
         API: API,
+        PRUEBAS: PRUEBAS,
         VERSION: VERSION,
         escapar: escapar,
         leerError: leerError,

@@ -1856,6 +1856,7 @@
         prepararBloqueo(p);
         vigilarChipEmpresa();
         pintarVerComo(p);
+        pintarAmbiente(p);
         cargarTextos();
         esAdminActual = p.rol === "admin" && !p.viendo_como;
         document.dispatchEvent(new CustomEvent("fc:perfil", { detail: p }));
@@ -1947,6 +1948,19 @@
             brindis("Texto guardado. Se ve al recargar la página.");
             if (alGuardar) alGuardar();
         } catch (e) { brindis(esc(e.message)); }
+    }
+
+    /* ------------------------------------------------- ambiente de pruebas: letrero fijo para no confundirlo con la web real */
+    function pintarAmbiente(p) {
+        var enPruebas = window.Fiscontable.PRUEBAS || (p && p.ambiente === "pruebas");
+        document.documentElement.classList.toggle("fc-ambiente-pruebas", !!enPruebas);
+        if (!enPruebas || document.getElementById("fc-ambiente")) return;
+        var c = document.createElement("div");
+        c.id = "fc-ambiente"; c.className = "fc-ambiente"; c.setAttribute("role", "status");
+        c.innerHTML = "<b>Ambiente de pruebas</b><span>Copia de tus datos · Facturar sin valor fiscal · sin trámites ante el SAT</span>" +
+            '<a href="https://josuealan.com/">Ir a la web real</a>';
+        document.body.appendChild(c);
+        if (p && p.ambiente !== "pruebas") c.querySelector("span").textContent = "⚠ El servidor no está en modo pruebas: revisa FISCONTABLE_MODO_PRUEBAS";
     }
 
     /* ------------------------------------------------- «Ver como» (N-04): letrero fijo mientras el admin ve como otro usuario */
