@@ -31,3 +31,10 @@
 a.iva-marca:hover { border-color: #f59e0b; }
 .iva-marca--rev { color: #92400e; background: #fef3c7; border-color: #fcd34d; }
 @media (max-width: 640px) { .iva-marcas { flex-direction: column; align-items: stretch; } }
+
+/* El resultado (tarjetas) es la vista principal; el detalle CFDI por CFDI se abre al pedirlo y se recuerda */
+.iva-detalle-btn { display: inline-flex; align-items: center; gap: 6px; margin: 4px 0 12px; padding: 0; border: 0; background: none; font: inherit;
+                   font-size: var(--t-13); font-weight: 600; color: rgb(var(--ac-700)); cursor: pointer; }
+.iva-detalle-btn::after { content: ""; width: 7px; height: 7px; border-right: 1.8px solid currentColor; border-bottom: 1.8px solid currentColor; transform: rotate(45deg) translateY(-2px); transition: transform .15s; }
+.iva-detalle-btn[aria-expanded="true"]::after { transform: rotate(-135deg) translateY(-2px); }
+.iva-detalle-btn:hover { text-decoration: underline; }

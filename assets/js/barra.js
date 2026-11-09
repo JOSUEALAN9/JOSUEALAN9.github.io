@@ -1715,6 +1715,7 @@
         if (!p.perfil_completo) abrirModalPerfil(true);
         pintarLateral();
         prepararBloqueo(p);
+        vigilarChipEmpresa();
         document.dispatchEvent(new CustomEvent("fc:perfil", { detail: p }));
     }
 
@@ -1828,6 +1829,33 @@
         }).filter(function (x, i, arr) { return x && arr.indexOf(x) === i; });
         verCfdi(rfc, uuid, lista);
     });
+
+    /* ------------------------------------------------- selector de empresa repetido en los módulos (G-02)
+       Varios módulos traen su recuadro «Empresa · RFC». Si muestra la misma empresa que la barra, se vuelve un enlace
+       discreto «Otro contribuyente ▾» (el menú del módulo sigue igual); si el módulo trabaja con otra, se queda visible. */
+    var chipVigilado = false, chipCambiando = false;
+    function revisarChipEmpresa() {
+        var et = document.getElementById("empresa-etiqueta"), ti = document.getElementById("empresa-titulo");
+        if (!et || !ti || chipCambiando) return;
+        var boton = et.closest(".ctx-campo"); if (!boton) return;
+        var activa = perfilActual && perfilActual.empresa_activa && perfilActual.empresa_activa.rfc;
+        var m = /Empresa · ([A-ZÑ&0-9]{12,13})/.exec(et.textContent || "");
+        if (!m) return;                                           // vacío o ya convertido por el propio módulo
+        chipCambiando = true;
+        var mismo = !!activa && m[1] === activa;
+        boton.classList.toggle("ctx-campo--discreto", mismo);
+        if (mismo) { et.textContent = ""; ti.textContent = "Otro contribuyente"; }
+        chipCambiando = false;
+    }
+    function vigilarChipEmpresa() {
+        revisarChipEmpresa();
+        if (chipVigilado) return;
+        var et = document.getElementById("empresa-etiqueta");
+        if (!et) return;
+        chipVigilado = true;
+        new MutationObserver(function () { setTimeout(revisarChipEmpresa, 0); }).observe(et, { childList: true, characterData: true, subtree: true });
+        window.addEventListener("fiscontable:empresa", function () { setTimeout(revisarChipEmpresa, 50); });
+    }
 
     /* ------------------------------------------------- acciones del módulo (G-06)
        La columna de acciones de la derecha (.mod-acciones: SAT, Reportes, Compartir, Con este periodo) se vuelve una

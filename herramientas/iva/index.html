@@ -4,15 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Papel de trabajo IVA · Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611100700">
-    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611100700">
-    <link rel="stylesheet" href="/herramientas/iva/iva.css?v=202611100700">
-    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611100700">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611100800">
+    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611100800">
+    <link rel="stylesheet" href="/herramientas/iva/iva.css?v=202611100800">
+    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611100800">
 </head>
 <body class="bg-slate-50">
 <div id="app-header" data-modulo="iva" data-titulo="Papel de trabajo IVA" data-migas="Herramientas|/herramientas/"></div>
-<script src="/assets/js/nucleo.js?v=202611100700"></script>
-<script src="/assets/js/barra.js?v=202611100700"></script>
+<script src="/assets/js/nucleo.js?v=202611100800"></script>
+<script src="/assets/js/barra.js?v=202611100800"></script>
 
 <main class="xml-pagina">
     <div class="xml-cabeza">
@@ -63,6 +63,8 @@
 
                 <div id="aviso-marcas" class="iva-marcas" role="status" hidden></div>
 
+                <button type="button" id="btn-detalle" class="iva-detalle-btn" aria-expanded="false" aria-controls="iva-detalle">Ver el detalle CFDI por CFDI</button>
+                <div id="iva-detalle" hidden>
                 <div class="pestanas xml-pestanas" role="tablist" id="pestanas"></div>
 
                 <div class="xml-toolbar">
@@ -74,13 +76,14 @@
                     <table class="xml-tabla iva-tabla"><thead id="thead"></thead><tbody id="tbody"></tbody><tfoot id="tfoot"></tfoot></table>
                     <p id="sin-filas" class="xml-vacio xml-vacio--tabla" hidden></p>
                 </div>
+                </div>
                 <p class="xml-pie"><span id="conteo"></span> · Flujo de efectivo: PUE en su mes, PPD cuando se paga. Lo cancelado en el SAT no cuenta. Lo recibido respeta las Marcas fiscales (IVA no acreditable).</p>
             </div>
         </div>
     </div>
 </main>
 
-<script src="/assets/js/comun/periodo-meses.js?v=202611100700"></script>
-<script src="/herramientas/iva/iva.js?v=202611100700"></script>
+<script src="/assets/js/comun/periodo-meses.js?v=202611100800"></script>
+<script src="/herramientas/iva/iva.js?v=202611100800"></script>
 </body>
 </html>

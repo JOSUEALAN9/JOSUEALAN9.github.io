@@ -275,10 +275,5 @@ button.ctx-resumen__dato:hover { background: rgb(var(--g-50)); }
 .xml-periodo--plegado .xml-periodo__fila { display: none; }
 .xml-periodo--plegado { padding-top: 6px; padding-bottom: 6px; }
 
-/* G-02: con la empresa activa (ya está en la barra) el selector del módulo es solo un enlace */
-.ctx-campo.ctx-campo--discreto { min-height: 28px; padding: 2px 6px; border-color: transparent; background: none; box-shadow: none; color: rgb(var(--ac-700)); }
-.ctx-campo--discreto small { display: none; }
-.ctx-campo--discreto strong { font-size: var(--t-13); font-weight: 600; }
-.ctx-campo--discreto:hover { border-color: transparent; background: rgb(var(--g-100)); }
 @media (max-width: 640px) { .xml-periodo__resumen-et { display: none; } }
 .xml-filtros-activos { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 0 0 10px; }

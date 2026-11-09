@@ -288,7 +288,16 @@
         window.open(ruta + "?" + q.toString(), "_blank", "noopener");
     }
 
+    function verDetalle(abrir) {
+        $("iva-detalle").hidden = !abrir;
+        $("btn-detalle").setAttribute("aria-expanded", String(abrir));
+        $("btn-detalle").textContent = abrir ? "Ocultar el detalle" : "Ver el detalle CFDI por CFDI";
+        try { localStorage.setItem("fc-iva-detalle", abrir ? "1" : "0"); } catch (e) { /* sin almacenamiento */ }
+    }
     function eventos() {
+        var guardado = null; try { guardado = localStorage.getItem("fc-iva-detalle"); } catch (e) { /* nada */ }
+        verDetalle(guardado === "1");
+        $("btn-detalle").addEventListener("click", function () { verDetalle($("iva-detalle").hidden); });
         $("btn-empresa").addEventListener("click", function (e) { e.stopPropagation(); var mn = $("menu-empresa"); if (mn.hidden) pintarMenu(); mn.hidden = !mn.hidden; });
         $("menu-empresa").addEventListener("click", async function (e) {
             e.stopPropagation();
