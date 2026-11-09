@@ -557,3 +557,5 @@ tr.fa-fila-desglose > td { background: rgb(var(--g-50)); padding: 4px 12px 12px;
     .fa-act__fila .ui-btn { margin-left: calc(26px + var(--e-3)); }
     .fa-act__cuerpo { padding: 0 var(--e-3) var(--e-3); }
 }
+.fa-prod__grupo { margin: 4px 9px 2px; font-size: 11px; font-weight: 700; color: rgb(var(--g-500)); text-transform: uppercase; letter-spacing: .04em; }
+.fa-prod__sug [data-sat] b { font-weight: 600; }
