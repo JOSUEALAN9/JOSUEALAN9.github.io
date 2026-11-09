@@ -4,16 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Clientes | Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611102300">
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611102300">
-    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611102300">
+    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611110000">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611110000">
+    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611110000">
 </head>
 <body class="min-h-screen flex flex-col relative">
 
     <!-- TOP NAV -->
     <div id="app-header" data-modulo="clientes" data-titulo="Clientes" data-migas=""></div>
-<script src="/assets/js/nucleo.js?v=202611102300"></script>
-<script src="/assets/js/barra.js?v=202611102300"></script>
+<script src="/assets/js/nucleo.js?v=202611110000"></script>
+<script src="/assets/js/barra.js?v=202611110000"></script>
 
     <!-- ÁREA DE TRABAJO -->
     <main class="flex-grow w-full mod-pagina" style="max-width:1180px">
@@ -484,24 +484,24 @@
         </div>
     </div>
 
-<script src="/assets/js/comun/leer-cer.js?v=202611102300"></script>
-<script src="/assets/js/comun/zona-archivos.js?v=202611102300"></script>
+<script src="/assets/js/comun/leer-cer.js?v=202611110000"></script>
+<script src="/assets/js/comun/zona-archivos.js?v=202611110000"></script>
 <style>
     .cli-herr { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 14px; }
-    .cli-buscar { flex: 1 1 220px; max-width: 320px; font-size: 14px; border: 1px solid rgb(var(--g-200)); border-radius: 10px; padding: 8px 12px; background: #fff; }
+    .cli-buscar { flex: 1 1 220px; max-width: 320px; font-size: 14px; border: 1px solid rgb(var(--g-200)); border-radius: 10px; padding: 8px 12px; background: rgb(var(--g-0)); }
     .cli-buscar:focus { outline: none; border-color: rgb(var(--ac-600)); box-shadow: 0 0 0 3px rgb(var(--ac-100)); }
     .cli-filtros { display: flex; flex-wrap: wrap; gap: 6px; flex: 1 1 auto; }
     .zona-efirma-separado { margin-top: 6px; border: 0; background: none; padding: 0; font: inherit; font-size: 12px; font-weight: 600; color: rgb(var(--g-600)); text-decoration: underline; cursor: pointer; }
     .cli-varios__nota { margin: 6px 10px 4px; font-size: 12px; color: rgb(var(--g-500)); max-width: 240px; }
     #cli-varios .xml-menu__lista { left: 0; right: auto; min-width: 220px; }
-    .cli-filtro { border: 1px solid rgb(var(--g-200)); background: #fff; border-radius: 999px; padding: 5px 11px; font: inherit; font-size: 12.5px; font-weight: 600; color: rgb(var(--g-600)); cursor: pointer; }
+    .cli-filtro { border: 1px solid rgb(var(--g-200)); background: rgb(var(--g-0)); border-radius: 999px; padding: 5px 11px; font: inherit; font-size: 12.5px; font-weight: 600; color: rgb(var(--g-600)); cursor: pointer; }
     .cli-filtro b { font-weight: 800; color: rgb(var(--g-500)); margin-left: 3px; }
-    .cli-filtro--activo { background: rgb(var(--ac-600)); border-color: rgb(var(--ac-600)); color: #fff; }
+    .cli-filtro--activo { background: rgb(var(--ac-600)); border-color: rgb(var(--ac-600)); color: rgb(var(--g-0)); }
     .cli-filtro--activo b { color: rgb(var(--ac-200)); }
-    .cli-vista { display: flex; border: 1px solid rgb(var(--g-200)); border-radius: 10px; overflow: hidden; background: #fff; }
+    .cli-vista { display: flex; border: 1px solid rgb(var(--g-200)); border-radius: 10px; overflow: hidden; background: rgb(var(--g-0)); }
     .cli-vista button { border: 0; background: none; padding: 6px 11px; font-size: 15px; cursor: pointer; color: rgb(var(--g-600)); }
     .cli-vista button[aria-pressed="true"] { background: rgb(var(--ac-50)); color: rgb(var(--ac-600)); }
-    .cli-tabla { width: 100%; background: #fff; border: 1px solid rgb(var(--g-200)); border-radius: 14px; border-collapse: separate; border-spacing: 0; font-size: 13px; overflow: hidden; }
+    .cli-tabla { width: 100%; background: rgb(var(--g-0)); border: 1px solid rgb(var(--g-200)); border-radius: 14px; border-collapse: separate; border-spacing: 0; font-size: 13px; overflow: hidden; }
     .cli-tabla th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: rgb(var(--g-600)); background: rgb(var(--g-50)); padding: 9px 12px; border-bottom: 1px solid rgb(var(--g-200)); white-space: nowrap; }
     .cli-tabla td { padding: 9px 12px; border-bottom: 1px solid rgb(var(--g-100)); vertical-align: middle; }
     .cli-tabla tr:last-child td { border-bottom: 0; }
@@ -514,8 +514,8 @@
     .cli-nombre b { font-weight: 600; color: rgb(var(--g-900)); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .cli-rfc { font-family: var(--fuente-mono, ui-monospace, monospace); font-size: 11.5px; color: rgb(var(--g-500)); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .cli-avatar { width: 32px; height: 32px; border-radius: 8px; display: grid; place-items: center; font-size: 12px; font-weight: 700; flex: none; position: relative; overflow: hidden; }
-    .cli-avatar img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; background: #fff; padding: 2px; }
-    .cli-avatar--logo { border: 1px solid var(--linea); background: #fff; }
+    .cli-avatar img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; background: rgb(var(--g-0)); padding: 2px; }
+    .cli-avatar--logo { border: 1px solid var(--linea); background: rgb(var(--g-0)); }
     .ficha-logo { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; padding-bottom: 18px; border-bottom: 1px solid var(--linea); }
     .ficha-logo__vista { width: 56px; height: 56px; border-radius: 12px; font-size: 18px; background: rgb(var(--g-100)); color: rgb(var(--g-600)); }
     .ficha-logo__texto { display: flex; flex-direction: column; gap: 2px; flex: 1 1 200px; font-size: 13px; }
@@ -544,43 +544,43 @@
     .cli-tarjeta__cabeza .cli-nombre { flex: 1; }
     @media (max-width: 760px) { .cli-tabla th:nth-child(3), .cli-tabla td:nth-child(3) { display: none; } }
     @media (max-width: 640px) { .cli-celda-mas .ui-btn { display: none; } .cli-celda-nombre { max-width: 46vw; } .cli-tabla td, .cli-tabla th { padding-left: 8px; padding-right: 8px; } .cli-avatar { display: none; } }
-    .cli-si { color: #047857; font-weight: 700; } .cli-no { color: #b45309; font-weight: 600; } .cli-nada { color: rgb(var(--g-300)); }
+    .cli-si { color: rgb(var(--ok-600)); font-weight: 700; } .cli-no { color: rgb(var(--av-600)); font-weight: 600; } .cli-nada { color: rgb(var(--g-300)); }
     /* Mismo tamaño en todas las pestañas: la ventana no brinca al cambiar */
     .ficha-caja-modal { width: min(var(--modal-mediana), 100%); height: var(--modal-alto); }
     @media (max-width: 640px) { #modal-nuevo-cliente, #modal-editar-cliente { padding: 0 !important; } .ficha-caja-modal { width: 100vw; height: 100dvh; border-radius: 0 !important; } }
-    .ficha-punto.ficha-punto--ok { background: #10b981; }
+    .ficha-punto.ficha-punto--ok { background: rgb(var(--ac-500)); }
     .alta-pista { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; font-size: 13px; color: rgb(var(--ac-800)); background: rgb(var(--ac-50)); border: 1px solid rgb(var(--ac-200)); border-radius: 12px; padding: 10px 12px; }
     .alta-pista span { flex: 1 1 220px; }
-    .alta-pista__boton { border: 0; background: rgb(var(--ac-600)); color: #fff; font: inherit; font-size: 12.5px; font-weight: 700; border-radius: 8px; padding: 6px 10px; cursor: pointer; }
+    .alta-pista__boton { border: 0; background: rgb(var(--ac-600)); color: rgb(var(--g-0)); font: inherit; font-size: 12.5px; font-weight: 700; border-radius: 8px; padding: 6px 10px; cursor: pointer; }
     .ficha-inicial { width: 48px; height: 48px; border-radius: 12px; flex: none; display: grid; place-items: center; background: rgb(var(--ac-50)); color: rgb(var(--ac-600)); font-weight: 800; font-size: 17px; }
     .ficha-tabs { display: flex; gap: 4px; margin-top: 18px; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; }
     .ficha-tabs::-webkit-scrollbar { display: none; }
     @media (max-width: 640px) { .ficha-tabs { -webkit-mask-image: linear-gradient(to right, #000 82%, transparent); mask-image: linear-gradient(to right, #000 82%, transparent); padding-right: 28px; } }
     .ficha-tabs button { border: 0; background: none; font: inherit; font-size: 14px; font-weight: 600; color: rgb(var(--g-600)); padding: 11px 14px; border-bottom: 2px solid transparent; margin-bottom: -1px; cursor: pointer; white-space: nowrap; }
     .ficha-tabs button[aria-selected="true"] { color: rgb(var(--ac-600)); border-bottom-color: rgb(var(--ac-600)); }
-    .ficha-punto { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #f59e0b; margin-left: 4px; vertical-align: middle; }
+    .ficha-punto { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: rgb(var(--av-600)); margin-left: 4px; vertical-align: middle; }
     .ficha-caja { border: 1px solid rgb(var(--g-200)); border-radius: 14px; padding: 20px; }
     .ficha-datos { display: grid; grid-template-columns: auto 1fr; gap: 10px 20px; font-size: 14px; margin: 0; }
     .ficha-datos dt { color: rgb(var(--g-600)); } .ficha-datos dd { margin: 0; color: rgb(var(--g-900)); }
     .ficha-chip { font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 999px; border: 0; cursor: pointer; }
-    .ficha-chip--ok { background: rgb(var(--ac-50)); color: #047857; } .ficha-chip--falta { background: #fef3c7; color: #92400e; }
+    .ficha-chip--ok { background: rgb(var(--ac-50)); color: rgb(var(--ok-600)); } .ficha-chip--falta { background: rgb(var(--av-50)); color: rgb(var(--av-600)); }
     .alta-etiqueta { display: block; font-size: 11.5px; font-weight: 700; color: rgb(var(--g-700)); text-transform: uppercase; letter-spacing: .03em; margin-bottom: 8px; }
-    .alta-control { width: 100%; font-size: 14.5px; border: 1px solid rgb(var(--g-300)); border-radius: 10px; padding: 11px 13px; background: #fff; }
+    .alta-control { width: 100%; font-size: 14.5px; border: 1px solid rgb(var(--g-300)); border-radius: 10px; padding: 11px 13px; background: rgb(var(--g-0)); }
     .alta-control:focus { outline: none; border-color: rgb(var(--ac-600)); box-shadow: 0 0 0 3px rgb(var(--ac-100)); }
-    .alta-archivo { width: 100%; font-size: 13px; border: 1px dashed rgb(var(--ac-300)); border-radius: 10px; padding: 12px; background: #faf7ff; }
+    .alta-archivo { width: 100%; font-size: 13px; border: 1px dashed rgb(var(--ac-300)); border-radius: 10px; padding: 12px; background: rgb(var(--g-50)); }
     .alta-ojo { position: absolute; top: 0; bottom: 0; right: 8px; border: 0; background: none; cursor: pointer; opacity: .55; font-size: 15px; }
     .alta-modo { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; background: rgb(var(--g-100)); border-radius: 12px; }
     .alta-modo__op { border: 0; background: none; border-radius: 9px; padding: 9px 8px; font: inherit; font-size: 13px; font-weight: 700; color: rgb(var(--g-600)); cursor: pointer; }
     .alta-modo__op small { display: block; font-size: 10.5px; font-weight: 600; color: rgb(var(--ac-600)); }
-    .alta-modo__op--activa { background: #fff; color: rgb(var(--g-900)); box-shadow: 0 1px 3px rgba(15,23,42,.12); }
-    .alta-info { font-size: 12.5px; border-radius: 10px; padding: 9px 11px; background: #ecfdf5; border: 1px solid #a7f3d0; color: #065f46; }
-    .alta-info--mal { background: #fffbeb; border-color: #fde68a; color: #92400e; }
+    .alta-modo__op--activa { background: rgb(var(--g-0)); color: rgb(var(--g-900)); box-shadow: 0 1px 3px rgba(15,23,42,.12); }
+    .alta-info { font-size: 12.5px; border-radius: 10px; padding: 9px 11px; background: rgb(var(--ok-50)); border: 1px solid rgb(var(--ok-200)); color: rgb(var(--ok-600)); }
+    .alta-info--mal { background: rgb(var(--av-50)); border-color: rgb(var(--av-200)); color: rgb(var(--av-600)); }
     .alta-opcional { border: 1px solid rgb(var(--g-200)); border-radius: 10px; padding: 10px 12px; }
     .alta-opcional summary { cursor: pointer; font-size: 13px; font-weight: 700; color: rgb(var(--g-700)); }
     .alta-opcional summary small { font-weight: 500; color: rgb(var(--g-600)); }
-    .alta-error { font-size: 13px; font-weight: 600; border-radius: 10px; padding: 10px 12px; background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; }
+    .alta-error { font-size: 13px; font-weight: 600; border-radius: 10px; padding: 10px 12px; background: rgb(var(--er-50)); border: 1px solid rgb(var(--er-200)); color: rgb(var(--er-600)); }
 </style>
-<script src="/assets/js/comun/importar-clientes.js?v=202611102300"></script>
-<script src="/clientes/clientes.js?v=202611102300"></script>
+<script src="/assets/js/comun/importar-clientes.js?v=202611110000"></script>
+<script src="/clientes/clientes.js?v=202611110000"></script>
 </body>
 </html>

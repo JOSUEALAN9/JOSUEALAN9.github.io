@@ -136,7 +136,7 @@
                     case "diferencia": return '<td class="xml-num' + (f.diferencia ? " isn-dif" : "") + '">' + (f.diferencia ? m(f.diferencia) : "") + "</td>";
                     case "acuse": return "<td>" + (f.tiene_acuse ? '<a class="xml-enlace" data-acuse="' + f.id + '" href="' + API + "/api/isn/acuse/" + f.id + '">Acuse</a>' : "") +
                         (f.tiene_pago_ceros ? ' · <a class="xml-enlace" data-acuse="' + f.id + '" href="' + API + "/api/isn/pago-ceros/" + f.id + '" title="Registrar pago en ceros">Ceros</a>' : "") + "</td>";
-                    case "avisos": var t = (f.faltan || []).concat(f.avisos); return '<td title="' + esc(t.join(" · ")) + '" style="color:#b45309">' + esc(t.join(" · ")) + "</td>";
+                    case "avisos": var t = (f.faltan || []).concat(f.avisos); return '<td title="' + esc(t.join(" · ")) + '" style="color:rgb(var(--av-600))">' + esc(t.join(" · ")) + "</td>";
                     default: return "<td" + (c[3] ? ' class="xml-num"' : "") + ">" + (c[3] ? m(f[c[0]]) : esc(f[c[0]] == null ? "" : f[c[0]])) + "</td>";
                 }
             }).join("") + "</tr>";

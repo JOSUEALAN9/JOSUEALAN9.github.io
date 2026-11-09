@@ -14,7 +14,7 @@
 (function () {
     "use strict";
 
-    var VERSION = "202611102300";
+    var VERSION = "202611110000";
     // Ambiente de pruebas (pruebas.josuealan.com, solo para el dueño): habla con su propio servidor de pruebas
     var PRUEBAS = /^pruebas\./.test(location.hostname);
     var API = PRUEBAS ? "https://api-pruebas.josuealan.com" : "https://api.josuealan.com";
@@ -53,16 +53,16 @@
         caja.id = "fc-descarga-lista";
         caja.setAttribute("role", "status");
         caja.style.cssText = "position:fixed;right:16px;bottom:16px;z-index:9999;max-width:calc(100vw - 32px);display:flex;gap:10px;align-items:center;" +
-            "background:#0f172a;color:#e2e8f0;border-radius:12px;padding:10px 12px 10px 14px;font:600 13px/1.4 system-ui,sans-serif;box-shadow:0 10px 30px rgba(15,23,42,.35)";
+            "background:rgb(var(--g-900));color:rgb(var(--g-200));border-radius:12px;padding:10px 12px 10px 14px;font:600 13px/1.4 system-ui,sans-serif;box-shadow:0 10px 30px rgba(15,23,42,.35)";
         var texto = document.createElement("span");
         texto.textContent = "¿No empezó la descarga?";
         var enlace = document.createElement("a");
         enlace.href = url; enlace.download = nombre;
         enlace.textContent = "Descargar " + nombre;
-        enlace.style.cssText = "color:#5eead4;text-decoration:underline;overflow-wrap:anywhere";
+        enlace.style.cssText = "color:rgb(var(--in-200));text-decoration:underline;overflow-wrap:anywhere";
         var cerrar = document.createElement("button");
         cerrar.type = "button"; cerrar.textContent = "×"; cerrar.setAttribute("aria-label", "Cerrar");
-        cerrar.style.cssText = "background:none;border:0;color:#94a3b8;font-size:18px;line-height:1;cursor:pointer;padding:0 2px";
+        cerrar.style.cssText = "background:none;border:0;color:rgb(var(--g-400));font-size:18px;line-height:1;cursor:pointer;padding:0 2px";
         cerrar.addEventListener("click", function () { caja.remove(); });
         enlace.addEventListener("click", function () { setTimeout(function () { caja.remove(); }, 400); });
         caja.appendChild(texto); caja.appendChild(enlace);
@@ -70,7 +70,7 @@
         if ((/pdf/i.test(blob.type) || /\.pdf$/i.test(nombre)) && window.Fiscontable && window.Fiscontable.verPdf) {
             var ver = document.createElement("button");
             ver.type = "button"; ver.textContent = "Ver";
-            ver.style.cssText = "background:#5eead4;color:#0f172a;border:0;border-radius:8px;padding:5px 10px;font:inherit;font-weight:700;cursor:pointer";
+            ver.style.cssText = "background:rgb(var(--in-200));color:rgb(var(--g-900));border:0;border-radius:8px;padding:5px 10px;font:inherit;font-weight:700;cursor:pointer";
             ver.addEventListener("click", function () { caja.remove(); window.Fiscontable.verPdf(blob, { nombre: nombre }); });
             caja.appendChild(ver);
             texto.textContent = "Listo:";
@@ -116,8 +116,8 @@
     function cajaEnPc(enPc, alDescargar) {
         var caja = document.createElement("div");
         caja.className = "fc-en-pc";
-        caja.style.cssText = "margin-top:10px;padding:11px 13px;border:1px solid #BBE5D2;background:#F0FBF6;border-radius:10px;" +
-            "font-size:13px;color:#065F46;display:flex;flex-wrap:wrap;gap:8px;align-items:center";
+        caja.style.cssText = "margin-top:10px;padding:11px 13px;border:1px solid rgb(var(--ok-200));background:rgb(var(--ok-50));border-radius:10px;" +
+            "font-size:13px;color:rgb(var(--ok-600));display:flex;flex-wrap:wrap;gap:8px;align-items:center";
         var t = document.createElement("span");
         t.textContent = textoEnPc(enPc);
         t.style.flex = "1 1 260px";

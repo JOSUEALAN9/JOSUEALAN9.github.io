@@ -1520,8 +1520,8 @@
             if (!eq) faltaEq = true; else total += abono / eq;
             n++; lineas.push(esc(x.serie_folio) + ": " + dinero(abono) + (x.moneda !== mp ? " " + x.moneda : ""));
         });
-        $("pg-resumen").innerHTML = n ? lineas.join("<br>") + '<br><b style="font-size:17px;color:#0f172a">Pago: ' + dinero(r2(total)) + " " + mp + "</b>" +
-            (faltaEq ? '<br><span style="color:#b91c1c">Escribe el tipo de cambio del día del pago.</span>' : "") : "Marca al menos una factura.";
+        $("pg-resumen").innerHTML = n ? lineas.join("<br>") + '<br><b style="font-size:17px;color:rgb(var(--g-900))">Pago: ' + dinero(r2(total)) + " " + mp + "</b>" +
+            (faltaEq ? '<br><span style="color:rgb(var(--er-600))">Escribe el tipo de cambio del día del pago.</span>' : "") : "Marca al menos una factura.";
         $("btn-pg-timbrar").disabled = !n || faltaEq;
         $("pg-folio").textContent = F.emisor ? "Será el recibo " + (F.emisor.serie_p || "P") + "-" + (F.emisor.folio_p || 1) + "." : "";
     }

@@ -210,7 +210,7 @@
         var hits = info[parte] || [];
         if (!hits.length) {
             return Object.keys(info.fechas || {}).length
-                ? '<div class="det-linea" style="color:#047857">✓ No aparece en las listas del SAT</div>' : "";
+                ? '<div class="det-linea" style="color:rgb(var(--ok-600))">✓ No aparece en las listas del SAT</div>' : "";
         }
         var color = { grave: "rojo", alerta: "ambar", informativo: "gris" };
         return '<div class="det-sellos" style="margin-top:6px">' + hits.map(function (h) {
@@ -300,14 +300,14 @@
             (lista[0].moneda !== "MXN" ? dato("Tipo de cambio", lista[0].tipo_cambio ? fn.format(lista[0].tipo_cambio) : "") : "") +
             dato("Monto del pago", "$" + m(lista[0].monto)) + dato("Núm. de operación", lista[0].num_operacion) + "</div>" : "";
         return '<div class="det-tarjeta"><h2>El pago (complemento ' + esc(d.pagos.version || "") + ")</h2>" + datosPago + detallePago +
-            '<p style="font-size:14px;color:#334155;margin-bottom:10px">' + resumen + "</p>" +
+            '<p style="font-size:14px;color:rgb(var(--g-700));margin-bottom:10px">' + resumen + "</p>" +
             '<div class="det-scroll"><table class="det-tabla"><thead><tr><th>Factura pagada</th><th class="num">Núm. de pago</th><th class="num">Saldo antes</th><th class="num">Pagado aquí</th><th class="num">Saldo que queda</th><th></th><th class="num">IVA incluido</th></tr></thead><tbody>' +
             filas + '</tbody><tfoot><tr><td colspan="3">Total</td><td class="num">$' + m(sumaPagado) + '</td><td colspan="2"></td><td class="num">' + (sumaIva ? "$" + m(sumaIva) : "") + "</td></tr></tfoot></table></div>" +
             '<p class="xml-tenue" style="margin-top:10px">“Núm. de pago” es la parcialidad: 1 = primer pago de esa factura. “IVA incluido” es la parte de lo pagado que corresponde al IVA de cada factura (el IVA efectivamente cobrado o pagado).</p></div>';
     }
 
     function cobros(d, r) {
-        if (!r.cobros.length) return '<div class="det-tarjeta"><h2>Pagos recibidos de esta factura</h2><p style="font-size:13.5px;color:#991b1b;font-weight:700">No hay ningún pago cargado para esta factura PPD. Saldo pendiente: $' + m(d.total) + "</p>" +
+        if (!r.cobros.length) return '<div class="det-tarjeta"><h2>Pagos recibidos de esta factura</h2><p style="font-size:13.5px;color:rgb(var(--er-600));font-weight:700">No hay ningún pago cargado para esta factura PPD. Saldo pendiente: $' + m(d.total) + "</p>" +
             '<p class="xml-tenue" style="margin-top:6px">Si ya se pagó, carga el XML del complemento de pago y aquí aparecerá.</p></div>';
         var vigentes = r.cobros.filter(function (c) { return !c.cancelado; });
         var conc = r.conciliacion || {};
@@ -316,10 +316,10 @@
         var saldo = conc.saldo_insoluto !== undefined && conc.saldo_insoluto !== null ? conc.saldo_insoluto : (vigentes.length ? vigentes[vigentes.length - 1].insoluto : d.total);
         return '<div class="det-tarjeta"><h2>Pagos recibidos de esta factura</h2><div class="det-scroll"><table class="det-tabla"><thead><tr><th>Fecha de pago</th><th>Comprobante de pago</th><th>Forma</th><th class="num">Núm. de pago</th><th class="num">Saldo antes</th><th class="num">Pagado</th><th class="num">Saldo que queda</th></tr></thead><tbody>' +
             r.cobros.map(function (c) {
-                return "<tr" + (c.cancelado ? ' style="color:#94a3b8;text-decoration:line-through" title="Cancelado en el SAT: no cuenta"' : "") + "><td>" + esc(f(c.fecha)) + "</td><td>" + (c.pago.encontrado ? liga(c.pago_uuid, "Pago " + (c.pago.serie_folio || c.pago_uuid.slice(0, 8))) : esc(c.pago_uuid.slice(0, 8))) + "</td><td>" + esc((c.forma || "") + " " + (FORMA[c.forma] || "")) +
+                return "<tr" + (c.cancelado ? ' style="color:rgb(var(--g-400));text-decoration:line-through" title="Cancelado en el SAT: no cuenta"' : "") + "><td>" + esc(f(c.fecha)) + "</td><td>" + (c.pago.encontrado ? liga(c.pago_uuid, "Pago " + (c.pago.serie_folio || c.pago_uuid.slice(0, 8))) : esc(c.pago_uuid.slice(0, 8))) + "</td><td>" + esc((c.forma || "") + " " + (FORMA[c.forma] || "")) +
                     '</td><td class="num">' + esc(c.parcialidad || "") + '</td><td class="num">$' + m(c.anterior) + '</td><td class="num"><strong>$' + m(c.pagado) + '</strong></td><td class="num">$' + m(c.insoluto) + "</td></tr>";
             }).join("") + "</tbody></table></div>" +
-            '<p style="font-size:13.5px;font-weight:800;margin-top:10px;color:' + (liquidada ? "#166534" : "#92400e") + '">' +
+            '<p style="font-size:13.5px;font-weight:800;margin-top:10px;color:' + (liquidada ? "rgb(var(--ok-600))" : "rgb(var(--av-600))") + '">' +
             (conc.estado_pago === "Pagada de más" ? "Se aplicó $" + m(-saldo) + " más que el total: revisa si algún complemento se canceló y se volvió a emitir." :
              liquidada ? "Pagada por completo en " + (vigentes.length === 1 ? "un pago" : vigentes.length + " pagos") + "." : "Saldo pendiente: $" + m(saldo)) +
             (vigentes.length < r.cobros.length ? " Los tachados están cancelados en el SAT y no cuentan." : "") + "</p></div>";
