@@ -48,6 +48,7 @@
         // Cuentas
         $("cuentas").innerHTML = c.cuentas.length ? c.cuentas.map(function (k) {
             return '<div class="cr-cuenta"><b>' + esc(k.banco || "Cuenta") + "</b>" + (k.titular ? esc(k.titular) + "<br>" : "") +
+                (k.cuenta ? 'Cuenta <code>' + esc(k.cuenta) + '</code><button type="button" class="cr-copiar" data-copiar="' + esc(k.cuenta) + '">Copiar</button><br>' : "") +
                 (k.clabe ? 'CLABE <code>' + esc(k.clabe) + '</code><button type="button" class="cr-copiar" data-copiar="' + esc(k.clabe) + '">Copiar</button><br>' : "") +
                 (k.tarjeta ? 'Tarjeta <code>' + esc(k.tarjeta) + '</code><button type="button" class="cr-copiar" data-copiar="' + esc(k.tarjeta) + '">Copiar</button><br>' : "") +
                 (k.nota ? '<span class="cr-nota">' + esc(k.nota) + "</span>" : "") + "</div>";

@@ -59,9 +59,9 @@
             '<button type="button" class="cra-quitar" title="Quitar">×</button></div>';
     }
     function filaCuenta(c) {
-        return '<div class="cra-fila" data-cuenta>' + ["banco", "titular", "clabe", "tarjeta", "nota"].map(function (k) {
-            return '<input data-k="' + k + '" placeholder="' + { banco: "Banco", titular: "Titular", clabe: "CLABE", tarjeta: "Tarjeta", nota: "Nota" }[k] +
-                '" value="' + esc(c[k] || "") + '" style="width:' + (k === "nota" ? 200 : k === "clabe" ? 190 : 140) + 'px">';
+        return '<div class="cra-fila" data-cuenta>' + ["banco", "titular", "cuenta", "clabe", "tarjeta", "nota"].map(function (k) {
+            return '<input data-k="' + k + '" placeholder="' + { banco: "Banco", titular: "Titular (razón social)", cuenta: "Cuenta", clabe: "CLABE", tarjeta: "Tarjeta", nota: "Nota" }[k] +
+                '" value="' + esc(c[k] || "") + '" style="width:' + (k === "nota" ? 200 : k === "clabe" ? 190 : k === "titular" ? 200 : 140) + 'px">';
         }).join("") + '<button type="button" class="cra-quitar" title="Quitar">×</button></div>';
     }
     function pintarConfig() {
