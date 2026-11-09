@@ -373,7 +373,7 @@
     function pintarPestanas() {
         $("pestanas").innerHTML = MODULOS.map(function (m) {
             var n = contarUuid(filasPeriodo(m.clave));
-            return '<button type="button" class="pestana' + (m.clave === E.modulo ? " pestana--activa" : "") + '" data-modulo="' + m.clave + '">' +
+            return '<button type="button" role="tab" class="pestana' + (m.clave === E.modulo ? " pestana--activa" : "") + '" aria-selected="' + (m.clave === E.modulo) + '" data-modulo="' + m.clave + '">' +
                 m.nombre + '<span class="xml-cuenta">' + n + "</span></button>";
         }).join("");
     }
@@ -386,7 +386,7 @@
         E.av = {};
         E.orden = { clave: null, dir: 1 };
         E.seleccion.clear();
-        document.querySelectorAll("#pestanas .pestana").forEach(function (b) { b.classList.toggle("pestana--activa", b.dataset.modulo === modulo); });
+        document.querySelectorAll("#pestanas .pestana").forEach(function (b) { b.classList.toggle("pestana--activa", b.dataset.modulo === modulo); b.setAttribute("aria-selected", String(b.dataset.modulo === modulo)); });
         pintarPeriodo();
         prepararColumnas();
         pintarSubfiltros();

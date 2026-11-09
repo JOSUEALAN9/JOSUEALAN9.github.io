@@ -261,18 +261,20 @@
         }).join("") : '<tr><td colspan="6" class="dc-vacio">' + (hayFiltro ? "Nada coincide con el filtro." : "Aún no has solicitado documentos.") + "</td></tr>";
     }
 
-    /* Exportar lo que se ve (con los filtros) a CSV que Excel abre directo. */
+    /* G-12: exportar lo que se ve (con los filtros) a Excel, con fechas y créditos con su tipo. */
     function exportar() {
-        var filas = filasVisibles();
-        var campo = function (v) { v = String(v == null ? "" : v).replace(/\r?\n/g, " "); if (/^[=+\-@]/.test(v)) v = "'" + v; return '"' + v.replace(/"/g, '""') + '"'; };
-        var lineas = [["Folio", "Fecha", "Documento", "Referencia", "Dato", "Otros datos", "Créditos", "Estado", "Respuesta", "Entregado"].map(campo).join(",")];
-        filas.forEach(function (p) {
-            var otros = Object.keys(p.datos || {}).filter(function (k) { return p.datos[k] !== p.titular; }).map(function (k) { return k + ": " + p.datos[k]; }).join(" | ");
-            lineas.push([p.id, fecha(p.creado_en), p.servicio, p.nota, p.titular, otros, p.precio || 0, p.estado_texto,
-                p.estado === "entregado" ? (p.resultado || (p.tiene_archivo ? "PDF descargado" : "")) : p.motivo, fecha(p.entregado_en)].map(campo).join(","));
+        var filas = filasVisibles().map(function (p) {
+            return { folio: p.id, fecha: p.creado_en, documento: p.servicio, referencia: p.nota, dato: p.titular,
+                     otros: Object.keys(p.datos || {}).filter(function (k) { return p.datos[k] !== p.titular; }).map(function (k) { return k + ": " + p.datos[k]; }).join(" | "),
+                     creditos: p.precio || 0, estado: p.estado_texto,
+                     respuesta: p.estado === "entregado" ? (p.resultado || (p.tiene_archivo ? "PDF descargado" : "")) : p.motivo, entregado: p.entregado_en };
         });
         var hoy = new Date().toISOString().slice(0, 10);
-        Fiscontable.guardarArchivo(new Blob(["\ufeff" + lineas.join("\r\n")], { type: "text/csv;charset=utf-8" }), "Pedidos_documentos_" + hoy + ".csv");
+        Fiscontable.excel("Solicitudes_documentos_" + hoy + ".xlsx", [{ hoja: "Mis solicitudes", filas: filas, columnas: [
+            { titulo: "Folio", clave: "folio" }, { titulo: "Fecha", clave: "fecha", tipo: "fecha" }, { titulo: "Documento", clave: "documento" },
+            { titulo: "Referencia", clave: "referencia" }, { titulo: "Dato", clave: "dato" }, { titulo: "Otros datos", clave: "otros" },
+            { titulo: "Créditos", clave: "creditos", tipo: "moneda" }, { titulo: "Estado", clave: "estado" }, { titulo: "Respuesta", clave: "respuesta" },
+            { titulo: "Entregado", clave: "entregado", tipo: "fecha" }] }]).catch(function (e) { Fiscontable.toast(e.message); });
     }
 
     /* Mientras haya pedidos en curso, la lista se actualiza sola (solo con la página a la vista). */

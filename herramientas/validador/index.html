@@ -4,112 +4,68 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Validador | Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611101000">
-    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611101000">
-    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611101000">
-    <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611101100">
+    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611101100">
+    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611101100">
     <style>
-        .modal-active { display: grid !important; }
-        .val-filtros select { border: 1px solid rgb(var(--g-200)); border-radius: 10px; padding: 8px 10px; font-size: 13px; background: #fff; }
-        .val-prov { width: 320px; padding: 10px; }
-        .val-prov input { width: 100%; border: 1px solid rgb(var(--g-200)); border-radius: 8px; padding: 6px 8px; font-size: 13px; margin-bottom: 6px; }
-        .val-prov .xml-btn { width: 100%; justify-content: center; margin-bottom: 6px; padding: 6px 10px; font-size: 12.5px; }
-        .val-prov ul { max-height: 260px; overflow: auto; font-size: 12.5px; }
-        .val-prov li { display: flex; gap: 8px; align-items: flex-start; padding: 5px 4px; border-radius: 6px; cursor: pointer; }
-        .val-prov li:hover { background: rgb(var(--g-100)); }
-        .val-tabla td { vertical-align: middle; }
-        .val-tabla .val-rfc { font-family: ui-monospace, monospace; font-weight: 700; color: rgb(var(--g-900)); }
-        .val-tabla .val-nombre { font-size: 11px; color: rgb(var(--g-600)); overflow: hidden; text-overflow: ellipsis; }
-        .val-tabla .val-mono { font-family: ui-monospace, monospace; font-size: 11.5px; }
-        .val-tabla td.val-dos { height: 44px; line-height: 1.25; white-space: normal; }
-        .val-vacio { text-align: center; color: rgb(var(--g-500)); padding: 48px 12px !important; height: auto !important; }
+        .val-cabeza-seg { margin-left: auto; }
+        .val-avance { margin-bottom: 10px; }
+        .val-cambio { color: rgb(var(--av-700)); font-weight: 600; }
     </style>
 </head>
 <body class="h-screen flex flex-col overflow-hidden relative">
 
     <!-- TOP NAV -->
     <div id="app-header" data-modulo="validador" data-titulo="Validador" data-migas="Herramientas|/herramientas/"></div>
-<script src="/assets/js/nucleo.js?v=202611101000"></script>
-<script src="/assets/js/barra.js?v=202611101000"></script>
+<script src="/assets/js/nucleo.js?v=202611101100"></script>
+<script src="/assets/js/barra.js?v=202611101100"></script>
 
     <!-- ÁREA DE TRABAJO -->
     <main class="flex-grow flex flex-col mod-pagina overflow-hidden relative" style="min-height:0">
-    <div class="mod-cabeza"><h1>Validador</h1><span id="origenTexto" class="xml-tenue" style="font-size:13px;color:#64748b;margin-right:auto">XML externos · no se guardan</span></div>
+    <div class="mod-cabeza"><h1>Validador</h1><span id="origenTexto" class="xml-tenue" style="font-size:13px;margin-right:auto"></span>
+        <div class="ctx-segmento val-cabeza-seg" id="seg-rol" role="group" aria-label="Qué XML de la empresa">
+            <button type="button" data-rol="recibido" aria-pressed="true">Recibidos</button>
+            <button type="button" data-rol="emitido" aria-pressed="false">Emitidos</button>
+        </div>
+    </div>
     <div class="mod-layout" style="flex:1;min-height:0">
     <aside class="mod-acciones" aria-label="Acciones">
-        <p class="mod-acciones__grupo">XML externos</p>
-        <button type="button" id="btnAbrirCarga" class="mod-accion mod-accion--primaria" title="Se consultan en el SAT y no se guardan"><b>+</b>Cargar XML</button>
-        <p class="mod-acciones__grupo">De la empresa</p>
-        <button type="button" class="mod-accion" data-cargar-empresa="recibido" title="Empresa y periodo de la barra de arriba"><b>⇣</b>Validar recibidos</button>
-        <button type="button" class="mod-accion" data-cargar-empresa="emitido" title="Empresa y periodo de la barra de arriba"><b>⇡</b>Validar emitidos</button>
-        <p class="mod-acciones__grupo">Resultado</p>
+        <p class="mod-acciones__grupo">Validar</p>
+        <button type="button" id="btnValidar" class="mod-accion mod-accion--primaria" title="Consulta en el SAT el estado de los XML de la tabla"><b>✓</b>Validar en el SAT</button>
         <button type="button" id="btnReintentar" class="mod-accion" hidden><b>↻</b>Reintentar sin respuesta</button>
-        <button type="button" id="btnDescargar" class="mod-accion" disabled><b>▦</b>Exportar Excel</button>
-        <button type="button" id="btnLimpiarDatos" class="mod-accion"><b>×</b>Limpiar</button>
+        <p class="mod-acciones__grupo">Otros XML</p>
+        <button type="button" id="btnAbrirCarga" class="mod-accion" title="Se consultan en el SAT y no se guardan"><b>+</b>Cargar XML externos</button>
+        <button type="button" id="btnVolverEmpresa" class="mod-accion" hidden><b>←</b>Volver a la empresa</button>
     </aside>
-    <div class="mod-layout__principal" style="display:flex;flex-direction:column;gap:16px;height:100%;min-height:0">
-        <!-- Resumen (mismas tarjetas que Conciliación) -->
-        <div class="ctx-resumen" style="flex:none">
-            <div class="ctx-resumen__dato"><small>Total XML</small><b id="dashTotal">0</b></div>
-            <div class="ctx-resumen__dato"><small>Vigentes</small><b id="dashVigentes" style="color:#047857">0</b></div>
-            <div class="ctx-resumen__dato"><small>Cancelados</small><b id="dashCancelados" style="color:#b91c1c">0</b></div>
-            <div class="ctx-resumen__dato"><small>No encontrados</small><b id="dashErrores" style="color:#b45309">0</b></div>
-            <div class="ctx-resumen__dato"><small>Sin respuesta</small><b id="dashSinRespuesta" style="color:#64748b">0</b></div>
+    <div class="mod-layout__principal" style="display:flex;flex-direction:column;min-height:0;height:100%">
+        <div id="linea-programa"></div>
+        <div id="avance" class="xml-validando val-avance" hidden>
+            <div class="xml-validando__texto"><strong>Validando ante el SAT…</strong> <span id="avance-texto"></span></div>
+            <div class="xml-barra"><span id="avance-barra"></span></div>
+            <button type="button" id="btnDetener" class="xml-enlace">Detener</button>
         </div>
-
-        <!-- Filtros (como en Administración de XML) -->
-        <div class="xml-toolbar val-filtros" style="flex:none">
-            <div class="xml-menu" id="provDropdownContainer">
-                <button type="button" id="btnProvDropdown" class="xml-btn"><span id="lblProvDropdown">Proveedor (Todos)</span> ▾</button>
-                <div id="panelProvDropdown" class="hidden xml-menu__lista val-prov" style="left:0;right:auto">
-                    <input type="text" id="searchProv" placeholder="Buscar…">
-                    <button type="button" id="btnToggleTodosProv" class="xml-btn">Seleccionar visibles</button>
-                    <ul id="listProv"><li class="xml-tenue">Esperando datos…</li></ul>
-                </div>
-            </div>
-            <select id="fTipo"><option value="ALL">Tipo (Todos)</option></select>
-            <select id="fMes"><option value="ALL">Mes (Todos)</option></select>
-            <select id="fEstatus"><option value="ALL">Estatus SAT (Todos)</option></select>
-        </div>
-
-        <div class="xml-tabla-caja" style="flex:1;height:auto;min-height:320px">
-            <table class="xml-tabla val-tabla" id="tablaResultados">
-                <thead><tr>
-                    <th id="thParte" style="width:220px">Proveedor</th>
-                    <th style="width:290px">UUID</th>
-                    <th style="width:96px">Fecha</th>
-                    <th style="width:56px">Tipo</th>
-                    <th class="xml-num" style="width:110px">Subtotal</th>
-                    <th class="xml-num" style="width:110px">Traslados</th>
-                    <th class="xml-num" style="width:110px">Retenciones</th>
-                    <th class="xml-num" style="width:120px">Total</th>
-                    <th style="width:130px">Estatus SAT</th>
-                    <th style="width:230px">Cancelación</th>
-                </tr></thead>
-                <tbody id="cuerpoTabla"><tr><td colspan="10" class="val-vacio">Carga XML externos o valida los de la empresa.</td></tr></tbody>
-            </table>
-        </div>
+        <div id="tabla-val" style="flex:1;min-height:0"></div>
     </div>
     </div>
     </main>
     <!-- Cargar XML externos (no se guardan) -->
-    <div id="modalCarga" class="xml-modal" style="display:none">
-        <div class="xml-modal__caja" role="dialog" aria-modal="true" aria-labelledby="titulo-carga">
+    <dialog id="modalCarga" class="ui-modal" aria-labelledby="titulo-carga">
+        <div class="ui-modal__cuerpo">
             <h3 id="titulo-carga">Cargar XML externos</h3>
-            <p>Se consultan en el SAT y no se guardan.</p>
-            <div class="xml-zona__botones" style="margin-bottom:14px">
-                <button type="button" class="xml-btn" onclick="document.getElementById('fileInputArr').click()">Elegir archivos</button>
-                <button type="button" class="xml-btn" onclick="document.getElementById('folderInputArr').click()">Elegir carpeta</button>
-            </div>
-            <input type="file" id="fileInputArr" multiple accept=".xml" hidden>
+            <p class="xml-tenue">Se consultan en el SAT y no se guardan en ninguna empresa.</p>
+            <div id="zona-carga"></div>
+            <button type="button" class="xml-enlace" style="align-self:flex-start" onclick="document.getElementById('folderInputArr').click()">o elige una carpeta completa</button>
             <input type="file" id="folderInputArr" webkitdirectory directory multiple accept=".xml" hidden>
-            <p style="margin-bottom:12px">XML listos: <b id="lblStagedCount">0</b></p>
-            <div class="xml-modal__acciones">
-                <button type="button" id="btnProcesarStaged" class="xml-btn xml-btn--primario" disabled>Validar con el SAT</button>
-                <button type="button" id="btnCerrarModal" class="xml-btn">Cancelar</button>
-            </div>
+            <p>XML listos: <b id="lblStagedCount">0</b></p>
         </div>
-    </div>
-<script src="/herramientas/validador/validador.js?v=202611101000"></script>
+        <div class="ui-modal__pie">
+            <button type="button" id="btnCerrarModal" class="ui-btn ui-btn--secundario ui-btn--32">Cancelar</button>
+            <button type="button" id="btnProcesarStaged" class="ui-btn ui-btn--primario ui-btn--32" disabled>Validar con el SAT</button>
+        </div>
+    </dialog>
+<script src="/assets/js/comun/tabla.js?v=202611101100"></script>
+<script src="/assets/js/comun/zona-archivos.js?v=202611101100"></script>
+<script src="/assets/js/comun/programacion.js?v=202611101100"></script>
+<script src="/herramientas/validador/validador.js?v=202611101100"></script>
 </body>
 </html>

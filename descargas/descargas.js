@@ -7,11 +7,67 @@ let hayEnPreparacion = false;
 let procesosConocidos = new Map();
 let primeraCarga = true;
 
-document.addEventListener("DOMContentLoaded", () => {
+// M-19: por defecto se ve lo de HOY y de la empresa activa; los filtros se recuerdan en este navegador.
+const FILTRO = (() => { try { return Object.assign({ cuando: "hoy", tipo: "", empresa: "activa" }, JSON.parse(localStorage.getItem("fc-descargas-filtro") || "{}")); } catch (e) { return { cuando: "hoy", tipo: "", empresa: "activa" }; } })();
+let empresaActiva = null;
+
+document.addEventListener("DOMContentLoaded", async () => {
+    try { empresaActiva = await Fiscontable.empresaActiva(); } catch (e) { empresaActiva = null; }
+    prepararFiltros();
     cargarDescargas();
-    revisarEstadoNotificaciones();
     programarRefresco();
 });
+window.addEventListener("fiscontable:empresa", (e) => { empresaActiva = e.detail || null; prepararFiltros(); pintarDeNuevo(); });
+
+function grupoTipo(t) {
+    t = t || "";
+    if (t.startsWith("programada_")) return "programada";
+    if (/csf|opinion/.test(t)) return "constancias";
+    if (/xml/.test(t)) return "xml";
+    if (/declarac|voucheo/.test(t)) return "declaraciones";
+    if (/buzon/.test(t)) return "buzon";
+    return "otros";
+}
+const GRUPOS_TIPO = { "": "Todos los tipos", constancias: "Constancias y opiniones", xml: "XML", declaraciones: "Declaraciones y voucheo",
+                      buzon: "Buzón", programada: "Programadas de madrugada", otros: "Otros" };
+
+function prepararFiltros() {
+    const caja = document.getElementById("dsc-filtros");
+    if (!caja) return;
+    const nombre = empresaActiva ? (empresaActiva.alias || empresaActiva.rfc) : "";
+    caja.innerHTML =
+        '<div class="ctx-segmento" role="group" aria-label="Cuándo">' +
+        [["hoy", "Hoy"], ["7", "7 días"], ["30", "30 días"], ["todo", "Todo"]].map(([v, t]) =>
+            `<button type="button" data-cuando="${v}" aria-pressed="${FILTRO.cuando === v}">${t}</button>`).join("") + "</div>" +
+        '<select class="ui-select" id="dsc-tipo" aria-label="Tipo">' + Object.entries(GRUPOS_TIPO).map(([v, t]) =>
+            `<option value="${v}"${FILTRO.tipo === v ? " selected" : ""}>${esc(t)}</option>`).join("") + "</select>" +
+        '<select class="ui-select" id="dsc-empresa" aria-label="Empresa">' +
+            (nombre ? `<option value="activa"${FILTRO.empresa === "activa" ? " selected" : ""}>Solo ${esc(nombre)}</option>` : "") +
+            `<option value="todas"${FILTRO.empresa !== "activa" || !nombre ? " selected" : ""}>Todas las empresas</option></select>`;
+    caja.onclick = (e) => {
+        const b = e.target.closest("[data-cuando]"); if (!b) return;
+        FILTRO.cuando = b.dataset.cuando; guardarFiltro(); prepararFiltros(); pintarDeNuevo();
+    };
+    caja.onchange = (e) => {
+        if (e.target.id === "dsc-tipo") FILTRO.tipo = e.target.value;
+        if (e.target.id === "dsc-empresa") FILTRO.empresa = e.target.value;
+        guardarFiltro(); pintarDeNuevo();
+    };
+}
+function guardarFiltro() { try { localStorage.setItem("fc-descargas-filtro", JSON.stringify(FILTRO)); } catch (e) { /* nada */ } }
+function pasaFiltro(p) {
+    if (p.estado === "procesando") return true;                      // lo que sigue trabajando siempre se ve
+    if (FILTRO.cuando !== "todo") {
+        const f = new Date(String(p.creado_en).length <= 19 ? p.creado_en + "Z" : p.creado_en);
+        const limite = new Date();
+        if (FILTRO.cuando === "hoy") limite.setHours(0, 0, 0, 0); else limite.setDate(limite.getDate() - (+FILTRO.cuando));
+        if (f < limite) return false;
+    }
+    if (FILTRO.tipo && grupoTipo(p.tipo) !== FILTRO.tipo) return false;
+    if (FILTRO.empresa === "activa" && empresaActiva && p.clase === "individual" && p.titulo !== empresaActiva.rfc) return false;
+    return true;
+}
+function pintarDeNuevo() { if (window._ultimosProcesos) pintarProcesos(window._ultimosProcesos); }
 
 document.addEventListener("visibilitychange", () => {
     if (!document.hidden) cargarDescargas(true);
@@ -31,17 +87,6 @@ function mostrarAviso(mensaje) {
 }
 function ocultarAviso() { document.getElementById("aviso").classList.add("hidden"); }
 
-function revisarEstadoNotificaciones() {
-    if (!("Notification" in window)) return;
-    if (Notification.permission === "default") {
-        document.getElementById("banner-notif").classList.remove("hidden");
-    }
-}
-async function pedirPermisoNotificaciones() {
-    if (!("Notification" in window)) return;
-    await Notification.requestPermission();
-    document.getElementById("banner-notif").classList.add("hidden");
-}
 function avisar(titulo, cuerpo) {
     if (!("Notification" in window) || Notification.permission !== "granted") return;
     try { new Notification(titulo, { body: cuerpo }); } catch (e) {}
@@ -397,6 +442,14 @@ async function cargarDescargas(silencioso = false) {
         });
         primeraCarga = false;
 
+        pintarProcesos(procesos);
+    } catch (error) {
+        if (!silencioso) mostrarAviso("No pudimos conectar con el servidor. Verifica tu conexión.");
+    }
+}
+
+function pintarProcesos(todos) {
+        const procesos = todos.filter(pasaFiltro);
         const preparando = procesos.filter(p => p.estado === "procesando");
         const listos = procesos.filter(p => p.estado === "completado");
         const atencion = procesos.filter(p => p.estado !== "procesando" && p.estado !== "completado");
@@ -405,14 +458,12 @@ async function cargarDescargas(silencioso = false) {
         document.getElementById("seccion-listos").classList.toggle("hidden", listos.length === 0);
         document.getElementById("seccion-atencion").classList.toggle("hidden", atencion.length === 0);
         document.getElementById("estado-vacio").classList.toggle("hidden", procesos.length > 0);
+        document.getElementById("vacio-titulo").textContent = todos.length ? "Nada con estos filtros" : "Todavía no has descargado nada";
+        document.getElementById("vacio-texto").textContent = todos.length ? "Prueba con «7 días», «Todo» o «Todas las empresas»." : "Aquí aparecen tus constancias, opiniones, declaraciones y XML.";
 
         document.getElementById("lista-preparando").innerHTML = preparando.map(tarjetaPreparando).join("");
         document.getElementById("lista-listos").innerHTML = listos.map(tarjetaLista).join("");
         document.getElementById("lista-atencion").innerHTML = atencion.map(tarjetaAtencion).join("");
-
-    } catch (error) {
-        if (!silencioso) mostrarAviso("No pudimos conectar con el servidor. Verifica tu conexión.");
-    }
 }
 
 

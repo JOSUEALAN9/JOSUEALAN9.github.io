@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Declaraciones | Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611101000">
-    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611101000">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611101100">
+    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611101100">
 </head>
 <body class="min-h-screen flex flex-col">
 
@@ -18,12 +18,13 @@
 
     <div class="mod-cabeza"><h1>Declaraciones</h1>
         <div class="mod-cabeza__acciones">
-            <button type="button" class="fc-btn" data-programar>Programar descarga</button>
+            <button type="button" class="fc-btn" data-programar title="Una sola vez, de madrugada, para los clientes que elijas">Programar una vez</button>
         </div>
     </div>
 
     <div id="alerta" class="fc-aviso" style="margin:0 0 16px" hidden></div>
 
+    <div id="linea-programa"></div>
     <div id="programar-madrugada"></div>
 
     <div id="paso-cliente"></div>
@@ -105,14 +106,16 @@
 
 </main>
 
-<script src="/assets/js/nucleo.js?v=202611101000"></script>
-<script src="/assets/js/barra.js?v=202611101000"></script>
-<script src="/assets/js/comun/leer-cer.js?v=202611101000"></script>
-<script src="/assets/js/comun/paso-cliente.js?v=202611101000"></script>
-<script src="/assets/js/comun/documentos-guardados.js?v=202611101000"></script>
-<script src="/herramientas/declaraciones/declaraciones.js?v=202611101000"></script>
-<script src="/assets/js/comun/acciones.js?v=202611101000"></script>
-<script src="/assets/js/comun/programar.js?v=202611101000"></script>
+<script src="/assets/js/nucleo.js?v=202611101100"></script>
+<script src="/assets/js/barra.js?v=202611101100"></script>
+<script src="/assets/js/comun/leer-cer.js?v=202611101100"></script>
+<script src="/assets/js/comun/paso-cliente.js?v=202611101100"></script>
+<script src="/assets/js/comun/documentos-guardados.js?v=202611101100"></script>
+<script src="/herramientas/declaraciones/declaraciones.js?v=202611101100"></script>
+<script src="/assets/js/comun/acciones.js?v=202611101100"></script>
+<script src="/assets/js/comun/programar.js?v=202611101100"></script>
+<script src="/assets/js/comun/programacion.js?v=202611101100"></script>
+<script>FCProgramacion.linea({ modulo: "declaraciones", contenedor: document.getElementById("linea-programa") });</script>
 <script>Fiscontable.Programar.montar({ modulo: "declaraciones", contenedor: "programar-madrugada" });</script>
 </body>
 </html>

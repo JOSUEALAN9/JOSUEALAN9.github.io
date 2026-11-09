@@ -98,7 +98,7 @@
             titulo: "Declaraciones guardadas",
             subtitulo: (elegido.alias ? elegido.alias + " · " : "") + rfc + ". Se guardan un año; si tu suscripción sigue vigente, se quedan.",
             filtro: { etiqueta: "Ejercicio", valor: almacen.ejercicio, opciones: almacen.ejercicios.map(function (e) { return { valor: e, texto: e }; }) },
-            columnas: ["Mes", "Declaración", "Documento", "No. operación", "Descargó", "Fecha"],
+            columnas: ["Mes", "Declaración", "Documento", "No. operación", "Guardada"],
             nombreZip: "Declaraciones_" + rfc,
             cargar: async function (ej) {
                 var a = await pedirAlmacen(rfc, ej);
@@ -107,7 +107,7 @@
                              var mes = MESES[+d.mes] || d.mes || "";
                              return { id: d.id, nombre: d.nombre, titulo: d.documento + " · " + mes + " " + a.ejercicio + " · " + rfc,
                                       url: API + "/api/declaraciones/almacen/archivo?id=" + d.id,
-                                      celdas: [mes, d.tipo_declaracion || "", d.documento, d.num_operacion || "", d.descargado_por || "", (d.descargado_en || "").slice(0, 10)] };
+                                      celdas: [mes, d.tipo_declaracion || "", d.documento, d.num_operacion || "", (d.descargado_en || "").slice(0, 10)] };
                          }) };
             },
             zip: function (ids, ej) { return API + "/api/declaraciones/almacen/zip?rfc=" + encodeURIComponent(rfc) + "&ejercicio=" + encodeURIComponent(ej) + "&ids=" + ids.join(","); }

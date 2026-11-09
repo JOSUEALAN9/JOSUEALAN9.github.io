@@ -55,7 +55,8 @@
         E.rfc = (activa && E.panel.empresas.some(function (e) { return e.rfc === activa.rfc; })) ? activa.rfc : (con[0] || E.panel.empresas[0] || {}).rfc || null;
         var h = location.hash.replace("#", "");
         if (h.indexOf("empresa=") === 0) { E.rfc = decodeURIComponent(h.slice(8)); verVista("empresa"); }
-        else verVista("todas");
+        else if (h === "todas" || !activa || E.rfc !== activa.rfc) verVista("todas");
+        else verVista("empresa");                 // M-07: entra directo en la empresa de la barra de arriba
         if (E.panel.trabajo && E.panel.trabajo.estado === "procesando") vigilarTrabajo(E.panel.trabajo.job_id);
     }
 

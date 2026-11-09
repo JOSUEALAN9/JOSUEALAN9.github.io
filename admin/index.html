@@ -4,16 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Administrar Usuarios | Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611101000">
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611101000">
-    <link rel="stylesheet" href="/admin/creditos-admin.css?v=202611101000">
-    <link rel="stylesheet" href="/admin/documentos-admin.css?v=202611101000">
+    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611101100">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611101100">
+    <link rel="stylesheet" href="/admin/creditos-admin.css?v=202611101100">
+    <link rel="stylesheet" href="/admin/documentos-admin.css?v=202611101100">
 </head>
 <body class="min-h-screen flex flex-col relative">
 
     <div id="app-header" data-modulo="admin" data-titulo="Administración" data-migas=""></div>
-<script src="/assets/js/nucleo.js?v=202611101000"></script>
-<script src="/assets/js/barra.js?v=202611101000"></script>
+<script src="/assets/js/nucleo.js?v=202611101100"></script>
+<script src="/assets/js/barra.js?v=202611101100"></script>
 
     <main class="flex-grow p-4 sm:p-6 w-full max-w-4xl mx-auto fc-principal">
         <style>
@@ -246,6 +246,7 @@
                     <button type="button" data-sub="sat" class="adm-sub">SAT y listas</button>
                     <button type="button" data-sub="portal" class="adm-sub">Portal y acciones</button>
                     <button type="button" data-sub="registros" class="adm-sub">Log y bitácora</button>
+                    <button type="button" data-sub="plazos" class="adm-sub">Plazos y valores</button>
                 </nav>
                 <div data-subpanel="estado">
                 <div class="flex items-center gap-3 mb-3">
@@ -421,6 +422,10 @@
                     <div id="lista-bitacora-toda" class="bg-white rounded-xl border border-gray-200 divide-y divide-gray-100"></div>
                 </div>
                 </div>
+                <!-- C-01 / C-02 / C-03: plazos de guardado y programaciones por defecto (admin/plazos-admin.js) -->
+                <div data-subpanel="plazos" hidden>
+                    <div id="plazos-admin"></div>
+                </div>
             </section>
         </div>
 
@@ -502,8 +507,9 @@
         </div>
     </div>
 
-<script src="/admin/admin.js?v=202611101000"></script>
-<script src="/admin/creditos-admin.js?v=202611101000"></script>
-<script src="/admin/documentos-admin.js?v=202611101000"></script>
+<script src="/admin/admin.js?v=202611101100"></script>
+<script src="/admin/creditos-admin.js?v=202611101100"></script>
+<script src="/admin/documentos-admin.js?v=202611101100"></script>
+<script src="/admin/plazos-admin.js?v=202611101100"></script>
 </body>
 </html>

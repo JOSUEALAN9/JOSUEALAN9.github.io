@@ -380,5 +380,203 @@
         };
     }
 
-    window.FCTabla = { crear: crear, menuVistas: menuVistas, formato: formato };
+    /* ---------- tabla estándar (G-04): barra de herramientas + tabla + estados, en una pieza
+       var t = FCTabla.estandar({
+           contenedor: div vacío, id: "validador" (vistas guardadas en el servidor con este nombre),
+           catalogo, predeterminadas, sellos, claveFila, celda, claseFila, alClic, alSeleccionar,  (como FCTabla.crear)
+           buscar: { texto: "Buscar…", campos: ["uuid", "rfc"] },
+           filtros: [{ clave, etiqueta, texto: function (v) {} }],      se eligen en "Filtros" y quedan como etiquetas
+           rapidos: { clave, valores: [{ valor, etiqueta }] },          etiquetas con conteo arriba de la tabla
+           exportar: { nombre: "Archivo.xlsx", hoja: "Datos", porValor: { clave, valores: [...] } },
+           vacio: { titulo, texto }, extra: [elementos que van junto a los botones]
+       });
+       t.ponerDatos(filas)  t.cargando()  t.error(mensaje, reintentar)  t.visibles()  t.filtrar(clave, valor)  t.tabla */
+    function estandar(o) {
+        var raiz = o.contenedor;
+        var F = { datos: [], buscar: "", filtros: {}, rapido: null };
+        raiz.classList.add("fct");
+        raiz.innerHTML =
+            '<div class="xml-chips fct-rapidos" hidden></div>' +
+            '<div class="xml-toolbar fct-barra">' +
+                (o.buscar ? '<input type="search" class="fct-buscar" placeholder="' + esc(o.buscar.texto || "Buscar…") + '" aria-label="Buscar">' : "") +
+                '<div class="xml-toolbar__der"><span class="fct-extra"></span>' +
+                    (o.filtros && o.filtros.length ? '<div class="xml-menu"><button type="button" class="xml-btn" data-fct="filtros" aria-haspopup="true">Filtros<span class="xml-insignia" hidden></span></button>' +
+                        '<div class="xml-menu__lista xml-menu__lista--filtros fct-menu-filtros" hidden></div></div>' : "") +
+                    '<button type="button" class="xml-btn" data-fct="columnas">Columnas</button>' +
+                    '<div class="xml-menu"><button type="button" class="xml-btn" data-fct="vistas" aria-haspopup="true"><span class="fct-vista">Vista de fábrica</span> ▾</button>' +
+                        '<div class="xml-menu__lista fct-menu-vistas" hidden></div></div>' +
+                    (o.exportar ? '<button type="button" class="xml-btn" data-fct="excel" disabled>Exportar Excel</button>' : "") +
+                "</div></div>" +
+            '<div class="xml-filtros-activos fct-chips" hidden></div>' +
+            '<div class="fct-estado" hidden></div>' +
+            '<div class="xml-tabla-caja fct-caja"></div>';
+        var q = function (sel) { return raiz.querySelector(sel); };
+        var caja = q(".fct-caja"), estado = q(".fct-estado"), menuF = q(".fct-menu-filtros"), menuV = q(".fct-menu-vistas");
+        (o.extra || []).forEach(function (el) { q(".fct-extra").appendChild(el); });
+
+        var tabla = crear({
+            caja: caja, id: o.id, catalogo: o.catalogo, predeterminadas: o.predeterminadas, sellos: o.sellos, anchoClave: o.anchoClave,
+            claveFila: o.claveFila, celda: o.celda, claseFila: o.claseFila, alSeleccionar: o.alSeleccionar,
+            alClic: o.alClic ? function (f) { o.alClic(f, tabla.filas()); } : null,
+            alCambiarColumnas: function () { vistas.pintar(); }
+        });
+        var vistas = menuVistas({
+            menu: menuV, etiqueta: q(".fct-vista"), tabla: tabla,
+            listar: function () { return pedir("GET"); },
+            guardar: function (nombre, pred, cols) { return pedir("PUT", { nombre: nombre, columnas: cols, predeterminada: !!pred }); },
+            borrar: function (v) { return pedir("DELETE", null, v.id); }
+        });
+        async function pedir(metodo, cuerpo, idVista) {
+            var r = await fetch(Fiscontable.API + "/api/vistas/" + encodeURIComponent(o.id) + (idVista ? "/" + idVista : ""), {
+                method: metodo, credentials: "include",
+                headers: cuerpo ? { "Content-Type": "application/json" } : {}, body: cuerpo ? JSON.stringify(cuerpo) : undefined });
+            if (!r.ok) throw new Error(await Fiscontable.leerError(r));
+            return r.json();
+        }
+        tabla.iniciarColumnas(null);
+        vistas.recargar().then(function () {
+            var pred = vistas.predeterminada();
+            if (pred && !leerLocal("tabla:" + o.id + ":cols")) tabla.aplicarVista(pred);
+        });
+
+
+        function textoValor(f, v) { return f.texto ? f.texto(v) : String(v); }
+        function pasa(fila, excepto) {
+            if (F.rapido !== null && o.rapidos && excepto !== "rapido" && String(fila[o.rapidos.clave]) !== F.rapido) return false;
+            for (var k in F.filtros) if (k !== excepto && String(fila[k]) !== F.filtros[k]) return false;
+            if (F.buscar && excepto !== "buscar") {
+                var campos = (o.buscar && o.buscar.campos) || o.catalogo.map(function (c) { return c.clave; });
+                var hay = campos.some(function (c) { return String(fila[c] == null ? "" : fila[c]).toLowerCase().indexOf(F.buscar) >= 0; });
+                if (!hay) return false;
+            }
+            return true;
+        }
+        function visiblesAhora() { return F.datos.filter(function (f) { return pasa(f); }); }
+
+        function pintarRapidos() {
+            var cont = q(".fct-rapidos");
+            if (!o.rapidos || !F.datos.length) { cont.hidden = true; return; }
+            var base = F.datos.filter(function (f) { return pasa(f, "rapido"); });
+            var h = ['<button type="button" class="xml-chip' + (F.rapido === null ? " xml-chip--activo" : "") + '" data-rapido="">Todos<span>' + base.length + "</span></button>"];
+            o.rapidos.valores.forEach(function (r) {
+                var n = base.filter(function (f) { return String(f[o.rapidos.clave]) === String(r.valor); }).length;
+                if (!n && F.rapido !== String(r.valor)) return;
+                h.push('<button type="button" class="xml-chip' + (F.rapido === String(r.valor) ? " xml-chip--activo" : "") + '" data-rapido="' + esc(r.valor) + '">' + esc(r.etiqueta) + "<span>" + n + "</span></button>");
+            });
+            cont.innerHTML = h.join(""); cont.hidden = false;
+        }
+        function pintarChips() {
+            var cont = q(".fct-chips"), chips = [];
+            Object.keys(F.filtros).forEach(function (k) {
+                var f = (o.filtros || []).find(function (x) { return x.clave === k; }) || { etiqueta: k };
+                chips.push('<span class="ui-chip">' + esc(f.etiqueta) + ": <b>" + esc(textoValor(f, F.filtros[k])) + '</b><button type="button" data-quitar="' + esc(k) + '" aria-label="Quitar filtro">×</button></span>');
+            });
+            if (chips.length > 1) chips.push('<button type="button" class="xml-enlace" data-quitar="*">Quitar todos</button>');
+            cont.innerHTML = chips.join(""); cont.hidden = !chips.length;
+            var ins = q("[data-fct=filtros] .xml-insignia");
+            if (ins) { ins.hidden = !Object.keys(F.filtros).length; ins.textContent = Object.keys(F.filtros).length; }
+        }
+        function pintarMenuFiltros() {
+            if (!menuF) return;
+            menuF.innerHTML = o.filtros.map(function (f) {
+                var cuenta = {};
+                F.datos.forEach(function (fila) { if (!pasa(fila, f.clave)) return; var v = fila[f.clave]; if (v === "" || v == null) return; cuenta[v] = (cuenta[v] || 0) + 1; });
+                var vals = Object.keys(cuenta).sort();
+                return '<label class="fct-filtro"><span>' + esc(f.etiqueta) + '</span><select class="ui-select" data-filtro="' + esc(f.clave) + '">' +
+                    '<option value="">Todos</option>' + vals.map(function (v) {
+                        return '<option value="' + esc(v) + '"' + (F.filtros[f.clave] === v ? " selected" : "") + ">" + esc(textoValor(f, v)) + " (" + cuenta[v] + ")</option>";
+                    }).join("") + "</select></label>";
+            }).join("") + '<button type="button" class="xml-enlace" data-quitar="*">Quitar todos los filtros</button>';
+        }
+        function aplicar() {
+            var vis = visiblesAhora();
+            estado.hidden = true; caja.hidden = false;
+            if (!F.datos.length && o.vacio) {
+                estado.innerHTML = '<div class="ui-vacio">' + Fiscontable.icono("documento") + "<b>" + esc(o.vacio.titulo || "Sin datos") + "</b><span>" + esc(o.vacio.texto || "") + "</span></div>";
+                estado.hidden = false; caja.hidden = true;
+            }
+            tabla.ponerFilas(vis);
+            pintarRapidos(); pintarChips(); if (menuF && !menuF.hidden) pintarMenuFiltros();
+            var bx = q("[data-fct=excel]"); if (bx) bx.disabled = !vis.length;
+            if (o.alFiltrar) o.alFiltrar(vis);
+        }
+
+        raiz.addEventListener("click", function (e) {
+            var b = e.target.closest("[data-fct],[data-rapido],[data-quitar]");
+            if (!b) return;
+            if (b.dataset.rapido !== undefined) { F.rapido = b.dataset.rapido === "" ? null : b.dataset.rapido; aplicar(); return; }
+            if (b.dataset.quitar !== undefined) {
+                if (b.dataset.quitar === "*") { F.filtros = {}; F.rapido = null; } else delete F.filtros[b.dataset.quitar];
+                aplicar(); return;
+            }
+            var que = b.dataset.fct;
+            if (que === "columnas") tabla.abrirPanelColumnas();
+            else if (que === "filtros" || que === "vistas") {
+                e.stopPropagation();
+                var m = que === "filtros" ? menuF : menuV, abrir = m.hidden;
+                [menuF, menuV].forEach(function (x) { if (x) x.hidden = true; });
+                if (abrir) { if (que === "filtros") pintarMenuFiltros(); else vistas.pintar(); m.hidden = false; }
+            } else if (que === "excel") exportar();
+        });
+        if (menuF) {
+            menuF.addEventListener("click", function (e) { e.stopPropagation(); });
+            menuF.addEventListener("change", function (e) {
+                var s = e.target.closest("[data-filtro]"); if (!s) return;
+                if (s.value) F.filtros[s.dataset.filtro] = s.value; else delete F.filtros[s.dataset.filtro];
+                aplicar(); pintarMenuFiltros();
+            });
+        }
+        document.addEventListener("click", function (e) {
+            [menuF, menuV].forEach(function (m) { if (m && !m.hidden && !m.parentNode.contains(e.target)) m.hidden = true; });
+        });
+        var bus = q(".fct-buscar"), tBus = null;
+        if (bus) bus.addEventListener("input", function () {
+            clearTimeout(tBus);
+            tBus = setTimeout(function () { F.buscar = bus.value.trim().toLowerCase(); aplicar(); }, 150);
+        });
+
+        function columnasExcel() {
+            return tabla.columnas().map(function (x) {
+                var c = o.catalogo.find(function (k) { return k.clave === x.clave; });
+                return c ? { titulo: c.etiqueta, clave: c.clave, tipo: c.tipo === "moneda" ? "moneda" : c.tipo === "fecha" ? "fecha" : "texto" } : null;
+            }).filter(Boolean);
+        }
+        function exportar() {
+            var vis = tabla.filas(), cols = columnasExcel(), x = o.exportar;
+            var hojas = [{ hoja: x.hoja || "Datos", columnas: cols, filas: vis }];
+            if (x.porValor) x.porValor.valores.forEach(function (v) {
+                var filas = vis.filter(function (f) { return String(f[x.porValor.clave]) === String(v); });
+                if (filas.length) hojas.push({ hoja: String(v), columnas: cols, filas: filas });
+            });
+            Fiscontable.excel(typeof x.nombre === "function" ? x.nombre() : x.nombre, hojas)
+                .catch(function (err) { Fiscontable.toast ? Fiscontable.toast(err.message) : alert(err.message); });
+        }
+
+        return {
+            tabla: tabla,
+            ponerDatos: function (filas) { F.datos = (filas || []).slice(); aplicar(); },
+            datos: function () { return F.datos; },
+            visibles: function () { return tabla.filas(); },
+            filtrar: function (clave, valor) { if (valor === null || valor === "") delete F.filtros[clave]; else F.filtros[clave] = String(valor); aplicar(); },
+            rapido: function (valor) { F.rapido = valor === null ? null : String(valor); aplicar(); },
+            limpiar: function () { F.filtros = {}; F.rapido = null; F.buscar = ""; if (bus) bus.value = ""; },
+            cargando: function (texto) {
+                caja.hidden = true; estado.hidden = false;
+                var filas = ""; for (var i = 0; i < 8; i++) filas += '<span class="ui-skel" style="width:' + (60 + (i * 37) % 40) + '%"></span>';
+                estado.innerHTML = '<div class="fct-esqueleto" aria-busy="true">' + (texto ? '<p class="xml-tenue">' + esc(texto) + "</p>" : "") + filas + "</div>";
+            },
+            error: function (mensaje, reintentar) {
+                caja.hidden = true; estado.hidden = false;
+                estado.innerHTML = '<div class="ui-falla">' + Fiscontable.icono("alerta") + "<b>No se pudo cargar</b><span>" + esc(mensaje || "") + "</span>" +
+                    (reintentar ? '<button type="button" class="ui-btn ui-btn--secundario ui-btn--32 fct-reintentar">Reintentar</button>' : "") + "</div>";
+                var r = estado.querySelector(".fct-reintentar"); if (r) r.addEventListener("click", reintentar);
+            },
+            mensaje: function (titulo, texto) {
+                caja.hidden = true; estado.hidden = false;
+                estado.innerHTML = '<div class="ui-vacio">' + Fiscontable.icono("documento") + "<b>" + esc(titulo) + "</b><span>" + esc(texto || "") + "</span></div>";
+            }
+        };
+    }
+
+    window.FCTabla = { crear: crear, menuVistas: menuVistas, formato: formato, estandar: estandar };
 })();

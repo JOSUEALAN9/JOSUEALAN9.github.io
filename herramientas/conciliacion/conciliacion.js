@@ -296,14 +296,17 @@
         if (E.selPeriodo.porFechas()) { if (est.desde) url.set("desde", est.desde); if (est.hasta) url.set("hasta", est.hasta); }
         else { url.set("anio", est.anio); url.set("meses", est.meses.join(",")); }
         history.replaceState(null, "", location.pathname + "?" + url.toString());
-        $("conteo-filas").textContent = "Calculando…";
+        $("conteo-filas").textContent = "";
+        $("tablas").classList.add("conc-cargando");               // G-10: la tabla se atenúa y el resumen muestra su forma, no «Calculando…»
+        if (!E.datos) $("tarjetas").innerHTML = '<div class="ctx-resumen__dato"><span class="ui-skel" style="width:90px"></span><span class="ui-skel" style="width:120px;height:18px;margin-top:6px"></span></div>'.repeat(3);
         document.querySelectorAll("#lados .conc-lado").forEach(function (b) { b.classList.toggle("conc-lado--activo", b.dataset.lado === E.lado); });
         var datos;
         var yo = (E.nCarga = (E.nCarga || 0) + 1);           // si cambias el periodo mientras carga, gana el último
         try { datos = await apiJSON("/api/conciliacion/datos" + comun + "&regla=" + E.regla); }
-        catch (e) { if (yo === E.nCarga) { avisar(e.message); $("conteo-filas").textContent = ""; } return; }
+        catch (e) { if (yo === E.nCarga) { avisar(e.message); $("conteo-filas").textContent = ""; $("tablas").classList.remove("conc-cargando"); } return; }
         if (yo !== E.nCarga || datos.lado !== E.lado || datos.rfc !== E.rfc) return;          // llegó tarde: ya cambiaste de lado o empresa
         E.datos = datos;
+        $("tablas").classList.remove("conc-cargando");
         E.movsPorFactura = {};
         E.datos.movimientos.forEach(function (m) { (E.movsPorFactura[m.uuid_factura] = E.movsPorFactura[m.uuid_factura] || []).push(m); });
         await asegurarTabla();
@@ -347,7 +350,17 @@
         var canceladas = fs.length - vivas.length;
         if (!fs.length) { $("tarjetas").innerHTML = ""; return; }
         var saldo = suma("saldo_mxn", abiertas);
-        $("tarjetas").innerHTML =
+        // M-11: el resumen en pesos se puede plegar a una línea (se recuerda en este navegador)
+        var plegado = false; try { plegado = localStorage.getItem("fc-conc-resumen") === "plegado"; } catch (e) { /* nada */ }
+        $("tarjetas").classList.toggle("ctx-resumen--linea", plegado);
+        if (plegado) {
+            $("tarjetas").innerHTML = '<button type="button" data-tarjeta="saldo" class="conc-linea' + (E.tarjeta === "saldo" ? " conc-linea--activa" : "") + '">' +
+                textoLado("Por cobrar", "Por pagar") + " <b>$" + dinero(saldo) + "</b> · " + (abiertas.length ? abiertas.length + " con saldo" : "todo " + textoLado("cobrado", "pagado")) +
+                " · Total $" + dinero(suma("total_mxn", vivas)) + "</button>" +
+                '<button type="button" class="xml-enlace" data-resumen="abrir">Ver resumen</button>';
+            return;
+        }
+        $("tarjetas").innerHTML = '<button type="button" class="ctx-resumen__plegar" data-resumen="plegar" title="Dejar el resumen en una línea" aria-label="Plegar resumen">−</button>' +
             '<div class="ctx-resumen__dato"><small>Total en pesos</small><b>$' + dinero(suma("total_mxn", vivas)) + "</b></div>" +
             '<div class="ctx-resumen__dato"><small>' + textoLado("Cobrado", "Pagado") + " en pesos</small><b>$" + dinero(suma("pagado_mxn", vivas)) + "</b></div>" +
             '<button type="button" data-tarjeta="saldo" title="Clic para ver solo las que tienen saldo" class="ctx-resumen__dato' +
@@ -813,6 +826,11 @@
         $("aviso-otra").addEventListener("click", function (e) { if (e.target.id === "volver-empresa") { E.otra = null; E.rfc = null; refrescarBibliotecas(); } });
         $("aviso-validar").addEventListener("click", function (e) { if (e.target.id === "validar-faltan") iniciarValidacion(E.datos.sin_validar); });
         $("tarjetas").addEventListener("click", function (e) {
+            var pl = e.target.closest("[data-resumen]");
+            if (pl) {
+                try { localStorage.setItem("fc-conc-resumen", pl.dataset.resumen === "plegar" ? "plegado" : "abierto"); } catch (x) { /* nada */ }
+                pintarTarjetas(); return;
+            }
             var b = e.target.closest("[data-tarjeta]"); if (!b) return;
             E.tarjeta = E.tarjeta === b.dataset.tarjeta ? null : b.dataset.tarjeta;
             pintarTarjetas(); aplicar();

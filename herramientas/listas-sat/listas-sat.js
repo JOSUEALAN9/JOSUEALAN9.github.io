@@ -82,6 +82,7 @@
         }
         await abrirEmpresa(q.get("empresa") || (E.empresa && E.empresa.rfc));
         window.addEventListener("fiscontable:empresa", function (e) { E.empresa = e.detail; abrirEmpresa(e.detail && e.detail.rfc); });
+        if (window.FCProgramacion) FCProgramacion.linea({ modulo: "listas", contenedor: $("linea-programa") });
         window.addEventListener("fiscontable:periodo", function (e) {
             E.periodoGeneral = e.detail;
             if (!E.rfc || !e.detail) return;
@@ -218,9 +219,10 @@
                 '" data-pestana="' + p[0] + '" aria-selected="' + (E.pestana === p[0]) + '">' + esc(p[1]) + '<span class="xml-cuenta">' + p[2] + "</span></button>";
         }).join("");
         var nR = enP.filter(function (f) { return f.rol === "recibido"; }).length;
-        $("roles").innerHTML = [["", "Todos", enP.length], ["recibido", "Recibidos (proveedores)", nR], ["emitido", "Emitidos (clientes)", enP.length - nR]].map(function (r) {
-            return '<button type="button" class="xml-chip' + (E.rol === r[0] ? " xml-chip--activo" : "") + '" data-rol="' + r[0] + '">' + r[1] + "<span>" + r[2] + "</span></button>";
-        }).join("") + '<label class="ls-informativos" title="69-B desvirtuados y sentencias favorables: no son riesgo, pero puedes verlos">' +
+        $("roles").innerHTML = '<div class="ctx-segmento" role="group" aria-label="Proveedores o clientes">' +
+            [["", "Todos", enP.length], ["recibido", "Recibidos · proveedores", nR], ["emitido", "Emitidos · clientes", enP.length - nR]].map(function (r) {
+            return '<button type="button" aria-pressed="' + (E.rol === r[0]) + '" data-rol="' + r[0] + '">' + r[1] + ' <span class="xml-cuenta">' + r[2] + "</span></button>";
+        }).join("") + '</div><label class="ls-informativos" title="69-B desvirtuados y sentencias favorables: no son riesgo, pero puedes verlos">' +
             '<input type="checkbox" id="chk-informativos"' + (E.informativos ? " checked" : "") + "> Incluir desvirtuados</label>";
     }
 
