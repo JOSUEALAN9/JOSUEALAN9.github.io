@@ -99,3 +99,6 @@
     .dc-acciones:empty { display: none; }
     .dc-resultado { max-width: none; }
 }
+.dc-oculto { letter-spacing: .05em; color: rgb(var(--g-500)); }
+.dc-revelar { border: 0; background: none; padding: 0 2px; font: inherit; font-size: var(--t-12); font-weight: 600; color: rgb(var(--ac-600)); cursor: pointer; }
+.dc-revelar:hover { text-decoration: underline; }

@@ -19,8 +19,8 @@
         <div class="fc-titulo">
             <h1>Documentos</h1>
             <div class="fc-vista" role="tablist" aria-label="Vista">
-                <button type="button" role="tab" data-vista="pedir" aria-selected="true">Pedir</button>
-                <button type="button" role="tab" data-vista="estatus" aria-selected="false">Estatus de pedidos <span class="dc-insignia" id="n-en-curso" hidden></span></button>
+                <button type="button" role="tab" data-vista="pedir" aria-selected="true">Solicitar documento</button>
+                <button type="button" role="tab" data-vista="estatus" aria-selected="false">Mis solicitudes <span class="dc-insignia" id="n-en-curso" hidden></span></button>
             </div>
         </div>
         <a class="dc-saldo" id="dc-saldo" href="/creditos/" hidden></a>
@@ -29,7 +29,7 @@
     <div id="aviso" class="dc-aviso" role="status" hidden></div>
 
     <section class="dc-caja" id="vista-pedir">
-        <h2>Pedir un documento</h2>
+        <h2>Solicitar un documento</h2>
         <div class="dc-categorias" id="categorias" role="tablist" aria-label="Tipo de documento"></div>
         <div class="dc-servicios" id="servicios" role="radiogroup" aria-label="Documento"></div>
 
@@ -42,7 +42,7 @@
             <p id="f-error" class="dc-error" hidden></p>
             <div class="dc-pie">
                 <p class="dc-nota" id="f-costo"></p>
-                <button type="submit" class="boton-principal" id="f-enviar">Pedir</button>
+                <button type="submit" class="boton-principal" id="f-enviar">Solicitar</button>
             </div>
         </form>
     </section>

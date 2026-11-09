@@ -124,7 +124,7 @@
         $("f-costo").innerHTML = E.datos.sin_costo ? "Los usuarios pagan <b>" + m(s.precio) + " créditos</b>. A ti no se te cobra: sale de tu saldo en UnlockerFast." :
             "Cuesta <b>" + m(s.precio) + " créditos</b>. Se apartan al pedir y se cobran cuando llega; si no se puede obtener, se te devuelven." +
             (E.datos.saldo < s.precio ? ' <span class="dc-falta">Te faltan ' + m(s.precio - E.datos.saldo) + ' créditos. <a href="/creditos/">Recargar</a></span>' : "");
-        $("f-enviar").textContent = E.datos.sin_costo ? "Pedir (sin costo para ti)" : "Pedir · " + m(s.precio) + " créditos";
+        $("f-enviar").textContent = E.datos.sin_costo ? "Solicitar (sin costo para ti)" : "Solicitar · " + m(s.precio) + " créditos";
         $("f-error").hidden = true;
         $("form").hidden = false;
         var primero = $("f-campos").querySelector("input");
@@ -163,7 +163,7 @@
             pintarPedidos();
             aviso("Listo: pediste <b>" + esc(r.pedido.servicio) + "</b> (folio " + r.pedido.id + "). Llega en " +
                 esc((servicioPorId(r.pedido.serviceid) || {}).tiempo || "unos minutos") + ". Puedes seguir pidiendo o cerrar la página; lo ves en " +
-                '<button type="button" class="dc-enlace" data-ir="estatus">Estatus de pedidos</button>.', "ok");
+                '<button type="button" class="dc-enlace" data-ir="estatus">Mis solicitudes</button>.', "ok");
             $("f-campos").querySelectorAll("input").forEach(function (el) { el.value = ""; });
             $("f-nota").value = "";
             elegir(E.servicio);
@@ -231,23 +231,34 @@
             (n ? " · se actualiza sola cada 20 segundos mientras haya pedidos en proceso" : "");
     }
 
+    /* Datos sensibles (CURP, NSS, RFC) a medias en la tabla: «DOHA90••••••••••». «Mostrar» los revela en ese renglón. */
+    E.revelados = {};
+    function enmascarar(v) {
+        v = String(v == null ? "" : v);
+        var limpio = v.replace(/\s/g, "");
+        if (!/^[A-ZÑ&0-9]{10,18}$/i.test(limpio)) return esc(v);
+        var deja = /^\d+$/.test(limpio) ? 3 : 6;
+        return esc(limpio.slice(0, deja)) + '<span class="dc-oculto" aria-label="oculto">' + "•".repeat(limpio.length - deja) + "</span>";
+    }
     function pintarPedidos() {
         pintarFiltros();
         var filas = filasVisibles(), hayFiltro = E.filtro !== "todos" || $("f-documento").value || $("buscar").value.trim();
         $("pedidos").innerHTML = filas.length ? filas.map(function (p) {
+            var ver = !!E.revelados[p.id], dato = function (v) { return ver ? esc(v) : enmascarar(v); };
             var otros = Object.keys(p.datos || {}).filter(function (k) { return p.datos[k] !== p.titular; })
-                .map(function (k) { return esc(k) + ": " + esc(p.datos[k]); }).join("<br>");
+                .map(function (k) { return esc(k) + ": " + dato(p.datos[k]); }).join("<br>");
             var acciones = "";
             if (p.tiene_archivo) acciones += '<button type="button" class="dc-btn" data-ver="' + p.id + '">Ver</button><button type="button" class="dc-btn dc-btn--si" data-bajar="' + p.id + '">Descargar</button>';
             if (p.resultado) acciones += '<button type="button" class="dc-btn" data-copiar="' + p.id + '">Copiar</button>';
             if (EN_CURSO.indexOf(p.estado) !== -1 && p.estado !== "enviando") acciones += '<button type="button" class="dc-btn" data-actualizar="' + p.id + '">Actualizar</button>';
             return "<tr><td>" + p.id + "<br><small>" + fecha(p.creado_en) + "</small></td>" +
                 "<td>" + esc(p.servicio) + (p.nota ? "<br><small>" + esc(p.nota) + "</small>" : "") + "</td>" +
-                '<td class="dc-dato">' + esc(p.titular) + (otros ? "<br><small>" + otros + "</small>" : "") + "</td>" +
+                '<td class="dc-dato">' + dato(p.titular) + (otros ? "<br><small>" + otros + "</small>" : "") +
+                ' <button type="button" class="dc-revelar" data-revelar="' + p.id + '">' + (ver ? "Ocultar" : "Mostrar") + "</button></td>" +
                 '<td class="num">' + (p.precio ? m(p.precio) : "—") + "</td>" +
                 "<td>" + estadoHtml(p) + "</td>" +
                 '<td><div class="dc-acciones">' + acciones + "</div></td></tr>";
-        }).join("") : '<tr><td colspan="6" class="dc-vacio">' + (hayFiltro ? "Nada coincide con el filtro." : "Aún no has pedido documentos.") + "</td></tr>";
+        }).join("") : '<tr><td colspan="6" class="dc-vacio">' + (hayFiltro ? "Nada coincide con el filtro." : "Aún no has solicitado documentos.") + "</td></tr>";
     }
 
     /* Exportar lo que se ve (con los filtros) a CSV que Excel abre directo. */
@@ -361,6 +372,8 @@
             b.disabled = false; b.textContent = "Actualizar";
         });
         $("pedidos").addEventListener("click", function (e) {
+            var rv = e.target.closest("[data-revelar]");
+            if (rv) { var id = Number(rv.dataset.revelar); E.revelados[id] = !E.revelados[id]; pintarPedidos(); return; }
             var b = e.target.closest("button");
             if (!b) return;
             if (b.dataset.bajar) bajar(Number(b.dataset.bajar), b);
