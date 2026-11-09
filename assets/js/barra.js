@@ -2193,7 +2193,7 @@
        sesión sin acceso mientras tanto. Sin PIN, se vuelve a entrar con el correo. Tras 8 h sin actividad se cierra
        la sesión. Los trabajos en curso del servidor no se detienen. */
     var bloqueo = { activa: false, minutos: 15, horas: 8, pin: false, listo: false };
-    var LLAVE_ACT = "fc-actividad", LLAVE_BLOQ = "fc-bloqueada", SALIR = "/cdn-cgi/access/logout";
+    var LLAVE_ACT = "fc-actividad", LLAVE_BLOQ = "fc-bloqueada", LLAVE_OLVIDE = "fc-olvide-pin", SALIR = "/cdn-cgi/access/logout";
     function leerLS(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
     function ponerLS(k, v) { try { if (v == null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (e) { /* sin almacenamiento */ } }
     var ultimaMarca = 0;
@@ -2215,9 +2215,12 @@
             '<form id="fc-bl-form" hidden><input id="fc-bl-pin" class="ui-input" type="password" inputmode="numeric" autocomplete="off" maxlength="6" placeholder="PIN" aria-label="Tu PIN">' +
             '<button type="submit" class="ui-btn ui-btn--primario">Desbloquear</button></form>' +
             '<p class="fc-bloqueo-pantalla__msj" id="fc-bl-msj" role="alert"></p>' +
-            '<a class="ui-btn ui-btn--secundario" id="fc-bl-salir" href="' + SALIR + '">Volver a entrar</a></div>';
+            '<a class="ui-btn ui-btn--secundario" id="fc-bl-salir" href="' + SALIR + '">Volver a entrar</a>' +
+            '<a class="fc-bloqueo-pantalla__olvide" id="fc-bl-olvide" href="' + SALIR + '" hidden>¿Olvidaste tu PIN? Entra con tu correo y pon uno nuevo</a></div>';
         document.body.appendChild(capa);
         capa.querySelector("#fc-bl-form").addEventListener("submit", function (e) { e.preventDefault(); desbloquear(); });
+        // Al volver a entrar se abre Configuración para poner un PIN nuevo sin el anterior
+        capa.querySelector("#fc-bl-olvide").addEventListener("click", function () { ponerLS(LLAVE_OLVIDE, "1"); });
         return capa;
     }
     function pintarCapa() {
@@ -2227,6 +2230,7 @@
             : "Por seguridad, después de " + bloqueo.minutos + " minutos sin usarla. Para seguir, vuelve a entrar con tu correo. " +
               "Si creas un PIN en Configuración › Mi perfil, la desbloqueas sin salir.";
         document.getElementById("fc-bl-form").hidden = !con;
+        document.getElementById("fc-bl-olvide").hidden = !con;
         document.getElementById("fc-bl-salir").textContent = con ? "Entrar con mi correo" : "Volver a entrar";
         document.getElementById("fc-bl-salir").className = "ui-btn " + (con ? "ui-btn--terciario" : "ui-btn--primario");
         capa.hidden = false;
@@ -2287,6 +2291,11 @@
             if (marca && !p.pantalla_bloqueada && marcaVieja(marca)) {
                 ponerLS(LLAVE_BLOQ, null); ponerLS(LLAVE_ACT, null); quitarCapa();
                 if (!bloqueo.pin) setTimeout(sugerirPin, 600);
+            }
+            // Pidió «Olvidé mi PIN» y ya entró de nuevo con su correo: directo a poner uno nuevo
+            if (leerLS(LLAVE_OLVIDE) && bloqueo.pin && b.puede_restablecer && !p.pantalla_bloqueada && !leerLS(LLAVE_BLOQ)) {
+                ponerLS(LLAVE_OLVIDE, null);
+                setTimeout(function () { abrirConfiguracion("perfil", "olvide"); }, 600);
             }
         }
         if (bloqueo.activa) pintarCapa();

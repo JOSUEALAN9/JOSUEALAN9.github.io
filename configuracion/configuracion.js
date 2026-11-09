@@ -195,23 +195,66 @@
     }
 
     /* Bloqueo por inactividad: minutos y PIN (el PIN se guarda solo como hash en el servidor) */
-    function pintarBloqueo(c) {
+    function pintarBloqueo(c, modo) {
         var b = perfil.bloqueo || { tiene_pin: false, minutos: 15 };
+        var sub = Fiscontable.url("sub");
+        if (!modo && b.tiene_pin && sub === "olvide") modo = "olvide";
         var caja = document.createElement("div");
         caja.className = "cf-tarjeta"; caja.style.marginTop = "14px";
-        caja.innerHTML = '<h3 class="cf-sub">Bloqueo por inactividad</h3>' +
-            '<p class="cf-texto">Si dejas la computadora abierta, la pantalla se bloquea sola. ' + (b.tiene_pin ? "Se desbloquea con tu PIN, sin perder lo que estabas haciendo." :
+        var estado = b.tiene_pin ? '<span class="ui-estado ui-estado--ok">PIN activo</span>' : '<span class="ui-estado">Sin PIN</span>';
+        var cabeza = '<h3 class="cf-sub cf-sub--estado">Bloqueo por inactividad ' + estado + "</h3>";
+        var min = b.restablecer_min || 15;
+        if (modo === "olvide") {
+            // «Olvidé mi PIN»: solo recién entrado con el correo (el servidor lo vuelve a revisar)
+            caja.innerHTML = cabeza + (b.puede_restablecer
+                ? '<p class="cf-texto">Como acabas de entrar con tu correo, puedes poner un PIN nuevo sin el anterior (tienes ' + min + " minutos desde que entraste).</p>" +
+                  '<div class="cf-campos"><label class="cf-campo"><span>PIN nuevo <i>(4 a 6 números)</i></span><input id="cf-bl-nuevo" type="password" inputmode="numeric" maxlength="6" autocomplete="new-password"></label></div>' +
+                  '<div class="cf-acciones"><button type="button" class="cf-btn cf-btn--principal" id="cf-bl-rest">Guardar PIN nuevo</button>' +
+                  '<button type="button" class="cf-btn" id="cf-bl-rest-quitar">Mejor quitar el PIN</button>' +
+                  '<button type="button" class="cf-btn" id="cf-bl-cancelar">Cancelar</button><span class="cf-msj"></span></div>'
+                : '<p class="cf-texto">Para poner uno nuevo sin el anterior, primero confirma que eres tú: cierra sesión y vuelve a entrar con tu correo. ' +
+                  "Al volver se abre esta pantalla y tendrás " + min + " minutos para cambiarlo.</p>" +
+                  '<div class="cf-acciones"><button type="button" class="cf-btn cf-btn--principal" id="cf-bl-reentrar">Cerrar sesión y volver a entrar</button>' +
+                  '<button type="button" class="cf-btn" id="cf-bl-cancelar">Cancelar</button><span class="cf-msj"></span></div>');
+            c.appendChild(caja);
+            var otraVez = function () { c.removeChild(caja); pintarBloqueo(c, "normal"); };
+            $("cf-bl-cancelar").addEventListener("click", otraVez);
+            if ($("cf-bl-reentrar")) $("cf-bl-reentrar").addEventListener("click", function () {
+                try { localStorage.setItem("fc-olvide-pin", "1"); } catch (e) { /* sin almacenamiento */ }
+                window.top.location.href = "/cdn-cgi/access/logout";
+            });
+            var restablecer = async function (pin) {
+                try {
+                    perfil.bloqueo = await enviar("/api/mi-perfil/pin/restablecer", "POST", { pin: pin });
+                    c.removeChild(caja); pintarBloqueo(c, "normal"); aviso(c.lastChild, true, pin ? "PIN nuevo guardado." : "PIN quitado.");
+                } catch (e) { aviso(caja, false, e.message); }
+            };
+            if ($("cf-bl-rest")) {
+                setTimeout(function () { caja.scrollIntoView({ block: "center" }); $("cf-bl-nuevo").focus(); }, 80);
+                $("cf-bl-rest").addEventListener("click", function () {
+                    var pin = $("cf-bl-nuevo").value.trim();
+                    if (!pin) { aviso(caja, false, "Escribe el PIN nuevo."); return; }
+                    restablecer(pin);
+                });
+                $("cf-bl-rest-quitar").addEventListener("click", function () { restablecer(null); });
+            }
+            return;
+        }
+        caja.innerHTML = cabeza +
+            '<p class="cf-texto">Si dejas la computadora abierta, la pantalla se bloquea sola. ' + (b.tiene_pin ? "Ya tienes un PIN: la desbloqueas con él, sin perder lo que estabas haciendo." :
                 "Sin PIN, para seguir tienes que volver a entrar con tu correo; con PIN la desbloqueas al momento.") + "</p>" +
             '<div class="cf-campos"><label class="cf-campo"><span>Bloquear después de</span><select id="cf-bl-min">' +
             [5, 10, 15, 20, 30, 45, 60].map(function (m) { return '<option value="' + m + '"' + (m === b.minutos ? " selected" : "") + ">" + m + " minutos sin usarla</option>"; }).join("") + "</select></label>" +
-            (b.tiene_pin ? '<label class="cf-campo"><span>PIN actual</span><input id="cf-bl-actual" type="password" inputmode="numeric" maxlength="6" autocomplete="off"></label>' : "") +
+            (b.tiene_pin ? '<label class="cf-campo"><span>PIN actual <i>(solo para cambiarlo o quitarlo)</i></span><input id="cf-bl-actual" type="password" inputmode="numeric" maxlength="6" autocomplete="off">' +
+                '<button type="button" class="cf-link" id="cf-bl-olvide">¿Olvidaste tu PIN?</button></label>' : "") +
             '<label class="cf-campo"><span>' + (b.tiene_pin ? "PIN nuevo <i>(déjalo vacío para no cambiarlo)</i>" : "Crea tu PIN <i>(4 a 6 números)</i>") + '</span><input id="cf-bl-pin" type="password" inputmode="numeric" maxlength="6" autocomplete="new-password"></label></div>' +
             '<div class="cf-acciones"><button type="button" class="cf-btn cf-btn--principal" id="cf-bl-guardar">Guardar</button>' +
             (b.tiene_pin ? '<button type="button" class="cf-btn" id="cf-bl-quitar">Quitar PIN</button>' : "") + '<span class="cf-msj"></span></div>';
         c.appendChild(caja);
         // Llegó desde el aviso «Crear mi PIN» (tras volver a entrar por inactividad)
-        if (!b.tiene_pin && Fiscontable.url("sub") === "pin") setTimeout(function () { caja.scrollIntoView({ block: "center" }); $("cf-bl-pin").focus(); }, 80);
-        var listo = function (nuevo, texto) { perfil.bloqueo = nuevo; c.removeChild(caja); pintarBloqueo(c); aviso(c.lastChild, true, texto); };
+        if (!modo && !b.tiene_pin && sub === "pin") setTimeout(function () { caja.scrollIntoView({ block: "center" }); $("cf-bl-pin").focus(); }, 80);
+        var listo = function (nuevo, texto) { perfil.bloqueo = Object.assign({}, perfil.bloqueo, nuevo); c.removeChild(caja); pintarBloqueo(c, "normal"); aviso(c.lastChild, true, texto); };
+        if ($("cf-bl-olvide")) $("cf-bl-olvide").addEventListener("click", function () { c.removeChild(caja); pintarBloqueo(c, "olvide"); });
         $("cf-bl-guardar").addEventListener("click", async function () {
             var pin = $("cf-bl-pin").value.trim(), cuerpo = { minutos: +$("cf-bl-min").value };
             if (pin) { cuerpo.pin = pin; if ($("cf-bl-actual")) cuerpo.actual = $("cf-bl-actual").value.trim(); }
