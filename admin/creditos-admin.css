@@ -1,4 +1,4 @@
-.cra-caja { background: #fff; border: 1px solid rgb(var(--g-200)); border-radius: 14px; padding: 16px 18px; margin-bottom: 16px; }
+.cra-caja { background: rgb(var(--g-0)); border: 1px solid rgb(var(--g-200)); border-radius: 14px; padding: 16px 18px; margin-bottom: 16px; }
 .cra-caja h2 { font-size: 15px; font-weight: 800; color: rgb(var(--g-900)); margin-bottom: 10px; }
 .cra-caja h3 { font-size: 13px; font-weight: 800; color: rgb(var(--g-700)); margin: 14px 0 6px; }
 .cra-tabla { width: 100%; border-collapse: collapse; font-size: 13.5px; min-width: 560px; }
@@ -7,16 +7,16 @@
 .cra-tabla .num { text-align: right; white-space: nowrap; }
 .cra-tabla small { color: rgb(var(--g-600)); }
 .cra-acciones { display: flex; gap: 6px; justify-content: flex-end; flex-wrap: wrap; }
-.cra-btn { border: 1px solid rgb(var(--g-300)); background: #fff; border-radius: 8px; padding: 5px 10px; font: inherit; font-size: 12.5px; font-weight: 700; cursor: pointer; color: rgb(var(--g-700)); }
-.cra-btn--si { background: #0e9f6e; border-color: #0e9f6e; color: #fff; }
-.cra-btn--no { color: #b91c1c; border-color: #fecaca; }
+.cra-btn { border: 1px solid rgb(var(--g-300)); background: rgb(var(--g-0)); border-radius: 8px; padding: 5px 10px; font: inherit; font-size: 12.5px; font-weight: 700; cursor: pointer; color: rgb(var(--g-700)); }
+.cra-btn--si { background: rgb(var(--ac-500)); border-color: rgb(var(--ac-500)); color: rgb(var(--g-0)); }
+.cra-btn--no { color: rgb(var(--er-600)); border-color: rgb(var(--er-200)); }
 .cra-control { border: 1px solid rgb(var(--g-300)); border-radius: 8px; padding: 7px 9px; font-size: 13.5px; }
 .cra-campo { display: flex; flex-direction: column; gap: 4px; font-size: 12px; font-weight: 700; color: rgb(var(--g-600)); }
 .cra-fila { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 6px; }
 .cra-fila input { border: 1px solid rgb(var(--g-300)); border-radius: 8px; padding: 6px 8px; font-size: 13.5px; }
 .cra-quitar { border: 0; background: none; color: rgb(var(--g-500)); font-size: 18px; cursor: pointer; }
-.cra-quitar:hover { color: #b91c1c; }
-.cra-enlace { border: 0; background: none; color: #0e9f6e; font-weight: 700; font-size: 13px; cursor: pointer; padding: 2px 0; }
+.cra-quitar:hover { color: rgb(var(--er-600)); }
+.cra-enlace { border: 0; background: none; color: rgb(var(--ac-500)); font-weight: 700; font-size: 13px; cursor: pointer; padding: 2px 0; }
 .cra-vacio { color: rgb(var(--g-500)); text-align: center; padding: 12px; }
 /* Sistema › Plazos y valores */
 .plz-titulo { font-size: var(--t-16); font-weight: 700; margin: 0 0 4px; }

@@ -4,10 +4,10 @@
 .det-cabeza .det-uuid { font-family: ui-monospace, monospace; font-size: 12.5px; color: rgb(var(--g-600)); margin-top: 2px; }
 .det-acciones { display: flex; gap: 8px; flex-wrap: wrap; }
 .det-sellos { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
-.det-tarjeta { background: #fff; border: 1px solid rgb(var(--g-200)); border-radius: 14px; padding: 16px 18px; margin-bottom: 14px; }
+.det-tarjeta { background: rgb(var(--g-0)); border: 1px solid rgb(var(--g-200)); border-radius: 14px; padding: 16px 18px; margin-bottom: 14px; }
 .det-tarjeta h2 { font-size: 11.5px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; color: rgb(var(--g-600)); margin-bottom: 10px; }
 .det-partes { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
-.det-parte { background: #fff; border: 1px solid rgb(var(--g-200)); border-radius: 14px; padding: 16px 18px; }
+.det-parte { background: rgb(var(--g-0)); border: 1px solid rgb(var(--g-200)); border-radius: 14px; padding: 16px 18px; }
 .det-parte h3 { font-size: 11px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; color: rgb(var(--g-600)); }
 .det-parte .det-nombre { font-size: 16px; font-weight: 800; color: rgb(var(--g-900)); margin-top: 4px; }
 .det-parte .det-rfc { font-family: ui-monospace, monospace; font-size: 13px; color: rgb(var(--g-700)); }
@@ -25,13 +25,13 @@
 .det-suma td { padding: 5px 0; }
 .det-suma td:last-child { text-align: right; font-variant-numeric: tabular-nums; }
 .det-suma .det-gran td { font-size: 17px; font-weight: 800; border-top: 2px solid rgb(var(--g-900)); padding-top: 8px; }
-.det-liga { color: #0369a1; font-weight: 700; text-decoration: underline; }
+.det-liga { color: rgb(var(--in-600)); font-weight: 700; text-decoration: underline; }
 .det-scroll { overflow-x: auto; }
 @media (max-width: 760px) { .det-partes, .det-totales { grid-template-columns: 1fr; } }
-@media print { #app-header, .fc-barra, .det-acciones, #fc-letreros { display: none !important; } body { background: #fff; } .det-tarjeta, .det-parte { break-inside: avoid; } }
-.det-alertas { background: #fffbeb; border-color: #fde68a; }
-.det-alertas h2 { color: #92400e; }
-.det-alertas li { font-size: 13.5px; color: #92400e; font-weight: 600; margin: 3px 0; }
+@media print { #app-header, .fc-barra, .det-acciones, #fc-letreros { display: none !important; } body { background: rgb(var(--g-0)); } .det-tarjeta, .det-parte { break-inside: avoid; } }
+.det-alertas { background: rgb(var(--av-50)); border-color: rgb(var(--av-200)); }
+.det-alertas h2 { color: rgb(var(--av-600)); }
+.det-alertas li { font-size: 13.5px; color: rgb(var(--av-600)); font-weight: 600; margin: 3px 0; }
 
 .det-consultado { font-size: 12px; color: rgb(var(--g-500)); font-weight: 600; margin-left: 2px; white-space: nowrap; }
 /* Enlaces con Marcas fiscales y Cancelaciones */
@@ -45,17 +45,17 @@
 .det-marca { display: inline-flex; align-items: center; gap: 5px; border-radius: 8px; padding: 4px 9px; font-size: 12.5px; font-weight: 700; border: 1px solid; white-space: nowrap; font-variant-numeric: tabular-nums; }
 .det-marca b { font-weight: 800; }
 .det-marca i { font-style: normal; color: rgb(var(--ac-600)); font-size: 9px; }
-.det-marca--si { background: #ecfdf5; border-color: #a7f3d0; color: #047857; }
+.det-marca--si { background: rgb(var(--ok-50)); border-color: rgb(var(--ok-200)); color: rgb(var(--ok-600)); }
 .det-marca--no { background: rgb(var(--g-50)); border-color: rgb(var(--g-200)); color: rgb(var(--g-500)); }
-.det-marca--parcial { background: #fffbeb; border-color: #fde68a; color: #b45309; }
+.det-marca--parcial { background: rgb(var(--av-50)); border-color: rgb(var(--av-200)); color: rgb(var(--av-600)); }
 .det-enlace__motivo { font-size: 12.5px; color: rgb(var(--g-600)); margin: 8px 0 0; }
-.det-enlace__revisar { font-size: 12.5px; color: #b45309; font-weight: 700; margin: 6px 0 0; }
+.det-enlace__revisar { font-size: 12.5px; color: rgb(var(--av-600)); font-weight: 700; margin: 6px 0 0; }
 .det-enlace__ir { margin-top: 10px; display: inline-flex; }
-.det-enlace__estado { font-size: 13.5px; font-weight: 700; color: #047857; margin: 0 0 8px; }
-.det-enlace__estado--no { color: #b91c1c; }
-.det-enlace__estado--proc { color: #b45309; }
+.det-enlace__estado { font-size: 13.5px; font-weight: 700; color: rgb(var(--ok-600)); margin: 0 0 8px; }
+.det-enlace__estado--no { color: rgb(var(--er-600)); }
+.det-enlace__estado--proc { color: rgb(var(--av-600)); }
 .det-enlace__hist { font-size: 12.5px; color: rgb(var(--g-600)); margin: 0 0 10px; padding-left: 18px; list-style: disc; }
 .det-enlace__botones { display: flex; flex-wrap: wrap; gap: 8px; }
-.xml-btn.det-enlace__peligro { color: #b91c1c; border-color: #fecaca; }
-.xml-btn.det-enlace__peligro:hover { background: #fef2f2; }
+.xml-btn.det-enlace__peligro { color: rgb(var(--er-600)); border-color: rgb(var(--er-200)); }
+.xml-btn.det-enlace__peligro:hover { background: rgb(var(--er-50)); }
 @media print { .det-enlaces { display: none; } }

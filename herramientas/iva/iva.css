@@ -1,5 +1,5 @@
 .iva-resumen { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-bottom: 12px; }
-.iva-caja { background: #fff; border: 1px solid rgb(var(--g-200)); border-radius: 12px; padding: 12px 14px; }
+.iva-caja { background: rgb(var(--g-0)); border: 1px solid rgb(var(--g-200)); border-radius: 12px; padding: 12px 14px; }
 .iva-caja__titulo { font-size: 11px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; color: rgb(var(--g-900)); margin-bottom: 6px; }
 .iva-caja__titulo span { color: rgb(var(--g-500)); font-weight: 700; text-transform: none; letter-spacing: 0; }
 .iva-caja dl { display: grid; grid-template-columns: 1fr auto; gap: 3px 10px; font-size: 13px; }
@@ -7,29 +7,29 @@
 .iva-caja dd { text-align: right; font-variant-numeric: tabular-nums; color: rgb(var(--g-900)); }
 .iva-caja dt.iva-total, .iva-caja dd.iva-total { font-weight: 800; border-top: 1px solid rgb(var(--g-200)); padding-top: 4px; }
 .iva-caja--resultado { border-color: var(--acento, rgb(var(--ac-600))); }
-.iva-cargo { color: #b91c1c !important; }
-.iva-favor { color: #047857 !important; }
+.iva-cargo { color: rgb(var(--er-600)) !important; }
+.iva-favor { color: rgb(var(--ok-600)) !important; }
 .iva-saldo { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 12px; color: rgb(var(--g-600)); margin-top: 8px; }
 .iva-saldo input { width: 120px; border: 1px solid rgb(var(--g-300)); border-radius: 8px; padding: 4px 8px; text-align: right; font-size: 13px; }
 .iva-tabla { width: max-content; min-width: 100%; }
 .iva-tabla tbody tr { cursor: pointer; }
 .iva-tabla tbody tr:hover td { background: rgb(var(--g-50)); }
 .iva-tabla tfoot td { font-weight: 800; background: rgb(var(--g-100)); position: sticky; bottom: 0; }
-.iva-aviso { color: #b45309; font-weight: 800; }
-.iva-neg { color: #b91c1c; }
-.pestana .xml-cuenta.iva-cuenta--aviso { color: #b45309; }
+.iva-aviso { color: rgb(var(--av-600)); font-weight: 800; }
+.iva-neg { color: rgb(var(--er-600)); }
+.pestana .xml-cuenta.iva-cuenta--aviso { color: rgb(var(--av-600)); }
 @media (max-width: 900px) { .iva-resumen { grid-template-columns: 1fr; } }
-.iva-marcas { display: flex; align-items: center; gap: 12px; background: #fffbeb; border: 1px solid #fcd34d; border-radius: 12px; padding: 10px 14px; margin-bottom: 12px; font-size: 13px; color: #78350f; }
+.iva-marcas { display: flex; align-items: center; gap: 12px; background: rgb(var(--av-50)); border: 1px solid rgb(var(--av-200)); border-radius: 12px; padding: 10px 14px; margin-bottom: 12px; font-size: 13px; color: rgb(var(--av-600)); }
 .iva-marcas > span:nth-child(2) { flex: 1; min-width: 0; }
-.iva-marcas small { color: #92400e; }
+.iva-marcas small { color: rgb(var(--av-600)); }
 .iva-marcas__ico { font-size: 18px; }
 .iva-marcas .xml-btn { white-space: nowrap; text-decoration: none; }
-.iva-caja dt.iva-noacred, .iva-caja dd.iva-noacred { color: #b45309; }
+.iva-caja dt.iva-noacred, .iva-caja dd.iva-noacred { color: rgb(var(--av-600)); }
 .iva-link { background: none; border: 0; padding: 0; font: inherit; color: inherit; text-decoration: underline dotted; cursor: pointer; text-align: left; }
 .iva-marca { display: inline-block; max-width: 210px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: middle;
-             font-size: 12px; font-weight: 700; color: #b45309; background: #fff7ed; border: 1px solid #fed7aa; border-radius: 999px; padding: 1px 8px; text-decoration: none; }
-a.iva-marca:hover { border-color: #f59e0b; }
-.iva-marca--rev { color: #92400e; background: #fef3c7; border-color: #fcd34d; }
+             font-size: 12px; font-weight: 700; color: rgb(var(--av-600)); background: rgb(var(--av-50)); border: 1px solid rgb(var(--av-200)); border-radius: 999px; padding: 1px 8px; text-decoration: none; }
+a.iva-marca:hover { border-color: rgb(var(--av-600)); }
+.iva-marca--rev { color: rgb(var(--av-600)); background: rgb(var(--av-50)); border-color: rgb(var(--av-200)); }
 @media (max-width: 640px) { .iva-marcas { flex-direction: column; align-items: stretch; } }
 
 /* El resultado (tarjetas) es la vista principal; el detalle CFDI por CFDI se abre al pedirlo y se recuerda */
