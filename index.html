@@ -27,8 +27,15 @@
 
     <!-- M-01 · Vista despacho: una fila por empresa con lo que hay que atender -->
     <section id="tb-despacho">
-        <div id="tb-resumen" class="tb-resumen"></div>
-        <div id="tb-tabla" class="tb-tabla"></div>
+        <div id="tb-resumen" class="tb-kpis"></div>
+        <div class="tb-cuerpo">
+            <div class="tb-principal"><div id="tb-tabla" class="tb-tabla"></div></div>
+            <aside class="tb-lado" aria-label="Vencimientos y actividad">
+                <div class="ui-tarjeta"><p class="tb-titulo">Próximos vencimientos</p><div id="tb-venc" class="tb-lista"></div>
+                    <p class="xml-tenue tb-nota">Fechas generales; revisa las de cada régimen.</p></div>
+                <div class="ui-tarjeta"><p class="tb-titulo">Actividad reciente</p><div id="tb-act" class="tb-lista"></div></div>
+            </aside>
+        </div>
     </section>
 
     <!-- M-01 · Vista contribuyente: la empresa activa -->
@@ -41,10 +48,35 @@
 </main>
 
 <style>
-    .tb-pagina { max-width: 1240px; }
+    .tb-pagina { max-width: none; }
+    /* Tablero: indicadores arriba, tabla a todo lo ancho y, en pantallas anchas, vencimientos y actividad a la derecha */
+    .tb-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: var(--e-3); margin-bottom: var(--e-4); }
+    .tb-kpi { display: grid; gap: 2px; padding: var(--e-3) var(--e-4); border: 1px solid var(--linea); border-radius: var(--r-tarjeta); background: rgb(var(--g-0));
+              text-align: left; font: inherit; color: inherit; cursor: pointer; position: relative; overflow: hidden; }
+    .tb-kpi::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: rgb(var(--g-200)); }
+    .tb-kpi small { font-size: var(--t-12); color: rgb(var(--g-600)); }
+    .tb-kpi b { font-size: var(--t-24); font-weight: 700; color: rgb(var(--g-900)); font-variant-numeric: tabular-nums; line-height: 1.15; }
+    .tb-kpi span { font-size: var(--t-12); color: rgb(var(--g-500)); }
+    .tb-kpi:hover { border-color: rgb(var(--g-300)); }
+    .tb-kpi--error::before { background: rgb(var(--er-600)); } .tb-kpi--error b { color: rgb(var(--er-700)); }
+    .tb-kpi--aviso::before { background: rgb(var(--av-600)); }
+    .tb-kpi--ok::before { background: rgb(var(--ok-600)); }
+    .tb-kpi--cero { opacity: .6; }
+    .tb-kpi--activo { border-color: rgb(var(--ac-600)); box-shadow: 0 0 0 1px rgb(var(--ac-600)); }
+    .tb-cuerpo { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--e-4); align-items: start; }
+    @media (min-width: 1440px) { .tb-cuerpo { grid-template-columns: minmax(0, 1fr) 320px; } }
+    .tb-lado { display: grid; gap: var(--e-3); }
+    .tb-nota { font-size: 12px; margin: 8px 0 0; }
+    .tb-tabla .xml-tabla { min-width: 100%; }
+    .tb-tabla .xml-tabla-caja { min-height: 0; max-height: calc(100vh - 330px); }
+    .tb-motivos { display: inline-flex; flex-wrap: nowrap; gap: 4px; overflow: hidden; }
+    .tb-motivo { font-size: 11.5px; font-weight: 600; padding: 2px 8px; border-radius: 999px; white-space: nowrap; }
+    .tb-motivo--error { background: rgb(var(--er-50)); color: rgb(var(--er-700)); }
+    .tb-motivo--aviso { background: rgb(var(--av-50)); color: rgb(var(--av-700)); }
+    .tb-motivo--mas { background: rgb(var(--g-100)); color: rgb(var(--g-600)); }
     .tb-cabeza { align-items: center; }
     .tb-cabeza .ctx-segmento { margin-left: auto; }
-    .tb-resumen { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: var(--e-3); margin-bottom: var(--e-4); }
+
     .tb-dato { display: grid; gap: 2px; padding: var(--e-3) var(--e-4); border: 1px solid var(--linea); border-radius: var(--r-tarjeta); background: rgb(var(--g-0));
                text-align: left; font: inherit; color: inherit; cursor: pointer; }
     .tb-dato small { font-size: var(--t-12); color: rgb(var(--g-600)); }
@@ -76,13 +108,13 @@
     .tb-recientes__lista a { padding: 4px 10px; border: 1px solid var(--linea); border-radius: 999px; background: rgb(var(--g-0)); color: rgb(var(--g-800)); text-decoration: none; }
     .tb-recientes__lista a:hover { border-color: rgb(var(--g-400)); }
     @media (max-width: 640px) { .tb-cabeza .ctx-segmento { margin-left: 0; } }
-    .tb-pasos { border: 1px solid var(--linea); border-radius: var(--r-tarjeta); background: rgb(var(--g-0)); padding: var(--e-4); margin-bottom: var(--e-4); }
+    .tb-pasos { border: 1px solid var(--linea); border-radius: var(--r-tarjeta); background: rgb(var(--g-0)); padding: var(--e-3) var(--e-4); margin-bottom: var(--e-4); }
     .tb-pasos__cabeza { display: flex; align-items: center; gap: var(--e-3); margin-bottom: var(--e-2); }
     .tb-pasos__cabeza b { font-size: var(--t-16); }
     .tb-pasos__barra { flex: 1; max-width: 220px; height: 6px; border-radius: 999px; background: rgb(var(--g-100)); overflow: hidden; }
     .tb-pasos__barra span { display: block; height: 100%; background: rgb(var(--ac-600)); }
     .tb-pasos__ocultar { margin-left: auto; }
-    .tb-pasos ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+    .tb-pasos ol { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 2px 18px; }
     .tb-pasos li a, .tb-pasos li span { display: flex; align-items: center; gap: 10px; padding: 6px 4px; border-radius: 8px; font-size: var(--t-14); color: rgb(var(--g-900)); text-decoration: none; }
     .tb-pasos li a:hover { background: rgb(var(--g-50)); }
     .tb-pasos i { width: 20px; height: 20px; border-radius: 50%; border: 1.5px solid rgb(var(--g-300)); flex: none; display: grid; place-items: center; font-style: normal; font-size: 12px; }
