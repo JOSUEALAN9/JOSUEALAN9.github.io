@@ -1726,14 +1726,16 @@
        (con sus ids y eventos), así que no se pierde ninguna acción. La tabla queda con todo el ancho. */
     function accionesEnBarra() {
         document.querySelectorAll("aside.mod-acciones:not(.mod-acciones--barra)").forEach(function (lado) {
-            var grupos = [], nota = null, actual = null;
+            var grupos = [], nota = null, actual = null, otros = [];
             [].slice.call(lado.children).forEach(function (el) {
                 if (el.classList.contains("mod-acciones__grupo")) { actual = { titulo: el.textContent.trim(), items: [] }; grupos.push(actual); el.remove(); }
                 else if (el.classList.contains("mod-acciones__nota")) nota = el;
                 else if (el.classList.contains("mod-accion")) { if (!actual) { actual = { titulo: "", items: [] }; grupos.push(actual); } actual.items.push(el); }
+                else otros.push(el);             // campos de archivo ocultos y demás: se conservan tal cual
             });
             lado.classList.add("mod-acciones--barra");
             lado.innerHTML = "";
+            otros.forEach(function (el) { lado.appendChild(el); });
             if (nota) { nota.classList.add("mod-acciones__nota--barra"); lado.appendChild(nota); }
             var derecha = document.createElement("div"); derecha.className = "mod-acciones__der"; lado.appendChild(derecha);
             var menus = [];

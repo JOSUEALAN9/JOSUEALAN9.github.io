@@ -266,7 +266,7 @@ button.ctx-resumen__dato:hover { background: rgb(var(--g-50)); }
 @keyframes xml-giro { to { transform: rotate(360deg); } }
 
 /* Periodo plegable (G-03): una línea con lo elegido; «Cambiar» abre la franja */
-.xml-periodo__resumen { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 28px; padding: 0; border: 0; background: none; font: inherit;
+.xml-periodo__resumen { display: flex; align-items: center; gap: 10px; width: 100%; min-width: 0; overflow: hidden; min-height: 28px; padding: 0; border: 0; background: none; font: inherit;
                         font-size: var(--t-13); color: rgb(var(--g-900)); cursor: pointer; text-align: left; }
 .xml-periodo__resumen-et { font-size: var(--t-12); font-weight: 600; color: rgb(var(--g-500)); width: 48px; flex: none; }
 .xml-periodo__resumen b { font-weight: 600; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -274,3 +274,10 @@ button.ctx-resumen__dato:hover { background: rgb(var(--g-50)); }
 .xml-periodo__resumen:hover .xml-periodo__resumen-acc { text-decoration: underline; }
 .xml-periodo--plegado .xml-periodo__fila { display: none; }
 .xml-periodo--plegado { padding-top: 6px; padding-bottom: 6px; }
+
+/* G-02: con la empresa activa (ya está en la barra) el selector del módulo es solo un enlace */
+.ctx-campo.ctx-campo--discreto { min-height: 28px; padding: 2px 6px; border-color: transparent; background: none; box-shadow: none; color: rgb(var(--ac-700)); }
+.ctx-campo--discreto small { display: none; }
+.ctx-campo--discreto strong { font-size: var(--t-13); font-weight: 600; }
+.ctx-campo--discreto:hover { border-color: transparent; background: rgb(var(--g-100)); }
+@media (max-width: 640px) { .xml-periodo__resumen-et { display: none; } }

@@ -177,6 +177,10 @@
         $("empresa-titulo").innerHTML = E.otra ? esc(nombreDe(E.otra)) + (reg ? "" : '<span class="ctx-marca">sin registrar</span>')
             : E.empresa ? esc(E.empresa.alias || E.empresa.rfc) : "Elegir empresa";
         boton.classList.toggle("ctx-campo--vacio", !rfc);
+        // G-02: la empresa activa ya está en la barra de arriba; aquí solo queda «Otro contribuyente ▾»
+        var soloOtro = !!(rfc && !E.otra);
+        boton.classList.toggle("ctx-campo--discreto", soloOtro);
+        if (soloOtro) { $("empresa-etiqueta").textContent = ""; $("empresa-titulo").textContent = "Otro contribuyente"; }
         var aviso = $("aviso-otra");
         aviso.hidden = !E.otra;
         if (E.otra) {
