@@ -406,6 +406,24 @@ document.addEventListener("DOMContentLoaded", () => {
         try { localStorage.setItem("clientes:vista2", vistaCli); } catch (err) { /* sin almacenamiento */ }
         renderizarClientes();
     });
+    // «Sacar de los que ves»: lleva a Constancia u Opinión, pestaña Masivo, con esos clientes ya marcados
+    const varios = document.getElementById("cli-varios");
+    varios.addEventListener("click", e => {
+        e.stopPropagation();
+        const lista = varios.querySelector(".xml-menu__lista");
+        if (e.target.closest("[data-varios]")) {
+            const con = clientesVisibles().filter(c => c.efirma_guardada), sin = clientesVisibles().length - con.length;
+            document.getElementById("cli-varios-nota").textContent = con.length
+                ? `${con.length} con e.firma guardada${sin ? ` (${sin} sin e.firma no entran)` : ""}.` : "Ninguno de los que ves tiene e.firma guardada.";
+            varios.querySelectorAll("[data-varios-ir]").forEach(b => { b.disabled = !con.length; });
+            lista.hidden = !lista.hidden;
+            return;
+        }
+        const ir = e.target.closest("[data-varios-ir]"); if (!ir) return;
+        const rfcs = clientesVisibles().filter(c => c.efirma_guardada).map(c => c.rfc);
+        if (rfcs.length) location.href = `/herramientas/${ir.dataset.variosIr}/?modo=masivo&rfcs=${encodeURIComponent(rfcs.join(","))}`;
+    });
+    document.addEventListener("click", () => { varios.querySelector(".xml-menu__lista").hidden = true; });
     document.getElementById("cli-buscar").addEventListener("input", e => {
         busquedaCli = e.target.value; Fiscontable.url({ q: busquedaCli.trim() || null }); renderizarClientes();
     });

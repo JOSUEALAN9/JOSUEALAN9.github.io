@@ -933,6 +933,100 @@
         sondeos.push(intervalo);
     }
 
+    /* ================================= VARIOS A LA VEZ desde tus clientes (e.firma guardada, sin subir nada) */
+    var CLI = { lista: [], marcados: {} };
+    function plural(n) { var p = MODULO.tipo === "csf" ? ["constancia", "constancias"] : ["opinión", "opiniones"]; return n + " " + (n === 1 ? p[0] : p[1]); }
+    async function prepararDesdeClientes() {
+        var panel = $("panel-masivo"); if (!panel || $("msat-cli")) return;
+        var caja = document.createElement("div");
+        caja.className = "ficha msat-cli"; caja.id = "msat-cli";
+        caja.innerHTML = '<h2 class="ficha__titulo">De tus clientes con e.firma guardada</h2>' +
+            '<p class="ficha__nota">Marca a quiénes y genera. No tienes que subir nada: se usa la e.firma que ya guardaste de cada uno.</p>' +
+            '<div class="msat-cli__cuerpo"><p class="ficha__nota">Cargando tus clientes…</p></div>';
+        var antes = panel.querySelector(".ficha");
+        panel.insertBefore(caja, antes);
+        var o = document.createElement("p");
+        o.className = "msat-cli__o"; o.textContent = "O con una carpeta (plantilla del lote y sus .cer/.key):";
+        panel.insertBefore(o, antes);
+        try {
+            var r = await fetch(API + "/api/clientes", { credentials: "include" });
+            if (!r.ok) throw new Error(await leerError(r));
+            CLI.lista = (await r.json()).filter(function (c) { return c.efirma_guardada; })
+                .sort(function (a, b) { return (b.favorito ? 1 : 0) - (a.favorito ? 1 : 0) || (a.alias || a.rfc).localeCompare(b.alias || b.rfc, "es"); });
+        } catch (e) { caja.querySelector(".msat-cli__cuerpo").innerHTML = '<p class="ficha__nota">' + esc(e.message) + "</p>"; return; }
+        var pedidos = (Fiscontable.url("rfcs") || "").toUpperCase().split(",").filter(Boolean);     // desde Clientes: ?modo=masivo&rfcs=…
+        pedidos.forEach(function (x) { if (CLI.lista.some(function (c) { return c.rfc === x; })) CLI.marcados[x] = 1; });
+        pintarDesdeClientes();
+        if (pedidos.length) caja.scrollIntoView({ block: "start" });
+    }
+    function pintarDesdeClientes() {
+        var cuerpo = document.querySelector("#msat-cli .msat-cli__cuerpo");
+        if (!CLI.lista.length) {
+            cuerpo.innerHTML = '<p class="ficha__nota">Ninguno de tus clientes tiene e.firma guardada. Guárdala en <a href="/clientes/">Clientes</a> y aquí podrás sacar las de todos con un clic.</p>';
+            return;
+        }
+        var q = cuerpo.querySelector(".msat-cli__buscar"), texto = q ? q.value.trim().toLowerCase() : "";
+        if (!q) {
+            cuerpo.innerHTML = '<div class="msat-cli__barra"><input type="search" class="ui-input msat-cli__buscar" placeholder="Buscar cliente…" aria-label="Buscar cliente">' +
+                '<label class="ui-check"><input type="checkbox" data-cli-todos> Todos</label></div>' +
+                '<div class="msat-cli__lista"></div>' +
+                '<div class="msat-cli__pie"><label class="ui-check"><input type="checkbox" class="msat-cli__forzar"> Pedirlos nuevos al SAT aunque ya los tenga</label>' +
+                '<button type="button" class="ui-btn ui-btn--primario" id="btn-masivo-clientes" disabled>Marca a tus clientes</button></div>' +
+                '<p class="msat-cli__aviso" hidden></p>';
+            cuerpo.querySelector(".msat-cli__buscar").addEventListener("input", pintarDesdeClientes);
+            cuerpo.addEventListener("change", function (e) {
+                if (e.target.matches("[data-cli]")) { if (e.target.checked) CLI.marcados[e.target.value] = 1; else delete CLI.marcados[e.target.value]; contarDesdeClientes(); }
+                else if (e.target.matches("[data-cli-todos]")) {
+                    visiblesClientes().forEach(function (c) { if (e.target.checked) CLI.marcados[c.rfc] = 1; else delete CLI.marcados[c.rfc]; });
+                    pintarDesdeClientes();
+                }
+            });
+            cuerpo.querySelector("#btn-masivo-clientes").addEventListener("click", lanzarDesdeClientes);
+        }
+        var vis = visiblesClientes();
+        cuerpo.querySelector(".msat-cli__lista").innerHTML = vis.length ? vis.map(function (c) {
+            return '<label class="ui-check msat-cli__item"><input type="checkbox" data-cli value="' + esc(c.rfc) + '"' + (CLI.marcados[c.rfc] ? " checked" : "") + ">" +
+                "<span><b>" + esc(c.alias || c.razon_social || c.rfc) + "</b><small>" + esc(c.rfc) + "</small></span></label>";
+        }).join("") : '<p class="ficha__nota">Nadie coincide con la búsqueda.</p>';
+        cuerpo.querySelector("[data-cli-todos]").checked = vis.length > 0 && vis.every(function (c) { return CLI.marcados[c.rfc]; });
+        contarDesdeClientes();
+    }
+    function visiblesClientes() {
+        var q = document.querySelector("#msat-cli .msat-cli__buscar"), t = q ? q.value.trim().toLowerCase() : "";
+        return CLI.lista.filter(function (c) { return !t || [c.rfc, c.alias, c.razon_social].join(" ").toLowerCase().indexOf(t) !== -1; });
+    }
+    function contarDesdeClientes() {
+        var n = Object.keys(CLI.marcados).length, b = $("btn-masivo-clientes");
+        if (!b || b.dataset.ocupado) return;
+        b.disabled = !n;
+        b.textContent = n ? "Generar " + plural(n) : "Marca a tus clientes";
+    }
+    async function lanzarDesdeClientes() {
+        sinAlerta();
+        var b = $("btn-masivo-clientes"), rfcs = Object.keys(CLI.marcados), aviso = document.querySelector("#msat-cli .msat-cli__aviso");
+        if (!rfcs.length) return;
+        var original = "Generar " + plural(rfcs.length);
+        b.disabled = true; b.dataset.ocupado = "1"; b.textContent = "Arrancando…"; aviso.hidden = true;
+        try {
+            var r = await fetch(API + "/api/" + MODULO.slug + "/lote/guardadas", { method: "POST", credentials: "include",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ rfcs: rfcs, forzar_regenerar: !!document.querySelector("#msat-cli .msat-cli__forzar").checked }) });
+            if (!r.ok) throw new Error(await leerError(r));
+            var d = await r.json();
+            if (d.sin_efirma && d.sin_efirma.length) {
+                aviso.textContent = "No entraron " + d.sin_efirma.length + ": " + d.sin_efirma.map(function (x) { return x.rfc + " (" + x.motivo.replace(/\.$/, "") + ")"; }).join(" · ") + ".";
+                aviso.hidden = false;
+            }
+            delete b.dataset.ocupado;
+            vigilarLote(d.lote_id, b, original);
+            Fiscontable.refrescarDescargas();
+            $("progreso-masivo").scrollIntoView({ behavior: "smooth", block: "center" });
+        } catch (e) {
+            alerta("error", e.message || await leerError(null));
+            delete b.dataset.ocupado; b.disabled = false; b.textContent = original;
+        }
+    }
+
     /* ================================================= pestañas */
 
     function cambiarPestana(modo) {
@@ -966,6 +1060,7 @@
         });
 
         prepararDropzone();
+        prepararDesdeClientes();
         mostrarCuota();
         mostrarCortados();
         $("panel-masivo").addEventListener("click", accionCortado);
