@@ -1614,3 +1614,31 @@ main.fc-recien { animation: fc-recien .35s ease-out; }
 .fc-bloqueo-pantalla__caja form .ui-input { flex: 1; text-align: center; letter-spacing: .3em; font-size: var(--t-16); }
 .fc-bloqueo-pantalla__msj { color: rgb(var(--er-600)) !important; font-size: var(--t-13) !important; min-height: 1em; }
 html.fc-bloqueada body { overflow: hidden; }
+
+/* --- Selector de empresa (G-02): favoritas, recientes y todas --- */
+.fc-empresas__grupo { margin: 8px 10px 4px; font-size: var(--t-12); font-weight: 600; color: rgb(var(--g-500)); }
+.fc-empresas__grupo:first-child { margin-top: 2px; }
+.fc-empresas__chip { display: inline-block; margin-left: 4px; padding: 0 5px; border-radius: 4px; font: 600 10.5px var(--fuente); font-style: normal;
+                     color: rgb(var(--g-600)); background: rgb(var(--g-100)); vertical-align: 1px; }
+.fc-empresas__chip--ok { color: rgb(var(--ok-600)); background: rgb(var(--ok-50)); }
+.fc-empresas__check { display: grid; color: rgb(var(--ac-600)); }
+.fc-empresas__check svg { width: 16px; height: 16px; }
+.fc-empresas__estrella { flex: none; width: 30px; height: 30px; display: grid; place-items: center; border: 0; background: none; border-radius: var(--r-control);
+                         color: rgb(var(--g-400)); cursor: pointer; }
+.fc-empresas__estrella svg, .fc-empresas__editar svg { width: 16px; height: 16px; }
+.fc-empresas__estrella:hover { background: rgb(var(--g-100)); color: rgb(var(--g-700)); }
+.fc-empresas__estrella--si { color: rgb(var(--av-600)); }
+.fc-empresas__estrella--si svg { fill: currentColor; }
+.fc-empresas__item:focus-visible { outline: 2px solid rgb(var(--ac-600)); outline-offset: -2px; }
+
+/* «¿Para quién?» (G-02): con la empresa activa no se repite (ya está en la barra); con otro contribuyente, aviso fijo */
+.pc--empresa .pc-marco { border: 0; background: none; box-shadow: none; margin-bottom: 8px; }
+.pc--empresa .pc-cerrado { justify-content: flex-end; padding: 0; min-height: 0; background: none; border: 0; }
+.pc--empresa .pc-quien, .pc--empresa .pc-sello { display: none; }
+.pc--empresa .pc-cambiar { font-size: var(--t-13); }
+.pc--otro .pc-marco { border-color: rgb(var(--av-200)); overflow: hidden; }
+.pc--otro .pc-cerrado { background: rgb(var(--av-50)); }
+.pc--otro .pc-nombre::before { content: "Trabajando con "; font-weight: 500; color: rgb(var(--g-700)); }
+.pc-volver { border: 1px solid rgb(var(--av-200)); background: rgb(var(--g-0)); color: rgb(var(--g-900)); font: inherit; font-size: var(--t-13); font-weight: 600;
+             border-radius: var(--r-control); padding: 5px 10px; cursor: pointer; }
+.pc-volver:hover { background: rgb(var(--g-50)); }

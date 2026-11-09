@@ -251,6 +251,7 @@
         llave:    "M15 7a4 4 0 11-4.9 3.9L3 18v3h3v-2h2v-2h2l1.1-1.1A4 4 0 0115 7z",
         moneda2:  "M12 3v18M17 7H9.5a3 3 0 000 6h5a3 3 0 010 6H6",
         contraer: "M11 17l-5-5 5-5M18 17l-5-5 5-5",
+        estrella: "M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z",
         calendario: "M8 7V3m8 4V3M4 11h16M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
     };
 
@@ -618,27 +619,61 @@
         document.getElementById("fc-empresa-ninguna").hidden = !e;
     }
 
+    /* Selector único de empresa (G-02): Favoritos (se guardan en el servidor), Recientes (este navegador) y Todas.
+       Busca por nombre o RFC parcial; con flechas y Enter se elige sin ratón. */
+    function empresasRecientes() { try { return JSON.parse(localStorage.getItem("fc-empresas-recientes") || "[]"); } catch (e) { return []; } }
+    function anotarEmpresaReciente(rfc) {
+        if (!rfc) return;
+        try { localStorage.setItem("fc-empresas-recientes", JSON.stringify([rfc].concat(empresasRecientes().filter(function (x) { return x !== rfc; })).slice(0, 5))); }
+        catch (e) { /* sin almacenamiento */ }
+    }
+    function filaEmpresa(c, activa) {
+        var chips = (c.efirma_guardada ? '<i class="fc-empresas__chip fc-empresas__chip--ok" title="e.firma guardada">e.firma</i>' : '<i class="fc-empresas__chip" title="Sin e.firma guardada">sin e.firma</i>') +
+            (c.ciec_guardada ? '<i class="fc-empresas__chip fc-empresas__chip--ok" title="Contraseña del SAT guardada">CIEC</i>' : "");
+        return '<div class="fc-empresas__fila"><button type="button" class="fc-empresas__item' + (c.rfc === activa ? " fc-empresas__item--activa" : "") + '" data-rfc="' + esc(c.rfc) + '" role="menuitem">' +
+            '<span class="fc-empresas__inicial">' + esc((c.alias || c.rfc).charAt(0).toUpperCase()) + "</span>" +
+            '<span class="fc-empresas__texto"><strong>' + esc(c.alias) + "</strong><small>" + esc(c.rfc) + " " + chips + "</small></span>" +
+            (c.rfc === activa ? '<span class="fc-empresas__check">' + ico(D.palomita, 2.2) + "</span>" : "") + "</button>" +
+            '<button type="button" class="fc-empresas__estrella' + (c.favorito ? " fc-empresas__estrella--si" : "") + '" data-favorito="' + esc(c.rfc) + '" aria-pressed="' + !!c.favorito + '" title="' +
+            (c.favorito ? "Quitar de favoritos" : "Agregar a favoritos") + '" aria-label="' + (c.favorito ? "Quitar de favoritos" : "Agregar a favoritos") + '">' + ico(D.estrella, 1.8) + "</button>" +
+            '<a class="fc-empresas__editar" href="/clientes/?editar=' + encodeURIComponent(c.rfc) + '" title="Editar ' + esc(c.alias || c.rfc) +
+            ' (e.firma, obligaciones…)" aria-label="Editar ' + esc(c.alias || c.rfc) + '">' + ico(D.lapiz, 1.8) + "</a></div>";
+    }
     function pintarListaEmpresas() {
-        var q = (document.getElementById("fc-empresas-buscar").value || "").trim().toLowerCase();
+        var q = (document.getElementById("fc-empresas-buscar").value || "").trim().toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
         var activa = perfilActual && perfilActual.empresa_activa ? perfilActual.empresa_activa.rfc : null;
-        var lista = (clientesCache || []).filter(function (c) {
-            return !q || (c.alias + " " + c.rfc + " " + (c.razon_social || "")).toLowerCase().indexOf(q) !== -1;
-        });
         var caja = document.getElementById("fc-empresas-lista");
         if (clientesCache === null) { caja.innerHTML = '<p class="fc-empresas__nada">Cargando tu directorio…</p>'; return; }
         if (!clientesCache.length) {
             caja.innerHTML = '<p class="fc-empresas__nada">Todavía no tienes empresas registradas. Regístralas en <a href="/clientes/">Clientes</a>.</p>';
             return;
         }
-        caja.innerHTML = lista.length ? lista.map(function (c) {
-            // ✎ = acceso directo a su ficha (editar), sin pasar por Mis clientes
-            return '<div class="fc-empresas__fila"><button type="button" class="fc-empresas__item' + (c.rfc === activa ? " fc-empresas__item--activa" : "") + '" data-rfc="' + esc(c.rfc) + '" role="menuitem">' +
-                '<span class="fc-empresas__inicial">' + esc((c.alias || c.rfc).charAt(0).toUpperCase()) + "</span>" +
-                '<span class="fc-empresas__texto"><strong>' + esc(c.alias) + "</strong><small>" + esc(c.rfc) + "</small></span>" +
-                (c.rfc === activa ? '<span class="fc-empresas__check">✓</span>' : "") + "</button>" +
-                '<a class="fc-empresas__editar" href="/clientes/?editar=' + encodeURIComponent(c.rfc) + '" title="Editar ' + esc(c.alias || c.rfc) +
-                ' (e.firma, obligaciones…)" aria-label="Editar ' + esc(c.alias || c.rfc) + '">✎</a></div>';
-        }).join("") : '<p class="fc-empresas__nada">Ninguna coincide con la búsqueda.</p>';
+        var fila = function (c) { return filaEmpresa(c, activa); };
+        if (q) {
+            var hallados = clientesCache.filter(function (c) {
+                return (c.alias + " " + c.rfc + " " + (c.razon_social || "")).toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").indexOf(q) !== -1;
+            });
+            caja.innerHTML = hallados.length ? hallados.map(fila).join("") : '<p class="fc-empresas__nada">Ninguna coincide con la búsqueda.</p>';
+            return;
+        }
+        var porRfc = {}; clientesCache.forEach(function (c) { porRfc[c.rfc] = c; });
+        var fav = clientesCache.filter(function (c) { return c.favorito; });
+        var rec = empresasRecientes().map(function (r) { return porRfc[r]; }).filter(function (c) { return c && !c.favorito; }).slice(0, 4);
+        var seccion = function (titulo, lista) { return lista.length ? '<p class="fc-empresas__grupo">' + titulo + "</p>" + lista.map(fila).join("") : ""; };
+        caja.innerHTML = seccion("Favoritas", fav) + seccion("Recientes", rec) +
+            seccion(fav.length || rec.length ? "Todas" : "", clientesCache);
+    }
+    async function marcarFavorita(rfc, boton) {
+        var c = (clientesCache || []).filter(function (x) { return x.rfc === rfc; })[0];
+        if (!c) return;
+        c.favorito = !c.favorito;
+        pintarListaEmpresas();
+        try {
+            var r = await fetch(API + "/api/clientes/" + encodeURIComponent(rfc) + "/favorito", { method: "PUT", credentials: "include",
+                headers: { "Content-Type": "application/json" }, body: JSON.stringify({ favorito: c.favorito }) });
+            if (!r.ok) throw new Error();
+            window.dispatchEvent(new CustomEvent("fiscontable:favoritos"));
+        } catch (e) { c.favorito = !c.favorito; pintarListaEmpresas(); brindis("No se pudo guardar el favorito."); }
     }
 
     async function abrirEmpresas() {
@@ -902,6 +937,7 @@
     }, true);
 
     async function elegirEmpresa(rfc) {
+        anotarEmpresaReciente(rfc);
         cerrarEmpresas();
         var previa = perfilActual && perfilActual.empresa_activa;
         try {
@@ -933,12 +969,24 @@
         var panel = document.getElementById("fc-empresas");
         panel.addEventListener("click", function (e) {
             e.stopPropagation();
+            var est = e.target.closest("[data-favorito]");
+            if (est) { marcarFavorita(est.dataset.favorito, est); return; }
             var item = e.target.closest("[data-rfc]");
             if (item) elegirEmpresa(item.dataset.rfc);
         });
         document.getElementById("fc-empresas-buscar").addEventListener("input", pintarListaEmpresas);
         document.getElementById("fc-empresas-buscar").addEventListener("keydown", function (e) {
-            if (e.key === "Enter") { var primero = panel.querySelector("[data-rfc]"); if (primero) elegirEmpresa(primero.dataset.rfc); }
+            if (e.key === "Enter") { e.preventDefault(); var primero = panel.querySelector("[data-rfc]"); if (primero) elegirEmpresa(primero.dataset.rfc); }
+            else if (e.key === "ArrowDown") { var p1 = panel.querySelector("[data-rfc]"); if (p1) { e.preventDefault(); p1.focus(); } }
+        });
+        // Flechas entre empresas (sin ratón)
+        panel.addEventListener("keydown", function (e) {
+            if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
+            var items = [].slice.call(panel.querySelectorAll("[data-rfc]")), i = items.indexOf(document.activeElement);
+            if (i === -1) return;
+            e.preventDefault();
+            var sig = items[i + (e.key === "ArrowDown" ? 1 : -1)];
+            if (sig) sig.focus(); else if (e.key === "ArrowUp") document.getElementById("fc-empresas-buscar").focus();
         });
         document.getElementById("fc-empresa-ninguna").addEventListener("click", function () { elegirEmpresa(null); });
         document.addEventListener("click", cerrarEmpresas);

@@ -96,6 +96,7 @@
                 "</div>" +
                 '<div class="pc-derecha">' +
                   '<span class="pc-sello" id="pc-sello" hidden></span>' +
+                  '<button type="button" class="pc-volver" id="pc-volver" hidden></button>' +
                   '<button type="button" class="pc-registrar" id="pc-registrar" hidden title="Darlo de alta en tu directorio">Registrar</button>' +
                   '<button type="button" class="pc-cambiar" id="pc-cambiar" title="Elegir otro cliente o a alguien sin registrar, solo para este trabajo">Otro contribuyente</button>' +
                 "</div>" +
@@ -148,6 +149,20 @@
                 sello.hidden = true;
             }
             caja.querySelector("#pc-registrar").hidden = !!datos.esCliente;
+            caja.classList.toggle("pc--empresa", !!datos.deEmpresa);
+            caja.classList.toggle("pc--otro", !datos.deEmpresa);
+            var volver = caja.querySelector("#pc-volver");
+            volver.hidden = true;
+            if (!datos.deEmpresa && window.Fiscontable.empresaActiva) {
+                window.Fiscontable.empresaActiva().then(function (empresa) {
+                    var activa = datosDeEmpresa(empresa);
+                    if (!activa || activa.rfc === datos.rfc || elegido !== datos) return;
+                    caja.querySelector("#pc-rfc-chico").textContent = linea + " · no es tu empresa activa";
+                    volver.textContent = "Volver a " + (activa.alias || activa.rfc);
+                    volver.hidden = false;
+                    volver.onclick = function () { colapsar(activa); };
+                });
+            }
 
             abierto.hidden = true;
             cerrado.hidden = false;
@@ -156,6 +171,7 @@
 
         function reabrir() {
             elegido = null;
+            caja.classList.remove("pc--empresa", "pc--otro");
             cerrado.hidden = true;
             abierto.hidden = false;
             select.value = "";
