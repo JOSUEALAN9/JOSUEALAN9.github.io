@@ -454,20 +454,20 @@
             return grupos.map(function (g) {
                 if (!g.titulo) return (g.separador ? '<div class="ui-riel__sep"></div>' : "") + g.items.map(item).join("");
                 var conActual = g.items.some(function (x) { return x.actual; }), cerrado = plegado(g.titulo, conActual);
-                return '<section class="ui-riel__grupo' + (cerrado ? " ui-riel__grupo--plegado" : "") + '" data-grupo="' + esc(g.titulo) + '">' +
-                    '<button type="button" class="ui-riel__titulo" aria-expanded="' + !cerrado + '"><span>' + esc(g.titulo) + "</span>" + ico(D.abajo, 2) + "</button>" +
+                return '<section class="ui-riel__grupo' + (cerrado ? " ui-riel__grupo--plegado" : "") + (conActual ? " ui-riel__grupo--actual" : "") + '" data-grupo="' + esc(g.titulo) + '">' +
+                    '<button type="button" class="ui-riel__titulo" aria-expanded="' + !cerrado + '" data-nombre="' + esc(g.titulo + (cerrado ? " · mostrar" : " · plegar")) + '"><span>' + esc(g.titulo) + "</span>" + ico(D.abajo, 2) + "</button>" +
                     '<div class="ui-riel__items">' + g.items.map(item).join("") + "</div></section>";
             }).join("") || (op.vacio ? '<p class="ui-riel__vacio">' + esc(op.vacio) + "</p>" : "");
         }
         var b = op.buscar, chico = lateralChico();
-        nav.innerHTML = (op.cabeza ? '<div class="ui-riel__cabeza">' + op.cabeza + "</div>" : "") +
+        var plegar = '<button type="button" class="ui-riel__plegar" aria-label="' + (chico ? "Mostrar nombres" : "Plegar a íconos") + '" data-nombre="' + (chico ? "Mostrar nombres" : "Plegar a íconos") + '">' +
+            ico(D.contraer, 1.8) + "</button>";
+        nav.innerHTML = '<div class="ui-riel__cabeza">' + (op.cabeza ? '<div class="ui-riel__titulo-riel">' + op.cabeza + "</div>" : "") + plegar + "</div>" +
             (!b ? "" : b.campo
                 ? '<label class="ui-riel__buscar" data-nombre="' + esc(b.texto) + '">' + ico(D.buscar, 2) + '<input type="search" autocomplete="off" placeholder="' + esc(b.texto) + '" aria-label="' + esc(b.texto) + '"></label>'
                 : '<button type="button" class="ui-riel__buscar" data-nombre="' + esc(b.texto + (b.atajo ? " (" + b.atajo + ")" : "")) + '">' + ico(D.buscar, 2) +
                   '<span class="ui-riel__texto">' + esc(b.texto) + "</span>" + (b.atajo ? "<kbd>" + esc(b.atajo) + "</kbd>" : "") + "</button>") +
-            '<div class="ui-riel__lista">' + lista(op.grupos || []) + "</div>" +
-            '<button type="button" class="ui-riel__plegar" aria-label="' + (chico ? "Mostrar nombres" : "Plegar a íconos") + '" data-nombre="' + (chico ? "Mostrar nombres" : "Plegar a íconos") + '">' +
-            ico(D.contraer, 1.8) + '<span class="ui-riel__texto">Plegar</span></button>';
+            '<div class="ui-riel__lista">' + lista(op.grupos || []) + "</div>";
         var caja = nav.querySelector(".ui-riel__lista"), entrada = nav.querySelector(".ui-riel__buscar input");
         // El nombre que sale al pasar el cursor (plegada) se pone junto al borde derecho de esta barra, esté donde esté
         nav.addEventListener("mouseover", function () { nav.style.setProperty("--riel-x", nav.getBoundingClientRect().right + "px"); });
@@ -477,6 +477,7 @@
             if (t) {
                 var sec = t.parentElement, g = sec.dataset.grupo, cerrar = !sec.classList.contains("ui-riel__grupo--plegado");
                 sec.classList.toggle("ui-riel__grupo--plegado", cerrar); t.setAttribute("aria-expanded", String(!cerrar));
+                t.dataset.nombre = g + (cerrar ? " · mostrar" : " · plegar");
                 tocados[g] = cerrar;
                 if (window.innerHeight >= 760) { var m = guardados(); if (cerrar) m[g] = true; else delete m[g]; try { localStorage.setItem(CLAVE_GRUPOS, JSON.stringify(m)); } catch (err) { /* sin almacenamiento */ } }
                 return;

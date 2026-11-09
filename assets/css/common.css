@@ -1346,8 +1346,9 @@ main.fc-recien { animation: fc-recien .35s ease-out; }
    ============================================================ */
 .ui-riel { display: flex; flex-direction: column; width: var(--lateral-ancho); min-width: 0; background: rgb(var(--g-0));
            border-right: 1px solid var(--linea); overflow: hidden; transition: width .18s ease; }
-.ui-riel__cabeza { flex: none; height: 44px; display: flex; align-items: center; padding: 0 21px; white-space: nowrap;
+.ui-riel__cabeza { flex: none; height: 44px; display: flex; align-items: center; justify-content: flex-end; gap: 8px; padding: 0 13px 0 21px; white-space: nowrap;
                    font-size: var(--t-16); font-weight: 700; color: rgb(var(--g-900)); overflow: hidden; }
+.ui-riel__titulo-riel { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .ui-riel__buscar { flex: none; display: flex; align-items: center; gap: 10px; height: 34px; margin: 10px 10px 4px; padding: 0 10px;
                    border: 1px solid var(--linea); border-radius: var(--r-control); background: rgb(var(--g-50)); color: rgb(var(--g-500));
                    font: inherit; font-size: var(--t-13); cursor: pointer; white-space: nowrap; overflow: hidden; text-align: left; }
@@ -1382,24 +1383,28 @@ main.fc-recien { animation: fc-recien .35s ease-out; }
 .ui-riel__grupo--plegado .ui-riel__titulo svg { transform: rotate(-90deg); }
 .ui-riel__grupo--plegado .ui-riel__items { display: none; }
 .ui-riel__vacio { font-size: var(--t-13); color: rgb(var(--g-500)); padding: 8px 11px; white-space: normal; }
-.ui-riel__plegar { flex: none; display: flex; align-items: center; gap: 10px; height: 42px; padding: 0 21px; border: 0; border-top: 1px solid var(--linea);
-                   background: none; font: inherit; font-size: var(--t-13); color: rgb(var(--g-600)); cursor: pointer; white-space: nowrap; overflow: hidden; }
-.ui-riel__plegar:hover { color: rgb(var(--g-900)); background: rgb(var(--g-50)); }
+.ui-riel__plegar { flex: none; display: grid; place-items: center; width: 34px; height: 34px; padding: 0; border: 0; border-radius: var(--r-control);
+                   background: none; color: rgb(var(--g-500)); cursor: pointer; }
+.ui-riel__plegar:hover { color: rgb(var(--g-900)); background: rgb(var(--g-100)); }
 .ui-riel__plegar svg { width: 18px; height: 18px; flex: none; transition: transform .18s; }
 
 /* Plegada: solo íconos. Los textos se recortan (no se mueven), los títulos de grupo son una línea delgada
    y todos los grupos se ven. El nombre sale a un lado al pasar el cursor. */
 .fc-lateral-chico .ui-riel { width: var(--lateral-chico); }
-.fc-lateral-chico .ui-riel__cabeza { color: transparent; }
+.fc-lateral-chico .ui-riel__cabeza { padding: 0 13px; }
+.fc-lateral-chico .ui-riel__titulo-riel { display: none; }
 .fc-lateral-chico .ui-riel__buscar { border-color: transparent; background: none; }
 .fc-lateral-chico .ui-riel__buscar kbd, .fc-lateral-chico .ui-riel__pronto, .fc-lateral-chico .ui-riel__candado { visibility: hidden; }
-.fc-lateral-chico .ui-riel__titulo { color: transparent; pointer-events: none; }
+.fc-lateral-chico .ui-riel__titulo { color: transparent; justify-content: center; }
+.fc-lateral-chico .ui-riel__titulo > span { position: absolute; width: 1px; overflow: hidden; }
 .fc-lateral-chico .ui-riel__titulo svg { visibility: hidden; }
-.fc-lateral-chico .ui-riel__titulo::before { content: ""; position: absolute; left: 11px; right: 11px; top: 50%; height: 1px; background: var(--linea); }
-.fc-lateral-chico .ui-riel__grupo--plegado .ui-riel__items { display: block; }
+.fc-lateral-chico .ui-riel__grupo:not(.ui-riel__grupo--plegado) > .ui-riel__titulo::before { content: ""; position: absolute; left: 11px; right: 11px; top: 50%; height: 1px; background: var(--linea); }
+.fc-lateral-chico .ui-riel__grupo--plegado > .ui-riel__titulo { background: rgb(var(--g-50)); }
+.fc-lateral-chico .ui-riel__grupo--plegado > .ui-riel__titulo svg { visibility: visible; color: rgb(var(--g-500)); }
+.fc-lateral-chico .ui-riel__grupo--plegado.ui-riel__grupo--actual > .ui-riel__titulo svg { color: rgb(var(--ac-600)); }
 .fc-lateral-chico .ui-riel__plegar svg { transform: rotate(180deg); }
 .fc-lateral-chico .ui-riel__item:hover::after, .fc-lateral-chico .ui-riel__item:focus-visible::after,
-.fc-lateral-chico .ui-riel__buscar:hover::after, .fc-lateral-chico .ui-riel__plegar:hover::after {
+.fc-lateral-chico .ui-riel__buscar:hover::after, .fc-lateral-chico .ui-riel__plegar:hover::after, .fc-lateral-chico .ui-riel__titulo:hover::after {
     content: attr(data-nombre); position: fixed; left: calc(var(--riel-x, var(--lateral-chico)) + 8px); z-index: 60; pointer-events: none;
     background: rgb(var(--g-900)); color: #fff; font-size: var(--t-12); font-weight: 600; padding: 5px 10px; border-radius: var(--r-control);
     white-space: nowrap; box-shadow: var(--sombra-2); }
@@ -1595,4 +1600,3 @@ main.fc-recien { animation: fc-recien .35s ease-out; }
 :root[data-barra="clara"] .fc-modulos-btn { border-color: var(--linea); background: rgb(var(--g-50)); }
 :root[data-barra="clara"] .fc-modulos-btn:hover, :root[data-barra="clara"] .fc-modulos-btn[aria-expanded="true"] { background: rgb(var(--g-100)); border-color: rgb(var(--g-300)); color: rgb(var(--g-900)); }
 :root[data-barra="clara"] .fc-accion--activa { color: rgb(var(--g-900)); }
-.fc-lateral-chico .ui-riel__cabeza > * { visibility: hidden; }
