@@ -4,9 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611110100">
-    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611110100">
-    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611110100">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611110200">
+    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611110200">
+    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611110200">
 </head>
 <body class="min-h-screen flex flex-col">
 
@@ -28,6 +28,7 @@
     <!-- M-01 · Vista despacho: una fila por empresa con lo que hay que atender -->
     <section id="tb-despacho">
         <div id="tb-resumen" class="tb-kpis"></div>
+        <div id="tb-cierre" class="tb-cierre" hidden></div>
         <div class="tb-cuerpo">
             <div class="tb-principal"><div id="tb-tabla" class="tb-tabla"></div></div>
             <aside class="tb-lado" aria-label="Vencimientos y actividad">
@@ -65,6 +66,19 @@
     .tb-kpi--ok::before { background: rgb(var(--ok-600)); }
     .tb-kpi--cero { opacity: .6; }
     .tb-kpi--activo { border-color: rgb(var(--ac-600)); box-shadow: 0 0 0 1px rgb(var(--ac-600)); }
+    /* Cierre del mes: avance general y cuántas empresas llevan cada paso */
+    .tb-cierre { display: grid; gap: var(--e-2); padding: var(--e-3) var(--e-4); margin-bottom: var(--e-4); border: 1px solid var(--linea); border-radius: var(--r-tarjeta); background: rgb(var(--g-0)); }
+    .tb-cierre__cabeza { display: flex; align-items: center; gap: var(--e-3); flex-wrap: wrap; border: 0; background: none; padding: 0; font: inherit; color: rgb(var(--g-900)); cursor: pointer; text-align: left; font-size: var(--t-14); }
+    .tb-cierre__cabeza small { color: rgb(var(--g-600)); font-variant-numeric: tabular-nums; }
+    .tb-cierre__pasos { display: flex; flex-wrap: wrap; gap: var(--e-2); }
+    .tb-cierre__paso { display: inline-flex; gap: 6px; align-items: center; padding: 3px 10px; border-radius: 999px; background: rgb(var(--av-50)); color: rgb(var(--av-700)); font-size: var(--t-12); text-decoration: none; }
+    .tb-cierre__paso b { font-variant-numeric: tabular-nums; }
+    .tb-cierre__paso--ok { background: rgb(var(--ok-50)); color: rgb(var(--ok-700)); }
+    .tb-barrita { display: inline-block; width: 46px; height: 6px; border-radius: 999px; background: rgb(var(--g-100)); overflow: hidden; vertical-align: middle; }
+    .tb-barrita i { display: block; height: 100%; background: rgb(var(--ac-600)); border-radius: inherit; }
+    .tb-barrita--ancha { flex: 1 1 160px; max-width: 320px; }
+    .tb-barrita--ok i { background: rgb(var(--ok-600)); } .tb-barrita--aviso i { background: rgb(var(--av-600)); } .tb-barrita--error i { background: rgb(var(--er-600)); }
+    .tb-cierre-celda { display: inline-flex; align-items: center; gap: 8px; font-size: var(--t-12); font-variant-numeric: tabular-nums; }
     .tb-cuerpo { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--e-4); align-items: start; }
     @media (min-width: 1700px) { .tb-cuerpo { grid-template-columns: minmax(0, 1fr) 320px; } }
     @media (min-width: 900px) and (max-width: 1699px) { .tb-lado { grid-template-columns: 1fr 1fr; } }
@@ -127,9 +141,9 @@
     .tb-pasos small { color: rgb(var(--g-500)); }
 </style>
 
-<script src="/assets/js/nucleo.js?v=202611110100"></script>
-<script src="/assets/js/barra.js?v=202611110100"></script>
-<script src="/assets/js/comun/tabla.js?v=202611110100"></script>
-<script src="/assets/js/inicio.js?v=202611110100"></script>
+<script src="/assets/js/nucleo.js?v=202611110200"></script>
+<script src="/assets/js/barra.js?v=202611110200"></script>
+<script src="/assets/js/comun/tabla.js?v=202611110200"></script>
+<script src="/assets/js/inicio.js?v=202611110200"></script>
 </body>
 </html>
