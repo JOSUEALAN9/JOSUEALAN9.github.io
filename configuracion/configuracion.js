@@ -209,6 +209,8 @@
             '<div class="cf-acciones"><button type="button" class="cf-btn cf-btn--principal" id="cf-bl-guardar">Guardar</button>' +
             (b.tiene_pin ? '<button type="button" class="cf-btn" id="cf-bl-quitar">Quitar PIN</button>' : "") + '<span class="cf-msj"></span></div>';
         c.appendChild(caja);
+        // Llegó desde el aviso «Crear mi PIN» (tras volver a entrar por inactividad)
+        if (!b.tiene_pin && Fiscontable.url("sub") === "pin") setTimeout(function () { caja.scrollIntoView({ block: "center" }); $("cf-bl-pin").focus(); }, 80);
         var listo = function (nuevo, texto) { perfil.bloqueo = nuevo; c.removeChild(caja); pintarBloqueo(c); aviso(c.lastChild, true, texto); };
         $("cf-bl-guardar").addEventListener("click", async function () {
             var pin = $("cf-bl-pin").value.trim(), cuerpo = { minutos: +$("cf-bl-min").value };
