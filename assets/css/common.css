@@ -1661,3 +1661,16 @@ html.fc-bloqueada body { overflow: hidden; }
                                color: rgb(var(--g-900)); text-decoration: none; }
 .mod-menu__lista .mod-accion[hidden] { display: none; }
 .mod-menu__lista .mod-accion:hover:not(:disabled) { background: rgb(var(--g-100)); border-color: transparent; }
+
+/* --- Detalle de CFDI en panel lateral (G-07) --- */
+.fc-cfdi { position: fixed; top: 0; right: 0; bottom: 0; z-index: 85; width: min(760px, 100vw); display: flex; flex-direction: column;
+           background: rgb(var(--g-0)); border-left: 1px solid var(--linea); box-shadow: -18px 0 40px -20px rgb(var(--g-900) / .35); }
+.fc-cfdi[hidden] { display: none; }
+.fc-cfdi__cabeza { flex: none; display: flex; align-items: center; gap: var(--e-1); height: 48px; padding: 0 var(--e-3) 0 var(--e-4); border-bottom: 1px solid var(--linea); }
+.fc-cfdi__cabeza b { font-size: var(--t-14); color: rgb(var(--g-900)); }
+.fc-cfdi__pos { flex: 1; font-size: var(--t-12); color: rgb(var(--g-500)); margin-left: var(--e-2); }
+.fc-cfdi__cabeza .ui-icono-btn:disabled { opacity: .35; cursor: default; }
+.fc-cfdi__cabeza .ui-icono-btn svg { width: 16px; height: 16px; }
+.fc-cfdi__marco { flex: 1; width: 100%; border: 0; background: var(--papel); }
+/* Dentro de una ventana o panel (incrustado) los letreros generales ya se ven en la página de afuera */
+html.fc-incrustado .fc-letrero { display: none !important; }

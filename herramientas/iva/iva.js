@@ -318,7 +318,8 @@
         $("tbody").addEventListener("click", function (e) {
             if (e.target.closest("[data-marca]")) return;               // la liga a Marcas se abre sola
             var tr = e.target.closest("tr[data-uuid]"); if (!tr || !E.perfil || (E.perfil.modulos_permitidos || []).indexOf("validador") === -1) return;
-            window.open("/herramientas/xml/detalle/?rfc=" + encodeURIComponent(E.rfc) + "&uuid=" + encodeURIComponent(tr.dataset.uuid), "_blank", "noopener");
+            var lista = [].slice.call(document.querySelectorAll("tr[data-uuid]")).map(function (x) { return x.dataset.uuid; });
+            Fiscontable.verCfdi(E.rfc, tr.dataset.uuid, lista);
         });
     }
 

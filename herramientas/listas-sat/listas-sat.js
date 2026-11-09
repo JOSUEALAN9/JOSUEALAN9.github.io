@@ -537,7 +537,7 @@
                 if (e.target.matches("[data-sel]") ? !e.target.checked : E.seleccion.has(u)) E.seleccion.delete(u); else E.seleccion.add(u);
                 pintarTabla(); return;
             }
-            window.open("/herramientas/xml/detalle/?rfc=" + encodeURIComponent(E.rfc) + "&uuid=" + encodeURIComponent(u), "_blank", "noopener");
+            Fiscontable.verCfdi(E.rfc, u);
         });
         $("btn-limpiar-sel").addEventListener("click", function () { E.seleccion.clear(); pintarTabla(); });
 

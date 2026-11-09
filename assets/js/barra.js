@@ -1719,6 +1719,76 @@
     }
 
 
+    /* ------------------------------------------------- detalle de un CFDI en panel lateral (G-07)
+       Fiscontable.verCfdi(rfc, uuid, lista) abre el detalle de siempre (/herramientas/xml/detalle/) en un panel a la
+       derecha, sin salir de la tabla. lista = uuids en el orden en que se ven: ← y → (o los botones) pasan a la
+       anterior o la siguiente. Cualquier enlace a ese detalle en la página abre el panel (Ctrl/Cmd+clic, en pestaña). */
+    var cfdiPanel = null;
+    function verCfdi(rfc, uuid, lista) {
+        if (!rfc || !uuid) return;
+        if (!cfdiPanel) {
+            var d = document.createElement("aside");
+            d.className = "fc-cfdi"; d.setAttribute("aria-label", "Detalle de la factura"); d.hidden = true;
+            d.innerHTML = '<div class="fc-cfdi__cabeza"><b>Factura</b><span class="fc-cfdi__pos"></span>' +
+                '<button type="button" class="ui-icono-btn" data-cfdi="ant" aria-label="Anterior (←)" title="Anterior (←)">' + ico(D.flecha, 2).replace("<svg ", '<svg style="transform:rotate(180deg)" ') + "</button>" +
+                '<button type="button" class="ui-icono-btn" data-cfdi="sig" aria-label="Siguiente (→)" title="Siguiente (→)">' + ico(D.flecha, 2) + "</button>" +
+                '<a class="ui-btn ui-btn--terciario ui-btn--28" data-cfdi="pestana" target="_blank" rel="noopener">Abrir en pestaña</a>' +
+                '<button type="button" class="ui-icono-btn" data-cfdi="cerrar" aria-label="Cerrar (Esc)" title="Cerrar (Esc)">' + ico(D.cerrar, 2) + "</button></div>" +
+                '<iframe class="fc-cfdi__marco" title="Detalle de la factura"></iframe>';
+            document.body.appendChild(d);
+            cfdiPanel = { el: d, marco: d.querySelector("iframe"), lista: [], i: -1, rfc: "" };
+            d.addEventListener("click", function (e) {
+                var b = e.target.closest("[data-cfdi]"); if (!b) return;
+                if (b.dataset.cfdi === "cerrar") cerrarCfdi();
+                else if (b.dataset.cfdi === "ant") moverCfdi(-1);
+                else if (b.dataset.cfdi === "sig") moverCfdi(1);
+            });
+            var teclas = function (e) {
+                if (d.hidden || e.target.closest && e.target.closest("input, textarea, select")) return;
+                if (e.key === "Escape") cerrarCfdi(); else if (e.key === "ArrowLeft") moverCfdi(-1); else if (e.key === "ArrowRight") moverCfdi(1);
+            };
+            document.addEventListener("keydown", teclas);
+            cfdiPanel.marco.addEventListener("load", function () { try { cfdiPanel.marco.contentWindow.document.addEventListener("keydown", teclas); } catch (err) { /* otro origen */ } });
+        }
+        var P = cfdiPanel;
+        P.rfc = rfc; P.lista = (lista && lista.length) ? lista : [uuid]; P.i = Math.max(0, P.lista.indexOf(uuid));
+        if (P.lista.indexOf(uuid) === -1) { P.lista = [uuid]; P.i = 0; }
+        pintarCfdi();
+        P.el.hidden = false;
+        document.documentElement.classList.add("fc-con-cfdi");
+    }
+    function pintarCfdi() {
+        var P = cfdiPanel, uuid = P.lista[P.i], url = "/herramientas/xml/detalle/?rfc=" + encodeURIComponent(P.rfc) + "&uuid=" + encodeURIComponent(uuid);
+        P.marco.src = url + "&incrustado=1";
+        P.el.querySelector('[data-cfdi="pestana"]').href = url;
+        P.el.querySelector(".fc-cfdi__pos").textContent = P.lista.length > 1 ? (P.i + 1) + " de " + P.lista.length : "";
+        P.el.querySelector('[data-cfdi="ant"]').disabled = P.i <= 0;
+        P.el.querySelector('[data-cfdi="sig"]').disabled = P.i >= P.lista.length - 1;
+    }
+    function moverCfdi(paso) {
+        var P = cfdiPanel; if (!P || P.el.hidden) return;
+        var n = P.i + paso; if (n < 0 || n >= P.lista.length) return;
+        P.i = n; pintarCfdi();
+    }
+    function cerrarCfdi() {
+        if (!cfdiPanel || cfdiPanel.el.hidden) return;
+        cfdiPanel.el.hidden = true; cfdiPanel.marco.src = "about:blank";
+        document.documentElement.classList.remove("fc-con-cfdi");
+    }
+    // Enlaces al detalle en cualquier módulo: panel lateral (con modificador o clic medio, pestaña como siempre)
+    document.addEventListener("click", function (e) {
+        if (e.defaultPrevented || e.button !== 0 || e.ctrlKey || e.metaKey || e.shiftKey || e.altKey) return;
+        var a = e.target.closest && e.target.closest('a[href*="/herramientas/xml/detalle/"]');
+        if (!a || a.closest(".fc-cfdi") || document.documentElement.classList.contains("fc-incrustado")) return;
+        var u = new URL(a.href, location.href), rfc = u.searchParams.get("rfc"), uuid = u.searchParams.get("uuid");
+        if (!rfc || !uuid) return;
+        e.preventDefault();
+        var lista = [].slice.call(document.querySelectorAll('a[href*="/herramientas/xml/detalle/"]')).map(function (x) {
+            try { return new URL(x.href, location.href).searchParams.get("uuid"); } catch (err) { return null; }
+        }).filter(function (x, i, arr) { return x && arr.indexOf(x) === i; });
+        verCfdi(rfc, uuid, lista);
+    });
+
     /* ------------------------------------------------- acciones del módulo (G-06)
        La columna de acciones de la derecha (.mod-acciones: SAT, Reportes, Compartir, Con este periodo) se vuelve una
        barra de una línea arriba de la tabla: un grupo con una sola acción es un botón; con varias, un menú «Grupo ▾»;
@@ -1917,6 +1987,7 @@
 
         function letrero(texto, colores, cerrable, alCerrar, enlace) {
             var fila = document.createElement("div");
+            fila.className = "fc-letrero";
             fila.setAttribute("role", "status");
             fila.style.cssText = "display:flex;align-items:flex-start;gap:12px;justify-content:center;" +
                 "padding:10px 16px;font-size:13.5px;font-weight:600;line-height:1.4;" + colores;
@@ -2207,6 +2278,7 @@
     Object.assign(window.Fiscontable, {
         modulo: clave,
         riel: riel,
+        verCfdi: verCfdi,
         bloquearPantalla: function (servidor) { bloquearPantalla(!!servidor); },
         catalogo: CATALOGO,
         grupos: GRUPOS,

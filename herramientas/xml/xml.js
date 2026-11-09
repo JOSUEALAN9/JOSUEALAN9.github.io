@@ -708,7 +708,8 @@
     }
 
     function abrirDetalle(f) {
-        window.open("/herramientas/xml/detalle/?rfc=" + encodeURIComponent(E.rfc) + "&uuid=" + encodeURIComponent(f.uuid), "_blank", "noopener");
+        var lista = (E.tabla && E.tabla.filas ? E.tabla.filas() : E.filas || []).map(function (x) { return x.uuid; }).filter(Boolean);
+        Fiscontable.verCfdi(E.rfc, f.uuid, lista);
     }
 
     /* ============================================================ arrastrar y ancho de columnas */
