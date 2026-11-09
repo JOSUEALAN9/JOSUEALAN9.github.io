@@ -69,6 +69,11 @@
 .cf-incrustado .cf-contenido { padding: 14px 18px; }
 .cf-sub { font-size: var(--t-16); font-weight: 700; color: rgb(var(--g-900)); margin: 0 0 4px; }
 .cf-check { display: flex; margin: 8px 0; }
+.cf-sub--estado { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
+.cf-sub--estado .ui-estado { font-weight: 600; }
+.cf-link { align-self: flex-start; background: none; border: 0; padding: 2px 0; font: inherit; font-size: var(--t-13); font-weight: 600;
+    color: rgb(var(--ac-700)); cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+.cf-link:hover { color: rgb(var(--g-900)); }
 .cf-apagada td { color: rgb(var(--g-500)); }
 .cf-celda-acciones { white-space: nowrap; text-align: right; }
 /* M-20: foto de perfil */
