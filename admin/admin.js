@@ -532,7 +532,7 @@ function marcarCambiosRol(rol) {
     t.querySelector(".rol-guardar").disabled = !hayCambios;
     t.querySelector(".rol-sin-guardar").hidden = !hayCambios;
     t.querySelector(".rol-deshacer").hidden = !hayCambios;
-    t.style.outline = hayCambios ? "2px solid #fcd34d" : "";
+    t.style.outline = hayCambios ? "2px solid rgb(var(--av-200))" : "";
 }
 
 async function guardarRol(rol) {
@@ -888,7 +888,7 @@ function ventana(id, titulo, cuerpo) {
 function pintarVentana(id) {
     const v = VENTANAS[id], d = document.getElementById(id);
     if (!v || !d) return;
-    d.innerHTML = `<div style="padding:16px 18px;border-bottom:1px solid #E5E7EB;display:flex;justify-content:space-between;align-items:center">
+    d.innerHTML = `<div style="padding:16px 18px;border-bottom:1px solid rgb(var(--g-200));display:flex;justify-content:space-between;align-items:center">
         <b>${esc(v.titulo)}</b><button type="button" data-cerrar class="text-slate-400 hover:text-red-500 text-lg">✕</button></div>
         <div style="padding:14px 18px;overflow:auto;max-height:calc(88vh - 60px)">${v.cuerpo()}</div>`;
 }
@@ -1230,7 +1230,7 @@ function abrirTrabajadores() {
         </select>
         <div class="mt-1 text-xs text-slate-500" data-sin-pc="${esc(clave)}" ${t.ajustes[clave] === "agente" ? "" : "hidden"}>Si no tiene su PC lista: ${sinPc}</div></td></tr>`;
     }).join("");
-    d.innerHTML = `<div style="padding:16px 18px;border-bottom:1px solid #E5E7EB;display:flex;justify-content:space-between;align-items:center">
+    d.innerHTML = `<div style="padding:16px 18px;border-bottom:1px solid rgb(var(--g-200));display:flex;justify-content:space-between;align-items:center">
             <b>¿Dónde se hace cada trámite?</b><button type="button" data-cerrar class="text-slate-400 hover:text-red-500 text-lg">✕</button></div>
         <div style="padding:14px 18px;overflow:auto;max-height:calc(88vh - 60px)">
             <table class="w-full"><tbody>${filas}</tbody></table>
@@ -1328,7 +1328,7 @@ function pintarEstado() {
     const usado = e.disco.total - e.disco.libre;
     const pct = Math.round(100 * usado / e.disco.total);
     const disco = `
-        <div class="adm-barra"><span style="width:${pct}%;${pct > 85 ? "background:#f59e0b" : ""}"></span></div>
+        <div class="adm-barra"><span style="width:${pct}%;${pct > 85 ? "background:rgb(var(--av-600))" : ""}"></span></div>
         <p class="text-xs text-slate-600 mt-2"><strong>${esc(tamano(e.disco.libre))}</strong> libres de ${esc(tamano(e.disco.total))}</p>
         <div class="mt-2 grid grid-cols-2 gap-x-3 text-[11px] text-slate-500">
             ${Object.entries(e.disco.partes).map(([k, v]) => `<span>${esc(k)}</span><span class="text-right font-mono">${esc(tamano(v))}</span>`).join("")}
@@ -1404,10 +1404,10 @@ let estadoSAT = null;
 let relojSAT = null;
 
 const SAT_ESTADOS = {
-    funciona: { texto: "Funciona", clase: "bg-emerald-50 text-emerald-700 border-emerald-200", punto: "#10b981" },
-    lento: { texto: "Lento", clase: "bg-amber-50 text-amber-700 border-amber-200", punto: "#f59e0b" },
-    falla: { texto: "No responde", clase: "bg-red-50 text-red-700 border-red-200", punto: "#ef4444" },
-    sin_revisar: { texto: "Sin revisar", clase: "bg-slate-50 text-slate-500 border-slate-200", punto: "#94a3b8" },
+    funciona: { texto: "Funciona", clase: "bg-emerald-50 text-emerald-700 border-emerald-200", punto: "rgb(var(--ok-600))" },
+    lento: { texto: "Lento", clase: "bg-amber-50 text-amber-700 border-amber-200", punto: "rgb(var(--av-600))" },
+    falla: { texto: "No responde", clase: "bg-red-50 text-red-700 border-red-200", punto: "rgb(var(--er-600))" },
+    sin_revisar: { texto: "Sin revisar", clase: "bg-slate-50 text-slate-500 border-slate-200", punto: "rgb(var(--g-400))" },
 };
 
 function horaCorta(iso) {
@@ -1823,7 +1823,7 @@ function dialogoRegistro(id, titulo, filtros, cabeceras, buscar, exportar) {
         d = document.createElement("dialog");
         d.id = id;
         d.className = "adm-js"; d.style.cssText = "width:min(var(--modal-grande),calc(100vw - 32px));max-height:calc(100vh - 48px);border:0;border-radius:20px;padding:0;box-shadow:var(--sombra-alta)";
-        d.innerHTML = `<div style="padding:16px 18px;border-bottom:1px solid #E5E7EB;display:flex;justify-content:space-between;align-items:center">
+        d.innerHTML = `<div style="padding:16px 18px;border-bottom:1px solid rgb(var(--g-200));display:flex;justify-content:space-between;align-items:center">
                 <b>${esc(titulo)}</b><button type="button" data-cerrar class="text-slate-400 hover:text-red-500 text-lg">✕</button></div>
             <div style="padding:12px 18px" class="flex flex-wrap gap-2 items-end text-xs">${filtros}
                 <button type="button" data-buscar class="font-bold text-white bg-slate-800 hover:bg-slate-700 rounded-lg py-1.5 px-3">Buscar</button>

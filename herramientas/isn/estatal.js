@@ -150,7 +150,7 @@
                     case "presentada": return "<td>" + estatus(f) + "</td>";
                     case "pdf": return "<td>" + (f.tiene_acuse ? '<a class="xml-enlace" data-pdf="acuse" data-id="' + f.id + '" href="' + API + "/api/estatales/acuse/" + f.id + '">Acuse</a>' : "") +
                         (f.tiene_pago_ceros ? ' · <a class="xml-enlace" data-pdf="ceros" data-id="' + f.id + '" href="' + API + "/api/estatales/pago-ceros/" + f.id + '">' + (esInf() ? "Presentación" : "Ceros") + "</a>" : "") + "</td>";
-                    case "avisos": var t = (f.faltan || []).concat(f.avisos || []); return '<td title="' + esc(t.join(" · ")) + '" style="color:#b45309">' + esc(t.join(" · ")) + "</td>";
+                    case "avisos": var t = (f.faltan || []).concat(f.avisos || []); return '<td title="' + esc(t.join(" · ")) + '" style="color:rgb(var(--av-600))">' + esc(t.join(" · ")) + "</td>";
                     default: return "<td" + (c[3] ? ' class="xml-num"' : "") + ">" + (c[3] ? m(f[c[0]]) : esc(f[c[0]] == null ? "" : f[c[0]])) + "</td>";
                 }
             }).join("") + "</tr>";

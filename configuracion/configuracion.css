@@ -9,7 +9,7 @@
 .cf-cabeza { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
 .cf-cabeza h2 { font-size: 20px; font-weight: 800; color: rgb(var(--g-900)); }
 .cf-cabeza p { font-size: 13.5px; color: rgb(var(--g-600)); margin-top: 2px; }
-.cf-tarjeta { background: #fff; border: 1px solid var(--linea); border-radius: 16px; padding: 18px; box-shadow: var(--sombra-baja); }
+.cf-tarjeta { background: rgb(var(--g-0)); border: 1px solid var(--linea); border-radius: 16px; padding: 18px; box-shadow: var(--sombra-baja); }
 .cf-tarjeta--tabla { padding: 0; overflow-x: auto; }
 .cf-texto { font-size: 13.5px; color: rgb(var(--g-600)); margin: 10px 0; line-height: 1.45; }
 .cf-campos { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
@@ -17,17 +17,17 @@
 .cf-campo--corto { max-width: 360px; }
 .cf-campo span { font-size: 11.5px; font-weight: 700; color: rgb(var(--g-700)); text-transform: uppercase; letter-spacing: .03em; }
 .cf-campo span i { text-transform: none; font-style: normal; font-weight: 500; color: rgb(var(--g-500)); letter-spacing: 0; }
-.cf-campo input, .cf-campo select, .cf-tabla select { font: inherit; font-size: 14px; border: 1px solid rgb(var(--g-300)); border-radius: 10px; padding: 9px 11px; background: #fff; color: rgb(var(--g-900)); }
+.cf-campo input, .cf-campo select, .cf-tabla select { font: inherit; font-size: 14px; border: 1px solid rgb(var(--g-300)); border-radius: 10px; padding: 9px 11px; background: rgb(var(--g-0)); color: rgb(var(--g-900)); }
 .cf-tabla select { padding: 6px 8px; font-size: 13px; }
 .cf-campo input:disabled { background: rgb(var(--g-50)); color: rgb(var(--g-600)); }
 .cf-acciones { display: flex; align-items: center; gap: 12px; margin-top: 14px; flex-wrap: wrap; }
 .cf-tarjeta--tabla .cf-acciones { padding: 0 16px 14px; }
 .cf-btn { display: inline-flex; align-items: center; border: 0; border-radius: 10px; padding: 9px 16px; font: inherit; font-size: 13.5px; font-weight: 700; cursor: pointer; text-decoration: none; background: rgb(var(--ac-50)); color: rgb(var(--ac-800)); }
 .cf-btn:hover { filter: brightness(.97); }
-.cf-btn--principal { background: rgb(var(--ac-600)); color: #fff; }
+.cf-btn--principal { background: rgb(var(--ac-600)); color: rgb(var(--g-0)); }
 .cf-btn--chico { padding: 6px 11px; font-size: 12.5px; }
 .cf-msj { font-size: 13px; font-weight: 600; }
-.cf-msj--ok { color: #047857; } .cf-msj--mal { color: #b91c1c; }
+.cf-msj--ok { color: rgb(var(--ok-600)); } .cf-msj--mal { color: rgb(var(--er-600)); }
 .cf-datos { display: grid; grid-template-columns: auto 1fr; gap: 8px 18px; font-size: 14px; margin-bottom: 14px; }
 .cf-datos dt { color: rgb(var(--g-600)); } .cf-datos dd { margin: 0; font-weight: 600; color: rgb(var(--g-900)); }
 .cf-tabla { width: 100%; border-collapse: collapse; font-size: 13.5px; }
@@ -37,7 +37,7 @@
 .cf-switch { position: relative; display: inline-block; cursor: pointer; }
 .cf-switch input { position: absolute; opacity: 0; width: 0; height: 0; }
 .cf-switch span { display: block; width: 38px; height: 22px; border-radius: 999px; background: rgb(var(--g-300)); position: relative; transition: background .15s; }
-.cf-switch span::after { content: ""; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: #fff; transition: transform .15s; }
+.cf-switch span::after { content: ""; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: rgb(var(--g-0)); transition: transform .15s; }
 .cf-switch input:checked + span { background: rgb(var(--ac-600)); }
 .cf-switch input:checked + span::after { transform: translateX(16px); }
 .cf-switch input:disabled + span { opacity: .45; }

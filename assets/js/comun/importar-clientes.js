@@ -156,7 +156,7 @@
                 '<td><input data-c="cp" class="fc-ic-cp" inputmode="numeric" maxlength="5" value="' + esc(x.cp) + '"></td>' +
                 '<td><select data-c="regimen">' + opciones(cat.regimenes, x.regimen, "Elige…") + "</select></td>" +
                 '<td><select data-c="uso">' + opciones(cat.usos, x.uso) + "</select></td><td>" + chip + '</td><td style="text-align:right">' + (E.origen === "constancia" ? esc(fechaCorta(x.fecha) || "—") : x.veces) + "</td></tr>";
-        }).join("") : '<tr><td colspan="7" style="text-align:center;color:#94a3b8;padding:24px">Nada coincide.</td></tr>';
+        }).join("") : '<tr><td colspan="7" style="text-align:center;color:rgb(var(--g-400));padding:24px">Nada coincide.</td></tr>';
         contar();
     }
 

@@ -37,26 +37,26 @@
     // Un solo lugar donde vive la identidad de cada módulo: nombre,
     // color y clave de permiso. Agregar un módulo nuevo es una línea.
     var MODULOS = {
-        portada:       { nombre: "Fiscontable",           acento: "#0E9F6E", suave: "#E8F6F0", permiso: null },
-        clientes:      { nombre: "Clientes",          acento: "#6D28D9", suave: "#F1EBFD", permiso: null },
-        herramientas:  { nombre: "Herramientas",          acento: "#0E9F6E", suave: "#E8F6F0", permiso: null },
-        conciliacion:  { nombre: "Conciliación",          acento: "#1D4ED8", suave: "#E8EFFD", permiso: "conciliacion" },
-        iva:           { nombre: "Papel de trabajo de IVA", acento: "#7C3AED", suave: "#F1EBFE", permiso: "iva" },
-        validador:     { nombre: "Validador SAT",         acento: "#047857", suave: "#E6F4EF", permiso: "validador" },
-        xml:           { nombre: "Administración de XML", acento: "#0E7490", suave: "#E0F2F7", permiso: "validador" },
-        constancias:   { nombre: "Constancias",           acento: "#4338CA", suave: "#ECEBFB", permiso: "constancias" },
-        opinion:       { nombre: "Opinión 32-D",          acento: "#0F766E", suave: "#E6F2F1", permiso: "opinion" },
-        voucheo:       { nombre: "Voucheo",               acento: "#B45309", suave: "#FBF0E2", permiso: "voucheo" },
-        isn:           { nombre: "Impuestos estatales",   acento: "#BE185D", suave: "#FCE7F3", permiso: "isn" },
-        declaraciones: { nombre: "Declaraciones",         acento: "#0369A1", suave: "#E4F1F9", permiso: "declaraciones" },
-        descarga_xml:  { nombre: "Descarga masiva de XML", acento: "#0E7490", suave: "#E0F2F7", permiso: "descarga_xml" },
-        facturar:      { nombre: "Facturar",              acento: "#4F46E5", suave: "#EEF2FF", permiso: "facturacion" },
-        documentos:    { nombre: "Documentos",            acento: "#0E7490", suave: "#ECFEFF", permiso: "documentos" },
-        buzon:         { nombre: "Buzón Tributario",      acento: "#0F766E", suave: "#E6F2F1", permiso: "buzon" },
-        descargas:     { nombre: "Mis descargas",         acento: "#334155", suave: "#EEF1F5", permiso: null },
-        creditos:      { nombre: "Mis créditos",          acento: "#0E9F6E", suave: "#E8F6F0", permiso: null },
-        admin:         { nombre: "Administración",        acento: "#BE123C", suave: "#FCE9EE", permiso: null },
-        configuracion: { nombre: "Configuración",         acento: "#4F46E5", suave: "#EEF2FF", permiso: null }
+        portada:       { nombre: "Fiscontable",           permiso: null },
+        clientes:      { nombre: "Clientes",          permiso: null },
+        herramientas:  { nombre: "Herramientas",          permiso: null },
+        conciliacion:  { nombre: "Conciliación",          permiso: "conciliacion" },
+        iva:           { nombre: "Papel de trabajo de IVA", permiso: "iva" },
+        validador:     { nombre: "Validador SAT",         permiso: "validador" },
+        xml:           { nombre: "Administración de XML", permiso: "validador" },
+        constancias:   { nombre: "Constancias",           permiso: "constancias" },
+        opinion:       { nombre: "Opinión 32-D",          permiso: "opinion" },
+        voucheo:       { nombre: "Voucheo",               permiso: "voucheo" },
+        isn:           { nombre: "Impuestos estatales",   permiso: "isn" },
+        declaraciones: { nombre: "Declaraciones",         permiso: "declaraciones" },
+        descarga_xml:  { nombre: "Descarga masiva de XML", permiso: "descarga_xml" },
+        facturar:      { nombre: "Facturar",              permiso: "facturacion" },
+        documentos:    { nombre: "Documentos",            permiso: "documentos" },
+        buzon:         { nombre: "Buzón Tributario",      permiso: "buzon" },
+        descargas:     { nombre: "Mis descargas",         permiso: null },
+        creditos:      { nombre: "Mis créditos",          permiso: null },
+        admin:         { nombre: "Administración",        permiso: null },
+        configuracion: { nombre: "Configuración",         permiso: null }
     };
 
     // "¿Cómo se usa?": pocos pasos por herramienta (clave = data-ayuda o data-modulo)
@@ -1532,7 +1532,7 @@
             }
             return '<div class="fc-item' + (incompleta ? " fc-item--alerta" : "") + '"><div class="fc-item__titulo">' + nuevo + t + "</div>" +
                 '<div class="fc-item__detalle">' + esc(resumen) + "</div>" +
-                (p.en_pc && p.en_pc.rutas && p.en_pc.rutas.length ? '<div class="fc-item__detalle" style="color:#065F46">' + esc(Fiscontable.textoEnPc(p.en_pc)) + "</div>" : "") +
+                (p.en_pc && p.en_pc.rutas && p.en_pc.rutas.length ? '<div class="fc-item__detalle" style="color:rgb(var(--ok-600))">' + esc(Fiscontable.textoEnPc(p.en_pc)) + "</div>" : "") +
                 '<div class="fc-item__acciones">' +
                 (p.en_pc && p.en_pc.rutas && p.en_pc.rutas.length ? '<button type="button" class="fc-btn" data-accion="mostrar-pc" data-id="' + esc(p.id) + '">Mostrar en mi PC</button>' : "") +
                 '<button type="button" class="fc-btn fc-btn--principal" data-accion="descargar" ' +
@@ -1730,7 +1730,7 @@
         caja.style.cssText = "display:none;position:fixed;inset:0;z-index:90;background:rgba(16,27,45,.5);" +
             "backdrop-filter:blur(2px);align-items:center;justify-content:center;padding:16px";
         caja.innerHTML =
-            '<div style="background:#fff;width:100%;max-width:420px;border-radius:var(--radio);' +
+            '<div style="background:rgb(var(--g-0));width:100%;max-width:420px;border-radius:var(--radio);' +
             'box-shadow:var(--sombra-alta);overflow:hidden">' +
               '<div style="padding:18px 20px;border-bottom:1px solid var(--linea)">' +
                 '<div style="font-size:16px;font-weight:700" id="fc-mp-titulo">Mi perfil</div>' +
@@ -2474,7 +2474,7 @@
         if (p.mantenimiento) {
             letrero("Portal en mantenimiento: por ahora no se pueden iniciar descargas nuevas. Lo que ya estaba corriendo sigue." +
                 (p.rol === "admin" ? " (Tú, como administrador, sigues pudiendo usar todo.)" : ""),
-                "background:#FEF3C7;color:#78350F;border-bottom:1px solid #FCD34D", false);
+                "background:rgb(var(--av-50));color:rgb(var(--av-600));border-bottom:1px solid rgb(var(--av-200))", false);
         }
         if (p.aviso && p.aviso.texto) {
             var clave = "fc-aviso-oculto:" + (p.aviso.publicado_en || "") + ":" + p.aviso.texto;
@@ -2483,8 +2483,8 @@
             if (!oculto) {
                 letrero(p.aviso.texto,
                     p.aviso.tipo === "atencion"
-                        ? "background:#FFF7ED;color:#9A3412;border-bottom:1px solid #FDBA74"
-                        : "background:#EFF6FF;color:#1E3A8A;border-bottom:1px solid #BFDBFE",
+                        ? "background:rgb(var(--av-50));color:rgb(var(--av-600));border-bottom:1px solid rgb(var(--av-200))"
+                        : "background:rgb(var(--in-50));color:rgb(var(--in-600));border-bottom:1px solid rgb(var(--in-200))",
                     true,
                     function () { try { localStorage.setItem("fc-aviso-oculto", clave); } catch (e) { /* nada */ } });
             }
@@ -2499,7 +2499,7 @@
                 var lista = nombres.length > 1 ? nombres.slice(0, -1).join(", ") + " y " + nombres[nombres.length - 1] : nombres[0];
                 letrero("El SAT no está respondiendo en: " + lista + ". Lo que pidas ahí puede fallar; conviene intentarlo más tarde. " +
                     "Este aviso se quita solo cuando vuelva.",
-                    "background:#FEF2F2;color:#991B1B;border-bottom:1px solid #FECACA",
+                    "background:rgb(var(--er-50));color:rgb(var(--er-600));border-bottom:1px solid rgb(var(--er-200))",
                     true,
                     function () { try { localStorage.setItem("fc-sat-oculto", claveSat); } catch (e) { /* nada */ } });
             }
@@ -2507,7 +2507,7 @@
         // Una PC se vinculó a esta cuenta y no recibe trámites hasta que su dueño la apruebe
         if (p.pcs_por_aprobar && p.pcs_por_aprobar.length && location.pathname.indexOf("/agente/") !== 0) {
             letrero("Se conectó una PC nueva a tu cuenta (" + p.pcs_por_aprobar.join(", ") + "). Si fuiste tú, apruébala; si no, desconéctala.",
-                "background:#FFF7ED;color:#9A3412;border-bottom:1px solid #FDBA74", false, null,
+                "background:rgb(var(--av-50));color:rgb(var(--av-600));border-bottom:1px solid rgb(var(--av-200))", false, null,
                 { href: "/agente/", texto: "Revisar" });
         }
         if (caja.children.length) barra.insertAdjacentElement("afterend", caja);
@@ -2567,7 +2567,7 @@
             dlg.addEventListener("click", function (e) { if (e.target === dlg || e.target.closest("[data-cerrar]")) dlg.close(); });
         }
         var plan = nombrePlan();
-        dlg.innerHTML = '<div class="fc-plan__caja"><div class="fc-plan__ico" style="--tono:' + (m ? m.tono : "#475569") + ";--tono-suave:" + (m ? m.suave : "#EEF1F5") + '">' +
+        dlg.innerHTML = '<div class="fc-plan__caja"><div class="fc-plan__ico" style="--tono:' + (m ? m.tono : "rgb(var(--g-600))") + ";--tono-suave:" + (m ? m.suave : "rgb(var(--g-100))") + '">' +
             (m ? ico(m.icono, 1.7) : "") + '<span class="fc-plan__candado">' + ico(D.candado, 2) + "</span></div>" +
             "<h3>" + esc(m ? m.nombre : "Este módulo") + "</h3>" +
             "<p>No está incluido en tu plan" + (plan ? " <b>" + esc(plan) + "</b>" : "") + ".</p>" +

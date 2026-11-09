@@ -707,12 +707,12 @@
             if (!caja) return;
             var usd = (est.monedas || {}).USD, tarea = est.tarea || {}, partes = [];
             if (!est.token_configurado) {
-                partes.push('<strong style="color:#92400e">Falta configurar el token de Banxico en el servidor.</strong> Mientras tanto no hay columna de Banxico; tu tipo de cambio para el reporte sí funciona.');
+                partes.push('<strong style="color:rgb(var(--av-600))">Falta configurar el token de Banxico en el servidor.</strong> Mientras tanto no hay columna de Banxico; tu tipo de cambio para el reporte sí funciona.');
             } else {
                 partes.push("<strong>Banxico (dólar):</strong> " + (usd ? "último FIX del " + esc(fechaMX(usd.hasta)) + " = " + esc(fmtTc.format(usd.ultimo_valor)) +
                     " · " + usd.dias.toLocaleString("es-MX") + " días guardados desde " + esc(fechaMX(usd.desde)) : "todavía no hay datos (la primera descarga corre sola al arrancar)"));
                 partes.push("Se actualiza solo a las " + esc(est.horarios) + (tarea.ultimo_exito ? " · última vez: " + esc(fechaMX(tarea.ultimo_exito.slice(0, 10))) + " " + esc(tarea.ultimo_exito.slice(11, 16)) : ""));
-                if (tarea.error) partes.push('<span style="color:#b91c1c">Último intento falló: ' + esc(tarea.error) + "</span>");
+                if (tarea.error) partes.push('<span style="color:rgb(var(--er-600))">Último intento falló: ' + esc(tarea.error) + "</span>");
             }
             if (est.es_admin) partes.push('<button type="button" class="xml-btn" id="btn-actualizar-tc" style="margin-top:6px">Actualizar ahora</button>');
             caja.innerHTML = partes.join("<br>");
