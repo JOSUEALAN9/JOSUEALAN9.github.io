@@ -39,7 +39,7 @@
 
     /* Las secciones: {id, grupo, titulo, desc, palabras, ver(perfil), pintar(caja)} */
     var SECCIONES = [
-        { id: "perfil", grupo: "Tu cuenta", titulo: "Mi perfil", ico: ICO.persona, desc: "Tu nombre y teléfono de contacto.", palabras: "nombre teléfono correo cuenta",
+        { id: "perfil", grupo: "Tu cuenta", titulo: "Mi perfil", ico: ICO.persona, desc: "Tu nombre y teléfono de contacto.", palabras: "nombre teléfono correo cuenta pin bloqueo inactividad seguridad",
           pintar: pintarPerfil },
         { id: "plan", grupo: "Tu cuenta", titulo: "Plan y créditos", ico: ICO.creditos, desc: "Tu plan, su vigencia y tus créditos.", palabras: "plan créditos recargar vigencia pago",
           pintar: pintarPlan },
@@ -135,8 +135,37 @@
             try {
                 await enviar("/api/mi-perfil", "PUT", { nombre: $("cf-nombre").value.trim(), telefono: $("cf-telefono").value.trim() || null });
                 perfil.nombre = $("cf-nombre").value.trim();
-                aviso(c, true, "✓ Guardado.");
+                aviso(c, true, "Guardado.");
             } catch (e) { aviso(c, false, e.message); }
+        });
+        pintarBloqueo(c);
+    }
+
+    /* Bloqueo por inactividad: minutos y PIN (el PIN se guarda solo como hash en el servidor) */
+    function pintarBloqueo(c) {
+        var b = perfil.bloqueo || { tiene_pin: false, minutos: 15 };
+        var caja = document.createElement("div");
+        caja.className = "cf-tarjeta"; caja.style.marginTop = "14px";
+        caja.innerHTML = '<h3 class="cf-sub">Bloqueo por inactividad</h3>' +
+            '<p class="cf-texto">Si dejas la computadora abierta, la pantalla se bloquea sola. ' + (b.tiene_pin ? "Se desbloquea con tu PIN, sin perder lo que estabas haciendo." :
+                "Sin PIN, para seguir tienes que volver a entrar con tu correo; con PIN la desbloqueas al momento.") + "</p>" +
+            '<div class="cf-campos"><label class="cf-campo"><span>Bloquear después de</span><select id="cf-bl-min">' +
+            [5, 10, 15, 20, 30, 45, 60].map(function (m) { return '<option value="' + m + '"' + (m === b.minutos ? " selected" : "") + ">" + m + " minutos sin usarla</option>"; }).join("") + "</select></label>" +
+            (b.tiene_pin ? '<label class="cf-campo"><span>PIN actual</span><input id="cf-bl-actual" type="password" inputmode="numeric" maxlength="6" autocomplete="off"></label>' : "") +
+            '<label class="cf-campo"><span>' + (b.tiene_pin ? "PIN nuevo <i>(déjalo vacío para no cambiarlo)</i>" : "Crea tu PIN <i>(4 a 6 números)</i>") + '</span><input id="cf-bl-pin" type="password" inputmode="numeric" maxlength="6" autocomplete="new-password"></label></div>' +
+            '<div class="cf-acciones"><button type="button" class="cf-btn cf-btn--principal" id="cf-bl-guardar">Guardar</button>' +
+            (b.tiene_pin ? '<button type="button" class="cf-btn" id="cf-bl-quitar">Quitar PIN</button>' : "") + '<span class="cf-msj"></span></div>';
+        c.appendChild(caja);
+        var listo = function (nuevo, texto) { perfil.bloqueo = nuevo; c.removeChild(caja); pintarBloqueo(c); aviso(c.lastChild, true, texto); };
+        $("cf-bl-guardar").addEventListener("click", async function () {
+            var pin = $("cf-bl-pin").value.trim(), cuerpo = { minutos: +$("cf-bl-min").value };
+            if (pin) { cuerpo.pin = pin; if ($("cf-bl-actual")) cuerpo.actual = $("cf-bl-actual").value.trim(); }
+            try { listo(await enviar("/api/mi-perfil/pin", "PUT", cuerpo), pin ? "PIN guardado." : "Guardado."); }
+            catch (e) { aviso(caja, false, e.message); }
+        });
+        if ($("cf-bl-quitar")) $("cf-bl-quitar").addEventListener("click", async function () {
+            try { listo(await enviar("/api/mi-perfil/pin/quitar", "POST", { actual: $("cf-bl-actual").value.trim() }), "PIN quitado."); }
+            catch (e) { aviso(caja, false, e.message); }
         });
     }
 

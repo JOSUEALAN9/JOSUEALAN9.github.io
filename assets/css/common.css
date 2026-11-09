@@ -1600,3 +1600,17 @@ main.fc-recien { animation: fc-recien .35s ease-out; }
 :root[data-barra="clara"] .fc-modulos-btn { border-color: var(--linea); background: rgb(var(--g-50)); }
 :root[data-barra="clara"] .fc-modulos-btn:hover, :root[data-barra="clara"] .fc-modulos-btn[aria-expanded="true"] { background: rgb(var(--g-100)); border-color: rgb(var(--g-300)); color: rgb(var(--g-900)); }
 :root[data-barra="clara"] .fc-accion--activa { color: rgb(var(--g-900)); }
+
+/* --- Pantalla bloqueada por inactividad (S-01) --- */
+.fc-bloqueo-pantalla { position: fixed; inset: 0; z-index: 300; display: grid; place-items: center; padding: 16px;
+                       background: rgb(var(--g-900) / .35); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); }
+.fc-bloqueo-pantalla[hidden] { display: none; }
+.fc-bloqueo-pantalla__caja { width: min(380px, 100%); background: rgb(var(--g-0)); border-radius: var(--r-modal); box-shadow: var(--sombra-2);
+                             padding: var(--e-6); display: grid; gap: var(--e-3); justify-items: center; text-align: center; }
+.fc-bloqueo-pantalla__caja h2 { margin: 0; font-size: var(--t-20); font-weight: 700; color: rgb(var(--g-900)); }
+.fc-bloqueo-pantalla__caja p { margin: 0; font-size: var(--t-14); color: rgb(var(--g-600)); }
+.fc-bloqueo-pantalla__caja .fc-marca__sello { color: #fff; width: 40px; height: 40px; border-radius: 10px; }
+.fc-bloqueo-pantalla__caja form { display: flex; gap: var(--e-2); width: 100%; }
+.fc-bloqueo-pantalla__caja form .ui-input { flex: 1; text-align: center; letter-spacing: .3em; font-size: var(--t-16); }
+.fc-bloqueo-pantalla__msj { color: rgb(var(--er-600)) !important; font-size: var(--t-13) !important; min-height: 1em; }
+html.fc-bloqueada body { overflow: hidden; }

@@ -836,6 +836,7 @@
             var p = original.apply(this, arguments);
             var fin = function () { var i = enCurso.indexOf(marca); if (i !== -1) enCurso.splice(i, 1); };
             if (nuestra) p.then(fin, fin);
+            if (nuestra) p.then(function (r) { if (r && r.status === 423 && window.Fiscontable.bloquearPantalla) window.Fiscontable.bloquearPantalla(true); }, function () {});
             return p;
         };
         envuelto.__fc = true;
@@ -1419,6 +1420,7 @@
     }
 
     async function sondear() {
+        if (bloqueo && bloqueo.activa) { programar(); return; }      // con la pantalla bloqueada no se pregunta nada
         try {
             var resp = await fetch(API + "/api/procesos", { credentials: "include" });
             if (!resp.ok) { programar(); return; }
@@ -1664,7 +1666,109 @@
         // Primer ingreso: pedimos el nombre una sola vez, caiga donde caiga.
         if (!p.perfil_completo) abrirModalPerfil(true);
         pintarLateral();
+        prepararBloqueo(p);
         document.dispatchEvent(new CustomEvent("fc:perfil", { detail: p }));
+    }
+
+
+    /* ------------------------------------------------- bloqueo por inactividad (S-01)
+       Tras N minutos sin usar la web (cada quien lo elige en Configuración › Mi perfil) se bloquea la pantalla en
+       todas las pestañas. Con PIN se desbloquea sin perder lo que estaba en pantalla; el servidor también deja esa
+       sesión sin acceso mientras tanto. Sin PIN, se vuelve a entrar con el correo. Tras 8 h sin actividad se cierra
+       la sesión. Los trabajos en curso del servidor no se detienen. */
+    var bloqueo = { activa: false, minutos: 15, horas: 8, pin: false, listo: false };
+    var LLAVE_ACT = "fc-actividad", LLAVE_BLOQ = "fc-bloqueada", SALIR = "/cdn-cgi/access/logout";
+    function leerLS(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+    function ponerLS(k, v) { try { if (v == null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (e) { /* sin almacenamiento */ } }
+    var ultimaMarca = 0;
+    function marcarActividad() {
+        if (bloqueo.activa) return;
+        var t = Date.now();
+        if (t - ultimaMarca < 5000) return;
+        ultimaMarca = t; ponerLS(LLAVE_ACT, String(t));
+    }
+    function capaBloqueo() {
+        var capa = document.getElementById("fc-bloqueo-pantalla");
+        if (capa) return capa;
+        capa = document.createElement("div");
+        capa.id = "fc-bloqueo-pantalla"; capa.className = "fc-bloqueo-pantalla"; capa.setAttribute("role", "dialog"); capa.setAttribute("aria-modal", "true");
+        capa.setAttribute("aria-labelledby", "fc-bl-titulo");
+        capa.innerHTML = '<div class="fc-bloqueo-pantalla__caja">' +
+            '<span class="fc-marca__sello">' + ico(D.rayo) + "</span>" +
+            '<h2 id="fc-bl-titulo">Pantalla bloqueada</h2><p id="fc-bl-texto"></p>' +
+            '<form id="fc-bl-form" hidden><input id="fc-bl-pin" class="ui-input" type="password" inputmode="numeric" autocomplete="off" maxlength="6" placeholder="PIN" aria-label="Tu PIN">' +
+            '<button type="submit" class="ui-btn ui-btn--primario">Desbloquear</button></form>' +
+            '<p class="fc-bloqueo-pantalla__msj" id="fc-bl-msj" role="alert"></p>' +
+            '<a class="ui-btn ui-btn--secundario" id="fc-bl-salir" href="' + SALIR + '">Volver a entrar</a></div>';
+        document.body.appendChild(capa);
+        capa.querySelector("#fc-bl-form").addEventListener("submit", function (e) { e.preventDefault(); desbloquear(); });
+        return capa;
+    }
+    function pintarCapa() {
+        var capa = capaBloqueo(), con = bloqueo.pin;
+        document.getElementById("fc-bl-texto").textContent = con
+            ? "Por seguridad, después de " + bloqueo.minutos + " minutos sin usarla. Escribe tu PIN para seguir donde estabas."
+            : "Por seguridad, después de " + bloqueo.minutos + " minutos sin usarla. Para seguir, vuelve a entrar con tu correo. " +
+              "Si creas un PIN en Configuración › Mi perfil, la desbloqueas sin salir.";
+        document.getElementById("fc-bl-form").hidden = !con;
+        document.getElementById("fc-bl-salir").textContent = con ? "Entrar con mi correo" : "Volver a entrar";
+        document.getElementById("fc-bl-salir").className = "ui-btn " + (con ? "ui-btn--terciario" : "ui-btn--primario");
+        capa.hidden = false;
+        document.documentElement.classList.add("fc-bloqueada");
+        if (con) setTimeout(function () { var i = document.getElementById("fc-bl-pin"); if (i) i.focus(); }, 50);
+    }
+    function bloquearPantalla(desdeServidor) {
+        if (bloqueo.activa) return;
+        bloqueo.activa = true;
+        ponerLS(LLAVE_BLOQ, "1");
+        pintarCapa();
+        if (!desdeServidor && bloqueo.pin) fetch(API + "/api/mi-perfil/pin/bloquear", { method: "POST", credentials: "include" }).catch(function () {});
+    }
+    function quitarCapa() {
+        bloqueo.activa = false;
+        var capa = document.getElementById("fc-bloqueo-pantalla");
+        if (capa) { capa.hidden = true; document.getElementById("fc-bl-pin").value = ""; document.getElementById("fc-bl-msj").textContent = ""; }
+        document.documentElement.classList.remove("fc-bloqueada");
+    }
+    async function desbloquear() {
+        var pin = document.getElementById("fc-bl-pin").value.trim(), msj = document.getElementById("fc-bl-msj");
+        if (!pin) return;
+        msj.textContent = "";
+        try {
+            var r = await fetch(API + "/api/mi-perfil/pin/desbloquear", { method: "POST", credentials: "include",
+                headers: { "Content-Type": "application/json" }, body: JSON.stringify({ pin: pin }) });
+            if (!r.ok) { msj.textContent = await window.Fiscontable.leerError(r); document.getElementById("fc-bl-pin").select(); return; }
+            ponerLS(LLAVE_BLOQ, null); ultimaMarca = 0; quitarCapa(); marcarActividad();
+        } catch (e) { msj.textContent = "No se pudo conectar. Intenta de nuevo."; }
+    }
+    function revisarInactividad() {
+        if (!bloqueo.listo) return;
+        var ultima = +(leerLS(LLAVE_ACT) || 0) || ultimaMarca || Date.now(), quieto = Date.now() - ultima;
+        if (quieto > bloqueo.horas * 3600e3) { ponerLS(LLAVE_BLOQ, null); ponerLS(LLAVE_ACT, null); location.href = SALIR; return; }
+        if (!bloqueo.activa && quieto > bloqueo.minutos * 60e3) bloquearPantalla(false);
+    }
+    function prepararBloqueo(p) {
+        var b = p && p.bloqueo;
+        if (!b || document.documentElement.classList.contains("fc-incrustado")) return;
+        bloqueo.minutos = b.minutos || 15; bloqueo.horas = b.horas_cierre || 8; bloqueo.pin = !!b.tiene_pin;
+        if (bloqueo.activa) pintarCapa();
+        if (bloqueo.listo) return;
+        bloqueo.listo = true;
+        if (p.pantalla_bloqueada || leerLS(LLAVE_BLOQ) === "1") bloquearPantalla(!!p.pantalla_bloqueada);
+        else { ultimaMarca = 0; marcarActividad(); }
+        ["pointerdown", "keydown", "wheel", "touchstart", "mousemove"].forEach(function (ev) { document.addEventListener(ev, marcarActividad, { passive: true }); });
+        setInterval(revisarInactividad, 15000);
+        // Las demás pestañas: si una se bloquea o se desbloquea, todas igual
+        window.addEventListener("storage", function (e) {
+            if (e.key !== LLAVE_BLOQ) return;
+            if (e.newValue === "1") bloquearPantalla(true); else quitarCapa();
+        });
+    }
+    // Recargar con la pantalla bloqueada no la abre: la capa sale antes que cualquier dato
+    if (leerLS(LLAVE_BLOQ) === "1" && !document.documentElement.classList.contains("fc-incrustado")) {
+        bloqueo.activa = true;
+        document.addEventListener("DOMContentLoaded", pintarCapa);
+        if (document.readyState !== "loading") pintarCapa();
     }
 
     function manejarErrorPerfil(tipo, motivo) {
@@ -2000,6 +2104,7 @@
     Object.assign(window.Fiscontable, {
         modulo: clave,
         riel: riel,
+        bloquearPantalla: function (servidor) { bloquearPantalla(!!servidor); },
         catalogo: CATALOGO,
         grupos: GRUPOS,
         avisoPlan: avisoPlan,
