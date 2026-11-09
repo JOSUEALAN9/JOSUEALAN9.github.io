@@ -446,7 +446,7 @@
         pintarAlcance();
     }
 
-    /* Las acciones de la derecha usan lo seleccionado; si no hay selección, lo que ves. */
+    /* Las acciones de arriba usan lo seleccionado; si no hay selección, lo que ves. */
     function pintarAlcance() {
         var sel = tabla() ? tabla().seleccion.size : 0, n = sel || (E.filtradas || []).length;
         $("acciones-alcance").textContent = !n ? "No hay facturas en la tabla."

@@ -281,3 +281,4 @@ button.ctx-resumen__dato:hover { background: rgb(var(--g-50)); }
 .ctx-campo--discreto strong { font-size: var(--t-13); font-weight: 600; }
 .ctx-campo--discreto:hover { border-color: transparent; background: rgb(var(--g-100)); }
 @media (max-width: 640px) { .xml-periodo__resumen-et { display: none; } }
+.xml-filtros-activos { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 0 0 10px; }

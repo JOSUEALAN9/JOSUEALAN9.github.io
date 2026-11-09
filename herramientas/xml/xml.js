@@ -350,7 +350,7 @@
         reanudarValidacion();
     }
 
-    /* Las acciones de la derecha usan lo seleccionado; si no hay selección, lo que ves. */
+    /* Las acciones de arriba usan lo seleccionado; si no hay selección, lo que ves. */
     function uuidsParaAcciones() {
         if (E.seleccion.size) return Array.from(E.seleccion);
         return Array.from(new Set((E.filas || []).map(function (f) { return f.uuid; })));
@@ -425,6 +425,22 @@
         $("cuenta-filtros").hidden = !n;
         $("cuenta-filtros").textContent = n;
         $("btn-filtros").classList.toggle("xml-btn--activo", n > 0);
+        pintarFiltrosActivos();
+    }
+
+    // G-04: los filtros puestos se ven como etiquetas que se quitan con un clic
+    function pintarFiltrosActivos() {
+        var caja = $("filtros-activos"); if (!caja) return;
+        var chips = [], dinero = function (v) { return "$" + Number(v).toLocaleString("es-MX", { minimumFractionDigits: 2 }); };
+        (RAPIDOS[E.modulo] || []).forEach(function (r) { if (E.rapidos[r[0]]) chips.push(["r:" + r[0], r[1]]); });
+        Object.keys(E.av).forEach(function (k) {
+            var v = E.av[k]; if (v === "" || v === undefined || v === null) return;
+            chips.push(["a:" + k, k === "min" ? "Importe desde " + dinero(v) : k === "max" ? "Importe hasta " + dinero(v) : ((CAMPOS_AV[k] || {}).etiqueta || k) + ": " + v]);
+        });
+        caja.hidden = !chips.length;
+        caja.innerHTML = chips.map(function (c) {
+            return '<span class="ui-chip">' + esc(c[1]) + '<button type="button" data-quitar-filtro="' + esc(c[0]) + '" aria-label="Quitar filtro ' + esc(c[1]) + '">×</button></span>';
+        }).join("") + (chips.length > 1 ? '<button type="button" class="xml-enlace" data-quitar-filtro="*">Quitar todos</button>' : "");
     }
 
     /* ============================================================ columnas y vistas */
@@ -1404,6 +1420,14 @@
             E.rapidos[b.dataset.rapido] = !E.rapidos[b.dataset.rapido]; pintarRapidos(); aplicar();
         });
         $("quitar-filtros").addEventListener("click", function () { E.rapidos = {}; E.av = {}; pintarRapidos(); pintarAvanzados(); aplicar(); });
+        $("filtros-activos").addEventListener("click", function (e) {
+            var b = e.target.closest("[data-quitar-filtro]"); if (!b) return;
+            var k = b.dataset.quitarFiltro;
+            if (k === "*") { E.rapidos = {}; E.av = {}; }
+            else if (k.indexOf("r:") === 0) delete E.rapidos[k.slice(2)];
+            else delete E.av[k.slice(2)];
+            pintarRapidos(); pintarAvanzados(); aplicar();
+        });
         var reloj = null;
         $("buscar").addEventListener("input", function () {
             clearTimeout(reloj);
