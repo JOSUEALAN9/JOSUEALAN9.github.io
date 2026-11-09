@@ -1302,6 +1302,10 @@ dialog.fc-modal::backdrop { background: rgba(16, 27, 45, .5); backdrop-filter: b
 .fc-cmp-chip--ok { background: #dcfce7; color: #166534; } .fc-cmp-chip--mal { background: #fee2e2; color: #991b1b; }
 .fc-docs-btn.fc-cmp-rojo:hover { border-color: #fca5a5; color: #b91c1c; background: #fef2f2; }
 a.fc-docs-btn { text-decoration: none; }
+/* Un renglón con varios documentos (una declaración): cada uno es una etiqueta que se abre en el visor */
+.fc-docs-chip { display: inline-flex; align-items: center; height: 28px; margin: 2px 0 2px 6px; padding: 0 10px; border: 1px solid var(--linea); border-radius: 999px;
+    background: rgb(var(--g-50)); font: inherit; font-size: var(--t-12); font-weight: 600; color: rgb(var(--g-900)); cursor: pointer; white-space: nowrap; }
+.fc-docs-chip:hover { border-color: rgb(var(--ac-600)); color: rgb(var(--ac-700)); background: rgb(var(--ac-50)); }
 @media (max-width: 640px) { .fc-cmp-rejilla { grid-template-columns: 1fr; } .fc-cmp-campo--ancho, .fc-cmp-campo--todo { grid-column: auto; } }
 
 /* ---------- Cambio de empresa: velo «Cargando datos de…», destello y aviso ---------- */
@@ -1691,6 +1695,27 @@ html.fc-bloqueada body { overflow: hidden; }
 .fc-cfdi__cabeza .ui-icono-btn:disabled { opacity: .35; cursor: default; }
 .fc-cfdi__cabeza .ui-icono-btn svg { width: 16px; height: 16px; }
 .fc-cfdi__marco { flex: 1; width: 100%; border: 0; background: var(--papel); }
+/* Panel lateral de detalle (Fiscontable.panel): misma cabeza que el de CFDI, cuerpo con datos */
+.fc-cfdi--panel { width: min(520px, 100vw); }
+.fc-panel__cuerpo { flex: 1; overflow-y: auto; padding: var(--e-4); display: flex; flex-direction: column; gap: var(--e-4); background: rgb(var(--g-0)); }
+.fc-panel__cuerpo h4 { margin: 0; font-size: var(--t-16); font-weight: 700; color: rgb(var(--g-900)); }
+.fc-panel__datos { display: grid; grid-template-columns: max-content 1fr; gap: 6px 14px; margin: 0; font-size: var(--t-13); }
+.fc-panel__datos dt { color: rgb(var(--g-500)); }
+.fc-panel__datos dd { margin: 0; color: rgb(var(--g-900)); overflow-wrap: anywhere; }
+.fc-panel__acciones { display: flex; flex-wrap: wrap; gap: var(--e-2); }
+.fc-panel__texto { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; font-size: var(--t-13); background: rgb(var(--g-50)); border: 1px solid var(--linea); border-radius: var(--r-control); padding: 10px 12px; }
+/* Línea de tiempo de estado (Recibida → En proceso → Entregada) */
+.fc-pasos { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0; }
+.fc-pasos li { position: relative; padding: 0 0 14px 22px; font-size: var(--t-13); color: rgb(var(--g-500)); }
+.fc-pasos li::before { content: ""; position: absolute; left: 4px; top: 4px; width: 9px; height: 9px; border-radius: 50%; background: rgb(var(--g-300)); }
+.fc-pasos li::after { content: ""; position: absolute; left: 8px; top: 15px; bottom: 0; width: 1px; background: rgb(var(--g-200)); }
+.fc-pasos li:last-child::after { content: none; }
+.fc-pasos li b { display: block; color: inherit; font-weight: 600; }
+.fc-pasos .fc-paso--hecho { color: rgb(var(--g-900)); }
+.fc-pasos .fc-paso--hecho::before { background: rgb(var(--ok-600)); }
+.fc-pasos .fc-paso--actual { color: rgb(var(--g-900)); }
+.fc-pasos .fc-paso--actual::before { background: rgb(var(--ac-600)); box-shadow: 0 0 0 3px rgb(var(--ac-600) / .2); }
+.fc-pasos .fc-paso--mal::before { background: rgb(var(--er-600)); }
 /* Dentro de una ventana o panel (incrustado) los letreros generales ya se ven en la página de afuera */
 html.fc-incrustado .fc-letrero { display: none !important; }
 

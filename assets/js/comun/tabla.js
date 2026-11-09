@@ -240,7 +240,7 @@
             }
             if (e.target.closest(".xml-check")) return;
             var tr = e.target.closest("tr[data-i]");
-            if (tr && o.alClic) o.alClic(T.datos[+tr.dataset.i]);
+            if (tr && o.alClic) o.alClic(T.datos[+tr.dataset.i], e);
         });
         caja.addEventListener("scroll", function () { pintarFilas(false); }, { passive: true });
         window.addEventListener("resize", function () { pintarFilas(true); });
@@ -390,7 +390,8 @@
            exportar: { nombre: "Archivo.xlsx", hoja: "Datos", porValor: { clave, valores: [...] } },
            vacio: { titulo, texto }, extra: [elementos que van junto a los botones]
        });
-       t.ponerDatos(filas)  t.cargando()  t.error(mensaje, reintentar)  t.visibles()  t.filtrar(clave, valor)  t.tabla */
+       t.ponerDatos(filas)  t.cargando()  t.error(mensaje, reintentar)  t.visibles()  t.filtrar(clave, valor)  t.tabla
+       t.quitarSeleccion()   alClic(fila, filasVisibles, evento) */
     function estandar(o) {
         var raiz = o.contenedor;
         var F = { datos: [], buscar: "", filtros: {}, rapido: null };
@@ -417,7 +418,7 @@
         var tabla = crear({
             caja: caja, id: o.id, catalogo: o.catalogo, predeterminadas: o.predeterminadas, sellos: o.sellos, anchoClave: o.anchoClave,
             claveFila: o.claveFila, celda: o.celda, claseFila: o.claseFila, alSeleccionar: o.alSeleccionar,
-            alClic: o.alClic ? function (f) { o.alClic(f, tabla.filas()); } : null,
+            alClic: o.alClic ? function (f, ev) { o.alClic(f, tabla.filas(), ev); } : null,
             alCambiarColumnas: function () { vistas.pintar(); }
         });
         var vistas = menuVistas({
@@ -560,6 +561,7 @@
             filtrar: function (clave, valor) { if (valor === null || valor === "") delete F.filtros[clave]; else F.filtros[clave] = String(valor); aplicar(); },
             rapido: function (valor) { F.rapido = valor === null ? null : String(valor); aplicar(); },
             limpiar: function () { F.filtros = {}; F.rapido = null; F.buscar = ""; if (bus) bus.value = ""; },
+            quitarSeleccion: function () { tabla.seleccion.clear(); aplicar(); if (o.alSeleccionar) o.alSeleccionar(tabla.seleccion); },
             cargando: function (texto) {
                 caja.hidden = true; estado.hidden = false;
                 var filas = ""; for (var i = 0; i < 8; i++) filas += '<span class="ui-skel" style="width:' + (60 + (i * 37) % 40) + '%"></span>';

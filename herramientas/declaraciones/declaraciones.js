@@ -98,17 +98,29 @@
             titulo: "Declaraciones guardadas",
             subtitulo: (elegido.alias ? elegido.alias + " · " : "") + rfc + ". Se guardan un año; si tu suscripción sigue vigente, se quedan.",
             filtro: { etiqueta: "Ejercicio", valor: almacen.ejercicio, opciones: almacen.ejercicios.map(function (e) { return { valor: e, texto: e }; }) },
-            columnas: ["Mes", "Declaración", "Documento", "No. operación", "Guardada"],
+            // M-05: un renglón por declaración (mes + número de operación); sus documentos salen como etiquetas
+            columnas: ["Mes", "Declaración", "No. operación", "Guardada"],
             nombreZip: "Declaraciones_" + rfc,
+            unidad: ["declaración", "declaraciones"],
             cargar: async function (ej) {
-                var a = await pedirAlmacen(rfc, ej);
-                return { nota: a.documentos.length + " documento(s) del " + a.ejercicio + ".",
-                         documentos: a.documentos.map(function (d) {
-                             var mes = MESES[+d.mes] || d.mes || "";
-                             return { id: d.id, nombre: d.nombre, titulo: d.documento + " · " + mes + " " + a.ejercicio + " · " + rfc,
-                                      url: API + "/api/declaraciones/almacen/archivo?id=" + d.id,
-                                      celdas: [mes, d.tipo_declaracion || "", d.documento, d.num_operacion || "", (d.descargado_en || "").slice(0, 10)] };
-                         }) };
+                var a = await pedirAlmacen(rfc, ej), grupos = {}, orden = [];
+                a.documentos.forEach(function (d) {
+                    var k = (d.mes || "") + "|" + (d.num_operacion || ("sin-" + (d.tipo_declaracion || "") + d.id));
+                    if (!grupos[k]) { grupos[k] = { mes: d.mes, tipo: d.tipo_declaracion || "", op: d.num_operacion || "", guardada: "", docs: [] }; orden.push(k); }
+                    var g = grupos[k], mes = MESES[+d.mes] || d.mes || "";
+                    if (!g.tipo && d.tipo_declaracion) g.tipo = d.tipo_declaracion;
+                    if ((d.descargado_en || "") > g.guardada) g.guardada = d.descargado_en || "";
+                    g.docs.push({ id: d.id, etiqueta: d.documento || "Documento", nombre: d.nombre, url: API + "/api/declaraciones/almacen/archivo?id=" + d.id,
+                                  titulo: d.documento + " · " + mes + " " + a.ejercicio + " · " + rfc, _o: +d.tipo_documento || 9 });
+                });
+                var filas = orden.map(function (k) {
+                    var g = grupos[k];
+                    g.docs.sort(function (x, y) { return x._o - y._o; });
+                    return { id: "d" + g.docs[0].id, mes: +g.mes || 0, docs: g.docs,
+                             celdas: [MESES[+g.mes] || g.mes || "", g.tipo, g.op, g.guardada.slice(0, 10)] };
+                });
+                filas.sort(function (x, y) { return y.mes - x.mes; });
+                return { nota: filas.length + " declaración(es) · " + a.documentos.length + " documento(s) del " + a.ejercicio + ".", documentos: filas };
             },
             zip: function (ids, ej) { return API + "/api/declaraciones/almacen/zip?rfc=" + encodeURIComponent(rfc) + "&ejercicio=" + encodeURIComponent(ej) + "&ids=" + ids.join(","); }
         });

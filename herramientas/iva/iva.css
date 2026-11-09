@@ -38,3 +38,4 @@ a.iva-marca:hover { border-color: #f59e0b; }
 .iva-detalle-btn::after { content: ""; width: 7px; height: 7px; border-right: 1.8px solid currentColor; border-bottom: 1.8px solid currentColor; transform: rotate(45deg) translateY(-2px); transition: transform .15s; }
 .iva-detalle-btn[aria-expanded="true"]::after { transform: rotate(-135deg) translateY(-2px); }
 .iva-detalle-btn:hover { text-decoration: underline; }
+.iva-avisos-n { align-self: center; margin-left: 10px; font-size: var(--t-13); }

@@ -196,42 +196,12 @@
         return esc(texto).replace(/https?:\/\/[^\s<]+/g, function (u) { return '<a href="' + u + '" target="_blank" rel="noopener noreferrer">' + u + "</a>"; });
     }
 
-    function filtroDe(clave) { return FILTROS.filter(function (f) { return f.clave === clave; })[0]; }
-    function enFiltro(p, clave) { var f = filtroDe(clave); return !f.estados || f.estados.indexOf(p.estado) !== -1; }
-
-    function filasVisibles() {
-        var q = limpio($("buscar").value), qn = $("buscar").value.trim().toLowerCase(), doc = $("f-documento").value;
-        return E.datos.pedidos.filter(function (p) {
-            if (!enFiltro(p, E.filtro)) return false;
-            if (doc && String(p.serviceid) !== doc) return false;
-            if (!q) return true;
-            var datos = Object.keys(p.datos || {}).map(function (k) { return p.datos[k]; }).join(" ");
-            return (p.titular + " " + datos).indexOf(q) !== -1 || (p.nota || "").toLowerCase().indexOf(qn) !== -1 ||
-                p.servicio.toLowerCase().indexOf(qn) !== -1 || String(p.id) === q;
-        });
+    function grupoDe(p) {
+        for (var i = 1; i < FILTROS.length; i++) if (FILTROS[i].estados.indexOf(p.estado) !== -1) return FILTROS[i].clave;
+        return "";
     }
 
-    function pintarFiltros() {
-        var ped = E.datos.pedidos;
-        $("filtros").innerHTML = FILTROS.map(function (f) {
-            var n = ped.filter(function (p) { return enFiltro(p, f.clave); }).length;
-            if (!n && f.clave !== "todos" && f.clave !== E.filtro) return "";
-            return '<button type="button" role="tab" class="dc-filtro dc-filtro--' + f.clave + '" data-filtro="' + f.clave + '" aria-selected="' + (f.clave === E.filtro) + '">' +
-                f.nombre + " <b>" + n + "</b></button>";
-        }).join("");
-        // Documentos que aparecen en los pedidos (para filtrar)
-        var sel = $("f-documento"), actual = sel.value, vistos = {};
-        ped.forEach(function (p) { vistos[p.serviceid] = p.servicio; });
-        sel.innerHTML = '<option value="">Todos los documentos</option>' + Object.keys(vistos).sort(function (a, b) { return vistos[a].localeCompare(vistos[b]); })
-            .map(function (k) { return '<option value="' + k + '"' + (k === actual ? " selected" : "") + ">" + esc(vistos[k]) + "</option>"; }).join("");
-        var n = ped.filter(function (p) { return EN_CURSO.indexOf(p.estado) !== -1; }).length;
-        $("n-en-curso").hidden = !n;
-        $("n-en-curso").textContent = n;
-        $("actualizado").textContent = (E.visto ? "Actualizado a las " + E.visto.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit", second: "2-digit" }) : "") +
-            (n ? " · se actualiza sola cada 20 segundos mientras haya pedidos en proceso" : "");
-    }
-
-    /* Datos sensibles (CURP, NSS, RFC) a medias en la tabla: «DOHA90••••••••••». «Mostrar» los revela en ese renglón. */
+    /* Datos sensibles (CURP, NSS, RFC) a medias: «DOHA90••••••••••». En el detalle, «Mostrar» los revela. */
     E.revelados = {};
     function enmascarar(v) {
         v = String(v == null ? "" : v);
@@ -240,41 +210,136 @@
         var deja = /^\d+$/.test(limpio) ? 3 : 6;
         return esc(limpio.slice(0, deja)) + '<span class="dc-oculto" aria-label="oculto">' + "•".repeat(limpio.length - deja) + "</span>";
     }
-    function pintarPedidos() {
-        pintarFiltros();
-        var filas = filasVisibles(), hayFiltro = E.filtro !== "todos" || $("f-documento").value || $("buscar").value.trim();
-        $("pedidos").innerHTML = filas.length ? filas.map(function (p) {
-            var ver = !!E.revelados[p.id], dato = function (v) { return ver ? esc(v) : enmascarar(v); };
-            var otros = Object.keys(p.datos || {}).filter(function (k) { return p.datos[k] !== p.titular; })
-                .map(function (k) { return esc(k) + ": " + dato(p.datos[k]); }).join("<br>");
-            var acciones = "";
-            if (p.tiene_archivo) acciones += '<button type="button" class="dc-btn" data-ver="' + p.id + '">Ver</button><button type="button" class="dc-btn dc-btn--si" data-bajar="' + p.id + '">Descargar</button>';
-            if (p.resultado) acciones += '<button type="button" class="dc-btn" data-copiar="' + p.id + '">Copiar</button>';
-            if (EN_CURSO.indexOf(p.estado) !== -1 && p.estado !== "enviando") acciones += '<button type="button" class="dc-btn" data-actualizar="' + p.id + '">Actualizar</button>';
-            return "<tr><td>" + p.id + "<br><small>" + fecha(p.creado_en) + "</small></td>" +
-                "<td>" + esc(p.servicio) + (p.nota ? "<br><small>" + esc(p.nota) + "</small>" : "") + "</td>" +
-                '<td class="dc-dato">' + dato(p.titular) + (otros ? "<br><small>" + otros + "</small>" : "") +
-                ' <button type="button" class="dc-revelar" data-revelar="' + p.id + '">' + (ver ? "Ocultar" : "Mostrar") + "</button></td>" +
-                '<td class="num">' + (p.precio ? m(p.precio) : "—") + "</td>" +
-                "<td>" + estadoHtml(p) + "</td>" +
-                '<td><div class="dc-acciones">' + acciones + "</div></td></tr>";
-        }).join("") : '<tr><td colspan="6" class="dc-vacio">' + (hayFiltro ? "Nada coincide con el filtro." : "Aún no has solicitado documentos.") + "</td></tr>";
+    function otrosDatos(p) {
+        return Object.keys(p.datos || {}).filter(function (k) { return p.datos[k] !== p.titular; }).map(function (k) { return [k, p.datos[k]]; });
     }
 
-    /* G-12: exportar lo que se ve (con los filtros) a Excel, con fechas y créditos con su tipo. */
-    function exportar() {
-        var filas = filasVisibles().map(function (p) {
-            return { folio: p.id, fecha: p.creado_en, documento: p.servicio, referencia: p.nota, dato: p.titular,
-                     otros: Object.keys(p.datos || {}).filter(function (k) { return p.datos[k] !== p.titular; }).map(function (k) { return k + ": " + p.datos[k]; }).join(" | "),
-                     creditos: p.precio || 0, estado: p.estado_texto,
-                     respuesta: p.estado === "entregado" ? (p.resultado || (p.tiene_archivo ? "PDF descargado" : "")) : p.motivo, entregado: p.entregado_en };
+    /* ---------- tabla estándar de «Mis solicitudes» */
+    var SELLO_ESTADO = { entregado: "verde", rechazado: "rojo", error: "rojo", devuelto: "gris", revisar: "ambar" };
+    var t = null;
+    function tabla() {
+        if (t) return t;
+        var bAct = document.createElement("button");
+        bAct.type = "button"; bAct.className = "xml-btn"; bAct.id = "btn-actualizar"; bAct.textContent = "Actualizar";
+        bAct.addEventListener("click", actualizarTodo);
+        t = FCTabla.estandar({
+            contenedor: $("tabla-doc"), id: "documentos", claveFila: "id",
+            catalogo: [
+                { clave: "id", etiqueta: "Folio", tipo: "texto" }, { clave: "creado_en", etiqueta: "Fecha", tipo: "fecha" },
+                { clave: "servicio", etiqueta: "Documento", tipo: "texto" }, { clave: "nota", etiqueta: "Referencia", tipo: "texto" },
+                { clave: "titular", etiqueta: "Dato", tipo: "texto" }, { clave: "precio", etiqueta: "Créditos", tipo: "numero" },
+                { clave: "estado_texto", etiqueta: "Estado", tipo: "texto" }, { clave: "archivo", etiqueta: "Archivo", tipo: "texto" },
+                { clave: "entregado_en", etiqueta: "Entregado", tipo: "fecha" }, { clave: "motivo", etiqueta: "Motivo", tipo: "texto" }
+            ],
+            predeterminadas: ["id", "creado_en", "servicio", "nota", "titular", "precio", "estado_texto", "archivo"],
+            anchoClave: { id: 80, servicio: 240, nota: 180, titular: 190, estado_texto: 150, archivo: 190, motivo: 260 },
+            celda: function (c, p) {
+                if (c.clave === "titular") return '<span class="dc-dato">' + enmascarar(p.titular) + "</span>";
+                if (c.clave === "estado_texto") return '<span class="xml-sello xml-sello--' + (SELLO_ESTADO[p.estado] || (EN_CURSO.indexOf(p.estado) !== -1 ? "ambar" : "gris")) + '">' + esc(p.estado_texto) + "</span>";
+                if (c.clave === "archivo") {
+                    if (p.tiene_archivo) return '<span class="dc-acciones"><button type="button" class="dc-btn" data-ver="' + p.id + '">Ver</button><button type="button" class="dc-btn dc-btn--si" data-bajar="' + p.id + '">Descargar</button></span>';
+                    if (p.resultado) return '<span class="dc-acciones"><button type="button" class="dc-btn" data-copiar="' + p.id + '">Copiar respuesta</button></span>';
+                    return "";
+                }
+                return null;
+            },
+            buscar: { texto: "Buscar CURP, RFC, folio o referencia…", campos: ["buscable"] },
+            filtros: [{ clave: "servicio", etiqueta: "Documento" }],
+            rapidos: { clave: "grupo", valores: FILTROS.slice(1).map(function (f) { return { valor: f.clave, etiqueta: f.nombre }; }) },
+            exportar: { nombre: function () { return "Solicitudes_documentos_" + new Date().toISOString().slice(0, 10) + ".xlsx"; }, hoja: "Mis solicitudes" },
+            vacio: { titulo: "Aún no has solicitado documentos", texto: "Lo que pidas en «Solicitar documento» aparece aquí con su estado." },
+            extra: [bAct],
+            alClic: function (p, lista, ev) {
+                var b = ev && ev.target.closest("button");
+                if (b && accionBoton(b)) return;
+                verSolicitud(p, lista);
+            }
         });
-        var hoy = new Date().toISOString().slice(0, 10);
-        Fiscontable.excel("Solicitudes_documentos_" + hoy + ".xlsx", [{ hoja: "Mis solicitudes", filas: filas, columnas: [
-            { titulo: "Folio", clave: "folio" }, { titulo: "Fecha", clave: "fecha", tipo: "fecha" }, { titulo: "Documento", clave: "documento" },
-            { titulo: "Referencia", clave: "referencia" }, { titulo: "Dato", clave: "dato" }, { titulo: "Otros datos", clave: "otros" },
-            { titulo: "Créditos", clave: "creditos", tipo: "moneda" }, { titulo: "Estado", clave: "estado" }, { titulo: "Respuesta", clave: "respuesta" },
-            { titulo: "Entregado", clave: "entregado", tipo: "fecha" }] }]).catch(function (e) { Fiscontable.toast(e.message); });
+        return t;
+    }
+
+    function pintarPedidos() {
+        var ped = E.datos.pedidos;
+        tabla().ponerDatos(ped.map(function (p) {
+            return Object.assign({}, p, { grupo: grupoDe(p), archivo: p.tiene_archivo ? "PDF" : p.resultado ? "Respuesta" : "",
+                buscable: [p.id, p.titular, p.nota, p.servicio].concat(Object.keys(p.datos || {}).map(function (k) { return p.datos[k]; })).join(" ").toLowerCase() });
+        }));
+        var n = ped.filter(function (p) { return EN_CURSO.indexOf(p.estado) !== -1; }).length;
+        $("n-en-curso").hidden = !n;
+        $("n-en-curso").textContent = n;
+        $("actualizado").textContent = (E.visto ? "Actualizado a las " + E.visto.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit", second: "2-digit" }) : "") +
+            (n ? " · se actualiza sola cada 20 segundos mientras haya pedidos en proceso" : "");
+        if (E.panel && E.panelId) {                        // el detalle abierto se actualiza con lo nuevo
+            var abierto = ped.filter(function (x) { return x.id === E.panelId; })[0];
+            if (abierto) E.panel.repintar();
+        }
+    }
+
+    /* ---------- detalle en el panel lateral: datos, línea de tiempo y acciones */
+    function pasos(p) {
+        var s = servicioPorId(p.serviceid) || {}, curso = EN_CURSO.indexOf(p.estado) !== -1;
+        var fin = { entregado: ["Entregada", "fc-paso--hecho", fecha(p.entregado_en)], rechazado: ["Rechazada", "fc-paso--mal", p.precio ? "Se te devolvieron los créditos." : ""],
+                    error: ["Con error", "fc-paso--mal", p.precio ? "No se te cobró." : ""], devuelto: ["Devuelta", "fc-paso--mal", ""],
+                    revisar: ["En revisión", "fc-paso--actual", "Lo está revisando el administrador. Si no se resuelve, se te devuelven los créditos."] }[p.estado]
+                  || ["Entregada", "", s.tiempo ? "Suele tardar " + s.tiempo : ""];
+        return '<ol class="fc-pasos">' +
+            '<li class="fc-paso--hecho"><b>Recibida</b>' + esc(fecha(p.creado_en)) + "</li>" +
+            '<li class="' + (curso ? "fc-paso--actual" : "fc-paso--hecho") + '"><b>En proceso</b>' + (curso && p.estado_texto !== "En proceso" ? esc(p.estado_texto) : "") + "</li>" +
+            '<li class="' + fin[1] + '"><b>' + esc(fin[0]) + "</b>" + esc(fin[2]) + "</li></ol>";
+    }
+    function verSolicitud(p, lista) {
+        var ids = (lista || [p]).map(function (x) { return x.id; });
+        E.panel = Fiscontable.panel({
+            titulo: "Solicitud", lista: ids, i: ids.indexOf(p.id),
+            pintar: function (id, cuerpo) {
+                var x = E.datos.pedidos.filter(function (q) { return q.id === id; })[0];
+                E.panelId = id;
+                if (!x) { cuerpo.innerHTML = '<p class="xml-tenue">Esta solicitud ya no está en la lista.</p>'; return; }
+                var ver = !!E.revelados[x.id], dato = function (v) { return ver ? esc(v) : enmascarar(v); };
+                var acciones = "";
+                if (x.tiene_archivo) acciones += '<button type="button" class="ui-btn ui-btn--secundario ui-btn--32" data-ver="' + x.id + '">Ver</button><button type="button" class="ui-btn ui-btn--primario ui-btn--32" data-bajar="' + x.id + '">Descargar</button>';
+                if (x.resultado) acciones += '<button type="button" class="ui-btn ui-btn--secundario ui-btn--32" data-copiar="' + x.id + '">Copiar respuesta</button>';
+                if (EN_CURSO.indexOf(x.estado) !== -1 && x.estado !== "enviando") acciones += '<button type="button" class="ui-btn ui-btn--secundario ui-btn--32" data-actualizar="' + x.id + '">Consultar ahora</button>';
+                cuerpo.innerHTML = "<h4>" + esc(x.servicio) + "</h4>" +
+                    '<dl class="fc-panel__datos"><dt>Folio</dt><dd>' + x.id + "</dd>" +
+                    (x.nota ? "<dt>Referencia</dt><dd>" + esc(x.nota) + "</dd>" : "") +
+                    '<dt>Dato</dt><dd class="dc-dato">' + dato(x.titular) + ' <button type="button" class="dc-revelar" data-revelar="' + x.id + '">' + (ver ? "Ocultar" : "Mostrar") + "</button></dd>" +
+                    otrosDatos(x).map(function (o) { return "<dt>" + esc(o[0]) + "</dt><dd>" + dato(o[1]) + "</dd>"; }).join("") +
+                    "<dt>Créditos</dt><dd>" + (x.precio ? m(x.precio) : "Sin costo") + "</dd></dl>" +
+                    pasos(x) +
+                    (x.motivo && x.estado !== "entregado" ? '<p class="fc-panel__texto">' + esc(x.motivo) + "</p>" : "") +
+                    (x.resultado ? '<pre class="fc-panel__texto">' + conLigas(x.resultado) + "</pre>" : "") +
+                    (acciones ? '<div class="fc-panel__acciones">' + acciones + "</div>" : "");
+                cuerpo.onclick = function (e) {
+                    var rv = e.target.closest("[data-revelar]");
+                    if (rv) { E.revelados[x.id] = !E.revelados[x.id]; E.panel.repintar(); return; }
+                    var b = e.target.closest("button"); if (b) accionBoton(b);
+                };
+            }
+        });
+    }
+
+    /* Botones de las filas y del detalle: Ver, Descargar, Copiar, Consultar ahora */
+    function accionBoton(b) {
+        if (b.dataset.bajar) { bajar(Number(b.dataset.bajar), b); return true; }
+        if (b.dataset.ver) { ver(Number(b.dataset.ver), b); return true; }
+        if (b.dataset.actualizar) { actualizarUno(Number(b.dataset.actualizar), b); return true; }
+        if (b.dataset.copiar) {
+            var p = E.datos.pedidos.filter(function (x) { return x.id === Number(b.dataset.copiar); })[0];
+            if (p && navigator.clipboard) navigator.clipboard.writeText(p.resultado).then(function () { b.textContent = "Copiado"; });
+            return true;
+        }
+        return false;
+    }
+
+    async function actualizarTodo() {
+        var b = $("btn-actualizar");
+        b.disabled = true; b.textContent = "Actualizando…";
+        var curso = E.datos.pedidos.filter(function (p) { return EN_CURSO.indexOf(p.estado) !== -1 && p.estado !== "enviando"; }).slice(0, 10);
+        await Promise.all(curso.map(function (p) { return api("/api/documentos/pedidos/" + p.id + "/actualizar", "POST").catch(function () { return null; }); }));
+        await refrescar(true);
+        if (curso.length) setTimeout(function () { refrescar(true); }, 4000);
+        b.disabled = false; b.textContent = "Actualizar";
     }
 
     /* Mientras haya pedidos en curso, la lista se actualiza sola (solo con la página a la vista). */
@@ -355,37 +420,8 @@
             $("f-error").hidden = true;
         });
         $("form").addEventListener("submit", enviar);
-        $("buscar").addEventListener("input", function () { if (E.datos) pintarPedidos(); });
-        $("f-documento").addEventListener("change", function () { if (E.datos) pintarPedidos(); });
-        $("filtros").addEventListener("click", function (e) {
-            var b = e.target.closest("[data-filtro]");
-            if (b) { E.filtro = b.dataset.filtro; pintarPedidos(); }
-        });
         document.querySelectorAll("[data-vista]").forEach(function (b) { b.addEventListener("click", function () { verVista(b.dataset.vista); }); });
         $("aviso").addEventListener("click", function (e) { var b = e.target.closest("[data-ir]"); if (b) verVista(b.dataset.ir); });
-        $("btn-exportar").addEventListener("click", function () { if (E.datos) exportar(); });
-        $("btn-actualizar").addEventListener("click", async function () {
-            var b = this;
-            b.disabled = true; b.textContent = "Actualizando…";
-            var curso = E.datos.pedidos.filter(function (p) { return EN_CURSO.indexOf(p.estado) !== -1 && p.estado !== "enviando"; }).slice(0, 10);
-            await Promise.all(curso.map(function (p) { return api("/api/documentos/pedidos/" + p.id + "/actualizar", "POST").catch(function () { return null; }); }));
-            await refrescar(true);
-            if (curso.length) setTimeout(function () { refrescar(true); }, 4000);
-            b.disabled = false; b.textContent = "Actualizar";
-        });
-        $("pedidos").addEventListener("click", function (e) {
-            var rv = e.target.closest("[data-revelar]");
-            if (rv) { var id = Number(rv.dataset.revelar); E.revelados[id] = !E.revelados[id]; pintarPedidos(); return; }
-            var b = e.target.closest("button");
-            if (!b) return;
-            if (b.dataset.bajar) bajar(Number(b.dataset.bajar), b);
-            if (b.dataset.ver) ver(Number(b.dataset.ver), b);
-            else if (b.dataset.actualizar) actualizarUno(Number(b.dataset.actualizar), b);
-            else if (b.dataset.copiar) {
-                var p = E.datos.pedidos.filter(function (x) { return x.id === Number(b.dataset.copiar); })[0];
-                if (p && navigator.clipboard) navigator.clipboard.writeText(p.resultado).then(function () { b.textContent = "Copiado"; });
-            }
-        });
         document.addEventListener("visibilitychange", function () { if (document.visibilityState === "visible" && E.reloj) refrescar(); });
         arrancar();
     });

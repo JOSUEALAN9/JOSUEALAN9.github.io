@@ -4,15 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Documentos | Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611101900">
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611101900">
-    <link rel="stylesheet" href="/herramientas/documentos/documentos.css?v=202611101900">
+    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611102000">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611102000">
+    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611102000">
+    <link rel="stylesheet" href="/herramientas/documentos/documentos.css?v=202611102000">
 </head>
 <body class="min-h-screen flex flex-col">
 
 <div id="app-header" data-modulo="documentos" data-titulo="Documentos" data-migas="Herramientas|/herramientas/"></div>
-<script src="/assets/js/nucleo.js?v=202611101900"></script>
-<script src="/assets/js/barra.js?v=202611101900"></script>
+<script src="/assets/js/nucleo.js?v=202611102000"></script>
+<script src="/assets/js/barra.js?v=202611102000"></script>
 
 <main class="flex-grow w-full mod-pagina" style="max-width:1120px">
     <div class="mod-cabeza">
@@ -48,21 +49,13 @@
     </section>
 
     <section class="dc-caja" id="vista-estatus" hidden>
-        <div class="dc-filtros" id="filtros" role="tablist" aria-label="Filtrar por estado"></div>
-        <div class="dc-herramientas">
-            <select id="f-documento" class="dc-control" aria-label="Documento"><option value="">Todos los documentos</option></select>
-            <input type="search" id="buscar" class="dc-control dc-buscar" placeholder="Buscar CURP, RFC, folio, referencia…">
-            <button type="button" class="dc-btn" id="btn-actualizar">Actualizar</button>
-            <button type="button" class="dc-btn" id="btn-exportar">Exportar a Excel</button>
-        </div>
         <p class="dc-nota dc-actualizado" id="actualizado"></p>
-        <div class="dc-tabla-caja"><table class="dc-tabla">
-            <thead><tr><th>Folio</th><th>Documento</th><th>Dato</th><th class="num">Créditos</th><th>Estado y respuesta</th><th></th></tr></thead>
-            <tbody id="pedidos"></tbody>
-        </table></div>
+        <!-- Tabla estándar (FCTabla.estandar); el detalle de cada solicitud abre en el panel lateral -->
+        <div id="tabla-doc"></div>
     </section>
 </main>
 
-<script src="/herramientas/documentos/documentos.js?v=202611101900"></script>
+<script src="/assets/js/comun/tabla.js?v=202611102000"></script>
+<script src="/herramientas/documentos/documentos.js?v=202611102000"></script>
 </body>
 </html>
