@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611101100">
     <link rel="stylesheet" href="/assets/css/common.css?v=202611101100">
     <link rel="stylesheet" href="/creditos/creditos.css?v=202611101100">
+    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611101100">
 </head>
 <body class="min-h-screen flex flex-col">
 
@@ -14,11 +15,14 @@
 <script src="/assets/js/nucleo.js?v=202611101100"></script>
 <script src="/assets/js/barra.js?v=202611101100"></script>
 
-<main class="flex-grow w-full mod-pagina" style="max-width:1040px">
+<main class="flex-grow w-full mod-pagina" style="max-width:1320px">
     <div class="mod-cabeza"><h1>Mis créditos</h1></div>
 
     <div id="aviso" class="cr-aviso" hidden></div>
 
+    <!-- M-18: dos columnas — izquierda saldo y recarga; derecha pagos y movimientos en pestañas -->
+    <div class="cr-dos">
+    <div class="cr-col">
     <section class="cr-saldo">
         <div>
             <span class="cr-etiqueta">Saldo</span>
@@ -52,7 +56,13 @@
         <datalist id="bancos"></datalist>
     </section>
 
-    <section class="cr-caja">
+    </div>
+    <div class="cr-col">
+    <div class="ctx-segmento cr-pestanas" role="tablist" aria-label="Historial">
+        <button type="button" role="tab" data-cr-tab="movimientos" aria-pressed="true">Movimientos</button>
+        <button type="button" role="tab" data-cr-tab="pagos" aria-pressed="false">Mis pagos</button>
+    </div>
+    <section class="cr-caja" data-cr-panel="pagos" hidden>
         <h2>Mis pagos</h2>
         <div class="cr-tabla-caja"><table class="cr-tabla">
             <thead><tr><th>Reportado</th><th>Banco · clave</th><th class="num">Pagado</th><th class="num">Créditos</th><th>Estado</th></tr></thead>
@@ -60,15 +70,29 @@
         </table></div>
     </section>
 
-    <section class="cr-caja">
+    <section class="cr-caja" data-cr-panel="movimientos">
         <h2>Movimientos</h2>
         <div class="cr-tabla-caja"><table class="cr-tabla">
             <thead><tr><th>Fecha</th><th>Concepto</th><th class="num">Créditos</th></tr></thead>
             <tbody id="movimientos"></tbody>
         </table></div>
     </section>
+    </div>
+    </div>
 </main>
 
 <script src="/creditos/creditos.js?v=202611101100"></script>
+<script>
+(function () {   // pestañas del historial (se recuerda la última)
+    function ver(t) {
+        document.querySelectorAll("[data-cr-tab]").forEach(function (b) { b.setAttribute("aria-pressed", String(b.dataset.crTab === t)); });
+        document.querySelectorAll("[data-cr-panel]").forEach(function (p) { p.hidden = p.dataset.crPanel !== t; });
+        try { localStorage.setItem("fc-creditos-tab", t); } catch (e) { /* nada */ }
+    }
+    document.querySelector(".cr-pestanas").addEventListener("click", function (e) { var b = e.target.closest("[data-cr-tab]"); if (b) ver(b.dataset.crTab); });
+    var t = null; try { t = localStorage.getItem("fc-creditos-tab"); } catch (e) { /* nada */ }
+    if (t) ver(t);
+})();
+</script>
 </body>
 </html>

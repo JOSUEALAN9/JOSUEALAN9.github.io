@@ -155,6 +155,7 @@ function prepararEventos() {
         if (!b) return;
         const correo = b.dataset.correo;
         if (b.dataset.accion === "ajustes") abrirAjustesUsuario(correo);
+        if (b.dataset.accion === "ver-como") verComo(correo);
         if (b.dataset.accion === "editar") abrirDialogoUsuario(correo);
         if (b.dataset.accion === "quitar") eliminarUsuario(correo);
     });
@@ -252,6 +253,7 @@ function renderizarUsuarios() {
             <td class="p-4">${estatus}</td>
             <td class="p-4 text-right whitespace-nowrap">
                 ${u.rol === "admin" ? "" : `<button data-accion="ajustes" data-correo="${esc(u.correo)}" title="Módulos y límite solo para esta persona" class="text-xs font-bold text-slate-600 hover:text-slate-900 border border-gray-200 hover:border-slate-400 rounded-lg py-1 px-2.5 mr-1">Ajustes</button>`}
+                ${u.rol === "admin" ? "" : `<button data-accion="ver-como" data-correo="${esc(u.correo)}" title="Ver Fiscontable como esta persona (solo lectura, 60 min)" class="text-xs font-bold text-slate-600 hover:text-slate-900 border border-gray-200 hover:border-slate-400 rounded-lg py-1 px-2.5 mr-1">Ver como</button>`}
                 <button data-accion="editar" data-correo="${esc(u.correo)}" title="Cambiar rol o vigencia" class="p-1.5 text-slate-400 hover:text-slate-800 align-middle">${icono(lapiz)}</button>
                 <button data-accion="quitar" data-correo="${esc(u.correo)}" title="Quitar acceso" class="p-1.5 text-gray-300 hover:text-red-500 align-middle">${icono(bote)}</button>
             </td>
@@ -1934,4 +1936,15 @@ function exportarSesiones() {
     csvDe("Registro_sesiones.csv", ["Entro", "Ultima actividad", "Cuenta", "Navegador", "Red", "Pais", "Peticiones", "Estado"],
         sesionesActual.map(x => [fechaHoraCorta(x.inicio), fechaHoraCorta(x.ultimo), x.correo, x.navegador, x.ip, x.pais, x.peticiones,
             x.cerrada_en ? "cerrada por " + x.cerrada_por : x.activa ? "conectada" : "termino"]));
+}
+
+
+// N-04: «Ver como» — el admin ve la plataforma como esa persona (solo lectura, 60 min, queda en la bitácora)
+async function verComo(correo) {
+    if (!confirm("¿Ver Fiscontable como " + correo + "?\n\nEs solo lectura (no se puede cambiar nada), dura 60 minutos y queda en la bitácora. Sales con «Salir» en el letrero de arriba.")) return;
+    try {
+        const r = await fetch(`${Fiscontable.API}/api/admin/ver-como`, { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ correo }) });
+        if (!r.ok) throw new Error(await Fiscontable.leerError(r));
+        location.href = "/";
+    } catch (e) { alert(e.message); }
 }

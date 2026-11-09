@@ -1768,3 +1768,10 @@ a.fc-act-item:hover { background: rgb(var(--g-50)); }
 .dm-avanzado[open] > summary { margin-bottom: 8px; }
 .fpu .ui-estado { white-space: normal; min-width: 0; flex: 0 1 auto; align-items: flex-start; }
 .fpu .ui-estado::before { margin-top: 5px; }
+
+/* --- «Ver como» (N-04) --- */
+.fc-ver-como { position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%); z-index: 90; display: flex; align-items: center; gap: 10px;
+               padding: 8px 10px 8px 14px; border-radius: 999px; background: rgb(var(--av-50)); border: 1px solid rgb(var(--av-200));
+               color: rgb(var(--g-900)); font-size: var(--t-13); box-shadow: var(--sombra-2); max-width: calc(100vw - 24px); }
+.fc-ver-como svg { width: 16px; height: 16px; color: rgb(var(--av-700)); flex: none; }
+.fc-ver-como span { min-width: 0; overflow: hidden; text-overflow: ellipsis; }

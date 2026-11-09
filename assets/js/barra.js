@@ -1854,6 +1854,7 @@
         pintarLateral();
         prepararBloqueo(p);
         vigilarChipEmpresa();
+        pintarVerComo(p);
         document.dispatchEvent(new CustomEvent("fc:perfil", { detail: p }));
     }
 
@@ -1896,6 +1897,26 @@
             X.utils.book_append_sheet(libro, ws, (h.hoja || "Hoja1").slice(0, 31));
         });
         X.writeFile(libro, nombre);
+    }
+
+    /* ------------------------------------------------- «Ver como» (N-04): letrero fijo mientras el admin ve como otro usuario */
+    function pintarVerComo(p) {
+        var vc = p && p.viendo_como, caja = document.getElementById("fc-ver-como");
+        document.documentElement.classList.toggle("fc-viendo-como", !!vc);
+        if (!vc) { if (caja) caja.remove(); return; }
+        if (!caja) {
+            caja = document.createElement("div");
+            caja.id = "fc-ver-como"; caja.className = "fc-ver-como"; caja.setAttribute("role", "status");
+            document.body.appendChild(caja);
+        }
+        var hasta = new Date(vc.hasta + (String(vc.hasta).length <= 19 ? "Z" : "")).toLocaleTimeString("es-MX", { hour: "numeric", minute: "2-digit" });
+        caja.innerHTML = ico(D.persona, 2) + "<span>Estás viendo como <b>" + esc(vc.correo) + "</b> · solo lectura · hasta las " + esc(hasta) + "</span>" +
+            '<button type="button" class="ui-btn ui-btn--secundario ui-btn--28" id="fc-ver-como-salir">Salir</button>';
+        document.getElementById("fc-ver-como-salir").addEventListener("click", async function () {
+            this.disabled = true;
+            try { await fetch(API + "/api/admin/ver-como/salir", { method: "POST", credentials: "include" }); } catch (e) { /* nada */ }
+            location.href = "/admin/";
+        });
     }
 
     /* ------------------------------------------------- bloque de estado de un documento (G-08)
