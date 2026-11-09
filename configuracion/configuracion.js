@@ -325,10 +325,15 @@
     async function pintarProgramaciones(c) {
         c.innerHTML = '<div class="cf-tarjeta"><p class="cf-texto">Cargando…</p></div>';
         try {
-            var d = await api("/api/programacion");
+            var d = await api("/api/programacion"), nv = await api("/api/programacion-nuevas").catch(function () { return null; });
             var fecha = function (iso) { return iso ? iso.slice(8, 10) + "/" + iso.slice(5, 7) + "/" + iso.slice(0, 4) : "—"; };
+            var df = (nv && nv.defecto) || {}, regla = function (r) { return r ? (r.frecuencia === "semanal" ? "cada semana" : "el día " + r.dia + " de cada mes") : ""; };
             c.innerHTML = '<div class="cf-tarjeta"><p class="cf-texto">Lo programado se hace de madrugada con la e.firma guardada de cada empresa. ' +
-                "Para cambiar una, ábrela en su módulo (con esa empresa elegida arriba) y usa «Cambiar» en la línea de programación.</p></div>" +
+                "Para cambiar una, ábrela en su módulo (con esa empresa elegida arriba) y usa «Cambiar» en la línea de programación.</p>" +
+                (nv ? '<label class="ui-check cf-nuevas"><input type="checkbox" id="cf-prog-nuevas"' + (nv.activa ? " checked" : "") + "> " +
+                    "<span><b>Programar solas las empresas nuevas</b><small>Cuando una empresa guarde su e.firma: constancia " + esc(regla(df.csf)) +
+                    ", opinión " + esc(regla(df.opinion)) + ", declaraciones " + esc(regla(df.declaraciones)) + " y sus XML cada día. Solo lo que tu plan incluye; después lo cambias como cualquier otra.</small></span></label>" : "") +
+                "</div>" +
                 '<div class="cf-tarjeta cf-tarjeta--tabla" style="margin-top:12px"><table class="cf-tabla"><thead><tr><th>Qué</th><th>Empresa</th><th>Cada cuánto</th><th>Próxima</th><th>Última</th><th></th></tr></thead><tbody>' +
                 (d.programaciones.length ? d.programaciones.map(function (x) {
                     var pausable = ["csf", "opinion", "declaraciones", "xml"].indexOf(x.modulo) !== -1 && x.rfc;
@@ -339,6 +344,11 @@
                         '<a class="cf-btn cf-btn--chico" href="' + PAGINA_MODULO[x.modulo] + '"' + (incrustado ? ' target="_top"' : "") + ">Abrir</a></td></tr>";
                 }).join("") : '<tr><td colspan="6">Todavía no programas nada.</td></tr>') + "</tbody></table></div>" +
                 '<p class="cf-msj"></p>';
+            var chk = c.querySelector("#cf-prog-nuevas");
+            if (chk) chk.addEventListener("change", async function () {
+                try { await enviar("/api/programacion-nuevas", "PUT", { activa: chk.checked }); aviso(c, true, chk.checked ? "Las empresas nuevas se programarán solas." : "Las empresas nuevas ya no se programan solas."); }
+                catch (x) { chk.checked = !chk.checked; aviso(c, false, x.message); }
+            });
             c.onclick = async function (e) {
                 var b = e.target.closest("[data-pausa]"); if (!b) return;
                 b.disabled = true;

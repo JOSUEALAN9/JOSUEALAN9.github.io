@@ -14,7 +14,7 @@
 (function () {
     "use strict";
 
-    var VERSION = "202611102200";
+    var VERSION = "202611102300";
     // Ambiente de pruebas (pruebas.josuealan.com, solo para el dueño): habla con su propio servidor de pruebas
     var PRUEBAS = /^pruebas\./.test(location.hostname);
     var API = PRUEBAS ? "https://api-pruebas.josuealan.com" : "https://api.josuealan.com";
