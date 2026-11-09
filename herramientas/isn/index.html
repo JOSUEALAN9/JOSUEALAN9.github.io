@@ -4,15 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Impuestos estatales · Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611101300">
-    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611101300">
-    <link rel="stylesheet" href="/herramientas/isn/isn.css?v=202611101300">
-    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611101300">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611101400">
+    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611101400">
+    <link rel="stylesheet" href="/herramientas/isn/isn.css?v=202611101400">
+    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611101400">
 </head>
 <body class="bg-slate-50">
 <div id="app-header" data-modulo="isn" data-titulo="Impuestos estatales" data-migas="Herramientas|/herramientas/"></div>
-<script src="/assets/js/nucleo.js?v=202611101300"></script>
-<script src="/assets/js/barra.js?v=202611101300"></script>
+<script src="/assets/js/nucleo.js?v=202611101400"></script>
+<script src="/assets/js/barra.js?v=202611101400"></script>
 
 <main class="xml-pagina">
     <nav class="est-impuestos" aria-label="Impuesto">
@@ -115,9 +115,15 @@
                     <button type="button" data-modo="minimo" aria-pressed="false">Con salario mínimo</button>
                 </div>
             </div>
-            <label class="solo-minimo" hidden>Trabajadores con salario mínimo<input id="f-tsm" type="number" min="0" step="1" value="0"></label>
-            <label class="solo-minimo" hidden title="Días del mes; cámbialo si hubo faltas o incapacidades">Días<input id="f-dias" type="number" min="1" max="31" step="1"></label>
-            <label class="solo-minimo" hidden>Remuneraciones de salario mínimo<input id="f-rsm" type="number" readonly tabindex="-1" class="isn-calculado"></label>
+            <!-- Salario mínimo en líneas (como los conceptos de una factura): cada grupo con sus días; al final se suman -->
+            <div class="isn-ancho solo-minimo isn-lineas" hidden>
+                <div class="isn-lineas__cab"><span>Trabajadores con salario mínimo</span><span>Días trabajados</span><span class="isn-lineas__num">Remuneraciones</span><span></span></div>
+                <div id="lineas-sm"></div>
+                <div class="isn-lineas__pie">
+                    <button type="button" id="btn-linea" class="xml-enlace" title="Para quienes trabajaron otro número de días (faltas, altas o bajas a medio mes, incapacidades)">+ Agregar línea con otros días</button>
+                    <span>Total <b id="lineas-trab">0</b> trabajadores · <b id="f-rsm">$0.00</b></span>
+                </div>
+            </div>
             <label><span id="etq-tot">Total de trabajadores</span><input id="f-tot" type="number" min="0" step="1" value="0"></label>
             <label><span id="etq-rot">Total de remuneraciones</span><input id="f-rot" type="number" min="0" step="0.01" value="0"></label>
             <p id="nota-minimo" class="isn-ancho isn-nota solo-minimo" hidden></p>
@@ -246,7 +252,7 @@
     <ol id="avance-filas" class="isn-avance__filas"></ol>
 </div>
 
-<script src="/herramientas/isn/obligaciones.js?v=202611101300"></script>
-<script src="/herramientas/isn/isn.js?v=202611101300"></script>
+<script src="/herramientas/isn/obligaciones.js?v=202611101400"></script>
+<script src="/herramientas/isn/isn.js?v=202611101400"></script>
 </body>
 </html>

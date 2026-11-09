@@ -219,8 +219,10 @@
         // Con días guardados = se calculó con salario mínimo; si no, se edita como totales
         var conMinimo = f ? !!f.dias_sm : E.modo === "minimo";
         ponerModo(conMinimo ? "minimo" : "totales", true);
-        $("f-tsm").value = f && f.dias_sm ? f.trabajadores_sm : 0;
-        $("f-dias").value = f && f.dias_sm ? f.dias_sm : "";
+        E.lineas = f && f.dias_sm ? (f.lineas_sm && f.lineas_sm.length ? f.lineas_sm : [{ trabajadores: f.trabajadores_sm, dias: f.dias_sm }])
+            .map(function (l) { return { trabajadores: l.trabajadores, dias: l.dias }; }) : [{ trabajadores: 0, dias: diasDelMes() }];
+        E.diasMes = diasDelMes();
+        pintarLineas();
         $("f-tot").value = f ? (f.dias_sm ? f.trabajadores_otro : (f.trabajadores_sm || 0) + (f.trabajadores_otro || 0)) : 0;
         $("f-rot").value = f ? (f.dias_sm ? f.remuneraciones_otro : +(((f.remuneraciones_sm || 0) + (f.remuneraciones_otro || 0)).toFixed(2))) : 0;
         var sugerida = (E.datos.tasa_sugerida || {})[$("f-estado").value];
@@ -232,7 +234,7 @@
         $("form-error").hidden = true;
         $("modal").hidden = false;
         recalcular();
-        (f ? $("f-tsm") : $("f-rfc")).focus();
+        (f ? ($("lineas-sm").querySelector(".ln-t") || $("f-tot")) : $("f-rfc")).focus();
     }
 
     /* Salario mínimo del año y la zona de la empresa (lo manda el servidor con los periodos) */
@@ -244,6 +246,20 @@
     }
     function diasDelMes() { return new Date(+$("f-anio").value, +$("f-mes").value, 0).getDate(); }
 
+    /* Líneas de salario mínimo: [{trabajadores, dias}]. Se suman (trabajadores) y cada una pesa trabajadores × días × salario. */
+    function lineasUsadas() { return (E.lineas || []).filter(function (l) { return l.trabajadores > 0 && l.dias > 0; }); }
+    function pintarLineas() {
+        var max = diasDelMes(), varias = (E.lineas || []).length > 1;
+        $("lineas-sm").innerHTML = (E.lineas || []).map(function (l, i) {
+            return '<div class="isn-linea" data-linea="' + i + '">' +
+                '<input class="ln-t" type="number" min="0" step="1" value="' + (l.trabajadores || 0) + '" aria-label="Trabajadores de la línea ' + (i + 1) + '">' +
+                '<input class="ln-d" type="number" min="1" max="' + max + '" step="1" value="' + (l.dias || "") + '" aria-label="Días de la línea ' + (i + 1) + '" title="De 1 a ' + max + ' días">' +
+                '<span class="ln-imp isn-lineas__num">—</span>' +
+                (varias ? '<button type="button" class="ui-icono-btn ln-x" aria-label="Quitar la línea ' + (i + 1) + '" title="Quitar línea">×</button>' : "<span></span>") + "</div>";
+        }).join("");
+        recalcular();
+    }
+
     function ponerModo(modo, sinGuardar) {
         E.modo = modo;
         if (!sinGuardar) { try { localStorage.setItem("isn:modo", modo); } catch (e) { /* nada */ } }
@@ -251,22 +267,30 @@
         document.querySelectorAll(".solo-minimo").forEach(function (x) { x.hidden = modo !== "minimo"; });
         $("etq-tot").textContent = modo === "minimo" ? "Otros trabajadores" : "Total de trabajadores";
         $("etq-rot").textContent = modo === "minimo" ? "Remuneraciones de otros" : "Total de remuneraciones";
-        if (modo === "minimo" && !$("f-dias").value) $("f-dias").value = diasDelMes();
+        if (modo === "minimo" && (!E.lineas || !E.lineas.length)) { E.lineas = [{ trabajadores: 0, dias: diasDelMes() }]; pintarLineas(); }
         recalcular();
     }
 
     function totales() {
         var rsm = 0;
+        var tsm = 0;
         if (E.modo === "minimo") {
-            var sm = salarioMinimo();
-            rsm = sm ? Math.round((+$("f-tsm").value || 0) * (+$("f-dias").value || 0) * sm * 100) / 100 : 0;
-            $("f-rsm").value = rsm ? rsm.toFixed(2) : "0.00";
-            $("nota-minimo").textContent = sm ? $("f-tsm").value + " × " + ($("f-dias").value || 0) + " días × $" + sm.toFixed(2) + " (salario mínimo " +
-                $("f-anio").value + ", " + (((E.datos.empresa && E.datos.empresa.zona) === "frontera") ? "frontera norte" : "zona general") + ")" : "No hay salario mínimo para ese año.";
+            var sm = salarioMinimo(), usadas = (E.lineas || []).filter(function (l) { return l.trabajadores > 0 && l.dias > 0; });
+            tsm = usadas.reduce(function (x, l) { return x + l.trabajadores; }, 0);
+            rsm = sm ? Math.round(usadas.reduce(function (x, l) { return x + l.trabajadores * l.dias * sm; }, 0) * 100) / 100 : 0;
+            $("f-rsm").textContent = "$" + m(rsm);
+            $("lineas-trab").textContent = tsm;
+            $("lineas-sm").querySelectorAll("[data-linea]").forEach(function (fila) {
+                var l = E.lineas[+fila.dataset.linea];
+                fila.querySelector(".ln-imp").textContent = sm && l.trabajadores > 0 && l.dias > 0 ? "$" + m(Math.round(l.trabajadores * l.dias * sm * 100) / 100) : "—";
+            });
+            $("nota-minimo").textContent = sm ? (usadas.length ? usadas.map(function (l) { return l.trabajadores + " × " + l.dias + " días"; }).join(" + ") : "0") +
+                " × $" + sm.toFixed(2) + " (salario mínimo " + $("f-anio").value + ", " +
+                (((E.datos.empresa && E.datos.empresa.zona) === "frontera") ? "frontera norte" : "zona general") + ")" : "No hay salario mínimo para ese año.";
         }
         var base = rsm + (+$("f-rot").value || 0), tasa = +$("f-tasa").value;
         var imp = tasa ? Math.round(Math.round(base) * tasa / 100) : null;   // como el portal: A en pesos, B = A × tasa
-        var trab = (E.modo === "minimo" ? (+$("f-tsm").value || 0) : 0) + (+$("f-tot").value || 0);
+        var trab = tsm + (+$("f-tot").value || 0);
         return { base: base, trab: trab, imp: imp, cargo: imp == null ? null : Math.max(imp - (+$("f-ret").value || 0), 0) };
     }
 
@@ -335,11 +359,16 @@
 
     async function guardar(e) {
         e.preventDefault();
+        if (E.modo === "minimo") {
+            var maxDias = diasDelMes(), mala = (E.lineas || []).filter(function (l) { return l.trabajadores > 0 && !(l.dias >= 1 && l.dias <= maxDias); })[0];
+            if (mala) { $("form-error").textContent = "Cada línea lleva de 1 a " + maxDias + " días (los de ese mes)."; $("form-error").hidden = false; return; }
+        }
         var cuerpo = {
             rfc: $("f-rfc").value.trim().toUpperCase(), estado: $("f-estado").value, municipio: $("f-municipio").value.trim(),
             anio: +$("f-anio").value, mes: +$("f-mes").value, tipo: $("f-tipo").value,
-            trabajadores_sm: E.modo === "minimo" ? (+$("f-tsm").value || 0) : 0, remuneraciones_sm: 0,
-            dias_sm: E.modo === "minimo" && (+$("f-tsm").value || 0) > 0 ? (+$("f-dias").value || diasDelMes()) : null,
+            trabajadores_sm: E.modo === "minimo" ? lineasUsadas().reduce(function (x, l) { return x + l.trabajadores; }, 0) : 0, remuneraciones_sm: 0,
+            dias_sm: E.modo === "minimo" && lineasUsadas().length ? Math.max.apply(null, lineasUsadas().map(function (l) { return l.dias; })) : null,
+            lineas_sm: E.modo === "minimo" ? lineasUsadas() : null,
             trabajadores_otro: +$("f-tot").value || 0, remuneraciones_otro: +$("f-rot").value || 0,
             tasa: $("f-tasa").value === "" ? null : +$("f-tasa").value,
             retenido: +$("f-ret").value || 0, trabajadores_especiales: +$("f-esp").value || 0,
@@ -710,8 +739,33 @@
             var tr = e.target.closest("tr[data-id]"); if (!tr) return;
             abrirForm(E.datos.periodos.find(function (f) { return f.id === +tr.dataset.id; }));
         });
-        ["f-tsm", "f-dias", "f-tot", "f-rot", "f-ret", "f-anio"].forEach(function (id) { $(id).addEventListener("input", recalcular); });
-        $("f-mes").addEventListener("change", function () { if (E.modo === "minimo") $("f-dias").value = diasDelMes(); recalcular(); });
+        ["f-tot", "f-rot", "f-ret", "f-anio"].forEach(function (id) { $(id).addEventListener("input", recalcular); });
+        // Al cambiar de mes, las líneas que traían todos los días del mes anterior pasan a los del nuevo mes
+        function alCambiarMes() {
+            var nuevo = diasDelMes();
+            (E.lineas || []).forEach(function (l) { if (l.dias === E.diasMes || l.dias > nuevo) l.dias = nuevo; });
+            E.diasMes = nuevo; pintarLineas();
+        }
+        $("f-mes").addEventListener("change", alCambiarMes);
+        $("f-anio").addEventListener("change", alCambiarMes);
+        $("btn-linea").addEventListener("click", function () {
+            E.lineas.push({ trabajadores: 1, dias: Math.max(1, diasDelMes() - 1) });
+            pintarLineas();
+            var filas = $("lineas-sm").querySelectorAll(".ln-t"); filas[filas.length - 1].focus();
+        });
+        $("lineas-sm").addEventListener("input", function (e) {
+            var fila = e.target.closest("[data-linea]"); if (!fila) return;
+            var l = E.lineas[+fila.dataset.linea];
+            if (e.target.classList.contains("ln-t")) l.trabajadores = Math.max(0, parseInt(e.target.value, 10) || 0);
+            if (e.target.classList.contains("ln-d")) l.dias = parseInt(e.target.value, 10) || 0;
+            recalcular();
+        });
+        $("lineas-sm").addEventListener("click", function (e) {
+            var b = e.target.closest(".ln-x"); if (!b) return;
+            E.lineas.splice(+b.closest("[data-linea]").dataset.linea, 1);
+            if (!E.lineas.length) E.lineas.push({ trabajadores: 0, dias: diasDelMes() });
+            pintarLineas();
+        });
         document.querySelector(".isn-modo").addEventListener("click", function (e) { var b = e.target.closest("[data-modo]"); if (b) ponerModo(b.dataset.modo); });
         $("btn-presentar").addEventListener("click", function () { abrirPresentar(); });
         $("btn-descargar").addEventListener("click", abrirDescargar);
