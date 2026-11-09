@@ -1642,3 +1642,22 @@ html.fc-bloqueada body { overflow: hidden; }
 .pc-volver { border: 1px solid rgb(var(--av-200)); background: rgb(var(--g-0)); color: rgb(var(--g-900)); font: inherit; font-size: var(--t-13); font-weight: 600;
              border-radius: var(--r-control); padding: 5px 10px; cursor: pointer; }
 .pc-volver:hover { background: rgb(var(--g-50)); }
+
+/* --- Acciones del módulo en una barra (G-06) --- */
+.mod-layout.mod-layout--sin-lado:not([hidden]) { display: block; }
+.mod-acciones.mod-acciones--barra { position: static; display: flex; align-items: center; gap: var(--e-2); flex-wrap: wrap; padding: 0; margin: 0 0 10px;
+                                    background: none; border: 0; border-radius: 0; flex-direction: row; }
+.mod-acciones__der { display: flex; align-items: center; gap: var(--e-2); flex-wrap: wrap; margin-left: auto; }
+.mod-acciones--barra > .mod-acciones__der > .mod-accion { width: auto; }
+.mod-acciones--barra .mod-accion b { display: none; }
+.mod-acciones__nota--barra { margin: 0 !important; font-size: var(--t-12) !important; color: rgb(var(--g-600)); }
+.mod-menu { position: relative; }
+.mod-menu[hidden] { display: none; }
+.mod-menu__btn svg { width: 14px; height: 14px; margin-left: 2px; }
+.mod-menu__lista { position: absolute; right: 0; top: calc(100% + 4px); z-index: 30; min-width: 220px; padding: var(--e-1); background: rgb(var(--g-0));
+                   border: 1px solid var(--linea); border-radius: var(--r-tarjeta); box-shadow: var(--sombra-2); display: grid; gap: 1px; }
+.mod-menu__lista[hidden] { display: none; }
+.mod-menu__lista .mod-accion { display: flex; width: 100%; padding: 7px 10px; border: 0; border-radius: var(--r-control); font-size: var(--t-13); font-weight: 500;
+                               color: rgb(var(--g-900)); text-decoration: none; }
+.mod-menu__lista .mod-accion[hidden] { display: none; }
+.mod-menu__lista .mod-accion:hover:not(:disabled) { background: rgb(var(--g-100)); border-color: transparent; }

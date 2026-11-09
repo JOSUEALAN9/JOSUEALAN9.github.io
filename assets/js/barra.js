@@ -1719,6 +1719,59 @@
     }
 
 
+    /* ------------------------------------------------- acciones del módulo (G-06)
+       La columna de acciones de la derecha (.mod-acciones: SAT, Reportes, Compartir, Con este periodo) se vuelve una
+       barra de una línea arriba de la tabla: un grupo con una sola acción es un botón; con varias, un menú «Grupo ▾»;
+       «Con este periodo» es «Ir a ▾». Es el MISMO elemento (los módulos escuchan sus clics ahí) y los mismos botones
+       (con sus ids y eventos), así que no se pierde ninguna acción. La tabla queda con todo el ancho. */
+    function accionesEnBarra() {
+        document.querySelectorAll("aside.mod-acciones:not(.mod-acciones--barra)").forEach(function (lado) {
+            var grupos = [], nota = null, actual = null;
+            [].slice.call(lado.children).forEach(function (el) {
+                if (el.classList.contains("mod-acciones__grupo")) { actual = { titulo: el.textContent.trim(), items: [] }; grupos.push(actual); el.remove(); }
+                else if (el.classList.contains("mod-acciones__nota")) nota = el;
+                else if (el.classList.contains("mod-accion")) { if (!actual) { actual = { titulo: "", items: [] }; grupos.push(actual); } actual.items.push(el); }
+            });
+            lado.classList.add("mod-acciones--barra");
+            lado.innerHTML = "";
+            if (nota) { nota.classList.add("mod-acciones__nota--barra"); lado.appendChild(nota); }
+            var derecha = document.createElement("div"); derecha.className = "mod-acciones__der"; lado.appendChild(derecha);
+            var menus = [];
+            grupos.forEach(function (g) {
+                var ir = /con este periodo/i.test(g.titulo), primarias = g.items.filter(function (b) { return b.classList.contains("mod-accion--primaria"); });
+                primarias.forEach(function (b) { b.classList.add("ui-btn", "ui-btn--primario", "ui-btn--28"); derecha.appendChild(b); });
+                var resto = g.items.filter(function (b) { return primarias.indexOf(b) === -1; });
+                if (!resto.length) return;
+                if (resto.length === 1 && !ir) { resto[0].classList.add("ui-btn", "ui-btn--secundario", "ui-btn--28"); derecha.appendChild(resto[0]); return; }
+                var caja = document.createElement("div"); caja.className = "mod-menu";
+                caja.innerHTML = '<button type="button" class="ui-btn ui-btn--secundario ui-btn--28 mod-menu__btn" aria-haspopup="menu" aria-expanded="false">' +
+                    esc(ir ? "Ir a" : g.titulo) + ico(D.abajo, 2) + '</button><div class="mod-menu__lista" role="menu" hidden></div>';
+                var lista = caja.querySelector(".mod-menu__lista");
+                resto.forEach(function (b) { b.setAttribute("role", "menuitem"); lista.appendChild(b); });
+                derecha.appendChild(caja);
+                menus.push({ caja: caja, items: resto });
+            });
+            // Un menú sin nada visible no se muestra (los módulos ocultan acciones según lo que hay)
+            function refrescar() { menus.forEach(function (m) { m.caja.hidden = m.items.every(function (b) { return b.hidden; }); }); }
+            refrescar();
+            var obs = new MutationObserver(refrescar);
+            menus.forEach(function (m) { m.items.forEach(function (b) { obs.observe(b, { attributes: true, attributeFilter: ["hidden"] }); }); });
+            function cerrar(salvo) {
+                lado.querySelectorAll(".mod-menu__lista").forEach(function (l) { if (l !== salvo) { l.hidden = true; l.previousElementSibling.setAttribute("aria-expanded", "false"); } });
+            }
+            lado.addEventListener("click", function (e) {
+                var btn = e.target.closest(".mod-menu__btn");
+                if (btn) { var l = btn.nextElementSibling; cerrar(l); l.hidden = !l.hidden; btn.setAttribute("aria-expanded", String(!l.hidden)); return; }
+                if (e.target.closest(".mod-menu__lista .mod-accion")) cerrar(null);
+            });
+            document.addEventListener("click", function (e) { if (!lado.contains(e.target)) cerrar(null); });
+            document.addEventListener("keydown", function (e) { if (e.key === "Escape") cerrar(null); });
+            var layout = lado.closest(".mod-layout"), principal = layout && layout.querySelector(".mod-layout__principal");
+            if (principal) { principal.insertBefore(lado, principal.firstChild); layout.classList.add("mod-layout--sin-lado"); }
+        });
+    }
+    if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", accionesEnBarra); else accionesEnBarra();
+
     /* ------------------------------------------------- bloqueo por inactividad (S-01)
        Tras N minutos sin usar la web (cada quien lo elige en Configuración › Mi perfil) se bloquea la pantalla en
        todas las pestañas. Con PIN se desbloquea sin perder lo que estaba en pantalla; el servidor también deja esa
