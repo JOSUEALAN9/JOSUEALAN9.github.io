@@ -128,9 +128,11 @@
     async function cargarDespacho() {
         if (!E.tabla) {
             E.tabla = FCTabla.estandar({
-                contenedor: $("tb-tabla"), id: "tablero", claveFila: "rfc", catalogo: CATALOGO,
-                predeterminadas: ["empresa", "estado", "atender", "opinion_txt", "constancia_txt", "xml_mes", "efirma_txt"],
-                anchoClave: { empresa: 300, estado: 104, atender: 330, opinion_txt: 190, constancia_txt: 150, xml_mes: 190, efirma_txt: 100 },
+                // De fábrica, solo lo que cabe a 100 % en una laptop; lo demás (XML del mes, e.firma, buzón…) en «Columnas».
+                // id nuevo para que nadie se quede con el acomodo anterior de 7 columnas guardado en su navegador.
+                contenedor: $("tb-tabla"), id: "tablero_v2", claveFila: "rfc", catalogo: CATALOGO,
+                predeterminadas: ["empresa", "estado", "atender", "opinion_txt", "constancia_txt"],
+                anchoClave: { empresa: 250, estado: 92, atender: 290, opinion_txt: 165, constancia_txt: 125, xml_mes: 170, efirma_txt: 90 },
                 buscar: { texto: "Buscar empresa o RFC…", campos: ["empresa", "rfc"] },
                 filtros: FILTROS,
                 exportar: { nombre: "Tablero_empresas.xlsx", hoja: "Empresas" },
