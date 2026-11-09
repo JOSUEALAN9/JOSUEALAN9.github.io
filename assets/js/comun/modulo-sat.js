@@ -940,14 +940,24 @@
         var panel = $("panel-masivo"); if (!panel || $("msat-cli")) return;
         var caja = document.createElement("div");
         caja.className = "ficha msat-cli"; caja.id = "msat-cli";
-        caja.innerHTML = '<h2 class="ficha__titulo">De tus clientes con e.firma guardada</h2>' +
-            '<p class="ficha__nota">Marca a quiénes y genera. No tienes que subir nada: se usa la e.firma que ya guardaste de cada uno.</p>' +
+        caja.innerHTML = '<h2 class="ficha__titulo">Todos tus clientes con e.firma guardada</h2>' +
+            '<p class="ficha__nota">Ya vienen marcados todos; quita los que no quieras. No tienes que subir nada: se usa la e.firma que ya guardaste de cada uno.</p>' +
             '<div class="msat-cli__cuerpo"><p class="ficha__nota">Cargando tus clientes…</p></div>';
         var antes = panel.querySelector(".ficha");
         panel.insertBefore(caja, antes);
-        var o = document.createElement("p");
-        o.className = "msat-cli__o"; o.textContent = "O con una carpeta (plantilla del lote y sus .cer/.key):";
-        panel.insertBefore(o, antes);
+        // «Todos los clientes» = los que tienen e.firma guardada. La carpeta (plantilla + .cer/.key) queda plegada abajo,
+        // para quien no la tiene guardada; el avance del lote sigue afuera porque lo usan las dos formas.
+        var plegado = document.createElement("details");
+        plegado.className = "msat-carpeta"; plegado.id = "msat-carpeta";
+        plegado.innerHTML = "<summary>Con una carpeta, para quien no tiene su e.firma guardada</summary>";
+        panel.insertBefore(plegado, antes);
+        var fin = $("caja-programar-lote"), nodo = antes;
+        while (nodo) {
+            var sig = nodo.nextElementSibling;
+            plegado.appendChild(nodo);
+            if (nodo === fin) break;
+            nodo = sig;
+        }
         try {
             var r = await fetch(API + "/api/clientes", { credentials: "include" });
             if (!r.ok) throw new Error(await leerError(r));
@@ -956,6 +966,8 @@
         } catch (e) { caja.querySelector(".msat-cli__cuerpo").innerHTML = '<p class="ficha__nota">' + esc(e.message) + "</p>"; return; }
         var pedidos = (Fiscontable.url("rfcs") || "").toUpperCase().split(",").filter(Boolean);     // desde Clientes: ?modo=masivo&rfcs=…
         pedidos.forEach(function (x) { if (CLI.lista.some(function (c) { return c.rfc === x; })) CLI.marcados[x] = 1; });
+        if (!pedidos.length) CLI.lista.forEach(function (c) { CLI.marcados[c.rfc] = 1; });          // de entrada: todos
+        if (!CLI.lista.length) $("msat-carpeta").open = true;
         pintarDesdeClientes();
         if (pedidos.length) caja.scrollIntoView({ block: "start" });
     }

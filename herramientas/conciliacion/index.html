@@ -4,15 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Conciliación · Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611110100">
-    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611110100">
-    <link rel="stylesheet" href="/herramientas/conciliacion/conciliacion.css?v=202611110100">
-    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611110100">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611110200">
+    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611110200">
+    <link rel="stylesheet" href="/herramientas/conciliacion/conciliacion.css?v=202611110200">
+    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611110200">
 </head>
 <body class="bg-slate-50">
 <div id="app-header" data-modulo="conciliacion" data-titulo="Conciliación" data-migas="Herramientas|/herramientas/"></div>
-<script src="/assets/js/nucleo.js?v=202611110100"></script>
-<script src="/assets/js/barra.js?v=202611110100"></script>
+<script src="/assets/js/nucleo.js?v=202611110200"></script>
+<script src="/assets/js/barra.js?v=202611110200"></script>
 
 <main class="xml-pagina">
     <!-- Una sola fila: qué módulo, de quién, qué periodo y las acciones -->
@@ -41,10 +41,10 @@
         <aside class="mod-acciones" aria-label="Acciones">
             <p class="mod-acciones__grupo">SAT</p>
             <button type="button" id="btn-validar" class="mod-accion" title="Vigentes o cancelados: facturas, pagos y notas"><b>✓</b>Validar estado SAT</button>
-            <p class="mod-acciones__grupo">Reportes</p>
-            <button type="button" class="mod-accion" data-excel="vista" title="Con tus columnas y filtros, más movimientos y tipos de cambio"><b>▦</b>Exportar esta tabla</button>
-            <button type="button" class="mod-accion" data-excel="completo" title="Todas las facturas del periodo, sin filtros"><b>▤</b>Reporte completo</button>
             <button type="button" id="btn-tc" class="mod-accion" title="Tipos de cambio usados y ajustes propios"><b>$</b>Tipos de cambio</button>
+            <p class="mod-acciones__grupo">Descargar</p>
+            <button type="button" class="mod-accion" data-excel="vista" title="Con tus columnas y filtros, más movimientos y tipos de cambio"><b>▦</b>Excel de esta tabla</button>
+            <button type="button" class="mod-accion" data-excel="completo" title="Todas las facturas del periodo, sin filtros"><b>▤</b>Excel completo</button>
             <p id="acciones-alcance" class="mod-acciones__nota"></p>
             <p class="mod-acciones__grupo">Con este periodo</p>
             <button type="button" id="btn-listas" class="mod-accion" title="Abre Listas del SAT con esta empresa y este periodo"><b>⚑</b>Validar listas</button>
@@ -131,9 +131,9 @@
     </div>
 </div>
 
-<script src="/assets/js/comun/periodo-meses.js?v=202611110100"></script>
-<script src="/assets/js/comun/tabla.js?v=202611110100"></script>
-<script src="/assets/js/comun/bandeja-xml.js?v=202611110100"></script>
-<script src="/herramientas/conciliacion/conciliacion.js?v=202611110100"></script>
+<script src="/assets/js/comun/periodo-meses.js?v=202611110200"></script>
+<script src="/assets/js/comun/tabla.js?v=202611110200"></script>
+<script src="/assets/js/comun/bandeja-xml.js?v=202611110200"></script>
+<script src="/herramientas/conciliacion/conciliacion.js?v=202611110200"></script>
 </body>
 </html>

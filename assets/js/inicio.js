@@ -25,18 +25,23 @@
 
     /* ---------------------------------------------------------------- semáforo */
     function sello(tono, texto) { return '<span class="tb-sello tb-sello--' + tono + '">' + esc(texto) + "</span>"; }
+    // Opinión y constancia cuentan solo si son del mes en curso (calendario): una de octubre ya no dice cómo está en noviembre
     function celdaOpinion(o) {
         if (!o) return sello("nada", "Sin consultar");
         var r = o.resultado || "Consultada";
+        if (o.del_mes === false) return sello(/Negativa|No inscrito/.test(r) ? "error" : "aviso", "Falta la de " + o.mes_actual) +
+            ' <small class="xml-tenue">la de ' + esc(o.mes) + ": " + esc(r.toLowerCase()) + "</small>";
         return sello(r === "Positiva" || r === "Inscrito sin obligaciones" ? "ok" : r === "Consultada" ? "aviso" : "error", r) + ' <small class="xml-tenue">' + esc(fecha(o.fecha)) + "</small>";
     }
     function celdaConstancia(c) {
         if (!c) return sello("nada", "Sin constancia");
-        return sello(c.del_mes ? "ok" : "aviso", c.del_mes ? "Del mes" : "De hace " + c.dias + " días");
+        return c.del_mes ? sello("ok", "Del mes") + ' <small class="xml-tenue">' + esc(fecha(c.fecha)) + "</small>"
+            : sello("aviso", "Falta la de " + c.mes_actual) + ' <small class="xml-tenue">la última es de ' + esc(c.mes) + "</small>";
     }
+    function opinionVieja(f) { return f.opinion && f.opinion.del_mes === false; }
     function estadoFila(f) {
         if ((f.opinion && /Negativa|No inscrito/.test(f.opinion.resultado || "")) || f.listas || (f.buzon && f.buzon.pendientes)) return "Atender";
-        if (!f.opinion || !f.constancia || !f.constancia.del_mes || (f.buzon && f.buzon.nuevos) || !f.efirma) return "Revisar";
+        if (!f.opinion || opinionVieja(f) || !f.constancia || !f.constancia.del_mes || (f.buzon && f.buzon.nuevos) || !f.efirma) return "Revisar";
         return "Al día";
     }
 
@@ -48,8 +53,9 @@
         if (f.listas) m.push(["error", f.listas + " en listas del SAT"]);
         if (f.buzon && f.buzon.nuevos) m.push(["aviso", f.buzon.nuevos + " sin leer en buzón"]);
         if (!f.opinion) m.push(["aviso", "Sin opinión"]);
+        else if (opinionVieja(f)) m.push(["aviso", "Falta la opinión de " + f.opinion.mes_actual]);
         if (!f.constancia) m.push(["aviso", "Sin constancia"]);
-        else if (!f.constancia.del_mes) m.push(["aviso", "Constancia vieja"]);
+        else if (!f.constancia.del_mes) m.push(["aviso", "Falta la constancia de " + f.constancia.mes_actual]);
         if (!f.efirma) m.push(["aviso", "Falta e.firma"]);
         return m;
     }
@@ -60,6 +66,7 @@
         { clave: "atender", etiqueta: "Qué atender", tipo: "texto" },
         { clave: "opinion_txt", etiqueta: "Opinión 32-D", tipo: "texto" },
         { clave: "constancia_txt", etiqueta: "Constancia", tipo: "texto" },
+        { clave: "cierre_txt", etiqueta: "Cierre del mes", tipo: "texto" },
         { clave: "buzon_nuevos", etiqueta: "Buzón sin leer", tipo: "numero" },
         { clave: "cancelaciones", etiqueta: "Cancelaciones por responder", tipo: "numero" },
         { clave: "listas", etiqueta: "En listas del SAT", tipo: "numero" },
@@ -71,22 +78,57 @@
     ];
     // Filtros que se ponen desde los indicadores de arriba (también salen en «Filtros»)
     var FILTROS = [{ clave: "estado", etiqueta: "Estado" }, { clave: "f_opinion", etiqueta: "Opinión" }, { clave: "f_buzon", etiqueta: "Buzón" }, { clave: "f_cancel", etiqueta: "Cancelaciones" },
-                   { clave: "f_listas", etiqueta: "Listas del SAT" }];
+                   { clave: "f_listas", etiqueta: "Listas del SAT" }, { clave: "f_cierre", etiqueta: "Cierre del mes" }];
+
+    /* Cierre del mes que se declara (el anterior): XML bajados, validados, constancia, opinión y declaración */
+    function celdaCierre(c) {
+        if (!c) return "";
+        var falta = c.pasos.filter(function (p) { return !p.hecho; }).map(function (p) { return p.texto + (p.nota ? " (" + p.nota + ")" : ""); });
+        var tono = c.hechos === c.total ? "ok" : c.hechos >= c.total - 2 ? "aviso" : "error";
+        return '<span class="tb-cierre-celda" title="' + esc(falta.length ? "Falta: " + falta.join(" · ") : "Todo listo") + '">' +
+            '<span class="tb-barrita tb-barrita--' + tono + '"><i style="width:' + Math.round(100 * c.hechos / c.total) + '%"></i></span>' +
+            "<b>" + c.hechos + "/" + c.total + "</b></span>";
+    }
+    function pintarCierre(lista) {
+        var caja = $("tb-cierre"); if (!caja) return;
+        var con = lista.filter(function (f) { return f._f.cierre; });
+        if (!con.length) { caja.hidden = true; return; }
+        var c0 = con[0]._f.cierre, completas = con.filter(function (f) { return f._f.cierre.hechos === f._f.cierre.total; }).length;
+        var hechos = con.reduce(function (s, f) { return s + f._f.cierre.hechos; }, 0), total = con.reduce(function (s, f) { return s + f._f.cierre.total; }, 0);
+        var orden = [], por = {};
+        con.forEach(function (f) {
+            f._f.cierre.pasos.forEach(function (p) {
+                if (!por[p.clave]) { por[p.clave] = { p: p, n: 0, de: 0 }; orden.push(p.clave); }
+                por[p.clave].de++; if (p.hecho) por[p.clave].n++;
+            });
+        });
+        var pasos = orden.map(function (k) {
+            var x = por[k];
+            return '<a class="tb-cierre__paso' + (x.n === x.de ? " tb-cierre__paso--ok" : "") + '" href="' + esc(x.p.pagina) + '"><span>' + esc(x.p.texto) + "</span><b>" + x.n + "/" + x.de + "</b></a>";
+        }).join("");
+        caja.hidden = false;
+        caja.innerHTML = '<button type="button" class="tb-cierre__cabeza" data-filtro="f:f_cierre" title="Ver las empresas a las que les falta algo">' +
+            "<span><b>Cierre de " + esc(c0.mes) + "</b> · " + completas + " de " + con.length + " empresa" + (con.length === 1 ? "" : "s") + " completa" + (con.length === 1 ? "" : "s") + "</span>" +
+            '<span class="tb-barrita tb-barrita--ancha"><i style="width:' + Math.round(100 * hechos / total) + '%"></i></span><small>' + Math.round(100 * hechos / total) + " %</small></button>" +
+            '<div class="tb-cierre__pasos">' + pasos + "</div>";
+    }
 
     function filas() {
         return E.datos.empresas.map(function (f) {
             var m = motivos(f), em = f.xml_mes.emitido || 0, re = f.xml_mes.recibido || 0;
             return { rfc: f.rfc, empresa: f.alias || f.rfc, favorito: f.favorito, _f: f, _m: m, estado: estadoFila(f),
                      atender: m.map(function (x) { return x[1]; }).join(" · ") || "Nada pendiente",
-                     opinion_txt: f.opinion ? (f.opinion.resultado || "Consultada") : "Sin consultar",
-                     constancia_txt: f.constancia ? (f.constancia.del_mes ? "Del mes" : "Vieja") : "Sin constancia",
+                     opinion_txt: f.opinion ? (opinionVieja(f) ? "Falta la del mes (" + f.opinion.mes + ": " + (f.opinion.resultado || "consultada") + ")" : (f.opinion.resultado || "Consultada")) : "Sin consultar",
+                     constancia_txt: f.constancia ? (f.constancia.del_mes ? "Del mes" : "Falta la del mes (última: " + f.constancia.mes + ")") : "Sin constancia",
                      buzon_nuevos: f.buzon ? f.buzon.nuevos : "", cancelaciones: f.buzon ? f.buzon.pendientes : "",
                      listas: f.listas || 0, emitidos_mes: em, recibidos_mes: re, xml_mes: em + " emitidos · " + re + " recibidos",
                      efirma_txt: f.efirma ? "Guardada" : "Falta",
-                     f_opinion: !f.opinion || /Negativa|No inscrito/.test(f.opinion.resultado || "") ? "Negativa o sin consultar" : "",
+                     f_opinion: !f.opinion || opinionVieja(f) || /Negativa|No inscrito/.test(f.opinion.resultado || "") ? "Negativa o sin consultar" : "",
                      f_buzon: f.buzon && f.buzon.nuevos ? "Con mensajes sin leer" : "",
                      f_cancel: f.buzon && f.buzon.pendientes ? "Por responder" : "",
-                     f_listas: f.listas ? "Con proveedores o clientes en listas" : "" };
+                     f_listas: f.listas ? "Con proveedores o clientes en listas" : "",
+                     cierre_txt: f.cierre ? f.cierre.hechos + " de " + f.cierre.total : "",
+                     f_cierre: f.cierre && f.cierre.hechos < f.cierre.total ? "Le falta algo al cierre" : "" };
         });
     }
 
@@ -94,7 +136,7 @@
         var n = function (fn) { return lista.filter(fn).length; };
         var suma = function (fn) { return lista.reduce(function (s, f) { return s + (fn(f) || 0); }, 0); };
         var buzonMsj = suma(function (f) { return f._f.buzon && f._f.buzon.nuevos; }), cancel = suma(function (f) { return f._f.buzon && f._f.buzon.pendientes; });
-        var neg = n(function (f) { return f._f.opinion && /Negativa|No inscrito/.test(f._f.opinion.resultado || ""); }), sinOp = n(function (f) { return !f._f.opinion; });
+        var neg = n(function (f) { return f._f.opinion && /Negativa|No inscrito/.test(f._f.opinion.resultado || ""); }), sinOp = n(function (f) { return !f._f.opinion || opinionVieja(f._f); });
         // [id, título, número, nota, tono]  — id: «e:<estado>» filtra por estado, «f:<clave>» por filtro
         var datos = [
             ["", "Empresas", lista.length, "en tu directorio", ""],
@@ -103,7 +145,7 @@
             ["e:Al día", "Al día", n(function (f) { return f.estado === "Al día"; }), "sin pendientes", "ok"],
             ["f:f_cancel", "Cancelaciones", cancel, cancel ? "por responder en " + n(function (f) { return f.f_cancel; }) + " empresa(s)" : "nada por responder", cancel ? "error" : ""],
             ["f:f_listas", "En listas del SAT", n(function (f) { return f.f_listas; }), "empresas con proveedores o clientes", n(function (f) { return f.f_listas; }) ? "error" : ""],
-            ["f:f_opinion", "Opinión 32-D", neg + sinOp, neg ? neg + " negativa(s) · " + sinOp + " sin consultar" : sinOp + " sin consultar", neg ? "error" : sinOp ? "aviso" : ""],
+            ["f:f_opinion", "Opinión 32-D", neg + sinOp, neg ? neg + " negativa(s) · " + sinOp + " sin la del mes" : sinOp + " sin la del mes", neg ? "error" : sinOp ? "aviso" : ""],
             ["f:f_buzon", "Buzón sin leer", buzonMsj, "en " + n(function (f) { return f.f_buzon; }) + " empresa(s)", buzonMsj ? "aviso" : ""]
         ];
         $("tb-resumen").innerHTML = datos.map(function (d) {
@@ -130,9 +172,9 @@
             E.tabla = FCTabla.estandar({
                 // De fábrica, solo lo que cabe a 100 % en una laptop; lo demás (XML del mes, e.firma, buzón…) en «Columnas».
                 // id nuevo para que nadie se quede con el acomodo anterior de 7 columnas guardado en su navegador.
-                contenedor: $("tb-tabla"), id: "tablero_v2", claveFila: "rfc", catalogo: CATALOGO,
-                predeterminadas: ["empresa", "estado", "atender", "opinion_txt", "constancia_txt"],
-                anchoClave: { empresa: 250, estado: 92, atender: 290, opinion_txt: 165, constancia_txt: 125, xml_mes: 170, efirma_txt: 90 },
+                contenedor: $("tb-tabla"), id: "tablero_v3", claveFila: "rfc", catalogo: CATALOGO,
+                predeterminadas: ["empresa", "estado", "atender", "opinion_txt", "constancia_txt", "cierre_txt"],
+                anchoClave: { empresa: 250, estado: 92, atender: 290, opinion_txt: 165, constancia_txt: 125, cierre_txt: 110, xml_mes: 170, efirma_txt: 90 },
                 buscar: { texto: "Buscar empresa o RFC…", campos: ["empresa", "rfc"] },
                 filtros: FILTROS,
                 exportar: { nombre: "Tablero_empresas.xlsx", hoja: "Empresas" },
@@ -150,6 +192,7 @@
                     }
                     if (c.clave === "opinion_txt") return celdaOpinion(f.opinion);
                     if (c.clave === "constancia_txt") return celdaConstancia(f.constancia);
+                    if (c.clave === "cierre_txt") return celdaCierre(f.cierre);
                     if (c.clave === "xml_mes") return (r.emitidos_mes + r.recibidos_mes) ? esc(r.emitidos_mes) + ' <small class="xml-tenue">emitidos</small> · ' + esc(r.recibidos_mes) + ' <small class="xml-tenue">recibidos</small>' : '<span class="xml-tenue">—</span>';
                     if (c.clave === "buzon_nuevos") return f.buzon ? (f.buzon.nuevos ? sello("aviso", f.buzon.nuevos + " sin leer") : sello("nada", "—")) : "";
                     if (c.clave === "cancelaciones") return f.buzon && f.buzon.pendientes ? sello("error", f.buzon.pendientes + " por responder") : "";
@@ -174,9 +217,10 @@
     function pintarDespacho() {
         var lista = filas();
         pintarResumen(lista);
+        pintarCierre(lista);
         E.tabla.ponerDatos(lista);
         // El indicador elegido: «e:…» filtra por estado, «f:…» por uno de los filtros
-        var VALOR = { f_opinion: "Negativa o sin consultar", f_buzon: "Con mensajes sin leer", f_cancel: "Por responder", f_listas: "Con proveedores o clientes en listas" };
+        var VALOR = { f_opinion: "Negativa o sin consultar", f_buzon: "Con mensajes sin leer", f_cancel: "Por responder", f_listas: "Con proveedores o clientes en listas", f_cierre: "Le falta algo al cierre" };
         var fil = E.filtro || "";
         FILTROS.forEach(function (x) { E.tabla.filtrar(x.clave, null); });
         if (fil.indexOf("f:") === 0) E.tabla.filtrar(fil.slice(2), VALOR[fil.slice(2)]);
@@ -230,6 +274,10 @@
                     '<a href="/herramientas/constancias/"><span>Constancia</span>' + celdaConstancia(co) + "</a>" +
                     '<a href="/herramientas/iva/"><span>Papel de trabajo de IVA de ' + esc(d.mes_nombre) + "</span><small>Abrir →</small></a>" +
                 "</div></div>" +
+                (d.cierre ? '<div class="ui-tarjeta"><p class="tb-titulo">Cierre de ' + esc(d.cierre.mes) + " " + celdaCierre(d.cierre) + '</p><div class="tb-lista">' +
+                    d.cierre.pasos.map(function (p) {
+                        return '<a href="' + esc(p.pagina) + '"><span>' + esc(p.texto) + "</span>" + (p.hecho ? sello("ok", "Listo") : sello("aviso", p.nota || "Falta")) + "</a>";
+                    }).join("") + "</div></div>" : "") +
                 '<div class="ui-tarjeta"><p class="tb-titulo">Próximos vencimientos</p><div class="tb-lista">' +
                     (d.vencimientos.length ? d.vencimientos.map(function (v) {
                         return "<div><span>" + esc(v.titulo) + "</span><small>" + esc(fecha(v.fecha)) + (v.dias >= 0 ? " · en " + v.dias + " días" : " · venció") + "</small></div>";
@@ -254,9 +302,11 @@
         if (v === "despacho") cargarDespacho(); else cargarEmpresa();
     }
     $("tb-vista").addEventListener("click", function (e) { var b = e.target.closest("[data-vista]"); if (b) verVista(b.dataset.vista); });
-    $("tb-resumen").addEventListener("click", function (e) {
-        var b = e.target.closest("[data-filtro]"); if (!b) return;
-        E.filtro = E.filtro === b.dataset.filtro ? null : (b.dataset.filtro || null); pintarDespacho();
+    ["tb-resumen", "tb-cierre"].forEach(function (id) {
+        if ($(id)) $(id).addEventListener("click", function (e) {
+            var b = e.target.closest("[data-filtro]"); if (!b) return;
+            E.filtro = E.filtro === b.dataset.filtro ? null : (b.dataset.filtro || null); pintarDespacho();
+        });
     });
 
     function recientes() {

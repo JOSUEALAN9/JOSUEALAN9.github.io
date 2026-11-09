@@ -289,3 +289,8 @@ button.ctx-resumen__dato:hover { background: rgb(var(--g-50)); }
 .ls-fila-rol .ctx-segmento { max-width: 100%; overflow-x: auto; scrollbar-width: none; }
 .ls-fila-rol .ctx-segmento::-webkit-scrollbar { display: none; }
 .ls-fila-rol .ctx-segmento button { flex: none; }
+
+/* Densidad compacta (Configuración › Mi perfil › Preferencias): más filas a la vista */
+.fc-compacta .xml-tabla td { height: 28px; font-size: 12.5px; }
+.fc-compacta .xml-tabla thead th { height: 34px; }
+.fc-compacta .xml-tabla td .xml-sello { padding-top: 0; padding-bottom: 0; }

@@ -191,7 +191,29 @@
                 aviso(c, true, "Guardado.");
             } catch (e) { aviso(c, false, e.message); }
         });
+        pintarPreferencias(c);
         pintarBloqueo(c);
+    }
+
+    /* Preferencias de esta computadora: densidad de las tablas */
+    function pintarPreferencias(c) {
+        var actual = "normal"; try { actual = localStorage.getItem("fc-densidad") || "normal"; } catch (e) { /* nada */ }
+        var caja = document.createElement("div");
+        caja.className = "cf-tarjeta"; caja.style.marginTop = "14px";
+        caja.innerHTML = '<h3 class="cf-sub">Preferencias</h3><p class="cf-texto">Cómo se ven las tablas en esta computadora.</p>' +
+            '<div class="ctx-segmento" role="group" aria-label="Densidad de las tablas" id="cf-densidad">' +
+            [["normal", "Normal"], ["compacta", "Compacta (más filas a la vista)"]].map(function (o) {
+                return '<button type="button" data-densidad="' + o[0] + '" aria-pressed="' + (actual === o[0]) + '">' + o[1] + "</button>";
+            }).join("") + "</div>";
+        c.appendChild(caja);
+        caja.addEventListener("click", function (e) {
+            var b = e.target.closest("[data-densidad]"); if (!b) return;
+            try { localStorage.setItem("fc-densidad", b.dataset.densidad); } catch (x) { /* nada */ }
+            caja.querySelectorAll("[data-densidad]").forEach(function (x) { x.setAttribute("aria-pressed", String(x === b)); });
+            [document.documentElement, window.top !== window ? window.top.document.documentElement : null].forEach(function (h) {
+                try { if (h) h.classList.toggle("fc-compacta", b.dataset.densidad === "compacta"); } catch (x) { /* otro origen */ }
+            });
+        });
     }
 
     /* Bloqueo por inactividad: minutos y PIN (el PIN se guarda solo como hash en el servidor) */
@@ -300,6 +322,9 @@
                 Object.keys(p.tipos).map(function (t) {
                     return '<label class="ui-check cf-check"><input type="checkbox" data-tipo="' + esc(t) + '"' + (p.correo[t] ? " checked" : "") + "> " + esc(p.tipos[t]) + "</label>";
                 }).join("") +
+                '<label class="cf-campo"><span>Avisar de e.firma y sellos por vencer cuando falten (días)</span><input type="text" id="cf-av-dias" inputmode="numeric" value="' +
+                esc((p.dias_vence || []).join(", ")) + '"></label>' +
+                '<p class="cf-texto">De fábrica: 3 meses, 2 meses, 1 mes y luego 15, 10, 5, 2 y 1 días. Si ya la renovaste, deja de avisar sola.</p>' +
                 '<label class="cf-campo"><span>Mandar los avisos a</span><input type="email" id="cf-av-destino" value="' + esc(p.destino || "") + '"></label>' +
                 '<div class="cf-acciones"><button type="button" class="cf-btn cf-btn--principal" id="cf-av-guardar">Guardar</button>' +
                 '<button type="button" class="cf-btn" id="cf-av-prueba">Mandar un correo de prueba</button><span class="cf-msj"></span></div>' +
@@ -307,7 +332,12 @@
             $("cf-av-guardar").addEventListener("click", async function () {
                 var correo = {};
                 c.querySelectorAll("[data-tipo]").forEach(function (x) { correo[x.dataset.tipo] = x.checked; });
-                try { await enviar("/api/actividad/preferencias", "PUT", { correo: correo, destino: $("cf-av-destino").value.trim() || null }); aviso(c, true, "✓ Guardado."); }
+                var dias = $("cf-av-dias").value.split(/[^0-9]+/).map(Number).filter(function (n) { return n > 0 && n <= 365; });
+                if (!dias.length) { aviso(c, false, "Escribe al menos un número de días (por ejemplo 30, 15, 5)."); return; }
+                try {
+                    var g = await enviar("/api/actividad/preferencias", "PUT", { correo: correo, destino: $("cf-av-destino").value.trim() || null, dias_vence: dias });
+                    $("cf-av-dias").value = (g.dias_vence || dias).join(", "); aviso(c, true, "✓ Guardado.");
+                }
                 catch (e) { aviso(c, false, e.message); }
             });
             $("cf-av-prueba").addEventListener("click", async function () {
@@ -334,21 +364,34 @@
                     "<span><b>Programar solas las empresas nuevas</b><small>Cuando una empresa guarde su e.firma: constancia " + esc(regla(df.csf)) +
                     ", opinión " + esc(regla(df.opinion)) + ", declaraciones " + esc(regla(df.declaraciones)) + " y sus XML cada día. Solo lo que tu plan incluye; después lo cambias como cualquier otra.</small></span></label>" : "") +
                 "</div>" +
-                '<div class="cf-tarjeta cf-tarjeta--tabla" style="margin-top:12px"><table class="cf-tabla"><thead><tr><th>Qué</th><th>Empresa</th><th>Cada cuánto</th><th>Próxima</th><th>Última</th><th></th></tr></thead><tbody>' +
+                '<div class="cf-tarjeta cf-tarjeta--tabla" style="margin-top:12px"><table class="cf-tabla"><thead><tr><th>Qué</th><th>Empresa</th><th>Cada cuánto</th><th>Próxima</th><th>Última</th><th title="Le llega por correo al cliente cada vez que se baja">Al cliente</th><th></th></tr></thead><tbody>' +
                 (d.programaciones.length ? d.programaciones.map(function (x) {
                     var pausable = ["csf", "opinion", "declaraciones", "xml"].indexOf(x.modulo) !== -1 && x.rfc;
                     return "<tr" + (x.activa ? "" : ' class="cf-apagada"') + "><td><b>" + esc(x.nombre) + "</b></td><td>" + esc(x.alias || "") + (x.rfc ? "<small>" + esc(x.rfc) + "</small>" : "") + "</td>" +
                         "<td>" + esc(x.regla || "") + (x.activa ? "" : " <small>(pausada)</small>") + "</td><td>" + fecha(x.proxima) + "</td>" +
                         "<td>" + fecha(x.ultima) + (x.resultado ? "<small>" + esc(x.resultado) + "</small>" : "") + "</td>" +
+                        "<td>" + (x.mandar_cliente === null || x.mandar_cliente === undefined ? "" :
+                            '<label class="ui-check" title="' + esc(x.correo_cliente ? "Se manda a " + x.correo_cliente : "Escribe el correo del cliente en su ficha para poder mandárselo") + '">' +
+                            '<input type="checkbox" data-mandar="' + esc(x.modulo) + '" data-rfc="' + esc(x.rfc) + '"' + (x.mandar_cliente ? " checked" : "") + (x.correo_cliente || x.mandar_cliente ? "" : " disabled") + "> Mandar</label>" +
+                            (x.correo_cliente ? "" : "<small>Sin correo del cliente</small>")) + "</td>" +
                         '<td class="cf-celda-acciones">' + (pausable ? '<button type="button" class="cf-btn cf-btn--chico" data-pausa="' + esc(x.modulo) + '" data-rfc="' + esc(x.rfc) + '" data-activa="' + (x.activa ? "1" : "") + '">' + (x.activa ? "Pausar" : "Reanudar") + "</button> " : "") +
                         '<a class="cf-btn cf-btn--chico" href="' + PAGINA_MODULO[x.modulo] + '"' + (incrustado ? ' target="_top"' : "") + ">Abrir</a></td></tr>";
-                }).join("") : '<tr><td colspan="6">Todavía no programas nada.</td></tr>') + "</tbody></table></div>" +
+                }).join("") : '<tr><td colspan="7">Todavía no programas nada.</td></tr>') + "</tbody></table></div>" +
                 '<p class="cf-msj"></p>';
             var chk = c.querySelector("#cf-prog-nuevas");
             if (chk) chk.addEventListener("change", async function () {
                 try { await enviar("/api/programacion-nuevas", "PUT", { activa: chk.checked }); aviso(c, true, chk.checked ? "Las empresas nuevas se programarán solas." : "Las empresas nuevas ya no se programan solas."); }
                 catch (x) { chk.checked = !chk.checked; aviso(c, false, x.message); }
             });
+            c.onchange = async function (e) {
+                var m = e.target.closest("[data-mandar]"); if (!m) return;
+                m.disabled = true;
+                try {
+                    await enviar("/api/programacion/" + m.dataset.mandar + "/mandar-cliente", "PUT", { rfc: m.dataset.rfc, activa: m.checked });
+                    aviso(c, true, m.checked ? "✓ Se le mandará al cliente cada vez que se baje." : "✓ Ya no se le manda al cliente.");
+                } catch (x) { m.checked = !m.checked; aviso(c, false, x.message); }
+                finally { m.disabled = false; }
+            };
             c.onclick = async function (e) {
                 var b = e.target.closest("[data-pausa]"); if (!b) return;
                 b.disabled = true;

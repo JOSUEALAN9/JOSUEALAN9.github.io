@@ -1016,7 +1016,7 @@ async function guardarCiec() {
 }
 
 async function olvidarCiec() {
-    if (!confirm("¿Olvidar la contraseña del SAT de este cliente?")) return;
+    if (!(await Fiscontable.confirmar({ titulo: "¿Olvidar la contraseña del SAT?", texto: "Se borra la contraseña guardada de " + rfcEnEdicion + ". La puedes volver a escribir cuando quieras.", si: "Olvidar", peligro: true }))) return;
     try {
         const r = await fetch(`${API_URL}/api/clientes/${encodeURIComponent(rfcEnEdicion)}/ciec`, { method: "DELETE", credentials: "include" });
         if (!r.ok) throw new Error(await interpretarError(r));
@@ -1171,7 +1171,7 @@ async function leerConstanciaReceptor(archivo) {
 }
 
 async function quitarReceptor(rfc) {
-    if (!confirm(`¿Quitar a ${rfc.split(":")[0]} de sus receptores?`)) return;
+    if (!(await Fiscontable.confirmar({ titulo: "¿Quitar a " + rfc.split(":")[0] + " de sus receptores?", si: "Quitar", peligro: true }))) return;
     try {
         const r = await fetch(`${API_URL}/api/facturacion/receptores/${encodeURIComponent(rfcEnEdicion)}/${encodeURIComponent(rfc)}`, { method: "DELETE", credentials: "include" });
         if (!r.ok) throw new Error(await Fiscontable.leerError(r));
@@ -1250,7 +1250,7 @@ async function guardarFacturacion() {
 
 async function quitarCsd() {
     const rfc = rfcEnEdicion;
-    if (!rfc || !confirm("¿Quitar el sello digital (CSD) de esta empresa? Ya no podrá facturar hasta que subas otro.")) return;
+    if (!rfc || !(await Fiscontable.confirmar({ titulo: "¿Quitar el sello digital (CSD)?", texto: "Esta empresa ya no podrá facturar hasta que subas otro.", si: "Quitar el sello", peligro: true, escribir: rfc }))) return;
     try {
         const r = await fetch(`${API_URL}/api/facturacion/emisores/${encodeURIComponent(rfc)}/csd`, { method: "DELETE", credentials: "include" });
         if (!r.ok) throw new Error(await Fiscontable.leerError(r));
@@ -1370,7 +1370,7 @@ function abrirModalEditarSinLimpiarMensaje(cliente) {
 }
 
 async function olvidarEfirmaDesdeModal() {
-    if (!confirm("¿Olvidar la e.firma guardada de este cliente? Tendrás que subirla de nuevo la próxima vez.")) return;
+    if (!(await Fiscontable.confirmar({ titulo: "¿Olvidar la e.firma guardada?", texto: "Lo programado con ella (constancia, opinión, XML, buzón) deja de salir hasta que la vuelvas a subir.", si: "Olvidar la e.firma", peligro: true, escribir: rfcEnEdicion }))) return;
     try {
         const resp = await fetch(`${API_URL}/api/clientes/${encodeURIComponent(rfcEnEdicion)}/efirma`, {
             method: "DELETE",
@@ -1387,7 +1387,7 @@ async function olvidarEfirmaDesdeModal() {
 }
 
 async function olvidarEfirma(rfc) {
-    if (!confirm("¿Olvidar la e.firma guardada de este cliente? La próxima vez que generes su constancia, tendrás que subirla de nuevo.")) return;
+    if (!(await Fiscontable.confirmar({ titulo: "¿Olvidar la e.firma guardada?", texto: "Lo programado con ella (constancia, opinión, XML, buzón) deja de salir hasta que la vuelvas a subir.", si: "Olvidar la e.firma", peligro: true, escribir: rfc }))) return;
     try {
         const resp = await fetch(`${API_URL}/api/clientes/${encodeURIComponent(rfc)}/efirma`, {
             method: "DELETE",
@@ -1405,7 +1405,7 @@ async function olvidarEfirma(rfc) {
 }
 
 async function eliminarCliente(rfc) {
-    if (!confirm(`¿Quitar a este cliente de tu directorio? Esto no borra los documentos ya generados, solo lo saca de esta lista.`)) return;
+    if (!(await Fiscontable.confirmar({ titulo: "¿Quitar a " + rfc + " de tus clientes?", texto: "No borra los documentos ya generados; solo lo saca de tu directorio y de sus programaciones.", si: "Quitar cliente", peligro: true, escribir: rfc }))) return;
     try {
         const resp = await fetch(`${API_URL}/api/clientes/${encodeURIComponent(rfc)}`, {
             method: "DELETE",
