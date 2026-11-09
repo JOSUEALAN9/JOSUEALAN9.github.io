@@ -499,12 +499,23 @@
             cerrarFlotantes(sec);
             sec.classList.add("ui-riel__grupo--flotando"); icoG.setAttribute("aria-expanded", "true");
         }
+        // Con el cursor hay margen de tiempo: cruzar el hueco hasta el menú, o pasar en diagonal por el ícono de otro
+        // grupo camino al menú abierto, no lo cierra ni lo cambia. Solo cambia si el cursor se queda en el otro ícono.
+        var tCerrar = null, tCambiar = null;
+        function esperar(fn, ms) { clearTimeout(tCambiar); tCambiar = setTimeout(fn, ms); }
         caja.addEventListener("mouseover", function (e) {
-            var sec = e.target.closest(".ui-riel__grupo");
-            if (sec && e.target.closest(".ui-riel__grupo-ico")) abrirFlotante(sec);
-            else if (!sec) cerrarFlotantes(null);           // sobre Inicio, Clientes…: se cierra el menú abierto
+            clearTimeout(tCerrar);
+            var sec = e.target.closest(".ui-riel__grupo"), abierta = nav.querySelector(".ui-riel__grupo--flotando");
+            if (e.target.closest(".ui-riel__grupo--flotando > .ui-riel__items")) { clearTimeout(tCambiar); return; }   // ya llegó al menú
+            if (sec && e.target.closest(".ui-riel__grupo-ico")) {
+                if (!abierta || abierta === sec) { clearTimeout(tCambiar); abrirFlotante(sec); }
+                else esperar(function () { abrirFlotante(sec); }, 280);
+            } else if (!sec && abierta) esperar(function () { cerrarFlotantes(null); }, 280);   // sobre Inicio, Clientes…
         });
-        caja.addEventListener("mouseleave", function () { cerrarFlotantes(null); });
+        caja.addEventListener("mouseleave", function () {
+            clearTimeout(tCambiar); clearTimeout(tCerrar);
+            tCerrar = setTimeout(function () { cerrarFlotantes(null); }, 450);
+        });
         caja.addEventListener("focusin", function (e) { if (e.target.closest(".ui-riel__grupo-ico")) abrirFlotante(e.target.closest(".ui-riel__grupo")); });
         caja.addEventListener("focusout", function (e) { if (!caja.contains(e.relatedTarget)) cerrarFlotantes(null); });
         caja.addEventListener("keydown", function (e) { if (e.key === "Escape") cerrarFlotantes(null); });
