@@ -70,6 +70,9 @@
         $("cra-paquetes").innerHTML = c.paquetes.map(filaPaquete).join("");
         $("cra-cuentas").innerHTML = c.cuentas.map(filaCuenta).join("");
         $("cra-instrucciones").value = c.instrucciones || "";
+        var f = c.factura || {};
+        $("cra-fac-activa").checked = !!f.activa; $("cra-fac-rfc").value = f.rfc || ""; $("cra-fac-clave").value = f.clave_prod || "01010101";
+        $("cra-fac-desc").value = f.descripcion || "";
         $("cra-config-msj").textContent = "";
     }
 
@@ -82,7 +85,9 @@
             cuentas: Array.from(document.querySelectorAll("[data-cuenta]")).map(function (f) {
                 var o = {}; f.querySelectorAll("input").forEach(function (i) { o[i.dataset.k] = i.value; }); return o;
             }),
-            instrucciones: $("cra-instrucciones").value
+            instrucciones: $("cra-instrucciones").value,
+            factura: { activa: $("cra-fac-activa").checked, rfc: $("cra-fac-rfc").value.trim().toUpperCase(),
+                       clave_prod: $("cra-fac-clave").value.trim(), descripcion: $("cra-fac-desc").value.trim() }
         };
         var msj = $("cra-config-msj");
         try {
@@ -100,8 +105,8 @@
                 var x = datos.pendientes.find(function (p) { return String(p.id) === b.dataset.aprobar; });
                 var cr = prompt("¿Cuántos créditos abonar a " + x.correo + "? (pagó $" + m(x.monto) + ")", x.creditos);
                 if (cr === null) return;
-                await api("/api/admin/creditos/pagos/" + x.id + "/aprobar", "POST", { creditos: +cr });
-                avisar("ok", "Recarga aprobada: " + m(cr) + " créditos para " + x.correo + ".");
+                var ap = await api("/api/admin/creditos/pagos/" + x.id + "/aprobar", "POST", { creditos: +cr });
+                avisar("ok", "Recarga aprobada: " + m(cr) + " créditos para " + x.correo + "." + (ap && ap.factura_nota ? " Factura: " + ap.factura_nota + "." : ""));
             } else if (b.dataset.rechazar) {
                 var motivo = prompt("Motivo del rechazo (lo ve el usuario):", "No encontramos el depósito con esa clave de rastreo.");
                 if (!motivo) return;

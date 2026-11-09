@@ -4,16 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mis créditos | Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611110200">
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611110200">
-    <link rel="stylesheet" href="/creditos/creditos.css?v=202611110200">
-    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611110200">
+    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611110300">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611110300">
+    <link rel="stylesheet" href="/creditos/creditos.css?v=202611110300">
+    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611110300">
 </head>
 <body class="min-h-screen flex flex-col">
 
 <div id="app-header" data-modulo="creditos" data-titulo="Mis créditos" data-migas=""></div>
-<script src="/assets/js/nucleo.js?v=202611110200"></script>
-<script src="/assets/js/barra.js?v=202611110200"></script>
+<script src="/assets/js/nucleo.js?v=202611110300"></script>
+<script src="/assets/js/barra.js?v=202611110300"></script>
 
 <main class="flex-grow w-full mod-pagina" style="max-width:1320px">
     <div class="mod-cabeza"><h1>Mis créditos</h1></div>
@@ -56,6 +56,24 @@
         <datalist id="bancos"></datalist>
     </section>
 
+    <!-- Datos para la factura de cada recarga (solo si el administrador factura las recargas) -->
+    <section class="cr-caja" id="caja-factura" hidden>
+        <h2>Datos para tu factura</h2>
+        <p class="cr-nota">Con estos datos se factura cada recarga que se aprueba. Escríbelos como vienen en tu constancia de situación fiscal.</p>
+        <form id="form-factura" class="cr-form" autocomplete="off">
+            <div class="cr-campos">
+                <label>RFC<input id="f-rfc" maxlength="13" required style="text-transform:uppercase"></label>
+                <label>Razón social o nombre<input id="f-nombre" maxlength="250" required style="text-transform:uppercase"></label>
+                <label>Código postal<input id="f-cp" maxlength="5" inputmode="numeric" required></label>
+                <label>Régimen fiscal<select id="f-regimen" required></select></label>
+                <label>Uso del CFDI<select id="f-uso"></select></label>
+                <label>Mandar la factura a (opcional)<input id="f-correo" type="email" placeholder="Si es otro distinto a tu correo"></label>
+            </div>
+            <p id="f-msj" class="cr-nota" hidden></p>
+            <button type="submit" class="boton-principal" id="f-guardar" style="width:auto;padding:10px 22px">Guardar datos</button>
+        </form>
+    </section>
+
     </div>
     <div class="cr-col">
     <div class="ctx-segmento cr-pestanas" role="tablist" aria-label="Historial">
@@ -81,7 +99,7 @@
     </div>
 </main>
 
-<script src="/creditos/creditos.js?v=202611110200"></script>
+<script src="/creditos/creditos.js?v=202611110300"></script>
 <script>
 (function () {   // pestañas del historial (se recuerda la última)
     function ver(t) {
