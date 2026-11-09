@@ -133,6 +133,13 @@
 
     // Todos los módulos en un solo lugar: el botón «Módulos» de la barra, la portada y los recientes salen de aquí.
     var I = {
+        xml: "M14 3H6a2 2 0 00-2 2v14a2 2 0 002 2h12a2 2 0 002-2V9zM14 3v6h6M10 12l-2 2.5 2 2.5M14 12l2 2.5-2 2.5",
+        nube: "M7 17a4 4 0 01-.9-7.9 5 5 0 019.7-1.3A4 4 0 0117 17M12 12v8m-3-3l3 3 3-3",
+        medalla: "M12 14a5 5 0 100-10 5 5 0 000 10zM8.5 12.6L7 21l5-2.5 5 2.5-1.5-8.4",
+        archivo: "M3 5a1 1 0 011-1h16a1 1 0 011 1v3H3zM5 8v11a1 1 0 001 1h12a1 1 0 001-1V8M10 12h4",
+        cruce: "M4 8h13m0 0l-3-3m3 3l-3 3M20 16H7m0 0l3-3m-3 3l3 3",
+        porciento: "M19 5L5 19M7 9a2 2 0 100-4 2 2 0 000 4zM17 19a2 2 0 100-4 2 2 0 000 4z",
+        enviar: "M4 12l16-8-6 16-3-7zM11 13l9-9",
         doc: "M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z",
         escudo: "M9 12l2 2 4-4m5.6-4A11.9 11.9 0 0112 2.9 11.9 11.9 0 013.4 6 12 12 0 003 9c0 5.6 3.8 10.3 9 11.6 5.2-1.3 9-6 9-11.6 0-1-.1-2-.4-3z",
         bajarDoc: "M12 10v6m0 0l-3-3m3 3l3-3M7 21h10a2 2 0 002-2V7.4a1 1 0 00-.3-.7l-3.4-3.4a1 1 0 00-.7-.3H7a2 2 0 00-2 2v14a2 2 0 002 2z",
@@ -157,29 +164,30 @@
     var CATALOGO = [
         { clave: "clientes", grupo: "Clientes", nombre: "Clientes", desc: "Empresas, e.firma y obligaciones", url: "/clientes/", permiso: null, icono: I.clientes, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
 
-        { clave: "xml", grupo: "Comprobantes", nombre: "Administración de XML", desc: "Tus XML por tipo, con reportes en Excel", url: "/herramientas/xml/", permiso: "validador", icono: I.doc, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
-        { clave: "descarga_xml", grupo: "Comprobantes", nombre: "Descarga masiva de XML", desc: "Emitidos y recibidos de un periodo", url: "/herramientas/descarga-xml/", permiso: "descarga_xml", icono: I.bajar, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
-        { clave: "validador", grupo: "Comprobantes", nombre: "Validador de XML", desc: "¿Vigente o cancelado ante el SAT?", url: "/herramientas/validador/", permiso: "validador", icono: I.palomita, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
+        { clave: "xml", grupo: "Comprobantes", nombre: "Administración de XML", alias: "xml comprobantes", desc: "Tus XML por tipo, con reportes en Excel", url: "/herramientas/xml/", permiso: "validador", icono: I.xml, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
+        { clave: "descarga_xml", grupo: "Comprobantes", nombre: "Descarga masiva", alias: "descarga masiva de xml web service portal", desc: "Emitidos y recibidos de un periodo", url: "/herramientas/descarga-xml/", permiso: "descarga_xml", icono: I.nube, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
+        { clave: "validador", grupo: "Comprobantes", nombre: "Validador", alias: "validador de xml vigente cancelado", desc: "¿Vigente o cancelado ante el SAT?", url: "/herramientas/validador/", permiso: "validador", icono: I.palomita, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
         { clave: "marcas", grupo: "Comprobantes", nombre: "Marcas fiscales", desc: "Para qué impuesto cuenta cada CFDI y por qué", url: "/herramientas/xml/fiscal.html", permiso: "marcas", icono: I.balanza, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
         { clave: "cancelaciones", grupo: "Comprobantes", nombre: "Cancelaciones", desc: "Cancela emitidas y responde las que te piden", url: "/herramientas/xml/cancelaciones.html", permiso: "cancelaciones", icono: I.prohibido, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
 
-        { clave: "conciliacion", grupo: "Cierre del mes", nombre: "Conciliación", desc: "Facturas contra pagos y notas de crédito", url: "/herramientas/conciliacion/", permiso: "conciliacion", icono: I.grafica, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
-        { clave: "iva", grupo: "Cierre del mes", nombre: "Papel de trabajo de IVA", desc: "IVA cobrado y pagado del mes", url: "/herramientas/iva/", permiso: "iva", icono: I.recibo, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
-        { clave: "isn", grupo: "Cierre del mes", nombre: "Impuestos estatales", desc: "ISN, hospedaje, profesiones y alcohol (Q. Roo)", url: "/herramientas/isn/", permiso: "isn", icono: I.gente, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
-        { clave: "voucheo", grupo: "Cierre del mes", nombre: "Voucheo de impuestos", desc: "Acuses estatales a tu papel de trabajo", url: "/herramientas/voucheo/", permiso: "voucheo", icono: I.ticket, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
+        { clave: "conciliacion", grupo: "Cierre del mes", nombre: "Conciliación", num: 1, desc: "Facturas contra pagos y notas de crédito", url: "/herramientas/conciliacion/", permiso: "conciliacion", icono: I.cruce, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
+        { clave: "iva", grupo: "Cierre del mes", nombre: "Papel de trabajo IVA", num: 2, alias: "papel de trabajo de iva", desc: "IVA cobrado y pagado del mes", url: "/herramientas/iva/", permiso: "iva", icono: I.porciento, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
+        { clave: "isn", grupo: "Cierre del mes", nombre: "Impuestos estatales", num: 3, alias: "isn nominas hospedaje", desc: "ISN, hospedaje, profesiones y alcohol (Q. Roo)", url: "/herramientas/isn/", permiso: "isn", icono: I.gente, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
+        { clave: "presentar", grupo: "Cierre del mes", pronto: true, num: 4, nombre: "Declarar", alias: "presentar declaraciones", desc: "En preparación", url: null, permiso: null, icono: I.enviar, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
+        { clave: "voucheo", grupo: "Cierre del mes", nombre: "Voucheo", num: 5, alias: "voucheo de impuestos acuses", desc: "Acuses estatales a tu papel de trabajo", url: "/herramientas/voucheo/", permiso: "voucheo", icono: I.ticket, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
 
-        { clave: "opinion", grupo: "Cumplimiento", nombre: "Opinión de cumplimiento 32-D", desc: "De una empresa o de varias a la vez", url: "/herramientas/opinion/", permiso: "opinion", icono: I.escudo, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
-        { clave: "constancias", grupo: "Cumplimiento", nombre: "Constancia de Situación Fiscal", desc: "De una empresa o de varias a la vez", url: "/herramientas/constancias/", permiso: "constancias", icono: I.doc, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
+        { clave: "opinion", grupo: "Cumplimiento", nombre: "Opinión 32-D", alias: "opinion de cumplimiento", desc: "De una empresa o de varias a la vez", url: "/herramientas/opinion/", permiso: "opinion", icono: I.escudo, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
+        { clave: "constancias", grupo: "Cumplimiento", nombre: "Constancia fiscal", alias: "constancia de situacion fiscal csf", desc: "De una empresa o de varias a la vez", url: "/herramientas/constancias/", permiso: "constancias", icono: I.medalla, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
         { clave: "buzon", grupo: "Cumplimiento", nombre: "Buzón Tributario", desc: "Comunicados, cancelaciones y notificaciones", url: "/herramientas/buzon/", permiso: "buzon", icono: I.buzon, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
         { clave: "listas", grupo: "Cumplimiento", nombre: "Listas del SAT", desc: "69, 69-B y demás listas negras", url: "/herramientas/listas-sat/", permiso: "validador", icono: I.alerta, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
-        { clave: "declaraciones", grupo: "Cumplimiento", nombre: "Declaraciones presentadas", desc: "Acuses, pagos y recibos", url: "/herramientas/declaraciones/", permiso: "declaraciones", icono: I.bajarDoc, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
+        { clave: "declaraciones", grupo: "Cumplimiento", nombre: "Declaraciones", alias: "declaraciones presentadas acuses", desc: "Acuses, pagos y recibos", url: "/herramientas/declaraciones/", permiso: "declaraciones", icono: I.archivo, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
 
         { clave: "facturar", grupo: "Facturación", nombre: "Facturar", desc: "Facturas, notas de crédito y recibos de pago", url: "/herramientas/facturar/", permiso: "facturacion", icono: I.recibo, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
 
         { clave: "documentos", grupo: "Documentos", nombre: "Documentos", desc: "Actas, constancias, IMSS e INFONAVIT", url: "/herramientas/documentos/", permiso: "documentos", icono: I.credencial, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
 
-        { clave: "descargas", grupo: "Tu cuenta", cuenta: true, nombre: "Mis descargas", desc: "Todo lo que bajan las herramientas", url: "/descargas/", permiso: null, icono: I.bajar, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
-        { clave: "creditos", grupo: "Tu cuenta", cuenta: true, nombre: "Mis créditos", desc: "Saldo y recargas", url: "/creditos/", permiso: null, icono: I.moneda, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" }
+        { clave: "descargas", grupo: "Tu cuenta", cuenta: true, nombre: "Mis descargas", alias: "descargas", desc: "Todo lo que bajan las herramientas", url: "/descargas/", permiso: null, icono: I.bajar, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
+        { clave: "creditos", grupo: "Tu cuenta", cuenta: true, nombre: "Mis créditos", alias: "creditos saldo recargar", desc: "Saldo y recargas", url: "/creditos/", permiso: null, icono: I.moneda, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" }
     ];
 
     // Lo último que usaste (para el menú «Módulos» y la portada)
@@ -199,6 +207,8 @@
     if (/[?&]dentro=1\b/.test(location.search)) document.documentElement.classList.add("fc-dentro");
     // Opción visual elegida en /ui/ (A por defecto). Solo en este navegador, mientras se decide.
     try { var tema = localStorage.getItem("fc-tema"); if (tema === "b") document.documentElement.dataset.tema = "b"; } catch (e) { /* sin almacenamiento */ }
+    // Barra de arriba oscura (por defecto) o clara: se elige en /ui/
+    try { if (localStorage.getItem("fc-barra") === "clara") document.documentElement.dataset.barra = "clara"; } catch (e) { /* sin almacenamiento */ }
     var ancla = document.getElementById("app-header");
     if (!ancla) return;
 
@@ -346,7 +356,7 @@
 
     /* --------------------------------------------- menú «Módulos» (y Ctrl+K) */
     // El módulo de esta página, por su dirección (Listas y Validador comparten permiso, no dirección)
-    var aqui = CATALOGO.filter(function (m) { return location.pathname.indexOf(m.url) === 0; })
+    var aqui = CATALOGO.filter(function (m) { return m.url && location.pathname.indexOf(m.url) === 0; })
         .sort(function (a, b) { return b.url.length - a.url.length; })[0] || null;
 
     function menuModulosHTML() {
@@ -377,7 +387,7 @@
         var cuerpo = document.getElementById("fc-modulos-cuerpo");
         if (q) {
             var hallados = CATALOGO.filter(function (m) {
-                return (m.nombre + " " + m.desc + " " + m.grupo).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").indexOf(q) !== -1;
+                return !m.pronto && (m.nombre + " " + m.desc + " " + m.grupo + " " + (m.alias || "")).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").indexOf(q) !== -1;
             });
             cuerpo.innerHTML = hallados.length ? '<div class="fc-modulos__rejilla">' + hallados.map(itemModulo).join("") + "</div>"
                 : '<p class="fc-empresas__nada">Ningún módulo coincide con «' + esc(q) + "».</p>";
@@ -391,56 +401,134 @@
         }
         GRUPOS.concat(["Tu cuenta"]).forEach(function (g) {
             html += '<div class="fc-modulos__grupo">' + esc(g) + '</div><div class="fc-modulos__rejilla">' +
-                CATALOGO.filter(function (m) { return m.grupo === g; }).map(itemModulo).join("") + "</div>";
+                CATALOGO.filter(function (m) { return m.grupo === g && !m.pronto; }).map(itemModulo).join("") + "</div>";
         });
         cuerpo.innerHTML = html;
     }
 
-    /* --------------------------------------------- barra lateral (computadora)
-       Los módulos agrupados por el trabajo del contador. Se puede contraer a íconos (el nombre sale al pasar el
-       cursor) y se recuerda en este navegador. En el teléfono no hay lateral: se usa el botón «Módulos». */
-    var CORTOS = { opinion: "Opinión 32-D", constancias: "Constancia fiscal", descarga_xml: "Descarga masiva", validador: "Validador",
-                   iva: "Papel de trabajo IVA", voucheo: "Voucheo", declaraciones: "Declaraciones", xml: "Administración de XML" };
+    /* --------------------------------------------- riel: la barra lateral compartida
+       Una sola pieza para la barra de módulos y el menú de Ajustes (si son iguales, son la misma).
+       - Abierta con nombres la primera vez; si la persona la pliega, queda en íconos y se recuerda (para las dos).
+       - Plegada: solo íconos, el nombre sale a un lado al pasar el cursor, sin ensanchar la barra. Una línea
+         delgada separa los grupos. Nada cambia de lugar al plegar: solo el ancho (sin saltos).
+       - Cada grupo se pliega con un clic en su título y se recuerda. En pantallas bajas solo queda abierto el
+         grupo de la página actual.
+       Uso: Fiscontable.riel(nav, { id, cabeza, buscar, grupos, alElegir }) → { pintar(grupos) } (ver /ui/). */
+    var CLAVE_CHICO = "fc-lateral";
+    function lateralChico() { try { return localStorage.getItem(CLAVE_CHICO) === "chico"; } catch (e) { return false; } }
+    function ponerChico(chico) {
+        try { localStorage.setItem(CLAVE_CHICO, chico ? "chico" : "grande"); } catch (e) { /* sin almacenamiento */ }
+        document.documentElement.classList.toggle("fc-lateral-chico", chico);
+        document.querySelectorAll(".ui-riel__plegar").forEach(function (b) {
+            b.setAttribute("aria-label", chico ? "Mostrar nombres" : "Plegar a íconos");
+            b.dataset.nombre = chico ? "Mostrar nombres" : "Plegar a íconos";
+        });
+    }
+    D.buscar = "M11 18a7 7 0 100-14 7 7 0 000 14zM20 20l-4-4";
+    D.abajo = "M6 9l6 6 6-6";
+
+    function riel(nav, op) {
+        var CLAVE_GRUPOS = "fc-riel-grupos:" + (op.id || "menu"), tocados = {};
+        document.documentElement.classList.toggle("fc-lateral-chico", lateralChico());
+        nav.classList.add("ui-riel");
+        function guardados() { try { return JSON.parse(localStorage.getItem(CLAVE_GRUPOS) || "{}"); } catch (e) { return {}; } }
+        function plegado(g, conActual) {
+            if (g in tocados) return tocados[g];
+            if (window.innerHeight < 760) return !conActual;             // pantalla baja: solo el grupo actual abierto
+            return !!guardados()[g];
+        }
+        function icono(it) { return it.svg || ico(it.icono, 1.7); }
+        function item(it) {
+            var etiqueta = (it.num ? it.num + ". " : "") + it.nombre;
+            var dentro = icono(it) + '<span class="ui-riel__texto">' + (it.num ? '<b class="ui-riel__num">' + it.num + "</b>" : "") + esc(it.nombre) + "</span>" +
+                (it.pronto ? '<em class="ui-riel__pronto">Pronto</em>' : "") +
+                (it.vedado ? '<i class="ui-riel__candado" title="No incluido en tu plan">' + ico(D.candado, 2) + "</i>" : "");
+            var clase = "ui-riel__item" + (it.actual ? " ui-riel__item--actual" : "") + (it.vedado ? " ui-riel__item--vedado" : "") + (it.pronto ? " ui-riel__item--pronto" : "");
+            var datos = ' data-nombre="' + esc(etiqueta + (it.pronto ? " (pronto)" : "")) + '"' + (it.id ? ' data-riel="' + esc(it.id) + '"' : "") + (it.plan ? ' data-plan="' + esc(it.plan) + '"' : "") +
+                (it.actual ? ' aria-current="page"' : "");
+            if (it.pronto) return '<span class="' + clase + '" aria-disabled="true"' + datos + ">" + dentro + "</span>";
+            if (it.href) return '<a class="' + clase + '" href="' + esc(it.href) + '"' + datos + ">" + dentro + "</a>";
+            return '<button type="button" class="' + clase + '"' + datos + ">" + dentro + "</button>";
+        }
+        function lista(grupos) {
+            return grupos.map(function (g) {
+                if (!g.titulo) return (g.separador ? '<div class="ui-riel__sep"></div>' : "") + g.items.map(item).join("");
+                var conActual = g.items.some(function (x) { return x.actual; }), cerrado = plegado(g.titulo, conActual);
+                return '<section class="ui-riel__grupo' + (cerrado ? " ui-riel__grupo--plegado" : "") + '" data-grupo="' + esc(g.titulo) + '">' +
+                    '<button type="button" class="ui-riel__titulo" aria-expanded="' + !cerrado + '"><span>' + esc(g.titulo) + "</span>" + ico(D.abajo, 2) + "</button>" +
+                    '<div class="ui-riel__items">' + g.items.map(item).join("") + "</div></section>";
+            }).join("") || (op.vacio ? '<p class="ui-riel__vacio">' + esc(op.vacio) + "</p>" : "");
+        }
+        var b = op.buscar, chico = lateralChico();
+        nav.innerHTML = (op.cabeza ? '<div class="ui-riel__cabeza">' + op.cabeza + "</div>" : "") +
+            (!b ? "" : b.campo
+                ? '<label class="ui-riel__buscar" data-nombre="' + esc(b.texto) + '">' + ico(D.buscar, 2) + '<input type="search" autocomplete="off" placeholder="' + esc(b.texto) + '" aria-label="' + esc(b.texto) + '"></label>'
+                : '<button type="button" class="ui-riel__buscar" data-nombre="' + esc(b.texto + (b.atajo ? " (" + b.atajo + ")" : "")) + '">' + ico(D.buscar, 2) +
+                  '<span class="ui-riel__texto">' + esc(b.texto) + "</span>" + (b.atajo ? "<kbd>" + esc(b.atajo) + "</kbd>" : "") + "</button>") +
+            '<div class="ui-riel__lista">' + lista(op.grupos || []) + "</div>" +
+            '<button type="button" class="ui-riel__plegar" aria-label="' + (chico ? "Mostrar nombres" : "Plegar a íconos") + '" data-nombre="' + (chico ? "Mostrar nombres" : "Plegar a íconos") + '">' +
+            ico(D.contraer, 1.8) + '<span class="ui-riel__texto">Plegar</span></button>';
+        var caja = nav.querySelector(".ui-riel__lista"), entrada = nav.querySelector(".ui-riel__buscar input");
+        // El nombre que sale al pasar el cursor (plegada) se pone junto al borde derecho de esta barra, esté donde esté
+        nav.addEventListener("mouseover", function () { nav.style.setProperty("--riel-x", nav.getBoundingClientRect().right + "px"); });
+        nav.addEventListener("click", function (e) {
+            if (e.target.closest(".ui-riel__plegar")) { ponerChico(!lateralChico()); return; }
+            var t = e.target.closest(".ui-riel__titulo");
+            if (t) {
+                var sec = t.parentElement, g = sec.dataset.grupo, cerrar = !sec.classList.contains("ui-riel__grupo--plegado");
+                sec.classList.toggle("ui-riel__grupo--plegado", cerrar); t.setAttribute("aria-expanded", String(!cerrar));
+                tocados[g] = cerrar;
+                if (window.innerHeight >= 760) { var m = guardados(); if (cerrar) m[g] = true; else delete m[g]; try { localStorage.setItem(CLAVE_GRUPOS, JSON.stringify(m)); } catch (err) { /* sin almacenamiento */ } }
+                return;
+            }
+            var bus = e.target.closest(".ui-riel__buscar");
+            if (bus) {
+                if (entrada) { if (lateralChico()) ponerChico(false); entrada.focus(); }
+                else if (b && b.alAbrir) b.alAbrir(bus);
+                return;
+            }
+            var it = e.target.closest("button.ui-riel__item[data-riel]");
+            if (it && op.alElegir) op.alElegir(it.dataset.riel, e);
+        });
+        if (entrada && b.alEscribir) entrada.addEventListener("input", function () { b.alEscribir(entrada.value); });
+        return {
+            nav: nav, entrada: entrada,
+            pintar: function (grupos) { caja.innerHTML = lista(grupos); }
+        };
+    }
+
+    /* --------------------------------------------- barra lateral de módulos (computadora; en el teléfono, «Módulos») */
     var conLateral = !document.documentElement.classList.contains("fc-incrustado") && clave !== "configuracion";
-    function lateralChico() { try { return localStorage.getItem("fc-lateral") === "chico"; } catch (e) { return false; } }
+    // Ajustes trae su propia barra (la misma pieza): misma estructura de página desde el primer pintado
+    if (clave === "configuracion" && !document.documentElement.classList.contains("fc-incrustado")) document.documentElement.classList.add("fc-con-riel");
+    var rielModulos = null;
+    function gruposModulos() {
+        var inicio = { titulo: null, items: [{ nombre: "Inicio", icono: D.casa, href: "/", actual: clave === "portada" }] };
+        return [inicio].concat(GRUPOS.map(function (g) {
+            var ms = CATALOGO.filter(function (m) { return m.grupo === g; });
+            var items = ms.map(function (m) {
+                var ok = m.pronto || permitido(m);
+                return { nombre: m.nombre, num: m.num, icono: m.icono, href: m.url, pronto: m.pronto, actual: aqui && m.clave === aqui.clave, vedado: !ok, plan: ok ? null : m.clave };
+            });
+            // Un grupo de un solo módulo no lleva título (sería «Clientes › Clientes»): solo la línea que separa
+            return ms.length > 1 ? { titulo: g, items: items } : { titulo: null, separador: true, items: items };
+        }));
+    }
     function pintarLateral() {
         if (!conLateral) return;
-        var html = document.documentElement;
-        html.classList.add("fc-con-lateral");
-        html.classList.toggle("fc-lateral-chico", lateralChico());
+        document.documentElement.classList.add("fc-con-lateral");
         var nav = document.getElementById("fc-lateral");
         if (!nav) {
             nav = document.createElement("nav");
             nav.id = "fc-lateral"; nav.className = "fc-lateral"; nav.setAttribute("aria-label", "Módulos");
             document.body.appendChild(nav);
-            nav.addEventListener("click", function (e) {
-                if (!e.target.closest("[data-contraer]")) return;
-                var chico = !lateralChico();
-                try { localStorage.setItem("fc-lateral", chico ? "chico" : "grande"); } catch (err) { /* sin almacenamiento */ }
-                html.classList.toggle("fc-lateral-chico", chico);
-                nav.querySelector("[data-contraer]").setAttribute("aria-label", chico ? "Mostrar nombres" : "Solo íconos");
-            });
-        }
-        var item = function (m) {
-            var ok = permitido(m), actual = aqui && m.clave === aqui.clave, nombre = CORTOS[m.clave] || m.nombre;
-            return '<a class="fc-lat__item' + (actual ? " fc-lat__item--actual" : "") + (ok ? "" : " fc-lat__item--vedado") + '" href="' + esc(m.url) + '"' +
-                (actual ? ' aria-current="page"' : "") + (ok ? "" : ' data-plan="' + m.clave + '"') + ' data-nombre="' + esc(nombre) + '">' +
-                ico(m.icono, 1.7) + "<span>" + esc(nombre) + "</span>" + (ok ? "" : '<i class="fc-lat__candado" title="No incluido en tu plan">' + ico(D.candado, 2) + "</i>") + "</a>";
-        };
-        nav.innerHTML = '<div class="fc-lat__lista">' +
-            '<a class="fc-lat__item' + (clave === "portada" ? " fc-lat__item--actual" : "") + '" href="/" data-nombre="Inicio">' + ico(D.casa, 1.7) + "<span>Inicio</span></a>" +
-            GRUPOS.map(function (g) {
-                var ms = CATALOGO.filter(function (m) { return m.grupo === g; });
-                if (!ms.length) return "";
-                // Un grupo de un solo módulo no lleva título (sería «Clientes › Clientes»)
-                return (ms.length > 1 ? '<p class="fc-lat__grupo">' + esc(g) + "</p>" : '<div class="fc-lat__sep"></div>') + ms.map(item).join("");
-            }).join("") + "</div>" +
-            '<button type="button" class="fc-lat__contraer" data-contraer aria-label="' + (lateralChico() ? "Mostrar nombres" : "Solo íconos") + '">' +
-            ico(D.contraer, 1.8) + "<span>Contraer</span></button>";
+            rielModulos = riel(nav, { id: "modulos", grupos: gruposModulos(),
+                buscar: { texto: "Buscar…", atajo: "Ctrl K", alAbrir: function (boton) { abrirModulos(boton); } } });
+        } else rielModulos.pintar(gruposModulos());
     }
 
-    function abrirModulos() {
-        var panel = document.getElementById("fc-modulos"), boton = document.getElementById("fc-btn-modulos");
+    function abrirModulos(origen) {
+        var panel = document.getElementById("fc-modulos"), boton = origen || document.getElementById("fc-btn-modulos");
         cerrarEmpresas();
         document.getElementById("fc-menu").hidden = true;
         var buscar = document.getElementById("fc-modulos-buscar");
@@ -449,7 +537,7 @@
         panel.hidden = false;
         boton.setAttribute("aria-expanded", "true");
         var interior = panel.parentElement.getBoundingClientRect(), r = boton.getBoundingClientRect();
-        panel.style.left = Math.max(12, r.left - interior.left) + "px";
+        panel.style.left = Math.max(12, (r.width ? r.left : 12) - interior.left) + "px";
         if (window.innerWidth > 700) buscar.focus();
     }
 
@@ -472,6 +560,7 @@
         buscar.addEventListener("input", pintarModulos);
         buscar.addEventListener("keydown", function (e) {
             if (e.key === "Enter") {
+                e.preventDefault();
                 var primero = panel.querySelector(".fc-modulos__item:not(.fc-modulos__item--vedado)");
                 if (primero) location.href = primero.getAttribute("href");
             } else if (e.key === "ArrowDown") {
@@ -487,7 +576,7 @@
             if (sig) sig.focus(); else if (e.key === "ArrowUp") buscar.focus();
         });
         document.addEventListener("pointerdown", function (e) {
-            if (!panel.hidden && !panel.contains(e.target) && !boton.contains(e.target)) cerrarModulos();
+            if (!panel.hidden && !panel.contains(e.target) && !boton.contains(e.target) && !(e.target.closest && e.target.closest(".ui-riel__buscar"))) cerrarModulos();
         });
         document.addEventListener("keydown", function (e) {
             if ((e.ctrlKey || e.metaKey) && (e.key === "k" || e.key === "K")) {
@@ -1310,14 +1399,12 @@
         var nuevos = procesos.filter(function (p) {
             return p.estado !== "procesando" && !vistos.has(p.id);
         }).length;
-        var total = activos + nuevos;
+        var total = nuevos;              // solo lo nuevo sin ver (lo que sigue corriendo no suma)
 
         var contador = document.getElementById("fc-contador");
         if (contador) {
             contador.textContent = total;
             contador.hidden = total === 0;
-            contador.style.background = activos ? "#F59E0B" : "#12B76A";
-            contador.style.color = activos ? "#241503" : "#FFFFFF";
         }
 
         var boton = document.getElementById("fc-btn-descargas");
@@ -1911,6 +1998,7 @@
 
     Object.assign(window.Fiscontable, {
         modulo: clave,
+        riel: riel,
         catalogo: CATALOGO,
         grupos: GRUPOS,
         avisoPlan: avisoPlan,

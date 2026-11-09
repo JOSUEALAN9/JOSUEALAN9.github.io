@@ -72,9 +72,10 @@
         });
     }
 
+    // El menú es la misma pieza que la barra de módulos (Fiscontable.riel): plegar, grupos y nombres al pasar el cursor
+    var menu = null;
     function pintarMenu() {
-        var q = Fiscontable.sinAcentos ? Fiscontable.sinAcentos($("cf-buscar").value) : $("cf-buscar").value.toLowerCase();
-        q = (q || "").trim().toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+        var q = ((menu && menu.entrada && menu.entrada.value) || "").trim().toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
         var grupos = {}, orden = [];
         visibles().forEach(function (s) {
             var texto = (s.titulo + " " + s.desc + " " + s.palabras).toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
@@ -82,11 +83,9 @@
             if (!grupos[s.grupo]) { grupos[s.grupo] = []; orden.push(s.grupo); }
             grupos[s.grupo].push(s);
         });
-        $("cf-secciones").innerHTML = orden.length ? orden.map(function (g) {
-            return '<p class="cf-grupo">' + esc(g) + "</p>" + grupos[g].map(function (s) {
-                return '<button type="button" class="cf-item' + (s.id === actual ? " cf-item--activo" : "") + '" data-seccion="' + s.id + '" aria-label="' + esc(s.titulo) + '">'  + ico(s.ico) + "<span>" + esc(s.titulo) + "</span></button>";
-            }).join("");
-        }).join("") : '<p class="cf-vacio">Nada coincide con «' + esc($("cf-buscar").value) + "».</p>";
+        if (menu) menu.pintar(orden.map(function (g) {
+            return { titulo: g, items: grupos[g].map(function (s) { return { id: s.id, nombre: s.titulo, svg: ico(s.ico), actual: s.id === actual }; }) };
+        }));
     }
 
     var actual = null;
@@ -102,7 +101,6 @@
         if (incrustado) $("cf-listo").addEventListener("click", listo);
         var caja = $("cf-seccion");
         document.body.classList.toggle("cf-con-marco", !!s.marco);
-        compactar(true);                 // en todas las secciones: íconos con nombre al pasar el cursor; ☰ lo deja abierto
         if (s.marco) {
             caja.innerHTML = '<iframe class="cf-marco" title="' + esc(s.titulo) + '" src="' + esc(s.marco(sub)) + '"></iframe>';
             return;
@@ -110,13 +108,6 @@
         s.pintar(caja);
     }
 
-    var FIJO = "fiscontable.config.menu";
-    function fijado() { try { return localStorage.getItem(FIJO) === "abierto"; } catch (e) { return false; } }
-    function compactar(quiere) {
-        document.body.classList.toggle("cf-compacto", quiere && !fijado());
-        var b = $("cf-fijar");
-        if (b) { b.title = fijado() ? "Reducir el menú a íconos" : "Dejar el menú abierto"; b.setAttribute("aria-pressed", String(fijado())); }
-    }
 
     function listo() {
         if (window.parent !== window) window.parent.postMessage({ fiscontable: "config-listo", seccion: actual }, location.origin);
@@ -234,15 +225,14 @@
         });
         try { perfil = await api("/api/mi-perfil"); }
         catch (e) { $("cf-cuerpo").innerHTML = '<p class="cf-msj cf-msj--mal">' + esc(e.message) + "</p>"; return; }
-        $("cf-buscar").addEventListener("input", function () {
-            pintarMenu();
-            var primero = $("cf-secciones").querySelector("[data-seccion]");
-            if (primero && $("cf-buscar").value.trim()) abrir(primero.dataset.seccion);
-        });
-        $("cf-secciones").addEventListener("click", function (ev) { var b = ev.target.closest("[data-seccion]"); if (b) abrir(b.dataset.seccion); });
-        $("cf-fijar").addEventListener("click", function () {
-            try { localStorage.setItem(FIJO, fijado() ? "compacto" : "abierto"); } catch (e) { /* sin almacenamiento */ }
-            compactar(true);
+        menu = Fiscontable.riel($("cf-menu"), {
+            id: "ajustes", cabeza: '<h1 class="cf-menu__titulo">Configuración</h1>', vacio: "Nada coincide.",
+            buscar: { campo: true, texto: "Buscar en la configuración", alEscribir: function (texto) {
+                pintarMenu();
+                var primero = $("cf-menu").querySelector("[data-riel]");
+                if (primero && texto.trim()) abrir(primero.dataset.riel);
+            } },
+            alElegir: function (id) { abrir(id); }
         });
         abrir(Fiscontable.url("seccion") || "perfil", Fiscontable.url("sub"));
     }

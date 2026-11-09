@@ -4,14 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sistema visual | Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611091800">
-    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611091800">
-    <link rel="stylesheet" href="/ui/ui.css?v=202611091800">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611092100">
+    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611092100">
+    <link rel="stylesheet" href="/ui/ui.css?v=202611092100">
 </head>
 <body>
 <div id="app-header" data-modulo="ui" data-titulo="Sistema visual"></div>
-<script src="/assets/js/nucleo.js?v=202611091800"></script>
-<script src="/assets/js/barra.js?v=202611091800"></script>
+<script src="/assets/js/nucleo.js?v=202611092100"></script>
+<script src="/assets/js/barra.js?v=202611092100"></script>
 
 <main class="uv">
     <div id="uv-solo-admin" class="ui-vacio" hidden><b>Solo para el administrador</b>Esta página muestra las piezas del sistema visual.</div>
@@ -37,6 +37,24 @@
                     <span><b>Opción B · Verde bosque</b><small>IBM Plex Sans + IBM Plex Mono. Más sobrio, estilo despacho.</small></span>
                 </button>
             </div>
+            <h3>Barra de arriba</h3>
+            <div class="uv-opciones" id="uv-barras">
+                <button type="button" class="uv-opcion" data-barra="oscura">
+                    <span class="uv-barra-muestra uv-barra-muestra--oscura"><i></i><em></em><em></em></span>
+                    <span><b>Oscura</b><small>Como hoy: separa la barra del trabajo. Más contraste.</small></span>
+                </button>
+                <button type="button" class="uv-opcion" data-barra="clara">
+                    <span class="uv-barra-muestra uv-barra-muestra--clara"><i></i><em></em><em></em></span>
+                    <span><b>Clara</b><small>Blanca con línea abajo: más ligera, se funde con la barra lateral.</small></span>
+                </button>
+            </div>
+        </section>
+
+        <!-- Barra lateral -->
+        <section class="uv-seccion">
+            <h2>Barra lateral (la misma pieza en módulos y en Ajustes)</h2>
+            <p class="uv-nota">Abierta con nombres la primera vez. «Plegar» la deja en íconos y se recuerda; plegada, el nombre sale a un lado al pasar el cursor y una línea separa los grupos. Clic en el título de un grupo lo pliega. En código: <code>Fiscontable.riel(nav, {…})</code>.</p>
+            <div class="uv-riel-marco"><nav id="uv-riel" aria-label="Ejemplo de barra lateral"></nav><div class="uv-riel-contenido">Contenido del módulo</div></div>
         </section>
 
         <!-- Colores -->
@@ -220,7 +238,7 @@
     </dialog>
 </main>
 
-<script src="/assets/js/comun/zona-archivos.js?v=202611091800"></script>
-<script src="/ui/ui.js?v=202611091800"></script>
+<script src="/assets/js/comun/zona-archivos.js?v=202611092100"></script>
+<script src="/ui/ui.js?v=202611092100"></script>
 </body>
 </html>

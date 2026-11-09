@@ -83,11 +83,30 @@
     }
 
     function marcarOpcion() {
-        var actual = document.documentElement.dataset.tema === "b" ? "b" : "a";
-        document.querySelectorAll(".uv-opcion").forEach(function (b) { b.setAttribute("aria-pressed", String(b.dataset.tema === actual)); });
+        var actual = document.documentElement.dataset.tema === "b" ? "b" : "a", barra = document.documentElement.dataset.barra === "clara" ? "clara" : "oscura";
+        document.querySelectorAll(".uv-opcion[data-tema]").forEach(function (b) { b.setAttribute("aria-pressed", String(b.dataset.tema === actual)); });
+        document.querySelectorAll(".uv-opcion[data-barra]").forEach(function (b) { b.setAttribute("aria-pressed", String(b.dataset.barra === barra)); });
+    }
+
+    function pintarRiel() {
+        var x = function (n, icono, extra) { return Object.assign({ nombre: n, svg: Fiscontable.icono(icono) }, extra || {}); };
+        Fiscontable.riel($("uv-riel"), { id: "muestra", buscar: { texto: "Buscar…", atajo: "Ctrl K", alAbrir: function () { Fiscontable.toast("Abre el buscador de módulos (Ctrl K)."); } },
+            alElegir: function () {},
+            grupos: [{ titulo: null, items: [x("Inicio", "casa", { id: "inicio" })] },
+                     { titulo: "Comprobantes", items: [x("Administración de XML", "documento", { id: "xml", actual: true }), x("Validador", "palomita", { id: "val" })] },
+                     { titulo: "Cierre del mes", items: [x("Conciliación", "copiar", { id: "c1", num: 1 }), x("Papel de trabajo IVA", "moneda2", { id: "c2", num: 2 }),
+                                                          x("Presentar declaraciones", "subir", { num: 3, pronto: true })] },
+                     { titulo: null, separador: true, items: [x("Facturar", "lapiz", { id: "fa", vedado: true })] }] });
     }
 
     function eventos() {
+        $("uv-barras").addEventListener("click", function (e) {
+            var b = e.target.closest("[data-barra]"); if (!b) return;
+            if (b.dataset.barra === "clara") document.documentElement.dataset.barra = "clara"; else delete document.documentElement.dataset.barra;
+            try { localStorage.setItem("fc-barra", b.dataset.barra); } catch (err) { /* sin almacenamiento */ }
+            marcarOpcion();
+            Fiscontable.toast("Barra " + b.dataset.barra + " aplicada en este navegador.");
+        });
         document.querySelector(".uv-opciones").addEventListener("click", function (e) {
             var b = e.target.closest("[data-tema]"); if (!b) return;
             if (b.dataset.tema === "b") document.documentElement.dataset.tema = "b"; else delete document.documentElement.dataset.tema;
@@ -115,7 +134,7 @@
         var p = await Fiscontable.perfil();
         if (!p || p._error || p.rol !== "admin") { $("uv-solo-admin").hidden = false; return; }
         $("uv-contenido").hidden = false;
-        pintarPaletas(); pintarBotones(); pintarFilas(); pintarIconos(); marcarOpcion(); eventos();
+        pintarPaletas(); pintarBotones(); pintarFilas(); pintarIconos(); pintarRiel(); marcarOpcion(); eventos();
     }
     iniciar();
 })();

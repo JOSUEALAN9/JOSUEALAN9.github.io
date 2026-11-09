@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611091800">
-    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611091800">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611092100">
+    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611092100">
 </head>
 <body class="min-h-screen flex flex-col">
 
@@ -17,7 +17,7 @@
         <h1 id="saludo" class="display" style="font-size:clamp(30px,4.6vw,44px)">
             <span class="fc-esqueleto" style="display:inline-block;width:min(340px,70vw);height:1em;vertical-align:-.12em"></span>
         </h1>
-        <p style="margin-top:10px;font-size:16.5px;color:var(--texto-tenue)">¿Con qué quieres trabajar hoy? <span class="inicio-atajo">Tip: <kbd>Ctrl</kbd> + <kbd>K</kbd> abre cualquier módulo desde donde estés.</span></p>
+        <p style="margin-top:10px;font-size:16.5px;color:var(--texto-tenue)">¿Con qué quieres trabajar hoy?</p>
     </section>
 
     <!-- La empresa con la que trabajas y lo que le falta -->
@@ -28,13 +28,10 @@
         <div class="inicio-rejilla inicio-rejilla--recientes" id="inicio-recientes-lista"></div>
     </section>
 
-    <div id="inicio-modulos" style="padding-bottom:64px"></div>
+    <div style="padding-bottom:64px"></div>
 </main>
 
 <style>
-    .inicio-atajo { display: inline-block; margin-left: 6px; font-size: 13px; }
-    .inicio-atajo kbd { font: 600 11.5px ui-monospace, monospace; border: 1px solid var(--linea); border-bottom-width: 2px; border-radius: 5px; padding: 1px 5px; background: #fff; }
-    @media (max-width: 760px) { .inicio-atajo { display: none; } }
     .inicio-grupo { font-size: 14px; font-weight: 700; color: var(--texto-tenue); margin: 26px 0 12px; }
     .inicio-rejilla { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); }
     .inicio-mod { display: flex; gap: 12px; align-items: flex-start; background: #fff; border: 1px solid var(--linea); border-radius: 14px;
@@ -58,8 +55,8 @@
     .inicio-empresa__acciones { display: flex; flex-wrap: wrap; gap: 8px; }
 </style>
 
-<script src="/assets/js/nucleo.js?v=202611091800"></script>
-<script src="/assets/js/barra.js?v=202611091800"></script>
+<script src="/assets/js/nucleo.js?v=202611092100"></script>
+<script src="/assets/js/barra.js?v=202611092100"></script>
 <script>
     (function () {
         var esc = Fiscontable.escapar;
@@ -76,12 +73,6 @@
             var rec = Fiscontable.recientes().slice(0, 4).map(function (c) { return cat.filter(function (m) { return m.clave === c; })[0]; }).filter(Boolean);
             document.getElementById("inicio-recientes").hidden = !rec.length;
             document.getElementById("inicio-recientes-lista").innerHTML = rec.map(tarjeta).join("");
-            var grupos = (Fiscontable.grupos || []).slice();
-            cat = cat.filter(function (m) { return !m.cuenta; });
-            document.getElementById("inicio-modulos").innerHTML = grupos.map(function (g) {
-                return '<h2 class="inicio-grupo">' + esc(g) + '</h2><div class="inicio-rejilla">' +
-                    cat.filter(function (m) { return m.grupo === g; }).map(tarjeta).join("") + "</div>";
-            }).join("");
         }
         async function empresa(p) {
             var caja = document.getElementById("inicio-empresa");

@@ -855,7 +855,7 @@
                  descripcion: $("pr-descripcion").value.trim() || null, clave_prod: $("pr-clave").valor ? $("pr-clave").valor() : F.prClave,
                  clave_unidad: $("pr-unidad").valor ? $("pr-unidad").valor() : F.prUnidad, precio: $("pr-precio").value === "" ? null : num($("pr-precio").value),
                  precio_con_impuestos: $("pr-con").value === "1", objeto_imp: k[1], iva: k[2], ret_isr: k[3] || null, ret_iva: k[4] || null,
-                 cuenta_predial: $("pr-predial").value.trim() || null };
+                 cuenta_predial: $("pr-predial").value.replace(/[^0-9a-zA-Z]/g, "") || null };
     }
 
     async function guardarProducto() {
@@ -2590,7 +2590,14 @@
             if (k === "no_identificacion" || k === "cuenta_predial") refrescarSub(i);
             calcular();
         });
-        $("conceptos").addEventListener("change", function (ev) { if (ev.target.matches('select[data-c="impuesto"], input[data-c="modo"]')) ev.target.dispatchEvent(new Event("input", { bubbles: true })); });
+        $("conceptos").addEventListener("change", function (ev) {
+            if (ev.target.matches('select[data-c="impuesto"], input[data-c="modo"]')) ev.target.dispatchEvent(new Event("input", { bubbles: true }));
+            // El SAT solo acepta letras y números en la cuenta predial: guiones, puntos y espacios se quitan solos
+            if (ev.target.matches('input[data-c="cuenta_predial"]') && /[^0-9a-zA-Z]/.test(ev.target.value)) {
+                ev.target.value = ev.target.value.replace(/[^0-9a-zA-Z]/g, "");
+                ev.target.dispatchEvent(new Event("input", { bubbles: true }));
+            }
+        });
         $("conceptos").addEventListener("focusin", function (ev) { if (ev.target.matches('[data-c="descripcion"]')) sugerirProductos(ev.target); });
         $("conceptos").addEventListener("focusout", function (ev) {
             if (!ev.target.matches('[data-c="descripcion"]')) return;

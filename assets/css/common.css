@@ -267,8 +267,8 @@ a.fc-miga:hover { color: #fff; }
     height: 18px;
     padding: 0 5px;
     border-radius: 999px;
-    background: #F59E0B;
-    color: #241503;
+    background: rgb(var(--ac-500));
+    color: #fff;
     font-size: 11px;
     font-weight: 700;
     line-height: 18px;
@@ -907,7 +907,7 @@ body.fc-sin-scroll { overflow: hidden; }
 }
 
 /* El botón de descargas se enciende mientras algo corre */
-.fc-accion--activa { background: rgba(245, 158, 11, .16); color: #fff; }
+.fc-accion--activa { color: #fff; }
 
 /* --- Selector general de empresa (barra) --- */
 .fc-empresa { max-width: 260px; }
@@ -1341,58 +1341,101 @@ main.fc-recien { animation: fc-recien .35s ease-out; }
 .fc-plan__botones { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 10px; }
 
 /* ============================================================
-   BARRA LATERAL (computadora): módulos agrupados por el trabajo
+   RIEL: barra lateral compartida (módulos y Ajustes). Ver /ui/.
+   Plegar solo cambia el ancho: íconos, alturas y espacios no se mueven (sin saltos).
    ============================================================ */
+.ui-riel { display: flex; flex-direction: column; width: var(--lateral-ancho); min-width: 0; background: rgb(var(--g-0));
+           border-right: 1px solid var(--linea); overflow: hidden; transition: width .18s ease; }
+.ui-riel__cabeza { flex: none; height: 44px; display: flex; align-items: center; padding: 0 21px; white-space: nowrap;
+                   font-size: var(--t-16); font-weight: 700; color: rgb(var(--g-900)); overflow: hidden; }
+.ui-riel__buscar { flex: none; display: flex; align-items: center; gap: 10px; height: 34px; margin: 10px 10px 4px; padding: 0 10px;
+                   border: 1px solid var(--linea); border-radius: var(--r-control); background: rgb(var(--g-50)); color: rgb(var(--g-500));
+                   font: inherit; font-size: var(--t-13); cursor: pointer; white-space: nowrap; overflow: hidden; text-align: left; }
+.ui-riel__buscar:hover, .ui-riel__buscar:focus-within { border-color: rgb(var(--g-300)); color: rgb(var(--g-700)); }
+.ui-riel__buscar svg { width: 18px; height: 18px; flex: none; }
+.ui-riel__buscar .ui-riel__texto { flex: 1; }
+.ui-riel__buscar input { flex: 1; min-width: 0; border: 0; outline: 0; background: none; font: inherit; color: rgb(var(--g-900)); }
+.ui-riel__buscar kbd { font: 600 11px var(--fuente-mono); color: rgb(var(--g-500)); border: 1px solid var(--linea); border-radius: 4px; padding: 0 4px; background: rgb(var(--g-0)); }
+.ui-riel__lista { flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; padding: 6px 10px 10px; scrollbar-width: thin; }
+.ui-riel__item { position: relative; display: flex; align-items: center; gap: 10px; width: 100%; height: 34px; padding: 0 11px; border: 0; background: none;
+                 border-radius: var(--r-control); font: inherit; font-size: var(--t-13); font-weight: 500; color: rgb(var(--g-700));
+                 text-decoration: none; white-space: nowrap; cursor: pointer; text-align: left; }
+.ui-riel__item svg { width: 18px; height: 18px; flex: none; color: rgb(var(--g-500)); }
+.ui-riel__texto { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.ui-riel__item:hover { background: rgb(var(--g-100)); color: rgb(var(--g-900)); }
+.ui-riel__item:focus-visible, .ui-riel__titulo:focus-visible, .ui-riel__plegar:focus-visible, .ui-riel__buscar:focus-visible { outline: 2px solid rgb(var(--ac-600)); outline-offset: -2px; }
+.ui-riel__item--actual { background: rgb(var(--ac-50)); color: rgb(var(--ac-700)); font-weight: 600; }
+.ui-riel__item--actual svg { color: rgb(var(--ac-600)); }
+.ui-riel__item--vedado, .ui-riel__item--pronto { color: rgb(var(--g-500)); }
+.ui-riel__item--pronto { cursor: default; }
+.ui-riel__item--pronto:hover { background: none; color: rgb(var(--g-500)); }
+.ui-riel__num { display: inline-block; min-width: 14px; margin-right: 6px; font: 600 11px var(--fuente-mono); color: rgb(var(--g-500)); }
+.ui-riel__item--actual .ui-riel__num { color: rgb(var(--ac-600)); }
+.ui-riel__pronto { margin-left: auto; font-style: normal; font-size: 11px; font-weight: 600; color: rgb(var(--g-500)); background: rgb(var(--g-100)); border-radius: 99px; padding: 1px 7px; }
+.ui-riel__candado { margin-left: auto; display: grid; color: rgb(var(--g-400)); }
+.ui-riel__candado svg { width: 13px; height: 13px; color: inherit; }
+.ui-riel__sep { height: 1px; margin: 8px 11px; background: var(--linea); }
+.ui-riel__titulo { position: relative; display: flex; align-items: center; justify-content: space-between; width: 100%; height: 30px; margin-top: 6px; padding: 0 11px;
+                   border: 0; background: none; font: inherit; font-size: var(--t-12); font-weight: 600; color: rgb(var(--g-500)); cursor: pointer; white-space: nowrap; border-radius: var(--r-control); }
+.ui-riel__titulo:hover { color: rgb(var(--g-800)); }
+.ui-riel__titulo svg { width: 14px; height: 14px; flex: none; transition: transform .15s; }
+.ui-riel__grupo--plegado .ui-riel__titulo svg { transform: rotate(-90deg); }
+.ui-riel__grupo--plegado .ui-riel__items { display: none; }
+.ui-riel__vacio { font-size: var(--t-13); color: rgb(var(--g-500)); padding: 8px 11px; white-space: normal; }
+.ui-riel__plegar { flex: none; display: flex; align-items: center; gap: 10px; height: 42px; padding: 0 21px; border: 0; border-top: 1px solid var(--linea);
+                   background: none; font: inherit; font-size: var(--t-13); color: rgb(var(--g-600)); cursor: pointer; white-space: nowrap; overflow: hidden; }
+.ui-riel__plegar:hover { color: rgb(var(--g-900)); background: rgb(var(--g-50)); }
+.ui-riel__plegar svg { width: 18px; height: 18px; flex: none; transition: transform .18s; }
+
+/* Plegada: solo íconos. Los textos se recortan (no se mueven), los títulos de grupo son una línea delgada
+   y todos los grupos se ven. El nombre sale a un lado al pasar el cursor. */
+.fc-lateral-chico .ui-riel { width: var(--lateral-chico); }
+.fc-lateral-chico .ui-riel__cabeza { color: transparent; }
+.fc-lateral-chico .ui-riel__buscar { border-color: transparent; background: none; }
+.fc-lateral-chico .ui-riel__buscar kbd, .fc-lateral-chico .ui-riel__pronto, .fc-lateral-chico .ui-riel__candado { visibility: hidden; }
+.fc-lateral-chico .ui-riel__titulo { color: transparent; pointer-events: none; }
+.fc-lateral-chico .ui-riel__titulo svg { visibility: hidden; }
+.fc-lateral-chico .ui-riel__titulo::before { content: ""; position: absolute; left: 11px; right: 11px; top: 50%; height: 1px; background: var(--linea); }
+.fc-lateral-chico .ui-riel__grupo--plegado .ui-riel__items { display: block; }
+.fc-lateral-chico .ui-riel__plegar svg { transform: rotate(180deg); }
+.fc-lateral-chico .ui-riel__item:hover::after, .fc-lateral-chico .ui-riel__item:focus-visible::after,
+.fc-lateral-chico .ui-riel__buscar:hover::after, .fc-lateral-chico .ui-riel__plegar:hover::after {
+    content: attr(data-nombre); position: fixed; left: calc(var(--riel-x, var(--lateral-chico)) + 8px); z-index: 60; pointer-events: none;
+    background: rgb(var(--g-900)); color: #fff; font-size: var(--t-12); font-weight: 600; padding: 5px 10px; border-radius: var(--r-control);
+    white-space: nowrap; box-shadow: var(--sombra-2); }
+
+/* La barra de módulos en computadora (en el teléfono se usa el botón «Módulos») */
 .fc-lateral { display: none; }
 @media (min-width: 1024px) {
-    html.fc-con-lateral body { padding-left: var(--lateral-ancho); }
-    html.fc-con-lateral.fc-lateral-chico body { padding-left: var(--lateral-chico); }
-    html.fc-con-lateral .fc-barra { margin-left: calc(var(--lateral-ancho) * -1); width: calc(100% + var(--lateral-ancho)); }
-    html.fc-con-lateral.fc-lateral-chico .fc-barra { margin-left: calc(var(--lateral-chico) * -1); width: calc(100% + var(--lateral-chico)); }
+    /* Misma estructura con la barra de módulos (fc-con-lateral) y con la de Ajustes (fc-con-riel) */
+    html.fc-con-lateral body, html.fc-con-riel body { padding-left: var(--lateral-ancho); transition: padding-left .18s ease; }
+    html.fc-con-lateral.fc-lateral-chico body, html.fc-con-riel.fc-lateral-chico body { padding-left: var(--lateral-chico); }
+    html.fc-con-lateral .fc-barra, html.fc-con-riel .fc-barra { margin-left: calc(var(--lateral-ancho) * -1); width: calc(100% + var(--lateral-ancho)); transition: margin-left .18s ease, width .18s ease; }
+    html.fc-con-lateral.fc-lateral-chico .fc-barra, html.fc-con-riel.fc-lateral-chico .fc-barra { margin-left: calc(var(--lateral-chico) * -1); width: calc(100% + var(--lateral-chico)); }
+    html.fc-con-riel .cf-menu { position: fixed; z-index: 35; left: 0; top: var(--barra-alto); bottom: 0; height: auto; }
     html.fc-con-lateral .fc-modulos-btn { display: none; }
-    html.fc-con-lateral .fc-cambio { left: var(--lateral-ancho); }
-    html.fc-con-lateral.fc-lateral-chico .fc-cambio { left: var(--lateral-chico); }
+    html.fc-con-lateral .fc-cambio, html.fc-con-riel .fc-cambio { left: var(--lateral-ancho); }
+    html.fc-con-lateral.fc-lateral-chico .fc-cambio, html.fc-con-riel.fc-lateral-chico .fc-cambio { left: var(--lateral-chico); }
+    .fc-lateral { display: flex; position: fixed; z-index: 35; left: 0; top: var(--barra-alto); bottom: 0; view-transition-name: fc-lateral; }
 
-    .fc-lateral { display: flex; flex-direction: column; position: fixed; z-index: 35; left: 0; top: var(--barra-alto); bottom: 0;
-                  width: var(--lateral-ancho); background: rgb(var(--g-0)); border-right: 1px solid var(--linea);
-                  view-transition-name: fc-lateral; }
-    .fc-lat__lista { flex: 1; overflow-y: auto; overflow-x: hidden; padding: var(--e-3) var(--e-2); scrollbar-width: thin; }
-    .fc-lat__grupo { font-size: var(--t-12); font-weight: 600; color: rgb(var(--g-500)); margin: var(--e-4) var(--e-2) var(--e-1); white-space: nowrap; }
-    .fc-lat__item { position: relative; display: flex; align-items: center; gap: var(--e-2); height: 32px; padding: 0 var(--e-2);
-                    border-radius: var(--r-control); font-size: var(--t-13); font-weight: 500; color: rgb(var(--g-700)); text-decoration: none; white-space: nowrap; }
-    .fc-lat__item svg { width: 18px; height: 18px; flex: none; color: rgb(var(--g-500)); }
-    .fc-lat__item span { overflow: hidden; text-overflow: ellipsis; }
-    .fc-lat__item:hover { background: rgb(var(--g-100)); color: rgb(var(--g-900)); }
-    .fc-lat__item--actual { background: rgb(var(--ac-50)); color: rgb(var(--ac-700)); font-weight: 600; }
-    .fc-lat__item--actual svg { color: rgb(var(--ac-600)); }
-    .fc-lat__item--vedado { color: rgb(var(--g-500)); }
-    .fc-lat__candado { margin-left: auto; display: grid; color: rgb(var(--g-400)); }
-    .fc-lat__candado svg { width: 13px; height: 13px; color: inherit; }
-    .fc-lat__contraer { display: flex; align-items: center; gap: var(--e-2); height: 40px; padding: 0 var(--e-4); border: 0; border-top: 1px solid var(--linea);
-                        background: none; font: inherit; font-size: var(--t-13); color: rgb(var(--g-600)); cursor: pointer; }
-    .fc-lat__contraer:hover { color: rgb(var(--g-900)); background: rgb(var(--g-50)); }
-    .fc-lat__contraer svg { width: 16px; height: 16px; transition: transform .15s; }
+    /* Barra de arriba a todo lo ancho: el logo sobre la barra lateral y los botones pegados a la derecha */
+    html.fc-con-lateral .fc-barra__interior, html.fc-con-riel .fc-barra__interior { max-width: none; padding-left: 0; }
+    html.fc-con-lateral .fc-marca, html.fc-con-riel .fc-marca { width: var(--lateral-ancho); padding-left: 16px; transition: width .18s ease; }
+    html.fc-con-lateral.fc-lateral-chico .fc-marca, html.fc-con-riel.fc-lateral-chico .fc-marca { width: var(--lateral-chico); overflow: hidden; }
+    html.fc-con-lateral.fc-lateral-chico .fc-marca__nombre, html.fc-con-riel.fc-lateral-chico .fc-marca__nombre { display: none; }
 
-    /* Contraída: solo íconos, el nombre sale al pasar el cursor */
-    .fc-lateral-chico .fc-lateral { width: var(--lateral-chico); }
-    .fc-lateral-chico .fc-lat__grupo { visibility: hidden; height: 1px; margin: var(--e-3) 0; border-top: 1px solid var(--linea); }
-    .fc-lateral-chico .fc-lat__item { justify-content: center; padding: 0; }
-    .fc-lateral-chico .fc-lat__item span, .fc-lateral-chico .fc-lat__candado, .fc-lateral-chico .fc-lat__contraer span { display: none; }
-    .fc-lateral-chico .fc-lat__contraer { justify-content: center; padding: 0; }
-    .fc-lateral-chico .fc-lat__contraer svg { transform: rotate(180deg); }
-    .fc-lateral-chico .fc-lat__item:hover::after { content: attr(data-nombre); position: fixed; left: calc(var(--lateral-chico) + 6px); transform: translateY(0);
-        background: rgb(var(--g-900)); color: #fff; font-size: var(--t-12); font-weight: 600; padding: 5px 10px; border-radius: var(--r-control);
-        white-space: nowrap; pointer-events: none; z-index: 60; box-shadow: var(--sombra-2); }
-    .fc-lateral-chico .fc-lat__lista { overflow: visible; }
+    /* Módulos con tabla: el contenido empieza pegado a la barra lateral */
+    html.fc-con-lateral .xml-pagina, html.fc-con-lateral .dm-pagina,
+    html.fc-con-lateral .mod-pagina:not(.mod-pagina--angosta) { margin-left: 0; margin-right: auto; }
+    html.fc-con-lateral .xml-pagina { max-width: none; }
 }
 
 /* Transiciones entre páginas: la barra y el lateral se quedan fijos, el contenido cambia suave */
 @view-transition { navigation: auto; }
 .fc-barra { view-transition-name: fc-barra; }
 ::view-transition-old(root), ::view-transition-new(root) { animation-duration: .15s; }
-@media (min-width: 1024px) { .fc-lat__sep { height: 1px; margin: var(--e-2) var(--e-2); background: var(--linea); } }
 /* Sin títulos repetidos (G-11): en computadora el módulo actual ya se ve en el lateral y en el título de la página */
-@media (min-width: 1024px) { html.fc-con-lateral .fc-miga--actual { display: none; } }
+@media (min-width: 1024px) { html.fc-con-lateral .fc-miga--actual, html.fc-con-riel .fc-miga--actual { display: none; } }
 
 /* ============================================================
    PIEZAS COMPARTIDAS (ver /ui/). Regla: si no está en /ui/, no
@@ -1537,3 +1580,19 @@ main.fc-recien { animation: fc-recien .35s ease-out; }
 .fc-ic-cambios s { color: rgb(var(--g-500)); }
 .fc-ic-mal { color: rgb(var(--er-600)); }
 .fc-ic-cambios { min-width: 210px; }
+
+/* --- Barra de arriba clara (opción en /ui/) --- */
+:root[data-barra="clara"] .fc-barra { background: rgb(var(--g-0)); color: rgb(var(--g-900)); box-shadow: 0 1px 0 var(--linea); }
+:root[data-barra="clara"] .fc-marca { color: rgb(var(--g-900)); }
+:root[data-barra="clara"] .fc-miga { color: rgb(var(--g-600)); }
+:root[data-barra="clara"] a.fc-miga:hover, :root[data-barra="clara"] .fc-miga--actual { color: rgb(var(--g-900)); }
+:root[data-barra="clara"] .fc-miga__sep { color: rgb(var(--g-400)); }
+:root[data-barra="clara"] .fc-accion, :root[data-barra="clara"] .fc-modulos-btn, :root[data-barra="clara"] .fc-ayuda { color: rgb(var(--g-700)); }
+:root[data-barra="clara"] .fc-accion:hover, :root[data-barra="clara"] .fc-modulos-btn:hover, :root[data-barra="clara"] .fc-ayuda:hover { background: rgb(var(--g-100)); color: rgb(var(--g-900)); }
+:root[data-barra="clara"] .fc-empresa { border-color: var(--linea); }
+:root[data-barra="clara"] .fc-ayuda__icono { background: rgb(var(--g-100)); color: rgb(var(--g-700)); }
+:root[data-barra="clara"] .fc-ayuda:hover .fc-ayuda__icono { background: rgb(var(--g-200)); color: rgb(var(--g-900)); }
+:root[data-barra="clara"] .fc-modulos-btn { border-color: var(--linea); background: rgb(var(--g-50)); }
+:root[data-barra="clara"] .fc-modulos-btn:hover, :root[data-barra="clara"] .fc-modulos-btn[aria-expanded="true"] { background: rgb(var(--g-100)); border-color: rgb(var(--g-300)); color: rgb(var(--g-900)); }
+:root[data-barra="clara"] .fc-accion--activa { color: rgb(var(--g-900)); }
+.fc-lateral-chico .ui-riel__cabeza > * { visibility: hidden; }

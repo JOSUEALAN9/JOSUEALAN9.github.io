@@ -1,22 +1,10 @@
 /* configuracion/ — Configuración general (menú a la izquierda, sección a la derecha) */
 /* El menú va pegado a la izquierda, a todo lo alto (como la configuración de Chrome) */
-.cf-pagina { flex: 1; width: 100%; display: grid; grid-template-columns: 272px minmax(0, 1fr); align-items: stretch; transition: grid-template-columns .18s ease; }
-.cf-menu { position: sticky; top: 60px; align-self: start; height: calc(100vh - 60px); overflow-y: auto; min-width: 0; background: #fff;
-           border-right: 1px solid var(--linea); padding: 18px 14px 18px 0; }
-.cf-menu__cabeza { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 0 0 14px 18px; }
-.cf-menu__titulo { font-size: 23px; color: rgb(var(--g-900)); white-space: nowrap; }
-.cf-fijar { flex: none; width: 34px; height: 34px; border-radius: 10px; border: 1px solid var(--linea); background: #fff; color: rgb(var(--g-600)); display: grid; place-items: center; cursor: pointer; }
-.cf-fijar:hover, .cf-fijar[aria-pressed="true"] { background: rgb(var(--ac-50)); color: rgb(var(--ac-600)); border-color: rgb(var(--ac-200)); }
+.cf-pagina { flex: 1; width: 100%; display: block; }
+/* El menú es la barra compartida (.ui-riel): en computadora va fija a la izquierda igual que la de módulos
+   (common.css, html.fc-con-riel); en pantallas chicas, fila de secciones arriba */
+.cf-menu__titulo { font-size: var(--t-20); font-weight: 700; color: rgb(var(--g-900)); margin: 0; }
 .cf-contenido { min-width: 0; padding: 22px 28px 32px; }
-.cf-buscar { display: flex; align-items: center; gap: 8px; background: rgb(var(--g-50)); border: 1px solid var(--linea); border-radius: 999px; padding: 8px 14px; color: rgb(var(--g-600)); margin: 0 0 12px 14px; }
-.cf-buscar:focus-within { border-color: rgb(var(--ac-300)); box-shadow: 0 0 0 3px rgb(var(--ac-100)); }
-.cf-buscar input { border: 0; outline: 0; background: none; font: inherit; font-size: 14px; width: 100%; color: rgb(var(--g-900)); }
-.cf-grupo { font-size: 11px; font-weight: 800; color: rgb(var(--g-500)); text-transform: uppercase; letter-spacing: .06em; margin: 14px 12px 6px; }
-.cf-item { display: flex; align-items: center; gap: 12px; width: 100%; border: 0; background: none; font: inherit; font-size: 14px; font-weight: 600; color: rgb(var(--g-700)); padding: 10px 12px; border-radius: 0 999px 999px 0; cursor: pointer; text-align: left; }
-.cf-item:hover { background: rgb(var(--g-200)); }
-.cf-item--activo { background: rgb(var(--ac-100)); color: rgb(var(--ac-800)); }
-.cf-item svg { flex: none; color: currentColor; }
-.cf-vacio { font-size: 13px; color: rgb(var(--g-500)); padding: 10px 12px; }
 
 .cf-cabeza { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
 .cf-cabeza h2 { font-size: 20px; font-weight: 800; color: rgb(var(--g-900)); }
@@ -57,43 +45,21 @@
 .cf-con-marco .cf-contenido { padding: 16px 20px 18px; }
 .cf-con-marco .cf-cabeza { margin-bottom: 10px; }
 
-/* Menú compacto: solo íconos. Al pasar el cursor sale solo el nombre junto al ícono (no se abre el menú);
-   el botón ☰ lo deja abierto. */
-.cf-compacto .cf-pagina { grid-template-columns: 68px minmax(0, 1fr); }
-.cf-compacto .cf-menu { padding: 14px 8px; overflow: visible; z-index: 20; }
-.cf-compacto .cf-menu .cf-menu__titulo, .cf-compacto .cf-menu .cf-buscar, .cf-compacto .cf-menu .cf-grupo { display: none; }
-.cf-compacto .cf-menu__cabeza { margin: 0 0 12px; justify-content: center; }
-.cf-compacto .cf-item { position: relative; justify-content: center; padding: 10px; border-radius: 12px; }
-.cf-compacto .cf-item span { display: none; position: absolute; left: calc(100% + 12px); top: 50%; transform: translateY(-50%); z-index: 30;
-                             white-space: nowrap; pointer-events: none; background: rgb(var(--ac-800)); color: #fff; font-size: 13px; font-weight: 700;
-                             padding: 6px 12px; border-radius: 8px; box-shadow: 0 6px 16px rgba(15, 23, 42, .18); }
-.cf-compacto .cf-item span::before { content: ""; position: absolute; right: 100%; top: 50%; transform: translateY(-50%);
-                                     border: 6px solid transparent; border-right-color: rgb(var(--ac-800)); }
-.cf-compacto .cf-item:hover span, .cf-compacto .cf-item:focus-visible span { display: block; }
-
 /* Dentro de la ventana de un módulo: solo la sección */
 .cf-incrustado .cf-pagina { grid-template-columns: 1fr; padding-top: 12px; }
 .cf-incrustado .cf-menu { display: none; }
 .cf-incrustado .cf-marco { height: calc(100vh - 150px); }
 
-@media (max-width: 860px) {
-    .cf-pagina, .cf-compacto .cf-pagina { grid-template-columns: 1fr; align-content: start; }
-    .cf-menu, .cf-compacto .cf-menu { position: static; height: auto; width: auto; border-right: 0; border-bottom: 1px solid var(--linea); padding: 12px 14px; min-width: 0; box-shadow: none; }
-    .cf-fijar { display: none; }
-    .cf-compacto .cf-menu .cf-menu__titulo, .cf-compacto .cf-menu .cf-buscar { display: none; }
-    .cf-compacto .cf-menu .cf-item span { display: inline; position: static; transform: none; background: none; color: inherit; padding: 0;
-                                          box-shadow: none; font-size: inherit; pointer-events: auto; }
-    .cf-compacto .cf-item span::before { display: none; }
-    .cf-compacto .cf-item { justify-content: flex-start; padding: 8px 12px; border-radius: 999px; }
-    .cf-compacto .cf-menu__cabeza { margin: 0 0 8px; justify-content: space-between; }
-    .cf-menu__cabeza, .cf-buscar { margin-left: 0; }
+@media (max-width: 1023px) {
+    .cf-menu.ui-riel, .fc-lateral-chico .cf-menu.ui-riel { position: static; width: auto; height: auto; border-right: 0; border-bottom: 1px solid var(--linea); }
+    .cf-menu .ui-riel__cabeza, .cf-menu .ui-riel__plegar, .cf-menu .ui-riel__titulo { display: none; }
+    .cf-menu .ui-riel__lista { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; padding: 4px 10px 10px; }
+    .cf-menu .ui-riel__grupo, .cf-menu .ui-riel__items { display: contents; }
+    .cf-menu .ui-riel__item { flex: none; width: auto; border: 1px solid var(--linea); border-radius: 999px; }
+    .fc-lateral-chico .cf-menu .ui-riel__item:hover::after { content: none; }
+    .fc-lateral-chico .cf-menu .ui-riel__buscar { border-color: var(--linea); background: rgb(var(--g-50)); }
     .cf-contenido, .cf-con-marco .cf-contenido { padding: 14px; }
-    .cf-contenido { min-width: 0; }
-    #cf-secciones { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; padding-bottom: 4px; }
-    .cf-grupo { display: none; }
-    .cf-item { flex: none; width: auto; border-radius: 999px; background: #fff; border: 1px solid var(--linea); padding: 8px 12px; }
     .cf-campos { grid-template-columns: 1fr; }
     .cf-marco { height: 75vh; }
 }
-.cf-incrustado.cf-compacto .cf-pagina { grid-template-columns: 1fr; }
 .cf-incrustado .cf-contenido { padding: 14px 18px; }
