@@ -2858,10 +2858,40 @@
         if (cerrarModulos()) return;
         if (panelAbierto) { cerrarDescargas(); return; }
         if (!menu.hidden) { menu.hidden = true; btnPerfil.setAttribute("aria-expanded", "false"); return; }
+        var habia = false;
         document.querySelectorAll(".modal-active").forEach(function (m) {
             if (m.dataset.noCerrable === "true") return;
-            m.classList.remove("modal-active");
+            m.classList.remove("modal-active"); habia = true;
         });
+        if (!habia && !e.defaultPrevented) cerrarCapaSuperior();
+    });
+
+    /* Esc en cualquier página: cierra la ventana o panel de encima (modales de los módulos, paneles de columnas,
+       detalle de conciliación…). Las <dialog> ya se cierran solas; la pantalla de bloqueo nunca. */
+    function visible(el) { var r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0 && getComputedStyle(el).visibility !== "hidden"; }
+    function cerrarCapaSuperior() {
+        if (document.querySelector("dialog[open]") || document.getElementById("fc-bloqueo-pantalla")) return false;
+        var capas = Array.prototype.filter.call(document.querySelectorAll(
+            '.xml-modal:not([hidden]), .xml-panel:not([hidden]), [id^="modal-"]:not(.hidden):not(dialog), [role="dialog"]:not([hidden]):not(dialog)'), function (el) {
+            return !el.closest(".fc-barra, .fc-panel, #fc-bloqueo-pantalla, [data-sin-esc]") && getComputedStyle(el).position === "fixed" && visible(el);
+        });
+        var capa = capas[capas.length - 1];
+        if (!capa) return false;
+        var boton = capa.querySelector('[aria-label="Cerrar"], [data-cerrar], [data-pnl="cerrar"], [id^="cerrar"], .fc-panel__cerrar');
+        if (!boton) boton = Array.prototype.filter.call(capa.querySelectorAll("button"), function (b) { return /^(cerrar|cancelar|×|✕)$/i.test(b.textContent.trim()); })[0];
+        if (boton) boton.click();
+        else if (capa.classList.contains("flex") || !capa.hasAttribute("hidden")) { capa.classList.add("hidden"); capa.classList.remove("flex"); capa.hidden = true; }
+        return true;
+    }
+
+    /* Teclado: lo que se abre con clic y se alcanza con Tab (filas de tablas, tarjetas de clientes) también abre con
+       Enter o Espacio */
+    document.addEventListener("keydown", function (e) {
+        if ((e.key !== "Enter" && e.key !== " ") || e.defaultPrevented) return;
+        var el = e.target;
+        if (!el || !el.matches || !el.matches('tr[tabindex="0"], [data-ficha][tabindex="0"], .cli-tarjeta[tabindex="0"]')) return;
+        e.preventDefault();
+        el.click();
     });
 
     document.addEventListener("visibilitychange", function () {

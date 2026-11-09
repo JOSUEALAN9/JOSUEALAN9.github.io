@@ -4,22 +4,23 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Clientes | Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611110300">
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611110300">
-    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611110300">
+    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611110400">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611110400">
+    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611110400">
 </head>
 <body class="min-h-screen flex flex-col relative">
 
     <!-- TOP NAV -->
     <div id="app-header" data-modulo="clientes" data-titulo="Clientes" data-migas=""></div>
-<script src="/assets/js/nucleo.js?v=202611110300"></script>
-<script src="/assets/js/barra.js?v=202611110300"></script>
+<script src="/assets/js/nucleo.js?v=202611110400"></script>
+<script src="/assets/js/barra.js?v=202611110400"></script>
 
     <!-- ÁREA DE TRABAJO -->
     <main class="flex-grow w-full mod-pagina" style="max-width:1180px">
 
         <div class="mod-cabeza"><h1>Clientes</h1>
             <div class="mod-cabeza__acciones">
+                <button type="button" id="btn-constancias" class="fc-btn" title="Suelta las constancias de tus clientes: se leen sus obligaciones y se dan de alta los que falten">Leer constancias</button>
                 <button type="button" id="btn-agregar-cliente" onclick="abrirModalNuevoCliente()" class="boton-principal" style="width:auto;margin:0;padding:9px 18px">+ Registrar empresa</button>
             </div>
         </div>
@@ -234,7 +235,7 @@
                 <div class="ficha-tabs" role="tablist">
                     <button type="button" role="tab" data-ficha="general">Datos generales</button>
                     <button type="button" role="tab" data-ficha="accesos">Accesos <span id="ficha-aviso-accesos" class="ficha-punto" hidden></span></button>
-                    <button type="button" role="tab" data-ficha="receptores" id="tab-receptores" hidden>Receptores</button>
+                    <button type="button" role="tab" data-ficha="receptores" id="tab-receptores" hidden title="A quién le factura esta empresa">Sus clientes</button>
                     <button type="button" role="tab" data-ficha="xml" id="tab-xml" hidden>Descarga de XML</button>
                     <button type="button" role="tab" data-ficha="obligaciones" id="tab-obligaciones" hidden>Obligaciones</button>
                 </div>
@@ -261,6 +262,8 @@
                                     <option>S.C.</option><option>S.A.S.</option><option>S.A.S. de C.V.</option><option>S.A.P.I. de C.V.</option>
                                     <option>A.C.</option><option>S.C. de R.L. de C.V.</option><option>Persona física</option><option>Otra</option>
                                 </select></label>
+                            <label class="block sm:col-span-5"><span class="alta-etiqueta">Correo del cliente <i class="normal-case font-normal text-slate-400">(para mandarle su constancia, opinión y XML; varios con coma)</i></span>
+                                <input type="text" id="editar-correo" maxlength="300" class="alta-control" placeholder="contabilidad@cliente.com"></label>
                         </div>
                         <button onclick="guardarAlias()" id="btn-guardar-alias" class="mt-3 bg-violet-600 hover:bg-violet-500 text-white font-bold py-2 px-5 rounded-lg transition text-sm">Guardar</button>
                     </div>
@@ -393,7 +396,7 @@
                 <section data-panel="receptores" class="flex flex-col gap-6" hidden>
                     <div class="flex items-start justify-between gap-3">
                         <div>
-                            <h3 class="text-[15px] font-bold text-slate-800">Receptores: a quién le factura</h3>
+                            <h3 class="text-[15px] font-bold text-slate-800">Sus clientes: a quién le factura</h3>
                             <p class="text-xs text-slate-500 mt-0.5">Los datos fiscales de a quién le factura esta empresa. En Facturar se eligen con buscar; también se guardan solos al timbrar.</p>
                         </div>
                         <div class="flex gap-2 flex-none">
@@ -403,7 +406,7 @@
                     </div>
                     <div id="form-receptor" class="ficha-caja flex flex-col gap-3" hidden>
                         <div class="flex items-center justify-between gap-2">
-                            <p class="text-xs font-bold text-slate-700 uppercase tracking-wide" id="form-receptor-titulo">Nuevo receptor</p>
+                            <p class="text-xs font-bold text-slate-700 uppercase tracking-wide" id="form-receptor-titulo">Nuevo cliente</p>
                             <label class="text-xs font-bold text-violet-700 cursor-pointer hover:underline">Leer su constancia (PDF)<input type="file" id="rec-constancia" accept="application/pdf,.pdf" hidden></label>
                         </div>
                         <div class="grid grid-cols-1 sm:grid-cols-6 gap-4">
@@ -446,6 +449,9 @@
                         <label class="block"><span class="alta-etiqueta">Cada cuánto</span>
                             <select id="xml-frecuencia" class="alta-control"></select></label>
                     </div>
+                    <label class="block"><span class="alta-etiqueta">Mandárselos al cliente por correo</span>
+                        <select id="xml-correo" class="alta-control"></select>
+                        <span id="xml-correo-nota" class="text-xs text-slate-500"></span></label>
                     <p id="xml-explica" class="text-xs text-slate-600"></p>
                     <p id="xml-mensaje" class="text-xs hidden"></p>
                     <button type="button" onclick="guardarXmlAuto()" id="btn-guardar-xml" class="self-start bg-violet-600 hover:bg-violet-500 text-white font-bold py-2 px-5 rounded-lg transition text-sm">Guardar</button>
@@ -453,6 +459,20 @@
 
                 <!-- ===== Obligaciones ===== -->
                 <section data-panel="obligaciones" hidden>
+                <!-- Obligaciones federales: se leen solas de su constancia (la del día 1 o la que subas) -->
+                <div class="ficha-caja flex flex-col gap-3 mb-6">
+                    <div class="flex flex-wrap items-center gap-2">
+                        <h3 class="text-[15px] font-bold text-slate-800">Obligaciones federales</h3>
+                        <span id="fed-fecha" class="text-xs text-slate-500"></span>
+                        <div class="ml-auto flex gap-2">
+                            <button type="button" id="btn-fed-leer" class="border border-violet-200 text-violet-700 hover:bg-violet-50 font-bold py-1.5 px-3 rounded-lg text-xs">Leer de su constancia guardada</button>
+                            <label class="border border-violet-200 text-violet-700 hover:bg-violet-50 font-bold py-1.5 px-3 rounded-lg text-xs cursor-pointer">Subir constancia<input type="file" id="fed-subir" accept=".pdf" hidden></label>
+                        </div>
+                    </div>
+                    <p class="text-xs text-slate-500">Salen de su constancia de situación fiscal y se actualizan solas cada vez que se baja una. El «Cierre del mes» del tablero usa las mensuales para saber qué declaración le toca.</p>
+                    <div id="fed-lista" class="flex flex-col gap-1.5"></div>
+                    <p id="fed-mensaje" class="text-xs hidden"></p>
+                </div>
                 <!-- Obligaciones estatales de Quintana Roo (solo con el módulo de impuestos estatales) -->
                 <div id="editar-obligaciones" class="hidden">
                     <h3 class="text-[15px] font-bold text-slate-800">Obligaciones</h3>
@@ -484,8 +504,8 @@
         </div>
     </div>
 
-<script src="/assets/js/comun/leer-cer.js?v=202611110300"></script>
-<script src="/assets/js/comun/zona-archivos.js?v=202611110300"></script>
+<script src="/assets/js/comun/leer-cer.js?v=202611110400"></script>
+<script src="/assets/js/comun/zona-archivos.js?v=202611110400"></script>
 <style>
     .cli-herr { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 14px; }
     .cli-buscar { flex: 1 1 220px; max-width: 320px; font-size: 14px; border: 1px solid rgb(var(--g-200)); border-radius: 10px; padding: 8px 12px; background: rgb(var(--g-0)); }
@@ -580,7 +600,18 @@
     .alta-opcional summary small { font-weight: 500; color: rgb(var(--g-600)); }
     .alta-error { font-size: 13px; font-weight: 600; border-radius: 10px; padding: 10px 12px; background: rgb(var(--er-50)); border: 1px solid rgb(var(--er-200)); color: rgb(var(--er-600)); }
 </style>
-<script src="/assets/js/comun/importar-clientes.js?v=202611110300"></script>
-<script src="/clientes/clientes.js?v=202611110300"></script>
+<script src="/assets/js/comun/importar-clientes.js?v=202611110400"></script>
+<!-- Varias constancias a la vez: obligaciones federales y alta de los que falten -->
+<dialog id="dlg-constancias" class="ui-modal" style="width:min(640px, calc(100vw - 32px))">
+    <div class="ui-modal__cuerpo">
+        <h3>Leer constancias</h3>
+        <p class="text-sm text-slate-600">Suelta las constancias de situación fiscal (PDF) de tus clientes. De cada una se leen sus obligaciones federales para el «Cierre del mes»; los que todavía no están en tu directorio se dan de alta con su nombre.</p>
+        <label class="ui-check"><input type="checkbox" id="cs-alta" checked> Dar de alta a los que no están</label>
+        <div id="cs-zona"></div>
+        <div id="cs-resultado" class="text-sm" style="max-height:45vh;overflow:auto"></div>
+    </div>
+    <div class="ui-modal__pie"><button type="button" class="ui-btn ui-btn--secundario" data-cerrar>Cerrar</button></div>
+</dialog>
+<script src="/clientes/clientes.js?v=202611110400"></script>
 </body>
 </html>

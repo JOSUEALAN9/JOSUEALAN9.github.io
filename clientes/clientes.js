@@ -476,7 +476,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 function filaLista(c) {
     const ob = obligacionesTexto(c);
-    return `<tr data-ficha="${esc(c.rfc)}">
+    return `<tr data-ficha="${esc(c.rfc)}" tabindex="0">
         <td class="cli-celda-nombre">${estrella(c)}${avatar(c)}<span class="cli-nombre"><b title="${esc(c.alias)}">${esc(c.alias)}</b><small class="cli-rfc">${esc(c.rfc)}${c.tipo_sociedad ? " · " + esc(c.tipo_sociedad) : ""}</small></span></td>
         <td><span class="cli-inds">${indicadores(c)}</span></td>
         <td class="cli-obl">${esc(ob)}</td>
@@ -725,12 +725,17 @@ let rfcEnEdicion = null;
 /* ---------------------------------------------------------------- ficha del cliente (pestañas)
    Datos generales · Accesos (e.firma y contraseña del SAT) · Obligaciones. ?editar=RFC&ficha=accesos abre directo. */
 let fichaActual = "general";
+const FICHAS = ["general", "accesos", "receptores", "xml", "obligaciones"];
 function ponerFicha(nombre) {
+    if (FICHAS.indexOf(nombre) === -1) nombre = "general";
     if (nombre === "obligaciones" && document.getElementById("tab-obligaciones").hidden) nombre = "general";
     if (nombre === "xml" && document.getElementById("tab-xml").hidden) nombre = "general";
     if (nombre === "receptores" && document.getElementById("tab-receptores").hidden) nombre = "general";
     fichaActual = nombre;
-    document.querySelectorAll("[data-ficha]").forEach(b => b.setAttribute("aria-selected", String(b.dataset.ficha === nombre)));
+    document.querySelectorAll(".ficha-tabs [data-ficha]").forEach(b => {
+        const si = b.dataset.ficha === nombre;
+        b.setAttribute("aria-selected", String(si)); b.tabIndex = si ? 0 : -1;
+    });
     document.querySelectorAll("#modal-editar-cliente [data-panel]").forEach(p => { p.hidden = p.dataset.panel !== nombre; });
 }
 
@@ -773,6 +778,7 @@ function abrirModalEditar(rfc, ficha) {
     document.getElementById("editar-alias").value = cliente.alias;
     // Sin tipo y con RFC de 13 caracteres: casi seguro es persona física (se propone; se guarda con «Guardar»)
     document.getElementById("editar-tipo").value = cliente.tipo_sociedad || (rfc.length === 13 ? "Persona física" : "");
+    document.getElementById("editar-correo").value = cliente.correo_cliente || "";
     document.getElementById("editar-dato-rfc").textContent = rfc;
     document.getElementById("editar-dato-razon").textContent = cliente.razon_social || cliente.alias;
     document.getElementById("editar-dato-alta").textContent = cliente.creado_en ? new Date(cliente.creado_en + "Z").toLocaleDateString("es-MX", { day: "numeric", month: "long", year: "numeric" }) : "—";
@@ -793,7 +799,8 @@ function abrirModalEditar(rfc, ficha) {
 }
 
 document.addEventListener("click", (e) => {
-    const t = e.target.closest("[data-ficha]");
+    // Solo las pestañas de la ficha (las filas y tarjetas de clientes también llevan data-ficha, con su RFC)
+    const t = e.target.closest(".ficha-tabs [data-ficha]");
     if (t) { ponerFicha(t.dataset.ficha); return; }
     const ir = e.target.closest("[data-ir-ficha]");
     if (ir) { ponerFicha(ir.dataset.irFicha); return; }
@@ -844,6 +851,11 @@ async function pintarXmlAuto(cliente) {
     document.getElementById("xml-tipo").innerHTML = opciones(xmlAuto.tipos, cfg.tipo);
     document.getElementById("xml-frecuencia").innerHTML = opciones(xmlAuto.frecuencias, cfg.frecuencia);
     document.getElementById("xml-desde").innerHTML = Fiscontable.opcionesDesde(xmlAuto.desde_minimo, xmlAuto.mes_actual, cfg.desde || "");
+    document.getElementById("xml-correo").innerHTML = opciones(xmlAuto.correo || { "": "No" }, cfg.correo || "");
+    document.getElementById("xml-correo-nota").textContent = cliente.correo_cliente
+        ? "Un enlace seguro con sus XML y PDF del periodo, a " + cliente.correo_cliente + "."
+        : "Primero escribe su correo en Datos generales.";
+    document.getElementById("xml-correo").disabled = !cliente.correo_cliente && !cfg.correo;
     document.getElementById("xml-activo").checked = !!cfg.activo && !!cliente.efirma_guardada;
     document.getElementById("xml-activo").disabled = !cliente.efirma_guardada;
     document.getElementById("xml-sin-efirma").hidden = !!cliente.efirma_guardada;
@@ -875,7 +887,8 @@ async function guardarXmlAuto() {
                 activo: document.getElementById("xml-activo").checked,
                 tipo: document.getElementById("xml-tipo").value,
                 frecuencia: document.getElementById("xml-frecuencia").value,
-                desde: document.getElementById("xml-desde").value || null
+                desde: document.getElementById("xml-desde").value || null,
+                correo: document.getElementById("xml-correo").value
             })
         });
         if (!r.ok) throw new Error(await Fiscontable.leerError(r));
@@ -891,10 +904,51 @@ async function guardarXmlAuto() {
 }
 
 /* Obligaciones (hoy ISN de Quintana Roo): al activarla, la empresa aparece en ISN lista para llenar sus datos. */
+/* Obligaciones federales (de su constancia): las ve cualquiera; las estatales solo con el módulo */
+const PERIODO_FED = { mensual: "Mensual", bimestral: "Bimestral", anual: "Anual", otra: "" };
+function pintarListaFed(d) {
+    const lista = d && d.lista, caja = document.getElementById("fed-lista");
+    document.getElementById("fed-fecha").textContent = d && d.leidas_en ? "· leídas el " + fechaCorta(d.leidas_en.slice(0, 10)) : "";
+    caja.innerHTML = lista && lista.length ? lista.map(o => `
+        <div class="flex items-start gap-2 text-sm border border-gray-200 rounded-lg px-3 py-2">
+            <span class="text-[11px] font-bold px-2 py-0.5 rounded-full flex-none ${o.periodo === "mensual" ? "bg-violet-100 text-violet-700" : "bg-gray-100 text-gray-600"}">${esc(PERIODO_FED[o.periodo] || "Otra")}</span>
+            <span class="min-w-0"><b class="font-semibold text-slate-800">${esc(o.descripcion)}</b>${o.vencimiento ? `<br><span class="text-xs text-slate-500">${esc(o.vencimiento)}</span>` : ""}</span>
+        </div>`).join("")
+        : lista ? `<p class="text-xs text-slate-500">Su constancia no tiene obligaciones vigentes: el cierre del mes no le pide declaración.</p>`
+        : `<p class="text-xs text-slate-400">Todavía no se leen. Se leen solas con su próxima constancia, o usa los botones de arriba.</p>`;
+}
+async function cargarFed(rfc) {
+    try {
+        const r = await fetch(`${API_URL}/api/clientes/${encodeURIComponent(rfc)}/obligaciones-fed`, { credentials: "include" });
+        if (r.ok && rfcEnEdicion === rfc) pintarListaFed(await r.json());
+    } catch (e) { /* sin conexión: se queda vacío */ }
+}
+async function leerFed(archivo) {
+    const msj = document.getElementById("fed-mensaje"), rfc = rfcEnEdicion, fd = new FormData();
+    if (archivo) fd.append("archivo", archivo);
+    msj.className = "text-xs text-slate-500"; msj.textContent = "Leyendo la constancia…";
+    try {
+        const r = await fetch(`${API_URL}/api/clientes/${encodeURIComponent(rfc)}/obligaciones-fed`, { method: "POST", credentials: "include", body: fd });
+        if (!r.ok) throw new Error(await Fiscontable.leerError(r));
+        const d = await r.json();
+        pintarListaFed(d);
+        msj.className = "text-xs text-emerald-700 font-semibold";
+        msj.textContent = d.lista.length ? `✓ ${d.lista.length} obligaciones vigentes.` : "✓ Su constancia no tiene obligaciones (no le toca declaración mensual).";
+    } catch (e) { msj.className = "text-xs text-red-600 font-semibold"; msj.textContent = e.message; }
+}
+document.addEventListener("DOMContentLoaded", () => {
+    const leer = document.getElementById("btn-fed-leer"), subir = document.getElementById("fed-subir");
+    if (leer) leer.addEventListener("click", () => leerFed(null));
+    if (subir) subir.addEventListener("change", () => { if (subir.files[0]) leerFed(subir.files[0]); subir.value = ""; });
+});
+
 function pintarObligaciones(cliente) {
+    pintarListaFed(null);
+    document.getElementById("fed-mensaje").className = "text-xs hidden";
+    cargarFed(cliente.rfc);
     const caja = document.getElementById("editar-obligaciones");
     caja.classList.toggle("hidden", !conIsn);
-    document.getElementById("tab-obligaciones").hidden = !conIsn;
+    document.getElementById("tab-obligaciones").hidden = false;
     if (!conIsn) return;
     const o = obligaciones[cliente.rfc] || {};
     document.getElementById("obl-isn").checked = !!o.obligacion;
@@ -1113,7 +1167,7 @@ function verRecExtranjero() {
 
 function abrirFormReceptor(r) {
     editandoReceptor = r ? (r.clave || r.rfc) : null;
-    document.getElementById("form-receptor-titulo").textContent = r ? "Editar receptor" : "Nuevo receptor";
+    document.getElementById("form-receptor-titulo").textContent = r ? "Editar cliente" : "Nuevo cliente";
     document.getElementById("rec-rfc").value = r ? r.rfc : "";
     document.getElementById("rec-rfc").disabled = !!r;
     document.getElementById("rec-nombre").value = r ? r.nombre : "";
@@ -1296,7 +1350,7 @@ async function guardarAlias() {
             method: "PUT",
             credentials: "include",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ alias, tipo_sociedad: document.getElementById("editar-tipo").value }),
+            body: JSON.stringify({ alias, tipo_sociedad: document.getElementById("editar-tipo").value, correo_cliente: document.getElementById("editar-correo").value.trim() }),
         });
         if (!resp.ok) { mostrarAlerta("error", await interpretarError(resp)); return; }
         mostrarAlerta("success", "Nombre actualizado.");
@@ -1452,3 +1506,34 @@ function prepararZonaEfirma(pref) {
     caja._pintar = pintar;
 }
 document.addEventListener("DOMContentLoaded", () => { prepararZonaEfirma("alta"); prepararZonaEfirma("editar"); });
+
+/* ---------------------------------------------------------------- Leer constancias (varias a la vez) */
+document.addEventListener("DOMContentLoaded", () => {
+    const b = document.getElementById("btn-constancias"), dlg = document.getElementById("dlg-constancias");
+    if (!b || !dlg) return;
+    let zona = null;
+    const estados = { alta: "Alta nueva", actualizado: "Actualizado", omitido: "No está en tus clientes", error: "No se pudo" };
+    async function leer(archivos) {
+        const fd = new FormData();
+        archivos.forEach(f => fd.append("archivos", f));
+        fd.append("alta", document.getElementById("cs-alta").checked ? "true" : "false");
+        zona.estado("", "Leyendo " + archivos.length + " constancia(s)…");
+        try {
+            const r = await fetch(`${API_URL}/api/clientes/constancias`, { method: "POST", credentials: "include", body: fd });
+            if (!r.ok) throw new Error(await Fiscontable.leerError(r));
+            const d = await r.json(), s = d.resumen;
+            zona.estado("ok", `✓ ${s.actualizado} actualizado(s), ${s.alta} alta(s) nueva(s)` + (s.omitido ? `, ${s.omitido} omitido(s)` : "") + (s.error ? `, ${s.error} con error` : "") + ".");
+            document.getElementById("cs-resultado").innerHTML = '<table class="cf-tabla" style="width:100%"><tbody>' + d.resultados.map(x =>
+                `<tr><td><b>${esc(x.nombre || x.archivo)}</b><br><small class="xml-tenue">${esc(x.rfc || "")}</small></td>` +
+                `<td>${esc(estados[x.estado] || x.estado)}${x.mensaje ? `<br><small class="xml-tenue">${esc(x.mensaje)}</small>` : ""}</td>` +
+                `<td style="text-align:right">${x.obligaciones != null ? (x.mensuales ? x.mensuales + " mensuales" : "sin declaración mensual") : ""}</td></tr>`).join("") + "</tbody></table>";
+            await cargarClientes();
+        } catch (e) { zona.estado("error", e.message); }
+    }
+    b.addEventListener("click", () => {
+        if (!zona) zona = FCZona.crear(document.getElementById("cs-zona"), { acepta: ".pdf", varios: true, titulo: "Suelta aquí las constancias (PDF)", detalle: "o haz clic para elegirlas; hasta 200 a la vez", alElegir: leer });
+        document.getElementById("cs-resultado").innerHTML = ""; zona.estado("", "");
+        dlg.showModal();
+    });
+    dlg.addEventListener("click", e => { if (e.target.closest("[data-cerrar]") || e.target === dlg) dlg.close(); });
+});

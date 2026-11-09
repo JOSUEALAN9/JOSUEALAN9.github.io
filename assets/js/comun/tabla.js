@@ -148,7 +148,7 @@
                 var f = T.datos[i], sel = T.seleccion.has(f[claveFila]);
                 var extra = o.claseFila ? o.claseFila(f) : "";
                 var clases = (sel ? "xml-sel " : "") + (extra || "");
-                h.push('<tr data-i="' + i + '"' + (clases.trim() ? ' class="' + clases.trim() + '"' : "") + ">" +
+                h.push('<tr data-i="' + i + '"' + (o.alClic ? ' tabindex="0"' : "") + (clases.trim() ? ' class="' + clases.trim() + '"' : "") + ">" +
                     '<td class="xml-check xml-fija" style="left:0"><input type="checkbox" data-sel="' + i + '"' + (sel ? " checked" : "") + "></td>" +
                     cols.map(function (c, j) { return celda(c, f, j === 0); }).join("") + "</tr>");
             }

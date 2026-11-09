@@ -1017,6 +1017,9 @@ body.fc-sin-scroll { overflow: hidden; }
 
 a.mod-accion { text-decoration: none; }
 .mod-accion--primaria b { background: var(--acento, rgb(var(--ac-600))); color: rgb(var(--g-0)); }
+/* Acción principal pasada a la barra (ui-btn--primario): el hover de .mod-accion no le quita el fondo verde */
+.mod-accion.ui-btn--primario, .mod-accion.ui-btn--primario:hover:not(:disabled) { background: rgb(var(--ac-600)); border-color: rgb(var(--ac-600)); color: rgb(var(--g-0)); }
+.mod-accion.ui-btn--primario:hover:not(:disabled) { background: rgb(var(--ac-700)); border-color: rgb(var(--ac-700)); }
 
 /* ===== Página de módulo: el mismo encabezado en todas las herramientas ===== */
 .mod-pagina { width: 100%; max-width: 1440px; margin: 0 auto; padding: 14px 20px 32px; }
@@ -1861,3 +1864,6 @@ html.fc-ambiente-pruebas .fc-barra, html.fc-ambiente-pruebas #app-header > heade
 .msat-carpeta { margin: 4px 0 14px; }
 .msat-carpeta > summary { cursor: pointer; font-size: var(--t-13); font-weight: 600; color: rgb(var(--g-600)); padding: 6px 0; }
 .msat-carpeta[open] > summary { margin-bottom: 10px; }
+
+/* Foco visible al navegar con Tab (filas y tarjetas que se abren con Enter) */
+tr[tabindex="0"]:focus-visible, [tabindex="0"]:focus-visible { outline: 2px solid rgb(var(--ac-600)); outline-offset: -2px; }
