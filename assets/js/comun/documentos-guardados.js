@@ -7,8 +7,12 @@
        filtro: { etiqueta: "Ejercicio", opciones: [{valor, texto}], valor },        // opcional (un selector arriba)
        cargar: async function (valorFiltro) { return { nota, documentos: [{ id, celdas: [...], nombre, url }] }; },
        columnas: ["Mes", "Documento", …],
-       zip: function (ids, valorFiltro) { return "url del ZIP"; }                    // opcional: si no, se arma aquí
-     }) */
+       zip: function (ids, valorFiltro) { return "url del ZIP"; },                   // opcional: si no, se arma aquí
+       unidad: ["declaración", "declaraciones"]                                      // opcional: cómo se cuentan los renglones
+     })
+   Un renglón puede juntar varios archivos (una declaración con su acuse, detalle y línea de captura):
+     { id, celdas, docs: [{ id, etiqueta, nombre, url, titulo }] } → cada archivo sale como botón; las casillas y el ZIP
+     usan todos sus archivos. */
 (function () {
     "use strict";
     var esc = function (t) { return Fiscontable.escapar(t == null ? "" : String(t)); };
@@ -51,12 +55,32 @@
         q("filas").addEventListener("click", function (ev) {
             var b = ev.target.closest("[data-accion]"); if (!b) return;
             var x = E.docs.filter(function (y) { return String(y.id) === b.dataset.id; })[0]; if (!x) return;
-            if (b.dataset.accion === "ver") Fiscontable.verPdf(x.url, { titulo: x.titulo || x.nombre, nombre: x.nombre });
-            else bajarUno(x, b);
+            var arch = archivos(x), uno = b.dataset.doc ? arch.filter(function (a) { return String(a.id) === b.dataset.doc; })[0] : arch[0];
+            if (b.dataset.accion === "ver") Fiscontable.verPdf(uno.url, { titulo: uno.titulo || uno.nombre, nombre: uno.nombre });
+            else if (arch.length > 1) zip(arch.map(function (a) { return String(a.id); }), b);
+            else bajarUno(uno, b);
         });
-        q("zip-marcados").addEventListener("click", function () { zip(Object.keys(E.marcados), this); });
-        q("zip-todos").addEventListener("click", function () { zip(E.docs.map(function (x) { return String(x.id); }), this); });
+        q("zip-marcados").addEventListener("click", function () { zip(idsDe(Object.keys(E.marcados)), this); });
+        q("zip-todos").addEventListener("click", function () { zip(idsDe(E.docs.map(function (x) { return String(x.id); })), this); });
         return d;
+    }
+
+    // Los archivos de un renglón (él mismo, o los que junta) y los ids de archivo de varios renglones
+    function archivos(x) { return x.docs && x.docs.length ? x.docs : [x]; }
+    function idsDe(filas) {
+        var out = [];
+        filas.forEach(function (id) {
+            var x = E.docs.filter(function (y) { return String(y.id) === String(id); })[0];
+            if (x) archivos(x).forEach(function (a) { out.push(String(a.id)); });
+        });
+        return out;
+    }
+    function buscarArchivo(id) {
+        for (var i = 0; i < E.docs.length; i++) {
+            var a = archivos(E.docs[i]).filter(function (y) { return String(y.id) === String(id); })[0];
+            if (a) return a;
+        }
+        return null;
     }
 
     async function cargar(valor) {
@@ -79,13 +103,15 @@
     function pintar() {
         var filas = visibles(), todos = filas.length && filas.every(function (x) { return E.marcados[x.id]; });
         E.q("cabeza").innerHTML = '<tr><th class="fc-docs-check"><input type="checkbox" data-todos title="Marcar todos"' + (todos ? " checked" : "") + "></th>" +
-            E.op.columnas.map(function (c) { return "<th>" + esc(c) + "</th>"; }).join("") + '<th class="fc-docs-acc"></th></tr>';
+            E.op.columnas.map(function (c) { return "<th>" + esc(c) + "</th>"; }).join("") + '<th class="fc-docs-acc">' + (E.docs.some(function (x) { return x.docs; }) ? "Documentos" : "") + "</th></tr>";
         E.q("filas").innerHTML = filas.length ? filas.map(function (x) {
             return '<tr><td class="fc-docs-check"><input type="checkbox" data-sel="' + esc(x.id) + '"' + (E.marcados[x.id] ? " checked" : "") + "></td>" +
                 x.celdas.map(function (c, i) { return "<td" + (i === 0 ? ' class="fc-docs-principal"' : "") + ">" + esc(c) + "</td>"; }).join("") +
-                '<td class="fc-docs-acc"><button type="button" class="fc-docs-btn" data-accion="ver" data-id="' + esc(x.id) + '">' +
-                '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2.5 12C4 7.5 7.7 5 12 5s8 2.5 9.5 7c-1.5 4.5-5.2 7-9.5 7s-8-2.5-9.5-7z"/><circle cx="12" cy="12" r="3"/></svg>Ver</button>' +
-                '<button type="button" class="fc-docs-btn fc-docs-btn--icono" data-accion="bajar" data-id="' + esc(x.id) + '" title="Descargar" aria-label="Descargar">' +
+                '<td class="fc-docs-acc">' + (x.docs && x.docs.length
+                    ? x.docs.map(function (a) { return '<button type="button" class="fc-docs-chip" data-accion="ver" data-id="' + esc(x.id) + '" data-doc="' + esc(a.id) + '" title="Ver ' + esc(a.etiqueta) + '">' + esc(a.etiqueta) + "</button>"; }).join("")
+                    : '<button type="button" class="fc-docs-btn" data-accion="ver" data-id="' + esc(x.id) + '">' +
+                      '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2.5 12C4 7.5 7.7 5 12 5s8 2.5 9.5 7c-1.5 4.5-5.2 7-9.5 7s-8-2.5-9.5-7z"/><circle cx="12" cy="12" r="3"/></svg>Ver</button>') +
+                '<button type="button" class="fc-docs-btn fc-docs-btn--icono" data-accion="bajar" data-id="' + esc(x.id) + '" title="' + (archivos(x).length > 1 ? "Descargar sus " + archivos(x).length + " documentos (ZIP)" : "Descargar") + '" aria-label="Descargar">' +
                 '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg></button></td></tr>';
         }).join("") : '<tr><td colspan="99" class="fc-docs-vacio">' + (E.docs.length ? "Nada coincide con la búsqueda." : "Todavía no hay documentos guardados aquí.") + "</td></tr>";
         contar();
@@ -93,7 +119,8 @@
 
     function contar() {
         var n = Object.keys(E.marcados).length;
-        E.q("cuenta").textContent = E.docs.length ? (n ? n + " marcado" + (n === 1 ? "" : "s") + " de " : "") + E.docs.length + " documento" + (E.docs.length === 1 ? "" : "s") : "";
+        var u = E.op.unidad || ["documento", "documentos"];
+        E.q("cuenta").textContent = E.docs.length ? (n ? n + " marcado" + (n === 1 ? "" : "s") + " de " : "") + E.docs.length + " " + (E.docs.length === 1 ? u[0] : u[1]) : "";
         E.q("zip-marcados").disabled = !n;
         E.q("zip-marcados").textContent = n ? "Descargar " + n + " marcado" + (n === 1 ? "" : "s") + " (ZIP)" : "Descargar marcados (ZIP)";
         E.q("zip-todos").disabled = !E.docs.length;
@@ -133,7 +160,7 @@
             } else {
                 var JSZip = await cargarJszip(), z = new JSZip(), usados = {};
                 for (var i = 0; i < ids.length; i++) {
-                    var x = E.docs.filter(function (y) { return String(y.id) === ids[i]; })[0]; if (!x) continue;
+                    var x = buscarArchivo(ids[i]); if (!x) continue;
                     b.textContent = "Preparando ZIP… " + (i + 1) + "/" + ids.length;
                     var rr = await fetch(x.url, { credentials: "include" });
                     if (!rr.ok) continue;

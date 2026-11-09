@@ -16,7 +16,7 @@
     var MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
 
     var E = { empresa: null, periodoGeneral: null, empresas: [], rfc: null, P: null, datos: null,
-              lado: "emitido", origen: "", busqueda: "", perfil: null };
+              lado: "emitido", perfil: null };
 
     async function api(ruta, opciones) {
         var r = await fetch(API + ruta, Object.assign({ credentials: "include" }, opciones || {}));
@@ -146,14 +146,63 @@
             filaRes(final >= 0 ? "IVA a cargo" : "IVA a favor", m(Math.abs(final)), "iva-total " + (final >= 0 ? "iva-cargo" : "iva-favor"));
     }
 
-    var COLS = [
-        ["fecha", "Fecha", 92], ["origen", "Origen", 120], ["serie_folio", "Serie-Folio", 110], ["rfc", "RFC", 130], ["nombre", "Nombre", 230],
-        ["b16", "Base 16 %", 112, 1], ["i16", "IVA 16 %", 100, 1], ["b8", "Base 8 %", 100, 1], ["i8", "IVA 8 %", 90, 1],
-        ["b0", "Base 0 %", 100, 1], ["bex", "Exentos", 100, 1], ["ret", "IVA retenido", 104, 1], ["avisos", "Avisos", 260]
-    ];
-
-    var COLS_RECIBIDO = COLS.slice(0, 12).concat([["no_acred", "No acreditable", 112, 1], ["marca", "Marca fiscal", 220], COLS[12]]);
-    function columnas() { return E.lado === "recibido" ? COLS_RECIBIDO : COLS; }
+    /* ---------- tablas estándar (una por pestaña) */
+    var MONEDAS = [["b16", "Base 16 %"], ["i16", "IVA 16 %"], ["b8", "Base 8 %"], ["i8", "IVA 8 %"], ["b0", "Base 0 %"], ["bex", "Exentos"], ["ret", "IVA retenido"]];
+    function catalogo(lado) {
+        var c = [{ clave: "fecha", etiqueta: "Fecha", tipo: "fecha" }, { clave: "origen_txt", etiqueta: "Origen", tipo: "texto" },
+                 { clave: "serie_folio", etiqueta: "Serie-Folio", tipo: "texto" }, { clave: "rfc", etiqueta: "RFC", tipo: "texto" },
+                 { clave: "nombre", etiqueta: "Nombre", tipo: "texto" }]
+            .concat(MONEDAS.map(function (x) { return { clave: x[0], etiqueta: x[1], tipo: "moneda" }; }));
+        if (lado === "recibido") c.push({ clave: "no_acred", etiqueta: "No acreditable", tipo: "moneda" }, { clave: "marca_txt", etiqueta: "Marca fiscal", tipo: "texto" },
+                                        { clave: "acred", etiqueta: "IVA no acreditable", tipo: "texto" });
+        return c.concat([{ clave: "avisos_txt", etiqueta: "Avisos", tipo: "texto" }, { clave: "uuid", etiqueta: "UUID", tipo: "uuid" },
+                         { clave: "uuid_factura", etiqueta: "UUID de la factura pagada", tipo: "uuid" }]);
+    }
+    var TABLAS = {};
+    function tablaDe(lado) {
+        if (TABLAS[lado]) return TABLAS[lado];
+        var ppd = lado === "ppd";
+        TABLAS[lado] = FCTabla.estandar(ppd ? {
+            contenedor: $("tabla-iva-ppd"), id: "iva_ppd", claveFila: "uuid",
+            catalogo: [{ clave: "fecha", etiqueta: "Fecha", tipo: "fecha" }, { clave: "lado_txt", etiqueta: "Lado", tipo: "texto" },
+                       { clave: "uuid", etiqueta: "UUID", tipo: "uuid" }, { clave: "rfc", etiqueta: "RFC", tipo: "texto" },
+                       { clave: "nombre", etiqueta: "Nombre", tipo: "texto" }, { clave: "total", etiqueta: "Total", tipo: "moneda" },
+                       { clave: "moneda", etiqueta: "Moneda", tipo: "texto" }],
+            predeterminadas: ["fecha", "lado_txt", "uuid", "rfc", "nombre", "total", "moneda"],
+            anchoClave: { uuid: 300, nombre: 260 },
+            buscar: { texto: "Buscar RFC, nombre o UUID…", campos: ["rfc", "nombre", "uuid"] },
+            rapidos: { clave: "lado_txt", valores: [{ valor: "Emitida", etiqueta: "Emitidas" }, { valor: "Recibida", etiqueta: "Recibidas" }] },
+            exportar: { nombre: function () { return E.rfc + "_PPD_sin_pago.xlsx"; }, hoja: "PPD sin pago" },
+            vacio: { titulo: "Sin facturas PPD pendientes", texto: "" },
+            alFiltrar: function (vis) { $("conteo").textContent = vis.length + " factura(s) PPD sin pago"; },
+            alClic: abrirCfdi
+        } : {
+            contenedor: $("tabla-iva-" + lado), id: lado === "emitido" ? "iva" : "iva_recibido", claveFila: "_k",
+            catalogo: catalogo(lado),
+            predeterminadas: ["fecha", "origen_txt", "serie_folio", "rfc", "nombre", "b16", "i16", "b8", "i8", "b0", "bex", "ret"]
+                .concat(lado === "recibido" ? ["no_acred", "marca_txt"] : []).concat(["avisos_txt"]),
+            anchoClave: { origen_txt: 120, serie_folio: 110, rfc: 130, nombre: 230, avisos_txt: 260, marca_txt: 220, uuid: 300, uuid_factura: 300 },
+            celda: function (c, f) {
+                if (c.clave === "marca_txt") return celdaMarca(f);
+                if (c.clave === "avisos_txt") return f.avisos_txt ? '<span class="iva-aviso" title="' + esc(f.avisos_txt) + '">' + esc(f.avisos_txt) + "</span>" : "";
+                return null;
+            },
+            buscar: { texto: "Buscar RFC, nombre, folio o UUID…", campos: ["rfc", "nombre", "serie_folio", "uuid", "uuid_factura"] },
+            filtros: [{ clave: "nombre", etiqueta: "Nombre" }].concat(lado === "recibido" ? [{ clave: "acred", etiqueta: "IVA no acreditable" }] : [])
+                .concat([{ clave: "con_aviso", etiqueta: "Con avisos" }]),
+            rapidos: { clave: "origen_txt", valores: [{ valor: "Factura PUE", etiqueta: "Facturas PUE" }, { valor: "Pago", etiqueta: "Pagos" }, { valor: "Nota de crédito", etiqueta: "Notas de crédito" }] },
+            exportar: { nombre: function () { return E.rfc + "_IVA_" + (lado === "emitido" ? "cobrado" : "pagado") + ".xlsx"; }, hoja: lado === "emitido" ? "Emitidos" : "Recibidos" },
+            vacio: { titulo: "Sin movimientos de IVA", texto: "No hay movimientos en el periodo elegido." },
+            alFiltrar: function (vis) { $("conteo").textContent = vis.length + " movimiento(s)"; },
+            alClic: abrirCfdi
+        });
+        return TABLAS[lado];
+    }
+    function abrirCfdi(f, lista, ev) {
+        if (ev && ev.target.closest("[data-marca]")) return;               // la liga a Marcas se abre sola
+        if (!E.perfil || (E.perfil.modulos_permitidos || []).indexOf("validador") === -1) return;
+        Fiscontable.verCfdi(E.rfc, f.uuid, lista.map(function (x) { return x.uuid; }));
+    }
     function puedeMarcas() { return !!(E.perfil && (E.perfil.modulos_permitidos || []).indexOf("marcas") !== -1); }
 
     // Liga a Marcas fiscales: la empresa, el mes y, si se da, el CFDI (o solo los «Por revisar»)
@@ -182,21 +231,23 @@
         caja.hidden = false;
     }
 
+    function textoMarca(f) {
+        var pend = E.porRevisar && E.porRevisar[f.uuid_factura || f.uuid];
+        return f.marca ? (f.marca.pct ? "Acreditable " + f.marca.pct + " %" : "No acreditable") + " · " + f.marca.motivo
+             : pend ? "⚑ Por revisar · " + pend.texto : "";
+    }
     function celdaMarca(f) {
         var pend = E.porRevisar && E.porRevisar[f.uuid_factura || f.uuid];
-        var texto = f.marca ? (f.marca.pct ? "Acreditable " + f.marca.pct + " %" : "No acreditable") + " · " + f.marca.motivo
-                  : pend ? "⚑ Por revisar · " + pend.texto : "";
-        if (!texto) return "<td></td>";
+        var texto = f.marca_txt;
+        if (!texto) return "";
         var clase = f.marca ? "iva-marca" : "iva-marca iva-marca--rev";
-        var liga = puedeMarcas() ? '<a class="' + clase + '" data-marca target="_blank" rel="noopener" href="' +
+        return puedeMarcas() ? '<a class="' + clase + '" data-marca target="_blank" rel="noopener" href="' +
             esc(urlMarcas("recibidos", (pend && pend.mes) || f.fecha.slice(0, 7), f.uuid_factura || f.uuid)) + '" title="' + esc(texto + " — abrir en Marcas fiscales") + '">' + esc(texto) + "</a>"
             : '<span class="' + clase + '" title="' + esc(texto) + '">' + esc(texto) + "</span>";
-        return "<td>" + liga + "</td>";
     }
 
     function pintar() {
-        var d = E.datos, lado = d[E.lado === "ppd" ? "emitido" : E.lado];
-        var COLS = columnas();
+        var d = E.datos;
         var avisos = d.emitido.avisos.length + d.recibido.avisos.length;
         var ppd = d.emitido.ppd_sin_pago.length + d.recibido.ppd_sin_pago.length;
         var pest = [["emitido", "Emitidos (cobrado)", d.emitido.filas.length], ["recibido", "Recibidos (pagado)", d.recibido.filas.length]];
@@ -205,63 +256,24 @@
         $("pestanas").innerHTML = pest.map(function (p) {
             return '<button type="button" class="pestana' + (E.lado === p[0] ? " pestana--activa" : "") + '" data-lado="' + p[0] + '">' + p[1] +
                 '<span class="xml-cuenta' + (p[0] === "ppd" ? " iva-cuenta--aviso" : "") + '">' + p[2] + "</span></button>";
-        }).join("");
-        var q = E.busqueda.trim().toLowerCase();
-        if (E.lado === "ppd") { pintarPpd(q); return; }
-        $("origenes").innerHTML = [["", "Todos"], ["PUE", "Facturas PUE"], ["PAGO", "Pagos"], ["NOTA", "Notas de crédito"]].map(function (o) {
-            var n = o[0] ? lado.filas.filter(function (f) { return f.origen === o[0]; }).length : lado.filas.length;
-            return '<button type="button" class="xml-chip' + (E.origen === o[0] ? " xml-chip--activo" : "") + '" data-origen="' + o[0] + '">' + o[1] + "<span>" + n + "</span></button>";
-        }).join("") + (avisos ? '<span class="xml-tenue" style="margin-left:6px">⚠ ' + avisos + " aviso(s)</span>" : "");
-        if (E.lado === "recibido" && lado.totales.no_acred) {
-            $("origenes").innerHTML += '<button type="button" class="xml-chip' + (E.origen === "NOACRED" ? " xml-chip--activo" : "") + '" data-origen="NOACRED">Con IVA no acreditable<span>' +
-                lado.filas.filter(function (f) { return f.no_acred; }).length + "</span></button>";
+        }).join("") + (avisos ? '<span class="xml-tenue iva-avisos-n">⚠ ' + avisos + " aviso(s)</span>" : "");
+        ["emitido", "recibido", "ppd"].forEach(function (l) { $("tabla-iva-" + l).hidden = l !== E.lado; });
+        var t = tablaDe(E.lado);
+        if (E.lado === "ppd") {
+            var filas = [];
+            ["emitido", "recibido"].forEach(function (rol) {
+                d[rol].ppd_sin_pago.forEach(function (x) { filas.push(Object.assign({ lado_txt: rol === "emitido" ? "Emitida" : "Recibida" }, x)); });
+            });
+            t.ponerDatos(filas);
+            return;
         }
-        var filas = lado.filas.filter(function (f) {
-            if (E.origen === "NOACRED") { if (!f.no_acred) return false; }
-            else if (E.origen && f.origen !== E.origen) return false;
-            return !q || [f.rfc, f.nombre, f.serie_folio, f.uuid, f.uuid_factura].join(" ").toLowerCase().indexOf(q) !== -1;
-        });
-        $("thead").innerHTML = "<tr>" + COLS.map(function (c) {
-            return "<th" + (c[3] ? ' class="xml-num"' : "") + ' style="width:' + c[2] + "px;min-width:" + c[2] + 'px">' + c[1] + "</th>";
-        }).join("") + "</tr>";
-        $("tbody").innerHTML = filas.slice(0, 2000).map(function (f) {
-            return '<tr data-uuid="' + esc(f.uuid) + '" title="' + esc(f.uuid + (f.uuid_factura ? " · paga " + f.uuid_factura : "")) + '">' + COLS.map(function (c) {
-                var v = f[c[0]];
-                if (c[0] === "fecha") v = dmy(v);
-                else if (c[0] === "origen") v = ORIGEN[v] || v;
-                else if (c[0] === "marca") return celdaMarca(f);
-                else if (c[0] === "avisos" && f.marca) v = v.filter(function (x) { return !/^IVA (no acreditable|acreditable al)/.test(x); });
-                if (c[0] === "avisos") return '<td class="iva-aviso" title="' + esc(v.join(" · ")) + '">' + esc(v.join(" · ")) + "</td>";
-                else if (c[3]) return '<td class="xml-num' + (v < 0 ? " iva-neg" : "") + '">' + (v ? m(v) : "") + "</td>";
-                return "<td>" + esc(v || "") + "</td>";
-            }).join("") + "</tr>";
-        }).join("");
-        var suma = {};
-        COLS.forEach(function (c) { if (c[3]) suma[c[0]] = filas.reduce(function (s, f) { return s + (f[c[0]] || 0); }, 0); });
-        $("tfoot").innerHTML = filas.length ? "<tr>" + COLS.map(function (c, i) {
-            return i === 0 ? "<td>Total (" + filas.length + ")</td>" : c[3] ? '<td class="xml-num">' + m(suma[c[0]]) + "</td>" : "<td></td>";
-        }).join("") + "</tr>" : "";
-        $("sin-filas").hidden = filas.length > 0;
-        $("sin-filas").textContent = lado.filas.length ? "Nada coincide con los filtros." : "Sin movimientos de IVA en " + E.P.texto() + ".";
-        $("conteo").textContent = filas.length + " movimiento(s)";
-    }
-
-    function pintarPpd(q) {
-        $("origenes").innerHTML = '<span class="xml-tenue">Facturas PPD del periodo que todavía no tienen complemento de pago: su IVA no cuenta hasta que se paguen.</span>';
-        var filas = [];
-        ["emitido", "recibido"].forEach(function (rol) {
-            E.datos[rol].ppd_sin_pago.forEach(function (x) { filas.push(Object.assign({ rol: rol }, x)); });
-        });
-        filas = filas.filter(function (f) { return !q || [f.rfc, f.nombre, f.uuid].join(" ").toLowerCase().indexOf(q) !== -1; });
-        $("thead").innerHTML = '<tr><th style="width:92px">Fecha</th><th style="width:100px">Lado</th><th style="width:300px">UUID</th><th style="width:130px">RFC</th><th style="width:260px">Nombre</th><th class="xml-num" style="width:120px">Total</th><th style="width:70px">Moneda</th></tr>';
-        $("tbody").innerHTML = filas.map(function (f) {
-            return '<tr data-uuid="' + esc(f.uuid) + '"><td>' + dmy(f.fecha) + "</td><td>" + (f.rol === "emitido" ? "Emitida" : "Recibida") + "</td><td>" + esc(f.uuid) +
-                "</td><td>" + esc(f.rfc || "") + "</td><td>" + esc(f.nombre || "") + '</td><td class="xml-num">' + m(f.total) + "</td><td>" + esc(f.moneda || "") + "</td></tr>";
-        }).join("");
-        $("tfoot").innerHTML = "";
-        $("sin-filas").hidden = filas.length > 0;
-        $("sin-filas").textContent = "Nada coincide con la búsqueda.";
-        $("conteo").textContent = filas.length + " factura(s) PPD sin pago";
+        t.ponerDatos(d[E.lado].filas.map(function (f, i) {
+            var av = f.avisos || [];
+            if (f.marca) av = av.filter(function (x) { return !/^IVA (no acreditable|acreditable al)/.test(x); });
+            return Object.assign({}, f, { _k: i + ":" + f.uuid, origen_txt: ORIGEN[f.origen] || f.origen, avisos_txt: av.join(" · "),
+                                          con_aviso: av.length ? "Sí" : "No", marca_txt: E.lado === "recibido" ? textoMarca(f) : "",
+                                          acred: f.no_acred ? "Sí" : "No" });
+        }));
     }
 
     /* ------------------------------------------------------------ acciones */
@@ -311,25 +323,16 @@
         $("sin-empresa").addEventListener("click", function (e) {
             if (e.target.closest("[data-elegir]")) { e.stopPropagation(); pintarMenu(); $("menu-empresa").hidden = false; }
         });
-        $("pestanas").addEventListener("click", function (e) { var b = e.target.closest("[data-lado]"); if (b) { E.lado = b.dataset.lado; E.origen = ""; Fiscontable.url({ lado: E.lado }); pintar(); } });
+        $("pestanas").addEventListener("click", function (e) { var b = e.target.closest("[data-lado]"); if (b) { E.lado = b.dataset.lado; Fiscontable.url({ lado: E.lado }); pintar(); } });
         $("res-acreditable").addEventListener("click", function (e) {
             if (!e.target.closest("[data-ver-noacred]")) return;
-            E.lado = "recibido"; E.origen = "NOACRED"; Fiscontable.url({ lado: E.lado }); pintar();
+            verDetalle(true); E.lado = "recibido"; Fiscontable.url({ lado: E.lado }); pintar(); tablaDe("recibido").filtrar("acred", "Sí");
             $("pestanas").scrollIntoView({ behavior: "smooth", block: "start" });
         });
-        $("origenes").addEventListener("click", function (e) { var b = e.target.closest("[data-origen]"); if (b) { E.origen = b.dataset.origen; pintar(); } });
-        var reloj = null;
-        $("buscar").addEventListener("input", function () { clearTimeout(reloj); var v = this.value; reloj = setTimeout(function () { E.busqueda = v; if (E.datos) pintar(); }, 150); });
         $("saldo-favor").addEventListener("input", function () { guardarLocal("saldo:" + clavePeriodo(), this.value); if (E.datos) pintarResumen(); });
         $("btn-excel").addEventListener("click", function () { if (E.datos) exportar(); });
         $("btn-xml").addEventListener("click", function () { irA("/herramientas/xml/"); });
         $("btn-conc").addEventListener("click", function () { irA("/herramientas/conciliacion/"); });
-        $("tbody").addEventListener("click", function (e) {
-            if (e.target.closest("[data-marca]")) return;               // la liga a Marcas se abre sola
-            var tr = e.target.closest("tr[data-uuid]"); if (!tr || !E.perfil || (E.perfil.modulos_permitidos || []).indexOf("validador") === -1) return;
-            var lista = [].slice.call(document.querySelectorAll("tr[data-uuid]")).map(function (x) { return x.dataset.uuid; });
-            Fiscontable.verCfdi(E.rfc, tr.dataset.uuid, lista);
-        });
     }
 
     document.addEventListener("DOMContentLoaded", iniciar);

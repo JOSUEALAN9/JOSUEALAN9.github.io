@@ -4,15 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mis Descargas | Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611101900">
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611101900">
-    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611101900">
+    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611102000">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611102000">
+    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611102000">
 </head>
 <body class="min-h-screen flex flex-col">
 
     <div id="app-header" data-modulo="descargas" data-titulo="Mis descargas" data-migas=""></div>
-<script src="/assets/js/nucleo.js?v=202611101900"></script>
-<script src="/assets/js/barra.js?v=202611101900"></script>
+<script src="/assets/js/nucleo.js?v=202611102000"></script>
+<script src="/assets/js/barra.js?v=202611102000"></script>
 
     <main class="flex-grow w-full mod-pagina" style="max-width:1024px">
 
@@ -34,7 +34,8 @@
         <!-- LISTOS PARA DESCARGAR -->
         <section id="seccion-listos" class="hidden mb-6">
             <h2 class="text-sm font-bold text-slate-500 uppercase tracking-wide mb-3">Listos para descargar</h2>
-            <div id="lista-listos" class="flex flex-col gap-3"></div>
+            <!-- Tabla estándar; el detalle de cada descarga abre en el panel lateral -->
+            <div id="tabla-dsc"></div>
         </section>
 
         <!-- REQUIEREN ATENCIÓN -->
@@ -78,6 +79,7 @@
         </div>
     </div>
 
-<script src="/descargas/descargas.js?v=202611101900"></script>
+<script src="/assets/js/comun/tabla.js?v=202611102000"></script>
+<script src="/descargas/descargas.js?v=202611102000"></script>
 </body>
 </html>

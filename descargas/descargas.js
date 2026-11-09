@@ -189,45 +189,6 @@ function tarjetaPreparando(p) {
     </div>`;
 }
 
-function tarjetaLista(p) {
-    let resumen = formatearFecha(p.creado_en);
-    if (p.clase === "lote") {
-        const partes = [`${p.exitosos} de ${p.total} obtenidos`];
-        if (p.reutilizados) partes.push(`${p.reutilizados} ya los tenías`);
-        resumen = partes.join(" · ") + " · " + formatearFecha(p.creado_en);
-    }
-    // Madrugada: el resumen dice cuántos salieron y cuántos no (antes se veía como éxito total).
-    const resumenNoche = p.resumen ? p.resumen.replace(/^[^:]*:\s*/, "").replace(/\.$/, "") : "";
-    const nocheIncompleta = /revisar|fall|no alcanz|cancelad/i.test(resumenNoche);
-    if (resumenNoche) resumen = resumenNoche + " · " + formatearFecha(p.creado_en);
-    const avisoNoche = nocheIncompleta
-        ? `<p class="text-xs text-amber-700 mt-1.5">No salieron todos. El detalle por RFC está en la tarjeta 🌙 del módulo.</p>`
-        : "";
-    const avisoFallidos = (p.fallidos && p.fallidos.length)
-        ? `<button data-id="${esc(p.id)}" onclick="verMotivos(this.dataset.id)" class="text-xs text-amber-700 hover:text-amber-900 underline mt-1.5">
-               Sin resultado para ${p.fallidos.length} contribuyente${p.fallidos.length === 1 ? "" : "s"} — ver por qué
-           </button>`
-        : "";
-    return `
-    <div class="bg-white rounded-xl card-elevated border border-gray-200 p-5">
-        <div class="flex flex-wrap items-start justify-between gap-3">
-            <div class="flex-grow">
-                <h3 class="font-bold text-slate-800">${esc(titulo(p))}</h3>
-                <p class="text-xs text-slate-500 mt-0.5">${esc(resumen)}</p>
-                ${avisoFallidos}${avisoNoche}
-                ${p.en_pc && p.en_pc.rutas && p.en_pc.rutas.length ? `<p class="text-xs text-emerald-700 mt-1">${esc(Fiscontable.textoEnPc(p.en_pc))}</p>` : ""}
-            </div>
-            <div class="flex items-center gap-2 flex-none">
-                ${p.en_pc && p.en_pc.rutas && p.en_pc.rutas.length ? `<button data-id="${esc(p.id)}" onclick="mostrarPc(this.dataset.id, this)" class="border border-emerald-300 text-emerald-800 hover:bg-emerald-50 text-xs font-bold py-2 px-4 rounded-lg transition">Mostrar en mi PC</button>` : ""}
-                <button data-url="${esc(p.url_descarga)}" data-nombre="${esc(p.nombre_descarga || "")}" onclick="descargar(this.dataset.url, this.dataset.nombre, this)" class="bg-green-600 hover:bg-green-500 text-white text-xs font-bold py-2 px-4 rounded-lg transition">Descargar</button>
-                <button data-clase="${esc(p.clase)}" data-id="${esc(p.id)}" onclick="quitar(this.dataset.clase, this.dataset.id, this)" title="Quitar de la lista" class="text-gray-300 hover:text-red-500 transition p-1">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                </button>
-            </div>
-        </div>
-    </div>`;
-}
-
 function tarjetaAtencion(p) {
     const motivo = p.mensaje_error || "No se pudo completar.";
 
@@ -462,10 +423,94 @@ function pintarProcesos(todos) {
         document.getElementById("vacio-texto").textContent = todos.length ? "Prueba con «7 días», «Todo» o «Todas las empresas»." : "Aquí aparecen tus constancias, opiniones, declaraciones y XML.";
 
         document.getElementById("lista-preparando").innerHTML = preparando.map(tarjetaPreparando).join("");
-        document.getElementById("lista-listos").innerHTML = listos.map(tarjetaLista).join("");
+        tablaListos().ponerDatos(listos.map(filaLista));
         document.getElementById("lista-atencion").innerHTML = atencion.map(tarjetaAtencion).join("");
 }
 
+
+/* ---------- «Listos para descargar»: tabla estándar + detalle en el panel lateral (M-19) */
+let tListos = null;
+function resumenDe(p) {
+    if (p.resumen) return p.resumen.replace(/^[^:]*:\s*/, "").replace(/\.$/, "");
+    if (p.clase === "lote") return [`${p.exitosos} de ${p.total} obtenidos`].concat(p.reutilizados ? [`${p.reutilizados} ya los tenías`] : []).join(" · ");
+    return "";
+}
+function filaLista(p) {
+    return Object.assign({}, p, {
+        documento: nombreDocumento(p).replace(/^🌙 /, ""), quien: p.clase === "lote" ? `${p.total || "Varios"} contribuyentes` : p.titulo,
+        tipo_txt: GRUPOS_TIPO[grupoTipo(p.tipo)] || "Otros", resultado: resumenDe(p),
+        incompleto: (p.fallidos && p.fallidos.length) || /revisar|fall|no alcanz|cancelad/i.test(p.resumen || "") ? "Sí" : "No",
+        en_mi_pc: p.en_pc && p.en_pc.rutas && p.en_pc.rutas.length ? "Sí" : "No"
+    });
+}
+function tablaListos() {
+    if (tListos) return tListos;
+    tListos = FCTabla.estandar({
+        contenedor: document.getElementById("tabla-dsc"), id: "descargas", claveFila: "id",
+        catalogo: [
+            { clave: "creado_en", etiqueta: "Fecha", tipo: "fecha" }, { clave: "documento", etiqueta: "Documento", tipo: "texto" },
+            { clave: "quien", etiqueta: "Empresa", tipo: "texto" }, { clave: "tipo_txt", etiqueta: "Tipo", tipo: "texto" },
+            { clave: "resultado", etiqueta: "Resultado", tipo: "texto" }, { clave: "incompleto", etiqueta: "Faltaron", tipo: "texto" },
+            { clave: "en_mi_pc", etiqueta: "En mi PC", tipo: "texto" }, { clave: "acciones", etiqueta: "Archivo", tipo: "texto" }
+        ],
+        predeterminadas: ["creado_en", "documento", "quien", "resultado", "acciones"],
+        anchoClave: { documento: 240, quien: 170, resultado: 260, acciones: 130, tipo_txt: 170 },
+        celda: (c, p) => {
+            if (c.clave === "acciones") return p.url_descarga ? `<button type="button" class="ui-btn ui-btn--primario ui-btn--28" data-bajar="${esc(p.id)}">Descargar</button>` : "";
+            if (c.clave === "incompleto") return p.incompleto === "Sí" ? '<span class="xml-sello xml-sello--ambar">Sí</span>' : "";
+            return null;
+        },
+        buscar: { texto: "Buscar documento o empresa…", campos: ["documento", "quien", "resultado"] },
+        filtros: [{ clave: "documento", etiqueta: "Documento" }, { clave: "incompleto", etiqueta: "Faltaron" }],
+        vacio: { titulo: "Nada listo", texto: "" },
+        alClic: (p, lista, ev) => {
+            const b = ev && ev.target.closest("[data-bajar]");
+            if (b) { descargar(p.url_descarga, p.nombre_descarga || "", b); return; }
+            verDescarga(p, lista);
+        }
+    });
+    return tListos;
+}
+function fechaLarga(iso) {
+    const f = new Date(String(iso).length <= 19 ? iso + "Z" : iso);
+    return isNaN(f) ? "" : f.toLocaleString("es-MX", { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" });
+}
+const MODULO_DE = { constancias: ["/herramientas/constancias/", "Constancia fiscal"], xml: ["/herramientas/descarga-xml/", "Descarga masiva"],
+                    declaraciones: ["/herramientas/declaraciones/", "Declaraciones"], buzon: ["/herramientas/buzon/", "Buzón Tributario"] };
+function verDescarga(p, lista) {
+    const ids = (lista || [p]).map(x => x.id);
+    Fiscontable.panel({
+        titulo: "Descarga", lista: ids, i: ids.indexOf(p.id),
+        pintar: (id, cuerpo) => {
+            const x = (window._ultimosProcesos || []).find(q => q.id === id);
+            if (!x) { cuerpo.innerHTML = '<p class="xml-tenue">Ya no está en la lista.</p>'; return; }
+            const f = filaLista(x), g = grupoTipo(x.tipo), mod = MODULO_DE[g] || (g === "programada" ? ["/configuracion/?seccion=programaciones", "Programaciones"] : null);
+            const pc = x.en_pc && x.en_pc.rutas && x.en_pc.rutas.length;
+            cuerpo.innerHTML = `<h4>${esc(f.documento)}</h4>
+                <dl class="fc-panel__datos"><dt>Empresa</dt><dd>${esc(f.quien)}</dd><dt>Tipo</dt><dd>${esc(f.tipo_txt)}</dd>
+                <dt>Fecha</dt><dd>${esc(fechaLarga(x.creado_en))}</dd>
+                ${x.usuario ? `<dt>Pidió</dt><dd>${esc(x.usuario)}</dd>` : ""}
+                ${f.resultado ? `<dt>Resultado</dt><dd>${esc(f.resultado)}</dd>` : ""}
+                ${x.nombre_descarga ? `<dt>Archivo</dt><dd>${esc(x.nombre_descarga)}</dd>` : ""}
+                ${pc ? `<dt>En tu PC</dt><dd>${esc(Fiscontable.textoEnPc(x.en_pc))}</dd>` : ""}</dl>
+                ${x.fallidos && x.fallidos.length ? `<p class="fc-panel__texto">Sin resultado para ${x.fallidos.length} contribuyente${x.fallidos.length === 1 ? "" : "s"}. <button type="button" class="xml-enlace" data-motivos>Ver por qué</button></p>` : ""}
+                ${f.incompleto === "Sí" && !(x.fallidos && x.fallidos.length) ? '<p class="fc-panel__texto">No salieron todos. El detalle por RFC está en el módulo.</p>' : ""}
+                <div class="fc-panel__acciones">
+                    ${x.url_descarga ? '<button type="button" class="ui-btn ui-btn--primario ui-btn--32" data-p="bajar">Descargar</button>' : ""}
+                    ${pc ? '<button type="button" class="ui-btn ui-btn--secundario ui-btn--32" data-p="pc">Mostrar en mi PC</button>' : ""}
+                    ${mod ? `<a class="ui-btn ui-btn--terciario ui-btn--32" href="${mod[0]}">Ir a ${esc(mod[1])}</a>` : ""}
+                    <button type="button" class="ui-btn ui-btn--terciario ui-btn--32" data-p="quitar">Quitar de la lista</button>
+                </div>`;
+            cuerpo.onclick = (e) => {
+                if (e.target.closest("[data-motivos]")) { verMotivos(x.id); return; }
+                const b = e.target.closest("[data-p]"); if (!b) return;
+                if (b.dataset.p === "bajar") descargar(x.url_descarga, x.nombre_descarga || "", b);
+                else if (b.dataset.p === "pc") Fiscontable.mostrarEnPc(x.en_pc, b);
+                else if (b.dataset.p === "quitar") quitar(x.clase, x.id, b).then(() => { document.querySelector('.fc-cfdi--panel [data-pnl="cerrar"]').click(); });
+            };
+        }
+    });
+}
 
 // Lo hizo el agente: le pide a esa PC que abra la carpeta donde quedó
 function mostrarPc(id, boton) {
