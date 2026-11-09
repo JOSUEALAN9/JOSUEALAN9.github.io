@@ -4,15 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Listas del SAT · Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611101900">
-    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611101900">
-    <link rel="stylesheet" href="/herramientas/listas-sat/listas-sat.css?v=202611101900">
-    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611101900">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611102000">
+    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611102000">
+    <link rel="stylesheet" href="/herramientas/listas-sat/listas-sat.css?v=202611102000">
+    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611102000">
 </head>
 <body class="bg-slate-50">
 <div id="app-header" data-modulo="validador" data-ayuda="listas" data-titulo="Listas del SAT" data-migas="Herramientas|/herramientas/"></div>
-<script src="/assets/js/nucleo.js?v=202611101900"></script>
-<script src="/assets/js/barra.js?v=202611101900"></script>
+<script src="/assets/js/nucleo.js?v=202611102000"></script>
+<script src="/assets/js/barra.js?v=202611102000"></script>
 
 <main class="xml-pagina">
     <!-- Igual que sus hermanas: de quién, qué periodo y la revisión de las listas -->
@@ -57,23 +57,14 @@
             <!-- General y una pestaña por lista; solo aparecen las que tienen algo -->
             <div class="pestanas xml-pestanas" role="tablist" id="pestanas"></div>
 
-            <div class="xml-toolbar">
-                <input type="search" id="buscar" placeholder="Buscar RFC, nombre, folio, UUID…">
-            </div>
-
             <div id="barra-seleccion" class="xml-seleccion" hidden>
                 <span id="texto-seleccion"></span>
-                <span class="xml-tenue">Las acciones de arriba usan lo seleccionado.</span>
+                <span class="xml-tenue">Las acciones de la izquierda usan lo seleccionado.</span>
                 <button type="button" id="btn-limpiar-sel" class="xml-enlace">Quitar selección</button>
             </div>
 
-            <div class="xml-tabla-caja ls-tabla-caja">
-                <table class="xml-tabla ls-tabla">
-                    <thead id="thead"></thead>
-                    <tbody id="tbody"></tbody>
-                </table>
-                <p id="sin-filas" class="xml-vacio xml-vacio--tabla" hidden></p>
-            </div>
+            <!-- Tabla estándar (FCTabla.estandar): buscador, filtros, columnas, vistas -->
+            <div id="tabla-ls" class="ls-tabla-std"></div>
             <p class="xml-pie"><span id="conteo-filas"></span> · Clic en los sellos de una fila para ver dónde aparece y el detalle del SAT; en el resto de la fila, para abrir el CFDI.</p>
         </div>
     </div>
@@ -100,8 +91,9 @@
     </div>
 </div>
 
-<script src="/assets/js/comun/periodo-meses.js?v=202611101900"></script>
-<script src="/assets/js/comun/programacion.js?v=202611101900"></script>
-<script src="/herramientas/listas-sat/listas-sat.js?v=202611101900"></script>
+<script src="/assets/js/comun/periodo-meses.js?v=202611102000"></script>
+<script src="/assets/js/comun/programacion.js?v=202611102000"></script>
+<script src="/assets/js/comun/tabla.js?v=202611102000"></script>
+<script src="/herramientas/listas-sat/listas-sat.js?v=202611102000"></script>
 </body>
 </html>

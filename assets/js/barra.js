@@ -2102,6 +2102,59 @@
         cfdiPanel.el.hidden = true; cfdiPanel.marco.src = "about:blank";
         document.documentElement.classList.remove("fc-con-cfdi");
     }
+    /* ------------------------------------------------- panel lateral de detalle (G-07, la misma pieza en todos los módulos)
+       Fiscontable.panel({ titulo: "Solicitud", lista: [filas en el orden en que se ven], i: posición,
+                           pintar: function (fila, cuerpo) { cuerpo.innerHTML = "…" } })
+       Misma cabeza que el detalle de un CFDI: anterior/siguiente (← →), cerrar (Esc). Regresa { cerrar, repintar }. */
+    var panelGen = null;
+    function panel(o) {
+        if (!panelGen) {
+            var d = document.createElement("aside");
+            d.className = "fc-cfdi fc-cfdi--panel"; d.hidden = true; d.setAttribute("role", "dialog");
+            d.innerHTML = '<div class="fc-cfdi__cabeza"><b class="fc-panel__titulo"></b><span class="fc-cfdi__pos"></span>' +
+                '<button type="button" class="ui-icono-btn" data-pnl="ant" aria-label="Anterior (←)" title="Anterior (←)">' + ico(D.flecha, 2).replace("<svg ", '<svg style="transform:rotate(180deg)" ') + "</button>" +
+                '<button type="button" class="ui-icono-btn" data-pnl="sig" aria-label="Siguiente (→)" title="Siguiente (→)">' + ico(D.flecha, 2) + "</button>" +
+                '<button type="button" class="ui-icono-btn" data-pnl="cerrar" aria-label="Cerrar (Esc)" title="Cerrar (Esc)">' + ico(D.cerrar, 2) + "</button></div>" +
+                '<div class="fc-panel__cuerpo"></div>';
+            document.body.appendChild(d);
+            panelGen = { el: d, cuerpo: d.querySelector(".fc-panel__cuerpo"), o: null, i: 0 };
+            d.addEventListener("click", function (e) {
+                var b = e.target.closest("[data-pnl]"); if (!b) return;
+                if (b.dataset.pnl === "cerrar") cerrarPanelGen(); else moverPanelGen(b.dataset.pnl === "ant" ? -1 : 1);
+            });
+            document.addEventListener("keydown", function (e) {
+                if (d.hidden || (e.target.closest && e.target.closest("input, textarea, select")) || document.querySelector("dialog[open]")) return;
+                if (e.key === "Escape") cerrarPanelGen(); else if (e.key === "ArrowLeft") moverPanelGen(-1); else if (e.key === "ArrowRight") moverPanelGen(1);
+            });
+        }
+        cerrarCfdi();
+        var P = panelGen;
+        P.o = o; P.i = Math.max(0, Math.min((o.lista || [null]).length - 1, o.i || 0));
+        pintarPanelGen();
+        P.el.hidden = false;
+        document.documentElement.classList.add("fc-con-cfdi");
+        return { cerrar: cerrarPanelGen, repintar: function () { if (!panelGen.el.hidden) pintarPanelGen(); } };
+    }
+    function pintarPanelGen() {
+        var P = panelGen, lista = P.o.lista || [];
+        P.el.querySelector(".fc-panel__titulo").textContent = P.o.titulo || "Detalle";
+        P.el.querySelector(".fc-cfdi__pos").textContent = lista.length > 1 ? (P.i + 1) + " de " + lista.length : "";
+        P.el.querySelector('[data-pnl="ant"]').disabled = P.i <= 0;
+        P.el.querySelector('[data-pnl="sig"]').disabled = P.i >= lista.length - 1;
+        P.cuerpo.scrollTop = 0;
+        P.o.pintar(lista[P.i], P.cuerpo);
+    }
+    function moverPanelGen(paso) {
+        var P = panelGen; if (!P || P.el.hidden) return;
+        var n = P.i + paso; if (n < 0 || n >= (P.o.lista || []).length) return;
+        P.i = n; pintarPanelGen();
+    }
+    function cerrarPanelGen() {
+        if (!panelGen || panelGen.el.hidden) return;
+        panelGen.el.hidden = true; panelGen.cuerpo.innerHTML = "";
+        document.documentElement.classList.remove("fc-con-cfdi");
+    }
+
     // Enlaces al detalle en cualquier módulo: panel lateral (con modificador o clic medio, pestaña como siempre)
     document.addEventListener("click", function (e) {
         if (e.defaultPrevented || e.button !== 0 || e.ctrlKey || e.metaKey || e.shiftKey || e.altKey) return;
@@ -2754,6 +2807,7 @@
         riel: riel,
         excel: excel,
         verCfdi: verCfdi,
+        panel: panel,
         bloquearPantalla: function (servidor) { bloquearPantalla(!!servidor); },
         catalogo: CATALOGO,
         grupos: GRUPOS,

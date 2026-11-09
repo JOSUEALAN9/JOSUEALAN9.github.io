@@ -4,15 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Papel de trabajo IVA · Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611101900">
-    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611101900">
-    <link rel="stylesheet" href="/herramientas/iva/iva.css?v=202611101900">
-    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611101900">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611102000">
+    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611102000">
+    <link rel="stylesheet" href="/herramientas/iva/iva.css?v=202611102000">
+    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611102000">
 </head>
 <body class="bg-slate-50">
 <div id="app-header" data-modulo="iva" data-titulo="Papel de trabajo IVA" data-migas="Herramientas|/herramientas/"></div>
-<script src="/assets/js/nucleo.js?v=202611101900"></script>
-<script src="/assets/js/barra.js?v=202611101900"></script>
+<script src="/assets/js/nucleo.js?v=202611102000"></script>
+<script src="/assets/js/barra.js?v=202611102000"></script>
 
 <main class="xml-pagina">
     <div class="xml-cabeza">
@@ -33,7 +33,7 @@
     <div id="contenido" class="mod-layout" hidden>
         <aside class="mod-acciones" aria-label="Acciones">
             <p class="mod-acciones__grupo">Reportes</p>
-            <button type="button" id="btn-excel" class="mod-accion" title="Resumen y detalle CFDI por CFDI de los dos lados"><b>▦</b>Exportar Excel</button>
+            <button type="button" id="btn-excel" class="mod-accion" title="Resumen y detalle CFDI por CFDI de los dos lados"><b>▦</b>Excel del papel de trabajo</button>
             <p class="mod-acciones__grupo">Con este periodo</p>
             <button type="button" id="btn-xml" class="mod-accion" title="Abre sus XML"><b>⇢</b>Ver sus XML</button>
             <button type="button" id="btn-conc" class="mod-accion" title="Facturas contra pagos y notas" hidden><b>⇄</b>Conciliar</button>
@@ -68,15 +68,10 @@
                 <div id="iva-detalle" hidden>
                 <div class="ctx-segmento xml-seg" role="tablist" id="pestanas" style="margin-bottom:10px"></div>
 
-                <div class="xml-toolbar">
-                    <input type="search" id="buscar" placeholder="Buscar RFC, nombre, folio, UUID…">
-                    <div class="xml-toolbar__der"><div id="origenes" class="xml-chips"></div></div>
-                </div>
-
-                <div class="xml-tabla-caja iva-tabla-caja">
-                    <table class="xml-tabla iva-tabla"><thead id="thead"></thead><tbody id="tbody"></tbody><tfoot id="tfoot"></tfoot></table>
-                    <p id="sin-filas" class="xml-vacio xml-vacio--tabla" hidden></p>
-                </div>
+                <!-- Una tabla estándar por pestaña: cada una guarda sus columnas y vistas -->
+                <div id="tabla-iva-emitido"></div>
+                <div id="tabla-iva-recibido" hidden></div>
+                <div id="tabla-iva-ppd" hidden></div>
                 </div>
                 <p class="xml-pie"><span id="conteo"></span> · Flujo de efectivo: PUE en su mes, PPD cuando se paga. Lo cancelado en el SAT no cuenta. Lo recibido respeta las Marcas fiscales (IVA no acreditable).</p>
             </div>
@@ -84,7 +79,8 @@
     </div>
 </main>
 
-<script src="/assets/js/comun/periodo-meses.js?v=202611101900"></script>
-<script src="/herramientas/iva/iva.js?v=202611101900"></script>
+<script src="/assets/js/comun/periodo-meses.js?v=202611102000"></script>
+<script src="/assets/js/comun/tabla.js?v=202611102000"></script>
+<script src="/herramientas/iva/iva.js?v=202611102000"></script>
 </body>
 </html>

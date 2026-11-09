@@ -252,9 +252,18 @@
 
     function pintarSeccion() {
         var s = E.seccion;
-        if (s === "comunicados") $("contenido").innerHTML = listaComunicados(E.detalle.comunicados.filter(function (c) { return !c.archivado; }), "Aún no hay comunicados. Pulsa Revisar ahora.");
-        else if (s === "archivados") $("contenido").innerHTML = listaComunicados(E.detalle.comunicados.filter(function (c) { return c.archivado; }), "No has archivado comunicados.");
-        else if (s === "cancelaciones") $("contenido").innerHTML = cancelaciones();
+        var lista = s === "comunicados" || s === "archivados";
+        $("tabla-bz").hidden = !lista;
+        if (lista) {
+            $("contenido").innerHTML = "";
+            var t = tablaMensajes();
+            var filas = E.detalle.comunicados.filter(function (c) { return s === "archivados" ? c.archivado : !c.archivado; });
+            t.ponerDatos(filas.map(filaMensaje));
+            if (!filas.length) t.mensaje(s === "archivados" ? "Sin archivados" : "Sin comunicados", s === "archivados" ? "No has archivado comunicados." : "Aún no hay comunicados. Pulsa Revisar ahora.");
+            if (E.pnl && E.pnlAbierto) E.pnl.repintar();
+            return;
+        }
+        if (s === "cancelaciones") $("contenido").innerHTML = cancelaciones();
         else if (s === "notificaciones") $("contenido").innerHTML = notificaciones();
         else $("contenido").innerHTML = revisiones();
     }
@@ -324,25 +333,61 @@
         return html;
     }
 
-    function listaComunicados(lista, vacio) {
-        if (!lista.length) return '<p class="bz-vacio">' + vacio + "</p>";
-        return '<ul class="bz-mensajes">' + lista.map(function (c) {
-            var abierto = E.abierto === c.id;
-            return '<li class="bz-msj' + (c.visto ? "" : " bz-msj--nuevo") + (abierto ? " bz-msj--abierto" : "") + '" data-id="' + c.id + '">' +
-                '<button type="button" class="bz-msj__fila" data-abrir-msj="' + c.id + '" aria-expanded="' + abierto + '">' +
-                '<span class="bz-punto" title="' + (c.visto ? "Visto" : "Nuevo") + '"></span>' +
-                '<span class="bz-msj__fecha">' + esc(fechaLocal(c.fecha)) + "</span>" +
-                '<span class="bz-msj__asunto">' + esc(c.asunto) + "</span>" +
-                '<span class="bz-cat bz-cat--' + PRIORIDAD[c.prioridad] + '">' + esc(c.categoria_nombre) + "</span>" +
-                '<span class="bz-msj__sat">' + (c.estado_sat === "leido" ? "Leído en el SAT" : c.estado_sat === "no_leido" ? "No leído en el SAT" : "") + "</span></button>" +
-                (abierto ? '<div class="bz-msj__cuerpo">' +
-                    (c.folio ? '<p class="bz-nota">Folio: <b>' + esc(c.folio) + "</b></p>" : "") +
+    /* ---------- comunicados en la tabla estándar; el mensaje completo se lee en el panel lateral */
+    var tBz = null;
+    function satTexto(c) { return c.estado_sat === "leido" ? "Leído en el SAT" : c.estado_sat === "no_leido" ? "No leído en el SAT" : ""; }
+    function filaMensaje(c) {
+        return Object.assign({}, c, { nuevo_txt: c.visto ? "Visto" : "Nuevo", sat_txt: satTexto(c), texto: (c.contenido || "").slice(0, 4000) });
+    }
+    function tablaMensajes() {
+        if (tBz) return tBz;
+        tBz = FCTabla.estandar({
+            contenedor: $("tabla-bz"), id: "buzon", claveFila: "id",
+            catalogo: [
+                { clave: "fecha", etiqueta: "Fecha", tipo: "fecha" }, { clave: "asunto", etiqueta: "Asunto", tipo: "texto" },
+                { clave: "categoria_nombre", etiqueta: "Tipo", tipo: "texto" }, { clave: "sat_txt", etiqueta: "En el SAT", tipo: "texto" },
+                { clave: "nuevo_txt", etiqueta: "Aquí", tipo: "texto" }, { clave: "folio", etiqueta: "Folio", tipo: "texto" }
+            ],
+            predeterminadas: ["fecha", "asunto", "categoria_nombre", "sat_txt", "nuevo_txt"],
+            anchoClave: { asunto: 420, categoria_nombre: 190, sat_txt: 150, nuevo_txt: 90 },
+            sellos: { nuevo_txt: { Nuevo: "verde" } },
+            celda: function (c, x) {
+                if (c.clave === "asunto") return '<span class="bz-asunto' + (x.visto ? "" : " bz-asunto--nuevo") + '" title="' + esc(x.asunto) + '">' + esc(x.asunto) + "</span>";
+                if (c.clave === "categoria_nombre") return '<span class="bz-cat bz-cat--' + PRIORIDAD[x.prioridad] + '">' + esc(x.categoria_nombre) + "</span>";
+                return null;
+            },
+            buscar: { texto: "Buscar asunto, folio o texto…", campos: ["asunto", "folio", "texto"] },
+            filtros: [{ clave: "categoria_nombre", etiqueta: "Tipo" }, { clave: "sat_txt", etiqueta: "En el SAT" }],
+            rapidos: { clave: "nuevo_txt", valores: [{ valor: "Nuevo", etiqueta: "Nuevos" }, { valor: "Visto", etiqueta: "Vistos" }] },
+            exportar: { nombre: function () { return (E.rfc || "Buzon") + "_comunicados.xlsx"; }, hoja: "Comunicados" },
+            vacio: { titulo: "Sin comunicados", texto: "" },
+            alClic: function (x, lista) { verMensaje(x.id, lista.map(function (y) { return y.id; })); }
+        });
+        return tBz;
+    }
+    function verMensaje(id, ids) {
+        E.pnlAbierto = true;
+        E.pnl = Fiscontable.panel({
+            titulo: "Comunicado", lista: ids, i: ids.indexOf(id),
+            pintar: function (mid, cuerpo) {
+                var c = E.detalle.comunicados.filter(function (x) { return x.id === mid; })[0];
+                if (!c) { cuerpo.innerHTML = '<p class="xml-tenue">Ya no está en esta lista.</p>'; return; }
+                if (!c.visto && !E.respaldo) { c.visto = true; marcar("/api/buzon/comunicados/visto", [c.id], 1); }
+                cuerpo.innerHTML = "<h4>" + esc(c.asunto) + "</h4>" +
+                    '<dl class="fc-panel__datos"><dt>Fecha</dt><dd>' + esc(fechaLocal(c.fecha)) + "</dd><dt>Tipo</dt><dd>" + esc(c.categoria_nombre) + "</dd>" +
+                    (c.folio ? "<dt>Folio</dt><dd>" + esc(c.folio) + "</dd>" : "") + (satTexto(c) ? "<dt>En el SAT</dt><dd>" + esc(satTexto(c)) + "</dd>" : "") + "</dl>" +
                     (c.categoria === "cancelacion" ? tarjetaCancelacion(c, true) : "") +
-                    (c.contenido ? '<div class="bz-texto">' + contenidoHtml(c.contenido) + "</div>" : '<p class="bz-nota">El SAT no mandó el texto en la lista. Ábrelo en el <a href="' + URL_BUZON_SAT + '" target="_blank" rel="noopener">Buzón del SAT</a>.</p>') +
-                    '<div class="bz-acciones"><button type="button" class="bz-btn" data-visto="' + c.id + '" data-valor="' + (c.visto ? 0 : 1) + '">' + (c.visto ? "Marcar como nuevo" : "Marcar como visto") + "</button>" +
-                    '<button type="button" class="bz-btn" data-archivar="' + c.id + '" data-valor="' + (c.archivado ? 0 : 1) + '">' + (c.archivado ? "Sacar de archivados" : "Archivar") + "</button></div></div>" : "") +
-                "</li>";
-        }).join("") + "</ul>";
+                    (c.contenido ? '<div class="bz-texto">' + contenidoHtml(c.contenido) + "</div>"
+                                 : '<p class="bz-nota">El SAT no mandó el texto en la lista. Ábrelo en el <a href="' + URL_BUZON_SAT + '" target="_blank" rel="noopener">Buzón del SAT</a>.</p>') +
+                    '<div class="fc-panel__acciones"><button type="button" class="ui-btn ui-btn--secundario ui-btn--32" data-visto="' + c.id + '" data-valor="' + (c.visto ? 0 : 1) + '">' + (c.visto ? "Marcar como nuevo" : "Marcar como visto") + "</button>" +
+                    '<button type="button" class="ui-btn ui-btn--secundario ui-btn--32" data-archivar="' + c.id + '" data-valor="' + (c.archivado ? 0 : 1) + '">' + (c.archivado ? "Sacar de archivados" : "Archivar") + "</button></div>";
+                cuerpo.onclick = function (e) {
+                    var b = e.target.closest("button"); if (!b) return;
+                    if (b.dataset.visto) marcar("/api/buzon/comunicados/visto", [+b.dataset.visto], +b.dataset.valor);
+                    else if (b.dataset.archivar) { E.pnlAbierto = false; E.pnl.cerrar(); marcar("/api/buzon/comunicados/archivar", [+b.dataset.archivar], +b.dataset.valor); }
+                };
+            }
+        });
     }
 
     // Lo que ya se contestó de esa factura desde Fiscontable: antes del aviso (la volvieron a pedir) o después (ya quedó)

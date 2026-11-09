@@ -21,7 +21,7 @@
     var E = {
         empresa: null, periodoGeneral: null, contribuyentes: [], rfc: null, datos: null,
         P: null, porDia: {}, cargado: null,
-        pestana: "", rol: "", informativos: false, busqueda: "", orden: { clave: "fecha", dir: -1 },
+        pestana: "", rol: "", informativos: false,
         filas: [], seleccion: new Set()
     };
 
@@ -125,7 +125,7 @@
 
     async function abrirEmpresa(rfc) {
         E.rfc = rfc || null;
-        E.datos = vacio(); E.cargado = null; E.seleccion.clear(); E.pestana = ""; E.busqueda = ""; $("buscar").value = "";
+        E.datos = vacio(); E.cargado = null; limpiarSel(); E.pestana = ""; if (t) t.limpiar();
         pintarEncabezado();
         var c = rfc && E.contribuyentes.find(function (x) { return x.rfc === rfc; });
         if (!c) { mostrarVacio(); return; }
@@ -177,7 +177,7 @@
 
     /* Si lo elegido cabe en lo ya leído se filtra aquí; si no, se pide al servidor solo ese rango. */
     async function alCambiarPeriodo() {
-        E.seleccion.clear();
+        limpiarSel();
         if (!E.rfc) return;
         var r = E.P.rango();
         if (!hayEleccion()) { E.datos = vacio(); E.cargado = null; pintarTodo(); return; }
@@ -226,59 +226,78 @@
             '<input type="checkbox" id="chk-informativos"' + (E.informativos ? " checked" : "") + "> Incluir desvirtuados</label>";
     }
 
-    // ------------------------------------------------------------ tabla
-    var COLUMNAS = [
-        { clave: "fecha", titulo: "Fecha", ancho: 92 },
-        { clave: "rol", titulo: "E/R", ancho: 74 },
-        { clave: "tipo", titulo: "Tipo", ancho: 74 },
-        { clave: "serie_folio", titulo: "Serie-Folio", ancho: 110 },
-        { clave: "rfc", titulo: "RFC contraparte", ancho: 132 },
-        { clave: "nombre", titulo: "Nombre", ancho: 240 },
-        { clave: "total", titulo: "Total", ancho: 112, num: true },
-        { clave: "estado_sat", titulo: "Estado SAT", ancho: 96 }
+    // ------------------------------------------------------------ tabla (estándar: buscador, filtros, columnas, vistas)
+    var CATALOGO = [
+        { clave: "fecha", etiqueta: "Fecha", tipo: "fecha" },
+        { clave: "er", etiqueta: "E/R", tipo: "texto" },
+        { clave: "tipo_txt", etiqueta: "Tipo", tipo: "texto" },
+        { clave: "serie_folio", etiqueta: "Serie-Folio", tipo: "texto" },
+        { clave: "rfc", etiqueta: "RFC contraparte", tipo: "texto" },
+        { clave: "nombre", etiqueta: "Nombre", tipo: "texto" },
+        { clave: "total", etiqueta: "Total", tipo: "moneda" },
+        { clave: "moneda", etiqueta: "Moneda", tipo: "texto" },
+        { clave: "estado_sat_txt", etiqueta: "Estado SAT", tipo: "texto" },
+        { clave: "encontrado", etiqueta: "Encontrado en", tipo: "texto" },
+        { clave: "publicacion", etiqueta: "Publicación", tipo: "texto" },
+        { clave: "uuid", etiqueta: "UUID", tipo: "uuid" }
     ];
-    var COL_GENERAL = [{ clave: "_encontrado", titulo: "Encontrado en", ancho: 300 }];
-    var COL_LISTA = [{ clave: "_situacion", titulo: "Situación", ancho: 220 }, { clave: "_publicacion", titulo: "Publicación", ancho: 180 }];
+    var t = null;
+    function crearTabla() {
+        t = FCTabla.estandar({
+            contenedor: $("tabla-ls"), id: "listas", claveFila: "uuid",
+            catalogo: CATALOGO,
+            predeterminadas: ["fecha", "er", "tipo_txt", "serie_folio", "rfc", "nombre", "total", "estado_sat_txt", "encontrado"],
+            anchoClave: { er: 86, tipo_txt: 86, serie_folio: 110, rfc: 132, nombre: 240, estado_sat_txt: 104, encontrado: 300, publicacion: 180 },
+            sellos: { estado_sat_txt: { "Cancelado": "rojo", "Vigente": "verde" } },
+            celda: function (c, f) {
+                if (c.clave === "encontrado") return '<span class="ls-sellos ls-sellos--fila" title="Clic para ver el detalle del SAT">' + hitsDe(f).map(function (h) { return sello(h, false); }).join("") + "</span>";
+                if (c.clave === "rfc") return '<span class="ls-rfc">' + esc(f.rfc) + "</span>";
+                return null;
+            },
+            claseFila: function (f) { return f.estado_sat === "Cancelado" ? "ls-fila--cancelada" : ""; },
+            buscar: { texto: "Buscar RFC, nombre, folio o UUID…", campos: ["rfc", "nombre", "serie_folio", "uuid"] },
+            filtros: [{ clave: "tipo_txt", etiqueta: "Tipo" }, { clave: "estado_sat_txt", etiqueta: "Estado SAT" }, { clave: "nombre", etiqueta: "Nombre" }],
+            vacio: { titulo: "Sin CFDI", texto: "" },
+            alFiltrar: function (vis) { E.filas = vis; pintarPie(); pintarSeleccion(); },
+            alSeleccionar: function (sel) { E.seleccion = sel; pintarSeleccion(); },
+            alClic: function (f, lista, ev) {
+                // Clic en los sellos = dónde aparece ese RFC; en el resto de la fila, el CFDI
+                if (ev && ev.target.closest(".ls-sellos")) { verDetalleRfc(f.rfc); return; }
+                Fiscontable.verCfdi(E.rfc, f.uuid, lista.map(function (x) { return x.uuid; }));
+            }
+        });
+        E.seleccion = t.tabla.seleccion;
+    }
 
-    function columnas() { return COLUMNAS.concat(E.pestana ? COL_LISTA : COL_GENERAL); }
+    function limpiarSel() { if (t) t.quitarSeleccion(); else E.seleccion.clear(); }
 
     function hitsDe(f) { return E.pestana ? f.listas.filter(function (h) { return h.grupo === E.pestana; }) : f.listas; }
 
-    function valorOrden(f, clave) {
-        if (clave === "_encontrado" || clave === "_situacion") return hitsDe(f).map(function (h) { return h.nombre_lista + h.situacion; }).join();
-        if (clave === "_publicacion") return (hitsDe(f)[0] || {}).fecha || "";
-        var v = f[clave];
-        return typeof v === "string" ? v.toLowerCase() : v;
-    }
-
-    function celda(f, c) {
+    // Los campos que muestra la tabla dependen de la pestaña (General o una lista)
+    function prepararFila(f) {
         var hs = hitsDe(f);
-        switch (c.clave) {
-            case "fecha": return dmy(f.fecha);
-            case "rol": return f.rol === "emitido" ? "Emitido" : "Recibido";
-            case "tipo": return esc(TIPO[f.tipo] || f.tipo || "");
-            case "total": return dinero(f.total) + (f.moneda && f.moneda !== "MXN" ? " " + esc(f.moneda) : "");
-            case "estado_sat": return '<span class="' + (f.estado_sat === "Cancelado" ? "ls-cancelado" : "") + '">' + esc(f.estado_sat || "Sin validar") + "</span>";
-            case "rfc": return '<span class="ls-rfc">' + esc(f.rfc) + "</span>";
-            case "_encontrado": return '<span class="ls-sellos ls-sellos--fila">' + hs.map(function (h) { return sello(h, false); }).join("") + "</span>";
-            case "_situacion": return '<span class="ls-sellos ls-sellos--fila">' + hs.map(function (h) { return sello(h, false); }).join("") + "</span>";
-            case "_publicacion": return esc(hs.filter(function (h) { return h.fecha; }).map(function (h) { return (h.fecha_tipo || "") + " " + dmy(h.fecha); }).join(" · "));
-            default: return esc(f[c.clave] || "");
-        }
+        f.er = f.rol === "emitido" ? "Emitido" : "Recibido";
+        f.tipo_txt = TIPO[f.tipo] || f.tipo || "";
+        f.estado_sat_txt = f.estado_sat || "Sin validar";
+        f.encontrado = hs.map(function (h) { return h.nombre_lista + ": " + (h.situacion || ""); }).join(" · ");
+        f.publicacion = hs.filter(function (h) { return h.fecha; }).map(function (h) { return (h.fecha_tipo || "") + " " + dmy(h.fecha); }).join(" · ");
+        return f;
     }
 
     function aplicar() {
-        var q = E.busqueda.trim().toLowerCase();
-        E.filas = E.datos.cfdi.filter(function (f) {
-            return enPeriodo(f) && base(f) && dePestana(f, E.pestana) && (!q || f._texto.indexOf(q) !== -1);
-        });
-        var o = E.orden;
-        E.filas.sort(function (a, b) {
-            var x = valorOrden(a, o.clave), y = valorOrden(b, o.clave);
-            return (x > y ? 1 : x < y ? -1 : 0) * o.dir;
-        });
+        var filas = E.datos.cfdi.filter(function (f) { return enPeriodo(f) && base(f) && dePestana(f, E.pestana); }).map(prepararFila);
+        filas.sort(function (a, b) { return a.fecha < b.fecha ? 1 : a.fecha > b.fecha ? -1 : 0; });
         pintarResumen();
-        pintarTabla();
+        if (!t) crearTabla();
+        if (!filas.length) {
+            t.ponerDatos([]);
+            t.mensaje(!hayEleccion() ? "Elige el periodo" : !xmlEnPeriodo() ? "Sin XML de " + textoPeriodo() : "Sin coincidencias",
+                      !hayEleccion() ? "Elige un año y al menos un mes (o un rango de fechas) para revisar sus CFDI."
+                      : !xmlEnPeriodo() ? "Agrégalos en Administración de XML."
+                      : "Ningún CFDI de " + textoPeriodo() + " es con proveedores o clientes en las listas.");
+            return;
+        }
+        t.ponerDatos(filas);
     }
 
     // Cuántos XML hay (de cualquier tipo, sin nómina) en el periodo elegido, estén o no en listas
@@ -303,31 +322,9 @@
             : '<span class="ls-limpio">✓ En ' + esc(textoPeriodo()) + " ningún proveedor o cliente aparece en las listas del SAT.</span>";
     }
 
-    function pintarTabla() {
-        var cols = columnas();
-        var todos = E.filas.length && E.filas.every(function (f) { return E.seleccion.has(f.uuid); });
-        $("thead").innerHTML = "<tr>" + '<th class="ls-chk"><input type="checkbox" id="chk-todos" aria-label="Seleccionar todo"' + (todos ? " checked" : "") + "></th>" +
-            cols.map(function (c) {
-                var flecha = E.orden.clave === c.clave ? '<span class="xml-orden">' + (E.orden.dir > 0 ? "▲" : "▼") + "</span>" : "";
-                return '<th data-orden="' + c.clave + '" style="width:' + c.ancho + 'px;min-width:' + c.ancho + 'px"' + (c.num ? ' class="xml-num"' : "") + ">" + c.titulo + flecha + "</th>";
-            }).join("") + "</tr>";
-        var maximo = 1500;
-        $("tbody").innerHTML = E.filas.slice(0, maximo).map(function (f) {
-            return '<tr data-uuid="' + esc(f.uuid) + '" class="' + (E.seleccion.has(f.uuid) ? "xml-fila--sel " : "") + (f.estado_sat === "Cancelado" ? "ls-fila--cancelada" : "") + '">' +
-                '<td class="ls-chk"><input type="checkbox" data-sel' + (E.seleccion.has(f.uuid) ? " checked" : "") + "></td>" +
-                cols.map(function (c) { return "<td" + (c.num ? ' class="xml-num"' : "") + ">" + celda(f, c) + "</td>"; }).join("") + "</tr>";
-        }).join("");
-        var sin = $("sin-filas");
-        sin.hidden = E.filas.length > 0;
-        if (!E.filas.length) {
-            sin.textContent = !hayEleccion() ? "Elige un año y al menos un mes (o un rango de fechas) para revisar sus CFDI."
-                : !xmlEnPeriodo() ? "Sin XML de " + textoPeriodo() + "."
-                : E.busqueda ? "Nada coincide con la búsqueda." : "Ningún CFDI de " + textoPeriodo() + " es con proveedores o clientes en las listas.";
-        }
+    function pintarPie() {
         var suma = E.filas.reduce(function (s, f) { return s + (f.estado_sat === "Cancelado" || f.tipo === "P" ? 0 : (f.tipo === "E" ? -1 : 1) * (f.total || 0)); }, 0);
-        $("conteo-filas").textContent = E.filas.length.toLocaleString("es-MX") + " CFDI" + (E.filas.length > maximo ? " (se muestran " + maximo + ")" : "") +
-            " · Total vigente " + dinero(suma);
-        pintarSeleccion();
+        $("conteo-filas").textContent = E.filas.length.toLocaleString("es-MX") + " CFDI · Total vigente " + dinero(suma);
     }
 
     function pintarSeleccion() {
@@ -340,7 +337,7 @@
     }
 
     function uuidsParaAcciones() {
-        return E.seleccion.size ? Array.from(E.seleccion) : E.filas.map(function (f) { return f.uuid; });
+        return E.seleccion.size ? Array.from(E.seleccion) : (t ? t.visibles() : E.filas).map(function (f) { return f.uuid; });
     }
 
     // ------------------------------------------------------------ acciones
@@ -503,45 +500,16 @@
 
         $("pestanas").addEventListener("click", function (e) {
             var b = e.target.closest("[data-pestana]"); if (!b) return;
-            E.pestana = b.dataset.pestana; E.seleccion.clear(); pintarTodo();
+            E.pestana = b.dataset.pestana; if (t) t.quitarSeleccion(); pintarTodo();
         });
         $("roles").addEventListener("click", function (e) {
             var b = e.target.closest("[data-rol]"); if (!b) return;
-            E.rol = b.dataset.rol; E.seleccion.clear(); pintarTodo();
+            E.rol = b.dataset.rol; if (t) t.quitarSeleccion(); pintarTodo();
         });
         $("roles").addEventListener("change", function (e) {
             if (e.target.id === "chk-informativos") { E.informativos = e.target.checked; pintarTodo(); }
         });
-        var reloj = null;
-        $("buscar").addEventListener("input", function () {
-            clearTimeout(reloj); var v = this.value;
-            reloj = setTimeout(function () { E.busqueda = v; aplicar(); }, 150);
-        });
-
-        $("thead").addEventListener("click", function (e) {
-            if (e.target.id === "chk-todos") {
-                E.filas.forEach(function (f) { if (e.target.checked) E.seleccion.add(f.uuid); else E.seleccion.delete(f.uuid); });
-                pintarTabla(); return;
-            }
-            var th = e.target.closest("[data-orden]"); if (!th) return;
-            var k = th.dataset.orden;
-            E.orden = { clave: k, dir: E.orden.clave === k ? -E.orden.dir : 1 };
-            aplicar();
-        });
-        $("tbody").addEventListener("click", function (e) {
-            var tr = e.target.closest("tr[data-uuid]"); if (!tr) return;
-            var u = tr.dataset.uuid;
-            if (e.target.closest(".ls-sellos")) {
-                var f = E.filas.find(function (x) { return x.uuid === u; });
-                if (f) { verDetalleRfc(f.rfc); return; }
-            }
-            if (e.target.closest(".ls-chk")) {
-                if (e.target.matches("[data-sel]") ? !e.target.checked : E.seleccion.has(u)) E.seleccion.delete(u); else E.seleccion.add(u);
-                pintarTabla(); return;
-            }
-            Fiscontable.verCfdi(E.rfc, u);
-        });
-        $("btn-limpiar-sel").addEventListener("click", function () { E.seleccion.clear(); pintarTabla(); });
+        $("btn-limpiar-sel").addEventListener("click", function () { if (t) t.quitarSeleccion(); });
 
         $("btn-excel").addEventListener("click", exportarExcel);
         $("btn-acuse").addEventListener("click", descargarAcuses);
