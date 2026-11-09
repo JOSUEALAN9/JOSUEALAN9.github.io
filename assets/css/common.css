@@ -1191,7 +1191,7 @@ dialog.fc-modal::backdrop { background: rgba(16, 27, 45, .5); backdrop-filter: b
 }
 
 /* ---------- importar clientes desde XML (componente común) ---------- */
-.fc-ic-fuentes { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.fc-ic-fuentes { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
 .fc-ic-fuente { display: flex; gap: 12px; align-items: center; text-align: left; border: 1.5px dashed rgb(var(--g-300)); border-radius: 14px; padding: 16px; background: #fff; cursor: pointer; font: inherit; color: var(--texto); }
 .fc-ic-fuente:hover { border-color: var(--acento); background: var(--acento-suave); }
 .fc-ic-fuente b { display: block; font-size: 14px; }
@@ -1507,3 +1507,33 @@ main.fc-recien { animation: fc-recien .35s ease-out; }
     .fc-titulo .fc-vista { max-width: 100%; overflow-x: auto; scrollbar-width: none; }
     .fc-titulo .fc-vista button { flex: none; white-space: nowrap; }
 }
+
+/* --- Zona para soltar archivos (comun/zona-archivos.js) --- */
+.ui-zona { display: flex; align-items: center; gap: var(--e-3); padding: var(--e-4); border: 1px dashed rgb(var(--g-400)); border-radius: var(--r-tarjeta);
+           background: rgb(var(--g-50)); cursor: pointer; transition: border-color .15s, background-color .15s; }
+.ui-zona:hover, .ui-zona:focus-visible, .ui-zona--sobre { border-color: rgb(var(--ac-600)); background: rgb(var(--ac-50)); }
+.ui-zona svg { width: 24px; height: 24px; color: rgb(var(--g-500)); flex: none; }
+.ui-zona__texto { display: flex; flex-direction: column; gap: 2px; font-size: var(--t-14); color: rgb(var(--g-900)); }
+.ui-zona__texto b { font-weight: 600; }
+.ui-zona__texto small { font-size: var(--t-12); color: rgb(var(--g-600)); }
+.ui-zona__estado { margin: var(--e-2) 0 0; font-size: var(--t-13); color: rgb(var(--g-700)); }
+.ui-zona__estado--ok { color: rgb(var(--ok-600)); }
+.ui-zona__estado--error { color: rgb(var(--er-600)); }
+
+/* --- Íconos (Fiscontable.icono) --- */
+.ui-ico { width: 16px; height: 16px; flex: none; }
+.ui-icono-btn { display: inline-grid; place-items: center; width: 28px; height: 28px; border: 0; border-radius: var(--r-control); background: none;
+                color: rgb(var(--g-600)); cursor: pointer; }
+.ui-icono-btn svg { width: 16px; height: 16px; }
+.ui-icono-btn:hover { background: rgb(var(--g-100)); color: rgb(var(--g-900)); }
+.ui-icono-btn--peligro:hover { background: rgb(var(--er-50)); color: rgb(var(--er-600)); }
+.ui-icono-btn--ok { color: rgb(var(--ac-600)); }
+.ui-icono-btn--ok:hover { background: rgb(var(--ac-50)); color: rgb(var(--ac-700)); }
+
+.fc-ic-ico { display: grid; place-items: center; width: 36px; height: 36px; flex: none; border-radius: var(--r-control); background: rgb(var(--g-100)); color: rgb(var(--g-700)); }
+.fc-ic-ico svg { width: 18px; height: 18px; }
+.fc-ic-fuente:focus-visible { outline: 2px solid rgb(var(--ac-600)); outline-offset: 2px; }
+.fc-ic-cambios { margin: 4px 0 0; padding: 0; list-style: none; font-size: 12px; color: rgb(var(--g-700)); }
+.fc-ic-cambios s { color: rgb(var(--g-500)); }
+.fc-ic-mal { color: rgb(var(--er-600)); }
+.fc-ic-cambios { min-width: 210px; }

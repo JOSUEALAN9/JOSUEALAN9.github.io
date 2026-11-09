@@ -978,7 +978,7 @@ async function pintarCsd(cliente) {
     document.getElementById("btn-quitar-csd").hidden = !em.csd;
 }
 
-/* Sus clientes: a quién le factura esta empresa (los mismos que se eligen en Facturar) */
+/* Receptores: a quién le factura esta empresa (los mismos que se eligen en Facturar) */
 let receptoresFicha = [];
 let editandoReceptor = null;
 async function pintarReceptores(cliente) {
@@ -1027,7 +1027,7 @@ function verRecExtranjero() {
 
 function abrirFormReceptor(r) {
     editandoReceptor = r ? (r.clave || r.rfc) : null;
-    document.getElementById("form-receptor-titulo").textContent = r ? "Editar cliente" : "Nuevo cliente";
+    document.getElementById("form-receptor-titulo").textContent = r ? "Editar receptor" : "Nuevo receptor";
     document.getElementById("rec-rfc").value = r ? r.rfc : "";
     document.getElementById("rec-rfc").disabled = !!r;
     document.getElementById("rec-nombre").value = r ? r.nombre : "";
@@ -1085,7 +1085,7 @@ async function leerConstanciaReceptor(archivo) {
 }
 
 async function quitarReceptor(rfc) {
-    if (!confirm(`¿Quitar a ${rfc.split(":")[0]} de sus clientes?`)) return;
+    if (!confirm(`¿Quitar a ${rfc.split(":")[0]} de sus receptores?`)) return;
     try {
         const r = await fetch(`${API_URL}/api/facturacion/receptores/${encodeURIComponent(rfcEnEdicion)}/${encodeURIComponent(rfc)}`, { method: "DELETE", credentials: "include" });
         if (!r.ok) throw new Error(await Fiscontable.leerError(r));

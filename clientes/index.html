@@ -4,15 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mis Clientes | Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611091500">
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611091500">
+    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611091800">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611091800">
 </head>
 <body class="min-h-screen flex flex-col relative">
 
     <!-- TOP NAV -->
     <div id="app-header" data-modulo="clientes" data-titulo="Clientes" data-migas=""></div>
-<script src="/assets/js/nucleo.js?v=202611091500"></script>
-<script src="/assets/js/barra.js?v=202611091500"></script>
+<script src="/assets/js/nucleo.js?v=202611091800"></script>
+<script src="/assets/js/barra.js?v=202611091800"></script>
 
     <!-- ÁREA DE TRABAJO -->
     <main class="flex-grow w-full mod-pagina" style="max-width:1180px">
@@ -222,7 +222,7 @@
                 <div class="ficha-tabs" role="tablist">
                     <button type="button" role="tab" data-ficha="general">Datos generales</button>
                     <button type="button" role="tab" data-ficha="accesos">Accesos <span id="ficha-aviso-accesos" class="ficha-punto" hidden></span></button>
-                    <button type="button" role="tab" data-ficha="receptores" id="tab-receptores" hidden>Sus clientes</button>
+                    <button type="button" role="tab" data-ficha="receptores" id="tab-receptores" hidden>Receptores</button>
                     <button type="button" role="tab" data-ficha="xml" id="tab-xml" hidden>Descarga de XML</button>
                     <button type="button" role="tab" data-ficha="obligaciones" id="tab-obligaciones" hidden>Obligaciones</button>
                 </div>
@@ -369,21 +369,21 @@
 
                 </section>
 
-                <!-- ===== Sus clientes: a quién le factura esta empresa (para elegirlos al timbrar) ===== -->
+                <!-- ===== Receptores: a quién le factura esta empresa (para elegirlos al timbrar) ===== -->
                 <section data-panel="receptores" class="flex flex-col gap-6" hidden>
                     <div class="flex items-start justify-between gap-3">
                         <div>
-                            <h3 class="text-[15px] font-bold text-slate-800">Sus clientes para facturar</h3>
+                            <h3 class="text-[15px] font-bold text-slate-800">Receptores: a quién le factura</h3>
                             <p class="text-xs text-slate-500 mt-0.5">Los datos fiscales de a quién le factura esta empresa. En Facturar se eligen con buscar; también se guardan solos al timbrar.</p>
                         </div>
                         <div class="flex gap-2 flex-none">
-                            <button type="button" id="btn-importar-receptores" class="border border-violet-200 text-violet-700 hover:bg-violet-50 font-bold py-1.5 px-3 rounded-lg text-xs">Importar de XML</button>
+                            <button type="button" id="btn-importar-receptores" class="border border-violet-200 text-violet-700 hover:bg-violet-50 font-bold py-1.5 px-3 rounded-lg text-xs">Importar de XML o constancias</button>
                             <button type="button" id="btn-nuevo-receptor" class="bg-violet-600 hover:bg-violet-500 text-white font-bold py-1.5 px-3 rounded-lg text-xs">+ Agregar</button>
                         </div>
                     </div>
                     <div id="form-receptor" class="ficha-caja flex flex-col gap-3" hidden>
                         <div class="flex items-center justify-between gap-2">
-                            <p class="text-xs font-bold text-slate-700 uppercase tracking-wide" id="form-receptor-titulo">Nuevo cliente</p>
+                            <p class="text-xs font-bold text-slate-700 uppercase tracking-wide" id="form-receptor-titulo">Nuevo receptor</p>
                             <label class="text-xs font-bold text-violet-700 cursor-pointer hover:underline">Leer su constancia (PDF)<input type="file" id="rec-constancia" accept="application/pdf,.pdf" hidden></label>
                         </div>
                         <div class="grid grid-cols-1 sm:grid-cols-6 gap-4">
@@ -464,7 +464,7 @@
         </div>
     </div>
 
-<script src="/assets/js/comun/leer-cer.js?v=202611091500"></script>
+<script src="/assets/js/comun/leer-cer.js?v=202611091800"></script>
 <style>
     .cli-herr { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 14px; }
     .cli-buscar { flex: 1 1 220px; max-width: 320px; font-size: 14px; border: 1px solid rgb(var(--g-200)); border-radius: 10px; padding: 8px 12px; background: #fff; }
@@ -518,7 +518,7 @@
     .alta-opcional summary small { font-weight: 500; color: rgb(var(--g-600)); }
     .alta-error { font-size: 13px; font-weight: 600; border-radius: 10px; padding: 10px 12px; background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; }
 </style>
-<script src="/assets/js/comun/importar-clientes.js?v=202611091500"></script>
-<script src="/clientes/clientes.js?v=202611091500"></script>
+<script src="/assets/js/comun/importar-clientes.js?v=202611091800"></script>
+<script src="/clientes/clientes.js?v=202611091800"></script>
 </body>
 </html>

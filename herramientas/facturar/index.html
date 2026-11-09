@@ -4,15 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Facturar | Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611091500">
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611091500">
-    <link rel="stylesheet" href="/herramientas/facturar/facturar.css?v=202611091500">
+    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611091800">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611091800">
+    <link rel="stylesheet" href="/herramientas/facturar/facturar.css?v=202611091800">
 </head>
 <body class="min-h-screen flex flex-col">
 
 <div id="app-header" data-modulo="facturar" data-titulo="Facturar" data-migas="Herramientas|/herramientas/"></div>
-<script src="/assets/js/nucleo.js?v=202611091500"></script>
-<script src="/assets/js/barra.js?v=202611091500"></script>
+<script src="/assets/js/nucleo.js?v=202611091800"></script>
+<script src="/assets/js/barra.js?v=202611091800"></script>
 
 <main class="flex-grow w-full mod-pagina fa-pagina">
     <div class="mod-cabeza">
@@ -41,6 +41,13 @@
     <!-- ======================== NUEVA FACTURA (asistente por pasos) ======================== -->
     <section id="vista-nueva" data-panel="nueva" hidden>
         <div id="falta-config" class="fa-aviso fa-aviso--alerta" hidden></div>
+        <section id="activar" class="fa-activar" hidden aria-labelledby="act-titulo">
+            <div class="fa-activar__cabeza">
+                <div><h2 id="act-titulo">Activar facturación</h2><p id="act-sub" class="fa-nota"></p></div>
+                <div class="fa-activar__barra" aria-hidden="true"><i id="act-barra"></i></div>
+            </div>
+            <ol id="act-pasos" class="fa-activar__pasos"></ol>
+        </section>
         <div id="recurrentes-hoy" class="fa-aviso fa-aviso--alerta" hidden></div>
         <div class="fa-cinta" id="cinta-emisor">
             <span class="fa-cinta__logo" id="cinta-logo"></span>
@@ -78,19 +85,19 @@
                         </div>
 
                         <div class="fa-seccion">
-                            <div class="fa-seccion__cabeza"><h3>Cliente</h3>
+                            <div class="fa-seccion__cabeza"><h3>Receptor</h3>
                                 <div class="fa-fila-links">
                                     <div class="fa-selector" id="sel-cliente">
                                         <button type="button" id="btn-elegir-cliente" class="fa-btn fa-btn--suave fa-btn--chico" aria-haspopup="listbox">
                                             <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>
-                                            <span id="btn-elegir-texto">Elegir cliente</span></button>
+                                            <span id="btn-elegir-texto">Elegir receptor</span></button>
                                         <div class="fa-selector__panel" id="sel-cliente-panel" hidden>
                                             <input type="search" id="r-buscar" class="fa-buscar" placeholder="Nombre o RFC…" autocomplete="off">
                                             <div id="sel-cliente-lista" class="fa-selector__lista" role="listbox"></div>
                                             <div class="fa-selector__pie">
-                                                <button type="button" id="btn-nuevo-cliente" class="fa-link">+ Cliente nuevo</button>
+                                                <button type="button" id="btn-nuevo-cliente" class="fa-link">+ Receptor nuevo</button>
                                                 <label class="fa-link fa-subir">Leer constancia (PDF)<input type="file" id="r-constancia" accept="application/pdf,.pdf" hidden></label>
-                                                <button type="button" id="btn-importar-clientes" class="fa-link">Importar de XML</button>
+                                                <button type="button" id="btn-importar-clientes" class="fa-link">Importar de XML o constancias</button>
                                             </div>
                                         </div>
                                     </div>
@@ -98,12 +105,12 @@
                                     <button type="button" id="btn-extranjero" class="fa-link">Extranjero</button>
                                 </div>
                             </div>
-                            <div id="cli-vacio" class="fa-cli-vacio">Elige un cliente guardado, escribe uno nuevo o lee su constancia.</div>
+                            <div id="cli-vacio" class="fa-cli-vacio">Elige un receptor guardado, escribe uno nuevo o lee su constancia.</div>
                             <div id="cli-tarjeta" class="fa-cli" hidden>
                                 <div class="fa-cli__cabeza">
                                     <span class="fa-opcion__ini" id="cli-ini">·</span>
                                     <div class="fa-cli__nombre"><b id="cli-nombre"></b><small id="cli-origen"></small></div>
-                                    <button type="button" id="btn-cli-quitar" class="fa-link fa-link--gris" title="Quitarlo de esta factura (no lo borra de sus clientes)">✕ Quitar</button>
+                                    <button type="button" id="btn-cli-quitar" class="fa-link fa-link--gris" title="Quitarlo de esta factura (no lo borra de sus receptores)">✕ Quitar</button>
                                 </div>
                                 <div class="fa-rejilla">
                                     <label class="fa-campo fa-c2"><span>RFC</span><input id="r-rfc" maxlength="13" autocomplete="off" class="fa-mayus fa-mono"></label>
@@ -118,8 +125,8 @@
                                         <label class="fa-campo fa-c3"><span>Número fiscal (Tax ID)</span><input id="r-taxid" maxlength="40" class="fa-mayus fa-mono"></label>
                                     </div>
                                 </div>
-                                <label class="fa-interruptor fa-guardar-cliente" id="fila-guardar"><input type="checkbox" id="r-guardar" checked> Guardarlo en sus clientes al timbrar</label>
-                                <label class="fa-interruptor fa-guardar-cliente" id="fila-actualizar" hidden><input type="checkbox" id="r-actualizar"> Actualizar también sus datos en sus clientes</label>
+                                <label class="fa-interruptor fa-guardar-cliente" id="fila-guardar"><input type="checkbox" id="r-guardar" checked> Guardarlo en sus receptores al timbrar</label>
+                                <label class="fa-interruptor fa-guardar-cliente" id="fila-actualizar" hidden><input type="checkbox" id="r-actualizar"> Actualizar también sus datos en sus receptores</label>
                             </div>
                             <p id="r-aviso" class="fa-nota" hidden></p>
                             <datalist id="lista-receptores"></datalist>
@@ -192,8 +199,8 @@
                             </table>
                         </div>
                         <div class="fa-conc-pie">
-                            <button type="button" id="btn-concepto" class="fa-btn fa-btn--suave">+ Agregar concepto</button>
-                            <span class="fa-nota">Toca ▸ para la clave del SAT, la unidad, el código, la cuenta predial o escribir el precio final.</span>
+                            <button type="button" id="btn-concepto" class="ui-btn ui-btn--secundario"><svg class="ui-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg> Agregar renglón</button>
+                            <span class="fa-nota">Se edita un renglón a la vez: toca uno guardado para cambiarlo. Si el precio ya trae impuestos, marca «Incluye impuestos».</span>
                         </div>
                     </div>
 
@@ -215,7 +222,7 @@
             <aside class="fa-lateral">
                 <div class="fa-caja fa-totales">
                     <h2 id="t-titulo">Factura</h2>
-                    <p id="t-cliente" class="fa-nota fa-t-cliente">Sin cliente</p>
+                    <p id="t-cliente" class="fa-nota fa-t-cliente">Sin receptor</p>
                     <dl>
                         <dt>Subtotal</dt><dd id="t-subtotal">$0.00</dd>
                         <dt data-fila="descuento" hidden>Descuento</dt><dd data-fila="descuento" id="t-descuento" hidden>$0.00</dd>
@@ -224,11 +231,14 @@
                         <dt class="fa-total">Total</dt><dd class="fa-total" id="t-total">$0.00</dd>
                     </dl>
                     <p id="t-letra" class="fa-letra"></p>
-                    <details class="fa-objetivo" id="caja-objetivo">
-                        <summary>¿El total debe ser una cantidad exacta?</summary>
-                        <div class="fa-objetivo__fila"><input id="t-objetivo" inputmode="decimal" placeholder="0.00"><button type="button" id="btn-objetivo" class="fa-btn fa-btn--suave fa-btn--chico">Cuadrar</button></div>
-                        <p class="fa-nota" id="t-objetivo-nota">Ajusta el último concepto para llegar exacto al centavo.</p>
-                    </details>
+                    <div class="fa-objetivo" id="caja-objetivo">
+                        <button type="button" id="btn-ajustar" class="fa-link" aria-expanded="false" aria-controls="objetivo-form">Ajustar a un total exacto</button>
+                        <div id="objetivo-form" hidden>
+                            <label class="fa-objetivo__etq" for="t-objetivo">Total de la factura (con impuestos y retenciones)</label>
+                            <div class="fa-objetivo__fila"><input id="t-objetivo" inputmode="decimal" placeholder="0.00"><button type="button" id="btn-objetivo" class="ui-btn ui-btn--secundario ui-btn--28">Ajustar</button></div>
+                            <p class="fa-nota" id="t-objetivo-nota">Se cambia el precio del último renglón para que la factura llegue exacta al centavo, con impuestos y retenciones.</p>
+                        </div>
+                    </div>
                     <p id="t-folio" class="fa-nota"></p>
                     <button type="button" id="btn-timbrar" class="fa-btn fa-btn--principal fa-ancho">Timbrar factura</button>
                     <button type="button" id="btn-vista" class="fa-btn fa-btn--suave fa-ancho" style="margin-top:8px">Vista previa PDF</button>
@@ -241,7 +251,7 @@
     <!-- ======================== EMITIDAS ======================== -->
     <section id="vista-emitidas" data-panel="emitidas" hidden>
         <div class="fa-barra">
-            <input type="search" id="buscar-emitidas" placeholder="Buscar por cliente, RFC, folio o UUID…" autocomplete="off">
+            <input type="search" id="buscar-emitidas" placeholder="Buscar por receptor, RFC, folio o UUID…" autocomplete="off">
             <button type="button" id="btn-enlaces" class="fa-btn fa-btn--suave" title="Los paquetes que has compartido por enlace">Enlaces compartidos</button>
             <a id="btn-ir-cancelaciones" class="fa-btn fa-btn--suave" href="/herramientas/xml/cancelaciones.html" hidden title="Cancelar facturas que no se timbraron aquí y responder las cancelaciones que te piden">⊘ Cancelaciones</a>
             <select id="filtro-tipo"><option value="">Todas</option><option value="I">Facturas</option><option value="E">Notas de crédito</option><option value="cancelado">Canceladas</option></select>
@@ -255,7 +265,7 @@
         </div>
         <div class="fa-tabla-caja fa-emitidas-caja">
             <table class="fa-tabla fa-emitidas">
-                <thead><tr><th class="fa-col-check"><input type="checkbox" id="sel-todas" title="Marcar todas las que se ven"></th><th>Fecha</th><th>Folio</th><th>Cliente</th><th class="fa-num">Total</th><th>Estado</th><th></th></tr></thead>
+                <thead><tr><th class="fa-col-check"><input type="checkbox" id="sel-todas" title="Marcar todas las que se ven"></th><th>Fecha</th><th>Folio</th><th>Receptor</th><th class="fa-num">Total</th><th>Estado</th><th></th></tr></thead>
                 <tbody id="filas-emitidas"><tr><td colspan="7">Cargando…</td></tr></tbody>
             </table>
         </div>
@@ -268,9 +278,9 @@
                 <div class="fa-caja">
                     <div class="fa-caja__cabeza">
                         <h2>Facturas por cobrar (PPD)</h2>
-                        <input type="search" id="pg-buscar" class="fa-buscar fa-buscar--chico" placeholder="Cliente o folio…" autocomplete="off">
+                        <input type="search" id="pg-buscar" class="fa-buscar fa-buscar--chico" placeholder="Receptor o folio…" autocomplete="off">
                     </div>
-                    <p class="fa-nota">Las facturas en parcialidades o diferido (PPD) necesitan un <b>recibo de pago (complemento de pago)</b> cada vez que el cliente paga. Marca las que cubre este pago (de un mismo cliente) y cuánto se abona a cada una.</p>
+                    <p class="fa-nota">Las facturas en parcialidades o diferido (PPD) necesitan un <b>recibo de pago (complemento de pago)</b> cada vez que el cliente paga. Marca las que cubre este pago (de un mismo receptor) y cuánto se abona a cada una.</p>
                     <div id="pg-lista" class="fa-lista fa-lista--alta"></div>
                 </div>
                 <div class="fa-caja">
@@ -406,8 +416,8 @@
             </div>
 
             <div class="fa-caja" id="caja-correo" data-subpanel="correo" hidden>
-                <div class="fa-caja__cabeza"><h2>Correo a tus clientes</h2><span id="c-correo-estado" class="fa-chip fa-chip--gris"></span></div>
-                <p class="fa-nota">Las facturas salen al correo del cliente con su PDF y XML. Elige de qué correo salen y cómo se ven.</p>
+                <div class="fa-caja__cabeza"><h2>Correo a tus receptores</h2><span id="c-correo-estado" class="fa-chip fa-chip--gris"></span></div>
+                <p class="fa-nota">Las facturas salen al correo del receptor con su PDF y XML. Elige de qué correo salen y cómo se ven.</p>
                 <div class="fa-tipo fa-tipo--chico" style="margin:10px 0">
                     <button type="button" data-modo-correo="propio" aria-pressed="true"><b>Mi propio correo</b><small>Gmail, Outlook, el de tu dominio…</small></button>
                     <button type="button" data-modo-correo="fiscontable" aria-pressed="false"><b>Correo de Fiscontable</b><small id="c-correo-sistema">Sale de facturas@… y responden a ti</small></button>
@@ -431,7 +441,7 @@
                     <label class="fa-interruptor"><input type="checkbox" id="c-correo-pdf"> Adjuntar PDF</label>
                     <label class="fa-interruptor"><input type="checkbox" id="c-correo-xml"> Adjuntar XML</label>
                     <label class="fa-interruptor"><input type="checkbox" id="c-correo-enlace"> Con enlace de descarga</label>
-                    <label class="fa-interruptor"><input type="checkbox" id="c-correo-auto"> Mandarlo solo al timbrar (si el cliente tiene correo)</label>
+                    <label class="fa-interruptor"><input type="checkbox" id="c-correo-auto"> Mandarlo solo al timbrar (si el receptor tiene correo)</label>
                 </div>
                 <div class="fa-acciones">
                     <button type="button" id="btn-guardar-correo" class="fa-btn fa-btn--principal">Guardar</button>
@@ -597,7 +607,7 @@
             <label class="fa-interruptor"><input type="checkbox" id="co-xml"> XML</label>
             <label class="fa-interruptor"><input type="checkbox" id="co-zip"> PDF y XML en un ZIP</label>
             <label class="fa-interruptor"><input type="checkbox" id="co-enlace"> Enlace de descarga</label>
-            <label class="fa-interruptor"><input type="checkbox" id="co-guardar" checked> Guardar el correo en sus clientes</label>
+            <label class="fa-interruptor"><input type="checkbox" id="co-guardar" checked> Guardar el correo en sus receptores</label>
         </div>
         <div id="co-historial" class="fa-nota"></div>
         <p id="co-error" class="fa-error" hidden></p>
@@ -650,15 +660,15 @@
     <div class="fa-dialogo__cuerpo">
         <div class="fa-dlg-cabeza"><h2>Facturación masiva desde Excel</h2><button type="button" class="fa-link fa-otro-archivo" hidden>Subir otro archivo</button></div>
         <ol class="fa-pasos-excel">
-            <li><b>Descarga la plantilla de esta empresa</b>, con sus clientes y su catálogo de hoy.
+            <li><b>Descarga la plantilla de esta empresa</b>, con sus receptores y su catálogo de hoy.
                 <button type="button" id="btn-xm-plantilla" class="fa-link">Descargar plantilla (.xlsx)</button></li>
-            <li><b>Por renglón: número de factura, cliente, producto y cantidad.</b> Todo lo demás sale de sus clientes y de tu catálogo. Opcional: la fecha (solo el día = 23:59 de ese día), otro precio, el total del renglón (se desglosa solo) o una nueva descripción.</li>
-            <li><b>Súbela:</b> se revisa cada factura con las mismas reglas que al timbrar. Luego las timbras de una vez o las guardas como prefacturas. Clientes o productos nuevos van en sus hojas y se guardan solos.</li>
+            <li><b>Por renglón: número de factura, receptor, producto y cantidad.</b> Todo lo demás sale de sus receptores y de tu catálogo. Opcional: la fecha (solo el día = 23:59 de ese día), otro precio, el total del renglón (se desglosa solo) o una nueva descripción.</li>
+            <li><b>Súbela:</b> se revisa cada factura con las mismas reglas que al timbrar. Luego las timbras de una vez o las guardas como prefacturas. Receptores o productos nuevos van en sus hojas y se guardan solos.</li>
         </ol>
         <label class="fa-zona" id="xm-zona"><input type="file" id="xm-archivo" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden>
             <b>Arrastra tu Excel aquí</b><span>o haz clic para elegirlo</span></label>
         <p id="xm-resumen" class="fa-nota" hidden></p>
-        <div class="fa-tabla-caja fa-im-caja" id="xm-tabla" hidden><table class="fa-tabla"><thead><tr><th>Factura</th><th>Cliente</th><th>Fecha</th><th class="fa-num">Conceptos</th><th class="fa-num">Total</th><th>Revisión</th></tr></thead><tbody id="xm-filas"></tbody></table></div>
+        <div class="fa-tabla-caja fa-im-caja" id="xm-tabla" hidden><table class="fa-tabla"><thead><tr><th>Factura</th><th>Receptor</th><th>Fecha</th><th class="fa-num">Conceptos</th><th class="fa-num">Total</th><th>Revisión</th></tr></thead><tbody id="xm-filas"></tbody></table></div>
         <p id="xm-error" class="fa-error" hidden></p>
     </div>
     <div class="fa-dialogo__pie">
@@ -683,12 +693,12 @@
 <dialog id="dlg-copiar" class="fa-dialogo fa-dialogo--ancho">
     <div class="fa-dialogo__cuerpo">
         <h2>Copiar otra factura</h2>
-        <p class="fa-nota">Se copian el cliente, el pago y los conceptos para timbrar una nueva igual. Puede ser una emitida aquí o cualquier CFDI de Administración de XML de esta empresa (emitido o recibido).</p>
+        <p class="fa-nota">Se copian el receptor, el pago y los conceptos para timbrar una nueva igual. Puede ser una emitida aquí o cualquier CFDI de Administración de XML de esta empresa (emitido o recibido).</p>
         <div class="fa-tipo fa-tipo--chico" role="tablist">
             <button type="button" data-origen="emitidas" aria-pressed="true"><b>Emitidas aquí</b></button>
             <button type="button" data-origen="biblioteca" aria-pressed="false"><b>Administración de XML</b></button>
         </div>
-        <input type="search" id="copiar-buscar" class="fa-buscar" placeholder="Buscar por cliente, RFC o folio…" autocomplete="off">
+        <input type="search" id="copiar-buscar" class="fa-buscar" placeholder="Buscar por receptor, RFC o folio…" autocomplete="off">
         <div id="lista-copiar" class="fa-lista"></div>
     </div>
     <div class="fa-dialogo__pie"><button type="button" data-cerrar class="fa-btn fa-btn--suave">Cerrar</button></div>
@@ -706,8 +716,9 @@
     </div>
 </dialog>
 
-<script src="/assets/js/comun/importar-clientes.js?v=202611091500"></script>
-<script src="/assets/js/comun/compartir.js?v=202611091500"></script>
-<script src="/herramientas/facturar/facturar.js?v=202611091500"></script>
+<script src="/assets/js/comun/zona-archivos.js?v=202611091800"></script>
+<script src="/assets/js/comun/importar-clientes.js?v=202611091800"></script>
+<script src="/assets/js/comun/compartir.js?v=202611091800"></script>
+<script src="/herramientas/facturar/facturar.js?v=202611091800"></script>
 </body>
 </html>

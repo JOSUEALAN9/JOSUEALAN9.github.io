@@ -167,30 +167,18 @@
         chip.className = "fa-chip fa-chip--boton" + (prod && (e.timbres || 0) < 1 ? " fa-chip--mal" : "");
         $("punto-config").hidden = e.listo;
         var falta = $("falta-config");
-        var faltan = e.faltan.slice();
-        if (prod && (e.timbres || 0) < 1) faltan.push("pasarle timbres");
-        if (prod && faltan.length) {
-            falta.innerHTML = "Para timbrar con <b>" + esc(e.alias) + "</b> falta: " + esc(faltan.join(", ")) +
-                '. <button type="button" data-ir="config">Completar en Configuración</button>';
-            falta.className = "fa-aviso fa-aviso--alerta";
-            falta.hidden = false;
-        } else if (!prod) {
+        if (!prod) {
             falta.innerHTML = "<b>Modo de pruebas:</b> se timbra con el RFC de prueba del SAT (" + esc(F.cfg.prueba.rfc) +
                 "). No gasta timbres ni tiene validez fiscal; sirve para conocer el módulo. Tus series y folios sí avanzan.";
             falta.className = "fa-aviso";
             falta.hidden = false;
-        } else if (!e.manifiesto) {
-            falta.innerHTML = "Para timbrar con <b>" + esc(e.alias) + "</b> falta su <b>manifiesto del PAC</b> (lo pide el SAT a cada empresa que timbra). " +
-                '<button type="button" data-ir="config" data-ir-sub="manifiesto">Firmarlo y subirlo</button>';
-            falta.className = "fa-aviso fa-aviso--alerta";
-            falta.hidden = false;
         } else {
             falta.hidden = true;
         }
+        pintarActivar();
         $("punto-manifiesto").hidden = !!e.manifiesto || !prod;
         if (F.man && F.man.rfc !== e.rfc) F.man = null;
         if (F.sub === "manifiesto") cargarManifiesto();
-        else setTimeout(recordarManifiesto, 400);
         $("cinta-nombre").textContent = e.razon_social || e.alias;
         $("cinta-datos").textContent = [e.rfc, e.regimen ? "Régimen " + e.regimen : "", e.cp ? "C.P. " + e.cp : ""].filter(Boolean).join(" · ");
         $("c-emisor").textContent = (e.razon_social || e.alias) + " · " + e.rfc;
@@ -376,14 +364,15 @@
 
     function conceptoVacio() {
         return { cantidad: 1, clave_unidad: "E48", clave_prod: "01010101", descripcion: "", valor_unitario: "", descuento: "", iva: "16", objeto_imp: "02",
-                 ret_isr: "", ret_iva: "", no_identificacion: "", cuenta_predial: "", modo: "unitario", final: "", abierto: false, producto_id: null, seis: false };
+                 ret_isr: "", ret_iva: "", no_identificacion: "", cuenta_predial: "", modo: "unitario", final: "", producto_id: null, seis: false, error: null };
     }
 
     function nuevaFactura() {
-        F.conceptos = [conceptoVacio()];
+        F.conceptos = [conceptoVacio()]; F.abierto = 0;
         F.borradorId = null; F.tcManual = false; F.relaciones = []; F.claveEnvio = nuevaClave(); F.sustituye = null; F.notaFecha = "";
         $("rel-activar").checked = false; $("p-nota").textContent = "";
         ["r-rfc", "r-nombre", "r-cp", "rel-uuid", "p-condiciones", "r-buscar", "p-tc", "p-fecha", "p-notas", "r-taxid", "p-pedido", "t-objetivo"].forEach(function (id) { $(id).value = ""; });
+        $("objetivo-form").hidden = true; $("btn-ajustar").setAttribute("aria-expanded", "false");
         F.clienteGuardado = null; F.clienteNuevo = false; F.recurrenteId = null;
         pintarRelaciones();
         $("r-regimen").value = "";
@@ -447,8 +436,10 @@
         if (g.periodicidad) $("g-periodicidad").value = g.periodicidad;
         if (g.meses) $("g-meses").value = g.meses;
         if (g.anio) $("g-anio").value = g.anio;
-        F.conceptos = (cap.conceptos || []).map(function (c) { return Object.assign(conceptoVacio(), c, { descuento: c.descuento || "", seis: !!c.seis_decimales, abierto: !!c.pendiente }); });
+        F.conceptos = (cap.conceptos || []).map(function (c) { return Object.assign(conceptoVacio(), c, { descuento: c.descuento || "", seis: !!c.seis_decimales }); });
         if (!F.conceptos.length) F.conceptos = [conceptoVacio()];
+        F.abierto = F.conceptos.length === 1 && conceptoEnBlanco(F.conceptos[0]) ? 0 : -1;
+        marcarErrores();
 
         var claveR = (r.rfc || "").toUpperCase() === "XEXX010101000" ? "XEXX010101000:" + String(r.num_reg_id || "").replace(/[^A-Za-z0-9]/g, "").toUpperCase() : (r.rfc || "").toUpperCase();
         var yaGuardado = (F.receptores || []).filter(function (x) { return (x.clave || x.rfc) === claveR; })[0];
@@ -605,43 +596,87 @@
             (c.difFinal ? ' <b class="fa-mal">dif ' + dinero(c.difFinal) + "</b>" : "");
     }
 
+    var icono = function (n) { return window.Fiscontable && Fiscontable.icono ? Fiscontable.icono(n) : ""; };
+    function botonIcono(nombre, dato, titulo, extra) {
+        return '<button type="button" class="ui-icono-btn' + (extra ? " " + extra : "") + '" ' + dato + ' aria-label="' + titulo + '" title="' + titulo + '">' + icono(nombre) + "</button>";
+    }
+    function textoClave(c) {
+        return (c.clave_prod ? c.clave_prod + " · " + c.clave_unidad : "Sin clave del SAT") + (c.no_identificacion ? " · " + c.no_identificacion : "") + (c.cuenta_predial ? " · predial " + c.cuenta_predial : "");
+    }
+    function conceptoEnBlanco(c) { return !(c.descripcion || "").trim() && !num(c.valor_unitario) && !num(c.final); }
+    /* Lo que le falta a un renglón para poder timbrarse ("" = completo) */
+    function errorConcepto(c) {
+        if (!(c.descripcion || "").trim()) return "Falta la descripción.";
+        if (!(num(c.cantidad) > 0)) return "La cantidad debe ser mayor a cero.";
+        if (c.modo === "final" ? !(num(c.final) > 0) : !(num(c.valor_unitario) > 0)) return c.modo === "final" ? "Falta el precio con impuestos." : "Falta el precio.";
+        if (!(c.clave_prod || "").trim()) return "Falta la clave del SAT del producto.";
+        if (!c.clave_unidad) return "Falta la unidad del SAT.";
+        if (num(c.descuento) < 0 || num(c.descuento) > r2(num(c.cantidad) * num(c.valor_unitario))) return "El descuento no puede ser mayor que el importe.";
+        if (c.pendiente) return "Venía con un problema en el Excel: revísalo y guárdalo.";
+        return "";
+    }
+    function marcarErrores() { F.conceptos.forEach(function (c, i) { if (i !== F.abierto) c.error = errorConcepto(c) || null; }); }
+    function agregarConceptos(nuevos, revisar) {
+        var soloVacio = F.conceptos.length === 1 && conceptoEnBlanco(F.conceptos[0]);
+        F.conceptos = (soloVacio ? [] : F.conceptos).concat(nuevos);
+        F.abierto = -1;
+        if (revisar !== false) marcarErrores();
+        pintarConceptos();
+    }
+
     function filaConcepto(c, i) {
-        var cat = F.cfg.catalogos, imp = impuestoDe(c), t = totalConcepto(c);
-        var precio = c.modo === "final"
-            ? '<input data-c="final" inputmode="decimal" class="fa-num fa-conc__final" value="' + esc(c.final) + '" placeholder="Total" title="Precio final: lo que paga el cliente">' +
-              '<small class="fa-conc__sub">' + subPrecio(c) + "</small>"
-            : '<input data-c="valor_unitario" inputmode="decimal" class="fa-num" value="' + esc(c.valor_unitario) + '" placeholder="0.00">';
-        var clave = c.clave_prod ? esc(c.clave_prod) + " · " + esc(c.clave_unidad) : "Sin clave";
-        var fila = '<tr class="fa-conc__fila' + (c.pendiente ? " fa-conc--pendiente" : "") + '" data-i="' + i + '"' + (c.pendiente ? ' title="Este renglón venía con un problema en el Excel: revísalo"' : "") + ">" +
-            '<td><input data-c="cantidad" inputmode="decimal" class="fa-num" value="' + esc(c.cantidad) + '"></td>' +
-            '<td class="fa-conc__prod"><div class="fa-prod"><input data-c="descripcion" maxlength="1000" value="' + esc(c.descripcion) + '" placeholder="Escribe o busca un producto…" autocomplete="off">' +
-            '<div class="fa-prod__sug" hidden></div></div><small class="fa-conc__sub">' + clave + (c.no_identificacion ? " · " + esc(c.no_identificacion) : "") + (c.cuenta_predial ? " · predial " + esc(c.cuenta_predial) : "") + "</small></td>" +
-            "<td>" + precio + "</td>" +
-            '<td><input data-c="descuento" inputmode="decimal" class="fa-num" value="' + esc(c.descuento) + '" placeholder="0.00"></td>' +
-            '<td><select data-c="impuesto" title="' + esc(DETALLE_IMP[imp] || IMPUESTOS[imp][0]) + '">' + Object.keys(IMPUESTOS).map(function (k) { return '<option value="' + k + '"' + (k === imp ? " selected" : "") + ">" + esc(IMPUESTOS[k][0]) + "</option>"; }).join("") + "</select></td>" +
-            '<td class="fa-num fa-conc__importe" data-importe>' + (c.seis ? dineroExacto(t.importeExacto) : dinero(t.importe)) + "</td>" +
-            '<td class="fa-conc__acc"><button type="button" class="fa-mini" data-abrir title="Clave del SAT, unidad, código, predial, precio final">' + (c.abierto ? "▾" : "▸") + "</button>" +
-            '<button type="button" class="fa-mini" data-duplicar title="Duplicar">⧉</button>' +
-            (F.conceptos.length > 1 ? '<button type="button" class="fa-mini fa-mini--rojo" data-quitar title="Quitar">✕</button>' : "") + "</td></tr>";
-        if (!c.abierto) return fila;
+        var imp = c._otro ? "otro" : impuestoDe(c), t = totalConcepto(c), abierto = i === F.abierto, varios = F.conceptos.length > 1;
+        var importe = '<td class="fa-num fa-conc__importe" data-importe>' + (c.seis ? dineroExacto(t.importeExacto) : dinero(t.importe)) + "</td>";
+        var error = c.error ? '<small class="fa-conc__err" role="alert">' + esc(c.error) + "</small>" : "";
+        if (!abierto) {
+            var precio = c.modo === "final"
+                ? (num(c.final) ? dinero(num(c.final)) : "—") + '<small class="fa-conc__sub">incluye impuestos</small>'
+                : (num(c.valor_unitario) ? (c.seis ? dineroExacto(num(c.valor_unitario)) : dinero(num(c.valor_unitario))) : "—");
+            return '<tr class="fa-conc__fila fa-conc--guardado' + (c.error ? " fa-conc--error" : "") + '" data-i="' + i + '" tabindex="0" title="Toca para editar">' +
+                '<td class="fa-num" data-campo="cantidad">' + esc(c.cantidad || "") + "</td>" +
+                '<td class="fa-conc__prod" data-campo="descripcion"><span class="fa-conc__texto">' + (c.descripcion ? esc(c.descripcion) : '<i class="fa-conc__vacio">Sin descripción</i>') + "</span>" +
+                '<small class="fa-conc__sub">' + esc(textoClave(c)) + "</small>" + error + "</td>" +
+                '<td class="fa-num" data-campo="' + (c.modo === "final" ? "final" : "valor_unitario") + '">' + precio + "</td>" +
+                '<td class="fa-num" data-campo="descuento">' + (num(c.descuento) ? dinero(num(c.descuento)) : "—") + "</td>" +
+                '<td data-campo="impuesto">' + esc((IMPUESTOS[imp] || IMPUESTOS.otro)[0].replace("Personalizado…", "Personalizado")) + "</td>" + importe +
+                '<td class="fa-conc__acc">' + botonIcono("lapiz", "data-editar", "Editar") + botonIcono("copiar", "data-duplicar", "Duplicar") +
+                (varios ? botonIcono("basura", "data-quitar", "Quitar", "ui-icono-btn--peligro") : "") + "</td></tr>";
+        }
+        var celdaPrecio = (c.modo === "final"
+                ? '<input data-c="final" inputmode="decimal" class="fa-num fa-conc__final" value="' + esc(c.final) + '" placeholder="0.00" aria-label="Precio con impuestos">' +
+                  '<small class="fa-conc__sub">' + subPrecio(c) + "</small>"
+                : '<input data-c="valor_unitario" inputmode="decimal" class="fa-num" value="' + esc(c.valor_unitario) + '" placeholder="0.00" aria-label="Precio unitario">') +
+            '<label class="ui-check fa-conc__incl" title="Escribe lo que paga el receptor por este renglón y se calcula el precio sin impuestos, exacto al centavo"><input type="checkbox" data-c="modo"' + (c.modo === "final" ? " checked" : "") + "> Incluye impuestos</label>";
+        var fila = '<tr class="fa-conc__fila fa-conc--abierto' + (c.error ? " fa-conc--error" : "") + '" data-i="' + i + '">' +
+            '<td><input data-c="cantidad" inputmode="decimal" class="fa-num" value="' + esc(c.cantidad) + '" aria-label="Cantidad"></td>' +
+            '<td class="fa-conc__prod"><div class="fa-prod"><input data-c="descripcion" maxlength="1000" value="' + esc(c.descripcion) + '" placeholder="Escribe o busca un producto…" autocomplete="off" aria-label="Descripción">' +
+            '<div class="fa-prod__sug" hidden></div></div><small class="fa-conc__sub">' + esc(textoClave(c)) + "</small></td>" +
+            "<td>" + celdaPrecio + "</td>" +
+            '<td><input data-c="descuento" inputmode="decimal" class="fa-num" value="' + esc(c.descuento) + '" placeholder="0.00" aria-label="Descuento"></td>' +
+            '<td><select data-c="impuesto" aria-label="Impuesto" title="' + esc(DETALLE_IMP[imp] || IMPUESTOS[imp][0]) + '">' + Object.keys(IMPUESTOS).map(function (k) { return '<option value="' + k + '"' + (k === imp ? " selected" : "") + ">" + esc(IMPUESTOS[k][0]) + "</option>"; }).join("") + "</select></td>" +
+            importe +
+            '<td class="fa-conc__acc">' + botonIcono("palomita", "data-guardar-fila", "Guardar renglón (Enter)", "ui-icono-btn--ok") + botonIcono("copiar", "data-duplicar", "Duplicar") +
+            (varios ? botonIcono("basura", "data-quitar", "Quitar", "ui-icono-btn--peligro") : "") + "</td></tr>";
         var retIsr = { "": "Sin retención", "10": "10 %", "1.25": "1.25 % (RESICO)" };
         var retIva = { "": "Sin retención", "10.6667": "2/3 del IVA", "4": "4 % (fletes)", "6": "6 % (subcontratación)", "16": "16 %" };
         var ivas = { "16": "16 %", "8": "8 %", "0": "0 %", "exento": "Exento" };
-        return fila + '<tr class="fa-conc__detalle" data-i="' + i + '"><td colspan="7"><div class="fa-rejilla fa-rejilla--detalle">' +
+        return fila + '<tr class="fa-conc__detalle" data-i="' + i + '"><td colspan="7">' + (c.error ? '<p class="fa-conc__err fa-conc__err--caja" role="alert">' + esc(c.error) + "</p>" : "") +
+            '<div class="fa-rejilla fa-rejilla--detalle">' +
             '<div class="fa-campo fa-c3"><span>Clave del SAT</span><div class="fa-clave" data-clave="prod" data-i="' + i + '"></div></div>' +
             '<div class="fa-campo fa-c3"><span>Unidad del SAT</span><div class="fa-clave" data-clave="unidad" data-i="' + i + '"></div></div>' +
             '<label class="fa-campo fa-c2"><span>Código <i>(no. identificación)</i></span><input data-c="no_identificacion" maxlength="100" value="' + esc(c.no_identificacion) + '"></label>' +
             '<label class="fa-campo fa-c2"><span>Cuenta predial</span><input data-c="cuenta_predial" maxlength="150" value="' + esc(c.cuenta_predial) + '"></label>' +
-            '<div class="fa-campo fa-c2"><span>Precio</span><label class="fa-switch"><input type="checkbox" data-c="modo"' + (c.modo === "final" ? " checked" : "") + '><span></span><b>Escribir el precio final</b></label></div>' +
             (imp === "otro" ? '<label class="fa-campo fa-c2"><span>IVA</span><select data-c="iva">' + opciones(ivas, c.iva, false) + "</select></label>" +
                 '<label class="fa-campo fa-c2"><span>Retención de ISR</span><select data-c="ret_isr">' + opciones(retIsr, c.ret_isr || "", false) + "</select></label>" +
                 '<label class="fa-campo fa-c2"><span>Retención de IVA</span><select data-c="ret_iva">' + opciones(retIva, c.ret_iva || "", false) + "</select></label>" : "") +
-            '<div class="fa-campo fa-c6 fa-conc__nota"><span>&nbsp;</span><p class="fa-nota">Base ' + dinero(t.base) + " · IVA " + dinero(t.iva) + (t.ret ? " · retenciones " + dinero(t.ret) : "") +
-            " · <b>total del concepto " + dinero(t.total) + '</b> · <button type="button" class="fa-link" data-guardar-prod>' + (c.producto_id ? "Actualizar en el catálogo" : "Guardar en el catálogo") + "</button></p></div>" +
+            '<div class="fa-campo fa-c6 fa-conc__nota"><p class="fa-nota">Base ' + dinero(t.base) + " · IVA " + dinero(t.iva) + (t.ret ? " · retenciones " + dinero(t.ret) : "") +
+            " · <b>total del renglón " + dinero(t.total) + '</b> · <button type="button" class="fa-link" data-guardar-prod>' + (c.producto_id ? "Actualizar en el catálogo" : "Guardar en el catálogo") + "</button></p>" +
+            '<p class="fa-nota fa-conc__teclas">Enter guarda y abre otro renglón · Tab pasa al siguiente campo · Esc cierra</p></div>' +
             "</div></td></tr>";
     }
 
     function pintarConceptos() {
+        if (F.abierto == null || F.abierto >= F.conceptos.length) F.abierto = -1;
         $("conceptos").innerHTML = F.conceptos.map(filaConcepto).join("");
         document.querySelectorAll("#conceptos .fa-clave").forEach(function (caja) {
             var c = F.conceptos[+caja.dataset.i];
@@ -653,11 +688,50 @@
         calcular();
     }
 
+    /* Abre el renglón i para editarlo. El que estaba abierto se guarda solo: si está completo queda limpio;
+       si le falta algo se queda marcado con su error (sin perder lo escrito). Un renglón totalmente en blanco se quita. */
+    function abrirConcepto(i, campo) {
+        var previo = F.abierto;
+        if (previo === i) return;
+        if (previo >= 0 && F.conceptos[previo]) {
+            var c = F.conceptos[previo];
+            if (conceptoEnBlanco(c) && F.conceptos.length > 1 && i !== -1) { F.conceptos.splice(previo, 1); if (i > previo) i--; }
+            else c.error = errorConcepto(c) || null;
+        }
+        F.abierto = i;
+        pintarConceptos();
+        if (i >= 0) enfocarConcepto(i, campo);
+    }
+    function enfocarConcepto(i, campo) {
+        var fila = document.querySelector('.fa-conc__fila[data-i="' + i + '"]');
+        var el = fila && (fila.querySelector('[data-c="' + (campo || "descripcion") + '"]') || fila.querySelector('[data-c="descripcion"]'));
+        if (el) { el.focus(); if (el.select && el.tagName === "INPUT" && el.type !== "checkbox") el.select(); }
+    }
+    /* Guardar el renglón abierto: si le falta algo, se queda abierto y dice qué; nuevo=true abre uno en blanco debajo */
+    function guardarConcepto(nuevo) {
+        var i = F.abierto, c = F.conceptos[i];
+        if (!c) return;
+        c.pendiente = false;
+        c.error = errorConcepto(c) || null;
+        if (c.error) { pintarConceptos(); enfocarConcepto(i, /descripci/.test(c.error) ? "descripcion" : /cantidad/.test(c.error) ? "cantidad" : /precio/i.test(c.error) ? (c.modo === "final" ? "final" : "valor_unitario") : "descripcion"); return; }
+        if (nuevo) { F.conceptos.splice(i + 1, 0, conceptoVacio()); F.abierto = i + 1; pintarConceptos(); enfocarConcepto(i + 1); }
+        else { F.abierto = -1; pintarConceptos(); }
+    }
+    /* Antes de pasar a revisar/timbrar: guarda el abierto, quita renglones en blanco y dice el primero con error */
+    function revisarConceptos() {
+        if (F.conceptos.length > 1) F.conceptos = F.conceptos.filter(function (c) { return !conceptoEnBlanco(c); });
+        if (!F.conceptos.length) F.conceptos = [conceptoVacio()];
+        F.abierto = -1;
+        F.conceptos.forEach(function (c) { c.error = errorConcepto(c) || null; });
+        pintarConceptos();
+        var malo = F.conceptos.findIndex(function (c) { return c.error; });
+        return malo === -1 ? "" : "Revisa el renglón " + (malo + 1) + ": " + F.conceptos[malo].error;
+    }
+
     function refrescarSub(i) {
         var c = F.conceptos[i], fila = document.querySelector('.fa-conc__fila[data-i="' + i + '"]');
         if (!fila) return;
-        fila.querySelector(".fa-conc__prod .fa-conc__sub").textContent = (c.clave_prod ? c.clave_prod + " · " + c.clave_unidad : "Sin clave") +
-            (c.no_identificacion ? " · " + c.no_identificacion : "") + (c.cuenta_predial ? " · predial " + c.cuenta_predial : "");
+        fila.querySelector(".fa-conc__prod .fa-conc__sub").textContent = textoClave(c);
     }
 
     function calcular() {
@@ -677,8 +751,8 @@
         $("t-letra").textContent = total > 0 ? enLetra(total, mon) : "";
         document.querySelector("dt.fa-total").textContent = "Total " + (mon === "USD" ? "USD" : "");
         var obj = num($("t-objetivo").value);
-        if (!F.cuadrando) $("t-objetivo-nota").innerHTML = obj > 0 ? (r2(obj) === total ? '<b class="fa-bien">✓ Cuadra exacto con ' + dinero(obj) + "</b>" : "Diferencia " + dinero(r2(total - obj)) + ": usa «Cuadrar».")
-            : "Ajusta el último concepto para llegar exacto al centavo.";
+        if (!F.cuadrando) $("t-objetivo-nota").innerHTML = obj > 0 ? (r2(obj) === total ? '<b class="fa-bien">Cuadra exacto con ' + dinero(obj) + "</b>" : "Diferencia " + dinero(r2(total - obj)) + ": toca «Ajustar».")
+            : "Se cambia el precio del último renglón para que la factura llegue exacta al centavo, con impuestos y retenciones.";
         return { total: total };
     }
 
@@ -691,7 +765,7 @@
         var evaluar = function (cc) { var lista = F.conceptos.slice(); lista[n] = cc; return totalesDe(lista).total; };
         var r = resolverUnitario(ultimo, obj, evaluar, r2(obj - otros));
         ultimo.modo = "final"; ultimo.final = String(r2(obj - otros));
-        ultimo.valor_unitario = String(r.unitario); ultimo.seis = r.seis; ultimo.difFinal = r.dif;
+        ultimo.valor_unitario = String(r.unitario); ultimo.seis = r.seis; ultimo.difFinal = r.dif; ultimo.error = null;
         F.cuadrando = !!r.dif;
         pintarConceptos();
         F.cuadrando = false;
@@ -868,9 +942,7 @@
                     return Object.assign(conceptoVacio(), { descripcion: x.nombre, clave_prod: x.clave_prod, clave_unidad: x.clave_unidad, valor_unitario: String(x.precio == null ? "" : x.precio),
                         objeto_imp: x.objeto_imp, iva: x.iva, ret_isr: x.ret_isr || "", ret_iva: x.ret_iva || "", no_identificacion: x.codigo || "" });
                 });
-                var vacio = F.conceptos.length === 1 && !F.conceptos[0].descripcion && !num(F.conceptos[0].valor_unitario);
-                F.conceptos = (vacio ? [] : F.conceptos).concat(nuevos);
-                pintarConceptos();
+                agregarConceptos(nuevos);
             }
             $("dlg-importar").close();
         } catch (e) { $("im-error").textContent = e.message; $("im-error").hidden = false; }
@@ -899,7 +971,7 @@
                         residencia: rfcR === "XEXX010101000" ? $("r-pais").value : null, num_reg_id: rfcR === "XEXX010101000" ? $("r-taxid").value.trim() : null },
             relacionados: ($("rel-activar").checked || F.tipo === "E") && F.relaciones.length ? F.relaciones : null,
             global: { periodicidad: $("g-periodicidad").value, meses: $("g-meses").value, anio: $("g-anio").value.trim() },
-            conceptos: F.conceptos.map(function (c) {
+            conceptos: F.conceptos.filter(function (c, i) { return !conceptoEnBlanco(c) || F.conceptos.length === 1; }).map(function (c) {
                 return { cantidad: c.cantidad, clave_prod: (c.clave_prod || "").trim(), clave_unidad: c.clave_unidad,
                          descripcion: c.descripcion, valor_unitario: c.valor_unitario, descuento: c.descuento || 0,
                          objeto_imp: c.objeto_imp, iva: c.iva, ret_isr: c.ret_isr, ret_iva: c.ret_iva, no_identificacion: c.no_identificacion || "",
@@ -912,7 +984,9 @@
     // En producción no se timbra sin manifiesto: en vez de un error, la ventana que explica y deja subirlo
     function faltaManifiesto() {
         if (!F.cfg || !F.cfg.produccion || !F.emisor || F.emisor.manifiesto) return false;
-        abrirManifiesto(true);
+        F.actAbierto = "manifiesto"; pintarActivar();
+        $("activar").scrollIntoView({ behavior: "smooth", block: "start" });
+        var err = $("t-error"); err.textContent = "Falta el manifiesto del PAC: complétalo arriba, en «Activar facturación»."; err.hidden = false;
         return true;
     }
 
@@ -952,6 +1026,8 @@
         if (faltaManifiesto()) return;
         var err = $("t-error");
         err.hidden = true;
+        var malo = revisarConceptos();
+        if (malo) { err.textContent = malo; err.hidden = false; return; }
         var b = $("btn-timbrar");
         b.disabled = true; b.textContent = "Revisando…";
         try {
@@ -963,7 +1039,7 @@
             $("conf-resumen").innerHTML = '<dl class="fa-resumen">' +
                 "<dt>Folio</dt><dd>" + esc((serie ? serie + "-" : "") + folio) + "</dd>" +
                 "<dt>Emisor</dt><dd>" + esc(r.emisor.nombre + " · " + r.emisor.rfc) + "</dd>" +
-                "<dt>Cliente</dt><dd>" + esc(cap.receptor.nombre + " · " + cap.receptor.rfc) + "</dd>" +
+                "<dt>Receptor</dt><dd>" + esc(cap.receptor.nombre + " · " + cap.receptor.rfc) + "</dd>" +
                 "<dt>Fecha de emisión</dt><dd>" + esc((r.fecha || "").replace("T", " ")) + (cap.fecha ? "" : " <small>(se pone al timbrar)</small>") + "</dd>" +
                 "<dt>Conceptos</dt><dd>" + cap.conceptos.length + "</dd>" +
                 "<dt>Total</dt><dd>" + dinero(t.total) + (r.moneda === "USD" ? " USD · T.C. " + esc(r.tipo_cambio) : "") + "</dd></dl>";
@@ -1083,7 +1159,7 @@
             (lista.length ? lista.map(function (r, i) {
                 return '<button type="button" class="fa-opcion" role="option" data-i="' + i + '"><span class="fa-opcion__ini">' + esc((r.nombre || r.rfc).charAt(0)) + "</span><span><b>" + esc(r.nombre || r.rfc) + "</b><small>" +
                     esc(r.rfc + (r.residencia ? " · " + r.residencia + " " + (r.num_reg_id || "") : "") + (r.cp ? " · C.P. " + r.cp : "") + (r.regimen ? " · " + r.regimen + " " + (cat[r.regimen] || "") : "")) + "</small></span></button>";
-            }).join("") : (nuevo ? "" : '<p class="fa-vacio-chico">' + (q ? "Nadie coincide. Escribe el RFC completo para usarlo." : "Todavía no hay clientes guardados.") + "</p>"));
+            }).join("") : (nuevo ? "" : '<p class="fa-vacio-chico">' + (q ? "Nadie coincide. Escribe el RFC completo para usarlo." : "Todavía no hay receptores guardados.") + "</p>"));
         F.selLista = lista;
     }
 
@@ -1111,13 +1187,13 @@
         var rfc = $("r-rfc").value.trim().toUpperCase(), nombre = $("r-nombre").value.trim().toUpperCase();
         $("cli-tarjeta").hidden = !(rfc || nombre || F.clienteNuevo);
         $("cli-vacio").hidden = !$("cli-tarjeta").hidden;
-        $("btn-elegir-texto").textContent = $("cli-tarjeta").hidden ? "Elegir cliente" : "Cambiar cliente";
-        $("cli-nombre").textContent = nombre || (rfc ? "Sin nombre" : "Cliente nuevo");
+        $("btn-elegir-texto").textContent = $("cli-tarjeta").hidden ? "Elegir receptor" : "Cambiar receptor";
+        $("cli-nombre").textContent = nombre || (rfc ? "Sin nombre" : "Receptor nuevo");
         $("cli-ini").textContent = (nombre || rfc || "+").charAt(0);
         $("cli-origen").textContent = rfc === "XAXX010101000" ? "Público en general" : rfc === "XEXX010101000" ? "Extranjero" : F.clienteGuardado ? "De sus clientes" : rfc ? "Nuevo: se guarda al timbrar" : "";
         $("fila-guardar").hidden = !!F.clienteGuardado || rfc === "XAXX010101000";
         $("fila-actualizar").hidden = !cambioVsGuardado();
-        $("t-cliente").textContent = rfc ? (nombre || rfc) + " · " + rfc : "Sin cliente";
+        $("t-cliente").textContent = rfc ? (nombre || rfc) + " · " + rfc : "Sin receptor";
     }
 
     function elegirDelBuscador() { pintarSelector(); }
@@ -1139,7 +1215,7 @@
                 try {
                     await enviar("/api/facturacion/receptores", "PUT", { rfc_emisor: F.emisor.rfc, rfc: r.rfc, nombre: r.nombre, cp: r.cp, regimen: r.regimenes[0] || null });
                     cargarReceptores();
-                    a.innerHTML += " Quedó en sus clientes.";
+                    a.innerHTML += " Quedó en sus receptores.";
                 } catch (e) { /* se guarda al timbrar */ }
             }
         } catch (e) { a.textContent = e.message; }
@@ -1407,7 +1483,7 @@
         $("pg-lista").innerHTML = filas.length ? filas.map(function (x) {
             var sel = F.pgSel[x.uuid] != null, otro = rsel && rsel !== x.receptor.rfc;
             return '<div class="fa-pg' + (sel ? " fa-pg--sel" : "") + '" data-uuid="' + esc(x.uuid) + '"' + (otro ? ' style="opacity:.45"' : "") + ">" +
-                '<input type="checkbox" data-pg-sel' + (sel ? " checked" : "") + (otro ? ' disabled title="Un recibo de pago es de un solo cliente"' : "") + ">" +
+                '<input type="checkbox" data-pg-sel' + (sel ? " checked" : "") + (otro ? ' disabled title="Un recibo de pago es de un solo receptor"' : "") + ">" +
                 '<div class="fa-item__txt"><b>' + esc(x.serie_folio + " · " + x.receptor.nombre) + "</b><small>" +
                 esc(fechaCorta(x.fecha) + " · total " + dinero(x.total) + (x.moneda === "USD" ? " USD" : "") + (x.pagado ? " · pagado " + dinero(x.pagado) : "") + " · parcialidad " + x.parcialidad) + "</small></div>" +
                 '<div class="fa-pg__abono"><small>Saldo ' + dinero(x.saldo) + '</small><input data-pg-monto inputmode="decimal" value="' + esc(sel ? F.pgSel[x.uuid] : "") + '" placeholder="' + esc(x.saldo.toFixed(2)) + '"' + (sel ? "" : " disabled") + "></div></div>";
@@ -1458,7 +1534,7 @@
             var r = await enviar("/api/facturacion/pagos/revisar", "POST", { rfc: F.emisor.rfc, pago: cap });
             F.pendientePago = cap; F.confirmando = "pago";
             $("conf-titulo").textContent = "¿Timbrar el recibo de pago?";
-            $("conf-resumen").innerHTML = '<dl class="fa-resumen"><dt>Folio</dt><dd>' + esc(r.serie + "-" + r.folio) + "</dd><dt>Cliente</dt><dd>" + esc(r.receptor_nombre + " · " + r.receptor_rfc) +
+            $("conf-resumen").innerHTML = '<dl class="fa-resumen"><dt>Folio</dt><dd>' + esc(r.serie + "-" + r.folio) + "</dd><dt>Receptor</dt><dd>" + esc(r.receptor_nombre + " · " + r.receptor_rfc) +
                 "</dd><dt>Fecha del pago</dt><dd>" + esc(cap.fecha.replace("T", " ")) + "</dd><dt>Pago</dt><dd>" + dinero(r.monto) + " " + esc(r.moneda) + "</dd>" +
                 r.doctos.map(function (d) { var x = F.pendientes.filter(function (p) { return p.uuid === d.uuid; })[0]; return "<dt>" + esc(x ? x.serie_folio : d.uuid.slice(0, 8)) + "</dt><dd>parcialidad " + d.parcialidad + " · " + dinero(d.pagado) + " · queda " + dinero(d.saldo_insoluto) + "</dd>"; }).join("") + "</dl>";
             $("conf-nota").textContent = F.cfg.produccion ? "Se manda al SAT y gasta 1 timbre de la empresa." : "Modo de pruebas: no gasta timbres ni tiene validez fiscal.";
@@ -1655,6 +1731,204 @@
         else vista("nueva");
     }
 
+    /* ---------------------------------------------------- tarjeta «Activar facturación» (4 requisitos)
+       Se ve mientras falte algo y vuelve sola si el sello está por vencer (30 días) o se acaban los timbres. */
+    var LUNA_URL = "https://firmamanifiesto.lunasoft.net/";
+    function diasPara(fecha) { return fecha ? Math.ceil((new Date(fecha + "T12:00:00") - new Date()) / 864e5) : null; }
+    function fechaLarga(fecha) { return fecha ? fechaCorta(fecha.slice(0, 10) + "T12:00:00") : ""; }
+
+    function requisitos() {
+        var e = F.emisor, prod = F.cfg.produccion, cat = F.cfg.catalogos.regimenes;
+        var dias = e.csd ? diasPara(e.csd.vence) : null, t = e.timbres || 0;
+        var sello = !e.csd ? { estado: "falta", detalle: "Sube el .cer y el .key del sello digital (no los de la e.firma) y su contraseña." }
+            : dias != null && dias < 0 ? { estado: "falta", detalle: "Venció el " + fechaLarga(e.csd.vence) + ". Tramita uno nuevo en CertiSAT y súbelo aquí.", boton: "Subir el nuevo" }
+            : dias != null && dias <= 30 ? { estado: "aviso", detalle: "Vence en " + dias + " día" + (dias === 1 ? "" : "s") + " (" + fechaLarga(e.csd.vence) + "). Tramita el nuevo en CertiSAT y súbelo aquí.", boton: "Subir el nuevo" }
+            : { estado: "ok", detalle: "Certificado " + (e.csd.no || "") + (e.csd.vence ? " · vence el " + fechaLarga(e.csd.vence) : "") };
+        return [
+            { id: "datos", titulo: "Datos fiscales", estado: e.regimen && e.cp ? "ok" : "falta",
+              detalle: e.regimen && e.cp ? "Régimen " + e.regimen + " " + (cat[e.regimen] || "") + " · C.P. " + e.cp : "Régimen fiscal y código postal, como vienen en su constancia." },
+            Object.assign({ id: "sello", titulo: "Sello digital (CSD)" }, sello),
+            { id: "manifiesto", titulo: "Manifiesto del PAC", estado: e.manifiesto ? "ok" : prod ? "falta" : "pendiente",
+              detalle: e.manifiesto ? "Firmado y guardado." : "Se firma una sola vez en la página de Luna Soft con la e.firma de la empresa; luego subes aquí el PDF." },
+            { id: "timbres", titulo: "Timbres", estado: !prod ? "pendiente" : t > 0 ? "ok" : "falta",
+              detalle: !prod ? "En modo de pruebas no se gastan timbres." : t > 0 ? t + " disponible" + (t === 1 ? "" : "s") + " para esta empresa." : "Esta empresa ya no tiene timbres: pásale de tu cuenta." }
+        ];
+    }
+
+    function pintarActivar() {
+        var caja = $("activar"); if (!caja || !F.emisor) return;
+        var reqs = requisitos(), prod = F.cfg.produccion;
+        var listos = reqs.filter(function (r) { return r.estado === "ok"; }).length;
+        var mostrar = reqs.some(function (r) { return r.estado === "falta" || r.estado === "aviso"; }) || (!prod && listos < 2);
+        caja.hidden = !mostrar || F.incrustado;
+        if (caja.hidden) return;
+        if (F.actAbierto && !reqs.some(function (r) { return r.id === F.actAbierto; })) F.actAbierto = null;
+        var completo = listos === 4 || reqs.every(function (r) { return r.estado !== "falta"; });
+        $("act-titulo").textContent = completo ? "Revisa tu facturación" : "Activar facturación de " + (F.emisor.alias || F.emisor.rfc);
+        $("act-sub").textContent = (completo ? "" : listos + " de 4 listos. ") +
+            (prod ? "Hasta completar lo que falta, esta empresa no puede timbrar." : "En modo de pruebas ya puedes timbrar de prueba; esto es lo que se necesita para timbrar de verdad.");
+        $("act-barra").style.width = (listos * 25) + "%";
+        $("act-pasos").innerHTML = reqs.map(function (r, n) {
+            var abierto = F.actAbierto === r.id;
+            var marca = r.estado === "ok" ? icono("palomita") : String(n + 1);
+            var boton = r.boton || (r.estado === "ok" ? "Cambiar" : r.estado === "pendiente" ? "Ver" : "Completar");
+            return '<li class="fa-act fa-act--' + r.estado + (abierto ? " fa-act--abierto" : "") + '" data-req="' + r.id + '">' +
+                '<div class="fa-act__fila"><span class="fa-act__marca" aria-hidden="true">' + marca + "</span>" +
+                '<div class="fa-act__txt"><b>' + esc(r.titulo) + '</b><small>' + esc(r.detalle) + "</small></div>" +
+                '<button type="button" class="ui-btn ' + (r.estado === "ok" || r.estado === "pendiente" ? "ui-btn--terciario" : "ui-btn--secundario") + ' ui-btn--28" data-act-abrir aria-expanded="' + abierto + '">' + (abierto ? "Cerrar" : esc(boton)) + "</button></div>" +
+                (abierto ? '<div class="fa-act__cuerpo">' + cuerpoRequisito(r.id) + "</div>" : "") + "</li>";
+        }).join("");
+        montarZonas();
+    }
+
+    function cuerpoRequisito(id) {
+        var e = F.emisor, cat = F.cfg.catalogos.regimenes;
+        if (id === "datos") return '<p class="fa-nota">Tómalos de un documento (te enseña de qué fecha es antes de usarlos) o escríbelos.</p>' +
+            '<div class="fa-act__botones"><button type="button" class="ui-btn ui-btn--secundario ui-btn--28" data-act-origen="constancia">De la constancia descargada en Fiscontable</button>' +
+            '<button type="button" class="ui-btn ui-btn--secundario ui-btn--28" data-act-origen="xml">De su última factura emitida</button></div>' +
+            '<div class="fa-act__zona" data-zona="constancia"></div><div id="act-propuesta"></div>' +
+            '<div class="fa-act__campos"><label class="ui-campo"><span class="ui-etiqueta">Régimen fiscal</span><select id="act-regimen" class="ui-select">' + opciones(cat, e.regimen || "", true, "Elige…") + "</select></label>" +
+            '<label class="ui-campo fa-act__cp"><span class="ui-etiqueta">C.P. fiscal</span><input id="act-cp" class="ui-input" inputmode="numeric" maxlength="5" value="' + esc(e.cp || "") + '"></label>' +
+            '<button type="button" class="ui-btn ui-btn--primario ui-btn--36" data-act-guardar-datos>Guardar</button></div><p class="fa-act__msj" id="act-msj"></p>';
+        if (id === "sello") return '<p class="fa-nota">Es el <b>Certificado de Sello Digital</b> que se tramita en CertiSAT; no es la e.firma. Suelta los dos archivos juntos.</p>' +
+            '<div class="fa-act__zona" data-zona="csd"></div>' +
+            '<div class="fa-act__campos"><label class="ui-campo"><span class="ui-etiqueta">Contraseña de la llave (.key)</span><input id="act-pass" type="password" class="ui-input" autocomplete="new-password"></label>' +
+            '<button type="button" class="ui-btn ui-btn--primario ui-btn--36" data-act-guardar-csd>Revisar y guardar</button></div><p class="fa-act__msj" id="act-msj"></p>';
+        if (id === "manifiesto") return '<ol class="fa-act__lista"><li>Abre la página de Luna Soft (nuestro proveedor de timbrado) y fírmalo con la <b>e.firma</b> de ' + esc(e.alias || e.rfc) + ".</li>" +
+            "<li>Descarga el PDF que te da al terminar y súbelo aquí. Revisamos que sea de este RFC.</li></ol>" +
+            '<div class="fa-act__botones"><a class="ui-btn ui-btn--secundario ui-btn--28" href="' + LUNA_URL + '" target="_blank" rel="noopener">Abrir Luna Soft para firmar</a></div>' +
+            '<div class="fa-act__zona" data-zona="manifiesto"></div><p class="fa-act__msj" id="act-msj"></p>';
+        var prod = F.cfg.produccion, cuenta = F.cfg.timbres_cuenta;
+        if (!prod) return '<p class="fa-nota">En modo de pruebas no se gastan timbres. Cuando se active producción, aquí le pasas timbres de tu cuenta.</p>';
+        if (cuenta === 0) return '<p class="fa-nota">Tu cuenta no tiene timbres sin repartir. Pídele más al administrador.</p>';
+        return '<p class="fa-nota">' + (cuenta == null ? "Tu cuenta no tiene tope de timbres." : "Tu cuenta tiene <b>" + cuenta + "</b> sin repartir.") + "</p>" +
+            '<div class="fa-act__campos"><label class="ui-campo fa-act__cp"><span class="ui-etiqueta">¿Cuántos le pasas?</span><input id="act-timbres" class="ui-input" inputmode="numeric" value="' + (cuenta ? Math.min(cuenta, 50) : 50) + '"></label>' +
+            '<button type="button" class="ui-btn ui-btn--primario ui-btn--36" data-act-timbres>Pasar timbres</button></div><p class="fa-act__msj" id="act-msj"></p>';
+    }
+
+    function msjAct(texto, tipo) { var m = $("act-msj"); if (m) { m.textContent = texto || ""; m.className = "fa-act__msj" + (tipo ? " fa-act__msj--" + tipo : ""); } }
+    function siguienteRequisito() {
+        var r = requisitos().filter(function (x) { return x.estado === "falta" || x.estado === "aviso"; })[0];
+        F.actAbierto = r ? r.id : null;
+    }
+
+    function montarZonas() {
+        if (!window.FCZona) return;
+        document.querySelectorAll("#act-pasos [data-zona]").forEach(function (caja) {
+            var tipo = caja.dataset.zona;
+            if (tipo === "constancia") FCZona.crear(caja, { acepta: ".pdf", titulo: "O suelta aquí su constancia en PDF", detalle: "La Constancia de Situación Fiscal de " + (F.emisor.alias || F.emisor.rfc),
+                alElegir: function (fs) { leerConstanciaEmisor(fs[0]); } });
+            if (tipo === "csd") {
+                F.actCsd = {};
+                var z = FCZona.crear(caja, { acepta: ".cer,.key", varios: true, titulo: "Suelta aquí el .cer y el .key", detalle: "o haz clic para elegirlos (los dos a la vez)",
+                    alElegir: function (fs) {
+                        fs.forEach(function (f) { if (/\.cer$/i.test(f.name)) F.actCsd.cer = f; if (/\.key$/i.test(f.name)) F.actCsd.key = f; });
+                        z.estado(F.actCsd.cer && F.actCsd.key ? "ok" : "", (F.actCsd.cer ? "Certificado: " + F.actCsd.cer.name : "Falta el .cer") + " · " + (F.actCsd.key ? "Llave: " + F.actCsd.key.name : "falta el .key"));
+                        if (F.actCsd.cer && F.actCsd.key) $("act-pass").focus();
+                    } });
+            }
+            if (tipo === "manifiesto") FCZona.crear(caja, { acepta: ".pdf", titulo: "Suelta aquí el PDF del manifiesto", detalle: "El que descargaste de Luna Soft al firmar",
+                alElegir: function (fs) { subirManifiestoAct(fs[0]); } });
+        });
+    }
+
+    // Lo leído de un documento se enseña con su fecha; solo se usa si la persona confirma
+    function proponerDatos(r, origen) {
+        var cat = F.cfg.catalogos.regimenes, caja = $("act-propuesta"); if (!caja) return;
+        F.actPropuesta = r;
+        var dias = r.fecha ? -diasPara(r.fecha.slice(0, 10)) : null;
+        var de = origen === "xml" ? "Factura emitida el " + fechaLarga(r.fecha) : "Constancia del " + fechaLarga(r.fecha);
+        var viejo = dias != null && dias > 90;
+        var reg = r.regimenes || [];
+        caja.innerHTML = '<div class="ui-aviso ' + (viejo ? "ui-aviso--aviso" : "") + ' fa-act__propuesta"><div>' +
+            "<b>" + esc(r.fecha ? de : origen === "xml" ? "Última factura emitida" : "Constancia sin fecha") + "</b>" + (dias != null ? " (hace " + dias + " día" + (dias === 1 ? "" : "s") + ")" : "") +
+            ". " + (viejo ? "Tiene más de 3 meses: si cambió el régimen o el domicilio después, usa una constancia más reciente." : "Revisa que siga igual: si cambió el régimen o el domicilio después de esa fecha, usa una más reciente.") +
+            '<dl class="fa-act__dl">' + (r.nombre ? "<dt>Nombre</dt><dd>" + esc(r.nombre) + (F.emisor.rfc.length === 12 ? " <small>(sin régimen de capital, como lo pide el CFDI 4.0)</small>" : "") + "</dd>" : "") +
+            "<dt>Régimen</dt><dd>" + (reg.length > 1 ? '<select id="act-prop-reg" class="ui-select">' + reg.map(function (k) { return '<option value="' + esc(k) + '">' + esc(k + " · " + (cat[k] || "")) + "</option>"; }).join("") + "</select>"
+                : reg.length ? esc(reg[0] + " · " + (cat[reg[0]] || "")) : "<i>No trae régimen vigente</i>") + "</dd>" +
+            "<dt>C.P. fiscal</dt><dd>" + esc(r.cp || "—") + "</dd></dl>" +
+            '<div class="fa-act__botones"><button type="button" class="ui-btn ui-btn--primario ui-btn--28" data-act-usar>Sí, usar estos datos</button>' +
+            '<button type="button" class="ui-btn ui-btn--terciario ui-btn--28" data-act-descartar>No</button></div></div></div>';
+    }
+
+    async function traerDatos(origen, b) {
+        msjAct(""); b.classList.add("ui-btn--cargando");
+        try { proponerDatos(await json("/api/facturacion/emisores/" + encodeURIComponent(F.emisor.rfc) + "/datos-fiscales?origen=" + origen), origen); }
+        catch (e) { msjAct(e.message, "error"); }
+        b.classList.remove("ui-btn--cargando");
+    }
+
+    async function leerConstanciaEmisor(archivo) {
+        msjAct("Leyendo la constancia…");
+        try {
+            var cuerpo = new FormData(); cuerpo.append("archivo", archivo);
+            var r = await json("/api/facturacion/leer-constancia", { method: "POST", body: cuerpo });
+            if (r.rfc !== F.emisor.rfc) { msjAct("Esa constancia es de " + r.rfc + ", no de " + F.emisor.rfc + ".", "error"); return; }
+            msjAct(""); proponerDatos(r, "constancia");
+        } catch (e) { msjAct(e.message, "error"); }
+    }
+
+    async function guardarDatosAct(regimen, cp) {
+        msjAct("");
+        try {
+            actualizarEmisor(await enviar("/api/facturacion/emisores/" + encodeURIComponent(F.emisor.rfc), "PUT", { regimen: regimen || null, cp: (cp || "").trim() || null }));
+            siguienteRequisito(); pintarActivar();
+            Fiscontable.toast("Datos fiscales guardados.");
+        } catch (e) { msjAct(e.message, "error"); }
+    }
+
+    async function guardarCsdAct(b) {
+        var c = F.actCsd || {}, pass = $("act-pass").value;
+        if (!c.cer || !c.key || !pass) { var f = [!c.cer ? "el .cer" : "", !c.key ? "el .key" : "", !pass ? "la contraseña" : ""].filter(Boolean); msjAct("Falta" + (f.length > 1 ? "n " : " ") + f.slice(0, -1).join(", ") + (f.length > 1 ? " y " : "") + f[f.length - 1] + ".", "error"); return; }
+        var cuerpo = new FormData(); cuerpo.append("cer", c.cer); cuerpo.append("key", c.key); cuerpo.append("password", pass);
+        b.classList.add("ui-btn--cargando"); b.disabled = true; msjAct("");
+        try {
+            actualizarEmisor(await json("/api/facturacion/emisores/" + encodeURIComponent(F.emisor.rfc) + "/csd", { method: "POST", body: cuerpo }));
+            F.actCsd = {}; siguienteRequisito(); pintarActivar();
+            Fiscontable.toast("Sello digital guardado.");
+        } catch (e) { msjAct(e.message, "error"); b.classList.remove("ui-btn--cargando"); b.disabled = false; }
+    }
+
+    async function subirManifiestoAct(pdf) {
+        msjAct("Revisando el manifiesto…");
+        var cuerpo = new FormData(); cuerpo.append("pac", "lunasoft"); cuerpo.append("pdf", pdf);
+        try {
+            F.man = await json("/api/facturacion/manifiesto/" + encodeURIComponent(F.emisor.rfc), { method: "POST", body: cuerpo });
+            actualizarEmisor(Object.assign({}, F.emisor, { manifiesto: F.man.firmado }));
+            siguienteRequisito(); pintarActivar();
+            Fiscontable.toast("Manifiesto revisado y guardado" + (F.man.revision && F.man.revision.folio ? " (" + F.man.revision.folio + ")" : "") + ".");
+        } catch (e) { msjAct(e.message, "error"); }
+    }
+
+    async function pasarTimbresAct(b) {
+        var n = parseInt($("act-timbres").value, 10);
+        if (!n || n < 1) { msjAct("Escribe cuántos.", "error"); return; }
+        b.disabled = true; msjAct("");
+        try {
+            var r = await enviar("/api/facturacion/timbres/" + encodeURIComponent(F.emisor.rfc), "PUT", { cantidad: n });
+            F.cfg.timbres_cuenta = r.timbres_cuenta;
+            actualizarEmisor(Object.assign({}, F.emisor, { timbres: r.timbres_empresa, alta_pac: F.emisor.alta_pac || !!r.en_pac }));
+            siguienteRequisito(); pintarActivar();
+            Fiscontable.toast(r.en_pac ? "Listo. En MultiFacturas puede tardar hasta 5 minutos en aplicarse." : "Timbres pasados.");
+        } catch (e) { msjAct(e.message, "error"); b.disabled = false; }
+    }
+
+    function activarClic(ev) {
+        var li = ev.target.closest("[data-req]"); if (!li) return;
+        var b;
+        if (ev.target.closest("[data-act-abrir]")) { F.actAbierto = F.actAbierto === li.dataset.req ? null : li.dataset.req; pintarActivar(); return; }
+        if ((b = ev.target.closest("[data-act-origen]"))) { traerDatos(b.dataset.actOrigen, b); return; }
+        if (ev.target.closest("[data-act-usar]")) {
+            var r = F.actPropuesta || {}, sel = $("act-prop-reg");
+            guardarDatosAct(sel ? sel.value : (r.regimenes || [])[0] || $("act-regimen").value, r.cp || $("act-cp").value);
+            return;
+        }
+        if (ev.target.closest("[data-act-descartar]")) { $("act-propuesta").innerHTML = ""; F.actPropuesta = null; return; }
+        if (ev.target.closest("[data-act-guardar-datos]")) { guardarDatosAct($("act-regimen").value, $("act-cp").value); return; }
+        if ((b = ev.target.closest("[data-act-guardar-csd]"))) { guardarCsdAct(b); return; }
+        if ((b = ev.target.closest("[data-act-timbres]"))) pasarTimbresAct(b);
+    }
+
     /* ---------------------------------------------------- pasos */
     function irPaso(n) {
         F.paso = n;
@@ -1671,12 +1945,12 @@
 
     function faltaPaso(n) {
         if (n === 1) {
-            if (!$("r-rfc").value.trim()) return "Elige el cliente.";
-            if (!$("r-nombre").value.trim() || !$("r-cp").value.trim() || !$("r-regimen").value) return "Completa los datos fiscales del cliente (nombre, C.P. y régimen).";
+            if (!$("r-rfc").value.trim()) return "Elige el receptor.";
+            if (!$("r-nombre").value.trim() || !$("r-cp").value.trim() || !$("r-regimen").value) return "Completa los datos fiscales del receptor (nombre, C.P. y régimen).";
             if ($("p-moneda").value === "USD" && !num($("p-tc").value)) return "Escribe el tipo de cambio.";
         }
         if (n === 2 && F.tipo === "E" && !F.relaciones.length) return "La nota de crédito necesita la factura que corrige.";
-        if (n === 3 && !F.conceptos.some(function (c) { return (c.descripcion || "").trim() && num(c.valor_unitario) > 0; })) return "Agrega al menos un concepto con descripción y precio.";
+        if (n === 3) { var malo = revisarConceptos(); if (malo) return malo; }
         return "";
     }
 
@@ -1697,7 +1971,7 @@
             var rel = (cap.relacionados || []).map(function (g) { return g.tipo_relacion + " · " + g.uuids.length + " CFDI"; }).join(", ");
             cont.innerHTML = '<div class="fa-revision__ok">✓ Todo en orden para timbrar</div><dl class="fa-resumen fa-resumen--dos">' +
                 "<dt>Folio</dt><dd>" + esc((serie ? serie + "-" : "") + folio) + "</dd><dt>Fecha</dt><dd>" + esc((r.fecha || "").replace("T", " ")) + (cap.fecha ? "" : " <small>(al timbrar)</small>") + "</dd>" +
-                "<dt>Emisor</dt><dd>" + esc(r.emisor.nombre) + "</dd><dt>Cliente</dt><dd>" + esc(cap.receptor.nombre + " · " + cap.receptor.rfc) + "</dd>" +
+                "<dt>Emisor</dt><dd>" + esc(r.emisor.nombre) + "</dd><dt>Receptor</dt><dd>" + esc(cap.receptor.nombre + " · " + cap.receptor.rfc) + "</dd>" +
                 "<dt>Pago</dt><dd>" + esc(cap.metodo_pago + " · forma " + cap.forma_pago) + "</dd><dt>Total</dt><dd><b>" + dinero(r.totales.total) + "</b>" + (r.moneda === "USD" ? " USD · T.C. " + esc(r.tipo_cambio) : "") + "</dd>" +
                 (rel ? "<dt>Relacionados</dt><dd>" + esc(rel) + "</dd>" : "") + "</dl>";
             var resp = await api("/api/facturacion/vista-previa", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ rfc: F.emisor.rfc, captura: cap }) });
@@ -1882,9 +2156,8 @@
         if ($("xe-guardar-prod") && $("xe-guardar-prod").checked) {
             try { await guardarAltasProductos(F.xe.productos_nuevos); } catch (e) { aviso(e.message, "error"); }
         }
-        var nuevos = F.xe.conceptos.map(function (c) { return Object.assign(conceptoVacio(), c, { seis: !!c.seis_decimales, abierto: !c.clave_prod }); });
-        var vacio = F.conceptos.length === 1 && !F.conceptos[0].descripcion && !num(F.conceptos[0].valor_unitario);
-        F.conceptos = (vacio ? [] : F.conceptos).concat(nuevos);
+        var nuevos = F.xe.conceptos.map(function (c) { return Object.assign(conceptoVacio(), c, { seis: !!c.seis_decimales }); });
+        agregarConceptos(nuevos, true);
         pintarConceptos();
         $("dlg-excel").close();
         aviso("✓ Se agregaron " + nuevos.length + " concepto" + (nuevos.length === 1 ? "" : "s") + " desde Excel." + (F.xe.avisos.length ? " Completa la clave del SAT de los que se abrieron." : ""));
@@ -1913,10 +2186,10 @@
             var total = buenas.reduce(function (a, f) { return a + (f.total || 0); }, 0);
             F.xmAltas = { productos: r.productos_nuevos || [], clientes: r.clientes_nuevos || [] };
             var cuenta = function (xs, que) { var n = xs.filter(function (x) { return x.accion === "nuevo"; }).length, c = xs.length - n; return (n ? n + " " + que + (n === 1 ? " nuevo" : "s nuevos") : "") + (n && c ? " y " : "") + (c ? c + " por corregir" : ""); };
-            var altas = [F.xmAltas.productos.length ? cuenta(F.xmAltas.productos, "producto") : "", F.xmAltas.clientes.length ? cuenta(F.xmAltas.clientes, "cliente") : ""].filter(Boolean);
+            var altas = [F.xmAltas.productos.length ? cuenta(F.xmAltas.productos, "producto") : "", F.xmAltas.clientes.length ? cuenta(F.xmAltas.clientes, "receptor") : ""].filter(Boolean);
             $("xm-resumen").innerHTML = "<b>" + r.facturas.length + " factura" + (r.facturas.length === 1 ? "" : "s") + " en el archivo:</b> " + buenas.length + " lista" + (buenas.length === 1 ? "" : "s") +
                 " (" + dinero(total) + ")" + (r.facturas.length - buenas.length ? " y " + (r.facturas.length - buenas.length) + " con algo que corregir en el Excel." : ".") +
-                (altas.length ? '<label class="fa-interruptor fa-conf-pref" style="margin-top:10px;display:flex"><input type="checkbox" id="xm-guardar-altas" checked> Guardar en tu catálogo y en sus clientes: ' + esc(altas.join(" · ")) + "</label>" : "") +
+                (altas.length ? '<label class="fa-interruptor fa-conf-pref" style="margin-top:10px;display:flex"><input type="checkbox" id="xm-guardar-altas" checked> Guardar en tu catálogo y en sus receptores: ' + esc(altas.join(" · ")) + "</label>" : "") +
                 (r.facturas.length - buenas.length ? '<label class="fa-interruptor fa-conf-pref" style="margin-top:10px;display:flex"><input type="checkbox" id="xm-con-errores" checked> Guardar también ' +
                     (r.facturas.length - buenas.length === 1 ? "la que tiene errores como prefactura" : "las " + (r.facturas.length - buenas.length) + " con errores como prefacturas") + " «por corregir» (con lo que sí entró y los renglones a revisar), para terminarlas aquí en la web</label>" : "") +
                 (r.errores_catalogo.length ? '<ul class="fa-xe-lista fa-xe-mal">' + r.errores_catalogo.map(function (x) { return "<li>" + esc(x) + "</li>"; }).join("") + "</ul>" : "");
@@ -2196,7 +2469,7 @@
         $("btn-elegir-cliente").addEventListener("click", function () { abrirSelector($("sel-cliente-panel").hidden); });
         $("btn-importar-clientes").addEventListener("click", function () {
             abrirSelector(false);
-            Fiscontable.importarClientes({ rfc: F.emisor.rfc, nombre: F.emisor.razon_social || F.emisor.alias, alTerminar: function (n) { cargarReceptores(); if (n) aviso("✓ " + n + " cliente" + (n === 1 ? "" : "s") + " en sus clientes."); } });
+            Fiscontable.importarClientes({ rfc: F.emisor.rfc, nombre: F.emisor.razon_social || F.emisor.alias, alTerminar: function (n) { cargarReceptores(); if (n) aviso("✓ " + n + " receptor" + (n === 1 ? "" : "es") + " guardado" + (n === 1 ? "" : "s") + "."); } });
         });
         $("btn-cli-quitar").addEventListener("click", function () { quitarCliente(); F.clienteNuevo = false; pintarCliente(); });
         $("sel-cliente-lista").addEventListener("click", function (ev) {
@@ -2291,18 +2564,24 @@
             $("p-forma").disabled = this.value === "PPD";
         });
         $("btn-concepto").addEventListener("click", function () {
-            F.conceptos.push(conceptoVacio()); pintarConceptos();
-            var ult = document.querySelector('.fa-conc__fila:last-of-type [data-c="descripcion"]'); if (ult) ult.focus();
+            F.conceptos.push(conceptoVacio());
+            abrirConcepto(F.conceptos.length - 1);
         });
         $("conceptos").addEventListener("input", function (ev) {
             var campo = ev.target.closest("[data-c]"); if (!campo) return;
             var i = +campo.closest("[data-i]").dataset.i, c = F.conceptos[i], k = campo.dataset.c;
-            if (c.pendiente) { c.pendiente = false; var tr = document.querySelector('.fa-conc__fila[data-i="' + i + '"]'); if (tr) tr.classList.remove("fa-conc--pendiente"); }
-            if (k === "modo") { c.modo = campo.checked ? "final" : "unitario"; if (c.modo === "final" && !c.final) c.final = String(totalConcepto(c).total || ""); if (c.modo !== "final") { c.seis = false; c.difFinal = null; } aplicarFinal(c); pintarConceptos(); return; }
-            if (k === "impuesto") { if (campo.value === "otro") { c.abierto = true; } else ponerImpuesto(c, campo.value); aplicarFinal(c); pintarConceptos(); return; }
+            c.pendiente = false;
+            if (c.error) { c.error = null; document.querySelectorAll('#conceptos [data-i="' + i + '"] .fa-conc__err').forEach(function (x) { x.remove(); }); var tr0 = document.querySelector('.fa-conc__fila[data-i="' + i + '"]'); if (tr0) tr0.classList.remove("fa-conc--error"); }
+            if (k === "modo") {
+                c.modo = campo.checked ? "final" : "unitario";
+                if (c.modo === "final" && !c.final) c.final = String(totalConcepto(c).total || "");
+                if (c.modo !== "final") { c.seis = false; c.difFinal = null; }
+                aplicarFinal(c); pintarConceptos(); enfocarConcepto(i, c.modo === "final" ? "final" : "valor_unitario"); return;
+            }
+            if (k === "impuesto") { c._otro = campo.value === "otro"; if (!c._otro) ponerImpuesto(c, campo.value); aplicarFinal(c); pintarConceptos(); enfocarConcepto(i, "impuesto"); return; }
             c[k] = campo.value;
             if (k === "descripcion") { c.producto_id = null; sugerirProductos(campo); }
-            if (k === "iva" || k === "ret_isr" || k === "ret_iva") { aplicarFinal(c); pintarConceptos(); return; }
+            if (k === "iva" || k === "ret_isr" || k === "ret_iva") { aplicarFinal(c); pintarConceptos(); enfocarConcepto(i, k); return; }
             if (k === "final" || ((k === "cantidad" || k === "descuento") && c.modo === "final")) {
                 aplicarFinal(c);
                 var sub = campo.closest("tr").querySelector("td:nth-child(3) .fa-conc__sub");
@@ -2317,19 +2596,43 @@
             if (!ev.target.matches('[data-c="descripcion"]')) return;
             var caja = ev.target.parentNode.querySelector(".fa-prod__sug"); setTimeout(function () { caja.hidden = true; }, 180);
         });
+        $("conceptos").addEventListener("keydown", function (ev) {
+            var fila = ev.target.closest("[data-i]"); if (!fila) return;
+            var i = +fila.dataset.i;
+            if (i !== F.abierto) {      // renglón guardado: Enter o Espacio lo abre
+                if ((ev.key === "Enter" || ev.key === " ") && ev.target === fila) { ev.preventDefault(); abrirConcepto(i); }
+                return;
+            }
+            if (ev.key === "Escape") { var sug = fila.querySelector(".fa-prod__sug:not([hidden])"); if (sug) { sug.hidden = true; return; } ev.preventDefault(); abrirConcepto(-1); return; }
+            if (ev.key !== "Enter" || ev.target.closest(".fa-clave") || ev.target.tagName === "BUTTON") return;
+            ev.preventDefault();
+            var caja = fila.querySelector(".fa-prod__sug"); if (caja) caja.hidden = true;
+            if (ev.target.matches("[data-c]")) ev.target.dispatchEvent(new Event("change", { bubbles: true }));
+            guardarConcepto(true);
+        });
         $("conceptos").addEventListener("mousedown", function (ev) {
             var b = ev.target.closest(".fa-prod__sug [data-prod]"); if (!b) return;
             ev.preventDefault();
             var i = +b.closest("[data-i]").dataset.i, p = (F.productos || []).filter(function (x) { return x.id === b.dataset.prod; })[0];
-            if (p) { usarProducto(F.conceptos[i], p); pintarConceptos(); }
+            if (p) { usarProducto(F.conceptos[i], p); F.conceptos[i].error = null; pintarConceptos(); enfocarConcepto(i, "cantidad"); }
         });
         $("conceptos").addEventListener("click", function (ev) {
             var fila = ev.target.closest("[data-i]"); if (!fila) return;
             var i = +fila.dataset.i;
-            if (ev.target.closest("[data-quitar]")) { F.conceptos.splice(i, 1); pintarConceptos(); }
-            else if (ev.target.closest("[data-duplicar]")) { F.conceptos.splice(i + 1, 0, Object.assign({}, F.conceptos[i], { abierto: false })); pintarConceptos(); }
-            else if (ev.target.closest("[data-abrir]")) { F.conceptos[i].abierto = !F.conceptos[i].abierto; pintarConceptos(); }
+            if (ev.target.closest("[data-quitar]")) {
+                F.conceptos.splice(i, 1);
+                if (F.abierto === i) F.abierto = -1; else if (F.abierto > i) F.abierto--;
+                if (!F.conceptos.length) { F.conceptos = [conceptoVacio()]; F.abierto = 0; }
+                pintarConceptos();
+            }
+            else if (ev.target.closest("[data-duplicar]")) {
+                F.conceptos.splice(i + 1, 0, Object.assign({}, F.conceptos[i], { error: null, producto_id: F.conceptos[i].producto_id }));
+                if (F.abierto > i) F.abierto++;
+                abrirConcepto(i + 1);
+            }
+            else if (ev.target.closest("[data-guardar-fila]")) guardarConcepto(false);
             else if (ev.target.closest("[data-guardar-prod]")) guardarConceptoEnCatalogo(i);
+            else if (i !== F.abierto) { var celda = ev.target.closest("[data-campo]"); abrirConcepto(i, celda ? celda.dataset.campo : null); }
         });
         $("btn-conc-excel").addEventListener("click", abrirExcel);
         $("btn-xe-plantilla").addEventListener("click", function () { bajarPlantilla("/api/facturacion/excel/plantilla-conceptos", this); });
@@ -2362,6 +2665,11 @@
         });
         $("conc-xml").addEventListener("change", function () { leerXmlProductos(this.files, "factura"); this.value = ""; });
         $("btn-catalogo").addEventListener("click", function () { abrirConfig("productos"); });
+        $("btn-ajustar").addEventListener("click", function () {
+            var caja = $("objetivo-form"); caja.hidden = !caja.hidden; this.setAttribute("aria-expanded", String(!caja.hidden));
+            if (!caja.hidden) { if (!$("t-objetivo").value) $("t-objetivo").value = calcular().total ? String(calcular().total) : ""; $("t-objetivo").focus(); $("t-objetivo").select(); calcular(); }
+        });
+        $("t-objetivo").addEventListener("keydown", function (ev) { if (ev.key === "Enter") { ev.preventDefault(); cuadrarTotal(); } });
         $("btn-objetivo").addEventListener("click", cuadrarTotal);
         $("t-objetivo-nota").addEventListener("click", function (ev) { var b = ev.target.closest("[data-objetivo]"); if (b) { $("t-objetivo").value = b.dataset.objetivo; cuadrarTotal(); } });
         $("t-objetivo").addEventListener("input", calcular);
@@ -2460,6 +2768,8 @@
         $("btn-cancelar-ok").addEventListener("click", cancelar);
         $("btn-guardar-config").addEventListener("click", guardarConfig);
         $("btn-guardar-csd").addEventListener("click", guardarCsd);
+        $("act-pasos").addEventListener("click", activarClic);
+        $("act-pasos").addEventListener("keydown", function (ev) { if (ev.key === "Enter" && ev.target.id === "act-pass") { ev.preventDefault(); guardarCsdAct(document.querySelector("[data-act-guardar-csd]")); } });
         $("c-man-pacs").addEventListener("click", manifiestoClic);
         $("mdlg-pdf").addEventListener("change", function () { $("mdlg-subir").disabled = !this.files[0]; });
         $("mdlg-subir").addEventListener("click", subirManifiestoDlg);

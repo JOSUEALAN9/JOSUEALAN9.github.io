@@ -64,6 +64,24 @@
         }).join("");
     }
 
+    function pintarIconos() {
+        $("uv-iconos").innerHTML = Fiscontable.iconos().map(function (n) {
+            return "<div>" + Fiscontable.icono(n) + "<span>" + esc(n) + "</span></div>";
+        }).join("");
+        $("uv-icono-btns").innerHTML =
+            '<button type="button" class="ui-icono-btn" aria-label="Editar" title="Editar">' + Fiscontable.icono("lapiz") + "</button>" +
+            '<button type="button" class="ui-icono-btn" aria-label="Duplicar" title="Duplicar">' + Fiscontable.icono("copiar") + "</button>" +
+            '<button type="button" class="ui-icono-btn ui-icono-btn--ok" aria-label="Guardar" title="Guardar">' + Fiscontable.icono("palomita") + "</button>" +
+            '<button type="button" class="ui-icono-btn ui-icono-btn--peligro" aria-label="Quitar" title="Quitar">' + Fiscontable.icono("basura") + "</button>";
+        var z = FCZona.crear($("uv-zona"), {
+            acepta: ".cer,.key", varios: true, titulo: "Suelta aquí el .cer y el .key", detalle: "o haz clic para elegirlos (los dos a la vez)",
+            alElegir: function (fs) {
+                var cer = fs.filter(function (f) { return /\.cer$/i.test(f.name); })[0], key = fs.filter(function (f) { return /\.key$/i.test(f.name); })[0];
+                z.estado(cer && key ? "ok" : "", (cer ? "Certificado: " + cer.name : "Falta el .cer") + " · " + (key ? "Llave: " + key.name : "falta el .key"));
+            }
+        });
+    }
+
     function marcarOpcion() {
         var actual = document.documentElement.dataset.tema === "b" ? "b" : "a";
         document.querySelectorAll(".uv-opcion").forEach(function (b) { b.setAttribute("aria-pressed", String(b.dataset.tema === actual)); });
@@ -97,7 +115,7 @@
         var p = await Fiscontable.perfil();
         if (!p || p._error || p.rol !== "admin") { $("uv-solo-admin").hidden = false; return; }
         $("uv-contenido").hidden = false;
-        pintarPaletas(); pintarBotones(); pintarFilas(); marcarOpcion(); eventos();
+        pintarPaletas(); pintarBotones(); pintarFilas(); pintarIconos(); marcarOpcion(); eventos();
     }
     iniciar();
 })();

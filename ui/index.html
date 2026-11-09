@@ -4,14 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sistema visual | Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611091500">
-    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611091500">
-    <link rel="stylesheet" href="/ui/ui.css?v=202611091500">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611091800">
+    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611091800">
+    <link rel="stylesheet" href="/ui/ui.css?v=202611091800">
 </head>
 <body>
 <div id="app-header" data-modulo="ui" data-titulo="Sistema visual"></div>
-<script src="/assets/js/nucleo.js?v=202611091500"></script>
-<script src="/assets/js/barra.js?v=202611091500"></script>
+<script src="/assets/js/nucleo.js?v=202611091800"></script>
+<script src="/assets/js/barra.js?v=202611091800"></script>
 
 <main class="uv">
     <div id="uv-solo-admin" class="ui-vacio" hidden><b>Solo para el administrador</b>Esta página muestra las piezas del sistema visual.</div>
@@ -190,12 +190,22 @@
             </div>
         </section>
 
+        <!-- Íconos y archivos -->
+        <section class="uv-seccion">
+            <h2>11. Íconos y zona de archivos</h2>
+            <p class="uv-nota">Un solo juego de íconos con el mismo grosor, sin emojis. En código: <code>Fiscontable.icono("lapiz")</code>. Los botones de solo ícono llevan <code>.ui-icono-btn</code> y un <code>aria-label</code>.</p>
+            <div class="uv-iconos" id="uv-iconos"></div>
+            <div class="uv-fila" id="uv-icono-btns"></div>
+            <h3>Zona para soltar archivos</h3>
+            <p class="uv-mini">Reemplaza el «Seleccionar archivo» del navegador. Acepta arrastrar o clic; con teclado, Enter. Ejemplo: sello digital (.cer y .key juntos).</p>
+            <div id="uv-zona" style="max-width:520px"></div>
+        </section>
+
         <!-- Pendientes -->
         <section class="uv-seccion">
-            <h2>11. Siguen (entrega 2)</h2>
+            <h2>12. Siguen (entrega 2)</h2>
             <ul class="uv-pendientes">
                 <li>Lista desplegable propia (en lugar de la del navegador) y fecha con calendario propio.</li>
-                <li>Zona para soltar archivos (la e.firma acepta .cer y .key juntos y muestra RFC, nombre y vigencia antes de guardar).</li>
                 <li>Bloque de estado de documento: título, fecha, Ver · Descargar · Enviar por correo · Solicitar nueva.</li>
                 <li>Programación en una línea: «Programado · mensual, día 1 · próxima: 01/12».</li>
                 <li>Barra de herramientas de tabla: búsqueda · filtros como chips · vistas · columnas · exportar.</li>
@@ -210,6 +220,7 @@
     </dialog>
 </main>
 
-<script src="/ui/ui.js?v=202611091500"></script>
+<script src="/assets/js/comun/zona-archivos.js?v=202611091800"></script>
+<script src="/ui/ui.js?v=202611091800"></script>
 </body>
 </html>

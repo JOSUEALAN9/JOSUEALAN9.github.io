@@ -230,6 +230,16 @@
         candado:  "M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z M16 11V7a4 4 0 00-8 0v4",
         flecha:   "M9 18l6-6-6-6",
         casa:     "M3 11l9-7 9 7M5 10v10h5v-6h4v6h5V10",
+        lapiz:    "M15.2 5.2l3.6 3.6M4 20h4L19.5 8.5a2.5 2.5 0 00-3.6-3.6L4 16.4V20z",
+        basura:   "M4 7h16M10 11v6m4-6v6M6 7l1 12a2 2 0 002 2h6a2 2 0 002-2l1-12M9 7V5a1 1 0 011-1h4a1 1 0 011 1v2",
+        palomita: "M5 12.5l4.5 4.5L19 7.5",
+        copiar:   "M8 8V5a1 1 0 011-1h10a1 1 0 011 1v10a1 1 0 01-1 1h-3M5 8h10a1 1 0 011 1v10a1 1 0 01-1 1H5a1 1 0 01-1-1V9a1 1 0 011-1z",
+        mas:      "M12 5v14M5 12h14",
+        subir:    "M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1M16 8l-4-4m0 0L8 8m4-4v12",
+        carpeta:  "M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z",
+        documento: "M14 3H6a2 2 0 00-2 2v14a2 2 0 002 2h12a2 2 0 002-2V9zM14 3v6h6",
+        llave:    "M15 7a4 4 0 11-4.9 3.9L3 18v3h3v-2h2v-2h2l1.1-1.1A4 4 0 0115 7z",
+        moneda2:  "M12 3v18M17 7H9.5a3 3 0 000 6h5a3 3 0 010 6H6",
         contraer: "M11 17l-5-5 5-5M18 17l-5-5 5-5",
         calendario: "M8 7V3m8 4V3M4 11h16M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
     };
@@ -1905,6 +1915,9 @@
         grupos: GRUPOS,
         avisoPlan: avisoPlan,
         toast: function (texto) { brindis(esc(texto)); },
+        // Set único de íconos (mismo grosor). Fiscontable.icono("lapiz") → <svg>. Ver /ui/.
+        icono: function (nombre, ancho) { return D[nombre] ? ico(D[nombre], ancho || 1.8).replace("<svg ", '<svg class="ui-ico" aria-hidden="true" ') : ""; },
+        iconos: function () { return Object.keys(D); },
         planInfo: planInfo,
         nombrePlan: nombrePlan,
         recientes: recientes,
