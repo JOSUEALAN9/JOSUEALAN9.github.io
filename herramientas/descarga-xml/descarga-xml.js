@@ -106,7 +106,17 @@
         Array.prototype.forEach.call(sel.options, function (o) { o.disabled = soloVigentes && o.value !== "Vigente"; });
         if (soloVigentes) sel.value = "Vigente";
         sel.title = soloVigentes ? "El SAT solo entrega por web service los XML de recibidas vigentes" : "";
-        $("estado-nota").hidden = !soloVigentes;
+        // Con «Ambas» el estado elegido vale para las emitidas; las recibidas van como vigentes (regla del SAT)
+        $("estado-nota").hidden = !(E.modo === "webservice" && (E.tipo === "recibidos" || (E.tipo === "ambos" && sel.value !== "Vigente")));
+    }
+    $("estado").addEventListener("change", reglaEstado);
+    function etiquetaContraparte() {
+        $("etq-contraparte").innerHTML = (E.tipo === "emitidos" ? "RFC receptor" : E.tipo === "recibidos" ? "RFC emisor" : "RFC contraparte") + ' <span class="dm-opcional">(opcional)</span>';
+    }
+    function pintarTipo() {
+        document.querySelectorAll("#tipo button").forEach(function (x) { x.setAttribute("aria-pressed", x.dataset.tipo === E.tipo ? "true" : "false"); });
+        etiquetaContraparte();
+        reglaEstado();
     }
 
     function ponerModo(modo) {
@@ -116,11 +126,14 @@
             b.setAttribute("aria-selected", b.dataset.modo === modo ? "true" : "false");
         });
         var portal = modo === "portal";
+        // «Ambas» es solo del web service (son dos solicitudes); el portal busca una cosa a la vez
+        document.querySelector('#tipo [data-tipo="ambos"]').hidden = portal;
+        if (portal && E.tipo === "ambos") { E.tipo = "emitidos"; pintarTipo(); }
         $("btn-buscar").hidden = !portal;
-        $("btn-descargar").textContent = portal ? "Buscar y descargar" : "Descargar XML";
+        $("btn-descargar").textContent = portal ? "Buscar y descargar" : "Solicitar descarga";
         $("nota-modo").textContent = portal
             ? "Buscar CFDI trae la lista del portal con su estado; Buscar y descargar baja solo los XML que todavía no están en tu biblioteca. El portal muestra 500 por búsqueda: si hay más, se parte el periodo solo."
-            : "El SAT prepara cada solicitud por su cuenta: puede tardar de minutos a horas. No necesitas dejar esta página abierta; la ves en Solicitudes.";
+            : "El SAT prepara cada solicitud por su cuenta: puede tardar de minutos a horas. No necesitas dejar esta página abierta; la ves abajo, en Solicitudes al SAT.";
         pintarAcceso();
         pintarResumen();
         reglaEstado();
@@ -235,14 +248,7 @@
     /* ================================================================ qué comprobantes */
 
     document.querySelectorAll("#tipo button").forEach(function (b) {
-        b.addEventListener("click", function () {
-            E.tipo = b.dataset.tipo;
-            document.querySelectorAll("#tipo button").forEach(function (x) {
-                x.setAttribute("aria-pressed", x === b ? "true" : "false");
-            });
-            $("etq-contraparte").innerHTML = (E.tipo === "emitidos" ? "RFC receptor" : "RFC emisor") + ' <span class="dm-opcional">(opcional)</span>';
-            reglaEstado();
-        });
+        b.addEventListener("click", function () { E.tipo = b.dataset.tipo; pintarTipo(); });
     });
 
     $("rfc-contraparte").addEventListener("input", function () { this.value = this.value.toUpperCase().replace(/\s/g, ""); });
@@ -261,12 +267,13 @@
         var r = rango();
         if (E.selDesde && r.inicio) E.selDesde.poner("m:" + mesDe(r.inicio));
         if (E.selHasta && r.fin) E.selHasta.poner("m:" + mesDe(r.fin));
-        var p = $("resumen-rango");
-        if (!r.inicio || !r.fin) { p.textContent = "Elige el periodo."; return; }
-        var txt = "Se pedirá del " + fechaBonita(isoLocal(r.inicio), true) + " al " + fechaBonita(isoLocal(r.fin), true);
-        if (r.fin > new Date()) txt += " (el SAT solo tiene hasta este momento)";
-        if (E.modo === "portal" && (r.fin - r.inicio) / 86400000 > 366) txt += ". En el portal busca hasta un año a la vez";
-        p.textContent = txt + ".";
+        var p = $("resumen-rango"), caja = $("dm-periodo");
+        if (!r.inicio || !r.fin) { caja.title = "Elige el periodo."; p.hidden = true; return; }
+        caja.title = "Se pedirá del " + fechaBonita(isoLocal(r.inicio), true) + " al " + fechaBonita(isoLocal(r.fin), true) +
+            (r.fin > new Date() ? " (el SAT solo tiene hasta este momento)" : "") + ".";
+        var largo = E.modo === "portal" && (r.fin - r.inicio) / 86400000 > 366;
+        p.textContent = largo ? "En el portal se busca hasta un año a la vez." : "";
+        p.hidden = !largo;
     }
 
     function aplicarMes(ym) {
@@ -335,7 +342,7 @@
 
     function alLimpiar() {
         E.elegido = null;
-        $("paso-acceso").hidden = $("paso-filtros").hidden = true;
+        $("paso-acceso").hidden = $("paso-filtros").hidden = $("seccion-solicitudes").hidden = true;
         cerrarResultados();
         detenerSondeo();
     }
@@ -364,13 +371,17 @@
             return;
         }
 
+        var tipos = E.tipo === "ambos" ? ["emitidos", "recibidos"] : [E.tipo];
+        var cuerpos = [];
+        for (var ti = 0; ti < tipos.length; ti++) {
         var cuerpo = new FormData();
         cuerpo.append("rfc", E.elegido.rfc);
-        cuerpo.append("tipo", E.tipo);
+        cuerpo.append("tipo", tipos[ti]);
         cuerpo.append("fecha_inicial", isoLocal(r.inicio));
         cuerpo.append("fecha_final", isoLocal(r.fin));
         cuerpo.append("rfc_contraparte", contraparte);
-        cuerpo.append("estado", $("estado").value);
+        // web service: las recibidas solo vigentes (con «Ambas», la de recibidas va así aunque elijas otro estado)
+        cuerpo.append("estado", E.modo === "webservice" && tipos[ti] === "recibidos" ? "Vigente" : $("estado").value);
         cuerpo.append("tipo_comprobante", $("tipo-comprobante").value);
 
         var ruta;
@@ -378,6 +389,8 @@
             ruta = "/api/descarga-xml/solicitar";
             cuerpo.append("modo", "cfdi");
             if (!adjuntarEfirma(cuerpo)) return;
+            cuerpos.push(cuerpo);
+            continue;
         } else {
             ruta = "/api/descarga-xml/portal/solicitar";
             cuerpo.append("modo", modo);
@@ -394,12 +407,17 @@
                 }
             } else if (!adjuntarEfirma(cuerpo)) return;
         }
+        cuerpos.push(cuerpo);
+        }
 
         var botones = [$("btn-buscar"), $("btn-descargar")], texto = boton.textContent;
         botones.forEach(function (b) { b.disabled = true; });
         boton.textContent = "Enviando…";
         try {
-            await api(ruta, { method: "POST", body: cuerpo });
+            for (var ci = 0; ci < cuerpos.length; ci++) {
+                if (cuerpos.length > 1) boton.textContent = "Enviando " + (ci + 1) + " de " + cuerpos.length + "…";
+                await api(ruta, { method: "POST", body: cuerpos[ci] });
+            }
             if (E.modo === "portal" && E.acceso === "ciec") $("ciec").value = "";
             await cargarSolicitudes();
             Fiscontable.refrescarDescargas();
@@ -409,7 +427,7 @@
             toast(E.modo === "portal"
                 ? (conSesion ? "Buscando con la sesión abierta del portal…"
                    : E.acceso === "ciec" ? "Entrando al portal… en un momento te pide el captcha." : "Entrando al portal con la e.firma…")
-                : "Solicitud enviada al SAT.", "Ver solicitudes", abrirCajon);
+                : cuerpos.length > 1 ? "Se enviaron dos solicitudes al SAT: emitidas y recibidas." : "Solicitud enviada al SAT.", "Ver solicitudes", irASolicitudes);
         } catch (e) {
             alerta(e.message || await Fiscontable.leerError(null));
         } finally {
@@ -423,19 +441,11 @@
 
     /* ================================================================ solicitudes (panel lateral) */
 
-    function abrirCajon() {
-        $("velo").hidden = false;
-        $("cajon").hidden = false;
-        $("cajon-cerrar").focus();
+    function irASolicitudes() {
+        $("seccion-solicitudes").hidden = false;
+        $("seccion-solicitudes").scrollIntoView({ behavior: "smooth", block: "start" });
     }
-    function cerrarCajon() {
-        $("velo").hidden = true;
-        $("cajon").hidden = true;
-    }
-    $("btn-solicitudes").addEventListener("click", abrirCajon);
-    $("cajon-cerrar").addEventListener("click", cerrarCajon);
-    $("velo").addEventListener("click", cerrarCajon);
-    document.addEventListener("keydown", function (e) { if (e.key === "Escape" && $("modal-captcha").hidden) cerrarCajon(); });
+    $("btn-solicitudes").addEventListener("click", irASolicitudes);
 
     async function cargarSolicitudes() {
         if (!E.elegido) return;
@@ -465,7 +475,7 @@
             if (activas.length) iniciarSondeo(activas.some(function (s) { return s.origen === "portal"; }) ? 2500 : 5000);
             else detenerSondeo();
         } catch (e) {
-            $("lista-solicitudes").innerHTML = '<p class="dm-vacio">No se pudieron cargar las solicitudes: ' + esc(e.message) + "</p>";
+            tablaSolicitudes().error(e.message, cargarSolicitudes);
         }
     }
 
@@ -508,50 +518,73 @@
         return descripcionCorta(s) + (extra.length ? " · " + extra.join(", ") : "");
     }
 
+    /* Solicitudes en la tabla estándar (estado, avance, fecha, cuántos XML); sus botones van en la última columna */
+    var tSol = null;
+    function tablaSolicitudes() {
+        if (tSol) return tSol;
+        tSol = FCTabla.estandar({
+            contenedor: $("tabla-solicitudes"), id: "descargas_solicitudes", claveFila: "id",
+            catalogo: [
+                { clave: "creado_en", etiqueta: "Fecha", tipo: "fecha" }, { clave: "que", etiqueta: "Solicitud", tipo: "texto" },
+                { clave: "origen_txt", etiqueta: "Por", tipo: "texto" }, { clave: "estado_txt", etiqueta: "Estado", tipo: "texto" },
+                { clave: "avance", etiqueta: "Avance", tipo: "texto" }, { clave: "numero_cfdis", etiqueta: "XML", tipo: "numero" },
+                { clave: "acciones", etiqueta: "", tipo: "texto" }
+            ],
+            predeterminadas: ["creado_en", "que", "origen_txt", "estado_txt", "avance", "numero_cfdis", "acciones"],
+            anchoClave: { que: 290, origen_txt: 110, estado_txt: 150, avance: 210, numero_cfdis: 70, acciones: 200 },
+            celda: function (c, x) {
+                if (c.clave === "estado_txt") return sello(x);
+                if (c.clave === "avance") return '<span title="' + esc(x.avance) + '">' + esc(x.avance) + "</span>";
+                if (c.clave === "acciones") {
+                    var a = "";
+                    if (x.estado === "captcha") a += '<button type="button" class="ui-btn ui-btn--primario ui-btn--28" data-captcha="' + esc(x.id) + '">Escribir el captcha</button>';
+                    if (x.estado === "completado") a += '<button type="button" class="ui-btn ui-btn--primario ui-btn--28" data-ver="' + esc(x.id) + '">Ver resultados</button>';
+                    if (ACTIVOS.indexOf(x.estado) >= 0) a += '<button type="button" class="ui-btn ui-btn--terciario ui-btn--28" data-detener="' + esc(x.id) + '">Detener</button>';
+                    return '<span class="dm-sol__acciones">' + a + "</span>";
+                }
+                return null;
+            },
+            claseFila: function (x) { return ACTIVOS.indexOf(x.estado) >= 0 ? "dm-sol--activa" : ""; },
+            buscar: { texto: "Buscar…", campos: ["que", "avance", "estado_txt"] },
+            rapidos: { clave: "grupo", valores: [{ valor: "curso", etiqueta: "En curso" }, { valor: "listas", etiqueta: "Listas" }, { valor: "otras", etiqueta: "Sin datos o con error" }] },
+            vacio: { titulo: "Sin solicitudes", texto: "Todavía no hay solicitudes para este contribuyente." },
+            alClic: function (x, lista, ev) { accionSolicitud(ev && ev.target.closest("button"), x); }
+        });
+        return tSol;
+    }
+    var ESTADO_TXT = { enviando: "Enviando al SAT", en_sat: "El SAT la prepara", descargando: "Descargando", conectando: "Entrando al portal",
+                       captcha: "Falta el captcha", buscando: "Buscando", completado: "Lista", sin_datos: "Sin comprobantes", error: "Error", cancelado: "Detenida" };
     function pintarSolicitudes() {
-        var caja = $("lista-solicitudes");
         var activas = E.solicitudes.filter(function (s) { return ACTIVOS.indexOf(s.estado) >= 0; }).length;
         $("insignia").hidden = !activas;
         $("insignia").textContent = activas;
         $("cajon-sub").textContent = E.elegido ? (E.elegido.alias || E.elegido.rfc) + " · " + E.elegido.rfc : "";
-        if (!E.solicitudes.length) {
-            caja.innerHTML = '<p class="dm-vacio">Todavía no hay solicitudes para este contribuyente.</p>';
-            return;
-        }
-        caja.innerHTML = E.solicitudes.map(function (s) {
+        $("seccion-solicitudes").hidden = !E.elegido;
+        tablaSolicitudes().ponerDatos(E.solicitudes.map(function (s) {
             var activa = ACTIVOS.indexOf(s.estado) >= 0;
             var detalle = activa ? (s.progreso || s.mensaje || "") : (s.mensaje || "");
             if (s.estado === "descargando" && s.origen !== "portal" && s.paquetes) {
                 detalle = "Paquete " + Math.min(s.paquetes_bajados + 1, s.paquetes) + " de " + s.paquetes + ". " + detalle;
             }
-            var acciones = "";
-            if (s.estado === "captcha") acciones += '<button type="button" class="fc-btn fc-btn--principal" data-captcha="' + esc(s.id) + '">Escribir el captcha</button>';
-            if (s.estado === "completado") acciones += '<button type="button" class="fc-btn fc-btn--principal" data-ver="' + esc(s.id) + '">Ver resultados</button>';
-            if (activa) acciones += '<button type="button" class="fc-btn fc-btn--discreto" data-detener="' + esc(s.id) + '">Detener</button>';
-            return '<div class="dm-sol' + (activa ? " dm-sol--activa" : "") + '">' +
-                '<div class="dm-sol__fila"><span class="dm-sol__titulo"><span class="dm-sol__origen">' + esc(origenTexto(s)) + "</span>" +
-                esc(descripcion(s)) + "</span>" + sello(s) + "</div>" +
-                '<div class="dm-sol__detalle">' + esc(detalle) + ' <span style="opacity:.7">· ' + esc(cuandoFue(s.creado_en)) + "</span></div>" +
-                (acciones ? '<div class="dm-sol__acciones">' + acciones + "</div>" : "") + "</div>";
-        }).join("");
+            return Object.assign({}, s, { que: descripcion(s), origen_txt: origenTexto(s), estado_txt: ESTADO_TXT[s.estado] || s.estado, avance: detalle,
+                                          grupo: activa ? "curso" : s.estado === "completado" ? "listas" : "otras" });
+        }));
     }
 
-    $("lista-solicitudes").addEventListener("click", async function (e) {
-        var ver = e.target.closest("[data-ver]");
-        if (ver) { cerrarCajon(); verResultados(ver.dataset.ver); return; }
-        var cap = e.target.closest("[data-captcha]");
-        if (cap) {
-            var s = E.solicitudes.find(function (x) { return x.id === cap.dataset.captcha; });
+    async function accionSolicitud(b, x) {
+        if (!b) { if (x.estado === "completado") verResultados(x.id); return; }
+        if (b.dataset.ver) { verResultados(b.dataset.ver); return; }
+        if (b.dataset.captcha) {
+            var s = E.solicitudes.find(function (y) { return y.id === b.dataset.captcha; });
             if (s) { E.captcha = { id: null, turno: null, enviado: false }; mostrarCaptcha(s); }
             return;
         }
-        var det = e.target.closest("[data-detener]");
-        if (det) {
-            det.disabled = true;
-            det.textContent = "Deteniendo…";
-            await detener(det.dataset.detener);
+        if (b.dataset.detener) {
+            b.disabled = true;
+            b.textContent = "Deteniendo…";
+            await detener(b.dataset.detener);
         }
-    });
+    }
 
     async function detener(id) {
         try {
