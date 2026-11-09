@@ -4,130 +4,69 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Voucheo | Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611110200">
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611110200">
-    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611110200">
+    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611110300">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611110300">
+    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611110300">
     <style>
-        .vo-ficha { padding: 6px 20px 20px; }
-        .vo-pestanas { margin-bottom: 16px; }
-        .vo-bloque { margin-bottom: 14px; display: flex; flex-direction: column; gap: 6px; }
-        .vo-bloque .ctx-segmento label { cursor: pointer; }
-        .vo-bloque .ctx-segmento span { display: inline-block; padding: 7px 14px; border-radius: 9px; font-size: 13px; font-weight: 700; }
-        .vo-bloque .ctx-segmento span[aria-pressed="true"] { background: rgb(var(--g-0)); box-shadow: 0 1px 3px rgba(15,23,42,.15); }
-        .vo-form { gap: 14px; }
-        .vo-form .ficha__nota { margin: 0; }
-        .vo-form > div { display: flex; flex-direction: column; gap: 6px; }
+        .vo-rejilla { display: grid; gap: var(--e-4); grid-template-columns: minmax(0, 1fr); margin-bottom: var(--e-5); }
+        @media (min-width: 980px) { .vo-rejilla { grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); } }
+        .vo-tarjeta { display: flex; flex-direction: column; gap: var(--e-3); }
+        .vo-tarjeta h2 { font-size: var(--t-16); font-weight: 700; margin: 0; }
+        .vo-tarjeta p { margin: 0; font-size: var(--t-13); color: rgb(var(--g-600)); line-height: 1.5; }
+        .vo-fila { display: flex; flex-wrap: wrap; gap: var(--e-2); align-items: center; }
+        .vo-fila select { height: 36px; width: auto; }
+        .vo-fila #vo-empresa { flex: 1 1 200px; min-width: 0; }
+        .vo-resultado { margin-bottom: var(--e-5); }
+        .vo-resultado ul { margin: 6px 0 0; padding-left: 18px; font-size: var(--t-13); line-height: 1.6; }
+        .vo-resultado h3 { font-size: var(--t-14); font-weight: 700; margin: 0; }
+        .vo-meses { display: inline-flex; flex-wrap: wrap; gap: 3px; }
+        .vo-mes { font-size: 11px; font-weight: 600; padding: 1px 6px; border-radius: 999px; background: rgb(var(--g-100)); color: rgb(var(--g-500)); }
+        .vo-mes--si { background: rgb(var(--ok-50)); color: rgb(var(--ok-700)); }
+        .vo-acciones { display: inline-flex; gap: 6px; }
     </style>
 </head>
-<body class="min-h-screen flex flex-col relative">
+<body class="min-h-screen flex flex-col">
+<div id="app-header" data-modulo="voucheo" data-titulo="Voucheo" data-migas="Herramientas|/herramientas/"></div>
+<script src="/assets/js/nucleo.js?v=202611110300"></script>
+<script src="/assets/js/barra.js?v=202611110300"></script>
 
-    <!-- TOP NAV -->
-    <div id="app-header" data-modulo="voucheo" data-titulo="Voucheo" data-migas="Herramientas|/herramientas/"></div>
-<script src="/assets/js/nucleo.js?v=202611110200"></script>
-<script src="/assets/js/barra.js?v=202611110200"></script>
+<main class="flex-grow mod-pagina">
+    <div class="mod-cabeza"><h1>Voucheo</h1></div>
 
-    <!-- ÁREA DE TRABAJO -->
-    <main class="flex-grow mod-pagina mod-pagina--angosta">
-        <div class="mod-cabeza"><h1>Voucheo</h1>
-            <div class="mod-cabeza__acciones"><button type="button" onclick="limpiarFormularios()" class="fc-btn">Limpiar</button></div>
+    <div id="vo-cuerpo" hidden>
+        <!-- Cada empresa tiene su papel de trabajo por año: se guarda aquí y cada acuse nuevo se carga encima -->
+        <div class="vo-rejilla">
+            <section class="ui-tarjeta vo-tarjeta">
+                <h2>Agregar acuses</h2>
+                <p>Suelta los acuses en PDF (estatales de Quintana Roo o BCS). Cada uno se carga en el papel de trabajo de su empresa y año; si todavía no existe, se crea. Tu captura bancaria del Excel no se toca.</p>
+                <div id="vo-zona"></div>
+            </section>
+            <section class="ui-tarjeta vo-tarjeta">
+                <h2>Con lo guardado en Impuestos estatales</h2>
+                <p>Carga en el papel los acuses que ya están guardados en Impuestos estatales para esa empresa y año.</p>
+                <div class="vo-fila">
+                    <select id="vo-empresa" class="ui-select" aria-label="Empresa"></select>
+                    <select id="vo-anio" class="ui-select" aria-label="Año"></select>
+                    <button type="button" id="vo-estatales" class="ui-btn ui-btn--secundario">Actualizar</button>
+                </div>
+                <details>
+                    <summary class="xml-enlace">¿Ya tienes tu Excel con captura bancaria?</summary>
+                    <p style="margin-top:8px">Súbelo y queda como el papel guardado de esa empresa y año. Los acuses nuevos se cargarán sobre él.</p>
+                    <div id="vo-zona-excel" style="margin-top:8px"></div>
+                </details>
+            </section>
         </div>
-        <div>
-        <div class="ficha vo-ficha">
 
-            <!-- Pestañas Fiscontable Style -->
-            <div id="tabs-container" class="pestanas vo-pestanas" role="tablist">
-                <button type="button" id="tab-nuevo" onclick="switchTab('nuevo')" class="pestana pestana--activa">Nuevo ejercicio</button>
-                <button type="button" id="tab-actualizar" onclick="switchTab('actualizar')" class="pestana">Actualizar archivo</button>
-            </div>
-            <!-- PANEL DE BLOQUEO DE PERMISOS -->
-            <div id="panel-bloqueo" class="hidden p-8 flex-col items-center text-center gap-3">
-                <svg class="w-12 h-12 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
-                <p id="panel-bloqueo-texto" class="text-sm text-slate-600 max-w-md"></p>
-                <a href="/herramientas/" class="mt-2 bg-slate-800 hover:bg-slate-700 text-white font-bold py-2.5 px-6 rounded-lg transition text-sm">Volver</a>
-            </div>
+        <section id="vo-resultado" class="ui-aviso vo-resultado" hidden></section>
 
-            <div id="alert-container" class="hidden px-6 pt-4">
-                <div id="alert-message" class="p-4 rounded-lg text-sm font-semibold flex items-start gap-2"></div>
-            </div>
+        <h2 class="mod-subtitulo" style="font-size:var(--t-16);font-weight:700;margin:0 0 var(--e-3)">Papeles de trabajo</h2>
+        <div id="vo-tabla"></div>
+        <p class="xml-tenue" style="font-size:12px;margin-top:10px">Los papeles de trabajo no se borran solos. El voucheo federal llega después.</p>
+    </div>
+</main>
 
-            <!-- PANEL DE RESULTADO: qué se procesó, qué se omitió, y descarga -->
-            <div id="panel-resultado" class="hidden px-6 pt-4 flex-col gap-4 fade-in">
-                <div class="bg-white border-2 border-green-200 rounded-lg p-4">
-                    <div class="flex items-center justify-between gap-3 flex-wrap">
-                        <div>
-                            <p class="text-xs font-bold text-slate-500 uppercase tracking-wide">Papel de trabajo</p>
-                            <p id="resultado-nombre-archivo" class="text-sm font-bold text-slate-800"></p>
-                        </div>
-                        <a id="btn-descargar-resultado" href="#" class="bg-green-600 hover:bg-green-500 text-white font-bold py-2 px-4 rounded-lg text-sm flex items-center gap-2 transition">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-                            Descargar
-                        </a>
-                    </div>
-                </div>
-
-                <div id="resultado-procesados-wrap" class="hidden">
-                    <p class="text-xs font-bold text-slate-600 uppercase tracking-wide mb-2">
-                        ✅ Se cargaron <span id="resultado-procesados-count"></span> acuse(s)
-                    </p>
-                    <ul id="resultado-procesados-lista" class="text-xs text-slate-700 space-y-1.5"></ul>
-                </div>
-
-                <div id="resultado-omitidos-wrap" class="hidden">
-                    <p class="text-xs font-bold text-amber-700 uppercase tracking-wide mb-2">
-                        ⚠️ No se cargaron <span id="resultado-omitidos-count"></span> archivo(s)
-                    </p>
-                    <ul id="resultado-omitidos-lista" class="text-xs text-amber-800 space-y-1.5"></ul>
-                </div>
-            </div>
-
-            <!-- Selector de Impuesto (Aplica para ambas pestañas) -->
-            <div id="selector-impuesto" class="vo-bloque">
-                <span class="campo__etiqueta">Impuestos</span>
-                <div class="ctx-segmento" role="group" aria-label="Tipo de impuestos">
-                    <label><input type="radio" name="tipo_impuesto" value="estatal" checked hidden><span aria-pressed="true">Estatales</span></label>
-                    <label title="Todavía no disponible"><input type="radio" name="tipo_impuesto" value="federal" disabled hidden><span aria-pressed="false" style="opacity:.5">Federales · próximamente</span></label>
-                </div>
-            </div>
-            <!-- MODO: NUEVO EJERCICIO -->
-            <form id="form-nuevo" class="vo-form flex flex-col" onsubmit="procesarVoucheo(event, 'nuevo')">
-                <p class="ficha__nota">Sube los acuses PDF del SAT o Tribut@Net.</p>
-
-                <div>
-                    <span class="campo__etiqueta">Acuses PDF</span>
-                    <input type="file" id="pdf_nuevo" accept=".pdf" multiple required class="campo__archivo">
-                </div>
-
-                <div class="mt-2">
-                    <button type="submit" id="btn-nuevo" class="boton-principal">
-                        Generar Papel de Trabajo
-                    </button>
-                </div>
-            </form>
-
-           <!-- MODO: ACTUALIZAR ARCHIVO -->
-            <form id="form-actualizar" class="vo-form hidden flex-col" onsubmit="procesarVoucheo(event, 'actualizar')">
-                <p class="ficha__nota">Elige tu papel de trabajo (.xlsx) y los acuses nuevos. Tu captura bancaria no se toca.</p>
-
-                <div>
-                    <span class="campo__etiqueta">Tu Archivo Excel Actual</span>
-                    <input type="file" id="excel_actualizar" accept=".xlsx" required class="campo__archivo">
-                </div>
-
-                <div>
-                    <span class="campo__etiqueta">Nuevos Acuses PDF</span>
-                    <input type="file" id="pdf_actualizar" accept=".pdf" multiple required class="campo__archivo">
-                </div>
-
-                <div class="mt-2">
-                    <button type="submit" id="btn-actualizar" class="boton-principal">
-                        Actualizar Papel de Trabajo
-                    </button>
-                </div>
-            </form>
-        </div>
-        </div>
-    </main>
-
-<script src="/herramientas/voucheo/voucheo.js?v=202611110200"></script>
+<script src="/assets/js/comun/tabla.js?v=202611110300"></script>
+<script src="/assets/js/comun/zona-archivos.js?v=202611110300"></script>
+<script src="/herramientas/voucheo/voucheo.js?v=202611110300"></script>
 </body>
 </html>

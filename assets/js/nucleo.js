@@ -14,7 +14,7 @@
 (function () {
     "use strict";
 
-    var VERSION = "202611110200";
+    var VERSION = "202611110300";
     // Ambiente de pruebas (pruebas.josuealan.com, solo para el dueño): habla con su propio servidor de pruebas
     var PRUEBAS = /^pruebas\./.test(location.hostname);
     var API = PRUEBAS ? "https://api-pruebas.josuealan.com" : "https://api.josuealan.com";
@@ -30,6 +30,11 @@
         var d = null;
         try { d = await resp.json(); } catch (e) { /* sin cuerpo JSON */ }
         var detalle = d && typeof d.detail === "string" ? d.detail : "";
+        // {detail: {mensaje, omitidos: [{archivo, motivo}]}}: el mensaje y el primer motivo
+        if (!detalle && d && d.detail && typeof d.detail.mensaje === "string")
+            detalle = d.detail.mensaje + (d.detail.omitidos && d.detail.omitidos.length ? " " + d.detail.omitidos.slice(0, 3).map(function (o) {
+                return (o.archivo ? o.archivo + ": " : "") + (o.motivo || "");
+            }).join(" · ") : "");
         // 401/403 del inicio de sesión (Access) = sesión vencida; otros 403 traen su motivo (plan, sesión cerrada…)
         if (resp.status === 401 || (resp.status === 403 && (!detalle || /token de (cloudflare )?access|access no trae/i.test(detalle))))
             return "Tu sesión expiró. Recarga la página para entrar otra vez.";

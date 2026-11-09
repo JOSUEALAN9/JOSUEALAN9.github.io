@@ -291,9 +291,36 @@
 
     function pintarPlan(c) {
         var vence = perfil.fecha_expira ? new Date(perfil.fecha_expira).toLocaleDateString("es-MX", { day: "numeric", month: "long", year: "numeric" }) : "Sin vencimiento";
-        c.innerHTML = '<div class="cf-tarjeta"><dl class="cf-datos"><dt>Plan</dt><dd>' + esc(perfil.plan_nombre || perfil.rol || "—") + "</dd>" +
+        var pc = perfil.plan_comercial, info = perfil.planes || {}, cat = info.catalogo, contacto = info.contacto || {};
+        var precio = function (v) { return "$" + Number(v || 0).toLocaleString("es-MX", { maximumFractionDigits: 0 }); };
+        var quiero = function (texto) {
+            var b = "";
+            if (contacto.whatsapp) b += '<a class="cf-btn cf-btn--principal" target="_blank" rel="noopener" href="https://wa.me/' + esc(contacto.whatsapp) + "?text=" + encodeURIComponent(texto) + '">WhatsApp</a>';
+            if (contacto.correo) b += '<a class="cf-btn" href="mailto:' + esc(contacto.correo) + "?subject=" + encodeURIComponent("Plan de Fiscontable") + "&body=" + encodeURIComponent(texto) + '">Correo</a>';
+            return b || '<span class="cf-texto">' + esc(contacto.texto || "Contacta al administrador.") + "</span>";
+        };
+        var html = '<div class="cf-tarjeta"><dl class="cf-datos"><dt>Plan</dt><dd>' + esc(pc ? pc.nombre : (perfil.plan_nombre || perfil.rol || "—")) + "</dd>" +
+            (pc ? "<dt>Empresas</dt><dd>" + pc.empresas_usadas + " de " + pc.empresas + "</dd><dt>Timbres al mes</dt><dd>" + pc.timbres + "</dd>" : "") +
             "<dt>Vigencia</dt><dd>" + esc(vence) + "</dd><dt>Módulos</dt><dd>" + esc(String((perfil.modulos_permitidos || []).length)) + " activos</dd></dl>" +
             '<a class="cf-btn cf-btn--principal" href="/creditos/"' + (incrustado ? ' target="_top"' : "") + ">Ver y recargar créditos</a></div>";
+        if (cat && cat.planes && cat.planes.length) {
+            html += '<h3 class="cf-subtitulo">Planes</h3><div class="cf-planes">' + cat.planes.map(function (p) {
+                var actual = pc && pc.clave === p.clave;
+                return '<div class="cf-plan' + (p.destacado ? " cf-plan--destacado" : "") + (actual ? " cf-plan--actual" : "") + '">' +
+                    (actual ? '<span class="cf-plan__marca">Tu plan</span>' : p.destacado ? '<span class="cf-plan__marca">Recomendado</span>' : "") +
+                    "<h4>" + esc(p.nombre) + "</h4><small>" + esc(p.para || "") + "</small>" +
+                    '<p class="cf-plan__precio"><b>' + precio(p.precio) + "</b> al mes</p>" +
+                    '<p class="cf-plan__anual">o ' + precio(p.precio_anual) + " al año" + (cat.meses_gratis_anual ? " (" + cat.meses_gratis_anual + " meses gratis)" : "") + "</p>" +
+                    "<ul><li><b>" + p.empresas + "</b> empresas (RFC)</li><li><b>" + Number(p.timbres).toLocaleString("es-MX") + "</b> timbres al mes</li></ul>" +
+                    (actual ? "" : '<div class="cf-plan__acciones">' + quiero("Hola, me interesa el plan " + p.nombre + " de Fiscontable (" + (perfil.correo || "") + ").") + "</div>") + "</div>";
+            }).join("") + "</div>";
+            if ((cat.incluye || []).length) html += '<p class="cf-texto cf-plan-incluye"><b>Todos incluyen:</b> ' + cat.incluye.map(esc).join(" · ") + ".</p>";
+            if ((cat.timbres || []).length) html += '<h3 class="cf-subtitulo">Timbres extra</h3><div class="cf-timbres">' + cat.timbres.map(function (t) {
+                return '<div class="cf-timbre"><b>' + Number(t.timbres).toLocaleString("es-MX") + "</b> timbres<span>" + precio(t.precio) + "</span><small>" +
+                    "$" + (t.precio / t.timbres).toFixed(2) + " cada uno</small></div>";
+            }).join("") + "</div>";
+        }
+        c.innerHTML = html;
     }
 
     /* ---------- Buzón tributario ---------- */

@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visor de impuestos · Fiscontable</title>
+    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611110300">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611110300">
+    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611110300">
+    <style>
+        .vi-cabeza { display: flex; flex-wrap: wrap; gap: var(--e-3); align-items: center; margin-bottom: var(--e-4); }
+        .vi-cabeza h1 { margin: 0; }
+        .vi-cabeza__der { margin-left: auto; display: flex; gap: var(--e-2); align-items: center; flex-wrap: wrap; }
+        .vi-cabeza__der .ui-select { width: auto; min-width: 96px; }
+        .vi-tarjetas { display: grid; gap: var(--e-3); grid-template-columns: minmax(0, 1fr); margin-bottom: var(--e-4); }
+        @media (min-width: 560px) { .vi-tarjetas { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+        @media (min-width: 900px) { .vi-tarjetas { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+        .vi-cifra { padding: var(--e-4); border: 1px solid var(--linea); border-radius: var(--r-tarjeta); background: rgb(var(--g-0)); display: grid; gap: 4px; position: relative; overflow: hidden; }
+        .vi-cifra::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: rgb(var(--ac-600)); }
+        .vi-cifra--gasto::before { background: rgb(var(--g-400)); }
+        .vi-cifra small { font-size: var(--t-12); color: rgb(var(--g-600)); }
+        .vi-cifra b { font-size: var(--t-24); font-weight: 700; color: rgb(var(--g-900)); font-variant-numeric: tabular-nums; line-height: 1.2; }
+        .vi-cifra span { font-size: var(--t-12); color: rgb(var(--g-500)); }
+        .vi-barra { height: 6px; border-radius: 999px; background: rgb(var(--g-100)); overflow: hidden; margin-top: 4px; }
+        .vi-barra i { display: block; height: 100%; background: rgb(var(--ac-600)); }
+        .vi-grafica { margin-bottom: var(--e-4); padding: var(--e-4); border: 1px solid var(--linea); border-radius: var(--r-tarjeta); background: rgb(var(--g-0)); }
+        .vi-grafica__titulo { display: flex; gap: var(--e-4); align-items: center; flex-wrap: wrap; font-size: var(--t-13); color: rgb(var(--g-600)); margin-bottom: var(--e-3); }
+        .vi-grafica__titulo b { color: rgb(var(--g-900)); font-size: var(--t-14); }
+        .vi-ley { display: inline-flex; align-items: center; gap: 6px; }
+        .vi-ley i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+        .vi-cols { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 6px; align-items: end; height: 150px; }
+        .vi-col { display: flex; gap: 2px; align-items: end; height: 100%; cursor: pointer; border-radius: 6px; padding: 0 2px; }
+        .vi-col:hover { background: rgb(var(--g-50)); }
+        .vi-col i { flex: 1; border-radius: 3px 3px 0 0; min-height: 1px; }
+        .vi-meses { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 6px; font-size: 11px; color: rgb(var(--g-500)); text-align: center; margin-top: 4px; }
+        .c-fact { background: rgb(var(--g-300)); } .c-cobr { background: rgb(var(--ac-600)); }
+        .vi-nota { font-size: 12px; color: rgb(var(--g-500)); margin-top: var(--e-3); line-height: 1.5; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+<div id="app-header" data-modulo="visores" data-titulo="Visor de impuestos" data-migas="Herramientas|/herramientas/"></div>
+<script src="/assets/js/nucleo.js?v=202611110300"></script>
+<script src="/assets/js/barra.js?v=202611110300"></script>
+
+<main class="flex-grow mod-pagina" style="max-width:none">
+    <div class="vi-cabeza mod-cabeza">
+        <h1>Visor de impuestos</h1>
+        <div class="vi-cabeza__der">
+            <div class="ctx-segmento" id="vi-lado" role="group" aria-label="Lado">
+                <button type="button" data-lado="ingresos" aria-pressed="true">Ingresos</button>
+                <button type="button" data-lado="egresos" aria-pressed="false">Gastos</button>
+            </div>
+            <select id="vi-anio" class="ui-select" aria-label="Año"></select>
+            <a class="ui-btn ui-btn--secundario" href="https://ptcvisorcfdiingegr.clouda.sat.gob.mx/" target="_blank" rel="noopener" title="Visor de comprobantes de ingresos y egresos del SAT (se entra con la e.firma o la contraseña)">Visor del SAT ↗</a>
+        </div>
+    </div>
+
+    <div id="vi-sin" class="ctx-vacio" hidden></div>
+    <div id="vi-cuerpo" hidden>
+        <div id="vi-tarjetas" class="vi-tarjetas"></div>
+        <div id="vi-grafica" class="vi-grafica"></div>
+        <div id="vi-tabla"></div>
+        <p class="vi-nota">Facturado: por fecha de emisión (PUE y PPD), sin IVA, menos notas de crédito. Cobrado y pagado: flujo de efectivo, igual que el Papel de trabajo de IVA (PUE del mes + complementos por fecha de pago − notas). Lo cancelado y la nómina no cuentan. Para que cuadre con el visor del SAT, ten al día la descarga de XML y la validación.</p>
+    </div>
+</main>
+
+<script src="/assets/js/comun/tabla.js?v=202611110300"></script>
+<script src="/herramientas/visores/visores.js?v=202611110300"></script>
+</body>
+</html>
