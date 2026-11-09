@@ -4,9 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611101200">
-    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611101200">
-    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611101200">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611101300">
+    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611101300">
+    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611101300">
 </head>
 <body class="min-h-screen flex flex-col">
 
@@ -50,7 +50,9 @@
 <style>
     .tb-pagina { max-width: none; }
     /* Tablero: indicadores arriba, tabla a todo lo ancho y, en pantallas anchas, vencimientos y actividad a la derecha */
-    .tb-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: var(--e-3); margin-bottom: var(--e-4); }
+    .tb-kpis { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--e-3); margin-bottom: var(--e-4); }
+    @media (min-width: 760px) { .tb-kpis { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+    @media (min-width: 1600px) { .tb-kpis { grid-template-columns: repeat(8, minmax(0, 1fr)); } }
     .tb-kpi { display: grid; gap: 2px; padding: var(--e-3) var(--e-4); border: 1px solid var(--linea); border-radius: var(--r-tarjeta); background: rgb(var(--g-0));
               text-align: left; font: inherit; color: inherit; cursor: pointer; position: relative; overflow: hidden; }
     .tb-kpi::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: rgb(var(--g-200)); }
@@ -64,11 +66,13 @@
     .tb-kpi--cero { opacity: .6; }
     .tb-kpi--activo { border-color: rgb(var(--ac-600)); box-shadow: 0 0 0 1px rgb(var(--ac-600)); }
     .tb-cuerpo { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--e-4); align-items: start; }
-    @media (min-width: 1440px) { .tb-cuerpo { grid-template-columns: minmax(0, 1fr) 320px; } }
+    @media (min-width: 1700px) { .tb-cuerpo { grid-template-columns: minmax(0, 1fr) 320px; } }
+    @media (min-width: 900px) and (max-width: 1699px) { .tb-lado { grid-template-columns: 1fr 1fr; } }
     .tb-lado { display: grid; gap: var(--e-3); }
     .tb-nota { font-size: 12px; margin: 8px 0 0; }
     .tb-tabla .xml-tabla { min-width: 100%; }
-    .tb-tabla .xml-tabla-caja { min-height: 0; max-height: calc(100vh - 330px); }
+    /* La tabla crece con sus filas (la página es la que se desplaza); solo con muchas empresas tiene su propio scroll */
+    .tb-tabla .xml-tabla-caja { height: auto; min-height: 0; max-height: calc(100vh - 120px); flex: none; }
     .tb-motivos { display: inline-flex; flex-wrap: nowrap; gap: 4px; overflow: hidden; }
     .tb-motivo { font-size: 11.5px; font-weight: 600; padding: 2px 8px; border-radius: 999px; white-space: nowrap; }
     .tb-motivo--error { background: rgb(var(--er-50)); color: rgb(var(--er-700)); }
@@ -123,9 +127,9 @@
     .tb-pasos small { color: rgb(var(--g-500)); }
 </style>
 
-<script src="/assets/js/nucleo.js?v=202611101200"></script>
-<script src="/assets/js/barra.js?v=202611101200"></script>
-<script src="/assets/js/comun/tabla.js?v=202611101200"></script>
-<script src="/assets/js/inicio.js?v=202611101200"></script>
+<script src="/assets/js/nucleo.js?v=202611101300"></script>
+<script src="/assets/js/barra.js?v=202611101300"></script>
+<script src="/assets/js/comun/tabla.js?v=202611101300"></script>
+<script src="/assets/js/inicio.js?v=202611101300"></script>
 </body>
 </html>
