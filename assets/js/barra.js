@@ -2236,7 +2236,8 @@
     function bloquearPantalla(desdeServidor) {
         if (bloqueo.activa) return;
         bloqueo.activa = true;
-        ponerLS(LLAVE_BLOQ, "1");
+        // La marca dice de qué inicio de sesión es: si luego entras de nuevo con tu correo, ya no aplica
+        ponerLS(LLAVE_BLOQ, "1:" + (bloqueo.sesion || ""));
         pintarCapa();
         if (!desdeServidor && bloqueo.pin) fetch(API + "/api/mi-perfil/pin/bloquear", { method: "POST", credentials: "include" }).catch(function () {});
     }
@@ -2257,6 +2258,18 @@
             ponerLS(LLAVE_BLOQ, null); ultimaMarca = 0; quitarCapa(); marcarActividad();
         } catch (e) { msj.textContent = "No se pudo conectar. Intenta de nuevo."; }
     }
+    // La marca es de otro inicio de sesión (o del formato viejo, sin sesión)
+    function marcaVieja(marca) {
+        if (!bloqueo.sesion) return false;
+        return marca.indexOf("1:") !== 0 || marca.slice(2) !== bloqueo.sesion;
+    }
+    // Tras tener que volver a entrar por no tener PIN: ofrecer crearlo para la próxima vez
+    function sugerirPin() {
+        aviso("Tu pantalla se bloqueó por inactividad y tuviste que volver a entrar. Crea un PIN y la próxima vez la desbloqueas al momento, sin salir.", [
+            { texto: "Crear mi PIN", accion: function () { ocultarAviso(); abrirConfiguracion("perfil", "pin"); } },
+            { texto: "Ahora no", accion: ocultarAviso }
+        ]);
+    }
     function revisarInactividad() {
         if (!bloqueo.listo) return;
         var ultima = +(leerLS(LLAVE_ACT) || 0) || ultimaMarca || Date.now(), quieto = Date.now() - ultima;
@@ -2267,21 +2280,30 @@
         var b = p && p.bloqueo;
         if (!b || document.documentElement.classList.contains("fc-incrustado")) return;
         bloqueo.minutos = b.minutos || 15; bloqueo.horas = b.horas_cierre || 8; bloqueo.pin = !!b.tiene_pin;
+        if (!bloqueo.listo) {
+            bloqueo.sesion = p._sesion || "";
+            // Bloqueada en un inicio de sesión anterior y ya volviste a entrar con tu correo: se quita la marca
+            var marca = leerLS(LLAVE_BLOQ);
+            if (marca && !p.pantalla_bloqueada && marcaVieja(marca)) {
+                ponerLS(LLAVE_BLOQ, null); ponerLS(LLAVE_ACT, null); quitarCapa();
+                if (!bloqueo.pin) setTimeout(sugerirPin, 600);
+            }
+        }
         if (bloqueo.activa) pintarCapa();
         if (bloqueo.listo) return;
         bloqueo.listo = true;
-        if (p.pantalla_bloqueada || leerLS(LLAVE_BLOQ) === "1") bloquearPantalla(!!p.pantalla_bloqueada);
+        if (p.pantalla_bloqueada || leerLS(LLAVE_BLOQ)) { bloqueo.activa = false; bloquearPantalla(!!p.pantalla_bloqueada); }
         else { ultimaMarca = 0; marcarActividad(); }
         ["pointerdown", "keydown", "wheel", "touchstart", "mousemove"].forEach(function (ev) { document.addEventListener(ev, marcarActividad, { passive: true }); });
         setInterval(revisarInactividad, 15000);
         // Las demás pestañas: si una se bloquea o se desbloquea, todas igual
         window.addEventListener("storage", function (e) {
             if (e.key !== LLAVE_BLOQ) return;
-            if (e.newValue === "1") bloquearPantalla(true); else quitarCapa();
+            if (e.newValue) bloquearPantalla(true); else quitarCapa();
         });
     }
     // Recargar con la pantalla bloqueada no la abre: la capa sale antes que cualquier dato
-    if (leerLS(LLAVE_BLOQ) === "1" && !document.documentElement.classList.contains("fc-incrustado")) {
+    if (leerLS(LLAVE_BLOQ) && !document.documentElement.classList.contains("fc-incrustado")) {
         bloqueo.activa = true;
         document.addEventListener("DOMContentLoaded", pintarCapa);
         if (document.readyState !== "loading") pintarCapa();
