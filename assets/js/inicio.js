@@ -31,7 +31,9 @@
         var r = o.resultado || "Consultada";
         if (o.del_mes === false) return sello(/Negativa|No inscrito/.test(r) ? "error" : "aviso", "Falta la de " + o.mes_actual) +
             ' <small class="xml-tenue">la de ' + esc(o.mes) + ": " + esc(r.toLowerCase()) + "</small>";
-        return sello(r === "Positiva" || r === "Inscrito sin obligaciones" ? "ok" : r === "Consultada" ? "aviso" : "error", r) + ' <small class="xml-tenue">' + esc(fecha(o.fecha)) + "</small>";
+        var porque = (o.motivos || []).length ? ' title="' + esc("Por qué: " + o.motivos.join(" · ")) + '"' : "";
+        return '<span' + porque + ">" + sello(r === "Positiva" || r === "Inscrito sin obligaciones" ? "ok" : r === "Consultada" || /suspensi/i.test(r) ? "aviso" : "error", r) +
+            ' <small class="xml-tenue">' + esc((o.motivos || []).length ? o.motivos[0].split(":")[0].slice(0, 60) + "…" : fecha(o.fecha)) + "</small></span>";
     }
     function celdaConstancia(c) {
         if (!c) return sello("nada", "Sin constancia");
