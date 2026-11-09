@@ -1524,14 +1524,14 @@ document.addEventListener("DOMContentLoaded", () => {
             const d = await r.json(), s = d.resumen;
             zona.estado("ok", `✓ ${s.actualizado} actualizado(s), ${s.alta} alta(s) nueva(s)` + (s.omitido ? `, ${s.omitido} omitido(s)` : "") + (s.error ? `, ${s.error} con error` : "") + ".");
             document.getElementById("cs-resultado").innerHTML = '<table class="cf-tabla" style="width:100%"><tbody>' + d.resultados.map(x =>
-                `<tr><td><b>${esc(x.nombre || x.archivo)}</b><br><small class="xml-tenue">${esc(x.rfc || "")}</small></td>` +
+                `<tr><td><b>${esc(x.nombre || x.archivo)}</b><br><small class="xml-tenue">${esc((x.rfc || "") + (x.tipo ? " · " + (x.tipo === "csf" ? "constancia" : "opinión") : "") + (x.fecha ? " del " + x.fecha.split("-").reverse().join("/") : ""))}</small></td>` +
                 `<td>${esc(estados[x.estado] || x.estado)}${x.mensaje ? `<br><small class="xml-tenue">${esc(x.mensaje)}</small>` : ""}</td>` +
                 `<td style="text-align:right">${x.obligaciones != null ? (x.mensuales ? x.mensuales + " mensuales" : "sin declaración mensual") : ""}</td></tr>`).join("") + "</tbody></table>";
             await cargarClientes();
         } catch (e) { zona.estado("error", e.message); }
     }
     b.addEventListener("click", () => {
-        if (!zona) zona = FCZona.crear(document.getElementById("cs-zona"), { acepta: ".pdf", varios: true, titulo: "Suelta aquí las constancias (PDF)", detalle: "o haz clic para elegirlas; hasta 200 a la vez", alElegir: leer });
+        if (!zona) zona = FCZona.crear(document.getElementById("cs-zona"), { acepta: ".pdf", varios: true, titulo: "Suelta aquí las constancias y opiniones (PDF)", detalle: "o haz clic para elegirlas; hasta 300 a la vez", alElegir: leer });
         document.getElementById("cs-resultado").innerHTML = ""; zona.estado("", "");
         dlg.showModal();
     });
