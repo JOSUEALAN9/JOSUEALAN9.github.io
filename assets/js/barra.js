@@ -1869,6 +1869,7 @@
         pintarVerComo(p);
         pintarAmbiente(p);
         cargarTextos();
+        cargarPlazos();
         esAdminActual = p.rol === "admin" && !p.viendo_como;
         document.dispatchEvent(new CustomEvent("fc:perfil", { detail: p }));
     }
@@ -1934,6 +1935,24 @@
        El admin cambia las guías de cada módulo (clave "ayuda.<módulo>", una línea por paso) y cualquier elemento con
        data-texto="clave". Se piden una vez por sesión del navegador (5 min) y se aplican encima de los de fábrica. */
     var textosWeb = {};
+    /* ------------------------------------------------- plazos de guardado (C-01): lo que el admin configuró, no un número fijo
+       Fiscontable.textoPlazo("xml_sin_registrar") → "7 días" · "1 año". Los elementos con data-plazo="clave" se llenan solos. */
+    var PLAZOS = { procesos: 7, descargas_sat: 30, documentos: 30, reutilizar_documento: 20, xml_sin_registrar: 7, declaraciones: 365, voucheo: 7, actividad: 90 };
+    function textoPlazo(clave) {
+        var n = PLAZOS[clave];
+        if (!n) return "";
+        if (n % 365 === 0) return (n / 365) + (n === 365 ? " año" : " años");
+        return n + (n === 1 ? " día" : " días");
+    }
+    function pintarPlazos() { document.querySelectorAll("[data-plazo]").forEach(function (el) { var t = textoPlazo(el.dataset.plazo); if (t) el.textContent = t; }); }
+    async function cargarPlazos() {
+        try {
+            var r = await fetch(API + "/api/plazos", { credentials: "include" });
+            if (r.ok) { var d = await r.json(); Object.keys(d.dias || {}).forEach(function (k) { PLAZOS[k] = d.dias[k]; }); }
+        } catch (e) { /* se quedan los de fábrica */ }
+        pintarPlazos();
+    }
+
     async function cargarTextos() {
         try {
             var guardado = JSON.parse(sessionStorage.getItem("fc-textos") || "null");
@@ -2808,6 +2827,7 @@
         excel: excel,
         verCfdi: verCfdi,
         panel: panel,
+        textoPlazo: textoPlazo,
         bloquearPantalla: function (servidor) { bloquearPantalla(!!servidor); },
         catalogo: CATALOGO,
         grupos: GRUPOS,

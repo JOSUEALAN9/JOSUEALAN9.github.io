@@ -82,3 +82,8 @@
 .cf-foto__lado { flex: 1 1 240px; display: grid; gap: 6px; }
 .cf-foto__zoom { display: flex; align-items: center; gap: 8px; font-size: 13px; color: rgb(var(--g-600)); }
 .cf-foto__zoom input { flex: 1; max-width: 220px; }
+
+/* C-02: programar solas las empresas nuevas */
+.cf-nuevas { align-items: flex-start; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--linea); }
+.cf-nuevas span { display: flex; flex-direction: column; gap: 2px; }
+.cf-nuevas small { font-size: var(--t-12); color: rgb(var(--g-500)); line-height: 1.45; }

@@ -96,12 +96,17 @@
         var rfc = elegido.rfc;
         Fiscontable.documentosGuardados({
             titulo: "Declaraciones guardadas",
-            subtitulo: (elegido.alias ? elegido.alias + " · " : "") + rfc + ". Se guardan un año; si tu suscripción sigue vigente, se quedan.",
+            subtitulo: (elegido.alias ? elegido.alias + " · " : "") + rfc + ". Se guardan " + Fiscontable.textoPlazo("declaraciones") + "; si tu suscripción sigue vigente, se quedan. Si se van a borrar, te avisamos 30 días antes.",
             filtro: { etiqueta: "Ejercicio", valor: almacen.ejercicio, opciones: almacen.ejercicios.map(function (e) { return { valor: e, texto: e }; }) },
             // M-05: un renglón por declaración (mes + número de operación); sus documentos salen como etiquetas
             columnas: ["Mes", "Declaración", "No. operación", "Guardada"],
             nombreZip: "Declaraciones_" + rfc,
             unidad: ["declaración", "declaraciones"],
+            // G-14: los documentos de esa declaración, adjuntos, por el correo de la cuenta
+            enviar: function (x) {
+                Fiscontable.enviarCorreo({ titulo: "Enviar la declaración de " + (x.celdas[0] || "") + " · " + (elegido.alias || rfc),
+                                           ruta: "/api/declaraciones/almacen/enviar", datos: { rfc: rfc, ids: x.docs.map(function (a) { return a.id; }) } });
+            },
             cargar: async function (ej) {
                 var a = await pedirAlmacen(rfc, ej), grupos = {}, orden = [];
                 a.documentos.forEach(function (d) {

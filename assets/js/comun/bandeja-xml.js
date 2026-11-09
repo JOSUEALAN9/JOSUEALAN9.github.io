@@ -164,7 +164,7 @@
                 '<div class="xml-resumen__acciones"><button type="button" class="xml-btn xml-btn--primario" data-procesar' + (total && !BJ.leyendo ? "" : " disabled") + ">" +
                 (BJ.leyendo ? "Leyendo archivos…" : "Procesar " + total.toLocaleString("es-MX") + " XML") + "</button>" +
                 '<button type="button" class="xml-enlace" data-vaciar>Vaciar bandeja</button></div>' +
-                (d && !(BJ.clientes || {})[d] ? '<p class="xml-tenue" style="margin-top:8px">Esta empresa no está en tu directorio: sus XML se borran solos 7 días después de la última carga.</p>' : "") +
+                (d && !(BJ.clientes || {})[d] ? '<p class="xml-tenue" style="margin-top:8px">Esta empresa no está en tu directorio: sus XML se borran solos ' + Fiscontable.textoPlazo("xml_sin_registrar") + ' después de la última carga.</p>' : "") +
                 "</div>";
         }
 
