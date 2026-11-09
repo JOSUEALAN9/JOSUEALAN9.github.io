@@ -206,6 +206,25 @@
         $("inicio-recientes-lista").innerHTML = rec.map(function (m) { return '<a href="' + esc(m.url) + '">' + esc(m.nombre) + "</a>"; }).join("");
     }
 
+    /* ---------------------------------------------------------------- «Configura tu cuenta» (sección 8) */
+    async function pasosCuenta() {
+        var oculto = false; try { oculto = localStorage.getItem("fc-pasos-oculto") === "1"; } catch (e) { /* nada */ }
+        if (oculto) return;
+        var d; try { d = await api("/api/inicio/pasos"); } catch (e) { return; }
+        if (d.hechos >= d.total) return;
+        var caja = $("tb-pasos");
+        caja.innerHTML = '<div class="tb-pasos__cabeza"><b>Configura tu cuenta</b><span class="xml-tenue">' + d.hechos + " de " + d.total + "</span>" +
+            '<span class="tb-pasos__barra"><span style="width:' + Math.round(d.hechos * 100 / d.total) + '%"></span></span>' +
+            '<button type="button" class="ui-btn ui-btn--terciario ui-btn--28 tb-pasos__ocultar" id="tb-pasos-ocultar">Ocultar</button></div><ol>' +
+            d.pasos.map(function (p) {
+                var dentro = "<i>" + (p.hecho ? "✓" : "") + "</i><span>" + esc(p.titulo) + (p.detalle ? " <small>· " + esc(p.detalle) + "</small>" : "") + "</span>";
+                var href = p.enlace || (p.accion === "perfil" ? "/configuracion/?seccion=perfil" : "#");
+                return '<li class="' + (p.hecho ? "tb-paso--hecho" : "") + '">' + (p.hecho ? "<span>" + dentro + "</span>" : '<a href="' + esc(href) + '">' + dentro + "</a>") + "</li>";
+            }).join("") + "</ol>";
+        caja.hidden = false;
+        $("tb-pasos-ocultar").addEventListener("click", function () { try { localStorage.setItem("fc-pasos-oculto", "1"); } catch (e) { /* nada */ } caja.hidden = true; });
+    }
+
     var arrancado = false;
     document.addEventListener("fc:perfil", function (ev) {
         var p = ev.detail;
@@ -214,6 +233,7 @@
         if (!p || arrancado) return;
         arrancado = true;
         recientes();
+        if (!p.viendo_como) pasosCuenta();
         var e = p.empresa_activa;
         $("tb-vista-empresa").textContent = e ? (e.alias || e.rfc) : "Empresa activa";
         verVista(vistaGuardada() || (e ? "empresa" : "despacho"));

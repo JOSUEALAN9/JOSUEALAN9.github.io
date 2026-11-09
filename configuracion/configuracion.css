@@ -71,3 +71,9 @@
 .cf-check { display: flex; margin: 8px 0; }
 .cf-apagada td { color: rgb(var(--g-500)); }
 .cf-celda-acciones { white-space: nowrap; text-align: right; }
+/* M-20: foto de perfil */
+.cf-foto { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; }
+.cf-foto__vista canvas { width: 112px; height: 112px; border-radius: 50%; display: block; border: 1px solid var(--linea); }
+.cf-foto__lado { flex: 1 1 240px; display: grid; gap: 6px; }
+.cf-foto__zoom { display: flex; align-items: center; gap: 8px; font-size: 13px; color: rgb(var(--g-600)); }
+.cf-foto__zoom input { flex: 1; max-width: 220px; }

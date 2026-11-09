@@ -133,12 +133,57 @@
     }
 
     /* ---------- Mi perfil ---------- */
+    /* M-20: foto de perfil. Se recorta cuadrada aquí (con zoom) y el servidor la vuelve a encoger a 256×256. */
+    function pintarFoto(caja) {
+        caja.innerHTML = '<div class="cf-tarjeta cf-foto"><div class="cf-foto__vista"><canvas width="256" height="256" id="cf-foto-lienzo" aria-label="Vista previa"></canvas></div>' +
+            '<div class="cf-foto__lado"><b>Foto de perfil</b><p class="cf-texto">Sale en la barra de arriba. JPG, PNG o WebP de hasta 3 MB.</p>' +
+            '<input type="file" id="cf-foto-archivo" accept="image/png,image/jpeg,image/webp" hidden>' +
+            '<label class="cf-foto__zoom" id="cf-foto-zoom-caja" hidden>Acercar <input type="range" id="cf-foto-zoom" min="1" max="3" step="0.05" value="1"></label>' +
+            '<div class="cf-acciones"><button type="button" class="cf-btn" id="cf-foto-elegir">Elegir imagen</button>' +
+            '<button type="button" class="cf-btn cf-btn--principal" id="cf-foto-guardar" hidden>Guardar foto</button>' +
+            '<button type="button" class="cf-btn" id="cf-foto-quitar"' + (perfil.foto ? "" : " hidden") + '>Quitar</button><span class="cf-msj"></span></div></div></div>';
+        var lienzo = $("cf-foto-lienzo"), ctx = lienzo.getContext("2d"), img = null, zoom = 1;
+        function dibujar() {
+            ctx.fillStyle = "#e5e7eb"; ctx.fillRect(0, 0, 256, 256);
+            if (!img) return;
+            var lado = Math.min(img.width, img.height) / zoom, sx = (img.width - lado) / 2, sy = (img.height - lado) / 2;
+            ctx.drawImage(img, sx, sy, lado, lado, 0, 0, 256, 256);
+        }
+        dibujar();
+        if (perfil.foto) fetch(API + "/api/mi-perfil/foto?v=" + encodeURIComponent(perfil.foto), { credentials: "include" }).then(function (r) { return r.ok ? r.blob() : null; })
+            .then(function (b) { if (!b) return; var i = new Image(); i.onload = function () { if (!img) ctx.drawImage(i, 0, 0, 256, 256); }; i.src = URL.createObjectURL(b); });
+        $("cf-foto-elegir").addEventListener("click", function () { $("cf-foto-archivo").click(); });
+        $("cf-foto-archivo").addEventListener("change", function () {
+            var f = this.files[0]; this.value = "";
+            if (!f) return;
+            if (f.size > 3 * 1024 * 1024) { aviso(caja, false, "La imagen pesa más de 3 MB."); return; }
+            var i = new Image();
+            i.onload = function () { img = i; zoom = 1; $("cf-foto-zoom").value = 1; $("cf-foto-zoom-caja").hidden = false; $("cf-foto-guardar").hidden = false; dibujar(); };
+            i.onerror = function () { aviso(caja, false, "No se pudo abrir esa imagen."); };
+            i.src = URL.createObjectURL(f);
+        });
+        $("cf-foto-zoom").addEventListener("input", function () { zoom = +this.value; dibujar(); });
+        $("cf-foto-guardar").addEventListener("click", async function () {
+            try {
+                var r = await enviar("/api/mi-perfil/foto", "PUT", { imagen: lienzo.toDataURL("image/jpeg", 0.9) });
+                perfil.foto = r.foto; aviso(caja, true, "✓ Guardada. Se ve en la barra al recargar.");
+                $("cf-foto-guardar").hidden = true; $("cf-foto-quitar").hidden = false;
+            } catch (e) { aviso(caja, false, e.message); }
+        });
+        $("cf-foto-quitar").addEventListener("click", async function () {
+            try { await api("/api/mi-perfil/foto", { method: "DELETE" }); perfil.foto = null; img = null; dibujar(); this.hidden = true; aviso(caja, true, "Foto quitada."); }
+            catch (e) { aviso(caja, false, e.message); }
+        });
+    }
+
     function pintarPerfil(c) {
+        var cajaFoto = document.createElement("div");
         c.innerHTML = '<div class="cf-tarjeta"><div class="cf-campos">' +
             '<label class="cf-campo"><span>Nombre</span><input id="cf-nombre" maxlength="120" value="' + esc(perfil.nombre || "") + '"></label>' +
             '<label class="cf-campo"><span>Teléfono</span><input id="cf-telefono" inputmode="tel" maxlength="20" value="' + esc(perfil.telefono || "") + '"></label>' +
             '<label class="cf-campo"><span>Correo <i>(con el que entras; no se cambia aquí)</i></span><input value="' + esc(perfil.correo || "") + '" disabled></label></div>' +
             '<div class="cf-acciones"><button type="button" class="cf-btn cf-btn--principal" id="cf-guardar-perfil">Guardar</button><span class="cf-msj"></span></div></div>';
+        c.insertBefore(cajaFoto, c.firstChild); cajaFoto.style.marginBottom = "12px"; pintarFoto(cajaFoto);
         $("cf-guardar-perfil").addEventListener("click", async function () {
             try {
                 await enviar("/api/mi-perfil", "PUT", { nombre: $("cf-nombre").value.trim(), telefono: $("cf-telefono").value.trim() || null });
