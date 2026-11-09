@@ -1829,3 +1829,15 @@ a.fc-act-item:hover { background: rgb(var(--g-50)); }
 .fc-ambiente b { font-size: 12.5px; }
 .fc-ambiente a { color: #fff; text-decoration: underline; }
 html.fc-ambiente-pruebas .fc-barra, html.fc-ambiente-pruebas #app-header > header { box-shadow: inset 0 -3px 0 rgb(124 58 237); }
+/* Constancia / Opinión: varios a la vez desde tus clientes (modulo-sat.js) */
+.msat-cli { margin-bottom: 12px; }
+.msat-cli__barra { display: flex; align-items: center; gap: 12px; margin-top: 12px; }
+.msat-cli__barra .ui-input { flex: 1; }
+.msat-cli__lista { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 6px 14px; max-height: 260px; overflow-y: auto; margin-top: 10px; padding: 8px 2px; border-top: 1px solid var(--linea); border-bottom: 1px solid var(--linea); }
+.msat-cli__item { align-items: flex-start; }
+.msat-cli__item span { display: flex; flex-direction: column; min-width: 0; }
+.msat-cli__item b { font-weight: 600; font-size: var(--t-13); color: rgb(var(--g-900)); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.msat-cli__item small { font-size: var(--t-12); color: rgb(var(--g-500)); font-family: ui-monospace, monospace; }
+.msat-cli__pie { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin-top: 12px; }
+.msat-cli__aviso { margin: 10px 0 0; font-size: var(--t-13); color: rgb(var(--av-600)); }
+.msat-cli__o { margin: 4px 0 10px; font-size: var(--t-13); font-weight: 600; color: rgb(var(--g-600)); }
