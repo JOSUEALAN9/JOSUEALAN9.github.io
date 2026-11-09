@@ -976,7 +976,7 @@
 
     async function quitarSeleccion() {
         var n = E.seleccion.size;
-        if (!confirm("¿Quitar " + n + " XML de la biblioteca de " + E.rfc + "?\n\nSe borran el archivo y su registro. Puedes volver a cargarlos después.")) return;
+        if (!(await Fiscontable.confirmar({ titulo: "¿Quitar " + n + " XML de la biblioteca de " + E.rfc + "?", texto: "Se borran el archivo y su registro. Puedes volver a cargarlos después.", si: "Quitar " + n + " XML", peligro: true }))) return;
         try {
             await postJSON("/api/xml/quitar", { rfc: E.rfc, uuids: Array.from(E.seleccion) });
             E.seleccion.clear();

@@ -206,6 +206,8 @@
 
     // Abierta dentro de la ventana de Configuración: sin barra superior (la ventana pone la suya)
     if (/[?&]incrustado=1\b/.test(location.search)) document.documentElement.classList.add("fc-incrustado");
+    // Densidad de las tablas (Configuración › Mi perfil): cada quien en su navegador
+    try { if (localStorage.getItem("fc-densidad") === "compacta") document.documentElement.classList.add("fc-compacta"); } catch (e) { /* sin almacenamiento */ }
     // …y además dentro de la página de Configuración (que ya pone título y pestañas): sin su propio encabezado
     if (/[?&]dentro=1\b/.test(location.search)) document.documentElement.classList.add("fc-dentro");
     // Opción visual elegida en /ui/ (A por defecto). Solo en este navegador, mientras se decide.
@@ -307,6 +309,8 @@
                 "</a>" +
                 '<button type="button" class="fc-modulos-btn" id="fc-btn-modulos" aria-haspopup="dialog" aria-expanded="false" title="Ir a otro módulo (Ctrl+K)">' +
                   ico(D.rejilla) + '<span class="fc-modulos-btn__texto">Módulos</span></button>' +
+                // La casita: Inicio siempre a la mano, también donde no hay barra lateral (celular, Configuración…)
+                '<a class="fc-casa" href="/" title="Inicio" aria-label="Inicio"' + (clave === "portada" ? ' aria-current="page"' : "") + ">" + ico(D.casa, 1.9) + "</a>" +
                 '<nav class="fc-migas" aria-label="Ruta">' + migas + "</nav>" +
                 '<div class="fc-acciones">' +
                   '<button type="button" class="fc-accion fc-empresa" id="fc-btn-empresa" aria-haspopup="menu" aria-expanded="false" hidden>' +
@@ -1550,22 +1554,39 @@
         var reanudar = p.clase === "lote" && p.se_puede_reanudar
             ? '<button type="button" class="fc-btn" data-accion="reanudar" data-id="' + esc(p.id) + '">Reanudar' +
               (faltan ? " los " + faltan : "") + "</button>" : "";
+        // Reintentar solo si el problema fue del SAT; si fue la e.firma, hay que corregirla primero
+        var reintentar = !reanudar && (p.clase === "lote" ? (p.reintentables || 0) > 0 : false)
+            ? '<button type="button" class="fc-btn" data-accion="reintentar" data-id="' + esc(p.id) + '">Reintentar los ' + p.reintentables + "</button>" : "";
+        var motivos = p.clase === "lote" && p.fallidos && p.fallidos.length
+            ? '<button type="button" class="fc-enlace-chico" data-accion="motivos" data-id="' + esc(p.id) + '">Sin resultado para ' + p.fallidos.length + " — ver por qué</button>" : "";
         return '<div class="fc-item fc-item--alerta"><div class="fc-item__titulo">' + nuevo + t + "</div>" +
             '<div class="fc-item__detalle">' + esc(p.mensaje_error || "No se pudo completar.") + "</div>" +
-            (p.clase === "lote" && p.total ? '<div class="fc-item__detalle">' + (p.exitosos || 0) + " de " + p.total + " listos</div>" : "") +
-            '<div class="fc-item__acciones">' + parcial + reanudar +
-            (parcial || reanudar ? "" : '<a class="fc-btn" href="/descargas/">Ver detalle</a>') +
+            (p.clase === "lote" && p.total ? '<div class="fc-item__detalle">' + (p.exitosos || 0) + " de " + p.total + " listos" + (p.reutilizados ? " · " + p.reutilizados + " ya los tenías" : "") + "</div>" : "") +
+            (p.clase === "lote" && p.estado === "interrumpido" && !p.se_puede_reanudar
+                ? '<div class="fc-item__detalle">Ya no se puede reanudar (pasaron más de 72 h). Vuelve a subir el lote: lo que ya salió se aprovecha.</div>' : "") +
+            '<div class="fc-item__detalle">' + esc(fecha(p.creado_en)) + "</div>" + motivos +
+            '<div class="fc-item__acciones">' + parcial + reanudar + reintentar +
+            (parcial || reanudar || reintentar || location.pathname.indexOf("/descargas/") === 0 ? "" : '<a class="fc-btn" href="/descargas/">Ver detalle</a>') +
             '<button type="button" class="fc-btn fc-btn--discreto" data-accion="quitar" ' +
             'data-clase="' + esc(p.clase) + '" data-id="' + esc(p.id) + '">Quitar</button>' +
             "</div></div>";
     }
 
-    function pintarLista(procesos) {
+    function esperaMadrugada(p) { return p.clase === "programada" && p.estado === "procesando"; }
+    function sinProgramadas(procesos) { return (procesos || []).filter(function (p) { return !esperaMadrugada(p); }); }
+    function notaProgramadas(procesos) {
+        var n = (procesos || []).filter(esperaMadrugada).length;
+        return n ? '<a class="fc-nota-prog" href="/configuracion/?seccion=programaciones">🌙 ' + n + " programada" + (n === 1 ? "" : "s") +
+            " para la madrugada · se ven en Programaciones</a>" : "";
+    }
+
+    function pintarLista(todos) {
         var cuerpo = document.getElementById("fc-panel-cuerpo");
         if (!cuerpo) return;
+        var procesos = sinProgramadas(todos), nota = notaProgramadas(todos);
 
         if (!procesos.length) {
-            cuerpo.innerHTML = '<div class="fc-vacio">Todavía no hay nada aquí.<br>' +
+            cuerpo.innerHTML = nota + '<div class="fc-vacio">Todavía no hay nada aquí.<br>' +
                 "Lo que generes va a aparecer en esta lista.</div>";
             return;
         }
@@ -1576,7 +1597,7 @@
             ["Sin resultado", procesos.filter(function (p) { return p.estado !== "procesando" && p.estado !== "completado"; })]
         ];
 
-        cuerpo.innerHTML = grupos.filter(function (g) { return g[1].length; }).map(function (g) {
+        cuerpo.innerHTML = nota + grupos.filter(function (g) { return g[1].length; }).map(function (g) {
             return '<div class="fc-grupo"><div class="fc-grupo__titulo">' + g[0] + "</div>" +
                 g[1].map(tarjeta).join("") + "</div>";
         }).join("");
@@ -1593,7 +1614,8 @@
      * al terminar) y lo que ya terminó pero no has visto (se descuenta al
      * abrir el panel). Si no hay ni una ni otra, el número desaparece.
      */
-    function refrescarContador(procesos) {
+    function refrescarContador(todos) {
+        var procesos = sinProgramadas(todos);
         var activos = procesos.filter(function (p) { return p.estado === "procesando"; }).length;
         var nuevos = procesos.filter(function (p) {
             return p.estado !== "procesando" && !vistos.has(p.id);
@@ -1663,6 +1685,46 @@
         }, espera);
     }
 
+    /* Confirmación común (en lugar del confirm() del navegador): título, texto, botón y, para lo más delicado,
+       escribir algo (el RFC) antes de poder aceptar. Devuelve una promesa con true o false. */
+    function confirmar(o) {
+        o = o || {};
+        return new Promise(function (listo) {
+            var dlg = document.createElement("dialog");
+            dlg.className = "ui-modal fc-confirmar";
+            dlg.innerHTML = '<form method="dialog" class="ui-modal__cuerpo"><h3></h3><p class="fc-confirmar__texto"></p>' +
+                (o.escribir ? '<label class="fc-confirmar__escribir"><span></span><input type="text" autocomplete="off" spellcheck="false"></label>' : "") +
+                '</form><div class="ui-modal__pie"><button type="button" class="ui-btn ui-btn--secundario ui-btn--32" data-r="no"></button>' +
+                '<button type="button" class="ui-btn ui-btn--32 ' + (o.peligro ? "ui-btn--peligro" : "ui-btn--primario") + '" data-r="si"></button></div>';
+            dlg.querySelector("h3").textContent = o.titulo || "¿Seguro?";
+            var txt = dlg.querySelector(".fc-confirmar__texto");
+            if (o.texto) txt.textContent = o.texto; else txt.remove();
+            dlg.querySelector('[data-r="no"]').textContent = o.no || "Cancelar";
+            var si = dlg.querySelector('[data-r="si"]');
+            si.textContent = o.si || "Aceptar";
+            var campo = dlg.querySelector(".fc-confirmar__escribir input");
+            if (campo) {
+                dlg.querySelector(".fc-confirmar__escribir span").textContent = "Para confirmar, escribe " + o.escribir;
+                si.disabled = true;
+                campo.addEventListener("input", function () { si.disabled = campo.value.trim().toUpperCase() !== String(o.escribir).toUpperCase(); });
+            }
+            var hecho = false;
+            function fin(r) { if (hecho) return; hecho = true; try { dlg.close(); } catch (x) { /* nada */ } dlg.remove(); listo(r); }
+            dlg.addEventListener("click", function (e) {
+                var b = e.target.closest("[data-r]");
+                if (b && !b.disabled) fin(b.dataset.r === "si");
+                else if (e.target === dlg) fin(false);
+            });
+            dlg.addEventListener("cancel", function (e) { e.preventDefault(); fin(false); });
+            dlg.addEventListener("submit", function (e) { e.preventDefault(); if (!si.disabled) fin(true); });
+            document.body.appendChild(dlg);
+            dlg.showModal();
+            (campo || si).focus();
+        });
+    }
+
+    function avisarCambio() { try { document.dispatchEvent(new CustomEvent("fc-descargas-cambio")); } catch (x) { /* nada */ } }
+
     async function accionPanel(e) {
         var boton = e.target.closest("[data-accion]");
         if (!boton) return;
@@ -1684,16 +1746,31 @@
                     { method: "DELETE", credentials: "include" });
                 if (!rq.ok) throw new Error(await Fiscontable.leerError(rq));
                 ultimoEstado.delete(boton.dataset.id);
-                await sondear();
+                await sondear(); avisarCambio();
                 return;
             } else if (accion === "reanudar") {
                 boton.textContent = "Reanudando…";
                 var rr = await fetch(API + "/api/lotes/" + boton.dataset.id + "/reanudar", { method: "POST", credentials: "include" });
                 if (!rr.ok) throw new Error(await Fiscontable.leerError(rr));
                 aviso("Se reanudó el lote. Sigue donde se quedó; lo que ya salió no se vuelve a pedir al SAT.");
-                await sondear();
+                await sondear(); avisarCambio();
+                return;
+            } else if (accion === "reintentar") {
+                boton.textContent = "Reintentando…";
+                var rt = await fetch(API + "/api/lotes/" + boton.dataset.id + "/reintentar", { method: "POST", credentials: "include" });
+                if (!rt.ok) throw new Error(await Fiscontable.leerError(rt));
+                var dt = await rt.json(), msj = "";
+                if (dt.lanzados && dt.lanzados.length) msj += "Se están generando de nuevo: " + dt.lanzados.join(", ") + ". ";
+                if (dt.sin_efirma && dt.sin_efirma.length) msj += "Estos necesitan su e.firma: " + dt.sin_efirma.map(function (x) { return x.rfc; }).join(", ") + ".";
+                aviso(msj || "Nada que reintentar.");
+                await sondear(); avisarCambio();
+                return;
+            } else if (accion === "motivos") {
+                if (typeof window.verMotivos === "function") window.verMotivos(boton.dataset.id);
+                else location.href = "/descargas/?motivos=" + encodeURIComponent(boton.dataset.id);
                 return;
             } else if (accion === "detener") {
+                if (!(await Fiscontable.confirmar({ titulo: "¿Detener esta descarga?", texto: "Se conserva lo que ya se haya generado.", si: "Detener", peligro: true }))) return;
                 boton.textContent = "Deteniendo…";
                 var ruta = boton.dataset.clase === "lote"
                     ? "/api/lotes/" + boton.dataset.id + "/cancelar"
@@ -1702,7 +1779,7 @@
                         : "/api/trabajos/" + boton.dataset.id + "/cancelar";
                 var rd = await fetch(API + ruta, { method: "POST", credentials: "include" });
                 if (!rd.ok) throw new Error(await Fiscontable.leerError(rd));
-                await sondear();
+                await sondear(); avisarCambio();
                 return;
             }
         } catch (err) {
@@ -2240,7 +2317,8 @@
                 primarias.forEach(function (b) { b.classList.add("ui-btn", "ui-btn--primario", "ui-btn--28"); derecha.appendChild(b); });
                 var resto = g.items.filter(function (b) { return primarias.indexOf(b) === -1; });
                 if (!resto.length) return;
-                if (resto.length === 1 && !ir) { resto[0].classList.add("ui-btn", "ui-btn--secundario", "ui-btn--28"); derecha.appendChild(resto[0]); return; }
+                var descargar = /^descargar$/i.test(g.titulo);
+                if (resto.length === 1 && !ir && !descargar) { resto[0].classList.add("ui-btn", "ui-btn--secundario", "ui-btn--28"); derecha.appendChild(resto[0]); return; }
                 var caja = document.createElement("div"); caja.className = "mod-menu";
                 caja.innerHTML = '<button type="button" class="ui-btn ui-btn--secundario ui-btn--28 mod-menu__btn" aria-haspopup="menu" aria-expanded="false">' +
                     esc(ir ? "Ir a" : g.titulo) + ico(D.abajo, 2) + '</button><div class="mod-menu__lista" role="menu" hidden></div>';
@@ -2852,6 +2930,9 @@
         abrirDescargas: abrirDescargas,
         cerrarDescargas: cerrarDescargas,
         refrescarDescargas: sondear,
+        // Mis descargas (página) usa la misma tarjeta y las mismas acciones que el panel de la barra
+        confirmar: confirmar,
+        descargas: { tarjeta: tarjeta, accion: accionPanel, sinProgramadas: sinProgramadas, notaProgramadas: notaProgramadas },
         abrirModalPerfil: abrirModalPerfil,
         // La empresa elegida en el selector general (o null). Los módulos también
         // pueden escuchar window "fiscontable:empresa" para enterarse de un cambio.

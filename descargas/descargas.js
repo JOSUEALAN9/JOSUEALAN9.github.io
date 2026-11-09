@@ -164,88 +164,6 @@ async function quitar(clase, id, boton) {
     }
 }
 
-function tarjetaPreparando(p) {
-    let detalle = "Preparando...";
-    let barra = "";
-    if (p.clase === "lote" && p.total > 0) {
-        const pct = Math.round((p.procesados / p.total) * 100);
-        detalle = `${p.procesados} de ${p.total}${p.rfc_actual ? " · " + p.rfc_actual : ""}`;
-        barra = `<div class="progress-track mt-2"><div class="progress-fill bg-blue-500" style="width:${pct}%"></div></div>`;
-    }
-    if (p.clase === "programada") detalle = p.progreso || "Programada para la madrugada.";
-    return `
-    <div class="bg-white rounded-xl card-elevated border border-gray-200 p-5">
-        <div class="flex items-start gap-3">
-            <svg class="animate-spin h-5 w-5 text-blue-500 flex-none mt-0.5" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
-            <div class="flex-grow">
-                <h3 class="font-bold text-slate-800">${esc(titulo(p))}</h3>
-                <p class="text-xs text-slate-500 mt-0.5">${esc(detalle)}</p>
-                ${barra}
-            </div>
-            <button data-clase="${esc(p.clase)}" data-id="${esc(p.id)}" onclick="cancelar(this.dataset.clase, this.dataset.id, this)" class="text-xs font-bold text-slate-400 hover:text-red-600 border border-gray-200 hover:border-red-200 rounded-lg py-1.5 px-3 transition flex-none">
-                Detener
-            </button>
-        </div>
-    </div>`;
-}
-
-function tarjetaAtencion(p) {
-    const motivo = p.mensaje_error || "No se pudo completar.";
-
-    // El botón de reintentar SOLO aparece si el problema fue del
-    // SAT. Si fue la e.firma (contraseña, vencida, revocada,
-    // archivos que no corresponden), reintentar no serviría de
-    // nada: hay que corregir los archivos primero.
-    const puedeReintentar = p.clase === "lote"
-        ? (p.reintentables || 0) > 0
-        : p.reintentable === true;
-
-    // Lote que se cortó (reinicio del servidor): reanudar sigue donde se quedó (lo que ya salió no se vuelve a
-    // pedir al SAT ni gasta del contador del día); y lo que sí salió se puede bajar desde ya.
-    const faltan = Math.max((p.total || 0) - (p.exitosos || 0), 0);
-    const botonReanudar = p.clase === "lote" && p.se_puede_reanudar
-        ? `<button data-id="${esc(p.id)}" onclick="reanudar(this.dataset.id, this)" class="bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold py-2 px-4 rounded-lg transition">Reanudar ${faltan ? "los " + faltan + " que faltan" : "el lote"}</button>`
-        : "";
-    const botonParcial = p.clase === "lote" && p.parcial
-        ? `<button data-url="${esc(p.url_descarga)}" data-nombre="${esc(p.nombre_descarga || "Lote_parcial.zip")}" onclick="descargar(this.dataset.url, this.dataset.nombre, this)" class="bg-green-600 hover:bg-green-500 text-white text-xs font-bold py-2 px-4 rounded-lg transition">Bajar lo que salió${p.exitosos ? " (" + p.exitosos + ")" : ""}</button>`
-        : "";
-    const avisoFallidos = p.clase === "lote" && p.fallidos && p.fallidos.length
-        ? `<button data-id="${esc(p.id)}" onclick="verMotivos(this.dataset.id)" class="text-xs text-amber-700 hover:text-amber-900 underline mt-1">Sin resultado para ${p.fallidos.length} — ver por qué</button>`
-        : "";
-    const avance = p.clase === "lote" && p.total
-        ? `<p class="text-xs text-slate-600 mt-1">${p.exitosos || 0} de ${p.total} listos${p.reutilizados ? " · " + p.reutilizados + " ya los tenías" : ""}</p>`
-        : "";
-    const avisoVencido = p.clase === "lote" && p.estado === "interrumpido" && !p.se_puede_reanudar
-        ? `<p class="text-xs text-slate-500 mt-1">Ya no se puede reanudar (pasaron más de 72 h o se descartó). Para los que faltan, vuelve a subir el lote: lo que ya salió se aprovecha.</p>`
-        : "";
-
-    const botonReintentar = puedeReintentar && !botonReanudar
-        ? `<button data-clase="${esc(p.clase)}" data-id="${esc(p.id)}" onclick="reintentar(this.dataset.clase, this.dataset.id, this)" class="bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold py-2 px-4 rounded-lg transition">Reintentar${p.clase === "lote" ? " los " + p.reintentables : ""}</button>`
-        : "";
-    return `
-    <div class="bg-white rounded-xl border border-amber-200 p-5">
-        <div class="flex flex-wrap items-start justify-between gap-3">
-            <div class="flex items-start gap-3 flex-grow">
-                <svg class="w-5 h-5 text-amber-500 flex-none mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                <div>
-                    <h3 class="font-bold text-slate-800">${esc(titulo(p))}</h3>
-                    <p class="text-xs text-amber-800 mt-1">${esc(motivo)}</p>
-                    ${avance}${avisoVencido}
-                    <p class="text-xs text-slate-400 mt-0.5">${formatearFecha(p.creado_en)}</p>
-                    ${avisoFallidos}
-                </div>
-            </div>
-            <div class="flex flex-wrap items-center gap-2 flex-none">
-                ${botonParcial}${botonReanudar}${botonReintentar}
-                <button data-clase="${esc(p.clase)}" data-id="${esc(p.id)}" onclick="quitar(this.dataset.clase, this.dataset.id, this)" title="Quitar de la lista" class="text-gray-300 hover:text-red-500 transition p-1">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                </button>
-            </div>
-        </div>
-    </div>`;
-}
-
-
 function verMotivos(idProceso) {
     const p = (window._ultimosProcesos || []).find(x => x.id === idProceso);
     if (!p || !p.fallidos) return;
@@ -287,82 +205,8 @@ function cerrarMotivos() {
 
 document.addEventListener("keydown", (e) => { if (e.key === "Escape") cerrarMotivos(); });
 
-async function cancelar(clase, id, boton) {
-    if (!confirm("¿Detener esta descarga? Se conservará lo que ya se haya generado.")) return;
-    boton.disabled = true;
-    boton.textContent = "Deteniendo...";
-    try {
-        const ruta = clase === "lote" ? `/api/lotes/${id}/cancelar`
-            : clase === "programada" ? `/api/programadas/${id}/cancelar` : `/api/trabajos/${id}/cancelar`;
-        const resp = await fetch(`${API_URL}${ruta}`, { method: "POST", credentials: "include" });
-        if (!resp.ok) {
-            mostrarAviso("No se pudo detener. Puede que ya haya terminado.");
-            boton.disabled = false; boton.textContent = "Detener";
-            return;
-        }
-        const datos = await resp.json();
-        if (datos.mensaje) mostrarAviso(datos.mensaje);
-        await cargarDescargas(true);
-    } catch (e) {
-        mostrarAviso("No se pudo conectar con el servidor.");
-        boton.disabled = false; boton.textContent = "Detener";
-    }
-}
-
-async function reintentar(clase, id, boton) {
-    const original = boton.innerHTML;
-    boton.disabled = true;
-    boton.innerHTML = "Reintentando...";
-    try {
-        if (clase === "lote") {
-            const resp = await fetch(`${API_URL}/api/lotes/${id}/reintentar`, {
-                method: "POST", credentials: "include",
-            });
-            const datos = await resp.json();
-            if (!resp.ok) {
-                mostrarAviso(datos.detail || "No se pudo reintentar.");
-                return;
-            }
-            let mensaje = "";
-            if (datos.lanzados.length) mensaje += `Se están generando de nuevo: ${datos.lanzados.join(", ")}. `;
-            if (datos.sin_efirma.length) {
-                mensaje += `Estos necesitan que subas su e.firma desde el módulo: ${datos.sin_efirma.map(s => s.rfc).join(", ")}.`;
-            }
-            mostrarAviso(mensaje || "Nada que reintentar.");
-        } else {
-            mostrarAviso("Para reintentar este documento, vuelve al módulo y genéralo de nuevo.");
-        }
-        await cargarDescargas(true);
-    } catch (e) {
-        mostrarAviso("No se pudo conectar con el servidor.");
-    } finally {
-        boton.disabled = false;
-        boton.innerHTML = original;
-    }
-}
-
-async function reanudar(id, boton) {
-    const original = boton.innerHTML;
-    boton.disabled = true;
-    boton.innerHTML = "Reanudando...";
-    try {
-        const resp = await fetch(`${API_URL}/api/lotes/${id}/reanudar`, { method: "POST", credentials: "include" });
-        if (!resp.ok) {
-            mostrarAviso(await Fiscontable.leerError(resp));
-            return;
-        }
-        mostrarAviso("Se reanudó el lote. Sigue donde se quedó; lo que ya había salido no se vuelve a pedir al SAT.");
-        await cargarDescargas(true);
-    } catch (e) {
-        mostrarAviso("No se pudo conectar con el servidor.");
-    } finally {
-        boton.disabled = false;
-        boton.innerHTML = original;
-    }
-}
-
 async function limpiarTodosLosFallidos() {
-    if (!confirm("¿Quitar de la lista todas las descargas que no se completaron?")) return;
+    if (!(await Fiscontable.confirmar({ titulo: "¿Quitar todas las que no se completaron?", texto: "Solo salen de esta lista; no se borra nada que ya se haya descargado.", si: "Quitar todas" }))) return;
     const fallidos = (window._ultimosProcesos || []).filter(p => p.estado !== "completado" && p.estado !== "procesando");
     for (const p of fallidos) {
         try {
@@ -410,7 +254,9 @@ async function cargarDescargas(silencioso = false) {
 }
 
 function pintarProcesos(todos) {
-        const procesos = todos.filter(pasaFiltro);
+        // Lo programado para la madrugada no va aquí: avisa en la campana y vive en Configuración › Programaciones
+        const D = Fiscontable.descargas;
+        const procesos = D.sinProgramadas(todos).filter(pasaFiltro);
         const preparando = procesos.filter(p => p.estado === "procesando");
         const listos = procesos.filter(p => p.estado === "completado");
         const atencion = procesos.filter(p => p.estado !== "procesando" && p.estado !== "completado");
@@ -422,9 +268,11 @@ function pintarProcesos(todos) {
         document.getElementById("vacio-titulo").textContent = todos.length ? "Nada con estos filtros" : "Todavía no has descargado nada";
         document.getElementById("vacio-texto").textContent = todos.length ? "Prueba con «7 días», «Todo» o «Todas las empresas»." : "Aquí aparecen tus constancias, opiniones, declaraciones y XML.";
 
-        document.getElementById("lista-preparando").innerHTML = preparando.map(tarjetaPreparando).join("");
+        // Misma tarjeta y mismas acciones que el panel de Descargas de la barra
+        document.getElementById("nota-programadas").innerHTML = D.notaProgramadas(todos);
+        document.getElementById("lista-preparando").innerHTML = preparando.map(D.tarjeta).join("");
         tablaListos().ponerDatos(listos.map(filaLista));
-        document.getElementById("lista-atencion").innerHTML = atencion.map(tarjetaAtencion).join("");
+        document.getElementById("lista-atencion").innerHTML = atencion.map(D.tarjeta).join("");
 }
 
 
@@ -517,3 +365,16 @@ function mostrarPc(id, boton) {
     const p = (window._ultimosProcesos || []).find(x => String(x.id) === String(id));
     if (p && p.en_pc) Fiscontable.mostrarEnPc(p.en_pc, boton);
 }
+
+// Las tarjetas son las del panel de la barra: sus botones se atienden con el mismo código
+["lista-preparando", "lista-atencion"].forEach(id => {
+    document.getElementById(id).addEventListener("click", e => Fiscontable.descargas.accion(e));
+});
+document.addEventListener("fc-descargas-cambio", () => cargarDescargas(true));
+// «ver por qué» desde el panel de otra página: /descargas/?motivos=<id>
+(function () {
+    const id = new URLSearchParams(location.search).get("motivos");
+    if (!id) return;
+    const t = setInterval(() => { if (window._ultimosProcesos) { clearInterval(t); verMotivos(id); } }, 300);
+    setTimeout(() => clearInterval(t), 10000);
+})();

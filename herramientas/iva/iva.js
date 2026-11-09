@@ -172,7 +172,7 @@
             anchoClave: { uuid: 300, nombre: 260 },
             buscar: { texto: "Buscar RFC, nombre o UUID…", campos: ["rfc", "nombre", "uuid"] },
             rapidos: { clave: "lado_txt", valores: [{ valor: "Emitida", etiqueta: "Emitidas" }, { valor: "Recibida", etiqueta: "Recibidas" }] },
-            exportar: { nombre: function () { return E.rfc + "_PPD_sin_pago.xlsx"; }, hoja: "PPD sin pago" },
+            exportar: { nombre: function () { return E.rfc + "_PPD_sin_pago.xlsx"; }, hoja: "PPD sin pago", enBarra: false },
             vacio: { titulo: "Sin facturas PPD pendientes", texto: "" },
             alFiltrar: function (vis) { $("conteo").textContent = vis.length + " factura(s) PPD sin pago"; },
             alClic: abrirCfdi
@@ -191,7 +191,7 @@
             filtros: [{ clave: "nombre", etiqueta: "Nombre" }].concat(lado === "recibido" ? [{ clave: "acred", etiqueta: "IVA no acreditable" }] : [])
                 .concat([{ clave: "con_aviso", etiqueta: "Con avisos" }]),
             rapidos: { clave: "origen_txt", valores: [{ valor: "Factura PUE", etiqueta: "Facturas PUE" }, { valor: "Pago", etiqueta: "Pagos" }, { valor: "Nota de crédito", etiqueta: "Notas de crédito" }] },
-            exportar: { nombre: function () { return E.rfc + "_IVA_" + (lado === "emitido" ? "cobrado" : "pagado") + ".xlsx"; }, hoja: lado === "emitido" ? "Emitidos" : "Recibidos" },
+            exportar: { nombre: function () { return E.rfc + "_IVA_" + (lado === "emitido" ? "cobrado" : "pagado") + ".xlsx"; }, hoja: lado === "emitido" ? "Emitidos" : "Recibidos", enBarra: false },
             vacio: { titulo: "Sin movimientos de IVA", texto: "No hay movimientos en el periodo elegido." },
             alFiltrar: function (vis) { $("conteo").textContent = vis.length + " movimiento(s)"; },
             alClic: abrirCfdi
@@ -331,6 +331,7 @@
         });
         $("saldo-favor").addEventListener("input", function () { guardarLocal("saldo:" + clavePeriodo(), this.value); if (E.datos) pintarResumen(); });
         $("btn-excel").addEventListener("click", function () { if (E.datos) exportar(); });
+        $("btn-excel-tabla").addEventListener("click", function () { if (E.datos) { verDetalle(true); tablaDe(E.lado).exportar(); } });
         $("btn-xml").addEventListener("click", function () { irA("/herramientas/xml/"); });
         $("btn-conc").addEventListener("click", function () { irA("/herramientas/conciliacion/"); });
     }

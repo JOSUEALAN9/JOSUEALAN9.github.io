@@ -456,7 +456,7 @@ a.fc-miga:hover { color: rgb(var(--g-0)); }
 .fc-item--alerta { border-color: rgb(var(--av-200)); background: rgb(var(--av-50)); }
 .fc-item__titulo { font-size: 13.5px; font-weight: 600; line-height: 1.35; }
 .fc-item__detalle { font-size: 12px; color: var(--texto-tenue); margin-top: 3px; }
-.fc-item__acciones { display: flex; gap: 7px; align-items: center; margin-top: 10px; }
+.fc-item__acciones { display: flex; flex-wrap: wrap; gap: 7px; align-items: center; margin-top: 10px; }
 
 .fc-btn {
     border: 1px solid var(--linea);
@@ -1059,6 +1059,11 @@ a.mod-accion { text-decoration: none; }
 }
 .fc-modulos-btn:hover, .fc-modulos-btn[aria-expanded="true"] { background: rgba(255,255,255,.14); border-color: rgba(255,255,255,.3); color: rgb(var(--g-0)); }
 .fc-modulos-btn svg { width: 16px; height: 16px; }
+.fc-casa { display: inline-grid; place-items: center; flex: none; width: 34px; height: 34px; border: 1px solid rgba(255,255,255,.16); border-radius: 9px;
+    background: rgba(255,255,255,.06); color: rgba(255,255,255,.88); transition: background .15s, border-color .15s; }
+.fc-casa:hover, .fc-casa:focus-visible { background: rgba(255,255,255,.14); border-color: rgba(255,255,255,.3); color: rgb(var(--g-0)); }
+.fc-casa[aria-current="page"] { background: rgba(255,255,255,.16); color: rgb(var(--g-0)); }
+.fc-casa svg { width: 17px; height: 17px; }
 .fc-modulos { width: min(760px, calc(100vw - 24px)); right: auto; padding: 0; max-height: min(78vh, 720px); display: flex; flex-direction: column; }
 .fc-modulos[hidden] { display: none; }
 .fc-modulos__buscar { margin: 12px 12px 4px; padding: 10px 12px; border: 1px solid var(--linea); border-radius: 10px; font: inherit; font-size: 14px; outline: none; }
@@ -1570,6 +1575,15 @@ main.fc-recien { animation: fc-recien .35s ease-out; }
 .ui-modal__cuerpo { padding: var(--e-6); display: flex; flex-direction: column; gap: var(--e-3); font-size: var(--t-14); }
 .ui-modal__cuerpo h3 { font-size: var(--t-16); font-weight: 700; margin: 0; }
 .ui-modal__pie { display: flex; justify-content: flex-end; gap: var(--e-2); padding: var(--e-3) var(--e-6) var(--e-5); }
+/* Fiscontable.confirmar */
+.fc-confirmar .fc-confirmar__texto { margin: 0; color: rgb(var(--g-700)); line-height: 1.5; white-space: pre-line; }
+.fc-confirmar__escribir { display: grid; gap: 6px; font-size: var(--t-13); color: rgb(var(--g-700)); }
+.fc-confirmar__escribir input { height: 36px; padding: 0 10px; border: 1px solid rgb(var(--g-300)); border-radius: var(--r-control); font: inherit; font-family: var(--fuente-mono); text-transform: uppercase; }
+.fc-confirmar .ui-btn:disabled { opacity: .45; cursor: not-allowed; }
+/* Mis descargas: aviso de lo programado y enlace chico dentro de una tarjeta */
+.fc-nota-prog { display: block; margin: 0 0 var(--e-3); padding: 8px 12px; border-radius: var(--r-control); background: rgb(var(--g-50)); color: rgb(var(--g-700)); font-size: var(--t-12); text-decoration: none; }
+.fc-nota-prog:hover { background: rgb(var(--g-100)); }
+.fc-enlace-chico { border: 0; background: none; padding: 0; margin-top: 4px; font: inherit; font-size: var(--t-12); color: rgb(var(--av-700)); text-decoration: underline; cursor: pointer; }
 /* En el teléfono las pestañas del título se deslizan en lugar de salirse de la pantalla */
 @media (max-width: 640px) {
     .fc-titulo { min-width: 0; max-width: 100%; }
@@ -1771,6 +1785,9 @@ a.fc-act-item:hover { background: rgb(var(--g-50)); }
                     border: 1px solid var(--linea); border-radius: var(--r-control); font-size: var(--t-13); }
 .fc-act-pie { display: flex; gap: var(--e-2); flex-wrap: wrap; }
 #fc-btn-actividad { position: relative; }
+/* Mis descargas: las mismas tarjetas del panel de la barra, en dos columnas cuando caben */
+.dsc-tarjetas { display: grid; gap: var(--e-3); grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); }
+.dsc-tarjetas .fc-item { margin: 0; }
 .dsc-filtros { display: flex; flex-wrap: wrap; gap: var(--e-2); align-items: center; margin-bottom: var(--e-4); }
 .dsc-filtros .ui-select { width: auto; }
 
@@ -1841,3 +1858,6 @@ html.fc-ambiente-pruebas .fc-barra, html.fc-ambiente-pruebas #app-header > heade
 .msat-cli__pie { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin-top: 12px; }
 .msat-cli__aviso { margin: 10px 0 0; font-size: var(--t-13); color: rgb(var(--av-600)); }
 .msat-cli__o { margin: 4px 0 10px; font-size: var(--t-13); font-weight: 600; color: rgb(var(--g-600)); }
+.msat-carpeta { margin: 4px 0 14px; }
+.msat-carpeta > summary { cursor: pointer; font-size: var(--t-13); font-weight: 600; color: rgb(var(--g-600)); padding: 6px 0; }
+.msat-carpeta[open] > summary { margin-bottom: 10px; }

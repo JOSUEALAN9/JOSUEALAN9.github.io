@@ -387,7 +387,9 @@
            buscar: { texto: "Buscar…", campos: ["uuid", "rfc"] },
            filtros: [{ clave, etiqueta, texto: function (v) {} }],      se eligen en "Filtros" y quedan como etiquetas
            rapidos: { clave, valores: [{ valor, etiqueta }] },          etiquetas con conteo arriba de la tabla
-           exportar: { nombre: "Archivo.xlsx", hoja: "Datos", porValor: { clave, valores: [...] } },
+           exportar: { nombre: "Archivo.xlsx", hoja: "Datos", porValor: { clave, valores: [...] },
+                       extras: [{ texto, accion(filas) }],     más opciones en el menú «Descargar ▾»
+                       enBarra: false },                       sin botón: la página lo pone en su propio «Descargar» (t.exportar())
            vacio: { titulo, texto }, extra: [elementos que van junto a los botones]
        });
        t.ponerDatos(filas)  t.cargando()  t.error(mensaje, reintentar)  t.visibles()  t.filtrar(clave, valor)  t.tabla
@@ -406,13 +408,16 @@
                     '<button type="button" class="xml-btn" data-fct="columnas">Columnas</button>' +
                     '<div class="xml-menu"><button type="button" class="xml-btn" data-fct="vistas" aria-haspopup="true"><span class="fct-vista">Vista de fábrica</span> ▾</button>' +
                         '<div class="xml-menu__lista fct-menu-vistas" hidden></div></div>' +
-                    (o.exportar ? '<button type="button" class="xml-btn" data-fct="excel" disabled>Exportar Excel</button>' : "") +
+                    (o.exportar && o.exportar.enBarra !== false ? '<div class="xml-menu"><button type="button" class="xml-btn" data-fct="descargar" aria-haspopup="true" disabled>Descargar ▾</button>' +
+                        '<div class="xml-menu__lista fct-menu-descargar" hidden><button type="button" data-fct="excel">Excel de esta tabla</button>' +
+                        ((o.exportar.extras || []).map(function (x, i) { return '<button type="button" data-fct-extra="' + i + '">' + esc(x.texto) + "</button>"; }).join("")) +
+                        "</div></div>" : "") +
                 "</div></div>" +
             '<div class="xml-filtros-activos fct-chips" hidden></div>' +
             '<div class="fct-estado" hidden></div>' +
             '<div class="xml-tabla-caja fct-caja"></div>';
         var q = function (sel) { return raiz.querySelector(sel); };
-        var caja = q(".fct-caja"), estado = q(".fct-estado"), menuF = q(".fct-menu-filtros"), menuV = q(".fct-menu-vistas");
+        var caja = q(".fct-caja"), estado = q(".fct-estado"), menuF = q(".fct-menu-filtros"), menuV = q(".fct-menu-vistas"), menuD = q(".fct-menu-descargar");
         (o.extra || []).forEach(function (el) { q(".fct-extra").appendChild(el); });
 
         var tabla = crear({
@@ -498,13 +503,14 @@
             }
             tabla.ponerFilas(vis);
             pintarRapidos(); pintarChips(); if (menuF && !menuF.hidden) pintarMenuFiltros();
-            var bx = q("[data-fct=excel]"); if (bx) bx.disabled = !vis.length;
+            var bx = q("[data-fct=descargar]"); if (bx) bx.disabled = !vis.length;
             if (o.alFiltrar) o.alFiltrar(vis);
         }
 
         raiz.addEventListener("click", function (e) {
-            var b = e.target.closest("[data-fct],[data-rapido],[data-quitar]");
+            var b = e.target.closest("[data-fct],[data-rapido],[data-quitar],[data-fct-extra]");
             if (!b) return;
+            if (b.dataset.fctExtra !== undefined) { menuD.hidden = true; o.exportar.extras[+b.dataset.fctExtra].accion(tabla.filas()); return; }
             if (b.dataset.rapido !== undefined) { F.rapido = b.dataset.rapido === "" ? null : b.dataset.rapido; aplicar(); return; }
             if (b.dataset.quitar !== undefined) {
                 if (b.dataset.quitar === "*") { F.filtros = {}; F.rapido = null; } else delete F.filtros[b.dataset.quitar];
@@ -512,12 +518,12 @@
             }
             var que = b.dataset.fct;
             if (que === "columnas") tabla.abrirPanelColumnas();
-            else if (que === "filtros" || que === "vistas") {
+            else if (que === "filtros" || que === "vistas" || que === "descargar") {
                 e.stopPropagation();
-                var m = que === "filtros" ? menuF : menuV, abrir = m.hidden;
-                [menuF, menuV].forEach(function (x) { if (x) x.hidden = true; });
-                if (abrir) { if (que === "filtros") pintarMenuFiltros(); else vistas.pintar(); m.hidden = false; }
-            } else if (que === "excel") exportar();
+                var m = que === "filtros" ? menuF : que === "vistas" ? menuV : menuD, abrir = m.hidden;
+                [menuF, menuV, menuD].forEach(function (x) { if (x) x.hidden = true; });
+                if (abrir) { if (que === "filtros") pintarMenuFiltros(); else if (que === "vistas") vistas.pintar(); m.hidden = false; }
+            } else if (que === "excel") { if (menuD) menuD.hidden = true; exportar(); }
         });
         if (menuF) {
             menuF.addEventListener("click", function (e) { e.stopPropagation(); });
@@ -528,7 +534,7 @@
             });
         }
         document.addEventListener("click", function (e) {
-            [menuF, menuV].forEach(function (m) { if (m && !m.hidden && !m.parentNode.contains(e.target)) m.hidden = true; });
+            [menuF, menuV, menuD].forEach(function (m) { if (m && !m.hidden && !m.parentNode.contains(e.target)) m.hidden = true; });
         });
         var bus = q(".fct-buscar"), tBus = null;
         if (bus) bus.addEventListener("input", function () {
@@ -561,6 +567,7 @@
             filtrar: function (clave, valor) { if (valor === null || valor === "") delete F.filtros[clave]; else F.filtros[clave] = String(valor); aplicar(); },
             rapido: function (valor) { F.rapido = valor === null ? null : String(valor); aplicar(); },
             limpiar: function () { F.filtros = {}; F.rapido = null; F.buscar = ""; if (bus) bus.value = ""; },
+            exportar: function () { exportar(); },
             quitarSeleccion: function () { tabla.seleccion.clear(); aplicar(); if (o.alSeleccionar) o.alSeleccionar(tabla.seleccion); },
             cargando: function (texto) {
                 caja.hidden = true; estado.hidden = false;
