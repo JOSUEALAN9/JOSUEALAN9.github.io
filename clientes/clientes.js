@@ -307,14 +307,83 @@ const FILTROS = [
 ];
 let filtroCli = Fiscontable.url("filtro") || "";
 let busquedaCli = Fiscontable.url("q") || "";
-let vistaCli = (() => { try { return localStorage.getItem("clientes:vista") || "tarjetas"; } catch (e) { return "tarjetas"; } })();
+let vistaCli = (() => { try { return localStorage.getItem("clientes:vista2") || "lista"; } catch (e) { return "lista"; } })();   // M-02: lista por defecto
 
 function sinAcentos(t) { return String(t || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""); }
 
 function clientesVisibles() {
     const f = (FILTROS.find(x => x[0] === filtroCli) || FILTROS[0])[2], q = sinAcentos(busquedaCli.trim());
-    return clientesCache.filter(c => f(c) && (!q || sinAcentos(c.alias + " " + c.rfc + " " + (c.razon_social || "")).includes(q)));
+    return clientesCache.filter(c => f(c) && (!q || sinAcentos(c.alias + " " + c.rfc + " " + (c.razon_social || "")).includes(q)))
+        .sort((a, b) => (b.favorito ? 1 : 0) - (a.favorito ? 1 : 0));          // favoritas arriba (el resto, como vienen: por nombre)
 }
+
+/* M-02: avatar con iniciales (color estable por RFC), indicadores con ícono y tooltip, menú ⋯ con las acciones */
+const TONOS_AVATAR = ["ac", "in", "ok", "av", "g"];
+function avatar(c) {
+    const palabras = String(c.alias || c.rfc).replace(/\b(S\.?A\.?|DE|C\.?V\.?|S\.?C\.?|R\.?L\.?|SAPI|SAS)\b/gi, " ").trim().split(/\s+/).filter(Boolean);
+    const ini = ((palabras[0] || "?")[0] + ((palabras[1] || "")[0] || "")).toUpperCase();
+    let h = 0; for (const ch of c.rfc) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+    return `<span class="cli-avatar cli-avatar--${TONOS_AVATAR[h % TONOS_AVATAR.length]}" aria-hidden="true">${esc(ini)}</span>`;
+}
+function indicadores(c) {
+    const ind = (ok, nombre, si, no) => `<span class="cli-ind ${ok ? "cli-ind--ok" : "cli-ind--falta"}" title="${esc(nombre + ": " + (ok ? si : no))}" aria-label="${esc(nombre + ": " + (ok ? si : no))}">${esc(nombre)}</span>`;
+    return ind(c.efirma_guardada, "e.firma", "guardada", "falta") + ind(c.ciec_guardada, "CIEC", "guardada", "sin guardar") +
+        ind(tieneDoc(c, "csf"), "CSF", "constancia del mes", "sin constancia del mes") + ind(tieneDoc(c, "opinion"), "32-D", "opinión del mes", "sin opinión del mes");
+}
+function obligacionesTexto(c) {
+    const o = estatalesDe(c.rfc).map(([, , corto]) => corto);
+    if (tieneIsn(c.rfc)) o.unshift("ISN");
+    return o.join(" · ");
+}
+function menuAcciones(c) {
+    const r = encodeURIComponent(c.rfc), a = encodeURIComponent(c.alias);
+    const enlaces = [["Constancia", `/herramientas/constancias/?rfc=${r}&cliente=${a}`], ["Opinión 32-D", `/herramientas/opinion/?rfc=${r}&cliente=${a}`],
+        ["Declaraciones", `/herramientas/declaraciones/?rfc=${r}&cliente=${a}`], ["Descargar XML", `/herramientas/descarga-xml/?rfc=${r}&cliente=${a}`]];
+    if (tieneIsn(c.rfc)) enlaces.push(["ISN", `/herramientas/isn/?empresa=${r}`]);
+    estatalesDe(c.rfc).forEach(([k, , corto]) => enlaces.push([corto, `/herramientas/isn/estatal.html?i=${k}&empresa=${r}`]));
+    return `<div class="xml-menu cli-mas"><button type="button" class="ui-icono-btn" data-mas="${esc(c.rfc)}" aria-haspopup="true" aria-label="Acciones de ${esc(c.alias)}" title="Acciones">⋯</button>
+        <div class="xml-menu__lista" hidden>
+            ${soloLectura ? "" : `<button type="button" data-accion="editar" data-rfc="${esc(c.rfc)}">Abrir ficha</button>`}
+            <button type="button" data-accion="trabajar" data-rfc="${esc(c.rfc)}">Trabajar con esta empresa</button>
+            <div class="xml-separador"></div>
+            ${enlaces.map(([t, h]) => `<a href="${h}">${esc(t)}</a>`).join("")}
+            ${soloLectura ? "" : `<div class="xml-separador"></div>
+            ${c.efirma_guardada ? `<button type="button" data-accion="olvidar" data-rfc="${esc(c.rfc)}">Olvidar la e.firma</button>` : ""}
+            <button type="button" data-accion="quitar" data-rfc="${esc(c.rfc)}" class="xml-peligro">Quitar del directorio</button>`}
+        </div></div>`;
+}
+function estrella(c) {
+    return `<button type="button" class="cli-estrella${c.favorito ? " cli-estrella--si" : ""}" data-estrella="${esc(c.rfc)}" aria-pressed="${!!c.favorito}" title="${c.favorito ? "Quitar de favoritas" : "Marcar como favorita"}">★</button>`;
+}
+async function alternarFavorita(rfc) {
+    const c = clientesCache.find(x => x.rfc === rfc); if (!c) return;
+    try {
+        const r = await fetch(`${API_URL}/api/clientes/${encodeURIComponent(rfc)}/favorito`, { method: "PUT", credentials: "include",
+            headers: { "Content-Type": "application/json" }, body: JSON.stringify({ favorito: !c.favorito }) });
+        if (!r.ok) throw new Error(await Fiscontable.leerError(r));
+        c.favorito = !c.favorito; renderizarClientes();
+        window.dispatchEvent(new CustomEvent("fiscontable:favoritos"));
+    } catch (e) { mostrarAlerta("error", e.message); }
+}
+document.addEventListener("click", async e => {
+    const est = e.target.closest("[data-estrella]");
+    if (est) { e.stopPropagation(); alternarFavorita(est.dataset.estrella); return; }
+    const mas = e.target.closest("[data-mas]");
+    document.querySelectorAll(".cli-mas .xml-menu__lista").forEach(m => { if (!mas || m.parentNode !== mas.parentNode) m.hidden = true; });
+    if (mas) { e.stopPropagation(); const m = mas.parentNode.querySelector(".xml-menu__lista"); m.hidden = !m.hidden; return; }
+    const acc = e.target.closest(".cli-mas [data-accion]");
+    if (acc) {
+        e.stopPropagation();
+        const rfc = acc.dataset.rfc;
+        if (acc.dataset.accion === "editar") abrirModalEditar(rfc);
+        else if (acc.dataset.accion === "olvidar") olvidarEfirma(rfc);
+        else if (acc.dataset.accion === "quitar") eliminarCliente(rfc);
+        else if (acc.dataset.accion === "trabajar") { try { await Fiscontable.elegirEmpresa(rfc); Fiscontable.toast("Trabajando con " + rfc + "."); } catch (x) { mostrarAlerta("error", x.message); } }
+        return;
+    }
+    const tarjeta = e.target.closest("[data-ficha]");
+    if (tarjeta && !e.target.closest("a,button") && !soloLectura) abrirModalEditar(tarjeta.dataset.ficha);
+});
 
 function pintarHerramientas() {
     const caja = document.getElementById("cli-herramientas");
@@ -334,7 +403,7 @@ document.addEventListener("DOMContentLoaded", () => {
     document.querySelector(".cli-vista").addEventListener("click", e => {
         const b = e.target.closest("[data-vista]"); if (!b) return;
         vistaCli = b.dataset.vista;
-        try { localStorage.setItem("clientes:vista", vistaCli); } catch (err) { /* sin almacenamiento */ }
+        try { localStorage.setItem("clientes:vista2", vistaCli); } catch (err) { /* sin almacenamiento */ }
         renderizarClientes();
     });
     document.getElementById("cli-buscar").addEventListener("input", e => {
@@ -343,21 +412,12 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 function filaLista(c) {
-    const r = encodeURIComponent(c.rfc), a = encodeURIComponent(c.alias);
-    const marca = (ok, si, no) => ok ? `<span class="cli-si">✓ ${si}</span>` : `<span class="cli-no">${no}</span>`;
-    return `<tr>
-        <td><b class="text-slate-800">${esc(c.alias)}</b></td>
-        <td class="font-mono text-xs text-slate-500">${esc(c.rfc)}</td>
-        <td class="text-xs text-slate-500">${esc(c.tipo_sociedad || "")}</td>
-        <td>${c.efirma_guardada ? '<span class="cli-si">✓ Guardada</span>' : (puedeGuardarEfirma && !soloLectura ? `<button type="button" class="text-xs font-bold text-violet-700 underline" data-rfc="${esc(c.rfc)}" onclick="abrirModalEditar(this.dataset.rfc, 'accesos')">Subir e.firma</button>` : '<span class="cli-no">Falta</span>')}</td>
-        <td>${marca(c.ciec_guardada, "Sí", "—")}</td>
-        <td>${marca(tieneDoc(c, "csf"), "Al día", "Falta")}</td>
-        <td>${marca(tieneDoc(c, "opinion"), "Al día", "Falta")}</td>
-        <td class="text-right whitespace-nowrap">
-            <a class="text-xs font-semibold text-slate-600 hover:text-violet-700 mr-2" href="/herramientas/constancias/?rfc=${r}&cliente=${a}">Constancia</a>
-            <a class="text-xs font-semibold text-slate-600 hover:text-violet-700 mr-2" href="/herramientas/descarga-xml/?rfc=${r}&cliente=${a}">XML</a>
-            ${soloLectura ? "" : `<button type="button" class="text-xs font-semibold text-slate-600 hover:text-violet-700" data-rfc="${esc(c.rfc)}" onclick="abrirModalEditar(this.dataset.rfc)">Editar</button>`}
-        </td></tr>`;
+    const ob = obligacionesTexto(c);
+    return `<tr data-ficha="${esc(c.rfc)}">
+        <td class="cli-celda-nombre">${estrella(c)}${avatar(c)}<span class="cli-nombre"><b title="${esc(c.alias)}">${esc(c.alias)}</b><small class="cli-rfc">${esc(c.rfc)}${c.tipo_sociedad ? " · " + esc(c.tipo_sociedad) : ""}</small></span></td>
+        <td><span class="cli-inds">${indicadores(c)}</span></td>
+        <td class="cli-obl">${esc(ob)}</td>
+        <td class="cli-celda-mas">${!c.efirma_guardada && puedeGuardarEfirma && !soloLectura ? `<button type="button" class="ui-btn ui-btn--terciario ui-btn--28" data-rfc="${esc(c.rfc)}" onclick="event.stopPropagation();abrirModalEditar(this.dataset.rfc, 'accesos')">Subir e.firma</button>` : ""}${menuAcciones(c)}</td></tr>`;
 }
 
 function renderizarClientes() {
@@ -382,58 +442,17 @@ function renderizarClientes() {
     }
     if (vistaCli === "lista") {
         contenedor.className = "";
-        contenedor.innerHTML = visibles.length ? `<table class="cli-tabla"><thead><tr><th>Empresa</th><th>RFC</th><th>Tipo</th><th>e.firma</th><th>Contraseña SAT</th>
-            <th>Constancia</th><th>Opinión</th><th></th></tr></thead><tbody>${visibles.map(filaLista).join("")}</tbody></table>` : "";
+        contenedor.innerHTML = visibles.length ? `<table class="cli-tabla"><thead><tr><th>Empresa</th><th>Accesos y documentos</th><th>Obligaciones</th><th></th></tr></thead>
+            <tbody>${visibles.map(filaLista).join("")}</tbody></table>` : "";
         return;
     }
-    contenedor.className = "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4";
-
-    contenedor.innerHTML = visibles.map(cliente => {
-        const rfcCodificado = encodeURIComponent(cliente.rfc);
-        const aliasCodificado = encodeURIComponent(cliente.alias);
-        return `
-        <div class="bg-white rounded-xl card-elevated border border-gray-200 p-5 flex flex-col gap-3">
-            <div class="flex justify-between items-start gap-2">
-                <div>
-                    <h3 class="font-bold text-slate-800 leading-tight">${esc(cliente.alias)}</h3>
-                    <p class="text-xs text-slate-400"><span class="font-mono">${esc(cliente.rfc)}</span>${cliente.tipo_sociedad ? " · " + esc(cliente.tipo_sociedad) : ""}</p>
-                </div>
-                <div class="flex items-center gap-1 flex-none">
-                    <button data-rfc="${esc(cliente.rfc)}" onclick="abrirModalEditar(this.dataset.rfc)" title="Editar cliente" class="text-gray-300 hover:text-violet-600 transition ${soloLectura ? 'hidden' : ''}">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
-                    </button>
-                    <button data-rfc="${esc(cliente.rfc)}" onclick="eliminarCliente(this.dataset.rfc)" title="Quitar del directorio" class="text-gray-300 hover:text-red-500 transition ${soloLectura ? 'hidden' : ''}">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                    </button>
-                </div>
-            </div>
-
-            <div class="flex gap-2 flex-wrap items-center">
-                ${badgeDocumento(cliente, "csf", "Constancia")}
-                ${badgeDocumento(cliente, "opinion", "Opinión")}
-                ${cliente.efirma_guardada
-                    ? `<span class="text-xs font-bold px-2 py-1 rounded-full bg-violet-100 text-violet-700 flex items-center gap-1">
-                           <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
-                           e.firma guardada
-                       </span>${soloLectura ? '' : `<button data-rfc="${esc(cliente.rfc)}" onclick="olvidarEfirma(this.dataset.rfc)" class="text-xs text-slate-400 hover:text-red-500 underline transition">olvidar</button>`}`
-                    : `<span class="text-xs font-semibold px-2 py-1 rounded-full bg-gray-100 text-gray-400">Sin e.firma guardada</span>`
-                }
-                ${cliente.ciec_guardada ? `<span class="text-xs font-bold px-2 py-1 rounded-full bg-violet-50 text-violet-700">Contraseña SAT ✓</span>` : ""}
-                ${estatalesDe(cliente.rfc).map(([k, , corto]) => { const ok = obligacionesEst[cliente.rfc][k].completos;
-                    return `<span class="text-xs font-bold px-2 py-1 rounded-full ${ok ? "bg-pink-100 text-pink-700" : "bg-amber-100 text-amber-700"}" title="${ok ? "Datos de la declaración completos" : "Faltan datos de la declaración"}">${esc(corto)}${ok ? "" : " · faltan datos"}</span>`; }).join("")}
-                ${tieneIsn(cliente.rfc) ? `<span class="text-xs font-bold px-2 py-1 rounded-full ${obligaciones[cliente.rfc].completos ? "bg-pink-100 text-pink-700" : "bg-amber-100 text-amber-700"}" title="${obligaciones[cliente.rfc].completos ? "Datos de la declaración completos" : "Faltan datos de la declaración"}">ISN QROO${obligaciones[cliente.rfc].completos ? "" : " · faltan datos"}</span>` : ""}
-            </div>
-
-            <div class="atajos">
-                <a href="/herramientas/constancias/?rfc=${rfcCodificado}&cliente=${aliasCodificado}" style="--tono:#4338CA;--tono-suave:#ECEBFB">Constancia</a>
-                <a href="/herramientas/opinion/?rfc=${rfcCodificado}&cliente=${aliasCodificado}" style="--tono:#0F766E;--tono-suave:#E6F2F1">Opinión</a>
-                <a href="/herramientas/declaraciones/?rfc=${rfcCodificado}&cliente=${aliasCodificado}" style="--tono:#0369A1;--tono-suave:#E4F1F9">Declaraciones</a>
-                <a href="/herramientas/descarga-xml/?rfc=${rfcCodificado}&cliente=${aliasCodificado}" style="--tono:#0E7490;--tono-suave:#E0F2F7">Descargar XML</a>
-                ${tieneIsn(cliente.rfc) ? `<a href="/herramientas/isn/?empresa=${rfcCodificado}" style="--tono:#BE185D;--tono-suave:#FCE7F3">ISN</a>` : ""}
-                ${estatalesDe(cliente.rfc).map(([k, , corto]) => `<a href="/herramientas/isn/estatal.html?i=${k}&empresa=${rfcCodificado}" style="--tono:#BE185D;--tono-suave:#FCE7F3">${corto}</a>`).join("")}
-            </div>
-        </div>`;
-    }).join("");
+    // Tarjetas compactas: sin botones; clic abre la ficha y las acciones van en ⋯
+    contenedor.className = "cli-tarjetas";
+    contenedor.innerHTML = visibles.map(c => `<div class="cli-tarjeta" data-ficha="${esc(c.rfc)}" tabindex="0">
+        <div class="cli-tarjeta__cabeza">${avatar(c)}<span class="cli-nombre"><b title="${esc(c.alias)}">${esc(c.alias)}</b><small class="cli-rfc">${esc(c.rfc)}</small></span>${estrella(c)}${menuAcciones(c)}</div>
+        <span class="cli-inds">${indicadores(c)}</span>
+        ${obligacionesTexto(c) ? `<small class="cli-obl">${esc(obligacionesTexto(c))}</small>` : ""}
+    </div>`).join("");
 }
 
 const RFC_VALIDO = /^[A-ZÑ&]{3,4}\d{6}[A-Z0-9]{3}$/;
