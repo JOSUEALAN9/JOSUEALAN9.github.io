@@ -1630,6 +1630,8 @@ main.fc-recien { animation: fc-recien .35s ease-out; }
 .fc-bloqueo-pantalla__caja form { display: flex; gap: var(--e-2); width: 100%; }
 .fc-bloqueo-pantalla__caja form .ui-input { flex: 1; text-align: center; letter-spacing: .3em; font-size: var(--t-16); }
 .fc-bloqueo-pantalla__msj { color: rgb(var(--er-600)) !important; font-size: var(--t-13) !important; min-height: 1em; }
+.fc-bloqueo-pantalla__olvide { font-size: var(--t-13); color: rgb(var(--g-600)); text-decoration: underline; text-underline-offset: 3px; }
+.fc-bloqueo-pantalla__olvide:hover { color: rgb(var(--g-900)); }
 html.fc-bloqueada body { overflow: hidden; }
 
 /* --- Selector de empresa (G-02): favoritas, recientes y todas --- */
