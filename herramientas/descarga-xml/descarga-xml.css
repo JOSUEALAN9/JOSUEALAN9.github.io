@@ -3,7 +3,7 @@
    los campos de contexto (Desde / Hasta) y los segmentos, los de xml.css. */
 
 .dm-pagina { max-width: 1180px; margin: 0 auto; padding: 16px 20px 48px; }
-.dm-formulario { max-width: 860px; margin: 0 auto; }
+.dm-formulario { max-width: none; margin: 0; }
 .dm-formulario *, .dm-filtro-res *, .dm-cajon *, .dm-modal * { box-sizing: border-box; }
 /* Las rejillas del portal (.dos, grid) le ganan a [hidden]: aquí siempre manda hidden */
 .dm-formulario [hidden], .dm-resultados [hidden] { display: none !important; }
@@ -154,3 +154,39 @@
 .dm-sesion--otro .dm-sesion__punto { background: var(--texto-tenue); }
 .dm-resultados.mod-layout:not([hidden]) { display: grid; }
 .dm-cabeza-res { margin-bottom: 8px; }
+
+/* M-06: «Qué bajar» en una sola fila (se acomoda en varias si no cabe) */
+.dm-fila { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px; }
+.dm-f { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.dm-f__et { font-size: 11.5px; font-weight: 700; color: rgb(var(--g-600)); text-transform: uppercase; letter-spacing: .03em; white-space: nowrap; }
+.dm-f .dm-opcional { text-transform: none; letter-spacing: 0; font-weight: 500; color: rgb(var(--g-500)); }
+.dm-f .campo__control { height: 40px; }
+.dm-f select.campo__control { min-width: 112px; }
+.dm-f--rfc { flex: 1 1 120px; }
+.dm-f--rfc .campo__control { width: 100%; }
+.dm-f--boton { flex-direction: row; gap: 8px; margin-left: auto; }
+.dm-f--boton .ui-btn { height: 40px; white-space: nowrap; }
+.dm-f--boton [hidden] { display: none; }
+.dm-periodo { flex-direction: column; align-items: stretch; flex-wrap: nowrap; }
+.dm-periodo__botones { display: flex; gap: 8px; }
+.dm-periodo .ctx-campo { min-width: 134px; height: 40px; }
+.dm-fila .dm-segmento { height: 40px; padding: 3px; align-items: stretch; }
+.dm-fila .dm-segmento button { height: auto; padding-top: 0; padding-bottom: 0; }
+.dm-fila-sec { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; margin-top: 10px; }
+.dm-fila-sec .dm-pista { margin: 0; }
+@media (max-width: 640px) {
+    .dm-f, .dm-f--rfc, .dm-periodo { flex: 1 1 100%; }
+    .dm-periodo__botones .ctx-campo { flex: 1; min-width: 0; }
+    .dm-f select.campo__control { width: 100%; }
+    .dm-f--boton { margin-left: 0; }
+    .dm-f--boton .ui-btn { flex: 1; }
+}
+
+/* Solicitudes al SAT: tabla debajo del formulario */
+.dm-solicitudes { margin-top: 18px; }
+.dm-solicitudes__cabeza { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+.dm-solicitudes__cabeza h2 { margin: 0; font-size: var(--t-16); font-weight: 700; color: rgb(var(--g-900)); }
+.dm-solicitudes .xml-tabla-caja { height: auto; max-height: 460px; }
+.dm-solicitudes .dm-sol__acciones { display: inline-flex; gap: 6px; margin: 0; flex-wrap: nowrap; }
+.dm-solicitudes tr.dm-sol--activa td { background: rgb(var(--ac-50)); }
+.dm-solicitudes .fct .fct-caja { min-height: 0; }
