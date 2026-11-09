@@ -1832,6 +1832,7 @@
         var nombre = p.nombre || (p.correo || "").split("@")[0] || "Tu cuenta";
 
         document.getElementById("fc-avatar").textContent = nombre.charAt(0).toUpperCase();
+        ponerFoto(p.foto);
         document.getElementById("fc-nombre-corto").textContent = nombre.split(" ")[0];
         document.getElementById("fc-menu-nombre").textContent = p.nombre || "Sin nombre";
         document.getElementById("fc-menu-correo").textContent = p.correo || "";
@@ -1855,6 +1856,8 @@
         prepararBloqueo(p);
         vigilarChipEmpresa();
         pintarVerComo(p);
+        cargarTextos();
+        esAdminActual = p.rol === "admin" && !p.viendo_como;
         document.dispatchEvent(new CustomEvent("fc:perfil", { detail: p }));
     }
 
@@ -1897,6 +1900,53 @@
             X.utils.book_append_sheet(libro, ws, (h.hoja || "Hoja1").slice(0, 31));
         });
         X.writeFile(libro, nombre);
+    }
+
+    /* ------------------------------------------------- foto de perfil (M-20): se pide con la sesión y se muestra en el avatar */
+    var fotoActual = null, esAdminActual = false;
+    async function ponerFoto(version) {
+        var av = document.getElementById("fc-avatar");
+        if (!av || version === fotoActual) return;
+        fotoActual = version;
+        if (!version) return;
+        try {
+            var r = await fetch(API + "/api/mi-perfil/foto?v=" + encodeURIComponent(version), { credentials: "include" });
+            if (!r.ok) return;
+            var url = URL.createObjectURL(await r.blob());
+            av.innerHTML = '<img src="' + url + '" alt="">';
+            av.classList.add("fc-avatar--foto");
+        } catch (e) { /* se queda la inicial */ }
+    }
+
+    /* ------------------------------------------------- textos editables de la web (C-05)
+       El admin cambia las guías de cada módulo (clave "ayuda.<módulo>", una línea por paso) y cualquier elemento con
+       data-texto="clave". Se piden una vez por sesión del navegador (5 min) y se aplican encima de los de fábrica. */
+    var textosWeb = {};
+    async function cargarTextos() {
+        try {
+            var guardado = JSON.parse(sessionStorage.getItem("fc-textos") || "null");
+            if (guardado && Date.now() - guardado.t < 300000) textosWeb = guardado.d;
+            else {
+                var r = await fetch(API + "/api/textos", { credentials: "include" });
+                if (r.ok) { textosWeb = await r.json(); sessionStorage.setItem("fc-textos", JSON.stringify({ t: Date.now(), d: textosWeb })); }
+            }
+        } catch (e) { textosWeb = {}; }
+        Object.keys(textosWeb).forEach(function (k) {
+            if (k.indexOf("ayuda.") === 0) AYUDA[k.slice(6)] = textosWeb[k].split("\n").map(function (x) { return x.trim(); }).filter(Boolean);
+        });
+        document.querySelectorAll("[data-texto]").forEach(function (el) { if (textosWeb[el.dataset.texto]) el.textContent = textosWeb[el.dataset.texto]; });
+    }
+    async function editarTexto(claveTexto, actual, alGuardar) {
+        var nuevo = prompt("Nuevo texto (una línea por paso). Déjalo vacío para regresar al de fábrica:", actual);
+        if (nuevo === null) return;
+        try {
+            var r = await fetch(API + "/api/admin/textos/" + encodeURIComponent(claveTexto), { method: "PUT", credentials: "include",
+                headers: { "Content-Type": "application/json" }, body: JSON.stringify({ texto: nuevo.replace(/ · /g, "\n") }) });
+            if (!r.ok) throw new Error(await window.Fiscontable.leerError(r));
+            sessionStorage.removeItem("fc-textos");
+            brindis("Texto guardado. Se ve al recargar la página.");
+            if (alGuardar) alGuardar();
+        } catch (e) { brindis(esc(e.message)); }
     }
 
     /* ------------------------------------------------- «Ver como» (N-04): letrero fijo mientras el admin ve como otro usuario */
@@ -2479,12 +2529,94 @@
             document.addEventListener("keydown", function (e) { if (e.key === "Escape") caja.hidden = true; });
             document.body.appendChild(caja);
         }
+        // G-15: dos opciones — la guía rápida (texto) y el recorrido visual (resalta cada parte de la pantalla)
         caja.innerHTML = '<div class="fc-ayuda-modal__caja" role="dialog" aria-label="Cómo se usa">' +
             "<h2>Cómo se usa · " + esc(ancla.dataset.titulo || modulo.nombre) + "</h2>" +
+            '<p class="fc-ayuda-modal__sub">Guía rápida</p>' +
             "<ol>" + pasos.map(function (p) { return "<li>" + esc(p) + "</li>"; }).join("") + "</ol>" +
-            '<button type="button" class="fc-ayuda-modal__cerrar" data-cerrar>Entendido</button></div>';
+            '<div class="fc-ayuda-modal__pie">' + (esAdminActual ? '<button type="button" class="ui-btn ui-btn--terciario ui-btn--32" data-editar-guia>Editar guía</button>' : "") +
+            '<button type="button" class="ui-btn ui-btn--secundario ui-btn--32" data-recorrido>Recorrido visual</button>' +
+            '<button type="button" class="fc-ayuda-modal__cerrar" data-cerrar>Entendido</button></div></div>';
         caja.hidden = false;
+        caja.querySelector("[data-recorrido]").addEventListener("click", function () { caja.hidden = true; recorrido(clave, pasos); });
+        var eg = caja.querySelector("[data-editar-guia]");
+        if (eg) eg.addEventListener("click", function () { caja.hidden = true; editarTexto("ayuda." + (ancla.dataset.ayuda || clave), pasos.join(" · ")); });
     });
+
+    /* ------------------------------------------------- recorrido visual (G-15)
+       Resalta, uno por uno, los elementos que se ven en esta pantalla y explica para qué sirven. Lo que ya viste se
+       recuerda (fc-recorrido:<módulo>). Fiscontable.recorrido(clave, pasos) lo abre desde cualquier lado. */
+    var PASOS_COMUNES = [
+        ["#fc-lateral", "Barra lateral", "Todos los módulos por grupo. Pliégala con «Contraer»; Ctrl+K busca cualquier módulo por su nombre."],
+        ["#fc-btn-empresa", "Empresa activa", "Con quién trabajas. Todos los módulos la usan; las favoritas salen primero."],
+        ["#fc-btn-periodo", "Periodo general", "El mes con el que abren los módulos que trabajan por periodo."],
+        [".mod-acciones--barra", "Acciones del módulo", "Lo que puedes hacer con lo que ves. «Ir a ▾» abre otro módulo con el mismo periodo."],
+        ["#linea-programa .fpu", "Programación", "Lo que se hace solo, de madrugada, y cada cuánto. «Cambiar» para ajustarlo."],
+        [".fct-barra, .xml-toolbar", "La tabla", "Busca, filtra (los filtros quedan como etiquetas), elige columnas, guarda vistas y exporta a Excel."],
+        ["#fc-btn-actividad", "Actividad", "Avisos de lo que terminó o cambió mientras no estabas (también pueden llegarte por correo)."],
+        ["#fc-btn-descargas", "Descargas", "Los archivos que pediste: constancias, opiniones, XML y reportes."]
+    ];
+    function recorrido(claveMod, pasosTexto) {
+        var pasos = [];
+        if (pasosTexto && pasosTexto.length) pasos.push({ el: null, titulo: modulo ? modulo.nombre : "Esta pantalla", texto: pasosTexto[0] });
+        PASOS_COMUNES.forEach(function (p) {
+            var el = Array.prototype.slice.call(document.querySelectorAll(p[0])).filter(function (x) { var r = x.getBoundingClientRect(); return r.width > 0 && r.height > 0; })[0];
+            if (el) pasos.push({ el: el, titulo: p[1], texto: p[2] });
+        });
+        if (!pasos.length) return;
+        var i = 0, capa = document.createElement("div");
+        capa.className = "fc-tour";
+        capa.innerHTML = '<div class="fc-tour__luz"></div><div class="fc-tour__globo" role="dialog" aria-live="polite"><b class="fc-tour__titulo"></b><p class="fc-tour__texto"></p>' +
+            '<div class="fc-tour__pie"><span class="fc-tour__n"></span><button type="button" class="ui-btn ui-btn--terciario ui-btn--28" data-t="ant">Anterior</button>' +
+            '<button type="button" class="ui-btn ui-btn--primario ui-btn--28" data-t="sig">Siguiente</button></div>' +
+            '<button type="button" class="fc-tour__cerrar" data-t="fin" aria-label="Terminar recorrido">×</button></div>';
+        document.body.appendChild(capa);
+        var luz = capa.querySelector(".fc-tour__luz"), globo = capa.querySelector(".fc-tour__globo");
+        function poner() {
+            var p = pasos[i];
+            capa.querySelector(".fc-tour__titulo").textContent = p.titulo;
+            capa.querySelector(".fc-tour__texto").textContent = p.texto;
+            capa.querySelector(".fc-tour__n").textContent = (i + 1) + " de " + pasos.length;
+            capa.querySelector('[data-t="ant"]').disabled = i === 0;
+            capa.querySelector('[data-t="sig"]').textContent = i === pasos.length - 1 ? "Terminar" : "Siguiente";
+            if (!p.el) {
+                luz.hidden = true;
+                globo.style.left = "50%"; globo.style.top = "30%"; globo.style.transform = "translateX(-50%)";
+                return;
+            }
+            p.el.scrollIntoView({ block: "nearest" });
+            var r = p.el.getBoundingClientRect(), m = 6;
+            luz.hidden = false;
+            luz.style.left = (r.left - m) + "px"; luz.style.top = (r.top - m) + "px";
+            luz.style.width = (r.width + m * 2) + "px"; luz.style.height = Math.min(r.height + m * 2, innerHeight - 20) + "px";
+            var ancho = Math.min(340, innerWidth - 24), x = Math.min(Math.max(12, r.left), innerWidth - ancho - 12);
+            var abajo = r.bottom + 12 + 160 < innerHeight;
+            globo.style.transform = "none"; globo.style.left = x + "px";
+            globo.style.top = (abajo ? r.bottom + 12 : Math.max(12, r.top - 12 - globo.offsetHeight)) + "px";
+            if (r.height > innerHeight * 0.5) {                     // algo alto (la barra lateral, la tabla): el globo va a un lado
+                if (r.right + 12 + ancho < innerWidth) { globo.style.left = (r.right + 12) + "px"; globo.style.top = Math.max(12, r.top + 24) + "px"; }
+                else if (r.left - 12 - ancho > 0) { globo.style.left = (r.left - 12 - ancho) + "px"; globo.style.top = Math.max(12, r.top + 24) + "px"; }
+                else { globo.style.top = "auto"; globo.style.bottom = "16px"; }
+            } else globo.style.bottom = "auto";
+        }
+        function fin() {
+            capa.remove(); document.removeEventListener("keydown", tecla);
+            try { localStorage.setItem("fc-recorrido:" + claveMod, "1"); } catch (e) { /* nada */ }
+        }
+        function tecla(e) {
+            if (e.key === "Escape") fin();
+            else if (e.key === "ArrowRight") { if (i < pasos.length - 1) { i++; poner(); } else fin(); }
+            else if (e.key === "ArrowLeft" && i > 0) { i--; poner(); }
+        }
+        capa.addEventListener("click", function (e) {
+            var b = e.target.closest("[data-t]"); if (!b) return;
+            if (b.dataset.t === "fin") fin();
+            else if (b.dataset.t === "ant" && i > 0) { i--; poner(); }
+            else if (b.dataset.t === "sig") { if (i < pasos.length - 1) { i++; poner(); } else fin(); }
+        });
+        document.addEventListener("keydown", tecla);
+        poner();
+    }
 
     var btnPerfil = document.getElementById("fc-btn-perfil");
     var menu = document.getElementById("fc-menu");
@@ -2572,6 +2704,7 @@
         avisoPlan: avisoPlan,
         toast: function (texto) { brindis(esc(texto)); },
         bloqueEstado: bloqueEstado,
+        recorrido: function (c) { recorrido(c || clave, AYUDA[c || clave] || []); },
         enviarCorreo: enviarCorreo,
         // Set único de íconos (mismo grosor). Fiscontable.icono("lapiz") → <svg>. Ver /ui/.
         icono: function (nombre, ancho) { return D[nombre] ? ico(D[nombre], ancho || 1.8).replace("<svg ", '<svg class="ui-ico" aria-hidden="true" ') : ""; },
