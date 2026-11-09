@@ -200,6 +200,7 @@ function abrirModalNuevoCliente() {
 function cerrarModalNuevoCliente() {
     document.getElementById("modal-nuevo-cliente").classList.remove("modal-active");
     document.getElementById("form-nuevo-cliente").reset();
+    const zA = document.getElementById("alta-zona-efirma"); if (zA && zA._pintar) zA._pintar();
     errorAlta("");
 }
 
@@ -323,8 +324,52 @@ function avatar(c) {
     const palabras = String(c.alias || c.rfc).replace(/\b(S\.?A\.?|DE|C\.?V\.?|S\.?C\.?|R\.?L\.?|SAPI|SAS)\b/gi, " ").trim().split(/\s+/).filter(Boolean);
     const ini = ((palabras[0] || "?")[0] + ((palabras[1] || "")[0] || "")).toUpperCase();
     let h = 0; for (const ch of c.rfc) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+    if (c.logo) return `<span class="cli-avatar cli-avatar--logo" data-logo="${esc(c.rfc)}" aria-hidden="true">${esc(ini)}</span>`;
     return `<span class="cli-avatar cli-avatar--${TONOS_AVATAR[h % TONOS_AVATAR.length]}" aria-hidden="true">${esc(ini)}</span>`;
 }
+/* Logos: se piden con la sesión (fetch) y se guardan como blob en esta página; si no carga, quedan las iniciales */
+const LOGOS = new Map();
+function logoDe(rfc) {
+    if (!LOGOS.has(rfc)) LOGOS.set(rfc, fetch(`${API_URL}/api/clientes/${encodeURIComponent(rfc)}/logo`, { credentials: "include" })
+        .then(r => r.ok ? r.blob() : null).then(b => b ? URL.createObjectURL(b) : null).catch(() => null));
+    return LOGOS.get(rfc);
+}
+function pintarLogos(raiz) {
+    (raiz || document).querySelectorAll("[data-logo]").forEach(el => {
+        if (el.querySelector("img")) return;
+        logoDe(el.dataset.logo).then(url => { if (url && !el.querySelector("img")) { const i = new Image(); i.alt = ""; i.src = url; el.appendChild(i); } });
+    });
+}
+function olvidarLogo(rfc) { const p = LOGOS.get(rfc); LOGOS.delete(rfc); if (p) p.then(u => u && URL.revokeObjectURL(u)); }
+function pintarLogoFicha(cliente) {
+    const v = document.getElementById("editar-logo-vista");
+    v.innerHTML = esc((cliente.alias || cliente.rfc).charAt(0).toUpperCase());
+    v.removeAttribute("data-logo");
+    if (cliente.logo) { v.dataset.logo = cliente.rfc; pintarLogos(v.parentNode); }
+    document.getElementById("editar-logo-quitar").hidden = !cliente.logo;
+}
+async function cambiarLogo(archivo) {
+    const c = clientesCache.find(x => x.rfc === rfcEnEdicion); if (!c) return;
+    try {
+        let r;
+        if (archivo) {
+            const fd = new FormData(); fd.append("logo", archivo);
+            r = await fetch(`${API_URL}/api/clientes/${encodeURIComponent(c.rfc)}/logo`, { method: "POST", credentials: "include", body: fd });
+        } else {
+            r = await fetch(`${API_URL}/api/clientes/${encodeURIComponent(c.rfc)}/logo`, { method: "DELETE", credentials: "include" });
+        }
+        if (!r.ok) throw new Error(await Fiscontable.leerError(r));
+        c.logo = !!archivo;
+        olvidarLogo(c.rfc);
+        pintarLogoFicha(c);
+        renderizarClientes();
+        Fiscontable.toast(archivo ? "Logo guardado." : "Logo quitado.");
+    } catch (e) { Fiscontable.toast(e.message); }
+}
+document.addEventListener("DOMContentLoaded", () => {
+    document.getElementById("editar-logo").addEventListener("change", e => { const f = e.target.files[0]; e.target.value = ""; if (f) cambiarLogo(f); });
+    document.getElementById("editar-logo-quitar").addEventListener("click", () => cambiarLogo(null));
+});
 function indicadores(c) {
     const ind = (ok, nombre, si, no) => `<span class="cli-ind ${ok ? "cli-ind--ok" : "cli-ind--falta"}" title="${esc(nombre + ": " + (ok ? si : no))}" aria-label="${esc(nombre + ": " + (ok ? si : no))}">${esc(nombre)}</span>`;
     return ind(c.efirma_guardada, "e.firma", "guardada", "falta") + ind(c.ciec_guardada, "CIEC", "guardada", "sin guardar") +
@@ -462,6 +507,7 @@ function renderizarClientes() {
         contenedor.className = "";
         contenedor.innerHTML = visibles.length ? `<table class="cli-tabla"><thead><tr><th>Empresa</th><th>Accesos y documentos</th><th>Obligaciones</th><th></th></tr></thead>
             <tbody>${visibles.map(filaLista).join("")}</tbody></table>` : "";
+        pintarLogos(contenedor);
         return;
     }
     // Tarjetas compactas: sin botones; clic abre la ficha y las acciones van en ⋯
@@ -471,6 +517,7 @@ function renderizarClientes() {
         <span class="cli-inds">${indicadores(c)}</span>
         ${obligacionesTexto(c) ? `<small class="cli-obl">${esc(obligacionesTexto(c))}</small>` : ""}
     </div>`).join("");
+    pintarLogos(contenedor);
 }
 
 const RFC_VALIDO = /^[A-ZÑ&]{3,4}\d{6}[A-Z0-9]{3}$/;
@@ -721,6 +768,7 @@ function abrirModalEditar(rfc, ficha) {
     rfcEnEdicion = rfc;
     document.getElementById("editar-titulo").textContent = cliente.alias;
     document.getElementById("editar-inicial").textContent = (cliente.alias || rfc).charAt(0).toUpperCase();
+    pintarLogoFicha(cliente);
     document.getElementById("editar-rfc").textContent = rfc + (cliente.tipo_sociedad ? " · " + cliente.tipo_sociedad : "");
     document.getElementById("editar-alias").value = cliente.alias;
     // Sin tipo y con RFC de 13 caracteres: casi seguro es persona física (se propone; se guarda con «Guardar»)
@@ -735,6 +783,7 @@ function abrirModalEditar(rfc, ficha) {
     document.getElementById("editar-cer").value = "";
     document.getElementById("editar-key").value = "";
     document.getElementById("editar-password").value = "";
+    const zE = document.getElementById("editar-zona-efirma"); if (zE && zE._pintar) zE._pintar();
     pintarEfirmaFicha(cliente);
     pintarResumenFicha(cliente);
     pintarObligaciones(cliente);
@@ -1371,3 +1420,35 @@ async function eliminarCliente(rfc) {
         mostrarAlerta("error", await interpretarError(null));
     }
 }
+
+
+/* Alta y ficha: zona para soltar el .cer y el .key juntos (FCZona). Llena los campos de siempre, así que la
+   validación, la lectura del RFC y el guardado siguen igual. «Elegir por separado» muestra los dos campos. */
+function prepararZonaEfirma(pref) {
+    const caja = document.getElementById(pref + "-zona-efirma");
+    if (!caja || !window.FCZona) { if (caja) caja.nextElementSibling.hidden = false; return; }
+    const cer = document.getElementById(pref + "-cer"), key = document.getElementById(pref + "-key");
+    const campos = caja.nextElementSibling;
+    const z = FCZona.crear(caja, {
+        acepta: ".cer,.key", varios: true, titulo: "Suelta aquí el .cer y el .key", detalle: "o haz clic para elegirlos (los dos a la vez)",
+        alElegir: (archivos) => {
+            const poner = (input, f) => { const dt = new DataTransfer(); dt.items.add(f); input.files = dt.files; input.dispatchEvent(new Event("change", { bubbles: true })); };
+            const c = archivos.find(f => /\.cer$/i.test(f.name)), k = archivos.find(f => /\.key$/i.test(f.name));
+            if (c) poner(cer, c);
+            if (k) poner(key, k);
+            pintar();
+        }
+    });
+    const pintar = () => {
+        const c = cer.files[0], k = key.files[0];
+        z.estado(c && k ? "ok" : c || k ? "" : "", c || k ? (c ? "✓ " + c.name : "Falta el .cer") + " · " + (k ? "✓ " + k.name : "falta el .key") : "");
+    };
+    [cer, key].forEach(i => i.addEventListener("change", pintar));
+    const otra = document.createElement("button");
+    otra.type = "button"; otra.className = "zona-efirma-separado"; otra.textContent = "Elegir por separado";
+    otra.addEventListener("click", () => { campos.hidden = !campos.hidden; otra.textContent = campos.hidden ? "Elegir por separado" : "Ocultar los campos"; });
+    caja.appendChild(otra);
+    // Al limpiar el formulario (value = "") la línea de estado también se limpia
+    caja._pintar = pintar;
+}
+document.addEventListener("DOMContentLoaded", () => { prepararZonaEfirma("alta"); prepararZonaEfirma("editar"); });

@@ -8,7 +8,8 @@
        cargar: async function (valorFiltro) { return { nota, documentos: [{ id, celdas: [...], nombre, url }] }; },
        columnas: ["Mes", "Documento", …],
        zip: function (ids, valorFiltro) { return "url del ZIP"; },                   // opcional: si no, se arma aquí
-       unidad: ["declaración", "declaraciones"]                                      // opcional: cómo se cuentan los renglones
+       unidad: ["declaración", "declaraciones"],                                     // opcional: cómo se cuentan los renglones
+       enviar: function (renglon) { Fiscontable.enviarCorreo({...}); }               // opcional: botón «Enviar por correo» por renglón
      })
    Un renglón puede juntar varios archivos (una declaración con su acuse, detalle y línea de captura):
      { id, celdas, docs: [{ id, etiqueta, nombre, url, titulo }] } → cada archivo sale como botón; las casillas y el ZIP
@@ -55,6 +56,7 @@
         q("filas").addEventListener("click", function (ev) {
             var b = ev.target.closest("[data-accion]"); if (!b) return;
             var x = E.docs.filter(function (y) { return String(y.id) === b.dataset.id; })[0]; if (!x) return;
+            if (b.dataset.accion === "enviar") { if (E.op.enviar) E.op.enviar(x); return; }
             var arch = archivos(x), uno = b.dataset.doc ? arch.filter(function (a) { return String(a.id) === b.dataset.doc; })[0] : arch[0];
             if (b.dataset.accion === "ver") Fiscontable.verPdf(uno.url, { titulo: uno.titulo || uno.nombre, nombre: uno.nombre });
             else if (arch.length > 1) zip(arch.map(function (a) { return String(a.id); }), b);
@@ -111,6 +113,8 @@
                     ? x.docs.map(function (a) { return '<button type="button" class="fc-docs-chip" data-accion="ver" data-id="' + esc(x.id) + '" data-doc="' + esc(a.id) + '" title="Ver ' + esc(a.etiqueta) + '">' + esc(a.etiqueta) + "</button>"; }).join("")
                     : '<button type="button" class="fc-docs-btn" data-accion="ver" data-id="' + esc(x.id) + '">' +
                       '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2.5 12C4 7.5 7.7 5 12 5s8 2.5 9.5 7c-1.5 4.5-5.2 7-9.5 7s-8-2.5-9.5-7z"/><circle cx="12" cy="12" r="3"/></svg>Ver</button>') +
+                (E.op.enviar ? '<button type="button" class="fc-docs-btn fc-docs-btn--icono" data-accion="enviar" data-id="' + esc(x.id) + '" title="Enviar por correo" aria-label="Enviar por correo">' +
+                    '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg></button>' : "") +
                 '<button type="button" class="fc-docs-btn fc-docs-btn--icono" data-accion="bajar" data-id="' + esc(x.id) + '" title="' + (archivos(x).length > 1 ? "Descargar sus " + archivos(x).length + " documentos (ZIP)" : "Descargar") + '" aria-label="Descargar">' +
                 '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg></button></td></tr>';
         }).join("") : '<tr><td colspan="99" class="fc-docs-vacio">' + (E.docs.length ? "Nada coincide con la búsqueda." : "Todavía no hay documentos guardados aquí.") + "</td></tr>";

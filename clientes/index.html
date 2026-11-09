@@ -4,16 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Clientes | Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611102200">
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611102200">
-    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611102200">
+    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611102300">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611102300">
+    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611102300">
 </head>
 <body class="min-h-screen flex flex-col relative">
 
     <!-- TOP NAV -->
     <div id="app-header" data-modulo="clientes" data-titulo="Clientes" data-migas=""></div>
-<script src="/assets/js/nucleo.js?v=202611102200"></script>
-<script src="/assets/js/barra.js?v=202611102200"></script>
+<script src="/assets/js/nucleo.js?v=202611102300"></script>
+<script src="/assets/js/barra.js?v=202611102300"></script>
 
     <!-- ÁREA DE TRABAJO -->
     <main class="flex-grow w-full mod-pagina" style="max-width:1180px">
@@ -126,7 +126,9 @@
                         <h3 class="text-[15px] font-bold text-slate-800">e.firma <small class="font-semibold text-violet-700">recomendado</small></h3>
                         <p class="text-[13px] text-slate-500 mt-1 mb-4 leading-relaxed">Con ella no escribes el RFC y no se vuelve a pedir en cada trámite.</p>
                         <div class="flex flex-col gap-4">
-                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <!-- Zona común (FCZona): se sueltan el .cer y el .key juntos; llena los dos campos de abajo -->
+                            <div id="alta-zona-efirma" data-zona-efirma="alta"></div>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 zona-efirma-campos" hidden>
                                 <label class="block"><span class="alta-etiqueta">Certificado (.cer)</span>
                                     <input type="file" id="alta-cer" accept=".cer" class="alta-archivo"></label>
                                 <label class="block"><span class="alta-etiqueta">Clave privada (.key)</span>
@@ -241,6 +243,13 @@
             <div class="px-7 py-6 overflow-y-auto flex-1">
                 <!-- ===== Datos generales ===== -->
                 <section data-panel="general" class="flex flex-col gap-6">
+                    <!-- M-02: logo del cliente (el mismo que sale en sus facturas) -->
+                    <div class="ficha-logo">
+                        <span id="editar-logo-vista" class="cli-avatar ficha-logo__vista" aria-hidden="true"></span>
+                        <div class="ficha-logo__texto"><b>Logo</b><small>Sale en tu lista de clientes y en sus facturas. PNG o JPG de hasta 2 MB.</small></div>
+                        <label class="ui-btn ui-btn--secundario ui-btn--32">Subir logo<input type="file" id="editar-logo" accept="image/png,image/jpeg" hidden></label>
+                        <button type="button" id="editar-logo-quitar" class="ui-btn ui-btn--terciario ui-btn--32" hidden>Quitar</button>
+                    </div>
                     <div>
                         <div class="grid grid-cols-1 sm:grid-cols-5 gap-4 items-end">
                             <label class="block sm:col-span-3"><span class="alta-etiqueta">Nombre</span>
@@ -283,7 +292,8 @@
                         </div>
 
                         <div id="editar-efirma-form" class="flex flex-col gap-3">
-                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div id="editar-zona-efirma" data-zona-efirma="editar"></div>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 zona-efirma-campos" hidden>
                                 <label class="block"><span class="alta-etiqueta">Certificado (.cer)</span>
                                     <input type="file" id="editar-cer" accept=".cer" class="alta-archivo"></label>
                                 <label class="block"><span class="alta-etiqueta">Clave privada (.key)</span>
@@ -474,12 +484,14 @@
         </div>
     </div>
 
-<script src="/assets/js/comun/leer-cer.js?v=202611102200"></script>
+<script src="/assets/js/comun/leer-cer.js?v=202611102300"></script>
+<script src="/assets/js/comun/zona-archivos.js?v=202611102300"></script>
 <style>
     .cli-herr { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 14px; }
     .cli-buscar { flex: 1 1 220px; max-width: 320px; font-size: 14px; border: 1px solid rgb(var(--g-200)); border-radius: 10px; padding: 8px 12px; background: #fff; }
     .cli-buscar:focus { outline: none; border-color: rgb(var(--ac-600)); box-shadow: 0 0 0 3px rgb(var(--ac-100)); }
     .cli-filtros { display: flex; flex-wrap: wrap; gap: 6px; flex: 1 1 auto; }
+    .zona-efirma-separado { margin-top: 6px; border: 0; background: none; padding: 0; font: inherit; font-size: 12px; font-weight: 600; color: rgb(var(--g-600)); text-decoration: underline; cursor: pointer; }
     .cli-varios__nota { margin: 6px 10px 4px; font-size: 12px; color: rgb(var(--g-500)); max-width: 240px; }
     #cli-varios .xml-menu__lista { left: 0; right: auto; min-width: 220px; }
     .cli-filtro { border: 1px solid rgb(var(--g-200)); background: #fff; border-radius: 999px; padding: 5px 11px; font: inherit; font-size: 12.5px; font-weight: 600; color: rgb(var(--g-600)); cursor: pointer; }
@@ -501,7 +513,13 @@
     .cli-nombre { display: grid; min-width: 0; }
     .cli-nombre b { font-weight: 600; color: rgb(var(--g-900)); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .cli-rfc { font-family: var(--fuente-mono, ui-monospace, monospace); font-size: 11.5px; color: rgb(var(--g-500)); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .cli-avatar { width: 32px; height: 32px; border-radius: 8px; display: grid; place-items: center; font-size: 12px; font-weight: 700; flex: none; }
+    .cli-avatar { width: 32px; height: 32px; border-radius: 8px; display: grid; place-items: center; font-size: 12px; font-weight: 700; flex: none; position: relative; overflow: hidden; }
+    .cli-avatar img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; background: #fff; padding: 2px; }
+    .cli-avatar--logo { border: 1px solid var(--linea); background: #fff; }
+    .ficha-logo { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; padding-bottom: 18px; border-bottom: 1px solid var(--linea); }
+    .ficha-logo__vista { width: 56px; height: 56px; border-radius: 12px; font-size: 18px; background: rgb(var(--g-100)); color: rgb(var(--g-600)); }
+    .ficha-logo__texto { display: flex; flex-direction: column; gap: 2px; flex: 1 1 200px; font-size: 13px; }
+    .ficha-logo__texto small { color: rgb(var(--g-500)); }
     .cli-avatar--ac { background: rgb(var(--ac-50)); color: rgb(var(--ac-700)); }
     .cli-avatar--in { background: rgb(var(--in-50)); color: rgb(var(--in-700)); }
     .cli-avatar--ok { background: rgb(var(--ok-50)); color: rgb(var(--ok-700)); }
@@ -562,7 +580,7 @@
     .alta-opcional summary small { font-weight: 500; color: rgb(var(--g-600)); }
     .alta-error { font-size: 13px; font-weight: 600; border-radius: 10px; padding: 10px 12px; background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; }
 </style>
-<script src="/assets/js/comun/importar-clientes.js?v=202611102200"></script>
-<script src="/clientes/clientes.js?v=202611102200"></script>
+<script src="/assets/js/comun/importar-clientes.js?v=202611102300"></script>
+<script src="/clientes/clientes.js?v=202611102300"></script>
 </body>
 </html>

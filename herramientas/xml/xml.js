@@ -169,7 +169,7 @@
         var aviso = $("aviso-otra");
         aviso.hidden = !E.otra;
         if (E.otra) {
-            aviso.innerHTML = "<strong>" + esc(nombreDe(E.otra)) + "</strong> no está en tu directorio: sus XML se borran solos 7 días después de la última carga." +
+            aviso.innerHTML = "<strong>" + esc(nombreDe(E.otra)) + "</strong> no está en tu directorio: sus XML se borran solos " + Fiscontable.textoPlazo("xml_sin_registrar") + " después de la última carga." +
                 ' <a class="xml-enlace" href="/clientes/">Registrarla como cliente</a>' +
                 (E.empresa ? ' <button type="button" class="xml-enlace" id="volver-empresa">Volver a ' + esc(E.empresa.alias || E.empresa.rfc) + "</button>" : "");
         }
@@ -187,7 +187,7 @@
         } else {
             caja.innerHTML = '<p class="ctx-vacio__titulo">¿De quién son los XML?</p>' +
                 "<p>Elige una de tus empresas, o trabaja sin registrar: agrega los XML y el portal detecta solo de quién son. " +
-                "Lo que cargues sin registrar se borra a los 7 días.</p>" +
+                "Lo que cargues sin registrar se borra a los " + Fiscontable.textoPlazo("xml_sin_registrar") + ".</p>" +
                 '<div class="ctx-vacio__acciones"><button type="button" class="xml-btn xml-btn--primario" data-elegir>Elegir empresa</button>' +
                 '<button type="button" class="xml-btn" data-agregar>Trabajar sin registrar</button></div>';
         }
@@ -209,7 +209,7 @@
             h.push('<button type="button" data-empresa="' + esc(c.rfc) + '"' + (c.rfc === E.rfc ? ' class="xml-activa"' : "") + ">" + esc(c.alias) +
                 ' <span>' + esc(c.rfc) + (c.rfc === activa ? " · empresa activa" : "") + "</span></button>");
         });
-        h.push('<div class="xml-separador"></div><div class="xml-otra__grupo">Sin registrar · se borran a los 7 días</div>');
+        h.push('<div class="xml-separador"></div><div class="xml-otra__grupo">Sin registrar · se borran a los ' + Fiscontable.textoPlazo("xml_sin_registrar") + '</div>');
         E.otras.forEach(function (c) {
             var dia = c.expira ? c.expira.slice(8, 10) + "/" + c.expira.slice(5, 7) : "";
             h.push('<div class="xml-otra__fila"><button type="button" data-otra="' + esc(c.rfc) + '"' + (c.rfc === E.rfc ? ' class="xml-activa"' : "") + ">" +
