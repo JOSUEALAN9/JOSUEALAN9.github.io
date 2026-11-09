@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611051800">
-    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611091500">
+    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611091500">
 </head>
 <body class="min-h-screen flex flex-col">
 
@@ -31,8 +31,6 @@
     <div id="inicio-modulos" style="padding-bottom:64px"></div>
 </main>
 
-<footer class="fc-pie">© 2026 Alan Sánchez</footer>
-
 <style>
     .inicio-atajo { display: inline-block; margin-left: 6px; font-size: 13px; }
     .inicio-atajo kbd { font: 600 11.5px ui-monospace, monospace; border: 1px solid var(--linea); border-bottom-width: 2px; border-radius: 5px; padding: 1px 5px; background: #fff; }
@@ -51,17 +49,17 @@
     .inicio-rejilla--recientes .inicio-mod { border-color: color-mix(in srgb, var(--tono) 35%, var(--linea)); }
     .inicio-empresa { display: flex; flex-wrap: wrap; gap: 14px 22px; align-items: center; justify-content: space-between; background: #fff; border: 1px solid var(--linea);
                       border-radius: 16px; padding: 16px 18px; box-shadow: var(--sombra-baja); }
-    .inicio-empresa__nombre { font-size: 17px; font-weight: 800; color: #0f172a; }
+    .inicio-empresa__nombre { font-size: 17px; font-weight: 800; color: rgb(var(--g-900)); }
     .inicio-empresa__dato { font-size: 12.5px; color: var(--texto-tenue); font-family: ui-monospace, monospace; }
     .inicio-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
-    .inicio-chip { font-size: 12px; font-weight: 700; padding: 3px 9px; border-radius: 999px; background: #F1F5F9; color: #475569; text-decoration: none; }
-    .inicio-chip--ok { background: #E8F6F0; color: #047857; }
+    .inicio-chip { font-size: 12px; font-weight: 700; padding: 3px 9px; border-radius: 999px; background: rgb(var(--g-100)); color: rgb(var(--g-600)); text-decoration: none; }
+    .inicio-chip--ok { background: rgb(var(--ac-50)); color: #047857; }
     .inicio-chip--falta { background: #FEF3C7; color: #92400E; }
     .inicio-empresa__acciones { display: flex; flex-wrap: wrap; gap: 8px; }
 </style>
 
-<script src="/assets/js/nucleo.js?v=202611051800"></script>
-<script src="/assets/js/barra.js?v=202611051800"></script>
+<script src="/assets/js/nucleo.js?v=202611091500"></script>
+<script src="/assets/js/barra.js?v=202611091500"></script>
 <script>
     (function () {
         var esc = Fiscontable.escapar;
@@ -78,8 +76,8 @@
             var rec = Fiscontable.recientes().slice(0, 4).map(function (c) { return cat.filter(function (m) { return m.clave === c; })[0]; }).filter(Boolean);
             document.getElementById("inicio-recientes").hidden = !rec.length;
             document.getElementById("inicio-recientes-lista").innerHTML = rec.map(tarjeta).join("");
-            var grupos = [];
-            cat.forEach(function (m) { if (grupos.indexOf(m.grupo) === -1) grupos.push(m.grupo); });
+            var grupos = (Fiscontable.grupos || []).slice();
+            cat = cat.filter(function (m) { return !m.cuenta; });
             document.getElementById("inicio-modulos").innerHTML = grupos.map(function (g) {
                 return '<h2 class="inicio-grupo">' + esc(g) + '</h2><div class="inicio-rejilla">' +
                     cat.filter(function (m) { return m.grupo === g; }).map(tarjeta).join("") + "</div>";

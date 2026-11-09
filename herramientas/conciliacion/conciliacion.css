@@ -1,10 +1,10 @@
 /* Conciliación — encima de herramientas/xml/xml.css (misma tabla y controles) */
 .conc-controles { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-bottom: 10px; }
 .conc-controles .ctx-ayuda { flex: 1 1 280px; margin: 0; line-height: 1.4; }
-.conc-lados { display: inline-flex; background: #e2e8f0; border-radius: 12px; padding: 4px; gap: 4px; }
-.conc-lado { border: 0; background: none; border-radius: 9px; padding: 7px 14px; font-size: 13.5px; font-weight: 800; color: #475569; cursor: pointer; text-align: left; line-height: 1.2; }
-.conc-lado span { display: block; font-size: 11.5px; font-weight: 600; color: #94a3b8; }
-.conc-lado--activo { background: #fff; color: #0f172a; box-shadow: 0 1px 3px rgba(15,23,42,.15); }
+.conc-lados { display: inline-flex; background: rgb(var(--g-200)); border-radius: 12px; padding: 4px; gap: 4px; }
+.conc-lado { border: 0; background: none; border-radius: 9px; padding: 7px 14px; font-size: 13.5px; font-weight: 800; color: rgb(var(--g-600)); cursor: pointer; text-align: left; line-height: 1.2; }
+.conc-lado span { display: block; font-size: 11.5px; font-weight: 600; color: rgb(var(--g-500)); }
+.conc-lado--activo { background: #fff; color: rgb(var(--g-900)); box-shadow: 0 1px 3px rgba(15,23,42,.15); }
 .conc-lado--activo span { color: var(--acento, #1d4ed8); }
 
 
@@ -13,38 +13,38 @@
 .conc-aviso .xml-btn { padding: 6px 12px; font-size: 12.5px; }
 
 .fc-negativo { color: #b91c1c; }
-.fc-disponibles { flex: 1; overflow: auto; border: 1px solid #e2e8f0; border-radius: 10px; }
+.fc-disponibles { flex: 1; overflow: auto; border: 1px solid rgb(var(--g-200)); border-radius: 10px; }
 
 /* Paneles laterales */
 .conc-panel { width: 760px; overflow: auto; gap: 12px; }
 .conc-panel--ancho { width: 860px; }
-.conc-panel h3 { font-weight: 800; font-size: 18px; color: #0f172a; }
-.conc-panel h4 { font-weight: 800; font-size: 13px; color: #0f172a; margin: 6px 0 4px; }
-.conc-sub { font-size: 13px; color: #64748b; }
+.conc-panel h3 { font-weight: 800; font-size: 18px; color: rgb(var(--g-900)); }
+.conc-panel h4 { font-weight: 800; font-size: 13px; color: rgb(var(--g-900)); margin: 6px 0 4px; }
+.conc-sub { font-size: 13px; color: rgb(var(--g-600)); }
 .conc-cifras { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
-.conc-cifras div { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 8px 10px; }
-.conc-cifras small { display: block; font-size: 10.5px; font-weight: 800; text-transform: uppercase; color: #64748b; }
-.conc-cifras b { font-size: 14.5px; color: #0f172a; font-variant-numeric: tabular-nums; }
+.conc-cifras div { background: rgb(var(--g-50)); border: 1px solid rgb(var(--g-200)); border-radius: 10px; padding: 8px 10px; }
+.conc-cifras small { display: block; font-size: 10.5px; font-weight: 800; text-transform: uppercase; color: rgb(var(--g-600)); }
+.conc-cifras b { font-size: 14.5px; color: rgb(var(--g-900)); font-variant-numeric: tabular-nums; }
 .conc-datos { display: grid; grid-template-columns: 150px 1fr; gap: 4px 12px; font-size: 13px; }
-.conc-datos dt { color: #64748b; font-weight: 700; }
-.conc-datos dd { color: #0f172a; word-break: break-all; }
+.conc-datos dt { color: rgb(var(--g-600)); font-weight: 700; }
+.conc-datos dd { color: rgb(var(--g-900)); word-break: break-all; }
 a.xml-btn { text-decoration: none; }
 .conc-alertas { list-style: none; background: #fffbeb; border: 1px solid #fde68a; border-radius: 10px; padding: 10px 12px; font-size: 13px; color: #92400e; }
 .conc-alertas li { margin: 2px 0; }
 .conc-mini { width: 100%; border-collapse: collapse; font-size: 12px; }
-.conc-mini th { text-align: left; background: #f1f5f9; color: #334155; font-weight: 800; padding: 6px 8px; position: sticky; top: 0; }
-.conc-mini td { padding: 6px 8px; border-bottom: 1px solid #f1f5f9; vertical-align: top; }
+.conc-mini th { text-align: left; background: rgb(var(--g-100)); color: rgb(var(--g-700)); font-weight: 800; padding: 6px 8px; position: sticky; top: 0; }
+.conc-mini td { padding: 6px 8px; border-bottom: 1px solid rgb(var(--g-100)); vertical-align: top; }
 .conc-mini .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
-.conc-mini tr.conc-mov-cancelado td { color: #94a3b8; text-decoration: line-through; }
+.conc-mini tr.conc-mov-cancelado td { color: rgb(var(--g-500)); text-decoration: line-through; }
 .conc-mini tr.conc-mov-cancelado td.conc-nota-cancelado { text-decoration: none; color: #b91c1c; font-weight: 700; }
-.conc-scroll { overflow: auto; border: 1px solid #e2e8f0; border-radius: 10px; }
+.conc-scroll { overflow: auto; border: 1px solid rgb(var(--g-200)); border-radius: 10px; }
 .conc-acciones { display: flex; flex-wrap: wrap; gap: 8px; }
-.conc-tc-input { width: 92px; border: 1px solid #cbd5e1; border-radius: 6px; padding: 3px 6px; font-size: 12px; text-align: right; }
-.conc-tc-motivo { width: 150px; border: 1px solid #cbd5e1; border-radius: 6px; padding: 3px 6px; font-size: 12px; }
-.conc-caja { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px 12px; font-size: 13px; color: #334155; }
-.conc-caja select { border: 1px solid #cbd5e1; border-radius: 8px; padding: 6px 8px; font-size: 13px; margin-top: 4px; max-width: 100%; }
-.xml-modal textarea { width: 100%; border: 1px solid #cbd5e1; border-radius: 10px; padding: 8px 10px; font-size: 13.5px; margin-bottom: 12px; }
-#modal-cuerpo p { font-size: 14px; color: #475569; margin-bottom: 12px; }
+.conc-tc-input { width: 92px; border: 1px solid rgb(var(--g-300)); border-radius: 6px; padding: 3px 6px; font-size: 12px; text-align: right; }
+.conc-tc-motivo { width: 150px; border: 1px solid rgb(var(--g-300)); border-radius: 6px; padding: 3px 6px; font-size: 12px; }
+.conc-caja { background: rgb(var(--g-50)); border: 1px solid rgb(var(--g-200)); border-radius: 10px; padding: 10px 12px; font-size: 13px; color: rgb(var(--g-700)); }
+.conc-caja select { border: 1px solid rgb(var(--g-300)); border-radius: 8px; padding: 6px 8px; font-size: 13px; margin-top: 4px; max-width: 100%; }
+.xml-modal textarea { width: 100%; border: 1px solid rgb(var(--g-300)); border-radius: 10px; padding: 8px 10px; font-size: 13.5px; margin-bottom: 12px; }
+#modal-cuerpo p { font-size: 14px; color: rgb(var(--g-600)); margin-bottom: 12px; }
 .conc-panel[hidden], .xml-modal[hidden] { display: none !important; }
 @media (max-width: 700px) { .conc-cifras { grid-template-columns: repeat(2, 1fr); } .conc-lados { width: 100%; } .conc-lado { flex: 1; } }
 .conc-cabeza-acciones { display: flex; align-items: center; gap: 10px; }

@@ -1,63 +1,63 @@
-.isn-anio { border: 1px solid #e2e8f0; border-radius: 10px; padding: 9px 10px; font-size: 13.5px; font-weight: 700; background: #fff; }
+.isn-anio { border: 1px solid rgb(var(--g-200)); border-radius: 10px; padding: 9px 10px; font-size: 13.5px; font-weight: 700; background: #fff; }
 .isn-aviso { background: #ecfdf5; border: 1px solid #a7f3d0; color: #065f46; border-radius: 10px; padding: 10px 14px; font-size: 13px; margin-bottom: 12px; white-space: pre-line; }
 .isn-aviso--error { background: #fffbeb; border-color: #fde68a; color: #92400e; }
 .isn-tabla { width: max-content; min-width: 100%; }
 .isn-tabla tbody tr { cursor: pointer; }
-.isn-tabla tbody tr:hover td { background: #f8fafc; }
+.isn-tabla tbody tr:hover td { background: rgb(var(--g-50)); }
 .isn-tabla-caja { height: auto; min-height: 300px; max-height: calc(100vh - 300px); }
 .isn-dif { color: #b91c1c; font-weight: 800; }
 .isn-form { width: var(--modal-mediana); }
 .isn-rejilla { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin: 14px 0; }
-.isn-rejilla label { display: flex; flex-direction: column; gap: 4px; font-size: 11.5px; font-weight: 700; color: #475569; }
+.isn-rejilla label { display: flex; flex-direction: column; gap: 4px; font-size: 11.5px; font-weight: 700; color: rgb(var(--g-600)); }
 .isn-rejilla [hidden], .isn-form [hidden] { display: none; }
-.isn-rejilla input, .isn-rejilla select { border: 1px solid #cbd5e1; border-radius: 8px; padding: 7px 9px; font-size: 13.5px; font-weight: 500; color: #0f172a; }
+.isn-rejilla input, .isn-rejilla select { border: 1px solid rgb(var(--g-300)); border-radius: 8px; padding: 7px 9px; font-size: 13.5px; font-weight: 500; color: rgb(var(--g-900)); }
 .isn-rejilla .isn-ancho { grid-column: 1 / -1; }
 #f-rfc { text-transform: uppercase; font-family: ui-monospace, monospace; }
-.isn-calculo { display: flex; flex-wrap: wrap; gap: 18px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px 14px; font-size: 13px; color: #475569; }
-.isn-calculo b { color: #0f172a; font-size: 15px; margin-left: 4px; }
+.isn-calculo { display: flex; flex-wrap: wrap; gap: 18px; background: rgb(var(--g-50)); border: 1px solid rgb(var(--g-200)); border-radius: 10px; padding: 10px 14px; font-size: 13px; color: rgb(var(--g-600)); }
+.isn-calculo b { color: rgb(var(--g-900)); font-size: 15px; margin-left: 4px; }
 .isn-error { color: #b91c1c; font-size: 13px; margin-top: 8px; }
 .isn-botones { display: flex; gap: 8px; margin-top: 14px; }
 @media (max-width: 680px) { .isn-rejilla { grid-template-columns: 1fr 1fr; } }
 .isn-form { max-height: calc(100vh - 48px); overflow-y: auto; }
-.isn-datos { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px 14px; margin-bottom: 12px; font-size: 13px; color: #334155; display: flex; flex-wrap: wrap; gap: 6px 18px; align-items: center; }
-.isn-datos b { color: #0f172a; }
+.isn-datos { background: #fff; border: 1px solid rgb(var(--g-200)); border-radius: 12px; padding: 12px 14px; margin-bottom: 12px; font-size: 13px; color: rgb(var(--g-700)); display: flex; flex-wrap: wrap; gap: 6px 18px; align-items: center; }
+.isn-datos b { color: rgb(var(--g-900)); }
 .isn-datos--vacio { background: #fffbeb; border-color: #fde68a; color: #92400e; }
 .isn-datos__acciones { margin-left: auto; display: flex; gap: 12px; }
-.isn-nota { font-size: 12px; color: #64748b; margin: 4px 0; }
+.isn-nota { font-size: 12px; color: rgb(var(--g-600)); margin: 4px 0; }
 .isn-reparto { margin-top: 12px; }
 .isn-reparto__cabeza { display: flex; justify-content: space-between; align-items: center; margin: 12px 0 6px; font-size: 13px; }
-.isn-reparto__caja { max-height: 260px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 10px; }
+.isn-reparto__caja { max-height: 260px; overflow-y: auto; border: 1px solid rgb(var(--g-200)); border-radius: 10px; }
 .isn-reparto__tabla { width: 100%; border-collapse: collapse; font-size: 12.5px; }
-.isn-reparto__tabla th { position: sticky; top: 0; background: #f1f5f9; text-align: left; padding: 6px 8px; font-size: 11.5px; color: #475569; }
-.isn-reparto__tabla td { border-top: 1px solid #f1f5f9; padding: 4px 8px; }
-.isn-reparto__tabla tfoot td { font-weight: 800; background: #f8fafc; }
-.isn-reparto__tabla input { width: 100%; border: 1px solid #cbd5e1; border-radius: 6px; padding: 5px 7px; font-size: 13px; }
+.isn-reparto__tabla th { position: sticky; top: 0; background: rgb(var(--g-100)); text-align: left; padding: 6px 8px; font-size: 11.5px; color: rgb(var(--g-600)); }
+.isn-reparto__tabla td { border-top: 1px solid rgb(var(--g-100)); padding: 4px 8px; }
+.isn-reparto__tabla tfoot td { font-weight: 800; background: rgb(var(--g-50)); }
+.isn-reparto__tabla input { width: 100%; border: 1px solid rgb(var(--g-300)); border-radius: 6px; padding: 5px 7px; font-size: 13px; }
 .isn-reparto__tabla td.xml-num input { text-align: right; width: 110px; }
 .isn-mal { color: #b91c1c; }
 .isn-bien { color: #047857; }
-.isn-quitar { color: #94a3b8; font-size: 16px; line-height: 1; }
+.isn-quitar { color: rgb(var(--g-500)); font-size: 16px; line-height: 1; }
 .isn-quitar:hover { color: #b91c1c; }
 .isn-sello-listo { background: #eff6ff; color: #1d4ed8; border-color: #bfdbfe; }
-.isn-modo { display: flex; align-items: center; gap: 10px; font-size: 11.5px; font-weight: 700; color: #475569; }
-.isn-calculado { background: #f1f5f9 !important; color: #334155 !important; }
+.isn-modo { display: flex; align-items: center; gap: 10px; font-size: 11.5px; font-weight: 700; color: rgb(var(--g-600)); }
+.isn-calculado { background: rgb(var(--g-100)) !important; color: rgb(var(--g-700)) !important; }
 .isn-form--ancho { width: var(--modal-grande); max-width: calc(100vw - 32px); }
 .isn-fila { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px; margin: 10px 0; }
-.isn-campo { display: flex; flex-direction: column; gap: 4px; font-size: 11.5px; font-weight: 700; color: #475569; }
-.isn-campo select { border: 1px solid #cbd5e1; border-radius: 8px; padding: 7px 9px; font-size: 13.5px; }
+.isn-campo { display: flex; flex-direction: column; gap: 4px; font-size: 11.5px; font-weight: 700; color: rgb(var(--g-600)); }
+.isn-campo select { border: 1px solid rgb(var(--g-300)); border-radius: 8px; padding: 7px 9px; font-size: 13.5px; }
 .isn-lote { max-height: 50vh; }
 .isn-lote td { vertical-align: top; }
 .isn-motivo { color: #b45309; font-size: 11.5px; }
 .isn-meses { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 6px; margin: 6px 0 10px; }
-.isn-meses label { display: flex; align-items: center; gap: 5px; border: 1px solid #e2e8f0; border-radius: 8px; padding: 6px 8px; font-size: 12.5px; font-weight: 600; color: #334155; }
+.isn-meses label { display: flex; align-items: center; gap: 5px; border: 1px solid rgb(var(--g-200)); border-radius: 8px; padding: 6px 8px; font-size: 12.5px; font-weight: 600; color: rgb(var(--g-700)); }
 .isn-meses label.isn-ya { background: #ecfdf5; border-color: #a7f3d0; color: #047857; }
-.isn-check { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #334155; margin: 6px 0; }
+.isn-check { display: flex; align-items: center; gap: 8px; font-size: 13px; color: rgb(var(--g-700)); margin: 6px 0; }
 .isn-avance { position: fixed; right: 16px; bottom: 16px; z-index: 60; width: 420px; max-width: calc(100vw - 32px); max-height: 60vh; overflow-y: auto;
-  background: #fff; border: 1px solid #e2e8f0; border-radius: 14px; box-shadow: 0 16px 40px rgba(15,23,42,.18); padding: 12px 14px; }
+  background: #fff; border: 1px solid rgb(var(--g-200)); border-radius: 14px; box-shadow: 0 16px 40px rgba(15,23,42,.18); padding: 12px 14px; }
 .isn-avance__cabeza { display: flex; align-items: center; gap: 10px; font-size: 13px; }
-.isn-avance__cabeza span { flex: 1; color: #64748b; font-size: 12px; }
+.isn-avance__cabeza span { flex: 1; color: rgb(var(--g-600)); font-size: 12px; }
 .isn-avance__filas { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
-.isn-avance__filas li { font-size: 12.5px; border-left: 3px solid #cbd5e1; padding: 2px 0 2px 8px; color: #334155; }
-.isn-avance__filas li b { display: block; color: #0f172a; }
+.isn-avance__filas li { font-size: 12.5px; border-left: 3px solid rgb(var(--g-300)); padding: 2px 0 2px 8px; color: rgb(var(--g-700)); }
+.isn-avance__filas li b { display: block; color: rgb(var(--g-900)); }
 .isn-avance__filas li.ok { border-color: #10b981; }
 .isn-avance__filas li.mal { border-color: #ef4444; }
 .isn-avance__filas li.va { border-color: #0ea5e9; }
@@ -71,37 +71,37 @@
 .isn-masivo__barra { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 8px 10px; margin: 10px 0; }
 .isn-masivo__barra .isn-campo select { min-width: 110px; }
 .isn-masivo .isn-tabla td { vertical-align: top; }
-.isn-masivo .isn-enlace-empresa { font-weight: 700; color: #0f172a; text-decoration: underline; text-decoration-color: #cbd5e1; cursor: pointer; background: none; border: 0; padding: 0; text-align: left; }
+.isn-masivo .isn-enlace-empresa { font-weight: 700; color: rgb(var(--g-900)); text-decoration: underline; text-decoration-color: rgb(var(--g-300)); cursor: pointer; background: none; border: 0; padding: 0; text-align: left; }
 .isn-estado-ok { color: #047857; font-weight: 700; }
 .isn-estado-falta { color: #b45309; }
-.isn-estado-gris { color: #64748b; }
+.isn-estado-gris { color: rgb(var(--g-600)); }
 .isn-btn-quitar { color: #b91c1c; }
-.isn-btn-quitar:disabled { color: #94a3b8; }
+.isn-btn-quitar:disabled { color: rgb(var(--g-500)); }
 
 /* Impuestos estatales: una pestaña por impuesto (ISN, hospedaje, informativa, profesiones, alcohol) */
-.est-impuestos { display: flex; gap: 4px; overflow-x: auto; border-bottom: 1px solid #e2e8f0; margin: 0 0 14px; scrollbar-width: none; }
+.est-impuestos { display: flex; gap: 4px; overflow-x: auto; border-bottom: 1px solid rgb(var(--g-200)); margin: 0 0 14px; scrollbar-width: none; }
 .est-impuestos::-webkit-scrollbar { display: none; }
-.est-impuestos a { flex: none; padding: 9px 14px; font-size: 13.5px; font-weight: 700; color: #64748b; border-bottom: 2px solid transparent; margin-bottom: -1px; text-decoration: none; white-space: nowrap; }
-.est-impuestos a:hover { color: #0f172a; }
-.est-impuestos a[aria-current="page"] { color: #BE185D; border-bottom-color: #BE185D; }
+.est-impuestos a { flex: none; padding: 9px 14px; font-size: 13.5px; font-weight: 700; color: rgb(var(--g-600)); border-bottom: 2px solid transparent; margin-bottom: -1px; text-decoration: none; white-space: nowrap; }
+.est-impuestos a:hover { color: rgb(var(--g-900)); }
+.est-impuestos a[aria-current="page"] { color: rgb(var(--ac-600)); border-bottom-color: rgb(var(--ac-600)); }
 .est-inf { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px 14px; max-height: 46vh; overflow-y: auto; padding: 4px 2px; }
-.est-inf label { display: flex; flex-direction: column; gap: 4px; font-size: 11.5px; font-weight: 700; color: #475569; }
-.est-inf input { border: 1px solid #cbd5e1; border-radius: 8px; padding: 6px 8px; font-size: 13.5px; text-align: right; }
-.est-buscar { width: 100%; border: 1px solid #cbd5e1; border-radius: 8px; padding: 8px 10px; font-size: 13.5px; margin: 8px 0; }
-.est-lista { max-height: 50vh; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 10px; }
-.est-lista label { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-top: 1px solid #f1f5f9; font-size: 13px; cursor: pointer; }
+.est-inf label { display: flex; flex-direction: column; gap: 4px; font-size: 11.5px; font-weight: 700; color: rgb(var(--g-600)); }
+.est-inf input { border: 1px solid rgb(var(--g-300)); border-radius: 8px; padding: 6px 8px; font-size: 13.5px; text-align: right; }
+.est-buscar { width: 100%; border: 1px solid rgb(var(--g-300)); border-radius: 8px; padding: 8px 10px; font-size: 13.5px; margin: 8px 0; }
+.est-lista { max-height: 50vh; overflow-y: auto; border: 1px solid rgb(var(--g-200)); border-radius: 10px; }
+.est-lista label { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-top: 1px solid rgb(var(--g-100)); font-size: 13px; cursor: pointer; }
 .est-lista label:first-child { border-top: 0; }
-.est-lista label:hover { background: #f8fafc; }
+.est-lista label:hover { background: rgb(var(--g-50)); }
 .est-lista span { display: flex; flex-direction: column; min-width: 0; }
-.est-lista small { color: #64748b; font-family: ui-monospace, monospace; font-size: 11.5px; }
+.est-lista small { color: rgb(var(--g-600)); font-family: ui-monospace, monospace; font-size: 11.5px; }
 @media (max-width: 680px) { .est-inf { grid-template-columns: 1fr 1fr; } }
 /* Candado: la empresa no tiene esta obligación */
-.est-impuestos a.est-sin { color: #94a3b8; }
+.est-impuestos a.est-sin { color: rgb(var(--g-500)); }
 .est-impuestos a.est-sin::after { content: " 🔒"; font-size: 11px; }
-.est-candado { max-width: 620px; margin: 28px auto; background: #fff; border: 1px solid #e2e8f0; border-radius: 16px; padding: 28px 28px 22px; text-align: center; box-shadow: 0 10px 30px rgba(15, 23, 42, .06); }
+.est-candado { max-width: 620px; margin: 28px auto; background: #fff; border: 1px solid rgb(var(--g-200)); border-radius: 16px; padding: 28px 28px 22px; text-align: center; box-shadow: 0 10px 30px rgba(15, 23, 42, .06); }
 .est-candado[hidden] { display: none; }
-.est-candado__icono { width: 56px; height: 56px; margin: 0 auto 12px; border-radius: 50%; background: #f1f5f9; display: grid; place-items: center; font-size: 26px; }
-.est-candado h2 { font-size: 18px; font-weight: 800; color: #0f172a; margin: 0 0 8px; }
-.est-candado p { font-size: 13.5px; color: #475569; margin: 0 auto 16px; max-width: 480px; line-height: 1.5; }
+.est-candado__icono { width: 56px; height: 56px; margin: 0 auto 12px; border-radius: 50%; background: rgb(var(--g-100)); display: grid; place-items: center; font-size: 26px; }
+.est-candado h2 { font-size: 18px; font-weight: 800; color: rgb(var(--g-900)); margin: 0 0 8px; }
+.est-candado p { font-size: 13.5px; color: rgb(var(--g-600)); margin: 0 auto 16px; max-width: 480px; line-height: 1.5; }
 .est-candado__botones { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
 .est-candado__nota { color: #b91c1c; font-size: 13px; margin-top: 10px !important; }

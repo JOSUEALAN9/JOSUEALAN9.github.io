@@ -38,7 +38,7 @@
     // color y clave de permiso. Agregar un módulo nuevo es una línea.
     var MODULOS = {
         portada:       { nombre: "Fiscontable",           acento: "#0E9F6E", suave: "#E8F6F0", permiso: null },
-        clientes:      { nombre: "Mis clientes",          acento: "#6D28D9", suave: "#F1EBFD", permiso: null },
+        clientes:      { nombre: "Clientes",          acento: "#6D28D9", suave: "#F1EBFD", permiso: null },
         herramientas:  { nombre: "Herramientas",          acento: "#0E9F6E", suave: "#E8F6F0", permiso: null },
         conciliacion:  { nombre: "Conciliación",          acento: "#1D4ED8", suave: "#E8EFFD", permiso: "conciliacion" },
         iva:           { nombre: "Papel de trabajo de IVA", acento: "#7C3AED", suave: "#F1EBFE", permiso: "iva" },
@@ -150,26 +150,36 @@
         prohibido: "M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636",
         moneda: "M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
     };
+    // Menú agrupado por el trabajo del contador (aprobado el 9 nov 2026). Las direcciones no cambian.
+    // cuenta: true = no va en el menú (Descargas y Créditos viven en la barra y en el menú de usuario).
+    // Íconos de un solo color: el color es solo para estados, nunca para distinguir módulos.
+    var GRUPOS = ["Clientes", "Comprobantes", "Cierre del mes", "Cumplimiento", "Facturación", "Documentos"];
     var CATALOGO = [
-        { clave: "clientes", grupo: "Mi despacho", nombre: "Mis clientes", desc: "Empresas, e.firma y obligaciones", url: "/clientes/", permiso: null, icono: I.clientes, tono: "#6D28D9", suave: "#F1EBFD" },
-        { clave: "facturar", grupo: "Mi despacho", nombre: "Facturar", desc: "Facturas y notas de crédito (CFDI 4.0)", url: "/herramientas/facturar/", permiso: "facturacion", icono: I.recibo, tono: "#4F46E5", suave: "#EEF2FF" },
-        { clave: "descargas", grupo: "Mi despacho", nombre: "Mis descargas", desc: "Todo lo que bajan las herramientas", url: "/descargas/", permiso: null, icono: I.bajar, tono: "#334155", suave: "#EEF1F5" },
-        { clave: "constancias", grupo: "Trámites ante el SAT", nombre: "Constancia de Situación Fiscal", desc: "De una empresa o de varias a la vez", url: "/herramientas/constancias/", permiso: "constancias", icono: I.doc, tono: "#4338CA", suave: "#ECEBFB" },
-        { clave: "opinion", grupo: "Trámites ante el SAT", nombre: "Opinión de cumplimiento 32-D", desc: "De una empresa o de varias a la vez", url: "/herramientas/opinion/", permiso: "opinion", icono: I.escudo, tono: "#0F766E", suave: "#E6F2F1" },
-        { clave: "declaraciones", grupo: "Trámites ante el SAT", nombre: "Declaraciones presentadas", desc: "Acuses, pagos y recibos", url: "/herramientas/declaraciones/", permiso: "declaraciones", icono: I.bajarDoc, tono: "#0369A1", suave: "#E4F1F9" },
-        { clave: "descarga_xml", grupo: "Trámites ante el SAT", nombre: "Descarga masiva de XML", desc: "Emitidos y recibidos de un periodo", url: "/herramientas/descarga-xml/", permiso: "descarga_xml", icono: I.bajar, tono: "#0E7490", suave: "#E0F2F7" },
-        { clave: "buzon", grupo: "Trámites ante el SAT", nombre: "Buzón Tributario", desc: "Comunicados, cancelaciones y notificaciones", url: "/herramientas/buzon/", permiso: "buzon", icono: I.buzon, tono: "#0F766E", suave: "#E6F2F1" },
-        { clave: "cancelaciones", grupo: "Trámites ante el SAT", nombre: "Cancelaciones", desc: "Cancela emitidas y responde las que te piden", url: "/herramientas/xml/cancelaciones.html", permiso: "cancelaciones", icono: I.prohibido, tono: "#B91C1C", suave: "#FDECEC" },
-        { clave: "xml", grupo: "Revisión y papeles de trabajo", nombre: "Administración de XML", desc: "Tus XML por tipo, con reportes en Excel", url: "/herramientas/xml/", permiso: "validador", icono: I.doc, tono: "#0E7490", suave: "#E0F2F7" },
-        { clave: "marcas", grupo: "Revisión y papeles de trabajo", nombre: "Marcas fiscales", desc: "Para qué impuesto cuenta cada CFDI y por qué", url: "/herramientas/xml/fiscal.html", permiso: "marcas", icono: I.balanza, tono: "#4F46E5", suave: "#EEF2FF" },
-        { clave: "conciliacion", grupo: "Revisión y papeles de trabajo", nombre: "Conciliación", desc: "Facturas contra pagos y notas de crédito", url: "/herramientas/conciliacion/", permiso: "conciliacion", icono: I.grafica, tono: "#1D4ED8", suave: "#E8EFFD" },
-        { clave: "iva", grupo: "Revisión y papeles de trabajo", nombre: "Papel de trabajo de IVA", desc: "IVA cobrado y pagado del mes", url: "/herramientas/iva/", permiso: "iva", icono: I.recibo, tono: "#7C3AED", suave: "#F1EBFE" },
-        { clave: "isn", grupo: "Revisión y papeles de trabajo", nombre: "Impuestos estatales", desc: "ISN, hospedaje, profesiones y alcohol (Q. Roo): calcula, presenta y lleva el control", url: "/herramientas/isn/", permiso: "isn", icono: I.gente, tono: "#BE185D", suave: "#FCE7F3" },
-        { clave: "voucheo", grupo: "Revisión y papeles de trabajo", nombre: "Voucheo de impuestos", desc: "Acuses estatales a tu papel de trabajo", url: "/herramientas/voucheo/", permiso: "voucheo", icono: I.ticket, tono: "#B45309", suave: "#FBF0E2" },
-        { clave: "listas", grupo: "Revisión y papeles de trabajo", nombre: "Listas del SAT", desc: "69, 69-B y demás listas negras", url: "/herramientas/listas-sat/", permiso: "validador", icono: I.alerta, tono: "#B91C1C", suave: "#FDECEC" },
-        { clave: "validador", grupo: "Revisión y papeles de trabajo", nombre: "Validador de XML", desc: "¿Vigente o cancelado ante el SAT?", url: "/herramientas/validador/", permiso: "validador", icono: I.palomita, tono: "#047857", suave: "#E6F4EF" },
-        { clave: "documentos", grupo: "Documentos con créditos", nombre: "Documentos", desc: "Actas, constancias, IMSS e INFONAVIT", url: "/herramientas/documentos/", permiso: "documentos", icono: I.credencial, tono: "#0E7490", suave: "#ECFEFF" },
-        { clave: "creditos", grupo: "Documentos con créditos", nombre: "Mis créditos", desc: "Saldo y recargas", url: "/creditos/", permiso: null, icono: I.moneda, tono: "#0E9F6E", suave: "#E8F6F0" }
+        { clave: "clientes", grupo: "Clientes", nombre: "Clientes", desc: "Empresas, e.firma y obligaciones", url: "/clientes/", permiso: null, icono: I.clientes, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
+
+        { clave: "xml", grupo: "Comprobantes", nombre: "Administración de XML", desc: "Tus XML por tipo, con reportes en Excel", url: "/herramientas/xml/", permiso: "validador", icono: I.doc, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
+        { clave: "descarga_xml", grupo: "Comprobantes", nombre: "Descarga masiva de XML", desc: "Emitidos y recibidos de un periodo", url: "/herramientas/descarga-xml/", permiso: "descarga_xml", icono: I.bajar, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
+        { clave: "validador", grupo: "Comprobantes", nombre: "Validador de XML", desc: "¿Vigente o cancelado ante el SAT?", url: "/herramientas/validador/", permiso: "validador", icono: I.palomita, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
+        { clave: "marcas", grupo: "Comprobantes", nombre: "Marcas fiscales", desc: "Para qué impuesto cuenta cada CFDI y por qué", url: "/herramientas/xml/fiscal.html", permiso: "marcas", icono: I.balanza, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
+        { clave: "cancelaciones", grupo: "Comprobantes", nombre: "Cancelaciones", desc: "Cancela emitidas y responde las que te piden", url: "/herramientas/xml/cancelaciones.html", permiso: "cancelaciones", icono: I.prohibido, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
+
+        { clave: "conciliacion", grupo: "Cierre del mes", nombre: "Conciliación", desc: "Facturas contra pagos y notas de crédito", url: "/herramientas/conciliacion/", permiso: "conciliacion", icono: I.grafica, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
+        { clave: "iva", grupo: "Cierre del mes", nombre: "Papel de trabajo de IVA", desc: "IVA cobrado y pagado del mes", url: "/herramientas/iva/", permiso: "iva", icono: I.recibo, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
+        { clave: "isn", grupo: "Cierre del mes", nombre: "Impuestos estatales", desc: "ISN, hospedaje, profesiones y alcohol (Q. Roo)", url: "/herramientas/isn/", permiso: "isn", icono: I.gente, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
+        { clave: "voucheo", grupo: "Cierre del mes", nombre: "Voucheo de impuestos", desc: "Acuses estatales a tu papel de trabajo", url: "/herramientas/voucheo/", permiso: "voucheo", icono: I.ticket, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
+
+        { clave: "opinion", grupo: "Cumplimiento", nombre: "Opinión de cumplimiento 32-D", desc: "De una empresa o de varias a la vez", url: "/herramientas/opinion/", permiso: "opinion", icono: I.escudo, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
+        { clave: "constancias", grupo: "Cumplimiento", nombre: "Constancia de Situación Fiscal", desc: "De una empresa o de varias a la vez", url: "/herramientas/constancias/", permiso: "constancias", icono: I.doc, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
+        { clave: "buzon", grupo: "Cumplimiento", nombre: "Buzón Tributario", desc: "Comunicados, cancelaciones y notificaciones", url: "/herramientas/buzon/", permiso: "buzon", icono: I.buzon, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
+        { clave: "listas", grupo: "Cumplimiento", nombre: "Listas del SAT", desc: "69, 69-B y demás listas negras", url: "/herramientas/listas-sat/", permiso: "validador", icono: I.alerta, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
+        { clave: "declaraciones", grupo: "Cumplimiento", nombre: "Declaraciones presentadas", desc: "Acuses, pagos y recibos", url: "/herramientas/declaraciones/", permiso: "declaraciones", icono: I.bajarDoc, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
+
+        { clave: "facturar", grupo: "Facturación", nombre: "Facturar", desc: "Facturas, notas de crédito y recibos de pago", url: "/herramientas/facturar/", permiso: "facturacion", icono: I.recibo, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
+
+        { clave: "documentos", grupo: "Documentos", nombre: "Documentos", desc: "Actas, constancias, IMSS e INFONAVIT", url: "/herramientas/documentos/", permiso: "documentos", icono: I.credencial, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
+
+        { clave: "descargas", grupo: "Tu cuenta", cuenta: true, nombre: "Mis descargas", desc: "Todo lo que bajan las herramientas", url: "/descargas/", permiso: null, icono: I.bajar, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
+        { clave: "creditos", grupo: "Tu cuenta", cuenta: true, nombre: "Mis créditos", desc: "Saldo y recargas", url: "/creditos/", permiso: null, icono: I.moneda, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" }
     ];
 
     // Lo último que usaste (para el menú «Módulos» y la portada)
@@ -187,14 +197,15 @@
     if (/[?&]incrustado=1\b/.test(location.search)) document.documentElement.classList.add("fc-incrustado");
     // …y además dentro de la página de Configuración (que ya pone título y pestañas): sin su propio encabezado
     if (/[?&]dentro=1\b/.test(location.search)) document.documentElement.classList.add("fc-dentro");
+    // Opción visual elegida en /ui/ (A por defecto). Solo en este navegador, mientras se decide.
+    try { var tema = localStorage.getItem("fc-tema"); if (tema === "b") document.documentElement.dataset.tema = "b"; } catch (e) { /* sin almacenamiento */ }
     var ancla = document.getElementById("app-header");
     if (!ancla) return;
 
     var clave = ancla.dataset.modulo || "portada";
     var modulo = MODULOS[clave] || MODULOS.portada;
 
-    document.documentElement.style.setProperty("--acento", modulo.acento);
-    document.documentElement.style.setProperty("--acento-suave", modulo.suave);
+    // Un solo acento para toda la app (tokens en common.css): el módulo ya no cambia el color
 
     /* ---------------------------------------------------------- útiles */
 
@@ -218,6 +229,8 @@
         alerta:   "M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z",
         candado:  "M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z M16 11V7a4 4 0 00-8 0v4",
         flecha:   "M9 18l6-6-6-6",
+        casa:     "M3 11l9-7 9 7M5 10v10h5v-6h4v6h5V10",
+        contraer: "M11 17l-5-5 5-5M18 17l-5-5 5-5",
         calendario: "M8 7V3m8 4V3M4 11h16M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
     };
 
@@ -366,13 +379,54 @@
             html += '<div class="fc-modulos__grupo">Recientes</div><div class="fc-modulos__rejilla">' +
                 rec.map(function (c) { return itemModulo(CATALOGO.filter(function (m) { return m.clave === c; })[0]); }).join("") + "</div>";
         }
-        var grupos = [];
-        CATALOGO.forEach(function (m) { if (grupos.indexOf(m.grupo) === -1) grupos.push(m.grupo); });
-        grupos.forEach(function (g) {
+        GRUPOS.concat(["Tu cuenta"]).forEach(function (g) {
             html += '<div class="fc-modulos__grupo">' + esc(g) + '</div><div class="fc-modulos__rejilla">' +
                 CATALOGO.filter(function (m) { return m.grupo === g; }).map(itemModulo).join("") + "</div>";
         });
         cuerpo.innerHTML = html;
+    }
+
+    /* --------------------------------------------- barra lateral (computadora)
+       Los módulos agrupados por el trabajo del contador. Se puede contraer a íconos (el nombre sale al pasar el
+       cursor) y se recuerda en este navegador. En el teléfono no hay lateral: se usa el botón «Módulos». */
+    var CORTOS = { opinion: "Opinión 32-D", constancias: "Constancia fiscal", descarga_xml: "Descarga masiva", validador: "Validador",
+                   iva: "Papel de trabajo IVA", voucheo: "Voucheo", declaraciones: "Declaraciones", xml: "Administración de XML" };
+    var conLateral = !document.documentElement.classList.contains("fc-incrustado") && clave !== "configuracion";
+    function lateralChico() { try { return localStorage.getItem("fc-lateral") === "chico"; } catch (e) { return false; } }
+    function pintarLateral() {
+        if (!conLateral) return;
+        var html = document.documentElement;
+        html.classList.add("fc-con-lateral");
+        html.classList.toggle("fc-lateral-chico", lateralChico());
+        var nav = document.getElementById("fc-lateral");
+        if (!nav) {
+            nav = document.createElement("nav");
+            nav.id = "fc-lateral"; nav.className = "fc-lateral"; nav.setAttribute("aria-label", "Módulos");
+            document.body.appendChild(nav);
+            nav.addEventListener("click", function (e) {
+                if (!e.target.closest("[data-contraer]")) return;
+                var chico = !lateralChico();
+                try { localStorage.setItem("fc-lateral", chico ? "chico" : "grande"); } catch (err) { /* sin almacenamiento */ }
+                html.classList.toggle("fc-lateral-chico", chico);
+                nav.querySelector("[data-contraer]").setAttribute("aria-label", chico ? "Mostrar nombres" : "Solo íconos");
+            });
+        }
+        var item = function (m) {
+            var ok = permitido(m), actual = aqui && m.clave === aqui.clave, nombre = CORTOS[m.clave] || m.nombre;
+            return '<a class="fc-lat__item' + (actual ? " fc-lat__item--actual" : "") + (ok ? "" : " fc-lat__item--vedado") + '" href="' + esc(m.url) + '"' +
+                (actual ? ' aria-current="page"' : "") + (ok ? "" : ' data-plan="' + m.clave + '"') + ' data-nombre="' + esc(nombre) + '">' +
+                ico(m.icono, 1.7) + "<span>" + esc(nombre) + "</span>" + (ok ? "" : '<i class="fc-lat__candado" title="No incluido en tu plan">' + ico(D.candado, 2) + "</i>") + "</a>";
+        };
+        nav.innerHTML = '<div class="fc-lat__lista">' +
+            '<a class="fc-lat__item' + (clave === "portada" ? " fc-lat__item--actual" : "") + '" href="/" data-nombre="Inicio">' + ico(D.casa, 1.7) + "<span>Inicio</span></a>" +
+            GRUPOS.map(function (g) {
+                var ms = CATALOGO.filter(function (m) { return m.grupo === g; });
+                if (!ms.length) return "";
+                // Un grupo de un solo módulo no lleva título (sería «Clientes › Clientes»)
+                return (ms.length > 1 ? '<p class="fc-lat__grupo">' + esc(g) + "</p>" : '<div class="fc-lat__sep"></div>') + ms.map(item).join("");
+            }).join("") + "</div>" +
+            '<button type="button" class="fc-lat__contraer" data-contraer aria-label="' + (lateralChico() ? "Mostrar nombres" : "Solo íconos") + '">' +
+            ico(D.contraer, 1.8) + "<span>Contraer</span></button>";
     }
 
     function abrirModulos() {
@@ -473,7 +527,7 @@
         var caja = document.getElementById("fc-empresas-lista");
         if (clientesCache === null) { caja.innerHTML = '<p class="fc-empresas__nada">Cargando tu directorio…</p>'; return; }
         if (!clientesCache.length) {
-            caja.innerHTML = '<p class="fc-empresas__nada">Todavía no tienes empresas registradas. Regístralas en <a href="/clientes/">Mis clientes</a>.</p>';
+            caja.innerHTML = '<p class="fc-empresas__nada">Todavía no tienes empresas registradas. Regístralas en <a href="/clientes/">Clientes</a>.</p>';
             return;
         }
         caja.innerHTML = lista.length ? lista.map(function (c) {
@@ -1511,6 +1565,7 @@
         }
         // Primer ingreso: pedimos el nombre una sola vez, caiga donde caiga.
         if (!p.perfil_completo) abrirModalPerfil(true);
+        pintarLateral();
         document.dispatchEvent(new CustomEvent("fc:perfil", { detail: p }));
     }
 
@@ -1737,6 +1792,7 @@
     /* ------------------------------------------------------- arranque */
 
     pintarBarra();
+    pintarLateral();
     pintarPanel();
     pintarModalPerfil();
 
@@ -1846,7 +1902,9 @@
     Object.assign(window.Fiscontable, {
         modulo: clave,
         catalogo: CATALOGO,
+        grupos: GRUPOS,
         avisoPlan: avisoPlan,
+        toast: function (texto) { brindis(esc(texto)); },
         planInfo: planInfo,
         nombrePlan: nombrePlan,
         recientes: recientes,

@@ -191,7 +191,7 @@
                         "<td>" + ([x.prof ? "Profesiones" : "", x.alc ? "Alcohol" : ""].filter(Boolean).join(", ") || "—") + "</td>" +
                         "<td>" + (x.aprendidas || "—") + "</td>" +
                         '<td><a class="cf-btn cf-btn--chico" href="/herramientas/xml/fiscal.html?rfc=' + encodeURIComponent(x.rfc) + '&config=1">Ver y cambiar</a></td></tr>';
-                }).join("") : '<tr><td colspan="6">Registra tus empresas en Mis clientes.</td></tr>') + "</tbody></table></div>";
+                }).join("") : '<tr><td colspan="6">Registra tus empresas en Clientes.</td></tr>') + "</tbody></table></div>";
         } catch (e) { c.innerHTML = '<div class="cf-tarjeta"><p class="cf-msj cf-msj--mal">' + esc(e.message) + "</p></div>"; }
     }
 

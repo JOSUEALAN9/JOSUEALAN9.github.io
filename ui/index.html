@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema visual | Fiscontable</title>
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611091500">
+    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611091500">
+    <link rel="stylesheet" href="/ui/ui.css?v=202611091500">
+</head>
+<body>
+<div id="app-header" data-modulo="ui" data-titulo="Sistema visual"></div>
+<script src="/assets/js/nucleo.js?v=202611091500"></script>
+<script src="/assets/js/barra.js?v=202611091500"></script>
+
+<main class="uv">
+    <div id="uv-solo-admin" class="ui-vacio" hidden><b>Solo para el administrador</b>Esta página muestra las piezas del sistema visual.</div>
+
+    <div id="uv-contenido" hidden>
+        <header class="ui-cabeza">
+            <h1>Sistema visual</h1>
+            <button type="button" class="ui-cabeza__ayuda" title="Regla: si una pieza no está aquí, no se usa en un módulo. Si falta algo, primero se agrega aquí.">?</button>
+        </header>
+        <p class="uv-intro">Todas las piezas compartidas, con sus estados. <b>Regla desde hoy:</b> si no está aquí, no se usa en un módulo; si falta algo, primero se agrega aquí.</p>
+
+        <!-- Elegir opción -->
+        <section class="uv-seccion" id="opciones">
+            <h2>1. Elige acento y letra</h2>
+            <p class="uv-nota">La opción que elijas se aplica a toda la app <b>solo en este navegador</b>, para que la pruebes navegando. Cuando decidas, se deja fija para todos.</p>
+            <div class="uv-opciones">
+                <button type="button" class="uv-opcion" data-tema="a">
+                    <span class="uv-opcion__muestra" style="--m: 11 122 83"></span>
+                    <span><b>Opción A · Verde Fiscontable</b><small>Inter + JetBrains Mono. El verde del logo, oscurecido para que pase contraste.</small></span>
+                </button>
+                <button type="button" class="uv-opcion" data-tema="b">
+                    <span class="uv-opcion__muestra" style="--m: 17 105 90"></span>
+                    <span><b>Opción B · Verde bosque</b><small>IBM Plex Sans + IBM Plex Mono. Más sobrio, estilo despacho.</small></span>
+                </button>
+            </div>
+        </section>
+
+        <!-- Colores -->
+        <section class="uv-seccion">
+            <h2>2. Colores</h2>
+            <p class="uv-nota">Un solo acento (botones primarios, enlaces y foco). Grises neutros para todo lo demás. Los de estado solo marcan estados, nunca decoran un módulo. Al lado de cada uno, su contraste contra blanco (mínimo 4.5 para texto).</p>
+            <h3>Acento</h3><div class="uv-paleta" data-paleta="ac"></div>
+            <h3>Grises</h3><div class="uv-paleta" data-paleta="g"></div>
+            <h3>Estados</h3><div class="uv-paleta" data-paleta="estados"></div>
+        </section>
+
+        <!-- Letra -->
+        <section class="uv-seccion">
+            <h2>3. Letra</h2>
+            <div class="uv-escala">
+                <p style="font-size:var(--t-32);font-weight:700;letter-spacing:-.02em">32 · Número grande del tablero</p>
+                <p style="font-size:var(--t-24);font-weight:700;letter-spacing:-.015em">24 · Título de página especial</p>
+                <p style="font-size:var(--t-20);font-weight:700">20 · Título de módulo</p>
+                <p style="font-size:var(--t-16);font-weight:600">16 · Título de tarjeta o sección</p>
+                <p style="font-size:var(--t-14)">14 · Texto normal, campos y botones grandes</p>
+                <p style="font-size:var(--t-13)">13 · Tablas, botones, etiquetas</p>
+                <p style="font-size:var(--t-12);color:rgb(var(--g-600))">12 · Ayudas y encabezados de tabla (lo más chico permitido)</p>
+            </div>
+            <div class="uv-fila" style="margin-top:16px">
+                <span class="mono" style="font-size:var(--t-13);word-break:break-all">SALA011230GD2 · D1864ED8-F527-491D-B554-F28E04C2233B · A-1042</span>
+            </div>
+            <div class="uv-fila"><span class="cifra" style="font-size:var(--t-14)">$1,234.56<br>$98,765.40<br>$111.11</span><span class="uv-nota">Importes: cifras tabulares, alineadas a la derecha.</span></div>
+        </section>
+
+        <!-- Espacios, radios, sombras -->
+        <section class="uv-seccion">
+            <h2>4. Espacios, radios y sombras</h2>
+            <div class="uv-fila uv-fila--abajo">
+                <span class="uv-espacio" style="width:4px"></span><span class="uv-espacio" style="width:8px"></span><span class="uv-espacio" style="width:12px"></span>
+                <span class="uv-espacio" style="width:16px"></span><span class="uv-espacio" style="width:24px"></span><span class="uv-espacio" style="width:32px"></span>
+                <span class="uv-nota">Múltiplos de 4: 4 · 8 · 12 · 16 · 24 · 32</span>
+            </div>
+            <div class="uv-fila">
+                <span class="uv-radio" style="border-radius:var(--r-control)">6 · controles</span>
+                <span class="uv-radio" style="border-radius:var(--r-tarjeta)">8 · tarjetas</span>
+                <span class="uv-radio" style="border-radius:var(--r-modal)">12 · ventanas</span>
+                <span class="uv-radio" style="box-shadow:var(--sombra-1);border-color:transparent">Sombra 1 · tarjeta</span>
+                <span class="uv-radio" style="box-shadow:var(--sombra-2);border-color:transparent">Sombra 2 · flotante</span>
+            </div>
+        </section>
+
+        <!-- Botones -->
+        <section class="uv-seccion">
+            <h2>5. Botones</h2>
+            <p class="uv-nota">Un solo primario por pantalla. Miden lo que su texto (nunca de ancho completo). Peligro solo para borrar o cancelar.</p>
+            <div class="uv-desliza"><table class="uv-matriz">
+                <thead><tr><th></th><th>28 px</th><th>32 px</th><th>36 px</th><th>Deshabilitado</th><th>Cargando</th></tr></thead>
+                <tbody id="uv-botones"></tbody>
+            </table></div>
+            <div class="uv-fila" style="margin-top:12px">
+                <div class="uv-menu">
+                    <button type="button" class="ui-btn ui-btn--secundario" id="uv-descargar" aria-haspopup="menu" aria-expanded="false">Descargar <span aria-hidden="true">▾</span></button>
+                    <div class="uv-menu__lista" id="uv-descargar-menu" role="menu" hidden>
+                        <button type="button" role="menuitem">XML</button><button type="button" role="menuitem">PDF</button>
+                        <button type="button" role="menuitem">ZIP con ambos</button><button type="button" role="menuitem">Excel</button>
+                    </div>
+                </div>
+                <span class="uv-nota">«Descargar ▾» igual en todos los módulos.</span>
+            </div>
+        </section>
+
+        <!-- Campos -->
+        <section class="uv-seccion">
+            <h2>6. Campos</h2>
+            <div class="uv-rejilla">
+                <label class="ui-campo"><span class="ui-etiqueta">Normal</span><input class="ui-input" placeholder="Nombre o RFC"></label>
+                <label class="ui-campo"><span class="ui-etiqueta">Con ayuda <i>(opcional)</i></span><input class="ui-input" value="77500"><span class="ui-ayuda">El de su constancia de situación fiscal.</span></label>
+                <label class="ui-campo"><span class="ui-etiqueta">Con error</span><input class="ui-input ui-input--error" value="7750"><span class="ui-ayuda ui-ayuda--error">El código postal son 5 dígitos.</span></label>
+                <label class="ui-campo"><span class="ui-etiqueta">Deshabilitado</span><input class="ui-input" value="josuealan9@gmail.com" disabled></label>
+                <label class="ui-campo"><span class="ui-etiqueta">Lista</span><select class="ui-select"><option>601 · General de Ley Personas Morales</option><option>612 · Actividades empresariales</option></select></label>
+                <div class="ui-campo"><span class="ui-etiqueta">Casillas e interruptores</span>
+                    <label class="ui-check"><input type="checkbox" checked> Incluir desvirtuados</label>
+                    <label class="ui-switch"><input type="checkbox" checked><span class="ui-switch__riel"></span> Avisarme por correo</label>
+                    <label class="ui-switch"><input type="checkbox" disabled><span class="ui-switch__riel"></span> Deshabilitado</label>
+                </div>
+            </div>
+        </section>
+
+        <!-- Estados -->
+        <section class="uv-seccion">
+            <h2>7. Estados, filtros y avisos</h2>
+            <div class="uv-fila">
+                <span class="ui-estado ui-estado--ok">Vigente</span><span class="ui-estado ui-estado--error">Cancelado</span>
+                <span class="ui-estado ui-estado--aviso">En proceso</span><span class="ui-estado ui-estado--info">Por revisar</span><span class="ui-estado">Sin validar</span>
+            </div>
+            <div class="uv-fila" id="uv-chips">
+                <span class="ui-chip">Tipo: <b>Ingreso</b><button type="button" aria-label="Quitar filtro">×</button></span>
+                <span class="ui-chip">Forma de pago: <b>Efectivo</b><button type="button" aria-label="Quitar filtro">×</button></span>
+            </div>
+            <div class="uv-pila">
+                <div class="ui-aviso">Hay 3 CFDI por revisar en Marcas fiscales.</div>
+                <div class="ui-aviso ui-aviso--aviso">Falta la e.firma de esta empresa.</div>
+                <div class="ui-aviso ui-aviso--error">El SAT no respondió. Lo reintentamos en 10 minutos.</div>
+                <div class="ui-aviso ui-aviso--ok">Manifiesto revisado y guardado.</div>
+            </div>
+            <p class="uv-nota">Avisos fijos solo para lo que pide una acción. Lo demás va en un mensaje temporal:</p>
+            <div class="uv-fila"><button type="button" class="ui-btn ui-btn--secundario" id="uv-toast">Mostrar mensaje temporal</button>
+                <button type="button" class="ui-btn ui-btn--secundario" id="uv-modal-abrir">Abrir ventana</button></div>
+        </section>
+
+        <!-- Carga, vacío y error -->
+        <section class="uv-seccion">
+            <h2>8. Cargando, vacío y error</h2>
+            <div class="uv-tres">
+                <div class="ui-tarjeta"><p class="uv-mini">Cargando (con la forma del contenido)</p>
+                    <span class="ui-skel" style="width:40%;height:14px"></span><span class="ui-skel" style="width:70%;margin-top:12px;height:28px"></span>
+                    <span class="ui-skel" style="width:90%;margin-top:12px"></span><span class="ui-skel" style="width:60%;margin-top:8px"></span></div>
+                <div class="ui-tarjeta ui-vacio"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 7h16M4 12h16M4 17h10"/></svg>
+                    <b>Sin XML de octubre</b>Agrégalos o descárgalos del SAT.<button type="button" class="ui-btn ui-btn--secundario">Descargar del SAT</button></div>
+                <div class="ui-tarjeta ui-falla"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    <b>No se pudo cargar</b>El servidor no respondió.<button type="button" class="ui-btn ui-btn--secundario">Reintentar</button></div>
+            </div>
+        </section>
+
+        <!-- Encabezado y tabla -->
+        <section class="uv-seccion">
+            <h2>9. Encabezado de módulo y tabla</h2>
+            <div class="uv-marco">
+                <header class="ui-cabeza"><h1>Administración de XML</h1><button type="button" class="ui-cabeza__ayuda" title="Cómo se usa">?</button>
+                    <div class="ui-cabeza__acciones"><button type="button" class="ui-btn ui-btn--secundario">Exportar</button><button type="button" class="ui-btn ui-btn--primario">+ Agregar XML</button></div></header>
+                <div class="ui-tabla-caja">
+                    <table class="ui-tabla">
+                        <thead><tr><th class="ui-fija"><input type="checkbox" aria-label="Todos"> Folio</th><th>Fecha</th><th>Receptor</th><th>RFC</th><th>Uso</th><th>Estado SAT</th><th class="num">Subtotal</th><th class="num">IVA</th><th class="num">Total</th></tr></thead>
+                        <tbody id="uv-filas"></tbody>
+                        <tfoot><tr><td class="ui-fija">Total (6)</td><td></td><td></td><td></td><td></td><td></td><td class="num">$58,400.00</td><td class="num">$9,344.00</td><td class="num">$67,744.00</td></tr></tfoot>
+                    </table>
+                </div>
+            </div>
+            <p class="uv-nota">Filas de 36 px. Encabezado y totales fijos. La primera columna (casilla + folio) no se mueve; el folio abre el detalle. Texto largo cortado con «…».</p>
+        </section>
+
+        <!-- Moldes -->
+        <section class="uv-seccion">
+            <h2>10. Los tres tipos de pantalla</h2>
+            <p class="uv-nota">Cada módulo usa uno. Quien aprende uno de cada tipo ya sabe usar toda la app.</p>
+            <div class="uv-tres">
+                <div class="uv-molde"><b>Trámite</b><small>Constancia, Opinión, Declaraciones presentadas, Documentos</small>
+                    <div class="uv-esq"><i class="uv-esq__cabeza"></i><i class="uv-esq__estado"></i><i class="uv-esq__linea"></i><i class="uv-esq__tabla" style="height:46px"></i></div>
+                    <p>Estado actual (último documento, fecha y acciones) · programación en una línea · historial.</p></div>
+                <div class="uv-molde"><b>Papel de trabajo</b><small>XML, Conciliación, IVA, Validador, Listas, Cancelaciones, Marcas</small>
+                    <div class="uv-esq"><i class="uv-esq__cabeza"></i><i class="uv-esq__linea"></i><i class="uv-esq__tabla"></i></div>
+                    <p>Barra de herramientas en una línea · tabla a todo lo ancho · detalle en panel lateral.</p></div>
+                <div class="uv-molde"><b>Formulario</b><small>Registrar cliente, Programar, Créditos, Configuración</small>
+                    <div class="uv-esq uv-esq--angosto"><i class="uv-esq__cabeza"></i><i class="uv-esq__campo"></i><i class="uv-esq__campo"></i><i class="uv-esq__campo"></i><i class="uv-esq__boton"></i></div>
+                    <p>Máximo ~1100 px de ancho · campos en columnas · un botón primario al final.</p></div>
+            </div>
+        </section>
+
+        <!-- Pendientes -->
+        <section class="uv-seccion">
+            <h2>11. Siguen (entrega 2)</h2>
+            <ul class="uv-pendientes">
+                <li>Lista desplegable propia (en lugar de la del navegador) y fecha con calendario propio.</li>
+                <li>Zona para soltar archivos (la e.firma acepta .cer y .key juntos y muestra RFC, nombre y vigencia antes de guardar).</li>
+                <li>Bloque de estado de documento: título, fecha, Ver · Descargar · Enviar por correo · Solicitar nueva.</li>
+                <li>Programación en una línea: «Programado · mensual, día 1 · próxima: 01/12».</li>
+                <li>Barra de herramientas de tabla: búsqueda · filtros como chips · vistas · columnas · exportar.</li>
+                <li>Selector de empresa con Favoritos, Recientes y búsqueda; franja de periodo plegable.</li>
+            </ul>
+        </section>
+    </div>
+
+    <dialog class="ui-modal" id="uv-modal">
+        <div class="ui-modal__cuerpo"><h3>¿Cancelar la factura A-1042?</h3><p>Se manda al SAT. Si el cliente tiene que aceptarla, queda pendiente hasta que responda.</p></div>
+        <div class="ui-modal__pie"><button type="button" class="ui-btn ui-btn--secundario" data-cerrar>No, volver</button><button type="button" class="ui-btn ui-btn--peligro" data-cerrar>Cancelar factura</button></div>
+    </dialog>
+</main>
+
+<script src="/ui/ui.js?v=202611091500"></script>
+</body>
+</html>

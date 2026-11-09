@@ -4,20 +4,20 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mis Clientes | Fiscontable</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611051800">
+    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611091500">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611091500">
 </head>
 <body class="min-h-screen flex flex-col relative">
 
     <!-- TOP NAV -->
-    <div id="app-header" data-modulo="clientes" data-titulo="Mis clientes" data-migas=""></div>
-<script src="/assets/js/nucleo.js?v=202611051800"></script>
-<script src="/assets/js/barra.js?v=202611051800"></script>
+    <div id="app-header" data-modulo="clientes" data-titulo="Clientes" data-migas=""></div>
+<script src="/assets/js/nucleo.js?v=202611091500"></script>
+<script src="/assets/js/barra.js?v=202611091500"></script>
 
     <!-- ÁREA DE TRABAJO -->
     <main class="flex-grow w-full mod-pagina" style="max-width:1180px">
 
-        <div class="mod-cabeza"><h1>Mis clientes</h1>
+        <div class="mod-cabeza"><h1>Clientes</h1>
             <div class="mod-cabeza__acciones">
                 <button type="button" id="btn-agregar-cliente" onclick="abrirModalNuevoCliente()" class="boton-principal" style="width:auto;margin:0;padding:9px 18px">+ Registrar empresa</button>
             </div>
@@ -464,61 +464,61 @@
         </div>
     </div>
 
-<script src="/assets/js/comun/leer-cer.js?v=202611051800"></script>
+<script src="/assets/js/comun/leer-cer.js?v=202611091500"></script>
 <style>
     .cli-herr { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 14px; }
-    .cli-buscar { flex: 1 1 220px; max-width: 320px; font-size: 14px; border: 1px solid #e5e7eb; border-radius: 10px; padding: 8px 12px; background: #fff; }
-    .cli-buscar:focus { outline: none; border-color: #7c3aed; box-shadow: 0 0 0 3px #ede9fe; }
+    .cli-buscar { flex: 1 1 220px; max-width: 320px; font-size: 14px; border: 1px solid rgb(var(--g-200)); border-radius: 10px; padding: 8px 12px; background: #fff; }
+    .cli-buscar:focus { outline: none; border-color: rgb(var(--ac-600)); box-shadow: 0 0 0 3px rgb(var(--ac-100)); }
     .cli-filtros { display: flex; flex-wrap: wrap; gap: 6px; flex: 1 1 auto; }
-    .cli-filtro { border: 1px solid #e5e7eb; background: #fff; border-radius: 999px; padding: 5px 11px; font: inherit; font-size: 12.5px; font-weight: 600; color: #475569; cursor: pointer; }
-    .cli-filtro b { font-weight: 800; color: #94a3b8; margin-left: 3px; }
-    .cli-filtro--activo { background: #6d28d9; border-color: #6d28d9; color: #fff; }
-    .cli-filtro--activo b { color: #ddd6fe; }
-    .cli-vista { display: flex; border: 1px solid #e5e7eb; border-radius: 10px; overflow: hidden; background: #fff; }
-    .cli-vista button { border: 0; background: none; padding: 6px 11px; font-size: 15px; cursor: pointer; color: #64748b; }
-    .cli-vista button[aria-pressed="true"] { background: #f1ebfd; color: #6d28d9; }
-    .cli-tabla { width: 100%; background: #fff; border: 1px solid #e5e7eb; border-radius: 14px; border-collapse: separate; border-spacing: 0; font-size: 13px; overflow: hidden; }
-    .cli-tabla th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: #64748b; background: #f8fafc; padding: 9px 12px; border-bottom: 1px solid #e5e7eb; white-space: nowrap; }
-    .cli-tabla td { padding: 9px 12px; border-bottom: 1px solid #f1f5f9; vertical-align: middle; }
+    .cli-filtro { border: 1px solid rgb(var(--g-200)); background: #fff; border-radius: 999px; padding: 5px 11px; font: inherit; font-size: 12.5px; font-weight: 600; color: rgb(var(--g-600)); cursor: pointer; }
+    .cli-filtro b { font-weight: 800; color: rgb(var(--g-500)); margin-left: 3px; }
+    .cli-filtro--activo { background: rgb(var(--ac-600)); border-color: rgb(var(--ac-600)); color: #fff; }
+    .cli-filtro--activo b { color: rgb(var(--ac-200)); }
+    .cli-vista { display: flex; border: 1px solid rgb(var(--g-200)); border-radius: 10px; overflow: hidden; background: #fff; }
+    .cli-vista button { border: 0; background: none; padding: 6px 11px; font-size: 15px; cursor: pointer; color: rgb(var(--g-600)); }
+    .cli-vista button[aria-pressed="true"] { background: rgb(var(--ac-50)); color: rgb(var(--ac-600)); }
+    .cli-tabla { width: 100%; background: #fff; border: 1px solid rgb(var(--g-200)); border-radius: 14px; border-collapse: separate; border-spacing: 0; font-size: 13px; overflow: hidden; }
+    .cli-tabla th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: rgb(var(--g-600)); background: rgb(var(--g-50)); padding: 9px 12px; border-bottom: 1px solid rgb(var(--g-200)); white-space: nowrap; }
+    .cli-tabla td { padding: 9px 12px; border-bottom: 1px solid rgb(var(--g-100)); vertical-align: middle; }
     .cli-tabla tr:last-child td { border-bottom: 0; }
     .cli-tabla tr:hover td { background: #faf7ff; }
-    .cli-si { color: #047857; font-weight: 700; } .cli-no { color: #b45309; font-weight: 600; } .cli-nada { color: #cbd5e1; }
+    .cli-si { color: #047857; font-weight: 700; } .cli-no { color: #b45309; font-weight: 600; } .cli-nada { color: rgb(var(--g-300)); }
     /* Mismo tamaño en todas las pestañas: la ventana no brinca al cambiar */
     .ficha-caja-modal { width: min(var(--modal-mediana), 100%); height: var(--modal-alto); }
     @media (max-width: 640px) { #modal-nuevo-cliente, #modal-editar-cliente { padding: 0 !important; } .ficha-caja-modal { width: 100vw; height: 100dvh; border-radius: 0 !important; } }
     .ficha-punto.ficha-punto--ok { background: #10b981; }
-    .alta-pista { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; font-size: 13px; color: #4c1d95; background: #f5f3ff; border: 1px solid #ddd6fe; border-radius: 12px; padding: 10px 12px; }
+    .alta-pista { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; font-size: 13px; color: rgb(var(--ac-800)); background: rgb(var(--ac-50)); border: 1px solid rgb(var(--ac-200)); border-radius: 12px; padding: 10px 12px; }
     .alta-pista span { flex: 1 1 220px; }
-    .alta-pista__boton { border: 0; background: #6d28d9; color: #fff; font: inherit; font-size: 12.5px; font-weight: 700; border-radius: 8px; padding: 6px 10px; cursor: pointer; }
-    .ficha-inicial { width: 48px; height: 48px; border-radius: 12px; flex: none; display: grid; place-items: center; background: #f1ebfd; color: #6d28d9; font-weight: 800; font-size: 17px; }
+    .alta-pista__boton { border: 0; background: rgb(var(--ac-600)); color: #fff; font: inherit; font-size: 12.5px; font-weight: 700; border-radius: 8px; padding: 6px 10px; cursor: pointer; }
+    .ficha-inicial { width: 48px; height: 48px; border-radius: 12px; flex: none; display: grid; place-items: center; background: rgb(var(--ac-50)); color: rgb(var(--ac-600)); font-weight: 800; font-size: 17px; }
     .ficha-tabs { display: flex; gap: 4px; margin-top: 18px; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; }
     .ficha-tabs::-webkit-scrollbar { display: none; }
     @media (max-width: 640px) { .ficha-tabs { -webkit-mask-image: linear-gradient(to right, #000 82%, transparent); mask-image: linear-gradient(to right, #000 82%, transparent); padding-right: 28px; } }
-    .ficha-tabs button { border: 0; background: none; font: inherit; font-size: 14px; font-weight: 600; color: #64748b; padding: 11px 14px; border-bottom: 2px solid transparent; margin-bottom: -1px; cursor: pointer; white-space: nowrap; }
-    .ficha-tabs button[aria-selected="true"] { color: #6d28d9; border-bottom-color: #6d28d9; }
+    .ficha-tabs button { border: 0; background: none; font: inherit; font-size: 14px; font-weight: 600; color: rgb(var(--g-600)); padding: 11px 14px; border-bottom: 2px solid transparent; margin-bottom: -1px; cursor: pointer; white-space: nowrap; }
+    .ficha-tabs button[aria-selected="true"] { color: rgb(var(--ac-600)); border-bottom-color: rgb(var(--ac-600)); }
     .ficha-punto { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #f59e0b; margin-left: 4px; vertical-align: middle; }
-    .ficha-caja { border: 1px solid #eef0f3; border-radius: 14px; padding: 20px; }
+    .ficha-caja { border: 1px solid rgb(var(--g-200)); border-radius: 14px; padding: 20px; }
     .ficha-datos { display: grid; grid-template-columns: auto 1fr; gap: 10px 20px; font-size: 14px; margin: 0; }
-    .ficha-datos dt { color: #64748b; } .ficha-datos dd { margin: 0; color: #0f172a; }
+    .ficha-datos dt { color: rgb(var(--g-600)); } .ficha-datos dd { margin: 0; color: rgb(var(--g-900)); }
     .ficha-chip { font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 999px; border: 0; cursor: pointer; }
-    .ficha-chip--ok { background: #e8f6f0; color: #047857; } .ficha-chip--falta { background: #fef3c7; color: #92400e; }
-    .alta-etiqueta { display: block; font-size: 11.5px; font-weight: 700; color: #334155; text-transform: uppercase; letter-spacing: .03em; margin-bottom: 8px; }
-    .alta-control { width: 100%; font-size: 14.5px; border: 1px solid #d1d5db; border-radius: 10px; padding: 11px 13px; background: #fff; }
-    .alta-control:focus { outline: none; border-color: #7c3aed; box-shadow: 0 0 0 3px #ede9fe; }
-    .alta-archivo { width: 100%; font-size: 13px; border: 1px dashed #c4b5fd; border-radius: 10px; padding: 12px; background: #faf7ff; }
+    .ficha-chip--ok { background: rgb(var(--ac-50)); color: #047857; } .ficha-chip--falta { background: #fef3c7; color: #92400e; }
+    .alta-etiqueta { display: block; font-size: 11.5px; font-weight: 700; color: rgb(var(--g-700)); text-transform: uppercase; letter-spacing: .03em; margin-bottom: 8px; }
+    .alta-control { width: 100%; font-size: 14.5px; border: 1px solid rgb(var(--g-300)); border-radius: 10px; padding: 11px 13px; background: #fff; }
+    .alta-control:focus { outline: none; border-color: rgb(var(--ac-600)); box-shadow: 0 0 0 3px rgb(var(--ac-100)); }
+    .alta-archivo { width: 100%; font-size: 13px; border: 1px dashed rgb(var(--ac-300)); border-radius: 10px; padding: 12px; background: #faf7ff; }
     .alta-ojo { position: absolute; top: 0; bottom: 0; right: 8px; border: 0; background: none; cursor: pointer; opacity: .55; font-size: 15px; }
-    .alta-modo { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; background: #f1f5f9; border-radius: 12px; }
-    .alta-modo__op { border: 0; background: none; border-radius: 9px; padding: 9px 8px; font: inherit; font-size: 13px; font-weight: 700; color: #475569; cursor: pointer; }
-    .alta-modo__op small { display: block; font-size: 10.5px; font-weight: 600; color: #7c3aed; }
-    .alta-modo__op--activa { background: #fff; color: #0f172a; box-shadow: 0 1px 3px rgba(15,23,42,.12); }
+    .alta-modo { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; background: rgb(var(--g-100)); border-radius: 12px; }
+    .alta-modo__op { border: 0; background: none; border-radius: 9px; padding: 9px 8px; font: inherit; font-size: 13px; font-weight: 700; color: rgb(var(--g-600)); cursor: pointer; }
+    .alta-modo__op small { display: block; font-size: 10.5px; font-weight: 600; color: rgb(var(--ac-600)); }
+    .alta-modo__op--activa { background: #fff; color: rgb(var(--g-900)); box-shadow: 0 1px 3px rgba(15,23,42,.12); }
     .alta-info { font-size: 12.5px; border-radius: 10px; padding: 9px 11px; background: #ecfdf5; border: 1px solid #a7f3d0; color: #065f46; }
     .alta-info--mal { background: #fffbeb; border-color: #fde68a; color: #92400e; }
-    .alta-opcional { border: 1px solid #e5e7eb; border-radius: 10px; padding: 10px 12px; }
-    .alta-opcional summary { cursor: pointer; font-size: 13px; font-weight: 700; color: #334155; }
-    .alta-opcional summary small { font-weight: 500; color: #64748b; }
+    .alta-opcional { border: 1px solid rgb(var(--g-200)); border-radius: 10px; padding: 10px 12px; }
+    .alta-opcional summary { cursor: pointer; font-size: 13px; font-weight: 700; color: rgb(var(--g-700)); }
+    .alta-opcional summary small { font-weight: 500; color: rgb(var(--g-600)); }
     .alta-error { font-size: 13px; font-weight: 600; border-radius: 10px; padding: 10px 12px; background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; }
 </style>
-<script src="/assets/js/comun/importar-clientes.js?v=202611051800"></script>
-<script src="/clientes/clientes.js?v=202611051800"></script>
+<script src="/assets/js/comun/importar-clientes.js?v=202611091500"></script>
+<script src="/clientes/clientes.js?v=202611091500"></script>
 </body>
 </html>

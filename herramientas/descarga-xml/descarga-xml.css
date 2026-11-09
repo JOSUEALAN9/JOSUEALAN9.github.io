@@ -16,7 +16,7 @@
     border: 1px solid var(--linea); border-radius: 10px; background: #fff;
     padding: 8px 13px; font: inherit; font-size: 13px; font-weight: 700; color: var(--texto); cursor: pointer;
 }
-.dm-btn-solicitudes:hover { border-color: #94a3b8; }
+.dm-btn-solicitudes:hover { border-color: rgb(var(--g-500)); }
 .dm-insignia { min-width: 20px; height: 20px; padding: 0 6px; border-radius: 999px; background: var(--acento); color: #fff;
     font-size: 11.5px; font-weight: 800; display: inline-grid; place-items: center; }
 .dm-insignia[hidden] { display: none; }
@@ -31,7 +31,7 @@
 }
 .dm-modo strong { display: block; font-size: 14px; }
 .dm-modo span { display: block; font-size: 12px; color: var(--texto-tenue); margin-top: 2px; line-height: 1.35; }
-.dm-modo:hover { border-color: #94a3b8; }
+.dm-modo:hover { border-color: rgb(var(--g-500)); }
 .dm-modo[aria-selected="true"] { border-color: var(--acento); background: var(--acento-suave); box-shadow: inset 0 0 0 1px var(--acento); }
 .dm-modo[aria-selected="true"] strong { color: var(--acento); }
 
@@ -98,7 +98,7 @@
 .dm-sol__acciones { display: flex; gap: 7px; margin-top: 8px; flex-wrap: wrap; }
 .dm-vacio { font-size: 13px; color: var(--texto-tenue); padding: 6px 2px; }
 
-.dm-estado { font-size: 11px; font-weight: 800; padding: 2px 8px; border-radius: 999px; white-space: nowrap; background: #EEF1F5; color: #475467; }
+.dm-estado { font-size: 11px; font-weight: 800; padding: 2px 8px; border-radius: 999px; white-space: nowrap; background: rgb(var(--g-200)); color: #475467; }
 .dm-estado--activo { background: var(--acento-suave); color: var(--acento); }
 .dm-estado--bien { background: #ECFDF3; color: #05603A; }
 .dm-estado--mal { background: #FEF3F2; color: #B42318; }

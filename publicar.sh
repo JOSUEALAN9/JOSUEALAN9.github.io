@@ -3,7 +3,7 @@
 # publicar.sh — sube los cambios del frontend a GitHub Pages.
 #
 # Además de commit + push, cambia el número de versión (?v=...) en todas
-# las páginas y en assets/js/nucleo.js. Así, en cuanto el navegador baja
+# las páginas y en assets/js/nucleo.js. Antes compila el CSS de Tailwind. Así, en cuanto el navegador baja
 # el HTML nuevo, baja también el CSS y JS nuevos, en vez de mezclar una
 # página nueva con scripts viejos de su caché.
 #
@@ -18,6 +18,12 @@ if [ -z "$MENSAJE" ]; then
   echo 'Uso: ./publicar.sh "Qué cambié, en una frase"'
   exit 1
 fi
+
+# CSS de Tailwind: se compila antes de subir (ya no hay CDN). La primera vez: npm install
+if [ ! -x node_modules/.bin/tailwindcss ]; then
+  echo "Falta Tailwind: corre «npm install» una vez en esta carpeta."; exit 1
+fi
+npm run -s css
 
 V=$(date +%Y%m%d%H%M)
 grep -rl --include=*.html -E '\?v=[0-9]+' . | xargs -r sed -i -E "s/\?v=[0-9]+/?v=$V/g"

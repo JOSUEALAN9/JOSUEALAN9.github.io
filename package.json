@@ -1,0 +1,11 @@
+{
+  "name": "fiscontable-web",
+  "private": true,
+  "description": "Frontend de Fiscontable. Solo se usa para compilar el CSS de Tailwind.",
+  "scripts": {
+    "css": "BROWSERSLIST_IGNORE_OLD_DATA=1 tailwindcss -c tailwind.config.js -i assets/css/tailwind.src.css -o assets/css/tailwind.css --minify"
+  },
+  "devDependencies": {
+    "tailwindcss": "3.4.17"
+  }
+}
