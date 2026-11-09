@@ -8,9 +8,9 @@
  *   p.hayEleccion(), p.porFechas(), p.rango() -> {desde, hasta}, p.meses() -> ["2026-08", ...] | null,
  *   p.texto() -> "agosto de 2026", p.dentro("2026-08-10") -> true/false
  *
- * Con conBoton: true los clics no recargan: aparece «Cargar …» y la página carga hasta que lo pulsas
- * (se pueden marcar varios meses sin esperar). Si cfg.alcanza() dice que lo nuevo ya está cargado,
- * se aplica al momento sin botón.
+ * Se aplica solo (G-03): medio segundo después del último clic, para poder marcar varios meses sin
+ * recargar a cada uno; si cfg.alcanza() dice que lo nuevo ya está cargado, al momento. Sin botón «Procesar»
+ * ni estado intermedio. Plegable: plegado es una sola línea «2026 · Mar, Oct · 46 XML ▾» (se recuerda).
  *
  * Reglas: "Todo el año" marca los 12 meses; con todos marcados, un clic en un mes quita solo
  * ese; un clic en el año activo lo desmarca. Las fechas exactas mandan sobre año y meses.
@@ -29,20 +29,44 @@
         raiz.classList.add("xml-periodo");
         raiz.setAttribute("aria-label", "Periodo");
         raiz.innerHTML =
+            '<button type="button" class="xml-periodo__resumen" data-p="resumen" aria-expanded="false"></button>' +
             '<div class="xml-periodo__fila"><span class="xml-periodo__etiqueta">Año</span><div class="xml-periodo__chips" data-p="anios"></div></div>' +
             '<div class="xml-periodo__fila"><span class="xml-periodo__etiqueta">Meses</span><div class="xml-periodo__chips" data-p="meses"></div></div>' +
             '<div class="xml-periodo__fila"><span class="xml-periodo__etiqueta">Fechas</span><div class="xml-periodo__chips xml-periodo__fechas">' +
             '<label>Del <input type="date" data-p="desde"></label><label>al <input type="date" data-p="hasta"></label>' +
             '<button type="button" class="xml-enlace" data-p="quitar" hidden>Quitar fechas</button></div></div>' +
-            '<div class="xml-periodo__aplicar" data-p="aplicar" hidden><button type="button" class="xml-btn xml-btn--primario" data-p="cargar">Procesar</button>' +
-            '<span class="xml-tenue" data-p="nota-aplicar">Lo de abajo todavía es el periodo anterior.</span></div>';
+            "";
         function $(n) { return raiz.querySelector('[data-p="' + n + '"]'); }
 
         function porFechas() { return !!(E.fechas.desde || E.fechas.hasta); }
         function hayEleccion() { return porFechas() || (!!E.anio && E.meses.size > 0); }
 
+        // Plegado: una sola línea con lo elegido; se recuerda (sin periodo elegido se abre para elegirlo)
+        function plegadoGuardado() { try { return localStorage.getItem("fc-periodo-abierto") !== "1"; } catch (e) { return true; } }
+        var general = null;
+        if (window.Fiscontable && Fiscontable.perfil) Fiscontable.perfil().then(function (p) { general = p && p.periodo_activo; pintarResumen(); }).catch(function () {});
+        function pintarResumen() {
+            var plegado = raiz.classList.contains("xml-periodo--plegado"), t;
+            if (porFechas()) t = "Del " + (dmy(E.fechas.desde) || "inicio") + " al " + (dmy(E.fechas.hasta) || "hoy");
+            else if (!hayEleccion()) t = "Elige el periodo";
+            else {
+                var ms = Array.from(E.meses).sort(), n = ms.reduce(function (s, m) { return s + (E.conteos[E.anio + "-" + m] || 0); }, 0);
+                t = E.anio + " · " + (ms.length === 12 ? "Todo el año" : ms.map(function (m) { return CORTO[+m - 1]; }).join(", ")) +
+                    (Object.keys(E.conteos).length ? " · " + n.toLocaleString("es-MX") + " XML" : "");
+                if (general && !(ms.length === 1 && E.anio + "-" + ms[0] === general)) t += " (general: " + CORTO[+general.slice(5, 7) - 1] + " " + general.slice(0, 4) + ")";
+            }
+            $("resumen").innerHTML = '<span class="xml-periodo__resumen-et">Periodo</span><b>' + t + '</b><span class="xml-periodo__resumen-acc">' + (plegado ? "Cambiar" : "Ocultar") + "</span>";
+            $("resumen").setAttribute("aria-expanded", String(!plegado));
+        }
+        function plegar(si, recordar) {
+            raiz.classList.toggle("xml-periodo--plegado", si);
+            if (recordar) { try { localStorage.setItem("fc-periodo-abierto", si ? "0" : "1"); } catch (e) { /* sin almacenamiento */ } }
+            pintarResumen();
+        }
         function pintar() {
             raiz.classList.toggle("xml-periodo--fechas", porFechas());
+            if (raiz.classList.contains("xml-periodo--plegado") && !hayEleccion()) raiz.classList.remove("xml-periodo--plegado");
+            pintarResumen();
             var porAnio = {};
             Object.keys(E.conteos).forEach(function (p) { porAnio[p.slice(0, 4)] = (porAnio[p.slice(0, 4)] || 0) + E.conteos[p]; });
             if (E.anio && !(E.anio in porAnio)) porAnio[E.anio] = 0;
@@ -66,22 +90,19 @@
             E.fechas = { desde: "", hasta: "" };
             $("desde").value = ""; $("hasta").value = ""; $("quitar").hidden = true;
         }
-        var pendiente = false;
+        var pendiente = false, espera = null;
         function aplicar() {
-            pendiente = false; $("aplicar").hidden = true;
+            clearTimeout(espera); pendiente = false;
             if (cfg.alCambiar) cfg.alCambiar();
         }
         function cambio() {
             pintar();
-            if (!cfg.conBoton || (cfg.alcanza && hayEleccion() && cfg.alcanza())) { aplicar(); return; }
+            clearTimeout(espera);
+            if (!hayEleccion() || (cfg.alcanza && cfg.alcanza())) { aplicar(); return; }
             pendiente = true;
-            var caja = $("aplicar");
-            caja.hidden = !hayEleccion();
-            // El botón siempre dice lo mismo (no crece al marcar meses); lo elegido va en la nota, resumido
-            var n = E.meses.size, txt = porFechas() || n <= 2 ? api.texto() : (n === 12 ? "todo " + E.anio : n + " meses de " + E.anio);
-            $("nota-aplicar").textContent = "Elegiste " + txt + ". Lo de abajo todavía es el periodo anterior.";
+            espera = setTimeout(aplicar, 500);
         }
-        $("cargar").addEventListener("click", aplicar);
+        $("resumen").addEventListener("click", function () { plegar(!raiz.classList.contains("xml-periodo--plegado"), true); });
 
         $("anios").addEventListener("click", function (e) {
             var b = e.target.closest("[data-anio]"); if (!b) return;
@@ -114,11 +135,12 @@
             conteos: function (c) { E.conteos = c || {}; pintar(); },
             poner: function (v) {
                 limpiarFechas(); E.anio = ""; E.meses = new Set();
-                pendiente = false; $("aplicar").hidden = true;
+                pendiente = false; clearTimeout(espera);
                 if (v && (v.desde || v.hasta)) {
                     E.fechas = { desde: v.desde || "", hasta: v.hasta || "" };
                     $("desde").value = E.fechas.desde; $("hasta").value = E.fechas.hasta; $("quitar").hidden = false;
                 } else if (v && v.anio) { E.anio = v.anio; E.meses = new Set(v.meses || []); }
+                raiz.classList.toggle("xml-periodo--plegado", hayEleccion() && plegadoGuardado());
                 pintar();
             },
             hayEleccion: hayEleccion,
@@ -150,6 +172,7 @@
             pendiente: function () { return pendiente; },
             estado: function () { return { anio: E.anio, meses: Array.from(E.meses).sort(), desde: E.fechas.desde, hasta: E.fechas.hasta }; }
         };
+        raiz.classList.toggle("xml-periodo--plegado", plegadoGuardado());
         pintar();
         return api;
     }

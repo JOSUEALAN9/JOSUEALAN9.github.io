@@ -331,9 +331,12 @@
         var q = "?rfc=" + encodeURIComponent(E.rfc) + (desde ? "&desde=" + desde : "") + (hasta ? "&hasta=" + hasta : "") +
             (E.pagosPor === "pago" ? "&pagos_por=pago" : "");
         $("conteo-filas").textContent = "Cargando…";
+        var yo = (E.nCarga = (E.nCarga || 0) + 1), rfcPedido = E.rfc;     // si cambias el periodo mientras carga, gana el último
         try {
-            E.datos = (await apiJSON("/api/xml/registros" + q)).modulos;
-        } catch (e) { avisar(e.message); return; }
+            var llegaron = (await apiJSON("/api/xml/registros" + q)).modulos;
+            if (yo !== E.nCarga || rfcPedido !== E.rfc) return;
+            E.datos = llegaron;
+        } catch (e) { if (yo === E.nCarga) avisar(e.message); return; }
         E.cargado = hayEleccion() ? { rfc: E.rfc, desde: r.desde, hasta: r.hasta, fechas: porFechas(), pagosPor: E.pagosPor } : null;
         Fiscontable.url(Fiscontable.periodoAUrl(E.P.estado(), porFechas()));
         cargarCuentasPago();

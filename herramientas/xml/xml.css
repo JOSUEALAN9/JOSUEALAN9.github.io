@@ -264,3 +264,13 @@ button.ctx-resumen__dato:hover { background: rgb(var(--g-50)); }
 .xml-aviso-fondo[hidden] { display: none; }
 .xml-giro { width: 14px; height: 14px; flex: none; border-radius: 50%; border: 2px solid #bae6fd; border-top-color: #0284c7; animation: xml-giro .8s linear infinite; }
 @keyframes xml-giro { to { transform: rotate(360deg); } }
+
+/* Periodo plegable (G-03): una línea con lo elegido; «Cambiar» abre la franja */
+.xml-periodo__resumen { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 28px; padding: 0; border: 0; background: none; font: inherit;
+                        font-size: var(--t-13); color: rgb(var(--g-900)); cursor: pointer; text-align: left; }
+.xml-periodo__resumen-et { font-size: var(--t-12); font-weight: 600; color: rgb(var(--g-500)); width: 48px; flex: none; }
+.xml-periodo__resumen b { font-weight: 600; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.xml-periodo__resumen-acc { margin-left: auto; font-size: var(--t-12); font-weight: 600; color: rgb(var(--ac-600)); flex: none; }
+.xml-periodo__resumen:hover .xml-periodo__resumen-acc { text-decoration: underline; }
+.xml-periodo--plegado .xml-periodo__fila { display: none; }
+.xml-periodo--plegado { padding-top: 6px; padding-bottom: 6px; }

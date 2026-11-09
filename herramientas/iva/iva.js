@@ -110,8 +110,9 @@
         Fiscontable.url(Fiscontable.periodoAUrl(E.P.estado(), E.P.porFechas()));
         $("conteo").textContent = "Calculando…";
         try {
+            var yo = (E.nCarga = (E.nCarga || 0) + 1);       // si cambias el periodo mientras carga, gana el último
             var datos = await apiJSON("/api/iva/papel?" + pedido);
-            if (E.rfc !== datos.rfc) return;
+            if (yo !== E.nCarga || E.rfc !== datos.rfc) return;
             E.datos = datos; E.pedido = pedido;
         } catch (e) { $("conteo").textContent = e.message; return; }
         $("saldo-favor").value = leerLocal("saldo:" + clavePeriodo()) || "";

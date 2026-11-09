@@ -295,9 +295,10 @@
         $("conteo-filas").textContent = "Calculando…";
         document.querySelectorAll("#lados .conc-lado").forEach(function (b) { b.classList.toggle("conc-lado--activo", b.dataset.lado === E.lado); });
         var datos;
+        var yo = (E.nCarga = (E.nCarga || 0) + 1);           // si cambias el periodo mientras carga, gana el último
         try { datos = await apiJSON("/api/conciliacion/datos" + comun + "&regla=" + E.regla); }
-        catch (e) { avisar(e.message); $("conteo-filas").textContent = ""; return; }
-        if (datos.lado !== E.lado || datos.rfc !== E.rfc) return;          // llegó tarde: ya cambiaste de lado o empresa
+        catch (e) { if (yo === E.nCarga) { avisar(e.message); $("conteo-filas").textContent = ""; } return; }
+        if (yo !== E.nCarga || datos.lado !== E.lado || datos.rfc !== E.rfc) return;          // llegó tarde: ya cambiaste de lado o empresa
         E.datos = datos;
         E.movsPorFactura = {};
         E.datos.movimientos.forEach(function (m) { (E.movsPorFactura[m.uuid_factura] = E.movsPorFactura[m.uuid_factura] || []).push(m); });
