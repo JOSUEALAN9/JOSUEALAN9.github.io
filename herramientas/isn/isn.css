@@ -105,3 +105,12 @@
 .est-candado p { font-size: 13.5px; color: rgb(var(--g-600)); margin: 0 auto 16px; max-width: 480px; line-height: 1.5; }
 .est-candado__botones { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
 .est-candado__nota { color: #b91c1c; font-size: 13px; margin-top: 10px !important; }
+/* Salario mínimo en líneas (grupos con distintos días): se suman al final */
+.isn-lineas { display: grid; gap: 6px; padding: 10px 12px; border: 1px solid var(--linea); border-radius: var(--r-control); background: rgb(var(--g-50)); }
+.isn-lineas__cab, .isn-linea { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr) 32px; gap: 8px; align-items: center; }
+.isn-lineas__cab { font-size: 12px; font-weight: 600; color: rgb(var(--g-600)); }
+.isn-linea input { width: 100%; }
+.isn-lineas__num { text-align: right; font-variant-numeric: tabular-nums; }
+.ln-imp { font-size: 13px; color: rgb(var(--g-700)); }
+.isn-lineas__pie { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; font-size: 13px; color: rgb(var(--g-700)); }
+.isn-lineas__pie b { color: rgb(var(--g-900)); font-variant-numeric: tabular-nums; }
