@@ -455,30 +455,60 @@
             return grupos.map(function (g) {
                 if (!g.titulo) return (g.separador ? '<div class="ui-riel__sep"></div>' : "") + g.items.map(item).join("");
                 var conActual = g.items.some(function (x) { return x.actual; }), cerrado = plegado(g.titulo, conActual);
+                // Plegada, el grupo es UN ícono (marcado si estás en uno de sus módulos) con su menú flotante
                 return '<section class="ui-riel__grupo' + (cerrado ? " ui-riel__grupo--plegado" : "") + (conActual ? " ui-riel__grupo--actual" : "") + '" data-grupo="' + esc(g.titulo) + '">' +
-                    '<button type="button" class="ui-riel__titulo" aria-expanded="' + !cerrado + '" data-nombre="' + esc(g.titulo + (cerrado ? " · mostrar" : " · plegar")) + '"><span>' + esc(g.titulo) + "</span>" + ico(D.abajo, 2) + "</button>" +
-                    '<div class="ui-riel__items">' + g.items.map(item).join("") + "</div></section>";
+                    '<button type="button" class="ui-riel__titulo" aria-expanded="' + !cerrado + '"><span>' + esc(g.titulo) + "</span>" + ico(D.abajo, 2) + "</button>" +
+                    '<button type="button" class="ui-riel__grupo-ico' + (conActual ? " ui-riel__grupo-ico--actual" : "") + '" aria-haspopup="true" aria-expanded="false" aria-label="' + esc(g.titulo) + '">' +
+                    (g.svg || ico(g.icono || D.rejilla, 1.7)) + "</button>" +
+                    '<div class="ui-riel__items"><p class="ui-riel__flotante-titulo">' + esc(g.titulo) + "</p>" + g.items.map(item).join("") + "</div></section>";
             }).join("") || (op.vacio ? '<p class="ui-riel__vacio">' + esc(op.vacio) + "</p>" : "");
         }
         var b = op.buscar, chico = lateralChico();
+        // Contraer siempre abajo (en los dos estados); buscar siempre arriba
         var plegar = '<button type="button" class="ui-riel__plegar" aria-label="' + (chico ? "Mostrar nombres" : "Plegar a íconos") + '" data-nombre="' + (chico ? "Mostrar nombres" : "Plegar a íconos") + '">' +
-            ico(D.contraer, 1.8) + "</button>";
-        nav.innerHTML = '<div class="ui-riel__cabeza">' + (op.cabeza ? '<div class="ui-riel__titulo-riel">' + op.cabeza + "</div>" : "") + plegar + "</div>" +
+            ico(D.contraer, 1.8) + '<span class="ui-riel__texto">Contraer</span></button>';
+        nav.innerHTML = (op.cabeza ? '<div class="ui-riel__cabeza"><div class="ui-riel__titulo-riel">' + op.cabeza + "</div></div>" : "") +
             (!b ? "" : b.campo
                 ? '<label class="ui-riel__buscar" data-nombre="' + esc(b.texto) + '">' + ico(D.buscar, 2) + '<input type="search" autocomplete="off" placeholder="' + esc(b.texto) + '" aria-label="' + esc(b.texto) + '"></label>'
                 : '<button type="button" class="ui-riel__buscar" data-nombre="' + esc(b.texto + (b.atajo ? " (" + b.atajo + ")" : "")) + '">' + ico(D.buscar, 2) +
                   '<span class="ui-riel__texto">' + esc(b.texto) + "</span>" + (b.atajo ? "<kbd>" + esc(b.atajo) + "</kbd>" : "") + "</button>") +
-            '<div class="ui-riel__lista">' + lista(op.grupos || []) + "</div>";
+            '<div class="ui-riel__lista">' + lista(op.grupos || []) + "</div>" + plegar;
         var caja = nav.querySelector(".ui-riel__lista"), entrada = nav.querySelector(".ui-riel__buscar input");
+        // Menú flotante del grupo (plegada): sale junto a su ícono al pasar el cursor, con Tab o con un toque
+        function cerrarFlotantes(salvo) {
+            nav.querySelectorAll(".ui-riel__grupo--flotando").forEach(function (sec) {
+                if (sec === salvo) return;
+                sec.classList.remove("ui-riel__grupo--flotando"); sec.querySelector(".ui-riel__grupo-ico").setAttribute("aria-expanded", "false");
+            });
+        }
+        function abrirFlotante(sec) {
+            if (!lateralChico() || !sec) return;
+            var icoG = sec.querySelector(".ui-riel__grupo-ico"), r = icoG.getBoundingClientRect();
+            sec.style.setProperty("--flot-top", Math.max(8, r.top - 6) + "px");
+            nav.style.setProperty("--riel-x", nav.getBoundingClientRect().right + "px");
+            cerrarFlotantes(sec);
+            sec.classList.add("ui-riel__grupo--flotando"); icoG.setAttribute("aria-expanded", "true");
+        }
+        caja.addEventListener("mouseover", function (e) {
+            var sec = e.target.closest(".ui-riel__grupo");
+            if (sec && e.target.closest(".ui-riel__grupo-ico")) abrirFlotante(sec);
+            else if (!sec) cerrarFlotantes(null);           // sobre Inicio, Clientes…: se cierra el menú abierto
+        });
+        caja.addEventListener("mouseleave", function () { cerrarFlotantes(null); });
+        caja.addEventListener("focusin", function (e) { if (e.target.closest(".ui-riel__grupo-ico")) abrirFlotante(e.target.closest(".ui-riel__grupo")); });
+        caja.addEventListener("focusout", function (e) { if (!caja.contains(e.relatedTarget)) cerrarFlotantes(null); });
+        caja.addEventListener("keydown", function (e) { if (e.key === "Escape") cerrarFlotantes(null); });
+        document.addEventListener("pointerdown", function (e) { if (!nav.contains(e.target)) cerrarFlotantes(null); });
         // El nombre que sale al pasar el cursor (plegada) se pone junto al borde derecho de esta barra, esté donde esté
         nav.addEventListener("mouseover", function () { nav.style.setProperty("--riel-x", nav.getBoundingClientRect().right + "px"); });
         nav.addEventListener("click", function (e) {
-            if (e.target.closest(".ui-riel__plegar")) { ponerChico(!lateralChico()); return; }
+            if (e.target.closest(".ui-riel__plegar")) { cerrarFlotantes(null); ponerChico(!lateralChico()); return; }
+            var gi = e.target.closest(".ui-riel__grupo-ico");
+            if (gi) { var sg = gi.closest(".ui-riel__grupo"); if (sg.classList.contains("ui-riel__grupo--flotando") && e.pointerType !== "mouse") cerrarFlotantes(null); else abrirFlotante(sg); return; }
             var t = e.target.closest(".ui-riel__titulo");
             if (t) {
                 var sec = t.parentElement, g = sec.dataset.grupo, cerrar = !sec.classList.contains("ui-riel__grupo--plegado");
                 sec.classList.toggle("ui-riel__grupo--plegado", cerrar); t.setAttribute("aria-expanded", String(!cerrar));
-                t.dataset.nombre = g + (cerrar ? " · mostrar" : " · plegar");
                 tocados[g] = cerrar;
                 if (window.innerHeight >= 760) { var m = guardados(); if (cerrar) m[g] = true; else delete m[g]; try { localStorage.setItem(CLAVE_GRUPOS, JSON.stringify(m)); } catch (err) { /* sin almacenamiento */ } }
                 return;
@@ -504,6 +534,14 @@
     // Ajustes trae su propia barra (la misma pieza): misma estructura de página desde el primer pintado
     if (clave === "configuracion" && !document.documentElement.classList.contains("fc-incrustado")) document.documentElement.classList.add("fc-con-riel");
     var rielModulos = null;
+    // Íconos de grupo (barra plegada): distintos entre sí y de los de sus módulos
+    var ICONO_GRUPO = {
+        "Comprobantes": "M14 3H6a2 2 0 00-2 2v14a2 2 0 002 2h12a2 2 0 002-2V9zM14 3v6h6M10 12l-2 2.5 2 2.5M14 12l2 2.5-2 2.5",
+        "Cierre del mes": "M8 3v3m8-3v3M4 9h16M5 5h14a1 1 0 011 1v13a1 1 0 01-1 1H5a1 1 0 01-1-1V6a1 1 0 011-1zM9 14.5l2 2 4-4",
+        "Cumplimiento": "M12 3l7 3v5c0 4.5-3 8.3-7 10-4-1.7-7-5.5-7-10V6zM9 12l2 2 4-4",
+        "Facturación": "M7 3h10a1 1 0 011 1v17l-3-2-3 2-3-2-3 2V4a1 1 0 011-1zM9 8h6M9 12h6M9 16h3",
+        "Documentos": "M4 6h16a1 1 0 011 1v10a1 1 0 01-1 1H4a1 1 0 01-1-1V7a1 1 0 011-1zM9 13a2 2 0 100-4 2 2 0 000 4zM6 16a3 3 0 016 0M14 10h4M14 13h3"
+    };
     function gruposModulos() {
         var inicio = { titulo: null, items: [{ nombre: "Inicio", icono: D.casa, href: "/", actual: clave === "portada" }] };
         return [inicio].concat(GRUPOS.map(function (g) {
@@ -513,7 +551,7 @@
                 return { nombre: m.nombre, num: m.num, icono: m.icono, href: m.url, pronto: m.pronto, actual: aqui && m.clave === aqui.clave, vedado: !ok, plan: ok ? null : m.clave };
             });
             // Un grupo de un solo módulo no lleva título (sería «Clientes › Clientes»): solo la línea que separa
-            return ms.length > 1 ? { titulo: g, items: items } : { titulo: null, separador: true, items: items };
+            return ms.length > 1 ? { titulo: g, icono: ICONO_GRUPO[g], items: items } : { titulo: null, separador: true, items: items };
         }));
     }
     function pintarLateral() {

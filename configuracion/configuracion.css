@@ -53,6 +53,10 @@
 @media (max-width: 1023px) {
     .cf-menu.ui-riel, .fc-lateral-chico .cf-menu.ui-riel { position: static; width: auto; height: auto; border-right: 0; border-bottom: 1px solid var(--linea); }
     .cf-menu .ui-riel__cabeza, .cf-menu .ui-riel__plegar, .cf-menu .ui-riel__titulo { display: none; }
+    .cf-menu .ui-riel__grupo-ico, .cf-menu .ui-riel__flotante-titulo { display: none !important; }
+    .fc-lateral-chico .cf-menu .ui-riel__items, .fc-lateral-chico .cf-menu .ui-riel__grupo--plegado .ui-riel__items { display: contents; }
+    .fc-lateral-chico .cf-menu .ui-riel__lista { flex-direction: row; align-items: center; }
+    .fc-lateral-chico .cf-menu .ui-riel__grupo { margin-top: 0; }
     .cf-menu .ui-riel__lista { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; padding: 4px 10px 10px; }
     .cf-menu .ui-riel__grupo, .cf-menu .ui-riel__items { display: contents; }
     .cf-menu .ui-riel__item { flex: none; width: auto; border: 1px solid var(--linea); border-radius: 999px; }

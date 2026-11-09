@@ -33,7 +33,8 @@
         xml: "M8 9l-4 3 4 3M16 9l4 3-4 3M13 6l-2 12",
         admin: "M12 3l8 4v5c0 5-3.4 8.5-8 9-4.6-.5-8-4-8-9V7z",
         sistema: "M4 6h16M4 12h16M4 18h10",
-        balanza: "M12 3v18M5 7h14M5 7l-3 7a4 4 0 006 0zM19 7l-3 7a4 4 0 006 0zM8 21h8"
+        balanza: "M12 3v18M5 7h14M5 7l-3 7a4 4 0 006 0zM19 7l-3 7a4 4 0 006 0zM8 21h8",
+        modulos: "M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z"
     };
     function ico(d) { return '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="' + d + '"/></svg>'; }
 
@@ -84,7 +85,8 @@
             grupos[s.grupo].push(s);
         });
         if (menu) menu.pintar(orden.map(function (g) {
-            return { titulo: g, items: grupos[g].map(function (s) { return { id: s.id, nombre: s.titulo, svg: ico(s.ico), actual: s.id === actual }; }) };
+            return { titulo: g, svg: ico({ "Tu cuenta": ICO.persona, "Módulos": ICO.modulos, "Administración": ICO.admin }[g] || ICO.sistema),
+                     items: grupos[g].map(function (s) { return { id: s.id, nombre: s.titulo, svg: ico(s.ico), actual: s.id === actual }; }) };
         }));
     }
 
