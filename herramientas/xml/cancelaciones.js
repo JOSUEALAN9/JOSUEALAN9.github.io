@@ -1,6 +1,6 @@
 /*
  * herramientas/xml/cancelaciones.js — Cancelaciones ante el SAT con el CSD de la empresa (vía MultiFacturas):
- *   · «Te piden cancelar»: solicitudes de proveedores que esperan respuesta (aceptar o rechazar, una por una).
+ *   · «Por responder»: solicitudes de proveedores que esperan respuesta (aceptar o rechazar, una por una).
  *   · «Cancelar emitidas»: cualquier CFDI emitido del mes (de la biblioteca), aunque no se timbrara aquí.
  *   · «Historial»: lo que se mandó, su resultado, «Revisar en el SAT» y el acuse.
  * Cada envío pide confirmar ese documento: no hay acciones en lote.
@@ -168,8 +168,37 @@
                  error: "No se hizo", rechazo_receptor: "El receptor la rechazó", aceptada: "Aceptada", rechazada: "Rechazada" }[e] || e;
     }
 
+    // Historial con filtros: texto, fechas y resultado; lo que se ve es lo que se exporta
+    function historialVisible() {
+        var q = ($("h-buscar").value || "").trim().toLowerCase(), de = $("h-desde").value, a = $("h-hasta").value, est = $("h-estado").value;
+        return ((E.datos && E.datos.historial) || []).filter(function (h) {
+            var dia = (h.en || "").slice(0, 10);
+            if (de && dia < de) return false;
+            if (a && dia > a) return false;
+            if (est === "proceso" && !(h.estado === "en_proceso" || h.estado === "sin_confirmar")) return false;
+            if (est && est !== "proceso" && h.estado !== est) return false;
+            if (q && [h.uuid, h.contraparte && h.contraparte.rfc, h.contraparte && h.contraparte.nombre, h.quien, h.motivo].join(" ").toLowerCase().indexOf(q) === -1) return false;
+            return true;
+        });
+    }
+    async function exportarHistorial() {
+        var filas = historialVisible().map(function (h) {
+            return { en: h.en, que: h.accion === "cancelar" ? "Cancelar (motivo " + (h.motivo || "") + ")" : h.accion === "aceptar" ? "Aceptaste" : "Rechazaste",
+                     uuid: h.uuid, rfc: (h.contraparte || {}).rfc, nombre: (h.contraparte || {}).nombre, total: h.total, resultado: estadoTexto(h.estado),
+                     sat: h.estado_sat || "", quien: h.quien || "", detalle: h.texto || "", pruebas: h.pruebas ? "Sí" : "" };
+        });
+        try {
+            await Fiscontable.excel("Cancelaciones_" + E.rfc + ".xlsx", [{ hoja: "Historial", filas: filas, columnas: [
+                { titulo: "Cuándo", clave: "en", tipo: "fecha" }, { titulo: "Qué", clave: "que" }, { titulo: "Folio fiscal (UUID)", clave: "uuid", ancho: 38 },
+                { titulo: "RFC contraparte", clave: "rfc", ancho: 15 }, { titulo: "Contraparte", clave: "nombre", ancho: 36 }, { titulo: "Total", clave: "total", tipo: "moneda" },
+                { titulo: "Resultado", clave: "resultado", ancho: 30 }, { titulo: "Estado en el SAT", clave: "sat", ancho: 18 }, { titulo: "Quién", clave: "quien", ancho: 28 },
+                { titulo: "Detalle", clave: "detalle", ancho: 40 }, { titulo: "Pruebas", clave: "pruebas", ancho: 8 }] }]);
+        } catch (e) { aviso(esc(e.message), true); }
+    }
     function pintarHistorial() {
-        var lista = (E.datos && E.datos.historial) || [];
+        var todas = (E.datos && E.datos.historial) || [], lista = historialVisible();
+        $("h-cuenta").textContent = todas.length ? lista.length + " de " + todas.length : "";
+        $("h-excel").disabled = !lista.length;
         $("tb-hist").innerHTML = lista.length ? lista.map(function (h) {
             var que = h.accion === "cancelar" ? "Cancelar (motivo " + esc(h.motivo || "") + ")" : h.accion === "aceptar" ? "Aceptaste" : "Rechazaste";
             var proceso = h.estado === "en_proceso" || h.estado === "sin_confirmar";
@@ -180,7 +209,7 @@
                 (h.texto ? '<span class="ca-gris ca-bloque">' + esc(h.texto) + "</span>" : "") + (h.estado_sat ? '<span class="ca-gris ca-bloque">SAT: ' + esc(h.estado_sat) + "</span>" : "") + "</td>" +
                 '<td class="ca-acciones">' + (proceso && !h.pruebas ? '<button type="button" class="xml-btn" data-revisar="' + h.id + '">Revisar en el SAT</button>' : "") +
                 (h.hay_acuse ? '<button type="button" class="xml-enlace" data-acuse="' + h.id + '">Acuse</button>' : "") + "</td></tr>";
-        }).join("") : '<tr><td colspan="7" class="xml-vacio">Todavía no hay cancelaciones ni respuestas de esta empresa.</td></tr>';
+        }).join("") : '<tr><td colspan="7" class="xml-vacio">' + (todas.length ? "Nada coincide con los filtros." : "Todavía no hay cancelaciones ni respuestas de esta empresa.") + "</td></tr>";
     }
 
     /* ------------------------------------------------------------ acciones */
@@ -276,6 +305,8 @@
         $("menu-empresa").addEventListener("click", function (e) { e.stopPropagation(); var b = e.target.closest("[data-rfc]"); if (!b) return; $("menu-empresa").hidden = true; E.rfc = b.dataset.rfc; titulo(); ponerVista(E.vista); cargar(); });
         document.addEventListener("click", function () { $("menu-empresa").hidden = true; });
         document.querySelectorAll("[data-vista]").forEach(function (b) { b.addEventListener("click", function () { ponerVista(b.dataset.vista); }); });
+        ["h-buscar", "h-desde", "h-hasta", "h-estado"].forEach(function (id) { $(id).addEventListener("input", pintarHistorial); $(id).addEventListener("change", pintarHistorial); });
+        $("h-excel").addEventListener("click", exportarHistorial);
         $("sel-anio").addEventListener("change", function () { E.anio = +this.value; cargarEmitidas(); });
         $("sel-mes").addEventListener("change", function () { E.mes = +this.value; cargarEmitidas(); });
         $("buscar").addEventListener("input", function () { E.buscar = this.value; pintarEmitidas(); });

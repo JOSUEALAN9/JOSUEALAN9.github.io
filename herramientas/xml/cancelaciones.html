@@ -4,23 +4,23 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cancelaciones · Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611100600">
-    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611100600">
-    <link rel="stylesheet" href="/herramientas/isn/isn.css?v=202611100600">
-    <link rel="stylesheet" href="/herramientas/xml/fiscal.css?v=202611100600">
-    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611100600">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611100700">
+    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611100700">
+    <link rel="stylesheet" href="/herramientas/isn/isn.css?v=202611100700">
+    <link rel="stylesheet" href="/herramientas/xml/fiscal.css?v=202611100700">
+    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611100700">
 </head>
 <body class="bg-slate-50">
 <div id="app-header" data-modulo="cancelaciones" data-titulo="Cancelaciones" data-migas="Herramientas|/herramientas/"></div>
-<script src="/assets/js/nucleo.js?v=202611100600"></script>
-<script src="/assets/js/barra.js?v=202611100600"></script>
+<script src="/assets/js/nucleo.js?v=202611100700"></script>
+<script src="/assets/js/barra.js?v=202611100700"></script>
 
 <main class="xml-pagina">
     <div class="xml-cabeza">
         <div class="fc-titulo">
             <h1>Cancelaciones</h1>
             <div class="fc-vista isn-pestanas" role="tablist" aria-label="Qué ver">
-                <button type="button" role="tab" data-vista="recibidas" aria-selected="true">Te piden cancelar <b id="n-pend"></b></button>
+                <button type="button" role="tab" data-vista="recibidas" aria-selected="true">Por responder <b id="n-pend"></b></button>
                 <button type="button" role="tab" data-vista="emitidas" aria-selected="false">Cancelar emitidas</button>
                 <button type="button" role="tab" data-vista="historial" aria-selected="false">Historial <b id="n-proc"></b></button>
             </div>
@@ -41,7 +41,7 @@
     <div id="aviso" class="isn-aviso" hidden></div>
     <div id="estado" class="ca-estado" hidden></div>
 
-    <!-- Te piden cancelar (como receptor) -->
+    <!-- Por responder: cancelaciones que pide un proveedor (como receptor) -->
     <section id="v-recibidas">
         <div class="ca-cabeza">
             <p class="ca-texto">Facturas que un proveedor pidió cancelar y esperan tu respuesta. Tienes <b>72 horas</b>; si no respondes, el SAT las da por aceptadas.</p>
@@ -72,6 +72,17 @@
 
     <!-- Historial -->
     <section id="v-historial" hidden>
+        <div class="ca-barra">
+            <input type="search" id="h-buscar" class="ui-input" placeholder="Buscar folio, RFC o nombre…" aria-label="Buscar en el historial">
+            <label class="ca-campo">Desde <input type="date" id="h-desde" class="ui-input"></label>
+            <label class="ca-campo">hasta <input type="date" id="h-hasta" class="ui-input"></label>
+            <select id="h-estado" class="ui-select" aria-label="Resultado">
+                <option value="">Todos los resultados</option><option value="cancelado">Canceladas</option><option value="proceso">En proceso</option>
+                <option value="aceptada">Aceptaste</option><option value="rechazada">Rechazaste</option><option value="rechazo_receptor">El receptor la rechazó</option><option value="error">No se hicieron</option>
+            </select>
+            <span class="ca-gris" id="h-cuenta"></span>
+            <button type="button" id="h-excel" class="ui-btn ui-btn--secundario ui-btn--28">Exportar Excel</button>
+        </div>
         <div class="xml-tabla-caja isn-tabla-caja">
             <table class="xml-tabla fi-tabla">
                 <thead><tr><th>Cuándo</th><th>Qué</th><th>Folio fiscal</th><th>Contraparte</th><th class="xml-num">Total</th><th>Resultado</th><th></th></tr></thead>
@@ -117,6 +128,6 @@
     </div>
 </div>
 
-<script src="/herramientas/xml/cancelaciones.js?v=202611100600"></script>
+<script src="/herramientas/xml/cancelaciones.js?v=202611100700"></script>
 </body>
 </html>

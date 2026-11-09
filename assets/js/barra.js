@@ -117,7 +117,7 @@
                  "Casi todo se marca solo y dice por qué; revisa «Por revisar».",
                  "Toca la casilla de un impuesto para decir si cuenta o no; el folio abre la factura.",
                  "⚙ Reglas: momento de cada impuesto, alcohol y lo aprendido. «Cerrar mes» cuando ya presentaste."],
-        cancelaciones: ["«Te piden cancelar»: Buscar en el SAT y aceptar o rechazar una por una (72 horas).",
+        cancelaciones: ["«Por responder»: Buscar en el SAT y aceptar o rechazar una por una (72 horas).",
                         "«Cancelar emitidas»: elige el mes y Cancelar… en la factura (necesita el CSD en Facturar).",
                         "«Historial»: lo enviado, su resultado, Revisar en el SAT y el acuse."],
         documentos: ["Elige el tipo (SAT, Actas, IMSS, INFONAVIT) y el documento.",
@@ -1719,6 +1719,46 @@
     }
 
 
+    /* ------------------------------------------------- exportar a Excel (G-12)
+       Fiscontable.excel("Cancelaciones_RFC.xlsx", [{ hoja: "Historial", columnas: [{ titulo, clave, tipo: "fecha"|"moneda"|"texto" }], filas }])
+       Encabezados en la primera fila, fechas e importes con su tipo (Excel los suma y ordena bien), anchos razonables. */
+    var sheetjs = null;
+    function cargarSheetJS() {
+        if (window.XLSX) return Promise.resolve(window.XLSX);
+        if (!sheetjs) sheetjs = new Promise(function (ok, mal) {
+            var sc = document.createElement("script");
+            sc.src = "https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js";
+            sc.onload = function () { ok(window.XLSX); }; sc.onerror = function () { sheetjs = null; mal(new Error("No se pudo preparar el Excel. Revisa tu conexión.")); };
+            document.head.appendChild(sc);
+        });
+        return sheetjs;
+    }
+    async function excel(nombre, hojas) {
+        var X = await cargarSheetJS(), libro = X.utils.book_new();
+        hojas.forEach(function (h) {
+            var datos = [h.columnas.map(function (c) { return c.titulo; })].concat(h.filas.map(function (f) {
+                return h.columnas.map(function (c) {
+                    var v = f[c.clave];
+                    if (v === null || v === undefined || v === "") return "";
+                    if (c.tipo === "moneda") return Number(v) || 0;
+                    if (c.tipo === "fecha") { var d = new Date(String(v).length <= 10 ? v + "T12:00:00" : v); return isNaN(d) ? String(v) : d; }
+                    return String(v);
+                });
+            }));
+            var ws = X.utils.aoa_to_sheet(datos, { cellDates: true });
+            ws["!cols"] = h.columnas.map(function (c) { return { wch: c.ancho || (c.tipo === "moneda" ? 14 : c.tipo === "fecha" ? 18 : 24) }; });
+            h.columnas.forEach(function (c, j) {
+                if (c.tipo !== "moneda" && c.tipo !== "fecha") return;
+                for (var i = 1; i < datos.length; i++) {
+                    var cel = ws[X.utils.encode_cell({ r: i, c: j })];
+                    if (cel) cel.z = c.tipo === "moneda" ? "#,##0.00" : "dd/mm/yyyy hh:mm";
+                }
+            });
+            X.utils.book_append_sheet(libro, ws, (h.hoja || "Hoja1").slice(0, 31));
+        });
+        X.writeFile(libro, nombre);
+    }
+
     /* ------------------------------------------------- detalle de un CFDI en panel lateral (G-07)
        Fiscontable.verCfdi(rfc, uuid, lista) abre el detalle de siempre (/herramientas/xml/detalle/) en un panel a la
        derecha, sin salir de la tabla. lista = uuids en el orden en que se ven: ← y → (o los botones) pasan a la
@@ -2278,6 +2318,7 @@
     Object.assign(window.Fiscontable, {
         modulo: clave,
         riel: riel,
+        excel: excel,
         verCfdi: verCfdi,
         bloquearPantalla: function (servidor) { bloquearPantalla(!!servidor); },
         catalogo: CATALOGO,
