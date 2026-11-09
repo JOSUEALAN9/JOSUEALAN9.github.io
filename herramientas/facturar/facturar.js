@@ -1775,9 +1775,41 @@
         ];
     }
 
+    /* Sin lo necesario para timbrar no se deja capturar: antes se llenaba toda la factura y el error salía al final.
+       Producción: todo lo que falte (datos, sello, manifiesto, timbres). Pruebas: solo los datos fiscales (lo demás
+       lo pone el SAT de prueba). Aplica a la factura nueva y al recibo de pago. */
+    function minus(t) { return t.charAt(0).toLowerCase() + t.slice(1); }      // «sello digital (CSD)», no «(csd)»
+    function pintarBloqueo(reqs) {
+        var prod = F.cfg.produccion;
+        var faltan = reqs.filter(function (r) { return r.estado === "falta" && (prod || r.id === "datos"); });
+        ["vista-nueva", "vista-pagos"].forEach(function (id) {
+            var vista = $(id); if (!vista) return;
+            var lay = vista.querySelector(".fa-layout"), aviso = vista.querySelector(".fa-bloqueo");
+            var bloquear = faltan.length > 0 && !F.incrustado;
+            if (lay) { lay.classList.toggle("fa-layout--bloqueado", bloquear); if (bloquear) lay.setAttribute("inert", ""); else lay.removeAttribute("inert"); }
+            if (!bloquear) { if (aviso) aviso.hidden = true; return; }
+            if (!aviso) {
+                aviso = document.createElement("div");
+                aviso.className = "fa-bloqueo"; aviso.setAttribute("role", "status");
+                lay.parentNode.insertBefore(aviso, lay);
+                aviso.addEventListener("click", function (e) {
+                    var b = e.target.closest("[data-ir-activar]"); if (!b) return;
+                    if (id === "vista-pagos") vista("nueva");
+                    F.actAbierto = b.dataset.irActivar; pintarActivar();
+                    $("activar").scrollIntoView({ behavior: "smooth", block: "start" });
+                });
+            }
+            aviso.hidden = false;
+            aviso.innerHTML = icono("candado") + '<div><b>' + (id === "vista-pagos" ? "Para hacer recibos de pago" : "Para llenar facturas") + ", primero completa lo que falta" +
+                (id === "vista-pagos" ? " en «Activar facturación»" : " arriba") + ':</b> ' + esc(faltan.map(function (r) { return minus(r.titulo); }).join(", ")) + ".</div>" +
+                '<button type="button" class="ui-btn ui-btn--primario ui-btn--32" data-ir-activar="' + faltan[0].id + '">Completar ' + esc(minus(faltan[0].titulo)) + "</button>";
+        });
+    }
+
     function pintarActivar() {
         var caja = $("activar"); if (!caja || !F.emisor) return;
         var reqs = requisitos(), prod = F.cfg.produccion;
+        pintarBloqueo(reqs);
         var listos = reqs.filter(function (r) { return r.estado === "ok"; }).length;
         var mostrar = reqs.some(function (r) { return r.estado === "falta" || r.estado === "aviso"; }) || (!prod && listos < 2);
         caja.hidden = !mostrar || F.incrustado;
