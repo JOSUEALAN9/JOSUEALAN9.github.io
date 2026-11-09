@@ -878,11 +878,31 @@
         api("/api/facturacion/productos/" + p.id + "/usado", { method: "POST" }).catch(function () {});
     }
 
+    /* Al escribir la descripción: primero los productos guardados de la empresa y, debajo, las claves del SAT que
+       coinciden (antes solo salían los guardados; con el catálogo vacío no salía nada). */
+    var esperaSug = null, nSug = 0;
     function sugerirProductos(input) {
         var caja = input.parentNode.querySelector(".fa-prod__sug"), q = input.value.trim().toLowerCase();
         var lista = (F.productos || []).filter(function (p) { return !q || [p.nombre, p.codigo, p.clave_prod].join(" ").toLowerCase().indexOf(q) !== -1; }).slice(0, 8);
-        caja.innerHTML = lista.map(function (p) { return '<button type="button" data-prod="' + esc(p.id) + '"><b>' + esc(p.nombre) + "</b><small>" + esc((p.codigo ? p.codigo + " · " : "") + p.clave_prod + " · " + textoImpuesto(p)) + "</small><span>" + (p.precio != null ? dinero(p.precio) : "") + "</span></button>"; }).join("");
-        caja.hidden = !lista.length;
+        var propios = lista.map(function (p) { return '<button type="button" data-prod="' + esc(p.id) + '"><b>' + esc(p.nombre) + "</b><small>" + esc((p.codigo ? p.codigo + " · " : "") + p.clave_prod + " · " + textoImpuesto(p)) + "</small><span>" + (p.precio != null ? dinero(p.precio) : "") + "</span></button>"; }).join("");
+        var pintar = function (sat) {
+            var h = (propios ? '<p class="fa-prod__grupo">Tus productos</p>' + propios : "") +
+                (sat && sat.length ? '<p class="fa-prod__grupo">Claves del SAT</p>' + sat.map(function (x) {
+                    return '<button type="button" data-sat="' + esc(x.clave) + '" data-sat-texto="' + esc(x.texto) + '"><b>' + esc(x.clave) + " · " + esc(x.texto) + "</b>" +
+                        (x.similares ? "<small>" + esc(x.similares) + "</small>" : "") + "</button>";
+                }).join("") : "");
+            caja.innerHTML = h;
+            caja.hidden = !h;
+        };
+        pintar(null);
+        clearTimeout(esperaSug);
+        if (q.length < 3) return;
+        var yo = ++nSug;
+        esperaSug = setTimeout(function () {
+            json("/api/facturacion/sat/claves?tipo=prod&q=" + encodeURIComponent(q) + "&rfc=" + encodeURIComponent(F.emisor ? F.emisor.rfc : ""))
+                .then(function (r) { if (yo === nSug && document.activeElement === input) pintar(r.slice(0, 8)); })
+                .catch(function () {});
+        }, 220);
     }
 
     async function guardarConceptoEnCatalogo(i) {
@@ -2618,6 +2638,15 @@
             guardarConcepto(true);
         });
         $("conceptos").addEventListener("mousedown", function (ev) {
+            var bs = ev.target.closest(".fa-prod__sug [data-sat]");
+            if (bs) {                 // clave del SAT elegida desde la descripción: se pone la clave; lo escrito se queda
+                ev.preventDefault();
+                var k = +bs.closest("[data-i]").dataset.i, cc = F.conceptos[k];
+                cc.clave_prod = bs.dataset.sat;
+                if (!(cc.descripcion || "").trim()) cc.descripcion = bs.dataset.satTexto;
+                cc.error = null; pintarConceptos(); enfocarConcepto(k, "cantidad");
+                return;
+            }
             var b = ev.target.closest(".fa-prod__sug [data-prod]"); if (!b) return;
             ev.preventDefault();
             var i = +b.closest("[data-i]").dataset.i, p = (F.productos || []).filter(function (x) { return x.id === b.dataset.prod; })[0];
