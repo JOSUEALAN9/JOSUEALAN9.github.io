@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Herramientas | Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611100900">
-    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611100900">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611101000">
+    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611101000">
 </head>
 <body class="min-h-screen flex flex-col">
 
@@ -78,8 +78,8 @@
     .buscador:focus { outline: none; border-color: var(--acento); box-shadow: 0 0 0 3px var(--acento-suave); }
 </style>
 
-<script src="/assets/js/nucleo.js?v=202611100900"></script>
-<script src="/assets/js/barra.js?v=202611100900"></script>
+<script src="/assets/js/nucleo.js?v=202611101000"></script>
+<script src="/assets/js/barra.js?v=202611101000"></script>
 <script>
     (function () {
         // Las tarjetas salen del mismo catálogo que el menú «Módulos» y la portada (barra.js)
@@ -89,7 +89,7 @@
         var motivo = null;
         function pintar() {
             var q = sinAcentos(document.getElementById("buscar-herramienta").value.trim());
-            var cat = (Fiscontable.catalogo || []).filter(function (m) { return !m.cuenta && m.clave !== "clientes"; });
+            var cat = (Fiscontable.catalogo || []).filter(function (m) { return !m.cuenta && !m.soloAdmin && m.clave !== "clientes"; });
             var grupos = (Fiscontable.grupos || []).slice(), html = "", n = 0;
             grupos.forEach(function (g) {
                 var items = cat.filter(function (m) { return m.grupo === g && (!q || sinAcentos(m.nombre + " " + m.desc + " " + g).indexOf(q) !== -1); });

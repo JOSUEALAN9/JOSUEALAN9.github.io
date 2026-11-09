@@ -160,7 +160,7 @@
     // Menú agrupado por el trabajo del contador (aprobado el 9 nov 2026). Las direcciones no cambian.
     // cuenta: true = no va en el menú (Descargas y Créditos viven en la barra y en el menú de usuario).
     // Íconos de un solo color: el color es solo para estados, nunca para distinguir módulos.
-    var GRUPOS = ["Clientes", "Comprobantes", "Cierre del mes", "Cumplimiento", "Facturación", "Documentos"];
+    var GRUPOS = ["Clientes", "Comprobantes", "Cierre del mes", "Cumplimiento", "Nómina", "Facturación", "Documentos"];
     var CATALOGO = [
         { clave: "clientes", grupo: "Clientes", nombre: "Clientes", desc: "Empresas, e.firma y obligaciones", url: "/clientes/", permiso: null, icono: I.clientes, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
 
@@ -181,6 +181,9 @@
         { clave: "buzon", grupo: "Cumplimiento", nombre: "Buzón Tributario", desc: "Comunicados, cancelaciones y notificaciones", url: "/herramientas/buzon/", permiso: "buzon", icono: I.buzon, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
         { clave: "listas", grupo: "Cumplimiento", nombre: "Listas del SAT", desc: "69, 69-B y demás listas negras", url: "/herramientas/listas-sat/", permiso: "validador", icono: I.alerta, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
         { clave: "declaraciones", grupo: "Cumplimiento", nombre: "Declaraciones", alias: "declaraciones presentadas acuses", desc: "Acuses, pagos y recibos", url: "/herramientas/declaraciones/", permiso: "declaraciones", icono: I.archivo, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
+
+        // Nómina en laboratorio: solo el administrador la ve (soloAdmin) y el servidor solo a él le entrega la página
+        { clave: "nomina", grupo: "Nómina", soloAdmin: true, nombre: "Nómina", alias: "nomina motor prueba recibos imss isr", desc: "Prueba del motor de cálculo (solo administrador)", url: "/herramientas/nomina/", permiso: null, icono: "M9 7a3 3 0 106 0 3 3 0 00-6 0zM5 21v-1a5 5 0 015-5h4a5 5 0 015 5v1M17 4.5a3 3 0 010 5.5M19.5 15.5A4.5 4.5 0 0122 19.5V21", tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
 
         { clave: "facturar", grupo: "Facturación", nombre: "Facturar", desc: "Facturas, notas de crédito y recibos de pago", url: "/herramientas/facturar/", permiso: "facturacion", icono: I.recibo, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
 
@@ -366,6 +369,8 @@
             '<div class="fc-modulos__cuerpo" id="fc-modulos-cuerpo"></div></div>';
     }
 
+    // Lo que está en laboratorio (soloAdmin) no aparece para nadie más
+    function verModulo(m) { return !m.soloAdmin || !!(perfilActual && perfilActual.rol === "admin"); }
     function permitido(m) {
         if (!m.permiso) return true;
         var p = perfilActual;
@@ -388,7 +393,7 @@
         var cuerpo = document.getElementById("fc-modulos-cuerpo");
         if (q) {
             var hallados = CATALOGO.filter(function (m) {
-                return !m.pronto && (m.nombre + " " + m.desc + " " + m.grupo + " " + (m.alias || "")).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").indexOf(q) !== -1;
+                return !m.pronto && verModulo(m) && (m.nombre + " " + m.desc + " " + m.grupo + " " + (m.alias || "")).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").indexOf(q) !== -1;
             });
             cuerpo.innerHTML = hallados.length ? '<div class="fc-modulos__rejilla">' + hallados.map(itemModulo).join("") + "</div>"
                 : '<p class="fc-empresas__nada">Ningún módulo coincide con «' + esc(q) + "».</p>";
@@ -401,8 +406,8 @@
                 rec.map(function (c) { return itemModulo(CATALOGO.filter(function (m) { return m.clave === c; })[0]); }).join("") + "</div>";
         }
         GRUPOS.concat(["Tu cuenta"]).forEach(function (g) {
-            html += '<div class="fc-modulos__grupo">' + esc(g) + '</div><div class="fc-modulos__rejilla">' +
-                CATALOGO.filter(function (m) { return m.grupo === g && !m.pronto; }).map(itemModulo).join("") + "</div>";
+            var ms = CATALOGO.filter(function (m) { return m.grupo === g && !m.pronto && verModulo(m); });
+            if (ms.length) html += '<div class="fc-modulos__grupo">' + esc(g) + '</div><div class="fc-modulos__rejilla">' + ms.map(itemModulo).join("") + "</div>";
         });
         cuerpo.innerHTML = html;
     }
@@ -545,14 +550,15 @@
     function gruposModulos() {
         var inicio = { titulo: null, items: [{ nombre: "Inicio", icono: D.casa, href: "/", actual: clave === "portada" }] };
         return [inicio].concat(GRUPOS.map(function (g) {
-            var ms = CATALOGO.filter(function (m) { return m.grupo === g; });
+            var ms = CATALOGO.filter(function (m) { return m.grupo === g && verModulo(m); });
+            if (!ms.length) return null;
             var items = ms.map(function (m) {
                 var ok = m.pronto || permitido(m);
                 return { nombre: m.nombre, num: m.num, icono: m.icono, href: m.url, pronto: m.pronto, actual: aqui && m.clave === aqui.clave, vedado: !ok, plan: ok ? null : m.clave };
             });
             // Un grupo de un solo módulo no lleva título (sería «Clientes › Clientes»): solo la línea que separa
             return ms.length > 1 ? { titulo: g, icono: ICONO_GRUPO[g], items: items } : { titulo: null, separador: true, items: items };
-        }));
+        }).filter(Boolean));
     }
     function pintarLateral() {
         if (!conLateral) return;
