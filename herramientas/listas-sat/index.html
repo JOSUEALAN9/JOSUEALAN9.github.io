@@ -4,15 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Listas del SAT · Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611101000">
-    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611101000">
-    <link rel="stylesheet" href="/herramientas/listas-sat/listas-sat.css?v=202611101000">
-    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611101000">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611101100">
+    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611101100">
+    <link rel="stylesheet" href="/herramientas/listas-sat/listas-sat.css?v=202611101100">
+    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611101100">
 </head>
 <body class="bg-slate-50">
 <div id="app-header" data-modulo="validador" data-ayuda="listas" data-titulo="Listas del SAT" data-migas="Herramientas|/herramientas/"></div>
-<script src="/assets/js/nucleo.js?v=202611101000"></script>
-<script src="/assets/js/barra.js?v=202611101000"></script>
+<script src="/assets/js/nucleo.js?v=202611101100"></script>
+<script src="/assets/js/barra.js?v=202611101100"></script>
 
 <main class="xml-pagina">
     <!-- Igual que sus hermanas: de quién, qué periodo y la revisión de las listas -->
@@ -49,6 +49,9 @@
         <div class="mod-layout__principal">
             <!-- Periodo: el mismo de Administración de XML (comun/periodo-meses.js). Solo se lee lo elegido -->
             <div id="periodo-ls"></div>
+            <!-- M-16: recibidos (proveedores) o emitidos (clientes), visible junto al periodo -->
+            <div id="roles" class="ls-fila-rol"></div>
+            <div id="linea-programa"></div>
 
             <p id="resumen" class="ls-resumen"></p>
             <!-- General y una pestaña por lista; solo aparecen las que tienen algo -->
@@ -56,9 +59,6 @@
 
             <div class="xml-toolbar">
                 <input type="search" id="buscar" placeholder="Buscar RFC, nombre, folio, UUID…">
-                <div class="xml-toolbar__der">
-                    <div id="roles" class="xml-chips"></div>
-                </div>
             </div>
 
             <div id="barra-seleccion" class="xml-seleccion" hidden>
@@ -100,7 +100,8 @@
     </div>
 </div>
 
-<script src="/assets/js/comun/periodo-meses.js?v=202611101000"></script>
-<script src="/herramientas/listas-sat/listas-sat.js?v=202611101000"></script>
+<script src="/assets/js/comun/periodo-meses.js?v=202611101100"></script>
+<script src="/assets/js/comun/programacion.js?v=202611101100"></script>
+<script src="/herramientas/listas-sat/listas-sat.js?v=202611101100"></script>
 </body>
 </html>

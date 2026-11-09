@@ -4,14 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mis Descargas | Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611101000">
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611101000">
+    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611101100">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611101100">
+    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611101100">
 </head>
 <body class="min-h-screen flex flex-col">
 
     <div id="app-header" data-modulo="descargas" data-titulo="Mis descargas" data-migas=""></div>
-<script src="/assets/js/nucleo.js?v=202611101000"></script>
-<script src="/assets/js/barra.js?v=202611101000"></script>
+<script src="/assets/js/nucleo.js?v=202611101100"></script>
+<script src="/assets/js/barra.js?v=202611101100"></script>
 
     <main class="flex-grow w-full mod-pagina" style="max-width:1024px">
 
@@ -22,12 +23,7 @@
             <p id="aviso-texto" class="text-sm text-amber-800"></p>
         </div>
 
-        <div id="banner-notif" class="hidden mb-4 bg-blue-50 border border-blue-200 p-4 rounded-lg flex flex-wrap items-center justify-between gap-3">
-            <p class="text-sm text-blue-800">¿Te avisamos cuando esté listo un documento? Funciona mientras el navegador siga abierto.</p>
-            <button onclick="pedirPermisoNotificaciones()" class="bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold py-2 px-4 rounded-lg transition flex-none">
-                Activar avisos
-            </button>
-        </div>
+        <div id="dsc-filtros" class="dsc-filtros"></div>
 
         <!-- EN PREPARACIÓN -->
         <section id="seccion-preparando" class="hidden mb-6">
@@ -52,15 +48,15 @@
 
         <div id="estado-vacio" class="hidden bg-white rounded-xl card-elevated border border-dashed border-gray-300 p-12 text-center">
             <svg class="w-12 h-12 text-gray-300 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-            <p class="text-slate-500 font-semibold">Todavía no has descargado nada</p>
-            <p class="text-sm text-slate-400 mt-1">Aquí aparecen tus constancias, opiniones, declaraciones y XML.</p>
+            <p class="text-slate-500 font-semibold" id="vacio-titulo">Todavía no has descargado nada</p>
+            <p class="text-sm text-slate-400 mt-1" id="vacio-texto">Aquí aparecen tus constancias, opiniones, declaraciones y XML.</p>
             <div class="flex flex-wrap gap-2 justify-center mt-4">
                 <a href="/clientes/" class="text-xs font-bold bg-violet-50 text-violet-700 hover:bg-violet-100 py-2 px-4 rounded-lg transition">Ir a Mis Clientes</a>
                 <a href="/herramientas/" class="text-xs font-bold bg-emerald-50 text-emerald-700 hover:bg-emerald-100 py-2 px-4 rounded-lg transition">Ir a Herramientas</a>
             </div>
         </div>
 
-        <p class="text-xs text-slate-400 text-center mt-8">
+        <p class="text-xs text-slate-400 text-center mt-8" id="dsc-retencion">
             Las descargas se guardan aquí 7 días. Los documentos de tus clientes registrados siguen disponibles en Mis Clientes por 30 días.
         </p>
     </main>
@@ -82,6 +78,6 @@
         </div>
     </div>
 
-<script src="/descargas/descargas.js?v=202611101000"></script>
+<script src="/descargas/descargas.js?v=202611101100"></script>
 </body>
 </html>

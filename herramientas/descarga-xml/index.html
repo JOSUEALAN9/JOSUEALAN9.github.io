@@ -4,10 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Descarga masiva | Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611101000">
-    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611101000">
-    <link rel="stylesheet" href="/herramientas/descarga-xml/descarga-xml.css?v=202611101000">
-    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611101000">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611101100">
+    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611101100">
+    <link rel="stylesheet" href="/herramientas/descarga-xml/descarga-xml.css?v=202611101100">
+    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611101100">
 </head>
 <body class="min-h-screen flex flex-col">
 
@@ -32,7 +32,10 @@
         </div>
     </div>
 
-    <!-- Las dos formas de bajar -->
+    <div id="linea-programa"></div>
+    <!-- M-06: el método es un ajuste avanzado plegado; el sistema usa el web service salvo que lo cambies -->
+    <details class="dm-avanzado">
+    <summary>Método: <b id="metodo-texto">Web service del SAT</b></summary>
     <div class="dm-modos" role="tablist" aria-label="Forma de descarga">
         <button type="button" class="dm-modo" data-modo="webservice" role="tab" aria-selected="true">
             <strong>Web service del SAT</strong>
@@ -43,6 +46,7 @@
             <span>contraseña o e.firma · al momento · con estado de cancelación</span>
         </button>
     </div>
+    </details>
 
     <div id="alerta" class="fc-aviso" style="margin:0 0 12px" hidden></div>
 
@@ -284,12 +288,19 @@
 
 <div id="aviso-flotante" class="dm-toast" hidden></div>
 
-<script src="/assets/js/nucleo.js?v=202611101000"></script>
-<script src="/assets/js/barra.js?v=202611101000"></script>
-<script src="/assets/js/comun/leer-cer.js?v=202611101000"></script>
-<script src="/assets/js/comun/paso-cliente.js?v=202611101000"></script>
-<script src="/assets/js/comun/tabla.js?v=202611101000"></script>
-<script src="/herramientas/descarga-xml/descarga-xml.js?v=202611101000"></script>
+<script src="/assets/js/nucleo.js?v=202611101100"></script>
+<script src="/assets/js/barra.js?v=202611101100"></script>
+<script src="/assets/js/comun/leer-cer.js?v=202611101100"></script>
+<script src="/assets/js/comun/paso-cliente.js?v=202611101100"></script>
+<script src="/assets/js/comun/tabla.js?v=202611101100"></script>
+<script src="/assets/js/comun/programacion.js?v=202611101100"></script>
+<script src="/herramientas/descarga-xml/descarga-xml.js?v=202611101100"></script>
+<script>FCProgramacion.linea({ modulo: "xml", contenedor: document.getElementById("linea-programa") });
+(function () {
+    function metodo() { var b = document.querySelector('.dm-modo[aria-selected="true"]'); if (b) document.getElementById("metodo-texto").textContent = b.querySelector("strong").textContent; }
+    document.addEventListener("click", function (e) { if (e.target.closest(".dm-modo")) setTimeout(metodo, 0); });
+    window.addEventListener("load", function () { setTimeout(metodo, 300); });
+})();</script>
 <!-- Programar descargas de XML en la madrugada: pendiente para otra entrega (el motor ya lo soporta). -->
 </body>
 </html>

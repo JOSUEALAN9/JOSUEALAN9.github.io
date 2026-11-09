@@ -277,3 +277,15 @@ button.ctx-resumen__dato:hover { background: rgb(var(--g-50)); }
 
 @media (max-width: 640px) { .xml-periodo__resumen-et { display: none; } }
 .xml-filtros-activos { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 0 0 10px; }
+.ls-fila-rol { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin: 0 0 10px; }
+.ls-fila-rol .xml-cuenta { margin-left: 4px; }
+/* M-09: pestañas como control segmentado compacto */
+.xml-fila-seg { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-bottom: 10px; }
+.xml-fila-seg .xml-chips { margin: 0; }
+.xml-seg { max-width: 100%; overflow-x: auto; scrollbar-width: none; }
+.xml-seg::-webkit-scrollbar { display: none; }
+.xml-seg .pestana { flex: none; border: 0; margin: 0; padding: 6px 12px; border-radius: 9px; font-size: 13px; font-weight: 700; color: rgb(var(--g-600)); background: none; white-space: nowrap; }
+.xml-seg .pestana--activa { background: rgb(var(--g-0)); color: rgb(var(--g-900)); box-shadow: 0 1px 3px rgb(var(--g-900) / .15); }
+.ls-fila-rol .ctx-segmento { max-width: 100%; overflow-x: auto; scrollbar-width: none; }
+.ls-fila-rol .ctx-segmento::-webkit-scrollbar { display: none; }
+.ls-fila-rol .ctx-segmento button { flex: none; }

@@ -68,3 +68,6 @@
 }
 .cf-incrustado .cf-contenido { padding: 14px 18px; }
 .cf-sub { font-size: var(--t-16); font-weight: 700; color: rgb(var(--g-900)); margin: 0 0 4px; }
+.cf-check { display: flex; margin: 8px 0; }
+.cf-apagada td { color: rgb(var(--g-500)); }
+.cf-celda-acciones { white-space: nowrap; text-align: right; }

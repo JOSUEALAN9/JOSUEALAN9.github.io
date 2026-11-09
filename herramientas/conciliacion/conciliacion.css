@@ -49,3 +49,12 @@ a.xml-btn { text-decoration: none; }
 @media (max-width: 700px) { .conc-cifras { grid-template-columns: repeat(2, 1fr); } .conc-lados { width: 100%; } .conc-lado { flex: 1; } }
 .conc-cabeza-acciones { display: flex; align-items: center; gap: 10px; }
 .conc-cabeza-acciones .xml-btn { padding: 6px 12px; font-size: 12.5px; }
+/* M-11: resumen plegable y carga sin «Calculando…» */
+#tarjetas { position: relative; }
+.ctx-resumen__plegar { position: absolute; top: 6px; right: 6px; width: 24px; height: 24px; border: 0; border-radius: 6px; background: none; color: rgb(var(--g-500)); font-size: 16px; line-height: 1; cursor: pointer; }
+.ctx-resumen__plegar:hover { background: rgb(var(--g-100)); color: rgb(var(--g-900)); }
+.ctx-resumen--linea { align-items: center; gap: 12px; padding: 6px 12px; }
+.conc-linea { border: 0; background: none; font: inherit; font-size: 13px; color: rgb(var(--g-700)); cursor: pointer; padding: 4px 0; text-align: left; }
+.conc-linea b { color: rgb(var(--g-900)); }
+.conc-linea--activa { color: rgb(var(--ac-700)); text-decoration: underline; }
+.conc-cargando { opacity: .45; pointer-events: none; transition: opacity .15s; }

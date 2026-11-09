@@ -233,6 +233,7 @@
         rayo:     "M13 10V3L4 14h7v7l9-11h-7z",
         edificio: "M3 21h18M5 21V7l7-4 7 4v14M9 9h1m-1 4h1m4-4h1m-1 4h1M10 21v-4h4v4",
         descarga: "M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4",
+        campana:  "M15 17h5l-1.4-1.4A2 2 0 0118 14.2V11a6 6 0 00-4-5.7V5a2 2 0 10-4 0v.3A6 6 0 006 11v3.2a2 2 0 01-.6 1.4L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9",
         engrane:  "M10.3 4.3c.4-1.7 2.9-1.7 3.4 0a1.7 1.7 0 002.5 1.1c1.6-.9 3.3.8 2.4 2.4a1.7 1.7 0 001.1 2.5c1.7.4 1.7 2.9 0 3.4a1.7 1.7 0 00-1.1 2.5c.9 1.6-.8 3.3-2.4 2.4a1.7 1.7 0 00-2.5 1.1c-.4 1.7-2.9 1.7-3.4 0a1.7 1.7 0 00-2.5-1.1c-1.6.9-3.3-.8-2.4-2.4a1.7 1.7 0 00-1.1-2.5c-1.7-.4-1.7-2.9 0-3.4a1.7 1.7 0 001.1-2.5c-.9-1.6.8-3.3 2.4-2.4 1 .6 2.3.1 2.5-1.1zM15 12a3 3 0 11-6 0 3 3 0 016 0z",
         persona:  "M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z",
         rejilla:  "M4 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1V5zm10 0a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM4 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1v-4zm10 0a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z",
@@ -317,6 +318,10 @@
                     ico(D.calendario) +
                     '<span class="fc-accion__etiqueta fc-empresa__nombre" id="fc-periodo-nombre">Elegir periodo</span>' +
                     '<span class="fc-empresa__flecha" aria-hidden="true">▾</span>' +
+                  "</button>" +
+                  '<button type="button" class="fc-accion" id="fc-btn-actividad" aria-haspopup="dialog" aria-label="Actividad" title="Actividad">' +
+                    ico(D.campana) +
+                    '<span class="fc-contador" id="fc-act-contador" hidden>0</span>' +
                   "</button>" +
                   '<button type="button" class="fc-accion" id="fc-btn-descargas" aria-haspopup="dialog" aria-label="Mis descargas">' +
                     ico(D.descarga) +
@@ -1280,7 +1285,96 @@
               '<div class="fc-panel__cuerpo" id="fc-panel-cuerpo"></div>' +
               '<div class="fc-panel__pie"><a class="fc-btn" href="/descargas/" style="width:100%;justify-content:center">Ver el historial completo</a></div>' +
             "</aside>";
+        envoltorio.innerHTML +=
+            '<div class="fc-velo" id="fc-act-velo" hidden></div>' +
+            '<aside class="fc-panel" id="fc-act-panel" role="dialog" aria-modal="true" aria-label="Actividad" hidden>' +
+              '<div class="fc-panel__cabeza">' +
+                '<div><div class="fc-panel__titulo">Actividad</div>' +
+                '<div class="fc-panel__sub">Lo que pasó mientras no estabas</div></div>' +
+                '<button type="button" class="fc-panel__cerrar" id="fc-act-cerrar" aria-label="Cerrar">' + ico(D.cerrar) + "</button>" +
+              "</div>" +
+              '<div class="fc-panel__cuerpo" id="fc-act-cuerpo"></div>' +
+              '<div class="fc-panel__pie fc-act-pie">' +
+                '<button type="button" class="ui-btn ui-btn--secundario ui-btn--32" id="fc-act-leidas">Marcar todo como leído</button>' +
+                '<a class="ui-btn ui-btn--terciario ui-btn--32" href="/configuracion/?seccion=avisos">Qué me llega por correo</a>' +
+              "</div>" +
+            "</aside>";
         while (envoltorio.firstChild) document.body.appendChild(envoltorio.firstChild);
+    }
+
+    /* --------------------------------------------- Centro de actividad (G-13)
+       Avisos de lo que pasó sin que estuvieras mirando: programaciones que terminaron, CFDI que cambiaron de
+       estado, proveedores en listas del SAT, mensajes nuevos del buzón. Mis descargas queda solo para archivos. */
+    var actividad = { datos: null, abierta: false };
+    var ICONO_AVISO = { programacion: "calendario", validacion: "alerta", listas: "alerta", buzon: "documento", descarga: "descarga", aviso: "campana" };
+
+    async function sondearActividad() {
+        if ((bloqueo && bloqueo.activa) || document.hidden) return;
+        try {
+            var r = await fetch(API + "/api/actividad?limite=30", { credentials: "include" });
+            if (!r.ok) return;
+            var d = await r.json(), antes = actividad.datos ? actividad.datos.sin_leer : null;
+            actividad.datos = d;
+            var c = document.getElementById("fc-act-contador");
+            if (c) { c.textContent = d.sin_leer > 99 ? "99+" : d.sin_leer; c.hidden = !d.sin_leer; }
+            if (antes !== null && d.sin_leer > antes && d.avisos[0]) avisarNavegador(d.avisos[0].titulo, d.avisos[0].detalle || "");
+            if (actividad.abierta) pintarActividad();
+        } catch (e) { /* sin red: se vuelve a intentar */ }
+    }
+    function hace(iso) {
+        var f = new Date(String(iso).length <= 19 ? iso + "Z" : iso), m = Math.round((Date.now() - f) / 60000);
+        if (m < 1) return "ahora";
+        if (m < 60) return "hace " + m + " min";
+        if (m < 1440) return "hace " + Math.round(m / 60) + " h";
+        return f.toLocaleDateString("es-MX", { day: "numeric", month: "short" });
+    }
+    function pintarActividad() {
+        var cuerpo = document.getElementById("fc-act-cuerpo"), d = actividad.datos;
+        if (!d) { cuerpo.innerHTML = '<span class="ui-skel" style="width:70%"></span>'; return; }
+        var h = [];
+        if (d.en_curso && d.en_curso.length) {
+            h.push('<p class="fc-act-grupo">En curso</p>');
+            d.en_curso.forEach(function (p) {
+                h.push('<div class="fc-act-item fc-act-item--curso">' + ico(D.reloj || D.calendario, 1.8) + "<div><b>" + esc(p.titulo) + "</b><span>" + esc(p.progreso) + "</span></div></div>");
+            });
+        }
+        h.push('<p class="fc-act-grupo">Avisos</p>');
+        if (!d.avisos.length) h.push('<div class="ui-vacio">' + ico(D.campana, 1.6) + "<b>Sin avisos</b><span>Aquí verás lo que terminó o cambió.</span></div>");
+        d.avisos.forEach(function (a) {
+            var dentro = ico(D[ICONO_AVISO[a.tipo]] || D.campana, 1.8) + "<div><b>" + esc(a.titulo) + "</b>" +
+                (a.detalle ? "<span>" + esc(a.detalle).replace(/\n/g, "<br>") + "</span>" : "") + "<small>" + esc(hace(a.creada)) + "</small></div>";
+            var clase = "fc-act-item" + (a.leida ? "" : " fc-act-item--nuevo");
+            h.push(a.enlace && a.enlace.charAt(0) === "/" ? '<a class="' + clase + '" href="' + esc(a.enlace) + '">' + dentro + "</a>" : '<div class="' + clase + '">' + dentro + "</div>");
+        });
+        if ("Notification" in window && Notification.permission === "default")
+            h.push('<div class="fc-act-navegador"><span>¿Avisos del navegador cuando termine algo?</span><button type="button" class="ui-btn ui-btn--secundario ui-btn--28" id="fc-act-permiso">Activar</button></div>');
+        cuerpo.innerHTML = h.join("");
+        var permiso = document.getElementById("fc-act-permiso");
+        if (permiso) permiso.addEventListener("click", function () { Notification.requestPermission().then(pintarActividad); });
+    }
+    function abrirActividad() {
+        var velo = document.getElementById("fc-act-velo"), panel = document.getElementById("fc-act-panel");
+        velo.hidden = false; panel.hidden = false;
+        requestAnimationFrame(function () { velo.classList.add("abierto"); panel.classList.add("abierto"); });
+        document.body.classList.add("fc-sin-scroll");
+        actividad.abierta = true;
+        pintarActividad();
+        sondearActividad();
+        document.getElementById("fc-act-cerrar").focus();
+    }
+    function cerrarActividad() {
+        var velo = document.getElementById("fc-act-velo"), panel = document.getElementById("fc-act-panel");
+        velo.classList.remove("abierto"); panel.classList.remove("abierto");
+        document.body.classList.remove("fc-sin-scroll");
+        actividad.abierta = false;
+        setTimeout(function () { if (!actividad.abierta) { velo.hidden = true; panel.hidden = true; } }, 260);
+        var b = document.getElementById("fc-btn-actividad"); if (b) b.focus();
+    }
+    async function marcarActividadLeida() {
+        try {
+            await fetch(API + "/api/actividad/leidas", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: "{}" });
+        } catch (e) { /* nada */ }
+        sondearActividad();
     }
 
     var panelAbierto = false;
@@ -1804,6 +1898,58 @@
         X.writeFile(libro, nombre);
     }
 
+    /* ------------------------------------------------- bloque de estado de un documento (G-08)
+       Fiscontable.bloqueEstado({ icono: "documento", tono: "ok"|"aviso"|"error"|"", titulo, detalle,
+                                  acciones: [{ id, texto, primario }] })  → HTML. Reemplaza los anuncios verdes sueltos. */
+    function bloqueEstado(o) {
+        return '<div class="ui-bloque' + (o.tono ? " ui-bloque--" + o.tono : "") + '">' +
+            '<span class="ui-bloque__icono">' + ico(D[o.icono] || D.documento, 1.7) + "</span>" +
+            '<div class="ui-bloque__texto"><b>' + esc(o.titulo) + "</b>" + (o.detalle ? "<span>" + esc(o.detalle) + "</span>" : "") + "</div>" +
+            '<div class="ui-bloque__acciones">' + (o.acciones || []).map(function (a) {
+                return '<button type="button" class="ui-btn ' + (a.primario ? "ui-btn--primario" : "ui-btn--secundario") + ' ui-btn--32" id="' + esc(a.id) + '">' + esc(a.texto) + "</button>";
+            }).join("") + "</div></div>";
+    }
+
+    /* ------------------------------------------------- enviar por correo (G-14)
+       Fiscontable.enviarCorreo({ titulo: "Enviar constancia", ruta: "/api/documentos/enviar", datos: {rfc, tipo}, para: "" })
+       Pide a quién y un mensaje opcional; el servidor manda el archivo por el canal de la cuenta. */
+    var dlgCorreo = null;
+    function enviarCorreo(o) {
+        if (!dlgCorreo) {
+            dlgCorreo = document.createElement("dialog");
+            dlgCorreo.className = "ui-modal";
+            dlgCorreo.innerHTML = '<form method="dialog" class="ui-modal__cuerpo"><h3></h3>' +
+                '<label class="fc-correo-campo">Para<input type="text" class="ui-input" name="para" placeholder="cliente@empresa.com, otro@empresa.com" required autocomplete="email"></label>' +
+                '<label class="fc-correo-campo">Mensaje (opcional)<textarea class="ui-input" name="mensaje" rows="3" maxlength="1000"></textarea></label>' +
+                '<p class="fc-correo-error" hidden></p></form><div class="ui-modal__pie">' +
+                '<button type="button" class="ui-btn ui-btn--secundario ui-btn--32" data-correo="no">Cancelar</button>' +
+                '<button type="button" class="ui-btn ui-btn--primario ui-btn--32" data-correo="si">Enviar</button></div>';
+            document.body.appendChild(dlgCorreo);
+            dlgCorreo.addEventListener("click", async function (e) {
+                var b = e.target.closest("[data-correo]"); if (!b) return;
+                if (b.dataset.correo === "no") { dlgCorreo.close(); return; }
+                var f = dlgCorreo.querySelector("form"), err = dlgCorreo.querySelector(".fc-correo-error"), op = dlgCorreo._op;
+                if (!f.para.value.trim()) { f.para.focus(); return; }
+                b.disabled = true; err.hidden = true;
+                try {
+                    var r = await fetch(API + op.ruta, { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify(Object.assign({}, op.datos, { para: f.para.value.trim(), mensaje: f.mensaje.value })) });
+                    if (!r.ok) throw new Error(await window.Fiscontable.leerError(r));
+                    dlgCorreo.close();
+                    brindis("Enviado a " + esc(f.para.value.trim()) + ".");
+                } catch (x) { err.textContent = x.message; err.hidden = false; }
+                finally { b.disabled = false; }
+            });
+        }
+        dlgCorreo._op = o;
+        dlgCorreo.querySelector("h3").textContent = o.titulo || "Enviar por correo";
+        var f = dlgCorreo.querySelector("form");
+        f.para.value = o.para || ""; f.mensaje.value = "";
+        dlgCorreo.querySelector(".fc-correo-error").hidden = true;
+        dlgCorreo.showModal();
+        f.para.focus();
+    }
+
     /* ------------------------------------------------- detalle de un CFDI en panel lateral (G-07)
        Fiscontable.verCfdi(rfc, uuid, lista) abre el detalle de siempre (/herramientas/xml/detalle/) en un panel a la
        derecha, sin salir de la tabla. lista = uuids en el orden en que se ven: ← y → (o los botones) pasan a la
@@ -2285,6 +2431,13 @@
     pintarModalPerfil();
 
     document.getElementById("fc-btn-descargas").addEventListener("click", abrirDescargas);
+    document.getElementById("fc-btn-actividad").addEventListener("click", abrirActividad);
+    document.getElementById("fc-act-cerrar").addEventListener("click", cerrarActividad);
+    document.getElementById("fc-act-velo").addEventListener("click", cerrarActividad);
+    document.getElementById("fc-act-leidas").addEventListener("click", marcarActividadLeida);
+    document.addEventListener("keydown", function (e) { if (e.key === "Escape" && actividad.abierta) cerrarActividad(); });
+    setTimeout(sondearActividad, 1500);
+    setInterval(sondearActividad, 60000);
     document.getElementById("fc-panel-cerrar").addEventListener("click", cerrarDescargas);
     document.getElementById("fc-velo").addEventListener("click", cerrarDescargas);
     document.getElementById("fc-panel-cuerpo").addEventListener("click", accionPanel);
@@ -2397,6 +2550,8 @@
         grupos: GRUPOS,
         avisoPlan: avisoPlan,
         toast: function (texto) { brindis(esc(texto)); },
+        bloqueEstado: bloqueEstado,
+        enviarCorreo: enviarCorreo,
         // Set único de íconos (mismo grosor). Fiscontable.icono("lapiz") → <svg>. Ver /ui/.
         icono: function (nombre, ancho) { return D[nombre] ? ico(D[nombre], ancho || 1.8).replace("<svg ", '<svg class="ui-ico" aria-hidden="true" ') : ""; },
         iconos: function () { return Object.keys(D); },

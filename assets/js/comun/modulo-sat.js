@@ -177,16 +177,20 @@
     /* --- Estado A: ya existe un documento reciente --- */
 
     function vistaCache() {
-        pintarPaso2(
-            '<div class="ficha fade-in">' +
-              '<h2 class="ficha__titulo">Ya tienes esta ' + esc(MODULO.nombre) + "</h2>" +
-              '<p class="ficha__nota">Se generó el ' + esc(fechaLarga(estado.cache.generado_en)) +
-              ". Puedes bajar esa misma o pedir una nueva al SAT.</p>" +
-              '<div class="botonera">' +
-                '<button type="button" class="boton-principal" id="btn-ver-cache">Ver</button>' +
-                '<button type="button" class="boton-secundario" id="btn-cache">Descargar</button>' +
-                '<button type="button" class="boton-secundario" id="btn-nueva">Pedir una nueva al SAT</button>' +
-              "</div></div>");
+        // G-08: bloque de estado (no un anuncio): qué documento hay, de cuándo y qué hacer con él
+        var res = estado.cache.resultado, tono = !res ? "ok" : (res === "Negativa" || res === "No inscrito" ? "error" : "ok");
+        var titulo = MODULO.nombre.charAt(0).toUpperCase() + MODULO.nombre.slice(1) + " del " + fechaLarga(estado.cache.generado_en);
+        pintarPaso2(Fiscontable.bloqueEstado({
+            icono: "documento", tono: tono, titulo: titulo + (res ? " · " + res : ""),
+            detalle: (res === "Negativa" ? "El SAT la emitió en sentido negativo: ábrela para ver los motivos. " : "") +
+                     "Se conserva hasta el " + fechaLarga(estado.cache.expira_en) + ".",
+            acciones: [{ id: "btn-ver-cache", texto: "Ver", primario: true }, { id: "btn-cache", texto: "Descargar" },
+                       { id: "btn-enviar-cache", texto: "Enviar por correo" }, { id: "btn-nueva", texto: "Solicitar nueva al SAT" }]
+        }));
+        $("btn-enviar-cache").addEventListener("click", function () {
+            Fiscontable.enviarCorreo({ titulo: "Enviar " + MODULO.nombre + " de " + (elegido.alias || elegido.rfc), ruta: "/api/documentos/enviar",
+                                       datos: { rfc: elegido.rfc, tipo: MODULO.tipo } });
+        });
         $("btn-ver-cache").addEventListener("click", function () {
             Fiscontable.verPdf(API + "/api/documentos/descargar?rfc=" + encodeURIComponent(elegido.rfc) + "&tipo=" + MODULO.tipo,
                 { titulo: MODULO.nombre.charAt(0).toUpperCase() + MODULO.nombre.slice(1) + " · " + elegido.rfc, nombre: MODULO.prefijoArchivo + "_" + elegido.rfc + ".pdf" });
@@ -216,16 +220,13 @@
     /* --- Estado B: e.firma guardada, sin documento reciente --- */
 
     function vistaEfirmaGuardada() {
-        pintarPaso2(
-            '<div class="ficha fade-in">' +
-              '<h2 class="ficha__titulo">Todo listo</h2>' +
-              '<p class="ficha__nota">Este contribuyente ya tiene su e.firma guardada, no hay nada más que subir.</p>' +
-              '<button type="button" class="boton-principal" id="btn-generar">Generar ' + esc(MODULO.nombre) + "</button>" +
-              '<button type="button" class="enlace-discreto" id="btn-otra-efirma">Usar otra e.firma</button>' +
-            "</div>");
-
+        pintarPaso2(Fiscontable.bloqueEstado({
+            icono: "documento", tono: "",
+            titulo: "Sin " + MODULO.nombre + " reciente",
+            detalle: "Se pide al SAT con la e.firma guardada de este contribuyente; no hay que subir nada.",
+            acciones: [{ id: "btn-generar", texto: "Solicitar " + MODULO.nombre + " al SAT", primario: true }]
+        }));
         $("btn-generar").addEventListener("click", generarConEfirmaGuardada);
-        $("btn-otra-efirma").addEventListener("click", vistaFormulario);
     }
 
     async function generarConEfirmaGuardada() {

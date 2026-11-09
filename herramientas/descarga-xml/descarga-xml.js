@@ -147,6 +147,8 @@
         $("nota-ciec-guardada").hidden = !usaGuardada;
         $("ciec-escribir").hidden = usaGuardada;
         $("caja-guardar-ciec").hidden = !(q.esCliente && E.puedeGuardar);
+        // M-06: con el web service y la e.firma guardada no hay nada que pedir: el bloque solo aparece si falta algo
+        $("paso-acceso").hidden = !portal && !!q.efirmaGuardada;
         pintarSesion();
     }
 

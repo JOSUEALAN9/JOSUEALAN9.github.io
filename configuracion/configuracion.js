@@ -34,7 +34,9 @@
         admin: "M12 3l8 4v5c0 5-3.4 8.5-8 9-4.6-.5-8-4-8-9V7z",
         sistema: "M4 6h16M4 12h16M4 18h10",
         balanza: "M12 3v18M5 7h14M5 7l-3 7a4 4 0 006 0zM19 7l-3 7a4 4 0 006 0zM8 21h8",
-        modulos: "M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z"
+        modulos: "M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z",
+        campana: "M15 17h5l-1.4-1.4A2 2 0 0118 14.2V11a6 6 0 00-4-5.7V5a2 2 0 10-4 0v.3A6 6 0 006 11v3.2a2 2 0 01-.6 1.4L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9",
+        reloj: "M12 7v5l3 2M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
     };
     function ico(d) { return '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="' + d + '"/></svg>'; }
 
@@ -44,6 +46,10 @@
           pintar: pintarPerfil },
         { id: "plan", grupo: "Tu cuenta", titulo: "Plan y créditos", ico: ICO.creditos, desc: "Tu plan, su vigencia y tus créditos.", palabras: "plan créditos recargar vigencia pago",
           pintar: pintarPlan },
+        { id: "avisos", grupo: "Tu cuenta", titulo: "Avisos", ico: ICO.campana, desc: "Qué avisos te llegan también por correo y a qué dirección.",
+          palabras: "avisos correo notificaciones campana actividad email", pintar: pintarAvisos },
+        { id: "programaciones", grupo: "Tu cuenta", titulo: "Programaciones", ico: ICO.reloj, desc: "Todo lo que se hace solo: qué, de qué empresa, cada cuánto y cuándo toca.",
+          palabras: "programar programaciones automático madrugada constancia opinión declaraciones xml buzón validación listas", pintar: pintarProgramaciones },
         { id: "agente", grupo: "Tu cuenta", titulo: "PC del contador", ico: ICO.pc, desc: "Conectar esta PC para que haga los trámites de tu cuenta.", palabras: "agente pc windows conectar",
           pintar: function (c) { enlaceA(c, "PC del contador", "Conecta tu computadora con Windows para que los trámites salgan desde ahí.", "/agente/", "Abrir PC del contador"); } },
         { id: "facturacion", grupo: "Módulos", titulo: "Facturar", ico: ICO.factura, modulo: "facturacion",
@@ -192,6 +198,63 @@
                 try { await enviar("/api/buzon/ajustes", "PUT", { frecuencia: +this.value }); aviso(c, true, "✓ Guardado."); }
                 catch (e) { aviso(c, false, e.message); }
             });
+        } catch (e) { c.innerHTML = '<div class="cf-tarjeta"><p class="cf-msj cf-msj--mal">' + esc(e.message) + "</p></div>"; }
+    }
+
+    /* ---------- Avisos (G-13 / G-14): qué llega por correo ---------- */
+    async function pintarAvisos(c) {
+        c.innerHTML = '<div class="cf-tarjeta"><p class="cf-texto">Cargando…</p></div>';
+        try {
+            var p = await api("/api/actividad/preferencias");
+            c.innerHTML = '<div class="cf-tarjeta"><p class="cf-texto">Todos los avisos llegan a la campana de arriba. Marca los que quieres recibir también por correo.</p>' +
+                Object.keys(p.tipos).map(function (t) {
+                    return '<label class="ui-check cf-check"><input type="checkbox" data-tipo="' + esc(t) + '"' + (p.correo[t] ? " checked" : "") + "> " + esc(p.tipos[t]) + "</label>";
+                }).join("") +
+                '<label class="cf-campo"><span>Mandar los avisos a</span><input type="email" id="cf-av-destino" value="' + esc(p.destino || "") + '"></label>' +
+                '<div class="cf-acciones"><button type="button" class="cf-btn cf-btn--principal" id="cf-av-guardar">Guardar</button>' +
+                '<button type="button" class="cf-btn" id="cf-av-prueba">Mandar un correo de prueba</button><span class="cf-msj"></span></div>' +
+                '<p class="cf-texto" style="margin-top:12px">Los correos salen por el mismo correo que usas en Facturar (el general de Fiscontable o el tuyo).</p></div>';
+            $("cf-av-guardar").addEventListener("click", async function () {
+                var correo = {};
+                c.querySelectorAll("[data-tipo]").forEach(function (x) { correo[x.dataset.tipo] = x.checked; });
+                try { await enviar("/api/actividad/preferencias", "PUT", { correo: correo, destino: $("cf-av-destino").value.trim() || null }); aviso(c, true, "✓ Guardado."); }
+                catch (e) { aviso(c, false, e.message); }
+            });
+            $("cf-av-prueba").addEventListener("click", async function () {
+                var b = this; b.disabled = true;
+                try { var r = await enviar("/api/actividad/correo-prueba", "POST", { destino: $("cf-av-destino").value.trim() || null }); aviso(c, true, "✓ Enviado a " + r.destino + "."); }
+                catch (e) { aviso(c, false, e.message); }
+                finally { b.disabled = false; }
+            });
+        } catch (e) { c.innerHTML = '<div class="cf-tarjeta"><p class="cf-msj cf-msj--mal">' + esc(e.message) + "</p></div>"; }
+    }
+
+    /* ---------- Programaciones (G-09 / C-02): todo lo que se hace solo, en una lista ---------- */
+    var PAGINA_MODULO = { csf: "/herramientas/constancias/", opinion: "/herramientas/opinion/", declaraciones: "/herramientas/declaraciones/",
+                          xml: "/herramientas/descarga-xml/", buzon: "/herramientas/buzon/", validador: "/herramientas/validador/", listas: "/herramientas/listas-sat/" };
+    async function pintarProgramaciones(c) {
+        c.innerHTML = '<div class="cf-tarjeta"><p class="cf-texto">Cargando…</p></div>';
+        try {
+            var d = await api("/api/programacion");
+            var fecha = function (iso) { return iso ? iso.slice(8, 10) + "/" + iso.slice(5, 7) + "/" + iso.slice(0, 4) : "—"; };
+            c.innerHTML = '<div class="cf-tarjeta"><p class="cf-texto">Lo programado se hace de madrugada con la e.firma guardada de cada empresa. ' +
+                "Para cambiar una, ábrela en su módulo (con esa empresa elegida arriba) y usa «Cambiar» en la línea de programación.</p></div>" +
+                '<div class="cf-tarjeta cf-tarjeta--tabla" style="margin-top:12px"><table class="cf-tabla"><thead><tr><th>Qué</th><th>Empresa</th><th>Cada cuánto</th><th>Próxima</th><th>Última</th><th></th></tr></thead><tbody>' +
+                (d.programaciones.length ? d.programaciones.map(function (x) {
+                    var pausable = ["csf", "opinion", "declaraciones", "xml"].indexOf(x.modulo) !== -1 && x.rfc;
+                    return "<tr" + (x.activa ? "" : ' class="cf-apagada"') + "><td><b>" + esc(x.nombre) + "</b></td><td>" + esc(x.alias || "") + (x.rfc ? "<small>" + esc(x.rfc) + "</small>" : "") + "</td>" +
+                        "<td>" + esc(x.regla || "") + (x.activa ? "" : " <small>(pausada)</small>") + "</td><td>" + fecha(x.proxima) + "</td>" +
+                        "<td>" + fecha(x.ultima) + (x.resultado ? "<small>" + esc(x.resultado) + "</small>" : "") + "</td>" +
+                        '<td class="cf-celda-acciones">' + (pausable ? '<button type="button" class="cf-btn cf-btn--chico" data-pausa="' + esc(x.modulo) + '" data-rfc="' + esc(x.rfc) + '" data-activa="' + (x.activa ? "1" : "") + '">' + (x.activa ? "Pausar" : "Reanudar") + "</button> " : "") +
+                        '<a class="cf-btn cf-btn--chico" href="' + PAGINA_MODULO[x.modulo] + '"' + (incrustado ? ' target="_top"' : "") + ">Abrir</a></td></tr>";
+                }).join("") : '<tr><td colspan="6">Todavía no programas nada.</td></tr>') + "</tbody></table></div>" +
+                '<p class="cf-msj"></p>';
+            c.onclick = async function (e) {
+                var b = e.target.closest("[data-pausa]"); if (!b) return;
+                b.disabled = true;
+                try { await enviar("/api/programacion/" + b.dataset.pausa, "PUT", { rfc: b.dataset.rfc, activa: !b.dataset.activa }); pintarProgramaciones(c); }
+                catch (x) { aviso(c, false, x.message); b.disabled = false; }
+            };
         } catch (e) { c.innerHTML = '<div class="cf-tarjeta"><p class="cf-msj cf-msj--mal">' + esc(e.message) + "</p></div>"; }
     }
 
