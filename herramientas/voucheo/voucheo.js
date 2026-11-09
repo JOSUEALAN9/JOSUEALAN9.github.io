@@ -1,233 +1,171 @@
 /**
- * voucheo.js — código de herramientas/voucheo/ (antes vivía dentro del HTML).
+ * voucheo.js — Voucheo estatal como papel de trabajo permanente.
+ *
+ * Cada empresa tiene un Excel por año que vive en el servidor: los acuses nuevos se cargan encima (ya no hay que
+ * subir el Excel cada vez). También se puede llenar con los acuses guardados en Impuestos estatales, o subir un
+ * Excel propio para que sea el guardado.
  */
-const API_URL = Fiscontable.API;          // la dirección vive solo en assets/js/nucleo.js
-const esc = Fiscontable.escapar;          // todo texto del servidor pasa por aquí antes de ir al HTML
+(function () {
+    "use strict";
+    var API = Fiscontable.API, esc = Fiscontable.escapar;
+    var $ = function (id) { return document.getElementById(id); };
+    var MESES = ["ENERO", "FEBRERO", "MARZO", "ABRIL", "MAYO", "JUNIO", "JULIO", "AGOSTO", "SEPTIEMBRE", "OCTUBRE", "NOVIEMBRE", "DICIEMBRE"];
+    var E = { papeles: [], clientes: [], tabla: null };
 
-document.addEventListener("DOMContentLoaded", async () => {
-    if (await verificarPermisos() && Fiscontable.url("tab") === "actualizar") switchTab("actualizar");   // F5 = misma pestaña
-});
-
-function bloquearModulo(mensaje) {
-    document.querySelectorAll("#form-nuevo, #form-actualizar, #selector-impuesto").forEach(el => el.classList.add("hidden"));
-    document.getElementById("tabs-container")?.classList.add("hidden");
-    document.getElementById("panel-bloqueo-texto").textContent = mensaje;
-    document.getElementById("panel-bloqueo").classList.remove("hidden");
-    document.getElementById("panel-bloqueo").classList.add("flex");
-}
-
-async function verificarPermisos() {
-    try {
-        const resp = await fetch(`${API_URL}/api/mi-perfil`, { credentials: "include" });
-
-        if (resp.status === 401 || resp.status === 403) {
-            bloquearModulo("Tu sesión expiró. Recarga la página para iniciar sesión de nuevo.");
-            return false;
+    async function api(ruta, op) {
+        var r = await fetch(API + ruta, Object.assign({ credentials: "include" }, op || {}));
+        if (!r.ok) {
+            var texto = await Fiscontable.leerError(r);
+            throw new Error(texto);
         }
-        if (!resp.ok) {
-            bloquearModulo("No pudimos conectar con el servidor. Intenta de nuevo más tarde.");
-            return false;
-        }
-
-        const perfil = await resp.json();
-
-        if (perfil.solo_lectura) {
-            bloquearModulo("Tu acceso venció. No puedes generar documentos hasta que se renueve.");
-            return false;
-        }
-        // AQUÍ VALIDAMOS EL MÓDULO VOUCHEO
-        if (!(perfil.modulos_permitidos || []).includes("voucheo")) {
-            bloquearModulo("Tu plan actual no incluye el módulo de Voucheo. Contacta al administrador si necesitas acceso.");
-            return false;
-        }
-        return true;
-    } catch (error) {
-        bloquearModulo("No pudimos conectar con el servidor. Verifica tu conexión.");
-        return false;
+        return r.headers.get("content-type") && r.headers.get("content-type").indexOf("json") !== -1 ? r.json() : r;
     }
-}
-
-function switchTab(modo) {
-    const isNuevo = modo === 'nuevo';
-
-        document.getElementById('tab-nuevo').classList.toggle('pestana--activa', isNuevo);
-    document.getElementById('tab-actualizar').classList.toggle('pestana--activa', !isNuevo);
-
-    // Mostrar/Ocultar formularios
-    document.getElementById('form-nuevo').classList.toggle('hidden', !isNuevo);
-    document.getElementById('form-nuevo').classList.toggle('flex', isNuevo);
-
-    document.getElementById('form-actualizar').classList.toggle('hidden', isNuevo);
-    document.getElementById('form-actualizar').classList.toggle('flex', !isNuevo);
-
-    ocultarAlerta();
-    ocultarResultado();
-    Fiscontable.url({ tab: isNuevo ? null : "actualizar" });
-}
-
-function limpiarFormularios() {
-    document.getElementById('form-nuevo').reset();
-    document.getElementById('form-actualizar').reset();
-    ocultarAlerta();
-    ocultarResultado();
-}
-
-function ocultarResultado() {
-    document.getElementById('panel-resultado').classList.add('hidden');
-    document.getElementById('panel-resultado').classList.remove('flex');
-}
-
-function mostrarAlerta(tipo, mensaje) {
-    const container = document.getElementById('alert-container');
-    const alertBox = document.getElementById('alert-message');
-    container.classList.remove('hidden');
-
-    if(tipo === 'error') {
-        alertBox.className = "p-4 rounded-lg text-sm font-semibold flex items-start gap-2 bg-amber-50 text-amber-800 border border-amber-200";
-        alertBox.innerHTML = `<svg class="w-5 h-5 flex-none mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg> <span>${esc(mensaje)}</span>`;
-    } else {
-        alertBox.className = "p-4 rounded-lg text-sm font-semibold flex items-start gap-2 bg-green-50 text-green-700 border border-green-200";
-        alertBox.innerHTML = `<svg class="w-5 h-5 flex-none mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> <span>${esc(mensaje)}</span>`;
+    function fecha(iso) {
+        return iso ? new Date(iso + (iso.length <= 19 ? "Z" : "")).toLocaleDateString("es-MX", { day: "numeric", month: "short", year: "numeric" }) : "";
     }
-}
 
-function ocultarAlerta() { document.getElementById('alert-container').classList.add('hidden'); }
-
-function toggleLoadingState(btnId, isLoading, originalHTML) {
-    const btn = document.getElementById(btnId);
-    if (isLoading) {
-        btn.disabled = true;
-        btn.innerHTML = `<svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Procesando acuses...`;
-    } else {
-        btn.disabled = false;
-        btn.innerHTML = originalHTML;
+    /* ---------- resultado de una carga: qué entró y qué no */
+    function pintarResultado(r) {
+        var caja = $("vo-resultado"), rep = r.reporte || { procesados: [], omitidos: [] };
+        var bien = rep.procesados || [], mal = rep.omitidos || [];
+        caja.hidden = false;
+        caja.className = "ui-aviso vo-resultado" + (mal.length ? " ui-aviso--aviso" : "");
+        caja.innerHTML = "<div style=\"flex:1\"><h3>" + (bien.length ? "✓ Se cargaron " + bien.length + " acuse(s) en " + esc(r.papel ? (r.papel.nombre || r.papel.rfc) + " · " + r.papel.anio : r.nombre_archivo) : "No se cargó ningún acuse") + "</h3>" +
+            (bien.length ? "<ul>" + bien.map(function (p) {
+                return "<li>" + esc(p.mes) + " · " + esc(p.hoja || p.tipo) + (p.aviso ? " — <i>" + esc(p.aviso) + "</i>" : "") + (p.aviso_diferencia ? " — <b>" + esc(p.aviso_diferencia) + "</b>" : "") + "</li>";
+            }).join("") + "</ul>" : "") +
+            (mal.length ? "<p style=\"margin:8px 0 0;font-weight:600\">No se cargaron " + mal.length + ":</p><ul>" + mal.map(function (o) {
+                return "<li>" + esc(o.archivo || "") + " — " + esc(o.motivo || "") + "</li>";
+            }).join("") + "</ul>" : "") + "</div>" +
+            (r.papel ? '<button type="button" class="ui-btn ui-btn--primario" data-bajar="' + esc(r.papel.rfc) + '" data-anio="' + esc(r.papel.anio) + '">Descargar Excel</button>' : "");
     }
-}
+    function pintarError(msj) {
+        var caja = $("vo-resultado");
+        caja.hidden = false; caja.className = "ui-aviso ui-aviso--error vo-resultado";
+        caja.innerHTML = "<div>" + esc(msj) + "</div>";
+    }
 
-async function interpretarError(response) {
-    if (!response) return "No pudimos conectar con el servidor. Verifica tu conexión a internet.";
-    if (response.status === 401 || response.status === 403) return "Tu sesión expiró o no tienes permiso para este módulo.";
-    try {
-        const data = await response.json();
-        // El detail puede ser un texto simple, o un objeto
-        // {mensaje, omitidos} cuando NINGÚN acuse se pudo procesar.
-        if (data.detail && typeof data.detail === "object") {
-            let texto = data.detail.mensaje || "No se pudo procesar ningún acuse.";
-            if (Array.isArray(data.detail.omitidos) && data.detail.omitidos.length) {
-                texto += " " + data.detail.omitidos.map(o => `${o.archivo}: ${o.motivo}`).join(" · ");
+    /* ---------- cargar acuses */
+    async function subirAcuses(archivos) {
+        var fd = new FormData();
+        fd.append("modo", "nuevo");
+        fd.append("impuesto_seleccionado", "estatal");
+        archivos.forEach(function (f) { fd.append("acuses_pdf", f); });
+        E.zona.estado("", "Leyendo " + archivos.length + " acuse(s)…");
+        try {
+            var r = await api("/api/voucheo/generar", { method: "POST", body: fd });
+            E.zona.estado("ok", "Listo.");
+            pintarResultado(r);
+            await cargarPapeles();
+        } catch (e) { E.zona.estado("error", ""); pintarError(e.message); }
+    }
+
+    async function desdeEstatales() {
+        var b = $("vo-estatales"), fd = new FormData();
+        fd.append("rfc", $("vo-empresa").value); fd.append("anio", $("vo-anio").value);
+        b.disabled = true; b.textContent = "Leyendo acuses…";
+        try { pintarResultado(await api("/api/voucheo/desde-estatales", { method: "POST", body: fd })); await cargarPapeles(); }
+        catch (e) { pintarError(e.message); }
+        finally { b.disabled = false; b.textContent = "Actualizar"; }
+    }
+
+    async function subirExcel(archivos) {
+        var rfc = $("vo-empresa").value, anio = $("vo-anio").value;
+        var ya = E.papeles.some(function (p) { return p.rfc === rfc && p.anio === anio; });
+        if (ya && !(await Fiscontable.confirmar({ titulo: "¿Reemplazar el papel de " + rfc + " " + anio + "?", texto: "El Excel guardado se cambia por el que subes. Descarga antes el actual si lo quieres conservar.", si: "Reemplazar" }))) return;
+        var fd = new FormData(); fd.append("archivo_excel", archivos[0]);
+        E.zonaExcel.estado("", "Subiendo…");
+        try {
+            await api("/api/voucheo/papeles/" + encodeURIComponent(rfc) + "/" + anio + "/reemplazar", { method: "POST", body: fd });
+            E.zonaExcel.estado("ok", "✓ Ahora es el papel guardado de " + rfc + " " + anio + ".");
+            await cargarPapeles();
+        } catch (e) { E.zonaExcel.estado("error", e.message); }
+    }
+
+    async function bajar(rfc, anio, boton) {
+        if (boton) boton.disabled = true;
+        try {
+            var r = await api("/api/voucheo/papeles/" + encodeURIComponent(rfc) + "/" + anio + "/descargar");
+            var p = E.papeles.find(function (x) { return x.rfc === rfc && x.anio === anio; });
+            Fiscontable.guardarArchivo(await r.blob(), (p && p.nombre_archivo) || rfc + "_Voucheo_Estatal_" + anio + ".xlsx");
+        } catch (e) { pintarError(e.message); }
+        finally { if (boton) boton.disabled = false; }
+    }
+
+    async function quitar(rfc, anio) {
+        if (!(await Fiscontable.confirmar({ titulo: "¿Borrar el papel de trabajo de " + rfc + " " + anio + "?", texto: "Se borra el Excel guardado con todo lo cargado. Descárgalo antes si lo necesitas.", si: "Borrar", peligro: true, escribir: rfc }))) return;
+        try { await api("/api/voucheo/papeles/" + encodeURIComponent(rfc) + "/" + anio, { method: "DELETE" }); await cargarPapeles(); }
+        catch (e) { pintarError(e.message); }
+    }
+
+    /* ---------- tabla de papeles */
+    function filas() {
+        return E.papeles.map(function (p) {
+            return { id: p.rfc + "|" + p.anio, rfc: p.rfc, empresa: p.nombre || p.rfc, anio: p.anio, acuses: p.acuses,
+                     meses_txt: (p.meses || []).length + " de 12", _meses: p.meses || [], actualizado: p.actualizado_en, _p: p };
+        });
+    }
+    function tabla() {
+        if (E.tabla) return E.tabla;
+        E.tabla = FCTabla.estandar({
+            contenedor: $("vo-tabla"), id: "voucheo", claveFila: "id",
+            catalogo: [
+                { clave: "empresa", etiqueta: "Empresa", tipo: "texto" },
+                { clave: "rfc", etiqueta: "RFC", tipo: "texto" },
+                { clave: "anio", etiqueta: "Año", tipo: "texto" },
+                { clave: "meses_txt", etiqueta: "Meses con acuse", tipo: "texto" },
+                { clave: "acuses", etiqueta: "Acuses cargados", tipo: "numero" },
+                { clave: "actualizado", etiqueta: "Actualizado", tipo: "fecha" },
+                { clave: "acciones", etiqueta: "", tipo: "texto" }
+            ],
+            predeterminadas: ["empresa", "anio", "meses_txt", "actualizado", "acciones"],
+            anchoClave: { empresa: 260, anio: 70, meses_txt: 330, actualizado: 120, acciones: 180 },
+            buscar: { texto: "Buscar empresa o RFC…", campos: ["empresa", "rfc"] },
+            exportar: { nombre: "Papeles_de_voucheo.xlsx", hoja: "Papeles" },
+            vacio: { titulo: "Todavía no hay papeles de trabajo", texto: "Suelta arriba los acuses de una empresa y se crea el suyo." },
+            celda: function (c, r) {
+                if (c.clave === "empresa") return "<b>" + esc(r.empresa) + '</b> <small class="xml-tenue">' + esc(r.rfc) + "</small>";
+                if (c.clave === "meses_txt") return '<span class="vo-meses">' + MESES.map(function (m) {
+                    return '<span class="vo-mes' + (r._meses.indexOf(m) !== -1 ? " vo-mes--si" : "") + '" title="' + m.toLowerCase() + '">' + m.slice(0, 3) + "</span>";
+                }).join("") + "</span>";
+                if (c.clave === "actualizado") return esc(fecha(r.actualizado));
+                if (c.clave === "acciones") return '<span class="vo-acciones"><button type="button" class="ui-btn ui-btn--secundario ui-btn--28" data-bajar="' + esc(r.rfc) + '" data-anio="' + esc(r.anio) + '">Descargar</button>' +
+                    '<button type="button" class="ui-btn ui-btn--terciario ui-btn--28" data-quitar="' + esc(r.rfc) + '" data-anio="' + esc(r.anio) + '">Borrar</button></span>';
+                return null;
             }
-            return texto;
-        }
-        return data.detail || "Error interno del servidor.";
-    } catch {
-        return `Error HTTP ${response.status}. Intenta de nuevo.`;
-    }
-}
-
-function mostrarResultado(nombreArchivo, historialId, reporte) {
-    document.getElementById('resultado-nombre-archivo').textContent = nombreArchivo;
-    document.getElementById('btn-descargar-resultado').href =
-        `${API_URL}/api/voucheo/historial/${historialId}/descargar`;
-
-    const procesados = reporte.procesados || [];
-    const omitidos = reporte.omitidos || [];
-
-    const wrapProcesados = document.getElementById('resultado-procesados-wrap');
-    const listaProcesados = document.getElementById('resultado-procesados-lista');
-    listaProcesados.innerHTML = "";
-    if (procesados.length) {
-        document.getElementById('resultado-procesados-count').textContent = procesados.length;
-        procesados.forEach(p => {
-            const li = document.createElement('li');
-            li.className = "border-l-2 border-green-400 pl-2";
-            let linea = `<strong>${esc(p.mes)}</strong> (${esc(p.hoja || String(p.tipo || '').replace(/_/g, ' '))}) — ${esc(p.archivo)}`;
-            if (p.aviso) linea += `<br><span class="text-slate-500">${esc(p.aviso)}</span>`;
-            if (p.aviso_diferencia) linea += `<br><span class="text-amber-700">⚠️ ${esc(p.aviso_diferencia)}</span>`;
-            li.innerHTML = linea;
-            listaProcesados.appendChild(li);
         });
-        wrapProcesados.classList.remove('hidden');
-    } else {
-        wrapProcesados.classList.add('hidden');
+        return E.tabla;
+    }
+    async function cargarPapeles() {
+        try { E.papeles = await api("/api/voucheo/papeles"); tabla().ponerDatos(filas()); }
+        catch (e) { tabla().error(e.message, cargarPapeles); }
     }
 
-    const wrapOmitidos = document.getElementById('resultado-omitidos-wrap');
-    const listaOmitidos = document.getElementById('resultado-omitidos-lista');
-    listaOmitidos.innerHTML = "";
-    if (omitidos.length) {
-        document.getElementById('resultado-omitidos-count').textContent = omitidos.length;
-        omitidos.forEach(o => {
-            const li = document.createElement('li');
-            li.className = "border-l-2 border-amber-400 pl-2";
-            li.innerHTML = `<strong>${esc(o.archivo)}</strong><br><span>${esc(o.motivo)}</span>`;
-            listaOmitidos.appendChild(li);
+    async function arrancar() {
+        if (!(await Fiscontable.exigirModulo("voucheo"))) return;
+        $("vo-cuerpo").hidden = false;
+        E.zona = FCZona.crear($("vo-zona"), { acepta: ".pdf", varios: true, titulo: "Suelta aquí los acuses en PDF", detalle: "o haz clic para elegirlos (puedes mezclar meses y empresas)", alElegir: subirAcuses });
+        E.zonaExcel = FCZona.crear($("vo-zona-excel"), { acepta: ".xlsx", titulo: "Suelta tu Excel de voucheo", detalle: "de la empresa y el año elegidos arriba", alElegir: subirExcel });
+        var hoy = new Date(), anios = [];
+        for (var a = hoy.getFullYear(); a >= hoy.getFullYear() - 4; a--) anios.push(a);
+        // En enero todavía se trabaja el año anterior
+        var anioDefecto = hoy.getMonth() === 0 ? hoy.getFullYear() - 1 : hoy.getFullYear();
+        $("vo-anio").innerHTML = anios.map(function (a) { return '<option value="' + a + '"' + (a === anioDefecto ? " selected" : "") + ">" + a + "</option>"; }).join("");
+        try { E.clientes = await api("/api/clientes"); } catch (e) { E.clientes = []; }
+        var activa = await Fiscontable.empresaActiva().catch(function () { return null; });
+        $("vo-empresa").innerHTML = E.clientes.length ? E.clientes.map(function (c) {
+            return '<option value="' + esc(c.rfc) + '"' + (activa && activa.rfc === c.rfc ? " selected" : "") + ">" + esc(c.alias || c.rfc) + "</option>";
+        }).join("") : '<option value="">Registra tus empresas en Clientes</option>';
+        $("vo-estatales").disabled = !E.clientes.length;
+        $("vo-estatales").addEventListener("click", desdeEstatales);
+        document.addEventListener("click", function (e) {
+            var b = e.target.closest("[data-bajar]");
+            if (b) { e.stopPropagation(); bajar(b.dataset.bajar, b.dataset.anio, b); return; }
+            var q = e.target.closest("[data-quitar]");
+            if (q) { e.stopPropagation(); quitar(q.dataset.quitar, q.dataset.anio); }
         });
-        wrapOmitidos.classList.remove('hidden');
-    } else {
-        wrapOmitidos.classList.add('hidden');
+        tabla().cargando();
+        cargarPapeles();
     }
-
-    document.getElementById('panel-resultado').classList.remove('hidden');
-    document.getElementById('panel-resultado').classList.add('flex');
-}
-
-async function procesarVoucheo(e, modo) {
-    e.preventDefault();
-    ocultarAlerta();
-    ocultarResultado();
-
-    const btnId = modo === 'nuevo' ? 'btn-nuevo' : 'btn-actualizar';
-    const boton = document.getElementById(btnId);
-    const originalHTML = boton.innerHTML;
-
-    const tipoImpuesto = document.querySelector('input[name="tipo_impuesto"]:checked').value;
-    const inputPdfs = document.getElementById(modo === 'nuevo' ? 'pdf_nuevo' : 'pdf_actualizar').files;
-    const inputExcel = modo === 'actualizar' ? document.getElementById('excel_actualizar').files[0] : null;
-
-    if (inputPdfs.length === 0) {
-        mostrarAlerta('error', 'Debes seleccionar al menos un acuse en formato PDF.');
-        return;
-    }
-
-    toggleLoadingState(btnId, true, originalHTML);
-
-    const formData = new FormData();
-    formData.append("modo", modo);
-    formData.append("impuesto_seleccionado", tipoImpuesto);
-
-    for (let i = 0; i < inputPdfs.length; i++) {
-        formData.append("acuses_pdf", inputPdfs[i]);
-    }
-    if (inputExcel) {
-        formData.append("archivo_excel", inputExcel);
-    }
-
-    try {
-        const response = await fetch(`${API_URL}/api/voucheo/generar`, {
-            method: "POST",
-            credentials: "include",
-            body: formData
-        });
-
-        if (!response.ok) {
-            mostrarAlerta('error', await interpretarError(response));
-            toggleLoadingState(btnId, false, originalHTML);
-            return;
-        }
-
-        const data = await response.json();
-        mostrarResultado(data.nombre_archivo, data.historial_id, data.reporte || {});
-
-        const omitidosN = (data.reporte && data.reporte.omitidos) ? data.reporte.omitidos.length : 0;
-        if (omitidosN > 0) {
-            mostrarAlerta('error', `Papel de trabajo generado, pero ${omitidosN} archivo(s) no se cargaron. Revisa el detalle abajo.`);
-        } else {
-            mostrarAlerta('success', '¡Papel de trabajo generado con éxito!');
-        }
-
-    } catch (error) {
-        mostrarAlerta('error', await interpretarError(null));
-    } finally {
-        toggleLoadingState(btnId, false, originalHTML);
-    }
-}
+    arrancar();
+})();

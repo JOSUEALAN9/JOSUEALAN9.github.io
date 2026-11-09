@@ -45,3 +45,7 @@
 @media (min-width: 1100px) { .cr-dos { grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); } }
 .cr-col { min-width: 0; }
 .cr-pestanas { margin-bottom: 12px; }
+
+/* Datos para la factura: los selectores con nombres largos (régimen, uso) no deben ensanchar la página */
+#caja-factura select, #caja-factura input { width: 100%; min-width: 0; max-width: 100%; box-sizing: border-box; }
+#caja-factura .cr-campos > label { min-width: 0; }

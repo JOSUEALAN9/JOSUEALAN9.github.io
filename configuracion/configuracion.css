@@ -87,3 +87,22 @@
 .cf-nuevas { align-items: flex-start; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--linea); }
 .cf-nuevas span { display: flex; flex-direction: column; gap: 2px; }
 .cf-nuevas small { font-size: var(--t-12); color: rgb(var(--g-500)); line-height: 1.45; }
+
+/* Plan y créditos: tarjetas de planes */
+.cf-subtitulo { font-size: 15px; font-weight: 700; margin: 22px 0 10px; color: rgb(var(--g-900)); }
+.cf-planes { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+.cf-plan { position: relative; display: flex; flex-direction: column; gap: 4px; padding: 18px 16px 16px; border: 1px solid var(--linea); border-radius: 16px; background: rgb(var(--g-0)); }
+.cf-plan h4 { margin: 0; font-size: 16px; font-weight: 700; }
+.cf-plan small { color: rgb(var(--g-600)); font-size: 12px; min-height: 16px; }
+.cf-plan__precio { margin: 8px 0 0; font-size: 13px; color: rgb(var(--g-600)); } .cf-plan__precio b { font-size: 26px; color: rgb(var(--g-900)); font-variant-numeric: tabular-nums; }
+.cf-plan__anual { margin: 0; font-size: 12px; color: rgb(var(--g-500)); }
+.cf-plan ul { margin: 10px 0 12px; padding: 0; list-style: none; font-size: 13px; display: grid; gap: 4px; }
+.cf-plan ul li::before { content: "✓ "; color: rgb(var(--ok-600)); }
+.cf-plan__acciones { margin-top: auto; display: flex; gap: 6px; flex-wrap: wrap; }
+.cf-plan--destacado { border-color: rgb(var(--ac-600)); box-shadow: 0 0 0 1px rgb(var(--ac-600)); }
+.cf-plan--actual { background: rgb(var(--ac-50)); }
+.cf-plan__marca { position: absolute; top: -10px; left: 14px; padding: 2px 10px; border-radius: 999px; background: rgb(var(--ac-600)); color: rgb(var(--g-0)); font-size: 11px; font-weight: 700; }
+.cf-plan-incluye { margin-top: 12px; }
+.cf-timbres { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+.cf-timbre { display: grid; gap: 2px; padding: 12px 14px; border: 1px solid var(--linea); border-radius: 12px; background: rgb(var(--g-0)); font-size: 13px; }
+.cf-timbre b { font-size: 18px; } .cf-timbre span { font-weight: 700; } .cf-timbre small { color: rgb(var(--g-500)); font-size: 11.5px; }

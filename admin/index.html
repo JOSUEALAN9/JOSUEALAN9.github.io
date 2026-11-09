@@ -4,16 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Administrar Usuarios | Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611110200">
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611110200">
-    <link rel="stylesheet" href="/admin/creditos-admin.css?v=202611110200">
-    <link rel="stylesheet" href="/admin/documentos-admin.css?v=202611110200">
+    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611110300">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611110300">
+    <link rel="stylesheet" href="/admin/creditos-admin.css?v=202611110300">
+    <link rel="stylesheet" href="/admin/documentos-admin.css?v=202611110300">
 </head>
 <body class="min-h-screen flex flex-col relative">
 
     <div id="app-header" data-modulo="admin" data-titulo="Administración" data-migas=""></div>
-<script src="/assets/js/nucleo.js?v=202611110200"></script>
-<script src="/assets/js/barra.js?v=202611110200"></script>
+<script src="/assets/js/nucleo.js?v=202611110300"></script>
+<script src="/assets/js/barra.js?v=202611110300"></script>
 
     <main class="flex-grow p-4 sm:p-6 w-full max-w-4xl mx-auto fc-principal">
         <style>
@@ -118,6 +118,38 @@
                         <span id="msj-planes" class="text-xs font-semibold"></span>
                     </div>
                 </div>
+                <div class="bg-white rounded-xl card-elevated border border-gray-200 p-5 mt-4" id="caja-precios">
+                    <h3 class="text-[15px] font-bold text-slate-800">Planes y precios</h3>
+                    <p class="text-xs text-slate-500 mt-1 mb-3">Lo que ve cada usuario en Configuración › Plan y créditos. Al asignar un plan, el usuario queda con el rol del plan (sus módulos se eligen arriba) y su tope de empresas. Sin plan asignado no hay tope. Los timbres del plan son informativos: se asignan en Facturar › Timbres.</p>
+                    <div id="pr-planes" class="flex flex-col gap-2"></div>
+                    <button type="button" id="pr-mas-plan" class="text-xs font-bold text-violet-700 border border-violet-200 hover:bg-violet-50 rounded-lg py-1.5 px-3 mt-2">+ Plan</button>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+                        <div>
+                            <p class="text-xs font-bold text-slate-600 uppercase tracking-wide mb-2">Paquetes de timbres</p>
+                            <div id="pr-timbres" class="flex flex-col gap-2"></div>
+                            <button type="button" id="pr-mas-timbre" class="text-xs font-bold text-violet-700 border border-violet-200 hover:bg-violet-50 rounded-lg py-1.5 px-3 mt-2">+ Paquete</button>
+                        </div>
+                        <div>
+                            <label class="text-xs font-bold text-slate-600 uppercase tracking-wide">Meses gratis al pagar el año<input id="pr-meses" type="number" min="0" max="6" class="block mt-1 text-sm border border-gray-300 rounded-lg p-2 w-24"></label>
+                            <label class="text-xs font-bold text-slate-600 uppercase tracking-wide block mt-3">Todos los planes incluyen (uno por renglón)<textarea id="pr-incluye" rows="5" class="block w-full mt-1 text-sm border border-gray-300 rounded-lg p-2"></textarea></label>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-3 mt-4">
+                        <button type="button" id="pr-guardar" class="bg-violet-600 hover:bg-violet-500 text-white font-bold py-2 px-5 rounded-lg text-sm">Guardar planes</button>
+                        <span id="pr-msj" class="text-xs font-semibold"></span>
+                    </div>
+                    <div class="border-t border-gray-200 mt-5 pt-4">
+                        <p class="text-xs font-bold text-slate-600 uppercase tracking-wide mb-2">Asignar plan a un usuario</p>
+                        <div class="flex flex-wrap gap-2 items-center">
+                            <input id="pr-correo" type="email" placeholder="correo del usuario" class="text-sm border border-gray-300 rounded-lg p-2 w-64" list="pr-correos">
+                            <select id="pr-plan" class="text-sm border border-gray-300 rounded-lg p-2"></select>
+                            <button type="button" id="pr-asignar" class="bg-slate-800 hover:bg-slate-700 text-white font-bold py-2 px-4 rounded-lg text-sm">Asignar</button>
+                            <span id="pr-asignar-msj" class="text-xs font-semibold"></span>
+                        </div>
+                        <datalist id="pr-correos"></datalist>
+                        <p id="pr-asignados" class="text-xs text-slate-500 mt-2"></p>
+                    </div>
+                </div>
                 <div class="bg-slate-50 border border-slate-200 rounded-lg p-4 text-xs text-slate-500 mt-4">
                     <p class="font-bold text-slate-700 mb-1">Reglas fijas</p>
                     <p><strong>Admin</strong> tiene todo, sin límite, y no se edita ni se personaliza. <strong>Demo</strong> siempre vence (7 días si no pones fecha) y no puede guardar e.firmas. Quien entra por primera vez queda como Demo.</p>
@@ -189,6 +221,16 @@
                     <div id="cra-cuentas"></div>
                     <button type="button" class="cra-enlace" id="cra-mas-cuenta">+ Agregar cuenta</button>
                     <label class="cra-campo" style="margin-top:10px">Instrucciones (opcional, las ve el usuario)<textarea id="cra-instrucciones" rows="2" maxlength="600" class="cra-control"></textarea></label>
+                    <fieldset class="cra-campo" style="margin-top:12px;border:1px solid var(--linea);border-radius:10px;padding:10px 12px">
+                        <legend style="padding:0 6px;font-weight:600">Factura de cada recarga</legend>
+                        <label class="ui-check"><input type="checkbox" id="cra-fac-activa"> Al aprobar una recarga, dejar su prefactura lista en mi Facturar (se revisa y se timbra a mano)</label>
+                        <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px">
+                            <label class="cra-campo">Empresa que factura (RFC)<input id="cra-fac-rfc" class="cra-control" maxlength="13" style="width:170px;text-transform:uppercase"></label>
+                            <label class="cra-campo">Clave de producto SAT<input id="cra-fac-clave" class="cra-control" maxlength="8" style="width:130px"></label>
+                            <label class="cra-campo" style="flex:1;min-width:220px">Descripción<input id="cra-fac-desc" class="cra-control" maxlength="200"></label>
+                        </div>
+                        <small style="color:rgb(var(--g-500))">El monto pagado es el total con IVA. Si el usuario no capturó sus datos fiscales en Mis créditos, no se arma la prefactura y se anota en el pago.</small>
+                    </fieldset>
                     <p id="cra-config-msj" class="text-xs mt-2"></p>
                     <button type="button" class="boton-principal" id="cra-guardar-config" style="width:auto;padding:9px 18px;margin-top:10px">Guardar</button>
                 </div>
@@ -507,9 +549,10 @@
         </div>
     </div>
 
-<script src="/admin/admin.js?v=202611110200"></script>
-<script src="/admin/creditos-admin.js?v=202611110200"></script>
-<script src="/admin/documentos-admin.js?v=202611110200"></script>
-<script src="/admin/plazos-admin.js?v=202611110200"></script>
+<script src="/admin/admin.js?v=202611110300"></script>
+<script src="/admin/creditos-admin.js?v=202611110300"></script>
+<script src="/admin/planes-admin.js?v=202611110300"></script>
+<script src="/admin/documentos-admin.js?v=202611110300"></script>
+<script src="/admin/plazos-admin.js?v=202611110300"></script>
 </body>
 </html>

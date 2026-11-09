@@ -4,15 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Facturar | Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611110200">
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611110200">
-    <link rel="stylesheet" href="/herramientas/facturar/facturar.css?v=202611110200">
+    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611110300">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611110300">
+    <link rel="stylesheet" href="/herramientas/facturar/facturar.css?v=202611110300">
 </head>
 <body class="min-h-screen flex flex-col">
 
 <div id="app-header" data-modulo="facturar" data-titulo="Facturar" data-migas="Herramientas|/herramientas/"></div>
-<script src="/assets/js/nucleo.js?v=202611110200"></script>
-<script src="/assets/js/barra.js?v=202611110200"></script>
+<script src="/assets/js/nucleo.js?v=202611110300"></script>
+<script src="/assets/js/barra.js?v=202611110300"></script>
 
 <main class="flex-grow w-full mod-pagina fa-pagina">
     <div class="mod-cabeza">
@@ -22,6 +22,7 @@
                 <button type="button" role="tab" data-vista="nueva" aria-selected="true">Nueva factura</button>
                 <button type="button" role="tab" data-vista="emitidas" aria-selected="false">Emitidas</button>
                 <button type="button" role="tab" data-vista="pagos" aria-selected="false">Pagos <span id="n-pendientes" class="fa-contador" hidden></span></button>
+                <button type="button" role="tab" data-vista="cotizaciones" aria-selected="false">Cotizaciones <span id="n-cotizaciones" class="fa-contador" hidden></span></button>
 
             </div>
         </div>
@@ -242,10 +243,22 @@
                     <p id="t-folio" class="fa-nota"></p>
                     <button type="button" id="btn-timbrar" class="fa-btn fa-btn--principal fa-ancho">Timbrar factura</button>
                     <button type="button" id="btn-vista" class="fa-btn fa-btn--suave fa-ancho" style="margin-top:8px">Vista previa PDF</button>
+                    <button type="button" id="btn-cotizacion" class="fa-btn fa-btn--suave fa-ancho" style="margin-top:8px" title="Se guarda con su propio folio (no gasta timbre) y sale en PDF como cotización">Guardar como cotización</button>
                     <p id="t-error" class="fa-error" hidden></p>
                 </div>
             </aside>
         </div>
+    </section>
+
+    <!-- ======================== COTIZACIONES ======================== -->
+    <section id="vista-cotizaciones" data-panel="cotizaciones" hidden>
+        <div class="fa-barra">
+            <input type="search" id="buscar-cot" placeholder="Buscar por cliente, RFC o folio…" autocomplete="off">
+            <select id="filtro-cot" aria-label="Estado"><option value="">Todas</option><option value="vigentes">Abiertas y enviadas</option><option value="aceptada">Aceptadas</option><option value="facturada">Facturadas</option><option value="vencida">Vencidas</option><option value="rechazada">Rechazadas o canceladas</option></select>
+            <button type="button" id="btn-nueva-cot" class="fa-btn fa-btn--principal">+ Nueva cotización</button>
+        </div>
+        <p class="fa-nota" style="margin:0 0 10px">Se capturan en «Nueva factura» con «Guardar como cotización». Llevan su propio folio, no gastan timbres y, cuando el cliente acepta, «Facturar» la abre lista para timbrar.</p>
+        <div id="lista-cotizaciones" class="fa-lista"></div>
     </section>
 
     <!-- ======================== EMITIDAS ======================== -->
@@ -319,6 +332,7 @@
             <button type="button" data-sub="manifiesto" aria-selected="false">Manifiesto <span id="punto-manifiesto" class="fa-punto" hidden></span></button>
             <button type="button" data-sub="logo" aria-selected="false">Logo y PDF</button>
             <button type="button" data-sub="productos" aria-selected="false">Productos</button>
+            <button type="button" data-sub="cotizaciones" aria-selected="false">Cotizaciones</button>
             <button type="button" data-sub="correo" aria-selected="false">Correo</button>
             <button type="button" data-sub="timbres" aria-selected="false">Timbres</button>
         </div>
@@ -350,6 +364,18 @@
                         </select></label>
                     <div class="fa-campo fa-c3"><span>&nbsp;</span><p class="fa-nota" id="msj-pref">Al timbrar te lo pregunta con esto ya marcado. Las recurrentes nunca se borran.</p></div>
                 </div>
+            </div>
+
+            <div class="fa-caja" data-subpanel="cotizaciones" hidden>
+                <div class="fa-caja__cabeza"><h2>Cotizaciones</h2></div>
+                <p class="fa-nota">Con su propio folio (no usa el de las facturas). Usan el mismo logo, clientes y productos que tus facturas.</p>
+                <div class="fa-rejilla">
+                    <label class="fa-campo fa-c2"><span>Serie</span><input id="cot-serie" maxlength="10" placeholder="COT"></label>
+                    <label class="fa-campo fa-c2"><span>Siguiente folio</span><input id="cot-folio" inputmode="numeric"></label>
+                    <label class="fa-campo fa-c2"><span>Vigencia (días)</span><input id="cot-vigencia" inputmode="numeric"></label>
+                    <label class="fa-campo fa-c6"><span>Condiciones que salen en cada cotización</span><textarea id="cot-leyenda" class="fa-texto" rows="3" maxlength="1000"></textarea></label>
+                </div>
+                <div class="fa-acciones"><button type="button" id="btn-guardar-cot-config" class="fa-btn fa-btn--principal">Guardar</button><span id="msj-cot-config" class="fa-nota"></span></div>
             </div>
 
             <div class="fa-caja" data-subpanel="logo" hidden>
@@ -618,6 +644,24 @@
     </div>
 </dialog>
 
+<!-- Mandar una cotización -->
+<dialog id="dlg-cot-correo" class="fa-dialogo fa-dialogo--ancho">
+    <div class="fa-dialogo__cuerpo">
+        <h2>Mandar la cotización <span id="cc-folio"></span></h2>
+        <div class="fa-rejilla">
+            <label class="fa-campo fa-c6"><span>Para <i>(separa con comas)</i></span><input id="cc-para"></label>
+            <label class="fa-campo fa-c6"><span>Asunto</span><input id="cc-asunto" maxlength="200"></label>
+            <label class="fa-campo fa-c6"><span>Mensaje <i>(si lo dejas vacío va uno de fábrica con el total y la vigencia)</i></span><textarea id="cc-mensaje" class="fa-texto" rows="5"></textarea></label>
+        </div>
+        <p class="fa-nota">Va con el PDF adjunto.</p>
+        <p id="cc-error" class="fa-error" hidden></p>
+    </div>
+    <div class="fa-dialogo__pie">
+        <button type="button" data-cerrar class="fa-btn fa-btn--suave">Cancelar</button>
+        <button type="button" id="btn-cc-enviar" class="fa-btn fa-btn--principal">Mandar</button>
+    </div>
+</dialog>
+
 <!-- WhatsApp -->
 <dialog id="dlg-whatsapp" class="fa-dialogo">
     <div class="fa-dialogo__cuerpo">
@@ -716,9 +760,9 @@
     </div>
 </dialog>
 
-<script src="/assets/js/comun/zona-archivos.js?v=202611110200"></script>
-<script src="/assets/js/comun/importar-clientes.js?v=202611110200"></script>
-<script src="/assets/js/comun/compartir.js?v=202611110200"></script>
-<script src="/herramientas/facturar/facturar.js?v=202611110200"></script>
+<script src="/assets/js/comun/zona-archivos.js?v=202611110300"></script>
+<script src="/assets/js/comun/importar-clientes.js?v=202611110300"></script>
+<script src="/assets/js/comun/compartir.js?v=202611110300"></script>
+<script src="/herramientas/facturar/facturar.js?v=202611110300"></script>
 </body>
 </html>

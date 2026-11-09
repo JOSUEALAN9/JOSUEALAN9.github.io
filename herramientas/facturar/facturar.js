@@ -136,6 +136,7 @@
         cargarPendientes();
         cargarProductos();
         cargarRecurrentes();
+        cargarCotizaciones();
     }
 
     async function cargarRecurrentes() {
@@ -156,6 +157,7 @@
         Fiscontable.url({ vista: nombre === "nueva" ? null : nombre });
         if (nombre === "config") ponerSub(Fiscontable.url("sub") || F.sub || "emisor");
         if (nombre === "pagos") cargarPendientes();
+        if (nombre === "cotizaciones") cargarCotizaciones();
     }
 
     /* ---------------------------------------------------- emisor (encabezado, avisos y configuración) */
@@ -373,7 +375,8 @@
         $("rel-activar").checked = false; $("p-nota").textContent = "";
         ["r-rfc", "r-nombre", "r-cp", "rel-uuid", "p-condiciones", "r-buscar", "p-tc", "p-fecha", "p-notas", "r-taxid", "p-pedido", "t-objetivo"].forEach(function (id) { $(id).value = ""; });
         $("objetivo-form").hidden = true; $("btn-ajustar").setAttribute("aria-expanded", "false");
-        F.clienteGuardado = null; F.clienteNuevo = false; F.recurrenteId = null;
+        F.clienteGuardado = null; F.clienteNuevo = false; F.recurrenteId = null; F.cotizacionId = null; F.facturandoCot = null;
+        if ($("btn-cotizacion")) $("btn-cotizacion").textContent = "Guardar como cotización";
         pintarRelaciones();
         $("r-regimen").value = "";
         $("r-uso").value = F.tipo === "E" ? "G02" : "G03";
@@ -980,7 +983,7 @@
     function captura() {
         var rfcR = $("r-rfc").value.trim().toUpperCase();
         return {
-            clave_envio: F.claveEnvio,
+            clave_envio: F.claveEnvio, cotizacion_id: F.facturandoCot || null,
             tipo: F.tipo, metodo_pago: $("p-metodo").value, forma_pago: $("p-forma").value,
             condiciones: $("p-condiciones").value.trim() || null,
             moneda: $("p-moneda").value, tipo_cambio: $("p-moneda").value === "USD" ? $("p-tc").value.trim() : null,
@@ -1112,6 +1115,7 @@
             await cargarEmitidas();
             cargarReceptores();
             cargarBorradores();
+            cargarCotizaciones();
             cargarPendientes();
             if (sustituye) {                // ya está la correcta: sigue cancelar la original con motivo 01
                 $("dlg-listo").close();
@@ -1733,6 +1737,7 @@
         document.querySelectorAll("[data-subpanel]").forEach(function (p) { p.hidden = p.dataset.subpanel !== sub; });
         if (sub === "correo" && !F.correo) cargarCorreo();
         if (sub === "manifiesto") cargarManifiesto();
+        if (sub === "cotizaciones") pintarCotConfig();
         if (!F.incrustado) Fiscontable.url({ sub: sub === "emisor" ? null : sub });
     }
 
@@ -2053,6 +2058,123 @@
         b.disabled = false; b.textContent = "Vista previa PDF";
     }
 
+    /* ---------------------------------------------------- cotizaciones: se capturan como una factura, folio propio, sin timbre */
+    var COT_ESTADOS = { abierta: "Abierta", enviada: "Enviada", aceptada: "Aceptada", rechazada: "Rechazada", cancelada: "Cancelada" };
+    async function cargarCotizaciones() {
+        if (!F.empresa) return;
+        try { var d = await json("/api/facturacion/cotizaciones?rfc=" + encodeURIComponent(F.empresa.rfc)); F.cot = d.cotizaciones; F.cotCfg = d.config; }
+        catch (e) { F.cot = []; }
+        var abiertas = F.cot.filter(function (c) { return c.estado_real === "abierta" || c.estado_real === "enviada" || c.estado_real === "aceptada"; }).length;
+        $("n-cotizaciones").textContent = abiertas; $("n-cotizaciones").hidden = !abiertas;
+        pintarCotizaciones();
+        if (F.sub === "cotizaciones") pintarCotConfig();
+    }
+    function pintarCotizaciones() {
+        var q = ($("buscar-cot").value || "").trim().toLowerCase(), f = $("filtro-cot").value;
+        var lista = (F.cot || []).filter(function (c) {
+            if (q && [c.folio_txt, c.receptor_nombre, c.receptor_rfc, c.atencion].join(" ").toLowerCase().indexOf(q) === -1) return false;
+            if (f === "vigentes") return c.estado_real === "abierta" || c.estado_real === "enviada";
+            if (f === "rechazada") return c.estado_real === "rechazada" || c.estado_real === "cancelada";
+            return !f || c.estado_real === f;
+        });
+        var tono = { abierta: "", enviada: "excel", aceptada: "timbrada", facturada: "timbrada", vencida: "corregir", rechazada: "corregir", cancelada: "corregir" };
+        $("lista-cotizaciones").innerHTML = lista.length ? lista.map(function (c) {
+            var cerrada = c.estado_real === "facturada" || c.estado_real === "cancelada";
+            return '<div class="fa-item' + (cerrada ? " fa-item--timbrada" : "") + '" data-cot="' + esc(c.id) + '"><div class="fa-item__txt"><b>' + esc(c.folio_txt) + " · " + esc(c.receptor_nombre || c.receptor_rfc || "Sin cliente") +
+                ' <span class="fa-chip-mini' + (tono[c.estado_real] ? " fa-chip-mini--" + tono[c.estado_real] : "") + '">' + esc(c.estado_txt) + (c.factura_folio ? " " + esc(c.factura_folio) : "") + "</span></b><small>" +
+                esc("Del " + fechaCorta(c.creada_en + "Z") + " · vigente hasta " + fechaCorta(c.vigencia + "T12:00:00") + (c.enviada_en ? " · enviada el " + fechaCorta(c.enviada_en + "Z") : "")) + "</small></div>" +
+                (c.total != null ? '<span class="fa-item__monto">' + dinero(c.total) + "</span>" : "") +
+                '<button type="button" class="fa-btn fa-btn--suave fa-btn--chico" data-cot-acc="pdf">PDF</button>' +
+                '<button type="button" class="fa-btn fa-btn--suave fa-btn--chico" data-cot-acc="enviar">Mandar</button>' +
+                (cerrada ? '<button type="button" class="fa-btn fa-btn--suave fa-btn--chico" data-cot-acc="duplicar">Duplicar</button>' :
+                    '<button type="button" class="fa-btn fa-btn--suave fa-btn--chico" data-cot-acc="editar">Editar</button>' +
+                    '<button type="button" class="fa-btn fa-btn--principal fa-btn--chico" data-cot-acc="facturar">Facturar</button>' +
+                    '<select class="fa-btn--chico" data-cot-estado aria-label="Estado">' + Object.keys(COT_ESTADOS).map(function (k) {
+                        return '<option value="' + k + '"' + (k === c.estado ? " selected" : "") + ">" + COT_ESTADOS[k] + "</option>";
+                    }).join("") + "</select>") +
+                '<button type="button" class="fa-quitar" data-cot-acc="borrar" title="Borrar">✕</button></div>';
+        }).join("") : '<p class="fa-vacio-chico">' + ((F.cot || []).length ? "Ninguna con estos filtros." : "Todavía no hay cotizaciones. Llena una factura y usa «Guardar como cotización».") + "</p>";
+    }
+    async function guardarCotizacion() {
+        var err = $("t-error"), b = $("btn-cotizacion");
+        err.hidden = true; b.disabled = true; b.textContent = "Guardando…";
+        try {
+            var cap = captura(); cap.cotizacion_id = null;
+            var c = await enviar("/api/facturacion/cotizaciones", "POST", { id: F.cotizacionId, rfc: F.emisor.rfc, captura: cap });
+            F.cotizacionId = c.id;
+            estadoCaptura("✓ Cotización " + c.folio_txt + " guardada · vigente hasta el " + fechaCorta(c.vigencia + "T12:00:00") + ". Está en la pestaña Cotizaciones.");
+            await cargarCotizaciones();
+            verPdfCot(c);
+        } catch (e) { err.textContent = e.message; err.hidden = false; }
+        b.disabled = false; b.textContent = F.cotizacionId ? "Guardar cambios de la cotización" : "Guardar como cotización";
+    }
+    async function verPdfCot(c) {
+        try {
+            var resp = await api("/api/facturacion/cotizaciones/" + c.id + "/pdf");
+            Fiscontable.verPdf(await resp.blob(), { titulo: "Cotización " + c.folio_txt + " · " + (c.receptor_nombre || ""), nombre: "Cotizacion_" + c.folio_txt + ".pdf" });
+        } catch (e) { aviso(e.message, "error"); }
+    }
+    function abrirCotizacion(c, facturar) {
+        vista("nueva");
+        ponerCaptura(c.captura);
+        if (facturar) {
+            F.facturandoCot = c.id; F.cotizacionId = null;
+            estadoCaptura("Facturando la cotización " + c.folio_txt + ": revisa la fecha, la forma de pago y los datos fiscales del cliente, y timbra.");
+        } else {
+            F.cotizacionId = c.id; F.facturandoCot = null;
+            estadoCaptura("Editando la cotización " + c.folio_txt + ": «Guardar cambios de la cotización» la actualiza (mismo folio).");
+        }
+        $("btn-cotizacion").textContent = F.cotizacionId ? "Guardar cambios de la cotización" : "Guardar como cotización";
+        irPaso(1);
+    }
+    async function accionCotizacion(e) {
+        var fila = e.target.closest("[data-cot]"); if (!fila) return;
+        var c = (F.cot || []).find(function (x) { return x.id === fila.dataset.cot; }); if (!c) return;
+        var b = e.target.closest("[data-cot-acc]"); if (!b) return;
+        var acc = b.dataset.cotAcc;
+        if (acc === "pdf") return verPdfCot(c);
+        if (acc === "editar") return abrirCotizacion(c, false);
+        if (acc === "facturar") return abrirCotizacion(c, true);
+        if (acc === "duplicar") { abrirCotizacion(c, false); F.cotizacionId = null; $("btn-cotizacion").textContent = "Guardar como cotización"; estadoCaptura("Copia de la cotización " + c.folio_txt + ": al guardarla lleva folio nuevo."); return; }
+        if (acc === "enviar") return abrirCorreoCot(c);
+        if (acc === "borrar") {
+            if (!(await Fiscontable.confirmar({ titulo: "¿Borrar la cotización " + c.folio_txt + "?", texto: "Su folio no se vuelve a usar.", si: "Borrar", peligro: true }))) return;
+            try { await api("/api/facturacion/cotizaciones/" + c.id, { method: "DELETE" }); cargarCotizaciones(); } catch (x) { aviso(x.message, "error"); }
+        }
+    }
+    function abrirCorreoCot(c) {
+        F.cotCorreo = c;
+        var rec = (F.receptores || []).find(function (r) { return r.rfc === c.receptor_rfc; });
+        $("cc-folio").textContent = c.folio_txt;
+        $("cc-para").value = c.correo || (rec && rec.correo) || "";
+        $("cc-asunto").value = "Cotización " + c.folio_txt + " · " + (F.emisor.razon_social || F.emisor.alias || "");
+        $("cc-mensaje").value = "";
+        $("cc-error").hidden = true;
+        $("dlg-cot-correo").showModal();
+    }
+    async function mandarCot() {
+        var b = $("btn-cc-enviar"), c = F.cotCorreo; if (!c) return;
+        b.disabled = true; b.textContent = "Mandando…";
+        try {
+            await enviar("/api/facturacion/cotizaciones/" + c.id + "/enviar", "POST", { para: $("cc-para").value, asunto: $("cc-asunto").value || null, mensaje: $("cc-mensaje").value.trim() || null });
+            $("dlg-cot-correo").close(); aviso("✓ Cotización " + c.folio_txt + " enviada a " + $("cc-para").value + ".", "ok");
+            cargarCotizaciones();
+        } catch (e) { $("cc-error").textContent = e.message; $("cc-error").hidden = false; }
+        b.disabled = false; b.textContent = "Mandar";
+    }
+    function pintarCotConfig() {
+        var c = F.cotCfg; if (!c) { cargarCotizaciones(); return; }
+        $("cot-serie").value = c.serie; $("cot-folio").value = c.folio; $("cot-vigencia").value = c.vigencia_dias; $("cot-leyenda").value = c.leyenda || "";
+    }
+    async function guardarCotConfig() {
+        var m = $("msj-cot-config");
+        try {
+            F.cotCfg = await enviar("/api/facturacion/cotizaciones-config", "PUT", { rfc: F.emisor.rfc, serie: $("cot-serie").value.trim() || "COT",
+                folio: parseInt($("cot-folio").value, 10) || 1, vigencia_dias: parseInt($("cot-vigencia").value, 10) || 15, leyenda: $("cot-leyenda").value });
+            pintarCotConfig(); m.textContent = "✓ Guardado.";
+        } catch (e) { m.textContent = e.message; }
+    }
+
     /* ---------------------------------------------------- prefacturas */
     async function cargarBorradores() {
         if (!F.empresa) return;
@@ -2060,6 +2182,13 @@
         catch (e) { F.borradores = []; }
         $("n-borradores").textContent = F.borradores.length;
         $("n-borradores").hidden = !F.borradores.length;
+        // Enlace directo a una prefactura (p. ej. el aviso «Prefactura de la recarga…»)
+        var pid = Fiscontable.url("prefactura");
+        if (pid && !F.prefUrlHecha) {
+            var x = F.borradores.filter(function (b) { return b.id === pid; })[0];
+            if (x) { F.prefUrlHecha = true; Fiscontable.url({ prefactura: null }); abrirPrefactura(x); }
+            else aviso("Esa prefactura es de otra de tus empresas: elígela arriba, en el selector de empresa.", "alerta");
+        }
     }
 
     async function guardarBorrador() {
@@ -2553,6 +2682,19 @@
         $("p-fecha").addEventListener("change", function () { verFecha(); if ($("p-moneda").value === "USD" && !F.tcManual) { $("p-tc").value = ""; traerTipoCambio(); } });
         $("btn-vista").addEventListener("click", vistaPrevia);
         $("btn-borrador").addEventListener("click", guardarBorrador);
+        $("btn-cotizacion").addEventListener("click", guardarCotizacion);
+        $("lista-cotizaciones").addEventListener("click", accionCotizacion);
+        $("lista-cotizaciones").addEventListener("change", async function (e) {
+            var s = e.target.closest("[data-cot-estado]"); if (!s) return;
+            var id = s.closest("[data-cot]").dataset.cot;
+            try { await enviar("/api/facturacion/cotizaciones/" + id + "/estado", "PUT", { estado: s.value }); cargarCotizaciones(); }
+            catch (x) { aviso(x.message, "error"); cargarCotizaciones(); }
+        });
+        $("buscar-cot").addEventListener("input", pintarCotizaciones);
+        $("filtro-cot").addEventListener("change", pintarCotizaciones);
+        $("btn-nueva-cot").addEventListener("click", function () { nuevaFactura(); vista("nueva"); $("btn-cotizacion").textContent = "Guardar como cotización"; estadoCaptura("Nueva cotización: llénala como una factura y usa «Guardar como cotización»."); });
+        $("btn-cc-enviar").addEventListener("click", mandarCot);
+        $("btn-guardar-cot-config").addEventListener("click", guardarCotConfig);
         $("btn-ver-borradores").addEventListener("click", function () { pintarBorradores(); $("dlg-borradores").showModal(); });
         $("lista-borradores").addEventListener("change", function (ev) {
             var rep = ev.target.closest(".fa-repetir"); if (!rep || ev.target.dataset.rep === "dia") return;

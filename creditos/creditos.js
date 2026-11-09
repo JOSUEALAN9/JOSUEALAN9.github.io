@@ -29,6 +29,33 @@
             E.datos = await r.json();
         } catch (e) { aviso(e.message || "No se pudo cargar tu saldo.", true); return; }
         pintar();
+        pintarFactura();
+    }
+
+    function pintarFactura() {
+        var f = E.datos.factura || {};
+        $("caja-factura").hidden = !f.activa;
+        if (!f.activa) return;
+        var d = f.datos || {}, opc = function (mapa, v) {
+            return Object.keys(mapa || {}).map(function (k) { return '<option value="' + k + '"' + (k === v ? " selected" : "") + ">" + k + " · " + esc(mapa[k]) + "</option>"; }).join("");
+        };
+        $("f-regimen").innerHTML = '<option value="">Elige…</option>' + opc(f.regimenes, d.regimen || "");
+        $("f-uso").innerHTML = opc(f.usos, d.uso || "G03");
+        $("f-rfc").value = d.rfc || ""; $("f-nombre").value = d.nombre || ""; $("f-cp").value = d.cp || ""; $("f-correo").value = d.correo_envio || "";
+    }
+    async function guardarFactura(e) {
+        e.preventDefault();
+        var msj = $("f-msj"), b = $("f-guardar");
+        b.disabled = true;
+        try {
+            var r = await fetch(API + "/api/creditos/datos-factura", { method: "PUT", credentials: "include", headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ rfc: $("f-rfc").value.trim(), nombre: $("f-nombre").value.trim(), cp: $("f-cp").value.trim(),
+                                       regimen: $("f-regimen").value, uso: $("f-uso").value, correo_envio: $("f-correo").value.trim() || null }) });
+            if (!r.ok) throw new Error(await Fiscontable.leerError(r));
+            E.datos.factura.datos = await r.json();
+            msj.textContent = "✓ Guardados. Tus próximas recargas se facturan con estos datos."; msj.className = "cr-nota";
+        } catch (x) { msj.textContent = x.message; msj.className = "cr-error"; }
+        msj.hidden = false; b.disabled = false;
     }
 
     function pintar() {
@@ -73,6 +100,7 @@
                 "</span></td><td class=\"num\">$" + m(p.monto) + '</td><td class="num">' + m(p.creditos) + "</td><td>" +
                 '<span class="cr-sello cr-sello--' + p.estado + '">' + nombre[p.estado] + "</span>" +
                 (p.motivo ? '<br><span class="cr-nota">' + esc(p.motivo) + "</span>" : "") +
+                (p.estado === "aprobado" && p.factura_borrador ? '<br><span class="cr-nota">Factura en preparación</span>' : "") +
                 (p.tiene_comprobante ? '<br><a class="cr-copiar" style="margin:0" href="' + API + "/api/creditos/pagos/" + p.id + '/comprobante" target="_blank" rel="noopener">Comprobante</a>' : "") +
                 "</td></tr>";
         }).join("") : '<tr><td colspan="5" class="cr-vacio">Todavía no has reportado pagos.</td></tr>';
@@ -142,6 +170,7 @@
     function hoy() { var d = new Date(); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); }
 
     function eventos() {
+        $("form-factura").addEventListener("submit", guardarFactura);
         $("paquetes").addEventListener("click", function (e) { var n = e.target.closest(".cr-paquete"); if (n) elegir(n); });
         $("paquetes").addEventListener("input", function (e) {
             if (e.target.id === "libre") { $("p-monto").value = e.target.value; recibes(); }
