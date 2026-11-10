@@ -319,7 +319,7 @@
               '<div class="fc-barra__interior">' +
                 '<a class="fc-marca" href="/">' +
                   '<span class="fc-marca__sello">' + simboloMarca() + "</span>" +
-                  '<span class="fc-marca__nombre">fiscontable</span>' +
+                  '<span class="fc-marca__nombre">fiscontable<span class="fc-marca__app">app</span></span>' +
                 "</a>" +
                 '<button type="button" class="fc-modulos-btn" id="fc-btn-modulos" aria-haspopup="dialog" aria-expanded="false" title="Ir a otro módulo (Ctrl+K)">' +
                   ico(D.rejilla) + '<span class="fc-modulos-btn__texto">Módulos</span></button>' +
@@ -2541,7 +2541,7 @@
         ocultarAviso();
         var p = await perfil();
         if (p && p._error) { manejarErrorPerfil(p._error, p.motivo); return; }
-        try { sessionStorage.removeItem("fc-entrar"); } catch (e) { /* sin almacenamiento */ }
+        try { sessionStorage.removeItem("fc-entrar"); localStorage.setItem("fc-ya-entro", "1"); } catch (e) { /* sin almacenamiento */ }
         pintarPerfil(p);
     }
 
