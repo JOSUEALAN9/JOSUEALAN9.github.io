@@ -193,7 +193,8 @@
 
         { clave: "facturar", grupo: "Facturación", nombre: "Facturar", desc: "Facturas, notas de crédito y recibos de pago", url: "/herramientas/facturar/", permiso: "facturacion", icono: I.recibo, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
 
-        { clave: "documentos", grupo: "Documentos", nombre: "Documentos", desc: "Actas, constancias, IMSS e INFONAVIT", url: "/herramientas/documentos/", permiso: "documentos", icono: I.credencial, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
+        // Documentos todavía no se publica: solo lo ve el administrador (como Nómina) hasta que esté listo
+        { clave: "documentos", grupo: "Documentos", soloAdmin: true, nombre: "Documentos", desc: "Actas, constancias, IMSS e INFONAVIT", url: "/herramientas/documentos/", permiso: "documentos", icono: I.credencial, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
 
         { clave: "descargas", grupo: "Tu cuenta", cuenta: true, nombre: "Mis descargas", alias: "descargas", desc: "Todo lo que bajan las herramientas", url: "/descargas/", permiso: null, icono: I.bajar, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
         { clave: "creditos", grupo: "Tu cuenta", cuenta: true, nombre: "Mis créditos", alias: "creditos saldo recargar", desc: "Saldo y recargas", url: "/creditos/", permiso: null, icono: I.moneda, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" }
