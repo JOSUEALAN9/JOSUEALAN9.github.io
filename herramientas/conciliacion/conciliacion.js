@@ -707,7 +707,7 @@
             if (!caja) return;
             var usd = (est.monedas || {}).USD, tarea = est.tarea || {}, partes = [];
             if (!est.token_configurado) {
-                partes.push('<strong style="color:rgb(var(--av-600))">Falta configurar el token de Banxico en el servidor.</strong> Mientras tanto no hay columna de Banxico; tu tipo de cambio para el reporte sí funciona.');
+                partes.push('<strong style="color:rgb(var(--av-600))">El tipo de cambio de Banxico todavía no está conectado.</strong> Mientras tanto no hay columna de Banxico; tu tipo de cambio para el reporte sí funciona.');
             } else {
                 partes.push("<strong>Banxico (dólar):</strong> " + (usd ? "último FIX del " + esc(fechaMX(usd.hasta)) + " = " + esc(fmtTc.format(usd.ultimo_valor)) +
                     " · " + usd.dias.toLocaleString("es-MX") + " días guardados desde " + esc(fechaMX(usd.desde)) : "todavía no hay datos (la primera descarga corre sola al arrancar)"));
