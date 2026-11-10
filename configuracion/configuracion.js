@@ -196,8 +196,71 @@
                 aviso(c, true, "Guardado.");
             } catch (e) { aviso(c, false, e.message); }
         });
+        pintarSeguridad(c);
         pintarPreferencias(c);
         pintarBloqueo(c);
+    }
+
+    /* Seguridad (inicio de sesión propio, core/cuentas.py): contraseña, verificación en dos pasos y sesiones abiertas.
+       Las piezas de contraseña y de dos pasos son las mismas de /login (assets/js/comun/cuenta.js). */
+    async function pintarSeguridad(c, previa) {
+        var caja = previa || document.createElement("div");
+        caja.className = "cf-tarjeta"; caja.style.marginTop = "14px";
+        if (!previa) c.appendChild(caja);
+        caja.innerHTML = '<h3 class="cf-sub">Seguridad</h3><p class="cf-texto">Cargando…</p>';
+        var d;
+        try { d = await api("/api/mi-cuenta"); } catch (e) { caja.innerHTML = '<h3 class="cf-sub">Seguridad</h3><p class="cf-msj cf-msj--mal">' + esc(e.message) + "</p>"; return; }
+        var admin = perfil && perfil.rol === "admin";
+        function fecha(iso) { var x = new Date(/Z$/.test(iso) ? iso : iso + "Z"); return isNaN(x) ? "" : x.toLocaleString("es-MX", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }); }
+        caja.innerHTML = '<h3 class="cf-sub">Seguridad</h3>' +
+            (d.propio ? "" : '<p class="cf-texto">Hoy entras con un código a tu correo. Cuando se active el inicio de sesión con contraseña, la que pongas aquí será la tuya' +
+                (admin ? " (tú lo activas en Administración → Usuarios)." : ".") + "</p>") +
+            '<div class="cf-seg"><div class="cf-seg__cab"><b>Contraseña</b><span>' + (d.tiene_clave ? "Puesta" + (d.clave_cambiada ? " · cambiada el " + esc(fecha(d.clave_cambiada)) : "") : "Sin contraseña todavía") + "</span>" +
+                '<button type="button" class="cf-btn" id="cf-seg-clave">' + (d.tiene_clave ? "Cambiar" : "Crear contraseña") + "</button></div>" +
+                '<form class="cf-seg__cuerpo" id="cf-seg-clave-forma" hidden novalidate>' +
+                    (d.tiene_clave ? '<label class="cf-campo"><span>Contraseña actual</span><input type="password" id="cf-seg-actual" autocomplete="current-password" maxlength="128"></label>' : "") +
+                    '<div id="cf-seg-nueva"></div><div class="cf-acciones"><button type="submit" class="cf-btn cf-btn--principal">Guardar contraseña</button><span class="cf-msj"></span></div></form></div>' +
+            '<div class="cf-seg"><div class="cf-seg__cab"><b>Verificación en dos pasos</b><span>' + (d.totp_activo ? "Activa · " + d.respaldo_restantes + " códigos de respaldo" : "Apagada") + "</span>" +
+                (d.totp_activo ? (admin ? "" : '<button type="button" class="cf-btn" id="cf-seg-quitar">Quitar</button>') : '<button type="button" class="cf-btn" id="cf-seg-2fa">Activar</button>') + "</div>" +
+                '<div class="cf-seg__cuerpo" id="cf-seg-2fa-caja" hidden></div>' +
+                (!d.totp_activo ? '<p class="cf-texto">Además de tu contraseña, te pide un código de tu teléfono al entrar. ' + (admin ? "Para el administrador es obligatoria." : "Muy recomendable.") + "</p>" : "") + "</div>" +
+            (d.sesiones && d.sesiones.length ? '<div class="cf-seg"><div class="cf-seg__cab"><b>Sesiones abiertas</b><span>' + d.sesiones.length + "</span></div><ul class=\"cf-seg__lista\">" +
+                d.sesiones.map(function (s) {
+                    return "<li><span>" + esc((s.ua || "").replace(/^Mozilla\/5\.0 /, "").slice(0, 60) || "Navegador") + "<small>" + esc(s.ip || "") + " · última vez " + esc(fecha(s.ultimo_uso)) + "</small></span>" +
+                        (s.actual ? '<span class="cf-texto">Esta</span>' : '<button type="button" class="cf-btn" data-cerrar-sesion="' + esc(s.id) + '">Cerrar</button>') + "</li>";
+                }).join("") + "</ul></div>" : "");
+        var campo = null;
+        $("cf-seg-clave").addEventListener("click", function () {
+            var f = $("cf-seg-clave-forma"); f.hidden = !f.hidden;
+            if (!f.hidden && !campo) campo = Fiscontable.campoClave($("cf-seg-nueva"), { confirmar: true });
+        });
+        $("cf-seg-clave-forma").addEventListener("submit", async function (e) {
+            e.preventDefault();
+            var msj = this.querySelector(".cf-msj"), falta = campo.revisar();
+            if (falta) { msj.textContent = falta; msj.className = "cf-msj cf-msj--mal"; return; }
+            try {
+                await enviar("/api/mi-cuenta/clave", "PUT", { actual: ($("cf-seg-actual") || {}).value || null, nueva: campo.valor() });
+                msj.textContent = "✓ Contraseña guardada. Se cerraron tus otras sesiones."; msj.className = "cf-msj";
+                setTimeout(function () { pintarDeNuevo(); }, 1600);
+            } catch (er) { msj.textContent = er.message; msj.className = "cf-msj cf-msj--mal"; }
+        });
+        if ($("cf-seg-2fa")) $("cf-seg-2fa").addEventListener("click", function () {
+            var cj = $("cf-seg-2fa-caja"); cj.hidden = false; this.hidden = true;
+            Fiscontable.dosPasos(cj, { preparar: function () { return api("/api/mi-cuenta/2fa/preparar", { method: "POST" }); },
+                activar: function (codigo) { return enviar("/api/mi-cuenta/2fa/activar", "POST", { codigo: codigo }); },
+                alTerminar: pintarDeNuevo });
+        });
+        if ($("cf-seg-quitar")) $("cf-seg-quitar").addEventListener("click", async function () {
+            var clave = prompt("Para quitar la verificación en dos pasos, escribe tu contraseña:");
+            if (!clave) return;
+            try { await enviar("/api/mi-cuenta/2fa/quitar", "POST", { clave: clave }); pintarDeNuevo(); } catch (er) { alert(er.message); }
+        });
+        caja.addEventListener("click", async function (e) {
+            var b = e.target.closest("[data-cerrar-sesion]");
+            if (!b) return;
+            try { await api("/api/mi-cuenta/sesiones/" + encodeURIComponent(b.dataset.cerrarSesion), { method: "DELETE" }); b.closest("li").remove(); } catch (er) { alert(er.message); }
+        });
+        function pintarDeNuevo() { pintarSeguridad(c, caja); }
     }
 
     /* Preferencias de esta computadora: densidad de las tablas */

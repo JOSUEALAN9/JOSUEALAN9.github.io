@@ -3027,6 +3027,17 @@
         poner();
     }
 
+    // «Cerrar sesión» (y «Volver a entrar»): con el inicio de sesión propio se cierra en el servidor y se va a /login;
+    // con Cloudflare, el enlace de siempre (/cdn-cgi/access/logout).
+    document.addEventListener("click", async function (e) {
+        var a = e.target.closest && e.target.closest('a[href$="/cdn-cgi/access/logout"]');
+        if (!a || !perfilActual || !perfilActual.sesion_propia) return;
+        e.preventDefault();
+        try { await fetch(API + "/publico/cuenta/salir", { method: "POST", credentials: "include" }); } catch (x) { /* igual se va */ }
+        try { localStorage.removeItem("fc-ya-entro"); } catch (x) { /* nada */ }
+        location.replace(urlEntrar("salio"));
+    }, true);
+
     var btnPerfil = document.getElementById("fc-btn-perfil");
     var menu = document.getElementById("fc-menu");
 
