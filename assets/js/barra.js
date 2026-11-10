@@ -43,6 +43,7 @@
         conciliacion:  { nombre: "Conciliación",          permiso: "conciliacion" },
         iva:           { nombre: "Papel de trabajo de IVA", permiso: "iva" },
         visores:       { nombre: "Visor de impuestos",    permiso: "iva" },
+        cierre:        { nombre: "Cierre del mes",        permiso: null },
         validador:     { nombre: "Validador SAT",         permiso: "validador" },
         xml:           { nombre: "Administración de XML", permiso: "validador" },
         constancias:   { nombre: "Constancias",           permiso: "constancias" },
@@ -156,6 +157,7 @@
         recibo: "M9 7h6m-6 4h6m-6 4h3M5 3h14a1 1 0 011 1v16l-3-2-2 2-2-2-2 2-2-2-3 2V4a1 1 0 011-1z",
         alerta: "M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z",
         palomita: "M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z",
+        lista: "M4 6.5l1.5 1.5L8 5.5M4 12.5l1.5 1.5L8 11.5M4 18.5l1.5 1.5L8 17.5M12 7h8M12 13h8M12 19h8",
         credencial: "M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2",
         clientes: "M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-1.13a4 4 0 10-4-4 4 4 0 004 4zm6 0a4 4 0 10-4-4",
         balanza: "M12 3v18m0-18l-7 3m7-3l7 3M5 6l-3 7a3 3 0 006 0L5 6zm14 0l-3 7a3 3 0 006 0l-3-7zM8 21h8",
@@ -175,6 +177,7 @@
         { clave: "marcas", grupo: "Comprobantes", nombre: "Marcas fiscales", desc: "Para qué impuesto cuenta cada CFDI y por qué", url: "/herramientas/xml/fiscal.html", permiso: "marcas", icono: I.balanza, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
         { clave: "cancelaciones", grupo: "Comprobantes", nombre: "Cancelaciones", desc: "Cancela emitidas y responde las que te piden", url: "/herramientas/xml/cancelaciones.html", permiso: "cancelaciones", icono: I.prohibido, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
 
+        { clave: "cierre", grupo: "Cierre del mes", nombre: "Avance por cliente", alias: "cierre del mes cartera avance tablero clientes pendientes", desc: "Qué tiene listo cada cliente y qué le falta", url: "/herramientas/cierre/", permiso: null, icono: I.lista, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
         { clave: "visores", grupo: "Cierre del mes", nombre: "Visor de impuestos", alias: "visor facturado cobrado ingresos egresos", desc: "Facturado, cobrado y pagado por mes", url: "/herramientas/visores/", permiso: "iva", icono: I.grafica, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
         { clave: "conciliacion", grupo: "Cierre del mes", nombre: "Conciliación", num: 1, desc: "Facturas contra pagos y notas de crédito", url: "/herramientas/conciliacion/", permiso: "conciliacion", icono: I.cruce, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
         { clave: "iva", grupo: "Cierre del mes", nombre: "Papel de trabajo IVA", num: 2, alias: "papel de trabajo de iva", desc: "IVA cobrado y pagado del mes", url: "/herramientas/iva/", permiso: "iva", icono: I.porciento, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
@@ -1439,7 +1442,7 @@
             '<aside class="fc-panel" id="fc-panel" role="dialog" aria-modal="true" aria-label="Mis descargas" hidden>' +
               '<div class="fc-panel__cabeza">' +
                 "<div><div class=\"fc-panel__titulo\">Mis descargas</div>" +
-                '<div class="fc-panel__sub" id="fc-panel-sub">Documentos listos y en preparación</div></div>' +
+                '<div class="fc-panel__sub" id="fc-panel-sub">Lo que pediste y lo que ya está listo</div></div>' +
                 '<button type="button" class="fc-panel__cerrar" id="fc-panel-cerrar" aria-label="Cerrar">' + ico(D.cerrar) + "</button>" +
               "</div>" +
               '<div class="fc-panel__cuerpo" id="fc-panel-cuerpo"></div>' +
@@ -1628,93 +1631,98 @@
         return f.toLocaleDateString("es-MX", { day: "numeric", month: "short" });
     }
 
-    var NOMBRES = {
-        csf: "Constancia de Situación Fiscal",
-        opinion: "Opinión de Cumplimiento",
-        "csf+opinion": "Constancia y Opinión",
-        declaraciones: "Declaraciones",
-        voucheo: "Voucheo de impuestos",
-        descarga_xml: "Descarga masiva de XML",
-        programada_csf: "Programada · Constancias",
-        programada_opinion: "Programada · Opiniones",
-        programada_declaraciones: "Programada · Declaraciones",
-        programada_xml: "Programada · Descarga de XML",
-        programada_buzon: "Programada · Buzón Tributario",
-        buzon_revisar: "Revisión del Buzón Tributario",
-        buzon_abrir: "Apertura de notificación del Buzón"
-    };
-
-    function tituloProceso(p) {
-        var base = NOMBRES[p.tipo] || p.tipo || "Documento";
-        if (p.clase === "lote") return base + " — " + (p.total || "varios") + " contribuyentes";
-        return base + (p.titulo ? " — " + p.titulo : "");
+    // El nombre de cada documento lo manda el servidor (p.nombre, core/trabajos.py). Esto es solo el respaldo por si
+    // llega uno sin nombre: su clave «en limpio», nunca «isn_presentar».
+    function nombreProceso(p) {
+        if (p.nombre) return p.nombre;
+        var t = String(p.tipo || "Documento").replace(/_/g, " ").replace(/\+/g, " y ").trim();
+        return t.charAt(0).toUpperCase() + t.slice(1);
+    }
+    function empresaProceso(p) {
+        if (p.empresa) return p.empresa;
+        if (p.clase === "lote") return p.total === 1 ? "1 empresa" : (p.total || "Varias") + " empresas";
+        return !p.titulo || p.titulo === "VARIOS" ? "Varias empresas" : p.titulo;
+    }
+    function tituloProceso(p) { return nombreProceso(p) + " — " + empresaProceso(p); }
+    function horaCorta(iso) {
+        if (!iso) return "";
+        var f = new Date(iso + "Z"); if (isNaN(f)) return "";
+        var hoy = new Date(), ayer = new Date(hoy); ayer.setDate(hoy.getDate() - 1);
+        var hora = f.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" });
+        if (f.toDateString() === hoy.toDateString() || f.toDateString() === ayer.toDateString()) return hora;
+        return f.toLocaleDateString("es-MX", { day: "numeric", month: "short" }).replace(".", "");
+    }
+    // ¿De qué día es? Para agrupar el panel: hoy, ayer o antes
+    function diaDe(iso) {
+        var f = new Date((iso || "") + "Z"); if (isNaN(f)) return "antes";
+        var hoy = new Date(), ayer = new Date(hoy); ayer.setDate(hoy.getDate() - 1);
+        return f.toDateString() === hoy.toDateString() ? "hoy" : f.toDateString() === ayer.toDateString() ? "ayer" : "antes";
     }
 
+    var ICONO_ESTADO = {
+        listo: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',
+        alerta: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8v5m0 3.5v.01"/></svg>'
+    };
+    function botonFila(accion, icono, etiqueta, datos, clase) {
+        return '<button type="button" class="fc-fila__btn' + (clase ? " " + clase : "") + '" data-accion="' + accion + '" ' + datos +
+            ' title="' + esc(etiqueta) + '" aria-label="' + esc(etiqueta) + '">' + ico(D[icono]) + "</button>";
+    }
+
+    /* Una descarga en un renglón: estado · nombre del documento · empresa y hora · acciones con ícono.
+       La usan el panel de la barra y la página Mis descargas (Fiscontable.descargas.tarjeta). */
     function tarjeta(p) {
-        var t = esc(tituloProceso(p));
-        var nuevo = p.estado !== "procesando" && !vistos.has(p.id)
-            ? '<span class="fc-punto" title="Nuevo desde la última vez"></span>' : "";
+        var id = 'data-clase="' + esc(p.clase) + '" data-id="' + esc(p.id) + '"';
+        var nuevo = p.estado !== "procesando" && !vistos.has(p.id) ? '<span class="fc-punto" title="Nuevo desde la última vez"></span>' : "";
+        var nombre = esc(nombreProceso(p)), detalle = [esc(empresaProceso(p))], estado, acciones = "", abajo = "", clase = "";
+        var enPc = p.en_pc && p.en_pc.rutas && p.en_pc.rutas.length;
 
         if (p.estado === "procesando") {
-            var detalle = "Preparando…", barra = "";
+            estado = '<span class="fc-fila__estado fc-fila__estado--corre" title="En preparación"></span>';
             if (p.clase === "lote" && p.total > 0) {
-                var pct = Math.round((p.procesados / p.total) * 100);
-                detalle = p.procesados + " de " + p.total + (p.rfc_actual ? " · " + esc(p.rfc_actual) : "");
-                barra = '<div class="progress-track" style="margin-top:9px"><div class="progress-fill" style="width:' + pct + '%"></div></div>';
-            } else if (p.progreso) {
-                detalle = esc(p.progreso);
-            }
-            return '<div class="fc-item"><div class="fc-item__titulo">' + t + "</div>" +
-                '<div class="fc-item__detalle">' + detalle + "</div>" + barra +
-                '<div class="fc-item__acciones"><button type="button" class="fc-btn fc-btn--discreto" ' +
-                'data-accion="detener" data-clase="' + esc(p.clase) + '" data-id="' + esc(p.id) + '">Detener</button></div></div>';
-        }
-
-        if (p.estado === "completado") {
-            var resumen = fecha(p.creado_en);
-            if (p.clase === "lote") resumen = p.exitosos + " de " + p.total + " obtenidos · " + resumen;
+                detalle.push(p.procesados + " de " + p.total + (p.rfc_actual ? " · " + esc(p.rfc_actual) : ""));
+                abajo = '<div class="fc-fila__avance"><i style="width:' + Math.round((p.procesados / p.total) * 100) + '%"></i></div>';
+            } else detalle.push(p.progreso ? esc(p.progreso) : "Preparando…");
+            acciones = botonFila("detener", "cerrar", "Detener", id);
+        } else if (p.estado === "completado") {
             var incompleta = false;
+            detalle.push(esc(horaCorta(p.creado_en)));          // la hora va antes: si el renglón se corta, que no sea ella
+            if (p.clase === "lote") {
+                detalle.push(p.exitosos + " de " + p.total + " obtenidos");
+                incompleta = (p.exitosos || 0) < (p.total || 0);
+            }
             if (p.resumen) {         // madrugada: "1 listo, 2 fallaron"
                 var noche = p.resumen.replace(/^[^:]*:\s*/, "").replace(/\.$/, "");
-                incompleta = /revisar|fall|no alcanz|cancelad/i.test(noche);
-                resumen = noche + " · " + resumen;
+                incompleta = incompleta || /revisar|fall|no alcanz|cancelad/i.test(noche);
+                detalle.push(esc(noche));
             }
-            return '<div class="fc-item' + (incompleta ? " fc-item--alerta" : "") + '"><div class="fc-item__titulo">' + nuevo + t + "</div>" +
-                '<div class="fc-item__detalle">' + esc(resumen) + "</div>" +
-                (p.en_pc && p.en_pc.rutas && p.en_pc.rutas.length ? '<div class="fc-item__detalle" style="color:rgb(var(--ok-600))">' + esc(Fiscontable.textoEnPc(p.en_pc)) + "</div>" : "") +
-                '<div class="fc-item__acciones">' +
-                (p.en_pc && p.en_pc.rutas && p.en_pc.rutas.length ? '<button type="button" class="fc-btn" data-accion="mostrar-pc" data-id="' + esc(p.id) + '">Mostrar en mi PC</button>' : "") +
-                '<button type="button" class="fc-btn fc-btn--principal" data-accion="descargar" ' +
-                'data-url="' + esc(p.url_descarga) + '" data-nombre="' + esc(p.nombre_descarga || "documento") + '">Descargar</button>' +
-                '<button type="button" class="fc-btn fc-btn--discreto" data-accion="quitar" ' +
-                'data-clase="' + esc(p.clase) + '" data-id="' + esc(p.id) + '">Quitar</button>' +
-                "</div></div>";
+            if (enPc) detalle.push('<span class="fc-fila__pc">en tu PC</span>');
+            estado = '<span class="fc-fila__estado fc-fila__estado--' + (incompleta ? "alerta" : "listo") + '">' + ICONO_ESTADO[incompleta ? "alerta" : "listo"] + "</span>";
+            clase = incompleta ? " fc-fila--alerta" : "";
+            acciones = (enPc ? botonFila("mostrar-pc", "carpeta", "Mostrar en mi PC", 'data-id="' + esc(p.id) + '"') : "") +
+                botonFila("descargar", "descarga", "Descargar", 'data-url="' + esc(p.url_descarga) + '" data-nombre="' + esc(p.nombre_descarga || "documento") + '"', "fc-fila__btn--principal") +
+                botonFila("quitar", "cerrar", "Quitar de la lista", id);
+        } else {
+            // No se completó. Lote que se cortó: bajar lo que sí salió y reanudar los que faltan, sin ir a Mis descargas
+            estado = '<span class="fc-fila__estado fc-fila__estado--alerta">' + ICONO_ESTADO.alerta + "</span>";
+            clase = " fc-fila--alerta";
+            detalle.push(esc(horaCorta(p.creado_en)));
+            var faltan = Math.max((p.total || 0) - (p.exitosos || 0), 0), extras = [];
+            if (p.clase === "lote" && p.parcial) extras.push('<button type="button" class="fc-btn fc-btn--principal" data-accion="descargar" data-url="' + esc(p.url_descarga) +
+                '" data-nombre="' + esc(p.nombre_descarga || "Lote_parcial.zip") + '">Bajar lo que salió (' + (p.exitosos || 0) + ")</button>");
+            if (p.clase === "lote" && p.se_puede_reanudar) extras.push('<button type="button" class="fc-btn" data-accion="reanudar" data-id="' + esc(p.id) + '">Reanudar' + (faltan ? " los " + faltan : "") + "</button>");
+            // Reintentar solo si el problema fue del SAT; si fue la e.firma, hay que corregirla primero
+            else if (p.clase === "lote" && (p.reintentables || 0) > 0) extras.push('<button type="button" class="fc-btn" data-accion="reintentar" data-id="' + esc(p.id) + '">Reintentar los ' + p.reintentables + "</button>");
+            if (p.clase === "lote" && p.fallidos && p.fallidos.length) extras.push('<button type="button" class="fc-enlace-chico" data-accion="motivos" data-id="' + esc(p.id) + '">Sin resultado para ' + p.fallidos.length + " — ver por qué</button>");
+            abajo = '<div class="fc-fila__nota">' + esc(p.mensaje_error || "No se pudo completar.") +
+                (p.clase === "lote" && p.total ? " " + (p.exitosos || 0) + " de " + p.total + " listos" + (p.reutilizados ? " · " + p.reutilizados + " ya los tenías" : "") + "." : "") +
+                (p.clase === "lote" && p.estado === "interrumpido" && !p.se_puede_reanudar ? " Ya no se puede reanudar (pasaron más de 72 h): vuelve a subir el lote; lo que ya salió se aprovecha." : "") + "</div>" +
+                (extras.length ? '<div class="fc-fila__extras">' + extras.join("") + "</div>" : "");
+            acciones = botonFila("quitar", "cerrar", "Quitar de la lista", id);
         }
-
-        // Lote que se cortó: bajar lo que sí salió y reanudar los que faltan, sin ir a Mis descargas
-        var parcial = p.clase === "lote" && p.parcial
-            ? '<button type="button" class="fc-btn fc-btn--principal" data-accion="descargar" data-url="' + esc(p.url_descarga) +
-              '" data-nombre="' + esc(p.nombre_descarga || "Lote_parcial.zip") + '">Bajar lo que salió (' + (p.exitosos || 0) + ")</button>" : "";
-        var faltan = Math.max((p.total || 0) - (p.exitosos || 0), 0);
-        var reanudar = p.clase === "lote" && p.se_puede_reanudar
-            ? '<button type="button" class="fc-btn" data-accion="reanudar" data-id="' + esc(p.id) + '">Reanudar' +
-              (faltan ? " los " + faltan : "") + "</button>" : "";
-        // Reintentar solo si el problema fue del SAT; si fue la e.firma, hay que corregirla primero
-        var reintentar = !reanudar && (p.clase === "lote" ? (p.reintentables || 0) > 0 : false)
-            ? '<button type="button" class="fc-btn" data-accion="reintentar" data-id="' + esc(p.id) + '">Reintentar los ' + p.reintentables + "</button>" : "";
-        var motivos = p.clase === "lote" && p.fallidos && p.fallidos.length
-            ? '<button type="button" class="fc-enlace-chico" data-accion="motivos" data-id="' + esc(p.id) + '">Sin resultado para ' + p.fallidos.length + " — ver por qué</button>" : "";
-        return '<div class="fc-item fc-item--alerta"><div class="fc-item__titulo">' + nuevo + t + "</div>" +
-            '<div class="fc-item__detalle">' + esc(p.mensaje_error || "No se pudo completar.") + "</div>" +
-            (p.clase === "lote" && p.total ? '<div class="fc-item__detalle">' + (p.exitosos || 0) + " de " + p.total + " listos" + (p.reutilizados ? " · " + p.reutilizados + " ya los tenías" : "") + "</div>" : "") +
-            (p.clase === "lote" && p.estado === "interrumpido" && !p.se_puede_reanudar
-                ? '<div class="fc-item__detalle">Ya no se puede reanudar (pasaron más de 72 h). Vuelve a subir el lote: lo que ya salió se aprovecha.</div>' : "") +
-            '<div class="fc-item__detalle">' + esc(fecha(p.creado_en)) + "</div>" + motivos +
-            '<div class="fc-item__acciones">' + parcial + reanudar + reintentar +
-            (parcial || reanudar || reintentar || location.pathname.indexOf("/descargas/") === 0 ? "" : '<a class="fc-btn" href="/descargas/">Ver detalle</a>') +
-            '<button type="button" class="fc-btn fc-btn--discreto" data-accion="quitar" ' +
-            'data-clase="' + esc(p.clase) + '" data-id="' + esc(p.id) + '">Quitar</button>' +
-            "</div></div>";
+        return '<div class="fc-fila' + clase + '">' + estado +
+            '<div class="fc-fila__texto"><div class="fc-fila__nombre" title="' + nombre + '">' + nuevo + nombre + "</div>" +
+            '<div class="fc-fila__detalle">' + detalle.filter(Boolean).join(" · ") + "</div></div>" +
+            '<div class="fc-fila__acciones">' + acciones + "</div>" + abajo + "</div>";
     }
 
     function esperaMadrugada(p) { return p.clase === "programada" && p.estado === "procesando"; }
@@ -1736,15 +1744,17 @@
             return;
         }
 
+        var hechos = procesos.filter(function (p) { return p.estado !== "procesando"; });
         var grupos = [
             ["En preparación", procesos.filter(function (p) { return p.estado === "procesando"; })],
-            ["Listos para descargar", procesos.filter(function (p) { return p.estado === "completado"; })],
-            ["Sin resultado", procesos.filter(function (p) { return p.estado !== "procesando" && p.estado !== "completado"; })]
+            ["Hoy", hechos.filter(function (p) { return diaDe(p.creado_en) === "hoy"; })],
+            ["Ayer", hechos.filter(function (p) { return diaDe(p.creado_en) === "ayer"; })],
+            ["Antes", hechos.filter(function (p) { return diaDe(p.creado_en) === "antes"; })]
         ];
 
         cuerpo.innerHTML = nota + grupos.filter(function (g) { return g[1].length; }).map(function (g) {
-            return '<div class="fc-grupo"><div class="fc-grupo__titulo">' + g[0] + "</div>" +
-                g[1].map(tarjeta).join("") + "</div>";
+            return '<div class="fc-grupo"><div class="fc-grupo__titulo">' + g[0] + "<span>" + g[1].length + "</span></div>" +
+                '<div class="fc-filas">' + g[1].map(tarjeta).join("") + "</div></div>";
         }).join("");
     }
 
@@ -1874,15 +1884,20 @@
         var boton = e.target.closest("[data-accion]");
         if (!boton) return;
         var accion = boton.dataset.accion;
-        var original = boton.textContent;
+        var deIcono = boton.classList.contains("fc-fila__btn"), original = boton.innerHTML;
+        // Botón con texto: dice lo que hace; botón de ícono: gira mientras trabaja
+        var decir = function (texto) { if (deIcono) boton.classList.add("fc-fila__btn--ocupado"); else boton.textContent = texto; };
         boton.disabled = true;
 
         try {
             if (accion === "mostrar-pc") {
                 var proc = (ultimaLista || []).filter(function (x) { return String(x.id) === boton.dataset.id; })[0];
-                if (proc && proc.en_pc) { await Fiscontable.mostrarEnPc(proc.en_pc, boton); return; }
+                if (proc && proc.en_pc) {
+                    if (!deIcono) { await Fiscontable.mostrarEnPc(proc.en_pc, boton); return; }
+                    decir(""); await Fiscontable.mostrarEnPc(proc.en_pc, null, function (texto) { aviso(texto); });
+                }
             } else if (accion === "descargar") {
-                boton.textContent = "Descargando…";
+                decir("Descargando…");
                 var r = await fetch(API + boton.dataset.url, { credentials: "include" });
                 if (!r.ok) throw new Error(await Fiscontable.leerError(r));
                 Fiscontable.guardarArchivo(await r.blob(), boton.dataset.nombre);
@@ -1894,14 +1909,14 @@
                 await sondear(); avisarCambio();
                 return;
             } else if (accion === "reanudar") {
-                boton.textContent = "Reanudando…";
+                decir("Reanudando…");
                 var rr = await fetch(API + "/api/lotes/" + boton.dataset.id + "/reanudar", { method: "POST", credentials: "include" });
                 if (!rr.ok) throw new Error(await Fiscontable.leerError(rr));
                 aviso("Se reanudó el lote. Sigue donde se quedó; lo que ya salió no se vuelve a pedir al SAT.");
                 await sondear(); avisarCambio();
                 return;
             } else if (accion === "reintentar") {
-                boton.textContent = "Reintentando…";
+                decir("Reintentando…");
                 var rt = await fetch(API + "/api/lotes/" + boton.dataset.id + "/reintentar", { method: "POST", credentials: "include" });
                 if (!rt.ok) throw new Error(await Fiscontable.leerError(rt));
                 var dt = await rt.json(), msj = "";
@@ -1916,7 +1931,7 @@
                 return;
             } else if (accion === "detener") {
                 if (!(await Fiscontable.confirmar({ titulo: "¿Detener esta descarga?", texto: "Se conserva lo que ya se haya generado.", si: "Detener", peligro: true }))) return;
-                boton.textContent = "Deteniendo…";
+                decir("Deteniendo…");
                 var ruta = boton.dataset.clase === "lote"
                     ? "/api/lotes/" + boton.dataset.id + "/cancelar"
                     : boton.dataset.clase === "programada"
@@ -1931,7 +1946,8 @@
             aviso((err && err.message) || "No se pudo completar esa acción. Revisa tu conexión e intenta de nuevo.");
         } finally {
             boton.disabled = false;
-            boton.textContent = original;
+            boton.innerHTML = original;
+            boton.classList.remove("fc-fila__btn--ocupado");
         }
     }
 
@@ -3179,7 +3195,8 @@
         refrescarDescargas: sondear,
         // Mis descargas (página) usa la misma tarjeta y las mismas acciones que el panel de la barra
         confirmar: confirmar,
-        descargas: { tarjeta: tarjeta, accion: accionPanel, sinProgramadas: sinProgramadas, notaProgramadas: notaProgramadas },
+        descargas: { tarjeta: tarjeta, accion: accionPanel, sinProgramadas: sinProgramadas, notaProgramadas: notaProgramadas,
+                     nombre: nombreProceso, empresa: empresaProceso, titulo: tituloProceso },
         abrirModalPerfil: abrirModalPerfil,
         // La empresa elegida en el selector general (o null). Los módulos también
         // pueden escuchar window "fiscontable:empresa" para enterarse de un cambio.

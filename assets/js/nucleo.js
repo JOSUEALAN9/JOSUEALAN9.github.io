@@ -14,7 +14,7 @@
 (function () {
     "use strict";
 
-    var VERSION = "202611112000";
+    var VERSION = "202611112100";
     // www.fiscontable.app → fiscontable.app: una sola dirección (la sesión y las preferencias guardadas son por dirección)
     if (location.hostname === "www.fiscontable.app") {
         location.replace("https://fiscontable.app" + location.pathname + location.search + location.hash);
@@ -25,6 +25,15 @@
     // fiscontable.app → api.fiscontable.app; josuealan.com (mientras dura el cambio) → api.josuealan.com.
     var DOMINIO = /(^|\.)fiscontable\.app$/.test(location.hostname) ? "fiscontable.app" : "josuealan.com";
     var API = "https://" + (PRUEBAS ? "api-pruebas." : "api.") + DOMINIO;
+
+    // Transición entre páginas: si el navegador la cancela (otra navegación encima, pestaña oculta) no es un error;
+    // sin esto queda una promesa rechazada «sin atender» en la consola.
+    ["pagereveal", "pageswap"].forEach(function (ev) {
+        window.addEventListener(ev, function (e) {
+            var v = e.viewTransition; if (!v) return;
+            [v.ready, v.finished, v.updateCallbackDone].forEach(function (p) { if (p && p.catch) p.catch(function () { /* cancelada */ }); });
+        });
+    });
 
     // Ícono de la pestaña (assets/marca, se genera con herramientas/agente/tienda/generar_logo.py del backend)
     (function () {
@@ -121,7 +130,8 @@
             (n > 1 ? " (" + n + " archivos)" : "");
     }
 
-    async function mostrarEnPc(enPc, boton) {
+    async function mostrarEnPc(enPc, boton, decir) {
+        // decir(texto): para quien no tiene un botón con texto donde escribir (los botones de ícono del panel)
         if (boton) { boton.disabled = true; boton.textContent = "Avisando a tu PC…"; }
         try {
             var r = await fetch(API + "/api/agentes/" + enPc.agente_id + "/abrir", {
@@ -130,8 +140,10 @@
             });
             if (!r.ok) throw new Error(await leerError(r));
             if (boton) boton.textContent = "✓ Se abrirá en «" + (enPc.pc || "tu PC") + "»";
+            if (decir) decir("Se abrirá en «" + (enPc.pc || "tu PC") + "».");
         } catch (e) {
             if (boton) { boton.textContent = "No se pudo: " + e.message; }
+            if (decir) decir("No se pudo mostrar en tu PC: " + e.message);
         }
         if (boton) setTimeout(function () { boton.disabled = false; boton.textContent = "Mostrar en mi PC"; }, 5000);
     }

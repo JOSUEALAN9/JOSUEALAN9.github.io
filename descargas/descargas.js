@@ -103,32 +103,9 @@ function formatearFecha(iso) {
     return fecha.toLocaleDateString("es-MX", { day: "numeric", month: "long" });
 }
 
-function nombreDocumento(p) {
-    const tipos = {
-        "csf": "Constancia de Situación Fiscal",
-        "opinion": "Opinión de Cumplimiento",
-        "csf+opinion": "Constancia y Opinión",
-        "programada_csf": "🌙 Programada · Constancias",
-        "programada_opinion": "🌙 Programada · Opiniones",
-        "programada_declaraciones": "🌙 Programada · Declaraciones",
-        "programada_xml": "🌙 Programada · Descarga de XML",
-        "programada_buzon": "🌙 Programada · Buzón Tributario",
-        "descarga_xml": "Descarga masiva de XML",
-        "declaraciones": "Declaraciones",
-        "voucheo": "Voucheo de impuestos",
-        "buzon_revisar": "Revisión del Buzón Tributario",
-        "buzon_abrir": "Apertura de notificación del Buzón",
-    };
-    return tipos[p.tipo] || p.tipo;
-}
-
-function titulo(p) {
-    if (p.clase === "lote") {
-        const n = p.total || "varios";
-        return `${nombreDocumento(p)} — ${n} contribuyentes`;
-    }
-    return `${nombreDocumento(p)} — ${p.titulo}`;
-}
+// Los nombres son los mismos que en el panel de la barra (un solo lugar: Fiscontable.descargas)
+function nombreDocumento(p) { return Fiscontable.descargas.nombre(p); }
+function titulo(p) { return Fiscontable.descargas.titulo(p); }
 
 async function descargar(url, nombre, boton) {
     const original = boton.innerHTML;
@@ -285,7 +262,7 @@ function resumenDe(p) {
 }
 function filaLista(p) {
     return Object.assign({}, p, {
-        documento: nombreDocumento(p).replace(/^🌙 /, ""), quien: p.clase === "lote" ? `${p.total || "Varios"} contribuyentes` : p.titulo,
+        documento: nombreDocumento(p), quien: Fiscontable.descargas.empresa(p), rfc_txt: p.clase === "lote" || p.titulo === "VARIOS" ? "" : p.titulo,
         tipo_txt: GRUPOS_TIPO[grupoTipo(p.tipo)] || "Otros", resultado: resumenDe(p),
         incompleto: (p.fallidos && p.fallidos.length) || /revisar|fall|no alcanz|cancelad/i.test(p.resumen || "") ? "Sí" : "No",
         en_mi_pc: p.en_pc && p.en_pc.rutas && p.en_pc.rutas.length ? "Sí" : "No"
@@ -297,7 +274,7 @@ function tablaListos() {
         contenedor: document.getElementById("tabla-dsc"), id: "descargas", claveFila: "id",
         catalogo: [
             { clave: "creado_en", etiqueta: "Fecha", tipo: "fecha" }, { clave: "documento", etiqueta: "Documento", tipo: "texto" },
-            { clave: "quien", etiqueta: "Empresa", tipo: "texto" }, { clave: "tipo_txt", etiqueta: "Tipo", tipo: "texto" },
+            { clave: "quien", etiqueta: "Empresa", tipo: "texto" }, { clave: "rfc_txt", etiqueta: "RFC", tipo: "texto" }, { clave: "tipo_txt", etiqueta: "Tipo", tipo: "texto" },
             { clave: "resultado", etiqueta: "Resultado", tipo: "texto" }, { clave: "incompleto", etiqueta: "Faltaron", tipo: "texto" },
             { clave: "en_mi_pc", etiqueta: "En mi PC", tipo: "texto" }, { clave: "acciones", etiqueta: "Archivo", tipo: "texto" }
         ],
@@ -308,7 +285,7 @@ function tablaListos() {
             if (c.clave === "incompleto") return p.incompleto === "Sí" ? '<span class="xml-sello xml-sello--ambar">Sí</span>' : "";
             return null;
         },
-        buscar: { texto: "Buscar documento o empresa…", campos: ["documento", "quien", "resultado"] },
+        buscar: { texto: "Buscar documento, empresa o RFC…", campos: ["documento", "quien", "rfc_txt", "resultado"] },
         filtros: [{ clave: "documento", etiqueta: "Documento" }, { clave: "incompleto", etiqueta: "Faltaron" }],
         vacio: { titulo: "Nada listo", texto: "" },
         alClic: (p, lista, ev) => {
