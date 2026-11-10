@@ -4,15 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Facturar | Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611120814">
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611120814">
-    <link rel="stylesheet" href="/herramientas/facturar/facturar.css?v=202611120814">
+    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611120815">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611120815">
+    <link rel="stylesheet" href="/herramientas/facturar/facturar.css?v=202611120815">
 </head>
 <body class="min-h-screen flex flex-col">
 
 <div id="app-header" data-modulo="facturar" data-titulo="Facturar" data-migas="Herramientas|/herramientas/"></div>
-<script src="/assets/js/nucleo.js?v=202611120814"></script>
-<script src="/assets/js/barra.js?v=202611120814"></script>
+<script src="/assets/js/nucleo.js?v=202611120815"></script>
+<script src="/assets/js/barra.js?v=202611120815"></script>
 
 <main class="flex-grow w-full mod-pagina fa-pagina">
     <div class="mod-cabeza">
@@ -53,6 +53,7 @@
         <div class="fa-cinta" id="cinta-emisor">
             <span class="fa-cinta__logo" id="cinta-logo"></span>
             <div class="fa-cinta__txt"><small>Emitiendo como</small><b id="cinta-nombre">—</b><span id="cinta-datos"></span></div>
+            <label class="fa-cinta__lugar" id="cinta-lugar" hidden><small>Expide en</small><select id="c-lugar" aria-label="Lugar de expedición"></select></label>
             <span class="fa-cinta__folio" id="cinta-folio"></span>
             <button type="button" id="btn-cambiar-emisor" class="fa-btn fa-btn--suave fa-btn--chico">Cambiar empresa</button>
         </div>
@@ -760,9 +761,9 @@
     </div>
 </dialog>
 
-<script src="/assets/js/comun/zona-archivos.js?v=202611120814"></script>
-<script src="/assets/js/comun/importar-clientes.js?v=202611120814"></script>
-<script src="/assets/js/comun/compartir.js?v=202611120814"></script>
-<script src="/herramientas/facturar/facturar.js?v=202611120814"></script>
+<script src="/assets/js/comun/zona-archivos.js?v=202611120815"></script>
+<script src="/assets/js/comun/importar-clientes.js?v=202611120815"></script>
+<script src="/assets/js/comun/compartir.js?v=202611120815"></script>
+<script src="/herramientas/facturar/facturar.js?v=202611120815"></script>
 </body>
 </html>
