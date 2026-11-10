@@ -161,6 +161,7 @@ function prepararEventos() {
         if (b.dataset.accion === "ver-como") verComo(correo);
         if (b.dataset.accion === "editar") abrirDialogoUsuario(correo);
         if (b.dataset.accion === "quitar") eliminarUsuario(correo);
+        if (b.dataset.accion === "acceso") accionAcceso(correo);
     });
 
     // Ajustes propios
@@ -209,11 +210,69 @@ function prepararEventos() {
 /* =====================================================================
  * USUARIOS
  * ===================================================================== */
+let cuentasEstado = { propio: false, cuentas: {} };
 async function cargarUsuarios() {
     try {
-        usuariosCache = await api("/api/usuarios");
+        const [lista, cuentas] = await Promise.all([api("/api/usuarios"), api("/api/admin/cuentas").catch(() => null)]);
+        usuariosCache = lista.filter(u => !/@despachos\.fiscontable\.invalid$/.test(u.correo) || true);
+        if (cuentas) cuentasEstado = cuentas;
         $("cuenta-usuarios").textContent = `(${usuariosCache.length})`;
+        pintarInicioPropio();
         renderizarUsuarios();
+    } catch (e) { mostrarAlerta("error", e.message); }
+}
+
+/* Inicio de sesión propio (core/cuentas.py): el interruptor y lo que hace falta antes de prenderlo */
+function pintarInicioPropio() {
+    const caja = $("adm-login-propio");
+    if (!caja) return;
+    const p = cuentasEstado.propio;
+    caja.innerHTML = `<div class="flex flex-wrap items-center gap-3">
+        <span class="ui-estado ${p ? "ui-estado--ok" : ""}"><b>Inicio de sesión:</b>&nbsp;${p ? "con correo y contraseña (propio)" : "con Cloudflare (código al correo)"}</span>
+        <button type="button" class="ui-btn ${p ? "ui-btn--secundario" : "ui-btn--primario"} ui-btn--32" id="adm-propio-btn">${p ? "Volver a Cloudflare" : "Activar inicio de sesión propio"}</button></div>
+        <p class="text-xs text-slate-500 mt-2">${p ? "Cada quien entra con su contraseña en fiscontable.app/login. A quien no tenga contraseña, mándale su enlace de acceso (botón «Acceso»)."
+            : "Antes de activarlo: 1) pon tu contraseña y la verificación en dos pasos en Configuración → Mi perfil → Seguridad; 2) en Cloudflare quita api.fiscontable.app de la aplicación «Fiscal» (deja josuealan.com como está). Después, manda el enlace de acceso a cada usuario."}</p>`;
+    $("adm-propio-btn").addEventListener("click", async () => {
+        const activar = !cuentasEstado.propio;
+        if (!confirm(activar ? "¿Activar el inicio de sesión con correo y contraseña?\n\nLa pantalla de inicio de sesión pedirá contraseña desde ahora." : "¿Volver a iniciar sesión con Cloudflare (código al correo)?")) return;
+        try {
+            const r = await api("/api/admin/login-propio", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ activo: activar }) });
+            cuentasEstado.propio = r.propio;
+            pintarInicioPropio();
+            mostrarAlerta("success", r.propio ? "Listo: inicio de sesión propio activado." : "Listo: se usa Cloudflare de nuevo.");
+        } catch (e) { mostrarAlerta("error", e.message); }
+    });
+}
+
+function chipsCuenta(u) {
+    const c = cuentasEstado.cuentas[u.correo] || {};
+    if (/@despachos\.fiscontable\.invalid$/.test(u.correo)) return `<span class="block mt-1 text-[11px] text-slate-400">Cuenta interna de un despacho</span>`;
+    const chips = [c.tiene_clave ? (c.debe_cambiar ? "Contraseña temporal" : "Con contraseña") : "Sin contraseña"];
+    if (c.totp_activo) chips.push("2 pasos");
+    return `<span class="block mt-1 text-[11px] ${c.tiene_clave ? "text-emerald-700" : "text-slate-400"}">${chips.map(esc).join(" · ")}</span>`;
+}
+
+async function accionAcceso(correo) {
+    const c = cuentasEstado.cuentas[correo] || {};
+    const opcion = prompt(`Acceso de ${correo}:\n\n1 = Mandarle por correo el enlace para ${c.tiene_clave ? "restablecer" : "crear"} su contraseña\n2 = Darle una contraseña temporal (la cambia al entrar)` +
+        (c.totp_activo ? "\n3 = Quitarle la verificación en dos pasos (perdió su teléfono)" : "") + "\n\nEscribe el número:", "1");
+    if (!opcion) return;
+    try {
+        if (opcion.trim() === "1") {
+            const r = await api(`/api/admin/cuentas/${encodeURIComponent(correo)}/enlace`, { method: "POST" });
+            await Fiscontable.confirmar({ titulo: "Enlace enviado", texto: `Le mandamos el enlace a ${correo} (vence en unas horas). Si no le llega, cópialo y mándaselo tú:\n\n${r.enlace}`, si: "Copiar enlace", no: "Cerrar" })
+                .then(si => { if (si) navigator.clipboard.writeText(r.enlace); });
+        } else if (opcion.trim() === "2") {
+            if (!confirm(`¿Darle una contraseña temporal a ${correo}? Se cierran sus sesiones abiertas.`)) return;
+            const r = await api(`/api/admin/cuentas/${encodeURIComponent(correo)}/temporal`, { method: "POST" });
+            await Fiscontable.confirmar({ titulo: "Contraseña temporal", texto: `${r.clave}\n\nDásela a ${correo} por un medio seguro. Al entrar le pedirá crear la suya. No se vuelve a mostrar.`, si: "Copiar", no: "Cerrar" })
+                .then(si => { if (si) navigator.clipboard.writeText(r.clave); });
+        } else if (opcion.trim() === "3" && c.totp_activo) {
+            if (!confirm(`¿Quitarle la verificación en dos pasos a ${correo}? Asegúrate de que de verdad es esa persona.`)) return;
+            await api(`/api/admin/cuentas/${encodeURIComponent(correo)}/quitar-2fa`, { method: "POST" });
+            mostrarAlerta("success", `Listo: ${correo} entra solo con su contraseña; puede volver a activar los dos pasos en su perfil.`);
+        } else return;
+        cargarUsuarios();
     } catch (e) { mostrarAlerta("error", e.message); }
 }
 
@@ -248,7 +307,7 @@ function renderizarUsuarios() {
             <td class="p-4">
                 <div class="flex items-center gap-3">
                     <span class="adm-avatar ${estilo.avatar}">${esc(u.correo.charAt(0).toUpperCase())}</span>
-                    <span class="font-mono text-xs text-slate-700 break-all">${esc(u.correo)}</span>
+                    <span class="min-w-0"><span class="font-mono text-xs text-slate-700 break-all">${esc(u.correo)}</span>${chipsCuenta(u)}</span>
                 </div>
             </td>
             <td class="p-4">${sello(u.rol.charAt(0).toUpperCase() + u.rol.slice(1), estilo.clase)}${personal}</td>
@@ -256,6 +315,7 @@ function renderizarUsuarios() {
             <td class="p-4">${estatus}</td>
             <td class="p-4 text-right whitespace-nowrap">
                 ${u.rol === "admin" ? "" : `<button data-accion="ajustes" data-correo="${esc(u.correo)}" title="Módulos y límite solo para esta persona" class="text-xs font-bold text-slate-600 hover:text-slate-900 border border-gray-200 hover:border-slate-400 rounded-lg py-1 px-2.5 mr-1">Ajustes</button>`}
+                ${/@despachos\.fiscontable\.invalid$/.test(u.correo) ? "" : `<button data-accion="acceso" data-correo="${esc(u.correo)}" title="Contraseña y verificación en dos pasos" class="text-xs font-bold text-slate-600 hover:text-slate-900 border border-gray-200 hover:border-slate-400 rounded-lg py-1 px-2.5 mr-1">Acceso</button>`}
                 ${u.rol === "admin" ? "" : `<button data-accion="ver-como" data-correo="${esc(u.correo)}" title="Ver Fiscontable como esta persona (solo lectura, 60 min)" class="text-xs font-bold text-slate-600 hover:text-slate-900 border border-gray-200 hover:border-slate-400 rounded-lg py-1 px-2.5 mr-1">Ver como</button>`}
                 <button data-accion="editar" data-correo="${esc(u.correo)}" title="Cambiar rol o vigencia" class="p-1.5 text-slate-400 hover:text-slate-800 align-middle">${icono(lapiz)}</button>
                 <button data-accion="quitar" data-correo="${esc(u.correo)}" title="Quitar acceso" class="p-1.5 text-gray-300 hover:text-red-500 align-middle">${icono(bote)}</button>
