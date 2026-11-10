@@ -1696,7 +1696,15 @@ main.fc-recien { animation: fc-recien .35s ease-out; }
 
 /* --- Pantalla bloqueada por inactividad (S-01) --- */
 .fc-bloqueo-pantalla { position: fixed; inset: 0; z-index: 300; display: grid; place-items: center; padding: 16px;
-                       background: rgb(var(--g-900) / .35); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); }
+                       background: rgb(var(--g-900) / .78); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); }
+/* Aviso previo al bloqueo: cuenta regresiva de un minuto */
+.fc-previo { position: fixed; inset: 0; z-index: 290; display: grid; place-items: center; padding: 16px; background: rgb(var(--g-900) / .28); }
+.fc-previo[hidden] { display: none; }
+.fc-previo__caja { width: min(360px, 100%); background: rgb(var(--g-0)); border-radius: var(--r-modal); box-shadow: var(--sombra-2);
+                   padding: var(--e-6); display: flex; flex-direction: column; align-items: center; gap: var(--e-3); text-align: center; }
+.fc-previo__caja b { font-size: var(--t-18, 18px); color: rgb(var(--g-900)); }
+.fc-previo__caja p { margin: 0; font-size: var(--t-14); color: rgb(var(--g-600)); }
+.fc-previo__reloj { font-weight: 700; color: rgb(var(--g-900)); font-variant-numeric: tabular-nums; }
 .fc-bloqueo-pantalla[hidden] { display: none; }
 .fc-bloqueo-pantalla__caja { width: min(380px, 100%); background: rgb(var(--g-0)); border-radius: var(--r-modal); box-shadow: var(--sombra-2);
                              padding: var(--e-6); display: grid; gap: var(--e-3); justify-items: center; text-align: center; }

@@ -20,7 +20,9 @@
         sessionStorage.removeItem("fc-entrar-datos");
         if (!(Date.now() - (+datos.en || 0) < 600000)) datos = {};
     } catch (e) { datos = {}; }
-    var motivo = datos.motivo || q.get("motivo") || "";
+    // ?bloqueo=1: la abrió la pantalla bloqueada por inactividad en otra pestaña; al entrar, esa pestaña se reanuda
+    var porBloqueo = q.has("bloqueo");
+    var motivo = porBloqueo ? "bloqueo" : (datos.motivo || q.get("motivo") || "");
     var volver = datos.volver || q.get("volver") || "";
     if (!volver && document.referrer) volver = document.referrer;       // «Iniciar sesión» desde otra página de la web
     if (location.search && history.replaceState) history.replaceState(null, "", location.pathname);   // queda solo …/login
@@ -52,6 +54,7 @@
     };
     var MENSAJES = {
         sesion: ["Tu sesión terminó. Vuelve a iniciar sesión.", ""],
+        bloqueo: ["Tu sesión se bloqueó por inactividad. Inicia sesión para continuar donde estabas.", ""],
         reconectando: ["Reconectando…", ""],
         salio: ["Cerraste sesión.", ""],
         servidor: ["El servicio no está disponible en este momento. Intenta de nuevo en unos minutos.", "alerta"]
@@ -76,6 +79,13 @@
 
     function irVolver() {
         try { sessionStorage.removeItem("fc-entrar"); localStorage.setItem("fc-ya-entro", "1"); } catch (e) { /* sin almacenamiento */ }
+        if (porBloqueo) {
+            // Quita la marca de bloqueo (las pestañas que esperaban se reanudan) y esta pestaña se cierra sola
+            try { localStorage.setItem("fc-actividad", String(Date.now())); localStorage.removeItem("fc-bloqueada"); } catch (e) { /* nada */ }
+            try { window.close(); } catch (e) { /* el navegador no lo permite */ }
+            setTimeout(function () { location.replace(volver); }, 500);
+            return;
+        }
         location.replace(volver);
     }
 

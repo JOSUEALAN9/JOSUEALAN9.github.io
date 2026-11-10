@@ -14,7 +14,7 @@
 (function () {
     "use strict";
 
-    var VERSION = "202611120807";
+    var VERSION = "202611120808";
     // www.fiscontable.app → fiscontable.app: una sola dirección (la sesión y las preferencias guardadas son por dirección)
     if (location.hostname === "www.fiscontable.app") {
         location.replace("https://fiscontable.app" + location.pathname + location.search + location.hash);
@@ -235,4 +235,25 @@
         nombreMes: nombreMes,
         opcionesDesde: opcionesDesde
     });
+})();
+
+/* Ventanas emergentes menos sensibles (todas las páginas). Dos reglas, antes de que cada módulo vea el clic:
+   1) Un clic que empezó dentro de la ventana y terminó en el fondo (pasa al seleccionar texto para copiarlo) no la cierra.
+   2) Una ventana con campos o confirmaciones no se cierra al tocar fuera: solo con su botón o con Esc.
+   Las ventanas de solo lectura se siguen cerrando con un clic limpio en el fondo. */
+(function () {
+    "use strict";
+    var abajo = null;
+    document.addEventListener("pointerdown", function (e) { abajo = e.target; }, true);
+    function esFondo(t) {
+        if (!t || !t.matches) return false;
+        return t.tagName === "DIALOG" || t.matches(".xml-modal, .xml-velo, .fp-fondo, .en-fondo, #fondo, #ventana, #modal, #modal-datos, [data-fondo]");
+    }
+    document.addEventListener("click", function (e) {
+        var t = e.target;
+        if (!esFondo(t)) return;
+        var arrastre = !!abajo && abajo !== t && t.contains(abajo);
+        var firme = !!t.querySelector('input:not([type="hidden"]), textarea, select, [data-firme]');
+        if (arrastre || firme) e.stopImmediatePropagation();
+    }, true);
 })();

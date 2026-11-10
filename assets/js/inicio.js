@@ -355,7 +355,17 @@
                     "tiene empresas de ejemplo: puedes recorrer todo, pero no guardar cambios. Te mostramos las partes principales; " +
                     "después, el botón «?» de cada pantalla explica cómo se usa."]);
             }, 1200);
-        } else if (!p.viendo_como) pasosCuenta();
+        } else if (!p.viendo_como) {
+            pasosCuenta();
+            // Cuentas nuevas: un recorrido por la pantalla, una sola vez (después queda en el botón «?» de cada módulo).
+            // Espera a que el perfil esté completo para no encimarse con la ventana de bienvenida.
+            var yaVio = true; try { yaVio = localStorage.getItem("fc-recorrido:bienvenida") === "1"; } catch (e) { /* nada */ }
+            if (!yaVio && p.rol !== "admin" && p.perfil_completo && Fiscontable.recorrido) setTimeout(function () {
+                if (document.querySelector("dialog[open], .fc-tour, #fc-bloqueo-pantalla:not([hidden])")) return;
+                Fiscontable.recorrido("bienvenida", ["Te damos la bienvenida a Fiscontable. Este recorrido muestra las partes principales de la pantalla; " +
+                    "después, el botón «?» de cada módulo explica cómo se utiliza."]);
+            }, 1500);
+        }
         var e = p.empresa_activa;
         $("tb-vista-empresa").textContent = e ? (e.alias || e.rfc) : "Empresa activa";
         verVista(vistaGuardada() || (e ? "empresa" : "despacho"));
