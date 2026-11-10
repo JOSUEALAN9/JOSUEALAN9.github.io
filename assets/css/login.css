@@ -111,3 +111,26 @@ html:has(body.en) { background: #161513; }
 .en-ventana__cuerpo p { display: flex; justify-content: space-between; gap: 10px; margin: 0; color: #1C1B19; font-size: 12px; }
 .en-ventana__cuerpo b { color: #5C5852; font-weight: 600; }
 .en-ventana .punto { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #0E9F6E; margin-right: 6px; vertical-align: 1px; }
+
+
+/* --- Formulario (Solicita una demo, /demo) --- */
+.en-forma { display: grid; gap: 14px; }
+.en-campo { display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 600; color: var(--en-texto); min-width: 0; }
+.en-campo i { font-style: normal; font-weight: 400; color: var(--en-tenue); }
+.en-campo small { font-weight: 400; font-size: 12px; color: var(--en-tenue); }
+.en-input { width: 100%; box-sizing: border-box; min-height: 44px; padding: 10px 12px; border-radius: 10px; border: 1px solid rgba(255, 255, 255, .16);
+    background: rgba(255, 255, 255, .06); color: var(--en-texto); font: inherit; font-size: 15px; font-weight: 400; }
+.en-input:focus { outline: none; border-color: #6FC3A0; box-shadow: 0 0 0 3px rgba(111, 195, 160, .22); }
+textarea.en-input { resize: vertical; min-height: 76px; }
+select.en-input option { color: #1C1B19; }
+.en-fila { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+@media (max-width: 480px) { .en-fila { grid-template-columns: 1fr; } }
+.en-check { display: flex; align-items: flex-start; gap: 10px; font-size: 13.5px; color: var(--en-tenue); line-height: 1.45; }
+.en-check input { width: 18px; height: 18px; margin-top: 1px; accent-color: #0E9F6E; flex: none; }
+.en-check a, .en-nota a { color: #8FD3B5; text-decoration: underline; text-underline-offset: 3px; }
+.en-trampa { position: absolute !important; left: -10000px !important; width: 1px; height: 1px; overflow: hidden; }
+.en-btn[disabled] { opacity: .65; cursor: wait; }
+.en-listo { display: grid; gap: 12px; justify-items: start; }
+.en-listo h1 { margin: 0; font-size: 26px; line-height: 1.2; }
+.en-listo__ico { width: 52px; height: 52px; border-radius: 50%; display: grid; place-items: center; background: rgba(14, 159, 110, .18); }
+.en-listo__ico svg { width: 26px; height: 26px; fill: none; stroke: #8FD3B5; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
