@@ -1051,10 +1051,18 @@ function cuerpoRevisionTienda() {
     if (!r) return titulo + '<span class="text-slate-400">Cargando…</span>';
     if (!r.activo) return `${titulo}<span class="block">Genera un código para las notas de certificación. Solo conecta la cuenta de demostración (sin clientes ni e.firma).</span>
         <button type="button" data-revision="crear" class="mt-1 text-[11px] border border-gray-200 rounded-lg py-0.5 px-2 hover:bg-gray-50">Generar código (30 días)</button>`;
+    const web = location.hostname.indexOf("pruebas.") === 0 ? location.origin : "https://fiscontable.app";
+    const entrada = r.clave ? `<span class="block mt-1 p-2 rounded-lg bg-amber-50 border border-amber-200 text-slate-700">
+            <b>Entrada a la web para quien revisa</b> (solo lectura, empresas de ejemplo). Cópiala ahora: la contraseña no se vuelve a mostrar.<br>
+            Página: <b class="font-mono">${esc(web)}/login?revision</b><br>
+            Usuario: <b class="font-mono">${esc(r.usuario_web)}</b><br>
+            Contraseña: <b class="font-mono">${esc(r.clave)}</b>
+            <button type="button" data-revision="copiar-web" class="ml-1 text-[11px] border border-gray-200 rounded-lg py-0.5 px-2 bg-white hover:bg-gray-50">Copiar los tres</button></span>`
+        : `<span class="block mt-1 text-slate-500">Entrada a la web: ${esc(web)}/login?revision · usuario ${esc(r.usuario_web || r.cuenta)} · la contraseña se mostró al generar el código (si la perdiste, «Generar otro»).</span>`;
     return `${titulo}<span class="block">Código: <b class="font-mono text-slate-800 text-xs">${esc(r.codigo)}</b> · vence ${esc(new Date(r.expira).toLocaleDateString("es-MX"))} · usado ${esc(r.usos)} de ${esc(r.max_usos)} · ${esc(r.pcs)} PC(s) conectadas</span>
         <span class="flex gap-2 mt-1"><button type="button" data-revision="copiar" class="text-[11px] border border-gray-200 rounded-lg py-0.5 px-2 hover:bg-gray-50">Copiar código</button>
         <button type="button" data-revision="crear" class="text-[11px] border border-gray-200 rounded-lg py-0.5 px-2 hover:bg-gray-50">Generar otro</button>
-        <button type="button" data-revision="quitar" class="text-[11px] border border-gray-200 rounded-lg py-0.5 px-2 hover:text-red-600">Quitar y desconectar</button></span>`;
+        <button type="button" data-revision="quitar" class="text-[11px] border border-gray-200 rounded-lg py-0.5 px-2 hover:text-red-600">Quitar y desconectar</button></span>${entrada}`;
 }
 function pintarRevisionTienda() { const c = document.getElementById("rev-tienda"); if (c) c.innerHTML = cuerpoRevisionTienda(); }
 async function cargarRevisionTienda() {
@@ -1063,6 +1071,13 @@ async function cargarRevisionTienda() {
 }
 async function codigoRevision(boton) {
     const que = boton.dataset.revision;
+    if (que === "copiar-web") {
+        const web = location.hostname.indexOf("pruebas.") === 0 ? location.origin : "https://fiscontable.app";
+        const texto = `Página: ${web}/login?revision\nUsuario: ${revisionTienda.usuario_web}\nContraseña: ${revisionTienda.clave}\nCódigo para el Agente: ${revisionTienda.codigo}`;
+        try { await navigator.clipboard.writeText(texto); boton.textContent = "¡Copiado!"; } catch (e) { boton.textContent = "Cópialo a mano"; }
+        setTimeout(() => { boton.textContent = "Copiar los tres"; }, 2000);
+        return;
+    }
     if (que === "copiar") {
         try { await navigator.clipboard.writeText(revisionTienda.codigo); boton.textContent = "¡Copiado!"; } catch (e) { boton.textContent = revisionTienda.codigo; }
         setTimeout(() => { boton.textContent = "Copiar código"; }, 2000);
