@@ -232,6 +232,14 @@
 
     var esc = window.Fiscontable.escapar;
 
+    // El símbolo de Fiscontable (hoja con la esquina verde y una F). Un solo dibujo en assets/marca/simbolos.svg;
+    // los colores salen de CSS (--fc-hoja, --fc-letra, --fc-esquina) según dónde se pinte.
+    function simboloMarca(clase) {
+        var v = (window.Fiscontable && window.Fiscontable.VERSION) || "";
+        return '<svg class="fc-simbolo' + (clase ? " " + clase : "") + '" viewBox="0 0 64 64" aria-hidden="true" focusable="false">' +
+               '<use href="/assets/marca/simbolos.svg?v=' + v + '#fiscontable"></use></svg>';
+    }
+
     function ico(d, ancho) {
         return '<svg fill="none" stroke="currentColor" stroke-width="' + (ancho || 2) +
             '" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="' + d + '"/></svg>';
@@ -310,8 +318,8 @@
             '<header class="fc-barra">' +
               '<div class="fc-barra__interior">' +
                 '<a class="fc-marca" href="/">' +
-                  '<span class="fc-marca__sello">' + ico(D.rayo) + "</span>" +
-                  '<span class="fc-marca__nombre">Fiscontable</span>' +
+                  '<span class="fc-marca__sello">' + simboloMarca() + "</span>" +
+                  '<span class="fc-marca__nombre">fiscontable</span>' +
                 "</a>" +
                 '<button type="button" class="fc-modulos-btn" id="fc-btn-modulos" aria-haspopup="dialog" aria-expanded="false" title="Ir a otro módulo (Ctrl+K)">' +
                   ico(D.rejilla) + '<span class="fc-modulos-btn__texto">Módulos</span></button>' +
@@ -2377,7 +2385,7 @@
         capa.id = "fc-bloqueo-pantalla"; capa.className = "fc-bloqueo-pantalla"; capa.setAttribute("role", "dialog"); capa.setAttribute("aria-modal", "true");
         capa.setAttribute("aria-labelledby", "fc-bl-titulo");
         capa.innerHTML = '<div class="fc-bloqueo-pantalla__caja">' +
-            '<span class="fc-marca__sello">' + ico(D.rayo) + "</span>" +
+            '<span class="fc-marca__sello">' + simboloMarca() + "</span>" +
             '<h2 id="fc-bl-titulo">Pantalla bloqueada</h2><p id="fc-bl-texto"></p>' +
             '<form id="fc-bl-form" hidden><input id="fc-bl-pin" class="ui-input" type="password" inputmode="numeric" autocomplete="off" maxlength="6" placeholder="PIN" aria-label="Tu PIN">' +
             '<button type="submit" class="ui-btn ui-btn--primario">Desbloquear</button></form>' +
@@ -2936,6 +2944,7 @@
     sondear();
 
     Object.assign(window.Fiscontable, {
+        simbolo: simboloMarca,
         modulo: clave,
         riel: riel,
         excel: excel,
