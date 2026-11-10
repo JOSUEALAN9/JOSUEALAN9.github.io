@@ -1,0 +1,61 @@
+<!-- descripcion: Help for Fiscontable and Fiscontable Agent for Windows: how to install and connect it, common account questions and how to contact us. -->
+<h1>Help and support</h1>
+<p class="st-texto__sub">Your Fiscontable account and Fiscontable Agent, the Windows program that runs on your PC the SAT procedures you request on the web.</p>
+<div class="st-caja st-caja--nota">The application is in Spanish, since it is built for accounting work in Mexico. The <a href="/soporte/" hreflang="es">Spanish help page</a> has the full detail.</div>
+
+<h2 id="cuenta">Your account</h2>
+<details><summary>I forgot my password</summary>
+    <p>On <a href="/login">Sign in</a>, choose <b>¿Olvidaste tu contraseña?</b> (Forgot your password?) and enter your email. You will receive a link to create a new one; it lasts 2 hours.</p></details>
+<details><summary>I am not getting the verification code</summary>
+    <p>Check your spam folder and wait a minute before requesting another. Each code lasts 10 minutes. If you use an authenticator app, make sure your phone's clock is set automatically.</p></details>
+<details><summary>What is "Trust this device"?</summary>
+    <p>If you tick it when signing in, that browser will not ask for the second step again for 30 days. Use it only on your own computer. You can remove a device under <b>Configuración → Seguridad</b>.</p></details>
+<details><summary>How do I start if I do not have an account yet?</summary>
+    <p><a href="/en/?sitio#registro">Request a demo</a>. We activate your access and let you know by email.</p></details>
+
+<h2 id="agente">Fiscontable Agent</h2>
+<p>While the Agent is running, your account's SAT procedures (tax status certificate, 32-D compliance opinion,
+   returns, tax mailbox review and invoices from the SAT portal) run <b>from your PC</b>, with your internet connection
+   and your browser, and the result appears on the web as usual. It also keeps a copy in <code>Documents\Fiscontable</code>.</p>
+<p>You need a Fiscontable account and 64-bit Windows 10 or 11. If your PC is off, procedures run on the server as usual.</p>
+
+<h2 id="instalar">Install and connect it</h2>
+<ol>
+<!--si-tienda-->
+    <li>Install it from <b>Microsoft Store</b> (search for "Fiscontable Agente") or with the web installer: menu with your name → <b>Conectar esta PC</b> → Descargar el agente.</li>
+<!--/si-tienda-->
+<!--no-tienda-->
+    <li>Download the installer from the web: menu with your name → <b>Conectar esta PC</b> → Descargar el agente. Coming soon to Microsoft Store.</li>
+<!--/no-tienda-->
+    <li>Open it. The <b>Conectar esta PC</b> (Connect this PC) window appears.</li>
+    <li>On the web: menu with your name → <b>Conectar esta PC</b> → <b>Pedir código</b>. Type the 8-letter code into the Agent (it lasts 2 minutes) and press <b>Conectar</b>.</li>
+    <li>On the web, approve the new PC with <b>«Sí, es mi PC»</b>. Until then it receives no procedures.</li>
+</ol>
+<div class="st-caja">Done: the green icon next to the clock means it is connected. Click the icon → <b>Ver estado</b> to see what it is doing.</div>
+
+<h2 id="icono">The icon next to the clock</h2>
+<ul>
+    <li><b>Green:</b> connected and ready to work.</li>
+    <li><b>Amber:</b> connected but waiting (PC not approved, paused or outside its schedule).</li>
+    <li><b>Gray:</b> no connection to the server.</li>
+</ul>
+
+<h2 id="preguntas">Agent FAQ</h2>
+<details><summary>Is it safe? What can the Agent see?</summary>
+    <p>Your PC calls the server; nobody connects into your PC and no port is opened. The e.firma arrives only for each procedure and is deleted when it ends. It only reads the tax mailbox: it never opens a pending notification. More detail in the <a href="/en/privacy/#agente">Privacy notice</a>.</p></details>
+<details><summary>Windows or my company's antivirus shows a warning</summary>
+<!--si-tienda-->
+    <p>The <b>Microsoft Store</b> version is signed by Microsoft and is the recommended one for company PCs. With the web installer, Windows may show "Unknown publisher": it is a warning, not an error. The Agent only connects to <code>api.fiscontable.app</code> over HTTPS and to the SAT portals.</p></details>
+<!--/si-tienda-->
+<!--no-tienda-->
+    <p>With the web installer, Windows may show "Unknown publisher": it is a warning, not an error. The Agent only connects to <code>api.fiscontable.app</code> over HTTPS and to the SAT portals. The Microsoft Store version, coming soon, will be signed by Microsoft.</p></details>
+<!--/no-tienda-->
+<details><summary>Where do documents end up?</summary>
+    <p>On the web, as usual, plus a copy in <code>Documents\Fiscontable\RFC\…</code>, sorted by type. The copy can be turned off from the web.</p></details>
+<details><summary>Stop it from starting with Windows</summary>
+    <p>Windows: Settings → Apps → Startup → turn off <b>Fiscontable Agente</b>. You can open it any time from the Start menu.</p></details>
+<details><summary>Disconnect or uninstall it</summary>
+    <p>Icon menu → <b>Desconectar esta PC</b>, or from the web under Conectar esta PC. To remove it: Settings → Apps → Fiscontable Agente → Uninstall. Your copies in Documents are not deleted.</p></details>
+
+<h2 id="contacto">Contact</h2>
+<p>Contact us <span data-contacto></span>. We reply on business days, Monday to Friday. Support is provided in Spanish; we can also answer in English.</p>
