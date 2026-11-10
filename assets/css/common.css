@@ -843,6 +843,12 @@ body.fc-sin-scroll { overflow: hidden; }
 
 /* Pestañas individual / masivo */
 .pestanas { display: flex; border-bottom: 1px solid var(--linea); margin-bottom: 20px; gap: 4px; }
+.pestana[hidden] { display: none; }
+/* Administración: los grupos de apartados (arriba de las pestañas) */
+.adm-grupos { margin-bottom: 14px; flex-wrap: wrap; }
+.adm-grupos button { position: relative; }
+.adm-grupos__punto { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #D97706; margin-left: 6px; vertical-align: middle; }
+.adm-grupos__punto[hidden] { display: none; }
 .pestana {
     border: 0; background: none; cursor: pointer;
     font: inherit; font-size: 14.5px; font-weight: 600;
@@ -1077,7 +1083,7 @@ a.mod-accion { text-decoration: none; }
 .mod-accion.ui-btn--primario:hover:not(:disabled) { background: rgb(var(--ac-700)); border-color: rgb(var(--ac-700)); }
 
 /* ===== Página de módulo: el mismo encabezado en todas las herramientas ===== */
-.mod-pagina { width: 100%; max-width: 1440px; margin: 0 auto; padding: 14px 20px 32px; }
+.mod-pagina { width: 100%; max-width: 1560px; margin: 0 auto; padding: 14px 20px 32px; }   /* el mismo ancho que la barra de arriba */
 .mod-pagina--form { max-width: 1020px; }
 .mod-pagina [hidden] { display: none !important; }
 .mod-cabeza { display: flex; align-items: center; justify-content: space-between; gap: 10px 14px; margin-bottom: 14px; flex-wrap: wrap; }

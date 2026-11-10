@@ -713,6 +713,8 @@ async function crearCliente(e) {
         await cargarClientes();
         // Si no había empresa activa, la recién registrada queda como activa
         try { const p = await Fiscontable.perfil(); if (p && !p.empresa_activa) await Fiscontable.elegirEmpresa(rfc); } catch (err) { /* no pasa nada */ }
+        // Se queda abierta su ficha para seguir configurándola (accesos, obligaciones, XML automáticos, facturación)
+        abrirModalEditar(rfc, "general");
     } catch (error) {
         mostrarAlerta("error", await interpretarError(null));
     } finally {

@@ -4,16 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Administrar Usuarios | Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611120809">
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611120809">
-    <link rel="stylesheet" href="/admin/creditos-admin.css?v=202611120809">
-    <link rel="stylesheet" href="/admin/documentos-admin.css?v=202611120809">
+    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611120813">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611120813">
+    <link rel="stylesheet" href="/admin/creditos-admin.css?v=202611120813">
+    <link rel="stylesheet" href="/admin/documentos-admin.css?v=202611120813">
 </head>
 <body class="min-h-screen flex flex-col relative">
 
     <div id="app-header" data-modulo="admin" data-titulo="Administración" data-migas=""></div>
-<script src="/assets/js/nucleo.js?v=202611120809"></script>
-<script src="/assets/js/barra.js?v=202611120809"></script>
+<script src="/assets/js/nucleo.js?v=202611120813"></script>
+<script src="/assets/js/barra.js?v=202611120813"></script>
 
     <main class="flex-grow p-4 sm:p-6 w-full max-w-4xl mx-auto fc-principal">
         <style>
@@ -64,17 +64,24 @@
         </div>
 
         <div id="contenido-admin" class="hidden">
+            <!-- Dos niveles: el grupo (Cuentas, Ventas, Operación, Sistema) y, debajo, sus apartados -->
+            <div class="ctx-segmento adm-grupos" role="group" aria-label="Grupo de administración" id="adm-grupos">
+                <button type="button" data-grupo="cuentas" aria-pressed="false">Cuentas<i class="adm-grupos__punto" hidden></i></button>
+                <button type="button" data-grupo="ventas" aria-pressed="false">Ventas<i class="adm-grupos__punto" hidden></i></button>
+                <button type="button" data-grupo="operacion" aria-pressed="false">Operación<i class="adm-grupos__punto" hidden></i></button>
+                <button type="button" data-grupo="sistema" aria-pressed="false">Sistema<i class="adm-grupos__punto" hidden></i></button>
+            </div>
             <div class="pestanas" role="tablist">
-                <button type="button" class="pestana pestana--activa" role="tab" data-pestana="usuarios">Usuarios <span class="text-slate-400 font-semibold" id="cuenta-usuarios"></span></button>
-                <button type="button" class="pestana" role="tab" data-pestana="permisos">Permisos por rol</button>
-                <button type="button" class="pestana" role="tab" data-pestana="actividad">Actividad <span class="text-slate-400 font-semibold" id="cuenta-actividad"></span></button>
-                <button type="button" class="pestana" role="tab" data-pestana="creditos">Créditos <span class="text-amber-600 font-semibold" id="cuenta-creditos"></span></button>
-                <button type="button" class="pestana" role="tab" data-pestana="documentos">Documentos <span class="text-amber-600 font-semibold" id="cuenta-documentos"></span></button>
-                <button type="button" class="pestana" role="tab" data-pestana="despachos">Despachos <span class="text-slate-400 font-semibold" id="cuenta-despachos"></span></button>
-                <button type="button" class="pestana" role="tab" data-pestana="licencias">Licencias <span class="text-slate-400 font-semibold" id="cuenta-licencias"></span></button>
-                <button type="button" class="pestana" role="tab" data-pestana="demos">Demos <span class="text-amber-600 font-semibold" id="cuenta-demos"></span></button>
-                <button type="button" class="pestana" role="tab" data-pestana="sistema">Sistema <span class="text-amber-600 font-semibold" id="alerta-sistema"></span></button>
-                <a class="pestana" href="/admin/laboratorio/" title="Recorrer un portal del SAT y guardar el registro (solo lectura)">Laboratorio ↗</a>
+                <button type="button" class="pestana" role="tab" data-pestana="usuarios" data-de-grupo="cuentas">Usuarios <span class="text-slate-400 font-semibold" id="cuenta-usuarios"></span></button>
+                <button type="button" class="pestana" role="tab" data-pestana="despachos" data-de-grupo="cuentas">Despachos <span class="text-slate-400 font-semibold" id="cuenta-despachos"></span></button>
+                <button type="button" class="pestana" role="tab" data-pestana="permisos" data-de-grupo="cuentas">Permisos por rol</button>
+                <button type="button" class="pestana" role="tab" data-pestana="demos" data-de-grupo="ventas">Demos <span class="text-amber-600 font-semibold" id="cuenta-demos"></span></button>
+                <button type="button" class="pestana" role="tab" data-pestana="licencias" data-de-grupo="ventas">Licencias <span class="text-slate-400 font-semibold" id="cuenta-licencias"></span></button>
+                <button type="button" class="pestana" role="tab" data-pestana="creditos" data-de-grupo="ventas">Créditos <span class="text-amber-600 font-semibold" id="cuenta-creditos"></span></button>
+                <button type="button" class="pestana" role="tab" data-pestana="actividad" data-de-grupo="operacion">Actividad <span class="text-slate-400 font-semibold" id="cuenta-actividad"></span></button>
+                <button type="button" class="pestana" role="tab" data-pestana="documentos" data-de-grupo="operacion">Documentos <span class="text-amber-600 font-semibold" id="cuenta-documentos"></span></button>
+                <button type="button" class="pestana" role="tab" data-pestana="sistema" data-de-grupo="sistema">Sistema <span class="text-amber-600 font-semibold" id="alerta-sistema"></span></button>
+                <a class="pestana" data-de-grupo="sistema" href="/admin/laboratorio/" title="Recorrer un portal del SAT y guardar el registro (solo lectura)">Laboratorio ↗</a>
             </div>
 
             <!-- ============ USUARIOS ============ -->
@@ -290,7 +297,7 @@
             <!-- ============ DEMOS (admin/demos-admin.js) ============ -->
             <section id="panel-demos" role="tabpanel" hidden>
                 <div class="bg-white rounded-xl card-elevated border border-gray-200 p-5 mb-4 flex flex-wrap items-center gap-x-8 gap-y-3">
-                    <label class="ui-switch"><input type="checkbox" id="dma-auto"><span class="ui-switch__riel"></span> Aprobar solas (sin que yo las revise)</label>
+                    <label class="ui-switch"><input type="checkbox" id="dma-auto"><span class="ui-switch__riel"></span> Aprobar automáticamente</label>
                     <label class="flex items-center gap-2 text-sm">Días de demo <input class="ui-input" id="dma-dias" type="number" min="1" max="60" style="width:80px"></label>
                     <button type="button" class="ui-btn ui-btn--secundario ui-btn--32" id="dma-guardar">Guardar</button>
                     <span class="text-xs text-slate-500">El formulario público está en <b>fiscontable.app/demo</b>. Te llega un aviso con cada solicitud.</span>
@@ -672,13 +679,13 @@
         </div>
     </div>
 
-<script src="/admin/admin.js?v=202611120809"></script>
-<script src="/admin/creditos-admin.js?v=202611120809"></script>
-<script src="/admin/planes-admin.js?v=202611120809"></script>
-<script src="/admin/documentos-admin.js?v=202611120809"></script>
-<script src="/admin/plazos-admin.js?v=202611120809"></script>
-<script src="/admin/despachos-admin.js?v=202611120809"></script>
-<script src="/admin/licencias-admin.js?v=202611120809"></script>
-<script src="/admin/demos-admin.js?v=202611120809"></script>
+<script src="/admin/admin.js?v=202611120813"></script>
+<script src="/admin/creditos-admin.js?v=202611120813"></script>
+<script src="/admin/planes-admin.js?v=202611120813"></script>
+<script src="/admin/documentos-admin.js?v=202611120813"></script>
+<script src="/admin/plazos-admin.js?v=202611120813"></script>
+<script src="/admin/despachos-admin.js?v=202611120813"></script>
+<script src="/admin/licencias-admin.js?v=202611120813"></script>
+<script src="/admin/demos-admin.js?v=202611120813"></script>
 </body>
 </html>

@@ -189,8 +189,20 @@ function portada(t) {
         applicationCategory: "BusinessApplication", operatingSystem: "Web, Windows 10, Windows 11", inLanguage: "es-MX", description: t.descripcion,
         publisher: { "@type": "Organization", name: "Fiscontable", url: DOMINIO } };
     return cabeza(t, { titulo: t.titulo, descripcion: t.descripcion, canonica: t.ruta, alterna: t.otra, css: ["/assets/css/forma-demo.css"] }) +
-`    <script>/* Quien ya inició sesión en este navegador va directo a su tablero (fiscontable.app/?sitio muestra esta página) */
-    try { if (localStorage.getItem("fc-ya-entro") === "1" && !/[?&]sitio\\b/.test(location.search)) location.replace("/inicio/"); } catch (e) { /* sin almacenamiento */ }</script>
+`    <script>/* Con la sesión abierta se va directo al tablero; sin sesión se queda esta página (nunca se manda sola al inicio
+       de sesión). fiscontable.app/?sitio muestra siempre esta página. */
+    (function () {
+        try { if (localStorage.getItem("fc-ya-entro") !== "1" || /[?&]sitio\\b/.test(location.search)) return; } catch (e) { return; }
+        var h = location.hostname, raiz = document.documentElement;
+        var api = "https://" + (/^pruebas\\./.test(h) ? "api-pruebas." : "api.") + (/(^|\\.)fiscontable\\.app$/.test(h) ? "fiscontable.app" : "josuealan.com");
+        raiz.style.visibility = "hidden";                      // sin parpadeo mientras se confirma la sesión (1.5 s como mucho)
+        var ver = function () { raiz.style.visibility = ""; }, t = setTimeout(ver, 1500);
+        fetch(api + "/api/mi-perfil", { credentials: "include", cache: "no-store" }).then(function (r) {
+            if (r.ok) { location.replace("/inicio/"); return; }
+            if (r.status === 401) { try { localStorage.removeItem("fc-ya-entro"); } catch (e) { /* nada */ } }
+            clearTimeout(t); ver();
+        }, function () { clearTimeout(t); ver(); });
+    })();</script>
     <script type="application/ld+json">${JSON.stringify(datos)}</script>
 </head>
 <body class="st">
