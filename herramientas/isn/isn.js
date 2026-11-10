@@ -469,7 +469,7 @@
         var anio = $("p-anio").value, mes = $("p-mes").value;
         $("p-revisar").disabled = true;
         try {
-            $("avance").hidden = true;
+            panelAvance.cerrar();
             var r = await json("/api/isn/portal/revisar", "POST", { ids: ids });
             $("modal-presentar").hidden = true;
             // Al terminar se vuelve a abrir la lista del mismo mes, ya sin las que estaban presentadas
@@ -487,7 +487,7 @@
         if (!(await Fiscontable.preguntar("Se van a PRESENTAR " + ids.length + " declaración(es) de ISN de " + mes + " ante la SEFIPLAN.\n\n¿Todo bien? Esto no se puede deshacer."))) return;
         $("p-enviar").disabled = true;
         try {
-            $("avance").hidden = true;
+            panelAvance.cerrar();
             var r = await json("/api/isn/presentar", "POST", { ids: ids });
             $("modal-presentar").hidden = true;
             seguir(r.job_id, "Presentando " + mes);
@@ -600,7 +600,7 @@
         if (!(await Fiscontable.preguntar("Revisar en el portal " + van.length + " empresa(s) de " + mes + " (no se llena ni se presenta nada):\n\n" +
                      van.map(function (x) { return "• " + (x.nombre || x.rfc); }).join("\n")))) return;
         try {
-            $("avance").hidden = true;
+            panelAvance.cerrar();
             var r = await json("/api/isn/portal/revisar", "POST", { ids: van.map(function (x) { return x.periodo.id; }) });
             seguir(r.job_id, "Revisando en el portal · " + mes, cargarMasivo);
         } catch (e) { aviso(e.message, true); }
@@ -617,7 +617,7 @@
                      (noVan.length ? "\n\nNo van (no están listas o no tienen captura): " + noVan.map(function (x) { return x.nombre || x.rfc; }).join(", ") : "") +
                      "\n\n¿Todo bien? Esto no se puede deshacer."))) return;
         try {
-            $("avance").hidden = true;
+            panelAvance.cerrar();
             var r = await json("/api/isn/presentar", "POST", { ids: van.map(function (x) { return x.periodo.id; }) });
             seguir(r.job_id, "Presentando " + mes, cargarMasivo);
         } catch (e) { aviso(e.message, true); }
@@ -654,7 +654,7 @@
             "Solo aplica a las declaraciones en $0 y se salta las que ya lo tienen. ¿Lo genero?"))) return;
         $("d-enviar").disabled = true;
         try {
-            $("avance").hidden = true;
+            panelAvance.cerrar();
             var r = await json("/api/isn/descargar", "POST", { rfc: E.rfc, anio: +$("d-anio").value, meses: meses,
                 pago_ceros: $("d-ceros").checked, forzar: $("d-forzar").checked });
             $("modal-descargar").hidden = true;
@@ -668,18 +668,18 @@
     var ESTADOS_OK = { presentada: 1, descargado: 1, ya_estaba: 1, ya_lo_tenias: 1, por_presentar: 1 };
     var ESTADOS_MAL = { error: 1, rechazada: 1, sin_presentar: 1, cancelado: 1 };
 
+    // El avance usa el panel común (Fiscontable.panelTrabajo): ocultar, mostrar el detalle, detener y cerrar
+    var panelAvance = Fiscontable.panelTrabajo({ alDetener: function () { detenerTrabajo(); } });
     function pintarAvance(t, titulo) {
-        $("avance").hidden = false;
-        $("avance-titulo").textContent = titulo || "Tributanet";
         var corre = t.estado === "procesando";
         var hechos = (t.renglones || []).filter(function (r) { return ESTADOS_OK[r.estado] || ESTADOS_MAL[r.estado]; }).length;
-        $("avance-estado").textContent = corre ? hechos + " de " + (t.renglones || []).length + "…" : (t.estado === "error" ? "Se detuvo con error" : "Terminó");
-        $("avance-detener").hidden = !corre;
-        $("avance-cerrar").hidden = corre;
-        $("avance-filas").innerHTML = (t.renglones || []).map(function (r) {
+        var filas = (t.renglones || []).map(function (r) {
             var clase = ESTADOS_OK[r.estado] ? "ok" : ESTADOS_MAL[r.estado] ? "mal" : r.estado === "trabajando" ? "va" : "";
-            return '<li class="' + clase + '"><b>' + esc((r.nombre || r.rfc) + " · " + (r.mes_nombre || "") + " " + r.anio) + "</b>" + esc(r.mensaje || "") + "</li>";
-        }).join("") + (t.error ? '<li class="mal"><b>Error</b>' + esc(t.error) + "</li>" : "");
+            return { clase: clase, titulo: (r.nombre || r.rfc) + " · " + (r.mes_nombre || "") + " " + r.anio, texto: r.mensaje || "" };
+        });
+        if (t.error) filas.push({ clase: "mal", titulo: "Error", texto: t.error });
+        panelAvance.pintar({ titulo: titulo || "Tributanet", corre: corre, filas: filas,
+            estado: corre ? hechos + " de " + (t.renglones || []).length + "…" : (t.estado === "error" ? "Se detuvo con error" : "Terminó") });
     }
 
     function seguir(jobId, titulo, despues) {
@@ -804,18 +804,6 @@
         $("d-anio").addEventListener("change", pintarMesesDescarga);
         $("d-cancelar").addEventListener("click", function () { $("modal-descargar").hidden = true; $("modal-plantilla").hidden = true; });
         $("d-enviar").addEventListener("click", enviarDescarga);
-        $("avance-cerrar").addEventListener("click", function () { $("avance").hidden = true; });
-        // Ocultar / ver el detalle del avance (sigue trabajando); Esc lo oculta, o lo cierra si ya terminó
-        $("avance-min").addEventListener("click", function () {
-            var min = $("avance").classList.toggle("isn-avance--min");
-            this.textContent = min ? "Ver" : "Ocultar"; this.setAttribute("aria-expanded", String(!min));
-        });
-        document.addEventListener("keydown", function (e) {
-            if (e.key !== "Escape" || $("avance").hidden || document.querySelector("dialog[open]")) return;
-            if (!$("avance-cerrar").hidden) $("avance").hidden = true;
-            else if (!$("avance").classList.contains("isn-avance--min")) $("avance-min").click();
-        });
-        $("avance-detener").addEventListener("click", detenerTrabajo);
         $("reparto-filas").addEventListener("input", sumasReparto);
         $("btn-repartir").addEventListener("click", repartirSegunEmpleados);
         $("btn-datos").addEventListener("click", abrirDatos);

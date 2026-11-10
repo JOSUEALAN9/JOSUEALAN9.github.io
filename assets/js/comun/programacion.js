@@ -75,7 +75,7 @@
         if (m !== "buzon" && d.editable) h.push('<label class="ui-check"><input type="checkbox" data-c="todas"> Lo mismo para todas mis empresas con e.firma</label>');
         h.push('<label class="ui-check"><input type="checkbox" data-c="avisar"' + (d.avisar_correo ? " checked" : "") + "> " +
                (d.editable ? "Avisarme por correo cuando termine" : "Avisarme por correo cuando cambie algo") + "</label>");
-        h.push('<p class="xml-tenue fpu-nota">' + (d.editable ? "Se hace de madrugada con la e.firma guardada de cada empresa. " : "") +
+        h.push('<p class="xml-tenue fpu-nota">' + (d.editable ? "Se ejecuta en horario nocturno con la e.firma registrada de cada empresa. " : "") +
                'Los avisos también llegan a la campana de arriba. <a href="/configuracion/?seccion=programaciones">Ver todas las programaciones</a></p>');
         return h.join("");
     }

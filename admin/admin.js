@@ -765,7 +765,7 @@ function renderizarActividad() {
                 <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
                     <span class="font-bold text-slate-800">${esc(nombreDoc)}</span>
                     ${p.clase === "lote" ? sello("Lote", "bg-slate-100 text-slate-600") : ""}
-                    ${p.clase === "programada" ? sello("Madrugada", "bg-indigo-100 text-indigo-700") : ""}
+                    ${p.clase === "programada" ? sello("Programada", "bg-indigo-100 text-indigo-700") : ""}
                     <span class="font-mono text-xs text-slate-500">${esc(p.titulo)}</span>
                 </div>
                 <p class="text-xs text-slate-500 mt-0.5 truncate">${esc(p.usuario)}</p>
@@ -1651,7 +1651,7 @@ async function guardarEfirmaSAT() {
 
 async function cambiarActivoSAT() {
     const activo = $("chk-sat-activo").checked;
-    if (!activo && !(await Fiscontable.preguntar("¿Pausar la revisión automática del SAT?\n\nSe quita el letrero y la madrugada deja de consultarla."))) {
+    if (!activo && !(await Fiscontable.preguntar("¿Pausar la revisión automática del SAT?\n\nSe retira el letrero y el proceso programado deja de consultarla."))) {
         $("chk-sat-activo").checked = true; return;
     }
     try {

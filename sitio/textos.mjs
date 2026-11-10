@@ -25,7 +25,7 @@ export const T = {
             chip: "Funciones", h2: "Lo que hoy se hace manualmente, cliente por cliente",
             sub: "Un solo lugar para lo que el SAT reparte en varios portales.",
             lista: [
-                ["descarga", "Descarga de XML", "Emitidos y recibidos de cada empresa. Opcionalmente, de forma automática cada madrugada."],
+                ["descarga", "Descarga de XML", "Emitidos y recibidos de cada empresa. Opcionalmente, de forma programada cada día."],
                 ["xml", "Administración de XML", "Busca, filtra y exporta a Excel. Con el PDF de cada comprobante y su estado en el SAT."],
                 ["escudo", "Constancia y opinión 32-D", "De un cliente o de toda tu cartera en una sola solicitud."],
                 ["buzon", "Buzón Tributario", "Revisa los mensajes de cada cliente sin abrir las notificaciones pendientes."],
@@ -36,7 +36,7 @@ export const T = {
             ]
         },
         focos: [
-            { chip: "Automático", h2: "Tus XML, siempre al día", texto: "Programa la descarga y cada madrugada Fiscontable incorpora los comprobantes nuevos de tus empresas. Al iniciar el día ya están en tu Administración de XML.",
+            { chip: "Automático", h2: "Tus XML, siempre al día", texto: "Programa la descarga y Fiscontable incorpora cada día los comprobantes nuevos de tus empresas. Al iniciar tu jornada ya están en tu Administración de XML.",
               puntos: ["Emitidos y recibidos", "Sin duplicados", "Aviso si algo falla"] },
             { chip: "Equipo", h2: "Un despacho, con permisos por persona", texto: "Invita a tu equipo y define qué empresas ve cada persona, qué módulos utiliza y quién solo consulta. Cada acción queda registrada en la bitácora.",
               puntos: ["Permisos por persona", "Solicitudes con aprobación", "Espacio personal aparte"] }
@@ -125,7 +125,7 @@ export const T = {
             chip: "Features", h2: "What you do by hand today, client by client",
             sub: "One place for what the SAT spreads across several portals.",
             lista: [
-                ["descarga", "XML download", "Issued and received invoices for every company. Automatically every night, if you want."],
+                ["descarga", "XML download", "Issued and received invoices for every company. Optionally, on a daily schedule."],
                 ["xml", "XML management", "Search, filter and export to Excel. With each invoice's PDF and its status at the SAT."],
                 ["escudo", "Tax status and 32-D opinion", "For one client or your whole portfolio in a single request."],
                 ["buzon", "Tax mailbox", "Check each client's messages without opening pending notifications."],
@@ -136,7 +136,7 @@ export const T = {
             ]
         },
         focos: [
-            { chip: "Automatic", h2: "Invoices arrive on their own", texto: "Schedule the download and every night Fiscontable brings in what is new for your companies. By the time you get to the office it is already in XML management.",
+            { chip: "Automatic", h2: "Your invoices, always up to date", texto: "Schedule the download and Fiscontable brings in what is new for your companies every day. By the time you get to the office it is already in XML management.",
               puntos: ["Issued and received", "No duplicates", "An alert if something fails"] },
             { chip: "Team", h2: "One firm, everyone with their own work", texto: "Invite your team and decide which companies each person sees, which modules they use and who is read-only. Everything is logged.",
               puntos: ["Per-person permissions", "Requests with approval", "A separate personal space"] }

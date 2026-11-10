@@ -385,7 +385,7 @@
     }
     async function revisarEnPortal(ids, titulo, despues) {
         try {
-            $("avance").hidden = true;
+            panelAvance.cerrar();
             var r = await json("/api/estatales/portal/revisar", "POST", { ids: ids });
             seguir(r.job_id, titulo, despues);
             return true;
@@ -394,7 +394,7 @@
     async function presentar(ids, texto, despues) {
         if (!(await Fiscontable.preguntar(texto + "\n\n¿Todo bien? Esto no se puede deshacer."))) return false;
         try {
-            $("avance").hidden = true;
+            panelAvance.cerrar();
             var r = await json("/api/estatales/presentar", "POST", { ids: ids });
             seguir(r.job_id, "Presentando " + E.imp.nombre.toLowerCase(), despues);
             if (r.no_van && r.no_van.length) aviso("No van (no están listas): " + r.no_van.map(function (x) { return (x.nombre || x.rfc) + ": " + x.motivo; }).join("\n"), true);
@@ -559,7 +559,7 @@
         if ($("d-ceros").checked && !(await Fiscontable.preguntar("El pago en ceros se GENERA en el portal en este momento. Solo aplica a declaraciones en $0. ¿Lo genero?"))) return;
         $("d-enviar").disabled = true;
         try {
-            $("avance").hidden = true;
+            panelAvance.cerrar();
             var r = await json("/api/estatales/" + IMP + "/descargar", "POST", { rfc: E.rfc, anio: +$("d-anio").value, meses: meses,
                 pago_ceros: $("d-ceros").checked && !esInf(), forzar: $("d-forzar").checked, establecimiento: esInf() ? $("d-est").value : "" });
             $("modal-descargar").hidden = true;
@@ -572,18 +572,18 @@
     /* ------------------------------------------------------------ avance del robot (mismo trabajo que ISN) */
     var ESTADOS_OK = { presentada: 1, descargado: 1, ya_estaba: 1, ya_lo_tenias: 1, por_presentar: 1 };
     var ESTADOS_MAL = { error: 1, rechazada: 1, sin_presentar: 1, cancelado: 1 };
+    // El avance usa el panel común (Fiscontable.panelTrabajo): ocultar, mostrar el detalle, detener y cerrar
+    var panelAvance = Fiscontable.panelTrabajo({ alDetener: function () { detenerTrabajo(); } });
     function pintarAvance(t, titulo) {
-        $("avance").hidden = false;
-        $("avance-titulo").textContent = titulo || "Tributanet";
         var corre = t.estado === "procesando";
         var hechos = (t.renglones || []).filter(function (r) { return ESTADOS_OK[r.estado] || ESTADOS_MAL[r.estado]; }).length;
-        $("avance-estado").textContent = corre ? hechos + " de " + (t.renglones || []).length + "…" : (t.estado === "error" ? "Se detuvo con error" : "Terminó");
-        $("avance-detener").hidden = !corre;
-        $("avance-cerrar").hidden = corre;
-        $("avance-filas").innerHTML = (t.renglones || []).map(function (r) {
+        var filas = (t.renglones || []).map(function (r) {
             var clase = ESTADOS_OK[r.estado] ? "ok" : ESTADOS_MAL[r.estado] ? "mal" : r.estado === "trabajando" ? "va" : "";
-            return '<li class="' + clase + '"><b>' + esc((r.nombre || r.rfc) + " · " + (r.mes_nombre || "") + " " + r.anio + (r.establecimiento ? " · " + r.establecimiento : "")) + "</b>" + esc(r.mensaje || "") + "</li>";
-        }).join("") + (t.error ? '<li class="mal"><b>Error</b>' + esc(t.error) + "</li>" : "");
+            return { clase: clase, titulo: (r.nombre || r.rfc) + " · " + (r.mes_nombre || "") + " " + r.anio + (r.establecimiento ? " · " + r.establecimiento : ""), texto: r.mensaje || "" };
+        });
+        if (t.error) filas.push({ clase: "mal", titulo: "Error", texto: t.error });
+        panelAvance.pintar({ titulo: titulo || "Tributanet", corre: corre, filas: filas,
+            estado: corre ? hechos + " de " + (t.renglones || []).length + "…" : (t.estado === "error" ? "Se detuvo con error" : "Terminó") });
     }
     function seguir(jobId, titulo, despues) {
         E.job = { id: jobId, titulo: titulo };
@@ -763,18 +763,6 @@
         $("d-est").addEventListener("change", pintarMesesDescarga);
         $("d-cancelar").addEventListener("click", function () { $("modal-descargar").hidden = true; });
         $("d-enviar").addEventListener("click", enviarDescarga);
-        $("avance-cerrar").addEventListener("click", function () { $("avance").hidden = true; });
-        // Ocultar / ver el detalle del avance (sigue trabajando); Esc lo oculta, o lo cierra si ya terminó
-        $("avance-min").addEventListener("click", function () {
-            var min = $("avance").classList.toggle("isn-avance--min");
-            this.textContent = min ? "Ver" : "Ocultar"; this.setAttribute("aria-expanded", String(!min));
-        });
-        document.addEventListener("keydown", function (e) {
-            if (e.key !== "Escape" || $("avance").hidden || document.querySelector("dialog[open]")) return;
-            if (!$("avance-cerrar").hidden) $("avance").hidden = true;
-            else if (!$("avance").classList.contains("isn-avance--min")) $("avance-min").click();
-        });
-        $("avance-detener").addEventListener("click", detenerTrabajo);
         $("btn-facturas").hidden = !(IMP === "prof" || IMP === "alc");
         $("btn-facturas").addEventListener("click", function () {
             if (!E.rfc) { aviso("Elige una empresa.", true); return; }

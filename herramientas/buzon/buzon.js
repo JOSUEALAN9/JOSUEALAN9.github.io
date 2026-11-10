@@ -109,7 +109,7 @@
         var t = e.ultima_revision ? fechaHora(e.ultima_revision) : "Nunca";
         var sello = e.estado === "error" ? '<span class="bz-sello bz-sello--roja">Error</span> ' : e.estado === "ok" ? '<span class="bz-sello bz-sello--verde">OK</span> ' : "";
         return sello + "<small>" + t + "</small>" + (e.estado === "error" && e.mensaje ? '<br><small class="bz-error">' + esc(e.mensaje) + "</small>" : "") +
-            (e.proxima && e.activo ? "<br><small>Próxima: " + (e.proxima === "esta noche" ? "esta noche" : fechaLocal(e.proxima)) + "</small>" : "");
+            (e.proxima && e.activo ? "<br><small>Próxima: " + (e.proxima === "esta noche" || e.proxima === "hoy" ? "hoy" : fechaLocal(e.proxima)) + "</small>" : "");
     }
 
     function pintarEmpresas() {
@@ -469,14 +469,14 @@
                     "<td>" + esc(fechaLocal(x.fecha_notificacion)) + '</td><td><div class="bz-acciones">' +
                     (x.documentos.length ? orden(x.documentos).map(function (k) {
                         return '<button type="button" class="bz-btn' + (k === "acto" ? " bz-btn--si" : "") + '" data-doc="' + x.id + '" data-clave="' + esc(k) + '" data-folio="' + esc(x.folio) + '">' + esc(nombreDoc(k)) + "</button>";
-                    }).join("") : '<small class="bz-tenue">Aún no se descargan: pulsa «Revisar ahora» (se descargan hasta 15 por revisión; también en la de la madrugada)</small>') + "</div></td></tr>";
+                    }).join("") : '<small class="bz-tenue">Aún no se descargan: pulsa «Revisar ahora» (hasta 15 por revisión; también en la revisión programada)</small>') + "</div></td></tr>";
             }).join("") + "</tbody></table></div>";
     }
 
     function revisiones() {
         var r = E.detalle.revisiones;
         if (!r.length) return '<p class="bz-vacio">Esta empresa aún no se ha revisado.</p>';
-        var ORIGEN = { manual: "Revisar ahora", madrugada: "Madrugada", abrir: "Abrir notificación" };
+        var ORIGEN = { manual: "Revisar ahora", madrugada: "Programada", abrir: "Abrir notificación" };
         return '<div class="bz-tabla-caja"><table class="bz-tabla"><thead><tr><th>Cuándo</th><th>Cómo</th><th>Resultado</th><th class="num">Nuevos</th></tr></thead><tbody>' +
             r.map(function (x) {
                 var s = x.estado === "ok" ? "verde" : x.estado === "parcial" ? "ambar" : x.estado === "revisando" ? "azul" : "roja";
