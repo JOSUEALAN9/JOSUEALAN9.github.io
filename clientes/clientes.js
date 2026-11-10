@@ -877,6 +877,101 @@ function pintarResumenFicha(cliente) {
     document.getElementById("ficha-aviso-accesos").hidden = !!cliente.efirma_guardada || !puedeGuardarEfirma;
 }
 
+// «Leer de su constancia» del domicilio: la constancia guardada (o la del SAT si no hay) da domicilio, régimen y obligaciones
+document.addEventListener("click", async (e) => {
+    const b = e.target.closest("[data-leer-domicilio]"); if (!b) return;
+    const rfc = rfcEnEdicion, caja = document.getElementById("editar-dato-domicilio");
+    b.disabled = true; b.textContent = "Leyendo…";
+    try {
+        const r = await fetch(`${API_URL}/api/clientes/${encodeURIComponent(rfc)}/obligaciones-fed`, { method: "POST", credentials: "include", body: new FormData() });
+        if (!r.ok) throw new Error(await Fiscontable.leerError(r));
+        await cargarClientes();
+        const c = clientesCache.find(x => x.rfc === rfc); if (c && rfcEnEdicion === rfc) { pintarDatosFiscales(c); pintarObligaciones(c); }
+    } catch (x) { caja.textContent = x.message; }
+});
+
+/* Sucursales (lugares de expedición): C.P. desde los que factura. La predeterminada (★) es la que propone Facturar. */
+let sucDatos = null;
+async function sucApi(ruta, metodo) {
+    const r = await fetch(`${API_URL}/api/clientes/${encodeURIComponent(rfcEnEdicion)}/sucursales${ruta || ""}`, { method: metodo || "GET", credentials: "include",
+        headers: { "Content-Type": "application/json" }, body: metodo === "PUT" ? JSON.stringify(sucApi.cuerpo) : undefined });
+    if (!r.ok) throw new Error(await Fiscontable.leerError(r));
+    return r.json();
+}
+function sucMensaje(texto, mal) {
+    const m = document.getElementById("suc-msj");
+    m.hidden = !texto; m.textContent = texto || ""; m.className = "text-xs " + (mal ? "text-red-600 font-semibold" : "text-slate-500");
+}
+function pintarSucursales(d) {
+    sucDatos = d;
+    const pred = d.predeterminado, fila = (cp, nombre, esFiscal) =>
+        `<li class="suc-fila"><button type="button" class="suc-estrella${pred === cp ? " suc-estrella--si" : ""}" data-suc-pred="${esFiscal ? "fiscal" : esc(cp)}" title="${pred === cp ? "Predeterminada" : "Usar como predeterminada"}" aria-pressed="${pred === cp}">★</button>` +
+        `<b>${esc(cp)}</b><span>${esc(nombre)}</span>` + (esFiscal ? "" : `<button type="button" class="suc-quitar" data-suc-quitar="${esc(cp)}" aria-label="Quitar">✕</button>`) + "</li>";
+    document.getElementById("suc-lista").innerHTML =
+        (d.cp_fiscal ? fila(d.cp_fiscal, "Domicilio fiscal", true) : '<li class="suc-fila"><span>Sin C.P. fiscal: se toma de su constancia.</span></li>') +
+        d.sucursales.filter(x => x.cp !== d.cp_fiscal).map(x => fila(x.cp, x.nombre || "Sucursal", false)).join("");
+}
+async function cargarSucursales(rfc) {
+    document.getElementById("suc-propuestas").hidden = true; sucMensaje("");
+    document.getElementById("suc-lista").innerHTML = "";
+    try { const d = await sucApi(); if (rfcEnEdicion === rfc) pintarSucursales(d); } catch (e) { sucMensaje(e.message, true); }
+}
+async function agregarSucursal(cp, nombre) {
+    sucApi.cuerpo = { cp, nombre };
+    pintarSucursales(await sucApi("", "PUT"));
+}
+document.addEventListener("DOMContentLoaded", () => {
+    const form = document.getElementById("suc-form"); if (!form) return;
+    form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const cp = document.getElementById("suc-cp").value.trim(), nombre = document.getElementById("suc-nombre").value.trim();
+        if (!/^\d{5}$/.test(cp)) return sucMensaje("El código postal debe tener 5 dígitos.", true);
+        try { await agregarSucursal(cp, nombre); form.reset(); sucMensaje(""); } catch (x) { sucMensaje(x.message, true); }
+    });
+    document.getElementById("suc-lista").addEventListener("click", async (e) => {
+        const p = e.target.closest("[data-suc-pred]"), q = e.target.closest("[data-suc-quitar]");
+        try {
+            if (p) pintarSucursales(await sucApi("/" + encodeURIComponent(p.dataset.sucPred) + "/predeterminada", "POST"));
+            if (q) pintarSucursales(await sucApi("/" + encodeURIComponent(q.dataset.sucQuitar), "DELETE"));
+        } catch (x) { sucMensaje(x.message, true); }
+    });
+    document.getElementById("suc-xml").addEventListener("click", async () => {
+        const caja = document.getElementById("suc-propuestas");
+        sucMensaje("Leyendo sus XML emitidos…");
+        try {
+            const d = await sucApi("/desde-xml");
+            const nuevas = d.lugares.filter(x => !x.registrada && !x.fiscal);
+            sucMensaje(d.lugares.length ? "" : `Sin XML emitidos en ${d.anio}.`);
+            caja.hidden = !nuevas.length;
+            caja.innerHTML = nuevas.length ? nuevas.map(x => `<button type="button" class="suc-propuesta" data-suc-cp="${esc(x.cp)}">+ ${esc(x.cp)} <small>${x.xml.toLocaleString("es-MX")} XML</small></button>`).join("") : "";
+            if (d.lugares.length && !nuevas.length) sucMensaje(`Los C.P. de sus XML de ${d.anio} ya están registrados.`);
+        } catch (x) { sucMensaje(x.message, true); }
+    });
+    document.getElementById("suc-propuestas").addEventListener("click", async (e) => {
+        const b = e.target.closest("[data-suc-cp]"); if (!b) return;
+        try { await agregarSucursal(b.dataset.sucCp, ""); b.remove(); if (!document.querySelector("#suc-propuestas [data-suc-cp]")) document.getElementById("suc-propuestas").hidden = true; }
+        catch (x) { sucMensaje(x.message, true); }
+    });
+});
+
+/* Domicilio fiscal y régimen: salen de su constancia de situación fiscal (cada vez que se sube o se descarga una) */
+function pintarDatosFiscales(cliente) {
+    const dom = cliente.domicilio, regs = cliente.regimenes || [];
+    document.getElementById("editar-dato-regimen").textContent = regs.length ? regs.join(", ") : "—";
+    const caja = document.getElementById("editar-dato-domicilio");
+    if (dom && (dom.calle || dom.colonia || dom.municipio)) {
+        const linea1 = [dom.calle, dom.num_ext && "No. " + dom.num_ext, dom.num_int && "Int. " + dom.num_int].filter(Boolean).join(" ");
+        const linea2 = [dom.colonia && "Col. " + dom.colonia, dom.localidad && dom.localidad !== dom.municipio ? dom.localidad : ""].filter(Boolean).join(", ");
+        const linea3 = [dom.municipio, dom.estado, dom.cp && "C.P. " + dom.cp].filter(Boolean).join(", ");
+        caja.textContent = [linea1, linea2, linea3].filter(Boolean).join("\n");
+        caja.style.whiteSpace = "pre-line";
+    } else {
+        caja.innerHTML = (dom && dom.cp ? "C.P. " + esc(dom.cp) + " · " : "") +
+            '<button type="button" class="underline font-semibold text-emerald-700" data-leer-domicilio>Leer de su constancia</button>';
+        caja.style.whiteSpace = "";
+    }
+}
+
 function abrirModalEditar(rfc, ficha) {
     if (sinConexion || soloLectura) return;
     const cliente = clientesCache.find(c => c.rfc === rfc);
@@ -893,6 +988,8 @@ function abrirModalEditar(rfc, ficha) {
     document.getElementById("editar-correo").value = cliente.correo_cliente || "";
     document.getElementById("editar-dato-rfc").textContent = rfc;
     document.getElementById("editar-dato-razon").textContent = cliente.razon_social || cliente.alias;
+    pintarDatosFiscales(cliente);
+    cargarSucursales(cliente.rfc);
     document.getElementById("editar-dato-alta").textContent = cliente.creado_en ? new Date(cliente.creado_en + "Z").toLocaleDateString("es-MX", { day: "numeric", month: "long", year: "numeric" }) : "—";
     pintarCiec(cliente);
     pintarCsd(cliente);
@@ -1046,6 +1143,9 @@ async function leerFed(archivo) {
         pintarListaFed(d);
         msj.className = "text-xs text-emerald-700 font-semibold";
         msj.textContent = d.lista.length ? `✓ ${d.lista.length} obligaciones vigentes.` : "✓ Su constancia no tiene obligaciones (no le toca declaración mensual).";
+        // La misma constancia trae su domicilio fiscal y régimen: se refresca su ficha
+        await cargarClientes();
+        const c = clientesCache.find(x => x.rfc === rfc); if (c && rfcEnEdicion === rfc) pintarDatosFiscales(c);
     } catch (e) { msj.className = "text-xs text-red-600 font-semibold"; msj.textContent = e.message; }
 }
 document.addEventListener("DOMContentLoaded", () => {
@@ -1624,7 +1724,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const b = document.getElementById("btn-constancias"), dlg = document.getElementById("dlg-constancias");
     if (!b || !dlg) return;
     let zona = null;
-    const estados = { alta: "Alta nueva", actualizado: "Actualizado", omitido: "No está en tus clientes", error: "No se pudo" };
+    const estados = { alta: "Alta nueva", actualizado: "Actualizado", omitido: "Omitido", error: "No se pudo" };
     async function leer(archivos) {
         const fd = new FormData();
         archivos.forEach(f => fd.append("archivos", f));
