@@ -4,15 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Impuestos estatales · Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611120500">
-    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611120500">
-    <link rel="stylesheet" href="/herramientas/isn/isn.css?v=202611120500">
-    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611120500">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611120600">
+    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611120600">
+    <link rel="stylesheet" href="/herramientas/isn/isn.css?v=202611120600">
+    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611120600">
 </head>
 <body class="bg-slate-50">
 <div id="app-header" data-modulo="isn" data-titulo="Impuestos estatales" data-migas="Herramientas|/herramientas/"></div>
-<script src="/assets/js/nucleo.js?v=202611120500"></script>
-<script src="/assets/js/barra.js?v=202611120500"></script>
+<script src="/assets/js/nucleo.js?v=202611120600"></script>
+<script src="/assets/js/barra.js?v=202611120600"></script>
 
 <main class="xml-pagina">
     <nav class="est-impuestos" aria-label="Impuesto">
@@ -55,6 +55,8 @@
             <button type="button" id="mv-plantilla" class="xml-btn">⇩ Plantilla de las marcadas</button>
             <button type="button" id="mv-excel" class="xml-btn">▦ Cargar Excel</button>
             <button type="button" id="mv-quitar" class="xml-btn isn-btn-quitar" title="Borra la declaración de este mes de las marcadas (las presentadas nunca se borran)">Quitar del mes</button>
+            <button type="button" id="mv-acuses" class="xml-btn" disabled title="Baja en un ZIP los acuses ya guardados de las marcadas, con su pago en ceros">Bajar acuses</button>
+            <button type="button" id="mv-acuses-correo" class="xml-btn" disabled title="Manda por correo los acuses ya guardados de las marcadas (ZIP adjunto)">Enviar acuses</button>
             <button type="button" id="mv-revisar" class="xml-btn" title="Consulta en Tributanet si ya están presentadas (no llena ni presenta nada)">Revisar en el portal</button>
             <button type="button" id="mv-presentar" class="xml-btn xml-btn--primario">Presentar marcadas</button>
         </div>
@@ -256,7 +258,8 @@
     <ol id="avance-filas" class="isn-avance__filas"></ol>
 </div>
 
-<script src="/herramientas/isn/obligaciones.js?v=202611120500"></script>
-<script src="/herramientas/isn/estatal.js?v=202611120500"></script>
+<script src="/herramientas/isn/obligaciones.js?v=202611120600"></script>
+<script src="/herramientas/isn/acuses-bloque.js?v=202611120600"></script>
+<script src="/herramientas/isn/estatal.js?v=202611120600"></script>
 </body>
 </html>
