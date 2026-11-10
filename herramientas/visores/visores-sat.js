@@ -24,6 +24,7 @@
     function decir(texto, mal) { var m = $("vs-msj"); m.textContent = texto || ""; m.className = "vs-msj" + (mal ? " vs-msj--mal" : ""); }
 
     function pintarLista() {
+        if (!$("vs-leer")) return;                      // la página se bloqueó (módulo sin acceso)
         var caja = $("vs-lista");
         if (!S.lecturas.length) {
             caja.innerHTML = '<p class="vs-vacio">Todavía no hay lecturas guardadas de esta empresa. Pulsa «Leer el visor del SAT»: tarda de uno a tres minutos y puedes seguir trabajando mientras tanto.</p>';
@@ -54,6 +55,7 @@
             }).join("") + "</tbody></table></div>";
     }
     function pintarDetalle() {
+        if (!$("vs-leer")) return;                      // la página se bloqueó (módulo sin acceso)
         var caja = $("vs-detalle"), d = S.abierta;
         if (!d) { caja.hidden = true; caja.innerHTML = ""; return; }
         var p = d.detalle[S.pantalla] || d.detalle[0];
@@ -72,6 +74,7 @@
     }
 
     async function cargar(silencio) {
+        if (!$("vs-leer")) return;                      // la página se bloqueó (módulo sin acceso)
         if (!S.empresa) { $("vs-caja").hidden = true; return; }
         $("vs-caja").hidden = false;
         try {
@@ -132,6 +135,7 @@
     }
 
     async function arrancar() {
+        if (!$("vs-leer")) return;                      // módulo sin acceso: la página ya muestra el aviso
         $("vs-leer").addEventListener("click", leer);
         $("vs-lista").addEventListener("click", accion);
         $("vs-detalle").addEventListener("click", async function (e) {
