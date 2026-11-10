@@ -1084,7 +1084,12 @@
             var p = original.apply(this, arguments);
             var fin = function () { var i = enCurso.indexOf(marca); if (i !== -1) enCurso.splice(i, 1); };
             if (nuestra) p.then(fin, fin);
-            if (nuestra) p.then(function (r) { if (r && r.status === 423 && window.Fiscontable.bloquearPantalla) window.Fiscontable.bloquearPantalla(true); }, function () {});
+            if (nuestra) p.then(function (r) {
+                if (r && r.status === 423) {
+                    window.__fcPerdioPorBloqueo = true;      // algo de la página no cargó por el bloqueo: al desbloquear se recarga
+                    if (window.Fiscontable.bloquearPantalla) window.Fiscontable.bloquearPantalla(true);
+                }
+            }, function () {});
             return p;
         };
         envuelto.__fc = true;
@@ -2605,7 +2610,10 @@
             var r = await fetch(API + "/api/mi-perfil/pin/desbloquear", { method: "POST", credentials: "include",
                 headers: { "Content-Type": "application/json" }, body: JSON.stringify({ pin: pin }) });
             if (!r.ok) { msj.textContent = await window.Fiscontable.leerError(r); document.getElementById("fc-bl-pin").select(); return; }
-            ponerLS(LLAVE_BLOQ, null); ultimaMarca = 0; quitarCapa(); marcarActividad();
+            ponerLS(LLAVE_BLOQ, null); ultimaMarca = 0;
+            // Si mientras estaba bloqueada algo de la página no se pudo cargar, se recarga para que no quede a medias
+            if (window.__fcPerdioPorBloqueo) { window.__fcPerdioPorBloqueo = false; location.reload(); return; }
+            quitarCapa(); marcarActividad();
         } catch (e) { msj.textContent = "No se pudo conectar. Intenta de nuevo."; }
     }
     // La marca es de otro inicio de sesión (o del formato viejo, sin sesión)
@@ -2654,7 +2662,9 @@
         // Las demás pestañas: si una se bloquea o se desbloquea, todas igual
         window.addEventListener("storage", function (e) {
             if (e.key !== LLAVE_BLOQ) return;
-            if (e.newValue) bloquearPantalla(true); else quitarCapa();
+            if (e.newValue) bloquearPantalla(true);
+            else if (window.__fcPerdioPorBloqueo) location.reload();     // la desbloquearon en otra pestaña
+            else quitarCapa();
         });
     }
     // Recargar con la pantalla bloqueada no la abre: la capa sale antes que cualquier dato
