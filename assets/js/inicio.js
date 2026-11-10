@@ -346,7 +346,16 @@
         if (!p || arrancado) return;
         arrancado = true;
         recientes();
-        if (!p.viendo_como) pasosCuenta();
+        // Cuenta de revisión (Microsoft Store): en vez de «Configura tu cuenta», un recorrido por la pantalla (una vez)
+        var revision = /@fiscontable\.invalid$/.test(p.correo || "");
+        if (revision) {
+            var visto = false; try { visto = localStorage.getItem("fc-recorrido:revision") === "1"; } catch (e) { /* nada */ }
+            if (!visto && Fiscontable.recorrido) setTimeout(function () {
+                Fiscontable.recorrido("revision", ["Bienvenido a Fiscontable, el sistema para despachos contables en México. Esta cuenta de revisión " +
+                    "tiene empresas de ejemplo: puedes recorrer todo, pero no guardar cambios. Te mostramos las partes principales; " +
+                    "después, el botón «?» de cada pantalla explica cómo se usa."]);
+            }, 1200);
+        } else if (!p.viendo_como) pasosCuenta();
         var e = p.empresa_activa;
         $("tb-vista-empresa").textContent = e ? (e.alias || e.rfc) : "Empresa activa";
         verVista(vistaGuardada() || (e ? "empresa" : "despacho"));
