@@ -61,6 +61,7 @@ function ajustesPc(a, tramites) {
                 a <input type="time" data-campo="hasta" value="${esc(a.ajustes.hasta)}" class="border border-gray-200 rounded px-1"></div>
             <label class="block"><input type="checkbox" data-campo="copia_local" ${a.ajustes.copia_local ? "checked" : ""}> Guardar copia en esta PC (Documentos\\Fiscontable)</label>
             <label class="block" title="Con la web cerrada o bloqueada por inactividad, esta PC no recibe trámites: los hace el servidor, como siempre."><input type="checkbox" data-campo="solo_presente" ${a.ajustes.solo_presente ? "checked" : ""}> Trabajar solo mientras tengo Fiscontable abierto <span class="text-slate-400">(si no estás, lo hace el servidor)</span></label>
+            <label class="block" title="Sirve para pedir constancias y opiniones desde el ícono del Agente (Trámites desde esta PC) aunque Fiscontable no responda. Se guardan cifradas con tu cuenta de Windows; al apagarlo se borran de esa PC."><input type="checkbox" data-campo="boveda" ${a.ajustes.boveda ? "checked" : ""}> Guardar en esta PC las e.firmas que use, para trabajar aunque Fiscontable no responda <span class="text-slate-400">(cifradas con tu cuenta de Windows; necesita el Agente 1.8)</span></label>
             <div class="flex flex-wrap gap-2 items-center pt-1">
                 <button type="button" data-guardar="${esc(a.id)}" class="font-bold text-white bg-slate-800 hover:bg-slate-700 rounded-lg py-1.5 px-3" disabled>Sin cambios</button>
                 ${pausada ? `<button type="button" data-pausa="${esc(a.id)}" data-horas="0" class="border border-gray-200 rounded-lg py-1.5 px-3">Reanudar</button>`
@@ -147,6 +148,7 @@ async function guardarPc(b) {
         desde: caja.querySelector('[data-campo="desde"]').value, hasta: caja.querySelector('[data-campo="hasta"]').value,
         copia_local: caja.querySelector('[data-campo="copia_local"]').checked,
         solo_presente: caja.querySelector('[data-campo="solo_presente"]').checked,
+        boveda: caja.querySelector('[data-campo="boveda"]').checked,
     };
     if (marcadas.length === total) datos.todos_los_tramites = true; else datos.tramites = marcadas;
     b.disabled = true; b.textContent = "Guardando…";
