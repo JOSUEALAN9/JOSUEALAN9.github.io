@@ -7,6 +7,7 @@ let clientesCache = [];
 let soloLectura = false;
 let puedeGuardarEfirma = true;   // en la Demo no se guardan e.firmas (lo decide el servidor)
 let sinConexion = false;
+let espacioCli = null;           // despacho: {tipo: "personal"|"despacho", despacho: {...}, puede_cambiar} o null
 let conIsn = false;              // el usuario tiene el módulo ISN: se muestran las obligaciones
 let conXml = false;              // tiene Descarga masiva de XML: pestaña "Descarga de XML" en la ficha
 let conFacturar = false;         // tiene Facturar: en Accesos va su sello digital (CSD), régimen y C.P.
@@ -86,6 +87,7 @@ async function verificarPerfil() {
         conXml = (perfil.modulos_permitidos || []).indexOf("descarga_xml") !== -1;
         conFacturar = (perfil.modulos_permitidos || []).indexOf("facturacion") !== -1;
         puedeGuardarEfirma = perfil.puede_guardar_efirma !== false;
+        espacioCli = perfil.viendo_como ? null : (perfil.espacio || null);
 
         const btnAgregar = document.getElementById("btn-agregar-cliente");
         btnAgregar.disabled = false;
@@ -169,6 +171,7 @@ async function alElegirCer() {
         return;
     }
     altaCer = d;
+    revisarEnDespacho(d.rfc);
     const hasta = d.vigenteHasta ? d.vigenteHasta.toLocaleDateString("es-MX", { day: "numeric", month: "short", year: "numeric" }) : "";
     info.className = "alta-info" + (d.vencido ? " alta-info--mal" : "");
     info.textContent = d.vencido ? `RFC ${d.rfc} · esta e.firma venció el ${hasta}: hay que renovarla en el SAT.`
@@ -195,7 +198,101 @@ function abrirModalNuevoCliente() {
     errorAlta("");
     rfcDesdeCer(null);
     ponerFichaAlta("general");
+    pintarEspacioAlta();
+    avisoDespacho(null);
     document.getElementById("modal-nuevo-cliente").classList.add("modal-active");
+}
+
+/* ---------------------------------------------------------------- despacho (Mi espacio / Despacho)
+   Al registrar se dice dónde queda; si ya está en el despacho, se avisa (pedir acceso en vez de duplicarla).
+   En el despacho, quien no puede registrar empresas manda una solicitud al titular. */
+function soloSolicitud() {
+    const e = espacioCli;
+    return !!(e && e.tipo === "despacho" && !e.despacho.propia && !e.despacho.agregar);
+}
+function pintarEspacioAlta() {
+    const caja = document.getElementById("alta-espacio"), boton = document.getElementById("btn-guardar-cliente");
+    const e = espacioCli;
+    boton.textContent = soloSolicitud() ? "Mandar solicitud al titular" : "Registrar empresa";
+    if (!e || e.despacho.propia) { caja.hidden = true; return; }
+    const enDespacho = e.tipo === "despacho";
+    caja.className = "alta-espacio" + (enDespacho ? " alta-espacio--despacho" : "");
+    caja.innerHTML = "<span>" + (enDespacho ? `Se guardará en el despacho <b>${esc(e.despacho.nombre)}</b>.` : "Se guardará en <b>Mi espacio</b> (solo tú la ves).") + "</span>" +
+        (e.puede_cambiar ? ` <button type="button" data-alta-espacio="${enDespacho ? "personal" : "despacho"}">${enDespacho ? "¿Es tuya? Regístrala en Mi espacio" : "¿Es del despacho? Regístrala ahí"}</button>` : "") +
+        (soloSolicitud() ? "<small>En el despacho, registrar empresas lo autoriza el titular: le mandamos una solicitud. Su e.firma la subes cuando la acepte.</small>" : "");
+    caja.hidden = false;
+}
+async function cambiarEspacioSinAlta(clave) {
+    await cambiarEspacioAlta(clave, "/clientes/");
+}
+async function cambiarEspacioAlta(clave, destino) {
+    try {
+        const r = await fetch(`${API_URL}/api/mi-perfil/espacio`, { method: "PUT", credentials: "include",
+            headers: { "Content-Type": "application/json" }, body: JSON.stringify({ espacio: clave }) });
+        if (!r.ok) throw new Error(await Fiscontable.leerError(r));
+        try { sessionStorage.setItem("fc-espacio-cambio", clave); } catch (x) { /* nada */ }
+        location.href = destino || "/clientes/?nuevo=1";
+    } catch (x) { errorAlta(x.message); }
+}
+let despachoRevisado = "";
+async function revisarEnDespacho(rfc) {
+    if (!espacioCli || espacioCli.despacho.propia || !RFC_VALIDO.test(rfc || "") || rfc === despachoRevisado) return;
+    despachoRevisado = rfc;
+    try {
+        const r = await fetch(`${API_URL}/api/despacho/existe/${encodeURIComponent(rfc)}`, { credentials: "include" });
+        if (!r.ok) return;
+        const d = await r.json();
+        if (rfc !== despachoRevisado || !d.existe) { if (rfc === despachoRevisado) avisoDespacho(null); return; }
+        const nombre = esc(d.alias || rfc), enDespacho = espacioCli.tipo === "despacho";
+        if (d.tengo_acceso && !enDespacho)
+            avisoDespacho(`<b>${nombre}</b> ya está en el despacho y la tienes ahí. <button type="button" data-alta-espacio="despacho" data-sin-alta="1">Ir al despacho</button>. Si también la quieres en Mi espacio, continúa.`);
+        else if (d.solicitud_pendiente)
+            avisoDespacho(`<b>${nombre}</b> ya está en el despacho. Ya pediste acceso; te avisamos cuando respondan.`);
+        else if (!d.tengo_acceso)
+            avisoDespacho(`<b>${nombre}</b> ya está en el despacho${enDespacho ? ", pero no la tienes asignada" : ""}. <button type="button" data-pedir-acceso="${esc(rfc)}">Pedir acceso</button>` +
+                (enDespacho ? "" : " en lugar de duplicarla. Si de todos modos la quieres en Mi espacio, continúa."));
+    } catch (x) { /* sin red: no pasa nada */ }
+}
+function avisoDespacho(html) {
+    const caja = document.getElementById("alta-despacho-aviso");
+    if (!html) { caja.hidden = true; caja.innerHTML = ""; despachoRevisado = html === null ? "" : despachoRevisado; return; }
+    caja.innerHTML = html; caja.hidden = false;
+}
+async function pedirAccesoDespacho(rfc, boton) {
+    boton.disabled = true;
+    try {
+        const r = await fetch(`${API_URL}/api/despacho/solicitudes`, { method: "POST", credentials: "include",
+            headers: { "Content-Type": "application/json" }, body: JSON.stringify({ tipo: "acceso", rfc }) });
+        if (!r.ok) throw new Error(await Fiscontable.leerError(r));
+        const d = await r.json();
+        avisoDespacho(d.estado === "aceptada" ? "Listo: ya tienes acceso. Está en el despacho." : "Listo: le avisamos al titular. Te llega un aviso cuando responda.");
+    } catch (x) { boton.disabled = false; errorAlta(x.message); }
+}
+async function mandarSolicitudAlta(rfc, alias) {
+    const r = await fetch(`${API_URL}/api/despacho/solicitudes`, { method: "POST", credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tipo: "alta", rfc, alias, tipo_sociedad: document.getElementById("input-tipo").value }) });
+    if (!r.ok) throw new Error(await Fiscontable.leerError(r));
+    cerrarModalNuevoCliente();
+    mostrarAlerta("success", `Le mandamos la solicitud al titular para registrar ${alias} (${rfc}) en el despacho. Cuando la acepte aparecerá aquí; entonces sube su e.firma.`);
+}
+async function pasarAlDespacho(rfc) {
+    const c = (clientesCache || []).find(x => x.rfc === rfc), e = espacioCli;
+    if (!c || !e) return;
+    const directo = e.despacho.agregar;
+    const ok = await Fiscontable.confirmar({ titulo: `¿Pasar ${c.alias} al despacho «${e.despacho.nombre}»?`, si: directo ? "Pasar al despacho" : "Mandar solicitud",
+        texto: directo ? "Pasa con todo su historial (XML, documentos, Buzón, facturas) y deja de estar en Mi espacio. El equipo la verá según sus permisos."
+                       : "Le mandamos una solicitud al titular. Cuando la acepte, pasa con todo su historial y deja de estar en Mi espacio." });
+    if (!ok) return;
+    try {
+        const r = await fetch(`${API_URL}/api/despacho/pasar`, { method: "POST", credentials: "include",
+            headers: { "Content-Type": "application/json" }, body: JSON.stringify({ rfcs: [rfc] }) });
+        if (!r.ok) throw new Error(await Fiscontable.leerError(r));
+        const res = (await r.json()).resultados[0];
+        if (!res.ok) throw new Error(res.motivo);
+        mostrarAlerta("success", res.pasada ? `${c.alias} ya está en el despacho, con todo su historial.` : `Listo: le mandamos la solicitud al titular para pasar ${c.alias} al despacho.`);
+        if (res.pasada) await cargarClientes();
+    } catch (x) { mostrarAlerta("error", x.message); }
 }
 function cerrarModalNuevoCliente() {
     document.getElementById("modal-nuevo-cliente").classList.remove("modal-active");
@@ -223,6 +320,13 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("input-rfc").addEventListener("input", (e) => {
         const tipo = document.getElementById("input-tipo");
         if (e.target.value.trim().length === 13 && !tipo.value) tipo.value = "Persona física";
+        revisarEnDespacho(e.target.value.trim().toUpperCase().replace(/[\s-]/g, ""));
+    });
+    document.getElementById("modal-nuevo-cliente").addEventListener("click", (e) => {
+        const b = e.target.closest("[data-alta-espacio]");
+        if (b) { e.preventDefault(); if (b.dataset.sinAlta) cambiarEspacioSinAlta(b.dataset.altaEspacio); else cambiarEspacioAlta(b.dataset.altaEspacio); return; }
+        const p = e.target.closest("[data-pedir-acceso]");
+        if (p) { e.preventDefault(); pedirAccesoDespacho(p.dataset.pedirAcceso, p); }
     });
 });
 
@@ -394,6 +498,7 @@ function menuAcciones(c) {
             ${enlaces.map(([t, h]) => `<a href="${h}">${esc(t)}</a>`).join("")}
             ${soloLectura ? "" : `<div class="xml-separador"></div>
             ${c.efirma_guardada ? `<button type="button" data-accion="olvidar" data-rfc="${esc(c.rfc)}">Olvidar la e.firma</button>` : ""}
+            ${espacioCli && espacioCli.tipo === "personal" ? `<button type="button" data-accion="pasar" data-rfc="${esc(c.rfc)}">Pasar al despacho</button>` : ""}
             <button type="button" data-accion="quitar" data-rfc="${esc(c.rfc)}" class="xml-peligro">Quitar del directorio</button>`}
         </div></div>`;
 }
@@ -423,6 +528,7 @@ document.addEventListener("click", async e => {
         if (acc.dataset.accion === "editar") abrirModalEditar(rfc);
         else if (acc.dataset.accion === "olvidar") olvidarEfirma(rfc);
         else if (acc.dataset.accion === "quitar") eliminarCliente(rfc);
+        else if (acc.dataset.accion === "pasar") pasarAlDespacho(rfc);
         else if (acc.dataset.accion === "trabajar") { try { await Fiscontable.elegirEmpresa(rfc); Fiscontable.toast("Trabajando con " + rfc + "."); } catch (x) { mostrarAlerta("error", x.message); } }
         return;
     }
@@ -550,6 +656,10 @@ async function crearCliente(e) {
     }
     if (!alias) return aviso("general", "Escribe el nombre de la empresa (como la quieres ver en el sistema).", "input-alias");
     if ((clientesCache || []).some(c => c.rfc === rfc)) return aviso("general", `Ya tienes registrada esa empresa (${rfc}).`);
+    if (soloSolicitud()) {
+        try { await mandarSolicitudAlta(rfc, alias); } catch (x) { aviso("general", x.message); }
+        return;
+    }
     const fac = datosFacturarAlta();
     if (fac.error) return aviso("facturar", fac.error, fac.campo);
     datos.append("nombre", alias);

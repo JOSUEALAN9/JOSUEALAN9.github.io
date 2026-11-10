@@ -1871,3 +1871,41 @@ html.fc-ambiente-pruebas .fc-barra, html.fc-ambiente-pruebas #app-header > heade
 
 /* Foco visible al navegar con Tab (filas y tarjetas que se abren con Enter) */
 tr[tabindex="0"]:focus-visible, [tabindex="0"]:focus-visible { outline: 2px solid rgb(var(--ac-600)); outline-offset: -2px; }
+
+
+/* --- Espacio: Mi espacio / Despacho (barra) ---
+   Siempre a la vista para saber dónde estás trabajando. El despacho va en color arena; Mi espacio, neutro. */
+.fc-espacio { border: 1px solid rgba(255, 255, 255, .14); max-width: 220px; }
+.fc-espacio__ico { display: inline-grid; place-items: center; }
+.fc-espacio__nombre { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 150px; }
+.fc-espacio--despacho { background: rgba(217, 180, 138, .16); border-color: rgba(217, 180, 138, .38); color: #F1DCC1; }
+.fc-espacio--despacho:hover { background: rgba(217, 180, 138, .26); color: #FFF3E2; }
+.fc-espacio--personal { color: rgb(var(--g-200)); }
+.fc-espacio--recien { animation: fc-espacio-luz 1.2s ease-out 2; }
+@keyframes fc-espacio-luz { 0% { box-shadow: 0 0 0 0 rgba(217, 180, 138, .7); } 100% { box-shadow: 0 0 0 10px rgba(217, 180, 138, 0); } }
+@media (prefers-reduced-motion: reduce) { .fc-espacio--recien { animation: none; } }
+:root[data-barra="clara"] .fc-espacio { border-color: var(--linea); }
+:root[data-barra="clara"] .fc-espacio--despacho { background: #FBF3E8; border-color: #EBD3B3; color: #7A4E1D; }
+:root[data-barra="clara"] .fc-espacio--personal { color: rgb(var(--g-700)); }
+.fc-espacios { width: 320px; }
+.fc-espacios__lista { padding: 6px; display: grid; gap: 2px; }
+.fc-espacios__item { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; padding: 10px; border: 0; background: none;
+    border-radius: 10px; cursor: pointer; color: var(--texto); font: inherit; }
+.fc-espacios__item:hover { background: rgb(var(--g-100)); }
+.fc-espacios__item:focus-visible { outline: 2px solid rgb(var(--ac-600)); outline-offset: -2px; }
+.fc-espacios__item--activo { background: var(--acento-suave); }
+.fc-espacios__ico { width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; flex: none; background: rgb(var(--g-100)); color: rgb(var(--g-700)); }
+.fc-espacios__ico svg { width: 18px; height: 18px; }
+.fc-espacios__item--despacho .fc-espacios__ico { background: #FBF0E1; color: #8A5A22; }
+.fc-espacios__item .fc-empresas__texto small { font-family: inherit; }
+@media (max-width: 700px) { .fc-espacios { width: auto; } }
+/* En pantallas chicas el botón queda en puro ícono (el color dice en qué espacio estás) */
+@media (max-width: 899px) { .fc-espacio { padding: 0 9px; border-color: transparent; } .fc-espacio .fc-empresa__flecha { display: none; }
+    .fc-espacio--despacho { border-color: rgba(217, 180, 138, .38); } }
+@media (max-width: 420px) { .fc-acciones .fc-accion { padding: 0 8px; } }
+@media (max-width: 380px) { .fc-casa { display: none; } }          /* el logo ya lleva a Inicio */
+/* Botones dentro de un letrero (invitación a un despacho) */
+.fc-letrero__boton { flex: none; border: 1px solid currentColor; background: transparent; color: inherit; border-radius: 8px; padding: 4px 12px;
+    font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
+.fc-letrero__boton--principal { background: rgb(var(--in-600)); border-color: rgb(var(--in-600)); color: rgb(var(--g-0)); }
+.fc-letrero__boton:disabled { opacity: .6; cursor: default; }

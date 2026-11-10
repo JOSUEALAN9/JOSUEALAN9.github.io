@@ -272,7 +272,8 @@
         moneda2:  "M12 3v18M17 7H9.5a3 3 0 000 6h5a3 3 0 010 6H6",
         contraer: "M11 17l-5-5 5-5M18 17l-5-5 5-5",
         estrella: "M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z",
-        calendario: "M8 7V3m8 4V3M4 11h16M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+        calendario: "M8 7V3m8 4V3M4 11h16M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z",
+        equipo:   "M17 20h5v-2a3 3 0 00-5.4-1.8M17 20H7m10 0v-2c0-.7-.1-1.3-.4-1.8M7 20H2v-2a3 3 0 015.4-1.8M7 20v-2c0-.7.1-1.3.4-1.8m0 0a5 5 0 019.2 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
     };
 
     /* ------------------------------------------------------- la barra */
@@ -327,6 +328,13 @@
                 '<a class="fc-casa" href="/" title="Inicio" aria-label="Inicio"' + (clave === "portada" ? ' aria-current="page"' : "") + ">" + ico(D.casa, 1.9) + "</a>" +
                 '<nav class="fc-migas" aria-label="Ruta">' + migas + "</nav>" +
                 '<div class="fc-acciones">' +
+                  // Despacho (core/despachos.py del servidor): en qué espacio trabajas, siempre a la vista
+                  '<button type="button" class="fc-accion fc-espacio" id="fc-btn-espacio" aria-haspopup="menu" aria-expanded="false" hidden>' +
+                    '<span class="fc-espacio__ico" id="fc-espacio-ico"></span>' +
+                    '<span class="fc-accion__etiqueta fc-espacio__nombre" id="fc-espacio-nombre"></span>' +
+                    '<span class="fc-empresa__flecha" aria-hidden="true">▾</span>' +
+                    '<span class="fc-contador" id="fc-espacio-contador" hidden>0</span>' +
+                  "</button>" +
                   '<button type="button" class="fc-accion fc-empresa" id="fc-btn-empresa" aria-haspopup="menu" aria-expanded="false" hidden>' +
                     ico(D.edificio) +
                     '<span class="fc-accion__etiqueta fc-empresa__nombre" id="fc-empresa-nombre">Elegir empresa</span>' +
@@ -354,7 +362,7 @@
                     '<span class="fc-accion__etiqueta" id="fc-nombre-corto"></span>' +
                   "</button>" +
                 "</div>" +
-                menuPerfilHTML() + menuEmpresasHTML() + menuModulosHTML() +
+                menuPerfilHTML() + menuEspaciosHTML() + menuEmpresasHTML() + menuModulosHTML() +
               "</div>" +
             "</header>" +
             avisoHTML();
@@ -376,6 +384,8 @@
                 ico(D.persona) + "Editar mi perfil</button>" +
               '<a class="fc-menu__boton" href="/agente/" role="menuitem">' +
                 ico(D.pc) + "Conectar esta PC</a>" +
+              '<a class="fc-menu__boton" href="/despacho/" id="fc-menu-despacho" role="menuitem" hidden>' +
+                ico(D.equipo) + "Mi despacho</a>" +
               '<a class="fc-menu__boton fc-menu__boton--salir" href="' + API + '/cdn-cgi/access/logout" role="menuitem">' +
                 ico(D.salir) + "Cerrar sesión</a>" +
             "</div></div>";
@@ -754,11 +764,131 @@
         } catch (e) { c.favorito = !c.favorito; pintarListaEmpresas(); brindis("No se pudo guardar el favorito."); }
     }
 
+    /* --------------------------------------------- espacio: Mi espacio / Despacho
+       Quien es de un despacho trabaja en las empresas compartidas o en las suyas. El servidor guarda cuál eligió; al
+       cambiar se recarga la página (todo lo que se ve cambia). Lo de cada espacio (empresa y periodo activos) se guarda aparte. */
+    function menuEspaciosHTML() {
+        return '<div class="fc-menu fc-espacios" id="fc-espacios" role="menu" hidden>' +
+            '<div class="fc-empresas__cabeza"><div class="fc-menu__nombre">¿Dónde trabajas?</div>' +
+              '<div class="fc-menu__dato" id="fc-espacios-sub"></div></div>' +
+            '<div class="fc-espacios__lista" id="fc-espacios-lista"></div>' +
+            '<div class="fc-empresas__pie"><a class="fc-empresas__nueva" href="/despacho/" id="fc-espacios-ver">Ver mi despacho</a></div>' +
+            "</div>";
+    }
+
+    function pintarEspacio(p) {
+        var boton = document.getElementById("fc-btn-espacio");
+        if (!boton) return;
+        var e = p && !p._error && !p.viendo_como ? p.espacio : null;
+        boton.hidden = !e;
+        var enlace = document.getElementById("fc-menu-despacho");
+        if (enlace) enlace.hidden = !(p && p.despacho && p.despacho.id);
+        if (!e) return;
+        var enDespacho = e.tipo === "despacho", d = e.despacho || {};
+        boton.classList.toggle("fc-espacio--despacho", enDespacho);
+        boton.classList.toggle("fc-espacio--personal", !enDespacho);
+        document.getElementById("fc-espacio-ico").innerHTML = ico(enDespacho ? D.equipo : D.persona, 1.9);
+        document.getElementById("fc-espacio-nombre").textContent = enDespacho ? d.nombre : "Mi espacio";
+        boton.title = (enDespacho ? "Trabajas en el despacho «" + d.nombre + "»" : "Trabajas en Mi espacio: solo tú lo ves") +
+            (e.puede_cambiar ? ". Clic para cambiar." : ".");
+        var pend = (p.despacho && p.despacho.pendientes) || 0;
+        var cont = document.getElementById("fc-espacio-contador");
+        cont.hidden = !pend; cont.textContent = pend;
+        document.getElementById("fc-espacios-sub").textContent = (d.nombre_papel || "") + (d.propia ? " · tu cuenta es la del despacho" : "");
+        var opciones = [{ clave: "despacho", titulo: d.nombre, desc: "Empresas compartidas con tu equipo", icono: D.equipo }];
+        if (e.puede_cambiar) opciones.push({ clave: "personal", titulo: "Mi espacio", desc: "Tus clientes extra. Solo tú los ves.", icono: D.persona });
+        document.getElementById("fc-espacios-lista").innerHTML = opciones.map(function (o) {
+            var activo = o.clave === e.tipo;
+            return '<button type="button" class="fc-espacios__item fc-espacios__item--' + o.clave + (activo ? " fc-espacios__item--activo" : "") +
+                '" data-espacio="' + o.clave + '" role="menuitemradio" aria-checked="' + activo + '">' +
+                '<span class="fc-espacios__ico">' + ico(o.icono, 1.9) + "</span>" +
+                '<span class="fc-empresas__texto"><strong>' + esc(o.titulo) + "</strong><small>" + esc(o.desc) + "</small></span>" +
+                (activo ? '<span class="fc-empresas__check">' + ico(D.palomita, 2.2) + "</span>" : "") + "</button>";
+        }).join("");
+        document.getElementById("fc-espacios-ver").textContent = "Ver mi despacho" + (pend ? " · " + pend + " por aprobar" : "");
+        try {
+            if (sessionStorage.getItem("fc-espacio-cambio")) {
+                sessionStorage.removeItem("fc-espacio-cambio");
+                boton.classList.add("fc-espacio--recien");
+                setTimeout(function () { boton.classList.remove("fc-espacio--recien"); }, 2400);
+            }
+        } catch (er) { /* sin almacenamiento */ }
+    }
+
+    function abrirEspacios() {
+        var panel = document.getElementById("fc-espacios"), boton = document.getElementById("fc-btn-espacio");
+        document.getElementById("fc-menu").hidden = true;
+        cerrarEmpresas(); cerrarModulos();
+        panel.hidden = false;
+        boton.setAttribute("aria-expanded", "true");
+        var interior = panel.parentElement.getBoundingClientRect(), r = boton.getBoundingClientRect();
+        panel.style.right = Math.max(12, interior.right - r.right) + "px";
+        var activo = panel.querySelector(".fc-espacios__item--activo") || panel.querySelector("[data-espacio]");
+        if (activo && window.innerWidth > 700) activo.focus();
+    }
+
+    function cerrarEspacios() {
+        var panel = document.getElementById("fc-espacios");
+        if (!panel || panel.hidden) return;
+        panel.hidden = true;
+        document.getElementById("fc-btn-espacio").setAttribute("aria-expanded", "false");
+    }
+
+    async function cambiarEspacio(clave) {
+        var e = perfilActual && perfilActual.espacio;
+        cerrarEspacios();
+        if (!e || e.tipo === clave) return;
+        try {
+            var resp = await fetch(API + "/api/mi-perfil/espacio", {
+                method: "PUT", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ espacio: clave })
+            });
+            if (!resp.ok) throw new Error(await window.Fiscontable.leerError(resp));
+            try { sessionStorage.setItem("fc-espacio-cambio", clave); } catch (er) { /* sin almacenamiento */ }
+            mostrarCambio(clave === "personal" ? "Mi espacio" : (e.despacho && e.despacho.nombre) || "el despacho", "");
+            location.reload();
+        } catch (er) {
+            aviso(er.message || "No se pudo cambiar de espacio.");
+        }
+    }
+
+    function prepararEspacios() {
+        var boton = document.getElementById("fc-btn-espacio");
+        if (!boton) return;
+        boton.addEventListener("click", function (ev) {
+            ev.stopPropagation();
+            if (document.getElementById("fc-espacios").hidden) abrirEspacios(); else cerrarEspacios();
+        });
+        var panel = document.getElementById("fc-espacios");
+        panel.addEventListener("click", function (ev) {
+            ev.stopPropagation();
+            var b = ev.target.closest("[data-espacio]");
+            if (b) cambiarEspacio(b.dataset.espacio);
+        });
+        panel.addEventListener("keydown", function (ev) {
+            if (ev.key !== "ArrowDown" && ev.key !== "ArrowUp") return;
+            var items = [].slice.call(panel.querySelectorAll("[data-espacio]")), i = items.indexOf(document.activeElement);
+            var sig = items[i + (ev.key === "ArrowDown" ? 1 : -1)];
+            if (sig) { ev.preventDefault(); sig.focus(); }
+        });
+        document.addEventListener("click", cerrarEspacios);
+        document.addEventListener("keydown", function (ev) { if (ev.key === "Escape") cerrarEspacios(); });
+        // Otra pestaña cambió de espacio: al volver a esta, se recarga para no mezclar lo que se ve
+        document.addEventListener("visibilitychange", async function () {
+            if (document.visibilityState !== "visible" || !perfilActual || !perfilActual.espacio) return;
+            try {
+                var r = await fetch(API + "/api/mi-perfil", { credentials: "include", cache: "no-store" });
+                if (!r.ok) return;
+                var p = await r.json();
+                if (p.espacio && p.espacio.tipo !== perfilActual.espacio.tipo) location.reload();
+            } catch (er) { /* sin red: se revisa la próxima vez */ }
+        });
+    }
+
     async function abrirEmpresas() {
         var panel = document.getElementById("fc-empresas");
         var boton = document.getElementById("fc-btn-empresa");
         document.getElementById("fc-menu").hidden = true;
-        cerrarModulos();
+        cerrarModulos(); cerrarEspacios();
         panel.hidden = false;
         boton.setAttribute("aria-expanded", "true");
         var interior = panel.parentElement.getBoundingClientRect();
@@ -1857,7 +1987,7 @@
         document.getElementById("fc-menu").hidden = true;
         document.getElementById("fc-mp-nombre").value = perfilActual.nombre || "";
         document.getElementById("fc-mp-telefono").value = perfilActual.telefono || "";
-        document.getElementById("fc-mp-correo").value = perfilActual.correo || "";
+        document.getElementById("fc-mp-correo").value = perfilActual.persona || perfilActual.correo || "";
         document.getElementById("fc-mp-titulo").textContent = esPrimeraVez ? "Te damos la bienvenida" : "Mi perfil";
         document.getElementById("fc-mp-sub").textContent = esPrimeraVez
             ? "Sólo falta tu nombre para personalizar tu espacio. Lo puedes cambiar después."
@@ -1931,13 +2061,13 @@
 
     function pintarPerfil(p) {
         perfilActual = p;
-        var nombre = p.nombre || (p.correo || "").split("@")[0] || "Tu cuenta";
+        var nombre = p.nombre || (p.persona || p.correo || "").split("@")[0] || "Tu cuenta";
 
         document.getElementById("fc-avatar").textContent = nombre.charAt(0).toUpperCase();
         ponerFoto(p.foto);
         document.getElementById("fc-nombre-corto").textContent = nombre.split(" ")[0];
         document.getElementById("fc-menu-nombre").textContent = p.nombre || "Sin nombre";
-        document.getElementById("fc-menu-correo").textContent = p.correo || "";
+        document.getElementById("fc-menu-correo").textContent = p.persona || p.correo || "";
         document.getElementById("fc-menu-telefono").textContent = p.telefono || "Sin teléfono";
         document.getElementById("fc-menu-plan").textContent = p.rol || "—";
         document.getElementById("fc-menu-vigencia").textContent = vigencia(p);
@@ -1945,6 +2075,7 @@
 
         // Configuración la ven todos; la parte de Administración solo el admin (adentro de Configuración)
         pintarLetreros(p);
+        pintarEspacio(p);
         pintarEmpresa();
         pintarPeriodo();
 
@@ -2635,6 +2766,30 @@
                 "background:rgb(var(--av-50));color:rgb(var(--av-600));border-bottom:1px solid rgb(var(--av-200))", false, null,
                 { href: "/agente/", texto: "Revisar" });
         }
+        // Invitación a un despacho: se acepta o se rechaza aquí mismo
+        if (p.despacho && p.despacho.invitacion && !p.viendo_como) {
+            var inv = p.despacho.invitacion;
+            letrero((inv.invito ? inv.invito + " te invitó" : "Te invitaron") + " al despacho «" + inv.despacho + "» (" + inv.papel + "). " +
+                "Tendrás las empresas del despacho y, si te lo permiten, tu propio espacio.",
+                "background:rgb(var(--in-50));color:rgb(var(--in-600));border-bottom:1px solid rgb(var(--in-200))", false);
+            var fila = caja.lastChild;
+            [["Aceptar", "aceptar"], ["Rechazar", "rechazar"]].forEach(function (x) {
+                var b = document.createElement("button");
+                b.type = "button"; b.textContent = x[0];
+                b.className = "fc-letrero__boton" + (x[1] === "aceptar" ? " fc-letrero__boton--principal" : "");
+                b.addEventListener("click", async function () {
+                    if (x[1] === "rechazar" && !confirm("¿Rechazar la invitación al despacho «" + inv.despacho + "»?")) return;
+                    b.disabled = true;
+                    try {
+                        var r = await fetch(API + "/api/despacho/invitacion/" + x[1], { method: "POST", credentials: "include" });
+                        if (!r.ok) throw new Error(await window.Fiscontable.leerError(r));
+                        if (x[1] === "aceptar") { try { sessionStorage.setItem("fc-espacio-cambio", "despacho"); } catch (er) { /* nada */ } location.reload(); }
+                        else fila.remove();
+                    } catch (er) { b.disabled = false; aviso(er.message || "No se pudo responder la invitación."); }
+                });
+                fila.appendChild(b);
+            });
+        }
         if (caja.children.length) barra.insertAdjacentElement("afterend", caja);
     }
 
@@ -2675,7 +2830,7 @@
     function planInfo() { return (perfilActual && perfilActual.planes) || { contacto: { texto: "Contacta al administrador para mejorar tu plan." }, proximos: [] }; }
     function nombrePlan() { var r = perfilActual && perfilActual.rol; return NOMBRE_PLAN[r] || (r ? r.charAt(0).toUpperCase() + r.slice(1) : ""); }
     function botonesContacto(modulo) {
-        var c = planInfo().contacto || {}, correo = (perfilActual && perfilActual.correo) || "";
+        var c = planInfo().contacto || {}, correo = (perfilActual && (perfilActual.persona || perfilActual.correo)) || "";
         var texto = "Hola, quiero " + (modulo ? "agregar «" + modulo + "» a" : "mejorar") + " mi plan de Fiscontable" + (correo ? " (" + correo + ")" : "") + ".";
         var b = "";
         if (c.whatsapp) b += '<a class="fc-btn fc-btn--principal" target="_blank" rel="noopener" href="https://wa.me/' + esc(c.whatsapp) + "?text=" + encodeURIComponent(texto) + '">WhatsApp</a>';
@@ -2767,6 +2922,7 @@
     document.getElementById("fc-panel-cuerpo").addEventListener("click", accionPanel);
 
     prepararEmpresas();
+    prepararEspacios();
     prepararModulos();
 
     // Instructivo de la herramienta
@@ -2876,6 +3032,7 @@
 
     btnPerfil.addEventListener("click", function (e) {
         e.stopPropagation();
+        cerrarEspacios(); cerrarEmpresas();
         menu.hidden = !menu.hidden;
         btnPerfil.setAttribute("aria-expanded", String(!menu.hidden));
     });

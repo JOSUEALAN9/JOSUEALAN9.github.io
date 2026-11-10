@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mi despacho | Fiscontable</title>
+    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611111500">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611111500">
+    <link rel="stylesheet" href="/despacho/despacho.css?v=202611111500">
+</head>
+<body class="min-h-screen flex flex-col">
+
+    <div id="app-header" data-modulo="despacho" data-titulo="Mi despacho" data-migas=""></div>
+<script src="/assets/js/nucleo.js?v=202611111500"></script>
+<script src="/assets/js/barra.js?v=202611111500"></script>
+
+    <main class="flex-grow w-full mod-pagina mod-pagina--angosta dp" style="max-width:1040px">
+
+        <div class="mod-cabeza">
+            <div>
+                <h1 id="dp-titulo">Mi despacho</h1>
+                <p class="dp-sub" id="dp-sub"></p>
+            </div>
+            <button type="button" class="ui-btn ui-btn--primario ui-btn--36" id="dp-invitar" hidden>Invitar a alguien</button>
+        </div>
+
+        <div id="dp-cargando" class="ui-tarjeta"><span class="ui-skel" style="width:35%;height:16px"></span>
+            <span class="ui-skel" style="width:80%;margin-top:14px"></span><span class="ui-skel" style="width:60%;margin-top:10px"></span></div>
+
+        <!-- Sin despacho -->
+        <section id="dp-sin" class="ui-tarjeta dp-vacio" hidden>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M17 20h5v-2a3 3 0 00-5.4-1.8M17 20H7m10 0v-2c0-.7-.1-1.3-.4-1.8M7 20H2v-2a3 3 0 015.4-1.8M7 20v-2c0-.7.1-1.3.4-1.8m0 0a5 5 0 019.2 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+            <b>No eres parte de un despacho</b>
+            <p>Un despacho comparte empresas con su equipo. Cada persona conserva, además, su propio espacio para sus clientes extra.
+               Si tu despacho usa Fiscontable, pide al titular que te invite con tu correo.</p>
+            <div id="dp-invitacion" class="dp-invitacion" hidden>
+                <p id="dp-invitacion-texto"></p>
+                <div class="dp-acciones">
+                    <button type="button" class="ui-btn ui-btn--primario ui-btn--36" id="dp-aceptar">Aceptar invitación</button>
+                    <button type="button" class="ui-btn ui-btn--secundario ui-btn--36" id="dp-rechazar">Rechazar</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Con despacho -->
+        <div id="dp-con" hidden>
+            <div class="dp-vistas">
+                <div class="fc-vista" role="tablist" aria-label="Secciones del despacho">
+                    <button type="button" role="tab" data-vista="equipo" aria-selected="true">Equipo</button>
+                    <button type="button" role="tab" data-vista="solicitudes">Solicitudes <span class="dp-burbuja" id="dp-n-pendientes" hidden></span></button>
+                    <button type="button" role="tab" data-vista="bitacora" hidden>Bitácora</button>
+                    <button type="button" role="tab" data-vista="ajustes" hidden>Ajustes</button>
+                </div>
+            </div>
+
+            <!-- Equipo -->
+            <section data-panel="equipo">
+                <div id="dp-yo" class="ui-tarjeta dp-yo" hidden></div>
+                <div class="ui-tarjeta dp-lista-caja">
+                    <div class="dp-caja-cabeza"><h2>Equipo</h2><span class="dp-tenue" id="dp-n-equipo"></span></div>
+                    <ul class="dp-lista" id="dp-equipo"></ul>
+                </div>
+                <div class="dp-salir"><button type="button" class="ui-btn ui-btn--terciario" id="dp-salir">Salir del despacho</button></div>
+            </section>
+
+            <!-- Solicitudes -->
+            <section data-panel="solicitudes" hidden>
+                <div class="ui-tarjeta dp-pedir">
+                    <div>
+                        <h2>Pedir acceso a una empresa del despacho</h2>
+                        <p class="dp-tenue">Escribe su RFC. Para pasar una empresa de Mi espacio al despacho, usa <a href="/clientes/">Clientes</a> → «Pasar al despacho».</p>
+                    </div>
+                    <form class="dp-pedir__forma" id="dp-pedir">
+                        <input class="ui-input" id="dp-pedir-rfc" placeholder="RFC de la empresa" maxlength="13" autocomplete="off" spellcheck="false" aria-label="RFC de la empresa">
+                        <button type="submit" class="ui-btn ui-btn--secundario ui-btn--36">Pedir acceso</button>
+                    </form>
+                    <p class="dp-nota" id="dp-pedir-nota" hidden></p>
+                </div>
+                <div class="ui-tarjeta dp-lista-caja">
+                    <div class="dp-caja-cabeza"><h2 id="dp-sol-titulo">Solicitudes</h2>
+                        <div class="fc-vista dp-filtro" role="tablist" aria-label="Filtrar solicitudes">
+                            <button type="button" role="tab" data-filtro="pendiente" aria-selected="true">Pendientes</button>
+                            <button type="button" role="tab" data-filtro="">Todas</button>
+                        </div>
+                    </div>
+                    <ul class="dp-lista" id="dp-solicitudes"></ul>
+                </div>
+            </section>
+
+            <!-- Bitácora -->
+            <section data-panel="bitacora" hidden>
+                <div class="ui-tarjeta dp-lista-caja">
+                    <div class="dp-caja-cabeza"><h2>Quién hizo qué</h2>
+                        <select class="ui-select dp-filtro-persona" id="dp-bit-persona" aria-label="Filtrar por persona"><option value="">Todo el equipo</option></select>
+                    </div>
+                    <div class="dp-tabla-caja"><table class="dp-tabla">
+                        <thead><tr><th>Cuándo</th><th>Quién</th><th>Qué</th><th>Empresa</th></tr></thead>
+                        <tbody id="dp-bitacora"></tbody>
+                    </table></div>
+                </div>
+            </section>
+
+            <!-- Ajustes -->
+            <section data-panel="ajustes" hidden>
+                <form class="ui-tarjeta dp-ajustes" id="dp-ajustes">
+                    <label class="ui-campo"><span class="ui-etiqueta">Nombre del despacho</span><input class="ui-input" id="dp-aj-nombre" maxlength="80" required></label>
+                    <label class="ui-campo"><span class="ui-etiqueta">Correo para los avisos del despacho</span>
+                        <input class="ui-input" id="dp-aj-contacto" type="email" maxlength="120">
+                        <span class="ui-ayuda">Ahí llegan los avisos por correo de las empresas del despacho (vencimientos, Buzón, listas del SAT).</span></label>
+                    <label class="ui-switch"><input type="checkbox" id="dp-aj-personal"><span class="ui-switch__riel"></span>
+                        Las personas nuevas tienen su propio espacio (Mi espacio)</label>
+                    <p class="ui-ayuda">Lo puedes cambiar a cada persona en Equipo → Permisos.</p>
+                    <div class="dp-acciones"><button type="submit" class="ui-btn ui-btn--primario ui-btn--36">Guardar</button></div>
+                </form>
+            </section>
+        </div>
+    </main>
+
+    <!-- Permisos de una persona (también para invitar) -->
+    <dialog class="fc-modal fc-modal--fija" id="dp-modal" aria-labelledby="dp-modal-titulo">
+        <div class="fc-modal__cabeza"><div><h2 id="dp-modal-titulo">Permisos</h2><p id="dp-modal-sub"></p></div>
+            <button type="button" class="fc-modal__cerrar" data-cerrar aria-label="Cerrar">×</button></div>
+        <form class="fc-modal__cuerpo" id="dp-forma" novalidate>
+            <label class="ui-campo" id="dp-campo-correo"><span class="ui-etiqueta">Correo</span>
+                <input class="ui-input" id="dp-correo" type="email" maxlength="120" placeholder="nombre@despacho.mx" autocomplete="off">
+                <span class="ui-ayuda">Con ese correo inicia sesión en Fiscontable. Le llega un aviso para aceptar.</span></label>
+            <label class="ui-campo"><span class="ui-etiqueta">Papel</span>
+                <select class="ui-select" id="dp-papel"></select>
+                <span class="ui-ayuda" id="dp-papel-ayuda"></span></label>
+
+            <fieldset class="dp-grupo" id="dp-grupo-empresas">
+                <legend class="ui-etiqueta">Empresas del despacho que puede ver</legend>
+                <div class="dp-opciones"><label class="ui-check"><input type="radio" name="dp-emp" value="todas" checked> Todas</label>
+                    <label class="ui-check"><input type="radio" name="dp-emp" value="algunas"> Solo estas</label></div>
+                <div class="dp-marcar" id="dp-empresas-caja" hidden>
+                    <input class="ui-input" id="dp-empresas-buscar" placeholder="Buscar por nombre o RFC…" autocomplete="off" aria-label="Buscar empresa">
+                    <div class="dp-marcar__lista" id="dp-empresas"></div>
+                </div>
+            </fieldset>
+
+            <fieldset class="dp-grupo" id="dp-grupo-modulos">
+                <legend class="ui-etiqueta">Módulos que puede usar en el despacho</legend>
+                <div class="dp-opciones"><label class="ui-check"><input type="radio" name="dp-mod" value="todos" checked> Todos los del despacho</label>
+                    <label class="ui-check"><input type="radio" name="dp-mod" value="algunos"> Solo estos</label></div>
+                <div class="dp-marcar__lista dp-marcar__lista--mod" id="dp-modulos" hidden></div>
+            </fieldset>
+
+            <div class="dp-interruptores">
+                <label class="ui-switch"><input type="checkbox" id="dp-agregar"><span class="ui-switch__riel"></span> Puede registrar y quitar empresas del despacho</label>
+                <label class="ui-switch"><input type="checkbox" id="dp-personal"><span class="ui-switch__riel"></span> Tiene su propio espacio (Mi espacio)</label>
+                <label class="ui-switch"><input type="checkbox" id="dp-lectura"><span class="ui-switch__riel"></span> Solo puede consultar (no cambia nada)</label>
+                <label class="ui-switch" id="dp-campo-suspender"><input type="checkbox" id="dp-suspender"><span class="ui-switch__riel"></span> Acceso al despacho suspendido</label>
+            </div>
+            <p class="dp-error ui-ayuda ui-ayuda--error" id="dp-modal-error" hidden></p>
+        </form>
+        <div class="fc-modal__pie">
+            <button type="button" class="ui-btn ui-btn--peligro ui-btn--36" id="dp-quitar">Quitar del despacho</button>
+            <button type="button" class="ui-btn ui-btn--secundario ui-btn--36" data-cerrar>Cancelar</button>
+            <button type="button" class="ui-btn ui-btn--primario ui-btn--36" id="dp-guardar">Guardar</button>
+        </div>
+    </dialog>
+
+<script src="/despacho/despacho.js?v=202611111500"></script>
+</body>
+</html>
