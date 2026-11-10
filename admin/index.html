@@ -4,16 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Administrar Usuarios | Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611111600">
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611111600">
-    <link rel="stylesheet" href="/admin/creditos-admin.css?v=202611111600">
-    <link rel="stylesheet" href="/admin/documentos-admin.css?v=202611111600">
+    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611111700">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611111700">
+    <link rel="stylesheet" href="/admin/creditos-admin.css?v=202611111700">
+    <link rel="stylesheet" href="/admin/documentos-admin.css?v=202611111700">
 </head>
 <body class="min-h-screen flex flex-col relative">
 
     <div id="app-header" data-modulo="admin" data-titulo="Administración" data-migas=""></div>
-<script src="/assets/js/nucleo.js?v=202611111600"></script>
-<script src="/assets/js/barra.js?v=202611111600"></script>
+<script src="/assets/js/nucleo.js?v=202611111700"></script>
+<script src="/assets/js/barra.js?v=202611111700"></script>
 
     <main class="flex-grow p-4 sm:p-6 w-full max-w-4xl mx-auto fc-principal">
         <style>
@@ -72,6 +72,7 @@
                 <button type="button" class="pestana" role="tab" data-pestana="documentos">Documentos <span class="text-amber-600 font-semibold" id="cuenta-documentos"></span></button>
                 <button type="button" class="pestana" role="tab" data-pestana="despachos">Despachos <span class="text-slate-400 font-semibold" id="cuenta-despachos"></span></button>
                 <button type="button" class="pestana" role="tab" data-pestana="licencias">Licencias <span class="text-slate-400 font-semibold" id="cuenta-licencias"></span></button>
+                <button type="button" class="pestana" role="tab" data-pestana="demos">Demos <span class="text-amber-600 font-semibold" id="cuenta-demos"></span></button>
                 <button type="button" class="pestana" role="tab" data-pestana="sistema">Sistema <span class="text-amber-600 font-semibold" id="alerta-sistema"></span></button>
             </div>
 
@@ -281,6 +282,24 @@
                         </table>
                     </div>
                     <p id="lca-vacio" class="hidden p-8 text-center text-sm text-slate-400">No hay licencias aquí.</p>
+                </div>
+            </section>
+
+            <!-- ============ DEMOS (admin/demos-admin.js) ============ -->
+            <section id="panel-demos" role="tabpanel" hidden>
+                <div class="bg-white rounded-xl card-elevated border border-gray-200 p-5 mb-4 flex flex-wrap items-center gap-x-8 gap-y-3">
+                    <label class="ui-switch"><input type="checkbox" id="dma-auto"><span class="ui-switch__riel"></span> Aprobar solas (sin que yo las revise)</label>
+                    <label class="flex items-center gap-2 text-sm">Días de demo <input class="ui-input" id="dma-dias" type="number" min="1" max="60" style="width:80px"></label>
+                    <button type="button" class="ui-btn ui-btn--secundario ui-btn--32" id="dma-guardar">Guardar</button>
+                    <span class="text-xs text-slate-500">El formulario público está en <b>fiscontable.app/demo</b>. Te llega un aviso con cada solicitud.</span>
+                </div>
+                <div class="fc-vista mb-4" role="tablist" aria-label="Filtrar demos" id="dma-filtro">
+                    <button type="button" role="tab" data-estado="pendiente" aria-selected="true">Pendientes</button>
+                    <button type="button" role="tab" data-estado="">Todas</button>
+                </div>
+                <div class="bg-white rounded-xl card-elevated border border-gray-200 overflow-hidden">
+                    <ul id="dma-lista" class="divide-y divide-gray-100"></ul>
+                    <p id="dma-vacio" class="hidden p-8 text-center text-sm text-slate-400">No hay solicitudes pendientes.</p>
                 </div>
             </section>
 
@@ -651,12 +670,13 @@
         </div>
     </div>
 
-<script src="/admin/admin.js?v=202611111600"></script>
-<script src="/admin/creditos-admin.js?v=202611111600"></script>
-<script src="/admin/planes-admin.js?v=202611111600"></script>
-<script src="/admin/documentos-admin.js?v=202611111600"></script>
-<script src="/admin/plazos-admin.js?v=202611111600"></script>
-<script src="/admin/despachos-admin.js?v=202611111600"></script>
-<script src="/admin/licencias-admin.js?v=202611111600"></script>
+<script src="/admin/admin.js?v=202611111700"></script>
+<script src="/admin/creditos-admin.js?v=202611111700"></script>
+<script src="/admin/planes-admin.js?v=202611111700"></script>
+<script src="/admin/documentos-admin.js?v=202611111700"></script>
+<script src="/admin/plazos-admin.js?v=202611111700"></script>
+<script src="/admin/despachos-admin.js?v=202611111700"></script>
+<script src="/admin/licencias-admin.js?v=202611111700"></script>
+<script src="/admin/demos-admin.js?v=202611111700"></script>
 </body>
 </html>
