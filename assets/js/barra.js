@@ -2588,9 +2588,8 @@
         if (!previo.capa) {
             previo.capa = document.createElement("div");
             previo.capa.className = "fc-previo"; previo.capa.setAttribute("role", "alertdialog"); previo.capa.setAttribute("aria-live", "assertive");
-            previo.capa.innerHTML = '<div class="fc-previo__caja"><b>¿Sigues ahí?</b>' +
-                '<p>Por inactividad, la pantalla se bloqueará en <span class="fc-previo__reloj" id="fc-previo-reloj">1:00</span>.</p>' +
-                '<button type="button" class="ui-btn ui-btn--primario ui-btn--36" id="fc-previo-seguir">Seguir trabajando</button></div>';
+            previo.capa.innerHTML = '<div class="fc-previo__caja"><b>La sesión se bloqueará en <span class="fc-previo__reloj" id="fc-previo-reloj">1:00</span></b>' +
+                '<button type="button" class="ui-btn ui-btn--primario ui-btn--36" id="fc-previo-seguir">Continuar</button></div>';
             document.body.appendChild(previo.capa);
             previo.capa.querySelector("#fc-previo-seguir").addEventListener("click", function () { ultimaMarca = 0; marcarActividad(); quitarPrevio(); });
         }
@@ -2612,12 +2611,12 @@
         capa.setAttribute("aria-labelledby", "fc-bl-titulo");
         capa.innerHTML = '<div class="fc-bloqueo-pantalla__caja">' +
             '<span class="fc-marca__sello">' + simboloMarca() + "</span>" +
-            '<h2 id="fc-bl-titulo">Pantalla bloqueada</h2><p id="fc-bl-texto"></p>' +
+            '<h2 id="fc-bl-titulo">Sesión bloqueada por inactividad</h2><p id="fc-bl-texto" hidden></p>' +
             '<form id="fc-bl-form" hidden><input id="fc-bl-pin" class="ui-input" type="password" inputmode="numeric" autocomplete="off" maxlength="6" placeholder="PIN" aria-label="Tu PIN">' +
             '<button type="submit" class="ui-btn ui-btn--primario">Desbloquear</button></form>' +
             '<p class="fc-bloqueo-pantalla__msj" id="fc-bl-msj" role="alert"></p>' +
             '<a class="ui-btn ui-btn--secundario" id="fc-bl-salir" href="' + SALIR + '">Volver a entrar</a>' +
-            '<a class="fc-bloqueo-pantalla__olvide" id="fc-bl-olvide" href="' + SALIR + '" hidden>¿Olvidaste tu PIN? Entra con tu correo y pon uno nuevo</a></div>';
+            '<a class="fc-bloqueo-pantalla__olvide" id="fc-bl-olvide" href="' + SALIR + '" hidden>¿Olvidaste tu PIN?</a></div>';
         document.body.appendChild(capa);
         capa.querySelector("#fc-bl-form").addEventListener("submit", function (e) { e.preventDefault(); desbloquear(); });
         // Al volver a entrar se abre Configuración para poner un PIN nuevo sin el anterior
@@ -2626,17 +2625,14 @@
     }
     function pintarCapa() {
         var capa = capaBloqueo(), con = bloqueo.pin;
-        var propia = !!(perfilActual && perfilActual.sesion_propia);
-        document.getElementById("fc-bl-titulo").textContent = con ? "Pantalla bloqueada" : "Sesión bloqueada por inactividad";
-        document.getElementById("fc-bl-texto").textContent = con
-            ? "Por seguridad, la pantalla se bloquea tras " + bloqueo.minutos + " minutos sin actividad. Escribe tu PIN para continuar donde estabas."
-            : "Por seguridad, la sesión se bloquea tras " + bloqueo.minutos + " minutos sin actividad. " +
-              (bloqueo.esperando ? "Inicia sesión en la pestaña que se abrió: esta pantalla se reanudará automáticamente donde estabas."
-               : propia ? "Inicia sesión para continuar: se abre en otra pestaña y esta pantalla se reanuda donde estabas."
-               : "Inicia sesión de nuevo para continuar. Con un PIN (Configuración › Mi perfil) la desbloqueas sin salir.");
+        // Texto mínimo: el título lo dice todo. Solo hay renglón de apoyo mientras se espera el inicio de sesión en la otra pestaña.
+        document.getElementById("fc-bl-titulo").textContent = "Sesión bloqueada por inactividad";
+        var apoyo = document.getElementById("fc-bl-texto");
+        apoyo.textContent = bloqueo.esperando ? "Continúa en la pestaña que se abrió." : "";
+        apoyo.hidden = !bloqueo.esperando;
         document.getElementById("fc-bl-form").hidden = !con;
         document.getElementById("fc-bl-olvide").hidden = !con;
-        document.getElementById("fc-bl-salir").textContent = con ? "Entrar con mi correo" : "Iniciar sesión";
+        document.getElementById("fc-bl-salir").textContent = "Iniciar sesión";
         document.getElementById("fc-bl-salir").className = "ui-btn " + (con ? "ui-btn--terciario" : "ui-btn--primario");
         capa.hidden = false;
         document.documentElement.classList.add("fc-bloqueada");
