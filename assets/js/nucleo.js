@@ -14,7 +14,7 @@
 (function () {
     "use strict";
 
-    var VERSION = "202611120813";
+    var VERSION = "202611120814";
     // www.fiscontable.app → fiscontable.app: una sola dirección (la sesión y las preferencias guardadas son por dirección)
     if (location.hostname === "www.fiscontable.app") {
         location.replace("https://fiscontable.app" + location.pathname + location.search + location.hash);
@@ -205,7 +205,7 @@
         return aaaaMm ? MESES_LARGOS[+aaaaMm.slice(5, 7) - 1] + " " + aaaaMm.slice(0, 4) : "";
     }
     function opcionesDesde(minimo, actual, elegido) {
-        var html = '<option value="">Solo lo reciente</option>', a = +actual.slice(0, 4), m = +actual.slice(5, 7);
+        var html = '<option value="">Periodo reciente</option>', a = +actual.slice(0, 4), m = +actual.slice(5, 7);
         var hay = false;
         while (true) {
             var v = a + "-" + (m < 10 ? "0" : "") + m;

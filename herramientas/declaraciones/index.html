@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Declaraciones | Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611120813">
-    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611120813">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611120814">
+    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611120814">
 </head>
 <body class="min-h-screen flex flex-col">
 
@@ -18,7 +18,7 @@
 
     <div class="mod-cabeza"><h1>Declaraciones</h1>
         <div class="mod-cabeza__acciones">
-            <button type="button" class="fc-btn" data-programar title="Una sola vez, de madrugada, para los clientes que elijas">Programar una vez</button>
+            <button type="button" class="fc-btn" data-programar title="Una sola vez, en horario nocturno, para los clientes que elijas">Programar una vez</button>
         </div>
     </div>
 
@@ -94,27 +94,21 @@
 
         <button type="button" id="btn-buscar" class="boton-principal">Buscar y descargar</button>
 
-        <!-- El avance va aquí mismo, en lugar del botón (no en otra tarjeta) -->
-        <div id="avance" class="fc-avance" hidden>
-            <div class="fc-avance__fila"><span class="fc-avance__giro"></span><span id="texto-progreso" class="fc-avance__texto">Arrancando…</span>
-                <button type="button" id="btn-detener" class="fc-avance__detener">Detener</button></div>
-            <div class="fc-avance__barra"><div id="barra-fill"></div></div>
-        </div>
         <div id="resultado" hidden></div>
     </section>
 
 
 </main>
 
-<script src="/assets/js/nucleo.js?v=202611120813"></script>
-<script src="/assets/js/barra.js?v=202611120813"></script>
-<script src="/assets/js/comun/leer-cer.js?v=202611120813"></script>
-<script src="/assets/js/comun/paso-cliente.js?v=202611120813"></script>
-<script src="/assets/js/comun/documentos-guardados.js?v=202611120813"></script>
-<script src="/herramientas/declaraciones/declaraciones.js?v=202611120813"></script>
-<script src="/assets/js/comun/acciones.js?v=202611120813"></script>
-<script src="/assets/js/comun/programar.js?v=202611120813"></script>
-<script src="/assets/js/comun/programacion.js?v=202611120813"></script>
+<script src="/assets/js/nucleo.js?v=202611120814"></script>
+<script src="/assets/js/barra.js?v=202611120814"></script>
+<script src="/assets/js/comun/leer-cer.js?v=202611120814"></script>
+<script src="/assets/js/comun/paso-cliente.js?v=202611120814"></script>
+<script src="/assets/js/comun/documentos-guardados.js?v=202611120814"></script>
+<script src="/herramientas/declaraciones/declaraciones.js?v=202611120814"></script>
+<script src="/assets/js/comun/acciones.js?v=202611120814"></script>
+<script src="/assets/js/comun/programar.js?v=202611120814"></script>
+<script src="/assets/js/comun/programacion.js?v=202611120814"></script>
 <script>FCProgramacion.linea({ modulo: "declaraciones", contenedor: document.getElementById("linea-programa") });</script>
 <script>Fiscontable.Programar.montar({ modulo: "declaraciones", contenedor: "programar-madrugada" });</script>
 </body>

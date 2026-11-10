@@ -1700,6 +1700,27 @@ main.fc-recien { animation: fc-recien .35s ease-out; }
 :root[data-barra="clara"] .fc-modulos-btn:hover, :root[data-barra="clara"] .fc-modulos-btn[aria-expanded="true"] { background: rgb(var(--g-100)); border-color: rgb(var(--g-300)); color: rgb(var(--g-900)); }
 :root[data-barra="clara"] .fc-accion--activa { color: rgb(var(--g-900)); }
 
+/* --- Panel de trabajo en curso (Fiscontable.panelTrabajo): el mismo en Tributanet y Declaraciones --- */
+.fc-trabajo { position: fixed; right: 16px; bottom: 16px; z-index: 60; width: 420px; max-width: calc(100vw - 32px); max-height: 60vh; overflow-y: auto;
+  background: rgb(var(--g-0)); border: 1px solid rgb(var(--g-200)); border-radius: 14px; box-shadow: 0 16px 40px rgba(15,23,42,.18); padding: 12px 14px; }
+.fc-trabajo[hidden] { display: none; }
+.fc-trabajo__cabeza { display: flex; align-items: center; gap: 10px; font-size: 13px; position: sticky; top: -12px; background: rgb(var(--g-0)); padding: 2px 0 6px; z-index: 1; }
+.fc-trabajo__cabeza b { min-width: 0; flex: 1 1 auto; line-height: 1.3; color: rgb(var(--g-900)); }
+.fc-trabajo__cabeza span { flex: none; color: rgb(var(--g-600)); font-size: 12px; white-space: nowrap; }
+.fc-trabajo__enlace { flex: none; border: 0; background: none; padding: 0; font: inherit; font-size: 12.5px; font-weight: 700; color: var(--acento); cursor: pointer; }
+.fc-trabajo__enlace:hover { text-decoration: underline; }
+.fc-trabajo__enlace[hidden] { display: none; }
+.fc-trabajo--min { width: auto; max-width: min(380px, calc(100vw - 32px)); overflow: hidden; }
+.fc-trabajo--min .fc-trabajo__filas { display: none; }
+.fc-trabajo--min .fc-trabajo__cabeza { position: static; padding: 0; }
+.fc-trabajo__filas { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.fc-trabajo__filas:empty { display: none; }
+.fc-trabajo__filas li { font-size: 12.5px; border-left: 3px solid rgb(var(--g-300)); padding: 2px 0 2px 8px; color: rgb(var(--g-700)); }
+.fc-trabajo__filas li b { display: block; color: rgb(var(--g-900)); }
+.fc-trabajo__filas li.ok { border-color: rgb(var(--ac-500)); }
+.fc-trabajo__filas li.mal { border-color: rgb(var(--er-600)); }
+.fc-trabajo__filas li.va { border-color: rgb(var(--in-600)); }
+
 /* --- Pantalla bloqueada por inactividad (S-01) --- */
 .fc-bloqueo-pantalla { position: fixed; inset: 0; z-index: 300; display: grid; place-items: center; padding: 16px;
                        background: rgb(var(--g-900) / .78); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); }

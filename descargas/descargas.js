@@ -29,7 +29,7 @@ function grupoTipo(t) {
     return "otros";
 }
 const GRUPOS_TIPO = { "": "Todos los tipos", constancias: "Constancias y opiniones", xml: "XML", declaraciones: "Declaraciones y voucheo",
-                      buzon: "Buzón", programada: "Programadas de madrugada", otros: "Otros" };
+                      buzon: "Buzón", programada: "Programadas", otros: "Otros" };
 
 function prepararFiltros() {
     const caja = document.getElementById("dsc-filtros");

@@ -92,7 +92,7 @@
         var d = new Date(valor + "T12:00:00"), hoy = new Date(), man = new Date(); man.setDate(hoy.getDate() + 1);
         var nombre = d.toDateString() === hoy.toDateString() ? "hoy" : d.toDateString() === man.toDateString() ? "mañana" :
             d.toLocaleDateString("es-MX", { weekday: "long", day: "numeric", month: "long" });
-        return "Se descarga en la madrugada de " + nombre + ".";
+        return "Se descarga en el proceso nocturno del " + nombre + ".";
     }
 
     function mesAnterior() {
@@ -292,7 +292,7 @@
                 if (!ventana) ventana = await api("/api/programadas/ventana");
                 var yaEsMadrugada = new Date(ventana.inicio) - new Date() < 5 * 60000;
                 $("ventana").textContent = (yaEsMadrugada
-                    ? "Ya es madrugada: empieza en unos minutos"
+                    ? "Inicia en unos minutos"
                     : "Empieza " + dia(ventana.inicio) + " a una hora al azar desde las " + ventana.desde + " a. m.") +
                     " y termina a más tardar a las " + ventana.hasta + " a. m., con pausas al azar. Lo que no alcance queda marcado; no pasa a otra noche.";
                 if (!clientes) {

@@ -518,7 +518,7 @@
             var d = await api("/api/programacion"), nv = await api("/api/programacion-nuevas").catch(function () { return null; });
             var fecha = function (iso) { return iso ? iso.slice(8, 10) + "/" + iso.slice(5, 7) + "/" + iso.slice(0, 4) : "—"; };
             var df = (nv && nv.defecto) || {}, regla = function (r) { return r ? (r.frecuencia === "semanal" ? "cada semana" : "el día " + r.dia + " de cada mes") : ""; };
-            c.innerHTML = '<div class="cf-tarjeta"><p class="cf-texto">Lo programado se hace de madrugada con la e.firma guardada de cada empresa. ' +
+            c.innerHTML = '<div class="cf-tarjeta"><p class="cf-texto">Lo programado se ejecuta en horario nocturno con la e.firma registrada de cada empresa. ' +
                 "Para cambiar una, ábrela en su módulo (con esa empresa elegida arriba) y usa «Cambiar» en la línea de programación.</p>" +
                 (nv ? '<label class="ui-check cf-nuevas"><input type="checkbox" id="cf-prog-nuevas"' + (nv.activa ? " checked" : "") + "> " +
                     "<span><b>Programar solas las empresas nuevas</b><small>Cuando una empresa guarde su e.firma: constancia " + esc(regla(df.csf)) +

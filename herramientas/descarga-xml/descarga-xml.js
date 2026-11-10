@@ -440,8 +440,21 @@
 
     /* ================================================================ solicitudes (panel lateral) */
 
+    /* La tabla de solicitudes se puede ocultar y mostrar (se recuerda): oculta, queda una línea con las que van en curso */
+    var solOculta = false;
+    try { solOculta = localStorage.getItem("fc-dm-solicitudes-min") === "1"; } catch (e) { /* nada */ }
+    function ponerSolOculta(v) {
+        solOculta = v;
+        $("tabla-solicitudes").hidden = v;
+        $("sol-min").textContent = v ? "Mostrar" : "Ocultar"; $("sol-min").setAttribute("aria-expanded", String(!v));
+        $("sol-resumen").hidden = !v;
+        try { localStorage.setItem("fc-dm-solicitudes-min", v ? "1" : "0"); } catch (e) { /* nada */ }
+    }
+    $("sol-min").addEventListener("click", function () { ponerSolOculta(!solOculta); });
+    ponerSolOculta(solOculta);
     function irASolicitudes() {
         $("seccion-solicitudes").hidden = false;
+        if (solOculta) ponerSolOculta(false);
         $("seccion-solicitudes").scrollIntoView({ behavior: "smooth", block: "start" });
     }
 
@@ -555,6 +568,7 @@
     function pintarSolicitudes() {
         var activas = E.solicitudes.filter(function (s) { return ACTIVOS.indexOf(s.estado) >= 0; }).length;
         $("cajon-sub").textContent = E.elegido ? (E.elegido.alias || E.elegido.rfc) + " · " + E.elegido.rfc : "";
+        $("sol-resumen").textContent = "· " + (activas ? activas + " en curso" : E.solicitudes.length + (E.solicitudes.length === 1 ? " solicitud" : " solicitudes"));
         $("seccion-solicitudes").hidden = !E.elegido;
         tablaSolicitudes().ponerDatos(E.solicitudes.map(function (s) {
             var activa = ACTIVOS.indexOf(s.estado) >= 0;
@@ -861,30 +875,31 @@
         var opciones = function (mapa, actual) {
             return Object.keys(mapa).map(function (k) { return '<option value="' + k + '"' + (k === actual ? " selected" : "") + ">" + esc(mapa[k]) + "</option>"; }).join("");
         };
-        var estado = !ok ? '<a class="dm-auto__falta" href="/clientes/?editar=' + encodeURIComponent(e.rfc) + '&ficha=accesos">Falta su e.firma · subirla</a>'
-            : !e.activo ? '<span class="dm-auto__estado">Apagada</span>'
-            : '<span class="dm-auto__estado">Próxima: <b>' + esc(diaCorto(e.proxima)) + "</b>" +
-                (e.falta_historico ? '<br><span class="dm-auto__hist">Esa noche descarga desde ' + esc(Fiscontable.nombreMes(e.desde).toLowerCase()) + "</span>" : "") +
-                (e.ultima ? "<br>Última: " + esc(diaCorto(e.ultima)) : "") + "</span>";
-        if (ok) estado += '<button type="button" class="dm-auto__ahora" data-ahora title="Pedir al SAT ahora el mismo periodo de la madrugada">Bajar ahora</button>';
-        if (AUTO.hecho[e.rfc]) estado += '<span class="dm-auto__hecho">' + esc(AUTO.hecho[e.rfc]) + "</span>";
+        var estado = !ok ? '<a class="dm-auto__falta" href="/clientes/?editar=' + encodeURIComponent(e.rfc) + '&ficha=accesos">Registrar e.firma</a>'
+            : !e.activo ? '<span class="dm-auto__estado">Inactiva</span>'
+            : '<span class="dm-auto__estado"><b>' + esc(diaCorto(e.proxima)) + "</b>" +
+                (e.falta_historico ? '<small class="dm-auto__hist">Incluye desde ' + esc(Fiscontable.nombreMes(e.desde).toLowerCase()) + "</small>" : "") +
+                (e.ultima ? "<small>Última: " + esc(diaCorto(e.ultima)) + "</small>" : "") + "</span>";
+        var accion = ok ? '<button type="button" class="dm-auto__ahora" data-ahora title="Solicitar ahora el periodo programado">Descargar ahora</button>' : "";
+        if (AUTO.hecho[e.rfc]) accion += '<span class="dm-auto__hecho">' + esc(AUTO.hecho[e.rfc]) + "</span>";
+        var FRECUENCIA = { diaria: "Diaria", semanal: "Semanal", mensual: "Mensual" }, frecuencias = {};
+        Object.keys(d.frecuencias).forEach(function (k) { frecuencias[k] = FRECUENCIA[k] || d.frecuencias[k]; });
         return '<tr data-rfc="' + esc(e.rfc) + '"><td><b>' + esc(e.alias) + '</b><span class="dm-auto__rfc">' + esc(e.rfc) + "</span></td>" +
-            '<td><label class="dm-sw" title="' + (ok ? "Prender o apagar" : "Primero guarda su e.firma") + '"><input type="checkbox" data-auto="activo"' + (e.activo && ok ? " checked" : "") + (ok ? "" : " disabled") + "><span></span></label></td>" +
+            '<td><label class="dm-sw" title="' + (ok ? "Activar o desactivar" : "Primero registra su e.firma") + '"><input type="checkbox" data-auto="activo"' + (e.activo && ok ? " checked" : "") + (ok ? "" : " disabled") + "><span></span></label></td>" +
             '<td><select data-auto="tipo"' + (e.activo && ok ? "" : " disabled") + ">" + opciones(d.tipos, e.tipo) + "</select></td>" +
-            '<td><select data-auto="frecuencia"' + (e.activo && ok ? "" : " disabled") + ">" + opciones(d.frecuencias, e.frecuencia) + "</select></td>" +
-            '<td><select data-auto="desde" title="La primera vez descarga todo desde ese mes; luego sigue al día"' + (e.activo && ok ? "" : " disabled") + ">" +
+            '<td><select data-auto="frecuencia"' + (e.activo && ok ? "" : " disabled") + ">" + opciones(frecuencias, e.frecuencia) + "</select></td>" +
+            '<td><select data-auto="desde" title="La primera descarga incluye desde ese mes"' + (e.activo && ok ? "" : " disabled") + ">" +
                 Fiscontable.opcionesDesde(d.desde_minimo, d.mes_actual, e.desde || "") + "</select></td>" +
-            "<td>" + estado + "</td></tr>";
+            "<td>" + estado + '</td><td class="dm-auto__accion">' + accion + "</td></tr>";
     }
     function pintarAutomatica() {
         var d = AUTO.datos;
         var q = ($("auto-buscar").value || "").trim().toLowerCase();
         var lista = d.empresas.filter(function (e) { return !q || (e.alias + " " + e.rfc).toLowerCase().indexOf(q) !== -1; });
         $("auto-filas").innerHTML = lista.length ? lista.map(filaAuto).join("")
-            : '<tr><td colspan="6">' + (d.empresas.length ? "Ninguna coincide." : 'Todavía no tienes empresas. <a href="/clientes/?nuevo=1">Registrar empresa</a>') + "</td></tr>";
-        $("auto-nota").textContent = "Cada madrugada se descargan automáticamente por el web service del SAT, con la e.firma guardada de cada empresa, y entran a Administración de XML. " +
-            "Esta noche tocaría del " + diaCorto(d.periodo_esta_noche.desde) + " al " + diaCorto(d.periodo_esta_noche.hasta) +
-            " (hasta ayer; los primeros días del mes también el mes anterior completo). Con «Desde», la primera vez descarga todo desde ese mes.";
+ : '<tr><td colspan="7">' + (d.empresas.length ? "Ninguna coincide." : 'Todavía no tienes empresas. <a href="/clientes/?nuevo=1">Registrar empresa</a>') + "</td></tr>";
+        $("auto-nota").textContent = "Descarga programada de CFDI para las empresas con e.firma registrada. Próximo periodo: " +
+            diaCorto(d.periodo_esta_noche.desde) + " al " + diaCorto(d.periodo_esta_noche.hasta) + ".";
         var activas = d.empresas.filter(function (e) { return e.activo && e.efirma_guardada; }).length;
         $("insignia-auto").textContent = activas; $("insignia-auto").hidden = !activas;
     }
@@ -892,7 +907,7 @@
         $("dlg-automatica").showModal();
         Fiscontable.url({ auto: "1" });
         try { await cargarAutomatica(); pintarAutomatica(); }
-        catch (e) { $("auto-filas").innerHTML = '<tr><td colspan="6">' + esc(e.message) + "</td></tr>"; }
+        catch (e) { $("auto-filas").innerHTML = '<tr><td colspan="7">' + esc(e.message) + "</td></tr>"; }
     }
     async function guardarAuto(rfc, cambios) {
         var e = AUTO.datos.empresas.filter(function (x) { return x.rfc === rfc; })[0];
@@ -912,17 +927,16 @@
     $("auto-filas").addEventListener("click", async function (ev) {
         var b = ev.target.closest("[data-ahora]"); if (!b) return;
         var rfc = b.closest("tr").dataset.rfc;
-        b.disabled = true; b.textContent = "Pidiendo al SAT…";
+        b.disabled = true; b.textContent = "Solicitando…";
         try {
             var r = await fetch(API + "/api/descarga-xml/automatica/" + encodeURIComponent(rfc) + "/ahora", { method: "POST", credentials: "include" });
             if (!r.ok) throw new Error(await Fiscontable.leerError(r));
             var d = await r.json();
-            AUTO.hecho[rfc] = "✓ Pedido: del " + diaCorto(d.desde) + " al " + diaCorto(d.hasta) + " (" +
-                d.solicitudes.map(function (x) { return x.tipo; }).join(" y ") + "). Sigue en Solicitudes." + (d.avisos.length ? " " + d.avisos.join(" ") : "");
+            AUTO.hecho[rfc] = "Solicitado: " + diaCorto(d.desde) + " al " + diaCorto(d.hasta) + "." + (d.avisos.length ? " " + d.avisos.join(" ") : "");
             Fiscontable.refrescarDescargas();
             if (E.elegido && E.elegido.rfc === rfc) cargarSolicitudes();
             await cargarAutomatica();
-        } catch (e) { AUTO.hecho[rfc] = "✗ " + e.message; }
+        } catch (e) { AUTO.hecho[rfc] = e.message; }
         pintarAutomatica();
     });
     $("auto-filas").addEventListener("change", async function (ev) {
@@ -935,10 +949,10 @@
     });
     $("auto-todas").addEventListener("click", async function () {
         var b = this, faltan = AUTO.datos ? AUTO.datos.empresas.filter(function (e) { return e.efirma_guardada && !e.activo; }) : [];
-        if (!faltan.length) { b.textContent = "Ya están todas"; setTimeout(function () { b.textContent = "Activar todas las que tienen e.firma"; }, 1800); return; }
+        if (!faltan.length) { b.textContent = "Todas activas"; setTimeout(function () { b.textContent = "Activar todas"; }, 1800); return; }
         b.disabled = true; b.textContent = "Activando…";
         for (var i = 0; i < faltan.length; i++) { try { await guardarAuto(faltan[i].rfc, { activo: true }); } catch (e) { alerta(e.message); break; } }
-        b.disabled = false; b.textContent = "Activar todas las que tienen e.firma";
+        b.disabled = false; b.textContent = "Activar todas";
         pintarAutomatica();
     });
 })();

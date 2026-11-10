@@ -4,10 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Descarga masiva | Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611120813">
-    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611120813">
-    <link rel="stylesheet" href="/herramientas/descarga-xml/descarga-xml.css?v=202611120813">
-    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611120813">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611120814">
+    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611120814">
+    <link rel="stylesheet" href="/herramientas/descarga-xml/descarga-xml.css?v=202611120814">
+    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611120814">
 </head>
 <body class="min-h-screen flex flex-col">
 
@@ -23,7 +23,7 @@
     <div class="dm-cabeza">
         <h1>Descarga masiva</h1>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
-            <button type="button" id="btn-automatica" class="dm-btn-solicitudes" aria-haspopup="dialog" title="Que los XML de tus empresas se descarguen automáticamente cada madrugada">
+            <button type="button" id="btn-automatica" class="dm-btn-solicitudes" aria-haspopup="dialog" title="Descarga programada de los XML de tus empresas">
                 Descarga automática<span id="insignia-auto" class="dm-insignia" hidden></span>
             </button>
         </div>
@@ -176,7 +176,9 @@
 
     <!-- Solicitudes al SAT de este contribuyente: tabla estándar debajo del formulario (antes, panel lateral) -->
     <section id="seccion-solicitudes" class="dm-solicitudes" hidden>
-        <div class="dm-solicitudes__cabeza"><h2>Solicitudes al SAT</h2><span id="cajon-sub" class="dm-pista"></span></div>
+        <div class="dm-solicitudes__cabeza"><h2>Solicitudes al SAT</h2><span id="cajon-sub" class="dm-pista"></span>
+            <span id="sol-resumen" class="dm-pista" hidden></span>
+            <button type="button" id="sol-min" class="fc-trabajo__enlace" aria-expanded="true" style="margin-left:auto">Ocultar</button></div>
         <div id="tabla-solicitudes"></div>
     </section>
 
@@ -219,15 +221,15 @@
 <dialog id="dlg-automatica" class="dm-auto">
     <div class="dm-auto__cabeza">
         <div><b>Descarga automática de XML</b>
-            <p id="auto-nota">Cada madrugada se descargan automáticamente por el web service del SAT, con la e.firma guardada de cada empresa. Entran solos a Administración de XML.</p></div>
+            <p id="auto-nota">Descarga programada de CFDI para las empresas con e.firma registrada.</p></div>
         <button type="button" data-cerrar-auto aria-label="Cerrar">✕</button>
     </div>
     <div class="dm-auto__barra">
         <input type="search" id="auto-buscar" placeholder="Buscar empresa…" autocomplete="off">
-        <button type="button" id="auto-todas" class="fc-btn">Activar todas las que tienen e.firma</button>
+        <button type="button" id="auto-todas" class="fc-btn">Activar todas</button>
     </div>
-    <div class="dm-auto__lista"><table><thead><tr><th>Empresa</th><th>Automática</th><th>Qué</th><th>Cada cuánto</th><th>Desde</th><th>Estado</th></tr></thead>
-        <tbody id="auto-filas"><tr><td colspan="6">Cargando…</td></tr></tbody></table></div>
+    <div class="dm-auto__lista"><table><thead><tr><th>Empresa</th><th>Activa</th><th>Comprobantes</th><th>Frecuencia</th><th>Periodo inicial</th><th>Próxima descarga</th><th></th></tr></thead>
+        <tbody id="auto-filas"><tr><td colspan="7">Cargando…</td></tr></tbody></table></div>
 </dialog>
 <style>
     .dm-auto { width: min(var(--modal-grande), calc(100vw - 32px)); height: var(--modal-alto); border: 0; border-radius: 20px; padding: 0; box-shadow: var(--sombra-alta); }
@@ -242,7 +244,7 @@
     .dm-auto__barra input { flex: 1 1 200px; border: 1px solid rgb(var(--g-200)); border-radius: 10px; padding: 8px 11px; font: inherit; font-size: 13.5px; }
     .dm-auto__lista { flex: 1; overflow: auto; padding: 0 var(--modal-pad) 22px; }
     .dm-auto table { width: 100%; border-collapse: collapse; font-size: 13px; }
-    .dm-auto th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: rgb(var(--g-600)); padding: 10px 10px; border-bottom: 1px solid rgb(var(--g-200)); position: sticky; top: 0; background: rgb(var(--g-0)); }
+    .dm-auto th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: rgb(var(--g-600)); padding: 10px 10px; border-bottom: 1px solid rgb(var(--g-200)); position: sticky; top: 0; z-index: 2; background: rgb(var(--g-0)); white-space: nowrap; }
     .dm-auto td { padding: 11px 10px; border-bottom: 1px solid rgb(var(--g-100)); vertical-align: middle; }
     .dm-auto select { border: 1px solid rgb(var(--g-200)); border-radius: 8px; padding: 4px 6px; font: inherit; font-size: 12.5px; background: rgb(var(--g-0)); }
     .dm-auto select:disabled { opacity: .45; }
@@ -254,12 +256,16 @@
     .dm-sw input:checked + span { background: rgb(var(--ac-600)); }
     .dm-sw input:checked + span::after { transform: translateX(16px); }
     .dm-sw input:disabled + span { opacity: .4; cursor: not-allowed; }
-    .dm-auto__estado { font-size: 12px; color: rgb(var(--g-600)); }
-    .dm-auto__hist { color: rgb(var(--ac-600)); font-weight: 600; }
+    .dm-auto__estado { font-size: 12.5px; color: rgb(var(--g-700)); white-space: nowrap; }
+    .dm-auto__estado b { color: rgb(var(--g-900)); }
+    .dm-auto__estado small { display: block; font-size: 11.5px; color: rgb(var(--g-500)); }
+    .dm-auto__estado small.dm-auto__hist { color: rgb(var(--ac-600)); font-weight: 600; }
+    .dm-auto__accion { text-align: right; white-space: nowrap; }
+    .dm-auto select { max-width: 100%; }
     .dm-auto__falta { font-size: 12px; font-weight: 700; color: rgb(var(--av-600)); }
-    .dm-auto__ahora { display: block; margin-top: 5px; border: 1px solid rgb(var(--in-200)); background: rgb(var(--in-50)); color: rgb(var(--ac-600)); border-radius: 8px; padding: 3px 9px; font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; }
+    .dm-auto__ahora { display: inline-block; border: 1px solid rgb(var(--in-200)); background: rgb(var(--in-50)); color: rgb(var(--ac-600)); border-radius: 8px; padding: 3px 9px; font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; }
     .dm-auto__ahora:disabled { opacity: .6; cursor: wait; }
-    .dm-auto__hecho { display: block; margin-top: 4px; font-size: 11.5px; color: rgb(var(--g-600)); max-width: 240px; }
+    .dm-auto__hecho { display: block; margin-top: 4px; font-size: 11.5px; color: rgb(var(--g-600)); max-width: 220px; white-space: normal; text-align: right; margin-left: auto; }
 </style>
 
 
@@ -280,13 +286,13 @@
 
 <div id="aviso-flotante" class="dm-toast" hidden></div>
 
-<script src="/assets/js/nucleo.js?v=202611120813"></script>
-<script src="/assets/js/barra.js?v=202611120813"></script>
-<script src="/assets/js/comun/leer-cer.js?v=202611120813"></script>
-<script src="/assets/js/comun/paso-cliente.js?v=202611120813"></script>
-<script src="/assets/js/comun/tabla.js?v=202611120813"></script>
-<script src="/assets/js/comun/programacion.js?v=202611120813"></script>
-<script src="/herramientas/descarga-xml/descarga-xml.js?v=202611120813"></script>
+<script src="/assets/js/nucleo.js?v=202611120814"></script>
+<script src="/assets/js/barra.js?v=202611120814"></script>
+<script src="/assets/js/comun/leer-cer.js?v=202611120814"></script>
+<script src="/assets/js/comun/paso-cliente.js?v=202611120814"></script>
+<script src="/assets/js/comun/tabla.js?v=202611120814"></script>
+<script src="/assets/js/comun/programacion.js?v=202611120814"></script>
+<script src="/herramientas/descarga-xml/descarga-xml.js?v=202611120814"></script>
 <script>FCProgramacion.linea({ modulo: "xml", contenedor: document.getElementById("linea-programa") });
 (function () {
     function metodo() { var b = document.querySelector('.dm-modo[aria-selected="true"]'); if (b) document.getElementById("metodo-texto").textContent = b.querySelector("strong").textContent; }
