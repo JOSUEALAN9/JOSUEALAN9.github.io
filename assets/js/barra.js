@@ -2500,23 +2500,48 @@
             document.dispatchEvent(new CustomEvent("fc:perfil", { detail: null }));
             return;
         }
-        var acciones = [
-            { texto: "Reconectar sesión", href: API + "/" },
-            { texto: "Reintentar", accion: function () { promesaPerfil = null; iniciarPerfil(); } }
-        ];
+        var entrar = "/entrar/?motivo=sesion&volver=" + encodeURIComponent(location.href);
+        var reintentar = { texto: "Reintentar", accion: function () { promesaPerfil = null; iniciarPerfil(); } };
         if (tipo === "sesion") {
-            aviso("Tu sesión con el servidor expiró. Reconéctala para continuar.", acciones);
-        } else {
-            aviso("No pudimos conectar con el servidor. Puede que tu sesión haya expirado o que el " +
-                "servidor no esté disponible ahora mismo.", acciones);
+            if (!irAEntrar("sesion")) aviso("Tu sesión terminó. Entra de nuevo para continuar.", [{ texto: "Entrar", href: entrar }, reintentar]);
+            document.dispatchEvent(new CustomEvent("fc:perfil", { detail: null }));
+            return;
         }
+        // Sin respuesta: o no hay sesión (Cloudflare pide entrar y el navegador lo ve como error de red) o el
+        // servidor está caído. Una ruta pública del servidor lo distingue.
+        servidorResponde().then(function (responde) {
+            if (responde && irAEntrar("sesion")) return;
+            if (responde) aviso("Tu sesión terminó. Entra de nuevo para continuar.", [{ texto: "Entrar", href: entrar }, reintentar]);
+            else aviso("El servidor no responde en este momento. Intenta en unos minutos.", [reintentar]);
+        });
         document.dispatchEvent(new CustomEvent("fc:perfil", { detail: null }));
+    }
+
+    // A la pantalla «Entrar» (y de regreso a esta página al iniciar sesión). Si se acaba de ir y volvió sin sesión,
+    // no se manda otra vez: se muestra el aviso, para no dar vueltas. Dentro de un marco (iframe) no se navega.
+    function irAEntrar(motivo) {
+        if (window.top !== window) return false;
+        var ahora = Date.now(), antes = 0;
+        try { antes = +sessionStorage.getItem("fc-entrar") || 0; } catch (e) { /* sin almacenamiento */ }
+        if (ahora - antes < 20000) return false;
+        try { sessionStorage.setItem("fc-entrar", String(ahora)); } catch (e) { /* sin almacenamiento */ }
+        location.replace("/entrar/?motivo=" + motivo + "&volver=" + encodeURIComponent(location.href));
+        return true;
+    }
+
+    // ¿Responde el servidor? Ruta pública (la usan las PCs con el agente): sin token contesta 401, que basta.
+    function servidorResponde() {
+        var c = new AbortController();
+        setTimeout(function () { c.abort(); }, 7000);
+        return fetch(API + "/agente/v1/hola", { signal: c.signal, cache: "no-store" })
+            .then(function () { return true; }, function () { return false; });
     }
 
     async function iniciarPerfil() {
         ocultarAviso();
         var p = await perfil();
         if (p && p._error) { manejarErrorPerfil(p._error, p.motivo); return; }
+        try { sessionStorage.removeItem("fc-entrar"); } catch (e) { /* sin almacenamiento */ }
         pintarPerfil(p);
     }
 
