@@ -2079,7 +2079,7 @@
         var c = document.createElement("div");
         c.id = "fc-ambiente"; c.className = "fc-ambiente"; c.setAttribute("role", "status");
         c.innerHTML = "<b>Ambiente de pruebas</b><span>Copia de tus datos · Facturar sin valor fiscal · sin trámites ante el SAT</span>" +
-            '<a href="https://josuealan.com/">Ir a la web real</a>';
+            '<a href="https://fiscontable.app/">Ir a la web real</a>';
         document.body.appendChild(c);
         if (p && p.ambiente !== "pruebas") c.querySelector("span").textContent = "⚠ El servidor no está en modo pruebas: revisa FISCONTABLE_MODO_PRUEBAS";
     }
