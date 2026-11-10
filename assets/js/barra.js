@@ -69,11 +69,11 @@
         constancias: ["Arriba eliges Por empresa (una) o Masivo (varias).",
                       "Por empresa: toma la empresa activa; con \"Otro contribuyente\" usas a alguien más. Su e.firma (o la guardada) y Descargar.",
                       "Masivo: llena la plantilla del lote, júntala con los .cer y .key en una carpeta y arrástrala.",
-                      "\"Programar descarga\" la deja para la madrugada. Todo queda en Mis descargas."],
+                      "\"Programar descarga\" la agenda en horario nocturno. Todo queda en Mis descargas."],
         opinion: ["Arriba eliges Por empresa (una) o Masivo (varias).",
                   "Por empresa: toma la empresa activa; con \"Otro contribuyente\" usas a alguien más. Su e.firma (o la guardada) y Descargar.",
                   "Masivo: llena la plantilla del lote, júntala con los .cer y .key en una carpeta y arrástrala.",
-                  "\"Programar descarga\" la deja para la madrugada. Todo queda en Mis descargas."],
+                  "\"Programar descarga\" la agenda en horario nocturno. Todo queda en Mis descargas."],
         declaraciones: ["Toma la empresa activa (o \"Otro contribuyente\").",
                         "Entra con su e.firma y elige el periodo.",
                         "Se descarga únicamente lo que todavía no tienes guardado de esa empresa; lo descargas en un ZIP."],
@@ -116,7 +116,7 @@
                   "Sube los acuses en PDF.",
                   "Descarga el papel de trabajo en Excel (nuevo o actualizando uno tuyo)."],
         buzon: ["Todas mis empresas: lo que hay que atender en cada una (pendientes, cancelaciones por responder, nuevos).",
-                "Revisión automática: elige cada cuánto se revisa en la madrugada; o marca empresas y Revisar ahora.",
+                "Revisión automática: elige la frecuencia; o marca empresas y Revisar ahora.",
                 "Abrir (o Por empresa): comunicados completos, solicitudes de cancelación con su fecha límite y notificaciones con sus PDF.",
                 "Las notificaciones pendientes NO se abren automáticamente: abrirlas te da por notificado. Ábrelas tú en el SAT."],
         marcas: ["Elige empresa, mes y Emitidas o Recibidas.",
@@ -133,7 +133,7 @@
         creditos: ["1 crédito = $1. Con ellos se pagan los documentos (actas, constancias, IMSS…).",
                    "Para recargar: deposita o transfiere a una de las cuentas y reporta tu pago (banco, clave de rastreo y comprobante).",
                    "Cuando se valida, los créditos aparecen en tu saldo. Si un trámite falla, se reembolsan automáticamente."],
-        descargas: ["Aquí queda todo lo que descargan las herramientas y la madrugada.",
+        descargas: ["Aquí queda todo lo que descargan las herramientas y los procesos programados.",
                     "Descarga cada archivo o reintenta los que fallaron."]
     };
 
@@ -1756,7 +1756,7 @@
     function notaProgramadas(procesos) {
         var n = (procesos || []).filter(esperaMadrugada).length;
         return n ? '<a class="fc-nota-prog" href="/configuracion/?seccion=programaciones">🌙 ' + n + " programada" + (n === 1 ? "" : "s") +
-            " para la madrugada · se ven en Programaciones</a>" : "";
+            " programados · se consultan en Programaciones</a>" : "";
     }
 
     function pintarLista(todos) {
@@ -3096,7 +3096,7 @@
         ["#fc-btn-empresa", "Empresa activa", "Con quién trabajas. Todos los módulos la usan; las favoritas salen primero."],
         ["#fc-btn-periodo", "Periodo general", "El mes con el que abren los módulos que trabajan por periodo."],
         [".mod-acciones--barra", "Acciones del módulo", "Lo que puedes hacer con lo que ves. «Ir a ▾» abre otro módulo con el mismo periodo."],
-        ["#linea-programa .fpu", "Programación", "Lo que se ejecuta automáticamente de madrugada y cada cuánto. «Cambiar» para ajustarlo."],
+        ["#linea-programa .fpu", "Programación", "Lo que se ejecuta de forma programada y con qué frecuencia. «Cambiar» para ajustarlo."],
         [".fct-barra, .xml-toolbar", "La tabla", "Busca, filtra (los filtros quedan como etiquetas), elige columnas, guarda vistas y exporta a Excel."],
         ["#fc-btn-actividad", "Actividad", "Avisos de lo que terminó o cambió mientras no estabas (también pueden llegarte por correo)."],
         ["#fc-btn-descargas", "Descargas", "Los archivos que pediste: constancias, opiniones, XML y reportes."],
@@ -3213,6 +3213,60 @@
         if (!habia && !e.defaultPrevented) cerrarCapaSuperior();
     });
 
+    /* ------------------------------------------------- panel de trabajo en curso (el mismo en todos los módulos)
+       Abajo a la derecha: título, avance, «Ocultar / Mostrar» (el detalle renglón por renglón), «Detener» mientras
+       corre y «Cerrar» al terminar. Lo usan Tributanet (presentar, revisar, descargar acuses) y Declaraciones del SAT.
+       Si se oculta, se queda oculto la próxima vez (por navegador). Esc: lo oculta; ya terminado, lo cierra.
+         var p = Fiscontable.panelTrabajo({ alDetener: fn });
+         p.pintar({ titulo, estado, corre, filas: [{ clase: "ok" | "mal" | "va" | "", titulo, texto }] });   p.cerrar(); */
+    function panelTrabajo(o) {
+        o = o || {};
+        var LLAVE = "fc-trabajo-min", caja = null, min = false, corre = false;
+        try { min = localStorage.getItem(LLAVE) === "1"; } catch (e) { /* sin almacenamiento */ }
+        function parte(n) { return caja.querySelector('[data-t="' + n + '"]'); }
+        function ponerMin(v) {
+            min = v; caja.classList.toggle("fc-trabajo--min", min);
+            parte("min").textContent = min ? "Mostrar" : "Ocultar"; parte("min").setAttribute("aria-expanded", String(!min));
+            try { localStorage.setItem(LLAVE, min ? "1" : "0"); } catch (e) { /* nada */ }
+        }
+        function crear() {
+            if (caja) return;
+            caja = document.createElement("div");
+            caja.className = "fc-trabajo"; caja.setAttribute("role", "status"); caja.setAttribute("aria-live", "polite"); caja.hidden = true;
+            caja.innerHTML = '<div class="fc-trabajo__cabeza"><b data-t="titulo"></b><span data-t="estado"></span>' +
+                '<button type="button" class="fc-trabajo__enlace" data-t="min" title="Ocultar o mostrar el detalle (el trabajo sigue)"></button>' +
+                '<button type="button" class="fc-trabajo__enlace" data-t="detener">Detener</button>' +
+                '<button type="button" class="fc-trabajo__enlace" data-t="cerrar" hidden>Cerrar</button></div>' +
+                '<ol class="fc-trabajo__filas" data-t="filas"></ol>';
+            document.body.appendChild(caja);
+            ponerMin(min);
+            parte("min").addEventListener("click", function () { ponerMin(!min); });
+            parte("cerrar").addEventListener("click", function () { caja.hidden = true; });
+            parte("detener").addEventListener("click", function () { if (o.alDetener) o.alDetener(parte("detener")); });
+            document.addEventListener("keydown", function (e) {
+                if (e.key !== "Escape" || caja.hidden || document.querySelector("dialog[open]")) return;
+                if (!corre) caja.hidden = true; else if (!min) ponerMin(true);
+            });
+        }
+        return {
+            pintar: function (e) {
+                crear();
+                corre = !!e.corre;
+                parte("titulo").textContent = e.titulo || "";
+                parte("estado").textContent = e.estado || "";
+                parte("detener").hidden = !corre || !o.alDetener;
+                parte("detener").disabled = false;
+                parte("cerrar").hidden = corre;
+                parte("filas").innerHTML = (e.filas || []).map(function (f) {
+                    return '<li class="' + esc(f.clase || "") + '">' + (f.titulo ? "<b>" + esc(f.titulo) + "</b>" : "") + esc(f.texto || "") + "</li>";
+                }).join("");
+                caja.hidden = false;
+            },
+            cerrar: function () { if (caja) caja.hidden = true; },
+            abierto: function () { return !!caja && !caja.hidden; }
+        };
+    }
+
     /* Esc en cualquier página: cierra la ventana o panel de encima (modales de los módulos, paneles de columnas,
        detalle de conciliación…). Las <dialog> ya se cierran automáticamente; la pantalla de bloqueo nunca. */
     function visible(el) { var r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0 && getComputedStyle(el).visibility !== "hidden"; }
@@ -3294,6 +3348,7 @@
         panel: panel,
         textoPlazo: textoPlazo,
         bloquearPantalla: function (servidor) { bloquearPantalla(!!servidor); },
+        panelTrabajo: panelTrabajo,
         catalogo: CATALOGO,
         grupos: GRUPOS,
         avisoPlan: avisoPlan,

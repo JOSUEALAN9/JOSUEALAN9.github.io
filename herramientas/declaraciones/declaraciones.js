@@ -206,19 +206,23 @@
         btnBuscar.disabled = false;
         btnBuscar.hidden = false;
         btnBuscar.textContent = "Buscar y descargar";
-        document.getElementById("avance").hidden = true;
     }
 
-    /* Mientras corre, el botón se cambia por el avance en la misma tarjeta */
-    var inicio = 0;
+    /* Mientras corre, el avance va en el panel común (Fiscontable.panelTrabajo): se puede ocultar, mostrar con el
+       detalle de cada paso, y detener. El botón queda deshabilitado para no pedir dos veces. */
+    var pasos = [];
+    var panel = Fiscontable.panelTrabajo({ alDetener: function (boton) { detener(boton); } });
+    function tituloTrabajo() { return "Declaraciones" + (elegido ? " · " + (elegido.alias || elegido.rfc) : ""); }
+    function pintarPanel(corre, estado) {
+        panel.pintar({ titulo: tituloTrabajo(), corre: corre, estado: estado || "",
+            filas: pasos.map(function (t, i) { return { clase: corre && i === pasos.length - 1 ? "va" : "ok", texto: t }; }) });
+    }
     function mostrarProgreso() {
-        inicio = Date.now();
-        btnBuscar.hidden = true;
-        document.getElementById("avance").hidden = false;
+        btnBuscar.disabled = true;
+        btnBuscar.textContent = "Descargando…";
         document.getElementById("resultado").hidden = true;
-        document.getElementById("btn-detener").hidden = false;
-        document.getElementById("texto-progreso").textContent = "Arrancando…";
-        document.getElementById("barra-fill").style.width = "8%";
+        pasos = ["Iniciando"];
+        pintarPanel(true, "En curso");
     }
 
     function resultado(tipo, texto, accion) {
@@ -242,10 +246,11 @@
                 if (!resp.ok) return;     // reintenta en la siguiente vuelta
                 var t = await resp.json();
 
-                document.getElementById("texto-progreso").textContent = t.progreso || "Procesando…";
-                document.getElementById("barra-fill").style.width = Math.min(8 + (Date.now() - inicio) / 1500, 92) + "%";
-
-                if (t.estado === "procesando") return;
+                var paso = t.progreso || "Procesando";
+                if (paso !== pasos[pasos.length - 1]) pasos.push(paso);
+                if (pasos.length > 40) pasos = pasos.slice(-40);
+                if (t.estado === "procesando") { pintarPanel(true, "En curso"); return; }
+                pintarPanel(false, t.estado === "completado" ? "Terminó" : t.estado === "cancelado" ? "Detenido" : "Se detuvo con error");
 
                 detenerSondeo();
                 liberarBoton();
@@ -291,16 +296,14 @@
         }
     }
 
-    document.getElementById("btn-detener").addEventListener("click", async function () {
-        this.disabled = true;
-        this.textContent = "Deteniendo…";
+    async function detener(boton) {
+        if (!trabajoActual) return;
+        if (boton) boton.disabled = true;
         try {
             await fetch(API + "/api/trabajos/" + trabajoActual + "/cancelar",
                 { method: "POST", credentials: "include" });
         } catch (e) { /* el sondeo va a reflejar el estado real */ }
-        this.disabled = false;
-        this.textContent = "Detener";
-    });
+    }
 
     btnBuscar.addEventListener("click", buscar);
 

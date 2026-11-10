@@ -862,9 +862,9 @@
             var p = await resp.json(), c = p.conteo || {};
             var arranque = new Date(p.arranque).toLocaleTimeString("es-MX", { hour: "numeric", minute: "2-digit" });
             var diaArranque = new Date(p.arranque).toLocaleDateString("es-MX", { weekday: "long", day: "numeric", month: "long" });
-            alerta("bien", "Lote programado para la madrugada del " + diaArranque + " (empieza a las " + arranque + "): " + (c.pendiente || 0) +
-                " por hacer" + (c.revisar ? ", " + c.revisar + " con la e.firma a revisar" : "") +
-                ". Lo sigues en la tarjeta de arriba y en la mañana lo encuentras en Mis descargas.");
+            alerta("bien", "Lote programado para el " + diaArranque + " a las " + arranque + ": " + (c.pendiente || 0) +
+                " por procesar" + (c.revisar ? ", " + c.revisar + " con e.firma por revisar" : "") +
+                ". El resultado quedará en Mis descargas.");
             if (window.Fiscontable.Programar && window.Fiscontable.Programar.refrescar) window.Fiscontable.Programar.refrescar(p.id);
         } catch (e) {
             alerta("error", await leerError(null));

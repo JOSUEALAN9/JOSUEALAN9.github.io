@@ -51,22 +51,6 @@
 .isn-meses label { display: flex; align-items: center; gap: 5px; border: 1px solid rgb(var(--g-200)); border-radius: 8px; padding: 6px 8px; font-size: 12.5px; font-weight: 600; color: rgb(var(--g-700)); }
 .isn-meses label.isn-ya { background: rgb(var(--ok-50)); border-color: rgb(var(--ok-200)); color: rgb(var(--ok-600)); }
 .isn-check { display: flex; align-items: center; gap: 8px; font-size: 13px; color: rgb(var(--g-700)); margin: 6px 0; }
-.isn-avance { position: fixed; right: 16px; bottom: 16px; z-index: 60; width: 420px; max-width: calc(100vw - 32px); max-height: 60vh; overflow-y: auto;
-  background: rgb(var(--g-0)); border: 1px solid rgb(var(--g-200)); border-radius: 14px; box-shadow: 0 16px 40px rgba(15,23,42,.18); padding: 12px 14px; }
-.isn-avance__cabeza { display: flex; align-items: center; gap: 10px; font-size: 13px; position: sticky; top: -12px; background: rgb(var(--g-0)); padding: 2px 0 6px; z-index: 1; }
-.isn-avance__cabeza b { min-width: 0; flex: 1 1 auto; line-height: 1.3; }
-.isn-avance__cabeza span { flex: none; color: rgb(var(--g-600)); font-size: 12px; white-space: nowrap; }
-.isn-avance__cabeza button { flex: none; }
-/* Minimizado: solo la cabeza con el avance, abajo a la derecha */
-.isn-avance--min { width: auto; max-width: min(360px, calc(100vw - 32px)); overflow: hidden; }
-.isn-avance--min .isn-avance__filas { display: none; }
-.isn-avance--min .isn-avance__cabeza { position: static; padding: 0; }
-.isn-avance__filas { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
-.isn-avance__filas li { font-size: 12.5px; border-left: 3px solid rgb(var(--g-300)); padding: 2px 0 2px 8px; color: rgb(var(--g-700)); }
-.isn-avance__filas li b { display: block; color: rgb(var(--g-900)); }
-.isn-avance__filas li.ok { border-color: rgb(var(--ac-500)); }
-.isn-avance__filas li.mal { border-color: rgb(var(--er-600)); }
-.isn-avance__filas li.va { border-color: rgb(var(--in-600)); }
 @media (max-width: 680px) { .isn-meses { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
 
 /* Sucursal nueva: hay que repartir sus empleados a propósito */
