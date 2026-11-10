@@ -3008,7 +3008,8 @@
         ["#linea-programa .fpu", "Programación", "Lo que se hace solo, de madrugada, y cada cuánto. «Cambiar» para ajustarlo."],
         [".fct-barra, .xml-toolbar", "La tabla", "Busca, filtra (los filtros quedan como etiquetas), elige columnas, guarda vistas y exporta a Excel."],
         ["#fc-btn-actividad", "Actividad", "Avisos de lo que terminó o cambió mientras no estabas (también pueden llegarte por correo)."],
-        ["#fc-btn-descargas", "Descargas", "Los archivos que pediste: constancias, opiniones, XML y reportes."]
+        ["#fc-btn-descargas", "Descargas", "Los archivos que pediste: constancias, opiniones, XML y reportes."],
+        ["#fc-btn-perfil", "Tu cuenta", "Tu perfil, la seguridad y «PC del contador»: ahí se conecta Fiscontable Agente y se ven las PCs que trabajan para ti."]
     ];
     function recorrido(claveMod, pasosTexto) {
         var pasos = [];
@@ -3203,7 +3204,7 @@
         avisoPlan: avisoPlan,
         toast: function (texto) { brindis(esc(texto)); },
         bloqueEstado: bloqueEstado,
-        recorrido: function (c) { recorrido(c || clave, AYUDA[c || clave] || []); },
+        recorrido: function (c, textos) { recorrido(c || clave, textos || AYUDA[c || clave] || []); },
         enviarCorreo: enviarCorreo,
         // Set único de íconos (mismo grosor). Fiscontable.icono("lapiz") → <svg>. Ver /ui/.
         icono: function (nombre, ancho) { return D[nombre] ? ico(D[nombre], ancho || 1.8).replace("<svg ", '<svg class="ui-ico" aria-hidden="true" ') : ""; },
