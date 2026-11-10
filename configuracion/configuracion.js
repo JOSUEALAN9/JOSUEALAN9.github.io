@@ -243,7 +243,7 @@
             $("cf-bl-cancelar").addEventListener("click", otraVez);
             if ($("cf-bl-reentrar")) $("cf-bl-reentrar").addEventListener("click", function () {
                 try { localStorage.setItem("fc-olvide-pin", "1"); } catch (e) { /* sin almacenamiento */ }
-                window.top.location.href = "/cdn-cgi/access/logout";
+                window.top.location.href = Fiscontable.API + "/cdn-cgi/access/logout";
             });
             var restablecer = async function (pin) {
                 try {
