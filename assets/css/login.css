@@ -134,3 +134,13 @@ select.en-input option { color: #1C1B19; }
 .en-listo h1 { margin: 0; font-size: 26px; line-height: 1.2; }
 .en-listo__ico { width: 52px; height: 52px; border-radius: 50%; display: grid; place-items: center; background: rgba(14, 159, 110, .18); }
 .en-listo__ico svg { width: 26px; height: 26px; fill: none; stroke: #8FD3B5; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+
+
+/* --- Inicio de sesión propio: pasos (entrar, código, contraseña nueva, dos pasos, olvidé, enlace, licencia) --- */
+.en-panel[hidden] { display: none !important; }
+.en-entre { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+.en-liga { border: 0; background: none; padding: 0; font: inherit; font-size: 13.5px; font-weight: 600; color: #8FD3B5; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; justify-self: center; }
+.en-input--codigo { font-family: var(--fuente-mono); font-size: 22px; letter-spacing: .2em; text-align: center; }
+.en-input--clave { font-family: var(--fuente-mono); letter-spacing: .06em; text-transform: uppercase; }
+.en-nota--izq { text-align: left; margin: 0; }
+.en-forma .fcc__regla { margin-top: 2px; }

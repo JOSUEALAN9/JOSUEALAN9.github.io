@@ -106,3 +106,16 @@
 .cf-timbres { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
 .cf-timbre { display: grid; gap: 2px; padding: 12px 14px; border: 1px solid var(--linea); border-radius: 12px; background: rgb(var(--g-0)); font-size: 13px; }
 .cf-timbre b { font-size: 18px; } .cf-timbre span { font-weight: 700; } .cf-timbre small { color: rgb(var(--g-500)); font-size: 11.5px; }
+
+
+/* Mi perfil → Seguridad */
+.cf-seg { border-top: 1px solid var(--linea); padding: 14px 0 4px; display: grid; gap: 10px; }
+.cf-seg:first-of-type { border-top: 0; }
+.cf-seg__cab { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.cf-seg__cab b { font-size: 14px; color: rgb(var(--g-900)); }
+.cf-seg__cab span { font-size: 13px; color: rgb(var(--g-600)); flex: 1; min-width: 120px; }
+.cf-seg__cuerpo { display: grid; gap: 12px; max-width: 520px; }
+.cf-seg__cuerpo[hidden] { display: none; }
+.cf-seg__lista { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.cf-seg__lista li { display: flex; justify-content: space-between; align-items: center; gap: 10px; font-size: 13px; padding: 8px 10px; border-radius: 10px; background: rgb(var(--g-50)); }
+.cf-seg__lista small { display: block; color: rgb(var(--g-500)); font-size: 12px; }

@@ -6,29 +6,77 @@
     <title>Iniciar sesión | Fiscontable</title>
     <meta name="description" content="Inicia sesión en Fiscontable: XML, trámites del SAT, impuestos y facturación de tus clientes en un solo lugar.">
     <meta name="theme-color" content="#161513">
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611111700">
-    <link rel="stylesheet" href="/assets/css/login.css?v=202611111700">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611111800">
+    <link rel="stylesheet" href="/assets/css/login.css?v=202611111800">
 </head>
 <body class="en">
 <div class="en-fondo" aria-hidden="true"><i class="en-luz en-luz--verde"></i><i class="en-luz en-luz--arena"></i><i class="en-luz en-luz--honda"></i>
-    <svg class="en-marca-agua" viewBox="0 0 64 64"><use href="/assets/marca/simbolos.svg?v=202611111700#fiscontable"></use></svg></div>
+    <svg class="en-marca-agua" viewBox="0 0 64 64"><use href="/assets/marca/simbolos.svg?v=202611111800#fiscontable"></use></svg></div>
 
 <main class="en-marco">
     <section class="en-tarjeta" aria-labelledby="en-titulo">
-        <img class="en-logo" src="/assets/marca/fiscontable-logo-app-oscuro.svg?v=202611111700" alt="Fiscontable" width="200" height="53">
+        <img class="en-logo" src="/assets/marca/fiscontable-logo-app-oscuro.svg?v=202611111800" alt="Fiscontable" width="200" height="53">
         <h1 id="en-titulo">Inicia sesión</h1>
-        <p class="en-sub">Tu despacho en orden: XML, trámites del SAT, impuestos y facturación de tus clientes en un solo lugar.</p>
+        <p class="en-sub" id="en-sub">Tu despacho en orden: XML, trámites del SAT, impuestos y facturación de tus clientes en un solo lugar.</p>
 
         <div id="en-aviso" class="en-aviso" role="status" hidden></div>
 
-        <a id="en-entrar" class="en-btn en-btn--principal" href="#">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>
-            Iniciar sesión</a>
-        <p class="en-nota">Te mandamos un código a tu correo para confirmar que eres tú. Sin contraseñas que recordar.</p>
+        <!-- Con Cloudflare (mientras no se active el inicio de sesión propio) -->
+        <div data-panel="access" class="en-panel">
+            <a id="en-entrar" class="en-btn en-btn--principal" href="#">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>
+                Iniciar sesión</a>
+            <p class="en-nota">Te mandamos un código a tu correo para confirmar que eres tú. Sin contraseñas que recordar.</p>
+        </div>
 
-        <div class="en-sep"><span>¿Aún no tienes cuenta?</span></div>
-        <a class="en-btn en-btn--secundario" href="/demo">Solicitar una demo</a>
-        <p class="en-nota">¿Ya tienes una licencia? <a href="/activar/">Actívala aquí</a> después de iniciar sesión.</p>
+        <!-- Inicio de sesión propio: correo y contraseña -->
+        <form data-panel="entrar" class="en-forma en-panel" novalidate hidden>
+            <label class="en-campo"><span>Correo</span><input class="en-input" name="correo" type="email" autocomplete="username" maxlength="160" required></label>
+            <label class="en-campo fcc--oscuro"><span>Contraseña</span><span class="fcc__caja"><input class="en-input" name="clave" type="password" autocomplete="current-password" maxlength="128" required>
+                <button type="button" class="fcc__ver" data-ver aria-label="Ver la contraseña">Ver</button></span></label>
+            <div class="en-entre"><label class="en-check"><input type="checkbox" name="recordar"> <span>Recordarme en este equipo</span></label>
+                <button type="button" class="en-liga" data-ir="olvide">¿Olvidaste tu contraseña?</button></div>
+            <button type="submit" class="en-btn en-btn--principal">Iniciar sesión</button>
+        </form>
+
+        <form data-panel="codigo" class="en-forma en-panel" novalidate hidden>
+            <label class="en-campo"><span>Código de tu app</span><input class="en-input en-input--codigo" name="codigo" inputmode="numeric" autocomplete="one-time-code" maxlength="9" placeholder="123456"></label>
+            <p class="en-nota en-nota--izq">¿Sin tu teléfono? Escribe uno de tus códigos de respaldo (por ejemplo 1234-5678).</p>
+            <button type="submit" class="en-btn en-btn--principal">Verificar</button>
+            <button type="button" class="en-liga" data-ir="entrar">← Volver</button>
+        </form>
+
+        <form data-panel="cambiar" class="en-forma en-panel" novalidate hidden>
+            <div id="en-clave-cambiar"></div>
+            <button type="submit" class="en-btn en-btn--principal">Guardar y entrar</button>
+        </form>
+
+        <div data-panel="dospasos" class="en-panel" hidden><div id="en-dospasos"></div></div>
+
+        <form data-panel="olvide" class="en-forma en-panel" novalidate hidden>
+            <label class="en-campo"><span>Correo</span><input class="en-input" name="correo" type="email" autocomplete="username" maxlength="160"></label>
+            <button type="submit" class="en-btn en-btn--principal">Mandar enlace</button>
+            <button type="button" class="en-liga" data-ir="entrar">← Volver a iniciar sesión</button>
+        </form>
+
+        <form data-panel="enlace" class="en-forma en-panel" novalidate hidden>
+            <div id="en-clave-enlace"></div>
+            <button type="submit" class="en-btn en-btn--principal">Guardar contraseña</button>
+        </form>
+
+        <form data-panel="licencia" class="en-forma en-panel" novalidate hidden>
+            <label class="en-campo"><span>Tu correo</span><input class="en-input" name="correo" type="email" autocomplete="email" maxlength="160">
+                <small>Con este correo entrarás a Fiscontable.</small></label>
+            <label class="en-campo"><span>Clave de licencia</span><input class="en-input en-input--clave" name="clave" maxlength="24" placeholder="FSC-XXXX-XXXX-XXXX-XXXX" autocomplete="off" spellcheck="false"></label>
+            <button type="submit" class="en-btn en-btn--principal">Crear mi cuenta</button>
+            <button type="button" class="en-liga" data-ir="entrar">← Volver a iniciar sesión</button>
+        </form>
+
+        <div id="en-alta">
+            <div class="en-sep"><span>¿Aún no tienes cuenta?</span></div>
+            <a class="en-btn en-btn--secundario" href="/demo">Solicitar una demo</a>
+            <p class="en-nota" id="en-nota-licencia">¿Ya tienes una licencia? <a href="/activar/">Actívala aquí</a> después de iniciar sesión.</p>
+        </div>
 
         <p class="en-legal">Al iniciar sesión aceptas el <a href="/privacidad/">Aviso de privacidad</a>.</p>
         <footer class="en-pie">
@@ -64,7 +112,7 @@
             </div>
             <div class="en-nov__arte" aria-hidden="true">
                 <div class="en-ventana">
-                    <div class="en-ventana__barra"><svg viewBox="0 0 64 64"><use href="/assets/marca/simbolos.svg?v=202611111700#fiscontable"></use></svg>Fiscontable Agente</div>
+                    <div class="en-ventana__barra"><svg viewBox="0 0 64 64"><use href="/assets/marca/simbolos.svg?v=202611111800#fiscontable"></use></svg>Fiscontable Agente</div>
                     <div class="en-ventana__cuerpo">
                         <p><b>Estado</b><span><i class="punto"></i>Conectado</span></p>
                         <p><b>Último trámite</b><span>Constancia ✓</span></p>
@@ -76,7 +124,8 @@
     </aside>
 </main>
 
-<script src="/assets/js/nucleo.js?v=202611111700"></script>
-<script src="/assets/js/login.js?v=202611111700"></script>
+<script src="/assets/js/nucleo.js?v=202611111800"></script>
+<script src="/assets/js/comun/cuenta.js?v=202611111800"></script>
+<script src="/assets/js/login.js?v=202611111800"></script>
 </body>
 </html>
