@@ -1,0 +1,113 @@
+/* entrar.css — Pantalla de entrada de Fiscontable. Página pública: no carga la barra ni pide sesión.
+   Fondo cálido con luces de la marca, tarjeta de entrada a la izquierda y novedades a la derecha. */
+.en {
+    --en-fondo: #161513;
+    --en-tarjeta: rgba(28, 27, 25, .72);
+    --en-borde: rgba(255, 255, 255, .10);
+    --en-texto: #F4F2EE;
+    --en-tenue: #B9B4AB;
+    --en-papel: #F4F2EE;
+    margin: 0;
+    min-height: 100vh;
+    background: var(--en-fondo);
+    color: var(--en-texto);
+    font-family: var(--fuente);
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+}
+html:has(body.en) { background: #161513; }
+
+/* --- Fondo: luces suaves en verde, arena y verde profundo, y el símbolo como marca de agua --- */
+.en-fondo { position: fixed; inset: 0; overflow: hidden; pointer-events: none; }
+.en-luz { position: absolute; border-radius: 50%; filter: blur(90px); opacity: .55; }
+.en-luz--verde { width: 46vw; height: 46vw; left: -12vw; top: -14vw; background: radial-gradient(circle, #0E9F6E 0%, rgba(14, 159, 110, 0) 70%); }
+.en-luz--arena { width: 40vw; height: 40vw; right: -10vw; bottom: -16vw; background: radial-gradient(circle, #D9B48A 0%, rgba(217, 180, 138, 0) 70%); opacity: .38; }
+.en-luz--honda { width: 34vw; height: 34vw; left: 38vw; top: 26vh; background: radial-gradient(circle, #08613F 0%, rgba(8, 97, 63, 0) 70%); opacity: .35; }
+.en-marca-agua { position: absolute; right: -6vw; top: -8vh; width: 46vw; max-width: 720px; opacity: .025;
+    --fc-hoja: #FFFFFF; --fc-letra: #161513; --fc-esquina: #FFFFFF; }
+@media (prefers-reduced-motion: no-preference) {
+    .en-luz--verde { animation: en-flota 18s ease-in-out infinite alternate; }
+    .en-luz--arena { animation: en-flota 22s ease-in-out infinite alternate-reverse; }
+}
+@keyframes en-flota { to { transform: translate(3vw, 2vh) scale(1.06); } }
+
+/* --- Distribución --- */
+.en-marco { position: relative; min-height: 100vh; box-sizing: border-box; max-width: 1240px; margin: 0 auto;
+    padding: clamp(16px, 5vh, 56px) 16px; display: grid; gap: 24px; align-items: center;
+    grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 1000px) { .en-marco { grid-template-columns: minmax(380px, 440px) minmax(0, 1fr); gap: 32px; } }
+
+/* --- Tarjeta de entrada --- */
+.en-tarjeta { background: var(--en-tarjeta); border: 1px solid var(--en-borde); border-radius: 18px;
+    padding: clamp(24px, 4vw, 40px); box-shadow: 0 30px 80px -30px rgba(0, 0, 0, .6);
+    -webkit-backdrop-filter: blur(22px) saturate(1.2); backdrop-filter: blur(22px) saturate(1.2);
+    display: flex; flex-direction: column; }
+.en-logo { height: 36px; width: auto; align-self: flex-start; margin-bottom: 36px; }
+.en-tarjeta h1 { margin: 0; font-size: 30px; line-height: 1.15; font-weight: 700; letter-spacing: -.02em; }
+.en-sub { margin: 10px 0 26px; color: var(--en-tenue); font-size: 15px; line-height: 1.55; }
+
+.en-aviso { display: flex; gap: 10px; align-items: flex-start; border-radius: 10px; padding: 11px 13px; margin-bottom: 18px;
+    font-size: 14px; line-height: 1.45; background: rgba(14, 159, 110, .14); border: 1px solid rgba(14, 159, 110, .35); color: #CDEEDF; }
+.en-aviso[hidden] { display: none; }
+.en-aviso--alerta { background: rgba(217, 119, 6, .14); border-color: rgba(217, 119, 6, .4); color: #F6D9B4; }
+
+.en-btn { display: flex; align-items: center; justify-content: center; gap: 10px; min-height: 52px; border-radius: 12px;
+    font-size: 15.5px; font-weight: 600; text-decoration: none; transition: background .15s ease, border-color .15s ease, transform .15s ease; }
+.en-btn svg { width: 19px; height: 19px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.en-btn--principal { background: #0E9F6E; color: #fff; box-shadow: 0 10px 24px -10px rgba(14, 159, 110, .8); }
+.en-btn--principal:hover { background: #0B7A53; }
+.en-btn--principal:active { transform: translateY(1px); }
+.en-btn--secundario { border: 1px solid rgba(255, 255, 255, .18); color: var(--en-texto); background: rgba(255, 255, 255, .04); }
+.en-btn--secundario:hover { background: rgba(255, 255, 255, .09); border-color: rgba(255, 255, 255, .3); }
+.en-btn:focus-visible, .en a:focus-visible { outline: 3px solid #6FC3A0; outline-offset: 3px; }
+.en-nota { margin: 12px 0 0; color: var(--en-tenue); font-size: 13px; line-height: 1.5; text-align: center; }
+
+.en-sep { display: flex; align-items: center; gap: 12px; margin: 28px 0 14px; color: var(--en-tenue); font-size: 13px; }
+.en-sep::before, .en-sep::after { content: ""; flex: 1; height: 1px; background: var(--en-borde); }
+
+.en-legal { margin: 24px 0 0; font-size: 12.5px; color: var(--en-tenue); }
+.en-legal a, .en-pie a { color: #8FD3B5; text-decoration: underline; text-underline-offset: 3px; }
+.en-pie { margin-top: 28px; padding-top: 18px; border-top: 1px solid var(--en-borde); display: flex; flex-wrap: wrap;
+    justify-content: space-between; gap: 10px; font-size: 12.5px; color: var(--en-tenue); }
+.en-pie nav { display: flex; gap: 14px; flex-wrap: wrap; }
+
+/* --- Novedades --- */
+.en-novedades { display: grid; gap: 20px; }
+@media (max-width: 999px) { .en-novedades { display: none; } }
+.en-nov { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); align-items: center; gap: 22px;
+    border-radius: 18px; padding: 30px; overflow: hidden; position: relative;
+    background: linear-gradient(135deg, rgba(14, 159, 110, .22), rgba(28, 27, 25, .7) 55%); border: 1px solid var(--en-borde);
+    -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px); }
+.en-nov--claro { background: linear-gradient(135deg, #F6F4F0, #ECE8E1); color: #1C1B19; border-color: rgba(0, 0, 0, .06); }
+.en-nov h2 { margin: 10px 0 8px; font-size: 24px; line-height: 1.2; font-weight: 700; letter-spacing: -.015em; }
+.en-nov p { margin: 0; font-size: 15px; line-height: 1.55; color: var(--en-tenue); }
+.en-nov--claro p { color: #5C5852; }
+.en-chip { display: inline-block; font-size: 11.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+    padding: 4px 9px; border-radius: 999px; background: rgba(14, 159, 110, .2); color: #8FD3B5; }
+.en-nov--claro .en-chip { background: #DDF1E7; color: #08613F; }
+.en-enlace { display: inline-flex; gap: 6px; margin-top: 16px; font-weight: 600; font-size: 14.5px; color: #08613F; text-decoration: none; }
+.en-enlace:hover { text-decoration: underline; text-underline-offset: 3px; }
+
+/* Mini tablero (dibujado con piezas de la web, no una foto) */
+.en-mini { background: #FAFAF9; color: #1C1B19; border-radius: 12px; padding: 14px; box-shadow: 0 18px 40px -18px rgba(0, 0, 0, .7);
+    transform: rotate(-2deg); font-size: 12px; }
+.en-mini__cab { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 10px; }
+.en-mini__cab span { color: #77736C; font-size: 11px; }
+.en-mini__fila { display: flex; align-items: center; gap: 6px; padding: 7px 0; border-top: 1px solid #ECEAE6; }
+.en-mini__nom { display: block; height: 8px; border-radius: 4px; background: #E3E0DA; margin-right: auto; }
+.en-mini__fila span { font-size: 10.5px; font-weight: 600; padding: 2px 7px; border-radius: 999px; white-space: nowrap; }
+.en-mini .ok { background: #E7F6EF; color: #067647; }
+.en-mini .av { background: #FFF4DE; color: #B54708; }
+.en-mini .pe { background: #F1EFEB; color: #77736C; }
+.en-mini__barra { margin-top: 10px; height: 6px; border-radius: 3px; background: #ECEAE6; overflow: hidden; }
+.en-mini__barra i { display: block; height: 100%; background: #0E9F6E; border-radius: 3px; }
+
+/* Ventanita del agente */
+.en-ventana { background: #fff; border-radius: 12px; box-shadow: 0 18px 40px -18px rgba(28, 27, 25, .45); overflow: hidden;
+    transform: rotate(1.5deg); font-size: 12px; color: #1C1B19; }
+.en-ventana__barra { display: flex; align-items: center; gap: 8px; padding: 9px 12px; background: #F4F2EE; font-weight: 600; font-size: 11.5px; }
+.en-ventana__barra svg { width: 18px; height: 18px; --fc-hoja: #1C1B19; --fc-letra: #FAFAF9; --fc-esquina: #0E9F6E; }
+.en-ventana__cuerpo { padding: 12px 14px; display: grid; gap: 8px; }
+.en-ventana__cuerpo p { display: flex; justify-content: space-between; gap: 10px; margin: 0; color: #1C1B19; font-size: 12px; }
+.en-ventana__cuerpo b { color: #5C5852; font-weight: 600; }
+.en-ventana .punto { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #0E9F6E; margin-right: 6px; vertical-align: 1px; }
