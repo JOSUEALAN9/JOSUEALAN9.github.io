@@ -1,0 +1,11 @@
+// Cloudflare (Workers con archivos estáticos): publica la web tal cual está en el repositorio, sin compilar nada.
+// Lo que no se publica está en .assetsignore. El nombre debe coincidir con el proyecto en Cloudflare.
+{
+  "name": "fiscontable",
+  "compatibility_date": "2026-10-01",
+  "assets": {
+    "directory": ".",
+    "html_handling": "auto-trailing-slash",
+    "not_found_handling": "none"
+  }
+}
