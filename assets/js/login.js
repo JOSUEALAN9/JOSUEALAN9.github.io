@@ -289,7 +289,8 @@
         .catch(function () { return null; })
         .then(function (m) {
             if (enlace) return abrirEnlace();
-            if (m && m.propio) {
+            // ?revision: la entrada de quien revisa la app en Microsoft Store (solo mientras haya código de revisión vigente)
+            if (m && (m.propio || (m.revision && q.has("revision")))) {
                 prepararPropio();
                 panel(quiereLicencia ? "licencia" : "entrar");
                 if (MENSAJES[motivo] && motivo !== "reconectando") avisar(motivo);

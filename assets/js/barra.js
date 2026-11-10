@@ -2781,6 +2781,12 @@
                     function () { try { localStorage.setItem("fc-aviso-oculto", clave); } catch (e) { /* nada */ } });
             }
         }
+        // Cuenta de revisión de Microsoft Store: que quien revisa sepa qué está viendo (no se puede cerrar)
+        if (/@fiscontable\.invalid$/.test(p.correo || "")) {
+            letrero("Cuenta de revisión: puedes recorrer todo Fiscontable, pero no guardar cambios ni hacer trámites. " +
+                "Las empresas son de ejemplo. Para ver trabajar el Agente, ponle el código de revisión de las notas.",
+                "background:rgb(var(--g-50));color:rgb(var(--g-800));border-bottom:1px solid rgb(var(--g-200))", false);
+        }
         // Lo pone solo el monitor del SAT (Administración → Sistema) mientras un servicio no responde.
         if (p.sat_fallas && p.sat_fallas.length) {
             var claveSat = "fc-sat-oculto:" + p.sat_fallas.map(function (s) { return s.servicio + "@" + (s.desde || ""); }).join(",");
