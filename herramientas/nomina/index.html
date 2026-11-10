@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Nómina | Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611111800">
-    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611111800">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611120809">
+    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611120809">
     <style>
         .nm { padding: var(--e-5) var(--e-5) var(--e-6); }
         .nm-cabeza { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--e-2) var(--e-4); margin-bottom: var(--e-3); }
@@ -18,8 +18,8 @@
 </head>
 <body>
 <div id="app-header" data-modulo="nomina" data-titulo="Nómina"></div>
-<script src="/assets/js/nucleo.js?v=202611111800"></script>
-<script src="/assets/js/barra.js?v=202611120706"></script>
+<script src="/assets/js/nucleo.js?v=202611120809"></script>
+<script src="/assets/js/barra.js?v=202611120809"></script>
 
 <main class="nm">
     <div class="nm-cabeza">
@@ -46,7 +46,13 @@
         try {
             var r = await fetch(Fiscontable.API + "/api/nomina/prueba", { credentials: "include" });
             if (!r.ok) throw new Error(await Fiscontable.leerError(r));
-            $("nm-marco").srcdoc = await r.text();
+            // La página del motor pide tres librerías; aquí se le dan las copias de nuestro sitio (mismas versiones):
+            // nada se carga de otros servidores (política de contenido, _headers).
+            var pagina = (await r.text())
+                .replace(/https:\/\/cdnjs\.cloudflare\.com\/ajax\/libs\/pdf\.js\/3\.11\.174\//g, "/assets/js/terceros/pdfjs/")
+                .replace("https://cdn.jsdelivr.net/npm/fflate@0.8.2/umd/index.js", "/assets/js/terceros/fflate.min.js")
+                .replace(/<link[^>]+fonts\.(googleapis|gstatic)\.com[^>]*>\s*/g, "");
+            $("nm-marco").srcdoc = pagina;
             $("nm-marco").hidden = false;
             var e = await fetch(Fiscontable.API + "/api/nomina/estado", { credentials: "include" });
             if (e.ok) { var d = await e.json(); $("nm-version").textContent = "Motor " + d.motor; }

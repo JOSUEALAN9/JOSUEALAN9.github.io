@@ -4,15 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Facturar | Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611111800">
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611111800">
-    <link rel="stylesheet" href="/herramientas/facturar/facturar.css?v=202611111800">
+    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611120809">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611120809">
+    <link rel="stylesheet" href="/herramientas/facturar/facturar.css?v=202611120809">
 </head>
 <body class="min-h-screen flex flex-col">
 
 <div id="app-header" data-modulo="facturar" data-titulo="Facturar" data-migas="Herramientas|/herramientas/"></div>
-<script src="/assets/js/nucleo.js?v=202611111800"></script>
-<script src="/assets/js/barra.js?v=202611120706"></script>
+<script src="/assets/js/nucleo.js?v=202611120809"></script>
+<script src="/assets/js/barra.js?v=202611120809"></script>
 
 <main class="flex-grow w-full mod-pagina fa-pagina">
     <div class="mod-cabeza">
@@ -271,7 +271,7 @@
         </div>
         <div class="fa-sel-barra" id="sel-emitidas" hidden>
             <b id="sel-cuenta">0 marcadas</b>
-            <select id="sel-contenido" aria-label="Qué bajar"><option value="ambos">PDF y XML</option><option value="pdf">Solo PDF</option><option value="xml">Solo XML</option></select>
+            <select id="sel-contenido" aria-label="Qué descargar"><option value="ambos">PDF y XML</option><option value="pdf">Solo PDF</option><option value="xml">Solo XML</option></select>
             <button type="button" id="btn-zip" class="fa-btn fa-btn--principal fa-btn--chico">Descargar ZIP</button>
             <button type="button" id="btn-compartir-sel" class="fa-btn fa-btn--suave fa-btn--chico" title="Un solo enlace para tu cliente con todas las marcadas">Compartir por enlace</button>
             <button type="button" id="btn-sel-quitar" class="fa-link fa-link--gris">Quitar selección</button>
@@ -421,7 +421,7 @@
                     <li><b>Abre la página de Luna Soft</b> con el botón de abajo (se abre en otra pestaña).</li>
                     <li>Sube el <b>.cer</b> de la e.firma de la empresa. Cuando lo lea, te pide el <b>.key</b>.</li>
                     <li>Escribe un correo y la <b>contraseña de la llave privada</b> y da <b>«Firmar el manifiesto»</b>. Fiscontable no ve ni guarda esos datos.</li>
-                    <li>Da <b>«Descargar MAN-LSO-….pdf»</b> y <b>súbelo aquí</b>. Fiscontable revisa que sea de esta empresa y listo: ya puedes timbrar.</li>
+                    <li>Da <b>«Descargar MAN-LSO-….pdf»</b> y <b>súbelo aquí</b>. Fiscontable verifica que corresponda a esta empresa y la facturación queda habilitada.</li>
                 </ol>
                 <div id="c-man-pacs" class="fa-man-pacs"></div>
                 <p id="msj-man" class="fa-nota" role="status"></p>
@@ -529,7 +529,7 @@
         </div>
         <ol class="fa-man-pasos">
             <li><b>Abre la página de Luna Soft</b>, sube el .cer y luego el .key de la e.firma, escribe un correo y la contraseña, y da «Firmar el manifiesto».</li>
-            <li>Da <b>«Descargar MAN-LSO-….pdf»</b> y súbelo aquí. Fiscontable revisa que sea de esta empresa y listo.</li>
+            <li>Da <b>«Descargar MAN-LSO-….pdf»</b> y súbelo aquí. Fiscontable verifica que corresponda a esta empresa.</li>
         </ol>
         <div class="fa-man-dlg__subir">
             <a id="mdlg-abrir" class="fa-btn fa-btn--suave" href="https://firmamanifiesto.lunasoft.net/" target="_blank" rel="noopener">1. Abrir Luna Soft ↗</a>
@@ -686,7 +686,7 @@
         <ol class="fa-pasos-excel">
             <li><b>Descarga la plantilla de esta empresa</b>, con tu catálogo de productos de hoy.
                 <button type="button" id="btn-xe-plantilla" class="fa-link">Descargar plantilla (.xlsx)</button></li>
-            <li><b>Solo elige el producto y la cantidad.</b> Su descripción, claves del SAT, precio e impuesto salen del catálogo. Si cambia algo, escríbelo: otro precio, el total del renglón (se desglosa solo), otro impuesto o una nueva descripción.</li>
+            <li><b>Solo elige el producto y la cantidad.</b> Su descripción, claves del SAT, precio e impuesto salen del catálogo. Si cambia algo, escríbelo: otro precio, el total del renglón (se desglosa automáticamente), otro impuesto o una nueva descripción.</li>
             <li><b>Súbela.</b> También sirve la de Contalink. ¿Producto nuevo? Va en la hoja «Productos nuevos» y se guarda en tu catálogo.</li>
         </ol>
         <label class="fa-zona" id="xe-zona"><input type="file" id="xe-archivo" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden>
@@ -706,8 +706,8 @@
         <ol class="fa-pasos-excel">
             <li><b>Descarga la plantilla de esta empresa</b>, con sus receptores y su catálogo de hoy.
                 <button type="button" id="btn-xm-plantilla" class="fa-link">Descargar plantilla (.xlsx)</button></li>
-            <li><b>Por renglón: número de factura, receptor, producto y cantidad.</b> Todo lo demás sale de sus receptores y de tu catálogo. Opcional: la fecha (solo el día = 23:59 de ese día), otro precio, el total del renglón (se desglosa solo) o una nueva descripción.</li>
-            <li><b>Súbela:</b> se revisa cada factura con las mismas reglas que al timbrar. Luego las timbras de una vez o las guardas como prefacturas. Receptores o productos nuevos van en sus hojas y se guardan solos.</li>
+            <li><b>Por renglón: número de factura, receptor, producto y cantidad.</b> Todo lo demás sale de sus receptores y de tu catálogo. Opcional: la fecha (solo el día = 23:59 de ese día), otro precio, el total del renglón (se desglosa automáticamente) o una nueva descripción.</li>
+            <li><b>Súbela:</b> se revisa cada factura con las mismas reglas que al timbrar. Luego las timbras de una vez o las guardas como prefacturas. Receptores o productos nuevos van en sus hojas y se guardan automáticamente.</li>
         </ol>
         <label class="fa-zona" id="xm-zona"><input type="file" id="xm-archivo" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden>
             <b>Arrastra tu Excel aquí</b><span>o haz clic para elegirlo</span></label>
@@ -760,9 +760,9 @@
     </div>
 </dialog>
 
-<script src="/assets/js/comun/zona-archivos.js?v=202611111800"></script>
-<script src="/assets/js/comun/importar-clientes.js?v=202611111800"></script>
-<script src="/assets/js/comun/compartir.js?v=202611111800"></script>
-<script src="/herramientas/facturar/facturar.js?v=202611111800"></script>
+<script src="/assets/js/comun/zona-archivos.js?v=202611120809"></script>
+<script src="/assets/js/comun/importar-clientes.js?v=202611120809"></script>
+<script src="/assets/js/comun/compartir.js?v=202611120809"></script>
+<script src="/herramientas/facturar/facturar.js?v=202611120809"></script>
 </body>
 </html>

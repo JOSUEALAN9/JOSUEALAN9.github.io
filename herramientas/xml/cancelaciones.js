@@ -111,7 +111,7 @@
         if (!d) { caja.hidden = true; return; }
         var s = d.estado, t = [];
         if (s.pruebas) t.push('<b>Modo de pruebas:</b> todo va al ambiente de pruebas de MultiFacturas, sin efecto ante el SAT.');
-        if (!s.listo) t.push("<b>Para cancelar o responder falta</b> " + esc(s.faltan.join(" y ")) + '. <a href="/herramientas/facturacion/">Ir a Facturar</a>');
+        if (!s.listo) t.push("<b>Para cancelar o responder falta</b> " + esc(s.faltan.join(" y ")) + '. <a href="/herramientas/facturar/?vista=config">Ir a la configuración de Facturar</a>');
         caja.innerHTML = t.join("<br>");
         caja.className = "ca-estado" + (s.listo ? "" : " ca-estado--falta");
         caja.hidden = !t.length;
@@ -233,7 +233,7 @@
         $("mc-motivo").innerHTML = '<option value="">Elige…</option>' + Object.keys(mot).map(function (k) { return '<option value="' + k + '">' + k + " · " + esc(mot[k]) + "</option>"; }).join("");
         $("mc-sust").value = ""; $("mc-sust-caja").hidden = true; $("mc-confirmo").checked = false; $("mc-error").hidden = true;
         $("mc-nota").textContent = (E.datos.estado.pruebas ? "Modo de pruebas: no tendrá efecto ante el SAT. " : "") +
-            "Normalmente el receptor tiene que aceptarla (tiene 72 horas; si no responde, se cancela sola). No hace falta su aceptación si el total es de hasta $1,000, si es a público en general o si es nota de crédito, nómina o traslado. El motivo 01 necesita el folio de la factura que la sustituye.";
+            "Normalmente el receptor tiene que aceptarla (tiene 72 horas; si no responde, se cancela automáticamente). No hace falta su aceptación si el total es de hasta $1,000, si es a público en general o si es nota de crédito, nómina o traslado. El motivo 01 necesita el folio de la factura que la sustituye.";
         validarCancelar();
         $("modal-cancelar").hidden = false;
     }

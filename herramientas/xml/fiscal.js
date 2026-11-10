@@ -111,8 +111,8 @@
 
     async function cambiarCandado() {
         var c = E.datos && E.datos.candado;
-        if (c && !confirm((c.por.length ? "Ya se presentó " + c.por.join(" y ") + " de este mes. " : "") +
-                          "¿Abrir " + MESES[E.mes - 1] + " " + E.anio + " para cambiar marcas? Si cambias algo, revisa si toca una complementaria.")) return;
+        if (c && !(await Fiscontable.preguntar((c.por.length ? "Ya se presentó " + c.por.join(" y ") + " de este mes. " : "") +
+                          "¿Abrir " + MESES[E.mes - 1] + " " + E.anio + " para cambiar marcas? Si cambias algo, revisa si toca una complementaria."))) return;
         try {
             var r = await enviar("/api/fiscal/" + encodeURIComponent(E.rfc) + "/candado", "POST", { anio: E.anio, mes: E.mes, cerrar: !c });
             E.datos.candado = r.candado;
@@ -177,7 +177,7 @@
     function celda(f, imp) {
         var x = f.marcas[imp];
         if (!x) return '<td class="fi-col-imp"><span class="fi-gris">—</span></td>';
-        var mano = x.origen !== "auto" ? '<i class="fi-punto" title="' + (x.origen === "regla" ? "Regla de la empresa" : "Marcado a mano") + '"></i>' : "";
+        var mano = x.origen !== "auto" ? '<i class="fi-punto" title="' + (x.origen === "regla" ? "Regla de la empresa" : "Marcado manualmente") + '"></i>' : "";
         var clase = !x.cuenta ? "no" : x.pct < 100 ? "parcial" : "si";
         var texto = !x.cuenta ? "✗ No" : "✓ " + m(x.base * x.pct / 100) + (x.pct < 100 ? ' <small>' + (Math.round(x.pct * 100) / 100) + " %</small>" : "");
         var cerrado = E.datos && E.datos.candado;
@@ -329,7 +329,7 @@
     }
 
     async function volverAutomatico() {
-        if (!confirm("Esos CFDI vuelven a lo que dicen las reglas (se quita lo marcado a mano). Las reglas aprendidas se quedan.")) return;
+        if (!(await Fiscontable.preguntar("Esos CFDI vuelven a lo que dicen las reglas (se quita lo marcado manualmente). Las reglas aprendidas se quedan."))) return;
         try {
             await enviar("/api/fiscal/" + encodeURIComponent(E.rfc) + "/automatico", "POST", { uuids: Array.from(E.sel), anio: E.anio, mes: E.mes });
             E.sel.clear();
@@ -342,8 +342,8 @@
     async function usar(imp, anio, mes) {
         anio = anio || E.anio; mes = mes || E.mes;
         var base = E.datos.resumen[imp].base;
-        if (!confirm("Se llena " + nombre(imp).toLowerCase() + " de " + MESES[mes - 1] + " " + anio + " en Impuestos estatales con la base de " + m(base) +
-                     " (" + E.datos.resumen[imp].cfdi + " CFDI).\n\nNo se presenta nada todavía.")) return;
+        if (!(await Fiscontable.preguntar("Se llena " + nombre(imp).toLowerCase() + " de " + MESES[mes - 1] + " " + anio + " en Impuestos estatales con la base de " + m(base) +
+                     " (" + E.datos.resumen[imp].cfdi + " CFDI).\n\nNo se presenta nada todavía."))) return;
         try {
             var r = await enviar("/api/fiscal/" + encodeURIComponent(E.rfc) + "/usar", "POST", { impuesto: imp, anio: anio, mes: mes });
             aviso("Listo: " + esc(nombre(imp)) + " de " + MESES[mes - 1] + " " + anio + " quedó con A = " + m(r.base) + ". " +
@@ -454,7 +454,7 @@
         $("btn-candado").addEventListener("click", cambiarCandado);
         $("cf-cancelar").addEventListener("click", function () { $("modal-config").hidden = true; });
         $("cf-guardar").addEventListener("click", function () { guardarConfig(false); });
-        $("cf-restablecer").addEventListener("click", function () { if (confirm("¿Volver al paquete de su régimen? Lo aprendido se queda.")) guardarConfig(true); });
+        $("cf-restablecer").addEventListener("click", async function () { if (await Fiscontable.preguntar("¿Volver al paquete de su régimen? Lo aprendido se queda.")) guardarConfig(true); });
         $("cf-aprendidas").addEventListener("click", async function (e) {
             var b = e.target.closest("[data-borrar-regla]"); if (!b) return;
             try { await api("/api/fiscal/" + encodeURIComponent(E.rfc) + "/reglas/" + b.dataset.borrarRegla, { method: "DELETE" }); pintarAprendidas(); cargar(); }

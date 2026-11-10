@@ -11,7 +11,18 @@
    El contenido de cada módulo sí sigue usando Tailwind.
    ============================================================ */
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
+/* Tipografías en nuestro propio sitio (antes venían de Google Fonts): la web no pide nada a otros sitios y carga más
+   rápido. Inter y JetBrains Mono son variables (un archivo para todos los pesos); IBM Plex solo baja si se usa la opción B.
+   Licencia de todas: SIL Open Font License 1.1 (assets/fuentes/LICENCIA.txt). */
+@font-face { font-family: 'Inter'; font-style: normal; font-weight: 100 900; font-display: swap; src: url('/assets/fuentes/inter-latin-wght-normal.woff2') format('woff2'); unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD; }
+@font-face { font-family: 'Inter'; font-style: normal; font-weight: 100 900; font-display: swap; src: url('/assets/fuentes/inter-latin-ext-wght-normal.woff2') format('woff2'); unicode-range: U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF; }
+@font-face { font-family: 'JetBrains Mono'; font-style: normal; font-weight: 100 800; font-display: swap; src: url('/assets/fuentes/jetbrains-mono-latin-wght-normal.woff2') format('woff2'); unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD; }
+@font-face { font-family: 'IBM Plex Sans'; font-style: normal; font-weight: 400; font-display: swap; src: url('/assets/fuentes/ibm-plex-sans-latin-400-normal.woff2') format('woff2'); unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD; }
+@font-face { font-family: 'IBM Plex Sans'; font-style: normal; font-weight: 500; font-display: swap; src: url('/assets/fuentes/ibm-plex-sans-latin-500-normal.woff2') format('woff2'); unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD; }
+@font-face { font-family: 'IBM Plex Sans'; font-style: normal; font-weight: 600; font-display: swap; src: url('/assets/fuentes/ibm-plex-sans-latin-600-normal.woff2') format('woff2'); unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD; }
+@font-face { font-family: 'IBM Plex Sans'; font-style: normal; font-weight: 700; font-display: swap; src: url('/assets/fuentes/ibm-plex-sans-latin-700-normal.woff2') format('woff2'); unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD; }
+@font-face { font-family: 'IBM Plex Mono'; font-style: normal; font-weight: 400; font-display: swap; src: url('/assets/fuentes/ibm-plex-mono-latin-400-normal.woff2') format('woff2'); unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD; }
+@font-face { font-family: 'IBM Plex Mono'; font-style: normal; font-weight: 500; font-display: swap; src: url('/assets/fuentes/ibm-plex-mono-latin-500-normal.woff2') format('woff2'); unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD; }
 
 /* ============================================================
    TOKENS — la única fuente de colores, letra, espacios, radios y
@@ -342,6 +353,7 @@ a.fc-miga:hover { color: rgb(var(--g-0)); }
 }
 .fc-menu__valor { color: var(--texto); font-weight: 600; }
 .fc-menu__creditos { text-decoration: none; color: inherit; }
+.fc-menu__fila[hidden] { display: none; }
 .fc-menu__creditos:hover { background: var(--papel); }
 .fc-menu__creditos u { color: var(--acento); }
 
@@ -432,7 +444,7 @@ a.fc-miga:hover { color: rgb(var(--g-0)); }
 .fc-panel__cerrar:hover { background: var(--papel); color: var(--texto); }
 .fc-panel__cerrar svg { width: 18px; height: 18px; }
 
-.fc-panel__cuerpo { flex: 1; overflow-y: auto; padding: 14px 18px 18px; }
+.fc-panel__cuerpo { flex: 1; overflow-y: auto; padding: 12px 12px 16px; }
 
 .fc-panel__pie {
     flex: none;
@@ -443,11 +455,50 @@ a.fc-miga:hover { color: rgb(var(--g-0)); }
 
 .fc-grupo { margin-bottom: 18px; }
 .fc-grupo__titulo {
-    font-size: 12.5px;
-    font-weight: 600;
+    display: flex; align-items: center; gap: 7px;
+    font-size: 11.5px;
+    font-weight: 700;
+    letter-spacing: .05em;
+    text-transform: uppercase;
     color: var(--texto-tenue);
-    margin-bottom: 8px;
+    margin-bottom: 4px;
 }
+.fc-grupo__titulo span { font-weight: 600; letter-spacing: 0; padding: 0 6px; border-radius: 999px; background: rgb(var(--g-100)); color: rgb(var(--g-600)); }
+
+/* Una descarga en un renglón (panel de la barra y página Mis descargas): estado · documento · empresa y hora · acciones */
+.fc-filas { display: grid; }
+.fc-fila {
+    display: grid; grid-template-columns: 26px minmax(0, 1fr) auto; column-gap: 10px; align-items: center;
+    padding: 9px 6px; border-radius: 10px;
+}
+.fc-filas .fc-fila + .fc-fila { border-top: 1px solid rgb(var(--g-100)); border-top-left-radius: 0; border-top-right-radius: 0; }
+.fc-filas .fc-fila:hover { background: rgb(var(--g-50)); }
+.fc-fila__estado { width: 26px; height: 26px; border-radius: 8px; display: grid; place-items: center; flex: none; }
+.fc-fila__estado svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+.fc-fila__estado--listo { background: rgb(var(--ok-50)); color: rgb(var(--ok-700)); }
+.fc-fila__estado--alerta { background: rgb(var(--av-50)); color: rgb(var(--av-700)); box-shadow: inset 0 0 0 1px rgb(var(--av-200)); }
+.fc-fila__estado--corre { background: rgb(var(--g-100)); position: relative; }
+.fc-fila__estado--corre::after { content: ""; width: 12px; height: 12px; border-radius: 50%; border: 2px solid rgb(var(--g-300)); border-top-color: rgb(var(--ac-600)); animation: fc-gira .8s linear infinite; }
+@keyframes fc-gira { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .fc-fila__estado--corre::after, .fc-fila__btn--ocupado svg { animation-duration: 2.4s; } }
+.fc-fila__texto { min-width: 0; }
+.fc-fila__nombre { font-size: 13.5px; font-weight: 600; line-height: 1.3; color: rgb(var(--g-900)); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fc-fila__detalle { font-size: 12px; line-height: 1.35; color: var(--texto-tenue); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fc-fila__pc { color: rgb(var(--ok-700)); font-weight: 600; }
+.fc-fila__acciones { display: flex; gap: 2px; align-items: center; }
+.fc-fila__btn { width: 30px; height: 30px; display: grid; place-items: center; border: 0; border-radius: 8px; background: none; color: rgb(var(--g-500)); cursor: pointer; padding: 0; }
+.fc-fila__btn svg { width: 16px; height: 16px; }
+.fc-fila__btn:hover { background: rgb(var(--g-100)); color: rgb(var(--g-900)); }
+.fc-fila__btn--principal { color: rgb(var(--ac-700, var(--ac-600))); background: rgb(var(--ok-50)); }
+.fc-fila__btn--principal:hover { background: rgb(var(--ac-600)); color: #fff; }
+.fc-fila__btn:disabled { opacity: .6; cursor: default; }
+.fc-fila__btn--ocupado svg { animation: fc-gira .9s linear infinite; }
+.fc-fila__avance { grid-column: 2 / -1; height: 4px; border-radius: 999px; background: rgb(var(--g-100)); overflow: hidden; margin-top: 7px; }
+.fc-fila__avance i { display: block; height: 100%; background: rgb(var(--ac-600)); border-radius: inherit; transition: width .3s ease; }
+.fc-fila__nota { grid-column: 2 / -1; font-size: 12px; line-height: 1.45; color: rgb(var(--av-700)); margin-top: 5px; }
+.fc-fila__extras { grid-column: 2 / -1; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 8px; }
+.fc-fila__extras .fc-btn { padding: 5px 10px; font-size: 12.5px; }
+@media (max-width: 640px) { .fc-fila__btn { width: 38px; height: 38px; } .fc-fila__btn svg { width: 18px; height: 18px; } }
 
 .fc-item {
     border: 1px solid var(--linea);
@@ -1645,7 +1696,15 @@ main.fc-recien { animation: fc-recien .35s ease-out; }
 
 /* --- Pantalla bloqueada por inactividad (S-01) --- */
 .fc-bloqueo-pantalla { position: fixed; inset: 0; z-index: 300; display: grid; place-items: center; padding: 16px;
-                       background: rgb(var(--g-900) / .35); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); }
+                       background: rgb(var(--g-900) / .78); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); }
+/* Aviso previo al bloqueo: cuenta regresiva de un minuto */
+.fc-previo { position: fixed; inset: 0; z-index: 290; display: grid; place-items: center; padding: 16px; background: rgb(var(--g-900) / .28); }
+.fc-previo[hidden] { display: none; }
+.fc-previo__caja { width: min(360px, 100%); background: rgb(var(--g-0)); border-radius: var(--r-modal); box-shadow: var(--sombra-2);
+                   padding: var(--e-6); display: flex; flex-direction: column; align-items: center; gap: var(--e-3); text-align: center; }
+.fc-previo__caja b { font-size: var(--t-18, 18px); color: rgb(var(--g-900)); }
+.fc-previo__caja p { margin: 0; font-size: var(--t-14); color: rgb(var(--g-600)); }
+.fc-previo__reloj { font-weight: 700; color: rgb(var(--g-900)); font-variant-numeric: tabular-nums; }
 .fc-bloqueo-pantalla[hidden] { display: none; }
 .fc-bloqueo-pantalla__caja { width: min(380px, 100%); background: rgb(var(--g-0)); border-radius: var(--r-modal); box-shadow: var(--sombra-2);
                              padding: var(--e-6); display: grid; gap: var(--e-3); justify-items: center; text-align: center; }
@@ -1795,6 +1854,9 @@ a.fc-act-item:hover { background: rgb(var(--g-50)); }
 /* Mis descargas: las mismas tarjetas del panel de la barra, en dos columnas cuando caben */
 .dsc-tarjetas { display: grid; gap: var(--e-3); grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); }
 .dsc-tarjetas .fc-item { margin: 0; }
+.dsc-tarjetas .fc-fila { border: 1px solid var(--linea); border-radius: var(--r-tarjeta); background: rgb(var(--g-0)); padding: 10px 12px; }
+.dsc-tarjetas .fc-fila--alerta { border-color: rgb(var(--av-200)); }
+
 .dsc-filtros { display: flex; flex-wrap: wrap; gap: var(--e-2); align-items: center; margin-bottom: var(--e-4); }
 .dsc-filtros .ui-select { width: auto; }
 
@@ -1966,3 +2028,11 @@ tr[tabindex="0"]:focus-visible, [tabindex="0"]:focus-visible { outline: 2px soli
 .fdp--oscuro .fdp__respaldo { background: rgba(255, 255, 255, .06); border-color: rgba(255, 255, 255, .14); color: #F4F2EE; }
 .fdp--oscuro .fdp__msj { color: #F6B4A0; }
 .fdp--oscuro .fdp__ok { color: #8FD3B5; }
+
+/* Control segmentado (dos o tres opciones, una encendida). Pieza común: barra de contexto, Configuración, visores… */
+.ctx-segmento { display: inline-flex; align-items: center; background: rgb(var(--g-200)); border-radius: 12px; padding: 4px; gap: 4px; max-width: 100%; }
+.ctx-segmento button { border: 0; background: none; border-radius: 9px; padding: 7px 12px; font: inherit; font-size: 13px; font-weight: 800;
+  color: rgb(var(--g-600)); cursor: pointer; white-space: nowrap; }
+.ctx-segmento button[aria-pressed="true"] { background: rgb(var(--g-0)); color: rgb(var(--g-900)); box-shadow: 0 1px 3px rgba(15,23,42,.15); }
+.ctx-segmento button:focus-visible { outline: 2px solid rgb(var(--ac-500)); outline-offset: 1px; }
+.ctx-segmento button:disabled { opacity: .6; cursor: default; }

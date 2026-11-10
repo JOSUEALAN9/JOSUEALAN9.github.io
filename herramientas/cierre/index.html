@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cierre del mes · Fiscontable</title>
+    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611120809">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611120809">
+    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611120809">
+    <style>
+        .ci-cabeza { display: flex; flex-wrap: wrap; gap: var(--e-3); align-items: flex-end; margin-bottom: var(--e-4); }
+        .ci-cabeza h1 { margin: 0; }
+        .ci-cabeza__sub { margin: 4px 0 0; font-size: var(--t-13); color: rgb(var(--g-600)); }
+        .ci-cabeza__sub b { color: rgb(var(--g-900)); font-weight: 600; }
+        .ci-cabeza__sub .ci-vencida { color: rgb(var(--er-700)); font-weight: 600; }
+        .ci-cabeza__der { margin-left: auto; display: flex; gap: var(--e-3); align-items: center; flex-wrap: wrap; max-width: 100%; }
+        .ci-meses { overflow-x: auto; max-width: 100%; scrollbar-width: none; }
+        .ci-meses::-webkit-scrollbar { display: none; }
+        .ci-meses button small { font-weight: 400; opacity: .7; margin-left: 3px; }
+        .ci-mios { display: inline-flex; align-items: center; gap: 8px; font-size: var(--t-13); font-weight: 600; color: rgb(var(--g-700)); cursor: pointer; white-space: nowrap; }
+        .ci-mios input { width: 16px; height: 16px; accent-color: rgb(var(--ac-600)); }
+        .ci-avance { display: flex; align-items: center; gap: var(--e-3); flex-wrap: wrap; padding: var(--e-3) var(--e-4); margin-bottom: var(--e-4);
+            border: 1px solid var(--linea); border-radius: var(--r-tarjeta); background: rgb(var(--g-0)); font-size: var(--t-14); color: rgb(var(--g-900)); }
+        .ci-avance small { color: rgb(var(--g-600)); font-variant-numeric: tabular-nums; }
+        .ci-barra { flex: 1 1 180px; max-width: 360px; height: 6px; border-radius: 999px; background: rgb(var(--g-100)); overflow: hidden; }
+        .ci-barra i { display: block; height: 100%; background: rgb(var(--ok-600)); border-radius: inherit; transition: width .3s ease; }
+        .ci-barrita { display: inline-block; width: 44px; height: 6px; border-radius: 999px; background: rgb(var(--g-100)); overflow: hidden; vertical-align: middle; margin-right: 6px; }
+        .ci-barrita i { display: block; height: 100%; border-radius: inherit; background: rgb(var(--av-600)); }
+        .ci-barrita--ok i { background: rgb(var(--ok-600)); } .ci-barrita--error i { background: rgb(var(--er-600)); }
+        .ci-espera { margin-left: 6px; width: 24px; height: 24px; display: inline-grid; place-items: center; vertical-align: middle; border: 1px solid transparent; border-radius: 7px; background: none; color: rgb(var(--g-400)); cursor: pointer; }
+        .ci-espera:hover { background: rgb(var(--g-100)); color: rgb(var(--g-700)); }
+        .ci-espera--si { color: rgb(var(--av-600)); background: rgb(var(--av-50)); border-color: rgb(var(--av-200)); }
+        .ci-espera:disabled { opacity: .5; cursor: default; }
+        /* El estado de cada paso: un cuadrito con ícono (verde listo, gris pendiente, ámbar revisar, rojo falta o por atender) */
+        .ci-e { display: inline-grid; place-items: center; width: 26px; height: 26px; border-radius: 8px; font-size: 12px; font-weight: 700; font-style: normal; text-decoration: none;
+            font-variant-numeric: tabular-nums; border: 1px solid transparent; transition: transform .12s ease, border-color .12s ease; }
+        a.ci-e:hover { transform: translateY(-1px); border-color: currentColor; }
+        .ci-e svg { width: 13px; height: 13px; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+        .ci-e--ok { background: rgb(var(--ok-50)); color: rgb(var(--ok-700)); }
+        .ci-e--pend { background: rgb(var(--g-100)); color: rgb(var(--g-500)); }
+        .ci-e--mal { background: rgb(var(--av-50)); color: rgb(var(--av-700)); }
+        .ci-e--falta, .ci-e--num { background: rgb(var(--er-50)); color: rgb(var(--er-700)); }
+        .ci-e--na { color: rgb(var(--g-300)); }
+        .ci-cli b { font-weight: 600; color: rgb(var(--g-900)); }
+        .ci-cli small { color: rgb(var(--g-500)); margin-left: 6px; }
+        @media (max-width: 560px) { .ci-cli small { display: none; } }
+        .ci-resp { height: 28px; padding: 0 24px 0 8px; font-size: var(--t-13); border-radius: 8px; border: 1px solid transparent; background-color: transparent; color: rgb(var(--g-700)); max-width: 150px; cursor: pointer; }
+        .ci-resp:hover, .ci-resp:focus { border-color: rgb(var(--g-300)); background-color: rgb(var(--g-0)); }
+        .ci-resp--vacio { color: rgb(var(--g-400)); }
+        .ci-leyenda { display: flex; flex-wrap: wrap; gap: var(--e-2) var(--e-4); margin-top: var(--e-3); font-size: var(--t-12); color: rgb(var(--g-600)); align-items: center; }
+        .ci-leyenda span { display: inline-flex; align-items: center; gap: 6px; }
+        .ci-leyenda .ci-e { width: 20px; height: 20px; border-radius: 6px; }
+        .ci-leyenda .ci-e svg { width: 11px; height: 11px; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+<div id="app-header" data-modulo="cierre" data-titulo="Cierre del mes" data-migas="Herramientas|/herramientas/"></div>
+<script src="/assets/js/nucleo.js?v=202611120809"></script>
+<script src="/assets/js/barra.js?v=202611120809"></script>
+
+<main class="flex-grow mod-pagina" style="max-width:none">
+    <div class="ci-cabeza mod-cabeza">
+        <div>
+            <h1>Cierre del mes</h1>
+            <p class="ci-cabeza__sub" id="ci-sub">Qué tiene listo cada cliente y qué le falta para cerrar.</p>
+        </div>
+        <div class="ci-cabeza__der">
+            <label class="ci-mios" id="ci-mios-caja" hidden title="Solo las empresas en las que tú eres responsable"><input type="checkbox" id="ci-mios"> Solo los míos</label>
+            <div class="ctx-segmento ci-meses" id="ci-meses" role="group" aria-label="Mes"></div>
+        </div>
+    </div>
+
+    <div class="ci-avance" id="ci-avance" hidden></div>
+    <div id="ci-tabla"></div>
+    <div class="ci-leyenda" id="ci-leyenda" hidden>
+        <span><i class="ci-e ci-e--ok"><svg viewBox="0 0 12 12"><path d="M2.5 6.3l2.3 2.3 4.7-5"/></svg></i>Listo</span>
+        <span><i class="ci-e ci-e--pend"><svg viewBox="0 0 12 12"><circle cx="6" cy="6" r="3.6"/><path d="M6 4.2V6l1.2.8"/></svg></i>Pendiente</span>
+        <span><i class="ci-e ci-e--mal">!</i>Hay que revisar</span>
+        <span><i class="ci-e ci-e--falta"><svg viewBox="0 0 12 12"><path d="M3.5 3.5l5 5M8.5 3.5l-5 5"/></svg></i>Falta o venció</span>
+        <span><i class="ci-e ci-e--num">2</i>Por atender en el buzón</span>
+        <span>Clic en un cuadro: abre ese módulo con la empresa elegida.</span>
+    </div>
+</main>
+
+<script src="/assets/js/comun/tabla.js?v=202611120809"></script>
+<script src="/herramientas/cierre/cierre.js?v=202611120809"></script>
+</body>
+</html>

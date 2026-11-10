@@ -392,7 +392,7 @@
         } catch (e) { aviso(e.message, true); return false; }
     }
     async function presentar(ids, texto, despues) {
-        if (!confirm(texto + "\n\n¿Todo bien? Esto no se puede deshacer.")) return false;
+        if (!(await Fiscontable.preguntar(texto + "\n\n¿Todo bien? Esto no se puede deshacer."))) return false;
         try {
             $("avance").hidden = true;
             var r = await json("/api/estatales/presentar", "POST", { ids: ids });
@@ -468,8 +468,8 @@
     async function cerosMasivo() {
         var van = marcadas().filter(function (x) { return !x.periodo; });
         if (!van.length) return;
-        if (!confirm("Se crea la declaración EN CEROS de " + mesMasivo() + " de:\n\n" + van.map(function (x) { return "• " + (x.nombre || x.rfc); }).join("\n") +
-                     "\n\nNo se presenta nada todavía: después revisas y presentas.")) return;
+        if (!(await Fiscontable.preguntar("Se crea la declaración EN CEROS de " + mesMasivo() + " de:\n\n" + van.map(function (x) { return "• " + (x.nombre || x.rfc); }).join("\n") +
+                     "\n\nNo se presenta nada todavía: después revisas y presentas."))) return;
         try {
             var r = await json("/api/estatales/" + IMP + "/masivo/ceros", "POST", { anio: +$("mv-anio").value, mes: +$("mv-mes").value, rfcs: van.map(function (x) { return x.rfc; }) });
             aviso("Se crearon " + r.creadas.length + " declaración(es) en ceros." + (r.ya_estaban.length ? " Ya existían: " + r.ya_estaban.join(", ") : ""));
@@ -478,8 +478,8 @@
     }
     async function quitarMasivo() {
         var van = marcadas().filter(function (x) { return x.periodo && !x.periodo.presentada; });
-        if (!van.length || !confirm("Se BORRA la declaración de " + mesMasivo() + " de:\n\n" + van.map(function (x) { return "• " + (x.nombre || x.rfc); }).join("\n") +
-                                    "\n\nNo se toca nada en el portal.")) return;
+        if (!van.length || !(await Fiscontable.preguntar("Se BORRA la declaración de " + mesMasivo() + " de:\n\n" + van.map(function (x) { return "• " + (x.nombre || x.rfc); }).join("\n") +
+                                    "\n\nNo se toca nada en el portal."))) return;
         try {
             var r = await json("/api/estatales/" + IMP + "/masivo/quitar", "POST", { anio: +$("mv-anio").value, mes: +$("mv-mes").value, rfcs: van.map(function (x) { return x.rfc; }) });
             aviso("Se quitaron " + r.borradas.length + " declaración(es)." + (r.presentadas.length ? " Las presentadas no se tocan." : ""));
@@ -556,7 +556,7 @@
     async function enviarDescarga() {
         var meses = Array.from(document.querySelectorAll("#d-meses input:checked")).map(function (c) { return +c.value; });
         if (!meses.length) { $("d-error").textContent = "Elige al menos un mes."; $("d-error").hidden = false; return; }
-        if ($("d-ceros").checked && !confirm("El pago en ceros se GENERA en el portal en este momento. Solo aplica a declaraciones en $0. ¿Lo genero?")) return;
+        if ($("d-ceros").checked && !(await Fiscontable.preguntar("El pago en ceros se GENERA en el portal en este momento. Solo aplica a declaraciones en $0. ¿Lo genero?"))) return;
         $("d-enviar").disabled = true;
         try {
             $("avance").hidden = true;
@@ -611,7 +611,7 @@
         } catch (e) { /* nada */ }
     }
     async function detenerTrabajo() {
-        if (!E.job || !confirm("¿Detener? Se termina el que está en curso y ya no se empiezan los siguientes.")) return;
+        if (!E.job || !(await Fiscontable.preguntar("¿Detener? Se termina el que está en curso y ya no se empiezan los siguientes."))) return;
         try { await api("/api/isn/trabajo/" + encodeURIComponent(E.job.id) + "/detener", { method: "POST" }); } catch (e) { aviso(e.message, true); }
     }
 
@@ -683,7 +683,7 @@
         $("form").addEventListener("submit", guardar);
         $("form-cancelar").addEventListener("click", function () { $("modal").hidden = true; });
         $("form-borrar").addEventListener("click", async function () {
-            if (!E.editando || !confirm("¿Borrar " + E.editando.mes_nombre + " " + E.editando.anio + " (" + E.editando.tipo + ")?")) return;
+            if (!E.editando || !(await Fiscontable.preguntar("¿Borrar " + E.editando.mes_nombre + " " + E.editando.anio + " (" + E.editando.tipo + ")?"))) return;
             try { await api("/api/estatales/periodo/" + E.editando.id, { method: "DELETE" }); $("modal").hidden = true; await cargarEmpresas(); cargar(); }
             catch (err) { $("form-error").textContent = err.message; $("form-error").hidden = false; }
         });
@@ -733,9 +733,9 @@
         $("mv-excel").addEventListener("click", function () { $("in-excel").click(); });
         $("mv-quitar").addEventListener("click", quitarMasivo);
         if (window.AcusesBloque) AcusesBloque.conectar({ base: "/api/estatales", marcadas: marcadas, que: "impuestos estatales" });
-        $("mv-revisar").addEventListener("click", function () {
+        $("mv-revisar").addEventListener("click", async function () {
             var van = marcadas().filter(function (x) { return x.periodo && !x.periodo.presentada; });
-            if (van.length && confirm("Revisar en el portal " + van.length + " declaración(es) de " + mesMasivo() + " (no se llena ni se presenta nada).")) {
+            if (van.length && await Fiscontable.preguntar("Revisar en el portal " + van.length + " declaración(es) de " + mesMasivo() + " (no se llena ni se presenta nada).")) {
                 revisarEnPortal(van.map(function (x) { return x.periodo.id; }), "Revisando en el portal · " + mesMasivo());
             }
         });

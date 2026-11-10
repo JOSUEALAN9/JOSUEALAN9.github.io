@@ -4,14 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Conectar esta PC | Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611111800">
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611111800">
+    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611120809">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611120809">
 </head>
 <body class="min-h-screen flex flex-col">
 
     <div id="app-header" data-modulo="agente" data-titulo="Conectar esta PC" data-migas=""></div>
-<script src="/assets/js/nucleo.js?v=202611111800"></script>
-<script src="/assets/js/barra.js?v=202611120706"></script>
+<script src="/assets/js/nucleo.js?v=202611120809"></script>
+<script src="/assets/js/barra.js?v=202611120809"></script>
 
     <main class="flex-grow w-full mod-pagina mod-pagina--angosta" style="max-width:860px">
 
@@ -22,15 +22,15 @@
         <section class="bg-white rounded-xl card-elevated border border-gray-200 p-5 mb-5">
             <h2 class="text-sm font-bold text-slate-800">¿Qué hace el agente?</h2>
             <p class="text-sm text-slate-600 mt-1">
-                Es un programa pequeño para tu PC con Windows. Cuando está prendido, los trámites del SAT de tu cuenta
-                (constancia, opinión 32-D, declaraciones y la revisión del Buzón) se hacen <b>desde tu PC</b>, con tu
-                internet y tu navegador, y el resultado aparece aquí como siempre. Además guarda una copia en
+                Es una aplicación para tu PC con Windows. Mientras está en ejecución, las solicitudes de tu cuenta
+                (constancia, opinión 32-D, declaraciones y la revisión del Buzón) se procesan <b>desde tu PC</b>, con tu
+                conexión a internet y tu navegador, y el resultado aparece aquí como de costumbre. Además conserva una copia en
                 <span class="font-mono text-xs">Documentos\Fiscontable</span>.
             </p>
             <ul class="text-xs text-slate-500 mt-2 space-y-1 list-disc pl-5">
                 <li>Tu PC llama al servidor; nadie entra a tu PC (no se abre ningún puerto).</li>
-                <li>La e.firma llega solo para cada trámite y se borra al terminar.</li>
-                <li>Si tu PC está apagada, los trámites se hacen en el servidor, como hoy.</li>
+                <li>La e.firma se recibe únicamente para cada trámite y se borra al terminar.</li>
+                <li>Si tu PC está apagada, las solicitudes se procesan en el servidor, como de costumbre.</li>
                 <li>Nunca abre una notificación pendiente del Buzón.</li>
                 <li>Una PC nueva no recibe nada hasta que tú la apruebes aquí («Sí, es mi PC»).</li>
             </ul>
@@ -40,7 +40,7 @@
         <section class="bg-white rounded-xl card-elevated border border-gray-200 p-5 mb-5">
             <h2 class="text-sm font-bold text-slate-800">Vincular una PC</h2>
             <ol class="text-sm text-slate-600 mt-2 space-y-1 list-decimal pl-5">
-                <li>En la PC con Windows, baja e instala el agente: un solo archivo, doble clic y listo (no pide permisos de administrador).
+                <li>En la PC con Windows, descarga e instala el Agente: un solo archivo que se instala con doble clic (no requiere permisos de administrador).
                     <div class="flex flex-wrap items-center gap-2 mt-2 mb-1">
                         <button type="button" id="btn-instalador" class="bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold py-2 px-4 rounded-lg transition" disabled>Descargar el agente (Windows)</button>
                         <span id="texto-instalador" class="text-xs text-slate-500"></span>
@@ -70,6 +70,6 @@
         </section>
     </main>
 
-<script src="/agente/agente.js?v=202611111800"></script>
+<script src="/agente/agente.js?v=202611120809"></script>
 </body>
 </html>

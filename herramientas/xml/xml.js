@@ -76,7 +76,7 @@
     function postJSON(ruta, cuerpo) {
         return api(ruta, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(cuerpo) });
     }
-    function avisar(texto, tipo) { Fiscontable.aviso ? Fiscontable.aviso(texto) : alert(texto); }
+    function avisar(texto, tipo) { Fiscontable.aviso ? Fiscontable.aviso(texto) : Fiscontable.avisar(texto); }
     function guardarLocal(clave, valor) { try { localStorage.setItem("xml:" + clave, JSON.stringify(valor)); } catch (e) { /* nada */ } }
     function leerLocal(clave) { try { return JSON.parse(localStorage.getItem("xml:" + clave)); } catch (e) { return null; } }
     E.pagosPor = leerLocal("pagosPor") === "pago" ? "pago" : "emision";
@@ -114,7 +114,7 @@
         // Periodo de ESTA página (como en Mi Admin): año + meses, varios a la vez. Arranca en
         // el general; cambiarlo aquí no mueve el general.
         await refrescarBibliotecas();
-        // Si cambias de empresa en la barra, la página se actualiza sola
+        // Si cambias de empresa en la barra, la página se actualiza automáticamente
         window.addEventListener("fiscontable:empresa", async function (e) {
             E.empresa = e.detail; E.otra = null; E.rfc = null;
             $("bandeja").hidden = true;
@@ -169,7 +169,7 @@
         var aviso = $("aviso-otra");
         aviso.hidden = !E.otra;
         if (E.otra) {
-            aviso.innerHTML = "<strong>" + esc(nombreDe(E.otra)) + "</strong> no está en tu directorio: sus XML se borran solos " + Fiscontable.textoPlazo("xml_sin_registrar") + " después de la última carga." +
+            aviso.innerHTML = "<strong>" + esc(nombreDe(E.otra)) + "</strong> no está en tu directorio: sus XML se borran automáticamente " + Fiscontable.textoPlazo("xml_sin_registrar") + " después de la última carga." +
                 ' <a class="xml-enlace" href="/clientes/">Registrarla como cliente</a>' +
                 (E.empresa ? ' <button type="button" class="xml-enlace" id="volver-empresa">Volver a ' + esc(E.empresa.alias || E.empresa.rfc) + "</button>" : "");
         }
@@ -233,7 +233,7 @@
         }
         if (b.dataset.borrar) {
             var rfc = b.dataset.borrar;
-            if (!confirm("¿Borrar ya todos los XML de " + nombreDe(rfc) + " (" + rfc + ")?\n\nNo está en tu directorio; no quedará registro.")) return;
+            if (!(await Fiscontable.preguntar("¿Borrar ya todos los XML de " + nombreDe(rfc) + " (" + rfc + ")?\n\nNo está en tu directorio; no quedará registro."))) return;
             try {
                 await apiJSON("/api/xml/borrar-biblioteca", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ rfc: rfc }) });
                 if (E.rfc === rfc) { E.rfc = null; E.otra = null; }
@@ -531,7 +531,7 @@
         }
         else if (accion === "pred" && v) guardarVista(v.nombre, !v.predeterminada, v.columnas);
         else if (accion === "borrar" && v) {
-            if (!confirm("¿Borrar la vista «" + v.nombre + "»?")) return;
+            if (!(await Fiscontable.preguntar("¿Borrar la vista «" + v.nombre + "»?"))) return;
             try {
                 await api("/api/xml/vistas/" + v.id, { method: "DELETE" });
                 await cargarVistas();
@@ -914,7 +914,7 @@
 
     async function descargarZipCompleto() {
         var uuids = uuidsParaAcciones();
-        if (uuids.length > 300) { avisar("Con PDF van hasta 300 a la vez: selecciona o filtra menos (hay " + uuids.length.toLocaleString("es-MX") + "). Para más, baja solo los XML."); return; }
+        if (uuids.length > 300) { avisar("Con PDF van hasta 300 a la vez: selecciona o filtra menos (hay " + uuids.length.toLocaleString("es-MX") + "). Para más, descarga únicamente los XML."); return; }
         var boton = $("btn-zip-completo"), texto = boton.innerHTML;
         boton.disabled = true; boton.innerHTML = "<b>⏳</b>Generando " + uuids.length + "…";
         try {
@@ -1093,7 +1093,7 @@
         clearTimeout(FONDO.reloj);
         if (n > 0) {
             caja.hidden = false;
-            caja.innerHTML = '<span class="xml-giro"></span> Validando ' + n.toLocaleString("es-MX") + " XML ante el SAT en segundo plano (vigente, cancelado, si es cancelable). Se actualizan solos.";
+            caja.innerHTML = '<span class="xml-giro"></span> Validando ' + n.toLocaleString("es-MX") + " XML ante el SAT en segundo plano (vigente, cancelado, si es cancelable). Se actualizan automáticamente.";
             FONDO.habia = Math.max(FONDO.habia, n);
             FONDO.reloj = setTimeout(async function () {
                 try { var r = await apiJSON("/api/xml/validacion?desde=0&rfc=" + encodeURIComponent(E.rfc || "")); vigilarFondo(r.en_fondo || 0); }
@@ -1148,7 +1148,7 @@
         if (!BJ.cargandoZip) {
             BJ.cargandoZip = new Promise(function (ok, mal) {
                 var sc = document.createElement("script");
-                sc.src = "https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js";
+                sc.src = "/assets/js/terceros/jszip.min.js";
                 sc.onload = ok; sc.onerror = function () { BJ.cargandoZip = null; mal(new Error("No se pudo abrir el ZIP (falló la descarga del lector de ZIP).")); };
                 document.head.appendChild(sc);
             });

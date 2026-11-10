@@ -15,7 +15,7 @@
         if (!r.ok) throw new Error(await Fiscontable.leerError(r));
         return r.json();
     }
-    function avisar(tipo, texto) { if (typeof mostrarAlerta === "function") mostrarAlerta(tipo, texto); else alert(texto); }
+    function avisar(tipo, texto) { if (typeof mostrarAlerta === "function") mostrarAlerta(tipo, texto); else Fiscontable.avisar(texto); }
     function fecha(iso) { var d = iso ? new Date(/Z$/.test(iso) ? iso : iso + "Z") : null; return d && !isNaN(d) ? d.toLocaleString("es-MX", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : ""; }
 
     async function cargar() {
@@ -37,6 +37,10 @@
             return '<li class="p-4 flex flex-wrap items-start gap-4">' +
                 '<div class="flex-1 min-w-[240px]"><b class="text-slate-800">' + esc(d.nombre) + "</b> · " + esc(d.correo) +
                     '<div class="text-xs text-slate-500 mt-1">' + [d.despacho, PERSONAS[d.personas] || d.personas, d.telefono, fecha(d.creada)].filter(Boolean).map(esc).join(" · ") + "</div>" +
+                    '<div class="flex flex-wrap gap-1.5 mt-2">' +
+                        (d.ofertas ? '<span class="ui-estado ui-estado--ok" title="Marcó la casilla: quiere recibir novedades y promociones">Acepta promociones</span>'
+                                   : '<span class="ui-estado" title="No marcó la casilla: no se le pueden mandar promociones">Sin promociones</span>') +
+                        (d.idioma === "en" ? '<span class="ui-estado">Formulario en inglés</span>' : "") + "</div>" +
                     (d.mensaje ? '<p class="text-sm text-slate-700 mt-2 italic">«' + esc(d.mensaje) + "»</p>" : "") +
                     (d.resuelta_por && d.estado !== "pendiente" ? '<div class="text-xs text-slate-400 mt-1">' + esc(d.resuelta_por) + " · " + esc(fecha(d.resuelta_en)) + "</div>" : "") + "</div>" +
                 '<div class="flex items-center gap-2">' + estado +
@@ -59,8 +63,8 @@
     }
 
     async function rechazar(id) {
-        if (!confirm("¿Rechazar esta solicitud?")) return;
-        var avisarle = confirm("¿Le mandamos un correo para avisarle?\n\nAceptar = sí, le avisamos.\nCancelar = no le escribimos.");
+        if (!(await Fiscontable.preguntar("¿Rechazar esta solicitud?"))) return;
+        var avisarle = (await Fiscontable.preguntar("¿Le mandamos un correo para avisarle?\n\nAceptar = sí, le avisamos.\nCancelar = no le escribimos."));
         try { await api("/api/admin/demos/" + id + "/rechazar", "POST", { avisar: avisarle }); cargar(); } catch (e) { avisar("error", e.message); }
     }
 

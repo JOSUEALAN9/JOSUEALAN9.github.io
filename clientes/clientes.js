@@ -247,7 +247,7 @@ async function revisarEnDespacho(rfc) {
         if (d.tengo_acceso && !enDespacho)
             avisoDespacho(`<b>${nombre}</b> ya está en el despacho y la tienes ahí. <button type="button" data-alta-espacio="despacho" data-sin-alta="1">Ir al despacho</button>. Si también la quieres en Mi espacio, continúa.`);
         else if (d.solicitud_pendiente)
-            avisoDespacho(`<b>${nombre}</b> ya está en el despacho. Ya pediste acceso; te avisamos cuando respondan.`);
+            avisoDespacho(`<b>${nombre}</b> ya está en el despacho. Ya pediste acceso; recibirás un aviso cuando respondan.`);
         else if (!d.tengo_acceso)
             avisoDespacho(`<b>${nombre}</b> ya está en el despacho${enDespacho ? ", pero no la tienes asignada" : ""}. <button type="button" data-pedir-acceso="${esc(rfc)}">Pedir acceso</button>` +
                 (enDespacho ? "" : " en lugar de duplicarla. Si de todos modos la quieres en Mi espacio, continúa."));
@@ -313,7 +313,7 @@ document.addEventListener("DOMContentLoaded", () => {
     ["input", "change"].forEach(ev => document.getElementById("form-nuevo-cliente").addEventListener(ev, (e) => { if (e.target.id !== "alta-cer") errorAlta(""); }));
     document.getElementById("input-alias").addEventListener("input", () => rfcDesdeCer(altaCer && !altaCer.vencido ? altaCer : null));
     document.getElementById("input-alias").addEventListener("blur", (e) => {
-        // Si escribieron "Constructora XYZ SA de CV", el tipo se separa solo
+        // Si escribieron "Constructora XYZ SA de CV", el tipo se separa automáticamente
         const sep = separarTipo(e.target.value), tipo = document.getElementById("input-tipo");
         if (sep.tipo) { tipo.value = sep.tipo; e.target.value = sep.nombre; }
     });
@@ -650,7 +650,7 @@ async function crearCliente(e) {
         datos.append("cer", cer); datos.append("key", key); datos.append("password", password);
     } else {
         rfc = document.getElementById("input-rfc").value.trim().toUpperCase().replace(/[\s-]/g, "");
-        if (!rfc) return aviso("general", "Escribe su RFC, o sube su e.firma en Accesos y sale solo.", "input-rfc");
+        if (!rfc) return aviso("general", "Escribe su RFC, o sube su e.firma en Accesos y se obtiene automáticamente.", "input-rfc");
         if (!RFC_VALIDO.test(rfc)) return aviso("general", "Ese RFC no tiene la forma correcta: 12 caracteres para empresas (ABC010101AB1) o 13 para personas físicas.", "input-rfc");
         datos.append("rfc", rfc);
     }
@@ -975,12 +975,12 @@ async function pintarXmlAuto(cliente) {
 function explicarXmlAuto(cfg) {
     const p = document.getElementById("xml-explica");
     if (!cfg || !cfg.activo) {
-        p.textContent = "Apagada. Al prenderla, elige desde qué mes: la primera vez baja todo desde ahí hasta ayer y después sigue al día.";
+        p.textContent = "Inactiva. Al activarla, elige desde qué mes: la primera vez descarga todo desde ahí hasta ayer y después sigue al día.";
         return;
     }
     const partes = [];
     if (cfg.proxima && cfg.periodo) partes.push(`Próxima: ${fechaCorta(cfg.proxima)}, del ${fechaCorta(cfg.periodo.desde)} al ${fechaCorta(cfg.periodo.hasta)}.`);
-    if (cfg.falta_historico) partes.push(`Esa vez baja todo desde ${Fiscontable.nombreMes(cfg.desde).toLowerCase()}; después, solo lo reciente.`);
+    if (cfg.falta_historico) partes.push(`Esa vez descarga todo desde ${Fiscontable.nombreMes(cfg.desde).toLowerCase()}; después, solo lo reciente.`);
     else if (cfg.desde) partes.push(`Ya está bajado desde ${Fiscontable.nombreMes(cfg.desde).toLowerCase()}; sigue al día.`);
     if (cfg.ultima) partes.push(`Última: ${fechaCorta(cfg.ultima)}.`);
     p.textContent = partes.join(" ");
@@ -1077,7 +1077,7 @@ function pintarEstatales(rfc) {
     document.getElementById("obl-estatales").innerHTML = ESTATALES.map(([k, largo]) => {
         const o = act[k], url = `/herramientas/isn/estatal.html?i=${k}&empresa=${r}&abrir=`;
         const estado = !o ? "" : o.completos ? '<span class="text-emerald-700">✓ Datos completos.</span>'
-                                             : '<span class="text-amber-700">Faltan datos: sube el último acuse y se llenan solos.</span>';
+                                             : '<span class="text-amber-700">Faltan datos: sube el último acuse y se llenan automáticamente.</span>';
         return `<div><label class="flex items-center gap-2 text-sm font-semibold text-slate-700">
                 <input type="checkbox" data-obl-est="${k}" class="w-4 h-4 accent-violet-600"${o ? " checked" : ""}> ${largo}</label>
             ${o ? `<div class="ml-6 mt-1 text-xs font-semibold flex flex-wrap" style="gap:4px 14px">${estado}
@@ -1092,7 +1092,7 @@ function pintarDetalleIsn(o) {
     document.getElementById("obl-isn-detalle").classList.toggle("hidden", !activa);
     const estado = document.getElementById("obl-isn-estado");
     if (!o.obligacion) {
-        estado.textContent = "Al guardar, llena sus datos (domicilio, giro, firma y sucursales): con el último acuse se llenan solos.";
+        estado.textContent = "Al guardar, llena sus datos (domicilio, giro, firma y sucursales): con el último acuse se llenan automáticamente.";
         estado.className = "text-xs text-slate-500";
     } else if (o.completos) {
         estado.textContent = "✓ Datos de la declaración completos.";
@@ -1180,7 +1180,7 @@ async function guardarCiec() {
 }
 
 async function olvidarCiec() {
-    if (!(await Fiscontable.confirmar({ titulo: "¿Olvidar la contraseña del SAT?", texto: "Se borra la contraseña guardada de " + rfcEnEdicion + ". La puedes volver a escribir cuando quieras.", si: "Olvidar", peligro: true }))) return;
+    if (!(await Fiscontable.confirmar({ titulo: "¿Olvidar la contraseña del SAT?", texto: "Se borra la contraseña guardada de " + rfcEnEdicion + ". La puedes volver a escribir en cualquier momento.", si: "Olvidar", peligro: true }))) return;
     try {
         const r = await fetch(`${API_URL}/api/clientes/${encodeURIComponent(rfcEnEdicion)}/ciec`, { method: "DELETE", credentials: "include" });
         if (!r.ok) throw new Error(await interpretarError(r));
@@ -1341,7 +1341,7 @@ async function quitarReceptor(rfc) {
         if (!r.ok) throw new Error(await Fiscontable.leerError(r));
         receptoresFicha = receptoresFicha.filter(x => (x.clave || x.rfc) !== rfc);
         listarReceptores();
-    } catch (e) { alert(e.message); }
+    } catch (e) { Fiscontable.avisar(e.message); }
 }
 
 document.addEventListener("click", (e) => {

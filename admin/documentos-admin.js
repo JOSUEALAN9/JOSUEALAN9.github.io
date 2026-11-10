@@ -1,6 +1,6 @@
 /*
  * admin/documentos-admin.js — Pestaña Documentos de Administración: saldo en UnlockerFast,
- * pedidos que no se resolvieron solos (reintentar / devolver créditos), catálogo con
+ * pedidos que no se resolvieron automáticamente (reintentar / devolver créditos), catálogo con
  * precio en créditos y todos los pedidos.
  */
 (function () {
@@ -19,7 +19,7 @@
         if (!r.ok) throw new Error(await Fiscontable.leerError(r));
         return r.json();
     }
-    function avisar(tipo, texto) { if (typeof mostrarAlerta === "function") mostrarAlerta(tipo, texto); else alert(texto); }
+    function avisar(tipo, texto) { if (typeof mostrarAlerta === "function") mostrarAlerta(tipo, texto); else Fiscontable.avisar(texto); }
 
     async function cargar() {
         try { datos = await api("/api/admin/documentos"); } catch (e) { avisar("error", e.message); return; }

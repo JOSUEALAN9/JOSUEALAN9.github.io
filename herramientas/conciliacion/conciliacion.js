@@ -37,7 +37,7 @@
     /* ============================================================ utilidades */
     function guardar(k, v) { try { localStorage.setItem("conc:" + k, JSON.stringify(v)); } catch (e) { /* nada */ } }
     function leer(k) { try { return JSON.parse(localStorage.getItem("conc:" + k)); } catch (e) { return null; } }
-    function avisar(t) { if (Fiscontable.aviso) Fiscontable.aviso(t); else alert(t); }
+    function avisar(t) { if (Fiscontable.aviso) Fiscontable.aviso(t); else Fiscontable.avisar(t); }
     function dinero(v) { return v === null || v === undefined || v === "" ? "" : fmt.format(v); }
     function fechaMX(v) { var s = String(v || ""); return s.length >= 10 ? s.slice(8, 10) + "/" + s.slice(5, 7) + "/" + s.slice(0, 4) : s; }
     function textoLado(emitidos, recibidos) { return E.lado === "emitidos" ? emitidos : recibidos; }
@@ -185,7 +185,7 @@
         aviso.hidden = !E.otra;
         if (E.otra) {
             aviso.innerHTML = (reg ? "Estás viendo <strong>" + esc(nombreDe(E.otra)) + "</strong>, que no es tu empresa activa."
-                : "<strong>" + esc(nombreDe(E.otra)) + "</strong> no está en tu directorio: sus XML se borran solos " + Fiscontable.textoPlazo("xml_sin_registrar") + " después de la última carga." +
+                : "<strong>" + esc(nombreDe(E.otra)) + "</strong> no está en tu directorio: sus XML se borran automáticamente " + Fiscontable.textoPlazo("xml_sin_registrar") + " después de la última carga." +
                   ' <a class="xml-enlace" href="/clientes/">Registrarla como cliente</a>') +
                 (E.empresa ? ' <button type="button" class="xml-enlace" id="volver-empresa">Volver a ' + esc(E.empresa.alias || E.empresa.rfc) + "</button>" : "");
         }
@@ -248,7 +248,7 @@
         }
         if (b.dataset.borrar) {
             var rfc = b.dataset.borrar;
-            if (!confirm("¿Borrar ya todos los XML de " + nombreDe(rfc) + " (" + rfc + ")?\n\nNo está en tu directorio; no quedará registro.")) return;
+            if (!(await Fiscontable.preguntar("¿Borrar ya todos los XML de " + nombreDe(rfc) + " (" + rfc + ")?\n\nNo está en tu directorio; no quedará registro."))) return;
             try {
                 await enviar("/api/conciliacion/borrar-biblioteca", { rfc: rfc });
                 if (E.rfc === rfc) { E.rfc = null; E.otra = null; }
@@ -561,7 +561,7 @@
                 } }]);
             setTimeout(function () { var t = $("motivo-ajuste"); if (t) t.focus(); }, 50);
         } else if (accion === "quitar-ajuste") {
-            if (!confirm("¿Quitar el ajuste manual de esta factura? Volverá a su estado según sus pagos.")) return;
+            if (!(await Fiscontable.preguntar("¿Quitar el ajuste manual de esta factura? Volverá a su estado según sus pagos."))) return;
             try { await enviar("/api/conciliacion/ajuste/quitar", { rfc: E.rfc, uuid: f.uuid }); await cargarDatos(); } catch (e) { avisar(e.message); }
         }
     }
@@ -707,7 +707,7 @@
             if (!caja) return;
             var usd = (est.monedas || {}).USD, tarea = est.tarea || {}, partes = [];
             if (!est.token_configurado) {
-                partes.push('<strong style="color:rgb(var(--av-600))">Falta configurar el token de Banxico en el servidor.</strong> Mientras tanto no hay columna de Banxico; tu tipo de cambio para el reporte sí funciona.');
+                partes.push('<strong style="color:rgb(var(--av-600))">El tipo de cambio de Banxico todavía no está conectado.</strong> Mientras tanto no hay columna de Banxico; tu tipo de cambio para el reporte sí funciona.');
             } else {
                 partes.push("<strong>Banxico (dólar):</strong> " + (usd ? "último FIX del " + esc(fechaMX(usd.hasta)) + " = " + esc(fmtTc.format(usd.ultimo_valor)) +
                     " · " + usd.dias.toLocaleString("es-MX") + " días guardados desde " + esc(fechaMX(usd.desde)) : "todavía no hay datos (la primera descarga corre sola al arrancar)"));

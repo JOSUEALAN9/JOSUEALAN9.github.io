@@ -23,7 +23,7 @@
     var GENERICOS = { XAXX010101000: 1, XEXX010101000: 1 };
     var LIMITE_LOTE = 40 * 1024 * 1024, LIMITE_ARCHIVOS = 400;
 
-    function avisar(t) { if (Fiscontable.aviso) Fiscontable.aviso(t); else alert(t); }
+    function avisar(t) { if (Fiscontable.aviso) Fiscontable.aviso(t); else Fiscontable.avisar(t); }
 
     function crear(o) {
         var API = Fiscontable.API;
@@ -81,7 +81,7 @@
             if (!BJ.cargandoZip) {
                 BJ.cargandoZip = new Promise(function (ok, mal) {
                     var sc = document.createElement("script");
-                    sc.src = "https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js";
+                    sc.src = "/assets/js/terceros/jszip.min.js";
                     sc.onload = ok;
                     sc.onerror = function () { BJ.cargandoZip = null; mal(new Error("No se pudo abrir el ZIP (falló la descarga del lector de ZIP).")); };
                     document.head.appendChild(sc);
@@ -164,7 +164,7 @@
                 '<div class="xml-resumen__acciones"><button type="button" class="xml-btn xml-btn--primario" data-procesar' + (total && !BJ.leyendo ? "" : " disabled") + ">" +
                 (BJ.leyendo ? "Leyendo archivos…" : "Procesar " + total.toLocaleString("es-MX") + " XML") + "</button>" +
                 '<button type="button" class="xml-enlace" data-vaciar>Vaciar bandeja</button></div>' +
-                (d && !(BJ.clientes || {})[d] ? '<p class="xml-tenue" style="margin-top:8px">Esta empresa no está en tu directorio: sus XML se borran solos ' + Fiscontable.textoPlazo("xml_sin_registrar") + ' después de la última carga.</p>' : "") +
+                (d && !(BJ.clientes || {})[d] ? '<p class="xml-tenue" style="margin-top:8px">Esta empresa no está en tu directorio: sus XML se borran automáticamente ' + Fiscontable.textoPlazo("xml_sin_registrar") + ' después de la última carga.</p>' : "") +
                 "</div>";
         }
 

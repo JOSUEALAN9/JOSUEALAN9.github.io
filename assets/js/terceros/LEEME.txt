@@ -1,0 +1,14 @@
+Librerías de terceros que Fiscontable sirve desde su propio sitio (nada se carga de otros servidores).
+
+  jszip.min.js            JSZip 3.10.1            MIT o GPLv3        https://stuk.github.io/jszip/
+  pdfjs/pdf.min.js        PDF.js 3.11.174         Apache-2.0         https://mozilla.github.io/pdf.js/
+  pdfjs/pdf.worker.min.js PDF.js 3.11.174         Apache-2.0
+  xlsx.full.min.js        SheetJS CE 0.18.5       Apache-2.0         https://sheetjs.com/   (solo para ESCRIBIR Excel)
+  qrcode.min.js           qrcodejs 1.0.0          MIT                https://github.com/davidshimjs/qrcodejs
+  fflate.min.js           fflate 0.8.2 (UMD)      MIT                https://github.com/101arrowz/fflate   (laboratorio de nómina)
+
+Cada archivo conserva su aviso de licencia al inicio. Se copiaron tal cual del paquete oficial de npm.
+
+Pendiente: Constancias y Opinión LEEN el Excel que sube la persona y para eso usan SheetJS 0.20.0 desde cdn.sheetjs.com
+(las versiones anteriores a la 0.19.3 tienen una falla al leer archivos preparados con mala intención). Cuando se
+pueda bajar la 0.20.3 se copia aquí y se quita ese origen de la política de contenido (_headers).

@@ -42,17 +42,20 @@ html:has(body.en) { background: #161513; }
     padding: clamp(24px, 4vw, 40px); box-shadow: 0 30px 80px -30px rgba(0, 0, 0, .6);
     -webkit-backdrop-filter: blur(22px) saturate(1.2); backdrop-filter: blur(22px) saturate(1.2);
     display: flex; flex-direction: column; }
-.en-logo { height: 46px; width: auto; align-self: flex-start; margin-bottom: 36px; }
-.en-tarjeta h1 { margin: 0; font-size: 30px; line-height: 1.15; font-weight: 700; letter-spacing: -.02em; }
-.en-sub { margin: 10px 0 26px; color: var(--en-tenue); font-size: 15px; line-height: 1.55; }
+.en-logo { display: inline-flex; align-self: flex-start; margin-bottom: 34px; border-radius: 8px; }
+.en-logo svg { height: 46px; width: auto; display: block; overflow: visible; }
+.en-tarjeta h1 { margin: 0 0 22px; font-size: 28px; line-height: 1.15; font-weight: 700; letter-spacing: -.02em; }
+.en-sub { margin: -12px 0 22px; color: var(--en-tenue); font-size: 14.5px; line-height: 1.55; }
+.en-sub[hidden] { display: none; }
 
 .en-aviso { display: flex; gap: 10px; align-items: flex-start; border-radius: 10px; padding: 11px 13px; margin-bottom: 18px;
     font-size: 14px; line-height: 1.45; background: rgba(14, 159, 110, .14); border: 1px solid rgba(14, 159, 110, .35); color: #CDEEDF; }
 .en-aviso[hidden] { display: none; }
 .en-aviso--alerta { background: rgba(217, 119, 6, .14); border-color: rgba(217, 119, 6, .4); color: #F6D9B4; }
 
-.en-btn { display: flex; align-items: center; justify-content: center; gap: 10px; min-height: 52px; border-radius: 12px;
-    font-size: 15.5px; font-weight: 600; text-decoration: none; transition: background .15s ease, border-color .15s ease, transform .15s ease; }
+.en-btn { display: flex; align-items: center; justify-content: center; gap: 10px; min-height: 52px; border-radius: 12px; border: 0;
+    font-family: inherit; font-size: 15.5px; font-weight: 600; text-decoration: none; cursor: pointer; width: 100%; box-sizing: border-box;
+    transition: background .15s ease, border-color .15s ease, transform .15s ease; }
 .en-btn svg { width: 19px; height: 19px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .en-btn--principal { background: #0E9F6E; color: #fff; box-shadow: 0 10px 24px -10px rgba(14, 159, 110, .8); }
 .en-btn--principal:hover { background: #0B7A53; }
@@ -67,9 +70,23 @@ html:has(body.en) { background: #161513; }
 
 .en-legal { margin: 24px 0 0; font-size: 12.5px; color: var(--en-tenue); }
 .en-legal a, .en-pie a { color: #8FD3B5; text-decoration: underline; text-underline-offset: 3px; }
-.en-pie { margin-top: 28px; padding-top: 18px; border-top: 1px solid var(--en-borde); display: flex; flex-wrap: wrap;
-    justify-content: space-between; gap: 10px; font-size: 12.5px; color: var(--en-tenue); }
-.en-pie nav { display: flex; gap: 14px; flex-wrap: wrap; }
+.en-pie { margin-top: 32px; padding-top: 18px; border-top: 1px solid var(--en-borde); display: flex; flex-wrap: wrap;
+    justify-content: space-between; gap: 10px 16px; font-size: 12.5px; color: var(--en-tenue); }
+.en-pie nav { display: flex; gap: 6px 16px; flex-wrap: wrap; }
+.en-pie a { text-decoration: none; }
+.en-pie a:hover { text-decoration: underline; }
+
+/* En el teléfono: sin tarjeta, solo lo necesario y con aire */
+@media (max-width: 560px) {
+    .en-marco { padding: 0; align-items: stretch; }
+    .en-tarjeta { min-height: 100vh; min-height: 100dvh; box-sizing: border-box; border: 0; border-radius: 0; background: none; box-shadow: none;
+        -webkit-backdrop-filter: none; backdrop-filter: none; padding: 40px 24px 22px; }
+    .en-logo { margin-bottom: 44px; }
+    .en-logo svg { height: 40px; }
+    .en-tarjeta h1 { font-size: 26px; }
+    .en-pie { margin-top: auto; padding-top: 16px; }
+    .en-forma { margin-bottom: 28px; }
+}
 
 /* --- Novedades --- */
 .en-novedades { display: grid; gap: 20px; }
@@ -126,7 +143,12 @@ select.en-input option { color: #1C1B19; }
 .en-fila { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 @media (max-width: 480px) { .en-fila { grid-template-columns: 1fr; } }
 .en-check { display: flex; align-items: flex-start; gap: 10px; font-size: 13.5px; color: var(--en-tenue); line-height: 1.45; }
-.en-check input { width: 18px; height: 18px; margin-top: 1px; accent-color: #0E9F6E; flex: none; }
+.en-check input { -webkit-appearance: none; appearance: none; width: 18px; height: 18px; margin: 1px 0 0; flex: none; cursor: pointer;
+    border: 1.5px solid rgba(255, 255, 255, .34); border-radius: 5px; background: rgba(255, 255, 255, .06) center / 12px no-repeat; }
+.en-check input:checked { background-color: #0E9F6E; border-color: #0E9F6E;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M2.5 6.3l2.3 2.3 4.7-5' fill='none' stroke='%23fff' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); }
+.en-check input:focus-visible { outline: 3px solid #6FC3A0; outline-offset: 2px; }
+.en-check { cursor: pointer; }
 .en-check a, .en-nota a { color: #8FD3B5; text-decoration: underline; text-underline-offset: 3px; }
 .en-trampa { position: absolute !important; left: -10000px !important; width: 1px; height: 1px; overflow: hidden; }
 .en-btn[disabled] { opacity: .65; cursor: wait; }
@@ -138,9 +160,18 @@ select.en-input option { color: #1C1B19; }
 
 /* --- Inicio de sesión propio: pasos (entrar, código, contraseña nueva, dos pasos, olvidé, enlace, licencia) --- */
 .en-panel[hidden] { display: none !important; }
-.en-entre { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+.en-entre { display: flex; justify-content: space-between; align-items: center; gap: 10px 16px; flex-wrap: wrap; }
+.en-entre--centro { justify-content: center; gap: 10px 22px; }
+.en-entre .en-check, .en-check--corta { align-items: center; color: var(--en-texto); }
+.en-liga[disabled] { opacity: .55; cursor: default; text-decoration: none; }
 .en-liga { border: 0; background: none; padding: 0; font: inherit; font-size: 13.5px; font-weight: 600; color: #8FD3B5; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; justify-self: center; }
 .en-input--codigo { font-family: var(--fuente-mono); font-size: 22px; letter-spacing: .2em; text-align: center; }
 .en-input--clave { font-family: var(--fuente-mono); letter-spacing: .06em; text-transform: uppercase; }
 .en-nota--izq { text-align: left; margin: 0; }
 .en-forma .fcc__regla { margin-top: 2px; }
+
+/* Esta pantalla llega con «replace» (sin historial): sin transición entre páginas, que Chrome aborta con un error en consola */
+@view-transition { navigation: none; }
+
+/* /demo: el formulario compartido (assets/js/comun/forma-demo.js) dentro de la tarjeta */
+.dm-forma { margin-top: 22px; }

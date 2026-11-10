@@ -1,0 +1,81 @@
+<!-- descripcion: Ayuda de Fiscontable y de Fiscontable Agente para Windows: cómo instalarlo y conectarlo, dudas frecuentes de tu cuenta y cómo contactarnos. -->
+<h1>Ayuda y soporte</h1>
+<p class="st-texto__sub">Tu cuenta de Fiscontable y Fiscontable Agente, la aplicación para Windows que procesa en tu PC las solicitudes que realizas en la web.</p>
+
+<nav class="st-indice" aria-label="Contenido"><ol>
+    <li><a href="#cuenta">Tu cuenta</a></li>
+    <li><a href="#agente">Fiscontable Agente</a></li>
+    <li><a href="#instalar">Instalarlo y conectarlo</a></li>
+    <li><a href="#icono">El ícono junto al reloj</a></li>
+    <li><a href="#preguntas">Preguntas frecuentes del Agente</a></li>
+    <li><a href="#contacto">Contacto</a></li>
+</ol></nav>
+
+<h2 id="cuenta">Tu cuenta</h2>
+<details><summary>Olvidé mi contraseña</summary>
+    <p>En <a href="/login">Iniciar sesión</a> elige <b>¿Olvidaste tu contraseña?</b> y escribe tu correo. Te llega un enlace para crear una nueva; dura 2 horas.</p></details>
+<details><summary>No me llega el código de verificación</summary>
+    <p>Revisa la carpeta de correo no deseado y espera un minuto antes de pedir otro. Cada código dura 10 minutos. Si usas una app de autenticación, revisa que la hora de tu celular esté en automático.</p></details>
+<details><summary>¿Qué es «Confiar en este equipo»?</summary>
+    <p>Si lo marcas al iniciar sesión, ese navegador no vuelve a pedirte el segundo paso durante 30 días. Úsalo solo en tu computadora. Puedes quitar un equipo en <b>Configuración → Seguridad</b>.</p></details>
+<details><summary>Quiero que mi equipo también entre</summary>
+    <p>Desde tu despacho invitas a cada persona con su propio correo y decides qué empresas y módulos ve. No compartas tu contraseña.</p></details>
+<details><summary>¿Cómo empiezo si todavía no tengo cuenta?</summary>
+    <p><a href="/?sitio#registro">Solicita una demo</a>. Al aprobarse tu solicitud recibirás el acceso por correo.</p></details>
+
+<h2 id="agente">Fiscontable Agente</h2>
+<p>Mientras el Agente está en ejecución, las solicitudes de tu cuenta (constancia de situación fiscal, opinión de
+cumplimiento 32-D, declaraciones, la revisión del Buzón Tributario y las facturas del portal del SAT) se procesan
+   <b>desde tu PC</b>, con tu conexión a internet y tu navegador, y el resultado aparece en la web como de costumbre. Además conserva una
+   copia en <code>Documentos\Fiscontable</code>.</p>
+<p>Necesitas una cuenta de Fiscontable y Windows 10 u 11 de 64 bits. Si tu PC está apagada, las solicitudes se procesan en el servidor, como de costumbre.</p>
+
+<h2 id="instalar">Instalarlo y conectarlo</h2>
+<ol>
+<!--si-tienda-->
+    <li>Instálalo desde <b>Microsoft Store</b> (busca «Fiscontable Agente») o con el instalador de la web: menú con tu nombre → <b>Conectar esta PC</b> → Descargar el agente.</li>
+<!--/si-tienda-->
+<!--no-tienda-->
+    <li>Descarga el instalador desde la web: menú con tu nombre → <b>Conectar esta PC</b> → Descargar el agente. Muy pronto también en Microsoft Store.</li>
+<!--/no-tienda-->
+    <li>Ábrelo. Sale la ventana <b>Conectar esta PC</b>.</li>
+    <li>En la web: menú con tu nombre → <b>Conectar esta PC</b> → <b>Pedir código</b>. Escribe en el Agente el código de 8 letras (dura 2 minutos) y presiona <b>Conectar</b>.</li>
+    <li>En la web, aprueba la PC nueva con <b>«Sí, es mi PC»</b>. Hasta entonces no recibe solicitudes.</li>
+</ol>
+<div class="st-caja">El ícono verde junto al reloj indica que el Agente está en línea. Haz clic en el ícono → <b>Ver estado</b> para consultar su actividad.</div>
+
+<h2 id="icono">El ícono junto al reloj</h2>
+<ul>
+    <li><b>Verde:</b> en línea y en espera de solicitudes.</li>
+    <li><b>Ámbar:</b> conectado pero en espera (PC sin aprobar, en pausa o fuera de su horario).</li>
+    <li><b>Gris:</b> sin conexión con el servidor.</li>
+</ul>
+<p>Desde su menú puedes ver el estado, abrir la carpeta de copias, consultar el registro técnico, pausar una hora, abrir Fiscontable o desconectar la PC.</p>
+
+<h2 id="preguntas">Preguntas frecuentes del Agente</h2>
+<details><summary>El código dice que no existe o ya venció</summary>
+    <p>Cada código dura 2 minutos y sirve una sola vez. Pide uno nuevo en la web y escríbelo enseguida. Si te equivocas muchas veces seguidas, espera 10 minutos.</p></details>
+<details><summary>La PC está conectada pero no procesa solicitudes</summary>
+    <p>Revisa en la web (Conectar esta PC) que la hayas aprobado, que no esté en pausa y que el horario y los trámites permitidos de esa PC incluyan lo que pides.</p></details>
+<details><summary>Windows o el antivirus de mi empresa muestran un aviso</summary>
+<!--si-tienda-->
+    <p>La versión de <b>Microsoft Store</b> va firmada por Microsoft y es la recomendada para PCs de empresa. Con el instalador de la web, Windows puede mostrar «Editor desconocido»: es un aviso, no un error. El Agente solo se conecta a <code>api.fiscontable.app</code> por HTTPS y a los portales del SAT, y funciona en redes que revisan el tráfico seguro (por ejemplo, FortiClient).</p></details>
+<!--/si-tienda-->
+<!--no-tienda-->
+    <p>Con el instalador de la web, Windows puede mostrar «Editor desconocido»: es un aviso, no un error. El Agente solo se conecta a <code>api.fiscontable.app</code> por HTTPS y a los portales del SAT, y funciona en redes que revisan el tráfico seguro (por ejemplo, FortiClient). La versión de Microsoft Store, que llega muy pronto, irá firmada por Microsoft.</p></details>
+<!--/no-tienda-->
+<details><summary>¿Dónde quedan los documentos?</summary>
+    <p>En la web, como siempre, y una copia en <code>Documentos\Fiscontable\RFC\…</code>, separada por tipo (Constancias, Opinión 32-D, Declaraciones, Buzón, XML). La copia se puede desactivar desde la web.</p></details>
+<details><summary>¿Es seguro? ¿Qué puede ver el Agente?</summary>
+    <p>Tu PC llama al servidor; nadie entra a tu PC y no se abre ningún puerto. La e.firma se recibe únicamente para cada trámite y se borra al terminar. Del Buzón solo lee: nunca abre una notificación pendiente. Más detalle en el <a href="/privacidad/#agente">Aviso de privacidad</a>.</p></details>
+<details><summary>Evitar que se inicie automáticamente con Windows</summary>
+    <p>Windows: Configuración → Aplicaciones → Inicio → desactiva <b>Fiscontable Agente</b>. Puedes abrirlo en cualquier momento desde el menú Inicio.</p></details>
+<details><summary>Actualizarlo</summary>
+    <p>Con el instalador de la web: menú del ícono → <b>Buscar actualizaciones</b>. La versión de Microsoft Store se actualiza automáticamente.</p></details>
+<details><summary>Desconectarlo o desinstalarlo</summary>
+    <p>Menú del ícono → <b>Desconectar esta PC</b>, o desde la web en Conectar esta PC. Para quitarlo: Configuración → Aplicaciones → Fiscontable Agente → Desinstalar. Tus copias en Documentos no se borran.</p></details>
+
+<h2 id="contacto">Contacto</h2>
+<p>Escríbenos <span data-contacto></span>. Respondemos en días hábiles, de lunes a viernes. Si es un problema con un
+   trámite, incluye la hora aproximada y, si puedes, el registro técnico (menú del ícono → Registro técnico).</p>
+<p>Para contratación, planes y licencias: <a href="mailto:ventas@fiscontable.app">ventas@fiscontable.app</a>.</p>

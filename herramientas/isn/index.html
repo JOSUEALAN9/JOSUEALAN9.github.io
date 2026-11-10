@@ -4,15 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Impuestos estatales · Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611111800">
-    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611111800">
-    <link rel="stylesheet" href="/herramientas/isn/isn.css?v=202611120701">
-    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611111800">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611120809">
+    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611120809">
+    <link rel="stylesheet" href="/herramientas/isn/isn.css?v=202611120809">
+    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611120809">
 </head>
 <body class="bg-slate-50">
 <div id="app-header" data-modulo="isn" data-titulo="Impuestos estatales" data-migas="Herramientas|/herramientas/"></div>
-<script src="/assets/js/nucleo.js?v=202611111800"></script>
-<script src="/assets/js/barra.js?v=202611120706"></script>
+<script src="/assets/js/nucleo.js?v=202611120809"></script>
+<script src="/assets/js/barra.js?v=202611120809"></script>
 
 <main class="xml-pagina">
     <nav class="est-impuestos" aria-label="Impuesto">
@@ -78,7 +78,7 @@
             <button type="button" id="btn-excel" class="mod-accion" title="La plantilla de esta empresa ya llena"><b>▦</b>Cargar Excel</button>
             <button type="button" id="btn-plantilla" class="mod-accion" title="De esta empresa, con lo que ya capturaste del mes que elijas"><b>⇩</b>Plantilla de Excel</button>
             <button type="button" id="btn-acuses" class="mod-accion" title="Acuses de ISN de Quintana Roo o BCS: se guardan, se cruzan con lo calculado y llenan los datos de la declaración"><b>📄</b>Leer acuses</button>
-            <button type="button" id="btn-descargar" class="mod-accion" title="Baja de Tributanet los acuses de los meses que elijas (los que ya tienes no se vuelven a bajar)"><b>⇣</b>Descargar del portal</button>
+            <button type="button" id="btn-descargar" class="mod-accion" title="Baja de Tributanet los acuses de los meses que elijas (los que ya tienes no se vuelven a descargar)"><b>⇣</b>Descargar del portal</button>
             <p class="mod-acciones__grupo">Descargar</p>
             <button type="button" id="btn-exportar" class="mod-accion"><b>▤</b>Excel de lo calculado</button>
             <p class="mod-acciones__grupo">Declaración</p>
@@ -213,11 +213,11 @@
     <div class="xml-modal__caja isn-form">
         <h3 id="d-titulo">Descargar acuses del portal</h3>
         <label class="isn-campo">Año<select id="d-anio"></select></label>
-        <p class="isn-nota">Meses (los que ya tienes salen marcados como ✓ y no se vuelven a bajar):</p>
+        <p class="isn-nota">Meses (los que ya tienes salen marcados como ✓ y no se vuelven a descargar):</p>
         <div id="d-meses" class="isn-meses"></div>
         <label class="isn-check"><input type="checkbox" id="d-ceros"> También el de pago en ceros (declaraciones en $0)</label>
         <p class="isn-nota">El pago en ceros se genera en el portal en ese momento: pídelo solo si lo necesitas.</p>
-        <label class="isn-check"><input type="checkbox" id="d-forzar"> Volver a bajar aunque ya lo tenga</label>
+        <label class="isn-check"><input type="checkbox" id="d-forzar"> Volver a descargar aunque ya lo tenga</label>
         <p id="d-error" class="isn-error" hidden></p>
         <div class="isn-botones">
             <span style="flex:1"></span>
@@ -255,8 +255,8 @@
     <ol id="avance-filas" class="isn-avance__filas"></ol>
 </div>
 
-<script src="/herramientas/isn/obligaciones.js?v=202611111800"></script>
-<script src="/herramientas/isn/acuses-bloque.js?v=202611120702"></script>
-<script src="/herramientas/isn/isn.js?v=202611120702"></script>
+<script src="/herramientas/isn/obligaciones.js?v=202611120809"></script>
+<script src="/herramientas/isn/acuses-bloque.js?v=202611120809"></script>
+<script src="/herramientas/isn/isn.js?v=202611120809"></script>
 </body>
 </html>

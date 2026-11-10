@@ -112,7 +112,7 @@
         caja.innerHTML = '<button type="button" class="tb-cierre__cabeza" data-filtro="f:f_cierre" title="Ver las empresas a las que les falta algo">' +
             "<span><b>Cierre de " + esc(c0.mes) + "</b> · " + completas + " de " + con.length + " empresa" + (con.length === 1 ? "" : "s") + " completa" + (con.length === 1 ? "" : "s") + "</span>" +
             '<span class="tb-barrita tb-barrita--ancha"><i style="width:' + Math.round(100 * hechos / total) + '%"></i></span><small>' + Math.round(100 * hechos / total) + " %</small></button>" +
-            '<div class="tb-cierre__pasos">' + pasos + "</div>";
+            '<div class="tb-cierre__pasos">' + pasos + '<a class="tb-cierre__paso tb-cierre__paso--ver" href="/herramientas/cierre/"><span>Ver avance por cliente</span><b>→</b></a></div>';
     }
 
     function filas() {
@@ -346,7 +346,26 @@
         if (!p || arrancado) return;
         arrancado = true;
         recientes();
-        if (!p.viendo_como) pasosCuenta();
+        // Cuenta de revisión (Microsoft Store): en vez de «Configura tu cuenta», un recorrido por la pantalla (una vez)
+        var revision = /@fiscontable\.invalid$/.test(p.correo || "");
+        if (revision) {
+            var visto = false; try { visto = localStorage.getItem("fc-recorrido:revision") === "1"; } catch (e) { /* nada */ }
+            if (!visto && Fiscontable.recorrido) setTimeout(function () {
+                Fiscontable.recorrido("revision", ["Bienvenido a Fiscontable, el sistema para despachos contables en México. Esta cuenta de revisión " +
+                    "tiene empresas de ejemplo: puedes recorrer todo, pero no guardar cambios. Te mostramos las partes principales; " +
+                    "después, el botón «?» de cada pantalla explica cómo se usa."]);
+            }, 1200);
+        } else if (!p.viendo_como) {
+            pasosCuenta();
+            // Cuentas nuevas: un recorrido por la pantalla, una sola vez (después queda en el botón «?» de cada módulo).
+            // Espera a que el perfil esté completo para no encimarse con la ventana de bienvenida.
+            var yaVio = true; try { yaVio = localStorage.getItem("fc-recorrido:bienvenida") === "1"; } catch (e) { /* nada */ }
+            if (!yaVio && p.rol !== "admin" && p.perfil_completo && Fiscontable.recorrido) setTimeout(function () {
+                if (document.querySelector("dialog[open], .fc-tour, #fc-bloqueo-pantalla:not([hidden])")) return;
+                Fiscontable.recorrido("bienvenida", ["Te damos la bienvenida a Fiscontable. Este recorrido muestra las partes principales de la pantalla; " +
+                    "después, el botón «?» de cada módulo explica cómo se utiliza."]);
+            }, 1500);
+        }
         var e = p.empresa_activa;
         $("tb-vista-empresa").textContent = e ? (e.alias || e.rfc) : "Empresa activa";
         verVista(vistaGuardada() || (e ? "empresa" : "despacho"));

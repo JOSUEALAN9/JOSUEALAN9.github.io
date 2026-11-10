@@ -15,7 +15,7 @@
         if (!r.ok) throw new Error(await Fiscontable.leerError(r));
         return r.json();
     }
-    function avisar(tipo, texto) { if (typeof mostrarAlerta === "function") mostrarAlerta(tipo, texto); else alert(texto); }
+    function avisar(tipo, texto) { if (typeof mostrarAlerta === "function") mostrarAlerta(tipo, texto); else Fiscontable.avisar(texto); }
     function fecha(iso) { var d = iso ? new Date(iso) : null; return d && !isNaN(d) ? d.toLocaleDateString("es-MX", { day: "numeric", month: "short", year: "numeric" }) : "—"; }
 
     async function cargar() {
@@ -90,9 +90,9 @@
     async function revocar(id, activa) {
         var terminar = false;
         if (activa) {
-            if (!confirm("¿Cancelar esta licencia? Ya está en uso.")) return;
-            terminar = confirm("¿También termina el acceso de esa cuenta hoy mismo?\n\nAceptar = su vigencia vence hoy.\nCancelar = conserva la vigencia que ya tenía.");
-        } else if (!confirm("¿Cancelar esta clave? Ya no se podrá activar.")) return;
+            if (!(await Fiscontable.preguntar("¿Cancelar esta licencia? Ya está en uso."))) return;
+            terminar = (await Fiscontable.preguntar("¿También termina el acceso de esa cuenta hoy mismo?\n\nAceptar = su vigencia vence hoy.\nCancelar = conserva la vigencia que ya tenía."));
+        } else if (!(await Fiscontable.preguntar("¿Cancelar esta clave? Ya no se podrá activar."))) return;
         try { await api("/api/admin/licencias/" + id + "/revocar", "POST", { terminar_acceso: terminar }); cargar(); } catch (e) { avisar("error", e.message); }
     }
 

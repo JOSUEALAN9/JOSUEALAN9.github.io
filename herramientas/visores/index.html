@@ -4,9 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Visor de impuestos · Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611111800">
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611111800">
-    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611111800">
+    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611120809">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611120809">
+    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611120809">
     <style>
         .vi-cabeza { display: flex; flex-wrap: wrap; gap: var(--e-3); align-items: center; margin-bottom: var(--e-4); }
         .vi-cabeza h1 { margin: 0; }
@@ -35,12 +35,52 @@
         .vi-meses { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 6px; font-size: 11px; color: rgb(var(--g-500)); text-align: center; margin-top: 4px; }
         .c-fact { background: rgb(var(--g-300)); } .c-cobr { background: rgb(var(--ac-600)); }
         .vi-nota { font-size: 12px; color: rgb(var(--g-500)); margin-top: var(--e-3); line-height: 1.5; }
+        /* Visor del SAT: lecturas guardadas */
+        .vs-caja { margin-top: var(--e-4); margin-bottom: var(--e-4); padding: var(--e-4); border: 1px solid var(--linea); border-radius: var(--r-tarjeta); background: rgb(var(--g-0)); display: grid; gap: var(--e-3); grid-template-columns: minmax(0, 1fr); }
+        .vs-caja__cab { display: flex; gap: var(--e-3); align-items: flex-start; flex-wrap: wrap; }
+        .vs-caja__cab div { flex: 1 1 260px; display: grid; gap: 2px; }
+        .vs-caja__cab b { font-size: var(--t-14); color: rgb(var(--g-900)); }
+        .vs-caja__cab span { font-size: var(--t-13); color: rgb(var(--g-600)); line-height: 1.45; }
+        .vs-caja__cab a { font-size: var(--t-13); font-weight: 600; color: rgb(var(--ac-700)); white-space: nowrap; }
+        .vs-msj { margin: 0; font-size: var(--t-13); font-weight: 600; color: rgb(var(--ok-600)); }
+        .vs-msj:empty { display: none; }
+        .vs-msj--mal { color: rgb(var(--er-600)); }
+        .vs-vacio { margin: 0; font-size: var(--t-13); color: rgb(var(--g-600)); line-height: 1.5; }
+        .vs-fila { display: flex; gap: var(--e-3); align-items: center; flex-wrap: wrap; padding: 10px 0; border-top: 1px solid var(--linea); }
+        .vs-fila:first-child { border-top: 0; }
+        .vs-fila--abierta .vs-fila__que b { color: rgb(var(--ac-700)); }
+        .vs-fila__que { flex: 1 1 220px; min-width: 0; display: grid; gap: 2px; }
+        .vs-fila__que b { font-size: var(--t-14); color: rgb(var(--g-900)); }
+        .vs-fila__que span, .vs-fila__que small { font-size: var(--t-12); color: rgb(var(--g-600)); }
+        .vs-fila__btn { display: flex; gap: 6px; flex-wrap: wrap; }
+        .vs-detalle { border-top: 1px solid var(--linea); padding-top: var(--e-3); display: grid; gap: var(--e-3); grid-template-columns: minmax(0, 1fr); min-width: 0; }
+        .vs-detalle[hidden] { display: none; }
+        .vs-detalle__cab { display: flex; gap: var(--e-3); align-items: center; flex-wrap: wrap; }
+        .vs-detalle__cab b { font-size: var(--t-14); color: rgb(var(--g-900)); }
+        .vs-detalle__cab span { font-size: var(--t-12); color: rgb(var(--g-600)); }
+        .vs-pantallas { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: thin; }
+        .vs-pantallas button { flex: none; border: 1px solid var(--linea); background: rgb(var(--g-0)); border-radius: 999px; padding: 6px 12px; font: inherit; font-size: var(--t-12); font-weight: 600; color: rgb(var(--g-700)); cursor: pointer; white-space: nowrap; }
+        .vs-pantallas button[aria-selected="true"] { background: rgb(var(--ac-600)); border-color: rgb(var(--ac-600)); color: #fff; }
+        .vs-pantallas button.vs-sin { color: rgb(var(--g-500)); font-weight: 500; }
+        .vs-pantallas button.vs-sin[aria-selected="true"] { color: #fff; }
+        .vs-pares { margin: 0; display: grid; gap: 6px var(--e-4); grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr)); }
+        .vs-pares div { min-width: 0; } .vs-pares dt { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .03em; color: rgb(var(--g-600)); }
+        .vs-pares dd { margin: 0; font-size: var(--t-13); color: rgb(var(--g-900)); overflow-wrap: anywhere; }
+        .vs-tabla__titulo { margin: 0 0 6px; font-size: var(--t-13); font-weight: 700; color: rgb(var(--g-900)); }
+        .vs-tabla__caja { overflow-x: auto; border: 1px solid var(--linea); border-radius: 10px; }
+        .vs-tabla { border-collapse: collapse; width: 100%; font-size: var(--t-13); }
+        .vs-tabla th { text-align: left; background: rgb(var(--g-50)); font-size: 11.5px; text-transform: uppercase; letter-spacing: .03em; color: rgb(var(--g-700)); }
+        .vs-tabla th, .vs-tabla td { padding: 8px 12px; border-bottom: 1px solid var(--linea); white-space: nowrap; }
+        .vs-tabla tr:last-child td { border-bottom: 0; }
+        .vs-tabla td.vs-num, .vs-tabla th.vs-num { text-align: right; font-variant-numeric: tabular-nums; }
+        .vs-captura { display: grid; gap: var(--e-2); justify-items: start; }
+        .vs-captura img { max-width: 100%; border: 1px solid var(--linea); border-radius: 10px; }
     </style>
 </head>
 <body class="min-h-screen flex flex-col">
 <div id="app-header" data-modulo="visores" data-titulo="Visor de impuestos" data-migas="Herramientas|/herramientas/"></div>
-<script src="/assets/js/nucleo.js?v=202611111800"></script>
-<script src="/assets/js/barra.js?v=202611120706"></script>
+<script src="/assets/js/nucleo.js?v=202611120809"></script>
+<script src="/assets/js/barra.js?v=202611120809"></script>
 
 <main class="flex-grow mod-pagina" style="max-width:none">
     <div class="vi-cabeza mod-cabeza">
@@ -51,7 +91,7 @@
                 <button type="button" data-lado="egresos" aria-pressed="false">Gastos</button>
             </div>
             <select id="vi-anio" class="ui-select" aria-label="Año"></select>
-            <a class="ui-btn ui-btn--secundario" href="https://ptcvisorcfdiingegr.clouda.sat.gob.mx/" target="_blank" rel="noopener" title="Visor de comprobantes de ingresos y egresos del SAT (se entra con la e.firma o la contraseña)">Visor del SAT ↗</a>
+            <button type="button" class="ui-btn ui-btn--secundario" id="vs-leer" title="Fiscontable entra al visor del SAT con la e.firma guardada, copia lo que muestra y lo deja guardado aquí">Leer el visor del SAT</button>
         </div>
     </div>
 
@@ -60,11 +100,21 @@
         <div id="vi-tarjetas" class="vi-tarjetas"></div>
         <div id="vi-grafica" class="vi-grafica"></div>
         <div id="vi-tabla"></div>
+        <section id="vs-caja" class="vs-caja" hidden aria-label="Visor del SAT">
+            <div class="vs-caja__cab">
+                <div><b>Visor del SAT</b><span>Lo que el SAT muestra de esta empresa, copiado y guardado aquí con su fecha. Sirve para cotejarlo con tus XML.</span></div>
+                <a href="https://ptcvisorcfdiingegr.clouda.sat.gob.mx/" target="_blank" rel="noopener" title="Abre la página del SAT en otra pestaña (entras tú con tu e.firma)">Abrir en el SAT ↗</a>
+            </div>
+            <p id="vs-msj" class="vs-msj" role="status"></p>
+            <div id="vs-lista"></div>
+            <div id="vs-detalle" class="vs-detalle" hidden></div>
+        </section>
         <p class="vi-nota">Facturado: por fecha de emisión (PUE y PPD), sin IVA, menos notas de crédito. Cobrado y pagado: flujo de efectivo, igual que el Papel de trabajo de IVA (PUE del mes + complementos por fecha de pago − notas). Lo cancelado y la nómina no cuentan. Para que cuadre con el visor del SAT, ten al día la descarga de XML y la validación.</p>
     </div>
 </main>
 
-<script src="/assets/js/comun/tabla.js?v=202611111800"></script>
-<script src="/herramientas/visores/visores.js?v=202611111800"></script>
+<script src="/assets/js/comun/tabla.js?v=202611120809"></script>
+<script src="/herramientas/visores/visores.js?v=202611120809"></script>
+<script src="/herramientas/visores/visores-sat.js?v=202611120809"></script>
 </body>
 </html>

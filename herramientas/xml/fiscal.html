@@ -4,16 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Marcas fiscales · Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611111800">
-    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611111800">
-    <link rel="stylesheet" href="/herramientas/isn/isn.css?v=202611111800">
-    <link rel="stylesheet" href="/herramientas/xml/fiscal.css?v=202611111800">
-    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611111800">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611120809">
+    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611120809">
+    <link rel="stylesheet" href="/herramientas/isn/isn.css?v=202611120809">
+    <link rel="stylesheet" href="/herramientas/xml/fiscal.css?v=202611120809">
+    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611120809">
 </head>
 <body class="bg-slate-50">
 <div id="app-header" data-modulo="marcas" data-titulo="Marcas fiscales" data-migas="Herramientas|/herramientas/"></div>
-<script src="/assets/js/nucleo.js?v=202611111800"></script>
-<script src="/assets/js/barra.js?v=202611120706"></script>
+<script src="/assets/js/nucleo.js?v=202611120809"></script>
+<script src="/assets/js/barra.js?v=202611120809"></script>
 
 <main class="xml-pagina">
     <div class="xml-cabeza">
@@ -62,7 +62,7 @@
         <b id="sel-n"></b>
         <button type="button" id="btn-marcar" class="xml-btn xml-btn--primario">¿Cuentan o no?</button>
         <button type="button" id="btn-revisado" class="xml-btn" title="Quita el ⚑ sin cambiar nada">✓ Ya las revisé</button>
-        <button type="button" id="btn-auto" class="xml-btn" title="Quita lo marcado a mano y vuelve a lo que dicen las reglas">↺ Automático</button>
+        <button type="button" id="btn-auto" class="xml-btn" title="Quita lo marcado manualmente y vuelve a lo que dicen las reglas">↺ Automático</button>
         <button type="button" id="btn-limpiar" class="xml-enlace">Quitar selección</button>
     </div>
 
@@ -73,7 +73,7 @@
         </table>
         <p id="sin-filas" class="xml-vacio xml-vacio--tabla" hidden></p>
     </div>
-    <p class="xml-pie">Casi todo se marca solo y dice por qué. Para cambiar una, toca su casilla de ISR, IVA… Para cambiar varias a la vez, palomea sus casillas de la izquierda.</p>
+    <p class="xml-pie">Casi todo se marca automáticamente y dice por qué. Para cambiar una, toca su casilla de ISR, IVA… Para cambiar varias a la vez, palomea sus casillas de la izquierda.</p>
 </main>
 
 <!-- ¿Cuenta o no? (una casilla o varias facturas) -->
@@ -147,6 +147,6 @@
     </div>
 </div>
 
-<script src="/herramientas/xml/fiscal.js?v=202611111800"></script>
+<script src="/herramientas/xml/fiscal.js?v=202611120809"></script>
 </body>
 </html>

@@ -484,7 +484,7 @@
         var ids = elegidos();
         if (!ids.length) return;
         var mes = MESES[+$("p-mes").value - 1] + " " + $("p-anio").value;
-        if (!confirm("Se van a PRESENTAR " + ids.length + " declaración(es) de ISN de " + mes + " ante la SEFIPLAN.\n\n¿Todo bien? Esto no se puede deshacer.")) return;
+        if (!(await Fiscontable.preguntar("Se van a PRESENTAR " + ids.length + " declaración(es) de ISN de " + mes + " ante la SEFIPLAN.\n\n¿Todo bien? Esto no se puede deshacer."))) return;
         $("p-enviar").disabled = true;
         try {
             $("avance").hidden = true;
@@ -580,9 +580,9 @@
         var van = marcadasMasivo().filter(function (x) { return x.periodo && !x.periodo.presentada; });
         if (!van.length) return;
         var mes = MESES[+$("mv-mes").value - 1] + " " + $("mv-anio").value;
-        if (!confirm("Se BORRA la declaración de " + mes + " (lo capturado o cargado del Excel) de:\n\n" +
+        if (!(await Fiscontable.preguntar("Se BORRA la declaración de " + mes + " (lo capturado o cargado del Excel) de:\n\n" +
                      van.map(function (x) { return "• " + (x.nombre || x.rfc); }).join("\n") +
-                     "\n\nNo se presenta ni se toca nada en el portal. Las que todavía tengan la obligación activa siguen en la lista como \"Sin capturar\".")) return;
+                     "\n\nNo se presenta ni se toca nada en el portal. Las que todavía tengan la obligación activa siguen en la lista como \"Sin capturar\"."))) return;
         try {
             var r = await json("/api/isn/masivo/quitar", "POST", { anio: +$("mv-anio").value, mes: +$("mv-mes").value, rfcs: van.map(function (x) { return x.rfc; }) });
             van.forEach(function (x) { delete E.mvMarcas[x.rfc]; });
@@ -597,8 +597,8 @@
         var van = marcadasMasivo().filter(function (x) { return x.periodo && !x.periodo.presentada; });
         if (!van.length) return;
         var mes = MESES[+$("mv-mes").value - 1] + " " + $("mv-anio").value;
-        if (!confirm("Revisar en el portal " + van.length + " empresa(s) de " + mes + " (no se llena ni se presenta nada):\n\n" +
-                     van.map(function (x) { return "• " + (x.nombre || x.rfc); }).join("\n"))) return;
+        if (!(await Fiscontable.preguntar("Revisar en el portal " + van.length + " empresa(s) de " + mes + " (no se llena ni se presenta nada):\n\n" +
+                     van.map(function (x) { return "• " + (x.nombre || x.rfc); }).join("\n")))) return;
         try {
             $("avance").hidden = true;
             var r = await json("/api/isn/portal/revisar", "POST", { ids: van.map(function (x) { return x.periodo.id; }) });
@@ -612,10 +612,10 @@
         var noVan = marcadas.filter(function (x) { return van.indexOf(x) === -1; });
         if (!van.length) return;
         var mes = MESES[+$("mv-mes").value - 1] + " " + $("mv-anio").value;
-        if (!confirm("Se van a PRESENTAR " + van.length + " declaración(es) de ISN de " + mes + " ante la SEFIPLAN:\n\n" +
+        if (!(await Fiscontable.preguntar("Se van a PRESENTAR " + van.length + " declaración(es) de ISN de " + mes + " ante la SEFIPLAN:\n\n" +
                      van.map(function (x) { return "• " + (x.nombre || x.rfc) + " — a cargo $" + m(x.periodo.a_cargo); }).join("\n") +
                      (noVan.length ? "\n\nNo van (no están listas o no tienen captura): " + noVan.map(function (x) { return x.nombre || x.rfc; }).join(", ") : "") +
-                     "\n\n¿Todo bien? Esto no se puede deshacer.")) return;
+                     "\n\n¿Todo bien? Esto no se puede deshacer."))) return;
         try {
             $("avance").hidden = true;
             var r = await json("/api/isn/presentar", "POST", { ids: van.map(function (x) { return x.periodo.id; }) });
@@ -650,8 +650,8 @@
     async function enviarDescarga() {
         var meses = Array.from(document.querySelectorAll("#d-meses input:checked")).map(function (c) { return +c.value; });
         if (!meses.length) { $("d-error").textContent = "Elige al menos un mes."; $("d-error").hidden = false; return; }
-        if ($("d-ceros").checked && !confirm("El pago en ceros se GENERA en el portal en este momento (puede quedar registrado otra vez, con la fecha de hoy).\n\n" +
-            "Solo aplica a las declaraciones en $0 y se salta las que ya lo tienen. ¿Lo genero?")) return;
+        if ($("d-ceros").checked && !(await Fiscontable.preguntar("El pago en ceros se GENERA en el portal en este momento (puede quedar registrado otra vez, con la fecha de hoy).\n\n" +
+            "Solo aplica a las declaraciones en $0 y se salta las que ya lo tienen. ¿Lo genero?"))) return;
         $("d-enviar").disabled = true;
         try {
             $("avance").hidden = true;
@@ -708,7 +708,7 @@
     }
 
     async function detenerTrabajo() {
-        if (!E.job || !confirm("¿Detener? Se termina el que está en curso y ya no se empiezan los siguientes.")) return;
+        if (!E.job || !(await Fiscontable.preguntar("¿Detener? Se termina el que está en curso y ya no se empiezan los siguientes."))) return;
         try { await api("/api/isn/trabajo/" + encodeURIComponent(E.job.id) + "/detener", { method: "POST" }); } catch (e) { aviso(e.message, true); }
     }
 
@@ -842,7 +842,7 @@
             if (e.key === "Escape") { $("modal").hidden = true; $("modal-datos").hidden = true; $("modal-presentar").hidden = true; $("modal-descargar").hidden = true; }
         });
         $("form-borrar").addEventListener("click", async function () {
-            if (!E.editando || !confirm("¿Borrar " + E.editando.mes_nombre + " " + E.editando.anio + " (" + E.editando.tipo + ")? También se borra su acuse guardado.")) return;
+            if (!E.editando || !(await Fiscontable.preguntar("¿Borrar " + E.editando.mes_nombre + " " + E.editando.anio + " (" + E.editando.tipo + ")? También se borra su acuse guardado."))) return;
             try { await api("/api/isn/periodo/" + E.editando.id, { method: "DELETE" }); $("modal").hidden = true; await cargarEmpresas(); cargar(); }
             catch (err) { $("form-error").textContent = err.message; $("form-error").hidden = false; }
         });

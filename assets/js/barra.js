@@ -43,6 +43,7 @@
         conciliacion:  { nombre: "Conciliación",          permiso: "conciliacion" },
         iva:           { nombre: "Papel de trabajo de IVA", permiso: "iva" },
         visores:       { nombre: "Visor de impuestos",    permiso: "iva" },
+        cierre:        { nombre: "Cierre del mes",        permiso: null },
         validador:     { nombre: "Validador SAT",         permiso: "validador" },
         xml:           { nombre: "Administración de XML", permiso: "validador" },
         constancias:   { nombre: "Constancias",           permiso: "constancias" },
@@ -62,7 +63,7 @@
 
     // "¿Cómo se usa?": pocos pasos por herramienta (clave = data-ayuda o data-modulo)
     var AYUDA = {
-        clientes: ["+ Registrar empresa: sube su e.firma (el RFC sale solo del certificado), su nombre y tipo de sociedad; la contraseña del SAT es opcional.",
+        clientes: ["+ Registrar empresa: sube su e.firma (el RFC se obtiene automáticamente del certificado), su nombre y tipo de sociedad; la contraseña del SAT es opcional.",
                    "Editar (o el lápiz ✎ del menú de empresa, arriba, desde cualquier pantalla): e.firma guardada y obligaciones.",
                    "Los botones de cada tarjeta abren esa herramienta ya con el cliente elegido."],
         constancias: ["Arriba eliges Por empresa (una) o Masivo (varias).",
@@ -75,9 +76,9 @@
                   "\"Programar descarga\" la deja para la madrugada. Todo queda en Mis descargas."],
         declaraciones: ["Toma la empresa activa (o \"Otro contribuyente\").",
                         "Entra con su e.firma y elige el periodo.",
-                        "Se baja solo lo que todavía no tienes guardado de esa empresa; lo descargas en un ZIP."],
+                        "Se descarga únicamente lo que todavía no tienes guardado de esa empresa; lo descargas en un ZIP."],
         facturar: ["Elige arriba la empresa que factura. La primera vez, en Configuración: régimen, C.P., series y su CSD (sello digital).",
-                   "Nueva factura: cliente, pago y conceptos; los totales se calculan solos.",
+                   "Nueva factura: cliente, pago y conceptos; los totales se calculan automáticamente.",
                    "Antes de timbrar se revisa todo sin gastar timbre; al confirmar se manda al SAT.",
                    "En Emitidas bajas el XML, imprimes el PDF o cancelas. Una nota de crédito se relaciona con su factura."],
         descarga_xml: ["Elige la empresa o \"Otro contribuyente\" (con su e.firma o solo su RFC).",
@@ -93,7 +94,7 @@
                     "Descarga el resultado en Excel."],
         listas: ["Busca cualquier RFC.",
                  "Con la empresa activa ves cuáles de sus proveedores y clientes aparecen.",
-                 "Las listas se actualizan solas cada día."],
+                 "Las listas se actualizan automáticamente cada día."],
         conciliacion: ["Elige empresa y periodo arriba.",
                        "Escoge emitidas o recibidas.",
                        "Cruza cada factura con sus pagos y notas de crédito (tipo de cambio de Banxico).",
@@ -117,9 +118,9 @@
         buzon: ["Todas mis empresas: lo que hay que atender en cada una (pendientes, cancelaciones por responder, nuevos).",
                 "Revisión automática: elige cada cuánto se revisa en la madrugada; o marca empresas y Revisar ahora.",
                 "Abrir (o Por empresa): comunicados completos, solicitudes de cancelación con su fecha límite y notificaciones con sus PDF.",
-                "Las notificaciones pendientes NO se abren solas: abrirlas te da por notificado. Ábrelas tú en el SAT."],
+                "Las notificaciones pendientes NO se abren automáticamente: abrirlas te da por notificado. Ábrelas tú en el SAT."],
         marcas: ["Elige empresa, mes y Emitidas o Recibidas.",
-                 "Casi todo se marca solo y dice por qué; revisa «Por revisar».",
+                 "Casi todo se marca automáticamente y dice por qué; revisa «Por revisar».",
                  "Toca la casilla de un impuesto para decir si cuenta o no; el folio abre la factura.",
                  "⚙ Reglas: momento de cada impuesto, alcohol y lo aprendido. «Cerrar mes» cuando ya presentaste."],
         cancelaciones: ["«Por responder»: Buscar en el SAT y aceptar o rechazar una por una (72 horas).",
@@ -127,12 +128,12 @@
                         "«Historial»: lo enviado, su resultado, Revisar en el SAT y el acuse."],
         documentos: ["Elige el tipo (SAT, Actas, IMSS, INFONAVIT) y el documento.",
                      "Escribe la CURP, RFC o NSS que pide y Pedir. Se apartan los créditos que cuesta.",
-                     "Llega en minutos u horas: queda en Mis pedidos para descargarlo cuando quieras.",
-                     "Si no se puede obtener, se te devuelven los créditos solos."],
+                     "Llega en minutos u horas: queda en Mis pedidos para descargarlo en cualquier momento.",
+                     "Si no se puede obtener, los créditos se reembolsan automáticamente."],
         creditos: ["1 crédito = $1. Con ellos se pagan los documentos (actas, constancias, IMSS…).",
                    "Para recargar: deposita o transfiere a una de las cuentas y reporta tu pago (banco, clave de rastreo y comprobante).",
-                   "Cuando se valida, los créditos aparecen en tu saldo. Si un trámite falla, se te devuelven solos."],
-        descargas: ["Aquí queda todo lo que bajan las herramientas y la madrugada.",
+                   "Cuando se valida, los créditos aparecen en tu saldo. Si un trámite falla, se reembolsan automáticamente."],
+        descargas: ["Aquí queda todo lo que descargan las herramientas y la madrugada.",
                     "Descarga cada archivo o reintenta los que fallaron."]
     };
 
@@ -156,6 +157,7 @@
         recibo: "M9 7h6m-6 4h6m-6 4h3M5 3h14a1 1 0 011 1v16l-3-2-2 2-2-2-2 2-2-2-3 2V4a1 1 0 011-1z",
         alerta: "M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z",
         palomita: "M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z",
+        lista: "M4 6.5l1.5 1.5L8 5.5M4 12.5l1.5 1.5L8 11.5M4 18.5l1.5 1.5L8 17.5M12 7h8M12 13h8M12 19h8",
         credencial: "M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2",
         clientes: "M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-1.13a4 4 0 10-4-4 4 4 0 004 4zm6 0a4 4 0 10-4-4",
         balanza: "M12 3v18m0-18l-7 3m7-3l7 3M5 6l-3 7a3 3 0 006 0L5 6zm14 0l-3 7a3 3 0 006 0l-3-7zM8 21h8",
@@ -175,6 +177,7 @@
         { clave: "marcas", grupo: "Comprobantes", nombre: "Marcas fiscales", desc: "Para qué impuesto cuenta cada CFDI y por qué", url: "/herramientas/xml/fiscal.html", permiso: "marcas", icono: I.balanza, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
         { clave: "cancelaciones", grupo: "Comprobantes", nombre: "Cancelaciones", desc: "Cancela emitidas y responde las que te piden", url: "/herramientas/xml/cancelaciones.html", permiso: "cancelaciones", icono: I.prohibido, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
 
+        { clave: "cierre", grupo: "Cierre del mes", nombre: "Avance por cliente", alias: "cierre del mes cartera avance tablero clientes pendientes", desc: "Qué tiene listo cada cliente y qué le falta", url: "/herramientas/cierre/", permiso: null, icono: I.lista, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
         { clave: "visores", grupo: "Cierre del mes", nombre: "Visor de impuestos", alias: "visor facturado cobrado ingresos egresos", desc: "Facturado, cobrado y pagado por mes", url: "/herramientas/visores/", permiso: "iva", icono: I.grafica, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
         { clave: "conciliacion", grupo: "Cierre del mes", nombre: "Conciliación", num: 1, desc: "Facturas contra pagos y notas de crédito", url: "/herramientas/conciliacion/", permiso: "conciliacion", icono: I.cruce, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
         { clave: "iva", grupo: "Cierre del mes", nombre: "Papel de trabajo IVA", num: 2, alias: "papel de trabajo de iva", desc: "IVA cobrado y pagado del mes", url: "/herramientas/iva/", permiso: "iva", icono: I.porciento, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
@@ -194,10 +197,10 @@
         { clave: "facturar", grupo: "Facturación", nombre: "Facturar", desc: "Facturas, notas de crédito y recibos de pago", url: "/herramientas/facturar/", permiso: "facturacion", icono: I.recibo, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
 
         // Documentos todavía no se publica: solo lo ve el administrador (como Nómina) hasta que esté listo
-        { clave: "documentos", grupo: "Documentos", soloAdmin: true, nombre: "Documentos", desc: "Actas, constancias, IMSS e INFONAVIT", url: "/herramientas/documentos/", permiso: "documentos", icono: I.credencial, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
+        { clave: "documentos", grupo: "Documentos", reservado: true, nombre: "Documentos", desc: "Actas, constancias, IMSS e INFONAVIT", url: "/herramientas/documentos/", permiso: "documentos", icono: I.credencial, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
 
-        { clave: "descargas", grupo: "Tu cuenta", cuenta: true, nombre: "Mis descargas", alias: "descargas", desc: "Todo lo que bajan las herramientas", url: "/descargas/", permiso: null, icono: I.bajar, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
-        { clave: "creditos", grupo: "Tu cuenta", cuenta: true, nombre: "Mis créditos", alias: "creditos saldo recargar", desc: "Saldo y recargas", url: "/creditos/", permiso: null, icono: I.moneda, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" }
+        { clave: "descargas", grupo: "Tu cuenta", cuenta: true, nombre: "Mis descargas", alias: "descargas", desc: "Todo lo que descargan las herramientas", url: "/descargas/", permiso: null, icono: I.bajar, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
+        { clave: "creditos", grupo: "Tu cuenta", cuenta: true, reservado: "documentos", nombre: "Mis créditos", alias: "creditos saldo recargar", desc: "Saldo y recargas", url: "/creditos/", permiso: null, icono: I.moneda, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" }
     ];
 
     // Lo último que usaste (para el menú «Módulos» y la portada)
@@ -221,6 +224,7 @@
     try { var tema = localStorage.getItem("fc-tema"); if (tema === "b") document.documentElement.dataset.tema = "b"; } catch (e) { /* sin almacenamiento */ }
     // Barra de arriba oscura (por defecto) o clara: se elige en /ui/
     try { if (localStorage.getItem("fc-barra") === "clara") document.documentElement.dataset.barra = "clara"; } catch (e) { /* sin almacenamiento */ }
+    var INICIO = "/inicio/";       // el tablero; la portada del dominio («/») es la página pública
     var ancla = document.getElementById("app-header");
     if (!ancla) return;
 
@@ -247,6 +251,9 @@
     }
 
     var D = {
+        ayuda:    "M12 21a9 9 0 100-18 9 9 0 000 18zM9.5 9.5a2.5 2.5 0 114.2 1.8c-.8.7-1.7 1.2-1.7 2.4M12 17h.01",
+        sobre:    "M3 7a2 2 0 012-2h14a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2V7zm0 .5l9 6 9-6",
+        idea:     "M9 18h6M10 21h4M12 3a6 6 0 00-3.6 10.8c.6.5 1 1.2 1.1 2h5c.1-.8.5-1.5 1.1-2A6 6 0 0012 3z",
         rayo:     "M13 10V3L4 14h7v7l9-11h-7z",
         edificio: "M3 21h18M5 21V7l7-4 7 4v14M9 9h1m-1 4h1m4-4h1m-1 4h1M10 21v-4h4v4",
         descarga: "M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4",
@@ -284,7 +291,7 @@
         (ancla.dataset.migas || "").split(";").forEach(function (t) {
             if (!t.trim()) return;
             var p = t.split("|");
-            tramos.push({ texto: p[0].trim(), href: (p[1] || "/").trim() });
+            tramos.push({ texto: p[0].trim(), href: (p[1] || INICIO).trim() });
         });
         return tramos;
     }
@@ -296,11 +303,11 @@
         // En el teléfono no cabe la ruta completa, así que el último
         // tramo (el "padre") se convierte en una flecha de regresar y el
         // resto se esconde. En pantalla grande se ve la ruta entera.
-        if (clave !== "portada" && !tramos.length) tramos.push({ texto: "Inicio", href: "/" });
+        if (clave !== "portada" && !tramos.length) tramos.push({ texto: "Inicio", href: INICIO });
         var migas = tramos.map(function (t, i) {
             var esPadre = i === tramos.length - 1;
             // En computadora el botón «Módulos» ya lleva a cualquier herramienta: "Herramientas" e "Inicio" sobran
-            var soloMovil = t.href === "/herramientas/" || t.href === "/";
+            var soloMovil = t.href === "/herramientas/" || t.href === INICIO;
             return '<a class="fc-miga' + (esPadre ? " fc-miga--padre" : "") + (soloMovil ? " fc-miga--solo-movil" : "") + '" href="' + esc(t.href) + '"' +
                 (esPadre ? ' aria-label="Regresar a ' + esc(t.texto) + '"' : "") + ">" +
                 '<span class="fc-miga__sep">' + ico(D.flecha, 2.2) + "</span>" +
@@ -319,14 +326,14 @@
         ancla.outerHTML =
             '<header class="fc-barra">' +
               '<div class="fc-barra__interior">' +
-                '<a class="fc-marca" href="/">' +
+                '<a class="fc-marca" href="' + INICIO + '">' +
                   '<span class="fc-marca__sello">' + simboloMarca() + "</span>" +
                   '<span class="fc-marca__nombre">fiscontable<span class="fc-marca__app">app</span></span>' +
                 "</a>" +
                 '<button type="button" class="fc-modulos-btn" id="fc-btn-modulos" aria-haspopup="dialog" aria-expanded="false" title="Ir a otro módulo (Ctrl+K)">' +
                   ico(D.rejilla) + '<span class="fc-modulos-btn__texto">Módulos</span></button>' +
                 // La casita: Inicio siempre a la mano, también donde no hay barra lateral (celular, Configuración…)
-                '<a class="fc-casa" href="/" title="Inicio" aria-label="Inicio"' + (clave === "portada" ? ' aria-current="page"' : "") + ">" + ico(D.casa, 1.9) + "</a>" +
+                '<a class="fc-casa" href="' + INICIO + '" title="Inicio" aria-label="Inicio"' + (clave === "portada" ? ' aria-current="page"' : "") + ">" + ico(D.casa, 1.9) + "</a>" +
                 '<nav class="fc-migas" aria-label="Ruta">' + migas + "</nav>" +
                 '<div class="fc-acciones">' +
                   // Despacho (core/despachos.py del servidor): en qué espacio trabajas, siempre a la vista
@@ -387,6 +394,13 @@
                 ico(D.pc) + "Conectar esta PC</a>" +
               '<a class="fc-menu__boton" href="/despacho/" id="fc-menu-despacho" role="menuitem" hidden>' +
                 ico(D.equipo) + "Mi despacho</a>" +
+              // Ayuda y contacto: las instrucciones y dos atajos de correo (soporte y sugerencias)
+              '<a class="fc-menu__boton" href="/soporte/" target="_blank" rel="noopener" role="menuitem">' +
+                ico(D.ayuda) + "Ayuda e instrucciones</a>" +
+              '<a class="fc-menu__boton" id="fc-menu-soporte" href="mailto:soporte@fiscontable.app?subject=' + encodeURIComponent("Soporte Fiscontable") + '" role="menuitem">' +
+                ico(D.sobre) + "Escribir a soporte</a>" +
+              '<a class="fc-menu__boton" id="fc-menu-sugerencia" href="mailto:soporte@fiscontable.app?subject=' + encodeURIComponent("Sugerencia para Fiscontable") + '" role="menuitem">' +
+                ico(D.idea) + "Enviar una sugerencia</a>" +
               '<a class="fc-menu__boton fc-menu__boton--salir" href="' + API + '/cdn-cgi/access/logout" role="menuitem">' +
                 ico(D.salir) + "Cerrar sesión</a>" +
             "</div></div>";
@@ -403,8 +417,17 @@
             '<div class="fc-modulos__cuerpo" id="fc-modulos-cuerpo"></div></div>';
     }
 
-    // Lo que está en laboratorio (soloAdmin) no aparece para nadie más
-    function verModulo(m) { return !m.soloAdmin || !!(perfilActual && perfilActual.rol === "admin"); }
+    // Lo que está en laboratorio (soloAdmin) no aparece para nadie más. Lo reservado (Documentos y sus créditos) solo lo
+    // ve el administrador y la persona a quien él le asignó ese módulo: para los demás no existe (ni menú, ni buscador, ni recorrido).
+    function verModulo(m) {
+        var p = perfilActual, admin = !!(p && p.rol === "admin");
+        if (m.soloAdmin) return admin;
+        if (m.reservado) {
+            var permiso = m.reservado === true ? m.permiso : m.reservado;
+            return admin || !!(p && !p._error && !p.solo_lectura && (p.modulos_permitidos || []).indexOf(permiso) !== -1);
+        }
+        return true;
+    }
     function permitido(m) {
         if (!m.permiso) return true;
         var p = perfilActual;
@@ -593,7 +616,7 @@
         "Documentos": "M4 6h16a1 1 0 011 1v10a1 1 0 01-1 1H4a1 1 0 01-1-1V7a1 1 0 011-1zM9 13a2 2 0 100-4 2 2 0 000 4zM6 16a3 3 0 016 0M14 10h4M14 13h3"
     };
     function gruposModulos() {
-        var inicio = { titulo: null, items: [{ nombre: "Inicio", icono: D.casa, href: "/", actual: clave === "portada" }] };
+        var inicio = { titulo: null, items: [{ nombre: "Inicio", icono: D.casa, href: INICIO, actual: clave === "portada" }] };
         return [inicio].concat(GRUPOS.map(function (g) {
             var ms = CATALOGO.filter(function (m) { return m.grupo === g && verModulo(m); });
             if (!ms.length) return null;
@@ -919,7 +942,7 @@
        El de Chrome dentro de una página se ve oscuro y en el teléfono casi nunca abre. Este dibuja cada página como
        imagen, igual en todos lados, con zoom, descargar e imprimir. verPdf(blob|url, {titulo, nombre}) abre la ventana;
        pdfEn(elemento, blob) lo pinta dentro de una caja (por ejemplo, la vista previa del último paso). */
-    var PDFJS = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/";
+    var PDFJS = "/assets/js/terceros/pdfjs/";            // PDF.js 3.11.174, en nuestro propio sitio
     var pdfjsListo = null;
     function cargarPdfjs() {
         if (!pdfjsListo) {
@@ -1080,7 +1103,13 @@
             var p = original.apply(this, arguments);
             var fin = function () { var i = enCurso.indexOf(marca); if (i !== -1) enCurso.splice(i, 1); };
             if (nuestra) p.then(fin, fin);
-            if (nuestra) p.then(function (r) { if (r && r.status === 423 && window.Fiscontable.bloquearPantalla) window.Fiscontable.bloquearPantalla(true); }, function () {});
+            if (nuestra) p.then(function (r) {
+                if (r && r.status === 401 && document.documentElement.classList.contains("fc-bloqueada")) window.__fcPerdioPorBloqueo = true;
+                if (r && r.status === 423) {
+                    window.__fcPerdioPorBloqueo = true;      // algo de la página no cargó por el bloqueo: al desbloquear se recarga
+                    if (window.Fiscontable.bloquearPantalla) window.Fiscontable.bloquearPantalla(true);
+                }
+            }, function () {});
             return p;
         };
         envuelto.__fc = true;
@@ -1439,7 +1468,7 @@
             '<aside class="fc-panel" id="fc-panel" role="dialog" aria-modal="true" aria-label="Mis descargas" hidden>' +
               '<div class="fc-panel__cabeza">' +
                 "<div><div class=\"fc-panel__titulo\">Mis descargas</div>" +
-                '<div class="fc-panel__sub" id="fc-panel-sub">Documentos listos y en preparación</div></div>' +
+                '<div class="fc-panel__sub" id="fc-panel-sub">Lo que pediste y lo que ya está listo</div></div>' +
                 '<button type="button" class="fc-panel__cerrar" id="fc-panel-cerrar" aria-label="Cerrar">' + ico(D.cerrar) + "</button>" +
               "</div>" +
               '<div class="fc-panel__cuerpo" id="fc-panel-cuerpo"></div>' +
@@ -1628,93 +1657,98 @@
         return f.toLocaleDateString("es-MX", { day: "numeric", month: "short" });
     }
 
-    var NOMBRES = {
-        csf: "Constancia de Situación Fiscal",
-        opinion: "Opinión de Cumplimiento",
-        "csf+opinion": "Constancia y Opinión",
-        declaraciones: "Declaraciones",
-        voucheo: "Voucheo de impuestos",
-        descarga_xml: "Descarga masiva de XML",
-        programada_csf: "Programada · Constancias",
-        programada_opinion: "Programada · Opiniones",
-        programada_declaraciones: "Programada · Declaraciones",
-        programada_xml: "Programada · Descarga de XML",
-        programada_buzon: "Programada · Buzón Tributario",
-        buzon_revisar: "Revisión del Buzón Tributario",
-        buzon_abrir: "Apertura de notificación del Buzón"
-    };
-
-    function tituloProceso(p) {
-        var base = NOMBRES[p.tipo] || p.tipo || "Documento";
-        if (p.clase === "lote") return base + " — " + (p.total || "varios") + " contribuyentes";
-        return base + (p.titulo ? " — " + p.titulo : "");
+    // El nombre de cada documento lo manda el servidor (p.nombre, core/trabajos.py). Esto es solo el respaldo por si
+    // llega uno sin nombre: su clave «en limpio», nunca «isn_presentar».
+    function nombreProceso(p) {
+        if (p.nombre) return p.nombre;
+        var t = String(p.tipo || "Documento").replace(/_/g, " ").replace(/\+/g, " y ").trim();
+        return t.charAt(0).toUpperCase() + t.slice(1);
+    }
+    function empresaProceso(p) {
+        if (p.empresa) return p.empresa;
+        if (p.clase === "lote") return p.total === 1 ? "1 empresa" : (p.total || "Varias") + " empresas";
+        return !p.titulo || p.titulo === "VARIOS" ? "Varias empresas" : p.titulo;
+    }
+    function tituloProceso(p) { return nombreProceso(p) + " — " + empresaProceso(p); }
+    function horaCorta(iso) {
+        if (!iso) return "";
+        var f = new Date(iso + "Z"); if (isNaN(f)) return "";
+        var hoy = new Date(), ayer = new Date(hoy); ayer.setDate(hoy.getDate() - 1);
+        var hora = f.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" });
+        if (f.toDateString() === hoy.toDateString() || f.toDateString() === ayer.toDateString()) return hora;
+        return f.toLocaleDateString("es-MX", { day: "numeric", month: "short" }).replace(".", "");
+    }
+    // ¿De qué día es? Para agrupar el panel: hoy, ayer o antes
+    function diaDe(iso) {
+        var f = new Date((iso || "") + "Z"); if (isNaN(f)) return "antes";
+        var hoy = new Date(), ayer = new Date(hoy); ayer.setDate(hoy.getDate() - 1);
+        return f.toDateString() === hoy.toDateString() ? "hoy" : f.toDateString() === ayer.toDateString() ? "ayer" : "antes";
     }
 
+    var ICONO_ESTADO = {
+        listo: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',
+        alerta: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8v5m0 3.5v.01"/></svg>'
+    };
+    function botonFila(accion, icono, etiqueta, datos, clase) {
+        return '<button type="button" class="fc-fila__btn' + (clase ? " " + clase : "") + '" data-accion="' + accion + '" ' + datos +
+            ' title="' + esc(etiqueta) + '" aria-label="' + esc(etiqueta) + '">' + ico(D[icono]) + "</button>";
+    }
+
+    /* Una descarga en un renglón: estado · nombre del documento · empresa y hora · acciones con ícono.
+       La usan el panel de la barra y la página Mis descargas (Fiscontable.descargas.tarjeta). */
     function tarjeta(p) {
-        var t = esc(tituloProceso(p));
-        var nuevo = p.estado !== "procesando" && !vistos.has(p.id)
-            ? '<span class="fc-punto" title="Nuevo desde la última vez"></span>' : "";
+        var id = 'data-clase="' + esc(p.clase) + '" data-id="' + esc(p.id) + '"';
+        var nuevo = p.estado !== "procesando" && !vistos.has(p.id) ? '<span class="fc-punto" title="Nuevo desde la última vez"></span>' : "";
+        var nombre = esc(nombreProceso(p)), detalle = [esc(empresaProceso(p))], estado, acciones = "", abajo = "", clase = "";
+        var enPc = p.en_pc && p.en_pc.rutas && p.en_pc.rutas.length;
 
         if (p.estado === "procesando") {
-            var detalle = "Preparando…", barra = "";
+            estado = '<span class="fc-fila__estado fc-fila__estado--corre" title="En preparación"></span>';
             if (p.clase === "lote" && p.total > 0) {
-                var pct = Math.round((p.procesados / p.total) * 100);
-                detalle = p.procesados + " de " + p.total + (p.rfc_actual ? " · " + esc(p.rfc_actual) : "");
-                barra = '<div class="progress-track" style="margin-top:9px"><div class="progress-fill" style="width:' + pct + '%"></div></div>';
-            } else if (p.progreso) {
-                detalle = esc(p.progreso);
-            }
-            return '<div class="fc-item"><div class="fc-item__titulo">' + t + "</div>" +
-                '<div class="fc-item__detalle">' + detalle + "</div>" + barra +
-                '<div class="fc-item__acciones"><button type="button" class="fc-btn fc-btn--discreto" ' +
-                'data-accion="detener" data-clase="' + esc(p.clase) + '" data-id="' + esc(p.id) + '">Detener</button></div></div>';
-        }
-
-        if (p.estado === "completado") {
-            var resumen = fecha(p.creado_en);
-            if (p.clase === "lote") resumen = p.exitosos + " de " + p.total + " obtenidos · " + resumen;
+                detalle.push(p.procesados + " de " + p.total + (p.rfc_actual ? " · " + esc(p.rfc_actual) : ""));
+                abajo = '<div class="fc-fila__avance"><i style="width:' + Math.round((p.procesados / p.total) * 100) + '%"></i></div>';
+            } else detalle.push(p.progreso ? esc(p.progreso) : "Preparando…");
+            acciones = botonFila("detener", "cerrar", "Detener", id);
+        } else if (p.estado === "completado") {
             var incompleta = false;
+            detalle.push(esc(horaCorta(p.creado_en)));          // la hora va antes: si el renglón se corta, que no sea ella
+            if (p.clase === "lote") {
+                detalle.push(p.exitosos + " de " + p.total + " obtenidos");
+                incompleta = (p.exitosos || 0) < (p.total || 0);
+            }
             if (p.resumen) {         // madrugada: "1 listo, 2 fallaron"
                 var noche = p.resumen.replace(/^[^:]*:\s*/, "").replace(/\.$/, "");
-                incompleta = /revisar|fall|no alcanz|cancelad/i.test(noche);
-                resumen = noche + " · " + resumen;
+                incompleta = incompleta || /revisar|fall|no alcanz|cancelad/i.test(noche);
+                detalle.push(esc(noche));
             }
-            return '<div class="fc-item' + (incompleta ? " fc-item--alerta" : "") + '"><div class="fc-item__titulo">' + nuevo + t + "</div>" +
-                '<div class="fc-item__detalle">' + esc(resumen) + "</div>" +
-                (p.en_pc && p.en_pc.rutas && p.en_pc.rutas.length ? '<div class="fc-item__detalle" style="color:rgb(var(--ok-600))">' + esc(Fiscontable.textoEnPc(p.en_pc)) + "</div>" : "") +
-                '<div class="fc-item__acciones">' +
-                (p.en_pc && p.en_pc.rutas && p.en_pc.rutas.length ? '<button type="button" class="fc-btn" data-accion="mostrar-pc" data-id="' + esc(p.id) + '">Mostrar en mi PC</button>' : "") +
-                '<button type="button" class="fc-btn fc-btn--principal" data-accion="descargar" ' +
-                'data-url="' + esc(p.url_descarga) + '" data-nombre="' + esc(p.nombre_descarga || "documento") + '">Descargar</button>' +
-                '<button type="button" class="fc-btn fc-btn--discreto" data-accion="quitar" ' +
-                'data-clase="' + esc(p.clase) + '" data-id="' + esc(p.id) + '">Quitar</button>' +
-                "</div></div>";
+            if (enPc) detalle.push('<span class="fc-fila__pc">en tu PC</span>');
+            estado = '<span class="fc-fila__estado fc-fila__estado--' + (incompleta ? "alerta" : "listo") + '">' + ICONO_ESTADO[incompleta ? "alerta" : "listo"] + "</span>";
+            clase = incompleta ? " fc-fila--alerta" : "";
+            acciones = (enPc ? botonFila("mostrar-pc", "carpeta", "Mostrar en mi PC", 'data-id="' + esc(p.id) + '"') : "") +
+                botonFila("descargar", "descarga", "Descargar", 'data-url="' + esc(p.url_descarga) + '" data-nombre="' + esc(p.nombre_descarga || "documento") + '"', "fc-fila__btn--principal") +
+                botonFila("quitar", "cerrar", "Quitar de la lista", id);
+        } else {
+            // No se completó. Lote que se cortó: bajar lo que sí salió y reanudar los que faltan, sin ir a Mis descargas
+            estado = '<span class="fc-fila__estado fc-fila__estado--alerta">' + ICONO_ESTADO.alerta + "</span>";
+            clase = " fc-fila--alerta";
+            detalle.push(esc(horaCorta(p.creado_en)));
+            var faltan = Math.max((p.total || 0) - (p.exitosos || 0), 0), extras = [];
+            if (p.clase === "lote" && p.parcial) extras.push('<button type="button" class="fc-btn fc-btn--principal" data-accion="descargar" data-url="' + esc(p.url_descarga) +
+                '" data-nombre="' + esc(p.nombre_descarga || "Lote_parcial.zip") + '">Bajar lo que salió (' + (p.exitosos || 0) + ")</button>");
+            if (p.clase === "lote" && p.se_puede_reanudar) extras.push('<button type="button" class="fc-btn" data-accion="reanudar" data-id="' + esc(p.id) + '">Reanudar' + (faltan ? " los " + faltan : "") + "</button>");
+            // Reintentar solo si el problema fue del SAT; si fue la e.firma, hay que corregirla primero
+            else if (p.clase === "lote" && (p.reintentables || 0) > 0) extras.push('<button type="button" class="fc-btn" data-accion="reintentar" data-id="' + esc(p.id) + '">Reintentar los ' + p.reintentables + "</button>");
+            if (p.clase === "lote" && p.fallidos && p.fallidos.length) extras.push('<button type="button" class="fc-enlace-chico" data-accion="motivos" data-id="' + esc(p.id) + '">Sin resultado para ' + p.fallidos.length + " — ver por qué</button>");
+            abajo = '<div class="fc-fila__nota">' + esc(p.mensaje_error || "No se pudo completar.") +
+                (p.clase === "lote" && p.total ? " " + (p.exitosos || 0) + " de " + p.total + " listos" + (p.reutilizados ? " · " + p.reutilizados + " ya los tenías" : "") + "." : "") +
+                (p.clase === "lote" && p.estado === "interrumpido" && !p.se_puede_reanudar ? " Ya no se puede reanudar (pasaron más de 72 h): vuelve a subir el lote; lo que ya salió se aprovecha." : "") + "</div>" +
+                (extras.length ? '<div class="fc-fila__extras">' + extras.join("") + "</div>" : "");
+            acciones = botonFila("quitar", "cerrar", "Quitar de la lista", id);
         }
-
-        // Lote que se cortó: bajar lo que sí salió y reanudar los que faltan, sin ir a Mis descargas
-        var parcial = p.clase === "lote" && p.parcial
-            ? '<button type="button" class="fc-btn fc-btn--principal" data-accion="descargar" data-url="' + esc(p.url_descarga) +
-              '" data-nombre="' + esc(p.nombre_descarga || "Lote_parcial.zip") + '">Bajar lo que salió (' + (p.exitosos || 0) + ")</button>" : "";
-        var faltan = Math.max((p.total || 0) - (p.exitosos || 0), 0);
-        var reanudar = p.clase === "lote" && p.se_puede_reanudar
-            ? '<button type="button" class="fc-btn" data-accion="reanudar" data-id="' + esc(p.id) + '">Reanudar' +
-              (faltan ? " los " + faltan : "") + "</button>" : "";
-        // Reintentar solo si el problema fue del SAT; si fue la e.firma, hay que corregirla primero
-        var reintentar = !reanudar && (p.clase === "lote" ? (p.reintentables || 0) > 0 : false)
-            ? '<button type="button" class="fc-btn" data-accion="reintentar" data-id="' + esc(p.id) + '">Reintentar los ' + p.reintentables + "</button>" : "";
-        var motivos = p.clase === "lote" && p.fallidos && p.fallidos.length
-            ? '<button type="button" class="fc-enlace-chico" data-accion="motivos" data-id="' + esc(p.id) + '">Sin resultado para ' + p.fallidos.length + " — ver por qué</button>" : "";
-        return '<div class="fc-item fc-item--alerta"><div class="fc-item__titulo">' + nuevo + t + "</div>" +
-            '<div class="fc-item__detalle">' + esc(p.mensaje_error || "No se pudo completar.") + "</div>" +
-            (p.clase === "lote" && p.total ? '<div class="fc-item__detalle">' + (p.exitosos || 0) + " de " + p.total + " listos" + (p.reutilizados ? " · " + p.reutilizados + " ya los tenías" : "") + "</div>" : "") +
-            (p.clase === "lote" && p.estado === "interrumpido" && !p.se_puede_reanudar
-                ? '<div class="fc-item__detalle">Ya no se puede reanudar (pasaron más de 72 h). Vuelve a subir el lote: lo que ya salió se aprovecha.</div>' : "") +
-            '<div class="fc-item__detalle">' + esc(fecha(p.creado_en)) + "</div>" + motivos +
-            '<div class="fc-item__acciones">' + parcial + reanudar + reintentar +
-            (parcial || reanudar || reintentar || location.pathname.indexOf("/descargas/") === 0 ? "" : '<a class="fc-btn" href="/descargas/">Ver detalle</a>') +
-            '<button type="button" class="fc-btn fc-btn--discreto" data-accion="quitar" ' +
-            'data-clase="' + esc(p.clase) + '" data-id="' + esc(p.id) + '">Quitar</button>' +
-            "</div></div>";
+        return '<div class="fc-fila' + clase + '">' + estado +
+            '<div class="fc-fila__texto"><div class="fc-fila__nombre" title="' + nombre + '">' + nuevo + nombre + "</div>" +
+            '<div class="fc-fila__detalle">' + detalle.filter(Boolean).join(" · ") + "</div></div>" +
+            '<div class="fc-fila__acciones">' + acciones + "</div>" + abajo + "</div>";
     }
 
     function esperaMadrugada(p) { return p.clase === "programada" && p.estado === "procesando"; }
@@ -1736,15 +1770,17 @@
             return;
         }
 
+        var hechos = procesos.filter(function (p) { return p.estado !== "procesando"; });
         var grupos = [
             ["En preparación", procesos.filter(function (p) { return p.estado === "procesando"; })],
-            ["Listos para descargar", procesos.filter(function (p) { return p.estado === "completado"; })],
-            ["Sin resultado", procesos.filter(function (p) { return p.estado !== "procesando" && p.estado !== "completado"; })]
+            ["Hoy", hechos.filter(function (p) { return diaDe(p.creado_en) === "hoy"; })],
+            ["Ayer", hechos.filter(function (p) { return diaDe(p.creado_en) === "ayer"; })],
+            ["Antes", hechos.filter(function (p) { return diaDe(p.creado_en) === "antes"; })]
         ];
 
         cuerpo.innerHTML = nota + grupos.filter(function (g) { return g[1].length; }).map(function (g) {
-            return '<div class="fc-grupo"><div class="fc-grupo__titulo">' + g[0] + "</div>" +
-                g[1].map(tarjeta).join("") + "</div>";
+            return '<div class="fc-grupo"><div class="fc-grupo__titulo">' + g[0] + "<span>" + g[1].length + "</span></div>" +
+                '<div class="fc-filas">' + g[1].map(tarjeta).join("") + "</div></div>";
         }).join("");
     }
 
@@ -1755,7 +1791,7 @@
 
     /**
      * Recalcula el número del botón y devuelve cuántos procesos siguen
-     * corriendo. El número suma dos cosas: lo que corre (se descuenta solo
+     * corriendo. El número suma dos cosas: lo que corre (se descuenta automáticamente
      * al terminar) y lo que ya terminó pero no has visto (se descuenta al
      * abrir el panel). Si no hay ni una ni otra, el número desaparece.
      */
@@ -1830,6 +1866,24 @@
         }, espera);
     }
 
+    /* Lo mismo que confirmar(), pero con un solo texto (como el confirm() del navegador): la primera frase va de
+       título y el resto de explicación; si habla de borrar, cancelar o parecido, el botón sale en rojo.
+       Uso: if (!(await Fiscontable.preguntar("¿Borrar X? No se puede deshacer."))) return; */
+    function preguntar(texto, o) {
+        texto = String(texto == null ? "" : texto).trim();
+        var m = /[?.:](\s|$)|\n/.exec(texto), corte = m ? m.index + (texto[m.index] === "\n" ? 0 : 1) : -1;
+        var titulo = corte > 0 && corte <= 120 ? texto.slice(0, corte).trim() : (texto.length <= 120 ? texto : "Confirma para continuar");
+        var resto = titulo === texto ? "" : (corte > 0 && corte <= 120 ? texto.slice(corte).trim() : texto);
+        return confirmar(Object.assign({ titulo: titulo, texto: resto, si: "Aceptar",
+            peligro: /borra|elimin|cancel|revoc|desconect|rechaz|desactiv|quitar|olvidar|detener|presentar|timbrar/i.test(texto) }, o || {}));
+    }
+
+    /* Un aviso que hay que leer (en lugar del alert() del navegador). No detiene el código: solo muestra y espera el clic. */
+    function avisar(texto) {
+        texto = String(texto == null ? "" : texto).trim();
+        return confirmar({ titulo: texto.length <= 90 ? texto : "Aviso", texto: texto.length <= 90 ? "" : texto, si: "Entendido", solo: true });
+    }
+
     /* Confirmación común (en lugar del confirm() del navegador): título, texto, botón y, para lo más delicado,
        escribir algo (el RFC) antes de poder aceptar. Devuelve una promesa con true o false. */
     function confirmar(o) {
@@ -1845,6 +1899,7 @@
             var txt = dlg.querySelector(".fc-confirmar__texto");
             if (o.texto) txt.textContent = o.texto; else txt.remove();
             dlg.querySelector('[data-r="no"]').textContent = o.no || "Cancelar";
+            if (o.solo) dlg.querySelector('[data-r="no"]').remove();          // un aviso: solo «Entendido»
             var si = dlg.querySelector('[data-r="si"]');
             si.textContent = o.si || "Aceptar";
             var campo = dlg.querySelector(".fc-confirmar__escribir input");
@@ -1857,8 +1912,7 @@
             function fin(r) { if (hecho) return; hecho = true; try { dlg.close(); } catch (x) { /* nada */ } dlg.remove(); listo(r); }
             dlg.addEventListener("click", function (e) {
                 var b = e.target.closest("[data-r]");
-                if (b && !b.disabled) fin(b.dataset.r === "si");
-                else if (e.target === dlg) fin(false);
+                if (b && !b.disabled) fin(b.dataset.r === "si");       // una confirmación no se cierra al tocar fuera: botón o Esc
             });
             dlg.addEventListener("cancel", function (e) { e.preventDefault(); fin(false); });
             dlg.addEventListener("submit", function (e) { e.preventDefault(); if (!si.disabled) fin(true); });
@@ -1874,15 +1928,20 @@
         var boton = e.target.closest("[data-accion]");
         if (!boton) return;
         var accion = boton.dataset.accion;
-        var original = boton.textContent;
+        var deIcono = boton.classList.contains("fc-fila__btn"), original = boton.innerHTML;
+        // Botón con texto: dice lo que hace; botón de ícono: gira mientras trabaja
+        var decir = function (texto) { if (deIcono) boton.classList.add("fc-fila__btn--ocupado"); else boton.textContent = texto; };
         boton.disabled = true;
 
         try {
             if (accion === "mostrar-pc") {
                 var proc = (ultimaLista || []).filter(function (x) { return String(x.id) === boton.dataset.id; })[0];
-                if (proc && proc.en_pc) { await Fiscontable.mostrarEnPc(proc.en_pc, boton); return; }
+                if (proc && proc.en_pc) {
+                    if (!deIcono) { await Fiscontable.mostrarEnPc(proc.en_pc, boton); return; }
+                    decir(""); await Fiscontable.mostrarEnPc(proc.en_pc, null, function (texto) { aviso(texto); });
+                }
             } else if (accion === "descargar") {
-                boton.textContent = "Descargando…";
+                decir("Descargando…");
                 var r = await fetch(API + boton.dataset.url, { credentials: "include" });
                 if (!r.ok) throw new Error(await Fiscontable.leerError(r));
                 Fiscontable.guardarArchivo(await r.blob(), boton.dataset.nombre);
@@ -1894,14 +1953,14 @@
                 await sondear(); avisarCambio();
                 return;
             } else if (accion === "reanudar") {
-                boton.textContent = "Reanudando…";
+                decir("Reanudando…");
                 var rr = await fetch(API + "/api/lotes/" + boton.dataset.id + "/reanudar", { method: "POST", credentials: "include" });
                 if (!rr.ok) throw new Error(await Fiscontable.leerError(rr));
                 aviso("Se reanudó el lote. Sigue donde se quedó; lo que ya salió no se vuelve a pedir al SAT.");
                 await sondear(); avisarCambio();
                 return;
             } else if (accion === "reintentar") {
-                boton.textContent = "Reintentando…";
+                decir("Reintentando…");
                 var rt = await fetch(API + "/api/lotes/" + boton.dataset.id + "/reintentar", { method: "POST", credentials: "include" });
                 if (!rt.ok) throw new Error(await Fiscontable.leerError(rt));
                 var dt = await rt.json(), msj = "";
@@ -1916,7 +1975,7 @@
                 return;
             } else if (accion === "detener") {
                 if (!(await Fiscontable.confirmar({ titulo: "¿Detener esta descarga?", texto: "Se conserva lo que ya se haya generado.", si: "Detener", peligro: true }))) return;
-                boton.textContent = "Deteniendo…";
+                decir("Deteniendo…");
                 var ruta = boton.dataset.clase === "lote"
                     ? "/api/lotes/" + boton.dataset.id + "/cancelar"
                     : boton.dataset.clase === "programada"
@@ -1931,7 +1990,8 @@
             aviso((err && err.message) || "No se pudo completar esa acción. Revisa tu conexión e intenta de nuevo.");
         } finally {
             boton.disabled = false;
-            boton.textContent = original;
+            boton.innerHTML = original;
+            boton.classList.remove("fc-fila__btn--ocupado");
         }
     }
 
@@ -2072,6 +2132,8 @@
         document.getElementById("fc-menu-telefono").textContent = p.telefono || "Sin teléfono";
         document.getElementById("fc-menu-plan").textContent = p.rol || "—";
         document.getElementById("fc-menu-vigencia").textContent = vigencia(p);
+        var filaCreditos = document.querySelector(".fc-menu__creditos");
+        if (filaCreditos) filaCreditos.hidden = !verModulo({ reservado: "documentos" });      // los créditos son de Documentos
         document.getElementById("fc-menu-creditos").textContent = p.creditos == null ? "—" : Number(p.creditos).toLocaleString("es-MX");
 
         // Configuración la ven todos; la parte de Administración solo el admin (adentro de Configuración)
@@ -2106,7 +2168,7 @@
         if (window.XLSX) return Promise.resolve(window.XLSX);
         if (!sheetjs) sheetjs = new Promise(function (ok, mal) {
             var sc = document.createElement("script");
-            sc.src = "https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js";
+            sc.src = "/assets/js/terceros/xlsx.full.min.js";      // SheetJS 0.18.5: aquí solo ESCRIBE Excel
             sc.onload = function () { ok(window.XLSX); }; sc.onerror = function () { sheetjs = null; mal(new Error("No se pudo preparar el Excel. Revisa tu conexión.")); };
             document.head.appendChild(sc);
         });
@@ -2159,7 +2221,7 @@
        data-texto="clave". Se piden una vez por sesión del navegador (5 min) y se aplican encima de los de fábrica. */
     var textosWeb = {};
     /* ------------------------------------------------- plazos de guardado (C-01): lo que el admin configuró, no un número fijo
-       Fiscontable.textoPlazo("xml_sin_registrar") → "7 días" · "1 año". Los elementos con data-plazo="clave" se llenan solos. */
+       Fiscontable.textoPlazo("xml_sin_registrar") → "7 días" · "1 año". Los elementos con data-plazo="clave" se llenan automáticamente. */
     var PLAZOS = { procesos: 7, descargas_sat: 30, documentos: 30, reutilizar_documento: 20, xml_sin_registrar: 7, declaraciones: 365, voucheo: 7, actividad: 90 };
     function textoPlazo(clave) {
         var n = PLAZOS[clave];
@@ -2207,10 +2269,13 @@
     function pintarAmbiente(p) {
         var enPruebas = window.Fiscontable.PRUEBAS || (p && p.ambiente === "pruebas");
         document.documentElement.classList.toggle("fc-ambiente-pruebas", !!enPruebas);
-        if (!enPruebas || document.getElementById("fc-ambiente")) return;
+        // Dentro de un marco (Configuración muestra Administración en uno) el letrero ya lo pone la página de afuera
+        var enMarco = false;
+        try { enMarco = window.top !== window.self; } catch (e) { enMarco = true; }
+        if (!enPruebas || enMarco || document.getElementById("fc-ambiente")) return;
         var c = document.createElement("div");
         c.id = "fc-ambiente"; c.className = "fc-ambiente"; c.setAttribute("role", "status");
-        c.innerHTML = "<b>Ambiente de pruebas</b><span>Copia de tus datos · Facturar sin valor fiscal · sin trámites ante el SAT</span>" +
+        c.innerHTML = "<b>Ambiente de pruebas</b><span>Copia de tus datos · Facturar sin valor fiscal · no se presenta ni se cancela nada</span>" +
             '<a href="https://fiscontable.app/">Ir a la web real</a>';
         document.body.appendChild(c);
         if (p && p.ambiente !== "pruebas") c.querySelector("span").textContent = "⚠ El servidor no está en modo pruebas: revisa FISCONTABLE_MODO_PRUEBAS";
@@ -2506,9 +2571,37 @@
     var ultimaMarca = 0;
     function marcarActividad() {
         if (bloqueo.activa) return;
-        var t = Date.now();
-        if (t - ultimaMarca < 5000) return;
+        var t = Date.now(), avisando = !!(previo.capa && !previo.capa.hidden);
+        if (!avisando && t - ultimaMarca < 5000) return;
         ultimaMarca = t; ponerLS(LLAVE_ACT, String(t));
+        if (avisando) quitarPrevio();
+    }
+    /* Aviso previo: un minuto antes de bloquear, una cuenta regresiva. Cualquier movimiento, tecla o el botón la quita y
+       todo sigue normal (también si la actividad fue en otra pestaña). */
+    var previo = { capa: null, reloj: null }, PREVIO_SEG = 60;
+    function quitarPrevio() {
+        if (previo.reloj) { clearInterval(previo.reloj); previo.reloj = null; }
+        if (previo.capa) previo.capa.hidden = true;
+    }
+    function mostrarPrevio() {
+        if (bloqueo.activa || (previo.capa && !previo.capa.hidden)) return;
+        if (!previo.capa) {
+            previo.capa = document.createElement("div");
+            previo.capa.className = "fc-previo"; previo.capa.setAttribute("role", "alertdialog"); previo.capa.setAttribute("aria-live", "assertive");
+            previo.capa.innerHTML = '<div class="fc-previo__caja"><b>La sesión se bloqueará en <span class="fc-previo__reloj" id="fc-previo-reloj">1:00</span></b>' +
+                '<button type="button" class="ui-btn ui-btn--primario ui-btn--36" id="fc-previo-seguir">Continuar</button></div>';
+            document.body.appendChild(previo.capa);
+            previo.capa.querySelector("#fc-previo-seguir").addEventListener("click", function () { ultimaMarca = 0; marcarActividad(); quitarPrevio(); });
+        }
+        previo.capa.hidden = false;
+        var paso = function () {
+            var ultima = +(leerLS(LLAVE_ACT) || 0) || ultimaMarca || Date.now(), falta = Math.ceil((bloqueo.minutos * 60e3 - (Date.now() - ultima)) / 1000);
+            if (bloqueo.activa || falta > PREVIO_SEG) return quitarPrevio();             // hubo actividad (aquí o en otra pestaña)
+            if (falta <= 0) { quitarPrevio(); bloquearPantalla(false); return; }
+            document.getElementById("fc-previo-reloj").textContent = Math.floor(falta / 60) + ":" + ("0" + (falta % 60)).slice(-2);
+        };
+        paso();
+        previo.reloj = setInterval(paso, 1000);
     }
     function capaBloqueo() {
         var capa = document.getElementById("fc-bloqueo-pantalla");
@@ -2518,12 +2611,12 @@
         capa.setAttribute("aria-labelledby", "fc-bl-titulo");
         capa.innerHTML = '<div class="fc-bloqueo-pantalla__caja">' +
             '<span class="fc-marca__sello">' + simboloMarca() + "</span>" +
-            '<h2 id="fc-bl-titulo">Pantalla bloqueada</h2><p id="fc-bl-texto"></p>' +
+            '<h2 id="fc-bl-titulo">Sesión bloqueada por inactividad</h2><p id="fc-bl-texto" hidden></p>' +
             '<form id="fc-bl-form" hidden><input id="fc-bl-pin" class="ui-input" type="password" inputmode="numeric" autocomplete="off" maxlength="6" placeholder="PIN" aria-label="Tu PIN">' +
             '<button type="submit" class="ui-btn ui-btn--primario">Desbloquear</button></form>' +
             '<p class="fc-bloqueo-pantalla__msj" id="fc-bl-msj" role="alert"></p>' +
             '<a class="ui-btn ui-btn--secundario" id="fc-bl-salir" href="' + SALIR + '">Volver a entrar</a>' +
-            '<a class="fc-bloqueo-pantalla__olvide" id="fc-bl-olvide" href="' + SALIR + '" hidden>¿Olvidaste tu PIN? Entra con tu correo y pon uno nuevo</a></div>';
+            '<a class="fc-bloqueo-pantalla__olvide" id="fc-bl-olvide" href="' + SALIR + '" hidden>¿Olvidaste tu PIN?</a></div>';
         document.body.appendChild(capa);
         capa.querySelector("#fc-bl-form").addEventListener("submit", function (e) { e.preventDefault(); desbloquear(); });
         // Al volver a entrar se abre Configuración para poner un PIN nuevo sin el anterior
@@ -2532,13 +2625,14 @@
     }
     function pintarCapa() {
         var capa = capaBloqueo(), con = bloqueo.pin;
-        document.getElementById("fc-bl-texto").textContent = con
-            ? "Por seguridad, después de " + bloqueo.minutos + " minutos sin usarla. Escribe tu PIN para seguir donde estabas."
-            : "Por seguridad, después de " + bloqueo.minutos + " minutos sin usarla. Para seguir, vuelve a entrar con tu correo. " +
-              "Si creas un PIN en Configuración › Mi perfil, la desbloqueas sin salir.";
+        // Texto mínimo: el título lo dice todo. Solo hay renglón de apoyo mientras se espera el inicio de sesión en la otra pestaña.
+        document.getElementById("fc-bl-titulo").textContent = "Sesión bloqueada por inactividad";
+        var apoyo = document.getElementById("fc-bl-texto");
+        apoyo.textContent = bloqueo.esperando ? "Continúa en la pestaña que se abrió." : "";
+        apoyo.hidden = !bloqueo.esperando;
         document.getElementById("fc-bl-form").hidden = !con;
         document.getElementById("fc-bl-olvide").hidden = !con;
-        document.getElementById("fc-bl-salir").textContent = con ? "Entrar con mi correo" : "Volver a entrar";
+        document.getElementById("fc-bl-salir").textContent = "Iniciar sesión";
         document.getElementById("fc-bl-salir").className = "ui-btn " + (con ? "ui-btn--terciario" : "ui-btn--primario");
         capa.hidden = false;
         document.documentElement.classList.add("fc-bloqueada");
@@ -2546,7 +2640,8 @@
     }
     function bloquearPantalla(desdeServidor) {
         if (bloqueo.activa) return;
-        bloqueo.activa = true;
+        quitarPrevio();
+        bloqueo.activa = true; bloqueo.esperando = false;
         // La marca dice de qué inicio de sesión es: si luego entras de nuevo con tu correo, ya no aplica
         ponerLS(LLAVE_BLOQ, "1:" + (bloqueo.sesion || ""));
         pintarCapa();
@@ -2566,7 +2661,10 @@
             var r = await fetch(API + "/api/mi-perfil/pin/desbloquear", { method: "POST", credentials: "include",
                 headers: { "Content-Type": "application/json" }, body: JSON.stringify({ pin: pin }) });
             if (!r.ok) { msj.textContent = await window.Fiscontable.leerError(r); document.getElementById("fc-bl-pin").select(); return; }
-            ponerLS(LLAVE_BLOQ, null); ultimaMarca = 0; quitarCapa(); marcarActividad();
+            ponerLS(LLAVE_BLOQ, null); ultimaMarca = 0;
+            // Si mientras estaba bloqueada algo de la página no se pudo cargar, se recarga para que no quede a medias
+            if (window.__fcPerdioPorBloqueo) { window.__fcPerdioPorBloqueo = false; location.reload(); return; }
+            quitarCapa(); marcarActividad();
         } catch (e) { msj.textContent = "No se pudo conectar. Intenta de nuevo."; }
     }
     // La marca es de otro inicio de sesión (o del formato viejo, sin sesión)
@@ -2577,15 +2675,45 @@
     // Tras tener que volver a entrar por no tener PIN: ofrecer crearlo para la próxima vez
     function sugerirPin() {
         aviso("Tu pantalla se bloqueó por inactividad y tuviste que volver a entrar. Crea un PIN y la próxima vez la desbloqueas al momento, sin salir.", [
-            { texto: "Crear mi PIN", accion: function () { ocultarAviso(); abrirConfiguracion("perfil", "pin"); } },
+            { texto: "Crear mi PIN", accion: function () { ocultarAviso(); abrirConfiguracion("seguridad", "pin"); } },
             { texto: "Ahora no", accion: ocultarAviso }
         ]);
     }
     function revisarInactividad() {
         if (!bloqueo.listo) return;
         var ultima = +(leerLS(LLAVE_ACT) || 0) || ultimaMarca || Date.now(), quieto = Date.now() - ultima;
-        if (quieto > bloqueo.horas * 3600e3) { ponerLS(LLAVE_BLOQ, null); ponerLS(LLAVE_ACT, null); location.href = SALIR; return; }
+        if (quieto > bloqueo.horas * 3600e3) { ponerLS(LLAVE_BLOQ, null); ponerLS(LLAVE_ACT, null); cerrarPorInactividad(); return; }
         if (!bloqueo.activa && quieto > bloqueo.minutos * 60e3) bloquearPantalla(false);
+        else if (!bloqueo.activa && quieto > bloqueo.minutos * 60e3 - (PREVIO_SEG + 15) * 1000) {
+            // el aviso sale justo un minuto antes (esta revisión corre cada 15 s)
+            setTimeout(mostrarPrevio, Math.max(0, bloqueo.minutos * 60e3 - PREVIO_SEG * 1000 - quieto));
+        }
+    }
+    // Tras muchas horas sin actividad se cierra la sesión: con el inicio de sesión propio, en el servidor y a /login
+    function cerrarPorInactividad() {
+        if (!(perfilActual && perfilActual.sesion_propia)) { location.href = SALIR; return; }
+        fetch(API + "/publico/cuenta/salir", { method: "POST", credentials: "include", keepalive: true }).catch(function () {});
+        setTimeout(function () { location.replace(urlEntrar("sesion")); }, 300);
+    }
+    /* «Iniciar sesión» desde la pantalla bloqueada (inicio de sesión propio): se abre en OTRA pestaña y esta se queda
+       como está. Al entrar allá se quita la marca de bloqueo y todas las pestañas se reanudan donde estaban. */
+    function reingresarEnOtraPestana() {
+        var w = null;
+        try { w = window.open("/login?bloqueo=1", "_blank"); } catch (e) { w = null; }
+        fetch(API + "/publico/cuenta/salir", { method: "POST", credentials: "include", keepalive: true }).catch(function () {});
+        if (!w) { location.replace(urlEntrar("sesion")); return; }               // el navegador no dejó abrir la pestaña
+        bloqueo.esperando = true; pintarCapa();
+    }
+    // Otra pestaña quitó el bloqueo (PIN o inicio de sesión): se confirma que sigue siendo la misma cuenta y se reanuda
+    function reanudarTrasBloqueo() {
+        if (window.__fcPerdioPorBloqueo) { location.reload(); return; }
+        fetch(API + "/api/mi-perfil", { credentials: "include", cache: "no-store" }).then(function (r) { return r.ok ? r.json() : null; }, function () { return null; })
+            .then(function (p) {
+                var antes = perfilActual && (perfilActual.persona || perfilActual.correo), ahora = p && (p.persona || p.correo);
+                if (!p || (antes && ahora !== antes)) { location.reload(); return; }      // sin sesión u otra cuenta: se carga de nuevo
+                bloqueo.sesion = p._sesion || bloqueo.sesion; bloqueo.esperando = false;
+                quitarCapa(); ultimaMarca = 0; marcarActividad();
+            });
     }
     function prepararBloqueo(p) {
         var b = p && p.bloqueo;
@@ -2602,7 +2730,7 @@
             // Pidió «Olvidé mi PIN» y ya entró de nuevo con su correo: directo a poner uno nuevo
             if (leerLS(LLAVE_OLVIDE) && bloqueo.pin && b.puede_restablecer && !p.pantalla_bloqueada && !leerLS(LLAVE_BLOQ)) {
                 ponerLS(LLAVE_OLVIDE, null);
-                setTimeout(function () { abrirConfiguracion("perfil", "olvide"); }, 600);
+                setTimeout(function () { abrirConfiguracion("seguridad", "olvide"); }, 600);
             }
         }
         if (bloqueo.activa) pintarCapa();
@@ -2615,7 +2743,8 @@
         // Las demás pestañas: si una se bloquea o se desbloquea, todas igual
         window.addEventListener("storage", function (e) {
             if (e.key !== LLAVE_BLOQ) return;
-            if (e.newValue) bloquearPantalla(true); else quitarCapa();
+            if (e.newValue) bloquearPantalla(true);
+            else if (bloqueo.activa) reanudarTrasBloqueo();              // la desbloquearon o iniciaron sesión en otra pestaña
         });
     }
     // Recargar con la pantalla bloqueada no la abre: la capa sale antes que cualquier dato
@@ -2644,7 +2773,7 @@
         servidorResponde().then(function (responde) {
             if (responde && irAEntrar("sesion")) return;
             if (responde) aviso("Tu sesión terminó. Inicia sesión de nuevo para continuar.", [{ texto: "Iniciar sesión", href: entrar }, reintentar]);
-            else aviso("El servidor no responde en este momento. Intenta en unos minutos.", [reintentar]);
+            else aviso("El servidor no responde en este momento. Si usas el Agente, lo que ya bajó sigue en tu PC y lo que termine se sube solo al volver. Intenta en unos minutos.", [reintentar]);
         });
         document.dispatchEvent(new CustomEvent("fc:perfil", { detail: null }));
     }
@@ -2746,6 +2875,12 @@
                     function () { try { localStorage.setItem("fc-aviso-oculto", clave); } catch (e) { /* nada */ } });
             }
         }
+        // Cuenta de revisión de Microsoft Store: que quien revisa sepa qué está viendo (no se puede cerrar)
+        if (/@fiscontable\.invalid$/.test(p.correo || "")) {
+            letrero("Cuenta de revisión: puedes recorrer todo Fiscontable, pero no guardar cambios ni hacer trámites. " +
+                "Las empresas son de ejemplo. Para ver trabajar el Agente, ponle el código de revisión de las notas.",
+                "background:rgb(var(--g-50));color:rgb(var(--g-800));border-bottom:1px solid rgb(var(--g-200))", false);
+        }
         // Lo pone solo el monitor del SAT (Administración → Sistema) mientras un servicio no responde.
         if (p.sat_fallas && p.sat_fallas.length) {
             var claveSat = "fc-sat-oculto:" + p.sat_fallas.map(function (s) { return s.servicio + "@" + (s.desde || ""); }).join(",");
@@ -2755,7 +2890,7 @@
                 var nombres = p.sat_fallas.map(function (s) { return s.nombre; });
                 var lista = nombres.length > 1 ? nombres.slice(0, -1).join(", ") + " y " + nombres[nombres.length - 1] : nombres[0];
                 letrero("El SAT no está respondiendo en: " + lista + ". Lo que pidas ahí puede fallar; conviene intentarlo más tarde. " +
-                    "Este aviso se quita solo cuando vuelva.",
+                    "Este aviso se retira automáticamente cuando el servicio se restablezca.",
                     "background:rgb(var(--er-50));color:rgb(var(--er-600));border-bottom:1px solid rgb(var(--er-200))",
                     true,
                     function () { try { localStorage.setItem("fc-sat-oculto", claveSat); } catch (e) { /* nada */ } });
@@ -2779,7 +2914,7 @@
                 b.type = "button"; b.textContent = x[0];
                 b.className = "fc-letrero__boton" + (x[1] === "aceptar" ? " fc-letrero__boton--principal" : "");
                 b.addEventListener("click", async function () {
-                    if (x[1] === "rechazar" && !confirm("¿Rechazar la invitación al despacho «" + inv.despacho + "»?")) return;
+                    if (x[1] === "rechazar" && !(await Fiscontable.preguntar("¿Rechazar la invitación al despacho «" + inv.despacho + "»?"))) return;
                     b.disabled = true;
                     try {
                         var r = await fetch(API + "/api/despacho/invitacion/" + x[1], { method: "POST", credentials: "include" });
@@ -2961,10 +3096,11 @@
         ["#fc-btn-empresa", "Empresa activa", "Con quién trabajas. Todos los módulos la usan; las favoritas salen primero."],
         ["#fc-btn-periodo", "Periodo general", "El mes con el que abren los módulos que trabajan por periodo."],
         [".mod-acciones--barra", "Acciones del módulo", "Lo que puedes hacer con lo que ves. «Ir a ▾» abre otro módulo con el mismo periodo."],
-        ["#linea-programa .fpu", "Programación", "Lo que se hace solo, de madrugada, y cada cuánto. «Cambiar» para ajustarlo."],
+        ["#linea-programa .fpu", "Programación", "Lo que se ejecuta automáticamente de madrugada y cada cuánto. «Cambiar» para ajustarlo."],
         [".fct-barra, .xml-toolbar", "La tabla", "Busca, filtra (los filtros quedan como etiquetas), elige columnas, guarda vistas y exporta a Excel."],
         ["#fc-btn-actividad", "Actividad", "Avisos de lo que terminó o cambió mientras no estabas (también pueden llegarte por correo)."],
-        ["#fc-btn-descargas", "Descargas", "Los archivos que pediste: constancias, opiniones, XML y reportes."]
+        ["#fc-btn-descargas", "Descargas", "Los archivos que pediste: constancias, opiniones, XML y reportes."],
+        ["#fc-btn-perfil", "Tu cuenta", "Tu perfil, la seguridad y «PC del contador»: ahí se conecta Fiscontable Agente y se ven las PCs que trabajan para ti."]
     ];
     function recorrido(claveMod, pasosTexto) {
         var pasos = [];
@@ -3034,6 +3170,7 @@
         var a = e.target.closest && e.target.closest('a[href$="/cdn-cgi/access/logout"]');
         if (!a || !perfilActual || !perfilActual.sesion_propia) return;
         e.preventDefault();
+        if (a.id === "fc-bl-salir") { reingresarEnOtraPestana(); return; }
         try { await fetch(API + "/publico/cuenta/salir", { method: "POST", credentials: "include" }); } catch (x) { /* igual se va */ }
         try { localStorage.removeItem("fc-ya-entro"); } catch (x) { /* nada */ }
         location.replace(urlEntrar("salio"));
@@ -3077,7 +3214,7 @@
     });
 
     /* Esc en cualquier página: cierra la ventana o panel de encima (modales de los módulos, paneles de columnas,
-       detalle de conciliación…). Las <dialog> ya se cierran solas; la pantalla de bloqueo nunca. */
+       detalle de conciliación…). Las <dialog> ya se cierran automáticamente; la pantalla de bloqueo nunca. */
     function visible(el) { var r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0 && getComputedStyle(el).visibility !== "hidden"; }
     function cerrarCapaSuperior() {
         if (document.querySelector("dialog[open]") || document.getElementById("fc-bloqueo-pantalla")) return false;
@@ -3090,7 +3227,10 @@
         var boton = capa.querySelector('[aria-label="Cerrar"], [data-cerrar], [data-pnl="cerrar"], [id^="cerrar"], .fc-panel__cerrar');
         if (!boton) boton = Array.prototype.filter.call(capa.querySelectorAll("button"), function (b) { return /^(cerrar|cancelar|×|✕)$/i.test(b.textContent.trim()); })[0];
         if (boton) boton.click();
-        else if (capa.classList.contains("flex") || !capa.hasAttribute("hidden")) { capa.classList.add("hidden"); capa.classList.remove("flex"); capa.hidden = true; }
+        // Las que se muestran con el atributo «hidden» se cierran con él (si además se les pusiera la clase, ya no volverían
+        // a abrirse); las que se muestran con clases (hidden/flex), con las clases.
+        else if (capa.matches('.xml-modal, .xml-panel, [role="dialog"]')) capa.hidden = true;
+        else { capa.classList.add("hidden"); capa.classList.remove("flex"); }
         return true;
     }
 
@@ -3117,7 +3257,7 @@
     // página. Funciona en cualquier módulo, presente o futuro.
     function enCarril(tabla) {
         if (tabla.closest(".fc-carril") || tabla.closest("dialog")) return;
-        // Si ya vive en una caja que se desplaza sola (tablas de XML, Conciliación…), no se toca
+        // Si ya vive en una caja que se desplaza automáticamente (tablas de XML, Conciliación…), no se toca
         for (var e = tabla.parentElement; e && e.tagName !== "MAIN"; e = e.parentElement) {
             var o = getComputedStyle(e).overflowX;
             if (o === "auto" || o === "scroll") return;
@@ -3159,7 +3299,7 @@
         avisoPlan: avisoPlan,
         toast: function (texto) { brindis(esc(texto)); },
         bloqueEstado: bloqueEstado,
-        recorrido: function (c) { recorrido(c || clave, AYUDA[c || clave] || []); },
+        recorrido: function (c, textos) { recorrido(c || clave, textos || AYUDA[c || clave] || []); },
         enviarCorreo: enviarCorreo,
         // Set único de íconos (mismo grosor). Fiscontable.icono("lapiz") → <svg>. Ver /ui/.
         icono: function (nombre, ancho) { return D[nombre] ? ico(D[nombre], ancho || 1.8).replace("<svg ", '<svg class="ui-ico" aria-hidden="true" ') : ""; },
@@ -3179,7 +3319,10 @@
         refrescarDescargas: sondear,
         // Mis descargas (página) usa la misma tarjeta y las mismas acciones que el panel de la barra
         confirmar: confirmar,
-        descargas: { tarjeta: tarjeta, accion: accionPanel, sinProgramadas: sinProgramadas, notaProgramadas: notaProgramadas },
+        preguntar: preguntar,
+        avisar: avisar,
+        descargas: { tarjeta: tarjeta, accion: accionPanel, sinProgramadas: sinProgramadas, notaProgramadas: notaProgramadas,
+                     nombre: nombreProceso, empresa: empresaProceso, titulo: tituloProceso },
         abrirModalPerfil: abrirModalPerfil,
         // La empresa elegida en el selector general (o null). Los módulos también
         // pueden escuchar window "fiscontable:empresa" para enterarse de un cambio.

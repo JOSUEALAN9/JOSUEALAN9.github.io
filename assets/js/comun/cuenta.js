@@ -1,5 +1,5 @@
 /**
- * cuenta.js — Piezas únicas del inicio de sesión propio (las usan /login y Configuración → Mi perfil → Seguridad).
+ * cuenta.js — Piezas únicas del inicio de sesión propio (las usan /login y Configuración → Seguridad).
  * Solo necesitan nucleo.js (la pantalla de inicio de sesión no carga la barra).
  *
  *   Fiscontable.campoClave(caja, { etiqueta, confirmar, oscuro, autocompletar })
@@ -60,7 +60,7 @@
         if (window.QRCode) return Promise.resolve(window.QRCode);
         if (!qrListo) qrListo = new Promise(function (ok, mal) {
             var s = document.createElement("script");
-            s.src = "https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js";
+            s.src = "/assets/js/terceros/qrcode.min.js";      // copia local: la web no carga código de otros sitios
             s.onload = function () { ok(window.QRCode); };
             s.onerror = function () { qrListo = null; mal(new Error("sin QR")); };
             document.head.appendChild(s);

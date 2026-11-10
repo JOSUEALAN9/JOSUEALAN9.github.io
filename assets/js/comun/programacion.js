@@ -117,7 +117,7 @@
         if (v("dia") !== undefined) cuerpo.dia = +v("dia");
         if (v("tipo") !== undefined) cuerpo.tipo = v("tipo");
         if (v("dias") !== undefined) { cuerpo.dias = +v("dias"); cuerpo.activa = +v("dias") > 0; }
-        if (cuerpo.todas && !confirm("¿Aplicar esta programación a todas tus empresas con e.firma guardada?")) return;
+        if (cuerpo.todas && !(await Fiscontable.preguntar("¿Aplicar esta programación a todas tus empresas con e.firma guardada?"))) return;
         var boton = dlg.querySelector("[data-fpu=guardar]"); boton.disabled = true;
         try {
             await api("/api/programacion/" + actual.modulo, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(cuerpo) });

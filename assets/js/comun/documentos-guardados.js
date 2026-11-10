@@ -144,7 +144,7 @@
         if (window.JSZip) return Promise.resolve(window.JSZip);
         return new Promise(function (ok, mal) {
             var s = document.createElement("script");
-            s.src = "https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js";
+            s.src = "/assets/js/terceros/jszip.min.js";
             s.onload = function () { ok(window.JSZip); }; s.onerror = function () { mal(new Error("No se pudo preparar el ZIP.")); };
             document.head.appendChild(s);
         });

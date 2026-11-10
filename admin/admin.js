@@ -133,7 +133,7 @@ function abrirPestana(nombre) {
     PESTANAS.forEach(p => { $("panel-" + p).hidden = p !== nombre; });
     if (location.hash !== "#" + nombre) history.replaceState(null, "", "#" + nombre);
 
-    // La actividad se refresca sola solo mientras está a la vista.
+    // La actividad se refresca automáticamente solo mientras está a la vista.
     clearInterval(relojActividad);
     if (nombre === "actividad") { pintarSesionesActividad(true); relojActividad = setInterval(() => { cargarProcesosAdmin(); pintarSesionesActividad(true); }, 30000); }
     if (nombre === "sistema") cargarSistema();
@@ -230,11 +230,11 @@ function pintarInicioPropio() {
     caja.innerHTML = `<div class="flex flex-wrap items-center gap-3">
         <span class="ui-estado ${p ? "ui-estado--ok" : ""}"><b>Inicio de sesión:</b>&nbsp;${p ? "con correo y contraseña (propio)" : "con Cloudflare (código al correo)"}</span>
         <button type="button" class="ui-btn ${p ? "ui-btn--secundario" : "ui-btn--primario"} ui-btn--32" id="adm-propio-btn">${p ? "Volver a Cloudflare" : "Activar inicio de sesión propio"}</button></div>
-        <p class="text-xs text-slate-500 mt-2">${p ? "Cada quien entra con su contraseña en fiscontable.app/login. A quien no tenga contraseña, mándale su enlace de acceso (botón «Acceso»)."
-            : "Antes de activarlo: 1) pon tu contraseña y la verificación en dos pasos en Configuración → Mi perfil → Seguridad; 2) en Cloudflare quita api.fiscontable.app de la aplicación «Fiscal» (deja josuealan.com como está). Después, manda el enlace de acceso a cada usuario."}</p>`;
+        <p class="text-xs text-slate-500 mt-2">${p ? "Cada quien entra con su contraseña en fiscontable.app/login. A quien no tenga contraseña, envíale su enlace de acceso (botón «Acceso»)."
+            : "Antes de activarlo: 1) pon tu contraseña y la verificación en dos pasos en Configuración → Seguridad; 2) en Cloudflare quita api.fiscontable.app de la aplicación «Fiscal» (deja josuealan.com como está). Después, manda el enlace de acceso a cada usuario."}</p>`;
     $("adm-propio-btn").addEventListener("click", async () => {
         const activar = !cuentasEstado.propio;
-        if (!confirm(activar ? "¿Activar el inicio de sesión con correo y contraseña?\n\nLa pantalla de inicio de sesión pedirá contraseña desde ahora." : "¿Volver a iniciar sesión con Cloudflare (código al correo)?")) return;
+        if (!(await Fiscontable.preguntar(activar ? "¿Activar el inicio de sesión con correo y contraseña?\n\nLa pantalla de inicio de sesión pedirá contraseña desde ahora." : "¿Volver a iniciar sesión con Cloudflare (código al correo)?"))) return;
         try {
             const r = await api("/api/admin/login-propio", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ activo: activar }) });
             cuentasEstado.propio = r.propio;
@@ -263,12 +263,12 @@ async function accionAcceso(correo) {
             await Fiscontable.confirmar({ titulo: "Enlace enviado", texto: `Le mandamos el enlace a ${correo} (vence en unas horas). Si no le llega, cópialo y mándaselo tú:\n\n${r.enlace}`, si: "Copiar enlace", no: "Cerrar" })
                 .then(si => { if (si) navigator.clipboard.writeText(r.enlace); });
         } else if (opcion.trim() === "2") {
-            if (!confirm(`¿Darle una contraseña temporal a ${correo}? Se cierran sus sesiones abiertas.`)) return;
+            if (!(await Fiscontable.preguntar(`¿Darle una contraseña temporal a ${correo}? Se cierran sus sesiones abiertas.`))) return;
             const r = await api(`/api/admin/cuentas/${encodeURIComponent(correo)}/temporal`, { method: "POST" });
             await Fiscontable.confirmar({ titulo: "Contraseña temporal", texto: `${r.clave}\n\nDásela a ${correo} por un medio seguro. Al entrar le pedirá crear la suya. No se vuelve a mostrar.`, si: "Copiar", no: "Cerrar" })
                 .then(si => { if (si) navigator.clipboard.writeText(r.clave); });
         } else if (opcion.trim() === "3" && c.totp_activo) {
-            if (!confirm(`¿Quitarle la verificación en dos pasos a ${correo}? Asegúrate de que de verdad es esa persona.`)) return;
+            if (!(await Fiscontable.preguntar(`¿Quitarle la verificación en dos pasos a ${correo}? Asegúrate de que de verdad es esa persona.`))) return;
             await api(`/api/admin/cuentas/${encodeURIComponent(correo)}/quitar-2fa`, { method: "POST" });
             mostrarAlerta("success", `Listo: ${correo} entra solo con su contraseña; puede volver a activar los dos pasos en su perfil.`);
         } else return;
@@ -362,12 +362,12 @@ async function guardarUsuario(e) {
 }
 
 async function eliminarUsuario(correo) {
-    const confirmacion = confirm(
+    const confirmacion = (await Fiscontable.preguntar(
         `¿Quitar el acceso de ${correo}?\n\n` +
         `Se borra su rol, su nombre y su teléfono. Si vuelve a entrar, se le pedirán sus datos otra vez y entrará como Demo por ${DIAS_DEMO} días.\n\n` +
         `Sus clientes y documentos NO se borran: los recupera al volver a entrar.\n\n` +
         `Si solo quieres cambiarle el rol o la vigencia, cancela y usa el lápiz.`
-    );
+    ));
     if (!confirmacion) return;
     try {
         await api(`/api/usuarios/${encodeURIComponent(correo)}`, { method: "DELETE" });
@@ -615,7 +615,7 @@ async function guardarRol(rol) {
     const personalizados = usuariosCache.filter(u => u.rol === rol && u.personalizado).length;
     const aviso = `${actual.nombre}:\n- ${cambios.join("\n- ")}\n\nAfecta a ${actual.usuarios} ${actual.usuarios === 1 ? "usuario" : "usuarios"}` +
         (personalizados ? ` (a ${personalizados} con ajustes propios no les cambia lo personalizado)` : "") + ".";
-    if (!confirm(aviso)) return;
+    if (!(await Fiscontable.preguntar(aviso))) return;
 
     try {
         await api(`/api/admin/roles/${encodeURIComponent(rol)}`, {
@@ -629,7 +629,7 @@ async function guardarRol(rol) {
 
 async function restaurarRol(rol) {
     const r = rolesCache.roles.find(x => x.rol === rol);
-    if (!confirm(`¿Regresar ${r.nombre} a sus valores de fábrica?\n\n${nombresModulos(r.fabrica.modulos)}\n${nombreLimite(r.fabrica.limite)}`)) return;
+    if (!(await Fiscontable.preguntar(`¿Regresar ${r.nombre} a sus valores de fábrica?\n\n${nombresModulos(r.fabrica.modulos)}\n${nombreLimite(r.fabrica.limite)}`))) return;
     try {
         await api(`/api/admin/roles/${encodeURIComponent(rol)}/restaurar`, { method: "POST" });
         mostrarAlerta("success", `${r.nombre} regresó a sus valores de fábrica.`);
@@ -760,7 +760,7 @@ function renderizarActividad() {
 }
 
 async function cancelarProcesoAdmin(clase, id, boton) {
-    if (!confirm("¿Detener este proceso? Se conservará lo que ya se haya generado.")) return;
+    if (!(await Fiscontable.preguntar("¿Detener este proceso? Se conservará lo que ya se haya generado."))) return;
     boton.disabled = true;
     boton.textContent = "Deteniendo…";
     try {
@@ -1003,7 +1003,7 @@ async function guardarMaxSesiones(boton) {
 }
 
 async function cerrarSesionWeb(boton) {
-    if (!confirm(`¿Cerrar esta sesión de ${boton.dataset.correo}? Ya no podrá usar la web desde ahí hasta que cierre sesión y vuelva a entrar.`)) return;
+    if (!(await Fiscontable.preguntar(`¿Cerrar esta sesión de ${boton.dataset.correo}? Ya no podrá usar la web desde ahí hasta que cierre sesión y vuelva a entrar.`))) return;
     try {
         await api(`/api/admin/sesiones/${boton.dataset.cerrarSesion}/cerrar`, { method: "POST" });
         sesionesWeb = await api("/api/admin/sesiones");
@@ -1051,10 +1051,18 @@ function cuerpoRevisionTienda() {
     if (!r) return titulo + '<span class="text-slate-400">Cargando…</span>';
     if (!r.activo) return `${titulo}<span class="block">Genera un código para las notas de certificación. Solo conecta la cuenta de demostración (sin clientes ni e.firma).</span>
         <button type="button" data-revision="crear" class="mt-1 text-[11px] border border-gray-200 rounded-lg py-0.5 px-2 hover:bg-gray-50">Generar código (30 días)</button>`;
+    const web = location.hostname.indexOf("pruebas.") === 0 ? location.origin : "https://fiscontable.app";
+    const entrada = r.clave ? `<span class="block mt-1 p-2 rounded-lg bg-amber-50 border border-amber-200 text-slate-700">
+            <b>Entrada a la web para quien revisa</b> (solo lectura, empresas de ejemplo). Cópiala ahora: la contraseña no se vuelve a mostrar.<br>
+            Página: <b class="font-mono">${esc(web)}/login?revision</b><br>
+            Usuario: <b class="font-mono">${esc(r.usuario_web)}</b><br>
+            Contraseña: <b class="font-mono">${esc(r.clave)}</b>
+            <button type="button" data-revision="copiar-web" class="ml-1 text-[11px] border border-gray-200 rounded-lg py-0.5 px-2 bg-white hover:bg-gray-50">Copiar los tres</button></span>`
+        : `<span class="block mt-1 text-slate-500">Entrada a la web: ${esc(web)}/login?revision · usuario ${esc(r.usuario_web || r.cuenta)} · la contraseña se mostró al generar el código (si la perdiste, «Generar otro»).</span>`;
     return `${titulo}<span class="block">Código: <b class="font-mono text-slate-800 text-xs">${esc(r.codigo)}</b> · vence ${esc(new Date(r.expira).toLocaleDateString("es-MX"))} · usado ${esc(r.usos)} de ${esc(r.max_usos)} · ${esc(r.pcs)} PC(s) conectadas</span>
         <span class="flex gap-2 mt-1"><button type="button" data-revision="copiar" class="text-[11px] border border-gray-200 rounded-lg py-0.5 px-2 hover:bg-gray-50">Copiar código</button>
         <button type="button" data-revision="crear" class="text-[11px] border border-gray-200 rounded-lg py-0.5 px-2 hover:bg-gray-50">Generar otro</button>
-        <button type="button" data-revision="quitar" class="text-[11px] border border-gray-200 rounded-lg py-0.5 px-2 hover:text-red-600">Quitar y desconectar</button></span>`;
+        <button type="button" data-revision="quitar" class="text-[11px] border border-gray-200 rounded-lg py-0.5 px-2 hover:text-red-600">Quitar y desconectar</button></span>${entrada}`;
 }
 function pintarRevisionTienda() { const c = document.getElementById("rev-tienda"); if (c) c.innerHTML = cuerpoRevisionTienda(); }
 async function cargarRevisionTienda() {
@@ -1063,8 +1071,15 @@ async function cargarRevisionTienda() {
 }
 async function codigoRevision(boton) {
     const que = boton.dataset.revision;
+    if (que === "copiar-web") {
+        const web = location.hostname.indexOf("pruebas.") === 0 ? location.origin : "https://fiscontable.app";
+        const texto = `Página: ${web}/login?revision\nUsuario: ${revisionTienda.usuario_web}\nContraseña: ${revisionTienda.clave}\nCódigo para el Agente: ${revisionTienda.codigo}`;
+        try { await navigator.clipboard.writeText(texto); boton.textContent = "Copiado"; } catch (e) { boton.textContent = "Cópialo manualmente"; }
+        setTimeout(() => { boton.textContent = "Copiar los tres"; }, 2000);
+        return;
+    }
     if (que === "copiar") {
-        try { await navigator.clipboard.writeText(revisionTienda.codigo); boton.textContent = "¡Copiado!"; } catch (e) { boton.textContent = revisionTienda.codigo; }
+        try { await navigator.clipboard.writeText(revisionTienda.codigo); boton.textContent = "Copiado"; } catch (e) { boton.textContent = revisionTienda.codigo; }
         setTimeout(() => { boton.textContent = "Copiar código"; }, 2000);
         return;
     }
@@ -1083,9 +1098,9 @@ function tarjetaInstalador(i) {
     const a = i.actual;
     const linea = a ? `Instalador en la Vostro: <b>versión ${esc(a.version)}</b> · ${Math.round(a.tamano / 1048576)} MB · bajado ${esc(haceCuanto(a.bajado))}`
                     : "La Vostro todavía no tiene el instalador.";
-    const falta = !i.configurado ? '<span class="block text-amber-700">Falta la llave de GitHub de solo lectura (FISCONTABLE_GITHUB_TOKEN en /etc/fiscontable.env). Sin ella no se bajan versiones nuevas.</span>' : "";
+    const falta = !i.configurado ? '<span class="block text-amber-700">Falta la llave de GitHub de solo lectura (FISCONTABLE_GITHUB_TOKEN en /etc/fiscontable.env). Sin ella no se descargan versiones nuevas.</span>' : "";
     const error = i.error ? `<span class="block text-red-700">${esc(i.error)}</span>` : "";
-    const revisado = i.intento ? `<span class="block text-slate-400">Última revisión en GitHub: ${esc(haceCuanto(i.intento))} (sola cada hora)</span>` : "";
+    const revisado = i.intento ? `<span class="block text-slate-400">Última revisión en GitHub: ${esc(haceCuanto(i.intento))} (automática, cada hora)</span>` : "";
     return `<div class="mt-3 pt-2 border-t border-gray-100 text-[11px] text-slate-600">${linea}${falta}${error}${revisado}
         <button type="button" id="btn-revisar-instalador" class="mt-1 text-[11px] border border-gray-200 rounded-lg py-0.5 px-2 hover:bg-gray-50">Revisar ahora en GitHub</button></div>`;
 }
@@ -1109,7 +1124,7 @@ async function guardarMaxPcs(boton) {
 }
 
 async function quitarPc(boton) {
-    if (!confirm(`¿Desconectar "${boton.dataset.nombre}"? Dejará de hacer trámites hasta que su dueño la vuelva a vincular.`)) return;
+    if (!(await Fiscontable.preguntar(`¿Desconectar "${boton.dataset.nombre}"? Dejará de hacer trámites hasta que su dueño la vuelva a vincular.`))) return;
     try {
         await api(`/api/admin/agentes/${boton.dataset.quitarPc}`, { method: "DELETE" });
         pcsAgentes = await api("/api/admin/agentes");
@@ -1118,7 +1133,7 @@ async function quitarPc(boton) {
     } catch (err) { mostrarAlerta("error", err.message); }
 }
 
-// Plazos del Buzón (cuándo queda notificada y cuándo surte efectos): los de ley se calculan solos;
+// Plazos del Buzón (cuándo queda notificada y cuándo surte efectos): los de ley se calculan automáticamente;
 // aquí van los que declare el SAT (vacaciones, días de la RMF).
 const fechaLarga = (iso) => new Date(iso + "T12:00:00").toLocaleDateString("es-MX", { day: "numeric", month: "short", year: "numeric" });
 function tarjetaInhabiles() {
@@ -1154,7 +1169,7 @@ async function guardarInhabiles(boton) {
 function tarjetaXmlAuto() {
     const d = xmlAutoAdmin, hoy = new Date();
     const actual = hoy.getFullYear() + "-" + String(hoy.getMonth() + 1).padStart(2, "0");
-    return `<p class="text-sm text-slate-800">Las cuentas pueden bajar desde <b>${esc(Fiscontable.nombreMes(d.desde_minimo).toLowerCase())}</b></p>
+    return `<p class="text-sm text-slate-800">Las cuentas pueden descargar desde <b>${esc(Fiscontable.nombreMes(d.desde_minimo).toLowerCase())}</b></p>
         <p class="text-[11px] text-slate-500 mt-1">Cada quien elige en la ficha de la empresa desde qué mes; no pueden ir antes de este. Tú sí, en tus empresas.</p>
         <div class="flex items-center gap-2 mt-3">
             <input type="month" id="xml-auto-minimo" data-guarda="btn-guardar-xml-auto" value="${esc(d.desde_minimo)}" min="${esc(d.tope_admin)}" max="${actual}" class="border border-gray-200 rounded-lg p-1.5 text-xs">
@@ -1180,7 +1195,7 @@ function tarjetaTimbres() {
         <p class="text-[11px] ${d.panel ? "text-emerald-700" : "text-amber-700"} mt-1">${d.panel ? "✓ Conectado al panel de MultiFacturas" : "Sin conexión al panel de MultiFacturas (faltan sus claves en el servidor)"}</p>
         ${d.bolsa && d.bolsa.timbres != null ? `<div class="mt-2 rounded-xl bg-indigo-50 border border-indigo-100 px-4 py-3"><p class="text-[11px] font-bold uppercase tracking-wide text-indigo-700">Saldo general en MultiFacturas</p>
             <p class="text-2xl font-extrabold text-slate-900 leading-tight">${Number(d.bolsa.timbres).toLocaleString("es-MX")}</p>
-            <p class="text-[11px] ${d.bolsa.fuente === "panel" ? "text-emerald-700" : "text-slate-500"}">${d.bolsa.fuente === "panel" ? "✓ Real, leído de tu panel de MultiFacturas" + (d.bolsa.leido_en ? " " + haceCuanto(d.bolsa.leido_en) : "") : "Escrito a mano (se baja al repartir)"}</p>
+            <p class="text-[11px] ${d.bolsa.fuente === "panel" ? "text-emerald-700" : "text-slate-500"}">${d.bolsa.fuente === "panel" ? "✓ Real, leído de tu panel de MultiFacturas" + (d.bolsa.leido_en ? " " + haceCuanto(d.bolsa.leido_en) : "") : "Capturado manualmente (se descuenta al repartir)"}</p>
             ${d.bolsa.fuente === "panel" || d.bolsa.error ? `<div class="flex items-center gap-2 mt-2"><button type="button" id="btn-actualizar-saldo" class="whitespace-nowrap text-xs font-bold text-slate-700 bg-white border border-gray-200 hover:border-slate-400 rounded-lg py-1.5 px-3">↻ Actualizar</button>
             <span class="text-[11px] text-slate-500">Se vuelve a leer solo al abrir esta página si pasaron ${d.bolsa.cada_min || 5} min, y al pasar o quitar timbres.</span></div>` : ""}</div>` : `<p class="text-[11px] text-amber-700 mt-1">Saldo general de MultiFacturas sin registrar: escríbelo en «Ver y asignar».</p>`}
         ${d.bolsa && d.bolsa.error ? `<p class="text-[11px] text-amber-700 mt-1">No se pudo leer de tu panel: ${esc(d.bolsa.error)}</p>` : ""}
@@ -1213,7 +1228,7 @@ function cuerpoErroresPac() {
         <td class="py-2 pr-3">${esc(x.operacion)}${x.pruebas ? ' <span class="text-[10px] font-bold text-amber-700">PRUEBA</span>' : ""}<span class="block text-[11px] text-slate-400">${esc(x.rfc || "")} · ${esc(x.referencia || "")}</span><span class="block text-[11px] text-slate-400">${esc(x.owner_email)}</span></td>
         <td class="py-2 pr-3">${esc(x.mensaje)}</td>
         <td class="py-2 text-right"><button type="button" data-copiar-error="${esc(x.id)}" class="text-xs font-bold text-slate-700 border border-gray-200 hover:border-slate-400 rounded-lg py-1.5 px-3 whitespace-nowrap">Copiar para soporte</button></td></tr>`).join("");
-    return `<p class="text-xs text-slate-500 mb-3">Los rechazos de los últimos 90 días. A soporte de MultiFacturas mándale el número de seguimiento con lo que copia el botón (código, servidor, tiempo, versión y su bitácora).</p>
+    return `<p class="text-xs text-slate-500 mb-3">Los rechazos de los últimos 90 días. A soporte de MultiFacturas envíale el número de seguimiento con lo que copia el botón (código, servidor, tiempo, versión y su bitácora).</p>
         <table class="w-full text-xs"><thead><tr class="text-left text-slate-500"><th class="pb-2">Seguimiento</th><th class="pb-2">Qué</th><th class="pb-2">Mensaje</th><th></th></tr></thead>
         <tbody>${filas || '<tr><td colspan="4" class="py-6 text-center text-slate-400">Sin errores del PAC. 🎉</td></tr>'}</tbody></table>`;
 }
@@ -1530,7 +1545,7 @@ async function cargarEstadoSAT() {
         return;
     }
     pintarEstadoSAT();
-    // Mientras algo se está revisando o está por revisarse, se actualiza solo
+    // Mientras algo se está revisando o está por revisarse, se actualiza automáticamente
     clearTimeout(relojSAT);
     const pronto = estadoSAT.servicios.some(s => s.revisando || (s.proxima_revision && aFecha(s.proxima_revision) - Date.now() < 120000));
     if (pronto && !$("panel-sistema").hidden) relojSAT = setTimeout(cargarEstadoSAT, 15000);
@@ -1614,7 +1629,7 @@ async function guardarEfirmaSAT() {
 
 async function cambiarActivoSAT() {
     const activo = $("chk-sat-activo").checked;
-    if (!activo && !confirm("¿Pausar la revisión automática del SAT?\n\nSe quita el letrero y la madrugada deja de consultarla.")) {
+    if (!activo && !(await Fiscontable.preguntar("¿Pausar la revisión automática del SAT?\n\nSe quita el letrero y la madrugada deja de consultarla."))) {
         $("chk-sat-activo").checked = true; return;
     }
     try {
@@ -1661,7 +1676,7 @@ async function cargarListasAdmin() {
 }
 
 async function actualizarListas() {
-    if (!confirm("¿Descargar ahora todas las listas del SAT?\n\nTarda unos minutos; solo se reemplazan las que cambiaron.")) return;
+    if (!(await Fiscontable.preguntar("¿Descargar ahora todas las listas del SAT?\n\nTarda unos minutos; solo se reemplazan las que cambiaron."))) return;
     try {
         const r = await api("/api/listas-sat/actualizar", { method: "POST" });
         mostrarAlerta("success", r.mensaje);
@@ -1688,7 +1703,7 @@ async function actualizarTipoCambio(boton) {
 }
 
 async function respaldarAhora(boton) {
-    const completo = confirm("¿Copia COMPLETA (compara archivo por archivo, tarda más)?\n\nAceptar = completa · Cancelar = solo lo que cambió");
+    const completo = (await Fiscontable.preguntar("¿Copia COMPLETA (compara archivo por archivo, tarda más)?\n\nAceptar = completa · Cancelar = solo lo que cambió"));
     boton.disabled = true;
     boton.textContent = "Copiando…";
     try {
@@ -1744,7 +1759,7 @@ async function cambiarMantenimiento() {
     const pregunta = activo
         ? "¿Activar el modo mantenimiento?\n\nNadie más podrá iniciar descargas nuevas hasta que lo desactives. Lo que ya corre, termina."
         : "¿Desactivar el modo mantenimiento? Todos vuelven a poder iniciar descargas.";
-    if (!confirm(pregunta)) { $("chk-mantenimiento").checked = !activo; return; }
+    if (!(await Fiscontable.preguntar(pregunta))) { $("chk-mantenimiento").checked = !activo; return; }
     try {
         await api("/api/admin/sistema/mantenimiento", {
             method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ activo }),
@@ -1771,7 +1786,7 @@ async function publicarAviso() {
 }
 
 async function quitarAviso() {
-    if (!confirm("¿Quitar el aviso de todas las páginas?")) return;
+    if (!(await Fiscontable.preguntar("¿Quitar el aviso de todas las páginas?"))) return;
     try {
         await api("/api/admin/sistema/aviso", { method: "DELETE" });
         $("aviso-texto").value = ""; $("aviso-hasta").value = "";
@@ -1788,7 +1803,7 @@ async function reiniciarServidor() {
         ? `Hay ${e.corriendo.lotes} lote(s) y ${e.corriendo.trabajos} trabajo(s) en curso.\n\n` +
           "Los lotes quedarán como interrumpidos y se podrán reanudar con confirmación. Los trabajos sueltos en curso se pierden y habrá que pedirlos otra vez.\n\n¿Reiniciar de todos modos?"
         : "¿Reiniciar el servidor? Vuelve solo en unos segundos.";
-    if (!confirm(aviso)) return;
+    if (!(await Fiscontable.preguntar(aviso))) return;
 
     const boton = $("btn-reiniciar");
     boton.disabled = true;
@@ -1816,7 +1831,7 @@ async function reiniciarServidor() {
 }
 
 async function reiniciarVSCode() {
-    if (!confirm("¿Reiniciar el túnel de VS Code? Si tienes VS Code abierto, se desconectará un momento.")) return;
+    if (!(await Fiscontable.preguntar("¿Reiniciar el túnel de VS Code? Si tienes VS Code abierto, se desconectará un momento."))) return;
     try {
         const r = await api("/api/admin/sistema/reiniciar-vscode", { method: "POST" });
         mostrarAlerta("success", r.mensaje);
@@ -1846,7 +1861,7 @@ async function revisarAtorados() {
 }
 
 async function cancelarAtorados() {
-    if (!confirm("¿Cancelar los procesos atorados? Quedarán como cancelados.")) return;
+    if (!(await Fiscontable.preguntar("¿Cancelar los procesos atorados? Quedarán como cancelados."))) return;
     try {
         const r = await api("/api/admin/sistema/atorados/cancelar", { method: "POST" });
         mostrarAlerta("success", `Se cancelaron ${r.trabajos} trabajo(s) y ${r.lotes} lote(s).`);
@@ -1860,7 +1875,7 @@ async function limpiarCache(rfc) {
     const pregunta = rfc
         ? `¿Borrar los documentos guardados de ${rfc}?\n\nLa próxima vez que alguien los pida, se sacarán otra vez del SAT.`
         : "¿Borrar ahora los documentos que ya vencieron?";
-    if (!confirm(pregunta)) return;
+    if (!(await Fiscontable.preguntar(pregunta))) return;
     try {
         const r = await api("/api/admin/sistema/cache/limpiar", {
             method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ rfc }),
@@ -2042,10 +2057,10 @@ function exportarSesiones() {
 
 // N-04: «Ver como» — el admin ve la plataforma como esa persona (solo lectura, 60 min, queda en la bitácora)
 async function verComo(correo) {
-    if (!confirm("¿Ver Fiscontable como " + correo + "?\n\nEs solo lectura (no se puede cambiar nada), dura 60 minutos y queda en la bitácora. Sales con «Salir» en el letrero de arriba.")) return;
+    if (!(await Fiscontable.preguntar("¿Ver Fiscontable como " + correo + "?\n\nEs solo lectura (no se puede cambiar nada), dura 60 minutos y queda en la bitácora. Sales con «Salir» en el letrero de arriba."))) return;
     try {
         const r = await fetch(`${Fiscontable.API}/api/admin/ver-como`, { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ correo }) });
         if (!r.ok) throw new Error(await Fiscontable.leerError(r));
-        location.href = "/";
-    } catch (e) { alert(e.message); }
+        location.href = "/inicio/";
+    } catch (e) { Fiscontable.avisar(e.message); }
 }

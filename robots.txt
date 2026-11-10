@@ -1,0 +1,17 @@
+# Fiscontable — solo las páginas públicas tienen algo que mostrar a un buscador
+User-agent: *
+Allow: /
+Disallow: /inicio/
+Disallow: /admin/
+Disallow: /clientes/
+Disallow: /configuracion/
+Disallow: /creditos/
+Disallow: /descargas/
+Disallow: /despacho/
+Disallow: /herramientas/
+Disallow: /agente/
+Disallow: /activar/
+Disallow: /entrar/
+Disallow: /ui/
+
+Sitemap: https://fiscontable.app/sitemap.xml

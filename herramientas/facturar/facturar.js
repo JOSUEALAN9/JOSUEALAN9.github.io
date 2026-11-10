@@ -269,7 +269,7 @@
             return;
         }
         if (ev.target.closest("[data-man-quitar]")) {
-            if (!confirm("¿Quitar el acuse guardado de este PAC? (no cambia nada en el PAC ni en el SAT)")) return;
+            if (!(await Fiscontable.preguntar("¿Quitar el acuse guardado de este PAC? (no cambia nada en el PAC ni en el SAT)"))) return;
             try { F.man = await json(base + "/" + pac, { method: "DELETE" }); despuesManifiesto("Acuse quitado."); }
             catch (e) { $("msj-man").textContent = e.message; }
             return;
@@ -343,7 +343,7 @@
     }
 
     async function quitarCsd() {
-        if (!confirm("¿Quitar el CSD guardado de esta empresa? Ya no podrá timbrar hasta que subas otro.")) return;
+        if (!(await Fiscontable.preguntar("¿Quitar el CSD guardado de esta empresa? Ya no podrá timbrar hasta que subas otro."))) return;
         try {
             await api("/api/facturacion/emisores/" + encodeURIComponent(F.emisor.rfc) + "/csd", { method: "DELETE" });
             actualizarEmisor(Object.assign({}, F.emisor, { csd: null, listo: false, faltan: F.emisor.faltan.concat(["CSD (sello digital)"]) }));
@@ -691,7 +691,7 @@
         calcular();
     }
 
-    /* Abre el renglón i para editarlo. El que estaba abierto se guarda solo: si está completo queda limpio;
+    /* Abre el renglón i para editarlo. El que estaba abierto se guarda automáticamente: si está completo queda limpio;
        si le falta algo se queda marcado con su error (sin perder lo escrito). Un renglón totalmente en blanco se quita. */
     function abrirConcepto(i, campo) {
         var previo = F.abierto;
@@ -1095,7 +1095,7 @@
             try { r = await enviar("/api/facturacion/timbrar", "POST", { rfc: F.emisor.rfc, captura: F.pendiente }); }
             catch (e) {
                 if (e.status === 428) { $("dlg-confirmar").close(); F.emisor.manifiesto = false; abrirManifiesto(true); return; }
-                if (e.status !== 409 || !confirm(e.message + "\n\nAcepta solo si de verdad es otra factura.")) throw e;
+                if (e.status !== 409 || !(await Fiscontable.preguntar(e.message + "\n\nAcepta solo si de verdad es otra factura."))) throw e;
                 F.pendiente.confirmar_duplicado = true;
                 r = await enviar("/api/facturacion/timbrar", "POST", { rfc: F.emisor.rfc, captura: F.pendiente });
             }
@@ -2208,7 +2208,7 @@
         ponerCaptura(x.captura, (x.captura || {}).avisos_excel);
         F.borradorId = x.id;
         F.recurrenteId = recurrente ? x.id : null;
-        estadoCaptura(recurrente ? "Recurrente «" + x.nombre + "»: revísala y timbra; la próxima fecha se calcula sola." : "Prefactura «" + x.nombre + "» abierta.");
+        estadoCaptura(recurrente ? "Recurrente «" + x.nombre + "»: revísala y timbra; la próxima fecha se calcula automáticamente." : "Prefactura «" + x.nombre + "» abierta.");
         irPaso(1);
     }
 
@@ -2229,7 +2229,7 @@
     var DIAS = ["lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo"];
     function textoRepetir(r) {
         var cada = r.cada === "semana" ? "Cada " + DIAS[r.dia || 0] : r.cada === "quincena" ? "Cada quincena (1 y 16)" : "Cada mes, el día " + (r.dia || 1);
-        return cada + " · " + (r.modo === "timbrar" ? "se timbra sola" : "te avisa") + (r.proxima ? " · próxima " + fechaCorta(r.proxima + "T12:00:00") : "");
+        return cada + " · " + (r.modo === "timbrar" ? "se timbra automáticamente" : "te avisa") + (r.proxima ? " · próxima " + fechaCorta(r.proxima + "T12:00:00") : "");
     }
     function formaRepetir(x) {
         var r = x.recurrente || { activo: true, cada: "mes", dia: 1, modo: "avisar" };
@@ -2403,9 +2403,9 @@
         var buenas = (F.xm || []).filter(function (f) { return !f.errores.length; });
         if (!buenas.length || faltaManifiesto()) return;
         var total = buenas.reduce(function (a, f) { return a + (f.total || 0); }, 0);
-        if (!confirm("¿Timbrar " + buenas.length + " factura" + (buenas.length === 1 ? "" : "s") + " por " + dinero(total) + "?" +
+        if (!(await Fiscontable.preguntar("¿Timbrar " + buenas.length + " factura" + (buenas.length === 1 ? "" : "s") + " por " + dinero(total) + "?" +
                      (F.cfg.produccion ? "\n\nSe mandan al SAT y gastan " + buenas.length + " timbre" + (buenas.length === 1 ? "" : "s") + " de la empresa." : "\n\nModo de pruebas: no gasta timbres.") +
-                     "\nLas que fallen quedan como prefactura.")) return;
+                     "\nLas que fallen quedan como prefactura."))) return;
         var bT = $("btn-xm-timbrar"), bG = $("btn-xm-ok");
         bT.disabled = true; bG.disabled = true; F.xmCorriendo = true;
         try { await guardarAltasExcel(); } catch (e) { aviso(e.message, "error"); }
@@ -2628,7 +2628,7 @@
         $("btn-probar-correo").addEventListener("click", probarCorreo);
         $("btn-co-enviar").addEventListener("click", mandarCorreo);
         $("btn-wa-abrir").addEventListener("click", abrirWa);
-        $("btn-wa-nuevo").addEventListener("click", function () { if (confirm("El enlace anterior dejará de servir. ¿Crear uno nuevo?")) abrirWhatsapp(F.waId, true); });
+        $("btn-wa-nuevo").addEventListener("click", async function () { if (await Fiscontable.preguntar("El enlace anterior dejará de servir. ¿Crear uno nuevo?")) abrirWhatsapp(F.waId, true); });
         $("btn-wa-copiar").addEventListener("click", function () {
             navigator.clipboard && navigator.clipboard.writeText($("wa-url").textContent).then(function () { $("btn-wa-copiar").textContent = "✓ Copiado"; });
         });
@@ -2714,7 +2714,7 @@
             if (ev.target.closest("[data-repetir]")) { F.repitiendo = F.repitiendo === it.dataset.id ? null : it.dataset.id; pintarBorradores(); return; }
             var x = F.borradores.filter(function (b) { return b.id === it.dataset.id; })[0]; if (!x) return;
             if (ev.target.closest("[data-borrar]")) {
-                if (!confirm("¿Borrar la prefactura «" + x.nombre + "»?")) return;
+                if (!(await Fiscontable.preguntar("¿Borrar la prefactura «" + x.nombre + "»?"))) return;
                 try { await api("/api/facturacion/borradores/" + x.id, { method: "DELETE" }); if (F.borradorId === x.id) F.borradorId = null; await cargarBorradores(); pintarBorradores(); }
                 catch (e) { aviso(e.message, "error"); }
                 return;
@@ -2735,15 +2735,15 @@
             if (x) abrirPrefactura(x, true);
         });
         /* Atajos: Ctrl+Enter siguiente paso / timbrar · Ctrl+S prefactura · Alt+N nueva · Alt+C agregar concepto */
-        document.addEventListener("keydown", function (ev) {
+        document.addEventListener("keydown", async function (ev) {
             if (F.vista !== "nueva" || !F.emisor || document.querySelector("dialog[open]")) return;
             var ctrl = ev.ctrlKey || ev.metaKey;
             if (ctrl && ev.key === "Enter") { ev.preventDefault(); siguientePaso(); }
             else if (ctrl && (ev.key === "s" || ev.key === "S")) { ev.preventDefault(); guardarBorrador(); }
-            else if (ev.altKey && (ev.key === "n" || ev.key === "N")) { ev.preventDefault(); if (confirm("¿Empezar una factura nueva? Se borra lo capturado.")) { nuevaFactura(); irPaso(1); } }
+            else if (ev.altKey && (ev.key === "n" || ev.key === "N")) { ev.preventDefault(); if (await Fiscontable.preguntar("¿Empezar una factura nueva? Se borra lo capturado.")) { nuevaFactura(); irPaso(1); } }
             else if (ev.altKey && (ev.key === "c" || ev.key === "C")) { ev.preventDefault(); if (F.paso !== 3) irPaso(3); $("btn-concepto").click(); }
         });
-        $("btn-limpiar").addEventListener("click", function () { if (confirm("¿Borrar lo capturado y empezar una factura nueva?")) nuevaFactura(); });
+        $("btn-limpiar").addEventListener("click", async function () { if (await Fiscontable.preguntar("¿Borrar lo capturado y empezar una factura nueva?")) nuevaFactura(); });
         document.querySelectorAll("[data-sub]").forEach(function (b) { b.addEventListener("click", function () { ponerSub(b.dataset.sub); }); });
         $("btn-configurar").addEventListener("click", function () { abrirConfig(); });
         $("btn-config-listo").addEventListener("click", configListo);
@@ -2786,7 +2786,7 @@
         });
         $("conceptos").addEventListener("change", function (ev) {
             if (ev.target.matches('select[data-c="impuesto"], input[data-c="modo"]')) ev.target.dispatchEvent(new Event("input", { bubbles: true }));
-            // El SAT solo acepta letras y números en la cuenta predial: guiones, puntos y espacios se quitan solos
+            // El SAT solo acepta letras y números en la cuenta predial: guiones, puntos y espacios se quitan automáticamente
             if (ev.target.matches('input[data-c="cuenta_predial"]') && /[^0-9a-zA-Z]/.test(ev.target.value)) {
                 ev.target.value = ev.target.value.replace(/[^0-9a-zA-Z]/g, "");
                 ev.target.dispatchEvent(new Event("input", { bubbles: true }));
@@ -2888,7 +2888,7 @@
         $("prod-lista").addEventListener("click", function (ev) { var it = ev.target.closest("[data-prod]"); if (it) abrirProducto((F.productos || []).filter(function (p) { return p.id === it.dataset.prod; })[0]); });
         $("btn-pr-guardar").addEventListener("click", guardarProducto);
         $("btn-pr-borrar").addEventListener("click", async function () {
-            if (!F.prodEditando || !confirm("¿Borrar «" + F.prodEditando.nombre + "» del catálogo?")) return;
+            if (!F.prodEditando || !(await Fiscontable.preguntar("¿Borrar «" + F.prodEditando.nombre + "» del catálogo?"))) return;
             try { await api("/api/facturacion/productos/" + F.prodEditando.id, { method: "DELETE" }); $("dlg-producto").close(); cargarProductos(); } catch (e) { $("pr-error").textContent = e.message; $("pr-error").hidden = false; }
         });
         $("prod-xml").addEventListener("change", function () { leerXmlProductos(this.files, "catalogo"); this.value = ""; });

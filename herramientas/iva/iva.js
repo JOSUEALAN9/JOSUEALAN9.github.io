@@ -24,7 +24,7 @@
         return r;
     }
     async function apiJSON(ruta) { return (await api(ruta)).json(); }
-    function avisar(t) { Fiscontable.aviso ? Fiscontable.aviso(t) : alert(t); }
+    function avisar(t) { Fiscontable.aviso ? Fiscontable.aviso(t) : Fiscontable.avisar(t); }
     function m(v) { return Number(v || 0).toLocaleString("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
     function dmy(iso) { return iso ? iso.slice(8, 10) + "/" + iso.slice(5, 7) + "/" + iso.slice(0, 4) : ""; }
     function guardarLocal(k, v) { try { localStorage.setItem("iva:" + k, v); } catch (e) { /* nada */ } }
@@ -199,7 +199,7 @@
         return TABLAS[lado];
     }
     function abrirCfdi(f, lista, ev) {
-        if (ev && ev.target.closest("[data-marca]")) return;               // la liga a Marcas se abre sola
+        if (ev && ev.target.closest("[data-marca]")) return;               // la liga a Marcas se abre automáticamente
         if (!E.perfil || (E.perfil.modulos_permitidos || []).indexOf("validador") === -1) return;
         Fiscontable.verCfdi(E.rfc, f.uuid, lista.map(function (x) { return x.uuid; }));
     }

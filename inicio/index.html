@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fiscontable</title>
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611120809">
+    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611120809">
+    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611120809">
+</head>
+<body class="min-h-screen flex flex-col">
+
+<div id="app-header" data-modulo="portada"></div>
+
+<main class="flex-grow w-full mod-pagina tb-pagina">
+
+    <div class="mod-cabeza tb-cabeza">
+        <h1 id="saludo"><span class="ui-skel" style="display:inline-block;width:220px;height:22px"></span></h1>
+        <div class="ctx-segmento" id="tb-vista" role="tablist" aria-label="Vista del tablero">
+            <button type="button" role="tab" data-vista="despacho" aria-pressed="true">Mis empresas</button>
+            <button type="button" role="tab" data-vista="empresa" aria-pressed="false" id="tb-vista-empresa">Empresa activa</button>
+        </div>
+    </div>
+
+    <!-- Sección 8: «Configura tu cuenta» (se marca automáticamente; no bloquea nada; se puede ocultar) -->
+    <section id="tb-pasos" class="tb-pasos" hidden></section>
+
+    <!-- M-01 · Vista despacho: una fila por empresa con lo que hay que atender -->
+    <section id="tb-despacho">
+        <div id="tb-resumen" class="tb-kpis"></div>
+        <div id="tb-cierre" class="tb-cierre" hidden></div>
+        <div class="tb-cuerpo">
+            <div class="tb-principal"><div id="tb-tabla" class="tb-tabla"></div></div>
+            <aside class="tb-lado" aria-label="Vencimientos y actividad">
+                <div class="ui-tarjeta"><p class="tb-titulo">Próximos vencimientos</p><div id="tb-venc" class="tb-lista"></div>
+                    <p class="xml-tenue tb-nota">Fechas generales; revisa las de cada régimen.</p></div>
+                <div class="ui-tarjeta"><p class="tb-titulo">Actividad reciente</p><div id="tb-act" class="tb-lista"></div></div>
+            </aside>
+        </div>
+    </section>
+
+    <!-- M-01 · Vista contribuyente: la empresa activa -->
+    <section id="tb-empresa" hidden></section>
+
+    <section id="inicio-recientes" class="tb-recientes" hidden>
+        <span class="tb-recientes__titulo">Lo último que usaste</span>
+        <div id="inicio-recientes-lista" class="tb-recientes__lista"></div>
+    </section>
+</main>
+
+<style>
+    .tb-pagina { max-width: none; }
+    /* Tablero: indicadores arriba, tabla a todo lo ancho y, en pantallas anchas, vencimientos y actividad a la derecha */
+    .tb-kpis { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--e-3); margin-bottom: var(--e-4); }
+    @media (min-width: 760px) { .tb-kpis { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+    @media (min-width: 1600px) { .tb-kpis { grid-template-columns: repeat(8, minmax(0, 1fr)); } }
+    .tb-kpi { display: grid; gap: 2px; padding: var(--e-3) var(--e-4); border: 1px solid var(--linea); border-radius: var(--r-tarjeta); background: rgb(var(--g-0));
+              text-align: left; font: inherit; color: inherit; cursor: pointer; position: relative; overflow: hidden; }
+    .tb-kpi::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: rgb(var(--g-200)); }
+    .tb-kpi small { font-size: var(--t-12); color: rgb(var(--g-600)); }
+    .tb-kpi b { font-size: var(--t-24); font-weight: 700; color: rgb(var(--g-900)); font-variant-numeric: tabular-nums; line-height: 1.15; }
+    .tb-kpi span { font-size: var(--t-12); color: rgb(var(--g-500)); }
+    .tb-kpi:hover { border-color: rgb(var(--g-300)); }
+    .tb-kpi--error::before { background: rgb(var(--er-600)); } .tb-kpi--error b { color: rgb(var(--er-700)); }
+    .tb-kpi--aviso::before { background: rgb(var(--av-600)); }
+    .tb-kpi--ok::before { background: rgb(var(--ok-600)); }
+    .tb-kpi--cero { opacity: .6; }
+    .tb-kpi--activo { border-color: rgb(var(--ac-600)); box-shadow: 0 0 0 1px rgb(var(--ac-600)); }
+    /* Cierre del mes: avance general y cuántas empresas llevan cada paso */
+    .tb-cierre { display: grid; gap: var(--e-2); padding: var(--e-3) var(--e-4); margin-bottom: var(--e-4); border: 1px solid var(--linea); border-radius: var(--r-tarjeta); background: rgb(var(--g-0)); }
+    .tb-cierre__cabeza { display: flex; align-items: center; gap: var(--e-3); flex-wrap: wrap; border: 0; background: none; padding: 0; font: inherit; color: rgb(var(--g-900)); cursor: pointer; text-align: left; font-size: var(--t-14); }
+    .tb-cierre__cabeza small { color: rgb(var(--g-600)); font-variant-numeric: tabular-nums; }
+    .tb-cierre__pasos { display: flex; flex-wrap: wrap; gap: var(--e-2); }
+    .tb-cierre__paso { display: inline-flex; gap: 6px; align-items: center; padding: 3px 10px; border-radius: 999px; background: rgb(var(--av-50)); color: rgb(var(--av-700)); font-size: var(--t-12); text-decoration: none; }
+    .tb-cierre__paso b { font-variant-numeric: tabular-nums; }
+    .tb-cierre__paso--ok { background: rgb(var(--ok-50)); color: rgb(var(--ok-700)); }
+    .tb-barrita { display: inline-block; width: 46px; height: 6px; border-radius: 999px; background: rgb(var(--g-100)); overflow: hidden; vertical-align: middle; }
+    .tb-barrita i { display: block; height: 100%; background: rgb(var(--ac-600)); border-radius: inherit; }
+    .tb-barrita--ancha { flex: 1 1 160px; max-width: 320px; }
+    .tb-barrita--ok i { background: rgb(var(--ok-600)); } .tb-barrita--aviso i { background: rgb(var(--av-600)); } .tb-barrita--error i { background: rgb(var(--er-600)); }
+    .tb-cierre-celda { display: inline-flex; align-items: center; gap: 8px; font-size: var(--t-12); font-variant-numeric: tabular-nums; }
+    .tb-cuerpo { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--e-4); align-items: start; }
+    @media (min-width: 1700px) { .tb-cuerpo { grid-template-columns: minmax(0, 1fr) 320px; } }
+    @media (min-width: 900px) and (max-width: 1699px) { .tb-lado { grid-template-columns: 1fr 1fr; } }
+    .tb-lado { display: grid; gap: var(--e-3); }
+    .tb-nota { font-size: 12px; margin: 8px 0 0; }
+    .tb-tabla .xml-tabla { min-width: 100%; }
+    /* La tabla crece con sus filas (la página es la que se desplaza); solo con muchas empresas tiene su propio scroll */
+    .tb-tabla .xml-tabla-caja { height: auto; min-height: 0; max-height: calc(100vh - 120px); flex: none; }
+    .tb-motivos { display: inline-flex; flex-wrap: nowrap; gap: 4px; overflow: hidden; }
+    .tb-motivo { font-size: 11.5px; font-weight: 600; padding: 2px 8px; border-radius: 999px; white-space: nowrap; }
+    .tb-motivo--error { background: rgb(var(--er-50)); color: rgb(var(--er-700)); }
+    .tb-motivo--aviso { background: rgb(var(--av-50)); color: rgb(var(--av-700)); }
+    .tb-motivo--mas { background: rgb(var(--g-100)); color: rgb(var(--g-600)); }
+    .tb-cabeza { align-items: center; }
+    .tb-cabeza .ctx-segmento { margin-left: auto; }
+
+    .tb-dato { display: grid; gap: 2px; padding: var(--e-3) var(--e-4); border: 1px solid var(--linea); border-radius: var(--r-tarjeta); background: rgb(var(--g-0));
+               text-align: left; font: inherit; color: inherit; cursor: pointer; }
+    .tb-dato small { font-size: var(--t-12); color: rgb(var(--g-600)); }
+    .tb-dato b { font-size: var(--t-20); font-weight: 700; color: rgb(var(--g-900)); font-variant-numeric: tabular-nums; }
+    .tb-dato--alerta b { color: rgb(var(--er-700)); }
+    .tb-dato--activo { border-color: rgb(var(--ac-600)); box-shadow: 0 0 0 1px rgb(var(--ac-600)); }
+    .tb-sello { display: inline-flex; align-items: center; gap: 6px; font-size: var(--t-12); font-weight: 600; white-space: nowrap; }
+    .tb-sello::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: rgb(var(--g-300)); }
+    .tb-sello--ok::before { background: rgb(var(--ok-600)); }
+    .tb-sello--aviso::before { background: rgb(var(--av-600)); }
+    .tb-sello--error::before { background: rgb(var(--er-600)); }
+    .tb-sello--ok { color: rgb(var(--ok-700)); } .tb-sello--aviso { color: rgb(var(--av-700)); } .tb-sello--error { color: rgb(var(--er-700)); }
+    .tb-sello--nada { color: rgb(var(--g-500)); font-weight: 500; }
+    .tb-estrella { border: 0; background: none; cursor: pointer; color: rgb(var(--g-300)); font-size: 15px; padding: 0 4px; }
+    .tb-estrella--si { color: rgb(var(--av-600)); }
+    .tb-rejilla { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: var(--e-3); margin-bottom: var(--e-4); }
+    .tb-cifra { padding: var(--e-4); border: 1px solid var(--linea); border-radius: var(--r-tarjeta); background: rgb(var(--g-0)); display: grid; gap: 4px; }
+    .tb-cifra small { font-size: var(--t-12); color: rgb(var(--g-600)); }
+    .tb-cifra b { font-size: var(--t-24); font-weight: 700; font-variant-numeric: tabular-nums; color: rgb(var(--g-900)); }
+    .tb-cifra span { font-size: var(--t-12); color: rgb(var(--g-500)); }
+    .tb-columnas { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: var(--e-4); }
+    .tb-lista { display: grid; gap: 0; }
+    .tb-lista > * { display: flex; justify-content: space-between; gap: var(--e-3); padding: var(--e-2) 0; border-top: 1px solid rgb(var(--g-100)); font-size: var(--t-13); color: rgb(var(--g-900)); text-decoration: none; }
+    .tb-lista > *:first-child { border-top: 0; }
+    .tb-lista small { color: rgb(var(--g-500)); white-space: nowrap; }
+    .tb-titulo { font-size: var(--t-14); font-weight: 700; margin: 0 0 var(--e-2); }
+    .tb-recientes { display: flex; flex-wrap: wrap; align-items: center; gap: var(--e-2); margin: var(--e-6) 0 var(--e-8); font-size: var(--t-13); color: rgb(var(--g-600)); }
+    .tb-recientes__lista { display: flex; flex-wrap: wrap; gap: var(--e-2); }
+    .tb-recientes__lista a { padding: 4px 10px; border: 1px solid var(--linea); border-radius: 999px; background: rgb(var(--g-0)); color: rgb(var(--g-800)); text-decoration: none; }
+    .tb-recientes__lista a:hover { border-color: rgb(var(--g-400)); }
+    @media (max-width: 640px) { .tb-cabeza .ctx-segmento { margin-left: 0; } }
+    .tb-pasos { border: 1px solid var(--linea); border-radius: var(--r-tarjeta); background: rgb(var(--g-0)); padding: var(--e-3) var(--e-4); margin-bottom: var(--e-4); }
+    .tb-pasos__cabeza { display: flex; align-items: center; gap: var(--e-3); margin-bottom: var(--e-2); }
+    .tb-pasos__cabeza b { font-size: var(--t-16); }
+    .tb-pasos__barra { flex: 1; max-width: 220px; height: 6px; border-radius: 999px; background: rgb(var(--g-100)); overflow: hidden; }
+    .tb-pasos__barra span { display: block; height: 100%; background: rgb(var(--ac-600)); }
+    .tb-pasos__ocultar { margin-left: auto; }
+    .tb-pasos ol { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 2px 18px; }
+    .tb-pasos li a, .tb-pasos li span { display: flex; align-items: center; gap: 10px; padding: 6px 4px; border-radius: 8px; font-size: var(--t-14); color: rgb(var(--g-900)); text-decoration: none; }
+    .tb-pasos li a:hover { background: rgb(var(--g-50)); }
+    .tb-pasos i { width: 20px; height: 20px; border-radius: 50%; border: 1.5px solid rgb(var(--g-300)); flex: none; display: grid; place-items: center; font-style: normal; font-size: 12px; }
+    .tb-pasos .tb-paso--hecho i { background: rgb(var(--ok-600)); border-color: rgb(var(--ok-600)); color: rgb(var(--g-0)); }
+    .tb-pasos .tb-paso--hecho a, .tb-pasos .tb-paso--hecho span { color: rgb(var(--g-500)); text-decoration: line-through; }
+    .tb-pasos small { color: rgb(var(--g-500)); }
+</style>
+
+<script src="/assets/js/nucleo.js?v=202611120809"></script>
+<script src="/assets/js/barra.js?v=202611120809"></script>
+<script src="/assets/js/comun/tabla.js?v=202611120809"></script>
+<script src="/assets/js/inicio.js?v=202611120809"></script>
+</body>
+</html>

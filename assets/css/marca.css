@@ -1,0 +1,12 @@
+/* marca.css — El logo de Fiscontable en línea (SVG) y la entrada de la pastilla «app»: da una vuelta y cae en su lugar.
+   Una sola vez al abrir la página, y nada si la persona pidió menos movimiento en su sistema. */
+.fc-logo { display: block; overflow: visible; }
+.fc-logo__app { transform-box: fill-box; transform-origin: 50% 50%; }
+@media (prefers-reduced-motion: no-preference) {
+    .fc-logo--entra .fc-logo__app { animation: fc-app-cae 1.05s cubic-bezier(.3, 1.45, .55, 1) .3s both; }
+}
+@keyframes fc-app-cae {
+    0%   { opacity: 0; transform: translate(10px, -58px) rotate(-380deg) scale(.7); }
+    35%  { opacity: 1; }
+    100% { opacity: 1; transform: translate(0, 0) rotate(0deg) scale(1); }
+}

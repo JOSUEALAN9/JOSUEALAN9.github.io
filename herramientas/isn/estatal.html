@@ -4,15 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Impuestos estatales · Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611111800">
-    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611111800">
-    <link rel="stylesheet" href="/herramientas/isn/isn.css?v=202611120701">
-    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611111800">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611120809">
+    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611120809">
+    <link rel="stylesheet" href="/herramientas/isn/isn.css?v=202611120809">
+    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611120809">
 </head>
 <body class="bg-slate-50">
 <div id="app-header" data-modulo="isn" data-titulo="Impuestos estatales" data-migas="Herramientas|/herramientas/"></div>
-<script src="/assets/js/nucleo.js?v=202611111800"></script>
-<script src="/assets/js/barra.js?v=202611120706"></script>
+<script src="/assets/js/nucleo.js?v=202611120809"></script>
+<script src="/assets/js/barra.js?v=202611120809"></script>
 
 <main class="xml-pagina">
     <nav class="est-impuestos" aria-label="Impuesto">
@@ -79,7 +79,7 @@
             <p class="mod-acciones__grupo">Cargar</p>
             <button type="button" id="btn-excel" class="mod-accion"><b>▦</b>Cargar Excel</button>
             <button type="button" id="btn-plantilla" class="mod-accion" title="De esta empresa, con lo que ya capturaste del mes que elijas"><b>⇩</b>Plantilla de Excel</button>
-            <button type="button" id="btn-acuses" class="mod-accion" title="Acuses de hospedaje, informativa, profesiones o alcohol: cada uno se reconoce solo"><b>📄</b>Leer acuses</button>
+            <button type="button" id="btn-acuses" class="mod-accion" title="Acuses de hospedaje, informativa, profesiones o alcohol: cada uno se reconoce automáticamente"><b>📄</b>Leer acuses</button>
             <button type="button" id="btn-descargar" class="mod-accion" title="Baja de Tributanet los acuses de los meses que elijas"><b>⇣</b>Descargar del portal</button>
             <p class="mod-acciones__grupo">Reportes</p>
             <button type="button" id="btn-exportar" class="mod-accion"><b>▤</b>Exportar Excel</button>
@@ -219,10 +219,10 @@
             <label class="isn-campo">Año<select id="d-anio"></select></label>
             <label class="isn-campo solo-inf" hidden>Establecimiento<select id="d-est"></select></label>
         </div>
-        <p class="isn-nota">Meses (los que ya tienes salen con ✓ y no se vuelven a bajar):</p>
+        <p class="isn-nota">Meses (los que ya tienes salen con ✓ y no se vuelven a descargar):</p>
         <div id="d-meses" class="isn-meses"></div>
         <label class="isn-check solo-pago"><input type="checkbox" id="d-ceros"> También el de pago en ceros (declaraciones en $0)</label>
-        <label class="isn-check"><input type="checkbox" id="d-forzar"> Volver a bajar aunque ya lo tenga</label>
+        <label class="isn-check"><input type="checkbox" id="d-forzar"> Volver a descargar aunque ya lo tenga</label>
         <p id="d-error" class="isn-error" hidden></p>
         <div class="isn-botones">
             <span style="flex:1"></span>
@@ -258,9 +258,9 @@
     <ol id="avance-filas" class="isn-avance__filas"></ol>
 </div>
 
-<script src="/herramientas/isn/obligaciones.js?v=202611111800"></script>
-<script src="/herramientas/isn/giro.js?v=202611120701"></script>
-<script src="/herramientas/isn/acuses-bloque.js?v=202611120702"></script>
-<script src="/herramientas/isn/estatal.js?v=202611120702"></script>
+<script src="/herramientas/isn/obligaciones.js?v=202611120809"></script>
+<script src="/herramientas/isn/acuses-bloque.js?v=202611120809"></script>
+<script src="/herramientas/isn/giro.js?v=202611120809"></script>
+<script src="/herramientas/isn/estatal.js?v=202611120809"></script>
 </body>
 </html>

@@ -66,7 +66,7 @@
     }
 
     async function activar(o, boton) {
-        if (!confirm("¿Activar la obligación de " + NOMBRES[o.imp] + " para " + (o.nombre || o.rfc) + "?\n\nDesde ahora aparecerá en Masivo y en su ficha de cliente.")) return;
+        if (!(await Fiscontable.preguntar("¿Activar la obligación de " + NOMBRES[o.imp] + " para " + (o.nombre || o.rfc) + "?\n\nDesde ahora aparecerá en Masivo y en su ficha de cliente."))) return;
         boton.disabled = true;
         try {
             var r = o.imp === "isn"
