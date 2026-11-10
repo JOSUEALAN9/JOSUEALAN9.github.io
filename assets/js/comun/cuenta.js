@@ -60,7 +60,7 @@
         if (window.QRCode) return Promise.resolve(window.QRCode);
         if (!qrListo) qrListo = new Promise(function (ok, mal) {
             var s = document.createElement("script");
-            s.src = "https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js";
+            s.src = "/assets/js/terceros/qrcode.min.js";      // copia local: la web no carga código de otros sitios
             s.onload = function () { ok(window.QRCode); };
             s.onerror = function () { qrListo = null; mal(new Error("sin QR")); };
             document.head.appendChild(s);
