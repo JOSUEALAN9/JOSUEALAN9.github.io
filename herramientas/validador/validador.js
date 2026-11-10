@@ -68,7 +68,10 @@
         alClic: function (f, lista) {
             if (E.origen === "empresa" && E.empresa) Fiscontable.verCfdi(E.empresa.rfc, f.uuid, lista.map(function (x) { return x.uuid; }));
         },
-        alSeleccionar: function (sel) { $("btnValidar").innerHTML = "<b>✓</b>" + (sel.size ? "Validar " + sel.size + " seleccionados" : "Validar en el SAT"); }
+        alSeleccionar: function (sel) {
+            var b = $("btnValidar");          // si la página quedó en «sin acceso» o sin servidor, el botón ya no existe
+            if (b) b.innerHTML = "<b>✓</b>" + (sel.size ? "Validar " + sel.size + " seleccionados" : "Validar en el SAT");
+        }
     });
 
     function pintar() {
