@@ -36,7 +36,8 @@
         balanza: "M12 3v18M5 7h14M5 7l-3 7a4 4 0 006 0zM19 7l-3 7a4 4 0 006 0zM8 21h8",
         modulos: "M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z",
         campana: "M15 17h5l-1.4-1.4A2 2 0 0118 14.2V11a6 6 0 00-4-5.7V5a2 2 0 10-4 0v.3A6 6 0 006 11v3.2a2 2 0 01-.6 1.4L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9",
-        reloj: "M12 7v5l3 2M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+        reloj: "M12 7v5l3 2M21 12a9 9 0 11-18 0 9 9 0 0118 0z",
+        equipo: "M17 20h5v-2a3 3 0 00-5.4-1.8M17 20H7m10 0v-2c0-.7-.1-1.3-.4-1.8M7 20H2v-2a3 3 0 015.4-1.8M7 20v-2c0-.7.1-1.3.4-1.8m0 0a5 5 0 019.2 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"
     };
     function ico(d) { return '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="' + d + '"/></svg>'; }
 
@@ -50,6 +51,9 @@
           palabras: "avisos correo notificaciones campana actividad email", pintar: pintarAvisos },
         { id: "programaciones", grupo: "Tu cuenta", titulo: "Programaciones", ico: ICO.reloj, desc: "Todo lo que se hace solo: qué, de qué empresa, cada cuánto y cuándo toca.",
           palabras: "programar programaciones automático madrugada constancia opinión declaraciones xml buzón validación listas", pintar: pintarProgramaciones },
+        { id: "despacho", grupo: "Tu cuenta", titulo: "Mi despacho", ico: ICO.equipo, solo_despacho: true,
+          desc: "Tu equipo, sus permisos, las solicitudes y quién hizo qué.", palabras: "despacho equipo miembros permisos titular solicitudes bitácora espacio invitar",
+          pintar: function (c) { enlaceA(c, "Mi despacho", "El equipo, sus permisos, las solicitudes para compartir empresas y la bitácora.", "/despacho/", "Abrir Mi despacho"); } },
         { id: "agente", grupo: "Tu cuenta", titulo: "PC del contador", ico: ICO.pc, desc: "Conectar esta PC para que haga los trámites de tu cuenta.", palabras: "agente pc windows conectar",
           pintar: function (c) { enlaceA(c, "PC del contador", "Conecta tu computadora con Windows para que los trámites salgan desde ahí.", "/agente/", "Abrir PC del contador"); } },
         { id: "facturacion", grupo: "Módulos", titulo: "Facturar", ico: ICO.factura, modulo: "facturacion",
@@ -75,6 +79,7 @@
         var mods = (perfil && perfil.modulos_permitidos) || [];
         return SECCIONES.filter(function (s) {
             if (s.solo_admin) return perfil && perfil.rol === "admin";
+            if (s.solo_despacho) return !!(perfil && perfil.despacho && perfil.despacho.id);
             return !s.modulo || mods.indexOf(s.modulo) !== -1;
         });
     }
@@ -181,7 +186,7 @@
         c.innerHTML = '<div class="cf-tarjeta"><div class="cf-campos">' +
             '<label class="cf-campo"><span>Nombre</span><input id="cf-nombre" maxlength="120" value="' + esc(perfil.nombre || "") + '"></label>' +
             '<label class="cf-campo"><span>Teléfono</span><input id="cf-telefono" inputmode="tel" maxlength="20" value="' + esc(perfil.telefono || "") + '"></label>' +
-            '<label class="cf-campo"><span>Correo <i>(con el que entras; no se cambia aquí)</i></span><input value="' + esc(perfil.correo || "") + '" disabled></label></div>' +
+            '<label class="cf-campo"><span>Correo <i>(con el que entras; no se cambia aquí)</i></span><input value="' + esc(perfil.persona || perfil.correo || "") + '" disabled></label></div>' +
             '<div class="cf-acciones"><button type="button" class="cf-btn cf-btn--principal" id="cf-guardar-perfil">Guardar</button><span class="cf-msj"></span></div></div>';
         c.insertBefore(cajaFoto, c.firstChild); cajaFoto.style.marginBottom = "12px"; pintarFoto(cajaFoto);
         $("cf-guardar-perfil").addEventListener("click", async function () {
@@ -312,7 +317,7 @@
                     '<p class="cf-plan__precio"><b>' + precio(p.precio) + "</b> al mes</p>" +
                     '<p class="cf-plan__anual">o ' + precio(p.precio_anual) + " al año" + (cat.meses_gratis_anual ? " (" + cat.meses_gratis_anual + " meses gratis)" : "") + "</p>" +
                     "<ul><li><b>" + p.empresas + "</b> empresas (RFC)</li><li><b>" + Number(p.timbres).toLocaleString("es-MX") + "</b> timbres al mes</li></ul>" +
-                    (actual ? "" : '<div class="cf-plan__acciones">' + quiero("Hola, me interesa el plan " + p.nombre + " de Fiscontable (" + (perfil.correo || "") + ").") + "</div>") + "</div>";
+                    (actual ? "" : '<div class="cf-plan__acciones">' + quiero("Hola, me interesa el plan " + p.nombre + " de Fiscontable (" + (perfil.persona || perfil.correo || "") + ").") + "</div>") + "</div>";
             }).join("") + "</div>";
             if ((cat.incluye || []).length) html += '<p class="cf-texto cf-plan-incluye"><b>Todos incluyen:</b> ' + cat.incluye.map(esc).join(" · ") + ".</p>";
             if ((cat.timbres || []).length) html += '<h3 class="cf-subtitulo">Timbres extra</h3><div class="cf-timbres">' + cat.timbres.map(function (t) {
