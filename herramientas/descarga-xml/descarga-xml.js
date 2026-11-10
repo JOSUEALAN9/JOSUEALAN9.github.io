@@ -821,7 +821,7 @@
 
     window.addEventListener("pagehide", detenerSondeo);
     // Al regresar con "Atrás", el navegador puede restaurar la página tal cual: el botón no debe quedar apagado
-    window.addEventListener("pageshow", function () { $("res-biblioteca").disabled = false; });
+    window.addEventListener("pageshow", function () { var b = $("res-biblioteca"); if (b) b.disabled = false; });
 
     /* ================================================================ inicio */
     (async function () {
