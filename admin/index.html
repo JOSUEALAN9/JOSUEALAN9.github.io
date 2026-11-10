@@ -4,16 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Administrar Usuarios | Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611111500">
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611111500">
-    <link rel="stylesheet" href="/admin/creditos-admin.css?v=202611111500">
-    <link rel="stylesheet" href="/admin/documentos-admin.css?v=202611111500">
+    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611111600">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611111600">
+    <link rel="stylesheet" href="/admin/creditos-admin.css?v=202611111600">
+    <link rel="stylesheet" href="/admin/documentos-admin.css?v=202611111600">
 </head>
 <body class="min-h-screen flex flex-col relative">
 
     <div id="app-header" data-modulo="admin" data-titulo="Administración" data-migas=""></div>
-<script src="/assets/js/nucleo.js?v=202611111500"></script>
-<script src="/assets/js/barra.js?v=202611111500"></script>
+<script src="/assets/js/nucleo.js?v=202611111600"></script>
+<script src="/assets/js/barra.js?v=202611111600"></script>
 
     <main class="flex-grow p-4 sm:p-6 w-full max-w-4xl mx-auto fc-principal">
         <style>
@@ -71,6 +71,7 @@
                 <button type="button" class="pestana" role="tab" data-pestana="creditos">Créditos <span class="text-amber-600 font-semibold" id="cuenta-creditos"></span></button>
                 <button type="button" class="pestana" role="tab" data-pestana="documentos">Documentos <span class="text-amber-600 font-semibold" id="cuenta-documentos"></span></button>
                 <button type="button" class="pestana" role="tab" data-pestana="despachos">Despachos <span class="text-slate-400 font-semibold" id="cuenta-despachos"></span></button>
+                <button type="button" class="pestana" role="tab" data-pestana="licencias">Licencias <span class="text-slate-400 font-semibold" id="cuenta-licencias"></span></button>
                 <button type="button" class="pestana" role="tab" data-pestana="sistema">Sistema <span class="text-amber-600 font-semibold" id="alerta-sistema"></span></button>
             </div>
 
@@ -254,6 +255,32 @@
                         </table>
                     </div>
                     <p id="dsa-vacio" class="hidden p-8 text-center text-sm text-slate-400">Todavía no hay despachos.</p>
+                </div>
+            </section>
+
+            <!-- ============ LICENCIAS (admin/licencias-admin.js) ============ -->
+            <section id="panel-licencias" role="tabpanel" hidden>
+                <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+                    <div class="fc-vista" role="tablist" aria-label="Filtrar licencias" id="lca-filtro">
+                        <button type="button" role="tab" data-estado="" aria-selected="true">Todas</button>
+                        <button type="button" role="tab" data-estado="disponible">Sin usar</button>
+                        <button type="button" role="tab" data-estado="activa">Activas</button>
+                        <button type="button" role="tab" data-estado="revocada">Canceladas</button>
+                    </div>
+                    <button type="button" class="ui-btn ui-btn--primario ui-btn--36" id="lca-emitir">+ Emitir licencias</button>
+                </div>
+                <p class="text-sm text-slate-500 mb-4 max-w-3xl">Cada clave es al azar, sirve una sola vez y queda ligada a la cuenta que la activa. Aquí solo se ven sus últimos 4 caracteres:
+                    la clave completa se muestra una sola vez, al emitirla. El cliente la activa en <b>fiscontable.app/activar</b> o en Configuración → Plan y créditos.</p>
+                <div class="bg-white rounded-xl card-elevated border border-gray-200 overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm min-w-[860px]">
+                            <thead class="bg-slate-50 text-left text-[11px] font-bold text-slate-500 uppercase tracking-wide">
+                                <tr><th class="p-4">Clave</th><th class="p-4">Tipo</th><th class="p-4">Duración</th><th class="p-4">Estado</th><th class="p-4">Cuenta</th><th class="p-4">Vence</th><th class="p-4">Nota</th><th class="p-4"></th></tr>
+                            </thead>
+                            <tbody id="lca-lista"></tbody>
+                        </table>
+                    </div>
+                    <p id="lca-vacio" class="hidden p-8 text-center text-sm text-slate-400">No hay licencias aquí.</p>
                 </div>
             </section>
 
@@ -515,6 +542,38 @@
             </div>
         </dialog>
 
+        <dialog id="lca-dlg" class="fc-modal fc-modal--chica" aria-labelledby="lca-dlg-titulo">
+            <div class="fc-modal__cabeza"><div><h2 id="lca-dlg-titulo">Emitir licencias</h2><p id="lca-dlg-sub">Las claves se muestran una sola vez.</p></div>
+                <button type="button" class="fc-modal__cerrar" data-lca-cerrar aria-label="Cerrar">×</button></div>
+            <form class="fc-modal__cuerpo" id="lca-forma" novalidate>
+                <fieldset class="ui-campo" style="border:0;padding:0;margin:0"><legend class="ui-etiqueta" style="margin-bottom:8px">Tipo</legend>
+                    <div class="flex flex-wrap gap-5"><label class="ui-check"><input type="radio" name="lca-tipo" value="individual" checked> Individual (una persona)</label>
+                        <label class="ui-check"><input type="radio" name="lca-tipo" value="despacho"> Despacho (equipo)</label></div></fieldset>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <label class="ui-campo"><span class="ui-etiqueta">Plan</span><select class="ui-select" id="lca-plan"></select></label>
+                    <label class="ui-campo"><span class="ui-etiqueta">Duración</span><select class="ui-select" id="lca-meses"></select></label>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <label class="ui-campo" id="lca-campo-asientos" hidden><span class="ui-etiqueta">Lugares (personas)</span><input class="ui-input" id="lca-asientos" type="number" min="1" max="200" value="6"></label>
+                    <label class="ui-campo" id="lca-campo-cantidad"><span class="ui-etiqueta">Cuántas claves</span><input class="ui-input" id="lca-cantidad" type="number" min="1" max="50" value="1"></label>
+                    <label class="ui-campo"><span class="ui-etiqueta">Caduca si no se activa <i>(opcional)</i></span>
+                        <select class="ui-select" id="lca-caduca"><option value="">Nunca</option><option value="30">En 30 días</option><option value="90">En 90 días</option></select></label>
+                </div>
+                <label class="ui-campo"><span class="ui-etiqueta">Nota <i>(para quién es)</i></span><input class="ui-input" id="lca-nota" maxlength="120" placeholder="Despacho Pérez · pagó anual"></label>
+                <div id="lca-resultado" hidden>
+                    <div class="ui-aviso ui-aviso--aviso" style="margin-bottom:12px">Guárdalas ahora: no se vuelven a mostrar completas.</div>
+                    <pre id="lca-claves" style="font-family:var(--fuente-mono);font-size:15px;letter-spacing:.04em;background:rgb(var(--g-50));border:1px solid var(--linea);border-radius:10px;padding:12px 14px;white-space:pre-wrap;user-select:all"></pre>
+                </div>
+                <p class="ui-ayuda ui-ayuda--error" id="lca-error" hidden></p>
+            </form>
+            <div class="fc-modal__pie">
+                <button type="button" class="ui-btn ui-btn--secundario ui-btn--36" id="lca-copiar" hidden>Copiar</button>
+                <button type="button" class="ui-btn ui-btn--secundario ui-btn--36" id="lca-bajar" hidden>Descargar .txt</button>
+                <button type="button" class="ui-btn ui-btn--secundario ui-btn--36" data-lca-cerrar id="lca-cancelar">Cancelar</button>
+                <button type="button" class="ui-btn ui-btn--primario ui-btn--36" id="lca-crear">Emitir</button>
+            </div>
+        </dialog>
+
         <dialog id="dlg-usuario" class="adm-dlg p-0 w-full">
             <form id="form-usuario" class="adm-dlg__form flex flex-col gap-5">
                 <div>
@@ -592,11 +651,12 @@
         </div>
     </div>
 
-<script src="/admin/admin.js?v=202611111500"></script>
-<script src="/admin/creditos-admin.js?v=202611111500"></script>
-<script src="/admin/planes-admin.js?v=202611111500"></script>
-<script src="/admin/documentos-admin.js?v=202611111500"></script>
-<script src="/admin/plazos-admin.js?v=202611111500"></script>
-<script src="/admin/despachos-admin.js?v=202611111500"></script>
+<script src="/admin/admin.js?v=202611111600"></script>
+<script src="/admin/creditos-admin.js?v=202611111600"></script>
+<script src="/admin/planes-admin.js?v=202611111600"></script>
+<script src="/admin/documentos-admin.js?v=202611111600"></script>
+<script src="/admin/plazos-admin.js?v=202611111600"></script>
+<script src="/admin/despachos-admin.js?v=202611111600"></script>
+<script src="/admin/licencias-admin.js?v=202611111600"></script>
 </body>
 </html>
