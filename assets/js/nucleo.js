@@ -14,10 +14,21 @@
 (function () {
     "use strict";
 
-    var VERSION = "202611110700";
+    var VERSION = "202611110800";
     // Ambiente de pruebas (pruebas.josuealan.com, solo para el dueño): habla con su propio servidor de pruebas
     var PRUEBAS = /^pruebas\./.test(location.hostname);
     var API = PRUEBAS ? "https://api-pruebas.josuealan.com" : "https://api.josuealan.com";
+
+    // Ícono de la pestaña (assets/marca, se genera con herramientas/agente/tienda/generar_logo.py del backend)
+    (function () {
+        if (document.querySelector('link[rel~="icon"]')) return;
+        [["icon", "/assets/marca/favicon.svg?v=" + VERSION, "image/svg+xml"], ["alternate icon", "/assets/marca/favicon.ico?v=" + VERSION, ""],
+         ["apple-touch-icon", "/assets/marca/apple-touch-icon.png?v=" + VERSION, ""]].forEach(function (x) {
+            var l = document.createElement("link");
+            l.rel = x[0]; l.href = x[1]; if (x[2]) l.type = x[2];
+            document.head.appendChild(l);
+        });
+    })();
 
     function escapar(valor) {
         return String(valor == null ? "" : valor)
