@@ -421,8 +421,7 @@
             if (E.modo === "portal" && E.acceso === "ciec") $("ciec").value = "";
             await cargarSolicitudes();
             Fiscontable.refrescarDescargas();
-            var ins = $("insignia");
-            ins.classList.remove("dm-insignia--pulso"); void ins.offsetWidth; ins.classList.add("dm-insignia--pulso");
+            irASolicitudes();                 // la solicitud nueva queda a la vista en la tabla de abajo
             if (E.modo === "portal") cargarSesion();
             toast(E.modo === "portal"
                 ? (conSesion ? "Buscando con la sesión abierta del portal…"
@@ -445,7 +444,6 @@
         $("seccion-solicitudes").hidden = false;
         $("seccion-solicitudes").scrollIntoView({ behavior: "smooth", block: "start" });
     }
-    $("btn-solicitudes").addEventListener("click", irASolicitudes);
 
     async function cargarSolicitudes() {
         if (!E.elegido) return;
@@ -556,8 +554,6 @@
                        captcha: "Falta el captcha", buscando: "Buscando", completado: "Lista", sin_datos: "Sin comprobantes", error: "Error", cancelado: "Detenida" };
     function pintarSolicitudes() {
         var activas = E.solicitudes.filter(function (s) { return ACTIVOS.indexOf(s.estado) >= 0; }).length;
-        $("insignia").hidden = !activas;
-        $("insignia").textContent = activas;
         $("cajon-sub").textContent = E.elegido ? (E.elegido.alias || E.elegido.rfc) + " · " + E.elegido.rfc : "";
         $("seccion-solicitudes").hidden = !E.elegido;
         tablaSolicitudes().ponerDatos(E.solicitudes.map(function (s) {
