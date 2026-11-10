@@ -2242,10 +2242,13 @@
     function pintarAmbiente(p) {
         var enPruebas = window.Fiscontable.PRUEBAS || (p && p.ambiente === "pruebas");
         document.documentElement.classList.toggle("fc-ambiente-pruebas", !!enPruebas);
-        if (!enPruebas || document.getElementById("fc-ambiente")) return;
+        // Dentro de un marco (Configuración muestra Administración en uno) el letrero ya lo pone la página de afuera
+        var enMarco = false;
+        try { enMarco = window.top !== window.self; } catch (e) { enMarco = true; }
+        if (!enPruebas || enMarco || document.getElementById("fc-ambiente")) return;
         var c = document.createElement("div");
         c.id = "fc-ambiente"; c.className = "fc-ambiente"; c.setAttribute("role", "status");
-        c.innerHTML = "<b>Ambiente de pruebas</b><span>Copia de tus datos · Facturar sin valor fiscal · sin trámites ante el SAT</span>" +
+        c.innerHTML = "<b>Ambiente de pruebas</b><span>Copia de tus datos · Facturar sin valor fiscal · no se presenta ni se cancela nada</span>" +
             '<a href="https://fiscontable.app/">Ir a la web real</a>';
         document.body.appendChild(c);
         if (p && p.ambiente !== "pruebas") c.querySelector("span").textContent = "⚠ El servidor no está en modo pruebas: revisa FISCONTABLE_MODO_PRUEBAS";
