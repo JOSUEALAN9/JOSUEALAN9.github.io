@@ -112,7 +112,7 @@
         caja.innerHTML = '<button type="button" class="tb-cierre__cabeza" data-filtro="f:f_cierre" title="Ver las empresas a las que les falta algo">' +
             "<span><b>Cierre de " + esc(c0.mes) + "</b> · " + completas + " de " + con.length + " empresa" + (con.length === 1 ? "" : "s") + " completa" + (con.length === 1 ? "" : "s") + "</span>" +
             '<span class="tb-barrita tb-barrita--ancha"><i style="width:' + Math.round(100 * hechos / total) + '%"></i></span><small>' + Math.round(100 * hechos / total) + " %</small></button>" +
-            '<div class="tb-cierre__pasos">' + pasos + "</div>";
+            '<div class="tb-cierre__pasos">' + pasos + '<a class="tb-cierre__paso tb-cierre__paso--ver" href="/herramientas/cierre/"><span>Ver avance por cliente</span><b>→</b></a></div>';
     }
 
     function filas() {
