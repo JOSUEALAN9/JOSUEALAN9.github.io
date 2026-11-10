@@ -1,0 +1,35 @@
+/* publico.css — Páginas públicas sin inicio de sesión (Aviso de privacidad, Ayuda del agente).
+   Usan los tokens de common.css; no cargan la barra ni piden la cuenta. */
+.pub-cabeza { background: rgb(var(--g-0)); border-bottom: 1px solid var(--linea); }
+.pub-cabeza__dentro { max-width: 860px; margin: 0 auto; padding: 14px 16px; display: flex; align-items: center; gap: 10px; }
+.pub-logo { display: inline-flex; align-items: center; gap: 10px; color: var(--texto); text-decoration: none; font-weight: 700; font-size: var(--t-16); }
+.pub-logo i { width: 30px; height: 30px; border-radius: 999px; background: var(--marca); color: #fff; display: grid; place-items: center; font-style: normal; font-weight: 800; }
+.pub-cabeza nav { margin-left: auto; display: flex; gap: 16px; font-size: var(--t-13); }
+.pub-cabeza nav a { color: var(--texto-tenue); text-decoration: none; }
+.pub-cabeza nav a:hover, .pub-cabeza nav a[aria-current="page"] { color: var(--acento); }
+.pub { max-width: 860px; margin: 0 auto; padding: 28px 16px 56px; line-height: 1.65; font-size: var(--t-14); color: rgb(var(--g-800)); }
+.pub h1 { font-size: var(--t-32); line-height: 1.2; font-weight: 800; color: var(--texto); margin: 0 0 6px; letter-spacing: -.01em; }
+.pub .pub-sub { color: var(--texto-tenue); margin: 0 0 24px; }
+.pub h2 { font-size: var(--t-20); font-weight: 700; color: var(--texto); margin: 32px 0 8px; }
+.pub h3 { font-size: var(--t-16); font-weight: 700; color: var(--texto); margin: 20px 0 6px; }
+.pub p { margin: 0 0 10px; }
+.pub ul, .pub ol { margin: 0 0 12px; padding-left: 22px; }
+.pub ul { list-style: disc; }
+.pub ol { list-style: decimal; }
+.pub li { margin: 3px 0; }
+.pub a { color: var(--acento); }
+.pub code { font-size: .92em; background: rgb(var(--g-100)); padding: 1px 5px; border-radius: 4px; }
+.pub-indice { background: rgb(var(--g-0)); border: 1px solid var(--linea); border-radius: var(--r-tarjeta); padding: 14px 18px; margin: 0 0 8px; }
+.pub-indice ol { margin: 0; columns: 2; column-gap: 28px; }
+.pub-indice li { margin: 0 0 6px; break-inside: avoid; }
+@media (max-width: 600px) { .pub-indice ol { columns: 1; } .pub h1 { font-size: var(--t-24); } }
+.pub-caja { background: rgb(var(--g-0)); border: 1px solid var(--linea); border-radius: var(--r-tarjeta); padding: 14px 18px; margin: 12px 0; }
+.pub-caja--ok { background: rgb(var(--ok-50)); border-color: rgb(var(--ok-200)); }
+.pub details { background: rgb(var(--g-0)); border: 1px solid var(--linea); border-radius: var(--r-tarjeta); padding: 10px 16px; margin: 8px 0; }
+.pub summary { cursor: pointer; font-weight: 600; color: var(--texto); }
+.pub details[open] summary { margin-bottom: 6px; }
+.pub table { border-collapse: collapse; width: 100%; margin: 8px 0 14px; font-size: var(--t-13); }
+.pub th, .pub td { text-align: left; border-bottom: 1px solid var(--linea); padding: 7px 8px; vertical-align: top; }
+.pub th { color: var(--texto); font-weight: 600; background: rgb(var(--g-100)); }
+.pub-tabla { overflow-x: auto; }
+.pub-pie { border-top: 1px solid var(--linea); color: var(--texto-tenue); font-size: var(--t-12); padding: 18px 16px 28px; text-align: center; }
