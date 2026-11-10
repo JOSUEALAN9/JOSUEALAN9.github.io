@@ -109,8 +109,19 @@
         try { E.datos = await api("/api/admin/laboratorio"); }
         catch (e) { $("lb").hidden = true; $("lb-aviso").hidden = false; $("lb-aviso").innerHTML = "<b>No se pudo abrir el laboratorio</b><span>" + esc(e.message) + "</span>"; return; }
         $("lb").hidden = false;
-        if (!soloLista) pintarForma();
+        if (!soloLista) { pintarForma(); pintarTiempos(); }
         pintarLista();
+    }
+    async function pintarTiempos() {
+        var caja = $("lb-tiempos"); if (!caja) return;
+        try {
+            var t = await api("/api/admin/sat-tiempos?dias=7");
+            var seg = function (ms) { return ms >= 1000 ? (ms / 1000).toFixed(1) + " s" : ms + " ms"; };
+            caja.innerHTML = t.operaciones.length ? '<table class="lb-tiempos"><thead><tr><th>Petición</th><th>Veces</th><th>Fallas</th><th>Normal</th><th>Lenta (95 %)</th><th>La peor</th></tr></thead><tbody>' +
+                t.operaciones.map(function (o) {
+                    return "<tr><td>" + esc(o.operacion) + "</td><td>" + o.veces + "</td><td>" + o.fallas + "</td><td>" + seg(o.mediana_ms) + "</td><td>" + seg(o.p95_ms) + "</td><td>" + seg(o.max_ms) + "</td></tr>";
+                }).join("") + "</tbody></table>" : '<small style="font-size:var(--t-12);color:rgb(var(--g-500))">Todavía no hay mediciones: aparecen con la primera descarga masiva.</small>';
+        } catch (e) { caja.innerHTML = '<small style="font-size:var(--t-12);color:rgb(var(--er-600))">' + esc(e.message) + "</small>"; }
     }
 
     $("lb-receta").addEventListener("change", cambioReceta);

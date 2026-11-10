@@ -580,7 +580,7 @@
                 Fiscontable.refrescarDescargas();
                 return;
             } else if (accion === "quitar") {
-                if (!confirm("¿Quitar este lote? Ya no se podrá reanudar.")) return;
+                if (!(await Fiscontable.preguntar("¿Quitar este lote? Ya no se podrá reanudar."))) return;
                 await fetch(API + "/api/lotes/" + id + "/descartar", { method: "DELETE", credentials: "include" }).catch(function () {});
                 await fetch(API + "/api/procesos/lote/" + id, { method: "DELETE", credentials: "include" });
                 await mostrarCortados();

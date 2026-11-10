@@ -23,7 +23,7 @@
     var GENERICOS = { XAXX010101000: 1, XEXX010101000: 1 };
     var LIMITE_LOTE = 40 * 1024 * 1024, LIMITE_ARCHIVOS = 400;
 
-    function avisar(t) { if (Fiscontable.aviso) Fiscontable.aviso(t); else alert(t); }
+    function avisar(t) { if (Fiscontable.aviso) Fiscontable.aviso(t); else Fiscontable.avisar(t); }
 
     function crear(o) {
         var API = Fiscontable.API;

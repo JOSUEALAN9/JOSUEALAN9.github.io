@@ -115,8 +115,8 @@
             var b = ev.target.closest("[data-acc]"); if (!b) return;
             var x = E.lista.filter(function (p) { return p.id === b.dataset.id; })[0]; if (!x) return;
             if (b.dataset.acc === "copiar") { try { await navigator.clipboard.writeText(x.url); b.textContent = "✓ Copiado"; } catch (e) { prompt("Copia el enlace:", x.url); } setTimeout(function () { b.textContent = "Copiar"; }, 1800); }
-            if (b.dataset.acc === "revocar" && confirm("¿Revocar «" + x.titulo + "»? El enlace deja de funcionar al instante.")) {
-                try { await api("/api/paquetes/" + x.id, { method: "DELETE" }); cargarLista(); } catch (e) { alert(e.message); }
+            if (b.dataset.acc === "revocar" && (await Fiscontable.preguntar("¿Revocar «" + x.titulo + "»? El enlace deja de funcionar al instante."))) {
+                try { await api("/api/paquetes/" + x.id, { method: "DELETE" }); cargarLista(); } catch (e) { Fiscontable.avisar(e.message); }
             }
         });
         return d;

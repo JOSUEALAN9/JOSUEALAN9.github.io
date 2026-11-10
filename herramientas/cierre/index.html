@@ -4,9 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cierre del mes · Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611120300">
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611120300">
-    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611120300">
+    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611120400">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611120400">
+    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611120400">
     <style>
         .ci-cabeza { display: flex; flex-wrap: wrap; gap: var(--e-3); align-items: flex-end; margin-bottom: var(--e-4); }
         .ci-cabeza h1 { margin: 0; }
@@ -27,6 +27,10 @@
         .ci-barrita { display: inline-block; width: 44px; height: 6px; border-radius: 999px; background: rgb(var(--g-100)); overflow: hidden; vertical-align: middle; margin-right: 6px; }
         .ci-barrita i { display: block; height: 100%; border-radius: inherit; background: rgb(var(--av-600)); }
         .ci-barrita--ok i { background: rgb(var(--ok-600)); } .ci-barrita--error i { background: rgb(var(--er-600)); }
+        .ci-espera { margin-left: 6px; width: 24px; height: 24px; display: inline-grid; place-items: center; vertical-align: middle; border: 1px solid transparent; border-radius: 7px; background: none; color: rgb(var(--g-400)); cursor: pointer; }
+        .ci-espera:hover { background: rgb(var(--g-100)); color: rgb(var(--g-700)); }
+        .ci-espera--si { color: rgb(var(--av-600)); background: rgb(var(--av-50)); border-color: rgb(var(--av-200)); }
+        .ci-espera:disabled { opacity: .5; cursor: default; }
         /* El estado de cada paso: un cuadrito con ícono (verde listo, gris pendiente, ámbar revisar, rojo falta o por atender) */
         .ci-e { display: inline-grid; place-items: center; width: 26px; height: 26px; border-radius: 8px; font-size: 12px; font-weight: 700; font-style: normal; text-decoration: none;
             font-variant-numeric: tabular-nums; border: 1px solid transparent; transition: transform .12s ease, border-color .12s ease; }
@@ -51,8 +55,8 @@
 </head>
 <body class="min-h-screen flex flex-col">
 <div id="app-header" data-modulo="cierre" data-titulo="Cierre del mes" data-migas="Herramientas|/herramientas/"></div>
-<script src="/assets/js/nucleo.js?v=202611120300"></script>
-<script src="/assets/js/barra.js?v=202611120300"></script>
+<script src="/assets/js/nucleo.js?v=202611120400"></script>
+<script src="/assets/js/barra.js?v=202611120400"></script>
 
 <main class="flex-grow mod-pagina" style="max-width:none">
     <div class="ci-cabeza mod-cabeza">
@@ -78,7 +82,7 @@
     </div>
 </main>
 
-<script src="/assets/js/comun/tabla.js?v=202611120300"></script>
-<script src="/herramientas/cierre/cierre.js?v=202611120300"></script>
+<script src="/assets/js/comun/tabla.js?v=202611120400"></script>
+<script src="/herramientas/cierre/cierre.js?v=202611120400"></script>
 </body>
 </html>

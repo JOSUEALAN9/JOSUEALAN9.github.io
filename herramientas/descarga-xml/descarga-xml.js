@@ -235,7 +235,7 @@
     });
     $("ciec-otra").addEventListener("click", function () { E.ciecOtra = true; pintarAcceso(); $("ciec").focus(); });
     $("ciec-olvidar").addEventListener("click", async function () {
-        if (!E.elegido || !confirm("¿Olvidar la contraseña guardada de " + (E.elegido.alias || E.elegido.rfc) + "?")) return;
+        if (!E.elegido || !(await Fiscontable.preguntar("¿Olvidar la contraseña guardada de " + (E.elegido.alias || E.elegido.rfc) + "?"))) return;
         try {
             await api("/api/descarga-xml/ciec/" + encodeURIComponent(E.elegido.rfc), { method: "DELETE" });
             E.elegido.ciecGuardada = false;

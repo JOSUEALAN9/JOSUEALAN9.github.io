@@ -37,7 +37,7 @@
     /* ============================================================ utilidades */
     function guardar(k, v) { try { localStorage.setItem("conc:" + k, JSON.stringify(v)); } catch (e) { /* nada */ } }
     function leer(k) { try { return JSON.parse(localStorage.getItem("conc:" + k)); } catch (e) { return null; } }
-    function avisar(t) { if (Fiscontable.aviso) Fiscontable.aviso(t); else alert(t); }
+    function avisar(t) { if (Fiscontable.aviso) Fiscontable.aviso(t); else Fiscontable.avisar(t); }
     function dinero(v) { return v === null || v === undefined || v === "" ? "" : fmt.format(v); }
     function fechaMX(v) { var s = String(v || ""); return s.length >= 10 ? s.slice(8, 10) + "/" + s.slice(5, 7) + "/" + s.slice(0, 4) : s; }
     function textoLado(emitidos, recibidos) { return E.lado === "emitidos" ? emitidos : recibidos; }
@@ -248,7 +248,7 @@
         }
         if (b.dataset.borrar) {
             var rfc = b.dataset.borrar;
-            if (!confirm("¿Borrar ya todos los XML de " + nombreDe(rfc) + " (" + rfc + ")?\n\nNo está en tu directorio; no quedará registro.")) return;
+            if (!(await Fiscontable.preguntar("¿Borrar ya todos los XML de " + nombreDe(rfc) + " (" + rfc + ")?\n\nNo está en tu directorio; no quedará registro."))) return;
             try {
                 await enviar("/api/conciliacion/borrar-biblioteca", { rfc: rfc });
                 if (E.rfc === rfc) { E.rfc = null; E.otra = null; }
@@ -561,7 +561,7 @@
                 } }]);
             setTimeout(function () { var t = $("motivo-ajuste"); if (t) t.focus(); }, 50);
         } else if (accion === "quitar-ajuste") {
-            if (!confirm("¿Quitar el ajuste manual de esta factura? Volverá a su estado según sus pagos.")) return;
+            if (!(await Fiscontable.preguntar("¿Quitar el ajuste manual de esta factura? Volverá a su estado según sus pagos."))) return;
             try { await enviar("/api/conciliacion/ajuste/quitar", { rfc: E.rfc, uuid: f.uuid }); await cargarDatos(); } catch (e) { avisar(e.message); }
         }
     }

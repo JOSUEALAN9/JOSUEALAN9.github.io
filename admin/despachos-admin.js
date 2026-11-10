@@ -15,7 +15,7 @@
         if (!r.ok) throw new Error(await Fiscontable.leerError(r));
         return r.json();
     }
-    function avisar(tipo, texto) { if (typeof mostrarAlerta === "function") mostrarAlerta(tipo, texto); else alert(texto); }
+    function avisar(tipo, texto) { if (typeof mostrarAlerta === "function") mostrarAlerta(tipo, texto); else Fiscontable.avisar(texto); }
 
     async function cargar() {
         try { lista = (await api("/api/admin/despachos")).despachos; } catch (e) { avisar("error", e.message); return; }
@@ -78,7 +78,7 @@
     }
 
     async function activar(id, valor) {
-        if (valor === "0" && !confirm("¿Desactivar el despacho? Su equipo deja de ver sus empresas (nada se borra) y cada quien queda en su Mi espacio.")) return;
+        if (valor === "0" && !(await Fiscontable.preguntar("¿Desactivar el despacho? Su equipo deja de ver sus empresas (nada se borra) y cada quien queda en su Mi espacio."))) return;
         try { await api("/api/admin/despachos/" + id, "PUT", { activo: valor === "1" }); cargar(); } catch (e) { avisar("error", e.message); }
     }
 

@@ -236,8 +236,8 @@
             if (!b) return;
             if (b.dataset.ver) { abiertas[b.dataset.ver] = !abiertas[b.dataset.ver]; cargarLista(); }
             if (b.dataset.cancelar) {
-                if (!confirm("¿Cancelar esta programación? Lo que ya salió se queda.")) return;
-                try { await api("/api/programadas/" + b.dataset.cancelar + "/cancelar", { method: "POST" }); } catch (e) { alert(e.message); }
+                if (!(await Fiscontable.preguntar("¿Cancelar esta programación? Lo que ya salió se queda."))) return;
+                try { await api("/api/programadas/" + b.dataset.cancelar + "/cancelar", { method: "POST" }); } catch (e) { Fiscontable.avisar(e.message); }
                 cargarLista();
             }
             if (b.dataset.bajar) {
@@ -245,7 +245,7 @@
                     var r = await fetch(API + "/api/programadas/" + b.dataset.bajar + "/descargar", { credentials: "include" });
                     if (!r.ok) throw new Error(await Fiscontable.leerError(r));
                     Fiscontable.guardarArchivo(await r.blob(), "Programada_" + modulo + ".zip");
-                } catch (e) { alert(e.message); }
+                } catch (e) { Fiscontable.avisar(e.message); }
             }
         });
 

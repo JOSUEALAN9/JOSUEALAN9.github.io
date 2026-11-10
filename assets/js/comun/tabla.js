@@ -368,10 +368,10 @@
                 }
                 else if (accion === "pred" && v) { await o.guardar(v.nombre, !v.predeterminada, v.columnas); await recargar(); }
                 else if (accion === "borrar" && v) {
-                    if (!confirm("¿Borrar la vista «" + v.nombre + "»?")) return;
+                    if (!(await Fiscontable.preguntar("¿Borrar la vista «" + v.nombre + "»?"))) return;
                     await o.borrar(v); await recargar(); o.tabla.aplicarVista(null);
                 }
-            } catch (err) { Fiscontable.aviso ? Fiscontable.aviso(err.message) : alert(err.message); }
+            } catch (err) { Fiscontable.aviso ? Fiscontable.aviso(err.message) : Fiscontable.avisar(err.message); }
             pintar();
         });
         return {
@@ -556,7 +556,7 @@
                 if (filas.length) hojas.push({ hoja: String(v), columnas: cols, filas: filas });
             });
             Fiscontable.excel(typeof x.nombre === "function" ? x.nombre() : x.nombre, hojas)
-                .catch(function (err) { Fiscontable.toast ? Fiscontable.toast(err.message) : alert(err.message); });
+                .catch(function (err) { Fiscontable.toast ? Fiscontable.toast(err.message) : Fiscontable.avisar(err.message); });
         }
 
         return {

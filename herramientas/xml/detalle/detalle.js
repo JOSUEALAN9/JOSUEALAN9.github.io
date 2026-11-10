@@ -126,7 +126,7 @@
                 if (!resp.ok) throw new Error("No se pudo armar el PDF.");
                 var m = /filename="?([^";]+)"?/i.exec(resp.headers.get("Content-Disposition") || "");
                 Fiscontable.verPdf(await resp.blob(), { titulo: titulo, nombre: m ? m[1] : d.uuid + ".pdf" });
-            } catch (e) { alert(e.message); }
+            } catch (e) { Fiscontable.avisar(e.message); }
             b.disabled = false; b.textContent = "Ver PDF";
         });
     }
@@ -242,7 +242,7 @@
             b.textContent = "Validar de nuevo";
         } catch (e) {
             b.textContent = "Validar ante el SAT";
-            Fiscontable.aviso ? Fiscontable.aviso(e.message) : alert(e.message);
+            Fiscontable.aviso ? Fiscontable.aviso(e.message) : Fiscontable.avisar(e.message);
         }
         b.disabled = false;
     }
