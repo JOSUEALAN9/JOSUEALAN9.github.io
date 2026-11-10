@@ -271,17 +271,17 @@
         if ($("cf-seg-quitar")) $("cf-seg-quitar").addEventListener("click", async function () {
             var clave = prompt("Para quitar la verificación en dos pasos, escribe tu contraseña:");
             if (!clave) return;
-            try { await enviar("/api/mi-cuenta/2fa/quitar", "POST", { clave: clave }); pintarDeNuevo(); } catch (er) { alert(er.message); }
+            try { await enviar("/api/mi-cuenta/2fa/quitar", "POST", { clave: clave }); pintarDeNuevo(); } catch (er) { Fiscontable.avisar(er.message); }
         });
         caja.addEventListener("click", async function (e) {
             var q = e.target.closest("[data-quitar-equipo]");
             if (q) {
-                try { await api("/api/mi-cuenta/equipos/" + encodeURIComponent(q.dataset.quitarEquipo), { method: "DELETE" }); q.closest("li").remove(); } catch (er) { alert(er.message); }
+                try { await api("/api/mi-cuenta/equipos/" + encodeURIComponent(q.dataset.quitarEquipo), { method: "DELETE" }); q.closest("li").remove(); } catch (er) { Fiscontable.avisar(er.message); }
                 return;
             }
             var b = e.target.closest("[data-cerrar-sesion]");
             if (!b) return;
-            try { await api("/api/mi-cuenta/sesiones/" + encodeURIComponent(b.dataset.cerrarSesion), { method: "DELETE" }); b.closest("li").remove(); } catch (er) { alert(er.message); }
+            try { await api("/api/mi-cuenta/sesiones/" + encodeURIComponent(b.dataset.cerrarSesion), { method: "DELETE" }); b.closest("li").remove(); } catch (er) { Fiscontable.avisar(er.message); }
         });
         function pintarDeNuevo() { pintarSeguridad(c, caja); }
     }
@@ -457,6 +457,8 @@
                 Object.keys(p.frecuencias_resumen || {}).map(function (f) {
                     return '<button type="button" data-resumen="' + esc(f) + '" aria-pressed="' + ((p.resumen || "") === f) + '">' + esc(p.frecuencias_resumen[f]) + "</button>";
                 }).join("") + "</div>" +
+                (p.equipo_resumen > 1 ? '<label class="ui-check cf-check"><input type="checkbox" id="cf-av-resumen-copia"' + (p.resumen_copia ? " checked" : "") +
+                    "> Mandar copia a las " + p.equipo_resumen + " personas de mi despacho</label>" : "") +
                 '<div class="cf-acciones"><button type="button" class="cf-btn" id="cf-av-resumen-ya">Mándame uno ahora</button><span class="cf-msj"></span></div></div>';
             var guardado = p;                                   // lo último que quedó guardado (el resumen se guarda solo, sin tocar lo demás)
             var cajaResumen = $("cf-av-caja-resumen");
@@ -471,6 +473,15 @@
                     aviso(cajaResumen, true, b.dataset.resumen ? "✓ Listo: te llegará a " + guardado.destino + "." : "✓ Apagado: ya no te llegará.");
                 } catch (er) { aviso(cajaResumen, false, er.message); }
                 finally { botones.forEach(function (x) { x.disabled = false; }); }
+            });
+            if ($("cf-av-resumen-copia")) $("cf-av-resumen-copia").addEventListener("change", async function () {
+                var c2 = this; c2.disabled = true;
+                try {
+                    guardado = await enviar("/api/actividad/preferencias", "PUT",
+                        { correo: guardado.correo, destino: guardado.destino || null, dias_vence: guardado.dias_vence, resumen_copia: c2.checked });
+                    aviso(cajaResumen, true, c2.checked ? "✓ Tu equipo recibirá copia." : "✓ Solo te llegará a ti.");
+                } catch (er) { c2.checked = !c2.checked; aviso(cajaResumen, false, er.message); }
+                finally { c2.disabled = false; }
             });
             $("cf-av-resumen-ya").addEventListener("click", async function () {
                 var b = this; b.disabled = true; aviso(cajaResumen, true, "Armándolo…");

@@ -76,7 +76,7 @@
     function postJSON(ruta, cuerpo) {
         return api(ruta, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(cuerpo) });
     }
-    function avisar(texto, tipo) { Fiscontable.aviso ? Fiscontable.aviso(texto) : alert(texto); }
+    function avisar(texto, tipo) { Fiscontable.aviso ? Fiscontable.aviso(texto) : Fiscontable.avisar(texto); }
     function guardarLocal(clave, valor) { try { localStorage.setItem("xml:" + clave, JSON.stringify(valor)); } catch (e) { /* nada */ } }
     function leerLocal(clave) { try { return JSON.parse(localStorage.getItem("xml:" + clave)); } catch (e) { return null; } }
     E.pagosPor = leerLocal("pagosPor") === "pago" ? "pago" : "emision";
@@ -233,7 +233,7 @@
         }
         if (b.dataset.borrar) {
             var rfc = b.dataset.borrar;
-            if (!confirm("¿Borrar ya todos los XML de " + nombreDe(rfc) + " (" + rfc + ")?\n\nNo está en tu directorio; no quedará registro.")) return;
+            if (!(await Fiscontable.preguntar("¿Borrar ya todos los XML de " + nombreDe(rfc) + " (" + rfc + ")?\n\nNo está en tu directorio; no quedará registro."))) return;
             try {
                 await apiJSON("/api/xml/borrar-biblioteca", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ rfc: rfc }) });
                 if (E.rfc === rfc) { E.rfc = null; E.otra = null; }
@@ -531,7 +531,7 @@
         }
         else if (accion === "pred" && v) guardarVista(v.nombre, !v.predeterminada, v.columnas);
         else if (accion === "borrar" && v) {
-            if (!confirm("¿Borrar la vista «" + v.nombre + "»?")) return;
+            if (!(await Fiscontable.preguntar("¿Borrar la vista «" + v.nombre + "»?"))) return;
             try {
                 await api("/api/xml/vistas/" + v.id, { method: "DELETE" });
                 await cargarVistas();

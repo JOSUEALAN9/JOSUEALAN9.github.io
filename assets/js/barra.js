@@ -1840,6 +1840,24 @@
         }, espera);
     }
 
+    /* Lo mismo que confirmar(), pero con un solo texto (como el confirm() del navegador): la primera frase va de
+       título y el resto de explicación; si habla de borrar, cancelar o parecido, el botón sale en rojo.
+       Uso: if (!(await Fiscontable.preguntar("¿Borrar X? No se puede deshacer."))) return; */
+    function preguntar(texto, o) {
+        texto = String(texto == null ? "" : texto).trim();
+        var m = /[?.:](\s|$)|\n/.exec(texto), corte = m ? m.index + (texto[m.index] === "\n" ? 0 : 1) : -1;
+        var titulo = corte > 0 && corte <= 120 ? texto.slice(0, corte).trim() : (texto.length <= 120 ? texto : "Confirma para continuar");
+        var resto = titulo === texto ? "" : (corte > 0 && corte <= 120 ? texto.slice(corte).trim() : texto);
+        return confirmar(Object.assign({ titulo: titulo, texto: resto, si: "Aceptar",
+            peligro: /borra|elimin|cancel|revoc|desconect|rechaz|desactiv|quitar|olvidar|detener|presentar|timbrar/i.test(texto) }, o || {}));
+    }
+
+    /* Un aviso que hay que leer (en lugar del alert() del navegador). No detiene el código: solo muestra y espera el clic. */
+    function avisar(texto) {
+        texto = String(texto == null ? "" : texto).trim();
+        return confirmar({ titulo: texto.length <= 90 ? texto : "Aviso", texto: texto.length <= 90 ? "" : texto, si: "Entendido", solo: true });
+    }
+
     /* Confirmación común (en lugar del confirm() del navegador): título, texto, botón y, para lo más delicado,
        escribir algo (el RFC) antes de poder aceptar. Devuelve una promesa con true o false. */
     function confirmar(o) {
@@ -1855,6 +1873,7 @@
             var txt = dlg.querySelector(".fc-confirmar__texto");
             if (o.texto) txt.textContent = o.texto; else txt.remove();
             dlg.querySelector('[data-r="no"]').textContent = o.no || "Cancelar";
+            if (o.solo) dlg.querySelector('[data-r="no"]').remove();          // un aviso: solo «Entendido»
             var si = dlg.querySelector('[data-r="si"]');
             si.textContent = o.si || "Aceptar";
             var campo = dlg.querySelector(".fc-confirmar__escribir input");
@@ -2795,7 +2814,7 @@
                 b.type = "button"; b.textContent = x[0];
                 b.className = "fc-letrero__boton" + (x[1] === "aceptar" ? " fc-letrero__boton--principal" : "");
                 b.addEventListener("click", async function () {
-                    if (x[1] === "rechazar" && !confirm("¿Rechazar la invitación al despacho «" + inv.despacho + "»?")) return;
+                    if (x[1] === "rechazar" && !(await Fiscontable.preguntar("¿Rechazar la invitación al despacho «" + inv.despacho + "»?"))) return;
                     b.disabled = true;
                     try {
                         var r = await fetch(API + "/api/despacho/invitacion/" + x[1], { method: "POST", credentials: "include" });
@@ -3195,6 +3214,8 @@
         refrescarDescargas: sondear,
         // Mis descargas (página) usa la misma tarjeta y las mismas acciones que el panel de la barra
         confirmar: confirmar,
+        preguntar: preguntar,
+        avisar: avisar,
         descargas: { tarjeta: tarjeta, accion: accionPanel, sinProgramadas: sinProgramadas, notaProgramadas: notaProgramadas,
                      nombre: nombreProceso, empresa: empresaProceso, titulo: tituloProceso },
         abrirModalPerfil: abrirModalPerfil,

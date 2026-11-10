@@ -234,7 +234,7 @@ function pintarInicioPropio() {
             : "Antes de activarlo: 1) pon tu contraseña y la verificación en dos pasos en Configuración → Seguridad; 2) en Cloudflare quita api.fiscontable.app de la aplicación «Fiscal» (deja josuealan.com como está). Después, manda el enlace de acceso a cada usuario."}</p>`;
     $("adm-propio-btn").addEventListener("click", async () => {
         const activar = !cuentasEstado.propio;
-        if (!confirm(activar ? "¿Activar el inicio de sesión con correo y contraseña?\n\nLa pantalla de inicio de sesión pedirá contraseña desde ahora." : "¿Volver a iniciar sesión con Cloudflare (código al correo)?")) return;
+        if (!(await Fiscontable.preguntar(activar ? "¿Activar el inicio de sesión con correo y contraseña?\n\nLa pantalla de inicio de sesión pedirá contraseña desde ahora." : "¿Volver a iniciar sesión con Cloudflare (código al correo)?"))) return;
         try {
             const r = await api("/api/admin/login-propio", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ activo: activar }) });
             cuentasEstado.propio = r.propio;
@@ -263,12 +263,12 @@ async function accionAcceso(correo) {
             await Fiscontable.confirmar({ titulo: "Enlace enviado", texto: `Le mandamos el enlace a ${correo} (vence en unas horas). Si no le llega, cópialo y mándaselo tú:\n\n${r.enlace}`, si: "Copiar enlace", no: "Cerrar" })
                 .then(si => { if (si) navigator.clipboard.writeText(r.enlace); });
         } else if (opcion.trim() === "2") {
-            if (!confirm(`¿Darle una contraseña temporal a ${correo}? Se cierran sus sesiones abiertas.`)) return;
+            if (!(await Fiscontable.preguntar(`¿Darle una contraseña temporal a ${correo}? Se cierran sus sesiones abiertas.`))) return;
             const r = await api(`/api/admin/cuentas/${encodeURIComponent(correo)}/temporal`, { method: "POST" });
             await Fiscontable.confirmar({ titulo: "Contraseña temporal", texto: `${r.clave}\n\nDásela a ${correo} por un medio seguro. Al entrar le pedirá crear la suya. No se vuelve a mostrar.`, si: "Copiar", no: "Cerrar" })
                 .then(si => { if (si) navigator.clipboard.writeText(r.clave); });
         } else if (opcion.trim() === "3" && c.totp_activo) {
-            if (!confirm(`¿Quitarle la verificación en dos pasos a ${correo}? Asegúrate de que de verdad es esa persona.`)) return;
+            if (!(await Fiscontable.preguntar(`¿Quitarle la verificación en dos pasos a ${correo}? Asegúrate de que de verdad es esa persona.`))) return;
             await api(`/api/admin/cuentas/${encodeURIComponent(correo)}/quitar-2fa`, { method: "POST" });
             mostrarAlerta("success", `Listo: ${correo} entra solo con su contraseña; puede volver a activar los dos pasos en su perfil.`);
         } else return;
@@ -362,12 +362,12 @@ async function guardarUsuario(e) {
 }
 
 async function eliminarUsuario(correo) {
-    const confirmacion = confirm(
+    const confirmacion = (await Fiscontable.preguntar(
         `¿Quitar el acceso de ${correo}?\n\n` +
         `Se borra su rol, su nombre y su teléfono. Si vuelve a entrar, se le pedirán sus datos otra vez y entrará como Demo por ${DIAS_DEMO} días.\n\n` +
         `Sus clientes y documentos NO se borran: los recupera al volver a entrar.\n\n` +
         `Si solo quieres cambiarle el rol o la vigencia, cancela y usa el lápiz.`
-    );
+    ));
     if (!confirmacion) return;
     try {
         await api(`/api/usuarios/${encodeURIComponent(correo)}`, { method: "DELETE" });
@@ -615,7 +615,7 @@ async function guardarRol(rol) {
     const personalizados = usuariosCache.filter(u => u.rol === rol && u.personalizado).length;
     const aviso = `${actual.nombre}:\n- ${cambios.join("\n- ")}\n\nAfecta a ${actual.usuarios} ${actual.usuarios === 1 ? "usuario" : "usuarios"}` +
         (personalizados ? ` (a ${personalizados} con ajustes propios no les cambia lo personalizado)` : "") + ".";
-    if (!confirm(aviso)) return;
+    if (!(await Fiscontable.preguntar(aviso))) return;
 
     try {
         await api(`/api/admin/roles/${encodeURIComponent(rol)}`, {
@@ -629,7 +629,7 @@ async function guardarRol(rol) {
 
 async function restaurarRol(rol) {
     const r = rolesCache.roles.find(x => x.rol === rol);
-    if (!confirm(`¿Regresar ${r.nombre} a sus valores de fábrica?\n\n${nombresModulos(r.fabrica.modulos)}\n${nombreLimite(r.fabrica.limite)}`)) return;
+    if (!(await Fiscontable.preguntar(`¿Regresar ${r.nombre} a sus valores de fábrica?\n\n${nombresModulos(r.fabrica.modulos)}\n${nombreLimite(r.fabrica.limite)}`))) return;
     try {
         await api(`/api/admin/roles/${encodeURIComponent(rol)}/restaurar`, { method: "POST" });
         mostrarAlerta("success", `${r.nombre} regresó a sus valores de fábrica.`);
@@ -760,7 +760,7 @@ function renderizarActividad() {
 }
 
 async function cancelarProcesoAdmin(clase, id, boton) {
-    if (!confirm("¿Detener este proceso? Se conservará lo que ya se haya generado.")) return;
+    if (!(await Fiscontable.preguntar("¿Detener este proceso? Se conservará lo que ya se haya generado."))) return;
     boton.disabled = true;
     boton.textContent = "Deteniendo…";
     try {
@@ -1003,7 +1003,7 @@ async function guardarMaxSesiones(boton) {
 }
 
 async function cerrarSesionWeb(boton) {
-    if (!confirm(`¿Cerrar esta sesión de ${boton.dataset.correo}? Ya no podrá usar la web desde ahí hasta que cierre sesión y vuelva a entrar.`)) return;
+    if (!(await Fiscontable.preguntar(`¿Cerrar esta sesión de ${boton.dataset.correo}? Ya no podrá usar la web desde ahí hasta que cierre sesión y vuelva a entrar.`))) return;
     try {
         await api(`/api/admin/sesiones/${boton.dataset.cerrarSesion}/cerrar`, { method: "POST" });
         sesionesWeb = await api("/api/admin/sesiones");
@@ -1109,7 +1109,7 @@ async function guardarMaxPcs(boton) {
 }
 
 async function quitarPc(boton) {
-    if (!confirm(`¿Desconectar "${boton.dataset.nombre}"? Dejará de hacer trámites hasta que su dueño la vuelva a vincular.`)) return;
+    if (!(await Fiscontable.preguntar(`¿Desconectar "${boton.dataset.nombre}"? Dejará de hacer trámites hasta que su dueño la vuelva a vincular.`))) return;
     try {
         await api(`/api/admin/agentes/${boton.dataset.quitarPc}`, { method: "DELETE" });
         pcsAgentes = await api("/api/admin/agentes");
@@ -1614,7 +1614,7 @@ async function guardarEfirmaSAT() {
 
 async function cambiarActivoSAT() {
     const activo = $("chk-sat-activo").checked;
-    if (!activo && !confirm("¿Pausar la revisión automática del SAT?\n\nSe quita el letrero y la madrugada deja de consultarla.")) {
+    if (!activo && !(await Fiscontable.preguntar("¿Pausar la revisión automática del SAT?\n\nSe quita el letrero y la madrugada deja de consultarla."))) {
         $("chk-sat-activo").checked = true; return;
     }
     try {
@@ -1661,7 +1661,7 @@ async function cargarListasAdmin() {
 }
 
 async function actualizarListas() {
-    if (!confirm("¿Descargar ahora todas las listas del SAT?\n\nTarda unos minutos; solo se reemplazan las que cambiaron.")) return;
+    if (!(await Fiscontable.preguntar("¿Descargar ahora todas las listas del SAT?\n\nTarda unos minutos; solo se reemplazan las que cambiaron."))) return;
     try {
         const r = await api("/api/listas-sat/actualizar", { method: "POST" });
         mostrarAlerta("success", r.mensaje);
@@ -1688,7 +1688,7 @@ async function actualizarTipoCambio(boton) {
 }
 
 async function respaldarAhora(boton) {
-    const completo = confirm("¿Copia COMPLETA (compara archivo por archivo, tarda más)?\n\nAceptar = completa · Cancelar = solo lo que cambió");
+    const completo = (await Fiscontable.preguntar("¿Copia COMPLETA (compara archivo por archivo, tarda más)?\n\nAceptar = completa · Cancelar = solo lo que cambió"));
     boton.disabled = true;
     boton.textContent = "Copiando…";
     try {
@@ -1744,7 +1744,7 @@ async function cambiarMantenimiento() {
     const pregunta = activo
         ? "¿Activar el modo mantenimiento?\n\nNadie más podrá iniciar descargas nuevas hasta que lo desactives. Lo que ya corre, termina."
         : "¿Desactivar el modo mantenimiento? Todos vuelven a poder iniciar descargas.";
-    if (!confirm(pregunta)) { $("chk-mantenimiento").checked = !activo; return; }
+    if (!(await Fiscontable.preguntar(pregunta))) { $("chk-mantenimiento").checked = !activo; return; }
     try {
         await api("/api/admin/sistema/mantenimiento", {
             method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ activo }),
@@ -1771,7 +1771,7 @@ async function publicarAviso() {
 }
 
 async function quitarAviso() {
-    if (!confirm("¿Quitar el aviso de todas las páginas?")) return;
+    if (!(await Fiscontable.preguntar("¿Quitar el aviso de todas las páginas?"))) return;
     try {
         await api("/api/admin/sistema/aviso", { method: "DELETE" });
         $("aviso-texto").value = ""; $("aviso-hasta").value = "";
@@ -1788,7 +1788,7 @@ async function reiniciarServidor() {
         ? `Hay ${e.corriendo.lotes} lote(s) y ${e.corriendo.trabajos} trabajo(s) en curso.\n\n` +
           "Los lotes quedarán como interrumpidos y se podrán reanudar con confirmación. Los trabajos sueltos en curso se pierden y habrá que pedirlos otra vez.\n\n¿Reiniciar de todos modos?"
         : "¿Reiniciar el servidor? Vuelve solo en unos segundos.";
-    if (!confirm(aviso)) return;
+    if (!(await Fiscontable.preguntar(aviso))) return;
 
     const boton = $("btn-reiniciar");
     boton.disabled = true;
@@ -1816,7 +1816,7 @@ async function reiniciarServidor() {
 }
 
 async function reiniciarVSCode() {
-    if (!confirm("¿Reiniciar el túnel de VS Code? Si tienes VS Code abierto, se desconectará un momento.")) return;
+    if (!(await Fiscontable.preguntar("¿Reiniciar el túnel de VS Code? Si tienes VS Code abierto, se desconectará un momento."))) return;
     try {
         const r = await api("/api/admin/sistema/reiniciar-vscode", { method: "POST" });
         mostrarAlerta("success", r.mensaje);
@@ -1846,7 +1846,7 @@ async function revisarAtorados() {
 }
 
 async function cancelarAtorados() {
-    if (!confirm("¿Cancelar los procesos atorados? Quedarán como cancelados.")) return;
+    if (!(await Fiscontable.preguntar("¿Cancelar los procesos atorados? Quedarán como cancelados."))) return;
     try {
         const r = await api("/api/admin/sistema/atorados/cancelar", { method: "POST" });
         mostrarAlerta("success", `Se cancelaron ${r.trabajos} trabajo(s) y ${r.lotes} lote(s).`);
@@ -1860,7 +1860,7 @@ async function limpiarCache(rfc) {
     const pregunta = rfc
         ? `¿Borrar los documentos guardados de ${rfc}?\n\nLa próxima vez que alguien los pida, se sacarán otra vez del SAT.`
         : "¿Borrar ahora los documentos que ya vencieron?";
-    if (!confirm(pregunta)) return;
+    if (!(await Fiscontable.preguntar(pregunta))) return;
     try {
         const r = await api("/api/admin/sistema/cache/limpiar", {
             method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ rfc }),
@@ -2042,10 +2042,10 @@ function exportarSesiones() {
 
 // N-04: «Ver como» — el admin ve la plataforma como esa persona (solo lectura, 60 min, queda en la bitácora)
 async function verComo(correo) {
-    if (!confirm("¿Ver Fiscontable como " + correo + "?\n\nEs solo lectura (no se puede cambiar nada), dura 60 minutos y queda en la bitácora. Sales con «Salir» en el letrero de arriba.")) return;
+    if (!(await Fiscontable.preguntar("¿Ver Fiscontable como " + correo + "?\n\nEs solo lectura (no se puede cambiar nada), dura 60 minutos y queda en la bitácora. Sales con «Salir» en el letrero de arriba."))) return;
     try {
         const r = await fetch(`${Fiscontable.API}/api/admin/ver-como`, { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ correo }) });
         if (!r.ok) throw new Error(await Fiscontable.leerError(r));
         location.href = "/inicio/";
-    } catch (e) { alert(e.message); }
+    } catch (e) { Fiscontable.avisar(e.message); }
 }

@@ -5,13 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex">
     <title>Laboratorio · Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611120300">
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611120300">
+    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611120400">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611120400">
     <style>
         .lb { display: grid; gap: var(--e-4); grid-template-columns: minmax(0, 1fr); }
         @media (min-width: 1080px) { .lb { grid-template-columns: 380px minmax(0, 1fr); align-items: start; } }
         .lb-tarjeta { border: 1px solid var(--linea); border-radius: var(--r-tarjeta); background: rgb(var(--g-0)); padding: var(--e-4); display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--e-3); min-width: 0; }
         .lb > *, .lb-tarjeta > * { min-width: 0; }
+        .lb-tiempos { border-collapse: collapse; width: 100%; font-size: var(--t-13); }
+        .lb-tiempos th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .03em; color: rgb(var(--g-600)); }
+        .lb-tiempos th, .lb-tiempos td { padding: 6px 10px 6px 0; border-bottom: 1px solid var(--linea); white-space: nowrap; }
         .lb-tarjeta h2 { margin: 0; font-size: var(--t-16); font-weight: 700; color: rgb(var(--g-900)); }
         .lb-campo { display: grid; gap: 6px; font-size: var(--t-13); font-weight: 600; color: rgb(var(--g-700)); }
         .lb-campo small { font-weight: 400; color: rgb(var(--g-500)); line-height: 1.45; }
@@ -53,8 +56,8 @@
 </head>
 <body class="min-h-screen flex flex-col">
 <div id="app-header" data-modulo="admin" data-titulo="Laboratorio" data-migas="Administración|/admin/"></div>
-<script src="/assets/js/nucleo.js?v=202611120300"></script>
-<script src="/assets/js/barra.js?v=202611120300"></script>
+<script src="/assets/js/nucleo.js?v=202611120400"></script>
+<script src="/assets/js/barra.js?v=202611120400"></script>
 
 <main class="flex-grow mod-pagina" style="max-width:none">
     <div class="mod-cabeza" style="margin-bottom:var(--e-4)">
@@ -81,10 +84,15 @@
                 <div class="lb-lista" id="lb-lista"></div>
                 <small style="font-size:var(--t-12);color:rgb(var(--g-500))" id="lb-guardado"></small>
             </section>
+            <section class="lb-tarjeta">
+                <h2>Tiempos del SAT</h2>
+                <small style="font-size:var(--t-12);color:rgb(var(--g-600))">Cuánto tarda cada petición de la descarga masiva (últimos 7 días). Sirve para saber si lo lento es el SAT o es Fiscontable.</small>
+                <div id="lb-tiempos" style="overflow-x:auto"></div>
+            </section>
         </div>
         <section class="lb-tarjeta" id="lb-detalle"><div class="ui-vacio"><b>Elige un recorrido</b><span>o lanza uno nuevo: aquí verás cada pantalla con su captura y su mapa de botones.</span></div></section>
     </div>
 </main>
-<script src="/admin/laboratorio/laboratorio.js?v=202611120300"></script>
+<script src="/admin/laboratorio/laboratorio.js?v=202611120400"></script>
 </body>
 </html>

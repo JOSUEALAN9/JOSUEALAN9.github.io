@@ -1341,7 +1341,7 @@ async function quitarReceptor(rfc) {
         if (!r.ok) throw new Error(await Fiscontable.leerError(r));
         receptoresFicha = receptoresFicha.filter(x => (x.clave || x.rfc) !== rfc);
         listarReceptores();
-    } catch (e) { alert(e.message); }
+    } catch (e) { Fiscontable.avisar(e.message); }
 }
 
 document.addEventListener("click", (e) => {

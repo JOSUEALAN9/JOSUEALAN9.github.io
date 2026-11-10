@@ -82,7 +82,8 @@
             anchoClave: anchos,
             buscar: { texto: "Buscar cliente o RFC…", campos: ["empresa", "rfc"] },
             rapidos: { clave: "situacion", valores: [{ valor: "Vencida", etiqueta: "Vencidas" }, { valor: "Vence pronto", etiqueta: "Vencen pronto" },
-                                                      { valor: "Le falta algo", etiqueta: "Les falta algo" }, { valor: "Completo", etiqueta: "Completos" }] },
+                                                      { valor: "Le falta algo", etiqueta: "Les falta algo" }, { valor: "Esperando al cliente", etiqueta: "Esperando al cliente" },
+                                                      { valor: "Completo", etiqueta: "Completos" }] },
             filtros: d.equipo ? [{ clave: "responsable_txt", etiqueta: "Responsable" }, { clave: "mio", etiqueta: "Solo los míos", texto: function () { return "sí"; } }] : [],
             alFiltrar: function () { sincronizarMios(); },
             exportar: { nombre: "Cierre_del_mes.xlsx", hoja: "Cierre" },
@@ -94,14 +95,17 @@
                 if (c.clave === "avance") {
                     var tono = f.hechos === f.total ? "ok" : f.situacion === "Vencida" ? "error" : "";
                     return '<span title="' + esc(f.situacion) + '"><span class="ci-barrita' + (tono ? " ci-barrita--" + tono : "") + '"><i style="width:' + Math.round(100 * f.hechos / f.total) + '%"></i></span>' +
-                        f.hechos + "/" + f.total + "</span>";
+                        f.hechos + "/" + f.total + "</span>" + (f.hechos === f.total ? "" :
+                        '<button type="button" class="ci-espera' + (f.esperando ? " ci-espera--si" : "") + '" data-esperar="' + esc(f.rfc) + '" aria-pressed="' + (!!f.esperando) + '" title="' +
+                        esc(f.esperando ? "Esperando al cliente" + (f.esperando.nota ? ": " + f.esperando.nota : "") + ". Clic para quitar la marca." : "Marcar: esperando al cliente (lo que falta depende de él)") + '">' +
+                        '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h12M6 21h12M7 3v4l5 5-5 5v4M17 3v4l-5 5 5 5v4"/></svg></button>');
                 }
                 if (c.clave === "situacion") return '<span class="ui-estado ui-estado--' + (f.situacion === "Completo" ? "ok" : f.situacion === "Vencida" ? "error" : "aviso") + '">' + esc(f.situacion) + "</span>";
                 if (c.clave === "responsable_txt") return celdaResponsable(f);
                 return null;
             },
             alClic: function (r, visibles, ev) {
-                if (ev && ev.target.closest("select, a")) return;
+                if (ev && ev.target.closest("select, a, button")) return;
                 irCon(r.rfc, "/inicio/");
             }
         });
@@ -193,6 +197,20 @@
         E.tabla.filtrar("mio", $("ci-mios").checked ? "Sí" : null);
     });
     $("ci-tabla").addEventListener("click", function (e) { if (e.target.closest("[data-responsable]")) e.stopPropagation(); }, true);
+    // «Esperando al cliente»: se marca y se quita con el relojito junto al avance; con la marca se puede dejar una nota
+    $("ci-tabla").addEventListener("click", async function (e) {
+        var b = e.target.closest("[data-esperar]"); if (!b) return;
+        e.preventDefault(); e.stopPropagation();
+        var f = E.datos.filas.find(function (x) { return x.rfc === b.dataset.esperar; }); if (!f) return;
+        var poner = !f.esperando;
+        b.disabled = true;
+        try {
+            await api("/api/cierre/esperando", { method: "PUT", headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ rfc: f.rfc, periodo: E.datos.periodo, esperando: poner }) });
+            Fiscontable.toast(poner ? f.alias + ": esperando al cliente" : f.alias + ": se quitó la marca");
+            await cargar();
+        } catch (er) { Fiscontable.toast(er.message); b.disabled = false; }
+    }, true);
 
     async function arrancar() {
         if (!(await Fiscontable.exigirModulo())) return;

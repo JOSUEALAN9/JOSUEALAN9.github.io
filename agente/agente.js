@@ -243,7 +243,7 @@ document.getElementById("lista").addEventListener("click", async (ev) => {
     }
     const b = ev.target.closest("[data-quitar]");
     if (!b) return;
-    if (!confirm(`¿Desconectar "${b.dataset.nombre}"? Esa PC dejará de hacer trámites para tu cuenta hasta que la vuelvas a vincular.`)) return;
+    if (!(await Fiscontable.preguntar(`¿Desconectar "${b.dataset.nombre}"? Esa PC dejará de hacer trámites para tu cuenta hasta que la vuelvas a vincular.`))) return;
     try { await api(`/api/agentes/${b.dataset.quitar}`, { method: "DELETE" }); alerta("ok", "Listo: esa PC quedó desconectada."); cargar(true); }
     catch (e) { alerta("error", e.message); }
 });
