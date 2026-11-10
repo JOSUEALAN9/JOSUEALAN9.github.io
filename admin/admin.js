@@ -31,7 +31,7 @@ let procesosCache = [];
 let correoEnAjustes = null;
 let filtroActividad = "todos";
 let relojActividad = null;
-const PESTANAS = ["usuarios", "permisos", "actividad", "creditos", "documentos", "despachos", "sistema"];
+const PESTANAS = ["usuarios", "permisos", "actividad", "creditos", "documentos", "despachos", "licencias", "sistema"];
 
 document.addEventListener("DOMContentLoaded", verificarAdminYCargar);
 
@@ -140,6 +140,7 @@ function abrirPestana(nombre) {
     if (nombre === "creditos" && window.CreditosAdmin) window.CreditosAdmin.cargar();
     if (nombre === "documentos" && window.DocumentosAdmin) window.DocumentosAdmin.cargar();
     if (nombre === "despachos" && window.DespachosAdmin) window.DespachosAdmin.cargar();
+    if (nombre === "licencias" && window.LicenciasAdmin) window.LicenciasAdmin.cargar();
 }
 
 function prepararEventos() {
