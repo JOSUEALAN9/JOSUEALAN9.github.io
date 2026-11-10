@@ -1,0 +1,12 @@
+# Archivos del repositorio que no se publican en la web (Cloudflare)
+.git
+.gitignore
+.assetsignore
+wrangler.jsonc
+node_modules
+package.json
+package-lock.json
+tailwind.config.js
+publicar.sh
+README.md
+CNAME
