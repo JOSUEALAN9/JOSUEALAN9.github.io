@@ -4,16 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Clientes | Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611111100">
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611111100">
-    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611111100">
+    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611111200">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611111200">
+    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611111200">
 </head>
 <body class="min-h-screen flex flex-col relative">
 
     <!-- TOP NAV -->
     <div id="app-header" data-modulo="clientes" data-titulo="Clientes" data-migas=""></div>
-<script src="/assets/js/nucleo.js?v=202611111100"></script>
-<script src="/assets/js/barra.js?v=202611111100"></script>
+<script src="/assets/js/nucleo.js?v=202611111200"></script>
+<script src="/assets/js/barra.js?v=202611111200"></script>
 
     <!-- ÁREA DE TRABAJO -->
     <main class="flex-grow w-full mod-pagina" style="max-width:1180px">
@@ -38,8 +38,8 @@
             <button onclick="reintentar()" id="btn-reintentar" class="flex-none bg-white border border-amber-300 text-amber-700 hover:bg-amber-100 text-xs font-bold py-2 px-4 rounded-lg transition">
                 Reintentar
             </button>
-            <a href="https://api.josuealan.com/" target="_blank" rel="noopener" class="flex-none bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold py-2 px-4 rounded-lg transition">
-                Reconectar sesión
+            <a href="/entrar/?motivo=sesion&amp;volver=/clientes/" class="flex-none bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold py-2 px-4 rounded-lg transition">
+                Entrar de nuevo
             </a>
         </div>
 
@@ -504,8 +504,8 @@
         </div>
     </div>
 
-<script src="/assets/js/comun/leer-cer.js?v=202611111100"></script>
-<script src="/assets/js/comun/zona-archivos.js?v=202611111100"></script>
+<script src="/assets/js/comun/leer-cer.js?v=202611111200"></script>
+<script src="/assets/js/comun/zona-archivos.js?v=202611111200"></script>
 <style>
     .cli-herr { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 14px; }
     .cli-buscar { flex: 1 1 220px; max-width: 320px; font-size: 14px; border: 1px solid rgb(var(--g-200)); border-radius: 10px; padding: 8px 12px; background: rgb(var(--g-0)); }
@@ -600,7 +600,7 @@
     .alta-opcional summary small { font-weight: 500; color: rgb(var(--g-600)); }
     .alta-error { font-size: 13px; font-weight: 600; border-radius: 10px; padding: 10px 12px; background: rgb(var(--er-50)); border: 1px solid rgb(var(--er-200)); color: rgb(var(--er-600)); }
 </style>
-<script src="/assets/js/comun/importar-clientes.js?v=202611111100"></script>
+<script src="/assets/js/comun/importar-clientes.js?v=202611111200"></script>
 <!-- Varias constancias a la vez: obligaciones federales y alta de los que falten -->
 <dialog id="dlg-constancias" class="ui-modal" style="width:min(640px, calc(100vw - 32px))">
     <div class="ui-modal__cuerpo">
@@ -612,6 +612,6 @@
     </div>
     <div class="ui-modal__pie"><button type="button" class="ui-btn ui-btn--secundario" data-cerrar>Cerrar</button></div>
 </dialog>
-<script src="/clientes/clientes.js?v=202611111100"></script>
+<script src="/clientes/clientes.js?v=202611111200"></script>
 </body>
 </html>
