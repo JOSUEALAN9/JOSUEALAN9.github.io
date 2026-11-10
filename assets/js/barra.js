@@ -376,7 +376,7 @@
                 ico(D.persona) + "Editar mi perfil</button>" +
               '<a class="fc-menu__boton" href="/agente/" role="menuitem">' +
                 ico(D.pc) + "Conectar esta PC</a>" +
-              '<a class="fc-menu__boton fc-menu__boton--salir" href="/cdn-cgi/access/logout" role="menuitem">' +
+              '<a class="fc-menu__boton fc-menu__boton--salir" href="' + API + '/cdn-cgi/access/logout" role="menuitem">' +
                 ico(D.salir) + "Cerrar sesión</a>" +
             "</div></div>";
     }
@@ -2368,7 +2368,7 @@
        sesión sin acceso mientras tanto. Sin PIN, se vuelve a entrar con el correo. Tras 8 h sin actividad se cierra
        la sesión. Los trabajos en curso del servidor no se detienen. */
     var bloqueo = { activa: false, minutos: 15, horas: 8, pin: false, listo: false };
-    var LLAVE_ACT = "fc-actividad", LLAVE_BLOQ = "fc-bloqueada", LLAVE_OLVIDE = "fc-olvide-pin", SALIR = "/cdn-cgi/access/logout";
+    var LLAVE_ACT = "fc-actividad", LLAVE_BLOQ = "fc-bloqueada", LLAVE_OLVIDE = "fc-olvide-pin", SALIR = API + "/cdn-cgi/access/logout";   // la sesión de Cloudflare vive en el servidor (api.…), no en la web
     function leerLS(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
     function ponerLS(k, v) { try { if (v == null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (e) { /* sin almacenamiento */ } }
     var ultimaMarca = 0;
@@ -2495,7 +2495,7 @@
 
     function manejarErrorPerfil(tipo, motivo) {
         if (tipo === "bloqueada") {
-            aviso(motivo, [{ texto: "Cerrar sesión", href: "/cdn-cgi/access/logout" },
+            aviso(motivo, [{ texto: "Cerrar sesión", href: API + "/cdn-cgi/access/logout" },
                            { texto: "Reintentar", accion: function () { promesaPerfil = null; iniciarPerfil(); } }]);
             document.dispatchEvent(new CustomEvent("fc:perfil", { detail: null }));
             return;
