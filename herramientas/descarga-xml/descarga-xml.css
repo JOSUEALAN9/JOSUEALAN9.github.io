@@ -2,7 +2,7 @@
    La tabla de resultados usa la de Administración de XML (xml.css + tabla.js);
    los campos de contexto (Desde / Hasta) y los segmentos, los de xml.css. */
 
-.dm-pagina { max-width: 1180px; margin: 0 auto; padding: 16px 20px 48px; }
+.dm-pagina { max-width: 1560px; margin: 0 auto; padding: 16px 20px 48px; }   /* el mismo ancho que la barra de arriba */
 .dm-formulario { max-width: none; margin: 0; }
 .dm-formulario *, .dm-filtro-res *, .dm-cajon *, .dm-modal * { box-sizing: border-box; }
 /* Las rejillas del portal (.dos, grid) le ganan a [hidden]: aquí siempre manda hidden */
@@ -162,7 +162,7 @@
 .dm-f .dm-opcional { text-transform: none; letter-spacing: 0; font-weight: 500; color: rgb(var(--g-500)); }
 .dm-f .campo__control { height: 40px; }
 .dm-f select.campo__control { min-width: 112px; }
-.dm-f--rfc { flex: 1 1 120px; }
+.dm-f--rfc { flex: 1 1 120px; max-width: 240px; }   /* un RFC son 13 caracteres: no se estira con la pantalla */
 .dm-f--rfc .campo__control { width: 100%; }
 .dm-f--boton { flex-direction: row; gap: 8px; margin-left: auto; }
 .dm-f--boton .ui-btn { height: 40px; white-space: nowrap; }
