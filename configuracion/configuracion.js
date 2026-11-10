@@ -212,9 +212,16 @@
         try { d = await api("/api/mi-cuenta"); } catch (e) { caja.innerHTML = '<h3 class="cf-sub">Seguridad</h3><p class="cf-msj cf-msj--mal">' + esc(e.message) + "</p>"; return; }
         var admin = perfil && perfil.rol === "admin";
         function fecha(iso) { var x = new Date(/Z$/.test(iso) ? iso : iso + "Z"); return isNaN(x) ? "" : x.toLocaleString("es-MX", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }); }
+        // «Chrome en Windows» en lugar del texto técnico del navegador
+        function equipo(ua) {
+            ua = ua || "";
+            var nav = /Edg\//.test(ua) ? "Edge" : /OPR\//.test(ua) ? "Opera" : /Firefox\//.test(ua) ? "Firefox" : /Chrome\//.test(ua) ? "Chrome" : /Safari\//.test(ua) ? "Safari" : "";
+            var so = /Windows/.test(ua) ? "Windows" : /Android/.test(ua) ? "Android" : /iPhone|iPad/.test(ua) ? "iPhone o iPad" : /Mac OS X/.test(ua) ? "Mac" : /Linux/.test(ua) ? "Linux" : "";
+            return nav && so ? nav + " en " + so : nav || so || "Navegador";
+        }
         caja.innerHTML = '<h3 class="cf-sub">Seguridad</h3>' +
-            (d.propio ? "" : '<p class="cf-texto">Hoy entras con un código a tu correo. Cuando se active el inicio de sesión con contraseña, la que pongas aquí será la tuya' +
-                (admin ? " (tú lo activas en Administración → Usuarios)." : ".") + "</p>") +
+            (d.propio ? "" : '<p class="cf-texto">Hoy entras con un código que llega a tu correo. Cuando se active el inicio de sesión con contraseña, usarás la que pongas aquí' +
+                (admin ? " (se activa en Administración → Usuarios)." : ".") + "</p>") +
             '<div class="cf-seg"><div class="cf-seg__cab"><b>Contraseña</b><span>' + (d.tiene_clave ? "Puesta" + (d.clave_cambiada ? " · cambiada el " + esc(fecha(d.clave_cambiada)) : "") : "Sin contraseña todavía") + "</span>" +
                 '<button type="button" class="cf-btn" id="cf-seg-clave">' + (d.tiene_clave ? "Cambiar" : "Crear contraseña") + "</button></div>" +
                 '<form class="cf-seg__cuerpo" id="cf-seg-clave-forma" hidden novalidate>' +
@@ -223,10 +230,18 @@
             '<div class="cf-seg"><div class="cf-seg__cab"><b>Verificación en dos pasos</b><span>' + (d.totp_activo ? "Activa · " + d.respaldo_restantes + " códigos de respaldo" : "Apagada") + "</span>" +
                 (d.totp_activo ? (admin ? "" : '<button type="button" class="cf-btn" id="cf-seg-quitar">Quitar</button>') : '<button type="button" class="cf-btn" id="cf-seg-2fa">Activar</button>') + "</div>" +
                 '<div class="cf-seg__cuerpo" id="cf-seg-2fa-caja" hidden></div>' +
-                (!d.totp_activo ? '<p class="cf-texto">Además de tu contraseña, te pide un código de tu teléfono al entrar. ' + (admin ? "Para el administrador es obligatoria." : "Muy recomendable.") + "</p>" : "") + "</div>" +
+                (!d.totp_activo ? '<p class="cf-texto">Al iniciar sesión, además de tu contraseña se pide un código. ' +
+                    (admin ? "La cuenta de administrador usa siempre la app de autenticación." : "Sin la app, el código llega a tu correo; con la app es más seguro y no dependes del correo.") + "</p>" : "") + "</div>" +
+            (d.equipos && d.equipos.length ? '<div class="cf-seg"><div class="cf-seg__cab"><b>Equipos de confianza</b><span>' + d.equipos.length + '</span></div>' +
+                '<p class="cf-texto">En estos equipos no se pide el código al iniciar sesión. Se quitan solos a los 30 días o al cambiar tu contraseña.</p><ul class="cf-seg__lista">' +
+                d.equipos.map(function (q) {
+                    return "<li><span>" + esc(equipo(q.ua)) + (q.actual ? " · este equipo" : "") +
+                        "<small>" + esc(q.ip || "") + " · desde " + esc(fecha(q.creado)) + " · última vez " + esc(fecha(q.ultimo_uso)) + "</small></span>" +
+                        '<button type="button" class="cf-btn" data-quitar-equipo="' + esc(q.id) + '">Quitar</button></li>';
+                }).join("") + "</ul></div>" : "") +
             (d.sesiones && d.sesiones.length ? '<div class="cf-seg"><div class="cf-seg__cab"><b>Sesiones abiertas</b><span>' + d.sesiones.length + "</span></div><ul class=\"cf-seg__lista\">" +
                 d.sesiones.map(function (s) {
-                    return "<li><span>" + esc((s.ua || "").replace(/^Mozilla\/5\.0 /, "").slice(0, 60) || "Navegador") + "<small>" + esc(s.ip || "") + " · última vez " + esc(fecha(s.ultimo_uso)) + "</small></span>" +
+                    return "<li><span>" + esc(equipo(s.ua)) + "<small>" + esc(s.ip || "") + " · última vez " + esc(fecha(s.ultimo_uso)) + "</small></span>" +
                         (s.actual ? '<span class="cf-texto">Esta</span>' : '<button type="button" class="cf-btn" data-cerrar-sesion="' + esc(s.id) + '">Cerrar</button>') + "</li>";
                 }).join("") + "</ul></div>" : "");
         var campo = null;
@@ -256,6 +271,11 @@
             try { await enviar("/api/mi-cuenta/2fa/quitar", "POST", { clave: clave }); pintarDeNuevo(); } catch (er) { alert(er.message); }
         });
         caja.addEventListener("click", async function (e) {
+            var q = e.target.closest("[data-quitar-equipo]");
+            if (q) {
+                try { await api("/api/mi-cuenta/equipos/" + encodeURIComponent(q.dataset.quitarEquipo), { method: "DELETE" }); q.closest("li").remove(); } catch (er) { alert(er.message); }
+                return;
+            }
             var b = e.target.closest("[data-cerrar-sesion]");
             if (!b) return;
             try { await api("/api/mi-cuenta/sesiones/" + encodeURIComponent(b.dataset.cerrarSesion), { method: "DELETE" }); b.closest("li").remove(); } catch (er) { alert(er.message); }

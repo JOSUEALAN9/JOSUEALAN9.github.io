@@ -3,9 +3,10 @@
  * (GET /publico/cuenta/modo):
  *   · Cloudflare: el botón lleva a API/auth/entrar (detrás de Cloudflare Access), que pide el correo y el código y
  *     regresa a la persona a la página donde estaba.
- *   · Propio (core/cuentas.py del servidor): correo y contraseña, y los pasos que hagan falta: código de dos pasos,
- *     cambiar una contraseña temporal, configurar dos pasos (administrador), «olvidé», enlace del correo
- *     (#enlace=…) y crear cuenta con licencia.
+ *   · Propio (core/cuentas.py del servidor): correo y contraseña, y siempre un segundo paso: el código de la app o
+ *     un código que llega por correo (se salta en un equipo de confianza). También: cambiar una contraseña temporal,
+ *     configurar dos pasos (administrador), «olvidé», enlace del correo (#enlace=…) y crear cuenta con licencia
+ *     (#licencia, desde la página principal).
  * Mensajes según cómo se llegó (motivo): sesion | reconectando | salio | servidor.
  */
 (function () {
@@ -28,28 +29,32 @@
     try { var u = new URL(volver, location.href); if (u.origin === location.origin) ruta = u.pathname; } catch (e) { /* inválida */ }
     if (!volver || !ruta || /^\/(login|entrar)(\/|\.html)?$/.test(ruta) || ruta.indexOf("/entrar/") === 0) volver = location.origin + "/";
 
+    var quiereLicencia = location.hash === "#licencia";
     var enlace = "";
     var mEnlace = /[#&]enlace=([A-Za-z0-9_\-]{20,})/.exec(location.hash);
     if (mEnlace) { enlace = mEnlace[1]; history.replaceState(null, "", location.pathname); }   // el enlace no se queda en la barra
 
+    // Pegar el enlace del correo (o #licencia) en una pestaña que ya estaba en /login solo cambia el «#»: se vuelve a cargar
+    window.addEventListener("hashchange", function () { if (/[#&]enlace=|^#licencia$/.test(location.hash)) location.reload(); });
+
     function $(id) { return document.getElementById(id); }
     var caja = $("en-aviso"), titulo = $("en-titulo"), sub = $("en-sub");
-    var SUB_INICIO = sub.textContent;
     var TITULOS = {
-        access: ["Inicia sesión", SUB_INICIO],
-        entrar: ["Inicia sesión", SUB_INICIO],
-        codigo: ["Verificación en dos pasos", "Escribe el código de 6 números que muestra tu app (Google o Microsoft Authenticator)."],
-        cambiar: ["Crea tu contraseña", "Entraste con una contraseña temporal. Elige la tuya para seguir."],
-        dospasos: ["Protege tu cuenta", "La cuenta de administrador necesita la verificación en dos pasos. Toma un minuto."],
-        olvide: ["¿Olvidaste tu contraseña?", "Escribe tu correo y te mandamos un enlace para crear una nueva."],
+        access: ["Inicia sesión", ""],
+        entrar: ["Inicia sesión", ""],
+        codigo: ["Verificación en dos pasos", "Escribe el código de 6 dígitos de tu app de autenticación."],
+        correo: ["Revisa tu correo", ""],
+        cambiar: ["Crea tu contraseña", "Tu contraseña actual es temporal. Elige una nueva para continuar."],
+        dospasos: ["Protege tu cuenta", "La cuenta de administrador requiere verificación en dos pasos."],
+        olvide: ["Restablecer contraseña", "Escribe tu correo y te enviaremos un enlace para crear una nueva."],
         enlace: ["Crea tu contraseña", ""],
-        licencia: ["Crea tu cuenta", "Con la clave de licencia que te dimos. Te mandamos un enlace a tu correo para crear tu contraseña."]
+        licencia: ["Crea tu cuenta", "Escribe tu correo y tu clave de licencia. Te enviaremos un enlace para crear tu contraseña."]
     };
     var MENSAJES = {
-        sesion: ["Para continuar, inicia sesión. Te regresamos a donde estabas.", ""],
-        reconectando: ["Reconectando tu sesión…", ""],
-        salio: ["Cerraste sesión. ¡Hasta pronto!", ""],
-        servidor: ["El servidor no responde en este momento. Intenta en unos minutos.", "alerta"]
+        sesion: ["Tu sesión terminó. Vuelve a iniciar sesión.", ""],
+        reconectando: ["Reconectando…", ""],
+        salio: ["Cerraste sesión.", ""],
+        servidor: ["El servicio no está disponible en este momento. Intenta de nuevo en unos minutos.", "alerta"]
     };
     function avisarTexto(texto, tipo) {
         caja.textContent = texto || "";
@@ -64,7 +69,6 @@
         titulo.textContent = tt[0];
         sub.textContent = tt[1] || "";
         sub.hidden = !tt[1];
-        $("en-alta").hidden = !(nombre === "entrar" || nombre === "access");
         var p = document.querySelector('[data-panel="' + nombre + '"]');
         var primero = p && p.querySelector("input:not([type=checkbox])");
         if (primero && nombre !== "access") setTimeout(function () { primero.focus(); }, 30);
@@ -131,6 +135,10 @@
         reto = r.reto;
         avisarTexto("");
         if (r.paso === "codigo") panel("codigo");
+        else if (r.paso === "correo") {
+            panel("correo", ["Revisa tu correo", "Enviamos un código de 6 dígitos a " + (r.correo_visible || "tu correo") + ". Vence en 10 minutos."]);
+            esperarReenvio();
+        }
         else if (r.paso === "cambiar") { panel("cambiar"); campoCambiar = F.campoClave($("en-clave-cambiar"), { confirmar: true, oscuro: true }); campoCambiar.entrada.focus(); }
         else if (r.paso === "configurar_2fa") {
             panel("dospasos");
@@ -139,6 +147,21 @@
                 activar: function (c) { return post("/publico/cuenta/2fa/activar", { reto: reto, codigo: c }); },
                 alTerminar: irVolver });
         }
+    }
+
+    // «Enviar otro código»: una vez por minuto (el servidor también lo cuida)
+    var relojReenvio = null;
+    function esperarReenvio() {
+        var b = $("en-reenviar"), quedan = 60;
+        clearInterval(relojReenvio);
+        b.disabled = true;
+        (function pintar() { b.textContent = quedan > 0 ? "Enviar otro código (" + quedan + " s)" : "Enviar otro código"; b.disabled = quedan > 0; })();
+        relojReenvio = setInterval(function () {
+            quedan--;
+            b.textContent = quedan > 0 ? "Enviar otro código (" + quedan + " s)" : "Enviar otro código";
+            b.disabled = quedan > 0;
+            if (quedan <= 0) clearInterval(relojReenvio);
+        }, 1000);
     }
 
     function alFallarReto(er) {
@@ -173,11 +196,26 @@
         formas.codigo.addEventListener("submit", async function (e) {
             e.preventDefault();
             var f = this, codigo = f.codigo.value.trim();
-            if (!/^\d{6}$|^\d{4}-?\d{4}$/.test(codigo)) return avisarTexto("Escribe los 6 números de tu app o un código de respaldo.", "alerta");
+            if (!/^\d{6}$|^\d{4}-?\d{4}$/.test(codigo)) return avisarTexto("Escribe los 6 dígitos de tu app o un código de respaldo.", "alerta");
             ocupado(f, true);
             try { siguiente(await post("/publico/cuenta/codigo", { reto: reto, codigo: codigo })); }
             catch (er) { if (!alFallarReto(er)) { avisarTexto(er.message, "alerta"); f.codigo.select(); } }
             finally { ocupado(f, false); }
+        });
+        formas.correo.addEventListener("submit", async function (e) {
+            e.preventDefault();
+            var f = this, codigo = f.codigo.value.replace(/\D/g, "");
+            if (codigo.length !== 6) return avisarTexto("Escribe los 6 dígitos del código que te enviamos.", "alerta");
+            ocupado(f, true);
+            try { siguiente(await post("/publico/cuenta/correo", { reto: reto, codigo: codigo })); }
+            catch (er) { if (!alFallarReto(er)) { avisarTexto(er.message, "alerta"); f.codigo.select(); } }
+            finally { ocupado(f, false); }
+        });
+        $("en-reenviar").addEventListener("click", async function () {
+            var b = this;
+            b.disabled = true;
+            try { var r = await post("/publico/cuenta/correo/reenviar", { reto: reto }); avisarTexto(r.mensaje, ""); formas.correo.codigo.value = ""; formas.correo.codigo.focus(); esperarReenvio(); }
+            catch (er) { if (!alFallarReto(er)) { avisarTexto(er.message, "alerta"); b.disabled = false; } }
         });
         formas.cambiar.addEventListener("submit", async function (e) {
             e.preventDefault();
@@ -226,16 +264,14 @@
             } catch (er) { avisarTexto(er.message, "alerta"); }
             finally { ocupado(this, false); }
         });
-        $("en-nota-licencia").innerHTML = '¿Tienes una licencia? <button type="button" class="en-liga" data-ir="licencia">Crea tu cuenta con ella</button>';
-        $("en-nota-licencia").querySelector("[data-ir]").addEventListener("click", function () { avisarTexto(""); panel("licencia"); });
     }
 
     async function abrirEnlace() {
         prepararPropio();
         try {
             var e = await post("/publico/cuenta/enlace/ver", { t: enlace });
-            var t = e.tipo === "restablecer" ? ["Restablece tu contraseña", "Para " + e.correo_visible + ". Elige una nueva."]
-                : [(e.nombre ? "Hola " + e.nombre + ", c" : "C") + "rea tu contraseña", "Para entrar a Fiscontable con " + e.correo_visible + "."];
+            var t = e.tipo === "restablecer" ? ["Restablecer contraseña", "Elige una contraseña nueva para " + e.correo_visible + "."]
+                : [(e.nombre ? "Hola, " + e.nombre : "Crea tu contraseña"), "Crea la contraseña con la que entrarás a Fiscontable (" + e.correo_visible + ")."];
             panel("enlace", t);
             campoEnlace = F.campoClave($("en-clave-enlace"), { confirmar: true, oscuro: true });
             campoEnlace.entrada.focus();
@@ -255,7 +291,7 @@
             if (enlace) return abrirEnlace();
             if (m && m.propio) {
                 prepararPropio();
-                panel("entrar");
+                panel(quiereLicencia ? "licencia" : "entrar");
                 if (MENSAJES[motivo] && motivo !== "reconectando") avisar(motivo);
                 return;
             }
