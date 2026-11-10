@@ -1,7 +1,7 @@
 /* contacto-publico.js — El contacto que muestran las páginas públicas (Aviso de privacidad, Términos, Ayuda).
    Mientras «correo» esté vacío se manda al formulario de la página principal (y, a quien ya tiene cuenta, a su
    Configuración). Al poner aquí un correo, todas las páginas lo muestran. */
-window.FC_CONTACTO = { correo: "" };
+window.FC_CONTACTO = { correo: "soporte@fiscontable.app", ventas: "ventas@fiscontable.app" };
 (function () {
     var c = window.FC_CONTACTO, en = (document.documentElement.lang || "es").slice(0, 2) === "en", txt;
     if (c.correo) txt = (en ? "to " : "a ") + '<a href="mailto:' + c.correo + '">' + c.correo + "</a>";

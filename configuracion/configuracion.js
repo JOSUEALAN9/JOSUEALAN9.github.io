@@ -53,7 +53,7 @@
           pintar: pintarPlan },
         { id: "avisos", grupo: "Tu cuenta", titulo: "Avisos", ico: ICO.campana, desc: "Qué avisos te llegan también por correo, a qué dirección, y el resumen de tu cartera.",
           palabras: "avisos correo notificaciones campana actividad email resumen semanal diario lunes cartera", pintar: pintarAvisos },
-        { id: "programaciones", grupo: "Tu cuenta", titulo: "Programaciones", ico: ICO.reloj, desc: "Todo lo que se hace solo: qué, de qué empresa, cada cuánto y cuándo toca.",
+        { id: "programaciones", grupo: "Tu cuenta", titulo: "Programaciones", ico: ICO.reloj, desc: "Todo lo que se ejecuta automáticamente: qué, de qué empresa, cada cuánto y cuándo toca.",
           palabras: "programar programaciones automático madrugada constancia opinión declaraciones xml buzón validación listas", pintar: pintarProgramaciones },
         { id: "despacho", grupo: "Tu cuenta", titulo: "Mi despacho", ico: ICO.equipo, solo_despacho: true,
           desc: "Tu equipo, sus permisos, las solicitudes y quién hizo qué.", palabras: "despacho equipo miembros permisos titular solicitudes bitácora espacio invitar",
@@ -68,7 +68,7 @@
           desc: "Cada cuánto se revisan solos los buzones de tus empresas.", palabras: "buzón tributario notificaciones revisión automática frecuencia",
           pintar: pintarBuzon },
         { id: "descarga_xml", grupo: "Módulos", titulo: "XML automáticos", ico: ICO.xml, modulo: "descarga_xml",
-          desc: "Qué empresas bajan solas sus XML del SAT, desde qué mes y cada cuánto.", palabras: "descarga masiva automática de xml sat madrugada bajar solos",
+          desc: "Qué empresas descargan automáticamente sus XML del SAT, desde qué mes y cada cuánto.", palabras: "descarga masiva automática de xml sat madrugada bajar solos",
           pintar: pintarXmlAuto },
         { id: "impuestos", grupo: "Módulos", titulo: "Impuestos por empresa", ico: ICO.balanza, modulo: "marcas",
           desc: "Cuándo cuenta cada impuesto (flujo o devengado), estatales, alcohol y las reglas que Fiscontable aprendió de cada empresa.",
@@ -307,7 +307,7 @@
         });
     }
 
-    /* Bloqueo por inactividad: minutos y PIN (el PIN se guarda solo como hash en el servidor) */
+    /* Bloqueo por inactividad: minutos y PIN (el PIN se guarda automáticamente como hash en el servidor) */
     function pintarBloqueo(c, modo) {
         var b = perfil.bloqueo || { tiene_pin: false, minutos: 15 };
         var sub = Fiscontable.url("sub");
@@ -354,7 +354,7 @@
             return;
         }
         caja.innerHTML = cabeza +
-            '<p class="cf-texto">Si dejas la computadora abierta, la pantalla se bloquea sola. ' + (b.tiene_pin ? "Ya tienes un PIN: la desbloqueas con él, sin perder lo que estabas haciendo." :
+            '<p class="cf-texto">Si dejas la computadora abierta, la pantalla se bloquea automáticamente. ' + (b.tiene_pin ? "Ya tienes un PIN: la desbloqueas con él, sin perder lo que estabas haciendo." :
                 "Sin PIN, para seguir tienes que volver a entrar con tu correo; con PIN la desbloqueas al momento.") + "</p>" +
             '<div class="cf-campos"><label class="cf-campo"><span>Bloquear después de</span><select id="cf-bl-min">' +
             [5, 10, 15, 20, 30, 45, 60].map(function (m) { return '<option value="' + m + '"' + (m === b.minutos ? " selected" : "") + ">" + m + " minutos sin usarla</option>"; }).join("") + "</select></label>" +
@@ -460,7 +460,7 @@
                 (p.equipo_resumen > 1 ? '<label class="ui-check cf-check"><input type="checkbox" id="cf-av-resumen-copia"' + (p.resumen_copia ? " checked" : "") +
                     "> Mandar copia a las " + p.equipo_resumen + " personas de mi despacho</label>" : "") +
                 '<div class="cf-acciones"><button type="button" class="cf-btn" id="cf-av-resumen-ya">Mándame uno ahora</button><span class="cf-msj"></span></div></div>';
-            var guardado = p;                                   // lo último que quedó guardado (el resumen se guarda solo, sin tocar lo demás)
+            var guardado = p;                                   // lo último que quedó guardado (el resumen se guarda automáticamente, sin tocar lo demás)
             var cajaResumen = $("cf-av-caja-resumen");
             $("cf-av-resumen").addEventListener("click", async function (e) {
                 var b = e.target.closest("[data-resumen]"); if (!b || b.getAttribute("aria-pressed") === "true") return;
@@ -509,7 +509,7 @@
         } catch (e) { c.innerHTML = '<div class="cf-tarjeta"><p class="cf-msj cf-msj--mal">' + esc(e.message) + "</p></div>"; }
     }
 
-    /* ---------- Programaciones (G-09 / C-02): todo lo que se hace solo, en una lista ---------- */
+    /* ---------- Programaciones (G-09 / C-02): todo lo que se hace automáticamente, en una lista ---------- */
     var PAGINA_MODULO = { csf: "/herramientas/constancias/", opinion: "/herramientas/opinion/", declaraciones: "/herramientas/declaraciones/",
                           xml: "/herramientas/descarga-xml/", buzon: "/herramientas/buzon/", validador: "/herramientas/validador/", listas: "/herramientas/listas-sat/" };
     async function pintarProgramaciones(c) {
@@ -524,7 +524,7 @@
                     "<span><b>Programar solas las empresas nuevas</b><small>Cuando una empresa guarde su e.firma: constancia " + esc(regla(df.csf)) +
                     ", opinión " + esc(regla(df.opinion)) + ", declaraciones " + esc(regla(df.declaraciones)) + " y sus XML cada día. Solo lo que tu plan incluye; después lo cambias como cualquier otra.</small></span></label>" : "") +
                 "</div>" +
-                '<div class="cf-tarjeta cf-tarjeta--tabla" style="margin-top:12px"><table class="cf-tabla"><thead><tr><th>Qué</th><th>Empresa</th><th>Cada cuánto</th><th>Próxima</th><th>Última</th><th title="Le llega por correo al cliente cada vez que se baja">Al cliente</th><th></th></tr></thead><tbody>' +
+                '<div class="cf-tarjeta cf-tarjeta--tabla" style="margin-top:12px"><table class="cf-tabla"><thead><tr><th>Qué</th><th>Empresa</th><th>Cada cuánto</th><th>Próxima</th><th>Última</th><th title="Le llega por correo al cliente cada vez que se descarga">Al cliente</th><th></th></tr></thead><tbody>' +
                 (d.programaciones.length ? d.programaciones.map(function (x) {
                     var pausable = ["csf", "opinion", "declaraciones", "xml"].indexOf(x.modulo) !== -1 && x.rfc;
                     return "<tr" + (x.activa ? "" : ' class="cf-apagada"') + "><td><b>" + esc(x.nombre) + "</b></td><td>" + esc(x.alias || "") + (x.rfc ? "<small>" + esc(x.rfc) + "</small>" : "") + "</td>" +
@@ -540,7 +540,7 @@
                 '<p class="cf-msj"></p>';
             var chk = c.querySelector("#cf-prog-nuevas");
             if (chk) chk.addEventListener("change", async function () {
-                try { await enviar("/api/programacion-nuevas", "PUT", { activa: chk.checked }); aviso(c, true, chk.checked ? "Las empresas nuevas se programarán solas." : "Las empresas nuevas ya no se programan solas."); }
+                try { await enviar("/api/programacion-nuevas", "PUT", { activa: chk.checked }); aviso(c, true, chk.checked ? "Las empresas nuevas se programarán automáticamente." : "Las empresas nuevas ya no se programan automáticamente."); }
                 catch (x) { chk.checked = !chk.checked; aviso(c, false, x.message); }
             });
             c.onchange = async function (e) {

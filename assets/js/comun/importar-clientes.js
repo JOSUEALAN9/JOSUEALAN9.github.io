@@ -82,7 +82,7 @@
 
     function fechaCorta(f) { var p = (f || "").slice(0, 10).split("-"); return p.length === 3 ? p[2] + "/" + p[1] + "/" + p[0] : ""; }
 
-    /* Constancias: lo nuevo se marca solo; lo que ya existe con datos distintos se enseña (antes → después) y se
+    /* Constancias: lo nuevo se marca automáticamente; lo que ya existe con datos distintos se enseña (antes → después) y se
        actualiza solo si la persona lo marca. */
     async function leerConstancias(promesa) {
         var q = E.q;

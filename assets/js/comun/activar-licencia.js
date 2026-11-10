@@ -54,7 +54,7 @@
                 if (!r.ok) throw new Error(await F.leerError(r));
                 var d = await r.json();
                 campo.value = "";
-                decir("<b>¡Listo! Licencia activada.</b> " + esc(d.plan) + " hasta el " + esc(fechaLarga(d.vence)) + "." +
+                decir("<b>Licencia activada.</b> " + esc(d.plan) + " hasta el " + esc(fechaLarga(d.vence)) + "." +
                     (d.tipo === "despacho" ? " Tu despacho «" + esc(d.despacho) + "» tiene " + d.asientos + " lugares. " +
                         '<a href="/despacho/">Invita a tu equipo →</a>' : ""), "ok");
                 if (opciones.alActivar) opciones.alActivar(d);

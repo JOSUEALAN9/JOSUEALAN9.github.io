@@ -199,7 +199,7 @@
         return TABLAS[lado];
     }
     function abrirCfdi(f, lista, ev) {
-        if (ev && ev.target.closest("[data-marca]")) return;               // la liga a Marcas se abre sola
+        if (ev && ev.target.closest("[data-marca]")) return;               // la liga a Marcas se abre automáticamente
         if (!E.perfil || (E.perfil.modulos_permitidos || []).indexOf("validador") === -1) return;
         Fiscontable.verCfdi(E.rfc, f.uuid, lista.map(function (x) { return x.uuid; }));
     }

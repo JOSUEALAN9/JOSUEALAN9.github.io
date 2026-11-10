@@ -8,7 +8,7 @@
  *   p.hayEleccion(), p.porFechas(), p.rango() -> {desde, hasta}, p.meses() -> ["2026-08", ...] | null,
  *   p.texto() -> "agosto de 2026", p.dentro("2026-08-10") -> true/false
  *
- * Se aplica solo (G-03): medio segundo después del último clic, para poder marcar varios meses sin
+ * Se aplica automáticamente (G-03): medio segundo después del último clic, para poder marcar varios meses sin
  * recargar a cada uno; si cfg.alcanza() dice que lo nuevo ya está cargado, al momento. Sin botón «Procesar»
  * ni estado intermedio. Plegable: plegado es una sola línea «2026 · Mar, Oct · 46 XML ▾» (se recuerda).
  *

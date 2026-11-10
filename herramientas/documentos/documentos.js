@@ -268,7 +268,7 @@
         $("n-en-curso").hidden = !n;
         $("n-en-curso").textContent = n;
         $("actualizado").textContent = (E.visto ? "Actualizado a las " + E.visto.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit", second: "2-digit" }) : "") +
-            (n ? " · se actualiza sola cada 20 segundos mientras haya pedidos en proceso" : "");
+            (n ? " · se actualiza automáticamente cada 20 segundos mientras haya pedidos en proceso" : "");
         if (E.panel && E.panelId) {                        // el detalle abierto se actualiza con lo nuevo
             var abierto = ped.filter(function (x) { return x.id === E.panelId; })[0];
             if (abierto) E.panel.repintar();
@@ -342,7 +342,7 @@
         b.disabled = false; b.textContent = "Actualizar";
     }
 
-    /* Mientras haya pedidos en curso, la lista se actualiza sola (solo con la página a la vista). */
+    /* Mientras haya pedidos en curso, la lista se actualiza automáticamente (solo con la página a la vista). */
     function vigilar() {
         clearInterval(E.reloj);
         var hay = E.datos.pedidos.some(function (p) { return EN_CURSO.indexOf(p.estado) !== -1; });

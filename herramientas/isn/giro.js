@@ -1,7 +1,7 @@
 /* Giro o actividad de Tributanet: buscador propio sobre el catálogo del portal.
  * Se puede escribir a mano (la lista solo ayuda) y avisa si lo escrito no está en la lista.
  *   GiroTributanet.conectar(input, { giros: [...], propuesta: { giro, en_lista }, origen: "ISN" })
- * La propuesta nunca se pone sola: la persona pulsa «Usar el mismo» y luego guarda. */
+ * La propuesta nunca se pone automáticamente: la persona pulsa «Usar el mismo» y luego guarda. */
 (function () {
     "use strict";
     var TOPE = 40;

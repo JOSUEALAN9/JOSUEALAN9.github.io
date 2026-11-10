@@ -78,7 +78,7 @@
         return resp.json();
     }
 
-    /* El almacén no se muestra solo: un botón con cuántas hay y la ventana con la tabla */
+    /* El almacén no se muestra automáticamente: un botón con cuántas hay y la ventana con la tabla */
     async function cargarAlmacen(rfc) {
         var b = document.getElementById("btn-guardadas");
         try {
@@ -96,7 +96,7 @@
         var rfc = elegido.rfc;
         Fiscontable.documentosGuardados({
             titulo: "Declaraciones guardadas",
-            subtitulo: (elegido.alias ? elegido.alias + " · " : "") + rfc + ". Se guardan " + Fiscontable.textoPlazo("declaraciones") + "; si tu suscripción sigue vigente, se quedan. Si se van a borrar, te avisamos 30 días antes.",
+            subtitulo: (elegido.alias ? elegido.alias + " · " : "") + rfc + ". Se guardan " + Fiscontable.textoPlazo("declaraciones") + "; si tu suscripción sigue vigente, se quedan. Si se van a eliminar, recibirás un aviso 30 días antes.",
             filtro: { etiqueta: "Ejercicio", valor: almacen.ejercicio, opciones: almacen.ejercicios.map(function (e) { return { valor: e, texto: e }; }) },
             // M-05: un renglón por declaración (mes + número de operación); sus documentos salen como etiquetas
             columnas: ["Mes", "Declaración", "No. operación", "Guardada"],
@@ -253,7 +253,7 @@
 
                 if (t.estado === "completado") {
                     if (t.en_pc && t.en_pc.rutas && t.en_pc.rutas.length) {
-                        // Ya quedó en la PC del contador: no se vuelve a bajar solo
+                        // Ya quedó en la PC del contador: no se vuelve a descargar automáticamente
                         resultado("bien", t.progreso || "Listo.");
                         document.getElementById("resultado").appendChild(Fiscontable.cajaEnPc(t.en_pc, function (b) { bajar(jobId, t.nombre_descarga, b, "Descargar aquí"); }));
                     } else {
@@ -284,7 +284,7 @@
             if (!resp.ok) { alerta(await leerError(resp)); return; }
             Fiscontable.guardarArchivo(await resp.blob(), nombre || (elegido.rfc + "_declaraciones.zip"));
         } catch (e) {
-            alerta("El archivo se generó, pero no se pudo bajar. Búscalo en Mis descargas.");
+            alerta("El archivo se generó, pero no se pudo descargar. Búscalo en Mis descargas.");
         } finally {
             boton.disabled = false;
             boton.textContent = texto || "Descargar";

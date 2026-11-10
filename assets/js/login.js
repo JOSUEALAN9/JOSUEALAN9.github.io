@@ -89,7 +89,7 @@
             boton.setAttribute("aria-busy", "true");
             boton.lastChild.textContent = " Abriendo…";
         });
-        // Si en este navegador ya se había entrado antes, no se pide el clic: se sigue solo (Cloudflare reconoce la sesión
+        // Si en este navegador ya se había entrado antes, no se pide el clic: se continúa automáticamente (Cloudflare reconoce la sesión
         // o pide el código). Una vez por minuto como máximo, para no dar vueltas.
         var yaEntro = false, auto = 0;
         try { yaEntro = localStorage.getItem("fc-ya-entro") === "1"; auto = +sessionStorage.getItem("fc-auto-entrar") || 0; } catch (e) { /* sin almacenamiento */ }
@@ -119,7 +119,7 @@
         } catch (e) { throw new Error("No pudimos conectar con el servidor. Revisa tu internet e intenta de nuevo."); }
         var d = null;
         try { d = await r.json(); } catch (e) { /* sin cuerpo */ }
-        if (!r.ok) throw new Error((d && typeof d.detail === "string" && d.detail) || "Algo salió mal (código " + r.status + "). Intenta de nuevo.");
+        if (!r.ok) throw new Error((d && typeof d.detail === "string" && d.detail) || "Ocurrió un error (código " + r.status + "). Intenta de nuevo.");
         return d || {};
     }
 
