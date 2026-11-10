@@ -54,7 +54,7 @@
     };
     var MENSAJES = {
         sesion: ["Tu sesión terminó. Vuelve a iniciar sesión.", ""],
-        bloqueo: ["Tu sesión se bloqueó por inactividad. Inicia sesión para continuar donde estabas.", ""],
+        bloqueo: ["Sesión bloqueada por inactividad.", ""],
         reconectando: ["Reconectando…", ""],
         salio: ["Cerraste sesión.", ""],
         servidor: ["El servicio no está disponible en este momento. Intenta de nuevo en unos minutos.", "alerta"]
