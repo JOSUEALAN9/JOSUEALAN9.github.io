@@ -251,6 +251,9 @@
     }
 
     var D = {
+        ayuda:    "M12 21a9 9 0 100-18 9 9 0 000 18zM9.5 9.5a2.5 2.5 0 114.2 1.8c-.8.7-1.7 1.2-1.7 2.4M12 17h.01",
+        sobre:    "M3 7a2 2 0 012-2h14a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2V7zm0 .5l9 6 9-6",
+        idea:     "M9 18h6M10 21h4M12 3a6 6 0 00-3.6 10.8c.6.5 1 1.2 1.1 2h5c.1-.8.5-1.5 1.1-2A6 6 0 0012 3z",
         rayo:     "M13 10V3L4 14h7v7l9-11h-7z",
         edificio: "M3 21h18M5 21V7l7-4 7 4v14M9 9h1m-1 4h1m4-4h1m-1 4h1M10 21v-4h4v4",
         descarga: "M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4",
@@ -391,6 +394,13 @@
                 ico(D.pc) + "Conectar esta PC</a>" +
               '<a class="fc-menu__boton" href="/despacho/" id="fc-menu-despacho" role="menuitem" hidden>' +
                 ico(D.equipo) + "Mi despacho</a>" +
+              // Ayuda y contacto: las instrucciones y dos atajos de correo (soporte y sugerencias)
+              '<a class="fc-menu__boton" href="/soporte/" target="_blank" rel="noopener" role="menuitem">' +
+                ico(D.ayuda) + "Ayuda e instrucciones</a>" +
+              '<a class="fc-menu__boton" id="fc-menu-soporte" href="mailto:soporte@fiscontable.app?subject=' + encodeURIComponent("Soporte Fiscontable") + '" role="menuitem">' +
+                ico(D.sobre) + "Escribir a soporte</a>" +
+              '<a class="fc-menu__boton" id="fc-menu-sugerencia" href="mailto:soporte@fiscontable.app?subject=' + encodeURIComponent("Sugerencia para Fiscontable") + '" role="menuitem">' +
+                ico(D.idea) + "Enviar una sugerencia</a>" +
               '<a class="fc-menu__boton fc-menu__boton--salir" href="' + API + '/cdn-cgi/access/logout" role="menuitem">' +
                 ico(D.salir) + "Cerrar sesión</a>" +
             "</div></div>";
@@ -1094,6 +1104,7 @@
             var fin = function () { var i = enCurso.indexOf(marca); if (i !== -1) enCurso.splice(i, 1); };
             if (nuestra) p.then(fin, fin);
             if (nuestra) p.then(function (r) {
+                if (r && r.status === 401 && document.documentElement.classList.contains("fc-bloqueada")) window.__fcPerdioPorBloqueo = true;
                 if (r && r.status === 423) {
                     window.__fcPerdioPorBloqueo = true;      // algo de la página no cargó por el bloqueo: al desbloquear se recarga
                     if (window.Fiscontable.bloquearPantalla) window.Fiscontable.bloquearPantalla(true);
@@ -1901,8 +1912,7 @@
             function fin(r) { if (hecho) return; hecho = true; try { dlg.close(); } catch (x) { /* nada */ } dlg.remove(); listo(r); }
             dlg.addEventListener("click", function (e) {
                 var b = e.target.closest("[data-r]");
-                if (b && !b.disabled) fin(b.dataset.r === "si");
-                else if (e.target === dlg) fin(false);
+                if (b && !b.disabled) fin(b.dataset.r === "si");       // una confirmación no se cierra al tocar fuera: botón o Esc
             });
             dlg.addEventListener("cancel", function (e) { e.preventDefault(); fin(false); });
             dlg.addEventListener("submit", function (e) { e.preventDefault(); if (!si.disabled) fin(true); });
@@ -2561,9 +2571,38 @@
     var ultimaMarca = 0;
     function marcarActividad() {
         if (bloqueo.activa) return;
-        var t = Date.now();
-        if (t - ultimaMarca < 5000) return;
+        var t = Date.now(), avisando = !!(previo.capa && !previo.capa.hidden);
+        if (!avisando && t - ultimaMarca < 5000) return;
         ultimaMarca = t; ponerLS(LLAVE_ACT, String(t));
+        if (avisando) quitarPrevio();
+    }
+    /* Aviso previo: un minuto antes de bloquear, una cuenta regresiva. Cualquier movimiento, tecla o el botón la quita y
+       todo sigue normal (también si la actividad fue en otra pestaña). */
+    var previo = { capa: null, reloj: null }, PREVIO_SEG = 60;
+    function quitarPrevio() {
+        if (previo.reloj) { clearInterval(previo.reloj); previo.reloj = null; }
+        if (previo.capa) previo.capa.hidden = true;
+    }
+    function mostrarPrevio() {
+        if (bloqueo.activa || (previo.capa && !previo.capa.hidden)) return;
+        if (!previo.capa) {
+            previo.capa = document.createElement("div");
+            previo.capa.className = "fc-previo"; previo.capa.setAttribute("role", "alertdialog"); previo.capa.setAttribute("aria-live", "assertive");
+            previo.capa.innerHTML = '<div class="fc-previo__caja"><b>¿Sigues ahí?</b>' +
+                '<p>Por inactividad, la pantalla se bloqueará en <span class="fc-previo__reloj" id="fc-previo-reloj">1:00</span>.</p>' +
+                '<button type="button" class="ui-btn ui-btn--primario ui-btn--36" id="fc-previo-seguir">Seguir trabajando</button></div>';
+            document.body.appendChild(previo.capa);
+            previo.capa.querySelector("#fc-previo-seguir").addEventListener("click", function () { ultimaMarca = 0; marcarActividad(); quitarPrevio(); });
+        }
+        previo.capa.hidden = false;
+        var paso = function () {
+            var ultima = +(leerLS(LLAVE_ACT) || 0) || ultimaMarca || Date.now(), falta = Math.ceil((bloqueo.minutos * 60e3 - (Date.now() - ultima)) / 1000);
+            if (bloqueo.activa || falta > PREVIO_SEG) return quitarPrevio();             // hubo actividad (aquí o en otra pestaña)
+            if (falta <= 0) { quitarPrevio(); bloquearPantalla(false); return; }
+            document.getElementById("fc-previo-reloj").textContent = Math.floor(falta / 60) + ":" + ("0" + (falta % 60)).slice(-2);
+        };
+        paso();
+        previo.reloj = setInterval(paso, 1000);
     }
     function capaBloqueo() {
         var capa = document.getElementById("fc-bloqueo-pantalla");
@@ -2587,13 +2626,17 @@
     }
     function pintarCapa() {
         var capa = capaBloqueo(), con = bloqueo.pin;
+        var propia = !!(perfilActual && perfilActual.sesion_propia);
+        document.getElementById("fc-bl-titulo").textContent = con ? "Pantalla bloqueada" : "Sesión bloqueada por inactividad";
         document.getElementById("fc-bl-texto").textContent = con
-            ? "Por seguridad, después de " + bloqueo.minutos + " minutos sin usarla. Escribe tu PIN para seguir donde estabas."
-            : "Por seguridad, después de " + bloqueo.minutos + " minutos sin usarla. Para seguir, vuelve a entrar con tu correo. " +
-              "Si creas un PIN en Configuración › Mi perfil, la desbloqueas sin salir.";
+            ? "Por seguridad, la pantalla se bloquea tras " + bloqueo.minutos + " minutos sin actividad. Escribe tu PIN para continuar donde estabas."
+            : "Por seguridad, la sesión se bloquea tras " + bloqueo.minutos + " minutos sin actividad. " +
+              (bloqueo.esperando ? "Inicia sesión en la pestaña que se abrió: esta pantalla se reanudará automáticamente donde estabas."
+               : propia ? "Inicia sesión para continuar: se abre en otra pestaña y esta pantalla se reanuda donde estabas."
+               : "Inicia sesión de nuevo para continuar. Con un PIN (Configuración › Mi perfil) la desbloqueas sin salir.");
         document.getElementById("fc-bl-form").hidden = !con;
         document.getElementById("fc-bl-olvide").hidden = !con;
-        document.getElementById("fc-bl-salir").textContent = con ? "Entrar con mi correo" : "Volver a entrar";
+        document.getElementById("fc-bl-salir").textContent = con ? "Entrar con mi correo" : "Iniciar sesión";
         document.getElementById("fc-bl-salir").className = "ui-btn " + (con ? "ui-btn--terciario" : "ui-btn--primario");
         capa.hidden = false;
         document.documentElement.classList.add("fc-bloqueada");
@@ -2601,7 +2644,8 @@
     }
     function bloquearPantalla(desdeServidor) {
         if (bloqueo.activa) return;
-        bloqueo.activa = true;
+        quitarPrevio();
+        bloqueo.activa = true; bloqueo.esperando = false;
         // La marca dice de qué inicio de sesión es: si luego entras de nuevo con tu correo, ya no aplica
         ponerLS(LLAVE_BLOQ, "1:" + (bloqueo.sesion || ""));
         pintarCapa();
@@ -2642,8 +2686,38 @@
     function revisarInactividad() {
         if (!bloqueo.listo) return;
         var ultima = +(leerLS(LLAVE_ACT) || 0) || ultimaMarca || Date.now(), quieto = Date.now() - ultima;
-        if (quieto > bloqueo.horas * 3600e3) { ponerLS(LLAVE_BLOQ, null); ponerLS(LLAVE_ACT, null); location.href = SALIR; return; }
+        if (quieto > bloqueo.horas * 3600e3) { ponerLS(LLAVE_BLOQ, null); ponerLS(LLAVE_ACT, null); cerrarPorInactividad(); return; }
         if (!bloqueo.activa && quieto > bloqueo.minutos * 60e3) bloquearPantalla(false);
+        else if (!bloqueo.activa && quieto > bloqueo.minutos * 60e3 - (PREVIO_SEG + 15) * 1000) {
+            // el aviso sale justo un minuto antes (esta revisión corre cada 15 s)
+            setTimeout(mostrarPrevio, Math.max(0, bloqueo.minutos * 60e3 - PREVIO_SEG * 1000 - quieto));
+        }
+    }
+    // Tras muchas horas sin actividad se cierra la sesión: con el inicio de sesión propio, en el servidor y a /login
+    function cerrarPorInactividad() {
+        if (!(perfilActual && perfilActual.sesion_propia)) { location.href = SALIR; return; }
+        fetch(API + "/publico/cuenta/salir", { method: "POST", credentials: "include", keepalive: true }).catch(function () {});
+        setTimeout(function () { location.replace(urlEntrar("sesion")); }, 300);
+    }
+    /* «Iniciar sesión» desde la pantalla bloqueada (inicio de sesión propio): se abre en OTRA pestaña y esta se queda
+       como está. Al entrar allá se quita la marca de bloqueo y todas las pestañas se reanudan donde estaban. */
+    function reingresarEnOtraPestana() {
+        var w = null;
+        try { w = window.open("/login?bloqueo=1", "_blank"); } catch (e) { w = null; }
+        fetch(API + "/publico/cuenta/salir", { method: "POST", credentials: "include", keepalive: true }).catch(function () {});
+        if (!w) { location.replace(urlEntrar("sesion")); return; }               // el navegador no dejó abrir la pestaña
+        bloqueo.esperando = true; pintarCapa();
+    }
+    // Otra pestaña quitó el bloqueo (PIN o inicio de sesión): se confirma que sigue siendo la misma cuenta y se reanuda
+    function reanudarTrasBloqueo() {
+        if (window.__fcPerdioPorBloqueo) { location.reload(); return; }
+        fetch(API + "/api/mi-perfil", { credentials: "include", cache: "no-store" }).then(function (r) { return r.ok ? r.json() : null; }, function () { return null; })
+            .then(function (p) {
+                var antes = perfilActual && (perfilActual.persona || perfilActual.correo), ahora = p && (p.persona || p.correo);
+                if (!p || (antes && ahora !== antes)) { location.reload(); return; }      // sin sesión u otra cuenta: se carga de nuevo
+                bloqueo.sesion = p._sesion || bloqueo.sesion; bloqueo.esperando = false;
+                quitarCapa(); ultimaMarca = 0; marcarActividad();
+            });
     }
     function prepararBloqueo(p) {
         var b = p && p.bloqueo;
@@ -2674,8 +2748,7 @@
         window.addEventListener("storage", function (e) {
             if (e.key !== LLAVE_BLOQ) return;
             if (e.newValue) bloquearPantalla(true);
-            else if (window.__fcPerdioPorBloqueo) location.reload();     // la desbloquearon en otra pestaña
-            else quitarCapa();
+            else if (bloqueo.activa) reanudarTrasBloqueo();              // la desbloquearon o iniciaron sesión en otra pestaña
         });
     }
     // Recargar con la pantalla bloqueada no la abre: la capa sale antes que cualquier dato
@@ -2821,7 +2894,7 @@
                 var nombres = p.sat_fallas.map(function (s) { return s.nombre; });
                 var lista = nombres.length > 1 ? nombres.slice(0, -1).join(", ") + " y " + nombres[nombres.length - 1] : nombres[0];
                 letrero("El SAT no está respondiendo en: " + lista + ". Lo que pidas ahí puede fallar; conviene intentarlo más tarde. " +
-                    "Este aviso se quita solo cuando vuelva.",
+                    "Este aviso se retira automáticamente cuando el servicio se restablezca.",
                     "background:rgb(var(--er-50));color:rgb(var(--er-600));border-bottom:1px solid rgb(var(--er-200))",
                     true,
                     function () { try { localStorage.setItem("fc-sat-oculto", claveSat); } catch (e) { /* nada */ } });
@@ -3101,6 +3174,7 @@
         var a = e.target.closest && e.target.closest('a[href$="/cdn-cgi/access/logout"]');
         if (!a || !perfilActual || !perfilActual.sesion_propia) return;
         e.preventDefault();
+        if (a.id === "fc-bl-salir") { reingresarEnOtraPestana(); return; }
         try { await fetch(API + "/publico/cuenta/salir", { method: "POST", credentials: "include" }); } catch (x) { /* igual se va */ }
         try { localStorage.removeItem("fc-ya-entro"); } catch (x) { /* nada */ }
         location.replace(urlEntrar("salio"));
@@ -3157,7 +3231,10 @@
         var boton = capa.querySelector('[aria-label="Cerrar"], [data-cerrar], [data-pnl="cerrar"], [id^="cerrar"], .fc-panel__cerrar');
         if (!boton) boton = Array.prototype.filter.call(capa.querySelectorAll("button"), function (b) { return /^(cerrar|cancelar|×|✕)$/i.test(b.textContent.trim()); })[0];
         if (boton) boton.click();
-        else if (capa.classList.contains("flex") || !capa.hasAttribute("hidden")) { capa.classList.add("hidden"); capa.classList.remove("flex"); capa.hidden = true; }
+        // Las que se muestran con el atributo «hidden» se cierran con él (si además se les pusiera la clase, ya no volverían
+        // a abrirse); las que se muestran con clases (hidden/flex), con las clases.
+        else if (capa.matches('.xml-modal, .xml-panel, [role="dialog"]')) capa.hidden = true;
+        else { capa.classList.add("hidden"); capa.classList.remove("flex"); }
         return true;
     }
 
