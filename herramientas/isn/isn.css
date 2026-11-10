@@ -120,3 +120,14 @@
 .ln-imp { font-size: 13px; color: rgb(var(--g-700)); }
 .isn-lineas__pie { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; font-size: 13px; color: rgb(var(--g-700)); }
 .isn-lineas__pie b { color: rgb(var(--g-900)); font-variant-numeric: tabular-nums; }
+/* Giro de Tributanet: buscador propio (giro.js) */
+.isn-rejilla .isn-giro { grid-column: 1 / -1; margin-top: -10px; display: flex; flex-direction: column; gap: 4px; }
+.isn-giro__lista { list-style: none; margin: 0; padding: 4px; max-height: 220px; overflow-y: auto; background: rgb(var(--g-0)); border: 1px solid rgb(var(--g-300)); border-radius: 10px; box-shadow: var(--sombra-2, 0 8px 24px rgb(0 0 0 / .12)); }
+.isn-giro__lista li { padding: 7px 9px; border-radius: 7px; font-size: 13px; font-weight: 500; color: rgb(var(--g-900)); cursor: pointer; }
+.isn-giro__lista li:hover, .isn-giro__lista li.es-activo { background: rgb(var(--g-100)); }
+.isn-giro__lista li.isn-giro__mas { cursor: default; color: rgb(var(--g-500)); font-size: 12px; background: none; }
+.isn-giro__estado, .isn-giro__propuesta { margin: 0; font-size: 12.5px; font-weight: 500; color: rgb(var(--g-600)); }
+.isn-giro__estado--bien { color: rgb(var(--ok-600)); }
+.isn-giro__estado--ojo { color: rgb(var(--av-600)); }
+.isn-giro__propuesta { background: rgb(var(--g-50)); border: 1px solid rgb(var(--g-200)); border-radius: 8px; padding: 7px 10px; }
+.isn-falta { color: rgb(var(--er-600)); font-weight: 600; }
