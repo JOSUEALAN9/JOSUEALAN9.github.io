@@ -192,8 +192,17 @@
                 return "<option" + (s === (d.sistema || "") ? " selected" : "") + ">" + s + "</option>"; }).join("") + "</select></label>" : "") +
             campos.map(function (c) {
                 return "<label" + (c.largo > 40 ? ' class="isn-ancho"' : "") + ">" + esc(c.titulo) + (c.obligatorio ? " *" : "") +
-                    '<input data-campo="' + c.clave + '" maxlength="' + c.largo + '" value="' + esc(d[c.clave] || "") + '"></label>';
-            }).join("");
+                    '<input data-campo="' + c.clave + '" maxlength="' + c.largo + '" value="' + esc(d[c.clave] || "") + '"' +
+                    (c.clave === "giro" ? ' list="giros-tributanet" placeholder="Escribe y elige uno de la lista de Tributanet" autocomplete="off"' : "") + "></label>";
+            }).join("") + '<datalist id="giros-tributanet"></datalist>';
+        // El giro debe ser uno del catálogo de Tributanet: se ofrece la lista para elegirlo (si no coincide, no se puede presentar)
+        if (!esInf()) {
+            (E.giros ? Promise.resolve(E.giros) : api("/api/estatales/giros").then(function (r) { return r.json(); }).then(function (g) { return (E.giros = g.giros || []); }))
+                .then(function (giros) {
+                    var lista = document.getElementById("giros-tributanet");
+                    if (lista) lista.innerHTML = giros.map(function (g) { return '<option value="' + esc(g) + '">'; }).join("");
+                }).catch(function () { /* sin lista se puede escribir a mano */ });
+        }
         $("datos-obligacion").checked = d.obligacion == null ? true : !!d.obligacion;
         $("est-filas").innerHTML = "";
         (d.establecimientos && d.establecimientos.length ? d.establecimientos : [{}]).forEach(filaEst);
