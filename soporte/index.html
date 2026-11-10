@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ayuda del agente | Fiscontable</title>
+    <meta name="description" content="Cómo instalar, conectar y usar Fiscontable Agente para Windows, y qué hacer si algo no funciona.">
+    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611110600">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611110600">
+    <link rel="stylesheet" href="/assets/css/publico.css?v=202611110600">
+</head>
+<body class="min-h-screen flex flex-col">
+<header class="pub-cabeza"><div class="pub-cabeza__dentro">
+    <a class="pub-logo" href="/"><i>F</i>Fiscontable</a>
+    <nav aria-label="Páginas públicas"><a href="/soporte/" aria-current="page">Ayuda del agente</a><a href="/privacidad/">Privacidad</a></nav>
+</div></header>
+
+<main class="pub flex-grow">
+    <h1>Ayuda de Fiscontable Agente</h1>
+    <p class="pub-sub">El programa para Windows que hace en tu PC los trámites del SAT que pides en Fiscontable.</p>
+
+    <h2>Qué hace</h2>
+    <p>Cuando el agente está prendido, los trámites del SAT de tu cuenta (constancia de situación fiscal, opinión de
+       cumplimiento 32-D, declaraciones, la revisión del Buzón Tributario y las facturas del portal del SAT) se hacen
+       <b>desde tu PC</b>, con tu internet y tu navegador, y el resultado aparece en la web como siempre. Además guarda una
+       copia en <code>Documentos\Fiscontable</code>.</p>
+    <p>Necesitas una cuenta de Fiscontable. Si tu PC está apagada, los trámites se hacen en el servidor, como siempre.</p>
+
+    <h2>Instalarlo y conectarlo</h2>
+    <ol>
+        <li>Instálalo desde <b>Microsoft Store</b> (busca «Fiscontable Agente») o con el instalador de la web: menú con tu nombre → <b>Conectar esta PC</b> → Descargar el agente.</li>
+        <li>Ábrelo. Sale la ventana <b>Conectar esta PC</b>.</li>
+        <li>En la web: menú con tu nombre → <b>Conectar esta PC</b> → <b>Pedir código</b>. Escribe en el agente el código de 8 letras (dura 2 minutos) y presiona <b>Conectar</b>.</li>
+        <li>En la web, aprueba la PC nueva con <b>«Sí, es mi PC»</b>. Hasta entonces no recibe trámites.</li>
+    </ol>
+    <div class="pub-caja pub-caja--ok">Listo: el ícono verde junto al reloj quiere decir que está conectado. Clic en el ícono → <b>Ver estado</b> para ver qué está haciendo.</div>
+
+    <h2>El ícono junto al reloj</h2>
+    <ul>
+        <li><b>Verde:</b> conectado y listo para trabajar.</li>
+        <li><b>Ámbar:</b> conectado pero en espera (PC sin aprobar, en pausa o fuera de su horario).</li>
+        <li><b>Gris:</b> sin conexión con el servidor.</li>
+    </ul>
+    <p>Desde su menú puedes ver el estado, abrir la carpeta de copias, ver la bitácora, pausar una hora, abrir Fiscontable o desconectar la PC.</p>
+
+    <h2>Preguntas frecuentes</h2>
+    <details><summary>El código dice que no existe o ya venció</summary>
+        <p>Cada código dura 2 minutos y sirve una sola vez. Pide uno nuevo en la web y escríbelo luego luego. Si te equivocas muchas veces seguidas, espera 10 minutos.</p></details>
+    <details><summary>La PC está conectada pero no hace trámites</summary>
+        <p>Revisa en la web (Conectar esta PC) que la hayas aprobado, que no esté en pausa y que el horario y los trámites permitidos de esa PC incluyan lo que pides.</p></details>
+    <details><summary>Windows o el antivirus de mi empresa muestran un aviso</summary>
+        <p>La versión de <b>Microsoft Store</b> va firmada por Microsoft y es la recomendada para PCs de empresa. Con el instalador de la web, Windows puede mostrar «Editor desconocido»: es un aviso, no un error. El agente solo se conecta a <code>api.josuealan.com</code> por HTTPS y a los portales del SAT, y funciona en redes que revisan el tráfico seguro (por ejemplo, FortiClient).</p></details>
+    <details><summary>¿Dónde quedan los documentos?</summary>
+        <p>En la web, como siempre, y una copia en <code>Documentos\Fiscontable\RFC\…</code>, separada por tipo (Constancias, Opinión 32-D, Declaraciones, Buzón, XML). La copia se puede apagar desde la web.</p></details>
+    <details><summary>¿Es seguro? ¿Qué puede ver el agente?</summary>
+        <p>Tu PC llama al servidor; nadie entra a tu PC y no se abre ningún puerto. La e.firma llega solo para cada trámite y se borra al terminar. Del Buzón solo lee: nunca abre una notificación pendiente. Más detalle en el <a href="/privacidad/#agente">Aviso de privacidad</a>.</p></details>
+    <details><summary>Que no arranque solo al prender la PC</summary>
+        <p>Windows: Configuración → Aplicaciones → Inicio → apaga <b>Fiscontable Agente</b>. Puedes abrirlo cuando quieras desde el menú Inicio.</p></details>
+    <details><summary>Actualizarlo</summary>
+        <p>Desde Microsoft Store se actualiza solo. Con el instalador de la web: menú del ícono → <b>Buscar actualizaciones</b>.</p></details>
+    <details><summary>Desconectarlo o desinstalarlo</summary>
+        <p>Menú del ícono → <b>Desconectar esta PC</b>, o desde la web en Conectar esta PC. Para quitarlo: Configuración → Aplicaciones → Fiscontable Agente → Desinstalar. Tus copias en Documentos no se borran.</p></details>
+
+    <h2>Contacto</h2>
+    <p>Escríbenos <span data-contacto></span>. Si es un problema con un trámite, incluye la hora aproximada y, si puedes,
+       la bitácora (menú del ícono → Ver bitácora).</p>
+</main>
+
+<footer class="pub-pie">Fiscontable · josuealan.com · <a href="/privacidad/">Aviso de privacidad</a></footer>
+<script src="/assets/js/contacto-publico.js?v=202611110600"></script>
+</body>
+</html>
