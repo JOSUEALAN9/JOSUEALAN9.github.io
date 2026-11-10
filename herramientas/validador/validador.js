@@ -87,6 +87,7 @@
 
     /* ---------- XML de la empresa: lo último que se sabe, sin consultar al SAT */
     async function cargarEmpresa() {
+        if (!$("btnValidar")) return;                    // módulo sin acceso: la página ya muestra el aviso, no hay tabla
         E.origen = "empresa";
         E.empresa = await Fiscontable.empresaActiva();
         E.periodo = await Fiscontable.periodoActivo();
