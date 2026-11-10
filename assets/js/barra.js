@@ -220,6 +220,7 @@
     try { var tema = localStorage.getItem("fc-tema"); if (tema === "b") document.documentElement.dataset.tema = "b"; } catch (e) { /* sin almacenamiento */ }
     // Barra de arriba oscura (por defecto) o clara: se elige en /ui/
     try { if (localStorage.getItem("fc-barra") === "clara") document.documentElement.dataset.barra = "clara"; } catch (e) { /* sin almacenamiento */ }
+    var INICIO = "/inicio/";       // el tablero; la portada del dominio («/») es la página pública
     var ancla = document.getElementById("app-header");
     if (!ancla) return;
 
@@ -283,7 +284,7 @@
         (ancla.dataset.migas || "").split(";").forEach(function (t) {
             if (!t.trim()) return;
             var p = t.split("|");
-            tramos.push({ texto: p[0].trim(), href: (p[1] || "/").trim() });
+            tramos.push({ texto: p[0].trim(), href: (p[1] || INICIO).trim() });
         });
         return tramos;
     }
@@ -295,11 +296,11 @@
         // En el teléfono no cabe la ruta completa, así que el último
         // tramo (el "padre") se convierte en una flecha de regresar y el
         // resto se esconde. En pantalla grande se ve la ruta entera.
-        if (clave !== "portada" && !tramos.length) tramos.push({ texto: "Inicio", href: "/" });
+        if (clave !== "portada" && !tramos.length) tramos.push({ texto: "Inicio", href: INICIO });
         var migas = tramos.map(function (t, i) {
             var esPadre = i === tramos.length - 1;
             // En computadora el botón «Módulos» ya lleva a cualquier herramienta: "Herramientas" e "Inicio" sobran
-            var soloMovil = t.href === "/herramientas/" || t.href === "/";
+            var soloMovil = t.href === "/herramientas/" || t.href === INICIO;
             return '<a class="fc-miga' + (esPadre ? " fc-miga--padre" : "") + (soloMovil ? " fc-miga--solo-movil" : "") + '" href="' + esc(t.href) + '"' +
                 (esPadre ? ' aria-label="Regresar a ' + esc(t.texto) + '"' : "") + ">" +
                 '<span class="fc-miga__sep">' + ico(D.flecha, 2.2) + "</span>" +
@@ -318,14 +319,14 @@
         ancla.outerHTML =
             '<header class="fc-barra">' +
               '<div class="fc-barra__interior">' +
-                '<a class="fc-marca" href="/">' +
+                '<a class="fc-marca" href="' + INICIO + '">' +
                   '<span class="fc-marca__sello">' + simboloMarca() + "</span>" +
                   '<span class="fc-marca__nombre">fiscontable<span class="fc-marca__app">app</span></span>' +
                 "</a>" +
                 '<button type="button" class="fc-modulos-btn" id="fc-btn-modulos" aria-haspopup="dialog" aria-expanded="false" title="Ir a otro módulo (Ctrl+K)">' +
                   ico(D.rejilla) + '<span class="fc-modulos-btn__texto">Módulos</span></button>' +
                 // La casita: Inicio siempre a la mano, también donde no hay barra lateral (celular, Configuración…)
-                '<a class="fc-casa" href="/" title="Inicio" aria-label="Inicio"' + (clave === "portada" ? ' aria-current="page"' : "") + ">" + ico(D.casa, 1.9) + "</a>" +
+                '<a class="fc-casa" href="' + INICIO + '" title="Inicio" aria-label="Inicio"' + (clave === "portada" ? ' aria-current="page"' : "") + ">" + ico(D.casa, 1.9) + "</a>" +
                 '<nav class="fc-migas" aria-label="Ruta">' + migas + "</nav>" +
                 '<div class="fc-acciones">' +
                   // Despacho (core/despachos.py del servidor): en qué espacio trabajas, siempre a la vista
@@ -592,7 +593,7 @@
         "Documentos": "M4 6h16a1 1 0 011 1v10a1 1 0 01-1 1H4a1 1 0 01-1-1V7a1 1 0 011-1zM9 13a2 2 0 100-4 2 2 0 000 4zM6 16a3 3 0 016 0M14 10h4M14 13h3"
     };
     function gruposModulos() {
-        var inicio = { titulo: null, items: [{ nombre: "Inicio", icono: D.casa, href: "/", actual: clave === "portada" }] };
+        var inicio = { titulo: null, items: [{ nombre: "Inicio", icono: D.casa, href: INICIO, actual: clave === "portada" }] };
         return [inicio].concat(GRUPOS.map(function (g) {
             var ms = CATALOGO.filter(function (m) { return m.grupo === g && verModulo(m); });
             if (!ms.length) return null;

@@ -172,3 +172,6 @@ select.en-input option { color: #1C1B19; }
 
 /* Esta pantalla llega con «replace» (sin historial): sin transición entre páginas, que Chrome aborta con un error en consola */
 @view-transition { navigation: none; }
+
+/* /demo: el formulario compartido (assets/js/comun/forma-demo.js) dentro de la tarjeta */
+.dm-forma { margin-top: 22px; }

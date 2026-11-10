@@ -6,45 +6,24 @@
     <title>Solicita una demo | Fiscontable</title>
     <meta name="description" content="Solicita una demo de Fiscontable: XML, trámites del SAT, impuestos y facturación de tus clientes en un solo lugar.">
     <meta name="theme-color" content="#161513">
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611111900">
-    <link rel="stylesheet" href="/assets/css/login.css?v=202611111900">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611112000">
+    <link rel="stylesheet" href="/assets/css/login.css?v=202611112000">
+    <link rel="stylesheet" href="/assets/css/forma-demo.css?v=202611112000">
+    <link rel="canonical" href="https://fiscontable.app/demo">
 </head>
 <body class="en">
 <div class="en-fondo" aria-hidden="true"><i class="en-luz en-luz--verde"></i><i class="en-luz en-luz--arena"></i><i class="en-luz en-luz--honda"></i>
-    <svg class="en-marca-agua" viewBox="0 0 64 64"><use href="/assets/marca/simbolos.svg?v=202611111900#fiscontable"></use></svg></div>
+    <svg class="en-marca-agua" viewBox="0 0 64 64"><use href="/assets/marca/simbolos.svg?v=202611112000#fiscontable"></use></svg></div>
 
 <main class="en-marco">
     <section class="en-tarjeta" aria-labelledby="en-titulo">
-        <a href="/login" aria-label="Fiscontable"><img class="en-logo" src="/assets/marca/fiscontable-logo-app-oscuro.svg?v=202611111900" alt="Fiscontable" width="200" height="53"></a>
-        <div id="dm-forma-caja">
-            <h1 id="en-titulo">Solicita una demo</h1>
-            <p class="en-sub">Pruébalo con tus empresas reales. Te activamos el acceso y te escribimos a tu correo.</p>
-            <form id="dm-forma" class="en-forma" novalidate>
-                <label class="en-campo"><span>Tu nombre</span><input class="en-input" name="nombre" autocomplete="name" maxlength="80" required></label>
-                <label class="en-campo"><span>Correo</span><input class="en-input" name="correo" type="email" autocomplete="email" maxlength="120" required>
-                    <small>Con este correo entrarás a Fiscontable.</small></label>
-                <div class="en-fila">
-                    <label class="en-campo"><span>Teléfono <i>(opcional)</i></span><input class="en-input" name="telefono" type="tel" autocomplete="tel" maxlength="20"></label>
-                    <label class="en-campo"><span>¿Cuántas personas?</span>
-                        <select class="en-input" name="personas"><option value="1">Solo yo</option><option value="2-5">2 a 5</option><option value="6-10">6 a 10</option><option value="11+">Más de 10</option></select></label>
-                </div>
-                <label class="en-campo"><span>Despacho o empresa <i>(opcional)</i></span><input class="en-input" name="despacho" autocomplete="organization" maxlength="100"></label>
-                <label class="en-campo"><span>¿Qué te gustaría resolver? <i>(opcional)</i></span><textarea class="en-input" name="mensaje" rows="3" maxlength="600"></textarea></label>
-                <label class="en-trampa" aria-hidden="true">Sitio web <input name="sitio_web" tabindex="-1" autocomplete="off"></label>
-                <label class="en-check"><input type="checkbox" name="acepto"> <span>Acepto el <a href="/privacidad/" target="_blank" rel="noopener">Aviso de privacidad</a>.</span></label>
-                <div id="en-aviso" class="en-aviso en-aviso--alerta" role="alert" hidden></div>
-                <button type="submit" class="en-btn en-btn--principal" id="dm-enviar">Solicitar mi demo</button>
-            </form>
-            <p class="en-nota">¿Ya tienes cuenta? <a href="/login">Inicia sesión</a></p>
-        </div>
-        <div id="dm-listo" class="en-listo" hidden>
-            <span class="en-listo__ico" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span>
-            <h1>¡Listo, recibimos tu solicitud!</h1>
-            <p class="en-sub" id="dm-listo-texto">Te escribimos a tu correo en cuanto esté lista tu demo. Revisa también la carpeta de spam.</p>
-            <a class="en-btn en-btn--secundario" href="/login">Ir a iniciar sesión</a>
-        </div>
+        <a href="/?sitio" aria-label="Fiscontable"><img class="en-logo" src="/assets/marca/fiscontable-logo-app-oscuro.svg?v=202611112000" alt="Fiscontable" width="200" height="53"></a>
+        <h1 id="en-titulo">Solicita una demo</h1>
+        <p class="en-sub">Pruébalo con tus empresas. Te activamos el acceso y te escribimos a tu correo.</p>
+        <div class="dm-forma" data-forma-demo data-idioma="es"><noscript>Para enviar el formulario activa JavaScript en tu navegador.</noscript></div>
+        <p class="en-nota">¿Ya tienes cuenta? <a href="/login">Inicia sesión</a></p>
         <footer class="en-pie">
-            <nav aria-label="Enlaces"><a href="/soporte/">Ayuda</a><a href="/privacidad/">Privacidad</a><a href="/soporte/">Agente para Windows</a></nav>
+            <nav aria-label="Enlaces"><a href="/soporte/">Ayuda</a><a href="/privacidad/">Privacidad</a><a href="/terminos/">Términos</a><a href="/soporte/#agente">Agente</a></nav>
             <span>© 2026 Fiscontable</span>
         </footer>
     </section>
@@ -53,8 +32,8 @@
         <article class="en-nov">
             <div class="en-nov__texto">
                 <span class="en-chip">Nuevo</span>
-                <h2>El cierre del mes, en una pantalla</h2>
-                <p>Ve de un vistazo qué le falta a cada cliente: XML, constancia, opinión de cumplimiento y declaraciones.</p>
+                <h2>Tu cierre del mes, a la vista</h2>
+                <p>Cliente por cliente: qué está listo y qué falta para cerrar.</p>
             </div>
             <div class="en-nov__arte" aria-hidden="true">
                 <div class="en-mini">
@@ -72,11 +51,11 @@
                 <span class="en-chip">Windows</span>
                 <h2>Fiscontable Agente</h2>
                 <p>Haz los trámites del SAT desde tu PC, con tu internet y tu navegador. Muy pronto en Microsoft Store.</p>
-                <a class="en-enlace" href="/soporte/">Cómo funciona <span aria-hidden="true">→</span></a>
+                <a class="en-enlace" href="/soporte/#agente">Cómo funciona <span aria-hidden="true">→</span></a>
             </div>
             <div class="en-nov__arte" aria-hidden="true">
                 <div class="en-ventana">
-                    <div class="en-ventana__barra"><svg viewBox="0 0 64 64"><use href="/assets/marca/simbolos.svg?v=202611111900#fiscontable"></use></svg>Fiscontable Agente</div>
+                    <div class="en-ventana__barra"><svg viewBox="0 0 64 64"><use href="/assets/marca/simbolos.svg?v=202611112000#fiscontable"></use></svg>Fiscontable Agente</div>
                     <div class="en-ventana__cuerpo">
                         <p><b>Estado</b><span><i class="punto"></i>Conectado</span></p>
                         <p><b>Último trámite</b><span>Constancia ✓</span></p>
@@ -88,7 +67,7 @@
     </aside>
 </main>
 
-<script src="/assets/js/nucleo.js?v=202611111900"></script>
-<script src="/assets/js/demo.js?v=202611111900"></script>
+<script src="/assets/js/nucleo.js?v=202611112000"></script>
+<script src="/assets/js/comun/forma-demo.js?v=202611112000"></script>
 </body>
 </html>

@@ -2046,6 +2046,6 @@ async function verComo(correo) {
     try {
         const r = await fetch(`${Fiscontable.API}/api/admin/ver-como`, { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ correo }) });
         if (!r.ok) throw new Error(await Fiscontable.leerError(r));
-        location.href = "/";
+        location.href = "/inicio/";
     } catch (e) { alert(e.message); }
 }

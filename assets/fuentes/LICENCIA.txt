@@ -1,0 +1,7 @@
+Tipografías de esta carpeta (copias locales tomadas de Fontsource, sin cambios):
+
+  Inter               © The Inter Project Authors (https://github.com/rsms/inter)
+  JetBrains Mono      © The JetBrains Mono Project Authors (https://github.com/JetBrains/JetBrainsMono)
+  IBM Plex Sans/Mono  © IBM Corp. (https://github.com/IBM/plex)
+
+Todas se distribuyen bajo la SIL Open Font License, versión 1.1: https://openfontlicense.org

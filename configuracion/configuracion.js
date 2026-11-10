@@ -124,7 +124,7 @@
 
     function listo() {
         if (window.parent !== window) window.parent.postMessage({ fiscontable: "config-listo", seccion: actual }, location.origin);
-        else location.href = "/";
+        else location.href = "/inicio/";
     }
 
     function aviso(caja, ok, texto) {

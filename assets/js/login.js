@@ -27,7 +27,7 @@
     // Solo páginas de esta misma web (el servidor también lo revisa), y nunca la propia pantalla de inicio de sesión
     var ruta = "";
     try { var u = new URL(volver, location.href); if (u.origin === location.origin) ruta = u.pathname; } catch (e) { /* inválida */ }
-    if (!volver || !ruta || /^\/(login|entrar)(\/|\.html)?$/.test(ruta) || ruta.indexOf("/entrar/") === 0) volver = location.origin + "/";
+    if (!volver || !ruta || /^\/(login|entrar)(\/|\.html)?$/.test(ruta) || ruta.indexOf("/entrar/") === 0 || ruta === "/") volver = location.origin + "/inicio/";   // el tablero (la portada es la página pública)
 
     var quiereLicencia = location.hash === "#licencia";
     var enlace = "";
