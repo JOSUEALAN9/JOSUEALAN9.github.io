@@ -2500,10 +2500,10 @@
             document.dispatchEvent(new CustomEvent("fc:perfil", { detail: null }));
             return;
         }
-        var entrar = "/entrar/?motivo=sesion&volver=" + encodeURIComponent(location.href);
+        var entrar = urlEntrar("sesion");
         var reintentar = { texto: "Reintentar", accion: function () { promesaPerfil = null; iniciarPerfil(); } };
         if (tipo === "sesion") {
-            if (!irAEntrar("sesion")) aviso("Tu sesión terminó. Entra de nuevo para continuar.", [{ texto: "Entrar", href: entrar }, reintentar]);
+            if (!irAEntrar("sesion")) aviso("Tu sesión terminó. Inicia sesión de nuevo para continuar.", [{ texto: "Iniciar sesión", href: entrar }, reintentar]);
             document.dispatchEvent(new CustomEvent("fc:perfil", { detail: null }));
             return;
         }
@@ -2511,7 +2511,7 @@
         // servidor está caído. Una ruta pública del servidor lo distingue.
         servidorResponde().then(function (responde) {
             if (responde && irAEntrar("sesion")) return;
-            if (responde) aviso("Tu sesión terminó. Entra de nuevo para continuar.", [{ texto: "Entrar", href: entrar }, reintentar]);
+            if (responde) aviso("Tu sesión terminó. Inicia sesión de nuevo para continuar.", [{ texto: "Iniciar sesión", href: entrar }, reintentar]);
             else aviso("El servidor no responde en este momento. Intenta en unos minutos.", [reintentar]);
         });
         document.dispatchEvent(new CustomEvent("fc:perfil", { detail: null }));
@@ -2525,8 +2525,16 @@
         try { antes = +sessionStorage.getItem("fc-entrar") || 0; } catch (e) { /* sin almacenamiento */ }
         if (ahora - antes < 20000) return false;
         try { sessionStorage.setItem("fc-entrar", String(ahora)); } catch (e) { /* sin almacenamiento */ }
-        location.replace("/entrar/?motivo=" + motivo + "&volver=" + encodeURIComponent(location.href));
+        location.replace(urlEntrar(motivo));
         return true;
+    }
+
+    // La pantalla «Iniciar sesión» con la dirección limpia (fiscontable.app/login): el motivo y la página a la que se
+    // regresa se le pasan por dentro (sessionStorage de esta pestaña), no en la barra de direcciones.
+    function urlEntrar(motivo) {
+        try { sessionStorage.setItem("fc-entrar-datos", JSON.stringify({ motivo: motivo, volver: location.href, en: Date.now() })); }
+        catch (e) { return "/login?motivo=" + motivo + "&volver=" + encodeURIComponent(location.href); }
+        return "/login";
     }
 
     // ¿Responde el servidor? Ruta pública (la usan las PCs con el agente): sin token contesta 401, que basta.

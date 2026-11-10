@@ -1,4 +1,4 @@
-/* entrar.css — Pantalla de entrada de Fiscontable. Página pública: no carga la barra ni pide sesión.
+/* login.css — Pantalla «Iniciar sesión» de Fiscontable (/login). Página pública: no carga la barra ni pide sesión.
    Fondo cálido con luces de la marca, tarjeta de entrada a la izquierda y novedades a la derecha. */
 .en {
     --en-fondo: #161513;
