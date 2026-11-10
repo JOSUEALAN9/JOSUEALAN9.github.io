@@ -123,6 +123,18 @@ async function verificarAdminYCargar() {
     }
 }
 
+/* Los apartados van en cuatro grupos (Cuentas, Ventas, Operación, Sistema): arriba se elige el grupo y abajo solo se
+   ven sus apartados. Cada grupo recuerda el último apartado que se abrió; un punto avisa si adentro hay pendientes. */
+const ultimaDeGrupo = {};
+function grupoDe(nombre) { const b = document.querySelector('[data-pestana="' + nombre + '"]'); return b ? b.dataset.deGrupo : "cuentas"; }
+function pintarGrupos(activo) {
+    document.querySelectorAll("#adm-grupos [data-grupo]").forEach(g => {
+        if (activo) g.setAttribute("aria-pressed", String(g.dataset.grupo === activo));
+        const pendientes = Array.from(document.querySelectorAll('[data-de-grupo="' + g.dataset.grupo + '"] .text-amber-600')).some(x => x.textContent.trim());
+        g.querySelector(".adm-grupos__punto").hidden = !pendientes;
+    });
+    if (activo) document.querySelectorAll("[data-de-grupo]").forEach(b => { b.hidden = b.dataset.deGrupo !== activo; });
+}
 function abrirPestana(nombre) {
     if (!PESTANAS.includes(nombre)) nombre = "usuarios";
     document.querySelectorAll("[data-pestana]").forEach(b => {
@@ -130,8 +142,12 @@ function abrirPestana(nombre) {
         b.classList.toggle("pestana--activa", activa);
         b.setAttribute("aria-selected", activa ? "true" : "false");
     });
+    ultimaDeGrupo[grupoDe(nombre)] = nombre;
+    pintarGrupos(grupoDe(nombre));
     PESTANAS.forEach(p => { $("panel-" + p).hidden = p !== nombre; });
     if (location.hash !== "#" + nombre) history.replaceState(null, "", "#" + nombre);
+    // Dentro de Configuración: se le avisa la pestaña para que la recuerde en su dirección (al recargar se vuelve a esta)
+    if (window.parent !== window) { try { window.parent.postMessage({ fiscontable: "config-sub", sub: nombre }, location.origin); } catch (e) { /* nada */ } }
 
     // La actividad se refresca automáticamente solo mientras está a la vista.
     clearInterval(relojActividad);
@@ -146,6 +162,12 @@ function abrirPestana(nombre) {
 
 function prepararEventos() {
     document.querySelectorAll("[data-pestana]").forEach(b => b.addEventListener("click", () => abrirPestana(b.dataset.pestana)));
+    document.querySelectorAll("#adm-grupos [data-grupo]").forEach(g => g.addEventListener("click", () => {
+        const primera = document.querySelector('[data-pestana][data-de-grupo="' + g.dataset.grupo + '"]');
+        abrirPestana(ultimaDeGrupo[g.dataset.grupo] || (primera && primera.dataset.pestana) || "usuarios");
+    }));
+    // Los contadores de pendientes llegan después: el punto de cada grupo se actualiza cuando cambian
+    new MutationObserver(() => pintarGrupos()).observe(document.querySelector(".pestanas"), { subtree: true, childList: true, characterData: true });
     document.querySelectorAll("[data-cerrar]").forEach(b => b.addEventListener("click", () => $(b.dataset.cerrar).close()));
 
     // Usuarios
