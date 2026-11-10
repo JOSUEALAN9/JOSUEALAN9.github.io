@@ -174,7 +174,8 @@
         }
         caja.className = "isn-datos";
         var dom = [d.domicilio, d.numero_exterior, d.numero_interior, d.colonia, d.codigo_postal ? "CP " + d.codigo_postal : "", d.localidad].filter(Boolean).join(", ");
-        caja.innerHTML = "<span><b>" + esc(dom || "Sin domicilio") + "</b></span>" + (esInf() ? "" : "<span>Giro: <b>" + esc(d.giro || "—") + "</b></span>") +
+        caja.innerHTML = "<span><b>" + esc(dom || "Sin domicilio") + "</b></span>" + (esInf() ? "" : "<span>Giro: <b>" + esc(d.giro || "—") + "</b></span>" + (d.giro ? "" : '<span class="isn-falta">Falta el giro' +
+                (E.datos.giro_isn ? " (se puede usar el del ISN)" : "") + ': sin él no se puede presentar. <button type="button" class="xml-enlace" data-accion="datos">Elegirlo</button></span>')) +
             (E.imp.sistema ? "<span>Sistema: <b>" + esc(d.sistema || "—") + "</b></span>" : "") +
             "<span>Firma: <b>" + esc(d.firma || "—") + "</b></span><span>" + (d.establecimientos || []).length + " establecimiento(s)</span>" +
             (d.origen === "acuse" && d.periodo_origen ? '<span class="isn-nota">del acuse ' + esc(d.periodo_origen) + "</span>" : "") +
@@ -191,17 +192,19 @@
             (E.imp.sistema ? '<label>Sistema<select data-campo="sistema">' + ["", "Todo incluido", "Normal", "Mixto"].map(function (s) {
                 return "<option" + (s === (d.sistema || "") ? " selected" : "") + ">" + s + "</option>"; }).join("") + "</select></label>" : "") +
             campos.map(function (c) {
-                return "<label" + (c.largo > 40 ? ' class="isn-ancho"' : "") + ">" + esc(c.titulo) + (c.obligatorio ? " *" : "") +
+                return "<label" + (c.largo > 40 ? ' class="isn-ancho"' : "") + ">" + esc(c.titulo) + (c.obligatorio || c.clave === "giro" ? " *" : "") +
                     '<input data-campo="' + c.clave + '" maxlength="' + c.largo + '" value="' + esc(d[c.clave] || "") + '"' +
-                    (c.clave === "giro" ? ' list="giros-tributanet" placeholder="Escribe y elige uno de la lista de Tributanet" autocomplete="off"' : "") + "></label>";
-            }).join("") + '<datalist id="giros-tributanet"></datalist>';
-        // El giro debe ser uno del catálogo de Tributanet: se ofrece la lista para elegirlo (si no coincide, no se puede presentar)
+                    "></label>";
+            }).join("");
+        // Giro: buscador sobre el catálogo de Tributanet (se puede escribir a mano) y la propuesta del giro del ISN de la
+        // misma empresa, que la persona confirma con «Usar el mismo» y Guardar
         if (!esInf()) {
             (E.giros ? Promise.resolve(E.giros) : api("/api/estatales/giros").then(function (r) { return r.json(); }).then(function (g) { return (E.giros = g.giros || []); }))
+                .catch(function () { return []; })                      // sin lista se escribe a mano
                 .then(function (giros) {
-                    var lista = document.getElementById("giros-tributanet");
-                    if (lista) lista.innerHTML = giros.map(function (g) { return '<option value="' + esc(g) + '">'; }).join("");
-                }).catch(function () { /* sin lista se puede escribir a mano */ });
+                    var campo = document.querySelector('#datos-campos [data-campo="giro"]');
+                    if (campo && !campo.dataset.listo) { campo.dataset.listo = "1"; GiroTributanet.conectar(campo, { giros: giros, propuesta: E.datos.giro_isn, origen: "ISN" }); }
+                });
         }
         $("datos-obligacion").checked = d.obligacion == null ? true : !!d.obligacion;
         $("est-filas").innerHTML = "";
