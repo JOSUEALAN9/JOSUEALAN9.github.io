@@ -37,18 +37,22 @@
         modulos: "M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z",
         campana: "M15 17h5l-1.4-1.4A2 2 0 0118 14.2V11a6 6 0 00-4-5.7V5a2 2 0 10-4 0v.3A6 6 0 006 11v3.2a2 2 0 01-.6 1.4L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9",
         reloj: "M12 7v5l3 2M21 12a9 9 0 11-18 0 9 9 0 0118 0z",
+        candado: "M6 11h12v9H6zM8 11V8a4 4 0 018 0v3M12 15v2",
         equipo: "M17 20h5v-2a3 3 0 00-5.4-1.8M17 20H7m10 0v-2c0-.7-.1-1.3-.4-1.8M7 20H2v-2a3 3 0 015.4-1.8M7 20v-2c0-.7.1-1.3.4-1.8m0 0a5 5 0 019.2 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"
     };
     function ico(d) { return '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="' + d + '"/></svg>'; }
 
     /* Las secciones: {id, grupo, titulo, desc, palabras, ver(perfil), pintar(caja)} */
     var SECCIONES = [
-        { id: "perfil", grupo: "Tu cuenta", titulo: "Mi perfil", ico: ICO.persona, desc: "Tu nombre y teléfono de contacto.", palabras: "nombre teléfono correo cuenta pin bloqueo inactividad seguridad",
-          pintar: pintarPerfil },
+        { id: "perfil", grupo: "Tu cuenta", titulo: "Mi perfil", ico: ICO.persona, desc: "Tu foto, tu nombre, tu teléfono y cómo se ven las tablas.",
+          palabras: "nombre teléfono correo cuenta foto imagen densidad tablas compacta preferencias", pintar: pintarPerfil },
+        { id: "seguridad", grupo: "Tu cuenta", titulo: "Seguridad", ico: ICO.candado, desc: "Tu contraseña, la verificación en dos pasos, las sesiones abiertas y el bloqueo por inactividad.",
+          palabras: "seguridad contraseña clave dos pasos verificación código autenticación sesiones abiertas equipos de confianza pin bloqueo inactividad",
+          pintar: function (c) { pintarSeguridad(c); pintarBloqueo(c); } },
         { id: "plan", grupo: "Tu cuenta", titulo: "Plan y créditos", ico: ICO.creditos, desc: "Tu plan, su vigencia y tus créditos.", palabras: "plan créditos recargar vigencia pago",
           pintar: pintarPlan },
-        { id: "avisos", grupo: "Tu cuenta", titulo: "Avisos", ico: ICO.campana, desc: "Qué avisos te llegan también por correo y a qué dirección.",
-          palabras: "avisos correo notificaciones campana actividad email", pintar: pintarAvisos },
+        { id: "avisos", grupo: "Tu cuenta", titulo: "Avisos", ico: ICO.campana, desc: "Qué avisos te llegan también por correo, a qué dirección, y el resumen de tu cartera.",
+          palabras: "avisos correo notificaciones campana actividad email resumen semanal diario lunes cartera", pintar: pintarAvisos },
         { id: "programaciones", grupo: "Tu cuenta", titulo: "Programaciones", ico: ICO.reloj, desc: "Todo lo que se hace solo: qué, de qué empresa, cada cuánto y cuándo toca.",
           palabras: "programar programaciones automático madrugada constancia opinión declaraciones xml buzón validación listas", pintar: pintarProgramaciones },
         { id: "despacho", grupo: "Tu cuenta", titulo: "Mi despacho", ico: ICO.equipo, solo_despacho: true,
@@ -63,8 +67,8 @@
         { id: "buzon", grupo: "Módulos", titulo: "Buzón tributario", ico: ICO.buzon, modulo: "buzon",
           desc: "Cada cuánto se revisan solos los buzones de tus empresas.", palabras: "buzón tributario notificaciones revisión automática frecuencia",
           pintar: pintarBuzon },
-        { id: "descarga_xml", grupo: "Módulos", titulo: "Descarga automática de XML", ico: ICO.xml, modulo: "descarga_xml",
-          desc: "Qué empresas bajan solas sus XML del SAT, desde qué mes y cada cuánto.", palabras: "descarga masiva xml automática sat madrugada",
+        { id: "descarga_xml", grupo: "Módulos", titulo: "XML automáticos", ico: ICO.xml, modulo: "descarga_xml",
+          desc: "Qué empresas bajan solas sus XML del SAT, desde qué mes y cada cuánto.", palabras: "descarga masiva automática de xml sat madrugada bajar solos",
           pintar: pintarXmlAuto },
         { id: "impuestos", grupo: "Módulos", titulo: "Impuestos por empresa", ico: ICO.balanza, modulo: "marcas",
           desc: "Cuándo cuenta cada impuesto (flujo o devengado), estatales, alcohol y las reglas que Fiscontable aprendió de cada empresa.",
@@ -103,6 +107,7 @@
 
     var actual = null;
     function abrir(id, sub) {
+        if (id === "perfil" && (sub === "pin" || sub === "olvide" || sub === "seguridad")) id = "seguridad";   // antes vivían en Mi perfil
         var s = visibles().filter(function (x) { return x.id === id; })[0] || visibles()[0];
         actual = s.id;
         if (!incrustado) Fiscontable.url({ seccion: s.id, sub: sub || null });
@@ -196,9 +201,7 @@
                 aviso(c, true, "Guardado.");
             } catch (e) { aviso(c, false, e.message); }
         });
-        pintarSeguridad(c);
         pintarPreferencias(c);
-        pintarBloqueo(c);
     }
 
     /* Seguridad (inicio de sesión propio, core/cuentas.py): contraseña, verificación en dos pasos y sesiones abiertas.
@@ -207,9 +210,9 @@
         var caja = previa || document.createElement("div");
         caja.className = "cf-tarjeta"; caja.style.marginTop = "14px";
         if (!previa) c.appendChild(caja);
-        caja.innerHTML = '<h3 class="cf-sub">Seguridad</h3><p class="cf-texto">Cargando…</p>';
+        caja.innerHTML = '<h3 class="cf-sub">Inicio de sesión</h3><p class="cf-texto">Cargando…</p>';
         var d;
-        try { d = await api("/api/mi-cuenta"); } catch (e) { caja.innerHTML = '<h3 class="cf-sub">Seguridad</h3><p class="cf-msj cf-msj--mal">' + esc(e.message) + "</p>"; return; }
+        try { d = await api("/api/mi-cuenta"); } catch (e) { caja.innerHTML = '<h3 class="cf-sub">Inicio de sesión</h3><p class="cf-msj cf-msj--mal">' + esc(e.message) + "</p>"; return; }
         var admin = perfil && perfil.rol === "admin";
         function fecha(iso) { var x = new Date(/Z$/.test(iso) ? iso : iso + "Z"); return isNaN(x) ? "" : x.toLocaleString("es-MX", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }); }
         // «Chrome en Windows» en lugar del texto técnico del navegador
@@ -219,7 +222,7 @@
             var so = /Windows/.test(ua) ? "Windows" : /Android/.test(ua) ? "Android" : /iPhone|iPad/.test(ua) ? "iPhone o iPad" : /Mac OS X/.test(ua) ? "Mac" : /Linux/.test(ua) ? "Linux" : "";
             return nav && so ? nav + " en " + so : nav || so || "Navegador";
         }
-        caja.innerHTML = '<h3 class="cf-sub">Seguridad</h3>' +
+        caja.innerHTML = '<h3 class="cf-sub">Inicio de sesión</h3>' +
             (d.propio ? "" : '<p class="cf-texto">Hoy entras con un código que llega a tu correo. Cuando se active el inicio de sesión con contraseña, usarás la que pongas aquí' +
                 (admin ? " (se activa en Administración → Usuarios)." : ".") + "</p>") +
             '<div class="cf-seg"><div class="cf-seg__cab"><b>Contraseña</b><span>' + (d.tiene_clave ? "Puesta" + (d.clave_cambiada ? " · cambiada el " + esc(fecha(d.clave_cambiada)) : "") : "Sin contraseña todavía") + "</span>" +
@@ -446,7 +449,35 @@
                 '<label class="cf-campo"><span>Mandar los avisos a</span><input type="email" id="cf-av-destino" value="' + esc(p.destino || "") + '"></label>' +
                 '<div class="cf-acciones"><button type="button" class="cf-btn cf-btn--principal" id="cf-av-guardar">Guardar</button>' +
                 '<button type="button" class="cf-btn" id="cf-av-prueba">Mandar un correo de prueba</button><span class="cf-msj"></span></div>' +
-                '<p class="cf-texto" style="margin-top:12px">Los correos salen por el mismo correo que usas en Facturar (el general de Fiscontable o el tuyo).</p></div>';
+                '<p class="cf-texto" style="margin-top:12px">Los correos salen por el mismo correo que usas en Facturar (el general de Fiscontable o el tuyo).</p></div>' +
+                '<div class="cf-tarjeta" id="cf-av-caja-resumen" style="margin-top:14px"><h3 class="cf-sub">Resumen por correo</h3>' +
+                '<p class="cf-texto">Un solo correo con cómo va tu cartera: el cierre del mes, lo que pasó y lo que está por vencer. ' +
+                "Lleva nombres de empresas y conteos; no lleva importes ni archivos.</p>" +
+                '<div class="ctx-segmento cf-segmento" role="group" aria-label="Cada cuándo llega el resumen" id="cf-av-resumen">' +
+                Object.keys(p.frecuencias_resumen || {}).map(function (f) {
+                    return '<button type="button" data-resumen="' + esc(f) + '" aria-pressed="' + ((p.resumen || "") === f) + '">' + esc(p.frecuencias_resumen[f]) + "</button>";
+                }).join("") + "</div>" +
+                '<div class="cf-acciones"><button type="button" class="cf-btn" id="cf-av-resumen-ya">Mándame uno ahora</button><span class="cf-msj"></span></div></div>';
+            var guardado = p;                                   // lo último que quedó guardado (el resumen se guarda solo, sin tocar lo demás)
+            var cajaResumen = $("cf-av-caja-resumen");
+            $("cf-av-resumen").addEventListener("click", async function (e) {
+                var b = e.target.closest("[data-resumen]"); if (!b || b.getAttribute("aria-pressed") === "true") return;
+                var botones = cajaResumen.querySelectorAll("[data-resumen]");
+                botones.forEach(function (x) { x.disabled = true; });
+                try {
+                    guardado = await enviar("/api/actividad/preferencias", "PUT",
+                        { correo: guardado.correo, destino: guardado.destino || null, dias_vence: guardado.dias_vence, resumen: b.dataset.resumen });
+                    botones.forEach(function (x) { x.setAttribute("aria-pressed", String(x === b)); });
+                    aviso(cajaResumen, true, b.dataset.resumen ? "✓ Listo: te llegará a " + guardado.destino + "." : "✓ Apagado: ya no te llegará.");
+                } catch (er) { aviso(cajaResumen, false, er.message); }
+                finally { botones.forEach(function (x) { x.disabled = false; }); }
+            });
+            $("cf-av-resumen-ya").addEventListener("click", async function () {
+                var b = this; b.disabled = true; aviso(cajaResumen, true, "Armándolo…");
+                try { var r = await enviar("/api/actividad/resumen-ahora", "POST", {}); aviso(cajaResumen, true, "✓ Enviado a " + r.destino + "."); }
+                catch (er) { aviso(cajaResumen, false, er.message); }
+                finally { b.disabled = false; }
+            });
             $("cf-av-guardar").addEventListener("click", async function () {
                 var correo = {};
                 c.querySelectorAll("[data-tipo]").forEach(function (x) { correo[x.dataset.tipo] = x.checked; });
@@ -454,7 +485,7 @@
                 if (!dias.length) { aviso(c, false, "Escribe al menos un número de días (por ejemplo 30, 15, 5)."); return; }
                 try {
                     var g = await enviar("/api/actividad/preferencias", "PUT", { correo: correo, destino: $("cf-av-destino").value.trim() || null, dias_vence: dias });
-                    $("cf-av-dias").value = (g.dias_vence || dias).join(", "); aviso(c, true, "✓ Guardado.");
+                    guardado = g; $("cf-av-dias").value = (g.dias_vence || dias).join(", "); aviso(c, true, "✓ Guardado.");
                 }
                 catch (e) { aviso(c, false, e.message); }
             });
@@ -582,7 +613,7 @@
         catch (e) { $("cf-cuerpo").innerHTML = '<p class="cf-msj cf-msj--mal">' + esc(e.message) + "</p>"; return; }
         menu = Fiscontable.riel($("cf-menu"), {
             id: "ajustes", cabeza: '<h1 class="cf-menu__titulo">Configuración</h1>', vacio: "Nada coincide.",
-            buscar: { campo: true, texto: "Buscar en la configuración", alEscribir: function (texto) {
+            buscar: { campo: true, texto: "Buscar un ajuste", alEscribir: function (texto) {
                 pintarMenu();
                 var primero = $("cf-menu").querySelector("[data-riel]");
                 if (primero && texto.trim()) abrir(primero.dataset.riel);

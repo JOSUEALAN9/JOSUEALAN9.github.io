@@ -2593,7 +2593,7 @@
     // Tras tener que volver a entrar por no tener PIN: ofrecer crearlo para la próxima vez
     function sugerirPin() {
         aviso("Tu pantalla se bloqueó por inactividad y tuviste que volver a entrar. Crea un PIN y la próxima vez la desbloqueas al momento, sin salir.", [
-            { texto: "Crear mi PIN", accion: function () { ocultarAviso(); abrirConfiguracion("perfil", "pin"); } },
+            { texto: "Crear mi PIN", accion: function () { ocultarAviso(); abrirConfiguracion("seguridad", "pin"); } },
             { texto: "Ahora no", accion: ocultarAviso }
         ]);
     }
@@ -2618,7 +2618,7 @@
             // Pidió «Olvidé mi PIN» y ya entró de nuevo con su correo: directo a poner uno nuevo
             if (leerLS(LLAVE_OLVIDE) && bloqueo.pin && b.puede_restablecer && !p.pantalla_bloqueada && !leerLS(LLAVE_BLOQ)) {
                 ponerLS(LLAVE_OLVIDE, null);
-                setTimeout(function () { abrirConfiguracion("perfil", "olvide"); }, 600);
+                setTimeout(function () { abrirConfiguracion("seguridad", "olvide"); }, 600);
             }
         }
         if (bloqueo.activa) pintarCapa();

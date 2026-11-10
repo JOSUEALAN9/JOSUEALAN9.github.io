@@ -231,7 +231,7 @@ function pintarInicioPropio() {
         <span class="ui-estado ${p ? "ui-estado--ok" : ""}"><b>Inicio de sesión:</b>&nbsp;${p ? "con correo y contraseña (propio)" : "con Cloudflare (código al correo)"}</span>
         <button type="button" class="ui-btn ${p ? "ui-btn--secundario" : "ui-btn--primario"} ui-btn--32" id="adm-propio-btn">${p ? "Volver a Cloudflare" : "Activar inicio de sesión propio"}</button></div>
         <p class="text-xs text-slate-500 mt-2">${p ? "Cada quien entra con su contraseña en fiscontable.app/login. A quien no tenga contraseña, mándale su enlace de acceso (botón «Acceso»)."
-            : "Antes de activarlo: 1) pon tu contraseña y la verificación en dos pasos en Configuración → Mi perfil → Seguridad; 2) en Cloudflare quita api.fiscontable.app de la aplicación «Fiscal» (deja josuealan.com como está). Después, manda el enlace de acceso a cada usuario."}</p>`;
+            : "Antes de activarlo: 1) pon tu contraseña y la verificación en dos pasos en Configuración → Seguridad; 2) en Cloudflare quita api.fiscontable.app de la aplicación «Fiscal» (deja josuealan.com como está). Después, manda el enlace de acceso a cada usuario."}</p>`;
     $("adm-propio-btn").addEventListener("click", async () => {
         const activar = !cuentasEstado.propio;
         if (!confirm(activar ? "¿Activar el inicio de sesión con correo y contraseña?\n\nLa pantalla de inicio de sesión pedirá contraseña desde ahora." : "¿Volver a iniciar sesión con Cloudflare (código al correo)?")) return;

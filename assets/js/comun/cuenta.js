@@ -1,5 +1,5 @@
 /**
- * cuenta.js — Piezas únicas del inicio de sesión propio (las usan /login y Configuración → Mi perfil → Seguridad).
+ * cuenta.js — Piezas únicas del inicio de sesión propio (las usan /login y Configuración → Seguridad).
  * Solo necesitan nucleo.js (la pantalla de inicio de sesión no carga la barra).
  *
  *   Fiscontable.campoClave(caja, { etiqueta, confirmar, oscuro, autocompletar })

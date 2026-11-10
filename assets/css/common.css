@@ -2019,3 +2019,11 @@ tr[tabindex="0"]:focus-visible, [tabindex="0"]:focus-visible { outline: 2px soli
 .fdp--oscuro .fdp__respaldo { background: rgba(255, 255, 255, .06); border-color: rgba(255, 255, 255, .14); color: #F4F2EE; }
 .fdp--oscuro .fdp__msj { color: #F6B4A0; }
 .fdp--oscuro .fdp__ok { color: #8FD3B5; }
+
+/* Control segmentado (dos o tres opciones, una encendida). Pieza común: barra de contexto, Configuración, visores… */
+.ctx-segmento { display: inline-flex; align-items: center; background: rgb(var(--g-200)); border-radius: 12px; padding: 4px; gap: 4px; max-width: 100%; }
+.ctx-segmento button { border: 0; background: none; border-radius: 9px; padding: 7px 12px; font: inherit; font-size: 13px; font-weight: 800;
+  color: rgb(var(--g-600)); cursor: pointer; white-space: nowrap; }
+.ctx-segmento button[aria-pressed="true"] { background: rgb(var(--g-0)); color: rgb(var(--g-900)); box-shadow: 0 1px 3px rgba(15,23,42,.15); }
+.ctx-segmento button:focus-visible { outline: 2px solid rgb(var(--ac-500)); outline-offset: 1px; }
+.ctx-segmento button:disabled { opacity: .6; cursor: default; }
