@@ -1148,7 +1148,7 @@
         if (!BJ.cargandoZip) {
             BJ.cargandoZip = new Promise(function (ok, mal) {
                 var sc = document.createElement("script");
-                sc.src = "https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js";
+                sc.src = "/assets/js/terceros/jszip.min.js";
                 sc.onload = ok; sc.onerror = function () { BJ.cargandoZip = null; mal(new Error("No se pudo abrir el ZIP (falló la descarga del lector de ZIP).")); };
                 document.head.appendChild(sc);
             });

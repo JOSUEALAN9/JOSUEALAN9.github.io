@@ -922,7 +922,7 @@
        El de Chrome dentro de una página se ve oscuro y en el teléfono casi nunca abre. Este dibuja cada página como
        imagen, igual en todos lados, con zoom, descargar e imprimir. verPdf(blob|url, {titulo, nombre}) abre la ventana;
        pdfEn(elemento, blob) lo pinta dentro de una caja (por ejemplo, la vista previa del último paso). */
-    var PDFJS = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/";
+    var PDFJS = "/assets/js/terceros/pdfjs/";            // PDF.js 3.11.174, en nuestro propio sitio
     var pdfjsListo = null;
     function cargarPdfjs() {
         if (!pdfjsListo) {
@@ -2122,7 +2122,7 @@
         if (window.XLSX) return Promise.resolve(window.XLSX);
         if (!sheetjs) sheetjs = new Promise(function (ok, mal) {
             var sc = document.createElement("script");
-            sc.src = "https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js";
+            sc.src = "/assets/js/terceros/xlsx.full.min.js";      // SheetJS 0.18.5: aquí solo ESCRIBE Excel
             sc.onload = function () { ok(window.XLSX); }; sc.onerror = function () { sheetjs = null; mal(new Error("No se pudo preparar el Excel. Revisa tu conexión.")); };
             document.head.appendChild(sc);
         });

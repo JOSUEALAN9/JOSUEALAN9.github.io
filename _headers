@@ -6,3 +6,8 @@
   Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()
   Strict-Transport-Security: max-age=31536000
   Cross-Origin-Opener-Policy: same-origin
+  # Política de contenido: el navegador solo carga código de este sitio (y SheetJS para leer Excel en Constancias y
+  # Opinión, y el contador de visitas de Cloudflare) y solo habla con nuestros servidores. Si alguien lograra colar un
+  # script, no podría traer más código de fuera ni mandar datos a otro servidor. Falta quitar el código en línea de
+  # las páginas para poder retirar 'unsafe-inline' de script-src.
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.sheetjs.com https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://api.fiscontable.app https://api.josuealan.com https://api-pruebas.josuealan.com; font-src 'self'; connect-src 'self' https://api.fiscontable.app https://api.josuealan.com https://api-pruebas.josuealan.com https://cloudflareinsights.com; frame-src 'self' blob:; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self' https://api.fiscontable.app https://api.josuealan.com https://api-pruebas.josuealan.com; frame-ancestors 'self'
