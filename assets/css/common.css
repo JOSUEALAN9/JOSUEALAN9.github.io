@@ -843,6 +843,12 @@ body.fc-sin-scroll { overflow: hidden; }
 
 /* Pestañas individual / masivo */
 .pestanas { display: flex; border-bottom: 1px solid var(--linea); margin-bottom: 20px; gap: 4px; }
+.pestana[hidden] { display: none; }
+/* Administración: los grupos de apartados (arriba de las pestañas) */
+.adm-grupos { margin-bottom: 14px; flex-wrap: wrap; }
+.adm-grupos button { position: relative; }
+.adm-grupos__punto { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #D97706; margin-left: 6px; vertical-align: middle; }
+.adm-grupos__punto[hidden] { display: none; }
 .pestana {
     border: 0; background: none; cursor: pointer;
     font: inherit; font-size: 14.5px; font-weight: 600;

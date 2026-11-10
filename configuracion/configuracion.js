@@ -617,7 +617,13 @@
         // «Listo» de una sección abierta adentro (Facturar, Administración): si esta página está en la ventana de un
         // módulo, la cierra; si es la página completa, solo confirma.
         window.addEventListener("message", function (ev) {
-            if (ev.origin !== location.origin || !ev.data || ev.data.fiscontable !== "config-listo" || ev.source === window) return;
+            if (ev.origin !== location.origin || !ev.data || ev.source === window) return;
+            // Una sección que vive en un marco (Administración) cambió de pestaña: se guarda en la dirección para que
+            // al recargar se vuelva a esa misma pestaña
+            if (ev.data.fiscontable === "config-sub" && !incrustado && typeof ev.data.sub === "string" && /^[a-z0-9_-]{1,30}$/.test(ev.data.sub)) {
+                Fiscontable.url({ sub: ev.data.sub }); return;
+            }
+            if (ev.data.fiscontable !== "config-listo") return;
             if (incrustado) listo();
         });
         try { perfil = await api("/api/mi-perfil"); }
