@@ -15,11 +15,11 @@
  * el campo para escribir el RFC a mano.
  *
  * Cuando llegas desde la ficha de un cliente (?rfc=...&cliente=...) el
- * paso se resuelve solo y se colapsa a una línea. Si no, se resuelve con
+ * paso se resuelve automáticamente y se colapsa a una línea. Si no, se resuelve con
  * la EMPRESA ACTIVA del selector general de la barra; "Cambiar" deja
  * elegir otro cliente o un RFC sin registrar (herramienta rápida) solo
  * para este trabajo, sin cambiar la empresa activa. Si cambias de empresa
- * en la barra, el paso se actualiza solo (salvo que hayas elegido a mano).
+ * en la barra, el paso se actualiza automáticamente (salvo que hayas elegido a mano).
  *
  * Con `soloRfc: true` (Descarga masiva: se puede entrar al portal con contraseña)
  * también se acepta escribir solo el RFC, sin .cer. Si el elegido no está en el

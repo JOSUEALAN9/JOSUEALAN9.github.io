@@ -177,7 +177,7 @@
     function celda(f, imp) {
         var x = f.marcas[imp];
         if (!x) return '<td class="fi-col-imp"><span class="fi-gris">—</span></td>';
-        var mano = x.origen !== "auto" ? '<i class="fi-punto" title="' + (x.origen === "regla" ? "Regla de la empresa" : "Marcado a mano") + '"></i>' : "";
+        var mano = x.origen !== "auto" ? '<i class="fi-punto" title="' + (x.origen === "regla" ? "Regla de la empresa" : "Marcado manualmente") + '"></i>' : "";
         var clase = !x.cuenta ? "no" : x.pct < 100 ? "parcial" : "si";
         var texto = !x.cuenta ? "✗ No" : "✓ " + m(x.base * x.pct / 100) + (x.pct < 100 ? ' <small>' + (Math.round(x.pct * 100) / 100) + " %</small>" : "");
         var cerrado = E.datos && E.datos.candado;
@@ -329,7 +329,7 @@
     }
 
     async function volverAutomatico() {
-        if (!(await Fiscontable.preguntar("Esos CFDI vuelven a lo que dicen las reglas (se quita lo marcado a mano). Las reglas aprendidas se quedan."))) return;
+        if (!(await Fiscontable.preguntar("Esos CFDI vuelven a lo que dicen las reglas (se quita lo marcado manualmente). Las reglas aprendidas se quedan."))) return;
         try {
             await enviar("/api/fiscal/" + encodeURIComponent(E.rfc) + "/automatico", "POST", { uuids: Array.from(E.sel), anio: E.anio, mes: E.mes });
             E.sel.clear();

@@ -83,7 +83,7 @@
                     "<b>" + x.n + (x.resultado !== "hecho" ? " · " + esc(x.resultado) : "") + "</b><span>" + esc(x.accion) + "</span></button>";
             }).join("") + "</div>" : '<div class="ui-vacio"><span>' + (c.en_curso ? "Abriendo el portal…" : "Este recorrido no guardó pantallas.") + "</span></div>") +
             (p ? '<div class="lb-datos"><b>' + esc(p.titulo || "(sin título)") + "</b><br>" + esc(p.url) + (p.detalle ? "<br>" + esc(p.detalle) : "") +
-                (p.ventanas && p.ventanas.length ? "<br>Ventanas que se cancelaron solas: " + p.ventanas.map(esc).join(" · ") : "") + "</div>" +
+                (p.ventanas && p.ventanas.length ? "<br>Ventanas que se cancelaron automáticamente: " + p.ventanas.map(esc).join(" · ") : "") + "</div>" +
                 '<div class="lb-vista"><div class="lb-captura" id="lb-captura"><div class="ui-vacio"><span>Cargando la captura…</span></div></div>' +
                 '<div class="lb-mapa"><table><thead><tr><th>Qué es</th><th>Texto</th><th></th></tr></thead><tbody>' +
                 (p.elementos.length ? p.elementos.map(filaMapa).join("") : '<tr><td colspan="3">Esta pantalla no tiene botones ni enlaces visibles.</td></tr>') + "</tbody></table></div></div>" : "");

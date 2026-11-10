@@ -353,6 +353,7 @@ a.fc-miga:hover { color: rgb(var(--g-0)); }
 }
 .fc-menu__valor { color: var(--texto); font-weight: 600; }
 .fc-menu__creditos { text-decoration: none; color: inherit; }
+.fc-menu__fila[hidden] { display: none; }
 .fc-menu__creditos:hover { background: var(--papel); }
 .fc-menu__creditos u { color: var(--acento); }
 

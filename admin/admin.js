@@ -133,7 +133,7 @@ function abrirPestana(nombre) {
     PESTANAS.forEach(p => { $("panel-" + p).hidden = p !== nombre; });
     if (location.hash !== "#" + nombre) history.replaceState(null, "", "#" + nombre);
 
-    // La actividad se refresca sola solo mientras está a la vista.
+    // La actividad se refresca automáticamente solo mientras está a la vista.
     clearInterval(relojActividad);
     if (nombre === "actividad") { pintarSesionesActividad(true); relojActividad = setInterval(() => { cargarProcesosAdmin(); pintarSesionesActividad(true); }, 30000); }
     if (nombre === "sistema") cargarSistema();
@@ -230,7 +230,7 @@ function pintarInicioPropio() {
     caja.innerHTML = `<div class="flex flex-wrap items-center gap-3">
         <span class="ui-estado ${p ? "ui-estado--ok" : ""}"><b>Inicio de sesión:</b>&nbsp;${p ? "con correo y contraseña (propio)" : "con Cloudflare (código al correo)"}</span>
         <button type="button" class="ui-btn ${p ? "ui-btn--secundario" : "ui-btn--primario"} ui-btn--32" id="adm-propio-btn">${p ? "Volver a Cloudflare" : "Activar inicio de sesión propio"}</button></div>
-        <p class="text-xs text-slate-500 mt-2">${p ? "Cada quien entra con su contraseña en fiscontable.app/login. A quien no tenga contraseña, mándale su enlace de acceso (botón «Acceso»)."
+        <p class="text-xs text-slate-500 mt-2">${p ? "Cada quien entra con su contraseña en fiscontable.app/login. A quien no tenga contraseña, envíale su enlace de acceso (botón «Acceso»)."
             : "Antes de activarlo: 1) pon tu contraseña y la verificación en dos pasos en Configuración → Seguridad; 2) en Cloudflare quita api.fiscontable.app de la aplicación «Fiscal» (deja josuealan.com como está). Después, manda el enlace de acceso a cada usuario."}</p>`;
     $("adm-propio-btn").addEventListener("click", async () => {
         const activar = !cuentasEstado.propio;
@@ -1074,12 +1074,12 @@ async function codigoRevision(boton) {
     if (que === "copiar-web") {
         const web = location.hostname.indexOf("pruebas.") === 0 ? location.origin : "https://fiscontable.app";
         const texto = `Página: ${web}/login?revision\nUsuario: ${revisionTienda.usuario_web}\nContraseña: ${revisionTienda.clave}\nCódigo para el Agente: ${revisionTienda.codigo}`;
-        try { await navigator.clipboard.writeText(texto); boton.textContent = "¡Copiado!"; } catch (e) { boton.textContent = "Cópialo a mano"; }
+        try { await navigator.clipboard.writeText(texto); boton.textContent = "Copiado"; } catch (e) { boton.textContent = "Cópialo manualmente"; }
         setTimeout(() => { boton.textContent = "Copiar los tres"; }, 2000);
         return;
     }
     if (que === "copiar") {
-        try { await navigator.clipboard.writeText(revisionTienda.codigo); boton.textContent = "¡Copiado!"; } catch (e) { boton.textContent = revisionTienda.codigo; }
+        try { await navigator.clipboard.writeText(revisionTienda.codigo); boton.textContent = "Copiado"; } catch (e) { boton.textContent = revisionTienda.codigo; }
         setTimeout(() => { boton.textContent = "Copiar código"; }, 2000);
         return;
     }
@@ -1098,9 +1098,9 @@ function tarjetaInstalador(i) {
     const a = i.actual;
     const linea = a ? `Instalador en la Vostro: <b>versión ${esc(a.version)}</b> · ${Math.round(a.tamano / 1048576)} MB · bajado ${esc(haceCuanto(a.bajado))}`
                     : "La Vostro todavía no tiene el instalador.";
-    const falta = !i.configurado ? '<span class="block text-amber-700">Falta la llave de GitHub de solo lectura (FISCONTABLE_GITHUB_TOKEN en /etc/fiscontable.env). Sin ella no se bajan versiones nuevas.</span>' : "";
+    const falta = !i.configurado ? '<span class="block text-amber-700">Falta la llave de GitHub de solo lectura (FISCONTABLE_GITHUB_TOKEN en /etc/fiscontable.env). Sin ella no se descargan versiones nuevas.</span>' : "";
     const error = i.error ? `<span class="block text-red-700">${esc(i.error)}</span>` : "";
-    const revisado = i.intento ? `<span class="block text-slate-400">Última revisión en GitHub: ${esc(haceCuanto(i.intento))} (sola cada hora)</span>` : "";
+    const revisado = i.intento ? `<span class="block text-slate-400">Última revisión en GitHub: ${esc(haceCuanto(i.intento))} (automática, cada hora)</span>` : "";
     return `<div class="mt-3 pt-2 border-t border-gray-100 text-[11px] text-slate-600">${linea}${falta}${error}${revisado}
         <button type="button" id="btn-revisar-instalador" class="mt-1 text-[11px] border border-gray-200 rounded-lg py-0.5 px-2 hover:bg-gray-50">Revisar ahora en GitHub</button></div>`;
 }
@@ -1133,7 +1133,7 @@ async function quitarPc(boton) {
     } catch (err) { mostrarAlerta("error", err.message); }
 }
 
-// Plazos del Buzón (cuándo queda notificada y cuándo surte efectos): los de ley se calculan solos;
+// Plazos del Buzón (cuándo queda notificada y cuándo surte efectos): los de ley se calculan automáticamente;
 // aquí van los que declare el SAT (vacaciones, días de la RMF).
 const fechaLarga = (iso) => new Date(iso + "T12:00:00").toLocaleDateString("es-MX", { day: "numeric", month: "short", year: "numeric" });
 function tarjetaInhabiles() {
@@ -1169,7 +1169,7 @@ async function guardarInhabiles(boton) {
 function tarjetaXmlAuto() {
     const d = xmlAutoAdmin, hoy = new Date();
     const actual = hoy.getFullYear() + "-" + String(hoy.getMonth() + 1).padStart(2, "0");
-    return `<p class="text-sm text-slate-800">Las cuentas pueden bajar desde <b>${esc(Fiscontable.nombreMes(d.desde_minimo).toLowerCase())}</b></p>
+    return `<p class="text-sm text-slate-800">Las cuentas pueden descargar desde <b>${esc(Fiscontable.nombreMes(d.desde_minimo).toLowerCase())}</b></p>
         <p class="text-[11px] text-slate-500 mt-1">Cada quien elige en la ficha de la empresa desde qué mes; no pueden ir antes de este. Tú sí, en tus empresas.</p>
         <div class="flex items-center gap-2 mt-3">
             <input type="month" id="xml-auto-minimo" data-guarda="btn-guardar-xml-auto" value="${esc(d.desde_minimo)}" min="${esc(d.tope_admin)}" max="${actual}" class="border border-gray-200 rounded-lg p-1.5 text-xs">
@@ -1195,7 +1195,7 @@ function tarjetaTimbres() {
         <p class="text-[11px] ${d.panel ? "text-emerald-700" : "text-amber-700"} mt-1">${d.panel ? "✓ Conectado al panel de MultiFacturas" : "Sin conexión al panel de MultiFacturas (faltan sus claves en el servidor)"}</p>
         ${d.bolsa && d.bolsa.timbres != null ? `<div class="mt-2 rounded-xl bg-indigo-50 border border-indigo-100 px-4 py-3"><p class="text-[11px] font-bold uppercase tracking-wide text-indigo-700">Saldo general en MultiFacturas</p>
             <p class="text-2xl font-extrabold text-slate-900 leading-tight">${Number(d.bolsa.timbres).toLocaleString("es-MX")}</p>
-            <p class="text-[11px] ${d.bolsa.fuente === "panel" ? "text-emerald-700" : "text-slate-500"}">${d.bolsa.fuente === "panel" ? "✓ Real, leído de tu panel de MultiFacturas" + (d.bolsa.leido_en ? " " + haceCuanto(d.bolsa.leido_en) : "") : "Escrito a mano (se baja al repartir)"}</p>
+            <p class="text-[11px] ${d.bolsa.fuente === "panel" ? "text-emerald-700" : "text-slate-500"}">${d.bolsa.fuente === "panel" ? "✓ Real, leído de tu panel de MultiFacturas" + (d.bolsa.leido_en ? " " + haceCuanto(d.bolsa.leido_en) : "") : "Capturado manualmente (se descuenta al repartir)"}</p>
             ${d.bolsa.fuente === "panel" || d.bolsa.error ? `<div class="flex items-center gap-2 mt-2"><button type="button" id="btn-actualizar-saldo" class="whitespace-nowrap text-xs font-bold text-slate-700 bg-white border border-gray-200 hover:border-slate-400 rounded-lg py-1.5 px-3">↻ Actualizar</button>
             <span class="text-[11px] text-slate-500">Se vuelve a leer solo al abrir esta página si pasaron ${d.bolsa.cada_min || 5} min, y al pasar o quitar timbres.</span></div>` : ""}</div>` : `<p class="text-[11px] text-amber-700 mt-1">Saldo general de MultiFacturas sin registrar: escríbelo en «Ver y asignar».</p>`}
         ${d.bolsa && d.bolsa.error ? `<p class="text-[11px] text-amber-700 mt-1">No se pudo leer de tu panel: ${esc(d.bolsa.error)}</p>` : ""}
@@ -1228,7 +1228,7 @@ function cuerpoErroresPac() {
         <td class="py-2 pr-3">${esc(x.operacion)}${x.pruebas ? ' <span class="text-[10px] font-bold text-amber-700">PRUEBA</span>' : ""}<span class="block text-[11px] text-slate-400">${esc(x.rfc || "")} · ${esc(x.referencia || "")}</span><span class="block text-[11px] text-slate-400">${esc(x.owner_email)}</span></td>
         <td class="py-2 pr-3">${esc(x.mensaje)}</td>
         <td class="py-2 text-right"><button type="button" data-copiar-error="${esc(x.id)}" class="text-xs font-bold text-slate-700 border border-gray-200 hover:border-slate-400 rounded-lg py-1.5 px-3 whitespace-nowrap">Copiar para soporte</button></td></tr>`).join("");
-    return `<p class="text-xs text-slate-500 mb-3">Los rechazos de los últimos 90 días. A soporte de MultiFacturas mándale el número de seguimiento con lo que copia el botón (código, servidor, tiempo, versión y su bitácora).</p>
+    return `<p class="text-xs text-slate-500 mb-3">Los rechazos de los últimos 90 días. A soporte de MultiFacturas envíale el número de seguimiento con lo que copia el botón (código, servidor, tiempo, versión y su bitácora).</p>
         <table class="w-full text-xs"><thead><tr class="text-left text-slate-500"><th class="pb-2">Seguimiento</th><th class="pb-2">Qué</th><th class="pb-2">Mensaje</th><th></th></tr></thead>
         <tbody>${filas || '<tr><td colspan="4" class="py-6 text-center text-slate-400">Sin errores del PAC. 🎉</td></tr>'}</tbody></table>`;
 }
@@ -1545,7 +1545,7 @@ async function cargarEstadoSAT() {
         return;
     }
     pintarEstadoSAT();
-    // Mientras algo se está revisando o está por revisarse, se actualiza solo
+    // Mientras algo se está revisando o está por revisarse, se actualiza automáticamente
     clearTimeout(relojSAT);
     const pronto = estadoSAT.servicios.some(s => s.revisando || (s.proxima_revision && aFecha(s.proxima_revision) - Date.now() < 120000));
     if (pronto && !$("panel-sistema").hidden) relojSAT = setTimeout(cargarEstadoSAT, 15000);

@@ -1,6 +1,6 @@
 /*
  * admin/documentos-admin.js — Pestaña Documentos de Administración: saldo en UnlockerFast,
- * pedidos que no se resolvieron solos (reintentar / devolver créditos), catálogo con
+ * pedidos que no se resolvieron automáticamente (reintentar / devolver créditos), catálogo con
  * precio en créditos y todos los pedidos.
  */
 (function () {

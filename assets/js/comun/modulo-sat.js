@@ -204,7 +204,7 @@
                 await bajarBlob("/api/documentos/descargar?rfc=" + encodeURIComponent(elegido.rfc) +
                     "&tipo=" + MODULO.tipo, MODULO.prefijoArchivo + "_" + elegido.rfc + ".pdf");
             } catch (resp) {
-                alerta("error", "No se pudo bajar el documento guardado. Prueba pidiendo uno nuevo.");
+                alerta("error", "No se pudo descargar el documento guardado. Prueba pidiendo uno nuevo.");
             } finally {
                 b.disabled = false;
                 b.textContent = "Descargar";
@@ -486,7 +486,7 @@
                         t.nombre_descarga || (MODULO.prefijoArchivo + "_" + rfc + ".pdf"));
                     alerta("bien", "Listo. El documento ya se descargó.");
                 } catch (err) {
-                    alerta("error", "El documento se generó, pero no se pudo bajar solo. Búscalo en Mis descargas.");
+                    alerta("error", "El documento se generó, pero no se pudo descargar automáticamente. Búscalo en Mis descargas.");
                 }
                 estado.cache = { generado_en: new Date().toISOString().slice(0, 19) };
                 vistaCache();
@@ -525,7 +525,7 @@
         } catch (e) { /* si no se puede consultar, no se dice nada */ }
     }
 
-    // Lote que se cortó a la mitad (se reinició el servidor): aquí mismo se baja lo que sí salió y se reanudan
+    // Lote que se cortó a la mitad (se reinició el servidor): aquí mismo se descarga lo que sí salió y se reanudan
     // los que faltan, sin volver a subir la carpeta ni gastar del contador lo que ya estaba hecho.
     async function mostrarCortados() {
         var caja = $("lotes-cortados");
@@ -915,7 +915,7 @@
                 try {
                     await bajarBlob("/api/lotes/" + loteId + "/descargar", lote.nombre_descarga || "Lote.zip");
                 } catch (err) {
-                    alerta("error", "El lote se generó, pero no se pudo bajar solo. Búscalo en Mis descargas.");
+                    alerta("error", "El lote se generó, pero no se pudo descargar automáticamente. Búscalo en Mis descargas.");
                     return;
                 }
                 if (lote.fallidos && lote.fallidos.length) {

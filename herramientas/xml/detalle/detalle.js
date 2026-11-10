@@ -149,7 +149,7 @@
         var clase = !x.cuenta ? "no" : x.pct < 100 ? "parcial" : "si";
         var texto = !x.cuenta ? "✗ No" : "✓ $" + m(x.base * x.pct / 100) + (x.pct < 100 ? " · " + x.pct + " %" : "");
         return '<span class="det-marca det-marca--' + clase + '" title="' + esc(x.motivo || "") + '"><b>' + esc(nombre) + "</b> " + texto +
-            (x.origen !== "auto" ? ' <i title="' + (x.origen === "regla" ? "Regla de la empresa" : "Marcado a mano") + '">●</i>' : "") + "</span>";
+            (x.origen !== "auto" ? ' <i title="' + (x.origen === "regla" ? "Regla de la empresa" : "Marcado manualmente") + '">●</i>' : "") + "</span>";
     }
 
     async function marcas(r) {
@@ -186,7 +186,7 @@
             if (c.cancelada) html += '<p class="det-enlace__estado det-enlace__estado--no">Cancelada en el SAT.</p>';
             else if (c.en_proceso) html += '<p class="det-enlace__estado det-enlace__estado--proc">Se pidió su cancelación y el SAT la está procesando.</p>';
             else if (c.pendiente_de_responder) html += '<p class="det-enlace__estado det-enlace__estado--proc">El emisor pidió cancelarla y espera tu respuesta' +
-                (c.limite_respuesta ? " (a más tardar el " + esc(f(c.limite_respuesta)) + ")" : " (72 horas)") + '. Si no respondes, se cancela sola.</p>';
+                (c.limite_respuesta ? " (a más tardar el " + esc(f(c.limite_respuesta)) + ")" : " (72 horas)") + '. Si no respondes, se cancela automáticamente.</p>';
             else html += '<p class="det-enlace__estado">Vigente' + (c.es_cancelable ? " · " + esc(c.es_cancelable) : "") + (c.estatus_cancelacion ? " · " + esc(c.estatus_cancelacion) : "") + ".</p>";
             if (c.historial.length) {
                 html += '<ul class="det-enlace__hist">' + c.historial.slice(0, 4).map(function (h) {

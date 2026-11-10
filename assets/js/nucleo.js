@@ -14,7 +14,7 @@
 (function () {
     "use strict";
 
-    var VERSION = "202611120806";
+    var VERSION = "202611120807";
     // www.fiscontable.app → fiscontable.app: una sola dirección (la sesión y las preferencias guardadas son por dirección)
     if (location.hostname === "www.fiscontable.app") {
         location.replace("https://fiscontable.app" + location.pathname + location.search + location.hash);
@@ -113,7 +113,7 @@
         setTimeout(function () { URL.revokeObjectURL(url); }, 120000);
     }
 
-    /* Lo que hizo el agente (la PC del contador) ya quedó guardado en esa PC: no se vuelve a bajar solo.
+    /* Lo que hizo el agente (la PC del contador) ya quedó guardado en esa PC: no se vuelve a descargar automáticamente.
        Se dice dónde quedó y un botón le pide a esa PC que abra la carpeta (Mostrar en mi PC). */
     function carpetaEnPc(ruta) {
         var r = String(ruta || "").replace(/\//g, "\\");

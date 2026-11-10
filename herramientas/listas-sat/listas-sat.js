@@ -119,7 +119,7 @@
         if (b.dataset.ir) { location.href = b.dataset.ir; return; }
         var rfc = b.dataset.rfc;
         var registrada = (await apiJSON("/api/clientes").catch(function () { return []; })).some(function (c) { return c.rfc === rfc; });
-        if (registrada && (!E.empresa || E.empresa.rfc !== rfc)) await Fiscontable.elegirEmpresa(rfc);   // la barra avisa y se recarga sola
+        if (registrada && (!E.empresa || E.empresa.rfc !== rfc)) await Fiscontable.elegirEmpresa(rfc);   // la barra avisa y se recarga automáticamente
         else abrirEmpresa(rfc);
     }
 

@@ -1,4 +1,4 @@
-/* Compartir documentos en UN enlace (paquete): el cliente abre una página sin cuenta, ve la lista y baja cada PDF o
+/* Compartir documentos en UN enlace (paquete): el cliente abre una página sin cuenta, ve la lista y descarga cada PDF o
    XML, o todo en un ZIP. Se usa en Facturar › Emitidas y en Administración de XML.
      Fiscontable.compartir({ rfc, items: [{tipo: "comprobante", id} | {tipo: "xml", rfc, uuid}], titulo, correo, alListo })
      Fiscontable.enlacesCompartidos({ rfc }) */
@@ -28,7 +28,7 @@
             '    <label class="fc-cmp-campo fc-cmp-campo--todo"><span>Mensaje <i>(opcional)</i></span><textarea data-c="mensaje" rows="3" maxlength="1000" placeholder="Te comparto las facturas del mes…"></textarea></label>' +
             "  </div></div>" +
             '  <div data-c="listo" hidden>' +
-            '    <p class="fc-cmp-ok">✓ Enlace listo. Quien lo abra ve los documentos y los baja (cada uno o todos en un ZIP), sin cuenta.</p>' +
+            '    <p class="fc-cmp-ok">✓ Enlace listo. Quien lo abra ve los documentos y los descarga (cada uno o todos en un ZIP), sin cuenta.</p>' +
             '    <div class="fc-cmp-enlace"><input data-c="url" readonly><button type="button" class="fc-btn fc-btn--principal" data-c="copiar">Copiar</button></div>' +
             '    <div class="fc-cmp-acciones"><a class="fc-btn" data-c="abrir" target="_blank" rel="noopener">Ver la página</a><a class="fc-btn" data-c="wa" target="_blank" rel="noopener">Mandar por WhatsApp</a>' +
             '      <button type="button" class="fc-btn" data-c="ver-correo">Mandar por correo</button></div>' +

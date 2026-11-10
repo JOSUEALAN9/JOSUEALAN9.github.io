@@ -1,6 +1,6 @@
 /**
  * forma-demo.js — El formulario «Solicita una demo». Un solo componente para la página principal (#registro) y /demo.
- * Uso:  <div data-forma-demo data-idioma="es"></div>   (se monta solo)   o   Fiscontable.formaDemo(caja, { idioma: "en" })
+ * Uso:  <div data-forma-demo data-idioma="es"></div>   (se monta automáticamente)   o   Fiscontable.formaDemo(caja, { idioma: "en" })
  * Manda la solicitud a /publico/demo (sin cookies). El servidor revisa todo (core/demos.py): el campo trampa, el tiempo
  * mínimo para llenarlo y los topes por red y por correo. Estilos: assets/css/forma-demo.css.
  */
@@ -17,7 +17,7 @@
             enviar: "Solicitar mi demo", enviando: "Enviando…",
             faltaNombre: "Escribe tu nombre.", faltaCorreo: "Escribe un correo válido: ahí te llega el acceso.", faltaAcepto: "Para continuar, acepta el Aviso de privacidad.",
             fallo: "No pudimos enviar tu solicitud. Intenta de nuevo en unos minutos.",
-            listo: "Recibimos tu solicitud", listoTexto: "Te escribimos a tu correo en cuanto esté lista tu demo. Revisa también la carpeta de correo no deseado."
+            listo: "Recibimos tu solicitud", listoTexto: "Recibirás un correo en cuanto tu demo esté activa. Revisa también la carpeta de correo no deseado."
         },
         en: {
             nombre: "Your name", correo: "Email", telefono: "Phone", opcional: "(optional)", personas: "How many people?",

@@ -11,7 +11,7 @@
  *
  * El periodo se elige con atajos por mes (Desde / Hasta) y, si hace falta,
  * con días y horas exactos. Arranca en el periodo general de la barra.
- * Las solicitudes viven en un panel lateral que se actualiza solo; si el
+ * Las solicitudes viven en un panel lateral que se actualiza automáticamente; si el
  * portal pide captcha, aparece una ventana para escribirlo.
  */
 (function () {
@@ -132,7 +132,7 @@
         $("btn-buscar").hidden = !portal;
         $("btn-descargar").textContent = portal ? "Buscar y descargar" : "Solicitar descarga";
         $("nota-modo").textContent = portal
-            ? "Buscar CFDI trae la lista del portal con su estado; Buscar y descargar baja solo los XML que todavía no están en tu biblioteca. El portal muestra 500 por búsqueda: si hay más, se parte el periodo solo."
+            ? "Buscar CFDI trae la lista del portal con su estado; Buscar y descargar descarga únicamente los XML que todavía no están en tu biblioteca. El portal muestra 500 por búsqueda: si hay más, se parte el periodo solo."
             : "El SAT prepara cada solicitud por su cuenta: puede tardar de minutos a horas. No necesitas dejar esta página abierta; la ves abajo, en Solicitudes al SAT.";
         pintarAcceso();
         pintarResumen();
@@ -812,7 +812,7 @@
             if (!r.ok) { alerta(await Fiscontable.leerError(r)); return; }
             Fiscontable.guardarArchivo(await r.blob(), boton.dataset.nombre || "descarga_sat");
         } catch (e) {
-            alerta("No se pudo bajar el archivo. Búscalo en Mis descargas.");
+            alerta("No se pudo descargar el archivo. Búscalo en Mis descargas.");
         } finally {
             boton.disabled = false;
             etiqueta.textContent = texto;
@@ -841,7 +841,7 @@
     })();
 
     /* ================================================================ descarga automática
-       Por empresa: prendida o apagada, qué (emitidos, recibidos o ambos) y cada cuánto. Cada cambio se guarda solo. */
+       Por empresa: activa o inactiva, qué (emitidos, recibidos o ambos) y cada cuánto. Cada cambio se guarda automáticamente. */
     var AUTO = { datos: null, hecho: {} };
     function diaCorto(iso) {
         if (!iso) return "";
@@ -868,7 +868,7 @@
         var estado = !ok ? '<a class="dm-auto__falta" href="/clientes/?editar=' + encodeURIComponent(e.rfc) + '&ficha=accesos">Falta su e.firma · subirla</a>'
             : !e.activo ? '<span class="dm-auto__estado">Apagada</span>'
             : '<span class="dm-auto__estado">Próxima: <b>' + esc(diaCorto(e.proxima)) + "</b>" +
-                (e.falta_historico ? '<br><span class="dm-auto__hist">Esa noche baja desde ' + esc(Fiscontable.nombreMes(e.desde).toLowerCase()) + "</span>" : "") +
+                (e.falta_historico ? '<br><span class="dm-auto__hist">Esa noche descarga desde ' + esc(Fiscontable.nombreMes(e.desde).toLowerCase()) + "</span>" : "") +
                 (e.ultima ? "<br>Última: " + esc(diaCorto(e.ultima)) : "") + "</span>";
         if (ok) estado += '<button type="button" class="dm-auto__ahora" data-ahora title="Pedir al SAT ahora el mismo periodo de la madrugada">Bajar ahora</button>';
         if (AUTO.hecho[e.rfc]) estado += '<span class="dm-auto__hecho">' + esc(AUTO.hecho[e.rfc]) + "</span>";
@@ -876,7 +876,7 @@
             '<td><label class="dm-sw" title="' + (ok ? "Prender o apagar" : "Primero guarda su e.firma") + '"><input type="checkbox" data-auto="activo"' + (e.activo && ok ? " checked" : "") + (ok ? "" : " disabled") + "><span></span></label></td>" +
             '<td><select data-auto="tipo"' + (e.activo && ok ? "" : " disabled") + ">" + opciones(d.tipos, e.tipo) + "</select></td>" +
             '<td><select data-auto="frecuencia"' + (e.activo && ok ? "" : " disabled") + ">" + opciones(d.frecuencias, e.frecuencia) + "</select></td>" +
-            '<td><select data-auto="desde" title="La primera vez baja todo desde ese mes; luego sigue al día"' + (e.activo && ok ? "" : " disabled") + ">" +
+            '<td><select data-auto="desde" title="La primera vez descarga todo desde ese mes; luego sigue al día"' + (e.activo && ok ? "" : " disabled") + ">" +
                 Fiscontable.opcionesDesde(d.desde_minimo, d.mes_actual, e.desde || "") + "</select></td>" +
             "<td>" + estado + "</td></tr>";
     }
@@ -886,9 +886,9 @@
         var lista = d.empresas.filter(function (e) { return !q || (e.alias + " " + e.rfc).toLowerCase().indexOf(q) !== -1; });
         $("auto-filas").innerHTML = lista.length ? lista.map(filaAuto).join("")
             : '<tr><td colspan="6">' + (d.empresas.length ? "Ninguna coincide." : 'Todavía no tienes empresas. <a href="/clientes/?nuevo=1">Registrar empresa</a>') + "</td></tr>";
-        $("auto-nota").textContent = "Cada madrugada se bajan solos por el web service del SAT, con la e.firma guardada de cada empresa, y entran a Administración de XML. " +
+        $("auto-nota").textContent = "Cada madrugada se descargan automáticamente por el web service del SAT, con la e.firma guardada de cada empresa, y entran a Administración de XML. " +
             "Esta noche tocaría del " + diaCorto(d.periodo_esta_noche.desde) + " al " + diaCorto(d.periodo_esta_noche.hasta) +
-            " (hasta ayer; los primeros días del mes también el mes anterior completo). Con «Desde», la primera vez baja todo desde ese mes.";
+            " (hasta ayer; los primeros días del mes también el mes anterior completo). Con «Desde», la primera vez descarga todo desde ese mes.";
         var activas = d.empresas.filter(function (e) { return e.activo && e.efirma_guardada; }).length;
         $("insignia-auto").textContent = activas; $("insignia-auto").hidden = !activas;
     }

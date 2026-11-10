@@ -446,7 +446,7 @@
         if (pend.length) {
             html += '<div class="bz-pendientes"><h3>Notificaciones pendientes (' + pend.length + ")</h3>" +
                 "<p><b>Las revisiones nunca las abren.</b> Si la abres con tu e.firma quedas notificado en ese momento y empiezan a correr los plazos. " +
-                "Si no la abres, el SAT te tiene por notificado al cuarto día hábil después del aviso (art. 17-K del CFF); en ese momento se bajan solos sus documentos.</p>" +
+                "Si no la abres, el SAT te tiene por notificado al cuarto día hábil después del aviso (art. 17-K del CFF); en ese momento se descargan automáticamente sus documentos.</p>" +
                 '<div class="bz-tabla-caja"><table class="bz-tabla"><thead><tr><th>Folio</th><th>Autoridad</th><th>Acto</th><th>Aviso</th><th>Quedas notificado</th>' + (puedeAbrir ? "<th></th>" : "") + "</tr></thead><tbody>" +
                 pend.map(function (x) {
                     var ap = x.apertura && x.apertura.estado === "error" ? '<span class="bz-apertura">Último intento de abrirla: ' + esc(x.apertura.mensaje) + "</span>" : "";
@@ -469,7 +469,7 @@
                     "<td>" + esc(fechaLocal(x.fecha_notificacion)) + '</td><td><div class="bz-acciones">' +
                     (x.documentos.length ? orden(x.documentos).map(function (k) {
                         return '<button type="button" class="bz-btn' + (k === "acto" ? " bz-btn--si" : "") + '" data-doc="' + x.id + '" data-clave="' + esc(k) + '" data-folio="' + esc(x.folio) + '">' + esc(nombreDoc(k)) + "</button>";
-                    }).join("") : '<small class="bz-tenue">Aún no se bajan: pulsa «Revisar ahora» (se bajan hasta 15 por revisión; también en la de la madrugada)</small>') + "</div></td></tr>";
+                    }).join("") : '<small class="bz-tenue">Aún no se descargan: pulsa «Revisar ahora» (se descargan hasta 15 por revisión; también en la de la madrugada)</small>') + "</div></td></tr>";
             }).join("") + "</tbody></table></div>";
     }
 

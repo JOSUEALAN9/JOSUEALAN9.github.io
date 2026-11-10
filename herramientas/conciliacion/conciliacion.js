@@ -185,7 +185,7 @@
         aviso.hidden = !E.otra;
         if (E.otra) {
             aviso.innerHTML = (reg ? "Estás viendo <strong>" + esc(nombreDe(E.otra)) + "</strong>, que no es tu empresa activa."
-                : "<strong>" + esc(nombreDe(E.otra)) + "</strong> no está en tu directorio: sus XML se borran solos " + Fiscontable.textoPlazo("xml_sin_registrar") + " después de la última carga." +
+                : "<strong>" + esc(nombreDe(E.otra)) + "</strong> no está en tu directorio: sus XML se borran automáticamente " + Fiscontable.textoPlazo("xml_sin_registrar") + " después de la última carga." +
                   ' <a class="xml-enlace" href="/clientes/">Registrarla como cliente</a>') +
                 (E.empresa ? ' <button type="button" class="xml-enlace" id="volver-empresa">Volver a ' + esc(E.empresa.alias || E.empresa.rfc) + "</button>" : "");
         }

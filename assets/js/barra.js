@@ -63,7 +63,7 @@
 
     // "¿Cómo se usa?": pocos pasos por herramienta (clave = data-ayuda o data-modulo)
     var AYUDA = {
-        clientes: ["+ Registrar empresa: sube su e.firma (el RFC sale solo del certificado), su nombre y tipo de sociedad; la contraseña del SAT es opcional.",
+        clientes: ["+ Registrar empresa: sube su e.firma (el RFC se obtiene automáticamente del certificado), su nombre y tipo de sociedad; la contraseña del SAT es opcional.",
                    "Editar (o el lápiz ✎ del menú de empresa, arriba, desde cualquier pantalla): e.firma guardada y obligaciones.",
                    "Los botones de cada tarjeta abren esa herramienta ya con el cliente elegido."],
         constancias: ["Arriba eliges Por empresa (una) o Masivo (varias).",
@@ -76,9 +76,9 @@
                   "\"Programar descarga\" la deja para la madrugada. Todo queda en Mis descargas."],
         declaraciones: ["Toma la empresa activa (o \"Otro contribuyente\").",
                         "Entra con su e.firma y elige el periodo.",
-                        "Se baja solo lo que todavía no tienes guardado de esa empresa; lo descargas en un ZIP."],
+                        "Se descarga únicamente lo que todavía no tienes guardado de esa empresa; lo descargas en un ZIP."],
         facturar: ["Elige arriba la empresa que factura. La primera vez, en Configuración: régimen, C.P., series y su CSD (sello digital).",
-                   "Nueva factura: cliente, pago y conceptos; los totales se calculan solos.",
+                   "Nueva factura: cliente, pago y conceptos; los totales se calculan automáticamente.",
                    "Antes de timbrar se revisa todo sin gastar timbre; al confirmar se manda al SAT.",
                    "En Emitidas bajas el XML, imprimes el PDF o cancelas. Una nota de crédito se relaciona con su factura."],
         descarga_xml: ["Elige la empresa o \"Otro contribuyente\" (con su e.firma o solo su RFC).",
@@ -94,7 +94,7 @@
                     "Descarga el resultado en Excel."],
         listas: ["Busca cualquier RFC.",
                  "Con la empresa activa ves cuáles de sus proveedores y clientes aparecen.",
-                 "Las listas se actualizan solas cada día."],
+                 "Las listas se actualizan automáticamente cada día."],
         conciliacion: ["Elige empresa y periodo arriba.",
                        "Escoge emitidas o recibidas.",
                        "Cruza cada factura con sus pagos y notas de crédito (tipo de cambio de Banxico).",
@@ -118,9 +118,9 @@
         buzon: ["Todas mis empresas: lo que hay que atender en cada una (pendientes, cancelaciones por responder, nuevos).",
                 "Revisión automática: elige cada cuánto se revisa en la madrugada; o marca empresas y Revisar ahora.",
                 "Abrir (o Por empresa): comunicados completos, solicitudes de cancelación con su fecha límite y notificaciones con sus PDF.",
-                "Las notificaciones pendientes NO se abren solas: abrirlas te da por notificado. Ábrelas tú en el SAT."],
+                "Las notificaciones pendientes NO se abren automáticamente: abrirlas te da por notificado. Ábrelas tú en el SAT."],
         marcas: ["Elige empresa, mes y Emitidas o Recibidas.",
-                 "Casi todo se marca solo y dice por qué; revisa «Por revisar».",
+                 "Casi todo se marca automáticamente y dice por qué; revisa «Por revisar».",
                  "Toca la casilla de un impuesto para decir si cuenta o no; el folio abre la factura.",
                  "⚙ Reglas: momento de cada impuesto, alcohol y lo aprendido. «Cerrar mes» cuando ya presentaste."],
         cancelaciones: ["«Por responder»: Buscar en el SAT y aceptar o rechazar una por una (72 horas).",
@@ -128,12 +128,12 @@
                         "«Historial»: lo enviado, su resultado, Revisar en el SAT y el acuse."],
         documentos: ["Elige el tipo (SAT, Actas, IMSS, INFONAVIT) y el documento.",
                      "Escribe la CURP, RFC o NSS que pide y Pedir. Se apartan los créditos que cuesta.",
-                     "Llega en minutos u horas: queda en Mis pedidos para descargarlo cuando quieras.",
-                     "Si no se puede obtener, se te devuelven los créditos solos."],
+                     "Llega en minutos u horas: queda en Mis pedidos para descargarlo en cualquier momento.",
+                     "Si no se puede obtener, los créditos se reembolsan automáticamente."],
         creditos: ["1 crédito = $1. Con ellos se pagan los documentos (actas, constancias, IMSS…).",
                    "Para recargar: deposita o transfiere a una de las cuentas y reporta tu pago (banco, clave de rastreo y comprobante).",
-                   "Cuando se valida, los créditos aparecen en tu saldo. Si un trámite falla, se te devuelven solos."],
-        descargas: ["Aquí queda todo lo que bajan las herramientas y la madrugada.",
+                   "Cuando se valida, los créditos aparecen en tu saldo. Si un trámite falla, se reembolsan automáticamente."],
+        descargas: ["Aquí queda todo lo que descargan las herramientas y la madrugada.",
                     "Descarga cada archivo o reintenta los que fallaron."]
     };
 
@@ -197,10 +197,10 @@
         { clave: "facturar", grupo: "Facturación", nombre: "Facturar", desc: "Facturas, notas de crédito y recibos de pago", url: "/herramientas/facturar/", permiso: "facturacion", icono: I.recibo, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
 
         // Documentos todavía no se publica: solo lo ve el administrador (como Nómina) hasta que esté listo
-        { clave: "documentos", grupo: "Documentos", soloAdmin: true, nombre: "Documentos", desc: "Actas, constancias, IMSS e INFONAVIT", url: "/herramientas/documentos/", permiso: "documentos", icono: I.credencial, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
+        { clave: "documentos", grupo: "Documentos", reservado: true, nombre: "Documentos", desc: "Actas, constancias, IMSS e INFONAVIT", url: "/herramientas/documentos/", permiso: "documentos", icono: I.credencial, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
 
-        { clave: "descargas", grupo: "Tu cuenta", cuenta: true, nombre: "Mis descargas", alias: "descargas", desc: "Todo lo que bajan las herramientas", url: "/descargas/", permiso: null, icono: I.bajar, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
-        { clave: "creditos", grupo: "Tu cuenta", cuenta: true, nombre: "Mis créditos", alias: "creditos saldo recargar", desc: "Saldo y recargas", url: "/creditos/", permiso: null, icono: I.moneda, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" }
+        { clave: "descargas", grupo: "Tu cuenta", cuenta: true, nombre: "Mis descargas", alias: "descargas", desc: "Todo lo que descargan las herramientas", url: "/descargas/", permiso: null, icono: I.bajar, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
+        { clave: "creditos", grupo: "Tu cuenta", cuenta: true, reservado: "documentos", nombre: "Mis créditos", alias: "creditos saldo recargar", desc: "Saldo y recargas", url: "/creditos/", permiso: null, icono: I.moneda, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" }
     ];
 
     // Lo último que usaste (para el menú «Módulos» y la portada)
@@ -407,8 +407,17 @@
             '<div class="fc-modulos__cuerpo" id="fc-modulos-cuerpo"></div></div>';
     }
 
-    // Lo que está en laboratorio (soloAdmin) no aparece para nadie más
-    function verModulo(m) { return !m.soloAdmin || !!(perfilActual && perfilActual.rol === "admin"); }
+    // Lo que está en laboratorio (soloAdmin) no aparece para nadie más. Lo reservado (Documentos y sus créditos) solo lo
+    // ve el administrador y la persona a quien él le asignó ese módulo: para los demás no existe (ni menú, ni buscador, ni recorrido).
+    function verModulo(m) {
+        var p = perfilActual, admin = !!(p && p.rol === "admin");
+        if (m.soloAdmin) return admin;
+        if (m.reservado) {
+            var permiso = m.reservado === true ? m.permiso : m.reservado;
+            return admin || !!(p && !p._error && !p.solo_lectura && (p.modulos_permitidos || []).indexOf(permiso) !== -1);
+        }
+        return true;
+    }
     function permitido(m) {
         if (!m.permiso) return true;
         var p = perfilActual;
@@ -1771,7 +1780,7 @@
 
     /**
      * Recalcula el número del botón y devuelve cuántos procesos siguen
-     * corriendo. El número suma dos cosas: lo que corre (se descuenta solo
+     * corriendo. El número suma dos cosas: lo que corre (se descuenta automáticamente
      * al terminar) y lo que ya terminó pero no has visto (se descuenta al
      * abrir el panel). Si no hay ni una ni otra, el número desaparece.
      */
@@ -2113,6 +2122,8 @@
         document.getElementById("fc-menu-telefono").textContent = p.telefono || "Sin teléfono";
         document.getElementById("fc-menu-plan").textContent = p.rol || "—";
         document.getElementById("fc-menu-vigencia").textContent = vigencia(p);
+        var filaCreditos = document.querySelector(".fc-menu__creditos");
+        if (filaCreditos) filaCreditos.hidden = !verModulo({ reservado: "documentos" });      // los créditos son de Documentos
         document.getElementById("fc-menu-creditos").textContent = p.creditos == null ? "—" : Number(p.creditos).toLocaleString("es-MX");
 
         // Configuración la ven todos; la parte de Administración solo el admin (adentro de Configuración)
@@ -2200,7 +2211,7 @@
        data-texto="clave". Se piden una vez por sesión del navegador (5 min) y se aplican encima de los de fábrica. */
     var textosWeb = {};
     /* ------------------------------------------------- plazos de guardado (C-01): lo que el admin configuró, no un número fijo
-       Fiscontable.textoPlazo("xml_sin_registrar") → "7 días" · "1 año". Los elementos con data-plazo="clave" se llenan solos. */
+       Fiscontable.textoPlazo("xml_sin_registrar") → "7 días" · "1 año". Los elementos con data-plazo="clave" se llenan automáticamente. */
     var PLAZOS = { procesos: 7, descargas_sat: 30, documentos: 30, reutilizar_documento: 20, xml_sin_registrar: 7, declaraciones: 365, voucheo: 7, actividad: 90 };
     function textoPlazo(clave) {
         var n = PLAZOS[clave];
@@ -3016,7 +3027,7 @@
         ["#fc-btn-empresa", "Empresa activa", "Con quién trabajas. Todos los módulos la usan; las favoritas salen primero."],
         ["#fc-btn-periodo", "Periodo general", "El mes con el que abren los módulos que trabajan por periodo."],
         [".mod-acciones--barra", "Acciones del módulo", "Lo que puedes hacer con lo que ves. «Ir a ▾» abre otro módulo con el mismo periodo."],
-        ["#linea-programa .fpu", "Programación", "Lo que se hace solo, de madrugada, y cada cuánto. «Cambiar» para ajustarlo."],
+        ["#linea-programa .fpu", "Programación", "Lo que se ejecuta automáticamente de madrugada y cada cuánto. «Cambiar» para ajustarlo."],
         [".fct-barra, .xml-toolbar", "La tabla", "Busca, filtra (los filtros quedan como etiquetas), elige columnas, guarda vistas y exporta a Excel."],
         ["#fc-btn-actividad", "Actividad", "Avisos de lo que terminó o cambió mientras no estabas (también pueden llegarte por correo)."],
         ["#fc-btn-descargas", "Descargas", "Los archivos que pediste: constancias, opiniones, XML y reportes."],
@@ -3133,7 +3144,7 @@
     });
 
     /* Esc en cualquier página: cierra la ventana o panel de encima (modales de los módulos, paneles de columnas,
-       detalle de conciliación…). Las <dialog> ya se cierran solas; la pantalla de bloqueo nunca. */
+       detalle de conciliación…). Las <dialog> ya se cierran automáticamente; la pantalla de bloqueo nunca. */
     function visible(el) { var r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0 && getComputedStyle(el).visibility !== "hidden"; }
     function cerrarCapaSuperior() {
         if (document.querySelector("dialog[open]") || document.getElementById("fc-bloqueo-pantalla")) return false;
@@ -3173,7 +3184,7 @@
     // página. Funciona en cualquier módulo, presente o futuro.
     function enCarril(tabla) {
         if (tabla.closest(".fc-carril") || tabla.closest("dialog")) return;
-        // Si ya vive en una caja que se desplaza sola (tablas de XML, Conciliación…), no se toca
+        // Si ya vive en una caja que se desplaza automáticamente (tablas de XML, Conciliación…), no se toca
         for (var e = tabla.parentElement; e && e.tagName !== "MAIN"; e = e.parentElement) {
             var o = getComputedStyle(e).overflowX;
             if (o === "auto" || o === "scroll") return;

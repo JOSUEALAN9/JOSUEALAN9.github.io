@@ -126,7 +126,7 @@ async function bajarInstalador(b) {
         if (!resp.ok) throw new Error(await Fiscontable.leerError(resp));
         Fiscontable.guardarArchivo(await resp.blob(), "FiscontableAgente-Setup.exe");
         alerta("ok", "Listo: abre FiscontableAgente-Setup.exe en esa PC. Al terminar se abre el agente y te pide el código (botón «Pedir código»).");
-    } catch (e) { alerta("error", e.message || "No se pudo bajar el instalador."); }
+    } catch (e) { alerta("error", e.message || "No se pudo descargar el instalador."); }
     delete b.dataset.bajando; b.disabled = false; b.textContent = "Descargar el agente (Windows)";
 }
 

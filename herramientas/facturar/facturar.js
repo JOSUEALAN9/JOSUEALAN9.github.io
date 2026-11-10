@@ -691,7 +691,7 @@
         calcular();
     }
 
-    /* Abre el renglón i para editarlo. El que estaba abierto se guarda solo: si está completo queda limpio;
+    /* Abre el renglón i para editarlo. El que estaba abierto se guarda automáticamente: si está completo queda limpio;
        si le falta algo se queda marcado con su error (sin perder lo escrito). Un renglón totalmente en blanco se quita. */
     function abrirConcepto(i, campo) {
         var previo = F.abierto;
@@ -2208,7 +2208,7 @@
         ponerCaptura(x.captura, (x.captura || {}).avisos_excel);
         F.borradorId = x.id;
         F.recurrenteId = recurrente ? x.id : null;
-        estadoCaptura(recurrente ? "Recurrente «" + x.nombre + "»: revísala y timbra; la próxima fecha se calcula sola." : "Prefactura «" + x.nombre + "» abierta.");
+        estadoCaptura(recurrente ? "Recurrente «" + x.nombre + "»: revísala y timbra; la próxima fecha se calcula automáticamente." : "Prefactura «" + x.nombre + "» abierta.");
         irPaso(1);
     }
 
@@ -2229,7 +2229,7 @@
     var DIAS = ["lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo"];
     function textoRepetir(r) {
         var cada = r.cada === "semana" ? "Cada " + DIAS[r.dia || 0] : r.cada === "quincena" ? "Cada quincena (1 y 16)" : "Cada mes, el día " + (r.dia || 1);
-        return cada + " · " + (r.modo === "timbrar" ? "se timbra sola" : "te avisa") + (r.proxima ? " · próxima " + fechaCorta(r.proxima + "T12:00:00") : "");
+        return cada + " · " + (r.modo === "timbrar" ? "se timbra automáticamente" : "te avisa") + (r.proxima ? " · próxima " + fechaCorta(r.proxima + "T12:00:00") : "");
     }
     function formaRepetir(x) {
         var r = x.recurrente || { activo: true, cada: "mes", dia: 1, modo: "avisar" };
@@ -2786,7 +2786,7 @@
         });
         $("conceptos").addEventListener("change", function (ev) {
             if (ev.target.matches('select[data-c="impuesto"], input[data-c="modo"]')) ev.target.dispatchEvent(new Event("input", { bubbles: true }));
-            // El SAT solo acepta letras y números en la cuenta predial: guiones, puntos y espacios se quitan solos
+            // El SAT solo acepta letras y números en la cuenta predial: guiones, puntos y espacios se quitan automáticamente
             if (ev.target.matches('input[data-c="cuenta_predial"]') && /[^0-9a-zA-Z]/.test(ev.target.value)) {
                 ev.target.value = ev.target.value.replace(/[^0-9a-zA-Z]/g, "");
                 ev.target.dispatchEvent(new Event("input", { bubbles: true }));
