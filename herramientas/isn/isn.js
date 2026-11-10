@@ -560,6 +560,7 @@
         $("mv-resumen").textContent = marcadas.length + " marcada(s) · " + listas.length + " lista(s) para presentar";
         $("mv-plantilla").disabled = !marcadas.length;
         $("mv-revisar").disabled = !conPeriodo.length;
+        if (window.AcusesBloque) AcusesBloque.contar({ marcadas: marcadasMasivo });
         $("mv-quitar").disabled = !conPeriodo.length;
         $("mv-presentar").disabled = !E.puedePresentar || !listas.length;
         $("mv-presentar").textContent = listas.length ? "Presentar " + listas.length : "Presentar marcadas";
@@ -797,6 +798,7 @@
         $("mv-excel").addEventListener("click", function () { $("in-excel").click(); });
         $("mv-revisar").addEventListener("click", revisarMasivo);
         $("mv-quitar").addEventListener("click", quitarMasivo);
+        if (window.AcusesBloque) AcusesBloque.conectar({ base: "/api/isn", marcadas: marcadasMasivo, que: "ISN" });
         $("mv-presentar").addEventListener("click", presentarMasivo);
         $("p-enviar").addEventListener("click", enviarLote);
         $("d-anio").addEventListener("change", pintarMesesDescarga);

@@ -455,6 +455,7 @@
         $("mv-ceros").disabled = !sin.length;
         $("mv-ceros").textContent = sin.length ? "0 En ceros (" + sin.length + ")" : "0 En ceros";
         $("mv-revisar").disabled = !con.length;
+        if (window.AcusesBloque) AcusesBloque.contar({ marcadas: marcadas });
         $("mv-quitar").disabled = !con.length;
         $("mv-presentar").disabled = !E.puedePresentar || !listas.length;
         $("mv-presentar").textContent = listas.length ? "Presentar " + listas.length : "Presentar marcadas";
@@ -728,6 +729,7 @@
         });
         $("mv-excel").addEventListener("click", function () { $("in-excel").click(); });
         $("mv-quitar").addEventListener("click", quitarMasivo);
+        if (window.AcusesBloque) AcusesBloque.conectar({ base: "/api/estatales", marcadas: marcadas, que: "impuestos estatales" });
         $("mv-revisar").addEventListener("click", async function () {
             var van = marcadas().filter(function (x) { return x.periodo && !x.periodo.presentada; });
             if (van.length && await Fiscontable.preguntar("Revisar en el portal " + van.length + " declaración(es) de " + mesMasivo() + " (no se llena ni se presenta nada).")) {
