@@ -1909,3 +1909,13 @@ tr[tabindex="0"]:focus-visible, [tabindex="0"]:focus-visible { outline: 2px soli
     font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
 .fc-letrero__boton--principal { background: rgb(var(--in-600)); border-color: rgb(var(--in-600)); color: rgb(var(--g-0)); }
 .fc-letrero__boton:disabled { opacity: .6; cursor: default; }
+
+
+/* --- Activar licencia (assets/js/comun/activar-licencia.js; se usa en /activar/ y en Configuración) --- */
+.al__forma { display: flex; align-items: flex-end; gap: 10px; flex-wrap: wrap; }
+.al__campo { flex: 1; min-width: 240px; }
+.al__clave { font-family: var(--fuente-mono); font-size: 16px; letter-spacing: .06em; text-transform: uppercase; }
+.al__msj { margin-top: 12px; padding: 10px 12px; border-radius: 10px; font-size: 14px; line-height: 1.5; background: rgb(var(--g-100)); color: rgb(var(--g-800)); }
+.al__msj--ok { background: rgb(var(--ok-50)); border: 1px solid rgb(var(--ok-200)); }
+.al__msj--error { background: rgb(var(--er-50)); border: 1px solid rgb(var(--er-200)); color: rgb(var(--er-600)); }
+.al__msj a { color: rgb(var(--ac-700)); font-weight: 700; }

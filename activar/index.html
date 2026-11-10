@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Activar licencia | Fiscontable</title>
+    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611111600">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611111600">
+    <style>
+        .act { max-width: 720px; }
+        .act-caja { display: grid; gap: 18px; padding: 28px; }
+        .act-caja h2 { font-size: 16px; font-weight: 700; color: rgb(var(--g-900)); }
+        .act-pasos { display: grid; gap: 8px; padding-left: 20px; font-size: 14px; color: rgb(var(--g-700)); list-style: decimal; }
+        .act-sub { font-size: 14px; color: rgb(var(--g-600)); margin-top: 4px; line-height: 1.5; }
+        .act-mias { font-size: 13.5px; color: rgb(var(--g-700)); }
+        .act-mias li { padding: 6px 0; border-top: 1px solid rgb(var(--g-100)); display: flex; flex-wrap: wrap; gap: 4px 12px; }
+        .act-mias li:first-child { border-top: 0; }
+        .act-mias code { font-family: var(--fuente-mono); font-size: 12.5px; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+    <div id="app-header" data-modulo="activar" data-titulo="Activar licencia" data-migas=""></div>
+<script src="/assets/js/nucleo.js?v=202611111600"></script>
+<script src="/assets/js/barra.js?v=202611111600"></script>
+
+    <main class="flex-grow w-full mod-pagina mod-pagina--angosta act">
+        <div class="mod-cabeza"><div><h1>Activar licencia</h1>
+            <p class="act-sub">Escribe la clave que te dimos. Se activa en la cuenta con la que iniciaste sesión y sirve una sola vez.</p></div></div>
+
+        <section class="ui-tarjeta act-caja">
+            <div id="act-forma"></div>
+            <ol class="act-pasos">
+                <li>Si es una licencia <b>individual</b>, tu plan y tu vigencia se actualizan al momento (si ya tenías una, los meses se suman).</li>
+                <li>Si es de <b>despacho</b>, se crea tu despacho y tú quedas como titular: después invitas a tu equipo desde <a class="text-emerald-700 font-bold" href="/despacho/">Mi despacho</a>.</li>
+                <li>¿No tienes clave? Pide una demo o escríbenos desde <a class="text-emerald-700 font-bold" href="/soporte/#contacto">Ayuda</a>.</li>
+            </ol>
+        </section>
+
+        <section class="ui-tarjeta act-caja" id="act-mias-caja" hidden>
+            <h2>Tus licencias</h2>
+            <ul class="act-mias" id="act-mias"></ul>
+        </section>
+    </main>
+
+<script src="/assets/js/comun/activar-licencia.js?v=202611111600"></script>
+<script>
+(function () {
+    "use strict";
+    var F = window.Fiscontable, esc = F.escapar;
+    function fecha(iso) { var d = new Date(iso); return isNaN(d) ? "" : d.toLocaleDateString("es-MX", { day: "numeric", month: "short", year: "numeric" }); }
+    async function mias() {
+        try {
+            var r = await fetch(F.API + "/api/licencias/mias", { credentials: "include" });
+            if (!r.ok) return;
+            var d = await r.json(), filas = [];
+            (d.propias || []).forEach(function (l) { filas.push([l, "Tuya"]); });
+            if (d.despacho) (d.despacho.licencias || []).forEach(function (l) { filas.push([l, "Despacho «" + d.despacho.nombre + "»"]); });
+            var vistos = {};
+            filas = filas.filter(function (x) { if (vistos[x[0].id]) return false; vistos[x[0].id] = 1; return true; });
+            document.getElementById("act-mias-caja").hidden = !filas.length;
+            document.getElementById("act-mias").innerHTML = filas.map(function (x) {
+                var l = x[0];
+                return "<li><code>" + esc(l.clave) + "</code><span>" + esc(x[1]) + "</span><span>" + (l.tipo === "despacho" ? l.asientos + " lugares · " : "") +
+                    l.meses + (l.meses === 1 ? " mes" : " meses") + "</span><span>" + (l.estado === "revocada" ? "Cancelada" : "Vence el " + esc(fecha(l.vence_en))) + "</span></li>";
+            }).join("");
+        } catch (e) { /* no pasa nada */ }
+    }
+    F.activarLicencia(document.getElementById("act-forma"), { enfocar: true, alActivar: function () { mias(); } });
+    mias();
+})();
+</script>
+</body>
+</html>

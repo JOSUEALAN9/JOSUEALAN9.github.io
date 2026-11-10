@@ -325,7 +325,10 @@
                     "$" + (t.precio / t.timbres).toFixed(2) + " cada uno</small></div>";
             }).join("") + "</div>";
         }
+        html += '<h3 class="cf-subtitulo">Activar una licencia</h3><div class="cf-tarjeta"><p class="cf-texto">¿Te dimos una clave (FSC-…)? Actívala aquí: ' +
+            'se aplica a tu cuenta y, si es de despacho, crea tu despacho.</p><div id="cf-licencia"></div></div>';
         c.innerHTML = html;
+        if (window.Fiscontable.activarLicencia) Fiscontable.activarLicencia($("cf-licencia"), { alActivar: function () { setTimeout(function () { location.reload(); }, 2500); } });
     }
 
     /* ---------- Buzón tributario ---------- */
