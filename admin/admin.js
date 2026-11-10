@@ -817,7 +817,8 @@ function clicTarjeta(e) {
         if (e.target.closest("[data-quitar-pc]")) quitarPc(e.target.closest("[data-quitar-pc]"));
         if (e.target.closest("#btn-probar-trabajador")) probarTrabajador(e.target.closest("#btn-probar-trabajador"));
         if (e.target.closest("#btn-ver-inhabiles")) ventana("dlg-inhabiles", "Días inhábiles del SAT", cuerpoInhabiles);
-        if (e.target.closest("#btn-ver-pcs")) ventana("dlg-pcs", "PCs con el agente", cuerpoPcs);
+        if (e.target.closest("#btn-ver-pcs")) { ventana("dlg-pcs", "PCs con el agente", cuerpoPcs); cargarRevisionTienda(); }
+        if (e.target.closest("[data-revision]")) codigoRevision(e.target.closest("[data-revision]"));
         if (e.target.closest("#btn-ver-conectados")) ventana("dlg-conectados", "Conectados ahora", cuerpoConectados);
     }
 }
@@ -974,7 +975,44 @@ function cuerpoPcs() {
         ${tarjetaInstalador(d.instalador)}
         <div class="flex items-center gap-2 mt-2 text-xs">Máximo de PCs por cuenta
             <input id="max-pcs" data-guarda="btn-max-pcs" type="number" min="1" max="50" value="${esc(d.max_pcs)}" class="border border-gray-200 rounded-lg py-1 px-2 w-16">
-            ${botonGuardar("btn-max-pcs")}</div>`;
+            ${botonGuardar("btn-max-pcs")}</div>
+        <div id="rev-tienda" class="mt-3 pt-2 border-t border-gray-100 text-[11px] text-slate-600">${cuerpoRevisionTienda()}</div>`;
+}
+
+// Código para que el equipo de Microsoft pruebe el agente al revisarlo en la Tienda: dura días, sirve en varias PCs
+// y solo conecta una cuenta de demostración (sin clientes ni e.firma). Se quita en cuanto aprueben la app.
+let revisionTienda = null;
+function cuerpoRevisionTienda() {
+    const r = revisionTienda;
+    const titulo = '<b class="block text-slate-700">Revisión de Microsoft Store</b>';
+    if (!r) return titulo + '<span class="text-slate-400">Cargando…</span>';
+    if (!r.activo) return `${titulo}<span class="block">Genera un código para las notas de certificación. Solo conecta la cuenta de demostración (sin clientes ni e.firma).</span>
+        <button type="button" data-revision="crear" class="mt-1 text-[11px] border border-gray-200 rounded-lg py-0.5 px-2 hover:bg-gray-50">Generar código (30 días)</button>`;
+    return `${titulo}<span class="block">Código: <b class="font-mono text-slate-800 text-xs">${esc(r.codigo)}</b> · vence ${esc(new Date(r.expira).toLocaleDateString("es-MX"))} · usado ${esc(r.usos)} de ${esc(r.max_usos)} · ${esc(r.pcs)} PC(s) conectadas</span>
+        <span class="flex gap-2 mt-1"><button type="button" data-revision="copiar" class="text-[11px] border border-gray-200 rounded-lg py-0.5 px-2 hover:bg-gray-50">Copiar código</button>
+        <button type="button" data-revision="crear" class="text-[11px] border border-gray-200 rounded-lg py-0.5 px-2 hover:bg-gray-50">Generar otro</button>
+        <button type="button" data-revision="quitar" class="text-[11px] border border-gray-200 rounded-lg py-0.5 px-2 hover:text-red-600">Quitar y desconectar</button></span>`;
+}
+function pintarRevisionTienda() { const c = document.getElementById("rev-tienda"); if (c) c.innerHTML = cuerpoRevisionTienda(); }
+async function cargarRevisionTienda() {
+    try { revisionTienda = await api("/api/admin/agentes/revision"); } catch (e) { revisionTienda = { activo: false }; }
+    pintarRevisionTienda();
+}
+async function codigoRevision(boton) {
+    const que = boton.dataset.revision;
+    if (que === "copiar") {
+        try { await navigator.clipboard.writeText(revisionTienda.codigo); boton.textContent = "¡Copiado!"; } catch (e) { boton.textContent = revisionTienda.codigo; }
+        setTimeout(() => { boton.textContent = "Copiar código"; }, 2000);
+        return;
+    }
+    if (que === "quitar" && !(await Fiscontable.confirmar({ titulo: "¿Quitar el código de revisión?", texto: "Deja de servir y se desconectan las PCs de la cuenta de demostración.", si: "Quitar", peligro: true }))) return;
+    if (que === "crear" && revisionTienda && revisionTienda.activo && !(await Fiscontable.confirmar({ titulo: "¿Generar otro código?", texto: "El código actual deja de servir. Si ya lo pusiste en las notas de certificación, cámbialo también ahí.", si: "Generar" }))) return;
+    boton.disabled = true;
+    try {
+        revisionTienda = await api("/api/admin/agentes/revision", que === "quitar" ? { method: "DELETE" }
+            : { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ dias: 30, max_usos: 20 }) });
+        pintarRevisionTienda();
+    } catch (err) { mostrarAlerta("error", err.message); boton.disabled = false; }
 }
 
 function tarjetaInstalador(i) {
