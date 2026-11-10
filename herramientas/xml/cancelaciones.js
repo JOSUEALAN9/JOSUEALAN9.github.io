@@ -111,7 +111,7 @@
         if (!d) { caja.hidden = true; return; }
         var s = d.estado, t = [];
         if (s.pruebas) t.push('<b>Modo de pruebas:</b> todo va al ambiente de pruebas de MultiFacturas, sin efecto ante el SAT.');
-        if (!s.listo) t.push("<b>Para cancelar o responder falta</b> " + esc(s.faltan.join(" y ")) + '. <a href="/herramientas/facturacion/">Ir a Facturar</a>');
+        if (!s.listo) t.push("<b>Para cancelar o responder falta</b> " + esc(s.faltan.join(" y ")) + '. <a href="/herramientas/facturar/?vista=config">Ir a la configuración de Facturar</a>');
         caja.innerHTML = t.join("<br>");
         caja.className = "ca-estado" + (s.listo ? "" : " ca-estado--falta");
         caja.hidden = !t.length;

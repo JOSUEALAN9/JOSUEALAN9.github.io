@@ -2660,7 +2660,7 @@
         servidorResponde().then(function (responde) {
             if (responde && irAEntrar("sesion")) return;
             if (responde) aviso("Tu sesión terminó. Inicia sesión de nuevo para continuar.", [{ texto: "Iniciar sesión", href: entrar }, reintentar]);
-            else aviso("El servidor no responde en este momento. Intenta en unos minutos.", [reintentar]);
+            else aviso("El servidor no responde en este momento. Si usas el Agente, lo que ya bajó sigue en tu PC y lo que termine se sube solo al volver. Intenta en unos minutos.", [reintentar]);
         });
         document.dispatchEvent(new CustomEvent("fc:perfil", { detail: null }));
     }
