@@ -14,10 +14,13 @@
 (function () {
     "use strict";
 
-    var VERSION = "202611110900";
+    var VERSION = "202611111000";
     // Ambiente de pruebas (pruebas.josuealan.com, solo para el dueño): habla con su propio servidor de pruebas
     var PRUEBAS = /^pruebas\./.test(location.hostname);
-    var API = PRUEBAS ? "https://api-pruebas.josuealan.com" : "https://api.josuealan.com";
+    // El servidor va en el mismo dominio que la web (si no, el navegador bloquea la sesión entre dominios):
+    // fiscontable.app → api.fiscontable.app; josuealan.com (mientras dura el cambio) → api.josuealan.com.
+    var DOMINIO = /(^|\.)fiscontable\.app$/.test(location.hostname) ? "fiscontable.app" : "josuealan.com";
+    var API = "https://" + (PRUEBAS ? "api-pruebas." : "api.") + DOMINIO;
 
     // Ícono de la pestaña (assets/marca, se genera con herramientas/agente/tienda/generar_logo.py del backend)
     (function () {
