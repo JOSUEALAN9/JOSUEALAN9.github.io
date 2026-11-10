@@ -14,7 +14,11 @@
 (function () {
     "use strict";
 
-    var VERSION = "202611111200";
+    var VERSION = "202611111300";
+    // www.fiscontable.app → fiscontable.app: una sola dirección (la sesión y las preferencias guardadas son por dirección)
+    if (location.hostname === "www.fiscontable.app") {
+        location.replace("https://fiscontable.app" + location.pathname + location.search + location.hash);
+    }
     // Ambiente de pruebas (pruebas.josuealan.com, solo para el dueño): habla con su propio servidor de pruebas
     var PRUEBAS = /^pruebas\./.test(location.hostname);
     // El servidor va en el mismo dominio que la web (si no, el navegador bloquea la sesión entre dominios):

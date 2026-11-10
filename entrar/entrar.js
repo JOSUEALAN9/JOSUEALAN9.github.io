@@ -15,13 +15,14 @@
     var boton = document.getElementById("en-entrar");
     boton.href = API + "/auth/entrar?volver=" + encodeURIComponent(volver);
     boton.addEventListener("click", function () {
-        try { sessionStorage.removeItem("fc-entrar"); } catch (e) { /* sin almacenamiento */ }
+        try { sessionStorage.removeItem("fc-entrar"); sessionStorage.setItem("fc-auto-entrar", String(Date.now())); } catch (e) { /* sin almacenamiento */ }
         boton.setAttribute("aria-busy", "true");
         boton.lastChild.textContent = " Abriendo…";
     });
 
     var MENSAJES = {
-        sesion: ["Tu sesión terminó. Entra de nuevo y seguirás donde estabas.", ""],
+        sesion: ["Para continuar, entra con tu cuenta. Te regresamos a donde estabas.", ""],
+        reconectando: ["Reconectando tu sesión…", ""],
         salio: ["Cerraste sesión. ¡Hasta pronto!", ""],
         servidor: ["El servidor no responde en este momento. Intenta en unos minutos.", "alerta"]
     };
@@ -32,6 +33,17 @@
         caja.textContent = m[0];
         caja.className = "en-aviso" + (m[1] ? " en-aviso--" + m[1] : "");
         caja.hidden = false;
+    }
+    // Si en este navegador ya se había entrado antes, no se pide el clic: se sigue solo (Cloudflare reconoce la sesión
+    // o pide el código). Una vez por minuto como máximo, para no dar vueltas.
+    var yaEntro = false, auto = 0;
+    try { yaEntro = localStorage.getItem("fc-ya-entro") === "1"; auto = +sessionStorage.getItem("fc-auto-entrar") || 0; } catch (e) { /* sin almacenamiento */ }
+    if (q.get("motivo") === "sesion" && yaEntro && Date.now() - auto > 60000) {
+        try { sessionStorage.setItem("fc-auto-entrar", String(Date.now())); } catch (e) { /* sin almacenamiento */ }
+        avisar("reconectando");
+        boton.setAttribute("aria-busy", "true");
+        setTimeout(function () { location.replace(boton.href); }, 700);
+        return;
     }
     avisar(q.get("motivo"));
 

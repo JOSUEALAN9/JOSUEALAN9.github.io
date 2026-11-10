@@ -3,7 +3,7 @@
 .pub-cabeza { background: rgb(var(--g-0)); border-bottom: 1px solid var(--linea); }
 .pub-cabeza__dentro { max-width: 860px; margin: 0 auto; padding: 14px 16px; display: flex; align-items: center; gap: 10px; }
 .pub-logo { display: inline-flex; align-items: center; gap: 10px; color: var(--texto); text-decoration: none; font-weight: 700; font-size: var(--t-16); }
-.pub-logo img { display: block; height: 34px; width: auto; }
+.pub-logo img { display: block; height: 42px; width: auto; }
 .pub-cabeza nav { margin-left: auto; display: flex; gap: 16px; font-size: var(--t-13); }
 .pub-cabeza nav a { color: var(--texto-tenue); text-decoration: none; }
 .pub-cabeza nav a:hover, .pub-cabeza nav a[aria-current="page"] { color: var(--acento); }
