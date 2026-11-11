@@ -1739,6 +1739,13 @@ main.fc-recien { animation: fc-recien .35s ease-out; }
 .fc-bloqueo-pantalla__caja h2 { margin: 0; font-size: var(--t-20); font-weight: 700; color: rgb(var(--g-900)); }
 .fc-bloqueo-pantalla__caja p { margin: 0; font-size: var(--t-14); color: rgb(var(--g-600)); }
 .fc-bloqueo-pantalla__caja .fc-marca__sello { width: 52px; height: 52px; }
+.fc-bloqueo-pantalla__caja .fc-marca__sello[hidden] { display: none; }
+.fc-bloqueo-pantalla__avatar { width: 88px; height: 88px; border-radius: 50%; overflow: hidden; display: grid; place-items: center;
+    background: var(--marca); color: rgb(var(--g-0)); font-size: 36px; font-weight: 700; box-shadow: 0 0 0 4px rgb(var(--g-0)), 0 0 0 5px rgb(var(--g-200)); }
+.fc-bloqueo-pantalla__avatar[hidden] { display: none; }
+.fc-bloqueo-pantalla__avatar img { width: 100%; height: 100%; object-fit: cover; }
+.fc-bloqueo-pantalla__caja .fc-bloqueo-pantalla__nombre { margin-top: 4px; font-size: var(--t-20); }
+.fc-bloqueo-pantalla__caja .fc-bloqueo-pantalla__titulo { margin-top: -6px; }
 .fc-bloqueo-pantalla__caja form { display: flex; gap: var(--e-2); width: 100%; }
 .fc-bloqueo-pantalla__caja form .ui-input { flex: 1; text-align: center; letter-spacing: .3em; font-size: var(--t-16); }
 .fc-bloqueo-pantalla__msj { color: rgb(var(--er-600)) !important; font-size: var(--t-13) !important; min-height: 1em; }
