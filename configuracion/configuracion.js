@@ -448,8 +448,56 @@
         }
         html += '<h3 class="cf-subtitulo">Activar una licencia</h3><div class="cf-tarjeta"><p class="cf-texto">¿Te dimos una clave (FSC-…)? Actívala aquí: ' +
             'se aplica a tu cuenta y, si es de despacho, crea tu despacho.</p><div id="cf-licencia"></div></div>';
+        html += '<h3 class="cf-subtitulo">Tus documentos</h3><div class="cf-tarjeta" id="cf-ciclo"><p class="cf-texto">Cargando…</p></div>';
         c.innerHTML = html;
         if (window.Fiscontable.activarLicencia) Fiscontable.activarLicencia($("cf-licencia"), { alActivar: function () { setTimeout(function () { location.reload(); }, 2500); } });
+        pintarCiclo($("cf-ciclo"));
+    }
+
+    /* Plan vencido (core/ciclo_cuenta.py): la etapa, las fechas y lo que la persona puede hacer. «Descargar todo» siempre. */
+    async function pintarCiclo(caja) {
+        var fecha = function (t) { return t ? new Date(t).toLocaleDateString("es-MX", { day: "numeric", month: "long", year: "numeric" }) : ""; };
+        var propia = !perfil.persona || perfil.persona === perfil.correo;
+        var e = {};
+        try { e = await api("/api/mi-cuenta/ciclo"); } catch (x) { e = {}; }
+        var texto = "Descarga en un archivo ZIP todo lo que tienes en Fiscontable: XML, constancias, opiniones y declaraciones, acomodados por empresa.";
+        var botones = propia ? '<button type="button" class="cf-btn cf-btn--principal" data-ciclo="exportar">Descargar todo</button>' : "";
+        if (e.etapa === "gracia") {
+            texto = "Tu plan venció el " + fecha(e.vence) + ". La cuenta sigue funcionando hasta el " + fecha(e.gracia_hasta) + "; después quedará en solo lectura.";
+        } else if (e.etapa === "solo_lectura") {
+            texto = "Tu plan venció el " + fecha(e.vence) + " y la cuenta está en solo lectura. " +
+                (e.efirmas_eliminadas ? "Las e.firmas guardadas ya se eliminaron. " : "Las e.firmas guardadas se eliminan el " + fecha(e.efirmas_el) + ". ") +
+                "La cuenta y sus documentos se eliminan el " + fecha(e.cuenta_el) + ".";
+            if (propia && e.credenciales) botones += '<button type="button" class="cf-btn" data-ciclo="borrar">Eliminar e.firmas guardadas</button>';
+            if (propia && !e.no_renueva && !e.efirmas_eliminadas) botones += '<button type="button" class="cf-btn" data-ciclo="no-renueva">No voy a renovar</button>';
+        }
+        if (!propia) texto += " Esto lo hace el titular desde su cuenta.";
+        caja.innerHTML = '<p class="cf-texto">' + esc(texto) + "</p>" + (botones ? '<div class="cf-acciones">' + botones + '<span class="cf-msj"></span></div>' : "");
+        caja.addEventListener("click", async function (ev) {
+            var b = ev.target.closest("[data-ciclo]");
+            if (!b) return;
+            var que = b.dataset.ciclo;
+            try {
+                if (que === "exportar") {
+                    b.disabled = true;
+                    await enviar("/api/mi-cuenta/exportar", "POST", {});
+                    aviso(caja, true, "Preparando el archivo. Quedará en «Mis descargas».");
+                    if (Fiscontable.refrescarDescargas) Fiscontable.refrescarDescargas();
+                } else if (que === "borrar") {
+                    if (!(await Fiscontable.confirmar({ titulo: "Eliminar e.firmas guardadas", peligro: true, si: "Eliminar",
+                        texto: "Se eliminan las e.firmas y contraseñas guardadas de todas tus empresas. No se puede deshacer." }))) return;
+                    var r = await enviar("/api/mi-cuenta/ciclo/borrar-efirmas", "POST", {});
+                    aviso(caja, true, "Listo: se eliminaron las de " + r.empresas + " empresa" + (r.empresas === 1 ? "" : "s") + ".");
+                    b.remove();
+                } else if (que === "no-renueva") {
+                    if (!(await Fiscontable.confirmar({ titulo: "No voy a renovar", si: "Confirmar",
+                        texto: "Tus e.firmas guardadas se eliminarán en 5 días. Tus documentos siguen disponibles para descargar hasta el " + fecha(e.cuenta_el) + "." }))) return;
+                    var n = await enviar("/api/mi-cuenta/ciclo/no-renueva", "POST", {});
+                    aviso(caja, true, "Recibido. Las e.firmas se eliminan el " + fecha(n.efirmas_el) + ".");
+                    b.remove();
+                }
+            } catch (x) { b.disabled = false; aviso(caja, false, x.message); }
+        });
     }
 
     /* ---------- Buzón tributario ---------- */
