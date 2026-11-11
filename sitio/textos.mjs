@@ -5,7 +5,7 @@ export const T = {
         idioma: "es", ruta: "/", otra: "/en/", otraNombre: "English",
         titulo: "Fiscontable · El SAT de todos tus clientes, en orden",
         descripcion: "Fiscontable descarga del SAT los XML, constancias, opiniones de cumplimiento y avisos del buzón de cada cliente de tu despacho, y te muestra qué falta para cerrar el mes.",
-        nav: { funciones: "Funciones", agente: "Agente", seguridad: "Seguridad", dudas: "Preguntas", entrar: "Iniciar sesión", demo: "Solicita una demo", menu: "Menú" },
+        nav: { funciones: "Funciones", agente: "Agente", seguridad: "Seguridad", dudas: "Preguntas", entrar: "Iniciar sesión", tablero: "Ir a mi tablero", demo: "Solicita una demo", menu: "Menú" },
         heroe: {
             chip: "Para despachos contables en México",
             h1a: "Cierra el mes", h1b: "sin perseguir documentos.",
@@ -105,7 +105,7 @@ export const T = {
         idioma: "en", ruta: "/en/", otra: "/", otraNombre: "Español",
         titulo: "Fiscontable · Every client's SAT paperwork, in order",
         descripcion: "Fiscontable downloads each client's invoices (XML), tax status certificates, compliance opinions and tax mailbox notices from Mexico's tax authority (SAT), and shows your firm what is still missing to close the month.",
-        nav: { funciones: "Features", agente: "Agent", seguridad: "Security", dudas: "FAQ", entrar: "Sign in", demo: "Request a demo", menu: "Menu" },
+        nav: { funciones: "Features", agente: "Agent", seguridad: "Security", dudas: "FAQ", entrar: "Sign in", tablero: "Go to my dashboard", demo: "Request a demo", menu: "Menu" },
         heroe: {
             chip: "For accounting firms in Mexico",
             h1a: "Close the month", h1b: "without chasing documents.",
