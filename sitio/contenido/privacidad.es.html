@@ -1,6 +1,6 @@
 <!-- descripcion: Qué datos usan Fiscontable y Fiscontable Agente, para qué, con quién se comparten y cómo ejercer tus derechos. -->
 <h1>Aviso de privacidad</h1>
-<p class="st-texto__sub">Fiscontable (fiscontable.app) y Fiscontable Agente para Windows · Última actualización: 10 de noviembre de 2026</p>
+<p class="st-texto__sub">Fiscontable (fiscontable.app) y Fiscontable Agente para Windows · Última actualización: 11 de noviembre de 2026</p>
 
 <nav class="st-indice" aria-label="Contenido"><ol>
     <li><a href="#responsable">Quién es responsable</a></li>
@@ -52,16 +52,19 @@
 <p>No vendemos tus datos, no los compartimos para publicidad de terceros y no hacemos perfiles comerciales.</p>
 
 <h2 id="agente">4. Lo que hace Fiscontable Agente en tu PC</h2>
-<p>Fiscontable Agente es una aplicación opcional para Windows. Procesa en tu PC, con tu conexión a internet y tu
-   navegador, las solicitudes que realizas en la web.</p>
+<p>Fiscontable Agente es la aplicación para Windows que procesa en tu PC, con tu conexión a internet y tu
+   navegador, las solicitudes que realizas en la web. Es necesaria en el plan Standard y opcional en los demás.</p>
 <ul>
     <li><b>Tu PC llama al servidor; el servidor nunca entra a tu PC.</b> El Agente no abre puertos hacia internet.</li>
     <li>Al conectarlo se guarda en tu PC un identificador de esa PC, <b>cifrado con tu cuenta de Windows</b>. Lo puedes desconectar en cualquier momento desde la web o desde el Agente.</li>
-    <li>La e.firma se recibe únicamente para cada trámite, se usa en una carpeta temporal privada y <b>se borra al terminar</b>.</li>
+    <li>La e.firma llega <b>cifrada solo para esa PC</b> en cada trámite y se usa en una carpeta temporal privada que <b>se borra al terminar</b>.</li>
+    <li><b>Modo sin conexión</b> (encendido de fábrica en cuentas individuales y en la PC del titular de un despacho; en la de cada miembro, solo si el titular lo permite): el Agente guarda además una copia de las e.firmas que usa, <b>cifrada con tu cuenta de Windows</b>, para hacer trámites aunque Fiscontable no esté disponible. Esa copia se borra al apagar el modo, al desconectar la PC o si la cuenta vence. Lo puedes apagar desde la web en Conectar esta PC.</li>
     <li>Guarda una copia de los documentos que descarga en <code>Documentos\Fiscontable</code> (se puede desactivar) y una bitácora de lo que hizo.</li>
     <li>Del Buzón Tributario <b>solo lee</b>: nunca abre una notificación pendiente.</li>
     <li>Envía al servidor solo el resultado de cada trámite y los datos técnicos de la PC descritos arriba. No lee otros archivos, no registra lo que escribes y no toma capturas de tu pantalla.</li>
+<!--si-tienda-->
     <li>Si lo instalas desde Microsoft Store, sus actualizaciones llegan por la Tienda. Microsoft trata los datos de la descarga conforme a su propia declaración de privacidad.</li>
+<!--/si-tienda-->
 </ul>
 
 <h2 id="compartir">5. Con quién se comparten</h2>
@@ -84,9 +87,20 @@
 </ul>
 
 <h2 id="conservacion">7. Cuánto tiempo se guardan</h2>
-<p>Mientras tu cuenta esté activa o hasta que los borres. Puedes borrar empresas, documentos y PCs conectadas desde
-   la web. Si pides cancelar tu cuenta, eliminamos tus datos, salvo lo que una ley nos obligue a conservar. Las
-   solicitudes de demo que no se convierten en cuenta se conservan para darles seguimiento y se eliminan si lo pides.</p>
+<p>Mientras tu plan esté vigente, tus empresas, XML y documentos se guardan hasta que los borres, y las declaraciones y
+   acuses descargados, 5 años. Puedes borrar empresas, documentos y PCs conectadas desde la web.</p>
+<p>Si tu plan vence y no lo renuevas:</p>
+<ul>
+    <li>Durante los 3 días siguientes la cuenta funciona igual.</li>
+    <li>Después queda en solo lectura: se detienen las descargas y consultas automáticas, y puedes descargar todos tus
+        documentos en un archivo ZIP.</li>
+    <li>A los 30 días se eliminan las e.firmas y contraseñas guardadas. Si nos avisas que no renovarás, se eliminan a los
+        5 días del aviso; también puedes eliminarlas tú en cualquier momento.</li>
+    <li>A los 90 días se eliminan la cuenta y sus documentos.</li>
+</ul>
+<p>Antes de cada eliminación te avisamos por correo con anticipación. Si renuevas antes, se conserva todo. Si pides
+   cancelar tu cuenta, eliminamos tus datos, salvo lo que una ley nos obligue a conservar. Las solicitudes de demo que no
+   se convierten en cuenta se conservan para darles seguimiento y se eliminan si lo pides.</p>
 
 <h2 id="derechos">8. Tus derechos (ARCO)</h2>
 <p>Puedes pedir <b>acceso</b> a tus datos, su <b>rectificación</b> o <b>cancelación</b>, u <b>oponerte</b> a su uso, así

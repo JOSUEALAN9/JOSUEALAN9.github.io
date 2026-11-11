@@ -86,6 +86,7 @@ function barra(t, { ancla = "", entra = false } = {}) {
             <a href="${base}#funciones">${n.funciones}</a>
             <a href="${base}#agente">${n.agente}</a>
             <a href="${base}#seguridad">${n.seguridad}</a>
+            <a href="${base}#planes">${n.planes}</a>
             <a href="${base}#preguntas">${n.dudas}</a>
             <span class="st-nav__botones">
                 <a class="st-btn st-btn--fantasma" href="/login" data-entrar="${esc(n.tablero)}">${n.entrar}</a>
@@ -106,7 +107,7 @@ function pie(t, { ancla = "" } = {}) {
             <p>${p.lema}</p>
         </div>
         <nav aria-label="${esc(p.producto)}"><b>${p.producto}</b>
-            <a href="${base}#funciones">${n.funciones}</a><a href="${base}#agente">${n.agente}</a><a href="${base}#seguridad">${n.seguridad}</a><a href="${base}#preguntas">${n.dudas}</a></nav>
+            <a href="${base}#funciones">${n.funciones}</a><a href="${base}#agente">${n.agente}</a><a href="${base}#seguridad">${n.seguridad}</a><a href="${base}#planes">${n.planes}</a><a href="${base}#preguntas">${n.dudas}</a></nav>
         <nav aria-label="${esc(p.cuenta)}"><b>${p.cuenta}</b>
             <a href="/login">${n.entrar}</a><a href="${base}#registro">${n.demo}</a><a href="/login#licencia">${p.activar}</a><a href="${r.soporte}">${p.soporte}</a></nav>
         <nav aria-label="${esc(p.legal)}"><b>${p.legal}</b>
@@ -183,6 +184,25 @@ function maquetaAgente(t) {
 }
 
 // ------------------------------------------------------------------ portada
+// Precios: los mismos que el catálogo del servidor (core/planes.py). Si cambian allá, cambian aquí (textos.mjs).
+// Plus no se muestra hasta que exista; la tercera tarjeta es el paquete para despachos.
+function planes(t) {
+    const p = t.planes, dinero = (n) => "$" + Number(n).toLocaleString("es-MX");
+    const tarjetas = p.niveles.map((n) => `<article class="st-plan${n.destacado ? " st-plan--destacado" : ""}${n.paquete ? " st-plan--paquete" : ""}">
+            ${n.destacado ? `<span class="st-plan__marca">${p.recomendado}</span>` : ""}
+            <h3>${n.nombre}</h3><p class="st-plan__resumen">${n.resumen}</p>
+            ${n.precios ? `<ul class="st-plan__precios">${n.precios.map((x) => `<li><span>${x[0]} ${p.rfc}${x[2] ? `<small>${x[2]} ${p.timbres}</small>` : ""}</span><b>${dinero(x[1])}<small>${p.mes}</small></b></li>`).join("")}</ul>` : ""}
+            ${n.paquete ? `<p class="st-plan__paquete">${n.paquete}</p>` : ""}
+            <ul class="st-plan__incluye">${n.incluye.map((i) => `<li>${ico("check")}${i}</li>`).join("")}</ul>
+            ${n.nota ? `<p class="st-plan__nota">${n.nota}</p>` : ""}
+            ${n.boton ? `<a class="st-btn st-btn--oscuro st-plan__boton" href="#registro">${n.boton}</a>` : ""}
+        </article>`).join("\n        ");
+    return `<div class="st-planes">
+        ${tarjetas}
+        </div>
+        <p class="st-plan__anual">${p.anual}</p>`;
+}
+
 function portada(t) {
     const h = t.heroe, f = t.funciones, a = t.agente, s = t.seguridad, r = t.registro, d = t.dudas;
     const datos = { "@context": "https://schema.org", "@type": "SoftwareApplication", name: "Fiscontable", url: DOMINIO + t.ruta,
@@ -258,6 +278,13 @@ ${barra(t, { ancla: "si", entra: true })}
         <ol class="st-pasos">
             ${t.pasos.lista.map((p, i) => `<li><span>${i + 1}</span><h3>${p[0]}</h3><p>${p[1]}</p></li>`).join("\n            ")}
         </ol>
+    </div>
+</section>
+
+<section class="st-seccion st-seccion--arena" id="planes">
+    <div class="st-contenedor">
+        <header class="st-titulo"><span class="st-chip">${t.planes.chip}</span><h2>${t.planes.h2}</h2><p>${t.planes.sub}</p></header>
+        ${planes(t)}
     </div>
 </section>
 

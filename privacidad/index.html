@@ -18,12 +18,12 @@
     <meta property="og:image" content="https://fiscontable.app/assets/marca/compartir.png">
     <meta property="og:locale" content="es_MX">
     <meta name="twitter:card" content="summary_large_image">
-    <link rel="icon" href="/assets/marca/favicon.svg?v=202611120829" type="image/svg+xml">
-    <link rel="alternate icon" href="/assets/marca/favicon.ico?v=202611120829">
-    <link rel="apple-touch-icon" href="/assets/marca/apple-touch-icon.png?v=202611120829">
+    <link rel="icon" href="/assets/marca/favicon.svg?v=202611121015" type="image/svg+xml">
+    <link rel="alternate icon" href="/assets/marca/favicon.ico?v=202611121015">
+    <link rel="apple-touch-icon" href="/assets/marca/apple-touch-icon.png?v=202611121015">
     <link rel="preload" href="/assets/fuentes/inter-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
-    <link rel="stylesheet" href="/assets/css/marca.css?v=202611120829">
-    <link rel="stylesheet" href="/assets/css/sitio.css?v=202611120829">
+    <link rel="stylesheet" href="/assets/css/marca.css?v=202611121015">
+    <link rel="stylesheet" href="/assets/css/sitio.css?v=202611121015">
 </head>
 <body class="st st--texto">
 <a class="st-saltar" href="#contenido">Ir al contenido</a>
@@ -34,6 +34,7 @@
             <a href="/#funciones">Funciones</a>
             <a href="/#agente">Agente</a>
             <a href="/#seguridad">Seguridad</a>
+            <a href="/#planes">Planes</a>
             <a href="/#preguntas">Preguntas</a>
             <span class="st-nav__botones">
                 <a class="st-btn st-btn--fantasma" href="/login" data-entrar="Ir a mi tablero">Iniciar sesión</a>
@@ -46,7 +47,7 @@
 <main id="contenido" class="st-texto">
     <div class="st-contenedor st-texto__dentro">
         <h1>Aviso de privacidad</h1>
-        <p class="st-texto__sub">Fiscontable (fiscontable.app) y Fiscontable Agente para Windows · Última actualización: 10 de noviembre de 2026</p>
+        <p class="st-texto__sub">Fiscontable (fiscontable.app) y Fiscontable Agente para Windows · Última actualización: 11 de noviembre de 2026</p>
         
         <nav class="st-indice" aria-label="Contenido"><ol>
             <li><a href="#responsable">Quién es responsable</a></li>
@@ -98,16 +99,16 @@
         <p>No vendemos tus datos, no los compartimos para publicidad de terceros y no hacemos perfiles comerciales.</p>
         
         <h2 id="agente">4. Lo que hace Fiscontable Agente en tu PC</h2>
-        <p>Fiscontable Agente es una aplicación opcional para Windows. Procesa en tu PC, con tu conexión a internet y tu
-           navegador, las solicitudes que realizas en la web.</p>
+        <p>Fiscontable Agente es la aplicación para Windows que procesa en tu PC, con tu conexión a internet y tu
+           navegador, las solicitudes que realizas en la web. Es necesaria en el plan Standard y opcional en los demás.</p>
         <ul>
             <li><b>Tu PC llama al servidor; el servidor nunca entra a tu PC.</b> El Agente no abre puertos hacia internet.</li>
             <li>Al conectarlo se guarda en tu PC un identificador de esa PC, <b>cifrado con tu cuenta de Windows</b>. Lo puedes desconectar en cualquier momento desde la web o desde el Agente.</li>
-            <li>La e.firma se recibe únicamente para cada trámite, se usa en una carpeta temporal privada y <b>se borra al terminar</b>.</li>
+            <li>La e.firma llega <b>cifrada solo para esa PC</b> en cada trámite y se usa en una carpeta temporal privada que <b>se borra al terminar</b>.</li>
+            <li><b>Modo sin conexión</b> (encendido de fábrica en cuentas individuales y en la PC del titular de un despacho; en la de cada miembro, solo si el titular lo permite): el Agente guarda además una copia de las e.firmas que usa, <b>cifrada con tu cuenta de Windows</b>, para hacer trámites aunque Fiscontable no esté disponible. Esa copia se borra al apagar el modo, al desconectar la PC o si la cuenta vence. Lo puedes apagar desde la web en Conectar esta PC.</li>
             <li>Guarda una copia de los documentos que descarga en <code>Documentos\Fiscontable</code> (se puede desactivar) y una bitácora de lo que hizo.</li>
             <li>Del Buzón Tributario <b>solo lee</b>: nunca abre una notificación pendiente.</li>
             <li>Envía al servidor solo el resultado de cada trámite y los datos técnicos de la PC descritos arriba. No lee otros archivos, no registra lo que escribes y no toma capturas de tu pantalla.</li>
-            <li>Si lo instalas desde Microsoft Store, sus actualizaciones llegan por la Tienda. Microsoft trata los datos de la descarga conforme a su propia declaración de privacidad.</li>
         </ul>
         
         <h2 id="compartir">5. Con quién se comparten</h2>
@@ -130,9 +131,20 @@
         </ul>
         
         <h2 id="conservacion">7. Cuánto tiempo se guardan</h2>
-        <p>Mientras tu cuenta esté activa o hasta que los borres. Puedes borrar empresas, documentos y PCs conectadas desde
-           la web. Si pides cancelar tu cuenta, eliminamos tus datos, salvo lo que una ley nos obligue a conservar. Las
-           solicitudes de demo que no se convierten en cuenta se conservan para darles seguimiento y se eliminan si lo pides.</p>
+        <p>Mientras tu plan esté vigente, tus empresas, XML y documentos se guardan hasta que los borres, y las declaraciones y
+           acuses descargados, 5 años. Puedes borrar empresas, documentos y PCs conectadas desde la web.</p>
+        <p>Si tu plan vence y no lo renuevas:</p>
+        <ul>
+            <li>Durante los 3 días siguientes la cuenta funciona igual.</li>
+            <li>Después queda en solo lectura: se detienen las descargas y consultas automáticas, y puedes descargar todos tus
+                documentos en un archivo ZIP.</li>
+            <li>A los 30 días se eliminan las e.firmas y contraseñas guardadas. Si nos avisas que no renovarás, se eliminan a los
+                5 días del aviso; también puedes eliminarlas tú en cualquier momento.</li>
+            <li>A los 90 días se eliminan la cuenta y sus documentos.</li>
+        </ul>
+        <p>Antes de cada eliminación te avisamos por correo con anticipación. Si renuevas antes, se conserva todo. Si pides
+           cancelar tu cuenta, eliminamos tus datos, salvo lo que una ley nos obligue a conservar. Las solicitudes de demo que no
+           se convierten en cuenta se conservan para darles seguimiento y se eliminan si lo pides.</p>
         
         <h2 id="derechos">8. Tus derechos (ARCO)</h2>
         <p>Puedes pedir <b>acceso</b> a tus datos, su <b>rectificación</b> o <b>cancelación</b>, u <b>oponerte</b> a su uso, así
@@ -153,11 +165,11 @@
 <footer class="st-pie">
     <div class="st-contenedor st-pie__dentro">
         <div class="st-pie__marca">
-            <a href="/" class="st-pie__logo"><img src="/assets/marca/fiscontable-logo-app-oscuro.svg?v=202611120829" alt="Fiscontable" width="128" height="34"></a>
+            <a href="/" class="st-pie__logo"><img src="/assets/marca/fiscontable-logo-app-oscuro.svg?v=202611121015" alt="Fiscontable" width="128" height="34"></a>
             <p>El SAT de todos tus clientes, en orden.</p>
         </div>
         <nav aria-label="Producto"><b>Producto</b>
-            <a href="/#funciones">Funciones</a><a href="/#agente">Agente</a><a href="/#seguridad">Seguridad</a><a href="/#preguntas">Preguntas</a></nav>
+            <a href="/#funciones">Funciones</a><a href="/#agente">Agente</a><a href="/#seguridad">Seguridad</a><a href="/#planes">Planes</a><a href="/#preguntas">Preguntas</a></nav>
         <nav aria-label="Cuenta"><b>Cuenta</b>
             <a href="/login">Iniciar sesión</a><a href="/#registro">Solicita una demo</a><a href="/login#licencia">Activar una licencia</a><a href="/soporte/">Ayuda y soporte</a></nav>
         <nav aria-label="Legal"><b>Legal</b>
@@ -168,7 +180,7 @@
         <a class="st-pie__idioma" href="/en/privacy/" hreflang="en" lang="en">English</a>
     </div></div>
 </footer>
-<script src="/assets/js/contacto-publico.js?v=202611120829"></script>
-<script src="/assets/js/sitio.js?v=202611120829"></script>
+<script src="/assets/js/contacto-publico.js?v=202611121015"></script>
+<script src="/assets/js/sitio.js?v=202611121015"></script>
 </body>
 </html>

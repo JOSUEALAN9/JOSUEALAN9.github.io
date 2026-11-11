@@ -4,15 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mi despacho | Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611120829">
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611120829">
-    <link rel="stylesheet" href="/despacho/despacho.css?v=202611120829">
+    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611121015">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611121015">
+    <link rel="stylesheet" href="/despacho/despacho.css?v=202611121015">
 </head>
 <body class="min-h-screen flex flex-col">
 
     <div id="app-header" data-modulo="despacho" data-titulo="Mi despacho" data-migas=""></div>
-<script src="/assets/js/nucleo.js?v=202611120829"></script>
-<script src="/assets/js/barra.js?v=202611120829"></script>
+<script src="/assets/js/nucleo.js?v=202611121015"></script>
+<script src="/assets/js/barra.js?v=202611121015"></script>
 
     <main class="flex-grow w-full mod-pagina mod-pagina--angosta dp" style="max-width:1040px">
 
@@ -149,6 +149,7 @@
                 <label class="ui-switch"><input type="checkbox" id="dp-agregar"><span class="ui-switch__riel"></span> Puede registrar y quitar empresas del despacho</label>
                 <label class="ui-switch"><input type="checkbox" id="dp-personal"><span class="ui-switch__riel"></span> Tiene su propio espacio (Mi espacio)</label>
                 <label class="ui-switch"><input type="checkbox" id="dp-lectura"><span class="ui-switch__riel"></span> Solo puede consultar (no cambia nada)</label>
+                <label class="ui-switch"><input type="checkbox" id="dp-sin-conexion"><span class="ui-switch__riel"></span> Su PC trabaja sin conexión (guarda las e.firmas cifradas)</label>
                 <label class="ui-switch" id="dp-campo-suspender"><input type="checkbox" id="dp-suspender"><span class="ui-switch__riel"></span> Acceso al despacho suspendido</label>
             </div>
             <p class="dp-error ui-ayuda ui-ayuda--error" id="dp-modal-error" hidden></p>
@@ -160,6 +161,6 @@
         </div>
     </dialog>
 
-<script src="/despacho/despacho.js?v=202611120829"></script>
+<script src="/despacho/despacho.js?v=202611121015"></script>
 </body>
 </html>

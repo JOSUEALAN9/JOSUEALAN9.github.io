@@ -426,20 +426,31 @@
             return b || '<span class="cf-texto">' + esc(contacto.texto || "Contacta al administrador.") + "</span>";
         };
         var html = '<div class="cf-tarjeta"><dl class="cf-datos"><dt>Plan</dt><dd>' + esc(pc ? pc.nombre : (perfil.plan_nombre || perfil.rol || "—")) + "</dd>" +
-            (pc ? "<dt>Empresas</dt><dd>" + pc.empresas_usadas + " de " + pc.empresas + "</dd><dt>Timbres al mes</dt><dd>" + pc.timbres + "</dd>" : "") +
+            (pc ? "<dt>Empresas</dt><dd>" + pc.empresas_usadas + " de " + pc.empresas + "</dd>" + (Number(pc.timbres) > 0 ? "<dt>Timbres al mes</dt><dd>" + pc.timbres + "</dd>" : "") : "") +
             "<dt>Vigencia</dt><dd>" + esc(vence) + "</dd><dt>Módulos</dt><dd>" + esc(String((perfil.modulos_permitidos || []).length)) + " activos</dd></dl>" +
             '<a class="cf-btn cf-btn--principal" href="/creditos/"' + (incrustado ? ' target="_top"' : "") + ">Ver y recargar créditos</a></div>";
         if (cat && cat.planes && cat.planes.length) {
-            html += '<h3 class="cf-subtitulo">Planes</h3><div class="cf-planes">' + cat.planes.map(function (p) {
-                var actual = pc && pc.clave === p.clave;
+            var tarjeta = function (p) {
+                var actual = pc && pc.clave === p.clave, pronto = !!p.proximamente;
                 return '<div class="cf-plan' + (p.destacado ? " cf-plan--destacado" : "") + (actual ? " cf-plan--actual" : "") + '">' +
-                    (actual ? '<span class="cf-plan__marca">Tu plan</span>' : p.destacado ? '<span class="cf-plan__marca">Recomendado</span>' : "") +
+                    (actual ? '<span class="cf-plan__marca">Tu plan</span>' : pronto ? '<span class="cf-plan__marca">Próximamente</span>' : p.destacado ? '<span class="cf-plan__marca">Recomendado</span>' : "") +
                     "<h4>" + esc(p.nombre) + "</h4><small>" + esc(p.para || "") + "</small>" +
                     '<p class="cf-plan__precio"><b>' + precio(p.precio) + "</b> al mes</p>" +
                     '<p class="cf-plan__anual">o ' + precio(p.precio_anual) + " al año" + (cat.meses_gratis_anual ? " (" + cat.meses_gratis_anual + " meses gratis)" : "") + "</p>" +
-                    "<ul><li><b>" + p.empresas + "</b> empresas (RFC)</li><li><b>" + Number(p.timbres).toLocaleString("es-MX") + "</b> timbres al mes</li></ul>" +
-                    (actual ? "" : '<div class="cf-plan__acciones">' + quiero("Hola, me interesa el plan " + p.nombre + " de Fiscontable (" + (perfil.persona || perfil.correo || "") + ").") + "</div>") + "</div>";
-            }).join("") + "</div>";
+                    "<ul><li><b>" + p.empresas + "</b> empresas (RFC)</li>" + (Number(p.timbres) > 0 ? "<li><b>" + Number(p.timbres).toLocaleString("es-MX") + "</b> timbres al mes</li>" : "") + "</ul>" +
+                    (actual || pronto ? "" : '<div class="cf-plan__acciones">' + quiero("Hola, me interesa el plan " + p.nombre + " de Fiscontable (" + (perfil.persona || perfil.correo || "") + ").") + "</div>") + "</div>";
+            };
+            var niveles = cat.niveles || {}, orden = Object.keys(niveles).length ? Object.keys(niveles) : [""];
+            html += '<h3 class="cf-subtitulo">Planes</h3><p class="cf-texto">Cada licencia es para una persona y su PC con Fiscontable Agente. Precios más IVA.</p>';
+            orden.forEach(function (nv) {
+                var lista = cat.planes.filter(function (p) { return (!nv || (p.nivel || p.rol) === nv) && !p.proximamente; });   // lo que aún no se vende no se muestra
+                if (!lista.length) return;
+                var info = niveles[nv];
+                if (info) html += '<h4 class="cf-plan-nivel">' + esc(info.nombre) + " <small>" + esc(info.resumen || "") + "</small></h4>" +
+                    (info.incluye && info.incluye.length ? '<p class="cf-texto cf-plan-incluye">' + info.incluye.map(esc).join(" · ") + ".</p>" : "");
+                html += '<div class="cf-planes">' + lista.map(tarjeta).join("") + "</div>";
+            });
+            if (cat.despacho_minimo) html += '<p class="cf-texto cf-plan-incluye"><b>Despacho:</b> junta ' + cat.despacho_minimo + " licencias o más; los RFC de todas se suman en una sola cartera.</p>";
             if ((cat.incluye || []).length) html += '<p class="cf-texto cf-plan-incluye"><b>Todos incluyen:</b> ' + cat.incluye.map(esc).join(" · ") + ".</p>";
             if ((cat.timbres || []).length) html += '<h3 class="cf-subtitulo">Timbres extra</h3><div class="cf-timbres">' + cat.timbres.map(function (t) {
                 return '<div class="cf-timbre"><b>' + Number(t.timbres).toLocaleString("es-MX") + "</b> timbres<span>" + precio(t.precio) + "</span><small>" +
@@ -448,8 +459,56 @@
         }
         html += '<h3 class="cf-subtitulo">Activar una licencia</h3><div class="cf-tarjeta"><p class="cf-texto">¿Te dimos una clave (FSC-…)? Actívala aquí: ' +
             'se aplica a tu cuenta y, si es de despacho, crea tu despacho.</p><div id="cf-licencia"></div></div>';
+        html += '<h3 class="cf-subtitulo">Tus documentos</h3><div class="cf-tarjeta" id="cf-ciclo"><p class="cf-texto">Cargando…</p></div>';
         c.innerHTML = html;
         if (window.Fiscontable.activarLicencia) Fiscontable.activarLicencia($("cf-licencia"), { alActivar: function () { setTimeout(function () { location.reload(); }, 2500); } });
+        pintarCiclo($("cf-ciclo"));
+    }
+
+    /* Plan vencido (core/ciclo_cuenta.py): la etapa, las fechas y lo que la persona puede hacer. «Descargar todo» siempre. */
+    async function pintarCiclo(caja) {
+        var fecha = function (t) { return t ? new Date(t).toLocaleDateString("es-MX", { day: "numeric", month: "long", year: "numeric" }) : ""; };
+        var propia = !perfil.persona || perfil.persona === perfil.correo;
+        var e = {};
+        try { e = await api("/api/mi-cuenta/ciclo"); } catch (x) { e = {}; }
+        var texto = "Descarga en un archivo ZIP todo lo que tienes en Fiscontable: XML, constancias, opiniones y declaraciones, acomodados por empresa.";
+        var botones = propia ? '<button type="button" class="cf-btn cf-btn--principal" data-ciclo="exportar">Descargar todo</button>' : "";
+        if (e.etapa === "gracia") {
+            texto = "Tu plan venció el " + fecha(e.vence) + ". La cuenta sigue funcionando hasta el " + fecha(e.gracia_hasta) + "; después quedará en solo lectura.";
+        } else if (e.etapa === "solo_lectura") {
+            texto = "Tu plan venció el " + fecha(e.vence) + " y la cuenta está en solo lectura. " +
+                (e.efirmas_eliminadas ? "Las e.firmas guardadas ya se eliminaron. " : "Las e.firmas guardadas se eliminan el " + fecha(e.efirmas_el) + ". ") +
+                "La cuenta y sus documentos se eliminan el " + fecha(e.cuenta_el) + ".";
+            if (propia && e.credenciales) botones += '<button type="button" class="cf-btn" data-ciclo="borrar">Eliminar e.firmas guardadas</button>';
+            if (propia && !e.no_renueva && !e.efirmas_eliminadas) botones += '<button type="button" class="cf-btn" data-ciclo="no-renueva">No voy a renovar</button>';
+        }
+        if (!propia) texto += " Esto lo hace el titular desde su cuenta.";
+        caja.innerHTML = '<p class="cf-texto">' + esc(texto) + "</p>" + (botones ? '<div class="cf-acciones">' + botones + '<span class="cf-msj"></span></div>' : "");
+        caja.addEventListener("click", async function (ev) {
+            var b = ev.target.closest("[data-ciclo]");
+            if (!b) return;
+            var que = b.dataset.ciclo;
+            try {
+                if (que === "exportar") {
+                    b.disabled = true;
+                    await enviar("/api/mi-cuenta/exportar", "POST", {});
+                    aviso(caja, true, "Preparando el archivo. Quedará en «Mis descargas».");
+                    if (Fiscontable.refrescarDescargas) Fiscontable.refrescarDescargas();
+                } else if (que === "borrar") {
+                    if (!(await Fiscontable.confirmar({ titulo: "Eliminar e.firmas guardadas", peligro: true, si: "Eliminar",
+                        texto: "Se eliminan las e.firmas y contraseñas guardadas de todas tus empresas. No se puede deshacer." }))) return;
+                    var r = await enviar("/api/mi-cuenta/ciclo/borrar-efirmas", "POST", {});
+                    aviso(caja, true, "Listo: se eliminaron las de " + r.empresas + " empresa" + (r.empresas === 1 ? "" : "s") + ".");
+                    b.remove();
+                } else if (que === "no-renueva") {
+                    if (!(await Fiscontable.confirmar({ titulo: "No voy a renovar", si: "Confirmar",
+                        texto: "Tus e.firmas guardadas se eliminarán en 5 días. Tus documentos siguen disponibles para descargar hasta el " + fecha(e.cuenta_el) + "." }))) return;
+                    var n = await enviar("/api/mi-cuenta/ciclo/no-renueva", "POST", {});
+                    aviso(caja, true, "Recibido. Las e.firmas se eliminan el " + fecha(n.efirmas_el) + ".");
+                    b.remove();
+                }
+            } catch (x) { b.disabled = false; aviso(caja, false, x.message); }
+        });
     }
 
     /* ---------- Buzón tributario ---------- */
