@@ -185,19 +185,21 @@ function maquetaAgente(t) {
 
 // ------------------------------------------------------------------ portada
 // Precios: los mismos que el catálogo del servidor (core/planes.py). Si cambian allá, cambian aquí (textos.mjs).
+// Plus no se muestra hasta que exista; la tercera tarjeta es el paquete para despachos.
 function planes(t) {
     const p = t.planes, dinero = (n) => "$" + Number(n).toLocaleString("es-MX");
-    const tarjetas = p.niveles.map((n) => `<article class="st-plan${n.destacado ? " st-plan--destacado" : ""}${n.proximamente ? " st-plan--pronto" : ""}">
-            ${n.destacado ? `<span class="st-plan__marca">${p.recomendado}</span>` : n.proximamente ? `<span class="st-plan__marca st-plan__marca--pronto">${p.proximamente}</span>` : ""}
+    const tarjetas = p.niveles.map((n) => `<article class="st-plan${n.destacado ? " st-plan--destacado" : ""}${n.paquete ? " st-plan--paquete" : ""}">
+            ${n.destacado ? `<span class="st-plan__marca">${p.recomendado}</span>` : ""}
             <h3>${n.nombre}</h3><p class="st-plan__resumen">${n.resumen}</p>
             ${n.precios ? `<ul class="st-plan__precios">${n.precios.map((x) => `<li><span>${x[0]} ${p.rfc}${x[2] ? `<small>${x[2]} ${p.timbres}</small>` : ""}</span><b>${dinero(x[1])}<small>${p.mes}</small></b></li>`).join("")}</ul>` : ""}
+            ${n.paquete ? `<p class="st-plan__paquete">${n.paquete}</p>` : ""}
             <ul class="st-plan__incluye">${n.incluye.map((i) => `<li>${ico("check")}${i}</li>`).join("")}</ul>
             ${n.nota ? `<p class="st-plan__nota">${n.nota}</p>` : ""}
+            ${n.boton ? `<a class="st-btn st-btn--oscuro st-plan__boton" href="#registro">${n.boton}</a>` : ""}
         </article>`).join("\n        ");
     return `<div class="st-planes">
         ${tarjetas}
         </div>
-        <div class="st-plan-despacho">${ico("equipo")}<div><h3>${p.despacho.h3}</h3><p>${p.despacho.texto}</p></div><a class="st-btn st-btn--oscuro" href="#registro">${p.despacho.boton}</a></div>
         <p class="st-plan__anual">${p.anual}</p>`;
 }
 

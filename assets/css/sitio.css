@@ -169,6 +169,13 @@ html:has(body.st) { background: #161513; scroll-behavior: smooth; scroll-padding
 .st-plan-despacho h3 { font-size: 18px; font-weight: 700; }
 .st-plan-despacho p { margin-top: 4px; font-size: 14.5px; color: var(--tinta-tenue); }
 .st-plan__anual { margin-top: 18px; text-align: center; font-size: 14px; color: var(--tinta-tenue); }
+.st-plan--paquete { background: var(--tinta); color: #fff; border-color: transparent; }
+.st-plan--paquete .st-plan__resumen, .st-plan--paquete .st-plan__nota { color: var(--tenue); }
+.st-plan--paquete .st-plan__incluye .st-ico { color: var(--verde-claro); }
+.st-plan__paquete { margin-top: 18px; padding: 12px; border-radius: 11px; background: rgba(255, 255, 255, .07); font-size: 20px; font-weight: 700; letter-spacing: -.01em; }
+.st-plan__boton { margin-top: 14px; align-self: flex-start; }
+.st-plan--paquete .st-plan__boton { background: #fff; color: var(--tinta); }
+.st-plan--paquete .st-plan__boton:hover { background: var(--papel-2); }
 
 /* --- Registro (demo) --- */
 .st-registro { overflow: hidden; }
