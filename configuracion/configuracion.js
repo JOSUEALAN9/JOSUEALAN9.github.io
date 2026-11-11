@@ -176,12 +176,14 @@
         $("cf-foto-guardar").addEventListener("click", async function () {
             try {
                 var r = await enviar("/api/mi-perfil/foto", "PUT", { imagen: lienzo.toDataURL("image/jpeg", 0.9) });
-                perfil.foto = r.foto; aviso(caja, true, "✓ Guardada. Se ve en la barra al recargar.");
+                perfil.foto = r.foto; aviso(caja, true, "Guardada.");
+                [window, window.top].forEach(function (w) { try { if (w.Fiscontable && w.Fiscontable.ponerFoto) w.Fiscontable.ponerFoto(r.foto); } catch (x) { /* otro origen */ } });
                 $("cf-foto-guardar").hidden = true; $("cf-foto-quitar").hidden = false;
             } catch (e) { aviso(caja, false, e.message); }
         });
         $("cf-foto-quitar").addEventListener("click", async function () {
-            try { await api("/api/mi-perfil/foto", { method: "DELETE" }); perfil.foto = null; img = null; dibujar(); this.hidden = true; aviso(caja, true, "Foto quitada."); }
+            try { await api("/api/mi-perfil/foto", { method: "DELETE" }); perfil.foto = null; img = null; dibujar(); this.hidden = true; aviso(caja, true, "Foto quitada.");
+                [window, window.top].forEach(function (w) { try { if (w.Fiscontable && w.Fiscontable.ponerFoto) w.Fiscontable.ponerFoto(null); } catch (x) { /* otro origen */ } }); }
             catch (e) { aviso(caja, false, e.message); }
         });
     }
