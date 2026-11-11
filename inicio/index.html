@@ -4,9 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611120822">
-    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611120822">
-    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611120822">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611120827">
+    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611120827">
+    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611120827">
 </head>
 <body class="min-h-screen flex flex-col">
 
@@ -116,10 +116,16 @@
     .tb-cifra b { font-size: var(--t-24); font-weight: 700; font-variant-numeric: tabular-nums; color: rgb(var(--g-900)); }
     .tb-cifra span { font-size: var(--t-12); color: rgb(var(--g-500)); }
     .tb-columnas { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: var(--e-4); }
+    .tb-columnas > * { min-width: 0; }
     .tb-lista { display: grid; gap: 0; }
     .tb-lista > * { display: flex; justify-content: space-between; gap: var(--e-3); padding: var(--e-2) 0; border-top: 1px solid rgb(var(--g-100)); font-size: var(--t-13); color: rgb(var(--g-900)); text-decoration: none; }
     .tb-lista > *:first-child { border-top: 0; }
     .tb-lista small { color: rgb(var(--g-500)); white-space: nowrap; }
+    /* Que nada se salga de la tarjeta: el texto de la derecha baja de renglón si no cabe */
+    .tb-lista > * > :first-child { flex: 1 1 auto; min-width: 0; }
+    .tb-lista > * { min-width: 0; }
+    .tb-der { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: baseline; gap: 2px 6px; text-align: right; min-width: 0; max-width: 62%; }
+    .tb-der > span { display: inline-flex; flex-wrap: wrap; justify-content: flex-end; align-items: baseline; gap: 2px 6px; }
     .tb-titulo { font-size: var(--t-14); font-weight: 700; margin: 0 0 var(--e-2); }
     .tb-recientes { display: flex; flex-wrap: wrap; align-items: center; gap: var(--e-2); margin: var(--e-6) 0 var(--e-8); font-size: var(--t-13); color: rgb(var(--g-600)); }
     .tb-recientes__lista { display: flex; flex-wrap: wrap; gap: var(--e-2); }
@@ -141,9 +147,9 @@
     .tb-pasos small { color: rgb(var(--g-500)); }
 </style>
 
-<script src="/assets/js/nucleo.js?v=202611120822"></script>
-<script src="/assets/js/barra.js?v=202611120822"></script>
-<script src="/assets/js/comun/tabla.js?v=202611120822"></script>
-<script src="/assets/js/inicio.js?v=202611120822"></script>
+<script src="/assets/js/nucleo.js?v=202611120827"></script>
+<script src="/assets/js/barra.js?v=202611120827"></script>
+<script src="/assets/js/comun/tabla.js?v=202611120827"></script>
+<script src="/assets/js/inicio.js?v=202611120827"></script>
 </body>
 </html>

@@ -1126,7 +1126,7 @@ a.mod-accion { text-decoration: none; }
 .fc-casa { display: inline-grid; place-items: center; flex: none; width: 34px; height: 34px; border: 1px solid rgba(255,255,255,.16); border-radius: 9px;
     background: rgba(255,255,255,.06); color: rgba(255,255,255,.88); transition: background .15s, border-color .15s; }
 .fc-casa:hover, .fc-casa:focus-visible { background: rgba(255,255,255,.14); border-color: rgba(255,255,255,.3); color: rgb(var(--g-0)); }
-.fc-casa[aria-current="page"] { background: rgba(255,255,255,.16); color: rgb(var(--g-0)); }
+.fc-casa[aria-current="page"] { display: none; }                   /* ya estás en Inicio */
 .fc-casa svg { width: 17px; height: 17px; }
 .fc-modulos { width: min(760px, calc(100vw - 24px)); right: auto; padding: 0; max-height: min(78vh, 720px); display: flex; flex-direction: column; }
 .fc-modulos[hidden] { display: none; }

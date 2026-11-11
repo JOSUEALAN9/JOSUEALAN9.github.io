@@ -1599,15 +1599,15 @@
     /** Da por visto todo lo que ya terminó (bien o mal). Lo que sigue
         corriendo se deja fuera: cuando acabe volverá a contar como nuevo. */
     function marcarComoVistos(procesos) {
+        // Se suma lo que otra pestaña ya dio por visto (si no, la última en guardar borraba lo de las demás)
+        leerVistos().forEach(function (id) { vistos.add(id); });
         var antes = vistos.size;
         procesos.forEach(function (p) {
             if (p.estado !== "procesando") vistos.add(p.id);
         });
-        // Se poda lo que el servidor ya borró, para que la lista no crezca sin fin.
-        var vigentes = new Set(procesos.map(function (p) { return p.id; }));
-        vistos.forEach(function (id) { if (!vigentes.has(id)) vistos.delete(id); });
-
-        if (vistos.size !== antes) guardarVistos(vistos);
+        // Ya no se borra lo que no viene en esta lista (otro espacio, otra pestaña): solo se guardan los 600 más recientes
+        if (vistos.size > 600) vistos = new Set(Array.from(vistos).slice(-600));
+        if (vistos.size !== antes || procesos.length) guardarVistos(vistos);
     }
 
     function abrirDescargas() {
@@ -1796,6 +1796,7 @@
      * abrir el panel). Si no hay ni una ni otra, el número desaparece.
      */
     function refrescarContador(todos) {
+        leerVistos().forEach(function (id) { vistos.add(id); });     // lo que se vio en otra pestaña también cuenta
         var procesos = sinProgramadas(todos);
         var activos = procesos.filter(function (p) { return p.estado === "procesando"; }).length;
         var nuevos = procesos.filter(function (p) {
@@ -3126,7 +3127,7 @@
         [".fct-barra, .xml-toolbar", "La tabla", "Busca, filtra (los filtros quedan como etiquetas), elige columnas, guarda vistas y exporta a Excel."],
         ["#fc-btn-actividad", "Actividad", "Avisos de lo que terminó o cambió mientras no estabas (también pueden llegarte por correo)."],
         ["#fc-btn-descargas", "Descargas", "Los archivos que pediste: constancias, opiniones, XML y reportes."],
-        ["#fc-btn-perfil", "Tu cuenta", "Tu perfil, la seguridad y «PC del contador»: ahí se conecta Fiscontable Agente y se ven las PCs que trabajan para ti."]
+        ["#fc-btn-perfil", "Tu cuenta", "Tu perfil, la seguridad y «Conectar esta PC»: ahí se conecta Fiscontable Agente y se ven las PCs que trabajan para ti."]
     ];
     function recorrido(claveMod, pasosTexto) {
         var pasos = [];

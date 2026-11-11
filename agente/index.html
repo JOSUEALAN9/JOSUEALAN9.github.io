@@ -4,72 +4,72 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Conectar esta PC | Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611120822">
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611120822">
+    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611120827">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611120827">
+    <style>
+    .ag-cabeza { display: block; }
+    .ag-cabeza p { margin: 4px 0 0; font-size: var(--t-14); color: rgb(var(--g-600)); }
+    .ag-puntos { display: flex; flex-wrap: wrap; gap: 6px 22px; padding: 0; list-style: none; font-size: var(--t-13); color: rgb(var(--g-700)); }
+    .ag-puntos li { display: flex; align-items: center; gap: 7px; }
+    .ag-puntos li::before { content: ""; width: 14px; height: 14px; flex: none; border-radius: 50%; background: rgb(var(--ok-50))
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4 8.5l2.5 2.5L12 5.5' fill='none' stroke='%23067647' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/10px no-repeat; }
+    .ag-pasos { counter-reset: paso; display: grid; gap: var(--e-4); padding: 0; margin: 0; list-style: none; }
+    .ag-pasos > li { counter-increment: paso; position: relative; padding-left: 34px; font-size: var(--t-14); color: rgb(var(--g-700)); }
+    .ag-pasos > li::before { content: counter(paso); position: absolute; left: 0; top: -1px; width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center;
+        background: rgb(var(--ok-50)); color: rgb(var(--ok-600)); font-size: 12px; font-weight: 700; }
+    </style>
 </head>
 <body class="min-h-screen flex flex-col">
 
     <div id="app-header" data-modulo="agente" data-titulo="Conectar esta PC" data-migas=""></div>
-<script src="/assets/js/nucleo.js?v=202611120822"></script>
-<script src="/assets/js/barra.js?v=202611120822"></script>
+<script src="/assets/js/nucleo.js?v=202611120827"></script>
+<script src="/assets/js/barra.js?v=202611120827"></script>
 
     <main class="flex-grow w-full mod-pagina mod-pagina--angosta" style="max-width:860px">
 
-        <div class="mod-cabeza"><h1>Conectar esta PC</h1></div>
+        <div class="mod-cabeza ag-cabeza"><h1>Conectar esta PC</h1><p>Fiscontable al alcance de tu escritorio. Misma cuenta, más control.</p></div>
+        <ul class="ag-puntos mb-5">
+            <li>Copia de cada documento en tu computadora</li>
+            <li>Con tu propia conexión a internet</li>
+            <li>Solo en las PCs que tú apruebas</li>
+        </ul>
 
         <div id="alerta" class="hidden mb-4 p-3 rounded-lg text-sm"></div>
 
-        <section class="bg-white rounded-xl card-elevated border border-gray-200 p-5 mb-5">
-            <h2 class="text-sm font-bold text-slate-800">¿Qué hace el agente?</h2>
-            <p class="text-sm text-slate-600 mt-1">
-                Es una aplicación para tu PC con Windows. Mientras está en ejecución, las solicitudes de tu cuenta
-                (constancia, opinión 32-D, declaraciones y la revisión del Buzón) se procesan <b>desde tu PC</b>, con tu
-                conexión a internet y tu navegador, y el resultado aparece aquí como de costumbre. Además conserva una copia en
-                <span class="font-mono text-xs">Documentos\Fiscontable</span>.
-            </p>
-            <ul class="text-xs text-slate-500 mt-2 space-y-1 list-disc pl-5">
-                <li>Tu PC llama al servidor; nadie entra a tu PC (no se abre ningún puerto).</li>
-                <li>La e.firma se recibe únicamente para cada trámite y se borra al terminar.</li>
-                <li>Si tu PC está apagada, las solicitudes se procesan en el servidor, como de costumbre.</li>
-                <li>Nunca abre una notificación pendiente del Buzón.</li>
-                <li>Una PC nueva no recibe nada hasta que tú la apruebes aquí («Sí, es mi PC»).</li>
-            </ul>
-            <p id="texto-modo" class="text-xs mt-3"></p>
-        </section>
+        <p id="texto-modo" class="text-xs mb-4" hidden></p>
 
         <section class="bg-white rounded-xl card-elevated border border-gray-200 p-5 mb-5">
-            <h2 class="text-sm font-bold text-slate-800">Vincular una PC</h2>
-            <ol class="text-sm text-slate-600 mt-2 space-y-1 list-decimal pl-5">
-                <li>En la PC con Windows, descarga e instala el Agente: un solo archivo que se instala con doble clic (no requiere permisos de administrador).
-                    <div class="flex flex-wrap items-center gap-2 mt-2 mb-1">
-                        <button type="button" id="btn-instalador" class="bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold py-2 px-4 rounded-lg transition" disabled>Descargar el agente (Windows)</button>
+            <h2 class="text-sm font-bold text-slate-800">Conectar en 3 pasos</h2>
+            <ol class="ag-pasos mt-3">
+                <li><span>Instala Fiscontable Agente en la PC con Windows.</span>
+                    <div class="flex flex-wrap items-center gap-2 mt-2">
+                        <button type="button" id="btn-instalador" class="bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold py-2 px-4 rounded-lg transition" disabled>Descargar para Windows</button>
                         <span id="texto-instalador" class="text-xs text-slate-500"></span>
-                        <a href="fiscontable://abrir" class="text-xs font-bold text-emerald-700 hover:underline">¿Ya lo tienes instalado? Abrir el agente</a>
+                        <a href="fiscontable://abrir" class="text-xs font-bold text-emerald-700 hover:underline">Abrir el Agente</a>
                     </div>
-                    <span class="text-xs text-slate-500">Si Windows dice «Windows protegió su PC», pulsa <b>Más información → Ejecutar de todas formas</b>
-                    (el programa todavía no tiene firma de editor). Las actualizaciones después se hacen desde el ícono junto al reloj → <b>Buscar actualizaciones</b>.</span></li>
-                <li>Pide aquí un código. Dura 2 minutos y sirve una sola vez.</li>
-                <li>En la PC abre <b>Fiscontable Agente</b> y escribe el código (o en una terminal: <span class="font-mono text-xs">FiscontableAgente vincular CÓDIGO</span>).</li>
+                    <small class="block text-xs text-slate-500 mt-1">Si Windows muestra «Windows protegió su PC», elige Más información → Ejecutar de todas formas.</small></li>
+                <li><span>Pide un código (vigente 2 minutos).</span>
+                    <div class="flex flex-wrap items-center gap-3 mt-2">
+                        <button type="button" id="btn-codigo" class="bg-slate-800 hover:bg-slate-700 text-white text-sm font-bold py-2 px-4 rounded-lg transition">Pedir código</button>
+                        <div id="caja-codigo" class="hidden flex flex-wrap items-center gap-2">
+                            <span id="codigo" class="font-mono text-2xl font-bold tracking-widest text-slate-800 select-all"></span>
+                            <button type="button" id="btn-copiar" class="text-xs font-bold text-slate-700 border border-gray-200 hover:border-slate-400 rounded-lg py-1.5 px-3">Copiar</button>
+                            <span id="codigo-vence" class="text-xs text-slate-500"></span>
+                        </div>
+                    </div></li>
+                <li><span>Escríbelo en el Agente y pulsa «Conectar».</span></li>
             </ol>
-            <div class="flex flex-wrap items-center gap-3 mt-4">
-                <button type="button" id="btn-codigo" class="bg-slate-800 hover:bg-slate-700 text-white text-sm font-bold py-2 px-4 rounded-lg transition">Pedir código</button>
-                <div id="caja-codigo" class="hidden flex flex-wrap items-center gap-2">
-                    <span id="codigo" class="font-mono text-2xl font-bold tracking-widest text-slate-800 select-all"></span>
-                    <button type="button" id="btn-copiar" class="text-xs font-bold text-slate-700 border border-gray-200 hover:border-slate-400 rounded-lg py-1.5 px-3">Copiar</button>
-                    <span id="codigo-vence" class="text-xs text-slate-500"></span>
-                </div>
-            </div>
         </section>
 
         <section class="bg-white rounded-xl card-elevated border border-gray-200 p-5">
             <div class="flex items-center justify-between">
-                <h2 class="text-sm font-bold text-slate-800">Mis PCs conectadas <span id="cuantas" class="text-xs font-normal text-slate-400"></span></h2>
+                <h2 class="text-sm font-bold text-slate-800">Mis PCs <span id="cuantas" class="text-xs font-normal text-slate-400"></span></h2>
                 <button type="button" id="btn-actualizar" class="text-xs text-slate-500 hover:text-slate-800 underline">Actualizar</button>
             </div>
             <div id="lista" class="mt-3 text-sm text-slate-500">Cargando…</div>
         </section>
     </main>
 
-<script src="/agente/agente.js?v=202611120822"></script>
+<script src="/agente/agente.js?v=202611120827"></script>
 </body>
 </html>

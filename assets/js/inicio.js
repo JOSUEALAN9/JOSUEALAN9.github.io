@@ -272,8 +272,8 @@
             "</div>" +
             '<div class="tb-columnas">' +
                 '<div class="ui-tarjeta"><p class="tb-titulo">Cumplimiento</p><div class="tb-lista">' +
-                    '<a href="/herramientas/opinion/"><span>Opinión 32-D</span>' + celdaOpinion(op) + "</a>" +
-                    '<a href="/herramientas/constancias/"><span>Constancia</span>' + celdaConstancia(co) + "</a>" +
+                    '<a href="/herramientas/opinion/"><span>Opinión 32-D</span><span class="tb-der">' + celdaOpinion(op) + "</span></a>" +
+                    '<a href="/herramientas/constancias/"><span>Constancia</span><span class="tb-der">' + celdaConstancia(co) + "</span></a>" +
                     '<a href="/herramientas/iva/"><span>Papel de trabajo de IVA de ' + esc(d.mes_nombre) + "</span><small>Abrir →</small></a>" +
                 "</div></div>" +
                 (d.cierre ? '<div class="ui-tarjeta"><p class="tb-titulo">Cierre de ' + esc(d.cierre.mes) + " " + celdaCierre(d.cierre) + '</p><div class="tb-lista">' +
