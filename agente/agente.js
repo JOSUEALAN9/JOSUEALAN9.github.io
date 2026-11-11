@@ -47,21 +47,18 @@ function estadoPc(a) {
     return `<span class="text-xs text-slate-400">· apagada o sin internet (${esc(haceCuanto(a.ultimo_contacto))})</span>`;
 }
 
-function ajustesPc(a, tramites) {
-    const todos = a.ajustes.tramites === null;
-    const casillas = Object.entries(tramites).map(([k, n]) =>
-        `<label class="inline-flex items-center gap-1 mr-3"><input type="checkbox" data-tramite="${esc(k)}" ${todos || a.ajustes.tramites.includes(k) ? "checked" : ""}> ${esc(n)}</label>`).join("");
+function ajustesPc(a) {
+    // De fábrica la PC procesa todo y guarda copia; aquí solo se ajusta el nombre, el horario y el modo sin conexión
     const pausada = a.ajustes.pausa_hasta && new Date(a.ajustes.pausa_hasta) > new Date();
     return `<details class="mt-2 text-xs text-slate-600" data-ajustes="${esc(a.id)}">
         <summary class="cursor-pointer text-slate-500 hover:text-slate-800">Ajustes de esta PC</summary>
-        <div class="mt-2 space-y-2 border border-gray-100 rounded-lg p-3">
+        <div class="mt-2 space-y-3 border border-gray-100 rounded-lg p-3">
             <label class="block">Nombre <input data-campo="nombre" value="${esc(a.nombre)}" maxlength="60" class="ml-1 border border-gray-200 rounded px-2 py-1 w-48"></label>
-            <div>Solicitudes que procesa: <div class="mt-1">${casillas}</div></div>
-            <div>Horario (vacío = siempre): <input type="time" data-campo="desde" value="${esc(a.ajustes.desde)}" class="border border-gray-200 rounded px-1">
-                a <input type="time" data-campo="hasta" value="${esc(a.ajustes.hasta)}" class="border border-gray-200 rounded px-1"></div>
-            <label class="block"><input type="checkbox" data-campo="copia_local" ${a.ajustes.copia_local ? "checked" : ""}> Guardar copia en esta PC (Documentos\\Fiscontable)</label>
-            <label class="block" title="Con la web cerrada o bloqueada por inactividad, esta PC no recibe trámites: los hace el servidor, como siempre."><input type="checkbox" data-campo="solo_presente" ${a.ajustes.solo_presente ? "checked" : ""}> Trabajar solo mientras tengo Fiscontable abierto <span class="text-slate-400">(si no estás, lo hace el servidor)</span></label>
-            <label class="block" title="Sirve para pedir constancias y opiniones desde el ícono del Agente (Trámites desde esta PC) aunque Fiscontable no responda. Se guardan cifradas con tu cuenta de Windows; al apagarlo se borran de esa PC."><input type="checkbox" data-campo="boveda" ${a.ajustes.boveda ? "checked" : ""}> Guardar en esta PC las e.firmas que use, para trabajar aunque Fiscontable no responda <span class="text-slate-400">(cifradas con tu cuenta de Windows; necesita el Agente 1.8)</span></label>
+            <div>Horario <input type="time" data-campo="desde" value="${esc(a.ajustes.desde)}" class="ml-1 border border-gray-200 rounded px-1">
+                a <input type="time" data-campo="hasta" value="${esc(a.ajustes.hasta)}" class="border border-gray-200 rounded px-1">
+                <span class="text-slate-400">(vacío: todo el día)</span></div>
+            <label class="flex items-start gap-2"><input type="checkbox" data-campo="boveda" class="mt-0.5" ${a.ajustes.boveda ? "checked" : ""}>
+                <span><b class="text-slate-700">Modo sin conexión</b><br>Guarda cifradas en esta PC las e.firmas que use, para pedir constancias y opiniones desde el Agente aunque Fiscontable no esté disponible.</span></label>
             <div class="flex flex-wrap gap-2 items-center pt-1">
                 <button type="button" data-guardar="${esc(a.id)}" class="font-bold text-white bg-slate-800 hover:bg-slate-700 rounded-lg py-1.5 px-3" disabled>Sin cambios</button>
                 ${pausada ? `<button type="button" data-pausa="${esc(a.id)}" data-horas="0" class="border border-gray-200 rounded-lg py-1.5 px-3">Reanudar</button>`
@@ -98,7 +95,7 @@ async function cargar(forzar) {
                     </div>
                 </div>
                 ${a.aprobado ? "" : '<p class="text-xs text-amber-800 mt-1">No recibe solicitudes hasta que la apruebes. Si no la reconoces, desconéctala.</p>'}
-                ${ajustesPc(a, d.tramites)}
+                ${ajustesPc(a)}
             </li>`).join("") + "</ul>";
     } catch (e) { lista.textContent = e.message; }
 }
@@ -140,16 +137,12 @@ function marcarCambio(ev) {
 
 async function guardarPc(b) {
     const caja = b.closest("[data-ajustes]"), id = b.dataset.guardar;
-    const marcadas = [...caja.querySelectorAll("[data-tramite]")].filter(x => x.checked).map(x => x.dataset.tramite);
-    const total = caja.querySelectorAll("[data-tramite]").length;
     const datos = {
         nombre: caja.querySelector('[data-campo="nombre"]').value,
         desde: caja.querySelector('[data-campo="desde"]').value, hasta: caja.querySelector('[data-campo="hasta"]').value,
-        copia_local: caja.querySelector('[data-campo="copia_local"]').checked,
-        solo_presente: caja.querySelector('[data-campo="solo_presente"]').checked,
         boveda: caja.querySelector('[data-campo="boveda"]').checked,
+        todos_los_tramites: true, copia_local: true, solo_presente: false,       // lo de fábrica: procesa todo y guarda copia
     };
-    if (marcadas.length === total) datos.todos_los_tramites = true; else datos.tramites = marcadas;
     b.disabled = true; b.textContent = "Guardando…";
     try {
         await api(`/api/agentes/${id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(datos) });
