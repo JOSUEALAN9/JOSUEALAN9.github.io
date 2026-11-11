@@ -961,7 +961,8 @@ function pintarDatosFiscales(cliente) {
         caja.style.whiteSpace = "";
         if (domicilioEnCurso[cliente.rfc]) { caja.innerHTML = '<span class="dom-cargando"><i></i>Obteniendo su constancia del SAT…</span>'; return; }
         caja.innerHTML = '<span class="dom-falta">Pendiente</span>' +
-            (cliente.efirma_guardada && puedeGuardarEfirma ? '<button type="button" class="dom-accion" data-dom="sat">Descargar del SAT</button>' : "") +
+            (cliente.efirma_guardada && puedeGuardarEfirma ? '<button type="button" class="dom-accion" data-dom="sat">Descargar del SAT</button>'
+                : !soloLectura ? '<button type="button" class="dom-accion" data-dom="sat-una">Descargar del SAT</button>' : "") +
             '<label class="dom-accion">Subir constancia<input type="file" accept="application/pdf,.pdf" data-dom="pdf" hidden></label>';
         // Si ya tiene una constancia guardada, se lee sola (sin ir al SAT)
         const conCsf = (cliente.documentos || []).some(d => d.tipo === "csf");
@@ -989,12 +990,14 @@ async function leerDomicilio(rfc, archivo) {
     if (!r.ok) throw new Error(await Fiscontable.leerError(r));
     return refrescarFiscales(rfc);
 }
-async function descargarConstanciaSat(rfc) {
+async function descargarConstanciaSat(rfc, unaVez) {
     if (domicilioEnCurso[rfc]) return;
     domicilioEnCurso[rfc] = true;
     const c0 = clientesCache.find(x => x.rfc === rfc); if (c0 && rfcEnEdicion === rfc) pintarDatosFiscales(c0);
     try {
-        const r = await fetch(`${API_URL}/api/clientes/${encodeURIComponent(rfc)}/generar-constancia`, { method: "POST", credentials: "include" });
+        // unaVez: e.firma adjunta solo para esta consulta (la demo no guarda e.firmas); si no, la guardada
+        const r = unaVez ? await fetch(`${API_URL}/api/opinion/iniciar`, { method: "POST", credentials: "include", body: unaVez })
+            : await fetch(`${API_URL}/api/clientes/${encodeURIComponent(rfc)}/generar-constancia`, { method: "POST", credentials: "include" });
         if (r.status === 409) { delete domicilioEnCurso[rfc]; await leerDomicilio(rfc, null); return; }   // ya tenía una reciente
         if (!r.ok) throw new Error(await Fiscontable.leerError(r));
         const { job_id } = await r.json();
@@ -1018,6 +1021,32 @@ async function descargarConstanciaSat(rfc) {
 document.addEventListener("click", (e) => {
     const b = e.target.closest('[data-dom="sat"]'); if (!b || !rfcEnEdicion) return;
     descargarConstanciaSat(rfcEnEdicion);
+});
+// Sin e.firma guardada (o en la demo, que no las guarda): se adjunta ahí mismo solo para esta consulta
+document.addEventListener("click", (e) => {
+    const b = e.target.closest('[data-dom="sat-una"]'); if (!b || !rfcEnEdicion) return;
+    const caja = document.getElementById("editar-dato-domicilio");
+    if (caja.querySelector(".dom-unavez")) return;
+    caja.insertAdjacentHTML("beforeend", `<form class="dom-unavez" novalidate>
+        <label>Certificado (.cer)<input type="file" accept=".cer" name="cer" required></label>
+        <label>Llave privada (.key)<input type="file" accept=".key" name="key" required></label>
+        <label>Contraseña de la e.firma<input type="password" name="password" autocomplete="off" required></label>
+        <div><button type="submit" class="ui-btn ui-btn--primario ui-btn--32">Descargar</button>
+        <button type="button" class="ui-btn ui-btn--terciario ui-btn--32" data-dom="cancelar-una">Cancelar</button></div>
+        <small>La e.firma se usa solo para esta consulta y no se guarda.</small></form>`);
+});
+document.addEventListener("click", (e) => {
+    const b = e.target.closest('[data-dom="cancelar-una"]'); if (b) b.closest(".dom-unavez").remove();
+});
+document.addEventListener("submit", (e) => {
+    const f = e.target.closest(".dom-unavez"); if (!f || !rfcEnEdicion) return;
+    e.preventDefault();
+    if (!f.cer.files[0] || !f.key.files[0] || !f.password.value) { avisoDomicilio(rfcEnEdicion, "Adjunta el .cer, el .key y escribe la contraseña."); return; }
+    const fd = new FormData();
+    fd.append("rfc", rfcEnEdicion); fd.append("password", f.password.value);
+    fd.append("cer", f.cer.files[0]); fd.append("key", f.key.files[0]);
+    fd.append("descargar_csf", "true"); fd.append("guardar_efirma", "false");
+    descargarConstanciaSat(rfcEnEdicion, fd);
 });
 document.addEventListener("change", async (e) => {
     const f = e.target.closest('[data-dom="pdf"]'); if (!f || !f.files[0] || !rfcEnEdicion) return;
