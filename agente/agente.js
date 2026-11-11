@@ -58,7 +58,7 @@ function ajustesPc(a) {
                 a <input type="time" data-campo="hasta" value="${esc(a.ajustes.hasta)}" class="border border-gray-200 rounded px-1">
                 <span class="text-slate-400">(vacío: todo el día)</span></div>
             <label class="flex items-start gap-2"><input type="checkbox" data-campo="boveda" class="mt-0.5" ${a.ajustes.boveda ? "checked" : ""}>
-                <span><b class="text-slate-700">Modo sin conexión</b><br>Guarda cifradas en esta PC las e.firmas que use, para pedir constancias y opiniones desde el Agente aunque Fiscontable no esté disponible.</span></label>
+                <span><b class="text-slate-700">Modo sin conexión</b> · constancias y opiniones desde el Agente aunque Fiscontable no esté disponible.</span></label>
             <div class="flex flex-wrap gap-2 items-center pt-1">
                 <button type="button" data-guardar="${esc(a.id)}" class="font-bold text-white bg-slate-800 hover:bg-slate-700 rounded-lg py-1.5 px-3" disabled>Sin cambios</button>
                 ${pausada ? `<button type="button" data-pausa="${esc(a.id)}" data-horas="0" class="border border-gray-200 rounded-lg py-1.5 px-3">Reanudar</button>`
@@ -75,8 +75,7 @@ async function cargar(forzar) {
         const d = ultimo = await api("/api/agentes");
         const modo = document.getElementById("texto-modo");
         modo.className = "text-xs mb-4 text-emerald-700";
-        modo.textContent = d.tramites_en_agente.length ? `Se procesan en tu PC: ${d.tramites_en_agente.join(", ")}.` : "";
-        modo.hidden = !d.tramites_en_agente.length;
+        modo.hidden = true;
         document.getElementById("cuantas").textContent = `${d.agentes.length} de ${d.max_pcs}`;
         pintarInstalador(d.instalador);
         if (!d.agentes.length) { lista.innerHTML = '<p class="text-slate-400">Sin PCs conectadas.</p>'; return; }
