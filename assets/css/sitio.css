@@ -144,6 +144,32 @@ html:has(body.st) { background: #161513; scroll-behavior: smooth; scroll-padding
 .st-pasos h3 { margin-top: 14px; font-size: 17px; font-weight: 650; }
 .st-pasos p { margin-top: 6px; font-size: 14.5px; color: var(--tinta-tenue); }
 
+/* --- Planes --- */
+.st-planes { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr)); align-items: stretch; }
+.st-plan { position: relative; display: flex; flex-direction: column; background: #fff; border: 1px solid var(--borde-claro); border-radius: 18px; padding: 28px 24px 24px; }
+.st-plan--destacado { border-color: rgba(14, 159, 110, .55); box-shadow: 0 22px 48px -28px rgba(8, 97, 63, .55); }
+.st-plan--pronto { background: rgba(255, 255, 255, .55); }
+.st-plan__marca { position: absolute; top: -12px; left: 24px; padding: 3px 10px; border-radius: 999px; background: var(--verde); color: #fff; font-size: 12px; font-weight: 700; letter-spacing: .02em; }
+.st-plan__marca--pronto { background: var(--tinta); }
+.st-plan h3 { font-size: 22px; font-weight: 700; letter-spacing: -.015em; }
+.st-plan__resumen { margin-top: 4px; font-size: 14.5px; color: var(--tinta-tenue); }
+.st-plan__precios { margin-top: 18px; display: grid; gap: 8px; }
+.st-plan__precios li { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 10px 12px; border-radius: 11px; background: var(--papel); }
+.st-plan__precios span { font-weight: 650; font-size: 15px; }
+.st-plan__precios span small { display: block; font-weight: 500; font-size: 12.5px; color: var(--tinta-tenue); }
+.st-plan__precios b { font-size: 20px; font-weight: 700; letter-spacing: -.01em; white-space: nowrap; }
+.st-plan__precios b small { margin-left: 4px; font-size: 12.5px; font-weight: 500; color: var(--tinta-tenue); }
+.st-plan__incluye { margin-top: 18px; display: grid; gap: 8px; }
+.st-plan__incluye li { display: flex; gap: 9px; font-size: 14.5px; line-height: 1.45; }
+.st-plan__incluye .st-ico { flex: none; width: 18px; height: 18px; margin-top: 1px; color: var(--verde); }
+.st-plan__nota { margin-top: auto; padding-top: 16px; font-size: 13px; color: var(--tinta-tenue); }
+.st-plan-despacho { margin-top: 16px; display: flex; flex-wrap: wrap; align-items: center; gap: 16px 20px; padding: 22px 24px; border-radius: 18px; background: #fff; border: 1px solid var(--borde-claro); }
+.st-plan-despacho > .st-ico { flex: none; width: 42px; height: 42px; padding: 9px; border-radius: 11px; background: #E7F6EF; color: var(--verde-hondo); }
+.st-plan-despacho > div { flex: 1 1 280px; }
+.st-plan-despacho h3 { font-size: 18px; font-weight: 700; }
+.st-plan-despacho p { margin-top: 4px; font-size: 14.5px; color: var(--tinta-tenue); }
+.st-plan__anual { margin-top: 18px; text-align: center; font-size: 14px; color: var(--tinta-tenue); }
+
 /* --- Registro (demo) --- */
 .st-registro { overflow: hidden; }
 .st-registro__dentro { position: relative; display: grid; gap: 40px; align-items: start; }

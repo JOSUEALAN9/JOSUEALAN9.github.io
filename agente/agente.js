@@ -136,15 +136,18 @@ function marcarCambio(ev) {
 
 async function guardarPc(b) {
     const caja = b.closest("[data-ajustes]"), id = b.dataset.guardar;
+    const casilla = caja.querySelector('[data-campo="boveda"]');
     const datos = {
         nombre: caja.querySelector('[data-campo="nombre"]').value,
         desde: caja.querySelector('[data-campo="desde"]').value, hasta: caja.querySelector('[data-campo="hasta"]').value,
-        boveda: caja.querySelector('[data-campo="boveda"]').checked,
         todos_los_tramites: true, copia_local: true, solo_presente: false,       // lo de fábrica: procesa todo y guarda copia
     };
+    // El modo sin conexión viene de fábrica según la licencia: solo se manda si la persona lo cambió
+    if (casilla.checked !== casilla.defaultChecked) datos.boveda = casilla.checked;
     b.disabled = true; b.textContent = "Guardando…";
     try {
         await api(`/api/agentes/${id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(datos) });
+        casilla.defaultChecked = casilla.checked;
         b.textContent = "✓ Guardado"; b.className = "font-bold text-white bg-emerald-600 rounded-lg py-1.5 px-3";
         setTimeout(() => { b.textContent = "Sin cambios"; b.className = "font-bold text-white bg-slate-800 rounded-lg py-1.5 px-3"; }, 2500);
     } catch (e) { b.disabled = false; b.textContent = "Guardar cambios"; alerta("error", e.message); }
