@@ -4,9 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Conectar esta PC | Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611120826">
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611120826">
+    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611120827">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611120827">
     <style>
+    .ag-cabeza { display: block; }
+    .ag-cabeza p { margin: 4px 0 0; font-size: var(--t-14); color: rgb(var(--g-600)); }
+    .ag-puntos { display: flex; flex-wrap: wrap; gap: 6px 22px; padding: 0; list-style: none; font-size: var(--t-13); color: rgb(var(--g-700)); }
+    .ag-puntos li { display: flex; align-items: center; gap: 7px; }
+    .ag-puntos li::before { content: ""; width: 14px; height: 14px; flex: none; border-radius: 50%; background: rgb(var(--ok-50))
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4 8.5l2.5 2.5L12 5.5' fill='none' stroke='%23067647' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/10px no-repeat; }
     .ag-pasos { counter-reset: paso; display: grid; gap: var(--e-4); padding: 0; margin: 0; list-style: none; }
     .ag-pasos > li { counter-increment: paso; position: relative; padding-left: 34px; font-size: var(--t-14); color: rgb(var(--g-700)); }
     .ag-pasos > li::before { content: counter(paso); position: absolute; left: 0; top: -1px; width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center;
@@ -16,12 +22,17 @@
 <body class="min-h-screen flex flex-col">
 
     <div id="app-header" data-modulo="agente" data-titulo="Conectar esta PC" data-migas=""></div>
-<script src="/assets/js/nucleo.js?v=202611120826"></script>
-<script src="/assets/js/barra.js?v=202611120826"></script>
+<script src="/assets/js/nucleo.js?v=202611120827"></script>
+<script src="/assets/js/barra.js?v=202611120827"></script>
 
     <main class="flex-grow w-full mod-pagina mod-pagina--angosta" style="max-width:860px">
 
-        <div class="mod-cabeza"><h1>Conectar esta PC</h1><p class="text-sm text-slate-500 mt-1">Fiscontable al alcance de tu escritorio. Misma cuenta, más control.</p></div>
+        <div class="mod-cabeza ag-cabeza"><h1>Conectar esta PC</h1><p>Fiscontable al alcance de tu escritorio. Misma cuenta, más control.</p></div>
+        <ul class="ag-puntos mb-5">
+            <li>Copia de cada documento en tu computadora</li>
+            <li>Con tu propia conexión a internet</li>
+            <li>Solo en las PCs que tú apruebas</li>
+        </ul>
 
         <div id="alerta" class="hidden mb-4 p-3 rounded-lg text-sm"></div>
 
@@ -59,6 +70,6 @@
         </section>
     </main>
 
-<script src="/agente/agente.js?v=202611120826"></script>
+<script src="/agente/agente.js?v=202611120827"></script>
 </body>
 </html>
