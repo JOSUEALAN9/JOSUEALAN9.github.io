@@ -1509,6 +1509,7 @@ main.fc-recien { animation: fc-recien .35s ease-out; }
     html.fc-con-lateral.fc-lateral-chico .fc-barra, html.fc-con-riel.fc-lateral-chico .fc-barra { margin-left: calc(var(--lateral-chico) * -1); width: calc(100% + var(--lateral-chico)); }
     html.fc-con-riel .cf-menu { position: fixed; z-index: 35; left: 0; top: var(--barra-alto); bottom: 0; height: auto; }
     html.fc-con-lateral .fc-modulos-btn { display: none; }
+    html.fc-con-lateral .fc-casa { display: none; }            /* Inicio ya está en la barra lateral */
     html.fc-con-lateral .fc-cambio, html.fc-con-riel .fc-cambio { left: var(--lateral-ancho); }
     html.fc-con-lateral.fc-lateral-chico .fc-cambio, html.fc-con-riel.fc-lateral-chico .fc-cambio { left: var(--lateral-chico); }
     .fc-lateral { display: flex; position: fixed; z-index: 35; left: 0; top: var(--barra-alto); bottom: 0; view-transition-name: fc-lateral; }
