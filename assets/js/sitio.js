@@ -15,6 +15,17 @@
         nav.addEventListener("click", function (e) { if (e.target.closest("a")) menu(false); });
         document.addEventListener("keydown", function (e) { if (e.key === "Escape" && nav.classList.contains("abierto")) { menu(false); boton.focus(); } });
     }
+    // Con la sesión abierta, «Iniciar sesión» pasa a «Ir a mi tablero» (la página se queda como está).
+    (function () {
+        try { if (localStorage.getItem("fc-ya-entro") !== "1") return; } catch (e) { return; }
+        var h = location.hostname;
+        var api = "https://" + (/^pruebas\./.test(h) ? "api-pruebas." : "api.") + (/(^|\.)fiscontable\.app$/.test(h) ? "fiscontable.app" : "josuealan.com");
+        fetch(api + "/api/mi-perfil", { credentials: "include", cache: "no-store" }).then(function (r) {
+            if (r.status === 401) { try { localStorage.removeItem("fc-ya-entro"); } catch (e) { /* nada */ } }
+            if (!r.ok) return;
+            document.querySelectorAll("[data-entrar]").forEach(function (a) { a.href = "/inicio/"; a.textContent = a.getAttribute("data-entrar"); });
+        }, function () { /* sin conexión: se queda «Iniciar sesión» */ });
+    })();
     if (barra) {
         var raya = function () { barra.classList.toggle("baja", window.scrollY > 8); };
         raya();

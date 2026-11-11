@@ -88,7 +88,7 @@ function barra(t, { ancla = "", entra = false } = {}) {
             <a href="${base}#seguridad">${n.seguridad}</a>
             <a href="${base}#preguntas">${n.dudas}</a>
             <span class="st-nav__botones">
-                <a class="st-btn st-btn--fantasma" href="/login">${n.entrar}</a>
+                <a class="st-btn st-btn--fantasma" href="/login" data-entrar="${esc(n.tablero)}">${n.entrar}</a>
                 <a class="st-btn st-btn--principal" href="${base}#registro">${n.demo}</a>
             </span>
         </nav>
@@ -189,21 +189,7 @@ function portada(t) {
         applicationCategory: "BusinessApplication", operatingSystem: "Web, Windows 10, Windows 11", inLanguage: "es-MX", description: t.descripcion,
         publisher: { "@type": "Organization", name: "Fiscontable", url: DOMINIO } };
     return cabeza(t, { titulo: t.titulo, descripcion: t.descripcion, canonica: t.ruta, alterna: t.otra, css: ["/assets/css/forma-demo.css"] }) +
-`    <script>/* Con la sesión abierta se va directo al tablero; sin sesión se queda esta página (nunca se manda sola al inicio
-       de sesión). fiscontable.app/?sitio muestra siempre esta página. */
-    (function () {
-        try { if (localStorage.getItem("fc-ya-entro") !== "1" || /[?&]sitio\\b/.test(location.search)) return; } catch (e) { return; }
-        var h = location.hostname, raiz = document.documentElement;
-        var api = "https://" + (/^pruebas\\./.test(h) ? "api-pruebas." : "api.") + (/(^|\\.)fiscontable\\.app$/.test(h) ? "fiscontable.app" : "josuealan.com");
-        raiz.style.visibility = "hidden";                      // sin parpadeo mientras se confirma la sesión (1.5 s como mucho)
-        var ver = function () { raiz.style.visibility = ""; }, t = setTimeout(ver, 1500);
-        fetch(api + "/api/mi-perfil", { credentials: "include", cache: "no-store" }).then(function (r) {
-            if (r.ok) { location.replace("/inicio/"); return; }
-            if (r.status === 401) { try { localStorage.removeItem("fc-ya-entro"); } catch (e) { /* nada */ } }
-            clearTimeout(t); ver();
-        }, function () { clearTimeout(t); ver(); });
-    })();</script>
-    <script type="application/ld+json">${JSON.stringify(datos)}</script>
+`    <script type="application/ld+json">${JSON.stringify(datos)}</script>
 </head>
 <body class="st">
 <a class="st-saltar" href="#contenido">${t.idioma === "es" ? "Ir al contenido" : "Skip to content"}</a>
