@@ -29,7 +29,9 @@
     // Solo páginas de esta misma web (el servidor también lo revisa), y nunca la propia pantalla de inicio de sesión
     var ruta = "";
     try { var u = new URL(volver, location.href); if (u.origin === location.origin) ruta = u.pathname; } catch (e) { /* inválida */ }
-    if (!volver || !ruta || /^\/(login|entrar)(\/|\.html)?$/.test(ruta) || ruta.indexOf("/entrar/") === 0 || ruta === "/") volver = location.origin + "/inicio/";   // el tablero (la portada es la página pública)
+    // Desde las páginas públicas (portada, ayuda, legales) se entra siempre al tablero
+    var publica = /^\/(en\/?)?$|^\/(en\/)?(soporte|support|privacidad|privacy|terminos|terms|cookies)(\/|$)/.test(ruta);
+    if (!volver || !ruta || publica || /^\/(login|entrar)(\/|\.html)?$/.test(ruta) || ruta.indexOf("/entrar/") === 0) volver = location.origin + "/inicio/";   // el tablero (la portada es la página pública)
 
     var quiereLicencia = location.hash === "#licencia";
     var enlace = "";
@@ -312,6 +314,11 @@
             if (enlace) return abrirEnlace();
             // ?revision: la entrada de quien revisa la app en Microsoft Store (solo mientras haya código de revisión vigente)
             if (m && (m.propio || (m.revision && q.has("revision")))) {
+                // Con la sesión abierta, /login lleva directo al tablero
+                if (m.propio && !porBloqueo && !quiereLicencia) {
+                    fetch(API + "/api/mi-perfil", { credentials: "include", cache: "no-store" })
+                        .then(function (r) { if (r.ok) irVolver(); }, function () { /* se queda el formulario */ });
+                }
                 prepararPropio();
                 panel(quiereLicencia ? "licencia" : "entrar");
                 if (MENSAJES[motivo] && motivo !== "reconectando") avisar(motivo);
