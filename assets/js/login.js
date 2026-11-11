@@ -319,6 +319,13 @@
                     fetch(API + "/api/mi-perfil", { credentials: "include", cache: "no-store" })
                         .then(function (r) { if (r.ok) irVolver(); }, function () { /* se queda el formulario */ });
                 }
+                // Desde la pantalla bloqueada: si ya hay una sesión NUEVA (distinta de la bloqueada), se continúa sin pedir nada
+                if (m.propio && porBloqueo) {
+                    var bloqueada = ""; try { bloqueada = (localStorage.getItem("fc-bloqueada") || "").replace(/^1:/, ""); } catch (e) { /* nada */ }
+                    fetch(API + "/api/mi-perfil", { credentials: "include", cache: "no-store" })
+                        .then(function (r) { return r.ok ? r.json() : null; }, function () { return null; })
+                        .then(function (p) { if (p && p._sesion && !p.pantalla_bloqueada && p._sesion !== bloqueada) irVolver(); });
+                }
                 prepararPropio();
                 panel(quiereLicencia ? "licencia" : "entrar");
                 if (MENSAJES[motivo] && motivo !== "reconectando") avisar(motivo);

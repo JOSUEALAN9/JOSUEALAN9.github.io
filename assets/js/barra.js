@@ -2727,10 +2727,33 @@
     function reingresarEnOtraPestana() {
         var w = null;
         try { w = window.open("/login?bloqueo=1", "_blank"); } catch (e) { w = null; }
-        fetch(API + "/publico/cuenta/salir", { method: "POST", credentials: "include", keepalive: true }).catch(function () {});
+        // Solo la primera vez se cierra la sesión bloqueada: si ya se esperaba, la sesión de ahora puede ser la nueva
+        if (!bloqueo.esperando) fetch(API + "/publico/cuenta/salir", { method: "POST", credentials: "include", keepalive: true }).catch(function () {});
         if (!w) { location.replace(urlEntrar("sesion")); return; }               // el navegador no dejó abrir la pestaña
         bloqueo.esperando = true; pintarCapa();
+        vigilarNuevaSesion();
     }
+    /* Mientras se espera, esta pestaña revisa sola si ya se entró en la otra (por si el navegador la tenía dormida y no
+       se enteró): al volver a ella, al recibir el foco y cada 3 s. Solo cuenta una sesión distinta de la bloqueada. */
+    var vigia = null;
+    function vigilarNuevaSesion() {
+        if (vigia) return;
+        vigia = setInterval(revisarSiYaEntro, 3000);
+    }
+    function revisarSiYaEntro() {
+        if (!bloqueo.activa) { clearInterval(vigia); vigia = null; return; }
+        if (!leerLS(LLAVE_BLOQ)) { clearInterval(vigia); vigia = null; reanudarTrasBloqueo(); return; }
+        if (!bloqueo.esperando) return;
+        fetch(API + "/api/mi-perfil", { credentials: "include", cache: "no-store" }).then(function (r) { return r.ok ? r.json() : null; }, function () { return null; })
+            .then(function (p) {
+                if (!p || p.pantalla_bloqueada || !p._sesion || p._sesion === bloqueo.sesion || !bloqueo.activa) return;
+                clearInterval(vigia); vigia = null;
+                ponerLS(LLAVE_BLOQ, null);
+                reanudarTrasBloqueo();
+            });
+    }
+    window.addEventListener("focus", function () { if (bloqueo.activa) revisarSiYaEntro(); });
+    document.addEventListener("visibilitychange", function () { if (!document.hidden && bloqueo.activa) revisarSiYaEntro(); });
     // Otra pestaña quitó el bloqueo (PIN o inicio de sesión): se confirma que sigue siendo la misma cuenta y se reanuda
     function reanudarTrasBloqueo() {
         if (window.__fcPerdioPorBloqueo) { location.reload(); return; }
