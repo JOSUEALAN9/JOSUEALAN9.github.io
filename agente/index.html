@@ -4,13 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Conectar esta PC | Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611120825">
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611120825">
+    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611120826">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611120826">
     <style>
-    .ag-ventajas { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: var(--e-3); }
-    .ag-ventajas > div { background: rgb(var(--g-0)); border: 1px solid var(--linea); border-radius: var(--r-tarjeta); padding: var(--e-3) var(--e-4); display: grid; gap: 2px; }
-    .ag-ventajas b { font-size: var(--t-14); color: rgb(var(--g-900)); }
-    .ag-ventajas span { font-size: var(--t-13); color: rgb(var(--g-600)); line-height: 1.45; }
     .ag-pasos { counter-reset: paso; display: grid; gap: var(--e-4); padding: 0; margin: 0; list-style: none; }
     .ag-pasos > li { counter-increment: paso; position: relative; padding-left: 34px; font-size: var(--t-14); color: rgb(var(--g-700)); }
     .ag-pasos > li::before { content: counter(paso); position: absolute; left: 0; top: -1px; width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center;
@@ -20,21 +16,15 @@
 <body class="min-h-screen flex flex-col">
 
     <div id="app-header" data-modulo="agente" data-titulo="Conectar esta PC" data-migas=""></div>
-<script src="/assets/js/nucleo.js?v=202611120825"></script>
-<script src="/assets/js/barra.js?v=202611120825"></script>
+<script src="/assets/js/nucleo.js?v=202611120826"></script>
+<script src="/assets/js/barra.js?v=202611120826"></script>
 
     <main class="flex-grow w-full mod-pagina mod-pagina--angosta" style="max-width:860px">
 
-        <div class="mod-cabeza"><h1>Conectar esta PC</h1></div>
+        <div class="mod-cabeza"><h1>Conectar esta PC</h1><p class="text-sm text-slate-500 mt-1">Fiscontable al alcance de tu escritorio. Misma cuenta, más control.</p></div>
 
         <div id="alerta" class="hidden mb-4 p-3 rounded-lg text-sm"></div>
 
-        <section class="ag-ventajas mb-5" aria-label="Ventajas de Fiscontable Agente">
-            <div><b>Desde tu equipo</b><span>Tus solicitudes se procesan con tu conexión a internet.</span></div>
-            <div><b>Copia en tu PC</b><span>Cada documento se guarda también en Documentos\Fiscontable.</span></div>
-            <div><b>Sin puertos abiertos</b><span>Tu PC se conecta a Fiscontable; nadie entra a ella.</span></div>
-            <div><b>Tú apruebas cada PC</b><span>Una PC nueva no recibe nada hasta que la apruebes.</span></div>
-        </section>
         <p id="texto-modo" class="text-xs mb-4" hidden></p>
 
         <section class="bg-white rounded-xl card-elevated border border-gray-200 p-5 mb-5">
@@ -69,6 +59,6 @@
         </section>
     </main>
 
-<script src="/agente/agente.js?v=202611120825"></script>
+<script src="/agente/agente.js?v=202611120826"></script>
 </body>
 </html>
