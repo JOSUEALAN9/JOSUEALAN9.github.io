@@ -57,9 +57,10 @@
           palabras: "programar programaciones automático madrugada constancia opinión declaraciones xml buzón validación listas", pintar: pintarProgramaciones },
         { id: "despacho", grupo: "Tu cuenta", titulo: "Mi despacho", ico: ICO.equipo, solo_despacho: true,
           desc: "Tu equipo, sus permisos, las solicitudes y quién hizo qué.", palabras: "despacho equipo miembros permisos titular solicitudes bitácora espacio invitar",
-          pintar: function (c) { enlaceA(c, "Mi despacho", "El equipo, sus permisos, las solicitudes para compartir empresas y la bitácora.", "/despacho/", "Abrir Mi despacho"); } },
-        { id: "agente", grupo: "Tu cuenta", titulo: "PC del contador", ico: ICO.pc, desc: "Conectar esta PC para que haga los trámites de tu cuenta.", palabras: "agente pc windows conectar",
-          pintar: function (c) { enlaceA(c, "PC del contador", "Conecta tu computadora con Windows para que los trámites salgan desde ahí.", "/agente/", "Abrir PC del contador"); } },
+          ir: "/despacho/" },
+        // Una sola página para el Agente: este apartado abre /agente/ directo
+        { id: "agente", grupo: "Tu cuenta", titulo: "Conectar esta PC", ico: ICO.pc, desc: "Fiscontable Agente en tu computadora con Windows.", palabras: "agente pc windows conectar contador",
+          ir: "/agente/" },
         { id: "facturacion", grupo: "Módulos", titulo: "Facturar", ico: ICO.factura, modulo: "facturacion",
           desc: "Emisor, series y folios, sello digital, logo del PDF, correo a clientes y timbres.",
           palabras: "facturar cfdi timbres serie folio csd sello logo pdf correo smtp gmail régimen código postal multifacturas",
@@ -109,6 +110,7 @@
     function abrir(id, sub) {
         if (id === "perfil" && (sub === "pin" || sub === "olvide" || sub === "seguridad")) id = "seguridad";   // antes vivían en Mi perfil
         var s = visibles().filter(function (x) { return x.id === id; })[0] || visibles()[0];
+        if (s.ir) { (incrustado ? window.top : window).location.href = s.ir; return; }
         actual = s.id;
         if (!incrustado) Fiscontable.url({ seccion: s.id, sub: sub || null });
         pintarMenu();

@@ -56,7 +56,7 @@ function ajustesPc(a, tramites) {
         <summary class="cursor-pointer text-slate-500 hover:text-slate-800">Ajustes de esta PC</summary>
         <div class="mt-2 space-y-2 border border-gray-100 rounded-lg p-3">
             <label class="block">Nombre <input data-campo="nombre" value="${esc(a.nombre)}" maxlength="60" class="ml-1 border border-gray-200 rounded px-2 py-1 w-48"></label>
-            <div>Trámites que hace: <div class="mt-1">${casillas}</div></div>
+            <div>Solicitudes que procesa: <div class="mt-1">${casillas}</div></div>
             <div>Horario (vacío = siempre): <input type="time" data-campo="desde" value="${esc(a.ajustes.desde)}" class="border border-gray-200 rounded px-1">
                 a <input type="time" data-campo="hasta" value="${esc(a.ajustes.hasta)}" class="border border-gray-200 rounded px-1"></div>
             <label class="block"><input type="checkbox" data-campo="copia_local" ${a.ajustes.copia_local ? "checked" : ""}> Guardar copia en esta PC (Documentos\\Fiscontable)</label>
@@ -77,13 +77,12 @@ async function cargar(forzar) {
     try {
         const d = ultimo = await api("/api/agentes");
         const modo = document.getElementById("texto-modo");
-        modo.className = "text-xs mt-3 " + (d.tramites_en_agente.length ? "text-emerald-700" : "text-amber-700");
-        modo.textContent = d.tramites_en_agente.length
-            ? `Hoy se hacen en tu PC (si está conectada y aprobada): ${d.tramites_en_agente.join(", ")}.`
-            : "Por ahora el administrador no ha activado ningún trámite para los agentes: puedes vincular tu PC desde ya.";
+        modo.className = "text-xs mb-4 text-emerald-700";
+        modo.textContent = d.tramites_en_agente.length ? `Se procesan en tu PC: ${d.tramites_en_agente.join(", ")}.` : "";
+        modo.hidden = !d.tramites_en_agente.length;
         document.getElementById("cuantas").textContent = `${d.agentes.length} de ${d.max_pcs}`;
         pintarInstalador(d.instalador);
-        if (!d.agentes.length) { lista.innerHTML = '<p class="text-slate-400">Todavía no hay PCs conectadas a tu cuenta.</p>'; return; }
+        if (!d.agentes.length) { lista.innerHTML = '<p class="text-slate-400">Sin PCs conectadas.</p>'; return; }
         lista.innerHTML = '<ul class="divide-y divide-gray-100">' + d.agentes.map(a => `
             <li class="py-3 ${a.aprobado ? "" : "bg-amber-50 -mx-2 px-2 rounded-lg"}">
                 <div class="flex flex-wrap items-center justify-between gap-2">
@@ -91,14 +90,14 @@ async function cargar(forzar) {
                         <span class="inline-block w-2 h-2 rounded-full mr-1 ${a.conectado && a.aprobado ? "bg-emerald-500" : a.aprobado ? "bg-gray-300" : "bg-amber-500"}"></span>
                         <b class="text-slate-800">${esc(a.nombre)}</b> ${estadoPc(a)}
                         <div class="text-xs text-slate-400">${esc(a.sistema || "")}${a.version ? " · agente " + esc(a.version) : ""}${d.instalador && a.version && masNueva(d.instalador.version, a.version)
-                            ? ` <span class="text-amber-700 font-bold">· hay ${esc(d.instalador.version)}: en esa PC, ícono junto al reloj → Buscar actualizaciones</span>` : ""}${a.ip ? " · red " + esc(a.ip) : ""} · vinculada ${esc(haceCuanto(a.creado))}</div>
+                            ? ` <span class="text-amber-700 font-bold">· versión ${esc(d.instalador.version)} disponible</span>` : ""}${a.ip ? " · red " + esc(a.ip) : ""} · conectada ${esc(haceCuanto(a.creado))}</div>
                     </div>
                     <div class="flex gap-2">
                         ${a.aprobado ? "" : `<button type="button" data-aprobar="${esc(a.id)}" class="text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-500 rounded-lg py-1 px-3">Sí, es mi PC</button>`}
                         <button type="button" data-quitar="${esc(a.id)}" data-nombre="${esc(a.nombre)}" class="text-xs text-slate-500 hover:text-red-600 border border-gray-200 rounded-lg py-1 px-3">${a.aprobado ? "Desconectar" : "No fui yo: desconectar"}</button>
                     </div>
                 </div>
-                ${a.aprobado ? "" : '<p class="text-xs text-amber-800 mt-1">Esta PC no recibe ningún trámite (ni e.firmas) hasta que la apruebes. Si no la reconoces, desconéctala.</p>'}
+                ${a.aprobado ? "" : '<p class="text-xs text-amber-800 mt-1">No recibe solicitudes hasta que la apruebes. Si no la reconoces, desconéctala.</p>'}
                 ${ajustesPc(a, d.tramites)}
             </li>`).join("") + "</ul>";
     } catch (e) { lista.textContent = e.message; }
@@ -116,7 +115,7 @@ function pintarInstalador(inst) {
     const b = document.getElementById("btn-instalador"), t = document.getElementById("texto-instalador");
     if (b.dataset.bajando) return;
     b.disabled = !inst;
-    t.textContent = inst ? `versión ${inst.version} · ${Math.round(inst.tamano / 1048576)} MB` : "Todavía no está en el servidor: avísale al administrador.";
+    t.textContent = inst ? `versión ${inst.version} · ${Math.round(inst.tamano / 1048576)} MB` : "No disponible por el momento.";
 }
 
 async function bajarInstalador(b) {
@@ -125,9 +124,9 @@ async function bajarInstalador(b) {
         const resp = await fetch(API + "/api/agentes/instalador", { credentials: "include" });
         if (!resp.ok) throw new Error(await Fiscontable.leerError(resp));
         Fiscontable.guardarArchivo(await resp.blob(), "FiscontableAgente-Setup.exe");
-        alerta("ok", "Listo: abre FiscontableAgente-Setup.exe en esa PC. Al terminar se abre el agente y te pide el código (botón «Pedir código»).");
+        alerta("ok", "Abre FiscontableAgente-Setup.exe en esa PC.");
     } catch (e) { alerta("error", e.message || "No se pudo descargar el instalador."); }
-    delete b.dataset.bajando; b.disabled = false; b.textContent = "Descargar el agente (Windows)";
+    delete b.dataset.bajando; b.disabled = false; b.textContent = "Descargar para Windows";
 }
 
 // Guardar: se activa solo con cambios, dice "Guardando…" y luego "✓ Guardado"
@@ -227,7 +226,7 @@ document.getElementById("lista").addEventListener("click", async (ev) => {
     const ap = ev.target.closest("[data-aprobar]");
     if (ap) {
         ap.disabled = true;
-        try { await api(`/api/agentes/${ap.dataset.aprobar}/aprobar`, { method: "POST" }); alerta("ok", "Listo: esa PC ya puede hacer trámites para tu cuenta."); cargar(true); }
+        try { await api(`/api/agentes/${ap.dataset.aprobar}/aprobar`, { method: "POST" }); alerta("ok", "PC aprobada."); cargar(true); }
         catch (e) { ap.disabled = false; alerta("error", e.message); }
         return;
     }
@@ -236,14 +235,14 @@ document.getElementById("lista").addEventListener("click", async (ev) => {
         pa.disabled = true;
         try {
             await api(`/api/agentes/${pa.dataset.pausa}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ pausa_horas: +pa.dataset.horas }) });
-            alerta("ok", +pa.dataset.horas ? `Listo: esa PC no recibe trámites por ${pa.dataset.horas} h (los hace el servidor).` : "Listo: esa PC vuelve a recibir trámites.");
+            alerta("ok", +pa.dataset.horas ? `PC en pausa ${pa.dataset.horas} h.` : "PC reanudada.");
             cargar(true);
         } catch (e) { pa.disabled = false; alerta("error", e.message); }
         return;
     }
     const b = ev.target.closest("[data-quitar]");
     if (!b) return;
-    if (!(await Fiscontable.preguntar(`¿Desconectar "${b.dataset.nombre}"? Esa PC dejará de hacer trámites para tu cuenta hasta que la vuelvas a vincular.`))) return;
+    if (!(await Fiscontable.preguntar(`¿Desconectar "${b.dataset.nombre}"? Dejará de procesar tus solicitudes hasta que la vuelvas a conectar.`))) return;
     try { await api(`/api/agentes/${b.dataset.quitar}`, { method: "DELETE" }); alerta("ok", "Listo: esa PC quedó desconectada."); cargar(true); }
     catch (e) { alerta("error", e.message); }
 });
