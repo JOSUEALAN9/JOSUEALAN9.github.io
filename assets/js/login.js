@@ -120,7 +120,7 @@
     }
 
     // ------------------------------------------------------------------ inicio de sesión propio
-    var reto = null, campoCambiar = null, campoEnlace = null;
+    var reto = null, campoCambiar = null, campoEnlace = null, sinClave = false;   // sinClave: se entra solo con el código del correo
 
     async function post(ruta, cuerpo) {
         var r;
@@ -145,8 +145,11 @@
         reto = r.reto;
         avisarTexto("");
         if (r.paso === "codigo") panel("codigo");
-        else if (r.paso === "correo") {
-            panel("correo", ["Revisa tu correo", "Enviamos un código de 6 dígitos a " + (r.correo_visible || "tu correo") + ". Vence en 10 minutos."]);
+        else if (r.paso === "correo" || r.paso === "acceso") {
+            sinClave = r.paso === "acceso";
+            panel("correo", ["Revisa tu correo", sinClave
+                ? "Si " + (r.correo_visible || "el correo") + " tiene una cuenta activa, recibirá un código de 6 dígitos. Vence en 10 minutos."
+                : "Enviamos un código de 6 dígitos a " + (r.correo_visible || "tu correo") + ". Vence en 10 minutos."]);
             esperarReenvio();
         }
         else if (r.paso === "cambiar") { panel("cambiar"); campoCambiar = F.campoClave($("en-clave-cambiar"), { confirmar: true, oscuro: true }); campoCambiar.entrada.focus(); }
@@ -203,6 +206,14 @@
             catch (er) { avisarTexto(er.message, "alerta"); f.clave.select(); }
             finally { ocupado(f, false); }
         });
+        $("en-con-codigo").addEventListener("click", async function () {
+            var f = formas.entrar, b = this, correo = f.correo.value.trim();
+            if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(correo)) { f.correo.focus(); return avisarTexto("Escribe tu correo.", "alerta"); }
+            b.disabled = true;
+            try { siguiente(await post("/publico/cuenta/acceso", { correo: correo, recordar: f.recordar.checked })); }
+            catch (er) { avisarTexto(er.message, "alerta"); }
+            finally { b.disabled = false; }
+        });
         formas.codigo.addEventListener("submit", async function (e) {
             e.preventDefault();
             var f = this, codigo = f.codigo.value.trim();
@@ -217,7 +228,7 @@
             var f = this, codigo = f.codigo.value.replace(/\D/g, "");
             if (codigo.length !== 6) return avisarTexto("Escribe los 6 dígitos del código que te enviamos.", "alerta");
             ocupado(f, true);
-            try { siguiente(await post("/publico/cuenta/correo", { reto: reto, codigo: codigo })); }
+            try { siguiente(await post(sinClave ? "/publico/cuenta/acceso/codigo" : "/publico/cuenta/correo", { reto: reto, codigo: codigo })); }
             catch (er) { if (!alFallarReto(er)) { avisarTexto(er.message, "alerta"); f.codigo.select(); } }
             finally { ocupado(f, false); }
         });

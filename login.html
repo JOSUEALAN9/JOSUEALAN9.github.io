@@ -7,13 +7,13 @@
     <meta name="description" content="Inicia sesión en Fiscontable.">
     <meta name="theme-color" content="#161513">
     <link rel="icon" href="/assets/marca/favicon.svg" type="image/svg+xml">
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611120816">
-    <link rel="stylesheet" href="/assets/css/marca.css?v=202611120816">
-    <link rel="stylesheet" href="/assets/css/login.css?v=202611120816">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611120817">
+    <link rel="stylesheet" href="/assets/css/marca.css?v=202611120817">
+    <link rel="stylesheet" href="/assets/css/login.css?v=202611120817">
 </head>
 <body class="en">
 <div class="en-fondo" aria-hidden="true"><i class="en-luz en-luz--verde"></i><i class="en-luz en-luz--arena"></i><i class="en-luz en-luz--honda"></i>
-    <svg class="en-marca-agua" viewBox="0 0 64 64"><use href="/assets/marca/simbolos.svg?v=202611120816#fiscontable"></use></svg></div>
+    <svg class="en-marca-agua" viewBox="0 0 64 64"><use href="/assets/marca/simbolos.svg?v=202611120817#fiscontable"></use></svg></div>
 
 <main class="en-marco">
     <section class="en-tarjeta" aria-labelledby="en-titulo">
@@ -36,8 +36,10 @@
             <label class="en-campo"><span>Correo electrónico</span><input class="en-input" name="correo" type="email" autocomplete="username" maxlength="160" required></label>
             <label class="en-campo fcc--oscuro"><span>Contraseña</span><span class="fcc__caja"><input class="en-input" name="clave" type="password" autocomplete="current-password" maxlength="128" required>
                 <button type="button" class="fcc__ver" data-ver aria-label="Ver la contraseña">Ver</button></span></label>
-            <label class="en-check en-check--corta" title="Durante 30 días no te pediremos el código en este equipo. No lo marques en una computadora compartida."><input type="checkbox" name="recordar"> <span>Confiar en este equipo</span></label>
+            <label class="en-check en-check--corta" title="Mantiene la sesión abierta 30 días en este equipo, aunque cierres el navegador. No lo marques en una computadora compartida."><input type="checkbox" name="recordar"> <span>Confiar en este equipo</span></label>
             <button type="submit" class="en-btn en-btn--principal">Iniciar sesión</button>
+            <div class="en-sep en-sep--forma">o</div>
+            <button type="button" class="en-btn en-btn--secundario" id="en-con-codigo">Recibir un código por correo</button>
             <button type="button" class="en-liga" data-ir="olvide">¿Olvidaste tu contraseña?</button>
         </form>
 
@@ -117,7 +119,7 @@
             </div>
             <div class="en-nov__arte" aria-hidden="true">
                 <div class="en-ventana">
-                    <div class="en-ventana__barra"><svg viewBox="0 0 64 64"><use href="/assets/marca/simbolos.svg?v=202611120816#fiscontable"></use></svg>Fiscontable Agente</div>
+                    <div class="en-ventana__barra"><svg viewBox="0 0 64 64"><use href="/assets/marca/simbolos.svg?v=202611120817#fiscontable"></use></svg>Fiscontable Agente</div>
                     <div class="en-ventana__cuerpo">
                         <p><b>Estado</b><span><i class="punto"></i>En línea</span></p>
                         <p><b>Última solicitud</b><span>Constancia · Completado</span></p>
@@ -129,8 +131,8 @@
     </aside>
 </main>
 
-<script src="/assets/js/nucleo.js?v=202611120816"></script>
-<script src="/assets/js/comun/cuenta.js?v=202611120816"></script>
-<script src="/assets/js/login.js?v=202611120816"></script>
+<script src="/assets/js/nucleo.js?v=202611120817"></script>
+<script src="/assets/js/comun/cuenta.js?v=202611120817"></script>
+<script src="/assets/js/login.js?v=202611120817"></script>
 </body>
 </html>
