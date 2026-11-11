@@ -2202,19 +2202,31 @@
 
     /* ------------------------------------------------- foto de perfil (M-20): se pide con la sesión y se muestra en el avatar */
     var fotoActual = null, fotoUrl = null, esAdminActual = false;
-    async function ponerFoto(version) {
+    // La foto también se guarda en este navegador (256 px): así la pantalla de bloqueo la muestra aunque, ya bloqueada,
+    // el servidor no la entregue. Se borra al cerrar sesión.
+    function fotoGuardada() { try { return JSON.parse(localStorage.getItem("fc-foto") || "null"); } catch (e) { return null; } }
+    function mostrarFoto(url) {
         var av = document.getElementById("fc-avatar");
-        if (!av || version === fotoActual) return;
+        fotoUrl = url;
+        if (!av) return;
+        if (url) { av.innerHTML = '<img src="' + url + '" alt="">'; av.classList.add("fc-avatar--foto"); }
+        else { av.classList.remove("fc-avatar--foto"); av.textContent = ((perfilActual && (perfilActual.nombre || perfilActual.correo)) || "·").charAt(0).toUpperCase(); }
+    }
+    async function ponerFoto(version, forzar) {
+        if (!document.getElementById("fc-avatar")) return;
+        if (version === fotoActual && !forzar) { if (version && fotoUrl) mostrarFoto(fotoUrl); return; }
         fotoActual = version;
-        if (!version) return;
+        var g = fotoGuardada();
+        if (!version) { try { localStorage.removeItem("fc-foto"); } catch (e) { /* nada */ } mostrarFoto(null); return; }
+        if (g && g.v === version && g.d) { mostrarFoto(g.d); return; }
         try {
             var r = await fetch(API + "/api/mi-perfil/foto?v=" + encodeURIComponent(version), { credentials: "include" });
-            if (!r.ok) return;
-            var url = URL.createObjectURL(await r.blob());
-            fotoUrl = url;                                     // también para la pantalla de bloqueo
-            av.innerHTML = '<img src="' + url + '" alt="">';
-            av.classList.add("fc-avatar--foto");
-        } catch (e) { /* se queda la inicial */ }
+            if (!r.ok) { if (g && g.d) mostrarFoto(g.d); return; }
+            var blob = await r.blob();
+            var datos = await new Promise(function (ok) { var l = new FileReader(); l.onload = function () { ok(l.result); }; l.onerror = function () { ok(null); }; l.readAsDataURL(blob); });
+            if (datos) { try { localStorage.setItem("fc-foto", JSON.stringify({ v: version, d: datos })); } catch (e) { /* sin espacio */ } }
+            mostrarFoto(datos || URL.createObjectURL(blob));
+        } catch (e) { if (g && g.d) mostrarFoto(g.d); }
     }
 
     /* ------------------------------------------------- textos editables de la web (C-05)
@@ -2634,7 +2646,8 @@
         var p = perfilActual || {}, nombre = p.nombre || (p.persona || p.correo || "").split("@")[0] || "";
         var av = document.getElementById("fc-bl-avatar"), nom = document.getElementById("fc-bl-nombre");
         if (nombre) {
-            if (fotoUrl) av.innerHTML = '<img src="' + fotoUrl + '" alt="">';
+            var guardada = fotoUrl || (perfilActual && perfilActual.foto ? (fotoGuardada() || {}).d : null);
+            if (guardada) av.innerHTML = '<img src="' + guardada + '" alt="">';
             else av.textContent = nombre.charAt(0).toUpperCase();
             nom.textContent = nombre;
         }
@@ -3185,7 +3198,7 @@
         e.preventDefault();
         if (a.id === "fc-bl-salir") { reingresarEnOtraPestana(); return; }
         try { await fetch(API + "/publico/cuenta/salir", { method: "POST", credentials: "include" }); } catch (x) { /* igual se va */ }
-        try { localStorage.removeItem("fc-ya-entro"); } catch (x) { /* nada */ }
+        try { localStorage.removeItem("fc-ya-entro"); localStorage.removeItem("fc-foto"); } catch (x) { /* nada */ }
         location.replace(urlEntrar("salio"));
     }, true);
 
@@ -3362,6 +3375,7 @@
         textoPlazo: textoPlazo,
         bloquearPantalla: function (servidor) { bloquearPantalla(!!servidor); },
         panelTrabajo: panelTrabajo,
+        ponerFoto: function (v) { ponerFoto(v, true); },
         catalogo: CATALOGO,
         grupos: GRUPOS,
         avisoPlan: avisoPlan,
