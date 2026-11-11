@@ -52,7 +52,7 @@ export const T = {
                 "Tu PC llama al servidor: no abre puertos ni recibe conexiones.",
                 "Tú autorizas cada equipo y puedes desconectarlo en cualquier momento."
             ],
-            boton: "Cómo se instala", tienda: "Muy pronto en Microsoft Store", tiendaLista: "Disponible en Microsoft Store",
+            boton: "Cómo se instala", tienda: "Windows 10 y 11", tiendaLista: "Disponible en Microsoft Store",
             ventana: { titulo: "Fiscontable Agente", filas: [["Estado", "En línea"], ["Cuenta", "mariana@despacho.mx"], ["Última solicitud", "Constancia · Completado"], ["Solicitudes hoy", "14"]] }
         },
         seguridad: {
@@ -101,7 +101,7 @@ export const T = {
             lista: [
                 ["¿Necesito instalar algo?", "En el plan Standard, sí: Fiscontable Agente para Windows, que realiza las descargas y los trámites desde tu PC. En Pro es opcional: con el Agente conectado los trámites se hacen desde tu PC; sin él, desde nuestro servidor."],
                 ["¿Qué necesito de cada cliente?", "Su e.firma (archivos .cer y .key y su contraseña) o su contraseña del SAT, según el trámite."],
-                ["¿Dónde quedan las e.firmas?", "Cifradas en el servidor de Fiscontable. Con el Agente, tu PC guarda además una copia cifrada con tu cuenta de Windows para seguir trabajando aunque no haya conexión. Se utilizan únicamente para los trámites que solicitas. En la demo no se guardan."],
+                ["¿Dónde quedan las e.firmas?", "Cifradas en el servidor de Fiscontable. Llegan a tu PC cifradas solo para ella en cada trámite. Con el modo sin conexión, tu PC guarda además una copia cifrada con tu cuenta de Windows. Se utilizan únicamente para los trámites que solicitas. En la demo no se guardan."],
                 ["¿Puedo trabajar con mi equipo?", "Sí. Un despacho junta 5 licencias o más: cada persona tiene su PC y ve solo las empresas y los módulos que le asignas."],
                 ["¿Funciona en Mac o en el celular?", "La web sí, en cualquier navegador actual. El Agente es solo para Windows 10 y 11."],
                 ["¿Qué incluye la demo?", "Los módulos principales, para que conozcas el sistema con tus propias empresas durante 7 días. Al contratar se activan todos los de tu plan y se conserva la información registrada."],
@@ -169,7 +169,7 @@ export const T = {
                 "Your PC calls the server: it opens no ports and accepts no connections.",
                 "You approve each PC and can disconnect it at any time."
             ],
-            boton: "How to install it", tienda: "Coming soon to Microsoft Store", tiendaLista: "Available on Microsoft Store",
+            boton: "How to install it", tienda: "Windows 10 and 11", tiendaLista: "Available on Microsoft Store",
             ventana: { titulo: "Fiscontable Agente", filas: [["Status", "Online"], ["Account", "mariana@despacho.mx"], ["Last request", "Tax status · Completed"], ["Requests today", "14"]] }
         },
         seguridad: {
@@ -218,7 +218,7 @@ export const T = {
             lista: [
                 ["Do I need to install anything?", "On the Standard plan, yes: Fiscontable Agent for Windows, which runs downloads and procedures on your PC. On Pro it is optional: with the Agent connected, procedures run on your PC; without it, on our server."],
                 ["What do I need from each client?", "Their e.firma (the .cer and .key files and their password) or their SAT password, depending on the procedure."],
-                ["Where are e.firmas kept?", "Encrypted on Fiscontable's server. With the Agent, your PC also keeps a copy encrypted with your Windows account so you can keep working without a connection. They are used only for the procedures you request. In the demo they are not stored."],
+                ["Where are e.firmas kept?", "Encrypted on Fiscontable's server. They reach your PC encrypted for that PC only, for each procedure. With offline mode, your PC also keeps a copy encrypted with your Windows account. They are used only for the procedures you request. In the demo they are not stored."],
                 ["Can I work with my team?", "Yes. A firm combines 5 or more licenses: each person has their own PC and sees only the companies and modules you assign."],
                 ["Does it work on Mac or on a phone?", "The web app does, in any current browser. The Agent is only for Windows 10 and 11."],
                 ["What does the demo include?", "The main modules, so you can get to know the system with your own companies for 7 days. When you subscribe, every module in your plan is activated and you keep what you already did."],
