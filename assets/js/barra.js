@@ -432,7 +432,7 @@
         if (!m.permiso) return true;
         var p = perfilActual;
         if (!p || p._error) return true;            // mientras carga no se ve nada como bloqueado
-        return !p.solo_lectura && (p.modulos_permitidos || []).indexOf(m.permiso) !== -1;
+        return (!p.solo_lectura || p.sin_agente) && (p.modulos_permitidos || []).indexOf(m.permiso) !== -1;   // Standard sin Agente: consulta
     }
 
     function itemModulo(m) {
@@ -2143,7 +2143,10 @@
         pintarEmpresa();
         pintarPeriodo();
 
-        if (p.solo_lectura) {
+        if (p.solo_lectura && p.sin_agente && !p.viendo_como) {
+            aviso("Conecta tu PC con Fiscontable Agente para hacer trámites y cambios. Mientras tanto puedes consultar toda tu información.",
+                [{ texto: "Conectar esta PC", href: "/agente/", mismaPestana: true }]);
+        } else if (p.solo_lectura) {
             aviso("Tu acceso venció. Puedes consultar tu directorio, pero no generar documentos. " +
                 "Contacta al administrador para renovarlo.");
         }
@@ -2991,7 +2994,8 @@
             var el;
             if (a.href) {
                 el = document.createElement("a");
-                el.href = a.href; el.target = "_blank"; el.rel = "noopener";
+                el.href = a.href;
+                if (!a.mismaPestana) { el.target = "_blank"; el.rel = "noopener"; }
             } else {
                 el = document.createElement("button");
                 el.type = "button";
@@ -3012,7 +3016,7 @@
     /* ------------------------------------------------ módulos que el plan no incluye
        Todo sale de los permisos reales del usuario (su rol y sus ajustes propios): si el admin le da un módulo, se
        desbloquea solo. Al tocar uno bloqueado sale este aviso con el contacto que el admin puso en Permisos por rol. */
-    var NOMBRE_PLAN = { admin: "Admin", pro: "Pro", plus: "Plus", demo: "Demo" };
+    var NOMBRE_PLAN = { admin: "Admin", plus: "Plus", pro: "Pro", standard: "Standard", demo: "Demo" };
     function planInfo() { return (perfilActual && perfilActual.planes) || { contacto: { texto: "Contacta al administrador para mejorar tu plan." }, proximos: [] }; }
     function nombrePlan() { var r = perfilActual && perfilActual.rol; return NOMBRE_PLAN[r] || (r ? r.charAt(0).toUpperCase() + r.slice(1) : ""); }
     function botonesContacto(modulo) {
@@ -3074,7 +3078,7 @@
                 : "No pudimos conectar con el servidor. Intenta más tarde o contacta al administrador.");
             return false;
         }
-        if (p.solo_lectura) {
+        if (p.solo_lectura && !p.sin_agente) {
             bloquear("Tu acceso venció. No puedes generar documentos hasta que se renueve. " +
                 "Contacta al administrador.", botonesContacto(null));
             return false;

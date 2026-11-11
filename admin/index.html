@@ -4,16 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Administrar Usuarios | Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611120830">
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611120830">
-    <link rel="stylesheet" href="/admin/creditos-admin.css?v=202611120830">
-    <link rel="stylesheet" href="/admin/documentos-admin.css?v=202611120830">
+    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611120831">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611120831">
+    <link rel="stylesheet" href="/admin/creditos-admin.css?v=202611120831">
+    <link rel="stylesheet" href="/admin/documentos-admin.css?v=202611120831">
 </head>
 <body class="min-h-screen flex flex-col relative">
 
     <div id="app-header" data-modulo="admin" data-titulo="Administración" data-migas=""></div>
-<script src="/assets/js/nucleo.js?v=202611120830"></script>
-<script src="/assets/js/barra.js?v=202611120830"></script>
+<script src="/assets/js/nucleo.js?v=202611120831"></script>
+<script src="/assets/js/barra.js?v=202611120831"></script>
 
     <main class="flex-grow p-4 sm:p-6 w-full max-w-4xl mx-auto fc-principal">
         <style>
@@ -587,7 +587,7 @@
                     <label class="ui-campo"><span class="ui-etiqueta">Duración</span><select class="ui-select" id="lca-meses"></select></label>
                 </div>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <label class="ui-campo" id="lca-campo-asientos" hidden><span class="ui-etiqueta">Lugares (personas)</span><input class="ui-input" id="lca-asientos" type="number" min="1" max="200" value="6"></label>
+                    <label class="ui-campo" id="lca-campo-asientos" hidden><span class="ui-etiqueta">Licencias del despacho (mínimo 5)</span><input class="ui-input" id="lca-asientos" type="number" min="5" max="200" value="5"></label>
                     <label class="ui-campo" id="lca-campo-cantidad"><span class="ui-etiqueta">Cuántas claves</span><input class="ui-input" id="lca-cantidad" type="number" min="1" max="50" value="1"></label>
                     <label class="ui-campo"><span class="ui-etiqueta">Caduca si no se activa <i>(opcional)</i></span>
                         <select class="ui-select" id="lca-caduca"><option value="">Nunca</option><option value="30">En 30 días</option><option value="90">En 90 días</option></select></label>
@@ -622,8 +622,9 @@
                         <span class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1">Rol</span>
                         <select id="input-rol" class="w-full text-sm border border-gray-300 rounded-lg p-2.5 focus:outline-none focus:ring-2 focus:ring-emerald-500">
                             <option value="demo">Demo (prueba)</option>
-                            <option value="plus">Plus</option>
+                            <option value="standard">Standard</option>
                             <option value="pro">Pro</option>
+                            <option value="plus">Plus</option>
                             <option value="admin">Admin</option>
                         </select>
                     </label>
@@ -684,14 +685,14 @@
         </div>
     </div>
 
-<script src="/admin/admin.js?v=202611120830"></script>
-<script src="/admin/creditos-admin.js?v=202611120830"></script>
-<script src="/admin/planes-admin.js?v=202611120830"></script>
-<script src="/admin/documentos-admin.js?v=202611120830"></script>
-<script src="/admin/plazos-admin.js?v=202611120830"></script>
-<script src="/admin/vencidas-admin.js?v=202611120830"></script>
-<script src="/admin/despachos-admin.js?v=202611120830"></script>
-<script src="/admin/licencias-admin.js?v=202611120830"></script>
-<script src="/admin/demos-admin.js?v=202611120830"></script>
+<script src="/admin/admin.js?v=202611120831"></script>
+<script src="/admin/creditos-admin.js?v=202611120831"></script>
+<script src="/admin/planes-admin.js?v=202611120831"></script>
+<script src="/admin/documentos-admin.js?v=202611120831"></script>
+<script src="/admin/plazos-admin.js?v=202611120831"></script>
+<script src="/admin/vencidas-admin.js?v=202611120831"></script>
+<script src="/admin/despachos-admin.js?v=202611120831"></script>
+<script src="/admin/licencias-admin.js?v=202611120831"></script>
+<script src="/admin/demos-admin.js?v=202611120831"></script>
 </body>
 </html>

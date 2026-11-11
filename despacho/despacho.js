@@ -105,6 +105,7 @@
         partes.push(m.modulos === null ? "todos los módulos" : m.modulos.length + (m.modulos.length === 1 ? " módulo" : " módulos"));
         if (m.agregar_propio) partes.push("registra empresas");
         if (m.solo_lectura) partes.push("solo consulta");
+        if (m.sin_conexion) partes.push("su PC trabaja sin conexión");
         partes.push(m.personal ? "con Mi espacio" : "sin Mi espacio");
         return partes.join(" · ");
     }
@@ -168,6 +169,7 @@
         $("dp-agregar").checked = !!m.agregar_propio;
         $("dp-personal").checked = !!m.personal;
         $("dp-lectura").checked = !!m.solo_lectura;
+        $("dp-sin-conexion").checked = !!m.sin_conexion;
         $("dp-suspender").checked = m.estado === "suspendido";
         $("dp-modal-error").hidden = true;
         actualizarModal();
@@ -179,7 +181,7 @@
         var papel = $("dp-papel").value, titular = papel === "titular";
         $("dp-papel-ayuda").textContent = AYUDA_PAPEL[papel] || "";
         $("dp-grupo-empresas").hidden = $("dp-grupo-modulos").hidden = titular;
-        $("dp-agregar").closest("label").hidden = $("dp-lectura").closest("label").hidden = titular;
+        $("dp-agregar").closest("label").hidden = $("dp-lectura").closest("label").hidden = $("dp-sin-conexion").closest("label").hidden = titular;
         $("dp-empresas-caja").hidden = document.querySelector('input[name="dp-emp"]:checked').value !== "algunas";
         $("dp-modulos").hidden = document.querySelector('input[name="dp-mod"]:checked').value !== "algunos";
     }
@@ -196,6 +198,7 @@
             else cuerpo.modulos = [].map.call($("dp-modulos").querySelectorAll("input:checked"), function (i) { return i.value; });
             cuerpo.agregar = $("dp-agregar").checked;
             cuerpo.solo_lectura = $("dp-lectura").checked;
+            cuerpo.sin_conexion = $("dp-sin-conexion").checked;
         }
         if (edicion.invitar) {
             cuerpo.correo = $("dp-correo").value.trim().toLowerCase();

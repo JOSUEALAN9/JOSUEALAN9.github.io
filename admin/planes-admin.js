@@ -6,7 +6,7 @@
     var API = Fiscontable.API, esc = Fiscontable.escapar;
     var $ = function (id) { return document.getElementById(id); };
     var datos = null, cargado = false;
-    var ROLES = { pro: "Pro", plus: "Plus", demo: "Demo" };
+    var ROLES = { standard: "Standard", pro: "Pro", plus: "Plus", demo: "Demo" };
 
     async function api(ruta, metodo, cuerpo) {
         var r = await fetch(API + ruta, { method: metodo || "GET", credentials: "include",
@@ -17,7 +17,7 @@
     var campo = "text-sm border border-gray-300 rounded-lg p-2";
 
     function filaPlan(p) {
-        p = p || { empresas: 5, timbres: 100, precio: 0, rol: "pro" };
+        p = p || { empresas: 15, timbres: 0, precio: 0, rol: "standard" };
         var d = document.createElement("div");
         d.className = "grid grid-cols-2 sm:grid-cols-12 gap-2 items-center border border-gray-200 rounded-lg p-2";
         d.dataset.plan = p.clave || "";
@@ -28,11 +28,13 @@
             '<label class="sm:col-span-2 text-xs text-slate-500">Precio al mes ($)<input data-k="precio" type="number" min="0" step="1" class="w-full ' + campo + '"></label>' +
             '<label class="sm:col-span-1 text-xs text-slate-500">Rol<select data-k="rol" class="w-full ' + campo + '">' +
                 Object.keys(ROLES).map(function (r) { return '<option value="' + r + '">' + ROLES[r] + "</option>"; }).join("") + "</select></label>" +
-            '<input data-k="para" placeholder="Para quién (ej. Despacho chico)" class="sm:col-span-3 ' + campo + '">' +
+            '<input data-k="para" placeholder="Para quién (ej. Cartera mediana)" class="sm:col-span-2 ' + campo + '">' +
             '<label class="sm:col-span-1 text-xs text-slate-600 flex items-center gap-1"><input data-k="destacado" type="checkbox"> Destacado</label>' +
+            '<label class="sm:col-span-1 text-xs text-slate-600 flex items-center gap-1"><input data-k="proximamente" type="checkbox"> Próximamente</label>' +
             '<button type="button" data-quitar class="sm:col-span-1 text-xs font-bold text-red-600 hover:underline">Quitar</button>';
         ["nombre", "empresas", "timbres", "precio", "rol", "para"].forEach(function (k) { d.querySelector('[data-k="' + k + '"]').value = p[k] != null ? p[k] : ""; });
         d.querySelector('[data-k="destacado"]').checked = !!p.destacado;
+        d.querySelector('[data-k="proximamente"]').checked = !!p.proximamente;
         $("pr-planes").appendChild(d);
     }
     function filaTimbre(t) {
@@ -73,7 +75,7 @@
             planes: Array.from($("pr-planes").children).map(function (f) {
                 var v = function (k) { var el = f.querySelector('[data-k="' + k + '"]'); return el.type === "checkbox" ? el.checked : el.value; };
                 return { clave: f.dataset.plan || "", nombre: v("nombre"), empresas: +v("empresas"), timbres: +v("timbres"), precio: +v("precio"),
-                         rol: v("rol"), para: v("para"), destacado: v("destacado") };
+                         rol: v("rol"), nivel: v("rol"), para: v("para"), destacado: v("destacado"), proximamente: v("proximamente") };
             }),
             timbres: Array.from($("pr-timbres").children).map(function (f) {
                 return { timbres: +f.querySelector('[data-k="timbres"]').value, precio: +f.querySelector('[data-k="precio"]').value };

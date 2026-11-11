@@ -5,13 +5,13 @@ export const T = {
         idioma: "es", ruta: "/", otra: "/en/", otraNombre: "English",
         titulo: "Fiscontable · El SAT de todos tus clientes, en orden",
         descripcion: "Fiscontable descarga del SAT los XML, constancias, opiniones de cumplimiento y avisos del buzón de cada cliente de tu despacho, y te muestra qué falta para cerrar el mes.",
-        nav: { funciones: "Funciones", agente: "Agente", seguridad: "Seguridad", dudas: "Preguntas", entrar: "Iniciar sesión", tablero: "Ir a mi tablero", demo: "Solicita una demo", menu: "Menú" },
+        nav: { funciones: "Funciones", agente: "Agente", seguridad: "Seguridad", planes: "Planes", dudas: "Preguntas", entrar: "Iniciar sesión", tablero: "Ir a mi tablero", demo: "Solicita una demo", menu: "Menú" },
         heroe: {
             chip: "Para despachos contables en México",
             h1a: "Cierra el mes", h1b: "sin perseguir documentos.",
             sub: "Fiscontable descarga del SAT los XML, constancias, opiniones de cumplimiento y avisos del buzón de cada cliente, y te indica qué le falta a cada uno.",
             demo: "Solicita una demo", ver: "Ver funciones",
-            nota: ["Demo de 7 días", "Sin tarjeta", "En tu navegador"]
+            nota: ["Demo de 7 días", "Sin tarjeta", "Web y Agente para Windows"]
         },
         maqueta: {
             ventana: "Cierre del mes", cab: "Cierre del periodo", mes: "Octubre 2026", meses: ["Ago", "Sep", "Oct", "Nov"],
@@ -70,7 +70,24 @@ export const T = {
         },
         pasos: {
             chip: "Cómo empezar", h2: "Comienza en tres pasos",
-            lista: [["Solicita tu demo", "Al aprobarse tu solicitud recibirás el acceso por correo."], ["Registra tus empresas", "Con su e.firma o su contraseña del SAT, según el trámite."], ["Instala el Agente", "Opcional: para procesar tus solicitudes desde tu PC."]]
+            lista: [["Solicita tu demo", "Al aprobarse tu solicitud recibirás el acceso por correo."], ["Registra tus empresas", "Con su e.firma o su contraseña del SAT, según el trámite."], ["Instala el Agente", "Las descargas y los trámites se hacen desde tu PC. En el plan Standard es necesario."]]
+        },
+        planes: {
+            chip: "Planes", h2: "Elige según tu cartera",
+            sub: "Cada licencia es para una persona y su PC con Fiscontable Agente. Precios en pesos mexicanos, más IVA.",
+            mes: "al mes", rfc: "RFC", timbres: "timbres al mes", anual: "Con pago anual, 2 meses gratis.",
+            recomendado: "Recomendado", proximamente: "Próximamente", boton: "Solicita una demo",
+            niveles: [
+                { clave: "standard", nombre: "Standard", resumen: "Fiscontable Agente y consulta", precios: [[5, 299], [15, 649], [50, 1499]],
+                  incluye: ["Descarga de XML desde tu PC", "Constancia y opinión 32-D", "Buzón tributario y listas del SAT", "Administración de XML y validación", "Conciliación e IVA", "Cierre del mes y reportes en Excel y PDF"],
+                  nota: "Requiere Fiscontable Agente conectado en tu PC." },
+                { clave: "pro", nombre: "Pro", resumen: "Todo lo de Standard, más facturación e impuestos", precios: [[15, 999, 200], [50, 2199, 500]], destacado: true,
+                  incluye: ["Todo lo de Standard", "Facturación CFDI 4.0 y cancelaciones", "Timbres incluidos cada mes", "Marcas fiscales y voucheo", "Impuestos estatales de Quintana Roo", "Declaraciones y acuses del SAT"],
+                  nota: "Con el Agente conectado, los trámites se hacen desde tu PC; sin él, desde nuestro servidor." },
+                { clave: "plus", nombre: "Plus", resumen: "Todo lo de Pro, más nómina y declaraciones federales", proximamente: true,
+                  incluye: ["Todo lo de Pro", "Nómina", "DIOT y declaraciones provisionales"], nota: "" }
+            ],
+            despacho: { h3: "Despacho", texto: "Junta 5 licencias o más: cada persona con su PC, permisos por persona y los RFC de todas las licencias en una sola cartera.", boton: "Cotizar mi despacho" }
         },
         registro: {
             chip: "Demo", h2: "Conócelo con tus propias empresas",
@@ -82,13 +99,13 @@ export const T = {
         dudas: {
             chip: "Preguntas", h2: "Antes de empezar",
             lista: [
-                ["¿Necesito instalar algo?", "No. Fiscontable funciona en el navegador. El Agente para Windows es opcional: permite que las consultas y descargas se realicen desde tu computadora."],
+                ["¿Necesito instalar algo?", "En el plan Standard, sí: Fiscontable Agente para Windows, que realiza las descargas y los trámites desde tu PC. En Pro es opcional: con el Agente conectado los trámites se hacen desde tu PC; sin él, desde nuestro servidor."],
                 ["¿Qué necesito de cada cliente?", "Su e.firma (archivos .cer y .key y su contraseña) o su contraseña del SAT, según el trámite."],
-                ["¿Dónde quedan las e.firmas?", "Cifradas en el servidor de Fiscontable; se utilizan únicamente para los trámites que solicitas. En la demo no se guardan."],
-                ["¿Puedo trabajar con mi equipo?", "Sí. Crea tu despacho, invita a cada persona y define qué empresas y módulos ve."],
+                ["¿Dónde quedan las e.firmas?", "Cifradas en el servidor de Fiscontable. Con el Agente, tu PC guarda además una copia cifrada con tu cuenta de Windows para seguir trabajando aunque no haya conexión. Se utilizan únicamente para los trámites que solicitas. En la demo no se guardan."],
+                ["¿Puedo trabajar con mi equipo?", "Sí. Un despacho junta 5 licencias o más: cada persona tiene su PC y ve solo las empresas y los módulos que le asignas."],
                 ["¿Funciona en Mac o en el celular?", "La web sí, en cualquier navegador actual. El Agente es solo para Windows 10 y 11."],
                 ["¿Qué incluye la demo?", "Los módulos principales, para que conozcas el sistema con tus propias empresas durante 7 días. Al contratar se activan todos los de tu plan y se conserva la información registrada."],
-                ["¿Cuánto cuesta?", "Depende del número de empresas y de personas. Solicita tu demo y te presentaremos el plan adecuado para tu despacho."]
+                ["¿Cuánto cuesta?", "Desde $299 al mes más IVA, según el plan y el número de empresas. Consulta los planes o solicita una demo."]
             ]
         },
         cierre: { h2: "Lleva tu próximo cierre con todo en orden", boton: "Solicita una demo" },
@@ -105,13 +122,13 @@ export const T = {
         idioma: "en", ruta: "/en/", otra: "/", otraNombre: "Español",
         titulo: "Fiscontable · Every client's SAT paperwork, in order",
         descripcion: "Fiscontable downloads each client's invoices (XML), tax status certificates, compliance opinions and tax mailbox notices from Mexico's tax authority (SAT), and shows your firm what is still missing to close the month.",
-        nav: { funciones: "Features", agente: "Agent", seguridad: "Security", dudas: "FAQ", entrar: "Sign in", tablero: "Go to my dashboard", demo: "Request a demo", menu: "Menu" },
+        nav: { funciones: "Features", agente: "Agent", seguridad: "Security", planes: "Plans", dudas: "FAQ", entrar: "Sign in", tablero: "Go to my dashboard", demo: "Request a demo", menu: "Menu" },
         heroe: {
             chip: "For accounting firms in Mexico",
             h1a: "Close the month", h1b: "without chasing documents.",
             sub: "Fiscontable pulls each client's invoices (XML), tax status certificates, compliance opinions and tax mailbox notices from the SAT, and tells you what each one is missing.",
             demo: "Request a demo", ver: "See features",
-            nota: ["7-day demo", "No credit card", "In your browser"]
+            nota: ["7-day demo", "No credit card", "Web and Windows Agent"]
         },
         maqueta: {
             ventana: "Month-end close", cab: "Period close", mes: "October 2026", meses: ["Aug", "Sep", "Oct", "Nov"],
@@ -170,7 +187,24 @@ export const T = {
         },
         pasos: {
             chip: "Getting started", h2: "Ready in an afternoon",
-            lista: [["Request your demo", "We activate your access and let you know by email."], ["Add your companies", "With their e.firma or SAT password, depending on the procedure."], ["Install the Agent", "Optional: to process your requests on your own PC."]]
+            lista: [["Request your demo", "We activate your access and let you know by email."], ["Add your companies", "With their e.firma or SAT password, depending on the procedure."], ["Install the Agent", "Downloads and procedures run on your own PC. Required on the Standard plan."]]
+        },
+        planes: {
+            chip: "Plans", h2: "Choose by the size of your portfolio",
+            sub: "Each license is for one person and their PC with Fiscontable Agent. Prices in Mexican pesos, plus VAT.",
+            mes: "per month", rfc: "RFC", timbres: "stamps per month", anual: "Pay yearly and get 2 months free.",
+            recomendado: "Recommended", proximamente: "Coming soon", boton: "Request a demo",
+            niveles: [
+                { clave: "standard", nombre: "Standard", resumen: "Fiscontable Agent and lookups", precios: [[5, 299], [15, 649], [50, 1499]],
+                  incluye: ["XML downloads from your PC", "Tax status certificate and 32-D opinion", "SAT tax mailbox and SAT lists", "XML management and validation", "Reconciliation and VAT", "Month-end close and Excel and PDF reports"],
+                  nota: "Requires Fiscontable Agent connected on your PC." },
+                { clave: "pro", nombre: "Pro", resumen: "Everything in Standard, plus invoicing and taxes", precios: [[15, 999, 200], [50, 2199, 500]], destacado: true,
+                  incluye: ["Everything in Standard", "CFDI 4.0 invoicing and cancellations", "Stamps included every month", "Tax tags and vouching", "Quintana Roo state taxes", "SAT returns and acknowledgments"],
+                  nota: "With the Agent connected, procedures run on your PC; without it, on our server." },
+                { clave: "plus", nombre: "Plus", resumen: "Everything in Pro, plus payroll and federal returns", proximamente: true,
+                  incluye: ["Everything in Pro", "Payroll", "DIOT and monthly federal returns"], nota: "" }
+            ],
+            despacho: { h3: "Firm", texto: "Combine 5 or more licenses: each person with their own PC, per-person permissions and the RFCs of every license in one portfolio.", boton: "Get a quote for my firm" }
         },
         registro: {
             chip: "Demo", h2: "Try it with your own companies",
@@ -182,13 +216,13 @@ export const T = {
         dudas: {
             chip: "FAQ", h2: "Before you start",
             lista: [
-                ["Do I need to install anything?", "No. Fiscontable runs in the browser. The Agent for Windows is optional: it lets your requests be processed on your own computer."],
+                ["Do I need to install anything?", "On the Standard plan, yes: Fiscontable Agent for Windows, which runs downloads and procedures on your PC. On Pro it is optional: with the Agent connected, procedures run on your PC; without it, on our server."],
                 ["What do I need from each client?", "Their e.firma (the .cer and .key files and their password) or their SAT password, depending on the procedure."],
-                ["Where are e.firmas kept?", "Encrypted on Fiscontable's server, and used only for the procedures you request. In the demo they are not stored."],
-                ["Can I work with my team?", "Yes. You create your firm, invite each person and decide which companies and modules they see."],
+                ["Where are e.firmas kept?", "Encrypted on Fiscontable's server. With the Agent, your PC also keeps a copy encrypted with your Windows account so you can keep working without a connection. They are used only for the procedures you request. In the demo they are not stored."],
+                ["Can I work with my team?", "Yes. A firm combines 5 or more licenses: each person has their own PC and sees only the companies and modules you assign."],
                 ["Does it work on Mac or on a phone?", "The web app does, in any current browser. The Agent is only for Windows 10 and 11."],
                 ["What does the demo include?", "The main modules, so you can get to know the system with your own companies for 7 days. When you subscribe, every module in your plan is activated and you keep what you already did."],
-                ["How much does it cost?", "It depends on the number of companies and people. Request your demo and we will share the plan that fits you."],
+                ["How much does it cost?", "From $299 MXN per month plus VAT, depending on the plan and number of companies. See the plans or request a demo."],
                 ["Is the app in English?", "The application itself is in Spanish, since it is built for accounting work in Mexico. These public pages are available in English."]
             ]
         },
