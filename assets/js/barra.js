@@ -2201,7 +2201,7 @@
     }
 
     /* ------------------------------------------------- foto de perfil (M-20): se pide con la sesión y se muestra en el avatar */
-    var fotoActual = null, esAdminActual = false;
+    var fotoActual = null, fotoUrl = null, esAdminActual = false;
     async function ponerFoto(version) {
         var av = document.getElementById("fc-avatar");
         if (!av || version === fotoActual) return;
@@ -2211,6 +2211,7 @@
             var r = await fetch(API + "/api/mi-perfil/foto?v=" + encodeURIComponent(version), { credentials: "include" });
             if (!r.ok) return;
             var url = URL.createObjectURL(await r.blob());
+            fotoUrl = url;                                     // también para la pantalla de bloqueo
             av.innerHTML = '<img src="' + url + '" alt="">';
             av.classList.add("fc-avatar--foto");
         } catch (e) { /* se queda la inicial */ }
@@ -2610,8 +2611,10 @@
         capa.id = "fc-bloqueo-pantalla"; capa.className = "fc-bloqueo-pantalla"; capa.setAttribute("role", "dialog"); capa.setAttribute("aria-modal", "true");
         capa.setAttribute("aria-labelledby", "fc-bl-titulo");
         capa.innerHTML = '<div class="fc-bloqueo-pantalla__caja">' +
-            '<span class="fc-marca__sello">' + simboloMarca() + "</span>" +
-            '<h2 id="fc-bl-titulo">Sesión bloqueada por inactividad</h2><p id="fc-bl-texto" hidden></p>' +
+            '<span class="fc-marca__sello" id="fc-bl-sello">' + simboloMarca() + "</span>" +
+            '<span class="fc-bloqueo-pantalla__avatar" id="fc-bl-avatar" hidden></span>' +
+            '<h2 class="fc-bloqueo-pantalla__nombre" id="fc-bl-nombre" hidden></h2>' +
+            '<p class="fc-bloqueo-pantalla__titulo" id="fc-bl-titulo">Sesión bloqueada por inactividad</p><p id="fc-bl-texto" hidden></p>' +
             '<form id="fc-bl-form" hidden><input id="fc-bl-pin" class="ui-input" type="password" inputmode="numeric" autocomplete="off" maxlength="6" placeholder="PIN" aria-label="Tu PIN">' +
             '<button type="submit" class="ui-btn ui-btn--primario">Desbloquear</button></form>' +
             '<p class="fc-bloqueo-pantalla__msj" id="fc-bl-msj" role="alert"></p>' +
@@ -2627,6 +2630,16 @@
         var capa = capaBloqueo(), con = bloqueo.pin;
         // Texto mínimo: el título lo dice todo. Solo hay renglón de apoyo mientras se espera el inicio de sesión en la otra pestaña.
         document.getElementById("fc-bl-titulo").textContent = "Sesión bloqueada por inactividad";
+        // Como la pantalla de bloqueo de Windows: tu foto (o tu inicial) y tu nombre
+        var p = perfilActual || {}, nombre = p.nombre || (p.persona || p.correo || "").split("@")[0] || "";
+        var av = document.getElementById("fc-bl-avatar"), nom = document.getElementById("fc-bl-nombre");
+        if (nombre) {
+            if (fotoUrl) av.innerHTML = '<img src="' + fotoUrl + '" alt="">';
+            else av.textContent = nombre.charAt(0).toUpperCase();
+            nom.textContent = nombre;
+        }
+        av.hidden = nom.hidden = !nombre;
+        document.getElementById("fc-bl-sello").hidden = !!nombre;
         var apoyo = document.getElementById("fc-bl-texto");
         apoyo.textContent = bloqueo.esperando ? "Continúa en la pestaña que se abrió." : "";
         apoyo.hidden = !bloqueo.esperando;
