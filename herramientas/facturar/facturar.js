@@ -183,6 +183,7 @@
         if (F.sub === "manifiesto") cargarManifiesto();
         $("cinta-nombre").textContent = e.razon_social || e.alias;
         $("cinta-datos").textContent = [e.rfc, e.regimen ? "Régimen " + e.regimen : "", e.cp ? "C.P. " + e.cp : ""].filter(Boolean).join(" · ");
+        cargarLugares(e);
         $("c-emisor").textContent = (e.razon_social || e.alias) + " · " + e.rfc;
         $("c-emisor-cab").textContent = (e.razon_social || e.alias) + " · " + e.rfc;
         $("punto-sello").hidden = !!e.csd;
@@ -980,9 +981,31 @@
         catch (e) { aviso(e.message, "error"); }
     }
 
+    /* Lugar de expedición: el C.P. fiscal o el de una sucursal registrada en la ficha de la empresa (★ = predeterminada).
+       Solo se muestra si la empresa tiene sucursales. */
+    async function cargarLugares(e) {
+        var caja = $("cinta-lugar"), sel = $("c-lugar");
+        caja.hidden = true; sel.innerHTML = "";
+        try {
+            var r = await api("/api/clientes/" + encodeURIComponent(e.rfc) + "/sucursales");
+            var d = await r.json();
+            if (!F.emisor || F.emisor.rfc !== e.rfc) return;
+            var fiscal = e.cp || d.cp_fiscal, otras = d.sucursales.filter(function (x) { return x.cp !== fiscal; });
+            if (!otras.length) return;
+            sel.innerHTML = (fiscal ? '<option value="' + esc(fiscal) + '">' + esc(fiscal) + " · Domicilio fiscal</option>" : "") +
+                otras.map(function (x) { return '<option value="' + esc(x.cp) + '">' + esc(x.cp) + " · " + esc(x.nombre || "Sucursal") + "</option>"; }).join("");
+            sel.value = d.predeterminado && sel.querySelector('option[value="' + d.predeterminado + '"]') ? d.predeterminado : (fiscal || otras[0].cp);
+            caja.hidden = false;
+        } catch (x) { /* sin permiso de Clientes o sin conexión: se factura con el C.P. fiscal */ }
+    }
+    function lugarElegido() {
+        var sel = $("c-lugar");
+        return $("cinta-lugar").hidden || !sel.value || (F.emisor && sel.value === F.emisor.cp) ? null : sel.value;
+    }
     function captura() {
         var rfcR = $("r-rfc").value.trim().toUpperCase();
         return {
+            lugar_expedicion: lugarElegido(),
             clave_envio: F.claveEnvio, cotizacion_id: F.facturandoCot || null,
             tipo: F.tipo, metodo_pago: $("p-metodo").value, forma_pago: $("p-forma").value,
             condiciones: $("p-condiciones").value.trim() || null,

@@ -4,16 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Clientes | Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611120814">
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611120814">
-    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611120814">
+    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611120816">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611120816">
+    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611120816">
 </head>
 <body class="min-h-screen flex flex-col relative">
 
     <!-- TOP NAV -->
     <div id="app-header" data-modulo="clientes" data-titulo="Clientes" data-migas=""></div>
-<script src="/assets/js/nucleo.js?v=202611120814"></script>
-<script src="/assets/js/barra.js?v=202611120814"></script>
+<script src="/assets/js/nucleo.js?v=202611120816"></script>
+<script src="/assets/js/barra.js?v=202611120816"></script>
 
     <!-- ÁREA DE TRABAJO -->
     <main class="flex-grow w-full mod-pagina" style="max-width:1180px">
@@ -272,8 +272,23 @@
                     <dl class="ficha-datos">
                         <dt>RFC</dt><dd id="editar-dato-rfc" class="font-mono"></dd>
                         <dt>Razón social</dt><dd id="editar-dato-razon"></dd>
+                        <dt>Régimen fiscal</dt><dd id="editar-dato-regimen"></dd>
+                        <dt>Domicilio fiscal</dt><dd id="editar-dato-domicilio"></dd>
                         <dt>En tu directorio desde</dt><dd id="editar-dato-alta"></dd>
                     </dl>
+                    <!-- Sucursales: los C.P. desde los que factura (lugar de expedición), con una predeterminada -->
+                    <div class="suc-caja">
+                        <div class="suc-cabeza"><p class="alta-etiqueta" style="margin:0">Sucursales para facturar</p>
+                            <button type="button" id="suc-xml" class="suc-enlace">Leer de sus XML del año</button></div>
+                        <ul id="suc-lista" class="suc-lista"></ul>
+                        <div id="suc-propuestas" class="suc-propuestas" hidden></div>
+                        <form id="suc-form" class="suc-form" autocomplete="off">
+                            <input id="suc-cp" class="alta-control" inputmode="numeric" maxlength="5" placeholder="C.P." aria-label="Código postal de la sucursal">
+                            <input id="suc-nombre" class="alta-control" maxlength="60" placeholder="Nombre (opcional)" aria-label="Nombre de la sucursal">
+                            <button type="submit" class="suc-agregar">Agregar</button>
+                        </form>
+                        <p id="suc-msj" class="text-xs" hidden></p>
+                    </div>
                     <div>
                         <p class="alta-etiqueta">Cómo va</p>
                         <div id="editar-resumen" class="flex flex-wrap gap-2"></div>
@@ -506,8 +521,8 @@
         </div>
     </div>
 
-<script src="/assets/js/comun/leer-cer.js?v=202611120814"></script>
-<script src="/assets/js/comun/zona-archivos.js?v=202611120814"></script>
+<script src="/assets/js/comun/leer-cer.js?v=202611120816"></script>
+<script src="/assets/js/comun/zona-archivos.js?v=202611120816"></script>
 <style>
     .cli-herr { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 14px; }
     .cli-buscar { flex: 1 1 220px; max-width: 320px; font-size: 14px; border: 1px solid rgb(var(--g-200)); border-radius: 10px; padding: 8px 12px; background: rgb(var(--g-0)); }
@@ -590,6 +605,29 @@
     .alta-control { width: 100%; font-size: 14.5px; border: 1px solid rgb(var(--g-300)); border-radius: 10px; padding: 11px 13px; background: rgb(var(--g-0)); }
     .alta-control:focus { outline: none; border-color: rgb(var(--ac-600)); box-shadow: 0 0 0 3px rgb(var(--ac-100)); }
     .alta-archivo { width: 100%; font-size: 13px; border: 1px dashed rgb(var(--ac-300)); border-radius: 10px; padding: 12px; background: rgb(var(--g-50)); }
+    .dom-falta { display: inline-block; font-size: 12px; font-weight: 700; color: #B45309; background: #FEF3C7; border-radius: 999px; padding: 1px 8px; margin-right: 8px; }
+    .dom-accion { display: inline-block; border: 1px solid rgb(var(--g-200)); background: rgb(var(--g-0)); border-radius: 8px; padding: 3px 10px; font: inherit; font-size: 12.5px; font-weight: 700; color: var(--acento); cursor: pointer; margin: 2px 6px 2px 0; }
+    .dom-accion:hover { border-color: var(--acento); }
+    .dom-cargando { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: rgb(var(--g-600)); }
+    .dom-cargando i { width: 14px; height: 14px; border-radius: 50%; border: 2px solid rgb(var(--g-200)); border-top-color: var(--acento); animation: fc-giro .8s linear infinite; }
+    .dom-error { display: block; margin-top: 4px; font-size: 12px; color: rgb(var(--er-600)); }
+    .suc-caja { display: flex; flex-direction: column; gap: 8px; }
+    .suc-cabeza { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+    .suc-enlace { border: 0; background: none; font: inherit; font-size: 12.5px; font-weight: 700; color: var(--acento); cursor: pointer; padding: 0; }
+    .suc-lista { list-style: none; margin: 0; padding: 0; border: 1px solid rgb(var(--g-200)); border-radius: 10px; }
+    .suc-fila { display: flex; align-items: center; gap: 10px; padding: 8px 12px; font-size: 13.5px; border-top: 1px solid rgb(var(--g-100)); }
+    .suc-fila:first-child { border-top: 0; }
+    .suc-fila b { font-variant-numeric: tabular-nums; color: rgb(var(--g-900)); }
+    .suc-fila span { flex: 1; color: rgb(var(--g-600)); }
+    .suc-estrella { border: 0; background: none; font-size: 16px; line-height: 1; color: rgb(var(--g-300)); cursor: pointer; padding: 0; }
+    .suc-estrella--si { color: #D97706; }
+    .suc-quitar { border: 0; background: none; color: rgb(var(--g-400)); cursor: pointer; font-size: 12px; }
+    .suc-quitar:hover { color: rgb(var(--er-600)); }
+    .suc-form { display: grid; grid-template-columns: 90px 1fr auto; gap: 8px; }
+    .suc-agregar { border: 1px solid rgb(var(--g-200)); background: rgb(var(--g-0)); border-radius: 8px; padding: 0 14px; font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
+    .suc-propuestas { display: flex; flex-wrap: wrap; gap: 6px; }
+    .suc-propuesta { border: 1px dashed rgb(var(--ac-500)); background: rgb(var(--ac-50, 236 253 245)); color: var(--acento); border-radius: 999px; padding: 4px 10px; font: inherit; font-size: 12.5px; font-weight: 700; cursor: pointer; }
+    .suc-propuesta small { font-weight: 500; color: rgb(var(--g-500)); }
     .alta-ojo { position: absolute; top: 0; bottom: 0; right: 8px; border: 0; background: none; cursor: pointer; opacity: .55; font-size: 15px; }
     .alta-modo { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; background: rgb(var(--g-100)); border-radius: 12px; }
     .alta-modo__op { border: 0; background: none; border-radius: 9px; padding: 9px 8px; font: inherit; font-size: 13px; font-weight: 700; color: rgb(var(--g-600)); cursor: pointer; }
@@ -607,18 +645,18 @@
     .alta-despacho { margin-top: 8px; font-size: 13px; line-height: 1.45; border-radius: 10px; padding: 9px 12px; background: rgb(var(--in-50)); border: 1px solid rgb(var(--in-200)); color: rgb(var(--g-800)); }
     .alta-error { font-size: 13px; font-weight: 600; border-radius: 10px; padding: 10px 12px; background: rgb(var(--er-50)); border: 1px solid rgb(var(--er-200)); color: rgb(var(--er-600)); }
 </style>
-<script src="/assets/js/comun/importar-clientes.js?v=202611120814"></script>
+<script src="/assets/js/comun/importar-clientes.js?v=202611120816"></script>
 <!-- Varias constancias a la vez: obligaciones federales y alta de los que falten -->
 <dialog id="dlg-constancias" class="ui-modal" style="width:min(640px, calc(100vw - 32px))">
     <div class="ui-modal__cuerpo">
         <h3>Subir constancias y opiniones</h3>
-        <p class="text-sm text-slate-600">Suelta las constancias y opiniones de cumplimiento (PDF) de tus clientes, de uno o varios meses. De cada cliente se guarda la más reciente de cada una, con su fecha real; de la constancia se leen sus obligaciones federales para el «Cierre del mes». Los que no están en tu directorio se dan de alta con su constancia.</p>
-        <label class="ui-check"><input type="checkbox" id="cs-alta" checked> Dar de alta a los que no están</label>
+        <p class="text-sm text-slate-600">Se conserva la más reciente de cada cliente. De la constancia se leen sus obligaciones, régimen y domicilio fiscal.</p>
+        <label class="ui-check"><input type="checkbox" id="cs-alta" checked> Registrar a los clientes nuevos (requiere su constancia)</label>
         <div id="cs-zona"></div>
         <div id="cs-resultado" class="text-sm" style="max-height:45vh;overflow:auto"></div>
     </div>
     <div class="ui-modal__pie"><button type="button" class="ui-btn ui-btn--secundario" data-cerrar>Cerrar</button></div>
 </dialog>
-<script src="/clientes/clientes.js?v=202611120814"></script>
+<script src="/clientes/clientes.js?v=202611120816"></script>
 </body>
 </html>

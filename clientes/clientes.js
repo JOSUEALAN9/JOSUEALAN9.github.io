@@ -715,6 +715,9 @@ async function crearCliente(e) {
         try { const p = await Fiscontable.perfil(); if (p && !p.empresa_activa) await Fiscontable.elegirEmpresa(rfc); } catch (err) { /* no pasa nada */ }
         // Se queda abierta su ficha para seguir configurándola (accesos, obligaciones, XML automáticos, facturación)
         abrirModalEditar(rfc, "general");
+        // Con su e.firma guardada se trae su constancia del SAT de una vez (domicilio, régimen y obligaciones)
+        const nuevo = clientesCache.find(x => x.rfc === rfc);
+        if (nuevo && nuevo.efirma_guardada && !(nuevo.domicilio && nuevo.domicilio.calle)) descargarConstanciaSat(rfc);
     } catch (error) {
         mostrarAlerta("error", await interpretarError(null));
     } finally {
@@ -872,10 +875,157 @@ function pintarResumenFicha(cliente) {
     document.getElementById("editar-resumen").innerHTML =
         chip(cliente.efirma_guardada, "e.firma", "Falta su e.firma", 'data-ir-ficha="accesos"') +
         chip(cliente.ciec_guardada, "Contraseña SAT", "Sin contraseña SAT", 'data-ir-ficha="accesos"') +
+        chip(!!(cliente.domicilio && cliente.domicilio.calle), "Domicilio fiscal", "Falta domicilio fiscal", 'data-ir-ficha="general"') +
         chip(tieneDoc(cliente, "csf"), "Constancia del mes", "Sin constancia del mes", `onclick="location.href='/herramientas/constancias/?rfc=${r}'"`) +
         chip(tieneDoc(cliente, "opinion"), "Opinión del mes", "Sin opinión del mes", `onclick="location.href='/herramientas/opinion/?rfc=${r}'"`);
     document.getElementById("ficha-aviso-accesos").hidden = !!cliente.efirma_guardada || !puedeGuardarEfirma;
 }
+
+
+/* Sucursales (lugares de expedición): C.P. desde los que factura. La predeterminada (★) es la que propone Facturar. */
+let sucDatos = null;
+async function sucApi(ruta, metodo) {
+    const r = await fetch(`${API_URL}/api/clientes/${encodeURIComponent(rfcEnEdicion)}/sucursales${ruta || ""}`, { method: metodo || "GET", credentials: "include",
+        headers: { "Content-Type": "application/json" }, body: metodo === "PUT" ? JSON.stringify(sucApi.cuerpo) : undefined });
+    if (!r.ok) throw new Error(await Fiscontable.leerError(r));
+    return r.json();
+}
+function sucMensaje(texto, mal) {
+    const m = document.getElementById("suc-msj");
+    m.hidden = !texto; m.textContent = texto || ""; m.className = "text-xs " + (mal ? "text-red-600 font-semibold" : "text-slate-500");
+}
+function pintarSucursales(d) {
+    sucDatos = d;
+    const pred = d.predeterminado, fila = (cp, nombre, esFiscal) =>
+        `<li class="suc-fila"><button type="button" class="suc-estrella${pred === cp ? " suc-estrella--si" : ""}" data-suc-pred="${esFiscal ? "fiscal" : esc(cp)}" title="${pred === cp ? "Predeterminada" : "Usar como predeterminada"}" aria-pressed="${pred === cp}">★</button>` +
+        `<b>${esc(cp)}</b><span>${esc(nombre)}</span>` + (esFiscal ? "" : `<button type="button" class="suc-quitar" data-suc-quitar="${esc(cp)}" aria-label="Quitar">✕</button>`) + "</li>";
+    document.getElementById("suc-lista").innerHTML =
+        (d.cp_fiscal ? fila(d.cp_fiscal, "Domicilio fiscal", true) : '<li class="suc-fila"><span>Sin C.P. fiscal: se toma de su constancia.</span></li>') +
+        d.sucursales.filter(x => x.cp !== d.cp_fiscal).map(x => fila(x.cp, x.nombre || "Sucursal", false)).join("");
+}
+async function cargarSucursales(rfc) {
+    document.getElementById("suc-propuestas").hidden = true; sucMensaje("");
+    document.getElementById("suc-lista").innerHTML = "";
+    try { const d = await sucApi(); if (rfcEnEdicion === rfc) pintarSucursales(d); } catch (e) { sucMensaje(e.message, true); }
+}
+async function agregarSucursal(cp, nombre) {
+    sucApi.cuerpo = { cp, nombre };
+    pintarSucursales(await sucApi("", "PUT"));
+}
+document.addEventListener("DOMContentLoaded", () => {
+    const form = document.getElementById("suc-form"); if (!form) return;
+    form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const cp = document.getElementById("suc-cp").value.trim(), nombre = document.getElementById("suc-nombre").value.trim();
+        if (!/^\d{5}$/.test(cp)) return sucMensaje("El código postal debe tener 5 dígitos.", true);
+        try { await agregarSucursal(cp, nombre); form.reset(); sucMensaje(""); } catch (x) { sucMensaje(x.message, true); }
+    });
+    document.getElementById("suc-lista").addEventListener("click", async (e) => {
+        const p = e.target.closest("[data-suc-pred]"), q = e.target.closest("[data-suc-quitar]");
+        try {
+            if (p) pintarSucursales(await sucApi("/" + encodeURIComponent(p.dataset.sucPred) + "/predeterminada", "POST"));
+            if (q) pintarSucursales(await sucApi("/" + encodeURIComponent(q.dataset.sucQuitar), "DELETE"));
+        } catch (x) { sucMensaje(x.message, true); }
+    });
+    document.getElementById("suc-xml").addEventListener("click", async () => {
+        const caja = document.getElementById("suc-propuestas");
+        sucMensaje("Leyendo sus XML emitidos…");
+        try {
+            const d = await sucApi("/desde-xml");
+            const nuevas = d.lugares.filter(x => !x.registrada && !x.fiscal);
+            sucMensaje(d.lugares.length ? "" : `Sin XML emitidos en ${d.anio}.`);
+            caja.hidden = !nuevas.length;
+            caja.innerHTML = nuevas.length ? nuevas.map(x => `<button type="button" class="suc-propuesta" data-suc-cp="${esc(x.cp)}">+ ${esc(x.cp)} <small>${x.xml.toLocaleString("es-MX")} XML</small></button>`).join("") : "";
+            if (d.lugares.length && !nuevas.length) sucMensaje(`Los C.P. de sus XML de ${d.anio} ya están registrados.`);
+        } catch (x) { sucMensaje(x.message, true); }
+    });
+    document.getElementById("suc-propuestas").addEventListener("click", async (e) => {
+        const b = e.target.closest("[data-suc-cp]"); if (!b) return;
+        try { await agregarSucursal(b.dataset.sucCp, ""); b.remove(); if (!document.querySelector("#suc-propuestas [data-suc-cp]")) document.getElementById("suc-propuestas").hidden = true; }
+        catch (x) { sucMensaje(x.message, true); }
+    });
+});
+
+/* Domicilio fiscal y régimen: salen de su constancia de situación fiscal (cada vez que se sube o se descarga una) */
+function pintarDatosFiscales(cliente) {
+    const dom = cliente.domicilio, regs = cliente.regimenes || [];
+    document.getElementById("editar-dato-regimen").textContent = regs.length ? regs.join(", ") : "—";
+    const caja = document.getElementById("editar-dato-domicilio");
+    if (dom && (dom.calle || dom.colonia || dom.municipio)) {
+        const linea1 = [dom.calle, dom.num_ext && "No. " + dom.num_ext, dom.num_int && "Int. " + dom.num_int].filter(Boolean).join(" ");
+        const linea2 = [dom.colonia && "Col. " + dom.colonia, dom.localidad && dom.localidad !== dom.municipio ? dom.localidad : ""].filter(Boolean).join(", ");
+        const linea3 = [dom.municipio, dom.estado, dom.cp && "C.P. " + dom.cp].filter(Boolean).join(", ");
+        caja.textContent = [linea1, linea2, linea3].filter(Boolean).join("\n");
+        caja.style.whiteSpace = "pre-line";
+    } else {
+        caja.style.whiteSpace = "";
+        if (domicilioEnCurso[cliente.rfc]) { caja.innerHTML = '<span class="dom-cargando"><i></i>Obteniendo su constancia del SAT…</span>'; return; }
+        caja.innerHTML = '<span class="dom-falta">Pendiente</span>' +
+            (cliente.efirma_guardada && puedeGuardarEfirma ? '<button type="button" class="dom-accion" data-dom="sat">Descargar del SAT</button>' : "") +
+            '<label class="dom-accion">Subir constancia<input type="file" accept="application/pdf,.pdf" data-dom="pdf" hidden></label>';
+        // Si ya tiene una constancia guardada, se lee sola (sin ir al SAT)
+        const conCsf = (cliente.documentos || []).some(d => d.tipo === "csf");
+        if (conCsf && !domicilioLeido[cliente.rfc]) { domicilioLeido[cliente.rfc] = true; leerDomicilio(cliente.rfc, null); }
+    }
+}
+
+/* Domicilio fiscal: de la constancia guardada, de un PDF que se suba o descargándola del SAT con su e.firma guardada.
+   Todo sin salir de la ficha: mientras tanto, «Obteniendo su constancia del SAT…». */
+const domicilioEnCurso = {}, domicilioLeido = {};
+async function refrescarFiscales(rfc) {
+    await cargarClientes();
+    const c = clientesCache.find(x => x.rfc === rfc);
+    if (c && rfcEnEdicion === rfc) { pintarDatosFiscales(c); pintarResumenFicha(c); pintarObligaciones(c); if (typeof cargarSucursales === "function") cargarSucursales(rfc); }
+    return c;
+}
+function avisoDomicilio(rfc, texto) {
+    if (rfcEnEdicion !== rfc) return;
+    const caja = document.getElementById("editar-dato-domicilio");
+    caja.insertAdjacentHTML("beforeend", '<small class="dom-error">' + esc(texto) + "</small>");
+}
+async function leerDomicilio(rfc, archivo) {
+    const fd = new FormData(); if (archivo) fd.append("archivo", archivo);
+    const r = await fetch(`${API_URL}/api/clientes/${encodeURIComponent(rfc)}/obligaciones-fed`, { method: "POST", credentials: "include", body: fd });
+    if (!r.ok) throw new Error(await Fiscontable.leerError(r));
+    return refrescarFiscales(rfc);
+}
+async function descargarConstanciaSat(rfc) {
+    if (domicilioEnCurso[rfc]) return;
+    domicilioEnCurso[rfc] = true;
+    const c0 = clientesCache.find(x => x.rfc === rfc); if (c0 && rfcEnEdicion === rfc) pintarDatosFiscales(c0);
+    try {
+        const r = await fetch(`${API_URL}/api/clientes/${encodeURIComponent(rfc)}/generar-constancia`, { method: "POST", credentials: "include" });
+        if (r.status === 409) { delete domicilioEnCurso[rfc]; await leerDomicilio(rfc, null); return; }   // ya tenía una reciente
+        if (!r.ok) throw new Error(await Fiscontable.leerError(r));
+        const { job_id } = await r.json();
+        for (let i = 0; i < 120; i++) {                       // hasta 6 minutos
+            await new Promise(ok => setTimeout(ok, 3000));
+            const t = await (await fetch(`${API_URL}/api/trabajos/${encodeURIComponent(job_id)}`, { credentials: "include" })).json();
+            if (t.estado === "procesando") continue;
+            delete domicilioEnCurso[rfc];
+            if (t.estado !== "completado") throw new Error(t.mensaje_error || "El SAT no entregó la constancia.");
+            Fiscontable.refrescarDescargas();
+            await refrescarFiscales(rfc);
+            return;
+        }
+        throw new Error("El SAT tarda más de lo normal: la constancia quedará en Mis descargas.");
+    } catch (e) {
+        delete domicilioEnCurso[rfc];
+        const c = clientesCache.find(x => x.rfc === rfc); if (c && rfcEnEdicion === rfc) pintarDatosFiscales(c);
+        avisoDomicilio(rfc, e.message);
+    }
+}
+document.addEventListener("click", (e) => {
+    const b = e.target.closest('[data-dom="sat"]'); if (!b || !rfcEnEdicion) return;
+    descargarConstanciaSat(rfcEnEdicion);
+});
+document.addEventListener("change", async (e) => {
+    const f = e.target.closest('[data-dom="pdf"]'); if (!f || !f.files[0] || !rfcEnEdicion) return;
+    const rfc = rfcEnEdicion, caja = document.getElementById("editar-dato-domicilio");
+    caja.innerHTML = '<span class="dom-cargando"><i></i>Leyendo la constancia…</span>';
+    try { await leerDomicilio(rfc, f.files[0]); }
+    catch (x) { const c = clientesCache.find(y => y.rfc === rfc); if (c) pintarDatosFiscales(c); avisoDomicilio(rfc, x.message); }
+});
 
 function abrirModalEditar(rfc, ficha) {
     if (sinConexion || soloLectura) return;
@@ -893,6 +1043,8 @@ function abrirModalEditar(rfc, ficha) {
     document.getElementById("editar-correo").value = cliente.correo_cliente || "";
     document.getElementById("editar-dato-rfc").textContent = rfc;
     document.getElementById("editar-dato-razon").textContent = cliente.razon_social || cliente.alias;
+    pintarDatosFiscales(cliente);
+    cargarSucursales(cliente.rfc);
     document.getElementById("editar-dato-alta").textContent = cliente.creado_en ? new Date(cliente.creado_en + "Z").toLocaleDateString("es-MX", { day: "numeric", month: "long", year: "numeric" }) : "—";
     pintarCiec(cliente);
     pintarCsd(cliente);
@@ -1046,6 +1198,9 @@ async function leerFed(archivo) {
         pintarListaFed(d);
         msj.className = "text-xs text-emerald-700 font-semibold";
         msj.textContent = d.lista.length ? `✓ ${d.lista.length} obligaciones vigentes.` : "✓ Su constancia no tiene obligaciones (no le toca declaración mensual).";
+        // La misma constancia trae su domicilio fiscal y régimen: se refresca su ficha
+        await cargarClientes();
+        const c = clientesCache.find(x => x.rfc === rfc); if (c && rfcEnEdicion === rfc) pintarDatosFiscales(c);
     } catch (e) { msj.className = "text-xs text-red-600 font-semibold"; msj.textContent = e.message; }
 }
 document.addEventListener("DOMContentLoaded", () => {
@@ -1624,7 +1779,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const b = document.getElementById("btn-constancias"), dlg = document.getElementById("dlg-constancias");
     if (!b || !dlg) return;
     let zona = null;
-    const estados = { alta: "Alta nueva", actualizado: "Actualizado", omitido: "No está en tus clientes", error: "No se pudo" };
+    const estados = { alta: "Alta nueva", actualizado: "Actualizado", omitido: "Omitido", error: "No se pudo" };
     async function leer(archivos) {
         const fd = new FormData();
         archivos.forEach(f => fd.append("archivos", f));
