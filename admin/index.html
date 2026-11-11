@@ -4,16 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Administrar Usuarios | Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611120829">
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611120829">
-    <link rel="stylesheet" href="/admin/creditos-admin.css?v=202611120829">
-    <link rel="stylesheet" href="/admin/documentos-admin.css?v=202611120829">
+    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611120830">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611120830">
+    <link rel="stylesheet" href="/admin/creditos-admin.css?v=202611120830">
+    <link rel="stylesheet" href="/admin/documentos-admin.css?v=202611120830">
 </head>
 <body class="min-h-screen flex flex-col relative">
 
     <div id="app-header" data-modulo="admin" data-titulo="Administración" data-migas=""></div>
-<script src="/assets/js/nucleo.js?v=202611120829"></script>
-<script src="/assets/js/barra.js?v=202611120829"></script>
+<script src="/assets/js/nucleo.js?v=202611120830"></script>
+<script src="/assets/js/barra.js?v=202611120830"></script>
 
     <main class="flex-grow p-4 sm:p-6 w-full max-w-4xl mx-auto fc-principal">
         <style>
@@ -365,6 +365,7 @@
                     <button type="button" data-sub="portal" class="adm-sub">Portal y acciones</button>
                     <button type="button" data-sub="registros" class="adm-sub">Log y bitácora</button>
                     <button type="button" data-sub="plazos" class="adm-sub">Plazos y valores</button>
+                    <button type="button" data-sub="vencidas" class="adm-sub">Cuentas vencidas</button>
                 </nav>
                 <div data-subpanel="estado">
                 <div class="flex items-center gap-3 mb-3">
@@ -544,6 +545,10 @@
                 <div data-subpanel="plazos" hidden>
                     <div id="plazos-admin"></div>
                 </div>
+                <!-- Plan vencido: cuentas por eliminar, plazos y textos de los correos (admin/vencidas-admin.js) -->
+                <div data-subpanel="vencidas" hidden>
+                    <div id="vencidas-admin"></div>
+                </div>
             </section>
         </div>
 
@@ -679,13 +684,14 @@
         </div>
     </div>
 
-<script src="/admin/admin.js?v=202611120829"></script>
-<script src="/admin/creditos-admin.js?v=202611120829"></script>
-<script src="/admin/planes-admin.js?v=202611120829"></script>
-<script src="/admin/documentos-admin.js?v=202611120829"></script>
-<script src="/admin/plazos-admin.js?v=202611120829"></script>
-<script src="/admin/despachos-admin.js?v=202611120829"></script>
-<script src="/admin/licencias-admin.js?v=202611120829"></script>
-<script src="/admin/demos-admin.js?v=202611120829"></script>
+<script src="/admin/admin.js?v=202611120830"></script>
+<script src="/admin/creditos-admin.js?v=202611120830"></script>
+<script src="/admin/planes-admin.js?v=202611120830"></script>
+<script src="/admin/documentos-admin.js?v=202611120830"></script>
+<script src="/admin/plazos-admin.js?v=202611120830"></script>
+<script src="/admin/vencidas-admin.js?v=202611120830"></script>
+<script src="/admin/despachos-admin.js?v=202611120830"></script>
+<script src="/admin/licencias-admin.js?v=202611120830"></script>
+<script src="/admin/demos-admin.js?v=202611120830"></script>
 </body>
 </html>

@@ -26,3 +26,8 @@
 .plz-msj { font-size: var(--t-13); }
 .plz-msj--ok { color: rgb(var(--ok-700)); }
 .plz-msj--mal { color: rgb(var(--er-700)); }
+/* Sistema › Cuentas vencidas (admin/vencidas-admin.js) */
+.ven-correo { border-top: 1px solid var(--linea); padding: 10px 0; }
+.ven-correo summary { cursor: pointer; font-size: var(--t-14); }
+.ven-campo { display: grid; gap: 4px; margin-top: 10px; font-size: var(--t-12); color: rgb(var(--g-600)); }
+.ven-campo textarea { resize: vertical; font-family: inherit; line-height: 1.5; height: auto; min-height: 150px; padding: 10px 12px; }

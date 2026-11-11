@@ -115,7 +115,9 @@ async function verificarAdminYCargar() {
         $("contenido-admin").classList.remove("hidden");
 
         prepararEventos();
-        abrirPestana(location.hash.replace("#", "") || "usuarios");
+        // #vencidas (el aviso de «cuenta por eliminar»): Sistema › Cuentas vencidas
+        if (location.hash === "#vencidas") { abrirPestana("sistema"); const b = document.querySelector('#sub-sistema [data-sub="vencidas"]'); if (b) b.click(); }
+        else abrirPestana(location.hash.replace("#", "") || "usuarios");
         await cargarRoles();
         await Promise.all([cargarUsuarios(), cargarProcesosAdmin()]);
     } catch (error) {
