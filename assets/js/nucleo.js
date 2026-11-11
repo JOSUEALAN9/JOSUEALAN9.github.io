@@ -14,7 +14,7 @@
 (function () {
     "use strict";
 
-    var VERSION = "202611120828";
+    var VERSION = "202611120829";
     // www.fiscontable.app → fiscontable.app: una sola dirección (la sesión y las preferencias guardadas son por dirección)
     if (location.hostname === "www.fiscontable.app") {
         location.replace("https://fiscontable.app" + location.pathname + location.search + location.hash);
@@ -25,6 +25,56 @@
     // fiscontable.app → api.fiscontable.app; josuealan.com (mientras dura el cambio) → api.josuealan.com.
     var DOMINIO = /(^|\.)fiscontable\.app$/.test(location.hostname) ? "fiscontable.app" : "josuealan.com";
     var API = "https://" + (PRUEBAS ? "api-pruebas." : "api.") + DOMINIO;
+
+    /* Cortes breves (la Vostro reiniciando, un tropiezo de la red): antes de dar un error, se reintenta solo unos
+       segundos con el aviso «Reconectando…». Consultas (GET): siempre. Envíos (POST, PUT, DELETE): solo si Cloudflare
+       dice que no alcanzó al servidor (502-504, 52x): ahí la petición no llegó, así que no se repite nada. */
+    (function () {
+        var original = window.fetch;
+        if (!original) return;
+        var ESPERAS = [1000, 2000, 4000, 8000];
+        var SIN_SERVIDOR = [502, 503, 504, 520, 521, 522, 523, 524, 530];
+        var aviso = null, esperando = 0;
+        function pintar() {
+            if (!document.body) return;
+            if (!aviso) {
+                aviso = document.createElement("div");
+                aviso.className = "fc-reconecta"; aviso.setAttribute("role", "status"); aviso.hidden = true;
+                document.body.appendChild(aviso);
+            }
+            var sinRed = navigator.onLine === false;
+            aviso.textContent = sinRed ? "Sin conexión a internet" : "Reconectando con Fiscontable…";
+            aviso.classList.toggle("fc-reconecta--sin-red", sinRed);
+            aviso.hidden = !(esperando > 0 || sinRed);
+        }
+        window.addEventListener("online", pintar);
+        window.addEventListener("offline", pintar);
+        window.fetch = function (recurso, opciones) {
+            var url = typeof recurso === "string" ? recurso : (recurso instanceof URL ? recurso.href : "");
+            if (!url || url.indexOf(API) !== 0 || (opciones && opciones.keepalive)) return original.apply(this, arguments);
+            var metodo = String((opciones && opciones.method) || "GET").toUpperCase();
+            var consulta = metodo === "GET" || metodo === "HEAD";
+            var yo = this, args = arguments, intento = 0, contado = false;
+            return new Promise(function (resolver, rechazar) {
+                function cerrar() { if (contado) { contado = false; esperando--; pintar(); } }
+                function otraVez() {
+                    if (!contado) { contado = true; esperando++; pintar(); }
+                    setTimeout(probar, ESPERAS[intento++]);
+                }
+                function probar() {
+                    original.apply(yo, args).then(function (r) {
+                        if (SIN_SERVIDOR.indexOf(r.status) >= 0 && intento < ESPERAS.length) return otraVez();
+                        cerrar(); resolver(r);
+                    }, function (e) {
+                        if (e && e.name === "AbortError") { cerrar(); return rechazar(e); }
+                        if (consulta && intento < ESPERAS.length) return otraVez();
+                        cerrar(); rechazar(e);
+                    });
+                }
+                probar();
+            });
+        };
+    })();
 
     // Transición entre páginas: si el navegador la cancela (otra navegación encima, pestaña oculta) no es un error;
     // sin esto queda una promesa rechazada «sin atender» en la consola.
@@ -53,7 +103,8 @@
     }
 
     async function leerError(resp) {
-        if (!resp) return "No pudimos conectar con el servidor. Revisa tu conexión e intenta de nuevo.";
+        if (!resp) return navigator.onLine === false ? "Sin conexión a internet. Revisa tu red e intenta de nuevo."
+            : "Fiscontable no responde en este momento. Intenta de nuevo en unos minutos.";
         var d = null;
         try { d = await resp.json(); } catch (e) { /* sin cuerpo JSON */ }
         var detalle = d && typeof d.detail === "string" ? d.detail : "";
