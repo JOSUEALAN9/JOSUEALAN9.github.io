@@ -78,16 +78,16 @@ export const T = {
             mes: "al mes", rfc: "RFC", timbres: "timbres al mes", anual: "Con pago anual, 2 meses gratis.",
             recomendado: "Recomendado", proximamente: "Próximamente", boton: "Solicita una demo",
             niveles: [
-                { clave: "standard", nombre: "Standard", resumen: "Fiscontable Agente y consulta", precios: [[5, 299], [15, 649], [50, 1499]],
-                  incluye: ["Descarga de XML desde tu PC", "Constancia y opinión 32-D", "Buzón tributario y listas del SAT", "Administración de XML y validación", "Conciliación e IVA", "Cierre del mes y reportes en Excel y PDF"],
+                { clave: "standard", nombre: "Standard", resumen: "Fiscontable Agente, consulta y facturación", precios: [[5, 299, 10], [15, 649, 50], [50, 1499, 100]],
+                  incluye: ["Descarga de XML desde tu PC", "Constancia y opinión 32-D", "Buzón tributario y listas del SAT", "Administración de XML y marcas fiscales", "Conciliación e IVA", "Facturación CFDI 4.0", "Cierre del mes y reportes en Excel y PDF"],
                   nota: "Requiere Fiscontable Agente conectado en tu PC." },
-                { clave: "pro", nombre: "Pro", resumen: "Todo lo de Standard, más facturación e impuestos", precios: [[15, 999, 200], [50, 2199, 500]], destacado: true,
-                  incluye: ["Todo lo de Standard", "Facturación CFDI 4.0 y cancelaciones", "Timbres incluidos cada mes", "Marcas fiscales y voucheo", "Impuestos estatales de Quintana Roo", "Declaraciones y acuses del SAT"],
+                { clave: "pro", nombre: "Pro", resumen: "Todo lo de Standard, más impuestos y más timbres", precios: [[15, 999, 200], [50, 2199, 500]], destacado: true,
+                  incluye: ["Todo lo de Standard", "Más timbres cada mes", "Voucheo", "Impuestos estatales de Quintana Roo", "Declaraciones y acuses del SAT"],
                   nota: "Con el Agente conectado, los trámites se hacen desde tu PC; sin él, desde nuestro servidor." },
-                { clave: "plus", nombre: "Plus", resumen: "Todo lo de Pro, más nómina y declaraciones federales", proximamente: true,
-                  incluye: ["Todo lo de Pro", "Nómina", "DIOT y declaraciones provisionales"], nota: "" }
-            ],
-            despacho: { h3: "Despacho", texto: "Junta 5 licencias o más: cada persona con su PC, permisos por persona y los RFC de todas las licencias en una sola cartera.", boton: "Cotizar mi despacho" }
+                { clave: "despacho", nombre: "Despachos", resumen: "Paquete para tu equipo", paquete: "Desde 5 licencias",
+                  incluye: ["Una licencia por persona, cada una con su PC", "Los RFC y timbres de todas las licencias en una sola cartera", "Permisos por persona: empresas y módulos", "Bitácora de quién hizo qué", "Standard o Pro para todo el equipo"],
+                  nota: "Te armamos el paquete según el tamaño de tu despacho.", boton: "Cotizar mi despacho" }
+            ]
         },
         registro: {
             chip: "Demo", h2: "Conócelo con tus propias empresas",
@@ -195,16 +195,16 @@ export const T = {
             mes: "per month", rfc: "RFC", timbres: "stamps per month", anual: "Pay yearly and get 2 months free.",
             recomendado: "Recommended", proximamente: "Coming soon", boton: "Request a demo",
             niveles: [
-                { clave: "standard", nombre: "Standard", resumen: "Fiscontable Agent and lookups", precios: [[5, 299], [15, 649], [50, 1499]],
-                  incluye: ["XML downloads from your PC", "Tax status certificate and 32-D opinion", "SAT tax mailbox and SAT lists", "XML management and validation", "Reconciliation and VAT", "Month-end close and Excel and PDF reports"],
+                { clave: "standard", nombre: "Standard", resumen: "Fiscontable Agent, lookups and invoicing", precios: [[5, 299, 10], [15, 649, 50], [50, 1499, 100]],
+                  incluye: ["XML downloads from your PC", "Tax status certificate and 32-D opinion", "SAT tax mailbox and SAT lists", "XML management and tax tags", "Reconciliation and VAT", "CFDI 4.0 invoicing", "Month-end close and Excel and PDF reports"],
                   nota: "Requires Fiscontable Agent connected on your PC." },
-                { clave: "pro", nombre: "Pro", resumen: "Everything in Standard, plus invoicing and taxes", precios: [[15, 999, 200], [50, 2199, 500]], destacado: true,
-                  incluye: ["Everything in Standard", "CFDI 4.0 invoicing and cancellations", "Stamps included every month", "Tax tags and vouching", "Quintana Roo state taxes", "SAT returns and acknowledgments"],
+                { clave: "pro", nombre: "Pro", resumen: "Everything in Standard, plus taxes and more stamps", precios: [[15, 999, 200], [50, 2199, 500]], destacado: true,
+                  incluye: ["Everything in Standard", "More stamps every month", "Vouching", "Quintana Roo state taxes", "SAT returns and acknowledgments"],
                   nota: "With the Agent connected, procedures run on your PC; without it, on our server." },
-                { clave: "plus", nombre: "Plus", resumen: "Everything in Pro, plus payroll and federal returns", proximamente: true,
-                  incluye: ["Everything in Pro", "Payroll", "DIOT and monthly federal returns"], nota: "" }
-            ],
-            despacho: { h3: "Firm", texto: "Combine 5 or more licenses: each person with their own PC, per-person permissions and the RFCs of every license in one portfolio.", boton: "Get a quote for my firm" }
+                { clave: "despacho", nombre: "Firms", resumen: "A package for your team", paquete: "From 5 licenses",
+                  incluye: ["One license per person, each with their own PC", "The RFCs and stamps of every license in one portfolio", "Per-person permissions: companies and modules", "Log of who did what", "Standard or Pro for the whole team"],
+                  nota: "We put the package together for the size of your firm.", boton: "Get a quote for my firm" }
+            ]
         },
         registro: {
             chip: "Demo", h2: "Try it with your own companies",

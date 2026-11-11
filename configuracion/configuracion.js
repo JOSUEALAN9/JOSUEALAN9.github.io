@@ -443,7 +443,7 @@
             var niveles = cat.niveles || {}, orden = Object.keys(niveles).length ? Object.keys(niveles) : [""];
             html += '<h3 class="cf-subtitulo">Planes</h3><p class="cf-texto">Cada licencia es para una persona y su PC con Fiscontable Agente. Precios más IVA.</p>';
             orden.forEach(function (nv) {
-                var lista = cat.planes.filter(function (p) { return !nv || (p.nivel || p.rol) === nv; });
+                var lista = cat.planes.filter(function (p) { return (!nv || (p.nivel || p.rol) === nv) && !p.proximamente; });   // lo que aún no se vende no se muestra
                 if (!lista.length) return;
                 var info = niveles[nv];
                 if (info) html += '<h4 class="cf-plan-nivel">' + esc(info.nombre) + " <small>" + esc(info.resumen || "") + "</small></h4>" +
