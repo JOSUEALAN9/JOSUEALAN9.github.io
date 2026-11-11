@@ -3188,7 +3188,7 @@
 
     document.getElementById("fc-btn-editar-perfil").addEventListener("click", function () {
         menu.hidden = true;
-        abrirModalPerfil(false);
+        location.href = "/configuracion/?seccion=perfil";
     });
 
     document.addEventListener("click", function (e) {
