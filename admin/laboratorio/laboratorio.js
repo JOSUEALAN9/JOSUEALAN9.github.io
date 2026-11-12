@@ -38,6 +38,8 @@
         $("lb-nota").textContent = (r.nota || "") + (r.url && !g ? " " + r.url : "");
         $("lb-url-caja").hidden = r.clave !== "libre";
         ["lb-grab-caja", "lb-ejercicio-caja", "lb-dia-caja"].forEach(function (id) { $(id).hidden = !g; });
+        $("lb-dia-caja").hidden = !g || !!r.sin_navegador;          // la prueba sin navegador usa un mes completo
+        $("lb-mes-caja").hidden = !r.sin_navegador;
         $("lb-pasos-caja").hidden = g;
         if (!CANDADO.recorrido) CANDADO.recorrido = $("lb-candado-txt").textContent;
         $("lb-candado-txt").textContent = r.sin_navegador ? CANDADO.sin_navegador : g ? CANDADO.grabacion : CANDADO.recorrido;
@@ -50,6 +52,7 @@
         });
         if (g && !$("lb-ejercicio").value) $("lb-ejercicio").value = new Date().getFullYear() - 1;
         if (g && !$("lb-dia").value) { var d = new Date(Date.now() - 864e5); $("lb-dia").value = d.toISOString().slice(0, 10); }
+        if (r.sin_navegador && !$("lb-mes").value) { var m = new Date(); m.setDate(1); m.setMonth(m.getMonth() - 1); $("lb-mes").value = m.toISOString().slice(0, 7); }
     }
     function pintarLista() {
         var c = E.datos.corridas;
@@ -149,7 +152,7 @@
             var r = await api("/api/admin/laboratorio", { method: "POST", headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ rfc: $("lb-empresa").value, receta: $("lb-receta").value, instrucciones: $("lb-pasos").value, url: $("lb-url").value, nota: $("lb-nota-txt").value,
                     opciones: esGrabacion($("lb-receta").value) ? { partes: [].slice.call(document.querySelectorAll('input[name="lb-parte"]:checked')).map(function (x) { return x.value; }),
-                        ejercicio: $("lb-ejercicio").value, dia: $("lb-dia").value } : null }) });
+                        ejercicio: $("lb-ejercicio").value, dia: $("lb-dia").value, mes: $("lb-mes").value } : null }) });
             await cargar(true); abrir(r.id);
         } catch (er) { Fiscontable.toast(er.message); }
         b.disabled = false;
