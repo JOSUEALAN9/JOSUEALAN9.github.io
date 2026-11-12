@@ -112,9 +112,38 @@
                     <p class="ui-ayuda">Lo puedes cambiar a cada persona en Equipo → Permisos.</p>
                     <div class="dp-acciones"><button type="submit" class="ui-btn ui-btn--primario ui-btn--36">Guardar</button></div>
                 </form>
+                <div class="ui-tarjeta dp-ajustes dp-migracion">
+                    <div><h3 class="dp-mig-titulo">Pasar empresas de otra cuenta al despacho</h3>
+                        <p class="ui-ayuda">Por ejemplo, las de tu cuenta personal o las de alguien que se une al despacho. Pasan con todo su historial. La solicitud la revisa y la hace el equipo de Fiscontable; te pediremos tu PIN y un código que llega a tu correo.</p></div>
+                    <div class="dp-acciones"><button type="button" class="ui-btn ui-btn--secundario ui-btn--36" id="dp-mig-abrir">Solicitar migración</button></div>
+                    <ul class="dp-mig-lista" id="dp-mig-lista"></ul>
+                </div>
             </section>
         </div>
     </main>
+
+    <!-- Solicitar una migración (la hace el administrador de Fiscontable) -->
+    <dialog class="fc-modal fc-modal--chica" id="dp-mig-dlg" aria-labelledby="dp-mig-dlg-titulo">
+        <div class="fc-modal__cabeza"><div><h2 id="dp-mig-dlg-titulo">Solicitar migración</h2>
+            <p>Las empresas pasan al despacho con todo su historial. A la cuenta que las entrega le llega un aviso.</p></div>
+            <button type="button" class="fc-modal__cerrar" data-mig-cerrar aria-label="Cerrar">×</button></div>
+        <form class="fc-modal__cuerpo" id="dp-mig-forma" novalidate>
+            <label class="ui-campo"><span class="ui-etiqueta">Correo de la cuenta que entrega las empresas</span>
+                <input class="ui-input" id="dp-mig-origen" type="email" maxlength="120" autocomplete="off" placeholder="nombre@correo.mx"></label>
+            <fieldset class="ui-campo" style="border:0;padding:0;margin:0"><legend class="ui-etiqueta" style="margin-bottom:8px">Empresas</legend>
+                <label class="ui-check"><input type="radio" name="dp-mig-cuales" value="todas" checked> Todas las de esa cuenta</label>
+                <label class="ui-check" style="margin-top:6px"><input type="radio" name="dp-mig-cuales" value="algunas"> Solo estas (RFC)</label>
+                <textarea class="ui-input" id="dp-mig-rfcs" rows="3" placeholder="Un RFC por renglón o separados por coma" style="height:auto;padding-block:10px;margin-top:8px;text-transform:uppercase" hidden></textarea>
+            </fieldset>
+            <label class="ui-campo"><span class="ui-etiqueta">Nota <i>(opcional)</i></span>
+                <input class="ui-input" id="dp-mig-nota" maxlength="300" placeholder="Por ejemplo: se une al despacho a partir de diciembre"></label>
+            <p class="ui-ayuda ui-ayuda--error" id="dp-mig-error" hidden></p>
+        </form>
+        <div class="fc-modal__pie">
+            <button type="button" class="ui-btn ui-btn--secundario ui-btn--36" data-mig-cerrar>Cancelar</button>
+            <button type="button" class="ui-btn ui-btn--primario ui-btn--36" id="dp-mig-enviar">Solicitar</button>
+        </div>
+    </dialog>
 
     <!-- Permisos de una persona (también para invitar) -->
     <dialog class="fc-modal fc-modal--fija" id="dp-modal" aria-labelledby="dp-modal-titulo">

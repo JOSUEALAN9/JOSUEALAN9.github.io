@@ -8,6 +8,7 @@
     var API = Fiscontable.API, esc = Fiscontable.escapar;
     var $ = function (id) { return document.getElementById(id); };
     var paso = 1, categorias = [], revision = null, destino = null, migracionId = null, sondeo = null, historial = [];
+    var solicitudId = null, solicitudesCache = [], rechazando = null;
     var NOMBRES = { pasar: "Pasar", combinar: "Combinar", reemplazar: "Reemplazar", omitir: "Omitir" };
     var ESTADOS = { en_curso: ["En curso", "info"], terminada: ["Terminada", "ok"], con_fallas: ["Con empresas pendientes", "aviso"], deshecha: ["Deshecha", ""] };
 
@@ -47,6 +48,29 @@
         }).join("");
     }
 
+    /* ---------------------------------------------------------------- solicitudes de los despachos */
+    var EST_SOL = { pendiente: ["Pendiente", "aviso"], en_curso: ["En curso", "info"], atendida: ["Atendida", "ok"], rechazada: ["Rechazada", ""] };
+    async function cargarSolicitudes() {
+        try { solicitudesCache = (await api("/api/admin/migraciones/solicitudes")).solicitudes; } catch (e) { return; }
+        var pend = solicitudesCache.filter(function (s) { return s.estado === "pendiente"; }).length;
+        $("mig-solicitudes").hidden = !solicitudesCache.length;
+        $("mig-sol-cuenta").textContent = pend ? pend + (pend === 1 ? " pendiente" : " pendientes") : "Sin pendientes";
+        $("mig-sol-lista").innerHTML = solicitudesCache.map(function (s) {
+            var e = EST_SOL[s.estado] || [s.estado, ""];
+            var emp = s.empresas ? s.empresas.length + (s.empresas.length === 1 ? " empresa" : " empresas") + '<div class="text-[11px] text-slate-500 font-mono">' + esc(s.empresas.slice(0, 6).join(", ")) + (s.empresas.length > 6 ? "…" : "") + "</div>" : "Todas";
+            return '<tr class="border-t border-gray-100"><td class="p-4 text-xs whitespace-nowrap">' + esc(fecha(s.creada)) + "</td>" +
+                '<td class="p-4"><b class="text-sm">' + esc(s.despacho || "") + '</b><div class="text-xs text-slate-500 break-all">' + esc(s.titular) + "</div></td>" +
+                '<td class="p-4 font-mono text-xs break-all">' + esc(s.origen) + "</td>" +
+                '<td class="p-4 text-xs">' + emp + (s.nota ? '<div class="text-[11px] text-slate-500 mt-1">' + esc(s.nota) + "</div>" : "") + "</td>" +
+                '<td class="p-4"><span class="ui-estado' + (e[1] ? " ui-estado--" + e[1] : "") + '">' + esc(e[0]) + "</span>" +
+                    (s.motivo ? '<div class="text-[11px] text-slate-500 mt-1">' + esc(s.motivo) + "</div>" : "") + "</td>" +
+                '<td class="p-4 text-right whitespace-nowrap">' + (s.estado === "pendiente"
+                    ? '<button type="button" class="ui-btn ui-btn--secundario ui-btn--28" data-sol-atender="' + s.id + '">Atender</button> ' +
+                      '<button type="button" class="ui-btn ui-btn--terciario ui-btn--28" data-sol-rechazar="' + s.id + '">Rechazar</button>'
+                    : (s.migracion_id ? '<button type="button" class="ui-btn ui-btn--terciario ui-btn--28" data-mig-ver="' + esc(s.migracion_id) + '">Ver</button>' : "")) + "</td></tr>";
+        }).join("");
+    }
+
     /* ---------------------------------------------------------------- pasos */
     function irA(p) {
         paso = p;
@@ -63,8 +87,8 @@
         error("");
     }
 
-    function abrir(origen) {
-        migracionId = null; revision = null; destino = null;
+    function abrir(origen, solicitud) {
+        migracionId = null; revision = null; destino = null; solicitudId = solicitud ? solicitud.id : null;
         $("mig-origen").value = origen || "";
         $("mig-destino").value = "";
         $("mig-destinos").innerHTML = "";
@@ -73,6 +97,14 @@
         pintarTipos();
         irA(1);
         $("mig-dlg").showModal();
+        if (solicitud) {                 // viene de una solicitud del despacho: las cuentas ya van puestas
+            $("mig-destino").value = solicitud.titular;
+            buscarDestinos().then(function () {
+                var r = document.querySelector('input[name="mig-a"][value="' + CSS.escape(solicitud.destino) + '"]');
+                if (r) r.checked = true;
+            });
+            return;
+        }
         (origen ? $("mig-destino") : $("mig-origen")).focus();
     }
 
@@ -189,49 +221,15 @@
             var d = await api("/api/admin/migraciones", "POST", {
                 origen: revision.origen, destino: revision.destino, categorias: tiposElegidos(), desactivar_origen: $("mig-desactivar").checked,
                 empresas: revision.empresas.map(function (e) { return { rfc: e.rfc, accion: e.accion, confirmacion: e.confirmacion || null }; }),
-                confirmacion: c });
+                confirmacion: c, solicitud_id: solicitudId });
             migracionId = d.id;
             irA(4);
             verResultado();
         });
     }
 
-    /* ---------------------------------------------------------------- confirmar que es el administrador */
-    var conf = { token: null, accion: null, ejecutar: null };
-    async function mandarCodigo() {
-        $("mig-conf-error").hidden = true;
-        $("mig-conf-ok").disabled = true;
-        try {
-            var d = await api("/api/admin/migraciones/codigo", "POST", { accion: conf.accion });
-            conf.token = d.token;
-            $("mig-conf-sub").textContent = "Te mandamos un código a " + d.enviado_a + ". Vence en " + d.minutos + " minutos.";
-            $("mig-conf-ok").disabled = false;
-        } catch (e) { confError(e.message); }
-    }
-    function confError(texto) { $("mig-conf-error").textContent = texto; $("mig-conf-error").hidden = false; }
-    /* Pide código y PIN; ejecutar(confirmacion) hace la acción. Si falla (código o PIN), la ventana sigue abierta. */
-    function confirmarIdentidad(accion, ejecutar) {
-        conf.accion = accion; conf.ejecutar = ejecutar; conf.token = null;
-        $("mig-conf-forma").reset();
-        $("mig-conf-sub").textContent = "Enviando un código a tu correo…";
-        $("mig-conf-dlg").showModal();
-        $("mig-conf-codigo").focus();
-        mandarCodigo();
-    }
-    async function confirmarOk() {
-        var codigo = $("mig-conf-codigo").value.replace(/\D/g, ""), pin = $("mig-conf-pin").value.trim();
-        if (codigo.length !== 6) return confError("Escribe los 6 números del código.");
-        if (!pin) return confError("Escribe tu PIN.");
-        var b = $("mig-conf-ok");
-        b.classList.add("ui-btn--cargando"); b.disabled = true;
-        try {
-            await conf.ejecutar({ token: conf.token, codigo: codigo, pin: pin });
-            $("mig-conf-dlg").close();
-        } catch (e) {
-            confError(e.message);
-            if (/venció|ya se usó|pausa/.test(e.message)) { $("mig-conf-codigo").value = ""; }
-        } finally { b.classList.remove("ui-btn--cargando"); b.disabled = !conf.token; }
-    }
+    /* PIN y código por correo antes de migrar, reintentar o deshacer (ventana común de barra.js) */
+    function confirmarIdentidad(accion, ejecutar) { return Fiscontable.confirmarIdentidad(accion, ejecutar); }
 
     /* ---------------------------------------------------------------- resultado */
     function detalle(x) {
@@ -278,7 +276,7 @@
         $("mig-deshacer-todo").hidden = !deshacible || !rfcs.some(function (r) { return res[r].estado === "ok" && !res[r].deshecha; });
         $("mig-excel").hidden = vivo;
         if (vivo) sondeo = setTimeout(verResultado, 1500);
-        else cargarHistorial();
+        else { cargarHistorial(); cargarSolicitudes(); }
     }
 
     async function deshacer(rfc) {
@@ -340,11 +338,6 @@
             verResultado();
         });
     });
-    $("mig-conf-ok").addEventListener("click", confirmarOk);
-    $("mig-conf-otro").addEventListener("click", mandarCodigo);
-    $("mig-conf-forma").addEventListener("submit", function (e) { e.preventDefault(); confirmarOk(); });
-    $("mig-conf-pin").addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); confirmarOk(); } });
-    $("mig-conf-dlg").addEventListener("click", function (e) { if (e.target.closest("[data-mig-conf-cerrar]")) this.close(); });
     $("mig-excel").addEventListener("click", bajarExcel);
     $("mig-dlg").addEventListener("click", function (e) { if (e.target.closest("[data-mig-cerrar]")) this.close(); });
     $("mig-dlg").addEventListener("close", function () { clearTimeout(sondeo); });
@@ -357,6 +350,34 @@
         verResultado();
     });
 
+    $("mig-sol-lista").addEventListener("click", async function (e) {
+        var a = e.target.closest("[data-sol-atender]"), r = e.target.closest("[data-sol-rechazar]"), v = e.target.closest("[data-mig-ver]");
+        if (a) {
+            if (!categorias.length) await cargarHistorial();
+            var s = solicitudesCache.filter(function (x) { return String(x.id) === a.dataset.solAtender; })[0];
+            if (s) abrir(s.origen, s);
+        } else if (r) {
+            rechazando = +r.dataset.solRechazar;
+            $("mig-rech-motivo").value = ""; $("mig-rech-error").hidden = true;
+            $("mig-rech-dlg").showModal(); $("mig-rech-motivo").focus();
+        } else if (v) {
+            migracionId = v.dataset.migVer; irA(4); $("mig-dlg").showModal(); verResultado();
+        }
+    });
+    $("mig-rech-ok").addEventListener("click", async function () {
+        var b = this;
+        b.classList.add("ui-btn--cargando"); b.disabled = true;
+        try {
+            await api("/api/admin/migraciones/solicitudes/" + rechazando + "/rechazar", "POST", { motivo: $("mig-rech-motivo").value.trim() });
+            $("mig-rech-dlg").close();
+            avisar("success", "Solicitud rechazada; al titular le llegó un correo.");
+            cargarSolicitudes();
+        } catch (x) { $("mig-rech-error").textContent = x.message; $("mig-rech-error").hidden = false; }
+        finally { b.classList.remove("ui-btn--cargando"); b.disabled = false; }
+    });
+    $("mig-rech-dlg").addEventListener("click", function (e) { if (e.target.closest("[data-rech-cerrar]")) this.close(); });
+
     cargarHistorial();
+    cargarSolicitudes();
     window.MigracionAdmin = { abrir: abrir, cargar: cargarHistorial };
 })();
