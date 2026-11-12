@@ -4,17 +4,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Administrar Usuarios | Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611121800">
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611121800">
-    <link rel="stylesheet" href="/admin/creditos-admin.css?v=202611121800">
-    <link rel="stylesheet" href="/admin/documentos-admin.css?v=202611121800">
-    <link rel="stylesheet" href="/admin/migracion-admin.css?v=202611121800">
+    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611121900">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611121900">
+    <link rel="stylesheet" href="/admin/creditos-admin.css?v=202611121900">
+    <link rel="stylesheet" href="/admin/documentos-admin.css?v=202611121900">
+    <link rel="stylesheet" href="/admin/migracion-admin.css?v=202611121900">
 </head>
 <body class="min-h-screen flex flex-col relative">
 
     <div id="app-header" data-modulo="admin" data-titulo="Administración" data-migas=""></div>
-<script src="/assets/js/nucleo.js?v=202611121800"></script>
-<script src="/assets/js/barra.js?v=202611121800"></script>
+<script src="/assets/js/nucleo.js?v=202611121900"></script>
+<script src="/assets/js/barra.js?v=202611121900"></script>
 
     <main class="flex-grow p-4 sm:p-6 w-full max-w-4xl mx-auto fc-principal">
         <style>
@@ -669,6 +669,7 @@
                     <div class="mig-caja"><h3>Se queda en la cuenta de origen</h3>
                         <ul class="mig-lista"><li>Contraseña, verificación en dos pasos y sesiones</li><li>PCs con el Agente: en el destino se vuelven a vincular</li>
                             <li>Licencia y créditos</li><li>Descargas programadas por lote</li></ul></div>
+                    <p class="ui-ayuda">Al pulsar «Migrar» te pediremos un código que llega a tu correo y tu PIN.</p>
                 </section>
 
                 <section class="mig-panel" data-mig-panel="4" hidden>
@@ -686,6 +687,24 @@
                 <button type="button" class="ui-btn ui-btn--secundario ui-btn--36" id="mig-atras">Anterior</button>
                 <button type="button" class="ui-btn ui-btn--secundario ui-btn--36" data-mig-cerrar id="mig-cancelar">Cancelar</button>
                 <button type="button" class="ui-btn ui-btn--primario ui-btn--36" id="mig-siguiente">Siguiente</button>
+            </div>
+        </dialog>
+
+        <dialog id="mig-conf-dlg" class="fc-modal fc-modal--chica" aria-labelledby="mig-conf-titulo">
+            <div class="fc-modal__cabeza"><div><h2 id="mig-conf-titulo">Confirma que eres tú</h2>
+                <p id="mig-conf-sub">Te mandamos un código a tu correo.</p></div>
+                <button type="button" class="fc-modal__cerrar" data-mig-conf-cerrar aria-label="Cerrar">×</button></div>
+            <form class="fc-modal__cuerpo" id="mig-conf-forma" novalidate>
+                <label class="ui-campo"><span class="ui-etiqueta">Código del correo</span>
+                    <input class="ui-input" id="mig-conf-codigo" inputmode="numeric" autocomplete="one-time-code" maxlength="7" placeholder="123 456"></label>
+                <label class="ui-campo"><span class="ui-etiqueta">Tu PIN</span>
+                    <input class="ui-input" id="mig-conf-pin" type="password" inputmode="numeric" autocomplete="off" maxlength="6"></label>
+                <button type="button" class="ui-btn ui-btn--terciario ui-btn--28" id="mig-conf-otro" style="align-self:flex-start">Mandar otro código</button>
+                <p class="ui-ayuda ui-ayuda--error" id="mig-conf-error" hidden></p>
+            </form>
+            <div class="fc-modal__pie">
+                <button type="button" class="ui-btn ui-btn--secundario ui-btn--36" data-mig-conf-cerrar>Cancelar</button>
+                <button type="button" class="ui-btn ui-btn--primario ui-btn--36" id="mig-conf-ok">Confirmar</button>
             </div>
         </dialog>
 
@@ -767,15 +786,15 @@
         </div>
     </div>
 
-<script src="/admin/admin.js?v=202611121800"></script>
-<script src="/admin/creditos-admin.js?v=202611121800"></script>
-<script src="/admin/planes-admin.js?v=202611121800"></script>
-<script src="/admin/documentos-admin.js?v=202611121800"></script>
-<script src="/admin/plazos-admin.js?v=202611121800"></script>
-<script src="/admin/vencidas-admin.js?v=202611121800"></script>
-<script src="/admin/despachos-admin.js?v=202611121800"></script>
-<script src="/admin/licencias-admin.js?v=202611121800"></script>
-<script src="/admin/demos-admin.js?v=202611121800"></script>
-<script src="/admin/migracion-admin.js?v=202611121800"></script>
+<script src="/admin/admin.js?v=202611121900"></script>
+<script src="/admin/creditos-admin.js?v=202611121900"></script>
+<script src="/admin/planes-admin.js?v=202611121900"></script>
+<script src="/admin/documentos-admin.js?v=202611121900"></script>
+<script src="/admin/plazos-admin.js?v=202611121900"></script>
+<script src="/admin/vencidas-admin.js?v=202611121900"></script>
+<script src="/admin/despachos-admin.js?v=202611121900"></script>
+<script src="/admin/licencias-admin.js?v=202611121900"></script>
+<script src="/admin/demos-admin.js?v=202611121900"></script>
+<script src="/admin/migracion-admin.js?v=202611121900"></script>
 </body>
 </html>
