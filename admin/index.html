@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="/assets/css/common.css?v=202611121500">
     <link rel="stylesheet" href="/admin/creditos-admin.css?v=202611121500">
     <link rel="stylesheet" href="/admin/documentos-admin.css?v=202611121500">
+    <link rel="stylesheet" href="/admin/migracion-admin.css?v=202611121500">
 </head>
 <body class="min-h-screen flex flex-col relative">
 
@@ -89,6 +90,7 @@
                 <div class="bg-white rounded-xl card-elevated border border-gray-200 p-4 mb-4" id="adm-login-propio"></div>
                 <div class="flex flex-wrap items-center gap-3 mb-4">
                     <input type="search" id="buscar-usuario" placeholder="Buscar por correo…" class="flex-grow min-w-[200px] text-sm border border-gray-300 rounded-lg p-2.5 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white">
+                    <button type="button" id="mig-abrir" class="ui-btn ui-btn--secundario ui-btn--36" title="Pasar empresas con su historial de una cuenta a otra">Migrar a otra cuenta</button>
                     <button type="button" id="btn-agregar-usuario" class="boton-principal" style="width:auto;margin:0;padding:10px 18px">+ Agregar usuario</button>
                 </div>
                 <div class="bg-white rounded-xl card-elevated border border-gray-200 overflow-hidden">
@@ -101,6 +103,14 @@
                         </table>
                     </div>
                     <p id="sin-usuarios" class="hidden p-8 text-center text-sm text-slate-400">Nadie coincide con la búsqueda.</p>
+                </div>
+                <div class="bg-white rounded-xl card-elevated border border-gray-200 overflow-hidden mt-4 mig-historial" id="mig-historial" hidden>
+                    <div class="p-4 flex items-center justify-between gap-3"><h3 class="font-bold text-slate-800 text-sm">Migraciones</h3>
+                        <span class="text-xs text-slate-500">Se pueden deshacer durante 30 días.</span></div>
+                    <div class="overflow-x-auto"><table class="w-full text-sm min-w-[640px]">
+                        <thead class="bg-slate-50 text-left text-[11px] font-bold text-slate-500 uppercase tracking-wide">
+                            <tr><th class="p-4">Fecha</th><th class="p-4">De</th><th class="p-4">A</th><th class="p-4">Empresas</th><th class="p-4">Estado</th><th class="p-4"></th></tr></thead>
+                        <tbody id="mig-historial-lista"></tbody></table></div>
                 </div>
             </section>
 
@@ -607,6 +617,78 @@
             </div>
         </dialog>
 
+        <!-- Migrar a otra cuenta (admin/migracion-admin.js) -->
+        <dialog id="mig-dlg" class="fc-modal fc-modal--grande fc-modal--fija" aria-labelledby="mig-titulo">
+            <div class="fc-modal__cabeza"><div><h2 id="mig-titulo">Migrar a otra cuenta</h2>
+                <p>Pasa empresas con todo su historial. Nada de la persona se mueve: contraseña, sesiones, PCs y licencia se quedan en su cuenta.</p></div>
+                <button type="button" class="fc-modal__cerrar" data-mig-cerrar aria-label="Cerrar">×</button></div>
+            <div class="mig-pasos-caja">
+                <ol class="mig-pasos" id="mig-pasos">
+                    <li data-paso="1"><b>1</b>Cuentas</li><li data-paso="2"><b>2</b>Empresas</li><li data-paso="3"><b>3</b>Confirmar</li><li data-paso="4"><b>4</b>Resultado</li>
+                </ol>
+            </div>
+            <div class="fc-modal__cuerpo">
+                <section class="mig-panel" data-mig-panel="1">
+                    <div class="mig-rejilla">
+                        <div class="mig-caja">
+                            <h3>Origen</h3>
+                            <label class="ui-campo"><span class="ui-etiqueta">Correo de la cuenta que entrega</span>
+                                <input class="ui-input" id="mig-origen" type="email" maxlength="120" autocomplete="off" placeholder="correo@ejemplo.mx"></label>
+                            <label class="ui-check" id="mig-desactivar-campo"><input type="checkbox" id="mig-desactivar"> Desactivar esta cuenta al terminar</label>
+                        </div>
+                        <div class="mig-caja">
+                            <h3>Destino</h3>
+                            <label class="ui-campo"><span class="ui-etiqueta">Correo de la cuenta que recibe</span>
+                                <span class="flex gap-2"><input class="ui-input" id="mig-destino" type="email" maxlength="120" autocomplete="off" placeholder="correo@ejemplo.mx">
+                                <button type="button" class="ui-btn ui-btn--secundario ui-btn--36" id="mig-buscar">Buscar</button></span>
+                                <span class="ui-ayuda">La persona debe haber entrado una vez a Fiscontable.</span></label>
+                            <div id="mig-destinos" class="flex flex-col gap-2"></div>
+                        </div>
+                    </div>
+                    <div class="mig-caja">
+                        <h3>Qué se pasa de cada empresa</h3>
+                        <div class="mig-tipos" id="mig-tipos"></div>
+                        <span class="ui-ayuda">Si no marcas todo, la empresa también se queda en el origen con lo que no se pasó.</span>
+                    </div>
+                </section>
+
+                <section class="mig-panel" data-mig-panel="2" hidden>
+                    <div class="ui-aviso ui-aviso--aviso" id="mig-tope" hidden></div>
+                    <div class="mig-barra"><span id="mig-cuantas"></span>
+                        <button type="button" class="ui-btn ui-btn--terciario ui-btn--28" data-mig-todas="sugerida">Todas con la acción sugerida</button>
+                        <button type="button" class="ui-btn ui-btn--terciario ui-btn--28" data-mig-todas="omitir">Omitir todas</button></div>
+                    <div class="mig-tabla-caja"><table class="mig-tabla">
+                        <thead><tr><th>Empresa</th><th>En el origen</th><th>En el destino</th><th style="width:220px">Acción</th></tr></thead>
+                        <tbody id="mig-empresas"></tbody></table></div>
+                    <p class="ui-ayuda"><b>Combinar</b>: agrega solo lo que le falta al destino; lo que ya tiene se queda como está. <b>Reemplazar</b>: queda lo del origen y lo del destino se guarda 30 días en el respaldo.</p>
+                </section>
+
+                <section class="mig-panel" data-mig-panel="3" hidden>
+                    <div class="mig-resumen" id="mig-conteo"></div>
+                    <div class="mig-caja"><h3 id="mig-conf-titulo"></h3><ul class="mig-lista" id="mig-conf-lista"></ul></div>
+                    <div class="mig-caja"><h3>Se queda en la cuenta de origen</h3>
+                        <ul class="mig-lista"><li>Contraseña, verificación en dos pasos y sesiones</li><li>PCs con el Agente: en el destino se vuelven a vincular</li>
+                            <li>Licencia y créditos</li><li>Descargas programadas por lote</li></ul></div>
+                </section>
+
+                <section class="mig-panel" data-mig-panel="4" hidden>
+                    <div class="mig-barra"><span id="mig-estado"></span>
+                        <button type="button" class="ui-btn ui-btn--secundario ui-btn--28" id="mig-excel">Descargar Excel</button>
+                        <button type="button" class="ui-btn ui-btn--secundario ui-btn--28" id="mig-reintentar" hidden>Reintentar las que no pasaron</button>
+                        <button type="button" class="ui-btn ui-btn--terciario ui-btn--28" id="mig-deshacer-todo" hidden>Deshacer la migración</button></div>
+                    <div class="mig-tabla-caja"><table class="mig-tabla">
+                        <thead><tr><th>Empresa</th><th>Acción</th><th>Resultado</th><th>Detalle</th><th></th></tr></thead>
+                        <tbody id="mig-resultado"></tbody></table></div>
+                </section>
+                <p class="ui-ayuda ui-ayuda--error" id="mig-error" hidden></p>
+            </div>
+            <div class="fc-modal__pie">
+                <button type="button" class="ui-btn ui-btn--secundario ui-btn--36" id="mig-atras">Anterior</button>
+                <button type="button" class="ui-btn ui-btn--secundario ui-btn--36" data-mig-cerrar id="mig-cancelar">Cancelar</button>
+                <button type="button" class="ui-btn ui-btn--primario ui-btn--36" id="mig-siguiente">Siguiente</button>
+            </div>
+        </dialog>
+
         <dialog id="dlg-usuario" class="adm-dlg p-0 w-full">
             <form id="form-usuario" class="adm-dlg__form flex flex-col gap-5">
                 <div>
@@ -694,5 +776,6 @@
 <script src="/admin/despachos-admin.js?v=202611121500"></script>
 <script src="/admin/licencias-admin.js?v=202611121500"></script>
 <script src="/admin/demos-admin.js?v=202611121500"></script>
+<script src="/admin/migracion-admin.js?v=202611121500"></script>
 </body>
 </html>
