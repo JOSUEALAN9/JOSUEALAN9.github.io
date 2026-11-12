@@ -491,13 +491,19 @@
         return L.filter(function (x) { return x.si !== false; });
     }
     function sinAcentos(s) { return String(s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""); }
-    // 0 si no coincide; más alto, mejor: el nombre empieza así > una palabra del nombre empieza así > el nombre lo contiene > lo demás
+    // 0 si no coincide; más alto, mejor: el nombre empieza así > una palabra del nombre empieza así > el nombre lo contiene >
+    // una palabra de la descripción empieza así > la descripción lo contiene. Con menos de 4 letras solo cuenta el inicio de
+    // palabra (si no, «pin» traería «Opinión» e «iva», «masiva»).
     function puntos(q, nombre, resto) {
-        var n = sinAcentos(nombre);
-        if (n.indexOf(q) === 0) return 4;
-        if ((" " + n).indexOf(" " + q) !== -1) return 3;
-        if (n.indexOf(q) !== -1) return 2;
-        return sinAcentos(resto).indexOf(q) !== -1 ? 1 : 0;
+        var limpio = function (s) { return " " + sinAcentos(s).replace(/[^a-z0-9ñ]+/g, " ").trim(); };
+        var n = limpio(nombre), r = limpio(resto), largo = q.length >= 4;
+        q = limpio(q).slice(1);
+        if (!q) return 0;
+        if (n.indexOf(" " + q) === 0) return 5;
+        if (n.indexOf(" " + q) !== -1) return 4;
+        if (largo && n.indexOf(q) !== -1) return 3;
+        if (r.indexOf(" " + q) !== -1) return 2;
+        return largo && r.indexOf(q) !== -1 ? 1 : 0;
     }
     function itemDestino(x) {
         return '<a class="fc-modulos__item fc-modulos__item--fila" href="' + esc(x.u) + '"' + (x.rfc ? ' data-empresa="' + esc(x.rfc) + '"' : "") +
