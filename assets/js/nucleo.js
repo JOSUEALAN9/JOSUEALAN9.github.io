@@ -14,7 +14,7 @@
 (function () {
     "use strict";
 
-    var VERSION = "202611121045";
+    var VERSION = "202611121100";
     // www.fiscontable.app → fiscontable.app: una sola dirección (la sesión y las preferencias guardadas son por dirección)
     if (location.hostname === "www.fiscontable.app") {
         location.replace("https://fiscontable.app" + location.pathname + location.search + location.hash);
@@ -207,11 +207,13 @@
         var t = document.createElement("span");
         t.style.cssText = "flex:1 1 260px;display:grid;gap:2px;min-width:0";
         var t1 = document.createElement("b"), t2 = document.createElement("small");
+        var rutas = enPc.rutas || [], t3 = document.createElement("small");
         t1.textContent = "Guardado en " + (enPc.pc || "tu equipo");
         t1.style.color = "rgb(var(--g-900))";
-        t2.textContent = carpetaEnPc((enPc.rutas || [])[0]) + ((enPc.rutas || []).length > 1 ? " · " + enPc.rutas.length + " archivos" : "");
-        t2.style.cssText = "color:rgb(var(--g-600));overflow-wrap:anywhere";
-        t.appendChild(t1); t.appendChild(t2);
+        t2.textContent = carpetaEnPc(rutas[0]);
+        t3.textContent = rutas.length > 1 ? rutas.length + " archivos" : String(rutas[0] || "").split(/[\\/]/).pop();
+        t2.style.cssText = t3.style.cssText = "color:rgb(var(--g-600));overflow-wrap:anywhere";
+        t.appendChild(t1); t.appendChild(t2); if (t3.textContent) t.appendChild(t3);
         caja.appendChild(t);
         var b = document.createElement("button");
         b.type = "button"; b.className = "fc-btn"; b.textContent = "Abrir carpeta";
