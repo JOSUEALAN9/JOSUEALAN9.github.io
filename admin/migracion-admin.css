@@ -1,0 +1,38 @@
+/* admin/migracion-admin.css — «Migrar a otra cuenta» (Administración › Usuarios) */
+.mig-pasos-caja { flex: none; padding: 14px var(--modal-pad); border-bottom: 1px solid var(--linea); }
+.mig-pasos { display: flex; gap: 6px; list-style: none; margin: 0; padding: 0; overflow-x: auto; scrollbar-width: none; }
+.mig-pasos li { flex: none; display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; color: var(--texto-tenue); padding: 6px 12px 6px 6px; border-radius: 999px; }
+.mig-pasos li b { width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; background: rgb(var(--g-100)); color: rgb(var(--g-600)); }
+.mig-pasos li[aria-current="step"] { color: var(--texto); background: rgb(var(--g-50)); }
+.mig-pasos li[aria-current="step"] b, .mig-pasos li.hecho b { background: rgb(var(--ac-600)); color: #fff; }
+.mig-panel[hidden] { display: none !important; }
+.mig-rejilla { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+.mig-rejilla > * { min-width: 0; }
+.mig-caja { border: 1px solid var(--linea); border-radius: 14px; padding: 18px 20px; display: flex; flex-direction: column; gap: 12px; }
+.mig-caja h3 { font-size: 14px; font-weight: 800; color: var(--texto); }
+.mig-opcion { display: flex; gap: 10px; align-items: flex-start; border: 1px solid var(--linea); border-radius: 12px; padding: 12px 14px; cursor: pointer; }
+.mig-opcion:has(input:checked) { border-color: rgb(var(--ac-600)); background: rgb(var(--ac-50)); }
+.mig-opcion input { margin-top: 3px; accent-color: rgb(var(--ac-600)); }
+.mig-opcion span { display: flex; flex-direction: column; gap: 2px; font-size: 14px; font-weight: 700; color: var(--texto); }
+.mig-opcion small { font-size: 12.5px; font-weight: 500; color: var(--texto-tenue); line-height: 1.4; }
+.mig-tipos { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 16px; }
+.mig-tabla-caja { border: 1px solid var(--linea); border-radius: 14px; overflow: auto; }
+.mig-tabla { width: 100%; min-width: 760px; border-collapse: collapse; font-size: 13.5px; }
+.mig-tabla th { text-align: left; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; color: var(--texto-tenue); background: rgb(var(--g-50)); padding: 10px 14px; position: sticky; top: 0; }
+.mig-tabla td { padding: 12px 14px; border-top: 1px solid var(--linea); vertical-align: top; }
+.mig-tabla td small { display: block; color: var(--texto-tenue); font-size: 12px; margin-top: 2px; line-height: 1.4; }
+.mig-rfc { font-family: var(--fuente-mono); font-size: 12px; color: var(--texto-tenue); }
+.mig-tabla select, .mig-tabla input { width: 100%; min-width: 150px; }
+.mig-confirmar { margin-top: 8px; }
+.mig-barra { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.mig-barra > :first-child { margin-right: auto; font-size: 13.5px; color: var(--texto-tenue); }
+.mig-resumen { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+.mig-resumen div { border: 1px solid var(--linea); border-radius: 12px; padding: 14px 16px; }
+.mig-resumen b { display: block; font-size: 24px; font-weight: 800; color: var(--texto); }
+.mig-resumen span { font-size: 12.5px; color: var(--texto-tenue); }
+.mig-lista { list-style: disc; padding-left: 20px; font-size: 13.5px; color: var(--texto); display: flex; flex-direction: column; gap: 4px; }
+.mig-historial[hidden] { display: none !important; }
+@media (max-width: 640px) {
+    .mig-rejilla, .mig-tipos { grid-template-columns: 1fr; }
+    .mig-resumen { grid-template-columns: 1fr 1fr; }
+}

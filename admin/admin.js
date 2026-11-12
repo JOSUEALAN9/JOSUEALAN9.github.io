@@ -388,14 +388,13 @@ async function guardarUsuario(e) {
 async function eliminarUsuario(correo) {
     const confirmacion = (await Fiscontable.preguntar(
         `¿Quitar el acceso de ${correo}?\n\n` +
-        `Se borra su rol, su nombre y su teléfono. Si vuelve a entrar, se le pedirán sus datos otra vez y entrará como Demo por ${DIAS_DEMO} días.\n\n` +
-        `Sus clientes y documentos NO se borran: los recupera al volver a entrar.\n\n` +
-        `Si solo quieres cambiarle el rol o la vigencia, cancela y usa el lápiz.`
+        `La cuenta queda desactivada: no puede entrar, se cierran sus sesiones y se desconectan sus PCs.\n\n` +
+        `Sus clientes y documentos no se borran. Para devolverle el acceso, usa el lápiz y guarda su rol.`
     ));
     if (!confirmacion) return;
     try {
         await api(`/api/usuarios/${encodeURIComponent(correo)}`, { method: "DELETE" });
-        mostrarAlerta("success", `Se quitó el acceso de ${correo}.`);
+        mostrarAlerta("success", `La cuenta ${correo} quedó desactivada.`);
         await Promise.all([cargarUsuarios(), cargarRoles()]);
     } catch (err) { mostrarAlerta("error", err.message); }
 }
