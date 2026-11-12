@@ -30,17 +30,26 @@
         $("lb-guardado").textContent = "Cada recorrido se guarda " + d.dias_guardado + " días. Hasta " + d.max_pasos + " pasos por recorrido; uno a la vez.";
         cambioReceta();
     }
+    var CANDADO = { recorrido: "", grabacion: "No tiene efecto ante el SAT: solo consulta y no abre notificaciones. No guarda contraseñas, sesiones, el RFC ni los documentos." };
+    function esGrabacion(clave) { return !!(E.datos.recetas.find(function (x) { return x.clave === clave; }) || {}).grabacion; }
     function cambioReceta() {
-        var r = E.datos.recetas.find(function (x) { return x.clave === $("lb-receta").value; }) || {};
-        $("lb-nota").textContent = (r.nota || "") + (r.url ? " " + r.url : "");
+        var r = E.datos.recetas.find(function (x) { return x.clave === $("lb-receta").value; }) || {}, g = !!r.grabacion;
+        $("lb-nota").textContent = (r.nota || "") + (r.url && !g ? " " + r.url : "");
         $("lb-url-caja").hidden = r.clave !== "libre";
+        ["lb-grab-caja", "lb-ejercicio-caja", "lb-dia-caja"].forEach(function (id) { $(id).hidden = !g; });
+        $("lb-pasos-caja").hidden = g;
+        if (!CANDADO.recorrido) CANDADO.recorrido = $("lb-candado-txt").textContent;
+        $("lb-candado-txt").textContent = g ? CANDADO.grabacion : CANDADO.recorrido;
+        $("lb-lanzar").textContent = g ? "Grabar" : "Recorrer";
+        if (g && !$("lb-ejercicio").value) $("lb-ejercicio").value = new Date().getFullYear() - 1;
+        if (g && !$("lb-dia").value) { var d = new Date(Date.now() - 864e5); $("lb-dia").value = d.toISOString().slice(0, 10); }
     }
     function pintarLista() {
         var c = E.datos.corridas;
         $("lb-lista").innerHTML = c.length ? c.map(function (x) {
             return '<button type="button" class="lb-fila" data-corrida="' + esc(x.id) + '" aria-current="' + (E.corrida && E.corrida.id === x.id) + '">' +
                 "<b>" + esc(receta(x.receta)) + "</b>" + sello(x.estado) +
-                "<small>" + esc(empresa(x.rfc)) + " · " + esc(fecha(x.creada)) + " · " + x.pasos + " pantalla" + (x.pasos === 1 ? "" : "s") +
+                "<small>" + esc(empresa(x.rfc)) + " · " + esc(fecha(x.creada)) + " · " + x.pasos + (esGrabacion(x.receta) ? " parte" : " pantalla") + (x.pasos === 1 ? "" : "s") +
                 (x.bloqueados ? " · " + x.bloqueados + " bloqueado" + (x.bloqueados === 1 ? "" : "s") : "") + (x.nota ? " · " + esc(x.nota) : "") + "</small></button>";
         }).join("") : '<div class="ui-vacio"><span>Todavía no hay recorridos.</span></div>';
     }
@@ -74,15 +83,16 @@
         caja.innerHTML =
             '<div class="lb-cabeza"><h2>' + esc(receta(c.receta)) + " · " + esc(empresa(c.rfc)) + "</h2>" + sello(c.estado) +
                 (c.en_curso ? '<button type="button" class="ui-btn ui-btn--secundario ui-btn--28" data-hacer="detener">Detener</button>' : "") +
-                '<button type="button" class="ui-btn ui-btn--secundario ui-btn--28" data-hacer="repetir" title="Copia sus pasos al formulario para seguir desde ahí">Usar sus pasos</button>' +
+                (esGrabacion(c.receta) ? "" : '<button type="button" class="ui-btn ui-btn--secundario ui-btn--28" data-hacer="repetir" title="Copia sus pasos al formulario para seguir desde ahí">Usar sus pasos</button>') +
                 (reg.length ? '<button type="button" class="ui-btn ui-btn--secundario ui-btn--28" data-hacer="zip">Descargar registro</button>' : "") +
                 (c.en_curso ? "" : '<button type="button" class="ui-btn ui-btn--terciario ui-btn--28" data-hacer="borrar">Borrar</button>') + "</div>" +
             '<div class="lb-datos">' + esc(fecha(c.creada)) + (c.mensaje ? " · <b>" + esc(c.mensaje) + "</b>" : c.en_curso ? " · recorriendo…" : "") + (c.nota ? " · " + esc(c.nota) : "") + "</div>" +
             (reg.length ? '<div class="lb-pasos">' + reg.map(function (x, i) {
                 return '<button type="button" class="lb-paso' + (RESULTADO[x.resultado] ? " lb-paso--" + RESULTADO[x.resultado] : "") + '" data-ir="' + i + '" aria-current="' + (i === E.paso) + '">' +
                     "<b>" + x.n + (x.resultado !== "hecho" ? " · " + esc(x.resultado) : "") + "</b><span>" + esc(x.accion) + "</span></button>";
-            }).join("") + "</div>" : '<div class="ui-vacio"><span>' + (c.en_curso ? "Abriendo el portal…" : "Este recorrido no guardó pantallas.") + "</span></div>") +
-            (p ? '<div class="lb-datos"><b>' + esc(p.titulo || "(sin título)") + "</b><br>" + esc(p.url) + (p.detalle ? "<br>" + esc(p.detalle) : "") +
+            }).join("") + "</div>" : '<div class="ui-vacio"><span>' + (c.en_curso ? (esGrabacion(c.receta) ? "Grabando la primera parte…" : "Abriendo el portal…") : "Este recorrido no guardó pantallas.") + "</span></div>") +
+            (p && !p.captura && !(p.elementos || []).length ? '<div class="lb-datos"><b>' + esc(p.accion) + "</b>" + (p.detalle ? "<br>" + esc(p.detalle) : "") + "</div>" : "") +
+            (p && (p.captura || (p.elementos || []).length) ? '<div class="lb-datos"><b>' + esc(p.titulo || "(sin título)") + "</b><br>" + esc(p.url) + (p.detalle ? "<br>" + esc(p.detalle) : "") +
                 (p.ventanas && p.ventanas.length ? "<br>Ventanas que se cancelaron automáticamente: " + p.ventanas.map(esc).join(" · ") : "") + "</div>" +
                 '<div class="lb-vista"><div class="lb-captura" id="lb-captura"><div class="ui-vacio"><span>Cargando la captura…</span></div></div>' +
                 '<div class="lb-mapa"><table><thead><tr><th>Qué es</th><th>Texto</th><th></th></tr></thead><tbody>' +
@@ -130,7 +140,9 @@
         var b = $("lb-lanzar"); b.disabled = true;
         try {
             var r = await api("/api/admin/laboratorio", { method: "POST", headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ rfc: $("lb-empresa").value, receta: $("lb-receta").value, instrucciones: $("lb-pasos").value, url: $("lb-url").value, nota: $("lb-nota-txt").value }) });
+                body: JSON.stringify({ rfc: $("lb-empresa").value, receta: $("lb-receta").value, instrucciones: $("lb-pasos").value, url: $("lb-url").value, nota: $("lb-nota-txt").value,
+                    opciones: esGrabacion($("lb-receta").value) ? { partes: [].slice.call(document.querySelectorAll('input[name="lb-parte"]:checked')).map(function (x) { return x.value; }),
+                        ejercicio: $("lb-ejercicio").value, dia: $("lb-dia").value } : null }) });
             await cargar(true); abrir(r.id);
         } catch (er) { Fiscontable.toast(er.message); }
         b.disabled = false;
