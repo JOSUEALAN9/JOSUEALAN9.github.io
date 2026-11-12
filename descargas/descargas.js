@@ -317,12 +317,12 @@ function verDescarga(p, lista) {
                 ${x.usuario ? `<dt>Pidió</dt><dd>${esc(x.usuario)}</dd>` : ""}
                 ${f.resultado ? `<dt>Resultado</dt><dd>${esc(f.resultado)}</dd>` : ""}
                 ${x.nombre_descarga ? `<dt>Archivo</dt><dd>${esc(x.nombre_descarga)}</dd>` : ""}
-                ${pc ? `<dt>En tu PC</dt><dd>${esc(Fiscontable.textoEnPc(x.en_pc))}</dd>` : ""}</dl>
+                ${pc ? `<dt>En tu equipo</dt><dd>${esc(Fiscontable.textoEnPc(x.en_pc))}</dd>` : ""}</dl>
                 ${x.fallidos && x.fallidos.length ? `<p class="fc-panel__texto">Sin resultado para ${x.fallidos.length} contribuyente${x.fallidos.length === 1 ? "" : "s"}. <button type="button" class="xml-enlace" data-motivos>Ver por qué</button></p>` : ""}
                 ${f.incompleto === "Sí" && !(x.fallidos && x.fallidos.length) ? '<p class="fc-panel__texto">No salieron todos. El detalle por RFC está en el módulo.</p>' : ""}
                 <div class="fc-panel__acciones">
                     ${x.url_descarga ? '<button type="button" class="ui-btn ui-btn--primario ui-btn--32" data-p="bajar">Descargar</button>' : ""}
-                    ${pc ? '<button type="button" class="ui-btn ui-btn--secundario ui-btn--32" data-p="pc">Mostrar en mi PC</button>' : ""}
+                    ${pc ? '<button type="button" class="ui-btn ui-btn--secundario ui-btn--32" data-p="pc">Abrir carpeta</button>' : ""}
                     ${mod ? `<a class="ui-btn ui-btn--terciario ui-btn--32" href="${mod[0]}">Ir a ${esc(mod[1])}</a>` : ""}
                     <button type="button" class="ui-btn ui-btn--terciario ui-btn--32" data-p="quitar">Quitar de la lista</button>
                 </div>`;

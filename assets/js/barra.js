@@ -1724,7 +1724,7 @@
             if (enPc) detalle.push('<span class="fc-fila__pc">en tu PC</span>');
             estado = '<span class="fc-fila__estado fc-fila__estado--' + (incompleta ? "alerta" : "listo") + '">' + ICONO_ESTADO[incompleta ? "alerta" : "listo"] + "</span>";
             clase = incompleta ? " fc-fila--alerta" : "";
-            acciones = (enPc ? botonFila("mostrar-pc", "carpeta", "Mostrar en mi PC", 'data-id="' + esc(p.id) + '"') : "") +
+            acciones = (enPc ? botonFila("mostrar-pc", "carpeta", "Abrir carpeta", 'data-id="' + esc(p.id) + '"') : "") +
                 botonFila("descargar", "descarga", "Descargar", 'data-url="' + esc(p.url_descarga) + '" data-nombre="' + esc(p.nombre_descarga || "documento") + '"', "fc-fila__btn--principal") +
                 botonFila("quitar", "cerrar", "Quitar de la lista", id);
         } else {
