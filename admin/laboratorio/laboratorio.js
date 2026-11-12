@@ -30,7 +30,8 @@
         $("lb-guardado").textContent = "Cada recorrido se guarda " + d.dias_guardado + " días. Hasta " + d.max_pasos + " pasos por recorrido; uno a la vez.";
         cambioReceta();
     }
-    var CANDADO = { recorrido: "", grabacion: "No tiene efecto ante el SAT: solo consulta y no abre notificaciones. No guarda contraseñas, sesiones, el RFC ni los documentos." };
+    var CANDADO = { recorrido: "", grabacion: "No tiene efecto ante el SAT: solo consulta y no abre notificaciones. No guarda contraseñas, sesiones, el RFC ni los documentos.",
+        sin_navegador: "No tiene efecto ante el SAT: solo consulta. Registra los tiempos de cada paso; no guarda contraseñas, sesiones, el RFC ni los documentos." };
     function esGrabacion(clave) { return !!(E.datos.recetas.find(function (x) { return x.clave === clave; }) || {}).grabacion; }
     function cambioReceta() {
         var r = E.datos.recetas.find(function (x) { return x.clave === $("lb-receta").value; }) || {}, g = !!r.grabacion;
@@ -39,8 +40,14 @@
         ["lb-grab-caja", "lb-ejercicio-caja", "lb-dia-caja"].forEach(function (id) { $(id).hidden = !g; });
         $("lb-pasos-caja").hidden = g;
         if (!CANDADO.recorrido) CANDADO.recorrido = $("lb-candado-txt").textContent;
-        $("lb-candado-txt").textContent = g ? CANDADO.grabacion : CANDADO.recorrido;
-        $("lb-lanzar").textContent = g ? "Grabar" : "Recorrer";
+        $("lb-candado-txt").textContent = r.sin_navegador ? CANDADO.sin_navegador : g ? CANDADO.grabacion : CANDADO.recorrido;
+        $("lb-lanzar").textContent = r.sin_navegador ? "Probar" : g ? "Grabar" : "Recorrer";
+        $("lb-grab-titulo").textContent = r.sin_navegador ? "Qué probar" : "Qué grabar";
+        [].forEach.call(document.querySelectorAll('input[name="lb-parte"]'), function (x) {
+            var si = !r.partes || !r.partes.length || r.partes.indexOf(x.value) >= 0;
+            x.closest("label").hidden = !si;
+            if (!si) x.checked = false; else if (g) x.checked = true;
+        });
         if (g && !$("lb-ejercicio").value) $("lb-ejercicio").value = new Date().getFullYear() - 1;
         if (g && !$("lb-dia").value) { var d = new Date(Date.now() - 864e5); $("lb-dia").value = d.toISOString().slice(0, 10); }
     }
