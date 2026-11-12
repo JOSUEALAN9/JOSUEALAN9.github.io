@@ -471,7 +471,7 @@
                 document.querySelectorAll(".fc-en-pc").forEach(function (x) { x.remove(); });
                 if (t.en_pc && t.en_pc.rutas && t.en_pc.rutas.length) {
                     // Lo hizo el agente: ya está en esa PC, no se baja otra vez
-                    alerta("bien", "Listo. Lo hizo tu PC y ya quedó guardado ahí (no se descargó otra vez).");
+                    alerta("bien", MODULO.nombre.charAt(0).toUpperCase() + MODULO.nombre.slice(1) + " obtenida desde tu equipo.");
                     var nombreArchivo = t.nombre_descarga || (MODULO.prefijoArchivo + "_" + rfc + ".pdf");
                     $("alerta").insertAdjacentElement("afterend", Fiscontable.cajaEnPc(t.en_pc, function (b) {
                         b.disabled = true;

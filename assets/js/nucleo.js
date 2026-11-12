@@ -14,7 +14,7 @@
 (function () {
     "use strict";
 
-    var VERSION = "202611121030";
+    var VERSION = "202611121045";
     // www.fiscontable.app → fiscontable.app: una sola dirección (la sesión y las preferencias guardadas son por dirección)
     if (location.hostname === "www.fiscontable.app") {
         location.replace("https://fiscontable.app" + location.pathname + location.search + location.hash);
@@ -167,36 +167,36 @@
     /* Lo que hizo el agente (la PC del contador) ya quedó guardado en esa PC: no se vuelve a descargar automáticamente.
        Se dice dónde quedó y un botón le pide a esa PC que abra la carpeta (Mostrar en mi PC). */
     function carpetaEnPc(ruta) {
+        // «C:\Users\x\Documents\Fiscontable\RFC\Constancias\2026\a.pdf» → «Documentos › Fiscontable › RFC › Constancias › 2026»
         var r = String(ruta || "").replace(/\//g, "\\");
         var i = Math.max(r.lastIndexOf("\\"), 0);
         var carpeta = i ? r.slice(0, i) : r;
         var m = carpeta.match(/(Documents|Documentos)\\.*/i);
-        return m ? m[0] : carpeta;
+        return (m ? m[0] : carpeta).replace(/^Documents/i, "Documentos").split("\\").filter(Boolean).join(" › ");
     }
 
     function textoEnPc(enPc) {
         if (!enPc || !enPc.rutas || !enPc.rutas.length) return "";
         var n = enPc.rutas.length;
-        return "Quedó guardado en tu PC «" + (enPc.pc || "PC") + "»: " + carpetaEnPc(enPc.rutas[0]) +
-            (n > 1 ? " (" + n + " archivos)" : "");
+        return (enPc.pc || "Tu equipo") + " · " + carpetaEnPc(enPc.rutas[0]) + (n > 1 ? " · " + n + " archivos" : "");
     }
 
     async function mostrarEnPc(enPc, boton, decir) {
         // decir(texto): para quien no tiene un botón con texto donde escribir (los botones de ícono del panel)
-        if (boton) { boton.disabled = true; boton.textContent = "Avisando a tu PC…"; }
+        if (boton) { boton.disabled = true; boton.textContent = "Abriendo…"; }
         try {
             var r = await fetch(API + "/api/agentes/" + enPc.agente_id + "/abrir", {
                 method: "POST", credentials: "include", headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ ruta: enPc.rutas[0] })
             });
             if (!r.ok) throw new Error(await leerError(r));
-            if (boton) boton.textContent = "✓ Se abrirá en «" + (enPc.pc || "tu PC") + "»";
-            if (decir) decir("Se abrirá en «" + (enPc.pc || "tu PC") + "».");
+            if (boton) boton.textContent = "✓ Abierta en " + (enPc.pc || "tu equipo");
+            if (decir) decir("Carpeta abierta en " + (enPc.pc || "tu equipo") + ".");
         } catch (e) {
-            if (boton) { boton.textContent = "No se pudo: " + e.message; }
-            if (decir) decir("No se pudo mostrar en tu PC: " + e.message);
+            if (boton) { boton.textContent = "No se pudo abrir"; boton.title = e.message; }
+            if (decir) decir("No se pudo abrir la carpeta: " + e.message);
         }
-        if (boton) setTimeout(function () { boton.disabled = false; boton.textContent = "Mostrar en mi PC"; }, 5000);
+        if (boton) setTimeout(function () { boton.disabled = false; boton.textContent = "Abrir carpeta"; boton.title = ""; }, 5000);
     }
 
     function cajaEnPc(enPc, alDescargar) {
@@ -205,16 +205,21 @@
         caja.style.cssText = "margin-top:10px;padding:11px 13px;border:1px solid rgb(var(--ok-200));background:rgb(var(--ok-50));border-radius:10px;" +
             "font-size:13px;color:rgb(var(--ok-600));display:flex;flex-wrap:wrap;gap:8px;align-items:center";
         var t = document.createElement("span");
-        t.textContent = textoEnPc(enPc);
-        t.style.flex = "1 1 260px";
+        t.style.cssText = "flex:1 1 260px;display:grid;gap:2px;min-width:0";
+        var t1 = document.createElement("b"), t2 = document.createElement("small");
+        t1.textContent = "Guardado en " + (enPc.pc || "tu equipo");
+        t1.style.color = "rgb(var(--g-900))";
+        t2.textContent = carpetaEnPc((enPc.rutas || [])[0]) + ((enPc.rutas || []).length > 1 ? " · " + enPc.rutas.length + " archivos" : "");
+        t2.style.cssText = "color:rgb(var(--g-600));overflow-wrap:anywhere";
+        t.appendChild(t1); t.appendChild(t2);
         caja.appendChild(t);
         var b = document.createElement("button");
-        b.type = "button"; b.className = "fc-btn"; b.textContent = "Mostrar en mi PC";
+        b.type = "button"; b.className = "fc-btn"; b.textContent = "Abrir carpeta";
         b.addEventListener("click", function () { mostrarEnPc(enPc, b); });
         caja.appendChild(b);
         if (alDescargar) {
             var d = document.createElement("button");
-            d.type = "button"; d.className = "fc-btn fc-btn--discreto"; d.textContent = "Descargar aquí";
+            d.type = "button"; d.className = "fc-btn fc-btn--discreto"; d.textContent = "Descargar";
             d.addEventListener("click", function () { alDescargar(d); });
             caja.appendChild(d);
         }
