@@ -184,18 +184,53 @@
         irA(3);
     }
 
-    async function migrar() {
-        var b = $("mig-siguiente");
-        b.classList.add("ui-btn--cargando"); b.disabled = true;
-        try {
+    function migrar() {
+        confirmarIdentidad("migrar", async function (c) {
             var d = await api("/api/admin/migraciones", "POST", {
                 origen: revision.origen, destino: revision.destino, categorias: tiposElegidos(), desactivar_origen: $("mig-desactivar").checked,
-                empresas: revision.empresas.map(function (e) { return { rfc: e.rfc, accion: e.accion, confirmacion: e.confirmacion || null }; }) });
+                empresas: revision.empresas.map(function (e) { return { rfc: e.rfc, accion: e.accion, confirmacion: e.confirmacion || null }; }),
+                confirmacion: c });
             migracionId = d.id;
-        } catch (e) { error(e.message); return; }
-        finally { b.classList.remove("ui-btn--cargando"); b.disabled = false; }
-        irA(4);
-        verResultado();
+            irA(4);
+            verResultado();
+        });
+    }
+
+    /* ---------------------------------------------------------------- confirmar que es el administrador */
+    var conf = { token: null, accion: null, ejecutar: null };
+    async function mandarCodigo() {
+        $("mig-conf-error").hidden = true;
+        $("mig-conf-ok").disabled = true;
+        try {
+            var d = await api("/api/admin/migraciones/codigo", "POST", { accion: conf.accion });
+            conf.token = d.token;
+            $("mig-conf-sub").textContent = "Te mandamos un código a " + d.enviado_a + ". Vence en " + d.minutos + " minutos.";
+            $("mig-conf-ok").disabled = false;
+        } catch (e) { confError(e.message); }
+    }
+    function confError(texto) { $("mig-conf-error").textContent = texto; $("mig-conf-error").hidden = false; }
+    /* Pide código y PIN; ejecutar(confirmacion) hace la acción. Si falla (código o PIN), la ventana sigue abierta. */
+    function confirmarIdentidad(accion, ejecutar) {
+        conf.accion = accion; conf.ejecutar = ejecutar; conf.token = null;
+        $("mig-conf-forma").reset();
+        $("mig-conf-sub").textContent = "Enviando un código a tu correo…";
+        $("mig-conf-dlg").showModal();
+        $("mig-conf-codigo").focus();
+        mandarCodigo();
+    }
+    async function confirmarOk() {
+        var codigo = $("mig-conf-codigo").value.replace(/\D/g, ""), pin = $("mig-conf-pin").value.trim();
+        if (codigo.length !== 6) return confError("Escribe los 6 números del código.");
+        if (!pin) return confError("Escribe tu PIN.");
+        var b = $("mig-conf-ok");
+        b.classList.add("ui-btn--cargando"); b.disabled = true;
+        try {
+            await conf.ejecutar({ token: conf.token, codigo: codigo, pin: pin });
+            $("mig-conf-dlg").close();
+        } catch (e) {
+            confError(e.message);
+            if (/venció|ya se usó|pausa/.test(e.message)) { $("mig-conf-codigo").value = ""; }
+        } finally { b.classList.remove("ui-btn--cargando"); b.disabled = !conf.token; }
     }
 
     /* ---------------------------------------------------------------- resultado */
@@ -250,11 +285,11 @@
         var texto = rfc ? "¿Deshacer la migración de " + rfc + "?\n\nLa empresa regresa al origen como estaba y el destino recupera lo que tenía."
             : "¿Deshacer toda la migración?\n\nCada empresa regresa al origen como estaba y el destino recupera lo que tenía.";
         if (!(await Fiscontable.preguntar(texto))) return;
-        try {
-            await api("/api/admin/migraciones/" + migracionId + "/deshacer", "POST", rfc ? { rfc: rfc } : {});
+        confirmarIdentidad("deshacer", async function (c) {
+            await api("/api/admin/migraciones/" + migracionId + "/deshacer", "POST", { rfc: rfc || null, confirmacion: c });
             avisar("success", rfc ? "Se deshizo la migración de " + rfc + "." : "Se deshizo la migración.");
-        } catch (e) { error(e.message); }
-        verResultado();
+            verResultado();
+        });
     }
 
     async function bajarExcel() {
@@ -299,10 +334,17 @@
     });
     $("mig-resultado").addEventListener("click", function (e) { var b = e.target.closest("[data-mig-deshacer]"); if (b) deshacer(b.dataset.migDeshacer); });
     $("mig-deshacer-todo").addEventListener("click", function () { deshacer(null); });
-    $("mig-reintentar").addEventListener("click", async function () {
-        try { await api("/api/admin/migraciones/" + migracionId + "/reintentar", "POST", {}); } catch (e) { error(e.message); return; }
-        verResultado();
+    $("mig-reintentar").addEventListener("click", function () {
+        confirmarIdentidad("reintentar", async function (c) {
+            await api("/api/admin/migraciones/" + migracionId + "/reintentar", "POST", { confirmacion: c });
+            verResultado();
+        });
     });
+    $("mig-conf-ok").addEventListener("click", confirmarOk);
+    $("mig-conf-otro").addEventListener("click", mandarCodigo);
+    $("mig-conf-forma").addEventListener("submit", function (e) { e.preventDefault(); confirmarOk(); });
+    $("mig-conf-pin").addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); confirmarOk(); } });
+    $("mig-conf-dlg").addEventListener("click", function (e) { if (e.target.closest("[data-mig-conf-cerrar]")) this.close(); });
     $("mig-excel").addEventListener("click", bajarExcel);
     $("mig-dlg").addEventListener("click", function (e) { if (e.target.closest("[data-mig-cerrar]")) this.close(); });
     $("mig-dlg").addEventListener("close", function () { clearTimeout(sondeo); });
