@@ -1645,6 +1645,9 @@ main.fc-recien { animation: fc-recien .35s ease-out; }
 .fc-confirmar__escribir { display: grid; gap: 6px; font-size: var(--t-13); color: rgb(var(--g-700)); }
 .fc-confirmar__escribir input { height: 36px; padding: 0 10px; border: 1px solid rgb(var(--g-300)); border-radius: var(--r-control); font: inherit; font-family: var(--fuente-mono); text-transform: uppercase; }
 .fc-confirmar .ui-btn:disabled { opacity: .45; cursor: not-allowed; }
+.fc-identidad__ligas { display: flex; flex-wrap: wrap; gap: 8px; }
+.fc-identidad__ligas:not(:has(:not([hidden]))) { display: none; }
+.fc-identidad .fc-modal__cabeza p a { color: rgb(var(--ac-700)); font-weight: 600; text-decoration: underline; }
 /* Mis descargas: aviso de lo programado y enlace chico dentro de una tarjeta */
 .fc-nota-prog { display: block; margin: 0 0 var(--e-3); padding: 8px 12px; border-radius: var(--r-control); background: rgb(var(--g-50)); color: rgb(var(--g-700)); font-size: var(--t-12); text-decoration: none; }
 .fc-nota-prog:hover { background: rgb(var(--g-100)); }

@@ -1882,6 +1882,102 @@
             peligro: /borra|elimin|cancel|revoc|desconect|rechaz|desactiv|quitar|olvidar|detener|presentar|timbrar/i.test(texto) }, o || {}));
     }
 
+    /* Confirmar que eres tú antes de algo delicado (core/verificacion.py del servidor). Según la acción se pide el PIN
+       y un código que llega al correo, o uno de los dos (el PIN si lo tiene; si no, o si lo prefiere, el código).
+       ejecutar(confirmacion) hace la acción; si falla (código o PIN equivocado), la ventana sigue abierta con el
+       mensaje. Devuelve una promesa: true si se hizo, false si se canceló.
+       Uso: await Fiscontable.confirmarIdentidad("quitar_miembro", function (c) { return pedir(..., { confirmacion: c }); }); */
+    function confirmarIdentidad(accion, ejecutar) {
+        return new Promise(function (listo) {
+            var dlg = document.createElement("dialog");
+            dlg.className = "fc-modal fc-modal--chica fc-identidad";
+            dlg.innerHTML = '<div class="fc-modal__cabeza"><div><h2>Confirma que eres tú</h2><p data-i="sub">Un momento…</p></div>' +
+                '<button type="button" class="fc-modal__cerrar" data-i="cerrar" aria-label="Cerrar">×</button></div>' +
+                '<form class="fc-modal__cuerpo" novalidate>' +
+                '<label class="ui-campo" data-i="campo-codigo" hidden><span class="ui-etiqueta">Código del correo</span>' +
+                '<input class="ui-input" data-i="codigo" inputmode="numeric" autocomplete="one-time-code" maxlength="7" placeholder="123 456"></label>' +
+                '<label class="ui-campo" data-i="campo-pin" hidden><span class="ui-etiqueta">Tu PIN</span>' +
+                '<input class="ui-input" data-i="pin" type="password" inputmode="numeric" autocomplete="off" maxlength="6"></label>' +
+                '<div class="fc-identidad__ligas"><button type="button" class="ui-btn ui-btn--terciario ui-btn--28" data-i="usar-codigo" hidden>Prefiero un código por correo</button>' +
+                '<button type="button" class="ui-btn ui-btn--terciario ui-btn--28" data-i="otro" hidden>Mandar otro código</button></div>' +
+                '<p class="ui-ayuda ui-ayuda--error" data-i="error" hidden></p></form>' +
+                '<div class="fc-modal__pie"><button type="button" class="ui-btn ui-btn--secundario ui-btn--36" data-i="cancelar">Cancelar</button>' +
+                '<button type="button" class="ui-btn ui-btn--primario ui-btn--36" data-i="ok" disabled>Confirmar</button></div>';
+            var q = function (k) { return dlg.querySelector('[data-i="' + k + '"]'); };
+            var token = null, texto = "", terminado = false;
+            function fin(r) { if (terminado) return; terminado = true; try { dlg.close(); } catch (x) { /* nada */ } dlg.remove(); listo(r); }
+            function error(t) { q("error").textContent = t || ""; q("error").hidden = !t; }
+            async function llamar(ruta, cuerpo) {
+                var r = await fetch(API + ruta, { method: cuerpo ? "POST" : "GET", credentials: "include",
+                    headers: cuerpo ? { "Content-Type": "application/json" } : undefined, body: cuerpo ? JSON.stringify(cuerpo) : undefined });
+                if (!r.ok) throw new Error(await window.Fiscontable.leerError(r));
+                return r.json();
+            }
+            async function mandar() {
+                error(""); q("ok").disabled = true;
+                q("sub").textContent = "Enviando un código a tu correo…";
+                try {
+                    var d = await llamar("/api/verificacion/codigo", { accion: accion });
+                    token = d.token;
+                    q("sub").textContent = "Te mandamos un código a " + d.enviado_a + " para " + texto + ". Vence en " + d.minutos + " minutos.";
+                    q("campo-codigo").hidden = false; q("usar-codigo").hidden = true; q("otro").hidden = false;
+                    q("ok").disabled = false; q("codigo").focus();
+                } catch (e) { q("sub").textContent = "No se pudo mandar el código."; error(e.message); }
+            }
+            async function empezar() {
+                var e;
+                try { e = await llamar("/api/verificacion/estado?accion=" + encodeURIComponent(accion)); }
+                catch (x) { q("sub").textContent = "No se pudo preparar la confirmación."; error(x.message); return; }
+                texto = e.texto;
+                if (e.nivel === "pin_y_codigo") {
+                    if (!e.tiene_pin) {
+                        q("sub").innerHTML = 'Para esto necesitas un PIN. Ponlo en <a href="/configuracion/?seccion=seguridad">Configuración › Seguridad</a> y vuelve a intentarlo.';
+                        return;
+                    }
+                    q("campo-pin").hidden = false;
+                    await mandar();
+                } else if (e.tiene_pin) {
+                    q("sub").textContent = "Escribe tu PIN para " + texto + ".";
+                    q("campo-pin").hidden = false; q("usar-codigo").hidden = false; q("ok").disabled = false; q("pin").focus();
+                } else {
+                    await mandar();
+                }
+            }
+            async function aceptar() {
+                var conf = {};
+                if (token) {
+                    var codigo = q("codigo").value.replace(/\D/g, "");
+                    if (codigo.length !== 6) return error("Escribe los 6 números del código.");
+                    conf.token = token; conf.codigo = codigo;
+                }
+                if (!q("campo-pin").hidden) {
+                    var pin = q("pin").value.trim();
+                    if (!pin) return error("Escribe tu PIN.");
+                    conf.pin = pin;
+                }
+                var b = q("ok");
+                b.classList.add("ui-btn--cargando"); b.disabled = true; error("");
+                try { await ejecutar(conf); fin(true); }
+                catch (x) {
+                    error(x.message);
+                    if (/venció|ya se usó|pausa/.test(x.message)) q("codigo").value = "";
+                    b.disabled = false;
+                } finally { b.classList.remove("ui-btn--cargando"); }
+            }
+            q("ok").addEventListener("click", aceptar);
+            q("cancelar").addEventListener("click", function () { fin(false); });
+            q("cerrar").addEventListener("click", function () { fin(false); });
+            q("otro").addEventListener("click", mandar);
+            q("usar-codigo").addEventListener("click", function () { q("campo-pin").hidden = true; mandar(); });
+            dlg.querySelector("form").addEventListener("submit", function (e) { e.preventDefault(); if (!q("ok").disabled) aceptar(); });
+            dlg.addEventListener("keydown", function (e) { if (e.key === "Enter" && e.target.tagName === "INPUT") { e.preventDefault(); if (!q("ok").disabled) aceptar(); } });
+            dlg.addEventListener("cancel", function (e) { e.preventDefault(); fin(false); });
+            document.body.appendChild(dlg);
+            dlg.showModal();
+            empezar();
+        });
+    }
+
     /* Un aviso que hay que leer (en lugar del alert() del navegador). No detiene el código: solo muestra y espera el clic. */
     function avisar(texto) {
         texto = String(texto == null ? "" : texto).trim();
@@ -3434,6 +3530,7 @@
         confirmar: confirmar,
         preguntar: preguntar,
         avisar: avisar,
+        confirmarIdentidad: confirmarIdentidad,
         descargas: { tarjeta: tarjeta, accion: accionPanel, sinProgramadas: sinProgramadas, notaProgramadas: notaProgramadas,
                      nombre: nombreProceso, empresa: empresaProceso, titulo: tituloProceso },
         abrirModalPerfil: abrirModalPerfil,

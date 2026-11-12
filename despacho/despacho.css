@@ -77,3 +77,12 @@
 .dp-marcar__lista--mod { max-height: none; }
 .dp-interruptores { display: grid; gap: 12px; padding-top: 4px; border-top: 1px solid var(--linea); padding-top: 16px; }
 #dp-modal .fc-modal__pie #dp-quitar { margin-right: auto; }
+
+/* Solicitar migración (Ajustes, solo titular) */
+.dp-migracion { margin-top: 16px; }
+.dp-mig-titulo { font-size: 15px; font-weight: 700; color: var(--texto); margin: 0 0 4px; }
+.dp-mig-lista { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.dp-mig-lista:empty { display: none; }
+.dp-mig-lista li { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; border: 1px solid var(--linea); border-radius: 10px; padding: 10px 12px; font-size: 13.5px; }
+.dp-mig-lista li > span:first-child { flex: 1 1 220px; min-width: 0; overflow-wrap: anywhere; }
+.dp-mig-lista small { display: block; color: var(--texto-tenue); font-size: 12px; }
