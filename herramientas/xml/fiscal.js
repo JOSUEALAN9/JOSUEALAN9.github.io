@@ -172,7 +172,7 @@
         });
     }
 
-    function detalleUrl(uuid) { return "/herramientas/xml/detalle/?rfc=" + encodeURIComponent(E.rfc) + "&uuid=" + encodeURIComponent(uuid); }
+    function detalleUrl(uuid) { return "/herramientas/xml/detalle/?rfc=" + encodeURIComponent(E.rfc) + "&uuid=" + encodeURIComponent(uuid) + "&desde=marcas"; }
 
     function celda(f, imp) {
         var x = f.marcas[imp];

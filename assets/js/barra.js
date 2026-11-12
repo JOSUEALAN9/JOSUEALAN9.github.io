@@ -52,6 +52,7 @@
         isn:           { nombre: "Impuestos estatales",   permiso: "isn" },
         declaraciones: { nombre: "Declaraciones",         permiso: "declaraciones" },
         descarga_xml:  { nombre: "Descarga masiva de XML", permiso: "descarga_xml" },
+        retenciones:   { nombre: "Retenciones",           permiso: "descarga_xml" },
         facturar:      { nombre: "Facturar",              permiso: "facturacion" },
         documentos:    { nombre: "Documentos",            permiso: "documentos" },
         buzon:         { nombre: "Buzón Tributario",      permiso: "buzon" },
@@ -141,6 +142,7 @@
     var I = {
         xml: "M14 3H6a2 2 0 00-2 2v14a2 2 0 002 2h12a2 2 0 002-2V9zM14 3v6h6M10 12l-2 2.5 2 2.5M14 12l2 2.5-2 2.5",
         nube: "M7 17a4 4 0 01-.9-7.9 5 5 0 019.7-1.3A4 4 0 0117 17M12 12v8m-3-3l3 3 3-3",
+        retencion: "M6 3h9l3 3v15H6zM9 9h6M9 13h6M9 17h3",
         medalla: "M12 14a5 5 0 100-10 5 5 0 000 10zM8.5 12.6L7 21l5-2.5 5 2.5-1.5-8.4",
         archivo: "M3 5a1 1 0 011-1h16a1 1 0 011 1v3H3zM5 8v11a1 1 0 001 1h12a1 1 0 001-1V8M10 12h4",
         cruce: "M4 8h13m0 0l-3-3m3 3l-3 3M20 16H7m0 0l3-3m-3 3l3 3",
@@ -173,6 +175,7 @@
 
         { clave: "xml", grupo: "Comprobantes", nombre: "Administración de XML", alias: "xml comprobantes", desc: "Tus XML por tipo, con reportes en Excel", url: "/herramientas/xml/", permiso: "validador", icono: I.xml, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
         { clave: "descarga_xml", grupo: "Comprobantes", nombre: "Descarga masiva", alias: "descarga masiva de xml web service portal", desc: "Emitidos y recibidos de un periodo", url: "/herramientas/descarga-xml/", permiso: "descarga_xml", icono: I.nube, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
+        { clave: "retenciones", grupo: "Comprobantes", nombre: "Retenciones", alias: "retenciones cfdi de retenciones e información de pagos constancia de retenciones isr iva dividendos intereses", desc: "CFDI de retenciones emitidos y recibidos", url: "/herramientas/retenciones/", permiso: "descarga_xml", icono: I.retencion, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
         { clave: "validador", grupo: "Comprobantes", nombre: "Validador", alias: "validador de xml vigente cancelado", desc: "¿Vigente o cancelado ante el SAT?", url: "/herramientas/validador/", permiso: "validador", icono: I.palomita, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
         { clave: "marcas", grupo: "Comprobantes", nombre: "Marcas fiscales", desc: "Para qué impuesto cuenta cada CFDI y por qué", url: "/herramientas/xml/fiscal.html", permiso: "marcas", icono: I.balanza, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
         { clave: "cancelaciones", grupo: "Comprobantes", nombre: "Cancelaciones", desc: "Cancela emitidas y responde las que te piden", url: "/herramientas/xml/cancelaciones.html", permiso: "cancelaciones", icono: I.prohibido, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },

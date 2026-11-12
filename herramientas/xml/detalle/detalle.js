@@ -169,7 +169,8 @@
                     '<div class="det-marcas">' + Object.keys(mm.marcas).map(function (k) { return chip(x.nombres[k] || k, mm.marcas[k]); }).join("") + "</div>" +
                     (motivo ? '<p class="det-enlace__motivo">' + esc(motivo) + "</p>" : "") +
                     (mm.revisar.length ? '<p class="det-enlace__revisar">⚑ ' + mm.revisar.map(esc).join(" · ") + "</p>" : "") +
-                    '<a class="xml-btn det-enlace__ir" href="' + url + '">' + (mm.candado ? "Ver en Marcas fiscales →" : "Cambiar en Marcas fiscales →") + "</a></div>";
+                    (P.get("desde") === "marcas" ? "" :          // abierto desde Marcas fiscales: ya está ahí
+                        '<a class="xml-btn det-enlace__ir" href="' + url + '">' + (mm.candado ? "Ver en Marcas fiscales →" : "Cambiar en Marcas fiscales →") + "</a>") + "</div>";
             }).join("");
         } catch (e) { caja.innerHTML = "<h2>Marcas fiscales</h2><p class=\"xml-tenue\">" + esc(e.message) + "</p>"; }
     }
@@ -199,6 +200,7 @@
             if (c.pendiente_de_responder) botones.push('<a class="xml-btn xml-btn--primario" href="' + base + '&vista=recibidas">Aceptar o rechazar →</a>');
             if (c.historial.length) botones.push('<a class="xml-btn" href="' + base + '&vista=historial">Ver historial y acuses →</a>');
             if (!botones.length && c.rol === "recibido" && !c.cancelada) botones.push('<a class="xml-btn" href="' + base + '&vista=recibidas">¿Te piden cancelarla? Buscar en el SAT →</a>');
+            if (P.get("desde") === "cancelaciones") botones = [];            // abierto desde Cancelaciones: ya está ahí
             caja.innerHTML = html + (botones.length ? '<div class="det-enlace__botones">' + botones.join("") + "</div>" : "");
         } catch (e) { caja.innerHTML = "<h2>Cancelación</h2><p class=\"xml-tenue\">" + esc(e.message) + "</p>"; }
     }
