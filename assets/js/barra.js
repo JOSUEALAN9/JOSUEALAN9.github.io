@@ -415,8 +415,8 @@
         .sort(function (a, b) { return b.url.length - a.url.length; })[0] || null;
 
     function menuModulosHTML() {
-        return '<div class="fc-menu fc-modulos" id="fc-modulos" role="dialog" aria-label="Ir a un módulo" hidden>' +
-            '<input type="search" class="fc-modulos__buscar" id="fc-modulos-buscar" placeholder="Buscar módulo… (Ctrl+K)" autocomplete="off">' +
+        return '<div class="fc-menu fc-modulos" id="fc-modulos" role="dialog" aria-label="Buscar en Fiscontable" hidden>' +
+            '<input type="search" class="fc-modulos__buscar" id="fc-modulos-buscar" placeholder="Buscar en Fiscontable… (Ctrl+K)" autocomplete="off">' +
             '<div class="fc-modulos__cuerpo" id="fc-modulos-cuerpo"></div></div>';
     }
 
@@ -447,16 +447,91 @@
             (ok ? esc(m.desc) : '<em class="fc-plan-chip">No incluido en tu plan</em>') + "</small></span></a>";
     }
 
+    /* Todo lo que se puede abrir además de los módulos: ajustes, despacho, administración, ayuda y acciones.
+       Cada quien ve solo lo que le toca (igual que en los menús). {g: grupo, n: nombre, d: descripción, u: dirección, a: otras palabras}. */
+    function destinos() {
+        var p = perfilActual || {}, admin = p.rol === "admin" && !p.viendo_como, mods = p.modulos_permitidos || [];
+        var desp = p.despacho && p.despacho.id ? p.despacho : null, titular = !!(desp && desp.papel === "titular");
+        var cfg = "/configuracion/?seccion=", adm = "/configuracion/?seccion=admin&sub=";
+        var con = function (m) { return mods.indexOf(m) !== -1; };
+        var L = [
+            { g: "Inicio", i: D.casa, n: "Inicio", d: "Tu tablero", u: INICIO, a: "tablero portada resumen principal" },
+            { g: "Tu cuenta", i: D.engrane, n: "Configuración", d: "Todos los ajustes", u: "/configuracion/", a: "ajustes preferencias opciones" },
+            { g: "Tu cuenta", i: D.persona, n: "Mi perfil", d: "Nombre, teléfono, foto y tablas", u: cfg + "perfil", a: "foto imagen densidad compacta datos" },
+            { g: "Tu cuenta", i: D.candado, n: "Seguridad", d: "Contraseña, dos pasos, sesiones y PIN", u: cfg + "seguridad", a: "clave verificacion codigo sesiones abiertas equipos de confianza bloqueo inactividad" },
+            { g: "Tu cuenta", i: D.estrella, n: "Plan y créditos", d: "Tu plan y su vigencia", u: cfg + "plan", a: "licencia pago renovar vigencia saldo" },
+            { g: "Tu cuenta", i: D.campana, n: "Avisos", d: "Qué te llega por correo", u: cfg + "avisos", a: "correo notificaciones resumen semanal" },
+            { g: "Tu cuenta", i: D.calendario, n: "Programaciones", d: "Lo que se ejecuta automáticamente", u: cfg + "programaciones", a: "automatico programar madrugada" },
+            { g: "Tu cuenta", i: D.pc, n: "Conectar esta PC", d: "Fiscontable Agente para Windows", u: "/agente/", a: "agente windows instalar descargar computadora pcs conectadas" },
+            { g: "Ajustes de módulos", i: D.engrane, n: "Ajustes de Facturar", d: "Emisor, series, sello, logo y correo", u: cfg + "facturacion", a: "csd timbres folio serie smtp", si: con("facturacion") },
+            { g: "Ajustes de módulos", i: D.engrane, n: "Ajustes del Buzón", d: "Cada cuánto se revisan los buzones", u: cfg + "buzon", a: "buzon tributario revision automatica", si: con("buzon") },
+            { g: "Ajustes de módulos", i: D.engrane, n: "XML automáticos", d: "Qué empresas descargan solas sus XML", u: cfg + "descarga_xml", a: "descarga automatica xml", si: con("descarga_xml") },
+            { g: "Ajustes de módulos", i: D.engrane, n: "Impuestos por empresa", d: "Flujo o devengado, estatales y reglas", u: cfg + "impuestos", a: "reglas fiscales isr iva diot", si: con("marcas") },
+            { g: "Mi despacho", i: D.equipo, n: "Equipo del despacho", d: desp ? desp.nombre : "", u: "/despacho/", a: "despacho miembros invitar permisos", si: !!desp },
+            { g: "Mi despacho", i: D.equipo, n: "Solicitudes del despacho", d: "Accesos por aprobar", u: "/despacho/?vista=solicitudes", a: "despacho aprobar acceso", si: !!desp },
+            { g: "Mi despacho", i: D.equipo, n: "Bitácora del despacho", d: "Quién hizo qué", u: "/despacho/?vista=bitacora", a: "despacho registro historial", si: titular },
+            { g: "Mi despacho", i: D.equipo, n: "Ajustes del despacho", d: "Nombre, reglas y migración", u: "/despacho/?vista=ajustes", a: "despacho migrar empresas", si: titular },
+            { g: "Administración", i: D.llave, n: "Administración", d: "Panel del administrador", u: cfg + "admin", a: "admin panel", si: admin },
+            { g: "Administración", i: D.llave, n: "Usuarios", d: "Cuentas, accesos y migraciones", u: adm + "usuarios", a: "admin cuentas migrar ver como", si: admin },
+            { g: "Administración", i: D.llave, n: "Despachos", d: "Despachos y sus miembros", u: adm + "despachos", a: "admin", si: admin },
+            { g: "Administración", i: D.llave, n: "Permisos por rol", d: "Qué módulos tiene cada plan", u: adm + "permisos", a: "admin roles planes modulos", si: admin },
+            { g: "Administración", i: D.llave, n: "Demos", d: "Solicitudes de demo", u: adm + "demos", a: "admin prospectos ventas", si: admin },
+            { g: "Administración", i: D.llave, n: "Licencias", d: "Emitir y revisar licencias", u: adm + "licencias", a: "admin claves ventas planes precios", si: admin },
+            { g: "Administración", i: D.llave, n: "Créditos (administración)", d: "Pagos por revisar y saldos", u: adm + "creditos", a: "admin pagos paquetes cuentas", si: admin },
+            { g: "Administración", i: D.llave, n: "Actividad", d: "Lo más reciente del sistema", u: adm + "actividad", a: "admin registro trabajadores", si: admin },
+            { g: "Administración", i: D.llave, n: "Documentos (administración)", d: "Catálogo, precios y pedidos", u: adm + "documentos", a: "admin pedidos", si: admin },
+            { g: "Administración", i: D.llave, n: "Sistema", d: "Estado, SAT, portal, log y plazos", u: adm + "sistema", a: "admin servidor respaldo bitacora listas", si: admin },
+            { g: "Administración", i: D.llave, n: "Cuentas vencidas", d: "Planes vencidos y sus plazos", u: adm + "vencidas", a: "admin vencimiento", si: admin },
+            { g: "Administración", i: D.llave, n: "Laboratorio", d: "Pruebas con el SAT", u: "/admin/laboratorio/", a: "admin pruebas sin navegador grabacion", si: admin },
+            { g: "Ayuda", i: D.ayuda, n: "Ayuda e instrucciones", d: "Cómo se usa cada parte", u: "/soporte/", a: "soporte dudas manual contacto" },
+            { g: "Ayuda", i: D.documento, n: "Términos y condiciones", d: "", u: "/terminos/", a: "legal contrato" },
+            { g: "Ayuda", i: D.documento, n: "Aviso de privacidad", d: "", u: "/privacidad/", a: "legal datos personales arco" },
+            { g: "Ayuda", i: D.salir, n: "Cerrar sesión", d: "", u: API + "/cdn-cgi/access/logout", a: "salir desconectar" }
+        ];
+        return L.filter(function (x) { return x.si !== false; });
+    }
+    function sinAcentos(s) { return String(s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""); }
+    // 0 si no coincide; más alto, mejor: el nombre empieza así > una palabra del nombre empieza así > el nombre lo contiene >
+    // una palabra de la descripción empieza así > la descripción lo contiene. Con menos de 4 letras solo cuenta el inicio de
+    // palabra (si no, «pin» traería «Opinión» e «iva», «masiva»).
+    function puntos(q, nombre, resto) {
+        var limpio = function (s) { return " " + sinAcentos(s).replace(/[^a-z0-9ñ]+/g, " ").trim(); };
+        var n = limpio(nombre), r = limpio(resto), largo = q.length >= 4;
+        q = limpio(q).slice(1);
+        if (!q) return 0;
+        if (n.indexOf(" " + q) === 0) return 5;
+        if (n.indexOf(" " + q) !== -1) return 4;
+        if (largo && n.indexOf(q) !== -1) return 3;
+        if (r.indexOf(" " + q) !== -1) return 2;
+        return largo && r.indexOf(q) !== -1 ? 1 : 0;
+    }
+    function itemDestino(x) {
+        return '<a class="fc-modulos__item fc-modulos__item--fila" href="' + esc(x.u) + '"' + (x.rfc ? ' data-empresa="' + esc(x.rfc) + '"' : "") +
+            ' style="--tono:rgb(var(--g-700));--tono-suave:rgb(var(--g-100))">' +
+            '<span class="fc-modulos__icono">' + ico(x.i, 1.7) + "</span>" +
+            '<span class="fc-modulos__texto"><strong>' + esc(x.n) + "</strong>" + (x.d ? "<small>" + esc(x.d) + "</small>" : "") + "</span></a>";
+    }
+
     function pintarModulos() {
-        var q = (document.getElementById("fc-modulos-buscar").value || "").trim().toLowerCase()
-            .normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        var q = sinAcentos((document.getElementById("fc-modulos-buscar").value || "").trim());
         var cuerpo = document.getElementById("fc-modulos-cuerpo");
         if (q) {
-            var hallados = CATALOGO.filter(function (m) {
-                return !m.pronto && verModulo(m) && (m.nombre + " " + m.desc + " " + m.grupo + " " + (m.alias || "")).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").indexOf(q) !== -1;
+            // Busca en todo: módulos, ajustes, despacho, administración, ayuda y tus empresas
+            var porPuntos = function (a, b) { return b.p - a.p; };
+            var mods = CATALOGO.map(function (m) { return { m: m, p: !m.pronto && verModulo(m) ? puntos(q, m.nombre, m.desc + " " + m.grupo + " " + (m.alias || "")) : 0 }; })
+                .filter(function (x) { return x.p; }).sort(porPuntos);
+            var otros = destinos().map(function (x) { x.p = puntos(q, x.n, x.d + " " + x.g + " " + x.a); return x; }).filter(function (x) { return x.p; }).sort(porPuntos);
+            var empresas = q.length < 2 ? [] : (clientesCache || []).map(function (c) {
+                return { g: "Empresas", i: D.edificio, n: c.alias || c.razon_social || c.rfc, d: c.rfc, u: "#", rfc: c.rfc, p: puntos(q, (c.alias || "") + " " + c.rfc, c.razon_social || "") };
+            }).filter(function (x) { return x.p; }).sort(porPuntos).slice(0, 6);
+            var salida = mods.length ? '<div class="fc-modulos__grupo">Módulos</div><div class="fc-modulos__rejilla">' + mods.map(function (x) { return itemModulo(x.m); }).join("") + "</div>" : "";
+            var orden = [];
+            otros.forEach(function (x) { if (orden.indexOf(x.g) === -1) orden.push(x.g); });
+            orden.forEach(function (g) {
+                salida += '<div class="fc-modulos__grupo">' + esc(g) + '</div><div class="fc-modulos__rejilla">' + otros.filter(function (x) { return x.g === g; }).map(itemDestino).join("") + "</div>";
             });
-            cuerpo.innerHTML = hallados.length ? '<div class="fc-modulos__rejilla">' + hallados.map(itemModulo).join("") + "</div>"
-                : '<p class="fc-empresas__nada">Ningún módulo coincide con «' + esc(q) + "».</p>";
+            if (empresas.length) salida += '<div class="fc-modulos__grupo">Empresas · cambiar a</div><div class="fc-modulos__rejilla">' + empresas.map(itemDestino).join("") + "</div>";
+            cuerpo.innerHTML = salida || '<p class="fc-empresas__nada">Nada coincide con «' + esc(q) + "».</p>";
             return;
         }
         var html = "";
@@ -469,6 +544,7 @@
             var ms = CATALOGO.filter(function (m) { return m.grupo === g && !m.pronto && verModulo(m); });
             if (ms.length) html += '<div class="fc-modulos__grupo">' + esc(g) + '</div><div class="fc-modulos__rejilla">' + ms.map(itemModulo).join("") + "</div>";
         });
+        html += '<p class="fc-modulos__pista">Escribe para buscar en todo: módulos, ajustes, ' + (perfilActual && perfilActual.rol === "admin" ? "administración, " : "") + "empresas y ayuda.</p>";
         cuerpo.innerHTML = html;
     }
 
@@ -656,6 +732,11 @@
         var interior = panel.parentElement.getBoundingClientRect(), r = boton.getBoundingClientRect();
         panel.style.left = Math.max(12, (r.width ? r.left : 12) - interior.left) + "px";
         if (window.innerWidth > 700) buscar.focus();
+        if (clientesCache === null) {                                     // para buscar también entre tus empresas
+            fetch(API + "/api/clientes", { credentials: "include" }).then(function (x) { return x.ok ? x.json() : []; })
+                .then(function (lista) { if (clientesCache === null) clientesCache = lista; if (!panel.hidden && buscar.value) pintarModulos(); })
+                .catch(function () { /* sin empresas en la búsqueda */ });
+        }
     }
 
     function cerrarModulos() {
@@ -671,7 +752,9 @@
         boton.addEventListener("click", function (e) { e.stopPropagation(); if (panel.hidden) abrirModulos(); else cerrarModulos(); });
         panel.addEventListener("click", function (e) {
             var a = e.target.closest(".fc-modulos__item--vedado");
-            if (a) { e.preventDefault(); }
+            if (a) { e.preventDefault(); return; }
+            var emp = e.target.closest("[data-empresa]");                 // una empresa: se cambia a ella sin salir de la página
+            if (emp) { e.preventDefault(); cerrarModulos(); elegirEmpresa(emp.dataset.empresa); }
         });
         var buscar = document.getElementById("fc-modulos-buscar");
         buscar.addEventListener("input", pintarModulos);
@@ -679,7 +762,7 @@
             if (e.key === "Enter") {
                 e.preventDefault();
                 var primero = panel.querySelector(".fc-modulos__item:not(.fc-modulos__item--vedado)");
-                if (primero) location.href = primero.getAttribute("href");
+                if (primero) primero.click();
             } else if (e.key === "ArrowDown") {
                 var p = panel.querySelector(".fc-modulos__item"); if (p) { e.preventDefault(); p.focus(); }
             }
@@ -698,8 +781,14 @@
         document.addEventListener("keydown", function (e) {
             if ((e.ctrlKey || e.metaKey) && (e.key === "k" || e.key === "K")) {
                 e.preventDefault();
+                // Dentro de un marco (Administración en Configuración): el buscador es el de la página de afuera
+                if (window.top !== window.self) { try { window.top.postMessage({ fiscontable: "buscar" }, location.origin); } catch (x) { /* nada */ } return; }
                 if (panel.hidden) abrirModulos(); else cerrarModulos();
             }
+        });
+        window.addEventListener("message", function (e) {
+            if (e.origin !== location.origin || !e.data || e.data.fiscontable !== "buscar" || window.top !== window.self) return;
+            if (panel.hidden) abrirModulos(); else cerrarModulos();
         });
         if (aqui) anotarReciente(aqui.clave);
     }
@@ -2142,6 +2231,47 @@
         document.getElementById("fc-mp-form").addEventListener("submit", guardarPerfil);
     }
 
+    /* Aceptación de los Términos y del Aviso de privacidad. Se pide una vez por versión de los documentos y no se puede
+       cerrar sin aceptar (o cerrar sesión). El servidor guarda la constancia: versión, fecha, IP y equipo. */
+    function pedirLegales(l) {
+        return new Promise(function (listo) {
+            var fecha = "";
+            try { fecha = new Date(l.fecha + "T12:00:00").toLocaleDateString("es-MX", { day: "numeric", month: "long", year: "numeric" }); } catch (e) { /* sin fecha */ }
+            var dlg = document.createElement("dialog");
+            dlg.className = "fc-modal fc-modal--chica fc-legales";
+            dlg.innerHTML = '<div class="fc-modal__cabeza"><div><h2>' + (l.primera ? "Términos y Aviso de privacidad" : "Actualizamos los Términos y el Aviso de privacidad") + "</h2>" +
+                "<p>Versión " + esc(l.version) + (fecha ? " · " + esc(fecha) : "") + "</p></div></div>" +
+                '<form class="fc-modal__cuerpo" novalidate>' +
+                "<p>" + (l.primera ? "Para usar Fiscontable se requiere tu aceptación." : "Para seguir usando Fiscontable se requiere tu aceptación de la versión vigente.") + "</p>" +
+                '<label class="fc-legales__casilla"><input type="checkbox" data-l="casilla"><span>He leído y acepto los ' +
+                '<a href="/terminos/" target="_blank" rel="noopener">Términos y condiciones</a> y el ' +
+                '<a href="/privacidad/" target="_blank" rel="noopener">Aviso de privacidad</a>.</span></label>' +
+                '<p class="ui-ayuda ui-ayuda--error" data-l="error" hidden></p></form>' +
+                '<div class="fc-modal__pie"><a class="ui-btn ui-btn--terciario ui-btn--36" href="' + API + '/cdn-cgi/access/logout">Cerrar sesión</a>' +
+                '<button type="button" class="ui-btn ui-btn--primario ui-btn--36" data-l="ok" disabled>Continuar</button></div>';
+            var q = function (k) { return dlg.querySelector('[data-l="' + k + '"]'); };
+            dlg.addEventListener("cancel", function (e) { e.preventDefault(); });        // Esc no la cierra
+            q("casilla").addEventListener("change", function () { q("ok").disabled = !q("casilla").checked; });
+            q("ok").addEventListener("click", async function () {
+                q("ok").disabled = true; q("error").hidden = true;
+                try {
+                    var r = await fetch(API + "/api/mi-perfil/legales", { method: "POST", credentials: "include",
+                        headers: { "Content-Type": "application/json" }, body: JSON.stringify({ acepto: true, version: l.version }) });
+                    if (!r.ok) throw new Error(await window.Fiscontable.leerError(r));
+                    if (perfilActual && perfilActual.legales) perfilActual.legales.pendiente = false;
+                    try { dlg.close(); } catch (x) { /* nada */ }
+                    dlg.remove(); listo(true);
+                } catch (e) {
+                    q("error").textContent = e.message || "No se pudo guardar. Intenta de nuevo."; q("error").hidden = false;
+                    q("ok").disabled = !q("casilla").checked;
+                }
+            });
+            document.body.appendChild(dlg);
+            dlg.showModal();
+            q("casilla").focus();
+        });
+    }
+
     function abrirModalPerfil(esPrimeraVez) {
         if (!perfilActual) return;
         var caja = document.getElementById("fc-modal-perfil");
@@ -2250,7 +2380,9 @@
                 "Contacta al administrador para renovarlo.");
         }
         // Primer ingreso: pedimos el nombre una sola vez, caiga donde caiga.
-        if (!p.perfil_completo) abrirModalPerfil(true);
+        if (p.legales && p.legales.pendiente && window.top === window.self && !p.pantalla_bloqueada) {
+            pedirLegales(p.legales).then(function () { if (!p.perfil_completo) abrirModalPerfil(true); });
+        } else if (!p.perfil_completo) abrirModalPerfil(true);
         pintarLateral();
         prepararBloqueo(p);
         vigilarChipEmpresa();

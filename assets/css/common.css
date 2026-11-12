@@ -1139,6 +1139,8 @@ a.mod-accion { text-decoration: none; }
 .fc-modulos__item:hover, .fc-modulos__item:focus { background: var(--tono-suave); }
 .fc-modulos__item--actual { box-shadow: inset 0 0 0 1.5px var(--tono); }
 .fc-modulos__item--vedado { opacity: .45; cursor: not-allowed; }
+.fc-modulos__item--fila .fc-modulos__icono { width: 30px; height: 30px; }
+.fc-modulos__pista { margin: 14px 4px 0; font-size: 12.5px; color: var(--texto-tenue); }
 .fc-modulos__icono { width: 34px; height: 34px; border-radius: 9px; flex: none; display: grid; place-items: center; background: var(--tono-suave); color: var(--tono); }
 .fc-modulos__icono svg { width: 18px; height: 18px; }
 .fc-modulos__texto { display: flex; flex-direction: column; min-width: 0; }
@@ -1645,6 +1647,11 @@ main.fc-recien { animation: fc-recien .35s ease-out; }
 .fc-confirmar__escribir { display: grid; gap: 6px; font-size: var(--t-13); color: rgb(var(--g-700)); }
 .fc-confirmar__escribir input { height: 36px; padding: 0 10px; border: 1px solid rgb(var(--g-300)); border-radius: var(--r-control); font: inherit; font-family: var(--fuente-mono); text-transform: uppercase; }
 .fc-confirmar .ui-btn:disabled { opacity: .45; cursor: not-allowed; }
+/* Aceptación de Términos y Aviso de privacidad */
+.fc-legales .fc-modal__cuerpo p { font-size: 14px; line-height: 1.5; color: var(--texto); }
+.fc-legales__casilla { display: flex; align-items: flex-start; gap: 10px; font-size: 14px; line-height: 1.5; color: var(--texto); cursor: pointer; }
+.fc-legales__casilla input { flex: none; width: 18px; height: 18px; margin-top: 2px; accent-color: rgb(var(--ac-600)); cursor: pointer; }
+.fc-legales__casilla a { color: rgb(var(--ac-700)); font-weight: 700; text-decoration: underline; }
 .fc-identidad__ligas { display: flex; flex-wrap: wrap; gap: 8px; }
 .fc-identidad__ligas:not(:has(:not([hidden]))) { display: none; }
 .fc-identidad .fc-modal__cabeza p a { color: rgb(var(--ac-700)); font-weight: 600; text-decoration: underline; }
