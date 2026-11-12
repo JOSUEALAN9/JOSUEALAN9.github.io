@@ -2474,7 +2474,7 @@
        derecha, sin salir de la tabla. lista = uuids en el orden en que se ven: ← y → (o los botones) pasan a la
        anterior o la siguiente. Cualquier enlace a ese detalle en la página abre el panel (Ctrl/Cmd+clic, en pestaña). */
     var cfdiPanel = null;
-    function verCfdi(rfc, uuid, lista) {
+    function verCfdi(rfc, uuid, lista, desde) {
         if (!rfc || !uuid) return;
         if (!cfdiPanel) {
             var d = document.createElement("aside");
@@ -2501,6 +2501,7 @@
             cfdiPanel.marco.addEventListener("load", function () { try { cfdiPanel.marco.contentWindow.document.addEventListener("keydown", teclas); } catch (err) { /* otro origen */ } });
         }
         var P = cfdiPanel;
+        P.desde = desde || "";       // el módulo desde el que se abre (marcas, cancelaciones…): el detalle no ofrece ir a él
         P.rfc = rfc; P.lista = (lista && lista.length) ? lista : [uuid]; P.i = Math.max(0, P.lista.indexOf(uuid));
         if (P.lista.indexOf(uuid) === -1) { P.lista = [uuid]; P.i = 0; }
         pintarCfdi();
@@ -2509,7 +2510,7 @@
     }
     function pintarCfdi() {
         var P = cfdiPanel, uuid = P.lista[P.i], url = "/herramientas/xml/detalle/?rfc=" + encodeURIComponent(P.rfc) + "&uuid=" + encodeURIComponent(uuid);
-        P.marco.src = url + "&incrustado=1";
+        P.marco.src = url + "&incrustado=1" + (P.desde ? "&desde=" + encodeURIComponent(P.desde) : "");
         P.el.querySelector('[data-cfdi="pestana"]').href = url;
         P.el.querySelector(".fc-cfdi__pos").textContent = P.lista.length > 1 ? (P.i + 1) + " de " + P.lista.length : "";
         P.el.querySelector('[data-cfdi="ant"]').disabled = P.i <= 0;
@@ -2589,8 +2590,27 @@
         var lista = [].slice.call(document.querySelectorAll('a[href*="/herramientas/xml/detalle/"]')).map(function (x) {
             try { return new URL(x.href, location.href).searchParams.get("uuid"); } catch (err) { return null; }
         }).filter(function (x, i, arr) { return x && arr.indexOf(x) === i; });
-        verCfdi(rfc, uuid, lista);
+        verCfdi(rfc, uuid, lista, u.searchParams.get("desde"));
     });
+
+    /* Una página que se ve dentro de un marco (el detalle de la factura en el panel lateral, Administración o un módulo
+       dentro de Configuración): sus enlaces a OTRA página se abren en la página completa, no dentro del marco. Si no,
+       el módulo aparece metido dentro de sí mismo (barra dentro de barra). */
+    if (window.top !== window.self) {
+        document.addEventListener("click", function (e) {
+            if (e.defaultPrevented) return;
+            var a = e.target.closest && e.target.closest("a[href]");
+            if (!a || a.target || a.hasAttribute("download")) return;
+            var h = a.getAttribute("href") || "";
+            if (!h || h.charAt(0) === "#" || /^(javascript|blob|data|mailto|tel):/i.test(h)) return;
+            var u;
+            try { u = new URL(a.href, location.href); } catch (err) { return; }
+            if (u.origin !== location.origin || u.pathname === location.pathname) return;     // mismo módulo: se queda en el marco
+            u.searchParams.delete("incrustado"); u.searchParams.delete("dentro");
+            e.preventDefault();
+            try { window.top.location.href = u.href; } catch (err) { location.href = u.href; }
+        });
+    }
 
     /* ------------------------------------------------- selector de empresa repetido en los módulos (G-02)
        Varios módulos traen su recuadro «Empresa · RFC». Si muestra la misma empresa que la barra, se vuelve un enlace
