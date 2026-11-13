@@ -4,9 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Visor de impuestos · Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611131612">
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611131612">
-    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611131612">
+    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611131833">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611131833">
+    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611131833">
     <style>
         .vi-cabeza { display: flex; flex-wrap: wrap; gap: var(--e-3); align-items: center; margin-bottom: var(--e-4); }
         .vi-cabeza h1 { margin: 0; }
@@ -42,6 +42,14 @@
         .vs-caja__cab b { font-size: var(--t-14); color: rgb(var(--g-900)); }
         .vs-caja__cab span { font-size: var(--t-13); color: rgb(var(--g-600)); line-height: 1.45; }
         .vs-caja__cab a { font-size: var(--t-13); font-weight: 600; color: rgb(var(--ac-700)); white-space: nowrap; }
+        .vs-elegir { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-size: var(--t-13); color: rgb(var(--g-700)); }
+        .vs-elegir select { min-width: 0; max-width: 100%; }
+        .vs-cruce { display: grid; gap: var(--e-3); min-width: 0; }
+        .vs-cruce > * { min-width: 0; }
+        .vs-cruce h4 { margin: 0; font-size: var(--t-14); color: rgb(var(--g-900)); }
+        .vs-cruce__consejo { margin: 0; font-size: var(--t-13); color: rgb(var(--av-600)); }
+        .vs-dif { color: rgb(var(--er-600)); font-weight: 700; }
+        .vs-bien { color: rgb(var(--ok-700)); }
         .vs-msj { margin: 0; font-size: var(--t-13); font-weight: 600; color: rgb(var(--ok-600)); }
         .vs-msj:empty { display: none; }
         .vs-msj--mal { color: rgb(var(--er-600)); }
@@ -79,8 +87,8 @@
 </head>
 <body class="min-h-screen flex flex-col">
 <div id="app-header" data-modulo="visores" data-titulo="Visor de impuestos" data-migas="Herramientas|/herramientas/"></div>
-<script src="/assets/js/nucleo.js?v=202611131612"></script>
-<script src="/assets/js/barra.js?v=202611131612"></script>
+<script src="/assets/js/nucleo.js?v=202611131833"></script>
+<script src="/assets/js/barra.js?v=202611131833"></script>
 
 <main class="flex-grow mod-pagina" style="max-width:none">
     <div class="vi-cabeza mod-cabeza">
@@ -105,6 +113,7 @@
                 <div><b>Visor del SAT</b><span>Lo que el SAT muestra de esta empresa, copiado y guardado aquí con su fecha. Sirve para cotejarlo con tus XML.</span></div>
                 <a href="https://ptcvisorcfdiingegr.clouda.sat.gob.mx/" target="_blank" rel="noopener" title="Abre la página del SAT en otra pestaña (entras tú con tu e.firma)">Abrir en el SAT ↗</a>
             </div>
+            <label class="vs-elegir"><span>Qué visor leer</span><select id="vs-visor" class="ui-select"></select></label>
             <p id="vs-msj" class="vs-msj" role="status"></p>
             <div id="vs-lista"></div>
             <div id="vs-detalle" class="vs-detalle" hidden></div>
@@ -113,8 +122,8 @@
     </div>
 </main>
 
-<script src="/assets/js/comun/tabla.js?v=202611131612"></script>
-<script src="/herramientas/visores/visores.js?v=202611131612"></script>
-<script src="/herramientas/visores/visores-sat.js?v=202611131612"></script>
+<script src="/assets/js/comun/tabla.js?v=202611131833"></script>
+<script src="/herramientas/visores/visores.js?v=202611131833"></script>
+<script src="/herramientas/visores/visores-sat.js?v=202611131833"></script>
 </body>
 </html>

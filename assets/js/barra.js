@@ -34,6 +34,20 @@
 
     var API = window.Fiscontable.API;
 
+    // Los últimos errores de JavaScript de esta página: van (si la persona lo deja marcado) con «Informar un error»
+    var ERRORES_JS = [];
+    function anotarErrorJs(texto) {
+        texto = String(texto || "").slice(0, 400);
+        if (texto && ERRORES_JS[ERRORES_JS.length - 1] !== texto) ERRORES_JS.push(texto);
+        if (ERRORES_JS.length > 10) ERRORES_JS.shift();
+    }
+    window.addEventListener("error", function (e) {
+        anotarErrorJs((e.message || "Error") + (e.filename ? " · " + String(e.filename).split("/").pop().split("?")[0] + ":" + (e.lineno || 0) : ""));
+    });
+    window.addEventListener("unhandledrejection", function (e) {
+        var r = e.reason; anotarErrorJs("Promesa: " + (r && r.message ? r.message : String(r)));
+    });
+
     // Un solo lugar donde vive la identidad de cada módulo: nombre,
     // color y clave de permiso. Agregar un módulo nuevo es una línea.
     var MODULOS = {
@@ -404,6 +418,8 @@
                 ico(D.sobre) + "Escribir a soporte</a>" +
               '<a class="fc-menu__boton" id="fc-menu-sugerencia" href="mailto:soporte@fiscontable.app?subject=' + encodeURIComponent("Sugerencia para Fiscontable") + '" role="menuitem">' +
                 ico(D.idea) + "Enviar una sugerencia</a>" +
+              '<button type="button" class="fc-menu__boton" id="fc-menu-error" data-informar-error role="menuitem">' +
+                ico(D.alerta) + "Informar un error</button>" +
               '<a class="fc-menu__boton fc-menu__boton--salir" href="' + API + '/cdn-cgi/access/logout" role="menuitem">' +
                 ico(D.salir) + "Cerrar sesión</a>" +
             "</div></div>";
@@ -485,6 +501,8 @@
             { g: "Administración", i: D.llave, n: "Cuentas vencidas", d: "Planes vencidos y sus plazos", u: adm + "vencidas", a: "admin vencimiento", si: admin },
             { g: "Administración", i: D.llave, n: "Laboratorio", d: "Pruebas con el SAT", u: "/admin/laboratorio/", a: "admin pruebas sin navegador grabacion", si: admin },
             { g: "Ayuda", i: D.ayuda, n: "Ayuda e instrucciones", d: "Cómo se usa cada parte", u: "/soporte/", a: "soporte dudas manual contacto" },
+            { g: "Ayuda", i: D.alerta, n: "Informar un error", d: "Cuéntanos qué falló; llega a soporte", u: "#informar-error", a: "reportar falla bug problema no funciona soporte" },
+            { g: "Administración", i: D.llave, n: "Errores informados", d: "Lo que las personas reportaron con «Informar un error»", u: adm + "errores", a: "reportes fallas bugs soporte", si: admin },
             { g: "Ayuda", i: D.documento, n: "Términos y condiciones", d: "", u: "/terminos/", a: "legal contrato" },
             { g: "Ayuda", i: D.documento, n: "Aviso de privacidad", d: "", u: "/privacidad/", a: "legal datos personales arco" },
             { g: "Ayuda", i: D.salir, n: "Cerrar sesión", d: "", u: API + "/cdn-cgi/access/logout", a: "salir desconectar" }
@@ -2112,6 +2130,52 @@
         });
     }
 
+    // «Informar un error» (menú de la persona y buscador): qué pasó + datos técnicos opcionales → modulos/soporte/router.py
+    function informarError() {
+        var dlg = document.createElement("dialog");
+        dlg.className = "ui-modal fc-confirmar fc-informar";
+        dlg.innerHTML = '<form method="dialog" class="ui-modal__cuerpo"><h3>Informar un error</h3>' +
+            '<p class="fc-confirmar__texto">Cuéntanos qué hacías y qué pasó. Llega a soporte y lo revisamos.</p>' +
+            '<label class="fc-informar__campo"><span>¿Qué pasó?</span><textarea rows="5" maxlength="3000" placeholder="Por ejemplo: al descargar los XML de recibidas de octubre se quedó en «Buscando» y no avanzó."></textarea></label>' +
+            '<label class="ui-check fc-informar__check"><input type="checkbox" checked> Incluir datos técnicos: la página, la versión, el navegador y los últimos errores de la página (sin datos de tus empresas)</label>' +
+            '<p class="fc-informar__msj" role="status"></p></form>' +
+            '<div class="ui-modal__pie"><button type="button" class="ui-btn ui-btn--secundario ui-btn--32" data-r="no">Cancelar</button>' +
+            '<button type="button" class="ui-btn ui-btn--primario ui-btn--32" data-r="si">Enviar</button></div>';
+        var texto = dlg.querySelector("textarea"), tecnicos = dlg.querySelector('input[type="checkbox"]'), msj = dlg.querySelector(".fc-informar__msj");
+        var enviar = dlg.querySelector('[data-r="si"]');
+        function cerrar() { try { dlg.close(); } catch (x) { /* nada */ } dlg.remove(); }
+        dlg.addEventListener("cancel", function (e) { e.preventDefault(); cerrar(); });
+        dlg.addEventListener("click", async function (e) {
+            var b = e.target.closest("[data-r]"); if (!b) return;
+            if (b.dataset.r === "no") { cerrar(); return; }
+            if (texto.value.trim().length < 5) { msj.textContent = "Cuéntanos qué pasó (aunque sea en una línea)."; texto.focus(); return; }
+            enviar.disabled = true; msj.textContent = "Enviando…";
+            try {
+                var r = await fetch(API + "/api/errores/informar", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ texto: texto.value.trim(), tecnicos: tecnicos.checked, pagina: location.pathname + location.search,
+                                           version: (window.Fiscontable && window.Fiscontable.VERSION) || "", navegador: navigator.userAgent, errores: ERRORES_JS.slice() }) });
+                if (!r.ok) throw new Error(await Fiscontable.leerError(r));
+                var d = await r.json();
+                cerrar();
+                confirmar({ titulo: "¡Gracias!", texto: d.mensaje, si: "Entendido", solo: true });
+            } catch (er) { msj.textContent = er.message; enviar.disabled = false; }
+        });
+        document.body.appendChild(dlg);
+        dlg.showModal();
+        texto.focus();
+    }
+    document.addEventListener("click", function (e) {
+        if (e.target.closest("[data-informar-error]")) { e.preventDefault(); informarError(); }
+    });
+    function revisarHashError() {
+        if (location.hash === "#informar-error") {
+            history.replaceState(null, "", location.pathname + location.search);
+            informarError();
+        }
+    }
+    window.addEventListener("hashchange", revisarHashError);
+    setTimeout(revisarHashError, 0);
+
     function avisarCambio() { try { document.dispatchEvent(new CustomEvent("fc-descargas-cambio")); } catch (x) { /* nada */ } }
 
     async function accionPanel(e) {
@@ -3681,6 +3745,7 @@
         refrescarDescargas: sondear,
         // Mis descargas (página) usa la misma tarjeta y las mismas acciones que el panel de la barra
         confirmar: confirmar,
+        informarError: informarError,
         preguntar: preguntar,
         avisar: avisar,
         confirmarIdentidad: confirmarIdentidad,

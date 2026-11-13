@@ -56,7 +56,7 @@
         [].forEach.call(document.querySelectorAll('input[name="lb-parte"]'), function (x) {
             var si = !r.partes || !r.partes.length || r.partes.indexOf(x.value) >= 0;
             x.closest("label").hidden = !si;
-            if (!si) x.checked = false; else if (g) x.checked = true;
+            if (!si) x.checked = false; else if (g) x.checked = !x.hasAttribute("data-no-de-fabrica");
         });
         if (g && !$("lb-ejercicio").value) $("lb-ejercicio").value = new Date().getFullYear() - 1;
         if (g && !$("lb-dia").value) { var d = new Date(Date.now() - 864e5); $("lb-dia").value = d.toISOString().slice(0, 10); }

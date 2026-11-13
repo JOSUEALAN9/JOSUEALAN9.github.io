@@ -712,12 +712,14 @@
             var nombre = {}; clientes.forEach(function (x) { nombre[x.rfc] = x.alias; });
             var porRfc = {}; cfg.empresas.forEach(function (e) { porRfc[e.rfc] = e; });
             var opc = function (mapa, v) { return Object.keys(mapa).map(function (k) { return '<option value="' + k + '"' + (k === v ? " selected" : "") + ">" + esc(mapa[k]) + "</option>"; }).join(""); };
-            c.innerHTML = '<div class="cf-tarjeta cf-tarjeta--tabla"><table class="cf-tabla"><thead><tr><th>Empresa</th><th>Automática</th><th>Qué</th><th>Cada cuánto</th><th>Desde</th><th></th></tr></thead><tbody>' +
+            c.innerHTML = '<div class="cf-tarjeta cf-tarjeta--tabla"><table class="cf-tabla"><thead><tr><th>Empresa</th><th>Automática</th><th>Qué</th><th>Retenciones</th><th>Cada cuánto</th><th>Desde</th><th></th></tr></thead><tbody>' +
                 clientes.map(function (x) {
                     var e = porRfc[x.rfc] || { activo: false, tipo: "ambos", frecuencia: "diaria" };
                     return '<tr data-rfc="' + esc(x.rfc) + '"><td><b>' + esc(x.alias) + "</b><small>" + esc(x.rfc) + (x.efirma_guardada ? "" : " · sin e.firma") + "</small></td>" +
                         '<td><label class="cf-switch"><input type="checkbox" data-c="activo"' + (e.activo ? " checked" : "") + (x.efirma_guardada ? "" : " disabled") + "><span></span></label></td>" +
-                        '<td><select data-c="tipo">' + opc(cfg.tipos, e.tipo) + "</select></td><td><select data-c=\"frecuencia\">" + opc(cfg.frecuencias, e.frecuencia) + "</select></td>" +
+                        '<td><select data-c="tipo">' + opc(cfg.tipos, e.tipo) + "</select></td>" +
+                        '<td><label class="cf-switch" title="También sus CFDI de Retenciones"><input type="checkbox" data-c="retenciones"' + (e.retenciones ? " checked" : "") + "><span></span></label></td>" +
+                        "<td><select data-c=\"frecuencia\">" + opc(cfg.frecuencias, e.frecuencia) + "</select></td>" +
                         '<td><select data-c="desde">' + Fiscontable.opcionesDesde(cfg.desde_minimo, cfg.mes_actual, e.desde || "") + "</select></td>" +
                         '<td><button type="button" class="cf-btn cf-btn--chico" data-guardar>Guardar</button></td></tr>';
                 }).join("") + "</tbody></table><div class=\"cf-acciones\"><span class=\"cf-msj\"></span></div></div>";
@@ -725,7 +727,7 @@
                 b.addEventListener("click", async function () {
                     var fila = b.closest("tr"), val = function (k) { var el = fila.querySelector('[data-c="' + k + '"]'); return el.type === "checkbox" ? el.checked : el.value; };
                     try {
-                        await enviar("/api/descarga-xml/automatica/" + encodeURIComponent(fila.dataset.rfc), "PUT", { activo: val("activo"), tipo: val("tipo"), frecuencia: val("frecuencia"), desde: val("desde") || null });
+                        await enviar("/api/descarga-xml/automatica/" + encodeURIComponent(fila.dataset.rfc), "PUT", { activo: val("activo"), tipo: val("tipo"), frecuencia: val("frecuencia"), desde: val("desde") || null, retenciones: val("retenciones") });
                         aviso(c, true, "✓ " + (nombre[fila.dataset.rfc] || fila.dataset.rfc) + " guardada.");
                     } catch (e) { aviso(c, false, e.message); }
                 });
