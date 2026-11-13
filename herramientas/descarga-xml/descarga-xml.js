@@ -182,7 +182,7 @@
         caja.hidden = !(mia || otro);
         if (caja.hidden) return;
         caja.className = "dm-sesion" + (s.entrando ? " dm-sesion--entrando" : "") + (otro ? " dm-sesion--otro" : "");
-        var como = s.acceso === "efirma" ? "e.firma" : "contraseña";
+        var como = s.acceso === "efirma" ? (s.sin_navegador ? "e.firma, sin navegador" : "e.firma") : "contraseña";
         var texto;
         if (otro) texto = "Tienes una sesión abierta del portal con " + s.rfc + ". Al buscar con este RFC se cierra y se entra de nuevo.";
         else if (s.entrando) texto = "Entrando al portal…";
