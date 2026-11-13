@@ -544,15 +544,27 @@
                 '<div class="cf-acciones"><button type="button" class="cf-btn cf-btn--principal" id="cf-av-guardar">Guardar</button>' +
                 '<button type="button" class="cf-btn" id="cf-av-prueba">Mandar un correo de prueba</button><span class="cf-msj"></span></div>' +
                 '<p class="cf-texto" style="margin-top:12px">Los correos salen por el mismo correo que usas en Facturar (el general de Fiscontable o el tuyo).</p></div>' +
+                '<div class="cf-tarjeta" id="cf-av-caja-quien" style="margin-top:14px"><h3 class="cf-sub">¿A quién más le llegan?</h3>' +
+                '<p class="cf-texto">Además del correo de arriba. Nadie recibe datos de empresas o módulos que no puede ver en Fiscontable.</p>' +
+                '<label class="cf-campo"><span>Copias (separa con comas)</span><input type="text" id="cf-av-copias" inputmode="email" autocomplete="off" placeholder="avisos@tudespacho.mx, socio@tudespacho.mx" value="' +
+                esc((p.copias || []).join(", ")) + '"></label>' +
+                (p.es_despacho ? '<label class="ui-check cf-check"><input type="checkbox" id="cf-av-responsables"' + (p.responsables ? " checked" : "") +
+                    "> El aviso de una empresa, también a la persona que la tiene asignada</label>" : "") +
+                '<label class="ui-check cf-check"><input type="checkbox" id="cf-av-cliente"' + (p.cliente ? " checked" : "") +
+                    "> El aviso de una empresa (Buzón, e.firma por vencer) y su resumen, también a su cliente (el correo de su ficha)</label>" +
+                '<label class="ui-check cf-check"><input type="checkbox" id="cf-av-importes"' + (p.importes ? " checked" : "") +
+                    "> Poner importes en el resumen (de fábrica, sin importes)</label>" +
+                (p.puede_destinatarios ? '<div class="cf-acciones"><button type="button" class="cf-btn cf-btn--principal" id="cf-av-quien-guardar">Guardar</button><span class="cf-msj"></span></div>'
+                    : '<p class="cf-texto">Solo el titular del despacho puede cambiar esto.</p>') + "</div>" +
                 '<div class="cf-tarjeta" id="cf-av-caja-resumen" style="margin-top:14px"><h3 class="cf-sub">Resumen por correo</h3>' +
                 '<p class="cf-texto">Un solo correo con cómo va tu cartera: el cierre del mes, lo que pasó y lo que está por vencer. ' +
-                "Lleva nombres de empresas y conteos; no lleva importes ni archivos.</p>" +
+                "Por empresa: notificaciones del Buzón, CFDI cancelados o con error, proveedores en listas del SAT, PPD sin complemento y trámites que no salieron. No lleva archivos.</p>" +
                 '<div class="ctx-segmento cf-segmento" role="group" aria-label="Cada cuándo llega el resumen" id="cf-av-resumen">' +
                 Object.keys(p.frecuencias_resumen || {}).map(function (f) {
                     return '<button type="button" data-resumen="' + esc(f) + '" aria-pressed="' + ((p.resumen || "") === f) + '">' + esc(p.frecuencias_resumen[f]) + "</button>";
                 }).join("") + "</div>" +
                 (p.equipo_resumen > 1 ? '<label class="ui-check cf-check"><input type="checkbox" id="cf-av-resumen-copia"' + (p.resumen_copia ? " checked" : "") +
-                    "> Mandar copia a las " + p.equipo_resumen + " personas de mi despacho</label>" : "") +
+                    "> Que cada persona de mi despacho reciba el de sus empresas (" + p.equipo_resumen + " personas)</label>" : "") +
                 '<div class="cf-acciones"><button type="button" class="cf-btn" id="cf-av-resumen-ya">Mándame uno ahora</button><span class="cf-msj"></span></div></div>';
             var guardado = p;                                   // lo último que quedó guardado (el resumen se guarda automáticamente, sin tocar lo demás)
             var cajaResumen = $("cf-av-caja-resumen");
@@ -573,9 +585,24 @@
                 try {
                     guardado = await enviar("/api/actividad/preferencias", "PUT",
                         { correo: guardado.correo, destino: guardado.destino || null, dias_vence: guardado.dias_vence, resumen_copia: c2.checked });
-                    aviso(cajaResumen, true, c2.checked ? "✓ Tu equipo recibirá copia." : "✓ Solo te llegará a ti.");
+                    aviso(cajaResumen, true, c2.checked ? "✓ Cada persona recibirá el de sus empresas." : "✓ Solo te llegará a ti.");
                 } catch (er) { c2.checked = !c2.checked; aviso(cajaResumen, false, er.message); }
                 finally { c2.disabled = false; }
+            });
+            var cajaQuien = $("cf-av-caja-quien");
+            if (!p.puede_destinatarios) cajaQuien.querySelectorAll("input").forEach(function (x) { x.disabled = true; });
+            if ($("cf-av-quien-guardar")) $("cf-av-quien-guardar").addEventListener("click", async function () {
+                var b = this; b.disabled = true;
+                try {
+                    var copias = $("cf-av-copias").value.split(/[,;\s]+/).map(function (x) { return x.trim(); }).filter(Boolean);
+                    var cuerpo = { correo: guardado.correo, destino: guardado.destino || null, dias_vence: guardado.dias_vence, copias: copias,
+                                   cliente: $("cf-av-cliente").checked, importes: $("cf-av-importes").checked };
+                    if ($("cf-av-responsables")) cuerpo.responsables = $("cf-av-responsables").checked;
+                    guardado = await enviar("/api/actividad/preferencias", "PUT", cuerpo);
+                    $("cf-av-copias").value = (guardado.copias || []).join(", ");
+                    aviso(cajaQuien, true, "✓ Guardado." + (guardado.copias && guardado.copias.length ? " Copia a " + guardado.copias.length + " correo(s)." : ""));
+                } catch (er) { aviso(cajaQuien, false, er.message); }
+                finally { b.disabled = false; }
             });
             $("cf-av-resumen-ya").addEventListener("click", async function () {
                 var b = this; b.disabled = true; aviso(cajaResumen, true, "Armándolo…");
