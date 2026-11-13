@@ -95,6 +95,7 @@
         history.replaceState(null, "", url.pathname + url.search);
         if (clave === "solicitudes") cargarSolicitudes();
         if (clave === "bitacora") cargarBitacora();
+        if (clave === "tramites") cargarTramites();
     }
 
     // ------------------------------------------------------------------ equipo
@@ -338,6 +339,38 @@
         }
     }
 
+    // ------------------------------------------------------------------ trámites con el SAT (registro)
+    /* El titular y quien aprueba ven los de todo el despacho (y filtran por persona); los demás, los suyos. */
+    async function cargarTramites() {
+        var sel = $("dp-tra-persona");
+        sel.hidden = !datos.aprueba;
+        $("dp-tra-titulo").textContent = datos.aprueba ? "Trámites con el SAT del despacho" : "Mis trámites con el SAT";
+        if (datos.aprueba && sel.options.length <= 1) {
+            sel.insertAdjacentHTML("beforeend", datos.equipo.map(function (m) {
+                return '<option value="' + esc(m.correo) + '">' + esc(m.nombre || m.correo) + "</option>";
+            }).join(""));
+        }
+        var cuerpo = $("dp-tramites");
+        cuerpo.innerHTML = '<tr><td colspan="5">Cargando…</td></tr>';
+        try {
+            var q = [];
+            if (datos.aprueba && sel.value) q.push("correo=" + encodeURIComponent(sel.value));
+            if ($("dp-tra-ok").value) q.push("ok=" + $("dp-tra-ok").value);
+            var r = await pedir("/api/despacho/tramites" + (q.length ? "?" + q.join("&") : ""));
+            var nombres = {};
+            datos.equipo.forEach(function (m) { nombres[m.correo] = m.nombre || m.correo; });
+            cuerpo.innerHTML = r.filas.length ? r.filas.map(function (f) {
+                var res = f.ok ? '<span class="dp-tra-ok">✓ salió</span>' : '<span class="dp-tra-mal">✕ no salió</span>';
+                var seg = f.segundos != null ? " · " + Math.round(f.segundos) + " s" : "";
+                return "<tr><td>" + esc(fecha(f.inicio)) + "</td><td>" + esc(f.automatico ? "Automático (programado)" : (nombres[f.pidio] || f.pidio || "—")) + "</td><td>" + esc(r.tramites[f.tipo] || f.tipo) +
+                    '<span class="dp-tra-como">' + esc((r.vias[f.via] || "") + seg) + "</span></td>" +
+                    '<td class="dp-rfc">' + esc(f.rfc || "") + "</td><td>" + res + (f.motivo ? "<small>" + esc(f.motivo) + "</small>" : "") + "</td></tr>";
+            }).join("") : '<tr><td colspan="5">Todavía no hay trámites.</td></tr>';
+        } catch (e) {
+            cuerpo.innerHTML = '<tr><td colspan="5">' + esc(e.message) + "</td></tr>";
+        }
+    }
+
     // ------------------------------------------------------------------ ajustes
     function llenarAjustes() {
         var d = datos.despacho;
@@ -448,6 +481,8 @@
     $("dp-modal").addEventListener("click", function (e) { if (e.target.closest("[data-cerrar]") || e.target === this) this.close(); });
     $("dp-pedir").addEventListener("submit", pedirAcceso);
     $("dp-bit-persona").addEventListener("change", cargarBitacora);
+    $("dp-tra-persona").addEventListener("change", cargarTramites);
+    $("dp-tra-ok").addEventListener("change", cargarTramites);
     $("dp-ajustes").addEventListener("submit", guardarAjustes);
     $("dp-aceptar").addEventListener("click", function () { responderInvitacion(true); });
     $("dp-rechazar").addEventListener("click", function () { responderInvitacion(false); });

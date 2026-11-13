@@ -4,15 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mi despacho | Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611131505">
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611131505">
-    <link rel="stylesheet" href="/despacho/despacho.css?v=202611131505">
+    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611131612">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611131612">
+    <link rel="stylesheet" href="/despacho/despacho.css?v=202611131612">
 </head>
 <body class="min-h-screen flex flex-col">
 
     <div id="app-header" data-modulo="despacho" data-titulo="Mi despacho" data-migas=""></div>
-<script src="/assets/js/nucleo.js?v=202611131505"></script>
-<script src="/assets/js/barra.js?v=202611131505"></script>
+<script src="/assets/js/nucleo.js?v=202611131612"></script>
+<script src="/assets/js/barra.js?v=202611131612"></script>
 
     <main class="flex-grow w-full mod-pagina mod-pagina--angosta dp" style="max-width:1040px">
 
@@ -48,6 +48,7 @@
                 <div class="fc-vista" role="tablist" aria-label="Secciones del despacho">
                     <button type="button" role="tab" data-vista="equipo" aria-selected="true">Equipo</button>
                     <button type="button" role="tab" data-vista="solicitudes">Solicitudes <span class="dp-burbuja" id="dp-n-pendientes" hidden></span></button>
+                    <button type="button" role="tab" data-vista="tramites">Trámites</button>
                     <button type="button" role="tab" data-vista="bitacora" hidden>Bitácora</button>
                     <button type="button" role="tab" data-vista="ajustes" hidden>Ajustes</button>
                 </div>
@@ -84,6 +85,22 @@
                         </div>
                     </div>
                     <ul class="dp-lista" id="dp-solicitudes"></ul>
+                </div>
+            </section>
+
+            <!-- Trámites con el SAT (registro) -->
+            <section data-panel="tramites" hidden>
+                <div class="ui-tarjeta dp-lista-caja">
+                    <div class="dp-caja-cabeza"><h2 id="dp-tra-titulo">Trámites con el SAT</h2>
+                        <div class="dp-tra-filtros">
+                            <select class="ui-select dp-filtro-persona" id="dp-tra-persona" aria-label="Filtrar por persona" hidden><option value="">Todo el equipo</option></select>
+                            <select class="ui-select dp-filtro-persona" id="dp-tra-ok" aria-label="Filtrar por resultado"><option value="">Todos</option><option value="0">Solo los que no salieron</option><option value="1">Solo los que salieron</option></select>
+                        </div>
+                    </div>
+                    <div class="dp-tabla-caja"><table class="dp-tabla">
+                        <thead><tr><th>Cuándo</th><th>Quién</th><th>Trámite</th><th>Empresa</th><th>Resultado</th></tr></thead>
+                        <tbody id="dp-tramites"></tbody>
+                    </table></div>
                 </div>
             </section>
 
@@ -190,6 +207,6 @@
         </div>
     </dialog>
 
-<script src="/despacho/despacho.js?v=202611131505"></script>
+<script src="/despacho/despacho.js?v=202611131612"></script>
 </body>
 </html>

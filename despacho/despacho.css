@@ -56,7 +56,13 @@
 .dp-filtro button { padding: 4px 12px; }
 
 .dp-filtro-persona { width: auto; min-width: 200px; height: 32px; }
-.dp-tabla-caja { overflow-x: auto; }
+.dp-tra-filtros { display: flex; flex-wrap: wrap; gap: 8px; }
+.dp-tra-ok { color: rgb(var(--ok-700)); font-weight: 600; }
+.dp-tra-mal { color: rgb(var(--er-600)); font-weight: 600; }
+.dp-tra-como { display: block; font-size: 12px; color: rgb(var(--g-600)); font-weight: 400; }
+@media (max-width: 640px) { .dp-tra-filtros, .dp-tra-filtros .dp-filtro-persona { width: 100%; min-width: 0; } }
+.dp-tabla-caja { overflow-x: auto; max-width: 100%; }
+.mod-pagina section[data-panel], .dp-lista-caja { min-width: 0; max-width: 100%; }
 .dp-tabla { width: 100%; border-collapse: collapse; font-size: 13px; }
 .dp-tabla th { text-align: left; font-size: 12px; font-weight: 700; color: rgb(var(--g-600)); padding: 8px 10px; border-bottom: 1px solid var(--linea); white-space: nowrap; }
 .dp-tabla td { padding: 9px 10px; border-bottom: 1px solid rgb(var(--g-100)); vertical-align: top; color: rgb(var(--g-800)); }

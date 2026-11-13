@@ -409,6 +409,7 @@ const FILTROS = [
     ["sin-constancia", "Sin constancia del mes", c => !tieneDoc(c, "csf")],
     ["sin-opinion", "Sin opinión del mes", c => !tieneDoc(c, "opinion")],
     ["con-efirma", "Con e.firma", c => !!c.efirma_guardada],
+    ["revocada", "e.firma revocada", c => !!c.efirma_bloqueo],
 ];
 let filtroCli = Fiscontable.url("filtro") || "";
 let busquedaCli = Fiscontable.url("q") || "";
@@ -476,7 +477,10 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 function indicadores(c) {
     const ind = (ok, nombre, si, no) => `<span class="cli-ind ${ok ? "cli-ind--ok" : "cli-ind--falta"}" title="${esc(nombre + ": " + (ok ? si : no))}" aria-label="${esc(nombre + ": " + (ok ? si : no))}">${esc(nombre)}</span>`;
-    return ind(c.efirma_guardada, "e.firma", "guardada", "falta") + ind(c.ciec_guardada, "CIEC", "guardada", "sin guardar") +
+    const efirma = c.efirma_bloqueo
+        ? `<span class="cli-ind cli-ind--mal" title="e.firma revocada según el SAT: no se usa en ningún trámite" aria-label="e.firma revocada según el SAT">e.firma revocada</span>`
+        : ind(c.efirma_guardada, "e.firma", "guardada", "falta");
+    return efirma + ind(c.ciec_guardada, "CIEC", "guardada", "sin guardar") +
         ind(tieneDoc(c, "csf"), "CSF", "constancia del mes", "sin constancia del mes") + ind(tieneDoc(c, "opinion"), "32-D", "opinión del mes", "sin opinión del mes");
 }
 function obligacionesTexto(c) {
@@ -863,17 +867,72 @@ function pintarEfirmaFicha(cliente, conservarMensaje) {
     const cuando = cliente.efirma_guardada_en ? new Date(cliente.efirma_guardada_en + "Z").toLocaleDateString("es-MX", { day: "numeric", month: "short", year: "numeric" }) : "";
     document.getElementById("efirma-guardada").hidden = !guardada || !puedeGuardarEfirma;
     document.getElementById("efirma-guardada-texto").textContent = "✓ Lista para los trámites" + (cuando ? " · guardada el " + cuando : "");
+    pintarBloqueoEfirma(cliente);
     document.getElementById("editar-efirma-form").classList.toggle("hidden", guardada || !puedeGuardarEfirma);
     document.getElementById("btn-olvidar-efirma").classList.toggle("hidden", !guardada);
     document.getElementById("btn-guardar-efirma").textContent = guardada ? "Guardar la nueva e.firma" : "Guardar e.firma";
     if (!conservarMensaje) ocultarMensajeEfirma();
 }
 
+/* e.firma revocada según el SAT (core/efirma_bloqueo.py en el servidor): no se usa en ningún trámite hasta que suban otra
+   o «Volver a comprobar» (una vez por hora, con confirmación) encuentre que el SAT sí la acepta. */
+function pintarBloqueoEfirma(cliente) {
+    const caja = document.getElementById("efirma-bloqueo"), b = cliente.efirma_bloqueo;
+    caja.hidden = !b || !cliente.efirma_guardada;
+    document.getElementById("efirma-bloqueo-msg").hidden = true;
+    if (caja.hidden) return;
+    document.getElementById("efirma-bloqueo-listo").hidden = true;
+    const badge = document.getElementById("editar-estado-efirma");
+    badge.textContent = "Revocada según el SAT";
+    badge.className = "text-xs font-bold px-2 py-1 rounded-full flex-none efirma-bloqueo__badge";
+    document.getElementById("efirma-guardada-texto").textContent = "No se usa en ningún trámite hasta que subas la nueva.";
+    document.getElementById("efirma-bloqueo-texto").textContent = b.mensaje;
+    const btn = document.getElementById("btn-comprobar-efirma");
+    btn.hidden = soloLectura;
+    btn.disabled = !b.puede_comprobar;
+    btn.title = b.puede_comprobar ? "Pregunta otra vez al SAT por esta e.firma" : b.cuando;
+    document.getElementById("efirma-bloqueo-cuando").textContent = b.puede_comprobar ? "" : b.cuando;
+}
+
+function mensajeBloqueo(tipo, texto) {
+    const p = document.getElementById(tipo === "ok" ? "efirma-bloqueo-listo" : "efirma-bloqueo-msg");
+    if (tipo === "ok") document.getElementById("efirma-bloqueo-msg").hidden = true;
+    p.textContent = texto;
+    p.hidden = false;
+}
+
+async function comprobarEfirma() {
+    const rfc = rfcEnEdicion, btn = document.getElementById("btn-comprobar-efirma");
+    const si = await Fiscontable.confirmar({
+        titulo: "¿Volver a comprobar esta e.firma?",
+        texto: "Le preguntaremos otra vez al SAT por las tres vías (validación de certificados, Web Service y portal). Si alguna la acepta, se quita el bloqueo y se vuelve a usar en todos los trámites. Solo se puede una vez por hora y tarda hasta un minuto.",
+        si: "Sí, volver a comprobar" });
+    if (!si) return;
+    btn.disabled = true;
+    const texto = btn.textContent;
+    btn.textContent = "Preguntando al SAT…";
+    try {
+        const resp = await fetch(`${API_URL}/api/clientes/${encodeURIComponent(rfc)}/efirma/comprobar`, { method: "POST", credentials: "include" });
+        if (!resp.ok) throw new Error(await interpretarError(resp));
+        const r = await resp.json();
+        await cargarClientes();
+        const c = clientesCache.find(x => x.rfc === rfc);
+        if (c && rfcEnEdicion === rfc) { pintarEfirmaFicha(c, true); pintarResumenFicha(c); }
+        mensajeBloqueo(r.quitado ? "ok" : "error", r.mensaje);
+    } catch (e) {
+        mensajeBloqueo("error", e.message);
+        btn.disabled = false;
+    } finally {
+        btn.textContent = texto;
+    }
+}
+
 function pintarResumenFicha(cliente) {
     const r = encodeURIComponent(cliente.rfc);
     const chip = (ok, si, no, accion) => `<button type="button" class="ficha-chip ${ok ? "ficha-chip--ok" : "ficha-chip--falta"}" ${accion}>${ok ? "✓ " + si : no}</button>`;
     document.getElementById("editar-resumen").innerHTML =
-        chip(cliente.efirma_guardada, "e.firma", "Falta su e.firma", 'data-ir-ficha="accesos"') +
+        (cliente.efirma_bloqueo ? `<button type="button" class="ficha-chip ficha-chip--mal" data-ir-ficha="accesos">e.firma revocada</button>`
+            : chip(cliente.efirma_guardada, "e.firma", "Falta su e.firma", 'data-ir-ficha="accesos"')) +
         chip(cliente.ciec_guardada, "Contraseña SAT", "Sin contraseña SAT", 'data-ir-ficha="accesos"') +
         chip(!!(cliente.domicilio && cliente.domicilio.calle), "Domicilio fiscal", "Falta domicilio fiscal", 'data-ir-ficha="general"') +
         chip(tieneDoc(cliente, "csf"), "Constancia del mes", "Sin constancia del mes", `onclick="location.href='/herramientas/constancias/?rfc=${r}'"`) +

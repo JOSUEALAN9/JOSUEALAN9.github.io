@@ -182,7 +182,7 @@
         caja.hidden = !(mia || otro);
         if (caja.hidden) return;
         caja.className = "dm-sesion" + (s.entrando ? " dm-sesion--entrando" : "") + (otro ? " dm-sesion--otro" : "");
-        var como = s.acceso === "efirma" ? "e.firma" : "contraseña";
+        var como = s.acceso === "efirma" ? (s.sin_navegador ? "e.firma, sin navegador" : "e.firma") : "contraseña";
         var texto;
         if (otro) texto = "Tienes una sesión abierta del portal con " + s.rfc + ". Al buscar con este RFC se cierra y se entra de nuevo.";
         else if (s.entrando) texto = "Entrando al portal…";
@@ -419,7 +419,18 @@
         try {
             for (var ci = 0; ci < cuerpos.length; ci++) {
                 if (cuerpos.length > 1) boton.textContent = "Enviando " + (ci + 1) + " de " + cuerpos.length + "…";
-                await api(ruta, { method: "POST", body: cuerpos[ci] });
+                try {
+                    await api(ruta, { method: "POST", body: cuerpos[ci] });
+                } catch (e) {
+                    /* El SAT ya rechazó esa contraseña: no se manda sola (cada intento fallido cuenta para que el SAT bloquee la
+                       cuenta). «Volver a comprobar» = un solo intento, con la advertencia. */
+                    if (!/Volver a comprobar/.test(e.message || "") || ruta.indexOf("/portal/") < 0) throw e;
+                    var otraVez = await Fiscontable.confirmar({ titulo: "Esta contraseña ya la rechazó el SAT",
+                        texto: e.message + " ¿Hacer un solo intento con ella?", si: "Sí, un intento", no: "Escribir otra", peligro: true });
+                    if (!otraVez) { $("ciec").focus(); return; }
+                    cuerpos[ci].append("comprobar_ciec", "true");
+                    await api(ruta, { method: "POST", body: cuerpos[ci] });
+                }
             }
             if (E.modo === "portal" && E.acceso === "ciec") $("ciec").value = "";
             await cargarSolicitudes();
