@@ -481,6 +481,7 @@
             { g: "Administración", i: D.llave, n: "Actividad", d: "Lo más reciente del sistema", u: adm + "actividad", a: "admin registro trabajadores", si: admin },
             { g: "Administración", i: D.llave, n: "Documentos (administración)", d: "Catálogo, precios y pedidos", u: adm + "documentos", a: "admin pedidos", si: admin },
             { g: "Administración", i: D.llave, n: "Sistema", d: "Estado, SAT, portal, log y plazos", u: adm + "sistema", a: "admin servidor respaldo bitacora listas", si: admin },
+            { g: "Administración", i: D.llave, n: "Registro de trámites", d: "Quién hizo cada trámite: Vostro sin navegador, VPS o PC", u: adm + "registro", a: "ver registro trabajadores http sin navegador quien hizo agente pc vps robot", si: admin },
             { g: "Administración", i: D.llave, n: "Cuentas vencidas", d: "Planes vencidos y sus plazos", u: adm + "vencidas", a: "admin vencimiento", si: admin },
             { g: "Administración", i: D.llave, n: "Laboratorio", d: "Pruebas con el SAT", u: "/admin/laboratorio/", a: "admin pruebas sin navegador grabacion", si: admin },
             { g: "Ayuda", i: D.ayuda, n: "Ayuda e instrucciones", d: "Cómo se usa cada parte", u: "/soporte/", a: "soporte dudas manual contacto" },

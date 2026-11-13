@@ -117,6 +117,7 @@ async function verificarAdminYCargar() {
         prepararEventos();
         // #vencidas (el aviso de «cuenta por eliminar»): Sistema › Cuentas vencidas
         if (location.hash === "#vencidas") { abrirPestana("sistema"); const b = document.querySelector('#sub-sistema [data-sub="vencidas"]'); if (b) b.click(); }
+        else if (location.hash === "#registro") { abrirRegistroAlCargar = true; abrirPestana("sistema"); }   // desde el buscador: «Registro de trámites»
         else abrirPestana(location.hash.replace("#", "") || "usuarios");
         await cargarRoles();
         await Promise.all([cargarUsuarios(), cargarProcesosAdmin()]);
@@ -941,6 +942,7 @@ async function cargarSistema() {
         try { pcsAgentes = await api("/api/admin/agentes"); } catch (e) { pcsAgentes = null; }
         try { sesionesWeb = await api("/api/admin/sesiones"); } catch (e) { sesionesWeb = null; }
         pintarEstado();
+        if (abrirRegistroAlCargar && estadoTrabajadores) { abrirRegistroAlCargar = false; abrirRegistro(); }
         pintarPortal();
         await cargarEstadoSAT();
         cargarListasAdmin();
@@ -949,6 +951,7 @@ async function cargarSistema() {
 }
 
 let estadoTrabajadores = null;
+let abrirRegistroAlCargar = false;
 let diasInhabiles = null;
 let xmlAutoAdmin = null;
 let timbresAdmin = null;
