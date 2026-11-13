@@ -4,16 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Clientes | Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611131505">
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611131505">
-    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611131505">
+    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611131540">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611131540">
+    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611131540">
 </head>
 <body class="min-h-screen flex flex-col relative">
 
     <!-- TOP NAV -->
     <div id="app-header" data-modulo="clientes" data-titulo="Clientes" data-migas=""></div>
-<script src="/assets/js/nucleo.js?v=202611131505"></script>
-<script src="/assets/js/barra.js?v=202611131505"></script>
+<script src="/assets/js/nucleo.js?v=202611131540"></script>
+<script src="/assets/js/barra.js?v=202611131540"></script>
 
     <!-- ÁREA DE TRABAJO -->
     <main class="flex-grow w-full mod-pagina" style="max-width:1180px">
@@ -310,6 +310,15 @@
                             <p id="efirma-guardada-texto" class="text-sm text-slate-700 mr-auto"></p>
                             <button type="button" id="btn-reemplazar-efirma" class="text-xs font-bold text-violet-700 border border-violet-200 hover:bg-violet-50 rounded-lg py-1.5 px-3">Reemplazar</button>
                         </div>
+                        <div id="efirma-bloqueo" class="efirma-bloqueo" hidden>
+                            <p id="efirma-bloqueo-texto" class="efirma-bloqueo__texto"></p>
+                            <div class="efirma-bloqueo__acciones">
+                                <button type="button" id="btn-comprobar-efirma" class="ui-btn ui-btn--secundario ui-btn--32" onclick="comprobarEfirma()">Volver a comprobar</button>
+                                <span id="efirma-bloqueo-cuando" class="efirma-bloqueo__cuando"></span>
+                            </div>
+                            <p id="efirma-bloqueo-msg" class="efirma-bloqueo__msg" hidden></p>
+                        </div>
+                        <p id="efirma-bloqueo-listo" class="efirma-bloqueo__listo" hidden></p>
 
                         <div id="editar-efirma-form" class="flex flex-col gap-3">
                             <div id="editar-zona-efirma" data-zona-efirma="editar"></div>
@@ -521,8 +530,8 @@
         </div>
     </div>
 
-<script src="/assets/js/comun/leer-cer.js?v=202611131505"></script>
-<script src="/assets/js/comun/zona-archivos.js?v=202611131505"></script>
+<script src="/assets/js/comun/leer-cer.js?v=202611131540"></script>
+<script src="/assets/js/comun/zona-archivos.js?v=202611131540"></script>
 <style>
     .cli-herr { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 14px; }
     .cli-buscar { flex: 1 1 220px; max-width: 320px; font-size: 14px; border: 1px solid rgb(var(--g-200)); border-radius: 10px; padding: 8px 12px; background: rgb(var(--g-0)); }
@@ -565,6 +574,16 @@
     .cli-inds { display: inline-flex; flex-wrap: wrap; gap: 4px; }
     .cli-ind { font-size: 11px; font-weight: 600; padding: 2px 7px; border-radius: 999px; border: 1px solid transparent; white-space: nowrap; }
     .cli-ind--ok { background: rgb(var(--ok-50)); color: rgb(var(--ok-700)); }
+    .cli-ind--mal { background: rgb(var(--er-50)); color: rgb(var(--er-600)); border-color: rgb(var(--er-200)); }
+    .ficha-chip--mal { background: rgb(var(--er-50)); color: rgb(var(--er-600)); }
+    .efirma-bloqueo__badge { background: rgb(var(--er-50)); color: rgb(var(--er-600)); }
+    .efirma-bloqueo { margin-top: 14px; padding: 16px 18px; border-radius: 12px; background: rgb(var(--er-50)); border: 1px solid rgb(var(--er-200)); display: flex; flex-direction: column; gap: 12px; }
+    .efirma-bloqueo[hidden], .efirma-bloqueo__msg[hidden], .efirma-bloqueo__listo[hidden] { display: none; }
+    .efirma-bloqueo__texto { font-size: 13px; line-height: 1.55; color: rgb(var(--er-600)); overflow-wrap: anywhere; }
+    .efirma-bloqueo__acciones { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+    .efirma-bloqueo__cuando { font-size: 12px; color: rgb(var(--g-600)); }
+    .efirma-bloqueo__msg { font-size: 12.5px; color: rgb(var(--g-700)); background: rgb(var(--g-0)); border-radius: 8px; padding: 10px 12px; }
+    .efirma-bloqueo__listo { margin-top: 12px; font-size: 12.5px; color: rgb(var(--ok-700)); background: rgb(var(--ok-50)); border-radius: 8px; padding: 10px 12px; }
     .cli-ind--falta { background: rgb(var(--g-0)); color: rgb(var(--g-500)); border-color: rgb(var(--g-200)); text-decoration: line-through; text-decoration-color: rgb(var(--g-300)); }
     .cli-obl { font-size: 12px; color: rgb(var(--g-600)); }
     .cli-celda-mas { text-align: right; white-space: nowrap; }
@@ -650,7 +669,7 @@
     .alta-despacho { margin-top: 8px; font-size: 13px; line-height: 1.45; border-radius: 10px; padding: 9px 12px; background: rgb(var(--in-50)); border: 1px solid rgb(var(--in-200)); color: rgb(var(--g-800)); }
     .alta-error { font-size: 13px; font-weight: 600; border-radius: 10px; padding: 10px 12px; background: rgb(var(--er-50)); border: 1px solid rgb(var(--er-200)); color: rgb(var(--er-600)); }
 </style>
-<script src="/assets/js/comun/importar-clientes.js?v=202611131505"></script>
+<script src="/assets/js/comun/importar-clientes.js?v=202611131540"></script>
 <!-- Varias constancias a la vez: obligaciones federales y alta de los que falten -->
 <dialog id="dlg-constancias" class="ui-modal" style="width:min(640px, calc(100vw - 32px))">
     <div class="ui-modal__cuerpo">
@@ -662,6 +681,6 @@
     </div>
     <div class="ui-modal__pie"><button type="button" class="ui-btn ui-btn--secundario" data-cerrar>Cerrar</button></div>
 </dialog>
-<script src="/clientes/clientes.js?v=202611131505"></script>
+<script src="/clientes/clientes.js?v=202611131540"></script>
 </body>
 </html>
