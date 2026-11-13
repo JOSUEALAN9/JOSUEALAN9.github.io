@@ -2034,7 +2034,7 @@ async function buscarRegistro() {
             <td>${f.via === "http" ? '<span class="text-emerald-700 font-bold">' + esc(vistasRegistro.http || "Sin navegador") + "</span>" : esc(vistasRegistro[f.via] || f.via || "")}</td>
             <td>${esc(f.trabajador === "local" || f.trabajador === "vostro" ? "Vostro" : nombreTrabajador(f.trabajador))}</td>
             <td class="font-mono">${esc(f.rfc || "")}</td><td class="num">${f.segundos ? esc(f.segundos) : ""}</td>
-            <td class="envuelve">${f.ok ? '<span class="text-emerald-700 font-bold">✓ bien</span>' : '<span class="text-red-700 font-bold">✗ falló</span>' + (f.motivo ? "<small>" + esc(f.motivo) + "</small>" : "")}</td></tr>`).join("") ||
+            <td class="envuelve">${(f.ok ? '<span class="text-emerald-700 font-bold">✓ bien</span>' : '<span class="text-red-700 font-bold">✗ falló</span>') + (f.motivo ? "<small>" + esc(f.motivo) + "</small>" : "")}</td></tr>`).join("") ||
             '<tr><td colspan="8" class="text-slate-400">Sin registros con esos filtros.</td></tr>';
     } catch (err) { total.textContent = err.message; }
 }
