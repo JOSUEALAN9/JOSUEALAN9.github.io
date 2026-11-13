@@ -1208,6 +1208,7 @@ async function pintarXmlAuto(cliente) {
         ? "Un enlace seguro con sus XML y PDF del periodo, a " + cliente.correo_cliente + "."
         : "Primero escribe su correo en Datos generales.";
     document.getElementById("xml-correo").disabled = !cliente.correo_cliente && !cfg.correo;
+    document.getElementById("xml-retenciones").checked = !!cfg.retenciones;
     document.getElementById("xml-activo").checked = !!cfg.activo && !!cliente.efirma_guardada;
     document.getElementById("xml-activo").disabled = !cliente.efirma_guardada;
     document.getElementById("xml-sin-efirma").hidden = !!cliente.efirma_guardada;
@@ -1240,7 +1241,8 @@ async function guardarXmlAuto() {
                 tipo: document.getElementById("xml-tipo").value,
                 frecuencia: document.getElementById("xml-frecuencia").value,
                 desde: document.getElementById("xml-desde").value || null,
-                correo: document.getElementById("xml-correo").value
+                correo: document.getElementById("xml-correo").value,
+                retenciones: document.getElementById("xml-retenciones").checked
             })
         });
         if (!r.ok) throw new Error(await Fiscontable.leerError(r));

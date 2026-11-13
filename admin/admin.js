@@ -118,6 +118,7 @@ async function verificarAdminYCargar() {
         // #vencidas (el aviso de «cuenta por eliminar»): Sistema › Cuentas vencidas
         if (location.hash === "#vencidas") { abrirPestana("sistema"); const b = document.querySelector('#sub-sistema [data-sub="vencidas"]'); if (b) b.click(); }
         else if (location.hash === "#registro") { abrirRegistroAlCargar = true; abrirPestana("sistema"); }   // desde el buscador: «Registro de trámites»
+        else if (location.hash === "#errores") { abrirPestana("sistema"); setTimeout(abrirErrores, 0); }        // desde el buscador: «Errores informados»
         else abrirPestana(location.hash.replace("#", "") || "usuarios");
         await cargarRoles();
         await Promise.all([cargarUsuarios(), cargarProcesosAdmin()]);
@@ -1994,6 +1995,42 @@ function csvDe(nombre, cabeceras, filas) {
 }
 
 const CAMPO = "border border-gray-200 rounded-lg py-1 px-2";
+
+// ------------------------------------------------------------ errores informados («Informar un error»)
+let erroresActuales = [];
+function abrirErrores() {
+    dialogoRegistro("dlg-errores", "Errores informados", `
+        <label>Estado<br><select id="err-estado" class="${CAMPO}"><option value="">Todos</option><option value="nuevo" selected>Nuevos</option><option value="visto">Vistos</option><option value="resuelto">Resueltos</option></select></label>`,
+        ["Cuándo", "Quién", "Página", "Qué pasó", "Estado", ""], buscarErrores,
+        () => csvDe("errores_informados.csv", ["Número", "Cuándo (UTC)", "Quién", "Cuenta", "Página", "Qué pasó", "Versión", "Navegador", "Errores", "Estado"],
+                    erroresActuales.map(e => [e.id, e.cuando, e.persona, e.cuenta, e.pagina, e.texto, e.version, e.navegador, (e.errores || []).join(" | "), e.estado])));
+    const d = document.getElementById("dlg-errores");
+    if (!d.dataset.listo) {
+        d.dataset.listo = "1";
+        d.addEventListener("click", async ev => {
+            const b = ev.target.closest("[data-err-estado]"); if (!b) return;
+            b.disabled = true;
+            try { await api(`/api/admin/errores/${b.dataset.errId}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ estado: b.dataset.errEstado }) }); buscarErrores(); }
+            catch (e) { mostrarAlerta("error", e.message); b.disabled = false; }
+        });
+    }
+}
+async function buscarErrores() {
+    const d = document.getElementById("dlg-errores"), est = document.getElementById("err-estado").value;
+    try {
+        const r = await api("/api/admin/errores" + (est ? "?estado=" + est : ""));
+        erroresActuales = r.errores;
+        d.querySelector("[data-total]").textContent = `${r.errores.length} · ${r.nuevos} nuevo(s)`;
+        const nombres = { nuevo: "Nuevo", visto: "Visto", resuelto: "Resuelto" };
+        d.querySelector("[data-filas]").innerHTML = r.errores.length ? r.errores.map(e => `<tr>
+            <td class="py-1 whitespace-nowrap">${esc(new Date(e.cuando + "Z").toLocaleString("es-MX", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }))}<br><span class="text-slate-400">#${e.id}</span></td>
+            <td>${esc(e.persona)}</td><td class="text-slate-500" style="max-width:180px;overflow-wrap:anywhere">${esc(e.pagina || "—")}</td>
+            <td style="max-width:360px;overflow-wrap:anywhere">${esc(e.texto)}${(e.errores || []).length ? `<br><span class="text-[11px] text-red-700">${esc(e.errores.slice(-3).join(" · "))}</span>` : ""}${e.navegador ? `<br><span class="text-[11px] text-slate-400">${esc((e.version ? "v" + e.version + " · " : "") + e.navegador.slice(0, 90))}</span>` : ""}</td>
+            <td>${esc(nombres[e.estado] || e.estado)}</td>
+            <td class="whitespace-nowrap">${["visto", "resuelto"].filter(x => x !== e.estado).map(x => `<button type="button" class="text-xs font-bold text-slate-700 border border-gray-200 rounded-lg py-1 px-2 mr-1" data-err-estado="${x}" data-err-id="${e.id}">${nombres[x]}</button>`).join("")}</td></tr>`).join("")
+            : `<tr><td colspan="6" class="py-3 text-slate-500">Sin errores informados${est ? " con ese estado" : ""}.</td></tr>`;
+    } catch (e) { d.querySelector("[data-filas]").innerHTML = `<tr><td colspan="6" class="py-3 text-red-700">${esc(e.message)}</td></tr>`; }
+}
 
 // ------------------------------------------------------------ registro de trabajadores
 let registroActual = [];

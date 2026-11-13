@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex">
     <title>Laboratorio · Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611131612">
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611131612">
+    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611131836">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611131836">
     <style>
         .lb { display: grid; gap: var(--e-4); grid-template-columns: minmax(0, 1fr); }
         @media (min-width: 1080px) { .lb { grid-template-columns: 380px minmax(0, 1fr); align-items: start; } }
@@ -99,8 +99,8 @@
 </head>
 <body class="min-h-screen flex flex-col">
 <div id="app-header" data-modulo="admin" data-titulo="Laboratorio" data-migas="Administración|/admin/"></div>
-<script src="/assets/js/nucleo.js?v=202611131612"></script>
-<script src="/assets/js/barra.js?v=202611131612"></script>
+<script src="/assets/js/nucleo.js?v=202611131836"></script>
+<script src="/assets/js/barra.js?v=202611131836"></script>
 
 <main class="flex-grow mod-pagina" style="max-width:none">
     <div class="mod-cabeza" style="margin-bottom:var(--e-4)">
@@ -123,7 +123,9 @@
                     <label class="lb-check"><input type="checkbox" name="lb-parte" value="opinion" checked> Opinión de cumplimiento 32-D</label>
                     <label class="lb-check"><input type="checkbox" name="lb-parte" value="declaraciones_nuevo" checked> Declaraciones del portal nuevo</label>
                     <label class="lb-check"><input type="checkbox" name="lb-parte" value="ws_cfdi" checked> Descarga masiva por Web Service (acceso)</label>
-                    <label class="lb-check"><input type="checkbox" name="lb-parte" value="ws_retenciones" checked> Retenciones por Web Service (acceso)</label></fieldset>
+                    <label class="lb-check"><input type="checkbox" name="lb-parte" value="ws_retenciones" checked> Retenciones por Web Service (acceso)</label>
+                    <label class="lb-check"><input type="checkbox" name="lb-parte" value="validacion" checked> Validación del certificado en el SAT (vigente o revocado)</label>
+                    <label class="lb-check"><input type="checkbox" name="lb-parte" value="sesion" data-no-de-fabrica> Cuánto dura una sesión sin moverse (hasta 45 min)</label></fieldset>
                 <label class="lb-campo" id="lb-ejercicio-caja" hidden>Ejercicio de las declaraciones<input class="ui-input" id="lb-ejercicio" type="number" min="2000" max="2100" step="1"><small>Uno con pocas declaraciones (portal anterior y nuevo).</small></label>
                 <label class="lb-campo" id="lb-dia-caja" hidden>Día de las facturas<input class="ui-input" id="lb-dia" type="date"><small>Uno con pocas facturas.</small></label>
                 <label class="lb-campo" id="lb-mes-caja" hidden>Mes de las facturas<input class="ui-input" id="lb-mes" type="month"><small>Uno con bastantes facturas: se comparan una por una con las que ya tiene Fiscontable.</small></label>
@@ -173,6 +175,6 @@
     </div>
     <div class="fc-modal__pie"><button type="button" class="ui-btn ui-btn--primario ui-btn--36" data-ayuda-cerrar>Entendido</button></div>
 </dialog>
-<script src="/admin/laboratorio/laboratorio.js?v=202611131612"></script>
+<script src="/admin/laboratorio/laboratorio.js?v=202611131836"></script>
 </body>
 </html>
