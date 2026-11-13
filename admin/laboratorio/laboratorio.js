@@ -1,13 +1,14 @@
 /**
  * laboratorio.js — Laboratorio (solo administrador): lanza un recorrido de solo lectura por un portal del SAT y enseña
  * su registro: cada pantalla con su captura y su «mapa» (botones, enlaces, listas, campos). Desde el mapa se agregan
- * pasos para el siguiente recorrido. El candado vive en el servidor (modulos/laboratorio/motor.py): aquí solo se muestra.
+ * pasos para el siguiente recorrido. En vivo, la sesión queda abierta y «+ paso» (o el renglón de abajo) manda el paso
+ * en ese momento. El candado vive en el servidor (modulos/laboratorio/motor.py): aquí solo se muestra.
  */
 (function () {
     "use strict";
     var API = Fiscontable.API, esc = Fiscontable.escapar;
     var $ = function (id) { return document.getElementById(id); };
-    var E = { datos: null, corrida: null, paso: 0, reloj: null, imagenes: {} };
+    var E = { datos: null, corrida: null, paso: 0, reloj: null, imagenes: {}, firma: "" };
     var ESTADO = { en_curso: ["aviso", "En curso"], completado: ["ok", "Terminado"], error: ["error", "Con error"], detenido: ["aviso", "Detenido"], interrumpido: ["error", "Interrumpido"] };
     var RESULTADO = { hecho: "", bloqueado: "bloqueado", "no encontrado": "no", error: "error" };
 
@@ -28,6 +29,8 @@
             : '<option value="">Registra una empresa con su e.firma en Clientes</option>';
         $("lb-receta").innerHTML = d.recetas.map(function (r) { return '<option value="' + esc(r.clave) + '">' + esc(r.nombre) + "</option>"; }).join("");
         $("lb-guardado").textContent = "Cada recorrido se guarda " + d.dias_guardado + " días. Hasta " + d.max_pasos + " pasos por recorrido; uno a la vez.";
+        if (d.vivo) $("lb-vivo-nota").textContent = "Al terminar estos pasos la sesión sigue abierta y le mandas más, uno a la vez. Se cierra al terminarla, tras " +
+            d.vivo.espera_min + " minutos sin pasos o a los " + d.vivo.tope_min + " minutos.";
         cambioReceta();
     }
     var CANDADO = { recorrido: "", grabacion: "No tiene efecto ante el SAT: solo consulta y no abre notificaciones. No guarda contraseñas, sesiones, el RFC ni los documentos.",
@@ -41,9 +44,11 @@
         $("lb-dia-caja").hidden = !g || !!r.sin_navegador;          // la prueba sin navegador usa un mes completo
         $("lb-mes-caja").hidden = !r.sin_navegador;
         $("lb-pasos-caja").hidden = g;
+        $("lb-vivo-caja").hidden = g;
+        if (g) $("lb-en-vivo").checked = false;
         if (!CANDADO.recorrido) CANDADO.recorrido = $("lb-candado-txt").textContent;
         $("lb-candado-txt").textContent = r.sin_navegador ? CANDADO.sin_navegador : g ? CANDADO.grabacion : CANDADO.recorrido;
-        $("lb-lanzar").textContent = r.sin_navegador ? "Probar" : g ? "Grabar" : "Recorrer";
+        $("lb-lanzar").textContent = r.sin_navegador ? "Probar" : g ? "Grabar" : $("lb-en-vivo").checked ? "Abrir en vivo" : "Recorrer";
         $("lb-grab-titulo").textContent = r.sin_navegador ? "Qué probar" : "Qué grabar";
         [].forEach.call(document.querySelectorAll('input[name="lb-parte"]'), function (x) {
             var si = !r.partes || !r.partes.length || r.partes.indexOf(x.value) >= 0;
@@ -76,27 +81,49 @@
     function filaMapa(e) {
         var extra = e.clase === "lista" ? "<small>" + esc((e.etiqueta || e.nombre || e.id || "lista") + ": " + (e.opciones || []).join(" · ")) + "</small>"
             : e.clase === "campo" ? "<small>" + esc((e.etiqueta || e.nombre || e.id || "campo") + " (" + (e.tipo || "texto") + ")") + "</small>"
-            : e.clase === "enlace" && e.destino ? "<small>" + esc(e.destino) + "</small>" : "";
+            : e.clase === "enlace" && e.destino ? "<small>" + esc(e.destino) + "</small>"
+            : e.clase === "casilla" ? "<small>" + (e.marcada ? "Marcada" : "Sin marcar") + "</small>" : "";
         var accion = "";
         if (e.bloqueado) accion = '<span class="lb-no" title="El laboratorio nunca pulsa este botón">🔒 bloqueado</span>';
         else if (e.clase === "boton" || e.clase === "enlace") accion = e.texto && !e.apagado ? '<button type="button" class="lb-mas" data-paso="' + esc("clic: " + e.texto) + '">+ paso</button>' : "";
+        else if (e.clase === "casilla") accion = e.texto && !e.apagado ? '<button type="button" class="lb-mas" data-paso="' + esc("marcar: " + e.texto) + '">+ paso</button>' : "";
         else if (e.clase === "lista" && (e.etiqueta || e.nombre || e.id)) accion = '<button type="button" class="lb-mas" data-paso="' + esc("elegir: " + (e.etiqueta || e.nombre || e.id) + " = " + ((e.opciones || [])[0] || "")) + '">+ paso</button>';
-        return "<tr><td>" + esc({ boton: "Botón", enlace: "Enlace", lista: "Lista", campo: "Campo" }[e.clase] || e.clase) + "</td><td>" +
+        return "<tr><td>" + esc({ boton: "Botón", enlace: "Enlace", lista: "Lista", campo: "Campo", casilla: "Casilla" }[e.clase] || e.clase) + "</td><td>" +
             (e.texto ? "<b>" + esc(e.texto) + "</b>" : "") + (e.texto && extra ? "<br>" : "") + extra + "</td><td>" + accion + "</td></tr>";
+    }
+    function barraVivo(c) {
+        if (!c.en_vivo) return "";
+        var estado = c.cola ? "Haciendo tu paso…" : c.esperando ? "Esperando tu siguiente paso" : "Haciendo los pasos iniciales…";
+        return '<form class="lb-vivo" id="lb-vivo"><div class="lb-vivo__estado"><i aria-hidden="true"></i><b>En vivo</b><span>' + esc(estado) + "</span></div>" +
+            '<div class="lb-vivo__fila"><input class="ui-input" id="lb-vivo-paso" autocomplete="off" spellcheck="false" maxlength="300" placeholder="clic: Siguiente · marcar: DIOT · elegir: Ejercicio = 2025" aria-label="Paso para mandar">' +
+            '<button type="submit" class="ui-btn ui-btn--primario ui-btn--28">Mandar</button></div>' +
+            "<small>«+ paso» en el mapa también lo manda en este momento. Lo que presenta, envía, firma o paga sigue bloqueado.</small></form>";
+    }
+    async function mandarPaso(paso) {
+        var c = E.corrida;
+        if (!c || !c.en_vivo || !paso) return false;
+        try {
+            await api("/api/admin/laboratorio/" + c.id + "/paso", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ paso: paso }) });
+            Fiscontable.toast("Mandado: " + paso);
+            abrir(c.id);
+            return true;
+        } catch (er) { Fiscontable.toast(er.message); return false; }
     }
     async function pintarDetalle() {
         var c = E.corrida, caja = $("lb-detalle");
         if (!c) return;
+        var campo = $("lb-vivo-paso"), escrito = campo ? campo.value : "", foco = campo && document.activeElement === campo;
         var reg = c.registro || [];
         if (E.paso >= reg.length) E.paso = Math.max(0, reg.length - 1);
         var p = reg[E.paso];
         caja.innerHTML =
             '<div class="lb-cabeza"><h2>' + esc(receta(c.receta)) + " · " + esc(empresa(c.rfc)) + "</h2>" + sello(c.estado) +
-                (c.en_curso ? '<button type="button" class="ui-btn ui-btn--secundario ui-btn--28" data-hacer="detener">Detener</button>' : "") +
+                (c.en_curso ? '<button type="button" class="ui-btn ui-btn--secundario ui-btn--28" data-hacer="detener">' + (c.en_vivo ? "Terminar" : "Detener") + "</button>" : "") +
                 (esGrabacion(c.receta) ? "" : '<button type="button" class="ui-btn ui-btn--secundario ui-btn--28" data-hacer="repetir" title="Copia sus pasos al formulario para seguir desde ahí">Usar sus pasos</button>') +
                 (reg.length ? '<button type="button" class="ui-btn ui-btn--secundario ui-btn--28" data-hacer="zip">Descargar registro</button>' : "") +
                 (c.en_curso ? "" : '<button type="button" class="ui-btn ui-btn--terciario ui-btn--28" data-hacer="borrar">Borrar</button>') + "</div>" +
             '<div class="lb-datos">' + esc(fecha(c.creada)) + (c.mensaje ? " · <b>" + esc(c.mensaje) + "</b>" : c.en_curso ? " · recorriendo…" : "") + (c.nota ? " · " + esc(c.nota) : "") + "</div>" +
+            barraVivo(c) +
             (reg.length ? '<div class="lb-pasos">' + reg.map(function (x, i) {
                 return '<button type="button" class="lb-paso' + (RESULTADO[x.resultado] ? " lb-paso--" + RESULTADO[x.resultado] : "") + '" data-ir="' + i + '" aria-current="' + (i === E.paso) + '">' +
                     "<b>" + x.n + (x.resultado !== "hecho" ? " · " + esc(x.resultado) : "") + "</b><span>" + esc(x.accion) + "</span></button>";
@@ -107,6 +134,8 @@
                 '<div class="lb-vista"><div class="lb-captura" id="lb-captura"><div class="ui-vacio"><span>Cargando la captura…</span></div></div>' +
                 '<div class="lb-mapa"><table><thead><tr><th>Qué es</th><th>Texto</th><th></th></tr></thead><tbody>' +
                 (p.elementos.length ? p.elementos.map(filaMapa).join("") : '<tr><td colspan="3">Esta pantalla no tiene botones ni enlaces visibles.</td></tr>') + "</tbody></table></div></div>" : "");
+        var nuevo = $("lb-vivo-paso");
+        if (nuevo) { nuevo.value = escrito; if (foco) nuevo.focus(); }
         if (p && p.captura) {
             try {
                 var src = await imagen(c.id, p.n), hueco = $("lb-captura");
@@ -115,9 +144,12 @@
         }
     }
     async function abrir(cid, conservar) {
-        try { E.corrida = await api("/api/admin/laboratorio/" + cid); } catch (e) { Fiscontable.toast(e.message); return; }
-        if (!conservar) E.paso = Math.max(0, (E.corrida.registro || []).length - 1);
-        pintarLista(); pintarDetalle();
+        var c;
+        try { c = await api("/api/admin/laboratorio/" + cid); } catch (e) { Fiscontable.toast(e.message); return; }
+        var firma = [c.id, (c.registro || []).length, c.estado, c.mensaje, c.en_vivo, c.esperando, c.cola].join("|"), igual = E.corrida && firma === E.firma;
+        E.corrida = c; E.firma = firma;
+        if (!conservar) E.paso = Math.max(0, (c.registro || []).length - 1);
+        if (!igual) { pintarLista(); pintarDetalle(); }        // en vivo se consulta cada 2 s: solo se repinta si algo cambió
         clearTimeout(E.reloj);
         if (E.corrida.en_curso || E.corrida.estado === "en_curso") E.reloj = setTimeout(async function () {
             var antes = (E.corrida.registro || []).length, sigue = E.paso === antes - 1;
@@ -145,12 +177,22 @@
     }
 
     $("lb-receta").addEventListener("change", cambioReceta);
+    $("lb-en-vivo").addEventListener("change", cambioReceta);
+    $("lb-detalle").addEventListener("submit", async function (e) {
+        if (e.target.id !== "lb-vivo") return;
+        e.preventDefault();
+        var campo = $("lb-vivo-paso"), paso = campo.value.trim();
+        if (!paso) { campo.focus(); return; }
+        campo.value = "";
+        if (!(await mandarPaso(paso))) campo.value = paso;
+    });
     $("lb-forma").addEventListener("submit", async function (e) {
         e.preventDefault();
         var b = $("lb-lanzar"); b.disabled = true;
         try {
             var r = await api("/api/admin/laboratorio", { method: "POST", headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ rfc: $("lb-empresa").value, receta: $("lb-receta").value, instrucciones: $("lb-pasos").value, url: $("lb-url").value, nota: $("lb-nota-txt").value,
+                    en_vivo: $("lb-en-vivo").checked && !esGrabacion($("lb-receta").value),
                     opciones: esGrabacion($("lb-receta").value) ? { partes: [].slice.call(document.querySelectorAll('input[name="lb-parte"]:checked')).map(function (x) { return x.value; }),
                         ejercicio: $("lb-ejercicio").value, dia: $("lb-dia").value, mes: $("lb-mes").value } : null }) });
             await cargar(true); abrir(r.id);
@@ -161,6 +203,7 @@
     $("lb-detalle").addEventListener("click", async function (e) {
         var ir = e.target.closest("[data-ir]"), mas = e.target.closest("[data-paso]"), h = e.target.closest("[data-hacer]"), c = E.corrida;
         if (ir) { E.paso = +ir.dataset.ir; pintarDetalle(); return; }
+        if (mas && c && c.en_vivo) { mandarPaso(mas.dataset.paso); return; }
         if (mas) {
             var t = $("lb-pasos");
             if (!t.value.trim() && c) t.value = (c.instrucciones || "").trim();
@@ -171,7 +214,10 @@
         }
         if (!h || !c) return;
         try {
-            if (h.dataset.hacer === "detener") { await api("/api/admin/laboratorio/" + c.id + "/detener", { method: "POST" }); Fiscontable.toast("Se detiene al terminar el paso en curso."); }
+            if (h.dataset.hacer === "detener") {
+                await api("/api/admin/laboratorio/" + c.id + "/detener", { method: "POST" });
+                Fiscontable.toast(c.en_vivo ? "Se cierra la sesión en unos segundos." : "Se detiene al terminar el paso en curso.");
+            }
             else if (h.dataset.hacer === "repetir") {
                 $("lb-empresa").value = c.rfc; $("lb-receta").value = c.receta; cambioReceta(); $("lb-pasos").value = c.instrucciones || ""; if (c.receta === "libre") $("lb-url").value = c.url;
                 $("lb-pasos").focus(); Fiscontable.toast("Pasos copiados al formulario.");

@@ -49,10 +49,25 @@
         .lb-mapa th { position: sticky; top: 0; background: rgb(var(--g-50)); text-align: left; padding: 7px 10px; font-weight: 600; color: rgb(var(--g-600)); }
         .lb-mapa td { padding: 6px 10px; border-top: 1px solid rgb(var(--g-100)); vertical-align: top; color: rgb(var(--g-900)); overflow-wrap: anywhere; }
         .lb-mapa td small { color: rgb(var(--g-500)); }
+        .lb-mapa td:first-child, .lb-mapa th:first-child { white-space: nowrap; overflow-wrap: normal; }
+        .lb-mapa td:first-child { color: rgb(var(--g-600)); }
         .lb-mas { border: 1px solid rgb(var(--g-300)); background: rgb(var(--g-0)); border-radius: 6px; padding: 2px 8px; font: inherit; font-size: 11.5px; font-weight: 600; cursor: pointer; white-space: nowrap; color: rgb(var(--g-700)); }
         .lb-mas:hover { background: rgb(var(--g-100)); }
         .lb-check { display: flex; gap: 8px; align-items: center; font-weight: 400; color: rgb(var(--g-800)); }
         .lb-no { font-size: 11.5px; font-weight: 600; color: rgb(var(--av-700)); white-space: nowrap; }
+        .lb-vivo-op { align-items: flex-start; }
+        .lb-vivo-op input { margin-top: 3px; }
+        .lb-vivo-op span { display: grid; gap: 2px; }
+        .lb-vivo-op small { font-size: var(--t-12); color: rgb(var(--g-500)); line-height: 1.45; }
+        .lb [hidden] { display: none !important; }
+        .lb-vivo { display: grid; gap: 8px; padding: 12px; border: 1px solid rgb(var(--ac-600) / .35); border-radius: 10px; background: rgb(var(--ac-600) / .05); }
+        .lb-vivo__estado { display: flex; gap: 8px; align-items: center; font-size: var(--t-13); color: rgb(var(--g-700)); }
+        .lb-vivo__estado i { width: 8px; height: 8px; border-radius: 50%; background: rgb(var(--ok-600, 22 163 74)); box-shadow: 0 0 0 3px rgb(var(--ok-600, 22 163 74) / .2); flex: none; }
+        .lb-vivo__estado b { color: rgb(var(--g-900)); }
+        .lb-vivo__fila { display: flex; gap: 8px; min-width: 0; }
+        .lb-vivo__fila input { flex: 1; min-width: 0; font-family: var(--fuente-mono, ui-monospace, monospace); font-size: var(--t-13); }
+        .lb-vivo__fila button { flex: none; }
+        .lb-vivo small { font-size: var(--t-12); color: rgb(var(--g-500)); line-height: 1.45; }
     </style>
 </head>
 <body class="min-h-screen flex flex-col">
@@ -81,7 +96,8 @@
                 <label class="lb-campo" id="lb-dia-caja" hidden>Día de las facturas<input class="ui-input" id="lb-dia" type="date"><small>Uno con pocas facturas.</small></label>
                 <label class="lb-campo" id="lb-mes-caja" hidden>Mes de las facturas<input class="ui-input" id="lb-mes" type="month"><small>Uno con bastantes facturas: se comparan una por una con las que ya tiene Fiscontable.</small></label>
                 <label class="lb-campo" id="lb-pasos-caja">Pasos, uno por renglón <textarea class="lb-texto" id="lb-pasos" spellcheck="false" placeholder="clic: Consultar&#10;elegir: Ejercicio = 2026&#10;esperar: 3"></textarea>
-                    <small>Déjalo vacío para solo entrar y ver la primera pantalla. Luego agrega pasos con «+ paso» desde el mapa de cada pantalla.</small></label>
+                    <small>Déjalo vacío para solo entrar y ver la primera pantalla. Luego agrega pasos con «+ paso» desde el mapa de cada pantalla. Para casillas o círculos: «marcar: Texto».</small></label>
+                <label class="lb-check lb-vivo-op" id="lb-vivo-caja"><input type="checkbox" id="lb-en-vivo"><span><b>En vivo</b><small id="lb-vivo-nota">Al terminar estos pasos la sesión sigue abierta y le mandas más, uno a la vez.</small></span></label>
                 <label class="lb-campo">Nota <input class="ui-input" id="lb-nota-txt" maxlength="300" placeholder="Para qué es este recorrido (opcional)"></label>
                 <div class="lb-candado"><svg viewBox="0 0 24 24"><path d="M6 11h12v9H6zM9 11V8a3 3 0 0 1 6 0v3"/></svg>
                     <span id="lb-candado-txt">No tiene efecto ante el SAT: el laboratorio no pulsa «Presentar», «Enviar», «Firmar», «Pagar» ni «Guardar», cancela toda ventana de confirmación y no escribe en ningún campo.</span></div>
