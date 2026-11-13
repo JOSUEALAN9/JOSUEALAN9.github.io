@@ -4,10 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Descarga masiva | Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611121015">
-    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611121015">
-    <link rel="stylesheet" href="/herramientas/descarga-xml/descarga-xml.css?v=202611121015">
-    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611121015">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611130409">
+    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611130409">
+    <link rel="stylesheet" href="/herramientas/descarga-xml/descarga-xml.css?v=202611130409">
+    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611130409">
 </head>
 <body class="min-h-screen flex flex-col">
 
@@ -144,6 +144,7 @@
                     <option value="T">Traslado</option>
                     <option value="N">Nómina</option>
                     <option value="P">Pago</option>
+                    <option value="RET">Retenciones e información de pagos</option>
                 </select>
             </label>
             <label class="dm-f dm-f--rfc">
@@ -286,13 +287,13 @@
 
 <div id="aviso-flotante" class="dm-toast" hidden></div>
 
-<script src="/assets/js/nucleo.js?v=202611121015"></script>
-<script src="/assets/js/barra.js?v=202611121015"></script>
-<script src="/assets/js/comun/leer-cer.js?v=202611121015"></script>
-<script src="/assets/js/comun/paso-cliente.js?v=202611121015"></script>
-<script src="/assets/js/comun/tabla.js?v=202611121015"></script>
-<script src="/assets/js/comun/programacion.js?v=202611121015"></script>
-<script src="/herramientas/descarga-xml/descarga-xml.js?v=202611121015"></script>
+<script src="/assets/js/nucleo.js?v=202611130409"></script>
+<script src="/assets/js/barra.js?v=202611130409"></script>
+<script src="/assets/js/comun/leer-cer.js?v=202611130409"></script>
+<script src="/assets/js/comun/paso-cliente.js?v=202611130409"></script>
+<script src="/assets/js/comun/tabla.js?v=202611130409"></script>
+<script src="/assets/js/comun/programacion.js?v=202611130409"></script>
+<script src="/herramientas/descarga-xml/descarga-xml.js?v=202611130409"></script>
 <script>FCProgramacion.linea({ modulo: "xml", contenedor: document.getElementById("linea-programa") });
 (function () {
     function metodo() { var b = document.querySelector('.dm-modo[aria-selected="true"]'); if (b) document.getElementById("metodo-texto").textContent = b.querySelector("strong").textContent; }

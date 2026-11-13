@@ -189,7 +189,7 @@
     function errorModal(texto) { $("dp-modal-error").textContent = texto; $("dp-modal-error").hidden = false; }
 
     async function guardarModal() {
-        var boton = $("dp-guardar"), papel = $("dp-papel").value;
+        var papel = $("dp-papel").value;
         var cuerpo = { papel: papel, personal: $("dp-personal").checked };
         if (papel !== "titular") {
             if (document.querySelector('input[name="dp-emp"]:checked').value === "todas") cuerpo.todas_las_empresas = true;
@@ -206,18 +206,17 @@
         } else if (edicion.miembro.estado !== "invitado") {
             cuerpo.estado = $("dp-suspender").checked ? "suspendido" : "activo";
         }
-        boton.classList.add("ui-btn--cargando");
-        try {
-            if (edicion.invitar) await pedir("/api/despacho/invitar", { method: "POST", body: cuerpo });
-            else await pedir("/api/despacho/miembros/" + encodeURIComponent(edicion.miembro.correo), { method: "PUT", body: cuerpo });
-            $("dp-modal").close();
-            aviso(edicion.invitar ? "Invitación enviada a " + cuerpo.correo + "." : "Permisos guardados.");
-            await recargar();
-        } catch (e) {
-            errorModal(e.message);
-        } finally {
-            boton.classList.remove("ui-btn--cargando");
-        }
+        // Invitar o cambiar a una persona pide confirmar que eres tú (PIN, o código por correo si no tienes PIN)
+        var invitar = edicion.invitar, correoMiembro = invitar ? null : edicion.miembro.correo;
+        var hecho = await F.confirmarIdentidad(invitar ? "invitar_miembro" : "cambiar_miembro", function (c) {
+            cuerpo.confirmacion = c;
+            return invitar ? pedir("/api/despacho/invitar", { method: "POST", body: cuerpo })
+                : pedir("/api/despacho/miembros/" + encodeURIComponent(correoMiembro), { method: "PUT", body: cuerpo });
+        });
+        if (!hecho) return;
+        $("dp-modal").close();
+        aviso(invitar ? "Invitación enviada a " + cuerpo.correo + "." : "Permisos guardados.");
+        try { await recargar(); } catch (e) { aviso(e.message); }
     }
 
     async function quitar() {
@@ -226,12 +225,13 @@
         var ok = await F.confirmar({ titulo: "¿Quitar a " + (m.nombre || m.correo) + " del despacho?", peligro: true, si: "Quitar",
             texto: "Deja de ver las empresas del despacho. Lo que haya en su Mi espacio se queda con esa persona." });
         if (!ok) return;
-        try {
-            await pedir("/api/despacho/miembros/" + encodeURIComponent(m.correo), { method: "DELETE" });
-            $("dp-modal").close();
-            aviso("Listo, ya no está en el despacho.");
-            await recargar();
-        } catch (e) { errorModal(e.message); }
+        var hecho = await F.confirmarIdentidad("quitar_miembro", function (c) {
+            return pedir("/api/despacho/miembros/" + encodeURIComponent(m.correo), { method: "DELETE", body: { confirmacion: c } });
+        });
+        if (!hecho) return;
+        $("dp-modal").close();
+        aviso("Listo, ya no está en el despacho.");
+        try { await recargar(); } catch (e) { errorModal(e.message); }
     }
 
     async function recargar() {
@@ -344,6 +344,7 @@
         $("dp-aj-nombre").value = d.nombre || "";
         $("dp-aj-contacto").value = d.contacto || "";
         $("dp-aj-personal").checked = !d.ajustes || d.ajustes.personal_de_fabrica !== false;
+        cargarMigraciones();
     }
 
     async function guardarAjustes(ev) {
@@ -357,6 +358,39 @@
             mostrarVista("ajustes");
             aviso("Ajustes guardados.");
         } catch (e) { aviso(e.message); } finally { boton.classList.remove("ui-btn--cargando"); }
+    }
+
+    // ------------------------------------------------------------------ solicitar migración (titular)
+    var EST_MIG = { pendiente: ["Pendiente", "aviso"], en_curso: ["En curso", "info"], atendida: ["Atendida", "ok"], rechazada: ["No aprobada", "error"] };
+    async function cargarMigraciones() {
+        try {
+            var l = (await pedir("/api/despacho/migracion")).solicitudes;
+            $("dp-mig-lista").innerHTML = l.map(function (s) {
+                var e = EST_MIG[s.estado] || [s.estado, ""];
+                return "<li><span><b>" + esc(s.origen) + "</b><small>" + (s.empresas ? s.empresas.length + (s.empresas.length === 1 ? " empresa" : " empresas") : "Todas sus empresas") +
+                    " · " + esc(fecha(s.creada)) + (s.motivo ? " · " + esc(s.motivo) : "") + '</small></span><span class="ui-estado ui-estado--' + e[1] + '">' + esc(e[0]) + "</span></li>";
+            }).join("");
+        } catch (e) { $("dp-mig-lista").innerHTML = ""; }
+    }
+    function errorMig(t) { $("dp-mig-error").textContent = t || ""; $("dp-mig-error").hidden = !t; }
+    function abrirMigracion() {
+        $("dp-mig-forma").reset(); $("dp-mig-rfcs").hidden = true; errorMig("");
+        $("dp-mig-dlg").showModal(); $("dp-mig-origen").focus();
+    }
+    async function enviarMigracion() {
+        var origen = $("dp-mig-origen").value.trim().toLowerCase(), empresas = null;
+        if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(origen)) return errorMig("Escribe el correo de la cuenta que entrega las empresas.");
+        if (document.querySelector('input[name="dp-mig-cuales"]:checked').value === "algunas") {
+            empresas = $("dp-mig-rfcs").value.toUpperCase().split(/[\s,;]+/).filter(Boolean);
+            if (!empresas.length) return errorMig("Escribe al menos un RFC.");
+        }
+        errorMig("");
+        $("dp-mig-dlg").close();
+        var hecho = await F.confirmarIdentidad("solicitar_migracion", function (c) {
+            return pedir("/api/despacho/migracion", { method: "POST", body: { origen: origen, empresas: empresas, nota: $("dp-mig-nota").value.trim(), confirmacion: c } });
+        });
+        if (hecho) { aviso("Solicitud enviada. Te avisaremos por correo cuando quede atendida."); cargarMigraciones(); }
+        else $("dp-mig-dlg").showModal();
     }
 
     // ------------------------------------------------------------------ invitación y salida
@@ -418,6 +452,13 @@
     $("dp-aceptar").addEventListener("click", function () { responderInvitacion(true); });
     $("dp-rechazar").addEventListener("click", function () { responderInvitacion(false); });
     $("dp-salir").addEventListener("click", salir);
+    $("dp-mig-abrir").addEventListener("click", abrirMigracion);
+    $("dp-mig-enviar").addEventListener("click", enviarMigracion);
+    $("dp-mig-forma").addEventListener("submit", function (e) { e.preventDefault(); enviarMigracion(); });
+    $("dp-mig-forma").addEventListener("change", function (e) {
+        if (e.target.name === "dp-mig-cuales") { $("dp-mig-rfcs").hidden = e.target.value !== "algunas"; if (!$("dp-mig-rfcs").hidden) $("dp-mig-rfcs").focus(); }
+    });
+    $("dp-mig-dlg").addEventListener("click", function (e) { if (e.target.closest("[data-mig-cerrar]")) this.close(); });
 
     cargar();
 })();

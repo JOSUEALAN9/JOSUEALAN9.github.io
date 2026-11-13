@@ -30,7 +30,7 @@
         var d = new Date(iso.length > 10 && !/Z|[+-]\d\d:\d\d$/.test(iso) ? iso + "Z" : iso);
         return isNaN(d) ? iso : d.toLocaleString("es-MX", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
     }
-    function detalleUrl(u) { return "/herramientas/xml/detalle/?rfc=" + encodeURIComponent(E.rfc) + "&uuid=" + encodeURIComponent(u); }
+    function detalleUrl(u) { return "/herramientas/xml/detalle/?rfc=" + encodeURIComponent(E.rfc) + "&uuid=" + encodeURIComponent(u) + "&desde=cancelaciones"; }
     // El folio fiscal abre la factura (si su XML está en la biblioteca)
     function fechaCorta(iso) {
         var d = new Date((iso || "").slice(0, 10) + "T12:00:00");

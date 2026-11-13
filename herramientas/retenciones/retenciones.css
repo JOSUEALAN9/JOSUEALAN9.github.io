@@ -1,0 +1,12 @@
+.rt-barra { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin: 4px 0 12px; }
+.rt-cifras { display: flex; flex-wrap: wrap; gap: 8px; }
+.rt-cifra { background: rgb(var(--g-0)); border: 1px solid rgb(var(--g-200)); border-radius: 12px; padding: 8px 14px; min-width: 120px; }
+.rt-cifra small { display: block; font-size: 11px; color: rgb(var(--g-500)); }
+.rt-cifra b { font-size: 15px; color: rgb(var(--g-900)); font-variant-numeric: tabular-nums; }
+.rt-acciones { display: flex; flex-wrap: wrap; gap: 8px; }
+.rt-acciones label.xml-btn { cursor: pointer; }
+.rt-tabla td.xml-num { text-align: right; font-variant-numeric: tabular-nums; }
+.rt-tabla .rt-sub { display: block; font-size: 11px; color: rgb(var(--g-500)); overflow: hidden; text-overflow: ellipsis; }
+.rt-tabla td { height: 44px; }
+.rt-vacio { padding: 28px 16px; text-align: center; color: rgb(var(--g-500)); white-space: normal; }
+@media (max-width: 720px) { .rt-acciones { width: 100%; } .rt-acciones .xml-btn { flex: 1; text-align: center; } }

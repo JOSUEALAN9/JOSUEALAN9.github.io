@@ -371,6 +371,8 @@
             return;
         }
 
+        var retenciones = $("tipo-comprobante").value === "RET";
+        if (retenciones && E.modo !== "webservice") { alerta("Las retenciones se piden solo por Web service."); return; }
         var tipos = E.tipo === "ambos" ? ["emitidos", "recibidos"] : [E.tipo];
         var cuerpos = [];
         for (var ti = 0; ti < tipos.length; ti++) {
@@ -382,7 +384,8 @@
         cuerpo.append("rfc_contraparte", contraparte);
         // web service: las recibidas solo vigentes (con «Ambas», la de recibidas va así aunque elijas otro estado)
         cuerpo.append("estado", E.modo === "webservice" && tipos[ti] === "recibidos" ? "Vigente" : $("estado").value);
-        cuerpo.append("tipo_comprobante", $("tipo-comprobante").value);
+        cuerpo.append("tipo_comprobante", retenciones ? "" : $("tipo-comprobante").value);
+        if (retenciones) cuerpo.append("comprobantes", "retenciones");
 
         var ruta;
         if (E.modo === "webservice") {
@@ -516,7 +519,8 @@
     }
 
     function descripcionCorta(s) {
-        var que = s.origen === "portal" ? (s.modo === "lista" ? "lista" : "XML") : (s.modo === "metadata" ? "lista" : "XML");
+        var que = (s.filtros || {}).servicio === "retenciones" ? "retenciones" :
+            s.origen === "portal" ? (s.modo === "lista" ? "lista" : "XML") : (s.modo === "metadata" ? "lista" : "XML");
         return (s.tipo === "emitidos" ? "Emitidas" : "Recibidas") + " · " + que + " · " +
             fechaBonita(s.fecha_inicial) + " a " + fechaBonita(s.fecha_final);
     }
@@ -745,12 +749,16 @@
 
         var descargados = E.filas.filter(function (f) { return f.descargado === "Sí"; }).length;
         var faltan = E.filas.length - descargados;
-        var html = cifra(E.filas.length, "Total de CFDI");
+        var ret = (d.filtros || {}).servicio === "retenciones";
+        $("res-biblioteca").innerHTML = "<b>⇢</b>" + (ret ? "Abrir en Retenciones" : "Abrir en Administración de XML");
+        $("res-biblioteca").dataset.ret = ret ? "1" : "";
+        if (ret) $("res-titulo").textContent = "Retenciones · " + (d.tipo === "emitidos" ? "emitidas" : "recibidas");
+        var html = ret ? cifra(d.numero_cfdis || 0, "Retenciones descargadas") : cifra(E.filas.length, "Total de CFDI");
         if (clave === "portal") {
             html += cifra(E.filas.filter(function (f) { return f.estado === "Vigente"; }).length, "Vigentes");
             html += cifra(E.filas.filter(function (f) { return f.estado === "Cancelado"; }).length, "Cancelados");
         }
-        html += cifra(descargados, "En tu biblioteca") + cifra(faltan, "No descargados");
+        if (!ret) html += cifra(descargados, "En tu biblioteca") + cifra(faltan, "No descargados");
         $("res-cifras").innerHTML = html;
 
         $("res-faltantes").hidden = !(d.origen === "portal" && esLista && faltan > 0);
@@ -801,7 +809,7 @@
         $("rfc-contraparte").value = f.rfc_contraparte || "";
         $("estado").value = f.estado || "Todos";
         reglaEstado();
-        $("tipo-comprobante").value = f.tipo_comprobante || "";
+        $("tipo-comprobante").value = f.servicio === "retenciones" ? "RET" : (f.tipo_comprobante || "");
         if (f.acceso) { E.acceso = f.acceso; pintarAcceso(); }
         solicitar("cfdi", $("btn-descargar"));
     });
@@ -810,7 +818,7 @@
     $("res-biblioteca").addEventListener("click", async function () {
         this.disabled = true;
         try { if (E.elegido && E.elegido.esCliente) await Fiscontable.elegirEmpresa(E.elegido.rfc); } catch (e) { /* se abre igual */ }
-        location.href = "/herramientas/xml/";
+        location.href = this.dataset.ret ? "/herramientas/retenciones/?rfc=" + encodeURIComponent((E.detalle || {}).rfc || "") : "/herramientas/xml/";
     });
 
     $("res-bajar").addEventListener("click", async function () {

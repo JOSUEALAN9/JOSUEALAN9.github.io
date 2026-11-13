@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Retenciones · Fiscontable</title>
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611130409">
+    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611130409">
+    <link rel="stylesheet" href="/herramientas/isn/isn.css?v=202611130409">
+    <link rel="stylesheet" href="/herramientas/retenciones/retenciones.css?v=202611130409">
+    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611130409">
+</head>
+<body class="bg-slate-50">
+<div id="app-header" data-modulo="retenciones" data-titulo="Retenciones" data-migas="Herramientas|/herramientas/"></div>
+<script src="/assets/js/nucleo.js?v=202611130409"></script>
+<script src="/assets/js/barra.js?v=202611130409"></script>
+
+<main class="xml-pagina">
+    <div class="xml-cabeza">
+        <div class="fc-titulo">
+            <h1>Retenciones</h1>
+            <div class="fc-vista isn-pestanas" role="tablist" aria-label="Qué ver">
+                <button type="button" role="tab" data-lado="recibida" aria-selected="true">Recibidas</button>
+                <button type="button" role="tab" data-lado="emitida" aria-selected="false">Emitidas</button>
+            </div>
+        </div>
+        <div class="ctx">
+            <div class="xml-menu">
+                <button type="button" id="btn-empresa" class="ctx-campo" aria-haspopup="menu">
+                    <span class="ctx-campo__texto"><small id="empresa-etiqueta">Empresa</small><strong id="empresa-titulo">Elegir empresa</strong></span>
+                    <span class="ctx-campo__flecha" aria-hidden="true">▾</span>
+                </button>
+                <div id="menu-empresa" class="xml-menu__lista xml-menu__lista--otra" hidden></div>
+            </div>
+            <select id="sel-anio" class="isn-anio" aria-label="Año"></select>
+        </div>
+    </div>
+
+    <div id="aviso" class="isn-aviso" hidden></div>
+
+    <div class="rt-barra">
+        <div class="rt-cifras" id="cifras"></div>
+        <div class="rt-acciones">
+            <a id="btn-pedir" class="xml-btn" href="/herramientas/descarga-xml/">Pedir al SAT</a>
+            <label class="xml-btn" for="subir">Subir XML</label>
+            <input type="file" id="subir" accept=".xml,.zip" multiple hidden>
+            <button type="button" id="btn-zip" class="xml-btn">Descargar XML</button>
+            <button type="button" id="btn-excel" class="xml-btn xml-btn--primario">Exportar a Excel</button>
+        </div>
+    </div>
+
+    <div class="xml-tabla-caja isn-tabla-caja">
+        <table class="xml-tabla rt-tabla">
+            <thead><tr>
+                <th style="width:96px">Fecha</th><th style="width:118px">Folio fiscal</th><th style="width:240px" id="th-contraparte">Retenedor</th>
+                <th style="width:250px">Concepto</th><th style="width:88px">Periodo</th>
+                <th class="xml-num" style="width:120px">Operación</th><th class="xml-num" style="width:110px">ISR</th>
+                <th class="xml-num" style="width:110px">IVA</th><th class="xml-num" style="width:120px">Total retenido</th><th style="width:64px"></th>
+            </tr></thead>
+            <tbody id="tb"></tbody>
+        </table>
+    </div>
+</main>
+
+<script src="/herramientas/retenciones/retenciones.js?v=202611130409"></script>
+</body>
+</html>

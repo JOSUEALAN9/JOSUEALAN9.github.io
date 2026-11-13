@@ -52,6 +52,7 @@
         isn:           { nombre: "Impuestos estatales",   permiso: "isn" },
         declaraciones: { nombre: "Declaraciones",         permiso: "declaraciones" },
         descarga_xml:  { nombre: "Descarga masiva de XML", permiso: "descarga_xml" },
+        retenciones:   { nombre: "Retenciones",           permiso: "descarga_xml" },
         facturar:      { nombre: "Facturar",              permiso: "facturacion" },
         documentos:    { nombre: "Documentos",            permiso: "documentos" },
         buzon:         { nombre: "Buzón Tributario",      permiso: "buzon" },
@@ -141,6 +142,7 @@
     var I = {
         xml: "M14 3H6a2 2 0 00-2 2v14a2 2 0 002 2h12a2 2 0 002-2V9zM14 3v6h6M10 12l-2 2.5 2 2.5M14 12l2 2.5-2 2.5",
         nube: "M7 17a4 4 0 01-.9-7.9 5 5 0 019.7-1.3A4 4 0 0117 17M12 12v8m-3-3l3 3 3-3",
+        retencion: "M6 3h9l3 3v15H6zM9 9h6M9 13h6M9 17h3",
         medalla: "M12 14a5 5 0 100-10 5 5 0 000 10zM8.5 12.6L7 21l5-2.5 5 2.5-1.5-8.4",
         archivo: "M3 5a1 1 0 011-1h16a1 1 0 011 1v3H3zM5 8v11a1 1 0 001 1h12a1 1 0 001-1V8M10 12h4",
         cruce: "M4 8h13m0 0l-3-3m3 3l-3 3M20 16H7m0 0l3-3m-3 3l3 3",
@@ -173,6 +175,7 @@
 
         { clave: "xml", grupo: "Comprobantes", nombre: "Administración de XML", alias: "xml comprobantes", desc: "Tus XML por tipo, con reportes en Excel", url: "/herramientas/xml/", permiso: "validador", icono: I.xml, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
         { clave: "descarga_xml", grupo: "Comprobantes", nombre: "Descarga masiva", alias: "descarga masiva de xml web service portal", desc: "Emitidos y recibidos de un periodo", url: "/herramientas/descarga-xml/", permiso: "descarga_xml", icono: I.nube, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
+        { clave: "retenciones", grupo: "Comprobantes", nombre: "Retenciones", alias: "retenciones cfdi de retenciones e información de pagos constancia de retenciones isr iva dividendos intereses", desc: "CFDI de retenciones emitidos y recibidos", url: "/herramientas/retenciones/", permiso: "descarga_xml", icono: I.retencion, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
         { clave: "validador", grupo: "Comprobantes", nombre: "Validador", alias: "validador de xml vigente cancelado", desc: "¿Vigente o cancelado ante el SAT?", url: "/herramientas/validador/", permiso: "validador", icono: I.palomita, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
         { clave: "marcas", grupo: "Comprobantes", nombre: "Marcas fiscales", desc: "Para qué impuesto cuenta cada CFDI y por qué", url: "/herramientas/xml/fiscal.html", permiso: "marcas", icono: I.balanza, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
         { clave: "cancelaciones", grupo: "Comprobantes", nombre: "Cancelaciones", desc: "Cancela emitidas y responde las que te piden", url: "/herramientas/xml/cancelaciones.html", permiso: "cancelaciones", icono: I.prohibido, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
@@ -412,8 +415,8 @@
         .sort(function (a, b) { return b.url.length - a.url.length; })[0] || null;
 
     function menuModulosHTML() {
-        return '<div class="fc-menu fc-modulos" id="fc-modulos" role="dialog" aria-label="Ir a un módulo" hidden>' +
-            '<input type="search" class="fc-modulos__buscar" id="fc-modulos-buscar" placeholder="Buscar módulo… (Ctrl+K)" autocomplete="off">' +
+        return '<div class="fc-menu fc-modulos" id="fc-modulos" role="dialog" aria-label="Buscar en Fiscontable" hidden>' +
+            '<input type="search" class="fc-modulos__buscar" id="fc-modulos-buscar" placeholder="Buscar en Fiscontable… (Ctrl+K)" autocomplete="off">' +
             '<div class="fc-modulos__cuerpo" id="fc-modulos-cuerpo"></div></div>';
     }
 
@@ -444,16 +447,91 @@
             (ok ? esc(m.desc) : '<em class="fc-plan-chip">No incluido en tu plan</em>') + "</small></span></a>";
     }
 
+    /* Todo lo que se puede abrir además de los módulos: ajustes, despacho, administración, ayuda y acciones.
+       Cada quien ve solo lo que le toca (igual que en los menús). {g: grupo, n: nombre, d: descripción, u: dirección, a: otras palabras}. */
+    function destinos() {
+        var p = perfilActual || {}, admin = p.rol === "admin" && !p.viendo_como, mods = p.modulos_permitidos || [];
+        var desp = p.despacho && p.despacho.id ? p.despacho : null, titular = !!(desp && desp.papel === "titular");
+        var cfg = "/configuracion/?seccion=", adm = "/configuracion/?seccion=admin&sub=";
+        var con = function (m) { return mods.indexOf(m) !== -1; };
+        var L = [
+            { g: "Inicio", i: D.casa, n: "Inicio", d: "Tu tablero", u: INICIO, a: "tablero portada resumen principal" },
+            { g: "Tu cuenta", i: D.engrane, n: "Configuración", d: "Todos los ajustes", u: "/configuracion/", a: "ajustes preferencias opciones" },
+            { g: "Tu cuenta", i: D.persona, n: "Mi perfil", d: "Nombre, teléfono, foto y tablas", u: cfg + "perfil", a: "foto imagen densidad compacta datos" },
+            { g: "Tu cuenta", i: D.candado, n: "Seguridad", d: "Contraseña, dos pasos, sesiones y PIN", u: cfg + "seguridad", a: "clave verificacion codigo sesiones abiertas equipos de confianza bloqueo inactividad" },
+            { g: "Tu cuenta", i: D.estrella, n: "Plan y créditos", d: "Tu plan y su vigencia", u: cfg + "plan", a: "licencia pago renovar vigencia saldo" },
+            { g: "Tu cuenta", i: D.campana, n: "Avisos", d: "Qué te llega por correo", u: cfg + "avisos", a: "correo notificaciones resumen semanal" },
+            { g: "Tu cuenta", i: D.calendario, n: "Programaciones", d: "Lo que se ejecuta automáticamente", u: cfg + "programaciones", a: "automatico programar madrugada" },
+            { g: "Tu cuenta", i: D.pc, n: "Conectar esta PC", d: "Fiscontable Agente para Windows", u: "/agente/", a: "agente windows instalar descargar computadora pcs conectadas" },
+            { g: "Ajustes de módulos", i: D.engrane, n: "Ajustes de Facturar", d: "Emisor, series, sello, logo y correo", u: cfg + "facturacion", a: "csd timbres folio serie smtp", si: con("facturacion") },
+            { g: "Ajustes de módulos", i: D.engrane, n: "Ajustes del Buzón", d: "Cada cuánto se revisan los buzones", u: cfg + "buzon", a: "buzon tributario revision automatica", si: con("buzon") },
+            { g: "Ajustes de módulos", i: D.engrane, n: "XML automáticos", d: "Qué empresas descargan solas sus XML", u: cfg + "descarga_xml", a: "descarga automatica xml", si: con("descarga_xml") },
+            { g: "Ajustes de módulos", i: D.engrane, n: "Impuestos por empresa", d: "Flujo o devengado, estatales y reglas", u: cfg + "impuestos", a: "reglas fiscales isr iva diot", si: con("marcas") },
+            { g: "Mi despacho", i: D.equipo, n: "Equipo del despacho", d: desp ? desp.nombre : "", u: "/despacho/", a: "despacho miembros invitar permisos", si: !!desp },
+            { g: "Mi despacho", i: D.equipo, n: "Solicitudes del despacho", d: "Accesos por aprobar", u: "/despacho/?vista=solicitudes", a: "despacho aprobar acceso", si: !!desp },
+            { g: "Mi despacho", i: D.equipo, n: "Bitácora del despacho", d: "Quién hizo qué", u: "/despacho/?vista=bitacora", a: "despacho registro historial", si: titular },
+            { g: "Mi despacho", i: D.equipo, n: "Ajustes del despacho", d: "Nombre, reglas y migración", u: "/despacho/?vista=ajustes", a: "despacho migrar empresas", si: titular },
+            { g: "Administración", i: D.llave, n: "Administración", d: "Panel del administrador", u: cfg + "admin", a: "admin panel", si: admin },
+            { g: "Administración", i: D.llave, n: "Usuarios", d: "Cuentas, accesos y migraciones", u: adm + "usuarios", a: "admin cuentas migrar ver como", si: admin },
+            { g: "Administración", i: D.llave, n: "Despachos", d: "Despachos y sus miembros", u: adm + "despachos", a: "admin", si: admin },
+            { g: "Administración", i: D.llave, n: "Permisos por rol", d: "Qué módulos tiene cada plan", u: adm + "permisos", a: "admin roles planes modulos", si: admin },
+            { g: "Administración", i: D.llave, n: "Demos", d: "Solicitudes de demo", u: adm + "demos", a: "admin prospectos ventas", si: admin },
+            { g: "Administración", i: D.llave, n: "Licencias", d: "Emitir y revisar licencias", u: adm + "licencias", a: "admin claves ventas planes precios", si: admin },
+            { g: "Administración", i: D.llave, n: "Créditos (administración)", d: "Pagos por revisar y saldos", u: adm + "creditos", a: "admin pagos paquetes cuentas", si: admin },
+            { g: "Administración", i: D.llave, n: "Actividad", d: "Lo más reciente del sistema", u: adm + "actividad", a: "admin registro trabajadores", si: admin },
+            { g: "Administración", i: D.llave, n: "Documentos (administración)", d: "Catálogo, precios y pedidos", u: adm + "documentos", a: "admin pedidos", si: admin },
+            { g: "Administración", i: D.llave, n: "Sistema", d: "Estado, SAT, portal, log y plazos", u: adm + "sistema", a: "admin servidor respaldo bitacora listas", si: admin },
+            { g: "Administración", i: D.llave, n: "Cuentas vencidas", d: "Planes vencidos y sus plazos", u: adm + "vencidas", a: "admin vencimiento", si: admin },
+            { g: "Administración", i: D.llave, n: "Laboratorio", d: "Pruebas con el SAT", u: "/admin/laboratorio/", a: "admin pruebas sin navegador grabacion", si: admin },
+            { g: "Ayuda", i: D.ayuda, n: "Ayuda e instrucciones", d: "Cómo se usa cada parte", u: "/soporte/", a: "soporte dudas manual contacto" },
+            { g: "Ayuda", i: D.documento, n: "Términos y condiciones", d: "", u: "/terminos/", a: "legal contrato" },
+            { g: "Ayuda", i: D.documento, n: "Aviso de privacidad", d: "", u: "/privacidad/", a: "legal datos personales arco" },
+            { g: "Ayuda", i: D.salir, n: "Cerrar sesión", d: "", u: API + "/cdn-cgi/access/logout", a: "salir desconectar" }
+        ];
+        return L.filter(function (x) { return x.si !== false; });
+    }
+    function sinAcentos(s) { return String(s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""); }
+    // 0 si no coincide; más alto, mejor: el nombre empieza así > una palabra del nombre empieza así > el nombre lo contiene >
+    // una palabra de la descripción empieza así > la descripción lo contiene. Con menos de 4 letras solo cuenta el inicio de
+    // palabra (si no, «pin» traería «Opinión» e «iva», «masiva»).
+    function puntos(q, nombre, resto) {
+        var limpio = function (s) { return " " + sinAcentos(s).replace(/[^a-z0-9ñ]+/g, " ").trim(); };
+        var n = limpio(nombre), r = limpio(resto), largo = q.length >= 4;
+        q = limpio(q).slice(1);
+        if (!q) return 0;
+        if (n.indexOf(" " + q) === 0) return 5;
+        if (n.indexOf(" " + q) !== -1) return 4;
+        if (largo && n.indexOf(q) !== -1) return 3;
+        if (r.indexOf(" " + q) !== -1) return 2;
+        return largo && r.indexOf(q) !== -1 ? 1 : 0;
+    }
+    function itemDestino(x) {
+        return '<a class="fc-modulos__item fc-modulos__item--fila" href="' + esc(x.u) + '"' + (x.rfc ? ' data-empresa="' + esc(x.rfc) + '"' : "") +
+            ' style="--tono:rgb(var(--g-700));--tono-suave:rgb(var(--g-100))">' +
+            '<span class="fc-modulos__icono">' + ico(x.i, 1.7) + "</span>" +
+            '<span class="fc-modulos__texto"><strong>' + esc(x.n) + "</strong>" + (x.d ? "<small>" + esc(x.d) + "</small>" : "") + "</span></a>";
+    }
+
     function pintarModulos() {
-        var q = (document.getElementById("fc-modulos-buscar").value || "").trim().toLowerCase()
-            .normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        var q = sinAcentos((document.getElementById("fc-modulos-buscar").value || "").trim());
         var cuerpo = document.getElementById("fc-modulos-cuerpo");
         if (q) {
-            var hallados = CATALOGO.filter(function (m) {
-                return !m.pronto && verModulo(m) && (m.nombre + " " + m.desc + " " + m.grupo + " " + (m.alias || "")).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").indexOf(q) !== -1;
+            // Busca en todo: módulos, ajustes, despacho, administración, ayuda y tus empresas
+            var porPuntos = function (a, b) { return b.p - a.p; };
+            var mods = CATALOGO.map(function (m) { return { m: m, p: !m.pronto && verModulo(m) ? puntos(q, m.nombre, m.desc + " " + m.grupo + " " + (m.alias || "")) : 0 }; })
+                .filter(function (x) { return x.p; }).sort(porPuntos);
+            var otros = destinos().map(function (x) { x.p = puntos(q, x.n, x.d + " " + x.g + " " + x.a); return x; }).filter(function (x) { return x.p; }).sort(porPuntos);
+            var empresas = q.length < 2 ? [] : (clientesCache || []).map(function (c) {
+                return { g: "Empresas", i: D.edificio, n: c.alias || c.razon_social || c.rfc, d: c.rfc, u: "#", rfc: c.rfc, p: puntos(q, (c.alias || "") + " " + c.rfc, c.razon_social || "") };
+            }).filter(function (x) { return x.p; }).sort(porPuntos).slice(0, 6);
+            var salida = mods.length ? '<div class="fc-modulos__grupo">Módulos</div><div class="fc-modulos__rejilla">' + mods.map(function (x) { return itemModulo(x.m); }).join("") + "</div>" : "";
+            var orden = [];
+            otros.forEach(function (x) { if (orden.indexOf(x.g) === -1) orden.push(x.g); });
+            orden.forEach(function (g) {
+                salida += '<div class="fc-modulos__grupo">' + esc(g) + '</div><div class="fc-modulos__rejilla">' + otros.filter(function (x) { return x.g === g; }).map(itemDestino).join("") + "</div>";
             });
-            cuerpo.innerHTML = hallados.length ? '<div class="fc-modulos__rejilla">' + hallados.map(itemModulo).join("") + "</div>"
-                : '<p class="fc-empresas__nada">Ningún módulo coincide con «' + esc(q) + "».</p>";
+            if (empresas.length) salida += '<div class="fc-modulos__grupo">Empresas · cambiar a</div><div class="fc-modulos__rejilla">' + empresas.map(itemDestino).join("") + "</div>";
+            cuerpo.innerHTML = salida || '<p class="fc-empresas__nada">Nada coincide con «' + esc(q) + "».</p>";
             return;
         }
         var html = "";
@@ -466,6 +544,7 @@
             var ms = CATALOGO.filter(function (m) { return m.grupo === g && !m.pronto && verModulo(m); });
             if (ms.length) html += '<div class="fc-modulos__grupo">' + esc(g) + '</div><div class="fc-modulos__rejilla">' + ms.map(itemModulo).join("") + "</div>";
         });
+        html += '<p class="fc-modulos__pista">Escribe para buscar en todo: módulos, ajustes, ' + (perfilActual && perfilActual.rol === "admin" ? "administración, " : "") + "empresas y ayuda.</p>";
         cuerpo.innerHTML = html;
     }
 
@@ -653,6 +732,11 @@
         var interior = panel.parentElement.getBoundingClientRect(), r = boton.getBoundingClientRect();
         panel.style.left = Math.max(12, (r.width ? r.left : 12) - interior.left) + "px";
         if (window.innerWidth > 700) buscar.focus();
+        if (clientesCache === null) {                                     // para buscar también entre tus empresas
+            fetch(API + "/api/clientes", { credentials: "include" }).then(function (x) { return x.ok ? x.json() : []; })
+                .then(function (lista) { if (clientesCache === null) clientesCache = lista; if (!panel.hidden && buscar.value) pintarModulos(); })
+                .catch(function () { /* sin empresas en la búsqueda */ });
+        }
     }
 
     function cerrarModulos() {
@@ -668,7 +752,9 @@
         boton.addEventListener("click", function (e) { e.stopPropagation(); if (panel.hidden) abrirModulos(); else cerrarModulos(); });
         panel.addEventListener("click", function (e) {
             var a = e.target.closest(".fc-modulos__item--vedado");
-            if (a) { e.preventDefault(); }
+            if (a) { e.preventDefault(); return; }
+            var emp = e.target.closest("[data-empresa]");                 // una empresa: se cambia a ella sin salir de la página
+            if (emp) { e.preventDefault(); cerrarModulos(); elegirEmpresa(emp.dataset.empresa); }
         });
         var buscar = document.getElementById("fc-modulos-buscar");
         buscar.addEventListener("input", pintarModulos);
@@ -676,7 +762,7 @@
             if (e.key === "Enter") {
                 e.preventDefault();
                 var primero = panel.querySelector(".fc-modulos__item:not(.fc-modulos__item--vedado)");
-                if (primero) location.href = primero.getAttribute("href");
+                if (primero) primero.click();
             } else if (e.key === "ArrowDown") {
                 var p = panel.querySelector(".fc-modulos__item"); if (p) { e.preventDefault(); p.focus(); }
             }
@@ -695,8 +781,14 @@
         document.addEventListener("keydown", function (e) {
             if ((e.ctrlKey || e.metaKey) && (e.key === "k" || e.key === "K")) {
                 e.preventDefault();
+                // Dentro de un marco (Administración en Configuración): el buscador es el de la página de afuera
+                if (window.top !== window.self) { try { window.top.postMessage({ fiscontable: "buscar" }, location.origin); } catch (x) { /* nada */ } return; }
                 if (panel.hidden) abrirModulos(); else cerrarModulos();
             }
+        });
+        window.addEventListener("message", function (e) {
+            if (e.origin !== location.origin || !e.data || e.data.fiscontable !== "buscar" || window.top !== window.self) return;
+            if (panel.hidden) abrirModulos(); else cerrarModulos();
         });
         if (aqui) anotarReciente(aqui.clave);
     }
@@ -1724,7 +1816,7 @@
             if (enPc) detalle.push('<span class="fc-fila__pc">en tu PC</span>');
             estado = '<span class="fc-fila__estado fc-fila__estado--' + (incompleta ? "alerta" : "listo") + '">' + ICONO_ESTADO[incompleta ? "alerta" : "listo"] + "</span>";
             clase = incompleta ? " fc-fila--alerta" : "";
-            acciones = (enPc ? botonFila("mostrar-pc", "carpeta", "Mostrar en mi PC", 'data-id="' + esc(p.id) + '"') : "") +
+            acciones = (enPc ? botonFila("mostrar-pc", "carpeta", "Abrir carpeta", 'data-id="' + esc(p.id) + '"') : "") +
                 botonFila("descargar", "descarga", "Descargar", 'data-url="' + esc(p.url_descarga) + '" data-nombre="' + esc(p.nombre_descarga || "documento") + '"', "fc-fila__btn--principal") +
                 botonFila("quitar", "cerrar", "Quitar de la lista", id);
         } else {
@@ -1877,6 +1969,102 @@
         var resto = titulo === texto ? "" : (corte > 0 && corte <= 120 ? texto.slice(corte).trim() : texto);
         return confirmar(Object.assign({ titulo: titulo, texto: resto, si: "Aceptar",
             peligro: /borra|elimin|cancel|revoc|desconect|rechaz|desactiv|quitar|olvidar|detener|presentar|timbrar/i.test(texto) }, o || {}));
+    }
+
+    /* Confirmar que eres tú antes de algo delicado (core/verificacion.py del servidor). Según la acción se pide el PIN
+       y un código que llega al correo, o uno de los dos (el PIN si lo tiene; si no, o si lo prefiere, el código).
+       ejecutar(confirmacion) hace la acción; si falla (código o PIN equivocado), la ventana sigue abierta con el
+       mensaje. Devuelve una promesa: true si se hizo, false si se canceló.
+       Uso: await Fiscontable.confirmarIdentidad("quitar_miembro", function (c) { return pedir(..., { confirmacion: c }); }); */
+    function confirmarIdentidad(accion, ejecutar) {
+        return new Promise(function (listo) {
+            var dlg = document.createElement("dialog");
+            dlg.className = "fc-modal fc-modal--chica fc-identidad";
+            dlg.innerHTML = '<div class="fc-modal__cabeza"><div><h2>Confirma que eres tú</h2><p data-i="sub">Un momento…</p></div>' +
+                '<button type="button" class="fc-modal__cerrar" data-i="cerrar" aria-label="Cerrar">×</button></div>' +
+                '<form class="fc-modal__cuerpo" novalidate>' +
+                '<label class="ui-campo" data-i="campo-codigo" hidden><span class="ui-etiqueta">Código del correo</span>' +
+                '<input class="ui-input" data-i="codigo" inputmode="numeric" autocomplete="one-time-code" maxlength="7" placeholder="123 456"></label>' +
+                '<label class="ui-campo" data-i="campo-pin" hidden><span class="ui-etiqueta">Tu PIN</span>' +
+                '<input class="ui-input" data-i="pin" type="password" inputmode="numeric" autocomplete="off" maxlength="6"></label>' +
+                '<div class="fc-identidad__ligas"><button type="button" class="ui-btn ui-btn--terciario ui-btn--28" data-i="usar-codigo" hidden>Prefiero un código por correo</button>' +
+                '<button type="button" class="ui-btn ui-btn--terciario ui-btn--28" data-i="otro" hidden>Mandar otro código</button></div>' +
+                '<p class="ui-ayuda ui-ayuda--error" data-i="error" hidden></p></form>' +
+                '<div class="fc-modal__pie"><button type="button" class="ui-btn ui-btn--secundario ui-btn--36" data-i="cancelar">Cancelar</button>' +
+                '<button type="button" class="ui-btn ui-btn--primario ui-btn--36" data-i="ok" disabled>Confirmar</button></div>';
+            var q = function (k) { return dlg.querySelector('[data-i="' + k + '"]'); };
+            var token = null, texto = "", terminado = false;
+            function fin(r) { if (terminado) return; terminado = true; try { dlg.close(); } catch (x) { /* nada */ } dlg.remove(); listo(r); }
+            function error(t) { q("error").textContent = t || ""; q("error").hidden = !t; }
+            async function llamar(ruta, cuerpo) {
+                var r = await fetch(API + ruta, { method: cuerpo ? "POST" : "GET", credentials: "include",
+                    headers: cuerpo ? { "Content-Type": "application/json" } : undefined, body: cuerpo ? JSON.stringify(cuerpo) : undefined });
+                if (!r.ok) throw new Error(await window.Fiscontable.leerError(r));
+                return r.json();
+            }
+            async function mandar() {
+                error(""); q("ok").disabled = true;
+                q("sub").textContent = "Enviando un código a tu correo…";
+                try {
+                    var d = await llamar("/api/verificacion/codigo", { accion: accion });
+                    token = d.token;
+                    q("sub").textContent = "Te mandamos un código a " + d.enviado_a + " para " + texto + ". Vence en " + d.minutos + " minutos.";
+                    q("campo-codigo").hidden = false; q("usar-codigo").hidden = true; q("otro").hidden = false;
+                    q("ok").disabled = false; q("codigo").focus();
+                } catch (e) { q("sub").textContent = "No se pudo mandar el código."; error(e.message); }
+            }
+            async function empezar() {
+                var e;
+                try { e = await llamar("/api/verificacion/estado?accion=" + encodeURIComponent(accion)); }
+                catch (x) { q("sub").textContent = "No se pudo preparar la confirmación."; error(x.message); return; }
+                texto = e.texto;
+                if (e.nivel === "pin_y_codigo") {
+                    if (!e.tiene_pin) {
+                        q("sub").innerHTML = 'Para esto necesitas un PIN. Ponlo en <a href="/configuracion/?seccion=seguridad">Configuración › Seguridad</a> y vuelve a intentarlo.';
+                        return;
+                    }
+                    q("campo-pin").hidden = false;
+                    await mandar();
+                } else if (e.tiene_pin) {
+                    q("sub").textContent = "Escribe tu PIN para " + texto + ".";
+                    q("campo-pin").hidden = false; q("usar-codigo").hidden = false; q("ok").disabled = false; q("pin").focus();
+                } else {
+                    await mandar();
+                }
+            }
+            async function aceptar() {
+                var conf = {};
+                if (token) {
+                    var codigo = q("codigo").value.replace(/\D/g, "");
+                    if (codigo.length !== 6) return error("Escribe los 6 números del código.");
+                    conf.token = token; conf.codigo = codigo;
+                }
+                if (!q("campo-pin").hidden) {
+                    var pin = q("pin").value.trim();
+                    if (!pin) return error("Escribe tu PIN.");
+                    conf.pin = pin;
+                }
+                var b = q("ok");
+                b.classList.add("ui-btn--cargando"); b.disabled = true; error("");
+                try { await ejecutar(conf); fin(true); }
+                catch (x) {
+                    error(x.message);
+                    if (/venció|ya se usó|pausa/.test(x.message)) q("codigo").value = "";
+                    b.disabled = false;
+                } finally { b.classList.remove("ui-btn--cargando"); }
+            }
+            q("ok").addEventListener("click", aceptar);
+            q("cancelar").addEventListener("click", function () { fin(false); });
+            q("cerrar").addEventListener("click", function () { fin(false); });
+            q("otro").addEventListener("click", mandar);
+            q("usar-codigo").addEventListener("click", function () { q("campo-pin").hidden = true; mandar(); });
+            dlg.querySelector("form").addEventListener("submit", function (e) { e.preventDefault(); if (!q("ok").disabled) aceptar(); });
+            dlg.addEventListener("keydown", function (e) { if (e.key === "Enter" && e.target.tagName === "INPUT") { e.preventDefault(); if (!q("ok").disabled) aceptar(); } });
+            dlg.addEventListener("cancel", function (e) { e.preventDefault(); fin(false); });
+            document.body.appendChild(dlg);
+            dlg.showModal();
+            empezar();
+        });
     }
 
     /* Un aviso que hay que leer (en lugar del alert() del navegador). No detiene el código: solo muestra y espera el clic. */
@@ -2043,6 +2231,47 @@
         document.getElementById("fc-mp-form").addEventListener("submit", guardarPerfil);
     }
 
+    /* Aceptación de los Términos y del Aviso de privacidad. Se pide una vez por versión de los documentos y no se puede
+       cerrar sin aceptar (o cerrar sesión). El servidor guarda la constancia: versión, fecha, IP y equipo. */
+    function pedirLegales(l) {
+        return new Promise(function (listo) {
+            var fecha = "";
+            try { fecha = new Date(l.fecha + "T12:00:00").toLocaleDateString("es-MX", { day: "numeric", month: "long", year: "numeric" }); } catch (e) { /* sin fecha */ }
+            var dlg = document.createElement("dialog");
+            dlg.className = "fc-modal fc-modal--chica fc-legales";
+            dlg.innerHTML = '<div class="fc-modal__cabeza"><div><h2>' + (l.primera ? "Términos y Aviso de privacidad" : "Actualizamos los Términos y el Aviso de privacidad") + "</h2>" +
+                "<p>Versión " + esc(l.version) + (fecha ? " · " + esc(fecha) : "") + "</p></div></div>" +
+                '<form class="fc-modal__cuerpo" novalidate>' +
+                "<p>" + (l.primera ? "Para usar Fiscontable se requiere tu aceptación." : "Para seguir usando Fiscontable se requiere tu aceptación de la versión vigente.") + "</p>" +
+                '<label class="fc-legales__casilla"><input type="checkbox" data-l="casilla"><span>He leído y acepto los ' +
+                '<a href="/terminos/" target="_blank" rel="noopener">Términos y condiciones</a> y el ' +
+                '<a href="/privacidad/" target="_blank" rel="noopener">Aviso de privacidad</a>.</span></label>' +
+                '<p class="ui-ayuda ui-ayuda--error" data-l="error" hidden></p></form>' +
+                '<div class="fc-modal__pie"><a class="ui-btn ui-btn--terciario ui-btn--36" href="' + API + '/cdn-cgi/access/logout">Cerrar sesión</a>' +
+                '<button type="button" class="ui-btn ui-btn--primario ui-btn--36" data-l="ok" disabled>Continuar</button></div>';
+            var q = function (k) { return dlg.querySelector('[data-l="' + k + '"]'); };
+            dlg.addEventListener("cancel", function (e) { e.preventDefault(); });        // Esc no la cierra
+            q("casilla").addEventListener("change", function () { q("ok").disabled = !q("casilla").checked; });
+            q("ok").addEventListener("click", async function () {
+                q("ok").disabled = true; q("error").hidden = true;
+                try {
+                    var r = await fetch(API + "/api/mi-perfil/legales", { method: "POST", credentials: "include",
+                        headers: { "Content-Type": "application/json" }, body: JSON.stringify({ acepto: true, version: l.version }) });
+                    if (!r.ok) throw new Error(await window.Fiscontable.leerError(r));
+                    if (perfilActual && perfilActual.legales) perfilActual.legales.pendiente = false;
+                    try { dlg.close(); } catch (x) { /* nada */ }
+                    dlg.remove(); listo(true);
+                } catch (e) {
+                    q("error").textContent = e.message || "No se pudo guardar. Intenta de nuevo."; q("error").hidden = false;
+                    q("ok").disabled = !q("casilla").checked;
+                }
+            });
+            document.body.appendChild(dlg);
+            dlg.showModal();
+            q("casilla").focus();
+        });
+    }
+
     function abrirModalPerfil(esPrimeraVez) {
         if (!perfilActual) return;
         var caja = document.getElementById("fc-modal-perfil");
@@ -2151,7 +2380,9 @@
                 "Contacta al administrador para renovarlo.");
         }
         // Primer ingreso: pedimos el nombre una sola vez, caiga donde caiga.
-        if (!p.perfil_completo) abrirModalPerfil(true);
+        if (p.legales && p.legales.pendiente && window.top === window.self && !p.pantalla_bloqueada) {
+            pedirLegales(p.legales).then(function () { if (!p.perfil_completo) abrirModalPerfil(true); });
+        } else if (!p.perfil_completo) abrirModalPerfil(true);
         pintarLateral();
         prepararBloqueo(p);
         vigilarChipEmpresa();
@@ -2375,7 +2606,7 @@
        derecha, sin salir de la tabla. lista = uuids en el orden en que se ven: ← y → (o los botones) pasan a la
        anterior o la siguiente. Cualquier enlace a ese detalle en la página abre el panel (Ctrl/Cmd+clic, en pestaña). */
     var cfdiPanel = null;
-    function verCfdi(rfc, uuid, lista) {
+    function verCfdi(rfc, uuid, lista, desde) {
         if (!rfc || !uuid) return;
         if (!cfdiPanel) {
             var d = document.createElement("aside");
@@ -2402,6 +2633,7 @@
             cfdiPanel.marco.addEventListener("load", function () { try { cfdiPanel.marco.contentWindow.document.addEventListener("keydown", teclas); } catch (err) { /* otro origen */ } });
         }
         var P = cfdiPanel;
+        P.desde = desde || "";       // el módulo desde el que se abre (marcas, cancelaciones…): el detalle no ofrece ir a él
         P.rfc = rfc; P.lista = (lista && lista.length) ? lista : [uuid]; P.i = Math.max(0, P.lista.indexOf(uuid));
         if (P.lista.indexOf(uuid) === -1) { P.lista = [uuid]; P.i = 0; }
         pintarCfdi();
@@ -2410,7 +2642,7 @@
     }
     function pintarCfdi() {
         var P = cfdiPanel, uuid = P.lista[P.i], url = "/herramientas/xml/detalle/?rfc=" + encodeURIComponent(P.rfc) + "&uuid=" + encodeURIComponent(uuid);
-        P.marco.src = url + "&incrustado=1";
+        P.marco.src = url + "&incrustado=1" + (P.desde ? "&desde=" + encodeURIComponent(P.desde) : "");
         P.el.querySelector('[data-cfdi="pestana"]').href = url;
         P.el.querySelector(".fc-cfdi__pos").textContent = P.lista.length > 1 ? (P.i + 1) + " de " + P.lista.length : "";
         P.el.querySelector('[data-cfdi="ant"]').disabled = P.i <= 0;
@@ -2490,8 +2722,27 @@
         var lista = [].slice.call(document.querySelectorAll('a[href*="/herramientas/xml/detalle/"]')).map(function (x) {
             try { return new URL(x.href, location.href).searchParams.get("uuid"); } catch (err) { return null; }
         }).filter(function (x, i, arr) { return x && arr.indexOf(x) === i; });
-        verCfdi(rfc, uuid, lista);
+        verCfdi(rfc, uuid, lista, u.searchParams.get("desde"));
     });
+
+    /* Una página que se ve dentro de un marco (el detalle de la factura en el panel lateral, Administración o un módulo
+       dentro de Configuración): sus enlaces a OTRA página se abren en la página completa, no dentro del marco. Si no,
+       el módulo aparece metido dentro de sí mismo (barra dentro de barra). */
+    if (window.top !== window.self) {
+        document.addEventListener("click", function (e) {
+            if (e.defaultPrevented) return;
+            var a = e.target.closest && e.target.closest("a[href]");
+            if (!a || a.target || a.hasAttribute("download")) return;
+            var h = a.getAttribute("href") || "";
+            if (!h || h.charAt(0) === "#" || /^(javascript|blob|data|mailto|tel):/i.test(h)) return;
+            var u;
+            try { u = new URL(a.href, location.href); } catch (err) { return; }
+            if (u.origin !== location.origin || u.pathname === location.pathname) return;     // mismo módulo: se queda en el marco
+            u.searchParams.delete("incrustado"); u.searchParams.delete("dentro");
+            e.preventDefault();
+            try { window.top.location.href = u.href; } catch (err) { location.href = u.href; }
+        });
+    }
 
     /* ------------------------------------------------- selector de empresa repetido en los módulos (G-02)
        Varios módulos traen su recuadro «Empresa · RFC». Si muestra la misma empresa que la barra, se vuelve un enlace
@@ -3431,6 +3682,7 @@
         confirmar: confirmar,
         preguntar: preguntar,
         avisar: avisar,
+        confirmarIdentidad: confirmarIdentidad,
         descargas: { tarjeta: tarjeta, accion: accionPanel, sinProgramadas: sinProgramadas, notaProgramadas: notaProgramadas,
                      nombre: nombreProceso, empresa: empresaProceso, titulo: tituloProceso },
         abrirModalPerfil: abrirModalPerfil,
