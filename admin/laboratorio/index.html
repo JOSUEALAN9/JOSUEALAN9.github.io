@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex">
     <title>Laboratorio · Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611130331">
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611130331">
+    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611130339">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611130339">
     <style>
         .lb { display: grid; gap: var(--e-4); grid-template-columns: minmax(0, 1fr); }
         @media (min-width: 1080px) { .lb { grid-template-columns: 380px minmax(0, 1fr); align-items: start; } }
@@ -68,12 +68,30 @@
         .lb-vivo__fila input { flex: 1; min-width: 0; font-family: var(--fuente-mono, ui-monospace, monospace); font-size: var(--t-13); }
         .lb-vivo__fila button { flex: none; }
         .lb-vivo small { font-size: var(--t-12); color: rgb(var(--g-500)); line-height: 1.45; }
+        .lb-ops { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+        .lb-op { border: 1px solid rgb(var(--g-300)); background: rgb(var(--g-0)); border-radius: 999px; padding: 2px 10px; font: inherit; font-size: 11.5px; font-weight: 600; color: rgb(var(--g-700)); cursor: pointer; }
+        .lb-op:hover { background: rgb(var(--g-100)); }
+        .lb-op[aria-pressed="true"] { border-color: rgb(var(--ac-600)); background: rgb(var(--ac-600) / .08); color: rgb(var(--ac-700)); }
+        .lb-enlace { border: 0; background: none; padding: 0; font: inherit; font-weight: 600; color: rgb(var(--ac-700)); cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
+        .lb-ay-tip { margin: 0 0 18px; padding: 12px 14px; border-radius: 10px; background: rgb(var(--ac-600) / .06); font-size: var(--t-13); line-height: 1.5; color: rgb(var(--g-800)); }
+        #lb-ayuda .fc-modal__cuerpo > * { flex: none; }
+        .lb-ay { display: grid; border: 1px solid var(--linea); border-radius: 10px; overflow: hidden; }
+        .lb-ay__cab, .lb-ay__fila { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr) minmax(0, 1.3fr); gap: 10px; padding: 10px 14px; align-items: center; }
+        .lb-ay__cab { background: rgb(var(--g-50)); font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .03em; color: rgb(var(--g-600)); }
+        .lb-ay__fila { border-top: 1px solid var(--linea); font-size: var(--t-13); }
+        .lb-ay__fila b { color: rgb(var(--g-900)); font-weight: 600; }
+        .lb-ay code, .lb-ay-frases code { font-family: var(--fuente-mono, ui-monospace, monospace); font-size: 12px; background: rgb(var(--g-50)); border: 1px solid rgb(var(--g-200)); border-radius: 6px; padding: 2px 6px; overflow-wrap: anywhere; justify-self: start; }
+        .lb-ay-sub { margin: 18px 0 8px; font-size: var(--t-13); font-weight: 700; color: rgb(var(--g-900)); }
+        .lb-ay-frases { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; }
+        .lb-ay-nota { margin: 16px 0 0; font-size: var(--t-12); line-height: 1.5; color: rgb(var(--g-600)); }
+        .lb-ay-nota--candado { margin-top: 8px; color: rgb(var(--ok-700)); }
+        @media (max-width: 640px) { .lb-ay__cab { display: none; } .lb-ay__fila { grid-template-columns: minmax(0, 1fr); gap: 6px; } }
     </style>
 </head>
 <body class="min-h-screen flex flex-col">
 <div id="app-header" data-modulo="admin" data-titulo="Laboratorio" data-migas="Administración|/admin/"></div>
-<script src="/assets/js/nucleo.js?v=202611130331"></script>
-<script src="/assets/js/barra.js?v=202611130331"></script>
+<script src="/assets/js/nucleo.js?v=202611130339"></script>
+<script src="/assets/js/barra.js?v=202611130339"></script>
 
 <main class="flex-grow mod-pagina" style="max-width:none">
     <div class="mod-cabeza" style="margin-bottom:var(--e-4)">
@@ -101,7 +119,7 @@
                 <label class="lb-campo" id="lb-dia-caja" hidden>Día de las facturas<input class="ui-input" id="lb-dia" type="date"><small>Uno con pocas facturas.</small></label>
                 <label class="lb-campo" id="lb-mes-caja" hidden>Mes de las facturas<input class="ui-input" id="lb-mes" type="month"><small>Uno con bastantes facturas: se comparan una por una con las que ya tiene Fiscontable.</small></label>
                 <label class="lb-campo" id="lb-pasos-caja">Pasos, uno por renglón <textarea class="lb-texto" id="lb-pasos" spellcheck="false" placeholder="clic: Consultar&#10;elegir: Ejercicio = 2026&#10;esperar: 3"></textarea>
-                    <small>Déjalo vacío para solo entrar y ver la primera pantalla. Luego agrega pasos con «+ paso» desde el mapa de cada pantalla. Para casillas o círculos: «marcar: Texto».</small></label>
+                    <small>Déjalo vacío para solo entrar y ver la primera pantalla. Luego agrega pasos con «+ paso» desde el mapa de cada pantalla. <button type="button" class="lb-enlace" data-ayuda>¿Cómo escribo un paso?</button></small></label>
                 <label class="lb-check lb-vivo-op" id="lb-vivo-caja"><input type="checkbox" id="lb-en-vivo"><span><b>En vivo</b><small id="lb-vivo-nota">Al terminar estos pasos la sesión sigue abierta y le mandas más, uno a la vez.</small></span></label>
                 <label class="lb-campo">Nota <input class="ui-input" id="lb-nota-txt" maxlength="300" placeholder="Para qué es este recorrido (opcional)"></label>
                 <div class="lb-candado"><svg viewBox="0 0 24 24"><path d="M6 11h12v9H6zM9 11V8a3 3 0 0 1 6 0v3"/></svg>
@@ -122,6 +140,27 @@
         <section class="lb-tarjeta" id="lb-detalle"><div class="ui-vacio"><b>Elige un recorrido</b><span>o lanza uno nuevo: aquí verás cada pantalla con su captura y su mapa de botones.</span></div></section>
     </div>
 </main>
-<script src="/admin/laboratorio/laboratorio.js?v=202611130331"></script>
+<dialog class="fc-modal" id="lb-ayuda" aria-labelledby="lb-ayuda-titulo">
+    <div class="fc-modal__cabeza"><div><h2 id="lb-ayuda-titulo">Cómo escribir un paso</h2>
+        <p>Un paso por renglón. No importan acentos ni mayúsculas, y basta con parte del texto.</p></div>
+        <button type="button" class="fc-modal__cerrar" data-ayuda-cerrar aria-label="Cerrar">×</button></div>
+    <div class="fc-modal__cuerpo">
+        <p class="lb-ay-tip"><b>Lo más fácil:</b> en el mapa de cada pantalla pulsa «+ paso» junto a lo que quieras. En las listas, pulsa directamente la opción (por ejemplo «1-Mensual»).</p>
+        <div class="lb-ay">
+            <div class="lb-ay__cab"><span>Qué quieres hacer</span><span>Escríbelo así</span><span>Ejemplo</span></div>
+            <div class="lb-ay__fila"><b>Pulsar un botón o enlace</b><code>clic: texto del botón</code><code>clic: Siguiente</code></div>
+            <div class="lb-ay__fila"><b>Marcar una casilla o círculo</b><code>marcar: texto</code><code>marcar: DIOT</code></div>
+            <div class="lb-ay__fila"><b>Elegir en una lista</b><code>elegir: lista = opción</code><code>elegir: Periodicidad = 1-Mensual</code></div>
+            <div class="lb-ay__fila"><b>Elegir sin saber qué lista es</b><code>elegir: opción</code><code>elegir: 1-Mensual</code></div>
+            <div class="lb-ay__fila"><b>Esperar a que cargue</b><code>esperar: segundos</code><code>esperar: 5</code></div>
+        </div>
+        <h3 class="lb-ay-sub">También entiende frases</h3>
+        <ul class="lb-ay-frases"><li><code>selecciona mensual</code></li><li><code>elige 2025 en ejercicio</code></li><li><code>marca DIOT</code></li><li><code>da clic en Siguiente</code></li></ul>
+        <p class="lb-ay-nota">Si algo no se encuentra, el registro de ese paso dice qué opciones hay en la pantalla (por ejemplo, las de la lista).</p>
+        <p class="lb-ay-nota lb-ay-nota--candado">Nunca pulsa presentar, enviar, firmar, pagar ni guardar, aunque se lo pidas.</p>
+    </div>
+    <div class="fc-modal__pie"><button type="button" class="ui-btn ui-btn--primario ui-btn--36" data-ayuda-cerrar>Entendido</button></div>
+</dialog>
+<script src="/admin/laboratorio/laboratorio.js?v=202611130339"></script>
 </body>
 </html>

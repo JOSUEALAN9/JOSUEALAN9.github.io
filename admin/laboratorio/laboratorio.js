@@ -78,9 +78,20 @@
         }
         return E.imagenes[k];
     }
+    function filaLista(e) {
+        // Cada opción es un botón: pulsarla agrega (o en vivo, manda) «elegir: Lista = Opción».
+        var nom = e.etiqueta || e.nombre || e.id || "Lista", fuera = e.apagadas || [];
+        var ops = (e.opciones || []).filter(function (o) { return o && fuera.indexOf(o) < 0 && !/^(selecciona|seleccione|elige)\b/i.test(o); });
+        var elegida = ops.indexOf(e.elegida) >= 0 ? e.elegida : "";
+        return "<tr><td>Lista</td><td><b>" + esc(nom) + "</b>" +
+            (e.apagado ? "<br><small>Apagada por ahora (se activa al elegir lo anterior)</small>"
+                : ops.length ? '<div class="lb-ops">' + ops.slice(0, 30).map(function (o) {
+                    return '<button type="button" class="lb-op" data-paso="' + esc("elegir: " + nom + " = " + o) + '" aria-pressed="' + (o === elegida) + '" title="Elegir ' + esc(o) + '">' + esc(o) + "</button>";
+                }).join("") + "</div>" : "<br><small>Sin opciones todavía</small>") + "</td><td></td></tr>";
+    }
     function filaMapa(e) {
-        var extra = e.clase === "lista" ? "<small>" + esc((e.etiqueta || e.nombre || e.id || "lista") + ": " + (e.opciones || []).join(" · ")) + "</small>"
-            : e.clase === "campo" ? "<small>" + esc((e.etiqueta || e.nombre || e.id || "campo") + " (" + (e.tipo || "texto") + ")") + "</small>"
+        if (e.clase === "lista") return filaLista(e);
+        var extra = e.clase === "campo" ? "<small>" + esc((e.etiqueta || e.nombre || e.id || "campo") + " (" + (e.tipo || "texto") + ")") + "</small>"
             : e.clase === "enlace" && e.destino ? "<small>" + esc(e.destino) + "</small>"
             : e.clase === "casilla" ? "<small>" + (e.marcada ? "Marcada" : "Sin marcar") + "</small>" : "";
         var accion = "";
@@ -95,9 +106,10 @@
         if (!c.en_vivo) return "";
         var estado = c.cola ? "Haciendo tu paso…" : c.esperando ? "Esperando tu siguiente paso" : "Haciendo los pasos iniciales…";
         return '<form class="lb-vivo" id="lb-vivo"><div class="lb-vivo__estado"><i aria-hidden="true"></i><b>En vivo</b><span>' + esc(estado) + "</span></div>" +
-            '<div class="lb-vivo__fila"><input class="ui-input" id="lb-vivo-paso" autocomplete="off" spellcheck="false" maxlength="300" placeholder="clic: Siguiente · marcar: DIOT · elegir: Ejercicio = 2025" aria-label="Paso para mandar">' +
+            '<div class="lb-vivo__fila"><input class="ui-input" id="lb-vivo-paso" autocomplete="off" spellcheck="false" maxlength="300" placeholder="Ej.: selecciona mensual · marca DIOT · clic: Siguiente" aria-label="Paso para mandar">' +
             '<button type="submit" class="ui-btn ui-btn--primario ui-btn--28">Mandar</button></div>' +
-            "<small>«+ paso» en el mapa también lo manda en este momento. Lo que presenta, envía, firma o paga sigue bloqueado.</small></form>";
+            "<small>«+ paso» y las opciones de las listas en el mapa también lo mandan en este momento. Lo que presenta, envía, firma o paga sigue bloqueado. " +
+            '<button type="button" class="lb-enlace" data-ayuda>¿Cómo escribo un paso?</button></small></form>';
     }
     async function mandarPaso(paso) {
         var c = E.corrida;
@@ -177,6 +189,11 @@
     }
 
     $("lb-receta").addEventListener("change", cambioReceta);
+    document.addEventListener("click", function (e) {
+        var d = $("lb-ayuda");
+        if (e.target.closest("[data-ayuda]")) { e.preventDefault(); d.showModal(); return; }
+        if (e.target.closest("[data-ayuda-cerrar]") || e.target === d) d.close();
+    });
     $("lb-en-vivo").addEventListener("change", cambioReceta);
     $("lb-detalle").addEventListener("submit", async function (e) {
         if (e.target.id !== "lb-vivo") return;
