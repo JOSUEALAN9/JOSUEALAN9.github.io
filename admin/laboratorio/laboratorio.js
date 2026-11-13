@@ -44,6 +44,9 @@
         $("lb-dia-caja").hidden = !g || !!r.sin_navegador;          // la prueba sin navegador usa un mes completo
         $("lb-mes-caja").hidden = !r.sin_navegador;
         $("lb-pasos-caja").hidden = g;
+        var cuadro = $("lb-pasos"), sug = r.pasos || "";             // la receta trae el camino que ya funcionó (DIOT)
+        if (!g && (!cuadro.value.trim() || cuadro.value === E.sugeridos)) cuadro.value = sug;
+        E.sugeridos = sug;
         $("lb-vivo-caja").hidden = g;
         if (g) $("lb-en-vivo").checked = false;
         if (!CANDADO.recorrido) CANDADO.recorrido = $("lb-candado-txt").textContent;
@@ -78,10 +81,13 @@
         }
         return E.imagenes[k];
     }
+    function opcionesValidas(e) {
+        var fuera = e.apagadas || [];
+        return (e.opciones || []).filter(function (o) { return o && fuera.indexOf(o) < 0 && !/^(selecciona|seleccione|elige|sin selecci)/i.test(o); });
+    }
     function filaLista(e) {
         // Cada opción es un botón: pulsarla agrega (o en vivo, manda) «elegir: Lista = Opción».
-        var nom = e.etiqueta || e.nombre || e.id || "Lista", fuera = e.apagadas || [];
-        var ops = (e.opciones || []).filter(function (o) { return o && fuera.indexOf(o) < 0 && !/^(selecciona|seleccione|elige)\b/i.test(o); });
+        var nom = e.etiqueta || e.nombre || e.id || "Lista", ops = opcionesValidas(e);
         var elegida = ops.indexOf(e.elegida) >= 0 ? e.elegida : "";
         return "<tr><td>Lista</td><td><b>" + esc(nom) + "</b>" +
             (e.apagado ? "<br><small>Apagada por ahora (se activa al elegir lo anterior)</small>"
@@ -110,6 +116,42 @@
             '<button type="submit" class="ui-btn ui-btn--primario ui-btn--28">Mandar</button></div>' +
             "<small>«+ paso» y las opciones de las listas en el mapa también lo mandan en este momento. Lo que presenta, envía, firma o paga sigue bloqueado. " +
             '<button type="button" class="lb-enlace" data-ayuda>¿Cómo escribo un paso?</button></small></form>';
+    }
+    // «En esta pantalla» (dentro de la ayuda): las instrucciones listas para la pantalla que estás viendo.
+    function pintarAyuda() {
+        var caja = $("lb-ay-aqui"), c = E.corrida, p = c && (c.registro || [])[E.paso];
+        var els = (p && p.elementos) || [], orden = { casilla: 0, lista: 1, boton: 2, enlace: 3 }, filas = [], visto = {};
+        els.filter(function (e) { return !e.bloqueado && !e.apagado && orden[e.clase] !== undefined; })
+            .sort(function (a, b) { return orden[a.clase] - orden[b.clase]; })
+            .forEach(function (e) {
+                if (filas.length >= 14) return;
+                if (e.clase === "lista") {
+                    var nom = e.etiqueta || e.nombre || e.id, ops = opcionesValidas(e);
+                    if (!nom || !ops.length || visto["l" + nom]) return;
+                    visto["l" + nom] = 1;
+                    filas.push('<div class="lb-ay-aqui__fila"><span>Elegir en «' + esc(nom) + '»</span><div class="lb-ops">' + ops.slice(0, 12).map(function (o) {
+                        return '<button type="button" class="lb-op" data-ayuda-paso="' + esc("elegir: " + nom + " = " + o) + '">' + esc(o) + "</button>";
+                    }).join("") + "</div></div>");
+                    return;
+                }
+                if (!e.texto) return;
+                var paso = (e.clase === "casilla" ? "marcar: " : "clic: ") + e.texto;
+                if (visto[paso]) return;
+                visto[paso] = 1;
+                var que = e.clase === "casilla" ? (e.marcada ? "Desmarcar (ya está marcada)" : "Marcar la casilla") : e.clase === "boton" ? "Pulsar el botón" : "Abrir el enlace";
+                filas.push('<div class="lb-ay-aqui__fila"><span>' + que + '</span><button type="button" class="lb-ay-paso" data-ayuda-paso="' + esc(paso) + '">' + esc(paso) + "</button></div>");
+            });
+        caja.hidden = !filas.length;
+        if (filas.length) caja.innerHTML = '<h3 class="lb-ay-sub">En esta pantalla <small>(paso ' + p.n + ")</small></h3>" +
+            '<p class="lb-ay-nota" style="margin:0 0 10px">' + (c.en_vivo ? "Pulsa una y se manda en este momento." : "Pulsa una y se agrega al cuadro de pasos.") + "</p>" +
+            '<div class="lb-ay-aqui__lista">' + filas.join("") + "</div>";
+    }
+    function agregarPaso(paso) {
+        var t = $("lb-pasos"), c = E.corrida;
+        if (!t.value.trim() && c) t.value = (c.instrucciones || "").trim();
+        t.value = (t.value.trim() ? t.value.trim() + "\n" : "") + paso;
+        if (c) { $("lb-empresa").value = c.rfc; $("lb-receta").value = c.receta; cambioReceta(); if (c.receta === "libre") $("lb-url").value = c.url; }
+        Fiscontable.toast("Paso agregado al formulario: " + paso);
     }
     async function mandarPaso(paso) {
         var c = E.corrida;
@@ -191,7 +233,9 @@
     $("lb-receta").addEventListener("change", cambioReceta);
     document.addEventListener("click", function (e) {
         var d = $("lb-ayuda");
-        if (e.target.closest("[data-ayuda]")) { e.preventDefault(); d.showModal(); return; }
+        if (e.target.closest("[data-ayuda]")) { e.preventDefault(); pintarAyuda(); d.showModal(); return; }
+        var ap = e.target.closest("[data-ayuda-paso]");
+        if (ap) { d.close(); if (E.corrida && E.corrida.en_vivo) mandarPaso(ap.dataset.ayudaPaso); else agregarPaso(ap.dataset.ayudaPaso); return; }
         if (e.target.closest("[data-ayuda-cerrar]") || e.target === d) d.close();
     });
     $("lb-en-vivo").addEventListener("change", cambioReceta);
@@ -221,14 +265,7 @@
         var ir = e.target.closest("[data-ir]"), mas = e.target.closest("[data-paso]"), h = e.target.closest("[data-hacer]"), c = E.corrida;
         if (ir) { E.paso = +ir.dataset.ir; pintarDetalle(); return; }
         if (mas && c && c.en_vivo) { mandarPaso(mas.dataset.paso); return; }
-        if (mas) {
-            var t = $("lb-pasos");
-            if (!t.value.trim() && c) t.value = (c.instrucciones || "").trim();
-            t.value = (t.value.trim() ? t.value.trim() + "\n" : "") + mas.dataset.paso;
-            if (c) { $("lb-empresa").value = c.rfc; $("lb-receta").value = c.receta; cambioReceta(); if (c.receta === "libre") $("lb-url").value = c.url; }
-            Fiscontable.toast("Paso agregado al formulario: " + mas.dataset.paso);
-            return;
-        }
+        if (mas) { agregarPaso(mas.dataset.paso); return; }
         if (!h || !c) return;
         try {
             if (h.dataset.hacer === "detener") {

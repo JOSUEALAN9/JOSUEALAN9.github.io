@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex">
     <title>Laboratorio · Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611130339">
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611130339">
+    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611130409">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611130409">
     <style>
         .lb { display: grid; gap: var(--e-4); grid-template-columns: minmax(0, 1fr); }
         @media (min-width: 1080px) { .lb { grid-template-columns: 380px minmax(0, 1fr); align-items: start; } }
@@ -85,13 +85,22 @@
         .lb-ay-frases { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; }
         .lb-ay-nota { margin: 16px 0 0; font-size: var(--t-12); line-height: 1.5; color: rgb(var(--g-600)); }
         .lb-ay-nota--candado { margin-top: 8px; color: rgb(var(--ok-700)); }
+        .lb-ay-aqui { margin: 0 0 18px; padding: 14px; border: 1px solid rgb(var(--ac-600) / .35); border-radius: 10px; background: rgb(var(--ac-600) / .04); }
+        .lb-ay-aqui .lb-ay-sub { margin-top: 0; }
+        .lb-ay-aqui .lb-ay-sub small { font-weight: 400; color: rgb(var(--g-500)); }
+        .lb-ay-aqui__lista { display: grid; gap: 6px; max-height: 260px; overflow-y: auto; }
+        .lb-ay-aqui__fila { display: grid; grid-template-columns: minmax(0, 150px) minmax(0, 1fr); gap: 10px; align-items: center; font-size: var(--t-12); color: rgb(var(--g-600)); }
+        .lb-ay-aqui__fila .lb-ops { margin: 0; }
+        .lb-ay-paso { justify-self: start; max-width: 100%; border: 1px solid rgb(var(--g-300)); background: rgb(var(--g-0)); border-radius: 6px; padding: 3px 8px; font-family: var(--fuente-mono, ui-monospace, monospace); font-size: 12px; color: rgb(var(--g-900)); cursor: pointer; text-align: left; overflow-wrap: anywhere; }
+        .lb-ay-paso:hover { background: rgb(var(--g-100)); }
+        @media (max-width: 640px) { .lb-ay-aqui__fila { grid-template-columns: minmax(0, 1fr); gap: 4px; } .lb-ay-aqui__lista { max-height: none; } }
         @media (max-width: 640px) { .lb-ay__cab { display: none; } .lb-ay__fila { grid-template-columns: minmax(0, 1fr); gap: 6px; } }
     </style>
 </head>
 <body class="min-h-screen flex flex-col">
 <div id="app-header" data-modulo="admin" data-titulo="Laboratorio" data-migas="Administración|/admin/"></div>
-<script src="/assets/js/nucleo.js?v=202611130339"></script>
-<script src="/assets/js/barra.js?v=202611130339"></script>
+<script src="/assets/js/nucleo.js?v=202611130409"></script>
+<script src="/assets/js/barra.js?v=202611130409"></script>
 
 <main class="flex-grow mod-pagina" style="max-width:none">
     <div class="mod-cabeza" style="margin-bottom:var(--e-4)">
@@ -145,6 +154,7 @@
         <p>Un paso por renglón. No importan acentos ni mayúsculas, y basta con parte del texto.</p></div>
         <button type="button" class="fc-modal__cerrar" data-ayuda-cerrar aria-label="Cerrar">×</button></div>
     <div class="fc-modal__cuerpo">
+        <section id="lb-ay-aqui" class="lb-ay-aqui" hidden></section>
         <p class="lb-ay-tip"><b>Lo más fácil:</b> en el mapa de cada pantalla pulsa «+ paso» junto a lo que quieras. En las listas, pulsa directamente la opción (por ejemplo «1-Mensual»).</p>
         <div class="lb-ay">
             <div class="lb-ay__cab"><span>Qué quieres hacer</span><span>Escríbelo así</span><span>Ejemplo</span></div>
@@ -153,14 +163,16 @@
             <div class="lb-ay__fila"><b>Elegir en una lista</b><code>elegir: lista = opción</code><code>elegir: Periodicidad = 1-Mensual</code></div>
             <div class="lb-ay__fila"><b>Elegir sin saber qué lista es</b><code>elegir: opción</code><code>elegir: 1-Mensual</code></div>
             <div class="lb-ay__fila"><b>Esperar a que cargue</b><code>esperar: segundos</code><code>esperar: 5</code></div>
+            <div class="lb-ay__fila"><b>Volver a ver la pantalla</b><code>actualizar</code><code>actualizar</code></div>
+            <div class="lb-ay__fila"><b>Cerrar una ventanita</b><code>tecla: Escape</code><code>tecla: Escape</code></div>
         </div>
         <h3 class="lb-ay-sub">También entiende frases</h3>
         <ul class="lb-ay-frases"><li><code>selecciona mensual</code></li><li><code>elige 2025 en ejercicio</code></li><li><code>marca DIOT</code></li><li><code>da clic en Siguiente</code></li></ul>
-        <p class="lb-ay-nota">Si algo no se encuentra, el registro de ese paso dice qué opciones hay en la pantalla (por ejemplo, las de la lista).</p>
+        <p class="lb-ay-nota">Si hay una ventanita abierta, «clic» busca primero dentro de ella (por ejemplo su «Cerrar» o «Aceptar»). Si algo no se encuentra, el registro de ese paso dice qué opciones hay en la pantalla.</p>
         <p class="lb-ay-nota lb-ay-nota--candado">Nunca pulsa presentar, enviar, firmar, pagar ni guardar, aunque se lo pidas.</p>
     </div>
     <div class="fc-modal__pie"><button type="button" class="ui-btn ui-btn--primario ui-btn--36" data-ayuda-cerrar>Entendido</button></div>
 </dialog>
-<script src="/admin/laboratorio/laboratorio.js?v=202611130339"></script>
+<script src="/admin/laboratorio/laboratorio.js?v=202611130409"></script>
 </body>
 </html>
