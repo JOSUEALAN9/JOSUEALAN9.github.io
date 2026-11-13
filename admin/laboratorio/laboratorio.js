@@ -34,7 +34,7 @@
         cambioReceta();
     }
     var CANDADO = { recorrido: "", grabacion: "No tiene efecto ante el SAT: solo consulta y no abre notificaciones. No guarda contraseñas, sesiones, el RFC ni los documentos.",
-        sin_navegador: "No tiene efecto ante el SAT: solo consulta. Registra los tiempos de cada paso; no guarda contraseñas, sesiones, el RFC ni los documentos." };
+        sin_navegador: "No tiene efecto ante el SAT: solo consulta y no gasta cupo de descargas. Registra los tiempos de cada paso y, si algo falla, en qué paso y qué contestó el SAT; no guarda contraseñas, sesiones, el RFC ni los documentos." };
     function esGrabacion(clave) { return !!(E.datos.recetas.find(function (x) { return x.clave === clave; }) || {}).grabacion; }
     function cambioReceta() {
         var r = E.datos.recetas.find(function (x) { return x.clave === $("lb-receta").value; }) || {}, g = !!r.grabacion;

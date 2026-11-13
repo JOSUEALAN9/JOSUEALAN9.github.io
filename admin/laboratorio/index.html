@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex">
     <title>Laboratorio · Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611130316">
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611130316">
+    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611130331">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611130331">
     <style>
         .lb { display: grid; gap: var(--e-4); grid-template-columns: minmax(0, 1fr); }
         @media (min-width: 1080px) { .lb { grid-template-columns: 380px minmax(0, 1fr); align-items: start; } }
@@ -72,8 +72,8 @@
 </head>
 <body class="min-h-screen flex flex-col">
 <div id="app-header" data-modulo="admin" data-titulo="Laboratorio" data-migas="Administración|/admin/"></div>
-<script src="/assets/js/nucleo.js?v=202611130316"></script>
-<script src="/assets/js/barra.js?v=202611130316"></script>
+<script src="/assets/js/nucleo.js?v=202611130331"></script>
+<script src="/assets/js/barra.js?v=202611130331"></script>
 
 <main class="flex-grow mod-pagina" style="max-width:none">
     <div class="mod-cabeza" style="margin-bottom:var(--e-4)">
@@ -91,8 +91,13 @@
                 <fieldset class="lb-campo" id="lb-grab-caja" hidden style="border:0;padding:0;margin:0"><span id="lb-grab-titulo">Qué grabar</span>
                     <label class="lb-check"><input type="checkbox" name="lb-parte" value="buzon" checked> Buzón Tributario</label>
                     <label class="lb-check"><input type="checkbox" name="lb-parte" value="declaraciones" checked> Declaraciones del portal anterior</label>
-                    <label class="lb-check"><input type="checkbox" name="lb-parte" value="facturas" checked> Facturas del portal</label></fieldset>
-                <label class="lb-campo" id="lb-ejercicio-caja" hidden>Ejercicio de las declaraciones<input class="ui-input" id="lb-ejercicio" type="number" min="2000" max="2100" step="1"><small>Uno con pocas declaraciones.</small></label>
+                    <label class="lb-check"><input type="checkbox" name="lb-parte" value="facturas" checked> Facturas del portal</label>
+                    <label class="lb-check"><input type="checkbox" name="lb-parte" value="constancia" checked> Constancia de situación fiscal</label>
+                    <label class="lb-check"><input type="checkbox" name="lb-parte" value="opinion" checked> Opinión de cumplimiento 32-D</label>
+                    <label class="lb-check"><input type="checkbox" name="lb-parte" value="declaraciones_nuevo" checked> Declaraciones del portal nuevo</label>
+                    <label class="lb-check"><input type="checkbox" name="lb-parte" value="ws_cfdi" checked> Descarga masiva por Web Service (acceso)</label>
+                    <label class="lb-check"><input type="checkbox" name="lb-parte" value="ws_retenciones" checked> Retenciones por Web Service (acceso)</label></fieldset>
+                <label class="lb-campo" id="lb-ejercicio-caja" hidden>Ejercicio de las declaraciones<input class="ui-input" id="lb-ejercicio" type="number" min="2000" max="2100" step="1"><small>Uno con pocas declaraciones (portal anterior y nuevo).</small></label>
                 <label class="lb-campo" id="lb-dia-caja" hidden>Día de las facturas<input class="ui-input" id="lb-dia" type="date"><small>Uno con pocas facturas.</small></label>
                 <label class="lb-campo" id="lb-mes-caja" hidden>Mes de las facturas<input class="ui-input" id="lb-mes" type="month"><small>Uno con bastantes facturas: se comparan una por una con las que ya tiene Fiscontable.</small></label>
                 <label class="lb-campo" id="lb-pasos-caja">Pasos, uno por renglón <textarea class="lb-texto" id="lb-pasos" spellcheck="false" placeholder="clic: Consultar&#10;elegir: Ejercicio = 2026&#10;esperar: 3"></textarea>
@@ -117,6 +122,6 @@
         <section class="lb-tarjeta" id="lb-detalle"><div class="ui-vacio"><b>Elige un recorrido</b><span>o lanza uno nuevo: aquí verás cada pantalla con su captura y su mapa de botones.</span></div></section>
     </div>
 </main>
-<script src="/admin/laboratorio/laboratorio.js?v=202611130316"></script>
+<script src="/admin/laboratorio/laboratorio.js?v=202611130331"></script>
 </body>
 </html>
