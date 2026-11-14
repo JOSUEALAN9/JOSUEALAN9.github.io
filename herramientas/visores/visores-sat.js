@@ -143,7 +143,7 @@
         $("vs-leer").disabled = true; decir("Pidiendo la lectura…");
         try {
             await api("/api/visores/sat/leer", { method: "POST", headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ rfc: S.empresa.rfc, ejercicio: anio, visor: $("vs-visor").value || "ingresos_egresos" }) });
+                body: JSON.stringify({ rfc: S.empresa.rfc, ejercicio: anio, visor: $("vs-visor").value || "facturas" }) });
             decir("Leyendo el visor del SAT. Puedes seguir trabajando: al terminar aparece aquí y en la campana.");
             cargar(true);
         } catch (e) { decir(e.message, true); $("vs-leer").disabled = false; }
