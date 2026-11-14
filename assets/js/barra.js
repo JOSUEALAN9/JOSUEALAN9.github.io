@@ -632,7 +632,10 @@
                 ? '<label class="ui-riel__buscar" data-nombre="' + esc(b.texto) + '">' + ico(D.buscar, 2) + '<input type="search" autocomplete="off" placeholder="' + esc(b.texto) + '" aria-label="' + esc(b.texto) + '"></label>'
                 : '<button type="button" class="ui-riel__buscar" data-nombre="' + esc(b.texto + (b.atajo ? " (" + b.atajo + ")" : "")) + '">' + ico(D.buscar, 2) +
                   '<span class="ui-riel__texto">' + esc(b.texto) + "</span>" + (b.atajo ? "<kbd>" + esc(b.atajo) + "</kbd>" : "") + "</button>") +
-            '<div class="ui-riel__lista">' + lista(op.grupos || []) + "</div>" + plegar;
+            '<div class="ui-riel__lista">' + lista(op.grupos || []) + "</div>" +
+            // «Informar un error» siempre a la vista (computadora): al pie de la barra, sobre «Contraer»
+            '<button type="button" class="ui-riel__plegar ui-riel__reportar" data-informar-error aria-label="Informar un error" data-nombre="Informar un error">' +
+            ico(D.alerta, 1.8) + '<span class="ui-riel__texto">Informar un error</span></button>' + plegar;
         var caja = nav.querySelector(".ui-riel__lista"), entrada = nav.querySelector(".ui-riel__buscar input");
         // Menú flotante del grupo (plegada): sale junto a su ícono al pasar el cursor, con Tab o con un toque
         function cerrarFlotantes(salvo) {
@@ -705,6 +708,14 @@
     // Ajustes trae su propia barra (la misma pieza): misma estructura de página desde el primer pintado
     if (clave === "configuracion" && !document.documentElement.classList.contains("fc-incrustado")) document.documentElement.classList.add("fc-con-riel");
     var rielModulos = null;
+    // «Informar un error» siempre a la vista en el teléfono (en computadora va al pie de la barra lateral)
+    if (document.getElementById("app-header") && !document.documentElement.classList.contains("fc-incrustado") && !document.getElementById("fc-reportar")) {
+        var reportar = document.createElement("button");
+        reportar.type = "button"; reportar.id = "fc-reportar"; reportar.className = "fc-reportar";
+        reportar.setAttribute("data-informar-error", ""); reportar.setAttribute("aria-label", "Informar un error"); reportar.title = "Informar un error";
+        reportar.innerHTML = ico(D.alerta, 1.9);
+        document.body.appendChild(reportar);
+    }
     // Íconos de grupo (barra plegada): distintos entre sí y de los de sus módulos
     var ICONO_GRUPO = {
         "Comprobantes": "M14 3H6a2 2 0 00-2 2v14a2 2 0 002 2h12a2 2 0 002-2V9zM14 3v6h6M10 12l-2 2.5 2 2.5M14 12l2 2.5-2 2.5",

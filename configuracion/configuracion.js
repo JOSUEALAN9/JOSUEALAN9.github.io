@@ -606,7 +606,7 @@
             });
             $("cf-av-resumen-ya").addEventListener("click", async function () {
                 var b = this; b.disabled = true; aviso(cajaResumen, true, "Armándolo…");
-                try { var r = await enviar("/api/actividad/resumen-ahora", "POST", {}); aviso(cajaResumen, true, "✓ Enviado a " + r.destino + "."); }
+                try { var r = await enviar("/api/actividad/resumen-ahora", "POST", {}); aviso(cajaResumen, true, r.mensaje || ("✓ Enviado a " + r.destino + ".")); }
                 catch (er) { aviso(cajaResumen, false, er.message); }
                 finally { b.disabled = false; }
             });

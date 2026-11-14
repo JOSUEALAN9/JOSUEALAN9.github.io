@@ -2095,3 +2095,17 @@ tr[tabindex="0"]:focus-visible, [tabindex="0"]:focus-visible { outline: 2px soli
     border-top-color: #fff; animation: fc-gira .8s linear infinite; }
 .fc-reconecta--sin-red::before { animation: none; border-color: #F59E0B; }
 .fc-reconecta[hidden] { display: none; }
+
+/* «Informar un error» siempre a la vista: botón redondo abajo a la izquierda en el teléfono; en computadora va al pie
+   de la barra lateral (ui-riel__reportar), así que el redondo se esconde ahí */
+.fc-reportar { position: fixed; left: 14px; bottom: calc(14px + env(safe-area-inset-bottom, 0px)); z-index: 55; width: 42px; height: 42px;
+    display: grid; place-items: center; padding: 0; border: 1px solid var(--linea); border-radius: 999px; background: rgb(var(--g-0));
+    color: rgb(var(--g-600)); box-shadow: var(--sombra-2); cursor: pointer; }
+.fc-reportar:hover { color: rgb(var(--g-900)); }
+.fc-reportar:focus-visible { outline: 2px solid rgb(var(--ac-600)); outline-offset: 2px; }
+.fc-reportar svg { width: 20px; height: 20px; }
+html.fc-incrustado .fc-reportar { display: none; }
+.ui-riel__reportar { border-top: 1px solid var(--linea); }
+.ui-riel__reportar + .ui-riel__plegar { border-top: 0; }
+@media (min-width: 1024px) { html.fc-con-lateral .fc-reportar, html.fc-con-riel .fc-reportar { display: none; } }
+@media print { .fc-reportar { display: none; } }
