@@ -38,10 +38,10 @@
         if (curso.length) {
             caja.innerHTML = '<span class="vn-punto vn-punto--curso"></span>Leyendo ' + curso.map(function (x) { return NOMBRE_VISOR[x.visor] || x.visor; }).join(" y ") +
                 " en el SAT… puedes seguir trabajando; se actualiza solo.";
-            $("vn-leer").disabled = true;
+            $("vn-leer").disabled = true; $("vn-leer-caja").classList.add("vn-leer--ocupado");
             return;
         }
-        $("vn-leer").disabled = false;
+        $("vn-leer").disabled = false; $("vn-leer-caja").classList.remove("vn-leer--ocupado");
         var partes = [], f = d.lecturas.facturas, n = d.lecturas.nomina_patron;
         if (f) partes.push("facturas el " + cuando(f.terminada || f.creada));
         if (n) partes.push("nómina el " + cuando(n.terminada || n.creada));
@@ -66,13 +66,19 @@
             return;
         }
         var bien = function (x) { return x && x.xml && !x.xml.meses_con_diferencia ? "vn-bien" : "vn-ojo"; };
-        if (r.emitidas) h += cifra("Emitidas vigentes (SAT)", dinero(r.emitidas.neto), esc(num(r.emitidas.vigentes) + " facturas · " + notaXml(r.emitidas)), bien(r.emitidas), "cruce");
-        if (r.recibidas) h += cifra("Recibidas vigentes (SAT)", dinero(r.recibidas.neto), esc(num(r.recibidas.vigentes) + " facturas · " + notaXml(r.recibidas)), bien(r.recibidas), "cruce");
-        if (r.emitidas) h += cifra("IVA trasladado (SAT)", dinero(r.emitidas.iva), "en tus facturas emitidas de ingreso", "", "facturas");
+        var sinDatos = "La última lectura de facturas no trajo datos del SAT: dale «Leer ahora»";
+        var lado = function (x, titulo) {
+            if (!x) return "";
+            if (x.sin_datos) return cifra(titulo, "Sin datos", esc(sinDatos), "vn-ojo", "cambios");
+            return cifra(titulo, dinero(x.neto), esc(num(x.vigentes) + " facturas · " + notaXml(x)), bien(x), "cruce");
+        };
+        h += lado(r.emitidas, "Emitidas vigentes (SAT)") + lado(r.recibidas, "Recibidas vigentes (SAT)");
+        if (r.emitidas && !r.emitidas.sin_datos) h += cifra("IVA trasladado (SAT)", dinero(r.emitidas.iva), "en tus facturas emitidas de ingreso", "", "facturas");
         if (r.nomina && (r.nomina.sueldos || r.nomina.asimilados)) {
             var dif = r.nomina.diferencia || 0;
             h += cifra("Nómina (SAT)", dinero((r.nomina.sueldos || 0) + (r.nomina.asimilados || 0)),
-                esc("ISR retenido " + dinero(r.nomina.isr_retenido) + (Math.abs(dif) >= 1 ? " · sin enterar " + dinero(dif) : " · enterado completo")), Math.abs(dif) >= 1 ? "vn-mal" : "vn-bien", "nomina");
+                esc("ISR retenido " + dinero(r.nomina.isr_retenido) + (Math.abs(dif) >= 1 ? " · sin enterar " + dinero(dif) + " en meses ya declarados" : " · lo declarado está enterado") +
+                    (r.nomina.por_declarar ? " · por declarar " + dinero(r.nomina.por_declarar) : "")), Math.abs(dif) >= 1 ? "vn-mal" : "vn-bien", "nomina");
         } else if (d.lecturas.facturas) {
             h += cifra("Nómina (SAT)", "—", "Sin lectura de nómina este año", "", "nomina");
         }
@@ -148,7 +154,8 @@
             cifra("Sueldos y salarios (SAT)", dinero(t.sueldos), esc((t.trabajadores_sueldos || 0) + " trabajadores en el mes con más"), "") +
             cifra("Asimilados (SAT)", dinero(t.asimilados), esc((t.trabajadores_asimilados || 0) + " personas en el mes con más"), "") +
             cifra("ISR retenido (SAT)", dinero(t.isr_retenido), esc("enterado " + dinero(t.isr_enterado)), "") +
-            cifra("Retenido sin enterar", dinero(dif), Math.abs(dif) >= 1 ? "revisa tus pagos provisionales" : "todo enterado", Math.abs(dif) >= 1 ? "vn-mal" : "vn-bien") +
+            cifra("Retenido sin enterar", dinero(dif), esc((Math.abs(dif) >= 1 ? "en meses ya declarados: revisa esos pagos" : "lo declarado está enterado") +
+                (t.por_declarar ? " · por declarar " + dinero(t.por_declarar) : "")), Math.abs(dif) >= 1 ? "vn-mal" : "vn-bien") +
             "</div>";
         var celdas = function (x) {
             if (!x) return '<td class="vs-num">—</td><td class="vs-num">—</td><td class="vs-num">—</td>';
@@ -207,22 +214,27 @@
         }
     }
 
-    async function leerAhora() {
-        if (!P.empresa) return;
-        var si = await Fiscontable.confirmar({ titulo: "¿Leer los visores del SAT?",
-            texto: "Fiscontable entra con la e.firma guardada de " + (P.empresa.alias || P.empresa.rfc) + " al visor de facturas y al de nómina del patrón de " + anio() +
-                   ". Solo consulta: no presenta ni envía nada. Tarda unos minutos y puedes seguir trabajando.", si: "Leer ahora" });
-        if (!si) return;
-        $("vn-leer").disabled = true;
+    /* «Leer ahora ▾» (15-nov, Alan: «un desplegable de selección rápida: le paso el puntero o doy clic y sale ahí mismo»):
+       facturas y nómina, solo facturas o solo nómina; al elegir, empieza a leer. */
+    function menuLeer(abrir) {
+        var caja = $("vn-leer-caja");
+        caja.classList.toggle("vn-leer--abierto", abrir);
+        $("vn-leer").setAttribute("aria-expanded", String(abrir));
+    }
+    async function leerAhora(visores) {
+        if (!P.empresa || !visores.length) return;
+        menuLeer(false);
+        $("vn-leer").disabled = true; $("vn-leer-caja").classList.add("vn-leer--ocupado");
         var errores = [];
-        for (var visor of ["facturas", "nomina_patron"]) {
+        for (var visor of visores) {
             try {
                 await api("/api/visores/sat/leer", { method: "POST", headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ rfc: P.empresa.rfc, ejercicio: anio(), visor: visor }) });
             } catch (e) { errores.push(NOMBRE_VISOR[visor] + ": " + e.message); }
         }
+        $("vn-leer-caja").classList.remove("vn-leer--ocupado");
         if (errores.length) Fiscontable.toast(errores.join(" · "));
-        else Fiscontable.toast("Leyendo los visores del SAT. Al terminar se actualiza aquí y te llega a la campana.");
+        else Fiscontable.toast("Leyendo " + visores.map(function (v) { return NOMBRE_VISOR[v]; }).join(" y ") + " del SAT. Al terminar se actualiza aquí y te llega a la campana.");
         cargar();
     }
 
@@ -238,7 +250,13 @@
     async function arrancar() {
         if (!$("vn-leer") || !(await Fiscontable.exigirModulo("iva"))) return;
         $("vn-pestanas").addEventListener("click", function (e) { var b = e.target.closest("[data-vn]"); if (b) ver(b.dataset.vn); });
-        $("vn-leer").addEventListener("click", leerAhora);
+        $("vn-leer").addEventListener("click", function (e) { e.stopPropagation(); menuLeer(!$("vn-leer-caja").classList.contains("vn-leer--abierto")); });
+        $("vn-leer-menu").addEventListener("click", function (e) {
+            var b = e.target.closest("[data-leer]"); if (!b) return;
+            e.stopPropagation(); leerAhora(b.dataset.leer.split(","));
+        });
+        document.addEventListener("click", function (e) { if (!e.target.closest("#vn-leer-caja")) menuLeer(false); });
+        document.addEventListener("keydown", function (e) { if (e.key === "Escape") menuLeer(false); });
         $("vi-anio").addEventListener("change", cargar);
         document.querySelector(".mod-pagina").addEventListener("click", function (e) {
             var ir = e.target.closest("[data-ir]"); if (ir) { ver(ir.dataset.ir); return; }

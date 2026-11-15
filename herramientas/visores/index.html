@@ -4,9 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Visores del SAT · Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611151427">
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611151427">
-    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611151427">
+    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611151538">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611151538">
+    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611151538">
     <style>
         .vi-cabeza { display: flex; flex-wrap: wrap; gap: var(--e-3); align-items: center; margin-bottom: var(--e-4); }
         .vi-cabeza h1 { margin: 0; }
@@ -118,12 +118,27 @@
         .vn-tiempo time { font-size: var(--t-12); color: rgb(var(--g-500)); font-variant-numeric: tabular-nums; padding-top: 2px; }
         .vn-acciones { display: flex; gap: var(--e-2); flex-wrap: wrap; align-items: center; }
         @media (max-width: 560px) { .vn-tiempo li { grid-template-columns: minmax(0, 1fr); gap: 2px; } }
+        /* «Leer ahora ▾»: se despliega al pasar el puntero o con clic (en el celular, con toque) */
+        .vn-leer { position: relative; }
+        .vn-leer__menu { display: none; position: absolute; right: 0; top: 100%; padding-top: 6px; z-index: 30; min-width: 260px; }
+        .vn-leer__menu::before { content: ""; position: absolute; inset: 6px 0 0; background: rgb(var(--g-0)); border: 1px solid var(--linea); border-radius: 12px; box-shadow: 0 12px 28px rgba(15, 23, 42, .16); }
+        .vn-leer__menu button { position: relative; display: grid; gap: 1px; width: 100%; text-align: left; border: 0; background: none; padding: 10px 14px; font: inherit; cursor: pointer; }
+        .vn-leer__menu button:first-child { margin-top: 6px; } .vn-leer__menu button:last-child { margin-bottom: 6px; }
+        .vn-leer__menu button:hover, .vn-leer__menu button:focus-visible { background: rgb(var(--g-50)); outline: none; }
+        .vn-leer__menu b { font-size: var(--t-14); color: rgb(var(--g-900)); } .vn-leer__menu small { font-size: var(--t-12); color: rgb(var(--g-600)); }
+        .vn-leer--abierto .vn-leer__menu { display: block; }
+        @media (hover: hover) { .vn-leer:not(.vn-leer--ocupado):hover .vn-leer__menu { display: block; } }
+        .vn-elegir { gap: var(--e-3); }
+        .vn-elegir .ui-check { align-items: flex-start; gap: 10px; padding: 12px 14px; border: 1px solid var(--linea); border-radius: 12px; cursor: pointer; }
+        .vn-elegir .ui-check span { display: grid; gap: 2px; }
+        .vn-elegir .ui-check small { font-size: var(--t-12); color: rgb(var(--g-600)); font-weight: 400; }
+        .vn-elegir__msj { margin: 0; font-size: var(--t-13); color: rgb(var(--er-600)); }
     </style>
 </head>
 <body class="min-h-screen flex flex-col">
 <div id="app-header" data-modulo="visores" data-titulo="Visores del SAT" data-migas="Herramientas|/herramientas/"></div>
-<script src="/assets/js/nucleo.js?v=202611151427"></script>
-<script src="/assets/js/barra.js?v=202611151427"></script>
+<script src="/assets/js/nucleo.js?v=202611151538"></script>
+<script src="/assets/js/barra.js?v=202611151538"></script>
 
 <main class="flex-grow mod-pagina" style="max-width:none">
     <!-- 15-nov: el módulo nuevo de Visores (maqueta aprobada): una empresa, un año y cinco pestañas -->
@@ -131,7 +146,14 @@
         <h1>Visores del SAT</h1>
         <div class="vi-cabeza__der">
             <select id="vi-anio" class="ui-select" aria-label="Año"></select>
-            <button type="button" class="ui-btn ui-btn--primario" id="vn-leer" title="Lee ahora el visor de facturas y el de nómina del patrón con la e.firma guardada (solo consulta)">Leer ahora</button>
+            <div class="vn-leer" id="vn-leer-caja">
+                <button type="button" class="ui-btn ui-btn--primario" id="vn-leer" aria-haspopup="menu" aria-expanded="false" title="Lee del SAT ahora, con la e.firma guardada (solo consulta)">Leer ahora ▾</button>
+                <div class="vn-leer__menu" role="menu" id="vn-leer-menu">
+                    <button type="button" role="menuitem" data-leer="facturas,nomina_patron"><b>Facturas y nómina</b><small>Los dos visores</small></button>
+                    <button type="button" role="menuitem" data-leer="facturas"><b>Solo facturas</b><small>Emitidas y recibidas · varios minutos</small></button>
+                    <button type="button" role="menuitem" data-leer="nomina_patron"><b>Solo nómina</b><small>Nómina del patrón · segundos</small></button>
+                </div>
+            </div>
         </div>
     </div>
     <p id="vn-estado" class="vn-estado" role="status"></p>
@@ -182,9 +204,9 @@
     </div>
 </main>
 
-<script src="/assets/js/comun/tabla.js?v=202611151427"></script>
-<script src="/herramientas/visores/visores.js?v=202611151427"></script>
-<script src="/herramientas/visores/visores-sat.js?v=202611151427"></script>
-<script src="/herramientas/visores/visores-panel.js?v=202611151427"></script>
+<script src="/assets/js/comun/tabla.js?v=202611151538"></script>
+<script src="/herramientas/visores/visores.js?v=202611151538"></script>
+<script src="/herramientas/visores/visores-sat.js?v=202611151538"></script>
+<script src="/herramientas/visores/visores-panel.js?v=202611151538"></script>
 </body>
 </html>
