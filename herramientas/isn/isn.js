@@ -480,15 +480,22 @@
         $("p-revisar").disabled = false;
     }
 
+    // Presentar: una sola ventana con lo que va (empresa, mes, trabajadores, a cargo) y el PIN (14-nov)
+    function presentarIsn(ids, mes) {
+        return Fiscontable.presentarConPin({ revisar: "/api/isn/presentar/revisar", presentar: "/api/isn/presentar", ids: ids,
+            titulo: "Presentar ISN de " + mes, aviso: "Se presentan ante la SEFIPLAN (Tributanet) con los datos capturados:",
+            detalle: function (x) { return x.mes_nombre + " " + x.anio + " · " + x.trabajadores + " trabajador(es)" + (x.sucursales > 1 ? " · " + x.sucursales + " sucursales" : ""); } });
+    }
+
     async function enviarLote() {
         var ids = elegidos();
         if (!ids.length) return;
         var mes = MESES[+$("p-mes").value - 1] + " " + $("p-anio").value;
-        if (!(await Fiscontable.preguntar("Se van a PRESENTAR " + ids.length + " declaración(es) de ISN de " + mes + " ante la SEFIPLAN.\n\n¿Todo bien? Esto no se puede deshacer."))) return;
         $("p-enviar").disabled = true;
         try {
+            var r = await presentarIsn(ids, mes);
+            if (!r) { $("p-enviar").disabled = false; return; }
             panelAvance.cerrar();
-            var r = await json("/api/isn/presentar", "POST", { ids: ids });
             $("modal-presentar").hidden = true;
             seguir(r.job_id, "Presentando " + mes);
         } catch (e) { $("p-error").textContent = e.message; $("p-error").hidden = false; $("p-enviar").disabled = false; }
@@ -612,13 +619,11 @@
         var noVan = marcadas.filter(function (x) { return van.indexOf(x) === -1; });
         if (!van.length) return;
         var mes = MESES[+$("mv-mes").value - 1] + " " + $("mv-anio").value;
-        if (!(await Fiscontable.preguntar("Se van a PRESENTAR " + van.length + " declaración(es) de ISN de " + mes + " ante la SEFIPLAN:\n\n" +
-                     van.map(function (x) { return "• " + (x.nombre || x.rfc) + " — a cargo $" + m(x.periodo.a_cargo); }).join("\n") +
-                     (noVan.length ? "\n\nNo van (no están listas o no tienen captura): " + noVan.map(function (x) { return x.nombre || x.rfc; }).join(", ") : "") +
-                     "\n\n¿Todo bien? Esto no se puede deshacer."))) return;
+        if (noVan.length) aviso("No van (no están listas o no tienen captura): " + noVan.map(function (x) { return x.nombre || x.rfc; }).join(", "));
         try {
+            var r = await presentarIsn(van.map(function (x) { return x.periodo.id; }), mes);
+            if (!r) return;
             panelAvance.cerrar();
-            var r = await json("/api/isn/presentar", "POST", { ids: van.map(function (x) { return x.periodo.id; }) });
             seguir(r.job_id, "Presentando " + mes, cargarMasivo);
         } catch (e) { aviso(e.message, true); }
     }

@@ -327,7 +327,6 @@
                 ? '<p class="cf-texto">Crea un PIN nuevo. Disponible ' + min + " minutos después de iniciar sesión.</p>" +
                   '<div class="cf-campos"><label class="cf-campo"><span>PIN nuevo <i>(4 a 6 números)</i></span><input id="cf-bl-nuevo" type="password" inputmode="numeric" maxlength="6" autocomplete="new-password"></label></div>' +
                   '<div class="cf-acciones"><button type="button" class="cf-btn cf-btn--principal" id="cf-bl-rest">Guardar PIN nuevo</button>' +
-                  '<button type="button" class="cf-btn" id="cf-bl-rest-quitar">Quitar PIN</button>' +
                   '<button type="button" class="cf-btn" id="cf-bl-cancelar">Cancelar</button><span class="cf-msj"></span></div>'
                 : '<p class="cf-texto">Para crear un PIN nuevo, vuelve a iniciar sesión.</p>' +
                   '<div class="cf-acciones"><button type="button" class="cf-btn cf-btn--principal" id="cf-bl-reentrar">Volver a iniciar sesión</button>' +
@@ -357,7 +356,6 @@
                     if (!pin) { aviso(caja, false, "Escribe el PIN nuevo."); return; }
                     restablecer(pin);
                 });
-                $("cf-bl-rest-quitar").addEventListener("click", function () { restablecer(null); });
             }
             return;
         }
@@ -371,7 +369,7 @@
             [5, 10, 15, 20, 30, 45, 60].map(function (m) { return '<option value="' + m + '"' + (m === b.minutos ? " selected" : "") + ">" + m + " minutos sin uso</option>"; }).join("") +
             "</select></label></div>" +
             '<div class="cf-acciones" id="cf-bl-botones">' + (b.tiene_pin
-                ? '<button type="button" class="cf-btn" data-bl="cambiar">Cambiar PIN</button><button type="button" class="cf-btn" data-bl="quitar">Quitar PIN</button>' +
+                ? '<button type="button" class="cf-btn" data-bl="cambiar">Cambiar PIN</button>' +
                   '<button type="button" class="cf-link" data-bl="olvide">Olvidé mi PIN</button>'
                 : '<button type="button" class="cf-btn cf-btn--principal" data-bl="crear">Crear PIN</button>') + '<span class="cf-msj"></span></div>' +
             '<div id="cf-bl-forma" hidden></div>';
@@ -632,8 +630,18 @@
                 c.querySelectorAll("[data-tipo]").forEach(function (x) { correo[x.dataset.tipo] = x.checked; });
                 var dias = $("cf-av-dias").value.split(/[^0-9]+/).map(Number).filter(function (n) { return n > 0 && n <= 365; });
                 if (!dias.length) { aviso(c, false, "Escribe al menos un número de días (por ejemplo 30, 15, 5)."); return; }
+                var destino = $("cf-av-destino").value.trim() || null;
+                var cuerpo = { correo: correo, destino: destino, dias_vence: dias };
                 try {
-                    var g = await enviar("/api/actividad/preferencias", "PUT", { correo: correo, destino: $("cf-av-destino").value.trim() || null, dias_vence: dias });
+                    var g = null;
+                    if ((destino || "").toLowerCase() !== (guardado.destino || "").toLowerCase()) {
+                        // Cambiar a dónde llegan los avisos pide el PIN (14-nov)
+                        var hecho = await Fiscontable.confirmarIdentidad("cambiar_correo_avisos", async function (conf) {
+                            g = await enviar("/api/actividad/preferencias", "PUT", Object.assign({}, cuerpo, { confirmacion: conf }));
+                        }, { titulo: "Cambiar el correo de los avisos", boton: "Cambiar",
+                             resumen: '<p class="fc-identidad__aviso">Los avisos y los correos por tema van a llegar a <b>' + esc(destino || "tu correo de la cuenta") + "</b>.</p>" });
+                        if (!hecho) return;
+                    } else g = await enviar("/api/actividad/preferencias", "PUT", cuerpo);
                     guardado = g; $("cf-av-dias").value = (g.dias_vence || dias).join(", "); aviso(c, true, "✓ Guardado.");
                 }
                 catch (e) { aviso(c, false, e.message); }

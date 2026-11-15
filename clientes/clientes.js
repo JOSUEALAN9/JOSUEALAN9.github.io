@@ -1748,14 +1748,22 @@ async function guardarEfirma() {
     formData.append("password", password);
 
     try {
-        const resp = await fetch(`${API_URL}/api/clientes/${encodeURIComponent(rfcEnEdicion)}/efirma`, {
-            method: "POST",
-            credentials: "include",
-            body: formData,
+        const yaTenia = !!(clientesCache.find(x => x.rfc === rfcEnEdicion) || {}).efirma_guardada;
+        const subir = (c) => fetch(`${API_URL}/api/clientes/${encodeURIComponent(rfcEnEdicion)}/efirma`, {
+            method: "POST", credentials: "include", body: formData, headers: c ? { "X-Confirmacion": c } : undefined,
         });
-        if (!resp.ok) {
-            mostrarMensajeEfirma("error", await interpretarError(resp));
-            return;
+        let resp = null;
+        if (yaTenia) {                                   // cambiar una e.firma guardada pide el PIN (14-nov)
+            const hecho = await conPin("cambiar_efirma", { titulo: "Cambiar la e.firma de " + rfcEnEdicion, boton: "Guardar la nueva",
+                resumen: '<p class="fc-identidad__aviso">La e.firma nueva reemplaza a la que estaba guardada.</p>' },
+                async (c) => { resp = await subir(c); return resp; });
+            if (!hecho) return;
+        } else {
+            resp = await subir(null);
+            if (!resp.ok) {
+                mostrarMensajeEfirma("error", await interpretarError(resp));
+                return;
+            }
         }
         const datos = await resp.json();
         let confirmacion = "e.firma guardada correctamente.";
@@ -1780,14 +1788,23 @@ function abrirModalEditarSinLimpiarMensaje(cliente) {
     pintarResumenFicha(cliente);
 }
 
+/* Lo delicado se confirma con el PIN en una sola ventana (14-nov): hacer(confirmacion) hace la petición con la cabecera
+   X-Confirmacion y lanza un Error con el mensaje del servidor si no salió (la ventana lo muestra y sigue abierta). */
+function conPin(accion, op, hacer) {
+    return Fiscontable.confirmarIdentidad(accion, async function (c) {
+        const resp = await hacer(JSON.stringify(c));
+        if (!resp.ok) throw new Error(await interpretarError(resp));
+        return resp;
+    }, op);
+}
+const AVISO_EFIRMA = "Lo programado con ella (constancia, opinión, XML, buzón) deja de salir hasta que la vuelvas a subir.";
+
 async function olvidarEfirmaDesdeModal() {
-    if (!(await Fiscontable.confirmar({ titulo: "¿Olvidar la e.firma guardada?", texto: "Lo programado con ella (constancia, opinión, XML, buzón) deja de salir hasta que la vuelvas a subir.", si: "Olvidar la e.firma", peligro: true, escribir: rfcEnEdicion }))) return;
     try {
-        const resp = await fetch(`${API_URL}/api/clientes/${encodeURIComponent(rfcEnEdicion)}/efirma`, {
-            method: "DELETE",
-            credentials: "include",
-        });
-        if (!resp.ok) { mostrarMensajeEfirma("error", await interpretarError(resp)); return; }
+        const hecho = await conPin("cambiar_efirma", { titulo: "Olvidar la e.firma de " + rfcEnEdicion, boton: "Olvidar la e.firma", peligro: true,
+            resumen: '<p class="fc-identidad__aviso">' + AVISO_EFIRMA + "</p>" },
+            (c) => fetch(`${API_URL}/api/clientes/${encodeURIComponent(rfcEnEdicion)}/efirma`, { method: "DELETE", credentials: "include", headers: { "X-Confirmacion": c } }));
+        if (!hecho) return;
         mostrarMensajeEfirma("exito", "e.firma eliminada.");
         await cargarClientes();
         const c = clientesCache.find(x => x.rfc === rfcEnEdicion);
@@ -1798,16 +1815,11 @@ async function olvidarEfirmaDesdeModal() {
 }
 
 async function olvidarEfirma(rfc) {
-    if (!(await Fiscontable.confirmar({ titulo: "¿Olvidar la e.firma guardada?", texto: "Lo programado con ella (constancia, opinión, XML, buzón) deja de salir hasta que la vuelvas a subir.", si: "Olvidar la e.firma", peligro: true, escribir: rfc }))) return;
     try {
-        const resp = await fetch(`${API_URL}/api/clientes/${encodeURIComponent(rfc)}/efirma`, {
-            method: "DELETE",
-            credentials: "include",
-        });
-        if (!resp.ok) {
-            mostrarAlerta("error", await interpretarError(resp));
-            return;
-        }
+        const hecho = await conPin("cambiar_efirma", { titulo: "Olvidar la e.firma de " + rfc, boton: "Olvidar la e.firma", peligro: true,
+            resumen: '<p class="fc-identidad__aviso">' + AVISO_EFIRMA + "</p>" },
+            (c) => fetch(`${API_URL}/api/clientes/${encodeURIComponent(rfc)}/efirma`, { method: "DELETE", credentials: "include", headers: { "X-Confirmacion": c } }));
+        if (!hecho) return;
         mostrarAlerta("success", "e.firma eliminada de este cliente.");
         await cargarClientes();
     } catch (error) {
@@ -1816,16 +1828,11 @@ async function olvidarEfirma(rfc) {
 }
 
 async function eliminarCliente(rfc) {
-    if (!(await Fiscontable.confirmar({ titulo: "¿Quitar a " + rfc + " de tus clientes?", texto: "No borra los documentos ya generados; solo lo saca de tu directorio y de sus programaciones.", si: "Quitar cliente", peligro: true, escribir: rfc }))) return;
     try {
-        const resp = await fetch(`${API_URL}/api/clientes/${encodeURIComponent(rfc)}`, {
-            method: "DELETE",
-            credentials: "include",
-        });
-        if (!resp.ok) {
-            mostrarAlerta("error", await interpretarError(resp));
-            return;
-        }
+        const hecho = await conPin("borrar_empresa", { titulo: "Quitar a " + rfc + " de tus clientes", boton: "Quitar cliente", peligro: true,
+            resumen: '<p class="fc-identidad__aviso">No borra los documentos ya generados; solo lo saca de tu directorio y de sus programaciones.</p>' },
+            (c) => fetch(`${API_URL}/api/clientes/${encodeURIComponent(rfc)}`, { method: "DELETE", credentials: "include", headers: { "X-Confirmacion": c } }));
+        if (!hecho) return;
         await cargarClientes();
     } catch (error) {
         mostrarAlerta("error", await interpretarError(null));

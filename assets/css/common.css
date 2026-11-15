@@ -2111,3 +2111,14 @@ html.fc-incrustado .fc-reportar { display: none; }
 @media print { .fc-reportar { display: none; } }
 /* Que el botón redondo de «Informar un error» no tape lo último de la página en el teléfono */
 @media (max-width: 1023px) { html:not(.fc-incrustado) body:has(#fc-reportar) { padding-bottom: 68px; } }
+/* Confirmar con PIN lo que se presenta: la lista va arriba del PIN, en la misma ventana */
+.fc-identidad__resumen { display: grid; gap: 10px; margin-bottom: 4px; min-width: 0; }
+.fc-identidad__aviso { margin: 0; font-size: var(--t-14); color: rgb(var(--g-800)); }
+.fc-identidad__tabla { max-height: 280px; overflow: auto; border: 1px solid var(--linea); border-radius: 10px; }
+.fc-identidad__tabla table { width: 100%; border-collapse: collapse; font-size: var(--t-13); }
+.fc-identidad__tabla th, .fc-identidad__tabla td { padding: 8px 10px; text-align: left; border-bottom: 1px solid var(--linea); }
+.fc-identidad__tabla th { position: sticky; top: 0; background: rgb(var(--g-50)); font-size: 12px; color: rgb(var(--g-600)); font-weight: 600; }
+.fc-identidad__tabla tfoot td { font-weight: 700; background: rgb(var(--g-50)); border-bottom: 0; }
+.fc-identidad__tabla .fc-num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.fc-identidad__novan { margin: 0; font-size: var(--t-13); color: rgb(var(--av-700, var(--g-700))); }
+.fc-identidad__pie { margin: 0; font-size: var(--t-13); color: rgb(var(--g-600)); }
