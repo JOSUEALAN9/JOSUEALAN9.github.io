@@ -363,6 +363,7 @@ async function cargarClientes() {
         clientesCache = await resp.json();
         await cargarObligaciones();
         renderizarClientes();
+        pintarTraspasos();
     } catch (error) {
         marcarSinConexion();
     }
@@ -503,7 +504,9 @@ function menuAcciones(c) {
             ${soloLectura ? "" : `<div class="xml-separador"></div>
             ${c.efirma_guardada ? `<button type="button" data-accion="olvidar" data-rfc="${esc(c.rfc)}">Olvidar la e.firma</button>` : ""}
             ${espacioCli && espacioCli.tipo === "personal" ? `<button type="button" data-accion="pasar" data-rfc="${esc(c.rfc)}">Pasar al despacho</button>` : ""}
-            <button type="button" data-accion="quitar" data-rfc="${esc(c.rfc)}" class="xml-peligro">Quitar del directorio</button>`}
+            <button type="button" data-accion="entregar" data-rfc="${esc(c.rfc)}">Entregar a otra cuenta</button>
+            <button type="button" data-accion="quitar" data-rfc="${esc(c.rfc)}" class="xml-peligro">Quitar del directorio</button>
+            <button type="button" data-accion="borrar-todo" data-rfc="${esc(c.rfc)}" class="xml-peligro">Borrar todo, con su historial</button>`}
         </div></div>`;
 }
 function estrella(c) {
@@ -533,6 +536,8 @@ document.addEventListener("click", async e => {
         else if (acc.dataset.accion === "olvidar") olvidarEfirma(rfc);
         else if (acc.dataset.accion === "quitar") eliminarCliente(rfc);
         else if (acc.dataset.accion === "pasar") pasarAlDespacho(rfc);
+        else if (acc.dataset.accion === "entregar") entregarEmpresa(rfc);
+        else if (acc.dataset.accion === "borrar-todo") borrarTodo(rfc);
         else if (acc.dataset.accion === "trabajar") { try { await Fiscontable.elegirEmpresa(rfc); Fiscontable.toast("Trabajando con " + rfc + "."); } catch (x) { mostrarAlerta("error", x.message); } }
         return;
     }
@@ -1748,14 +1753,22 @@ async function guardarEfirma() {
     formData.append("password", password);
 
     try {
-        const resp = await fetch(`${API_URL}/api/clientes/${encodeURIComponent(rfcEnEdicion)}/efirma`, {
-            method: "POST",
-            credentials: "include",
-            body: formData,
+        const yaTenia = !!(clientesCache.find(x => x.rfc === rfcEnEdicion) || {}).efirma_guardada;
+        const subir = (c) => fetch(`${API_URL}/api/clientes/${encodeURIComponent(rfcEnEdicion)}/efirma`, {
+            method: "POST", credentials: "include", body: formData, headers: c ? { "X-Confirmacion": c } : undefined,
         });
-        if (!resp.ok) {
-            mostrarMensajeEfirma("error", await interpretarError(resp));
-            return;
+        let resp = null;
+        if (yaTenia) {                                   // cambiar una e.firma guardada pide el PIN (14-nov)
+            const hecho = await conPin("cambiar_efirma", { titulo: "Cambiar la e.firma de " + rfcEnEdicion, boton: "Guardar la nueva",
+                resumen: '<p class="fc-identidad__aviso">La e.firma nueva reemplaza a la que estaba guardada.</p>' },
+                async (c) => { resp = await subir(c); return resp; });
+            if (!hecho) return;
+        } else {
+            resp = await subir(null);
+            if (!resp.ok) {
+                mostrarMensajeEfirma("error", await interpretarError(resp));
+                return;
+            }
         }
         const datos = await resp.json();
         let confirmacion = "e.firma guardada correctamente.";
@@ -1780,14 +1793,23 @@ function abrirModalEditarSinLimpiarMensaje(cliente) {
     pintarResumenFicha(cliente);
 }
 
+/* Lo delicado se confirma con el PIN en una sola ventana (14-nov): hacer(confirmacion) hace la petición con la cabecera
+   X-Confirmacion y lanza un Error con el mensaje del servidor si no salió (la ventana lo muestra y sigue abierta). */
+function conPin(accion, op, hacer) {
+    return Fiscontable.confirmarIdentidad(accion, async function (c) {
+        const resp = await hacer(JSON.stringify(c));
+        if (!resp.ok) throw new Error(await interpretarError(resp));
+        return resp;
+    }, op);
+}
+const AVISO_EFIRMA = "Lo programado con ella (constancia, opinión, XML, buzón) deja de salir hasta que la vuelvas a subir.";
+
 async function olvidarEfirmaDesdeModal() {
-    if (!(await Fiscontable.confirmar({ titulo: "¿Olvidar la e.firma guardada?", texto: "Lo programado con ella (constancia, opinión, XML, buzón) deja de salir hasta que la vuelvas a subir.", si: "Olvidar la e.firma", peligro: true, escribir: rfcEnEdicion }))) return;
     try {
-        const resp = await fetch(`${API_URL}/api/clientes/${encodeURIComponent(rfcEnEdicion)}/efirma`, {
-            method: "DELETE",
-            credentials: "include",
-        });
-        if (!resp.ok) { mostrarMensajeEfirma("error", await interpretarError(resp)); return; }
+        const hecho = await conPin("cambiar_efirma", { titulo: "Olvidar la e.firma de " + rfcEnEdicion, boton: "Olvidar la e.firma", peligro: true,
+            resumen: '<p class="fc-identidad__aviso">' + AVISO_EFIRMA + "</p>" },
+            (c) => fetch(`${API_URL}/api/clientes/${encodeURIComponent(rfcEnEdicion)}/efirma`, { method: "DELETE", credentials: "include", headers: { "X-Confirmacion": c } }));
+        if (!hecho) return;
         mostrarMensajeEfirma("exito", "e.firma eliminada.");
         await cargarClientes();
         const c = clientesCache.find(x => x.rfc === rfcEnEdicion);
@@ -1798,16 +1820,11 @@ async function olvidarEfirmaDesdeModal() {
 }
 
 async function olvidarEfirma(rfc) {
-    if (!(await Fiscontable.confirmar({ titulo: "¿Olvidar la e.firma guardada?", texto: "Lo programado con ella (constancia, opinión, XML, buzón) deja de salir hasta que la vuelvas a subir.", si: "Olvidar la e.firma", peligro: true, escribir: rfc }))) return;
     try {
-        const resp = await fetch(`${API_URL}/api/clientes/${encodeURIComponent(rfc)}/efirma`, {
-            method: "DELETE",
-            credentials: "include",
-        });
-        if (!resp.ok) {
-            mostrarAlerta("error", await interpretarError(resp));
-            return;
-        }
+        const hecho = await conPin("cambiar_efirma", { titulo: "Olvidar la e.firma de " + rfc, boton: "Olvidar la e.firma", peligro: true,
+            resumen: '<p class="fc-identidad__aviso">' + AVISO_EFIRMA + "</p>" },
+            (c) => fetch(`${API_URL}/api/clientes/${encodeURIComponent(rfc)}/efirma`, { method: "DELETE", credentials: "include", headers: { "X-Confirmacion": c } }));
+        if (!hecho) return;
         mostrarAlerta("success", "e.firma eliminada de este cliente.");
         await cargarClientes();
     } catch (error) {
@@ -1816,16 +1833,11 @@ async function olvidarEfirma(rfc) {
 }
 
 async function eliminarCliente(rfc) {
-    if (!(await Fiscontable.confirmar({ titulo: "¿Quitar a " + rfc + " de tus clientes?", texto: "No borra los documentos ya generados; solo lo saca de tu directorio y de sus programaciones.", si: "Quitar cliente", peligro: true, escribir: rfc }))) return;
     try {
-        const resp = await fetch(`${API_URL}/api/clientes/${encodeURIComponent(rfc)}`, {
-            method: "DELETE",
-            credentials: "include",
-        });
-        if (!resp.ok) {
-            mostrarAlerta("error", await interpretarError(resp));
-            return;
-        }
+        const hecho = await conPin("borrar_empresa", { titulo: "Quitar a " + rfc + " de tus clientes", boton: "Quitar cliente", peligro: true,
+            resumen: '<p class="fc-identidad__aviso">No borra los documentos ya generados; solo lo saca de tu directorio y de sus programaciones.</p>' },
+            (c) => fetch(`${API_URL}/api/clientes/${encodeURIComponent(rfc)}`, { method: "DELETE", credentials: "include", headers: { "X-Confirmacion": c } }));
+        if (!hecho) return;
         await cargarClientes();
     } catch (error) {
         mostrarAlerta("error", await interpretarError(null));
@@ -1894,3 +1906,103 @@ document.addEventListener("DOMContentLoaded", () => {
     });
     dlg.addEventListener("click", e => { if (e.target.closest("[data-cerrar]") || e.target === dlg) dlg.close(); });
 });
+
+
+/* ---------------------------------------------------------------- traspasos (15-nov)
+   Entregar una empresa a otra cuenta (PIN y código; la otra persona la acepta con su PIN), recibir las que te entregan,
+   pasar todas las de Mi espacio al despacho en un clic y borrar todo de una empresa (PIN y su RFC escrito). */
+async function apiJson(ruta, cuerpo) {
+    const r = await fetch(`${API_URL}${ruta}`, { method: cuerpo ? "POST" : "GET", credentials: "include",
+        headers: cuerpo ? { "Content-Type": "application/json" } : undefined, body: cuerpo ? JSON.stringify(cuerpo) : undefined });
+    if (!r.ok) throw new Error(await interpretarError(r));
+    return r.json();
+}
+const campoDialogo = (id) => { const x = document.querySelector("dialog.fc-identidad[open] #" + id); return x ? x.value.trim() : ""; };
+
+async function pintarTraspasos() {
+    const caja = document.getElementById("cli-traspasos");
+    if (!caja || soloLectura) return;
+    let d = { recibidas: [], mis_cuentas: [] };
+    try { d = await apiJson("/api/empresas/entregas"); } catch (x) { /* sin entregas */ }
+    const pend = (d.recibidas || []).filter(e => e.estado === "pendiente");
+    const e = espacioCli, personales = e && e.tipo === "personal" && e.despacho && !e.despacho.propia ? (clientesCache || []) : [];
+    caja.innerHTML = pend.map(x => `<div class="cli-traspaso"><span><b>${esc(x.quien)}</b> te quiere entregar ${x.empresas.length} empresa(s): ` +
+            `${esc(x.nombres.map(n => n.nombre).join(", "))}${x.nota ? ` <i>«${esc(x.nota)}»</i>` : ""}</span>` +
+            `<span class="cli-traspaso__acc"><button type="button" class="ui-btn ui-btn--primario ui-btn--32" data-ent-aceptar="${x.id}">Ver y aceptar</button>` +
+            `<button type="button" class="ui-btn ui-btn--secundario ui-btn--32" data-ent-rechazar="${x.id}">Rechazar</button></span></div>`).join("") +
+        (personales.length ? `<div class="cli-traspaso cli-traspaso--suave"><span>Tienes ${personales.length} empresa(s) en <b>Mi espacio</b>. ` +
+            `¿Son del despacho «${esc(e.despacho.nombre)}»?</span><span class="cli-traspaso__acc"><button type="button" class="ui-btn ui-btn--secundario ui-btn--32" data-pasar-todas>` +
+            `${e.despacho.agregar ? "Pasar todas al despacho" : "Pedir pasarlas al despacho"}</button></span></div>` : "");
+    caja.hidden = !caja.innerHTML;
+    caja._entregas = d;
+    if (/[?&]entregas=1\b/.test(location.search) && pend.length && !caja._abierta) { caja._abierta = true; aceptarEntrega(pend[0].id); }
+}
+document.addEventListener("click", (ev) => {
+    const a = ev.target.closest("[data-ent-aceptar]"), r = ev.target.closest("[data-ent-rechazar]"), p = ev.target.closest("[data-pasar-todas]");
+    if (a) aceptarEntrega(+a.dataset.entAceptar);
+    else if (r) rechazarEntrega(+r.dataset.entRechazar);
+    else if (p) pasarTodas();
+});
+
+async function entregarEmpresa(rfc) {
+    const c = (clientesCache || []).find(x => x.rfc === rfc) || { alias: rfc };
+    const hecho = await Fiscontable.confirmarIdentidad("entregar_empresas", async (conf) => {
+        const destino = campoDialogo("ent-destino");
+        if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(destino)) throw new Error("Escribe el correo de la cuenta que la recibe.");
+        await apiJson("/api/empresas/entregar", { empresas: [rfc], destino: destino, nota: campoDialogo("ent-nota"), confirmacion: conf });
+    }, { titulo: "Entregar " + (c.alias || rfc) + " a otra cuenta", boton: "Entregar",
+         resumen: '<p class="fc-identidad__aviso">Pasa con todo su historial (XML, documentos, Buzón, facturas) cuando la otra persona la acepte con su PIN. Hasta entonces no se mueve nada.</p>' +
+            '<label class="ui-campo"><span class="ui-etiqueta">Correo de la cuenta que la recibe</span><input class="ui-input" id="ent-destino" type="email" autocomplete="off" placeholder="contador@despacho.mx"></label>' +
+            '<label class="ui-campo"><span class="ui-etiqueta">Nota (opcional)</span><input class="ui-input" id="ent-nota" maxlength="200" placeholder="Ya es tu cliente desde noviembre"></label>' });
+    if (hecho) { mostrarAlerta("success", `Listo: ${c.alias || rfc} se entrega cuando la otra persona la acepte.`); pintarTraspasos(); }
+}
+
+async function aceptarEntrega(id) {
+    const d = (document.getElementById("cli-traspasos")._entregas) || await apiJson("/api/empresas/entregas");
+    const x = (d.recibidas || []).find(e => e.id === id);
+    if (!x) return;
+    const cuentas = d.mis_cuentas || [];
+    const hecho = await Fiscontable.confirmarIdentidad("aceptar_entrega", async (conf) => {
+        await apiJson(`/api/empresas/entregas/${id}/aceptar`, { cuenta_destino: campoDialogo("ent-cuenta"), confirmacion: conf });
+    }, { titulo: "Recibir " + x.empresas.length + " empresa(s) de " + x.quien, boton: "Recibir",
+         resumen: Fiscontable.resumenPresentacion({ aviso: "Pasan con todo su historial:", filas: x.nombres.map(n => ({ nombre: n.nombre, detalle: n.rfc })),
+                                                    pie: "Escribe tu PIN para recibirlas." }) +
+            (cuentas.length > 1 ? '<label class="ui-campo"><span class="ui-etiqueta">¿Dónde las recibes?</span><select class="ui-input" id="ent-cuenta">' +
+                cuentas.map(c => `<option value="${esc(c.cuenta)}">${esc(c.nombre)}</option>`).join("") + "</select></label>"
+                : `<input type="hidden" id="ent-cuenta" value="${esc((cuentas[0] || {}).cuenta || "")}">`) });
+    if (hecho) { mostrarAlerta("success", "Listo: las empresas están pasando a tu cuenta con su historial. Aparecen en unos segundos."); setTimeout(() => { cargarClientes(); pintarTraspasos(); }, 2500); }
+}
+
+async function rechazarEntrega(id) {
+    if (!(await Fiscontable.confirmar({ titulo: "¿Rechazar la entrega?", texto: "Las empresas se quedan en la cuenta de quien te las quería entregar.", si: "Rechazar" }))) return;
+    try { await apiJson(`/api/empresas/entregas/${id}/rechazar`, {}); pintarTraspasos(); }
+    catch (x) { mostrarAlerta("error", x.message); }
+}
+
+async function pasarTodas() {
+    const e = espacioCli, todas = (clientesCache || []).map(c => c.rfc);
+    if (!e || !todas.length) return;
+    const directo = e.despacho.agregar;
+    if (!(await Fiscontable.confirmar({ titulo: `¿Pasar tus ${todas.length} empresas al despacho «${e.despacho.nombre}»?`, si: directo ? "Pasar todas" : "Mandar las solicitudes",
+        texto: directo ? "Pasan con todo su historial (XML, documentos, Buzón, facturas) y dejan de estar en Mi espacio. El equipo las verá según sus permisos."
+                       : "Le mandamos una solicitud al titular por cada una. Cuando las acepte, pasan con todo su historial." }))) return;
+    try {
+        const r = await apiJson("/api/despacho/pasar", { rfcs: todas });
+        const ok = r.resultados.filter(x => x.ok), mal = r.resultados.filter(x => !x.ok);
+        mostrarAlerta(mal.length ? "error" : "success", (ok.length ? (directo ? `${ok.length} empresa(s) ya están en el despacho.` : `Mandamos ${ok.length} solicitud(es) al titular.`) : "") +
+            (mal.length ? " No pasaron: " + mal.map(x => x.rfc + " (" + x.motivo + ")").join(", ") : ""));
+        await cargarClientes(); pintarTraspasos();
+    } catch (x) { mostrarAlerta("error", x.message); }
+}
+
+async function borrarTodo(rfc) {
+    const c = (clientesCache || []).find(x => x.rfc === rfc) || { alias: rfc };
+    const hecho = await Fiscontable.confirmarIdentidad("borrar_todo_empresa", async (conf) => {
+        if (campoDialogo("bt-rfc").toUpperCase() !== rfc) throw new Error("Escribe el RFC " + rfc + " para confirmar.");
+        await apiJson(`/api/empresas/${encodeURIComponent(rfc)}/borrar-todo`, { rfc_escrito: campoDialogo("bt-rfc"), confirmacion: conf });
+    }, { titulo: "Borrar todo de " + (c.alias || rfc), boton: "Borrar todo", peligro: true,
+         resumen: '<p class="fc-identidad__aviso">Se borra la empresa y <b>todo su historial</b>: XML, documentos, retenciones, Buzón, declaraciones, facturas y sus archivos. ' +
+            "<b>No se puede deshacer.</b> Si solo quieres sacarla de tu directorio, usa «Quitar del directorio».</p>" +
+            '<label class="ui-campo"><span class="ui-etiqueta">Escribe su RFC para confirmar</span><input class="ui-input" id="bt-rfc" autocomplete="off" placeholder="' + esc(rfc) + '"></label>' });
+    if (hecho) { mostrarAlerta("success", `Se borró ${c.alias || rfc} con todo su historial.`); await cargarClientes(); }
+}

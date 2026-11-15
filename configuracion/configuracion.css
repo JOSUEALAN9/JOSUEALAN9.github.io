@@ -123,3 +123,16 @@
 .cf-seg__lista small { display: block; color: rgb(var(--g-500)); font-size: 12px; }
 .cf-segmento { flex-wrap: wrap; }
 @media (max-width: 520px) { .cf-segmento { display: flex; } .cf-segmento button { flex: 1 1 auto; } }
+
+/* Avisos › Correos por tema: un renglón por tema con su «cuándo» y, si tiene fecha, «Probar» */
+.cf-temas { display: grid; gap: 2px; margin: 10px 0 14px; }
+.cf-tema { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--linea); min-width: 0; }
+.cf-tema:last-child { border-bottom: 0; }
+.cf-tema__check { display: flex; align-items: flex-start; gap: 10px; margin: 0; min-width: 0; }
+.cf-tema__check input { margin-top: 3px; flex: none; }
+.cf-tema__check span { display: grid; gap: 2px; min-width: 0; }
+.cf-tema__check b { font-weight: 600; font-size: var(--t-14, 14px); color: rgb(var(--g-900)); }
+.cf-tema__check small { font-size: var(--t-13, 13px); color: rgb(var(--g-500)); }
+.cf-btn--chico { flex: none; padding: 4px 12px; font-size: 13px; }
+.cf-otros { margin: 4px 0 12px; }
+.cf-otros summary { cursor: pointer; font-size: var(--t-13, 13px); color: rgb(var(--g-600)); padding: 6px 0; }

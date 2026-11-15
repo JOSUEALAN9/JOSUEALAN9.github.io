@@ -392,10 +392,13 @@
         } catch (e) { aviso(e.message, true); return false; }
     }
     async function presentar(ids, texto, despues) {
-        if (!(await Fiscontable.preguntar(texto + "\n\n¿Todo bien? Esto no se puede deshacer."))) return false;
         try {
+            // Una sola ventana con lo que va y el PIN (14-nov); texto: el título que ya armaba cada pantalla
+            var r = await Fiscontable.presentarConPin({ revisar: "/api/estatales/presentar/revisar", presentar: "/api/estatales/presentar", ids: ids,
+                titulo: "Presentar " + E.imp.nombre.toLowerCase(), aviso: String(texto || "").split("\n")[0],
+                detalle: function (x) { return (x.mes_nombre ? x.mes_nombre + " " : "") + (x.anio || "") + (x.importe != null ? " · base $" + m(x.importe) : ""); } });
+            if (!r) return false;
             panelAvance.cerrar();
-            var r = await json("/api/estatales/presentar", "POST", { ids: ids });
             seguir(r.job_id, "Presentando " + E.imp.nombre.toLowerCase(), despues);
             if (r.no_van && r.no_van.length) aviso("No van (no están listas): " + r.no_van.map(function (x) { return (x.nombre || x.rfc) + ": " + x.motivo; }).join("\n"), true);
             return true;

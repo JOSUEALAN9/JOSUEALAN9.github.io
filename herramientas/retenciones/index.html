@@ -4,16 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Retenciones · Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611141923">
-    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611141923">
-    <link rel="stylesheet" href="/herramientas/isn/isn.css?v=202611141923">
-    <link rel="stylesheet" href="/herramientas/retenciones/retenciones.css?v=202611141923">
-    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611141923">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611142027">
+    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611142027">
+    <link rel="stylesheet" href="/herramientas/isn/isn.css?v=202611142027">
+    <link rel="stylesheet" href="/herramientas/retenciones/retenciones.css?v=202611142027">
+    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611142027">
 </head>
 <body class="bg-slate-50">
 <div id="app-header" data-modulo="retenciones" data-titulo="Retenciones" data-migas="Herramientas|/herramientas/"></div>
-<script src="/assets/js/nucleo.js?v=202611141923"></script>
-<script src="/assets/js/barra.js?v=202611141923"></script>
+<script src="/assets/js/nucleo.js?v=202611142027"></script>
+<script src="/assets/js/barra.js?v=202611142027"></script>
 
 <main class="xml-pagina">
     <div class="xml-cabeza">
@@ -39,6 +39,10 @@
     <div id="aviso" class="isn-aviso" hidden></div>
 
     <div class="rt-barra">
+        <div class="ctx-segmento rt-vista" role="group" aria-label="Cómo ver" id="rt-vista">
+            <button type="button" data-ver="lista" aria-pressed="true">Comprobantes</button>
+            <button type="button" data-ver="papel" aria-pressed="false">Papel de trabajo</button>
+        </div>
         <div class="rt-cifras" id="cifras"></div>
         <div class="rt-acciones">
             <a id="btn-pedir" class="xml-btn" href="/herramientas/descarga-xml/">Pedir al SAT</a>
@@ -49,7 +53,9 @@
         </div>
     </div>
 
-    <div class="xml-tabla-caja isn-tabla-caja">
+    <section id="papel" class="rt-papel" hidden aria-label="Papel de trabajo de retenciones"></section>
+
+    <div class="xml-tabla-caja isn-tabla-caja" id="caja-lista">
         <table class="xml-tabla rt-tabla">
             <thead><tr>
                 <th style="width:96px">Fecha</th><th style="width:118px">Folio fiscal</th><th style="width:240px" id="th-contraparte">Retenedor</th>
@@ -62,6 +68,6 @@
     </div>
 </main>
 
-<script src="/herramientas/retenciones/retenciones.js?v=202611141923"></script>
+<script src="/herramientas/retenciones/retenciones.js?v=202611142027"></script>
 </body>
 </html>

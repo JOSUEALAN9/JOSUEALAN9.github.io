@@ -2006,13 +2006,17 @@
        ejecutar(confirmacion) hace la acción; si falla (código o PIN equivocado), la ventana sigue abierta con el
        mensaje. Devuelve una promesa: true si se hizo, false si se canceló.
        Uso: await Fiscontable.confirmarIdentidad("quitar_miembro", function (c) { return pedir(..., { confirmacion: c }); }); */
-    function confirmarIdentidad(accion, ejecutar) {
+    function confirmarIdentidad(accion, ejecutar, op) {
+        // op (opcional): { titulo, resumen (HTML ya escapado: qué se va a hacer), boton } — una sola ventana con lo que se
+        // va a hacer y el PIN (14-nov: Alan pidió algo más claro que el «¿Todo bien?» de Tributanet)
+        op = op || {};
         return new Promise(function (listo) {
             var dlg = document.createElement("dialog");
-            dlg.className = "fc-modal fc-modal--chica fc-identidad";
-            dlg.innerHTML = '<div class="fc-modal__cabeza"><div><h2>Confirma que eres tú</h2><p data-i="sub">Un momento…</p></div>' +
+            dlg.className = "fc-modal " + (op.resumen ? "fc-modal--mediana" : "fc-modal--chica") + " fc-identidad";
+            dlg.innerHTML = '<div class="fc-modal__cabeza"><div><h2>' + esc(op.titulo || "Confirma que eres tú") + '</h2><p data-i="sub">Un momento…</p></div>' +
                 '<button type="button" class="fc-modal__cerrar" data-i="cerrar" aria-label="Cerrar">×</button></div>' +
                 '<form class="fc-modal__cuerpo" novalidate>' +
+                (op.resumen ? '<div class="fc-identidad__resumen">' + op.resumen + "</div>" : "") +
                 '<label class="ui-campo" data-i="campo-codigo" hidden><span class="ui-etiqueta">Código del correo</span>' +
                 '<input class="ui-input" data-i="codigo" inputmode="numeric" autocomplete="one-time-code" maxlength="7" placeholder="123 456"></label>' +
                 '<label class="ui-campo" data-i="campo-pin" hidden><span class="ui-etiqueta">Tu PIN</span>' +
@@ -2021,7 +2025,7 @@
                 '<button type="button" class="ui-btn ui-btn--terciario ui-btn--28" data-i="otro" hidden>Mandar otro código</button></div>' +
                 '<p class="ui-ayuda ui-ayuda--error" data-i="error" hidden></p></form>' +
                 '<div class="fc-modal__pie"><button type="button" class="ui-btn ui-btn--secundario ui-btn--36" data-i="cancelar">Cancelar</button>' +
-                '<button type="button" class="ui-btn ui-btn--primario ui-btn--36" data-i="ok" disabled>Confirmar</button></div>';
+                '<button type="button" class="ui-btn ' + (op.peligro ? "ui-btn--peligro" : "ui-btn--primario") + ' ui-btn--36" data-i="ok" disabled>' + esc(op.boton || "Confirmar") + "</button></div>";
             var q = function (k) { return dlg.querySelector('[data-i="' + k + '"]'); };
             var token = null, texto = "", terminado = false;
             function fin(r) { if (terminado) return; terminado = true; try { dlg.close(); } catch (x) { /* nada */ } dlg.remove(); listo(r); }
@@ -2095,6 +2099,90 @@
             dlg.showModal();
             empezar();
         });
+    }
+
+    /* Lo que se va a presentar, para la ventana de confirmación con PIN: una tabla corta (empresa · detalle · importe),
+       el total y lo que no va. o: { aviso, filas: [{nombre, detalle, importe}], noVan: [{nombre, motivo}], pie } */
+    function resumenPresentacion(o) {
+        o = o || {};
+        var filas = o.filas || [], hayImporte = filas.some(function (f) { return f.importe != null; });
+        var dinero = function (v) { return "$" + Number(v || 0).toLocaleString("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 }); };
+        var total = filas.reduce(function (s, f) { return s + (Number(f.importe) || 0); }, 0);
+        return (o.aviso ? '<p class="fc-identidad__aviso">' + esc(o.aviso) + "</p>" : "") +
+            '<div class="fc-identidad__tabla"><table><thead><tr><th>Empresa</th><th>Detalle</th>' + (hayImporte ? '<th class="fc-num">A cargo</th>' : "") + "</tr></thead><tbody>" +
+            filas.map(function (f) {
+                return "<tr><td>" + esc(f.nombre) + "</td><td>" + esc(f.detalle || "") + "</td>" + (hayImporte ? '<td class="fc-num">' + (f.importe == null ? "—" : dinero(f.importe)) + "</td>" : "") + "</tr>";
+            }).join("") + "</tbody>" + (hayImporte && filas.length > 1 ? '<tfoot><tr><td colspan="2">Total · ' + filas.length + ' declaraciones</td><td class="fc-num">' + dinero(total) + "</td></tr></tfoot>" : "") +
+            "</table></div>" +
+            ((o.noVan || []).length ? '<p class="fc-identidad__novan"><b>No van</b> (no están listas): ' + o.noVan.map(function (x) { return esc(x.nombre) + (x.motivo ? " — " + esc(x.motivo) : ""); }).join(" · ") + "</p>" : "") +
+            '<p class="fc-identidad__pie">' + esc(o.pie || "Esto no se puede deshacer. Escribe tu PIN para presentar.") + "</p>";
+    }
+
+    /* Presentar declaraciones con una sola ventana: pide al servidor lo que va (ruta «revisar»), lo enseña en tabla y
+       pide el PIN; con el PIN correcto presenta. o: { revisar, presentar, ids, titulo, aviso, detalle(r) → texto }.
+       Devuelve la respuesta de «presentar» (p. ej. {job_id}) o null si se canceló o no había nada que presentar. */
+    async function presentarConPin(o) {
+        var pedir = async function (ruta, cuerpo) {
+            var r = await fetch(API + ruta, { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify(cuerpo) });
+            if (!r.ok) throw new Error(await window.Fiscontable.leerError(r));
+            return r.json();
+        };
+        var lista = await pedir(o.revisar, { ids: o.ids });
+        var van = lista.filter(function (x) { return x.puede; }), noVan = lista.filter(function (x) { return !x.puede; });
+        if (!van.length) { await avisar("No hay nada listo para presentar:\n" + noVan.map(function (x) { return "• " + (x.nombre || x.rfc || "") + ": " + x.motivo; }).join("\n")); return null; }
+        var respuesta = null;
+        var hecho = await confirmarIdentidad("presentar_declaracion", async function (c) {
+            respuesta = await pedir(o.presentar, { ids: van.map(function (x) { return x.id; }), confirmacion: c });
+        }, {
+            titulo: o.titulo || ("Presentar " + van.length + (van.length === 1 ? " declaración" : " declaraciones")),
+            boton: "Presentar " + van.length,
+            resumen: resumenPresentacion({
+                aviso: o.aviso,
+                filas: van.map(function (x) { return { nombre: x.nombre || x.rfc, detalle: o.detalle ? o.detalle(x) : "", importe: x.a_cargo }; }),
+                noVan: noVan.map(function (x) { return { nombre: x.nombre || x.rfc, motivo: x.motivo }; })
+            })
+        });
+        return hecho ? respuesta : null;
+    }
+
+    /* PIN obligatorio (14-nov con Alan): quien no tiene PIN lo crea al entrar. Confirma presentar declaraciones, borrar
+       empresas, cambiar una e.firma o el correo de los avisos, y desbloquea la pantalla. No se puede cerrar sin crearlo. */
+    function pedirPinObligatorio() {
+        if (document.getElementById("fc-pin-obligatorio")) return;
+        var dlg = document.createElement("dialog");
+        dlg.id = "fc-pin-obligatorio";
+        dlg.className = "fc-modal fc-modal--chica fc-identidad";
+        dlg.innerHTML = '<div class="fc-modal__cabeza"><div><h2>Crea tu PIN</h2><p>Con él confirmas lo delicado: presentar declaraciones, borrar una empresa, ' +
+            "cambiar una e.firma o el correo de los avisos. También desbloquea tu pantalla.</p></div></div>" +
+            '<form class="fc-modal__cuerpo" novalidate>' +
+            '<label class="ui-campo"><span class="ui-etiqueta">PIN de 4 a 6 números</span><input class="ui-input" data-i="pin" type="password" inputmode="numeric" autocomplete="new-password" maxlength="6"></label>' +
+            '<label class="ui-campo"><span class="ui-etiqueta">Escríbelo otra vez</span><input class="ui-input" data-i="pin2" type="password" inputmode="numeric" autocomplete="new-password" maxlength="6"></label>' +
+            '<p class="ui-ayuda">No uses números iguales o seguidos (como 1111 o 1234). Es tuyo: no lo compartas.</p>' +
+            '<p class="ui-ayuda ui-ayuda--error" data-i="error" hidden></p></form>' +
+            '<div class="fc-modal__pie" style="justify-content:flex-end"><button type="button" class="ui-btn ui-btn--primario ui-btn--36" data-i="ok">Crear mi PIN</button></div>';
+        var q = function (k) { return dlg.querySelector('[data-i="' + k + '"]'); };
+        function error(x) { q("error").textContent = x || ""; q("error").hidden = !x; }
+        async function crear() {
+            var a = q("pin").value.trim(), b = q("pin2").value.trim();
+            if (!/^\d{4,6}$/.test(a)) return error("El PIN lleva de 4 a 6 números.");
+            if (a !== b) return error("Los dos no son iguales. Escríbelos otra vez.");
+            var boton = q("ok"); boton.disabled = true; boton.classList.add("ui-btn--cargando"); error("");
+            try {
+                var r = await fetch(API + "/api/mi-perfil/pin", { method: "PUT", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ pin: a }) });
+                if (!r.ok) throw new Error(await window.Fiscontable.leerError(r));
+                bloqueo.pin = true;
+                try { dlg.close(); } catch (x) { /* nada */ } dlg.remove();
+                brindis("Listo, ya tienes tu PIN.");
+            } catch (x) { error(x.message); boton.disabled = false; }
+            finally { boton.classList.remove("ui-btn--cargando"); }
+        }
+        q("ok").addEventListener("click", crear);
+        dlg.querySelector("form").addEventListener("submit", function (e) { e.preventDefault(); crear(); });
+        dlg.addEventListener("keydown", function (e) { if (e.key === "Enter" && e.target.tagName === "INPUT") { e.preventDefault(); crear(); } });
+        dlg.addEventListener("cancel", function (e) { e.preventDefault(); });      // no se cierra con Escape
+        document.body.appendChild(dlg);
+        dlg.showModal();
+        q("pin").focus();
     }
 
     /* Un aviso que hay que leer (en lugar del alert() del navegador). No detiene el código: solo muestra y espera el clic. */
@@ -2459,6 +2547,14 @@
         if (p.legales && p.legales.pendiente && window.top === window.self && !p.pantalla_bloqueada) {
             pedirLegales(p.legales).then(function () { if (!p.perfil_completo) abrirModalPerfil(true); });
         } else if (!p.perfil_completo) abrirModalPerfil(true);
+        // PIN obligatorio: quien no tiene, lo crea al entrar (después de los Términos y su nombre)
+        if (p.bloqueo && !p.bloqueo.tiene_pin && !p.viendo_como && !p.es_revision && !p.pantalla_bloqueada && window.top === window.self &&
+            !document.documentElement.classList.contains("fc-incrustado")) {
+            (function esperar() {
+                if (document.querySelector("dialog[open]")) { setTimeout(esperar, 800); return; }   // primero Términos o nombre
+                pedirPinObligatorio();
+            })();
+        }
         pintarLateral();
         prepararBloqueo(p);
         vigilarChipEmpresa();
@@ -3760,6 +3856,8 @@
         preguntar: preguntar,
         avisar: avisar,
         confirmarIdentidad: confirmarIdentidad,
+        resumenPresentacion: resumenPresentacion,
+        presentarConPin: presentarConPin,
         descargas: { tarjeta: tarjeta, accion: accionPanel, sinProgramadas: sinProgramadas, notaProgramadas: notaProgramadas,
                      nombre: nombreProceso, empresa: empresaProceso, titulo: tituloProceso },
         abrirModalPerfil: abrirModalPerfil,

@@ -327,7 +327,6 @@
                 ? '<p class="cf-texto">Crea un PIN nuevo. Disponible ' + min + " minutos después de iniciar sesión.</p>" +
                   '<div class="cf-campos"><label class="cf-campo"><span>PIN nuevo <i>(4 a 6 números)</i></span><input id="cf-bl-nuevo" type="password" inputmode="numeric" maxlength="6" autocomplete="new-password"></label></div>' +
                   '<div class="cf-acciones"><button type="button" class="cf-btn cf-btn--principal" id="cf-bl-rest">Guardar PIN nuevo</button>' +
-                  '<button type="button" class="cf-btn" id="cf-bl-rest-quitar">Quitar PIN</button>' +
                   '<button type="button" class="cf-btn" id="cf-bl-cancelar">Cancelar</button><span class="cf-msj"></span></div>'
                 : '<p class="cf-texto">Para crear un PIN nuevo, vuelve a iniciar sesión.</p>' +
                   '<div class="cf-acciones"><button type="button" class="cf-btn cf-btn--principal" id="cf-bl-reentrar">Volver a iniciar sesión</button>' +
@@ -357,7 +356,6 @@
                     if (!pin) { aviso(caja, false, "Escribe el PIN nuevo."); return; }
                     restablecer(pin);
                 });
-                $("cf-bl-rest-quitar").addEventListener("click", function () { restablecer(null); });
             }
             return;
         }
@@ -371,7 +369,7 @@
             [5, 10, 15, 20, 30, 45, 60].map(function (m) { return '<option value="' + m + '"' + (m === b.minutos ? " selected" : "") + ">" + m + " minutos sin uso</option>"; }).join("") +
             "</select></label></div>" +
             '<div class="cf-acciones" id="cf-bl-botones">' + (b.tiene_pin
-                ? '<button type="button" class="cf-btn" data-bl="cambiar">Cambiar PIN</button><button type="button" class="cf-btn" data-bl="quitar">Quitar PIN</button>' +
+                ? '<button type="button" class="cf-btn" data-bl="cambiar">Cambiar PIN</button>' +
                   '<button type="button" class="cf-link" data-bl="olvide">Olvidé mi PIN</button>'
                 : '<button type="button" class="cf-btn cf-btn--principal" data-bl="crear">Crear PIN</button>') + '<span class="cf-msj"></span></div>' +
             '<div id="cf-bl-forma" hidden></div>';
@@ -533,10 +531,19 @@
         c.innerHTML = '<div class="cf-tarjeta"><p class="cf-texto">Cargando…</p></div>';
         try {
             var p = await api("/api/actividad/preferencias");
-            c.innerHTML = '<div class="cf-tarjeta"><p class="cf-texto">Todos los avisos llegan a la campana de arriba. Marca los que quieres recibir también por correo.</p>' +
-                Object.keys(p.tipos).map(function (t) {
-                    return '<label class="ui-check cf-check"><input type="checkbox" data-tipo="' + esc(t) + '"' + (p.correo[t] ? " checked" : "") + "> " + esc(p.tipos[t]) + "</label>";
-                }).join("") +
+            // Los 9 correos por tema (diseño del 14-nov): cada uno con su «cuándo»; los de fecha se pueden probar
+            var temas = p.por_tema || Object.keys(p.tipos), conFecha = p.con_fecha || [], cuando = p.cuando || {};
+            var otros = Object.keys(p.tipos).filter(function (t) { return temas.indexOf(t) < 0; });
+            var renglon = function (t) {
+                return '<div class="cf-tema"><label class="ui-check cf-tema__check"><input type="checkbox" data-tipo="' + esc(t) + '"' + (p.correo[t] ? " checked" : "") + ">" +
+                    '<span><b>' + esc(p.tipos[t]) + '</b><small>' + esc(cuando[t] || "Al momento") + "</small></span></label>" +
+                    (conFecha.indexOf(t) >= 0 ? '<button type="button" class="cf-btn cf-btn--chico" data-probar="' + esc(t) + '" title="Te lo manda ahora, con lo de hoy">Probar</button>' : "") + "</div>";
+            };
+            c.innerHTML = '<div class="cf-tarjeta"><h3 class="cf-sub">Correos por tema</h3>' +
+                '<p class="cf-texto">Cada tema llega en su propio correo, corto y solo cuando toca. Apaga los que no quieras.</p>' +
+                '<div class="cf-temas">' + temas.filter(function (t) { return p.tipos[t]; }).map(renglon).join("") + "</div>" +
+                (otros.length ? '<details class="cf-otros"><summary>Otros avisos de la campana que también pueden ir por correo</summary>' +
+                    '<div class="cf-temas">' + otros.map(renglon).join("") + "</div></details>" : "") +
                 '<label class="cf-campo"><span>Avisar de e.firma y sellos por vencer cuando falten (días)</span><input type="text" id="cf-av-dias" inputmode="numeric" value="' +
                 esc((p.dias_vence || []).join(", ")) + '"></label>' +
                 '<p class="cf-texto">De fábrica: 3 meses, 2 meses, 1 mes y luego 15, 10, 5, 2 y 1 días. Si ya la renovaste, deja de avisar sola.</p>' +
@@ -556,8 +563,8 @@
                     "> Poner importes en el resumen (de fábrica, sin importes)</label>" +
                 (p.puede_destinatarios ? '<div class="cf-acciones"><button type="button" class="cf-btn cf-btn--principal" id="cf-av-quien-guardar">Guardar</button><span class="cf-msj"></span></div>'
                     : '<p class="cf-texto">Solo el titular del despacho puede cambiar esto.</p>') + "</div>" +
-                '<div class="cf-tarjeta" id="cf-av-caja-resumen" style="margin-top:14px"><h3 class="cf-sub">Resumen por correo</h3>' +
-                '<p class="cf-texto">Un solo correo con cómo va tu cartera: el cierre del mes, lo que pasó y lo que está por vencer. ' +
+                '<div class="cf-tarjeta" id="cf-av-caja-resumen" style="margin-top:14px"><h3 class="cf-sub">Resumen completo (opcional)</h3>' +
+                '<p class="cf-texto">Si además quieres todo junto en un solo correo: cómo va tu cartera: el cierre del mes, lo que pasó y lo que está por vencer. ' +
                 "Por empresa: notificaciones del Buzón, CFDI cancelados o con error, proveedores en listas del SAT, PPD sin complemento y trámites que no salieron. No lleva archivos.</p>" +
                 '<div class="ctx-segmento cf-segmento" role="group" aria-label="Cada cuándo llega el resumen" id="cf-av-resumen">' +
                 Object.keys(p.frecuencias_resumen || {}).map(function (f) {
@@ -610,13 +617,31 @@
                 catch (er) { aviso(cajaResumen, false, er.message); }
                 finally { b.disabled = false; }
             });
+            c.querySelectorAll("[data-probar]").forEach(function (b) {
+                b.addEventListener("click", async function () {
+                    b.disabled = true;
+                    try { var r = await enviar("/api/actividad/tema-ahora", "POST", { tema: b.dataset.probar }); aviso(c, true, r.mensaje); }
+                    catch (e) { aviso(c, false, e.message); }
+                    finally { b.disabled = false; }
+                });
+            });
             $("cf-av-guardar").addEventListener("click", async function () {
                 var correo = {};
                 c.querySelectorAll("[data-tipo]").forEach(function (x) { correo[x.dataset.tipo] = x.checked; });
                 var dias = $("cf-av-dias").value.split(/[^0-9]+/).map(Number).filter(function (n) { return n > 0 && n <= 365; });
                 if (!dias.length) { aviso(c, false, "Escribe al menos un número de días (por ejemplo 30, 15, 5)."); return; }
+                var destino = $("cf-av-destino").value.trim() || null;
+                var cuerpo = { correo: correo, destino: destino, dias_vence: dias };
                 try {
-                    var g = await enviar("/api/actividad/preferencias", "PUT", { correo: correo, destino: $("cf-av-destino").value.trim() || null, dias_vence: dias });
+                    var g = null;
+                    if ((destino || "").toLowerCase() !== (guardado.destino || "").toLowerCase()) {
+                        // Cambiar a dónde llegan los avisos pide el PIN (14-nov)
+                        var hecho = await Fiscontable.confirmarIdentidad("cambiar_correo_avisos", async function (conf) {
+                            g = await enviar("/api/actividad/preferencias", "PUT", Object.assign({}, cuerpo, { confirmacion: conf }));
+                        }, { titulo: "Cambiar el correo de los avisos", boton: "Cambiar",
+                             resumen: '<p class="fc-identidad__aviso">Los avisos y los correos por tema van a llegar a <b>' + esc(destino || "tu correo de la cuenta") + "</b>.</p>" });
+                        if (!hecho) return;
+                    } else g = await enviar("/api/actividad/preferencias", "PUT", cuerpo);
                     guardado = g; $("cf-av-dias").value = (g.dias_vence || dias).join(", "); aviso(c, true, "✓ Guardado.");
                 }
                 catch (e) { aviso(c, false, e.message); }
