@@ -162,3 +162,9 @@
 .cf-semana { display: flex; flex-wrap: wrap; gap: 6px 14px; }
 .cf-semana .ui-check { margin: 0; font-weight: 400; }
 
+
+/* Lo automático (15-nov): cada parte es una pestaña; la caja de afuera no se dibuja (las de adentro ya son tarjetas) */
+.cf-tarjeta--plana { border: 0; background: none; padding: 0; box-shadow: none; }
+.cf-auto__intro { margin: 0 0 12px; }
+.cf-prog-nueva { grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr) auto; align-items: end; margin-top: 10px; }
+@media (max-width: 560px) { .cf-prog-nueva { grid-template-columns: 1fr; } }

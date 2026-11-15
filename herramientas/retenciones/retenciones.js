@@ -110,7 +110,7 @@
         var quien = E.lado === "recibida" ? "Retenedor" : "Receptor";
         if (!p.periodos.length) {
             $("papel").innerHTML = '<p class="rt-papel__nota">Sin retenciones ' + (E.lado === "recibida" ? "recibidas" : "emitidas") + " de " + esc(p.anio) +
-                ". Actívalas de noche en Configuración › XML automáticos o pídelas en Descarga masiva (Tipo «Retenciones»).</p>";
+                ". Actívalas de noche en Configuración › Lo automático o pídelas en Descarga masiva (Tipo «Retenciones»).</p>";
             return;
         }
         var num = function (g) { return '<td class="xml-num">' + m(g.monto_operacion) + '</td><td class="xml-num">' + m(g.isr_retenido) + '</td><td class="xml-num">' +

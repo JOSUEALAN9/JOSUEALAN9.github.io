@@ -485,11 +485,12 @@
             { g: "Avisos por correo", i: D.campana, n: "Correo de trámites que no salieron", d: "Avisos · lo que falló en el día", u: cfg + "avisos", a: "correo tramites fallidos error sat" },
             { g: "Avisos por correo", i: D.campana, n: "Horario de los correos", d: "Avisos · desde qué hora y qué días llegan", u: cfg + "avisos", a: "correo horario hora madrugada sabado domingo urgente" },
             { g: "Avisos por correo", i: D.campana, n: "A quién le llegan los avisos", d: "Avisos · copias, responsables y cliente", u: cfg + "avisos", a: "correo copias destinatarios cliente responsable importes" },
-            { g: "Tu cuenta", i: D.calendario, n: "Programaciones", d: "Lo que se ejecuta automáticamente", u: cfg + "programaciones", a: "automatico programar madrugada" },
+            { g: "Tu cuenta", i: D.calendario, n: "Lo automático", d: "XML y retenciones de madrugada, Buzón y lo programado", u: cfg + "automatico", a: "automatico automaticos automatica programar programaciones madrugada solos" },
+            { g: "Tu cuenta", i: D.calendario, n: "XML de madrugada", d: "Qué empresas bajan solas sus XML y retenciones", u: cfg + "automatico&sub=xml", a: "descarga masiva xml retenciones bajar solos", si: con("descarga_xml") },
+            { g: "Tu cuenta", i: D.calendario, n: "Revisión del Buzón", d: "Cada cuánto se revisan los buzones", u: cfg + "automatico&sub=buzon", a: "buzon tributario notificaciones frecuencia revisar", si: con("buzon") },
+            { g: "Tu cuenta", i: D.calendario, n: "Lo programado", d: "Constancias, opiniones y declaraciones que tocan", u: cfg + "automatico&sub=programado", a: "programaciones constancia opinion declaraciones calendario" },
             { g: "Tu cuenta", i: D.pc, n: "Conectar esta PC", d: "Fiscontable Agente para Windows", u: "/agente/", a: "agente windows instalar descargar computadora pcs conectadas" },
             { g: "Ajustes de módulos", i: D.engrane, n: "Ajustes de Facturar", d: "Emisor, series, sello, logo y correo", u: cfg + "facturacion", a: "csd timbres folio serie smtp", si: con("facturacion") },
-            { g: "Ajustes de módulos", i: D.engrane, n: "Ajustes del Buzón", d: "Cada cuánto se revisan los buzones", u: cfg + "buzon", a: "buzon tributario revision automatica", si: con("buzon") },
-            { g: "Ajustes de módulos", i: D.engrane, n: "XML automáticos", d: "Qué empresas descargan solas sus XML", u: cfg + "descarga_xml", a: "descarga automatica xml", si: con("descarga_xml") },
             { g: "Ajustes de módulos", i: D.engrane, n: "Impuestos por empresa", d: "Flujo o devengado, estatales y reglas", u: cfg + "impuestos", a: "reglas fiscales isr iva diot", si: con("marcas") },
             { g: "Mi despacho", i: D.equipo, n: "Equipo del despacho", d: desp ? desp.nombre : "", u: "/despacho/", a: "despacho miembros invitar permisos", si: !!desp },
             { g: "Mi despacho", i: D.equipo, n: "Solicitudes del despacho", d: "Accesos por aprobar", u: "/despacho/?vista=solicitudes", a: "despacho aprobar acceso", si: !!desp },
@@ -526,6 +527,9 @@
             { g: "Valores de fábrica", i: D.llave, n: "Al guardar la e.firma: retenciones", d: "Valores de fábrica · Al guardar la e.firma", u: cfg + "fabrica&sub=auto.retenciones", a: "fabrica defecto retenciones automatico", si: admin },
             { g: "Valores de fábrica", i: D.llave, n: "Al guardar la e.firma: revisar el Buzón", d: "Valores de fábrica · Al guardar la e.firma", u: cfg + "fabrica&sub=auto.buzon", a: "fabrica defecto buzon tributario automatico", si: admin },
             { g: "Valores de fábrica", i: D.llave, n: "Al guardar la e.firma: opinión diaria", d: "Valores de fábrica · Al guardar la e.firma", u: cfg + "fabrica&sub=auto.opinion", a: "fabrica defecto opinion cumplimiento 32d diaria", si: admin },
+            { g: "Valores de fábrica", i: D.llave, n: "Constancia: cuándo se programa", d: "Valores de fábrica · Lo programado", u: cfg + "fabrica&sub=programado.csf", a: "fabrica defecto programaciones constancia csf mensual dia", si: admin },
+            { g: "Valores de fábrica", i: D.llave, n: "Opinión 32-D: cuándo se programa", d: "Valores de fábrica · Lo programado", u: cfg + "fabrica&sub=programado.opinion", a: "fabrica defecto programaciones opinion cumplimiento dia", si: admin },
+            { g: "Valores de fábrica", i: D.llave, n: "Declaraciones: cuándo se programan", d: "Valores de fábrica · Lo programado", u: cfg + "fabrica&sub=programado.declaraciones", a: "fabrica defecto programaciones declaraciones acuses dia", si: admin },
             { g: "Valores de fábrica", i: D.llave, n: "Bloqueo de pantalla (minutos)", d: "Valores de fábrica · Seguridad", u: cfg + "fabrica&sub=seguridad.bloqueo_min", a: "fabrica defecto bloqueo pantalla inactividad minutos", si: admin },
             { g: "Valores de fábrica", i: D.llave, n: "Intentos de PIN antes de pausar", d: "Valores de fábrica · Seguridad", u: cfg + "fabrica&sub=seguridad.pin_fallos", a: "fabrica defecto pin intentos fallidos", si: admin },
             { g: "Valores de fábrica", i: D.llave, n: "Minutos de pausa tras fallar el PIN", d: "Valores de fábrica · Seguridad", u: cfg + "fabrica&sub=seguridad.pin_pausa", a: "fabrica defecto pin pausa minutos freno", si: admin },
@@ -1918,8 +1922,8 @@
     function sinProgramadas(procesos) { return (procesos || []).filter(function (p) { return !esperaMadrugada(p); }); }
     function notaProgramadas(procesos) {
         var n = (procesos || []).filter(esperaMadrugada).length;
-        return n ? '<a class="fc-nota-prog" href="/configuracion/?seccion=programaciones">🌙 ' + n + " programada" + (n === 1 ? "" : "s") +
-            " programados · se consultan en Programaciones</a>" : "";
+        return n ? '<a class="fc-nota-prog" href="/configuracion/?seccion=automatico&sub=programado">🌙 ' + n + " programada" + (n === 1 ? "" : "s") +
+            " programados · se ven en Lo automático</a>" : "";
     }
 
     function pintarLista(todos) {
