@@ -530,6 +530,30 @@
         } catch (e) { c.innerHTML = '<div class="cf-tarjeta"><p class="cf-msj cf-msj--mal">' + esc(e.message) + "</p></div>"; }
     }
 
+    /* Sub-pestañas de una sección (regla: nada de listas infinitas hacia abajo; una caja por tema). Toma las tarjetas
+       que son hijas directas de c, en orden, y deja ver una a la vez. Recuerda la elegida en esta pestaña del navegador. */
+    function subPestanas(c, nombres, llave) {
+        var cajas = [].filter.call(c.children, function (x) { return x.classList.contains("cf-tarjeta"); });
+        if (cajas.length < 2) return;
+        var barra = document.createElement("div");
+        barra.className = "cf-subtabs"; barra.setAttribute("role", "tablist");
+        barra.innerHTML = cajas.map(function (_, i) { return '<button type="button" role="tab" data-sub="' + i + '">' + esc(nombres[i] || ("Parte " + (i + 1))) + "</button>"; }).join("");
+        c.insertBefore(barra, cajas[0]);
+        var elegir = function (i) {
+            cajas.forEach(function (x, j) {
+                x.hidden = j !== i; x.style.marginTop = "0";
+                var h = x.querySelector(":scope > h3.cf-sub");          // el nombre ya está en la pestaña: no se repite
+                if (h) h.hidden = true;
+            });
+            [].forEach.call(barra.children, function (b, j) { b.setAttribute("aria-selected", String(j === i)); });
+            try { sessionStorage.setItem("cf-sub:" + llave, String(i)); } catch (e) { /* nada */ }
+        };
+        barra.addEventListener("click", function (e) { var b = e.target.closest("[data-sub]"); if (b) elegir(+b.dataset.sub); });
+        var guardada = 0;
+        try { guardada = +(sessionStorage.getItem("cf-sub:" + llave) || 0); } catch (e) { /* nada */ }
+        elegir(guardada < cajas.length ? guardada : 0);
+    }
+
     /* ---------- Valores de fábrica (administrador, 15-nov): lo que les sale por defecto a todos y lo que no pueden cambiar ---------- */
     async function pintarFabrica(c) {
         c.innerHTML = '<div class="cf-tarjeta"><p class="cf-texto">Cargando…</p></div>';
@@ -545,24 +569,26 @@
                     return '<option value="' + esc(o) + '"' + (o === a.valor ? " selected" : "") + ">" + esc({ ambos: "Emitidos y recibidos", recibidos: "Solo recibidos", emitidos: "Solo emitidos" }[o] || o) + "</option>"; }).join("") + "</select>";
                 return '<label class="cf-campo cf-campo--corto"><span>' + esc(a.titulo) + "</span>" + campo + "</label>";
             };
-            c.innerHTML = '<div class="cf-tarjeta"><p class="cf-texto">Esto es lo que les sale de fábrica a todas las cuentas. Quien no lo ha cambiado sigue lo de aquí, aunque lo cambies después. ' +
+            c.innerHTML = '<p class="cf-texto cf-fabrica__intro">Quien no lo ha cambiado sigue lo de aquí, aunque lo cambies después. ' +
                 "Marca «No lo pueden cambiar» para que nadie lo mueva en su cuenta.</p>" +
                 d.grupos.map(function (g) {
-                    return '<h3 class="cf-sub" style="margin-top:18px">' + esc(g) + "</h3>" + d.ajustes.filter(function (a) { return a.grupo === g; }).map(function (a) {
+                    return '<div class="cf-tarjeta">' + d.ajustes.filter(function (a) { return a.grupo === g; }).map(function (a) {
                         return '<div class="cf-fabrica"><div class="cf-fabrica__valor">' + control(a) + (a.ayuda ? '<small class="cf-fabrica__ayuda">' + esc(a.ayuda) + "</small>" : "") + "</div>" +
                             '<label class="ui-check cf-fabrica__fijo"><input type="checkbox" data-fb-fijo="' + esc(a.clave) + '"' + (a.bloqueado ? " checked" : "") + "> No lo pueden cambiar</label></div>";
-                    }).join("");
-                }).join("") +
-                '<div class="cf-acciones"><button type="button" class="cf-btn cf-btn--principal" id="cf-fb-guardar">Guardar los valores de fábrica</button><span class="cf-msj"></span></div></div>';
-            $("cf-fb-guardar").addEventListener("click", async function () {
+                    }).join("") +
+                    '<div class="cf-acciones"><button type="button" class="cf-btn cf-btn--principal" data-fb-guardar>Guardar los valores de fábrica</button><span class="cf-msj"></span></div></div>';
+                }).join("");
+            subPestanas(c, d.grupos.map(function (g) { return { "Horario de los correos": "Horario", "Al guardar la e.firma de una empresa": "Al guardar la e.firma" }[g] || g; }), "fabrica");
+            c.querySelectorAll("[data-fb-guardar]").forEach(function (b) { b.addEventListener("click", async function () {
+                var caja = b.closest(".cf-tarjeta");
                 var cambios = {};
                 c.querySelectorAll("[data-fb]").forEach(function (x) {
                     cambios[x.dataset.fb] = { valor: x.type === "checkbox" ? x.checked : (x.type === "number" ? +x.value : x.value) };
                 });
                 c.querySelectorAll("[data-fb-fijo]").forEach(function (x) { (cambios[x.dataset.fbFijo] = cambios[x.dataset.fbFijo] || {}).bloqueado = x.checked; });
-                try { await enviar("/api/admin/fabrica", "PUT", { cambios: cambios }); aviso(c, true, "✓ Guardado. Ya aplica a todas las cuentas que no lo habían cambiado."); }
-                catch (e) { aviso(c, false, e.message); }
-            });
+                try { await enviar("/api/admin/fabrica", "PUT", { cambios: cambios }); aviso(caja, true, "✓ Guardado. Ya aplica a todas las cuentas que no lo habían cambiado."); }
+                catch (e) { aviso(caja, false, e.message); }
+            }); });
         } catch (e) { c.innerHTML = '<div class="cf-tarjeta"><p class="cf-msj cf-msj--mal">' + esc(e.message) + "</p></div>"; }
     }
 
@@ -629,6 +655,7 @@
                 (p.equipo_resumen > 1 ? '<label class="ui-check cf-check"><input type="checkbox" id="cf-av-resumen-copia"' + (p.resumen_copia ? " checked" : "") +
                     "> Que cada persona de mi despacho reciba el de sus empresas (" + p.equipo_resumen + " personas)</label>" : "") +
                 '<div class="cf-acciones"><button type="button" class="cf-btn" id="cf-av-resumen-ya">Mándame uno ahora</button><span class="cf-msj"></span></div></div>';
+            subPestanas(c, ["Correos", "Horario", "A quién llegan", "Resumen completo"], "avisos");
             var guardado = p;                                   // lo último que quedó guardado (el resumen se guarda automáticamente, sin tocar lo demás)
             var cajaResumen = $("cf-av-caja-resumen");
             $("cf-av-resumen").addEventListener("click", async function (e) {

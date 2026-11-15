@@ -145,3 +145,11 @@
 .cf-fabrica__fijo { flex: none; font-size: var(--t-13, 13px); color: rgb(var(--g-600)); margin: 0; }
 .cf-horario { display: flex; gap: 14px; flex-wrap: wrap; }
 .cf-horario .cf-campo { flex: 0 1 160px; }
+
+/* Sub-pestañas de una sección (una caja por tema; nada de listas infinitas hacia abajo) */
+.cf-subtabs { display: flex; gap: 2px; padding: 3px; border-radius: 12px; background: rgb(var(--g-200)); margin-bottom: 14px; overflow-x: auto; scrollbar-width: none; max-width: 100%; }
+.cf-subtabs::-webkit-scrollbar { display: none; }
+.cf-subtabs button { flex: none; border: 0; background: none; border-radius: 9px; padding: 7px 14px; font: inherit; font-size: 13px; font-weight: 700; color: rgb(var(--g-600)); cursor: pointer; white-space: nowrap; }
+.cf-subtabs button[aria-selected="true"] { background: rgb(var(--g-0)); color: rgb(var(--g-900)); box-shadow: 0 1px 3px rgba(15,23,42,.15); }
+.cf-subtabs button:focus-visible { outline: 2px solid rgb(var(--ac-600)); outline-offset: 1px; }
+.cf-fabrica__intro { margin: 0 0 12px; }
