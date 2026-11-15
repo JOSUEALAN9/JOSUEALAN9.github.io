@@ -75,6 +75,9 @@
           desc: "Cuándo cuenta cada impuesto (flujo o devengado), estatales, alcohol y las reglas que Fiscontable aprendió de cada empresa.",
           palabras: "impuestos reglas fiscales isr iva diot deducible no deducible flujo devengado cobrado facturado profesiones alcohol régimen paquete marcas",
           pintar: pintarImpuestos },
+        { id: "fabrica", grupo: "Administración", titulo: "Valores de fábrica", ico: ICO.admin, solo_admin: true,
+          desc: "Lo que les sale por defecto a todas las cuentas (correos, horario, lo automático, bloqueo) y lo que no pueden cambiar.",
+          palabras: "valores de fábrica por defecto predeterminados ajustes correos horario automático madrugada bloqueo bloquear", pintar: pintarFabrica },
         { id: "admin", grupo: "Administración", titulo: "Panel de administración", ico: ICO.admin, solo_admin: true,
           desc: "Usuarios, permisos por rol, actividad, créditos, documentos y sistema.", palabras: "usuarios permisos roles actividad créditos documentos sistema servidor respaldo trabajadores timbres bolsa",
           marco: function (sub) { return "/admin/?incrustado=1&dentro=1" + (sub ? "#" + sub : ""); } }
@@ -365,9 +368,10 @@
                 (nuevo ? "new-password" : "off") + '"></label>';
         };
         caja.innerHTML = cabeza +
-            '<div class="cf-campos"><label class="cf-campo"><span>Bloquear después de</span><select id="cf-bl-min">' +
-            [5, 10, 15, 20, 30, 45, 60].map(function (m) { return '<option value="' + m + '"' + (m === b.minutos ? " selected" : "") + ">" + m + " minutos sin uso</option>"; }).join("") +
-            "</select></label></div>" +
+            '<div class="cf-campos"><label class="cf-campo"><span>Bloquear después de</span><select id="cf-bl-min"' + (b.minutos_bloqueado ? " disabled" : "") + ">" +
+            [5, 10, 15, 20, 30, 45, 60].concat([5, 10, 15, 20, 30, 45, 60].indexOf(b.minutos) < 0 ? [b.minutos] : []).sort(function (x, y) { return x - y; })
+                .map(function (m) { return '<option value="' + m + '"' + (m === b.minutos ? " selected" : "") + ">" + m + " minutos sin uso</option>"; }).join("") +
+            "</select></label></div>" + (b.minutos_bloqueado ? '<p class="cf-texto">Los minutos de bloqueo los define Fiscontable.</p>' : "") +
             '<div class="cf-acciones" id="cf-bl-botones">' + (b.tiene_pin
                 ? '<button type="button" class="cf-btn" data-bl="cambiar">Cambiar PIN</button>' +
                   '<button type="button" class="cf-link" data-bl="olvide">Olvidé mi PIN</button>'
@@ -526,6 +530,68 @@
         } catch (e) { c.innerHTML = '<div class="cf-tarjeta"><p class="cf-msj cf-msj--mal">' + esc(e.message) + "</p></div>"; }
     }
 
+    /* Sub-pestañas de una sección (regla: nada de listas infinitas hacia abajo; una caja por tema). Toma las tarjetas
+       que son hijas directas de c, en orden, y deja ver una a la vez. Recuerda la elegida en esta pestaña del navegador. */
+    function subPestanas(c, nombres, llave) {
+        var cajas = [].filter.call(c.children, function (x) { return x.classList.contains("cf-tarjeta"); });
+        if (cajas.length < 2) return;
+        var barra = document.createElement("div");
+        barra.className = "cf-subtabs"; barra.setAttribute("role", "tablist");
+        barra.innerHTML = cajas.map(function (_, i) { return '<button type="button" role="tab" data-sub="' + i + '">' + esc(nombres[i] || ("Parte " + (i + 1))) + "</button>"; }).join("");
+        c.insertBefore(barra, cajas[0]);
+        var elegir = function (i) {
+            cajas.forEach(function (x, j) {
+                x.hidden = j !== i; x.style.marginTop = "0";
+                var h = x.querySelector(":scope > h3.cf-sub");          // el nombre ya está en la pestaña: no se repite
+                if (h) h.hidden = true;
+            });
+            [].forEach.call(barra.children, function (b, j) { b.setAttribute("aria-selected", String(j === i)); });
+            try { sessionStorage.setItem("cf-sub:" + llave, String(i)); } catch (e) { /* nada */ }
+        };
+        barra.addEventListener("click", function (e) { var b = e.target.closest("[data-sub]"); if (b) elegir(+b.dataset.sub); });
+        var guardada = 0;
+        try { guardada = +(sessionStorage.getItem("cf-sub:" + llave) || 0); } catch (e) { /* nada */ }
+        elegir(guardada < cajas.length ? guardada : 0);
+    }
+
+    /* ---------- Valores de fábrica (administrador, 15-nov): lo que les sale por defecto a todos y lo que no pueden cambiar ---------- */
+    async function pintarFabrica(c) {
+        c.innerHTML = '<div class="cf-tarjeta"><p class="cf-texto">Cargando…</p></div>';
+        try {
+            var d = await api("/api/admin/fabrica");
+            var control = function (a) {
+                var id = "fb-" + a.clave.replace(/\./g, "-");
+                if (a.tipo === "bool") return '<label class="ui-check cf-check"><input type="checkbox" id="' + id + '" data-fb="' + esc(a.clave) + '"' + (a.valor ? " checked" : "") + "> " + esc(a.titulo) + "</label>";
+                var campo;
+                if (a.tipo === "hora") campo = '<input type="time" id="' + id + '" data-fb="' + esc(a.clave) + '" value="' + esc(a.valor) + '">';
+                else if (a.tipo.indexOf("entero:") === 0) { var lim = a.tipo.split(":"); campo = '<input type="number" id="' + id + '" data-fb="' + esc(a.clave) + '" min="' + lim[1] + '" max="' + lim[2] + '" value="' + esc(a.valor) + '">'; }
+                else campo = '<select id="' + id + '" data-fb="' + esc(a.clave) + '">' + a.tipo.split(":")[1].split(",").map(function (o) {
+                    return '<option value="' + esc(o) + '"' + (o === a.valor ? " selected" : "") + ">" + esc({ ambos: "Emitidos y recibidos", recibidos: "Solo recibidos", emitidos: "Solo emitidos" }[o] || o) + "</option>"; }).join("") + "</select>";
+                return '<label class="cf-campo cf-campo--corto"><span>' + esc(a.titulo) + "</span>" + campo + "</label>";
+            };
+            c.innerHTML = '<p class="cf-texto cf-fabrica__intro">Quien no lo ha cambiado sigue lo de aquí, aunque lo cambies después. ' +
+                "Marca «No lo pueden cambiar» para que nadie lo mueva en su cuenta.</p>" +
+                d.grupos.map(function (g) {
+                    return '<div class="cf-tarjeta">' + d.ajustes.filter(function (a) { return a.grupo === g; }).map(function (a) {
+                        return '<div class="cf-fabrica"><div class="cf-fabrica__valor">' + control(a) + (a.ayuda ? '<small class="cf-fabrica__ayuda">' + esc(a.ayuda) + "</small>" : "") + "</div>" +
+                            '<label class="ui-check cf-fabrica__fijo"><input type="checkbox" data-fb-fijo="' + esc(a.clave) + '"' + (a.bloqueado ? " checked" : "") + "> No lo pueden cambiar</label></div>";
+                    }).join("") +
+                    '<div class="cf-acciones"><button type="button" class="cf-btn cf-btn--principal" data-fb-guardar>Guardar los valores de fábrica</button><span class="cf-msj"></span></div></div>';
+                }).join("");
+            subPestanas(c, d.grupos.map(function (g) { return { "Horario de los correos": "Horario", "Al guardar la e.firma de una empresa": "Al guardar la e.firma" }[g] || g; }), "fabrica");
+            c.querySelectorAll("[data-fb-guardar]").forEach(function (b) { b.addEventListener("click", async function () {
+                var caja = b.closest(".cf-tarjeta");
+                var cambios = {};
+                c.querySelectorAll("[data-fb]").forEach(function (x) {
+                    cambios[x.dataset.fb] = { valor: x.type === "checkbox" ? x.checked : (x.type === "number" ? +x.value : x.value) };
+                });
+                c.querySelectorAll("[data-fb-fijo]").forEach(function (x) { (cambios[x.dataset.fbFijo] = cambios[x.dataset.fbFijo] || {}).bloqueado = x.checked; });
+                try { await enviar("/api/admin/fabrica", "PUT", { cambios: cambios }); aviso(caja, true, "✓ Guardado. Ya aplica a todas las cuentas que no lo habían cambiado."); }
+                catch (e) { aviso(caja, false, e.message); }
+            }); });
+        } catch (e) { c.innerHTML = '<div class="cf-tarjeta"><p class="cf-msj cf-msj--mal">' + esc(e.message) + "</p></div>"; }
+    }
+
     /* ---------- Avisos (G-13 / G-14): qué llega por correo ---------- */
     async function pintarAvisos(c) {
         c.innerHTML = '<div class="cf-tarjeta"><p class="cf-texto">Cargando…</p></div>';
@@ -534,13 +600,28 @@
             // Los 9 correos por tema (diseño del 14-nov): cada uno con su «cuándo»; los de fecha se pueden probar
             var temas = p.por_tema || Object.keys(p.tipos), conFecha = p.con_fecha || [], cuando = p.cuando || {};
             var otros = Object.keys(p.tipos).filter(function (t) { return temas.indexOf(t) < 0; });
+            var bloq = p.bloqueados || [], fijo = function (clave) { return bloq.indexOf(clave) >= 0; };
             var renglon = function (t) {
-                return '<div class="cf-tema"><label class="ui-check cf-tema__check"><input type="checkbox" data-tipo="' + esc(t) + '"' + (p.correo[t] ? " checked" : "") + ">" +
-                    '<span><b>' + esc(p.tipos[t]) + '</b><small>' + esc(cuando[t] || "Al momento") + "</small></span></label>" +
+                var fx = fijo("correo." + t);
+                return '<div class="cf-tema"><label class="ui-check cf-tema__check"><input type="checkbox" data-tipo="' + esc(t) + '"' + (p.correo[t] ? " checked" : "") + (fx ? " disabled" : "") + ">" +
+                    '<span><b>' + esc(p.tipos[t]) + '</b><small>' + esc(cuando[t] || "Al momento") + (fx ? " · Lo define Fiscontable" : "") + "</small></span></label>" +
                     (conFecha.indexOf(t) >= 0 ? '<button type="button" class="cf-btn cf-btn--chico" data-probar="' + esc(t) + '" title="Te lo manda ahora, con lo de hoy">Probar</button>' : "") + "</div>";
             };
-            c.innerHTML = '<div class="cf-tarjeta"><h3 class="cf-sub">Correos por tema</h3>' +
-                '<p class="cf-texto">Cada tema llega en su propio correo, corto y solo cuando toca. Apaga los que no quieras.</p>' +
+            var h = p.horario || {};
+            var hcampo = function (k, html) { return fijo("horario." + k) ? html.replace("<input", "<input disabled") : html; };
+            var cajaHorario = '<div class="cf-tarjeta" style="margin-top:14px"><h3 class="cf-sub">Horario de los correos</h3>' +
+                '<p class="cf-texto">Lo que pase de noche (revisiones de la madrugada) sale a la hora de inicio. La campana se marca al momento.</p>' +
+                '<div class="cf-campos cf-horario">' +
+                hcampo("inicio", '<label class="cf-campo"><span>Desde</span><input type="time" id="cf-h-inicio" value="' + esc(h.inicio || "08:00") + '"></label>') +
+                hcampo("fin", '<label class="cf-campo"><span>Hasta</span><input type="time" id="cf-h-fin" value="' + esc(h.fin || "20:00") + '"></label>') + "</div>" +
+                hcampo("sabado", '<label class="ui-check cf-check"><input type="checkbox" id="cf-h-sabado"' + (h.sabado ? " checked" : "") + "> También los sábados</label>") +
+                hcampo("domingo", '<label class="ui-check cf-check"><input type="checkbox" id="cf-h-domingo"' + (h.domingo ? " checked" : "") + "> También los domingos</label>") +
+                hcampo("urgentes", '<label class="ui-check cf-check"><input type="checkbox" id="cf-h-urgentes"' + (h.urgentes ? " checked" : "") +
+                    "> Lo urgente sale al momento, a cualquier hora (notificación pendiente del Buzón, e.firma revocada)</label>") +
+                (["inicio", "fin", "sabado", "domingo", "urgentes"].some(fijo) ? '<p class="cf-texto">Lo que está apagado lo define Fiscontable.</p>' : "") +
+                '<div class="cf-acciones"><button type="button" class="cf-btn cf-btn--principal" id="cf-h-guardar">Guardar el horario</button><span class="cf-msj"></span></div></div>';
+            c.innerHTML = '<div class="cf-tarjeta"><h3 class="cf-sub">Correos</h3>' +
+                '<p class="cf-texto">Lo de cada empresa llega junto en su informe de la mañana; lo rápido, un correo por tema con todas tus empresas.</p>' +
                 '<div class="cf-temas">' + temas.filter(function (t) { return p.tipos[t]; }).map(renglon).join("") + "</div>" +
                 (otros.length ? '<details class="cf-otros"><summary>Otros avisos de la campana que también pueden ir por correo</summary>' +
                     '<div class="cf-temas">' + otros.map(renglon).join("") + "</div></details>" : "") +
@@ -551,6 +632,7 @@
                 '<div class="cf-acciones"><button type="button" class="cf-btn cf-btn--principal" id="cf-av-guardar">Guardar</button>' +
                 '<button type="button" class="cf-btn" id="cf-av-prueba">Mandar un correo de prueba</button><span class="cf-msj"></span></div>' +
                 '<p class="cf-texto" style="margin-top:12px">Los correos salen por el mismo correo que usas en Facturar (el general de Fiscontable o el tuyo).</p></div>' +
+                cajaHorario +
                 '<div class="cf-tarjeta" id="cf-av-caja-quien" style="margin-top:14px"><h3 class="cf-sub">¿A quién más le llegan?</h3>' +
                 '<p class="cf-texto">Además del correo de arriba. Nadie recibe datos de empresas o módulos que no puede ver en Fiscontable.</p>' +
                 '<label class="cf-campo"><span>Copias (separa con comas)</span><input type="text" id="cf-av-copias" inputmode="email" autocomplete="off" placeholder="avisos@tudespacho.mx, socio@tudespacho.mx" value="' +
@@ -558,9 +640,9 @@
                 (p.es_despacho ? '<label class="ui-check cf-check"><input type="checkbox" id="cf-av-responsables"' + (p.responsables ? " checked" : "") +
                     "> El aviso de una empresa, también a la persona que la tiene asignada</label>" : "") +
                 '<label class="ui-check cf-check"><input type="checkbox" id="cf-av-cliente"' + (p.cliente ? " checked" : "") +
-                    "> El aviso de una empresa (Buzón, e.firma por vencer) y su resumen, también a su cliente (el correo de su ficha)</label>" +
+                    "> El informe de cada empresa, también a su cliente (el correo de su ficha)</label>" +
                 '<label class="ui-check cf-check"><input type="checkbox" id="cf-av-importes"' + (p.importes ? " checked" : "") +
-                    "> Poner importes en el resumen (de fábrica, sin importes)</label>" +
+                    "> Poner importes en los correos (de fábrica, sin importes)</label>" +
                 (p.puede_destinatarios ? '<div class="cf-acciones"><button type="button" class="cf-btn cf-btn--principal" id="cf-av-quien-guardar">Guardar</button><span class="cf-msj"></span></div>'
                     : '<p class="cf-texto">Solo el titular del despacho puede cambiar esto.</p>') + "</div>" +
                 '<div class="cf-tarjeta" id="cf-av-caja-resumen" style="margin-top:14px"><h3 class="cf-sub">Resumen completo (opcional)</h3>' +
@@ -573,6 +655,7 @@
                 (p.equipo_resumen > 1 ? '<label class="ui-check cf-check"><input type="checkbox" id="cf-av-resumen-copia"' + (p.resumen_copia ? " checked" : "") +
                     "> Que cada persona de mi despacho reciba el de sus empresas (" + p.equipo_resumen + " personas)</label>" : "") +
                 '<div class="cf-acciones"><button type="button" class="cf-btn" id="cf-av-resumen-ya">Mándame uno ahora</button><span class="cf-msj"></span></div></div>';
+            subPestanas(c, ["Correos", "Horario", "A quién llegan", "Resumen completo"], "avisos");
             var guardado = p;                                   // lo último que quedó guardado (el resumen se guarda automáticamente, sin tocar lo demás)
             var cajaResumen = $("cf-av-caja-resumen");
             $("cf-av-resumen").addEventListener("click", async function (e) {
@@ -598,12 +681,17 @@
             });
             var cajaQuien = $("cf-av-caja-quien");
             if (!p.puede_destinatarios) cajaQuien.querySelectorAll("input").forEach(function (x) { x.disabled = true; });
+            [["responsables", "cf-av-responsables"], ["cliente", "cf-av-cliente"], ["importes", "cf-av-importes"]].forEach(function (x) {
+                if (fijo("correo." + x[0]) && $(x[1])) { $(x[1]).disabled = true; $(x[1]).parentNode.title = "Lo define Fiscontable"; }
+            });
             if ($("cf-av-quien-guardar")) $("cf-av-quien-guardar").addEventListener("click", async function () {
                 var b = this; b.disabled = true;
                 try {
                     var copias = $("cf-av-copias").value.split(/[,;\s]+/).map(function (x) { return x.trim(); }).filter(Boolean);
                     var cuerpo = { correo: guardado.correo, destino: guardado.destino || null, dias_vence: guardado.dias_vence, copias: copias,
                                    cliente: $("cf-av-cliente").checked, importes: $("cf-av-importes").checked };
+                    if ($("cf-av-cliente").disabled) delete cuerpo.cliente;
+                    if ($("cf-av-importes").disabled) delete cuerpo.importes;
                     if ($("cf-av-responsables")) cuerpo.responsables = $("cf-av-responsables").checked;
                     guardado = await enviar("/api/actividad/preferencias", "PUT", cuerpo);
                     $("cf-av-copias").value = (guardado.copias || []).join(", ");
@@ -616,6 +704,16 @@
                 try { var r = await enviar("/api/actividad/resumen-ahora", "POST", {}); aviso(cajaResumen, true, r.mensaje || ("✓ Enviado a " + r.destino + ".")); }
                 catch (er) { aviso(cajaResumen, false, er.message); }
                 finally { b.disabled = false; }
+            });
+            $("cf-h-guardar").addEventListener("click", async function () {
+                var caja = this.closest(".cf-tarjeta"), horario = {};
+                [["inicio", "value"], ["fin", "value"], ["sabado", "checked"], ["domingo", "checked"], ["urgentes", "checked"]].forEach(function (x) {
+                    var el = $("cf-h-" + x[0]); if (el && !el.disabled) horario[x[0]] = el[x[1]];
+                });
+                try {
+                    guardado = await enviar("/api/actividad/preferencias", "PUT", { correo: guardado.correo, destino: guardado.destino || null, dias_vence: guardado.dias_vence, horario: horario });
+                    aviso(caja, true, "✓ Guardado. Los correos salen de " + guardado.horario.inicio + " a " + guardado.horario.fin + ".");
+                } catch (e) { aviso(caja, false, e.message); }
             });
             c.querySelectorAll("[data-probar]").forEach(function (b) {
                 b.addEventListener("click", async function () {
