@@ -720,6 +720,7 @@ async function crearCliente(e) {
         if (r.ciec_guardada) partes.push("y su contraseña del SAT");
         mostrarAlerta("success", partes.join(" ") + "." + (r.avisos && r.avisos.length ? " " + r.avisos.join(" ") : "") + extra);
         await cargarClientes();
+        if (r.automatico && r.automatico.length) ofrecerDescargaAhora(rfc, alias, r.automatico);
         // Si no había empresa activa, la recién registrada queda como activa
         try { const p = await Fiscontable.perfil(); if (p && !p.empresa_activa) await Fiscontable.elegirEmpresa(rfc); } catch (err) { /* no pasa nada */ }
         // Se queda abierta su ficha para seguir configurándola (accesos, obligaciones, XML automáticos, facturación)
@@ -1777,6 +1778,7 @@ async function guardarEfirma() {
         }
         mostrarMensajeEfirma("exito", confirmacion);
         document.getElementById("editar-password").value = "";
+        if (datos.automatico && datos.automatico.length) ofrecerDescargaAhora(rfcEnEdicion, (clientesCache.find(c => c.rfc === rfcEnEdicion) || {}).alias, datos.automatico);
         await cargarClientes();
         const actualizado = clientesCache.find(c => c.rfc === rfcEnEdicion);
         if (actualizado) abrirModalEditarSinLimpiarMensaje(actualizado);
@@ -2005,4 +2007,15 @@ async function borrarTodo(rfc) {
             "<b>No se puede deshacer.</b> Si solo quieres sacarla de tu directorio, usa «Quitar del directorio».</p>" +
             '<label class="ui-campo"><span class="ui-etiqueta">Escribe su RFC para confirmar</span><input class="ui-input" id="bt-rfc" autocomplete="off" placeholder="' + esc(rfc) + '"></label>' });
     if (hecho) { mostrarAlerta("success", `Se borró ${c.alias || rfc} con todo su historial.`); await cargarClientes(); }
+}
+
+
+/* Empresa con e.firma = automática (15-nov): se dice qué quedó encendido para la madrugada y se ofrece bajar ya. */
+async function ofrecerDescargaAhora(rfc, alias, automatico) {
+    const lista = automatico.join(", ").replace(/, ([^,]*)$/, " y $1");
+    const xml = automatico.some(a => a.indexOf("XML") >= 0);
+    const ir = await Fiscontable.confirmar({ titulo: `${alias || rfc} ya quedó automática`,
+        texto: `Cada madrugada Fiscontable revisa ${lista}. No tienes que hacer nada más.` + (xml ? " Si quieres sus XML desde ya, bájalos ahora." : ""),
+        si: xml ? "Descargar ahora" : "Entendido", no: "Listo", solo: !xml });
+    if (ir && xml) location.href = "/herramientas/descarga-xml/?rfc=" + encodeURIComponent(rfc);
 }

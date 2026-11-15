@@ -136,3 +136,12 @@
 .cf-btn--chico { flex: none; padding: 4px 12px; font-size: 13px; }
 .cf-otros { margin: 4px 0 12px; }
 .cf-otros summary { cursor: pointer; font-size: var(--t-13, 13px); color: rgb(var(--g-600)); padding: 6px 0; }
+
+/* Valores de fábrica: cada ajuste con su valor y «No lo pueden cambiar» a la derecha */
+.cf-fabrica { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; padding: 10px 0; border-bottom: 1px solid var(--linea); min-width: 0; flex-wrap: wrap; }
+.cf-fabrica__valor { display: grid; gap: 2px; min-width: 0; flex: 1 1 320px; }
+.cf-fabrica__valor .cf-check, .cf-fabrica__valor .cf-campo { margin: 0; }
+.cf-fabrica__ayuda { font-size: var(--t-13, 13px); color: rgb(var(--g-500)); padding-left: 2px; }
+.cf-fabrica__fijo { flex: none; font-size: var(--t-13, 13px); color: rgb(var(--g-600)); margin: 0; }
+.cf-horario { display: flex; gap: 14px; flex-wrap: wrap; }
+.cf-horario .cf-campo { flex: 0 1 160px; }
