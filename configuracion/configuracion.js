@@ -563,27 +563,47 @@
                 var id = "fb-" + a.clave.replace(/\./g, "-");
                 if (a.tipo === "bool") return '<label class="ui-check cf-check"><input type="checkbox" id="' + id + '" data-fb="' + esc(a.clave) + '"' + (a.valor ? " checked" : "") + "> " + esc(a.titulo) + "</label>";
                 var campo;
-                if (a.tipo === "hora") campo = '<input type="time" id="' + id + '" data-fb="' + esc(a.clave) + '" value="' + esc(a.valor) + '">';
+                if (a.tipo === "semana") {
+                    return '<div class="cf-campo"><span>' + esc(a.titulo) + '</span><div class="cf-semana" id="' + id + '" data-fb="' + esc(a.clave) + '" data-fb-tipo="semana">' +
+                        ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"].map(function (n, i) {
+                            return '<label class="ui-check"><input type="checkbox" value="' + i + '"' + ((a.valor || []).indexOf(i) >= 0 ? " checked" : "") + "> " + n + "</label>"; }).join("") + "</div></div>";
+                }
+                if (a.tipo.indexOf("lista:") === 0) campo = '<input type="text" inputmode="numeric" id="' + id + '" data-fb="' + esc(a.clave) + '" data-fb-tipo="lista" value="' + esc((a.valor || []).join(", ")) + '">';
+                else if (a.tipo === "hora") campo = '<input type="time" id="' + id + '" data-fb="' + esc(a.clave) + '" value="' + esc(a.valor) + '">';
                 else if (a.tipo.indexOf("entero:") === 0) { var lim = a.tipo.split(":"); campo = '<input type="number" id="' + id + '" data-fb="' + esc(a.clave) + '" min="' + lim[1] + '" max="' + lim[2] + '" value="' + esc(a.valor) + '">'; }
                 else campo = '<select id="' + id + '" data-fb="' + esc(a.clave) + '">' + a.tipo.split(":")[1].split(",").map(function (o) {
-                    return '<option value="' + esc(o) + '"' + (o === a.valor ? " selected" : "") + ">" + esc({ ambos: "Emitidos y recibidos", recibidos: "Solo recibidos", emitidos: "Solo emitidos" }[o] || o) + "</option>"; }).join("") + "</select>";
+                    return '<option value="' + esc(o) + '"' + (o === a.valor ? " selected" : "") + ">" + esc({ ambos: "Emitidos y recibidos", recibidos: "Solo recibidos", emitidos: "Solo emitidos",
+                        diaria: "Cada madrugada", semanal: "Cada semana", mensual: "Cada mes" }[o] || o) + "</option>"; }).join("") + "</select>";
                 return '<label class="cf-campo cf-campo--corto"><span>' + esc(a.titulo) + "</span>" + campo + "</label>";
             };
             c.innerHTML = '<p class="cf-texto cf-fabrica__intro">Quien no lo ha cambiado sigue lo de aquí, aunque lo cambies después. ' +
                 "Marca «No lo pueden cambiar» para que nadie lo mueva en su cuenta.</p>" +
                 d.grupos.map(function (g) {
                     return '<div class="cf-tarjeta">' + d.ajustes.filter(function (a) { return a.grupo === g; }).map(function (a) {
-                        return '<div class="cf-fabrica"><div class="cf-fabrica__valor">' + control(a) + (a.ayuda ? '<small class="cf-fabrica__ayuda">' + esc(a.ayuda) + "</small>" : "") + "</div>" +
-                            '<label class="ui-check cf-fabrica__fijo"><input type="checkbox" data-fb-fijo="' + esc(a.clave) + '"' + (a.bloqueado ? " checked" : "") + "> No lo pueden cambiar</label></div>";
+                        return '<div class="cf-fabrica' + (a.grupo === "Cuándo salen los correos" ? " cf-fabrica--detalle" : "") + '" data-fb-caja="' + esc(a.clave) + '"><div class="cf-fabrica__valor">' + control(a) + (a.ayuda ? '<small class="cf-fabrica__ayuda">' + esc(a.ayuda) + "</small>" : "") + "</div>" +
+                            (a.global ? '<span class="cf-fabrica__fijo cf-fabrica__todas">Aplica a todas las cuentas</span>' :
+                            '<label class="ui-check cf-fabrica__fijo"><input type="checkbox" data-fb-fijo="' + esc(a.clave) + '"' + (a.bloqueado ? " checked" : "") + "> No lo pueden cambiar</label>") + "</div>";
                     }).join("") +
                     '<div class="cf-acciones"><button type="button" class="cf-btn cf-btn--principal" data-fb-guardar>Guardar los valores de fábrica</button><span class="cf-msj"></span></div></div>';
                 }).join("");
-            subPestanas(c, d.grupos.map(function (g) { return { "Horario de los correos": "Horario", "Al guardar la e.firma de una empresa": "Al guardar la e.firma" }[g] || g; }), "fabrica");
+            subPestanas(c, d.grupos.map(function (g) { return { "Cuándo salen los correos": "Cuándo salen", "Horario de los correos": "Horario", "Al guardar la e.firma de una empresa": "Al guardar la e.firma" }[g] || g; }), "fabrica");
+            // Desde Ctrl+K (?seccion=fabrica&sub=<clave>): abre su pestaña y lo señala
+            var pedido = Fiscontable.url("sub"), cajaPedida = pedido && c.querySelector('[data-fb-caja="' + pedido.replace(/"/g, "") + '"]');
+            if (cajaPedida) {
+                var tarjeta = cajaPedida.closest(".cf-tarjeta"), tarjetas = [].filter.call(c.children, function (x) { return x.classList.contains("cf-tarjeta"); });
+                var boton = c.querySelector('.cf-subtabs [data-sub="' + tarjetas.indexOf(tarjeta) + '"]');
+                if (boton) boton.click();
+                cajaPedida.classList.add("cf-fabrica--senalada");
+                setTimeout(function () { cajaPedida.scrollIntoView({ block: "center", behavior: "smooth" }); var x = cajaPedida.querySelector("input, select"); if (x) x.focus({ preventScroll: true }); }, 60);
+            }
             c.querySelectorAll("[data-fb-guardar]").forEach(function (b) { b.addEventListener("click", async function () {
                 var caja = b.closest(".cf-tarjeta");
                 var cambios = {};
                 c.querySelectorAll("[data-fb]").forEach(function (x) {
-                    cambios[x.dataset.fb] = { valor: x.type === "checkbox" ? x.checked : (x.type === "number" ? +x.value : x.value) };
+                    var v = x.dataset.fbTipo === "semana" ? [].map.call(x.querySelectorAll("input:checked"), function (y) { return +y.value; }) :
+                        x.dataset.fbTipo === "lista" ? x.value.split(/[\s,;]+/).filter(Boolean).map(Number) :
+                        x.type === "checkbox" ? x.checked : (x.type === "number" ? +x.value : x.value);
+                    cambios[x.dataset.fb] = { valor: v };
                 });
                 c.querySelectorAll("[data-fb-fijo]").forEach(function (x) { (cambios[x.dataset.fbFijo] = cambios[x.dataset.fbFijo] || {}).bloqueado = x.checked; });
                 try { await enviar("/api/admin/fabrica", "PUT", { cambios: cambios }); aviso(caja, true, "✓ Guardado. Ya aplica a todas las cuentas que no lo habían cambiado."); }
@@ -626,8 +646,8 @@
                 (otros.length ? '<details class="cf-otros"><summary>Otros avisos de la campana que también pueden ir por correo</summary>' +
                     '<div class="cf-temas">' + otros.map(renglon).join("") + "</div></details>" : "") +
                 '<label class="cf-campo"><span>Avisar de e.firma y sellos por vencer cuando falten (días)</span><input type="text" id="cf-av-dias" inputmode="numeric" value="' +
-                esc((p.dias_vence || []).join(", ")) + '"></label>' +
-                '<p class="cf-texto">De fábrica: 3 meses, 2 meses, 1 mes y luego 15, 10, 5, 2 y 1 días. Si ya la renovaste, deja de avisar sola.</p>' +
+                esc((p.dias_vence || []).join(", ")) + '"' + (fijo("vencimientos.dias") ? " disabled" : "") + "></label>" +
+                '<p class="cf-texto">Un aviso por cada escalón. Si ya la renovaste, deja de avisar sola.' + (fijo("vencimientos.dias") ? " Estos días los define Fiscontable." : "") + "</p>" +
                 '<label class="cf-campo"><span>Mandar los avisos a</span><input type="email" id="cf-av-destino" value="' + esc(p.destino || "") + '"></label>' +
                 '<div class="cf-acciones"><button type="button" class="cf-btn cf-btn--principal" id="cf-av-guardar">Guardar</button>' +
                 '<button type="button" class="cf-btn" id="cf-av-prueba">Mandar un correo de prueba</button><span class="cf-msj"></span></div>' +

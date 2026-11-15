@@ -153,3 +153,12 @@
 .cf-subtabs button[aria-selected="true"] { background: rgb(var(--g-0)); color: rgb(var(--g-900)); box-shadow: 0 1px 3px rgba(15,23,42,.15); }
 .cf-subtabs button:focus-visible { outline: 2px solid rgb(var(--ac-600)); outline-offset: 1px; }
 .cf-fabrica__intro { margin: 0 0 12px; }
+/* Parámetros de un correo (cuándo sale, plazos, umbrales): debajo de su interruptor, con sangría */
+.cf-fabrica--detalle { border-bottom-style: dashed; }
+.cf-fabrica--detalle .cf-campo--corto input[type="number"] { max-width: 110px; }
+.cf-fabrica--detalle .cf-campo--corto input[type="text"] { max-width: 260px; }
+.cf-fabrica__todas { font-style: italic; color: rgb(var(--g-500)); }
+.cf-fabrica--senalada { background: rgb(var(--ac-600) / .07); box-shadow: inset 3px 0 0 rgb(var(--ac-600)); border-radius: 8px; padding-right: 8px; }
+.cf-semana { display: flex; flex-wrap: wrap; gap: 6px 14px; }
+.cf-semana .ui-check { margin: 0; font-weight: 400; }
+
