@@ -58,11 +58,9 @@
     function formulario(d) {
         var m = d.modulo, r = d.regla || {}, def = d.defecto || {}, h = [];
         if (m === "csf" || m === "opinion" || m === "declaraciones") {
-            var frec = r.frecuencia || def.frecuencia || "mensual", dia = r.dia != null ? r.dia : (def.dia != null ? def.dia : 1);
+            // 15-nov (Alan): la fecha es la misma para todos y la pone Fiscontable; aquí solo se activa o se pausa
             h.push('<label class="ui-check"><input type="checkbox" data-c="activa"' + (d.activa || !d.regla ? " checked" : "") + "> Hacerlo solo</label>");
-            h.push('<div class="fpu-fila"><label>Cada cuánto<select class="ui-select" data-c="frecuencia">' +
-                   opciones(Object.keys(d.frecuencias).map(function (k) { return [k, d.frecuencias[k]]; }), frec) + "</select></label>" +
-                   '<label>Qué día<select class="ui-select" data-c="dia">' + diasDe(frec, dia) + "</select></label></div>");
+            h.push('<p class="xml-tenue">Cada mes, el día ' + esc(String(def.dia != null ? def.dia : 1)) + ", de madrugada. La fecha la define Fiscontable.</p>");
         } else if (m === "xml") {
             h.push('<label class="ui-check"><input type="checkbox" data-c="activa"' + (d.activa || !d.regla ? " checked" : "") + "> Bajar los XML solos</label>");
             h.push('<div class="fpu-fila"><label>Cada cuánto<select class="ui-select" data-c="frecuencia">' +
