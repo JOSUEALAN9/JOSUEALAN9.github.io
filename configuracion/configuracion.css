@@ -168,3 +168,18 @@
 .cf-auto__intro { margin: 0 0 12px; }
 .cf-prog-nueva { grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr) auto; align-items: end; margin-top: 10px; }
 @media (max-width: 560px) { .cf-prog-nueva { grid-template-columns: 1fr; } }
+
+/* «Mandar un correo de prueba ▾» (15-nov, Alan: elegir cuál): se abre con clic o con el puntero, como «Leer ahora» */
+.cf-menu-prueba { position: relative; display: inline-block; }
+.cf-menu-prueba__lista { display: none; position: absolute; left: 0; top: 100%; padding-top: 6px; z-index: 30; min-width: min(300px, calc(100vw - 32px)); }
+.cf-menu-prueba__lista::before { content: ""; position: absolute; inset: 6px 0 0; background: rgb(var(--g-0)); border: 1px solid rgb(var(--g-200)); border-radius: 12px; box-shadow: 0 12px 28px rgba(15, 23, 42, .16); }
+.cf-menu-prueba__lista button { position: relative; display: grid; gap: 1px; width: 100%; text-align: left; border: 0; background: none; padding: 9px 14px; font: inherit; cursor: pointer; }
+.cf-menu-prueba__lista button:first-child { margin-top: 6px; } .cf-menu-prueba__lista button:last-child { margin-bottom: 6px; }
+.cf-menu-prueba__lista button:hover, .cf-menu-prueba__lista button:focus-visible { background: rgb(var(--g-50)); outline: none; }
+.cf-menu-prueba__lista b { font-size: 13.5px; color: rgb(var(--g-900)); } .cf-menu-prueba__lista small { font-size: 12px; color: rgb(var(--g-600)); }
+.cf-menu-prueba--abierto .cf-menu-prueba__lista { display: block; }
+.cf-menu-prueba--arriba .cf-menu-prueba__lista { top: auto; bottom: 100%; padding-top: 0; padding-bottom: 6px; }
+.cf-menu-prueba--arriba .cf-menu-prueba__lista::before { inset: 0 0 6px; }
+@media (hover: hover) { .cf-menu-prueba:hover .cf-menu-prueba__lista { display: block; } }
+.cf-casillas { display: flex; flex-wrap: wrap; gap: 6px 16px; }
+.cf-auto__buzon { margin: 4px 0 10px; }

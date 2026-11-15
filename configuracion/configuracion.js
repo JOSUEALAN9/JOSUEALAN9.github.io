@@ -570,6 +570,11 @@
                         ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"].map(function (n, i) {
                             return '<label class="ui-check"><input type="checkbox" value="' + i + '"' + ((a.valor || []).indexOf(i) >= 0 ? " checked" : "") + "> " + n + "</label>"; }).join("") + "</div></div>";
                 }
+                if (a.tipo === "casillas") {
+                    return '<div class="cf-campo"><span>' + esc(a.titulo) + '</span><div class="cf-casillas" id="' + id + '" data-fb="' + esc(a.clave) + '" data-fb-tipo="casillas">' +
+                        (a.opciones || []).map(function (o) {
+                            return '<label class="ui-check"><input type="checkbox" value="' + esc(o.valor) + '"' + ((a.valor || []).indexOf(o.valor) >= 0 ? " checked" : "") + "> " + esc(o.texto) + "</label>"; }).join("") + "</div></div>";
+                }
                 if (a.tipo.indexOf("lista:") === 0) campo = '<input type="text" inputmode="numeric" id="' + id + '" data-fb="' + esc(a.clave) + '" data-fb-tipo="lista" value="' + esc((a.valor || []).join(", ")) + '">';
                 else if (a.tipo === "hora") campo = '<input type="time" id="' + id + '" data-fb="' + esc(a.clave) + '" value="' + esc(a.valor) + '">';
                 else if (a.tipo.indexOf("entero:") === 0) { var lim = a.tipo.split(":"); campo = '<input type="number" id="' + id + '" data-fb="' + esc(a.clave) + '" min="' + lim[1] + '" max="' + lim[2] + '" value="' + esc(a.valor) + '">'; }
@@ -588,41 +593,8 @@
                     }).join("") +
                     '<div class="cf-acciones"><button type="button" class="cf-btn cf-btn--principal" data-fb-guardar>Guardar los valores de fábrica</button><span class="cf-msj"></span></div></div>';
                 }).join("");
-            // Lo programado de fábrica (antes en Administración › Sistema › Plazos): lo que se propone al programar
-            var pl = await api("/api/admin/plazos").catch(function () { return null; });
-            var DIAS_S = ["lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo"];
-            var selDia = function (m, frec, dia) {
-                var ops = frec === "semanal" ? DIAS_S.map(function (n, i) { return [i, n]; }) : Array.from({ length: 28 }, function (_, i) { return [i + 1, "día " + (i + 1)]; });
-                return '<select data-pd-dia="' + m + '">' + ops.map(function (o) { return '<option value="' + o[0] + '"' + (+o[0] === +dia ? " selected" : "") + ">" + o[1] + "</option>"; }).join("") + "</select>";
-            };
-            if (pl) {
-                var pd = pl.prog_defecto, filaPd = function (m, nombre) {
-                    return '<div class="cf-fabrica" data-fb-caja="programado.' + m + '"><div class="cf-fabrica__valor"><div class="cf-campo"><span>' + nombre + '</span><div class="cf-pd">' +
-                        '<select data-pd-frec="' + m + '"><option value="mensual"' + (pd[m].frecuencia === "mensual" ? " selected" : "") + '>Cada mes</option><option value="semanal"' +
-                        (pd[m].frecuencia === "semanal" ? " selected" : "") + ">Cada semana</option></select>" + selDia(m, pd[m].frecuencia, pd[m].dia) + "</div></div></div>" +
-                        '<span class="cf-fabrica__fijo cf-fabrica__todas">Cada cuenta lo cambia por empresa</span></div>';
-                };
-                c.insertAdjacentHTML("beforeend", '<div class="cf-tarjeta" data-pd-caja><p class="cf-texto">Lo que se propone cuando alguien programa por primera vez (y lo que se pone solo a las ' +
-                    "empresas nuevas, si la cuenta lo activó en Lo automático). Los XML se definen en «Al guardar la e.firma».</p>" +
-                    filaPd("csf", "Constancia") + filaPd("opinion", "Opinión 32-D") + filaPd("declaraciones", "Declaraciones") +
-                    '<div class="cf-acciones"><button type="button" class="cf-btn cf-btn--principal" data-pd-guardar>Guardar lo programado</button><span class="cf-msj"></span></div></div>');
-                var cajaPd = c.querySelector("[data-pd-caja]");
-                cajaPd.addEventListener("change", function (e) {
-                    var s = e.target.closest("[data-pd-frec]"); if (!s) return;
-                    var m = s.dataset.pdFrec, viejo = cajaPd.querySelector('[data-pd-dia="' + m + '"]');
-                    viejo.outerHTML = selDia(m, s.value, s.value === "semanal" ? 0 : 1);
-                });
-                cajaPd.querySelector("[data-pd-guardar]").addEventListener("click", async function () {
-                    var v = {};
-                    ["csf", "opinion", "declaraciones"].forEach(function (m) {
-                        v[m] = { frecuencia: cajaPd.querySelector('[data-pd-frec="' + m + '"]').value, dia: +cajaPd.querySelector('[data-pd-dia="' + m + '"]').value };
-                    });
-                    try { await enviar("/api/admin/plazos", "PUT", { prog_defecto: v }); aviso(cajaPd, true, "✓ Guardado."); }
-                    catch (e) { aviso(cajaPd, false, e.message); }
-                });
-            }
-            var grupos = d.grupos.concat(pl ? ["Lo programado"] : []);
-            subPestanas(c, grupos.map(function (g) { return { "Cuándo salen los correos": "Cuándo salen", "Horario de los correos": "Horario", "Al guardar la e.firma de una empresa": "Al guardar la e.firma" }[g] || g; }), "fabrica");
+            // Lo programado (constancia, opinión y declaraciones) vive en «Lo automático» con una sola regla para todos (15-nov)
+            subPestanas(c, d.grupos.map(function (g) { return { "Cuándo salen los correos": "Cuándo salen", "Horario de los correos": "Horario" }[g] || g; }), "fabrica");
             // Desde Ctrl+K (?seccion=fabrica&sub=<clave>): abre su pestaña y lo señala
             var pedido = Fiscontable.url("sub"), cajaPedida = pedido && c.querySelector('[data-fb-caja="' + pedido.replace(/"/g, "") + '"]');
             if (cajaPedida) {
@@ -637,6 +609,7 @@
                 var cambios = {};
                 c.querySelectorAll("[data-fb]").forEach(function (x) {
                     var v = x.dataset.fbTipo === "semana" ? [].map.call(x.querySelectorAll("input:checked"), function (y) { return +y.value; }) :
+                        x.dataset.fbTipo === "casillas" ? [].map.call(x.querySelectorAll("input:checked"), function (y) { return y.value; }) :
                         x.dataset.fbTipo === "lista" ? x.value.split(/[\s,;]+/).filter(Boolean).map(Number) :
                         x.type === "checkbox" ? x.checked : (x.type === "number" ? +x.value : x.value);
                     cambios[x.dataset.fb] = { valor: v };
@@ -657,12 +630,14 @@
             var temas = p.por_tema || Object.keys(p.tipos), conFecha = p.con_fecha || [], cuando = p.cuando || {};
             var otros = Object.keys(p.tipos).filter(function (t) { return temas.indexOf(t) < 0; });
             var bloq = p.bloqueados || [], fijo = function (clave) { return bloq.indexOf(clave) >= 0; };
+            // 15-nov (Alan): apagar un correo siempre se puede; lo que Fiscontable apagó y bloqueó no se puede prender
+            var noPrende = p.no_se_prenden || [];
             var renglon = function (t) {
-                var fx = fijo("correo." + t);
-                return '<div class="cf-tema"><label class="ui-check cf-tema__check"><input type="checkbox" data-tipo="' + esc(t) + '"' + (p.correo[t] ? " checked" : "") + (fx ? " disabled" : "") + ">" +
-                    '<span><b>' + esc(p.tipos[t]) + '</b><small>' + esc(cuando[t] || "Al momento") + (fx ? " · Lo define Fiscontable" : "") + "</small></span></label>" +
-                    (conFecha.indexOf(t) >= 0 ? '<button type="button" class="cf-btn cf-btn--chico" data-probar="' + esc(t) + '" title="Te lo manda ahora, con lo de hoy">Probar</button>' : "") + "</div>";
+                var fx = fijo("correo." + t), cerrado = noPrende.indexOf(t) >= 0;
+                return '<div class="cf-tema"><label class="ui-check cf-tema__check"><input type="checkbox" data-tipo="' + esc(t) + '"' + (p.correo[t] ? " checked" : "") + (cerrado ? " disabled" : "") + ">" +
+                    '<span><b>' + esc(p.tipos[t]) + '</b><small>' + esc(cuando[t] || "Al momento") + (cerrado ? " · Apagado por Fiscontable" : fx ? " · Sus fechas las define Fiscontable" : "") + "</small></span></label></div>";
             };
+            var probar = conFecha.filter(function (t) { return p.tipos[t]; });
             var h = p.horario || {};
             var hcampo = function (k, html) { return fijo("horario." + k) ? html.replace("<input", "<input disabled") : html; };
             var cajaHorario = '<div class="cf-tarjeta" style="margin-top:14px"><h3 class="cf-sub">Horario de los correos</h3>' +
@@ -686,7 +661,10 @@
                 '<p class="cf-texto">Un aviso por cada escalón. Si ya la renovaste, deja de avisar sola.' + (fijo("vencimientos.dias") ? " Estos días los define Fiscontable." : "") + "</p>" +
                 '<label class="cf-campo"><span>Mandar los avisos a</span><input type="email" id="cf-av-destino" value="' + esc(p.destino || "") + '"></label>' +
                 '<div class="cf-acciones"><button type="button" class="cf-btn cf-btn--principal" id="cf-av-guardar">Guardar</button>' +
-                '<button type="button" class="cf-btn" id="cf-av-prueba">Mandar un correo de prueba</button><span class="cf-msj"></span></div>' +
+                '<div class="cf-menu-prueba" id="cf-av-prueba-caja"><button type="button" class="cf-btn" id="cf-av-prueba-abrir" aria-haspopup="menu" aria-expanded="false">Mandar un correo de prueba ▾</button>' +
+                '<div class="cf-menu-prueba__lista" role="menu"><button type="button" role="menuitem" id="cf-av-prueba"><b>Solo saber si me llegan</b><small>Un correo corto de prueba</small></button>' +
+                probar.map(function (t) { return '<button type="button" role="menuitem" data-probar="' + esc(t) + '"><b>' + esc(p.tipos[t]) + "</b><small>Con lo de hoy, aunque no le toque</small></button>"; }).join("") +
+                '</div></div><span class="cf-msj"></span></div>' +
                 '<p class="cf-texto" style="margin-top:12px">Los correos salen por el mismo correo que usas en Facturar (el general de Fiscontable o el tuyo).</p></div>' +
                 cajaHorario +
                 '<div class="cf-tarjeta" id="cf-av-caja-quien" style="margin-top:14px"><h3 class="cf-sub">¿A quién más le llegan?</h3>' +
@@ -800,6 +778,16 @@
                 }
                 catch (e) { aviso(c, false, e.message); }
             });
+            var cajaPrueba = $("cf-av-prueba-caja"), cerrarPrueba = function () { cajaPrueba.classList.remove("cf-menu-prueba--abierto"); $("cf-av-prueba-abrir").setAttribute("aria-expanded", "false"); };
+            $("cf-av-prueba-abrir").addEventListener("click", function () {
+                var abierto = cajaPrueba.classList.toggle("cf-menu-prueba--abierto"); this.setAttribute("aria-expanded", String(abierto));
+                cajaPrueba.classList.remove("cf-menu-prueba--arriba");
+                var r = cajaPrueba.querySelector(".cf-menu-prueba__lista").getBoundingClientRect();
+                if (abierto && r.bottom > document.documentElement.clientHeight - 8) cajaPrueba.classList.add("cf-menu-prueba--arriba");
+            });
+            cajaPrueba.addEventListener("click", function (e) { if (e.target.closest("[role=menuitem]")) cerrarPrueba(); });
+            document.addEventListener("click", function (e) { if (!e.target.closest("#cf-av-prueba-caja")) cerrarPrueba(); });
+            document.addEventListener("keydown", function (e) { if (e.key === "Escape") cerrarPrueba(); });
             $("cf-av-prueba").addEventListener("click", async function () {
                 var b = this; b.disabled = true;
                 try { var r = await enviar("/api/actividad/correo-prueba", "POST", { destino: $("cf-av-destino").value.trim() || null }); aviso(c, true, "✓ Enviado a " + r.destino + "."); }
@@ -813,70 +801,57 @@
     var PAGINA_MODULO = { csf: "/herramientas/constancias/", opinion: "/herramientas/opinion/", declaraciones: "/herramientas/declaraciones/",
                           xml: "/herramientas/descarga-xml/", buzon: "/herramientas/buzon/", validador: "/herramientas/validador/", listas: "/herramientas/listas-sat/" };
     async function pintarProgramaciones(c) {
+        // 15-nov (Alan): una sola regla para todos (la pone el administrador en Valores de fábrica › Lo automático); aquí,
+        // por empresa, solo encender o apagar y si se le manda al cliente. Ya no por documento ni con fechas propias.
         c.innerHTML = '<div class="cf-tarjeta"><p class="cf-texto">Cargando…</p></div>';
         try {
             var d = await api("/api/programacion"), nv = await api("/api/programacion-nuevas").catch(function () { return null; });
-            var fecha = function (iso) { return iso ? iso.slice(8, 10) + "/" + iso.slice(5, 7) + "/" + iso.slice(0, 4) : "—"; };
-            var df = (nv && nv.defecto) || {}, regla = function (r) { return r ? (r.frecuencia === "semanal" ? "cada semana" : "el día " + r.dia + " de cada mes") : ""; };
             var clientes = await api("/api/clientes").catch(function () { return []; });
-            var mods = (perfil && perfil.modulos_permitidos) || [];
-            var QUE = [["csf", "Constancia", "constancias"], ["opinion", "Opinión 32-D", "opinion"], ["declaraciones", "Declaraciones", "declaraciones"],
-                       ["xml", "XML", "descarga_xml"], ["buzon", "Buzón (todas tus empresas)", "buzon"]].filter(function (q) { return mods.indexOf(q[2]) !== -1; });
-            c.innerHTML = '<div class="cf-tarjeta"><p class="cf-texto">Lo programado se ejecuta en horario nocturno con la e.firma registrada de cada empresa. ' +
-                "Cámbialo aquí con «Cambiar», o programa algo nuevo:</p>" +
-                (QUE.length ? '<div class="cf-campos cf-prog-nueva"><label class="cf-campo"><span>Qué</span><select id="cf-prog-que">' +
-                    QUE.map(function (q) { return '<option value="' + q[0] + '">' + esc(q[1]) + "</option>"; }).join("") + "</select></label>" +
-                    '<label class="cf-campo"><span>Empresa</span><select id="cf-prog-rfc">' + clientes.filter(function (x) { return x.efirma_guardada; }).map(function (x) {
-                        return '<option value="' + esc(x.rfc) + '">' + esc(x.alias || x.rfc) + "</option>"; }).join("") + "</select></label>" +
-                    '<button type="button" class="cf-btn" id="cf-prog-ir">Programar</button></div>' : "") +
+            var fecha = function (iso) { return iso ? iso.slice(8, 10) + "/" + iso.slice(5, 7) + "/" + iso.slice(0, 4) : "—"; };
+            var df = d.defecto || {}, dia = function (m, otro) { return String((df[m] || {}).dia || otro); };
+            var DOCS = ["csf", "opinion", "declaraciones"], por = {};
+            d.programaciones.forEach(function (x) { if (DOCS.indexOf(x.modulo) !== -1 && x.rfc) (por[x.rfc] = por[x.rfc] || []).push(x); });
+            var filas = clientes.filter(function (x) { return x.efirma_guardada || por[x.rfc]; }).map(function (x) {
+                var rs = por[x.rfc] || [], activa = rs.some(function (r) { return r.activa; });
+                var prox = rs.filter(function (r) { return r.activa && r.proxima; }).map(function (r) { return r.proxima; }).sort()[0];
+                var ult = rs.filter(function (r) { return r.ultima; }).sort(function (a, b) { return a.ultima < b.ultima ? 1 : -1; })[0];
+                var mandable = rs.filter(function (r) { return r.mandar_cliente !== null && r.mandar_cliente !== undefined; });
+                var mandar = mandable.some(function (r) { return r.mandar_cliente; }), correo = (mandable[0] || {}).correo_cliente || "";
+                return '<tr data-rfc="' + esc(x.rfc) + '"' + (activa ? "" : ' class="cf-apagada"') + "><td><b>" + esc(x.alias || x.rfc) + "</b><small>" + esc(x.rfc) +
+                    (x.efirma_guardada ? "" : " · sin e.firma") + "</small></td>" +
+                    '<td><label class="cf-switch" title="Constancia, opinión y declaraciones"><input type="checkbox" data-prog-activa' + (activa ? " checked" : "") +
+                    (x.efirma_guardada ? "" : " disabled") + "><span></span></label></td>" +
+                    "<td>" + (mandable.length ? '<label class="ui-check" title="' + esc(correo ? "Se manda a " + correo : "Escribe el correo del cliente en su ficha para poder mandárselo") + '">' +
+                        '<input type="checkbox" data-prog-mandar' + (mandar ? " checked" : "") + (correo || mandar ? "" : " disabled") + "> Constancia y opinión</label>" +
+                        (correo ? "" : "<small>Sin correo del cliente</small>") : "—") + "</td>" +
+                    "<td>" + (activa ? fecha(prox) : "—") + "</td><td>" + (ult ? fecha(ult.ultima) + (ult.resultado ? "<small>" + esc(ult.resultado) + "</small>" : "") : "—") + "</td></tr>";
+            });
+            c.innerHTML = '<div class="cf-tarjeta"><p class="cf-texto">Cada mes, de madrugada y con la e.firma de cada empresa: <b>constancia y opinión el día ' + esc(dia("csf", 1)) +
+                "</b> y <b>declaraciones el día " + esc(dia("declaraciones", 20)) + "</b>. Las fechas las define Fiscontable; aquí eliges qué empresas y si se le manda a su cliente.</p>" +
                 (nv ? '<label class="ui-check cf-nuevas"><input type="checkbox" id="cf-prog-nuevas"' + (nv.activa ? " checked" : "") + "> " +
-                    "<span><b>Programar solas las empresas nuevas</b><small>Cuando una empresa guarde su e.firma: constancia " + esc(regla(df.csf)) +
-                    ", opinión " + esc(regla(df.opinion)) + ", declaraciones " + esc(regla(df.declaraciones)) + " y sus XML cada día. Solo lo que tu plan incluye; después lo cambias como cualquier otra.</small></span></label>" : "") +
+                    "<span><b>Programar todas mis empresas con e.firma</b><small>Las nuevas entran solas. Si lo apagas, se quedan solo las que ya tienes encendidas.</small></span></label>" : "") +
                 "</div>" +
-                '<div class="cf-tarjeta cf-tarjeta--tabla" style="margin-top:12px"><table class="cf-tabla"><thead><tr><th>Qué</th><th>Empresa</th><th>Cada cuánto</th><th>Próxima</th><th>Última</th><th title="Le llega por correo al cliente cada vez que se descarga">Al cliente</th><th></th></tr></thead><tbody>' +
-                (d.programaciones.length ? d.programaciones.map(function (x) {
-                    var pausable = ["csf", "opinion", "declaraciones", "xml"].indexOf(x.modulo) !== -1 && x.rfc;
-                    return "<tr" + (x.activa ? "" : ' class="cf-apagada"') + "><td><b>" + esc(x.nombre) + "</b></td><td>" + esc(x.alias || "") + (x.rfc ? "<small>" + esc(x.rfc) + "</small>" : "") + "</td>" +
-                        "<td>" + esc(x.regla || "") + (x.activa ? "" : " <small>(pausada)</small>") + "</td><td>" + fecha(x.proxima) + "</td>" +
-                        "<td>" + fecha(x.ultima) + (x.resultado ? "<small>" + esc(x.resultado) + "</small>" : "") + "</td>" +
-                        "<td>" + (x.mandar_cliente === null || x.mandar_cliente === undefined ? "" :
-                            '<label class="ui-check" title="' + esc(x.correo_cliente ? "Se manda a " + x.correo_cliente : "Escribe el correo del cliente en su ficha para poder mandárselo") + '">' +
-                            '<input type="checkbox" data-mandar="' + esc(x.modulo) + '" data-rfc="' + esc(x.rfc) + '"' + (x.mandar_cliente ? " checked" : "") + (x.correo_cliente || x.mandar_cliente ? "" : " disabled") + "> Mandar</label>" +
-                            (x.correo_cliente ? "" : "<small>Sin correo del cliente</small>")) + "</td>" +
-                        '<td class="cf-celda-acciones">' + (pausable ? '<button type="button" class="cf-btn cf-btn--chico" data-pausa="' + esc(x.modulo) + '" data-rfc="' + esc(x.rfc) + '" data-activa="' + (x.activa ? "1" : "") + '">' + (x.activa ? "Pausar" : "Reanudar") + "</button> " : "") +
-                        (["csf", "opinion", "declaraciones", "xml", "buzon"].indexOf(x.modulo) !== -1 ? '<button type="button" class="cf-btn cf-btn--chico" data-cambiar="' + esc(x.modulo) +
-                            '" data-rfc="' + esc(x.rfc || "") + '" data-alias="' + esc(x.alias || "") + '">Cambiar</button> ' : "") +
-                        '<a class="cf-btn cf-btn--chico" href="' + PAGINA_MODULO[x.modulo] + '"' + (incrustado ? ' target="_top"' : "") + ">Abrir</a></td></tr>";
-                }).join("") : '<tr><td colspan="7">Todavía no programas nada.</td></tr>') + "</tbody></table></div>" +
+                '<div class="cf-tarjeta cf-tarjeta--tabla" style="margin-top:12px"><table class="cf-tabla"><thead><tr><th>Empresa</th><th>Programado</th>' +
+                '<th title="Le llega por correo al cliente cada vez que se descarga">Al cliente</th><th>Próxima</th><th>Última</th></tr></thead><tbody>' +
+                (filas.length ? filas.join("") : '<tr><td colspan="5">Guarda la e.firma de tus empresas en Clientes y aquí salen programadas.</td></tr>') + "</tbody></table></div>" +
                 '<p class="cf-msj"></p>';
             var chk = c.querySelector("#cf-prog-nuevas");
             if (chk) chk.addEventListener("change", async function () {
-                try { await enviar("/api/programacion-nuevas", "PUT", { activa: chk.checked }); aviso(c, true, chk.checked ? "Las empresas nuevas se programarán automáticamente." : "Las empresas nuevas ya no se programan automáticamente."); }
+                try { await enviar("/api/programacion-nuevas", "PUT", { activa: chk.checked }); aviso(c, true, chk.checked ? "✓ Todas tus empresas con e.firma quedan programadas." : "✓ Las nuevas ya no entran solas."); pintarProgramaciones(c); }
                 catch (x) { chk.checked = !chk.checked; aviso(c, false, x.message); }
             });
             c.onchange = async function (e) {
-                var m = e.target.closest("[data-mandar]"); if (!m) return;
-                m.disabled = true;
+                var a = e.target.closest("[data-prog-activa]"), m = e.target.closest("[data-prog-mandar]");
+                if (!a && !m) return;
+                var el = a || m, rfc = el.closest("tr").dataset.rfc;
+                el.disabled = true;
                 try {
-                    await enviar("/api/programacion/" + m.dataset.mandar + "/mandar-cliente", "PUT", { rfc: m.dataset.rfc, activa: m.checked });
-                    aviso(c, true, m.checked ? "✓ Se le mandará al cliente cada vez que se baje." : "✓ Ya no se le manda al cliente.");
-                } catch (x) { m.checked = !m.checked; aviso(c, false, x.message); }
-                finally { m.disabled = false; }
-            };
-            var repintar = function () { pintarProgramaciones(c); };
-            var ir = c.querySelector("#cf-prog-ir");
-            if (ir) ir.addEventListener("click", function () {
-                var m = c.querySelector("#cf-prog-que").value, s = c.querySelector("#cf-prog-rfc"), o = s.options[s.selectedIndex];
-                if (!window.FCProgramacion) return;
-                FCProgramacion.abrir(m, m === "buzon" || !o ? null : { rfc: o.value, alias: o.textContent }, repintar);
-            });
-            c.onclick = async function (e) {
-                var cb = e.target.closest("[data-cambiar]");
-                if (cb && window.FCProgramacion) { FCProgramacion.abrir(cb.dataset.cambiar, cb.dataset.rfc ? { rfc: cb.dataset.rfc, alias: cb.dataset.alias || cb.dataset.rfc } : null, repintar); return; }
-                var b = e.target.closest("[data-pausa]"); if (!b) return;
-                b.disabled = true;
-                try { await enviar("/api/programacion/" + b.dataset.pausa, "PUT", { rfc: b.dataset.rfc, activa: !b.dataset.activa }); pintarProgramaciones(c); }
-                catch (x) { aviso(c, false, x.message); b.disabled = false; }
+                    await enviar("/api/programacion/empresa/" + encodeURIComponent(rfc), "PUT", a ? { activa: a.checked } : { mandar_cliente: m.checked });
+                    aviso(c, true, a ? (a.checked ? "✓ Programada." : "✓ Pausada: no se programa hasta que la vuelvas a encender.") :
+                        (m.checked ? "✓ Se le mandará al cliente cada vez que se baje." : "✓ Ya no se le manda al cliente."));
+                    if (a) pintarProgramaciones(c);
+                } catch (x) { el.checked = !el.checked; aviso(c, false, x.message); }
+                finally { el.disabled = false; }
             };
         } catch (e) { c.innerHTML = '<div class="cf-tarjeta"><p class="cf-msj cf-msj--mal">' + esc(e.message) + "</p></div>"; }
     }
@@ -885,8 +860,7 @@
     function pintarAutomatico(c) {
         var mods = (perfil && perfil.modulos_permitidos) || [];
         var partes = [
-            { clave: "xml", nombre: "XML y retenciones", si: mods.indexOf("descarga_xml") !== -1, pintar: pintarXmlAuto },
-            { clave: "buzon", nombre: "Buzón", si: mods.indexOf("buzon") !== -1, pintar: pintarBuzon },
+            { clave: "xml", nombre: mods.indexOf("buzon") !== -1 ? "XML, retenciones y Buzón" : "XML y retenciones", si: mods.indexOf("descarga_xml") !== -1 || mods.indexOf("buzon") !== -1, pintar: pintarXmlAuto },
             { clave: "programado", nombre: "Lo programado", si: true, pintar: pintarProgramaciones }
         ].filter(function (p) { return p.si; });
         c.innerHTML = '<p class="cf-texto cf-auto__intro">Corre de madrugada con la e.firma guardada de cada empresa. Lo que se enciende solo al ' +
@@ -894,7 +868,7 @@
             partes.map(function (p) { return '<div class="cf-tarjeta cf-tarjeta--plana" data-auto-parte="' + p.clave + '"><div></div></div>'; }).join("");
         partes.forEach(function (p) { p.pintar(c.querySelector('[data-auto-parte="' + p.clave + '"] > div')); });
         subPestanas(c, partes.map(function (p) { return p.nombre; }), "automatico");
-        var pedido = Fiscontable.url("sub"), i = partes.map(function (p) { return p.clave; }).indexOf(pedido);
+        var pedido = Fiscontable.url("sub"), i = partes.map(function (p) { return p.clave; }).indexOf(pedido === "buzon" ? "xml" : pedido);   // el Buzón ya va en la tabla
         if (i >= 0) { var b = c.querySelector('.cf-subtabs [data-sub="' + i + '"]'); if (b) b.click(); }
         var pm = Fiscontable.url("programar"), prfc = Fiscontable.url("rfc");
         if (pm && !prfc && pm !== "buzon") {               // sin empresa elegida: el formulario de «programar algo nuevo», ya con el qué
@@ -942,25 +916,49 @@
     async function pintarXmlAuto(c) {
         c.innerHTML = '<div class="cf-tarjeta"><p class="cf-texto">Cargando…</p></div>';
         try {
-            var cfg = await api("/api/descarga-xml/automatica");
+            var mods = (perfil && perfil.modulos_permitidos) || [], conXml = mods.indexOf("descarga_xml") !== -1, conBuzon = mods.indexOf("buzon") !== -1;
+            var cfg = conXml ? await api("/api/descarga-xml/automatica") : { empresas: [], tipos: {}, frecuencias: {} };
             var clientes = await api("/api/clientes");
+            // 15-nov (Alan): el Buzón en esta misma lista; de fábrica, encendido en todas las empresas con e.firma
+            var bz = conBuzon ? await api("/api/buzon").catch(function () { return null; }) : null, bzDe = {};
+            ((bz && bz.empresas) || []).forEach(function (e) { bzDe[e.rfc] = e; });
             var nombre = {}; clientes.forEach(function (x) { nombre[x.rfc] = x.alias; });
             var porRfc = {}; cfg.empresas.forEach(function (e) { porRfc[e.rfc] = e; });
             var opc = function (mapa, v) { return Object.keys(mapa).map(function (k) { return '<option value="' + k + '"' + (k === v ? " selected" : "") + ">" + esc(mapa[k]) + "</option>"; }).join(""); };
             var dia = function (iso) { return iso ? new Date(iso.slice(0, 10) + "T12:00:00").toLocaleDateString("es-MX", { weekday: "short", day: "numeric", month: "short" }) : ""; };
-            c.innerHTML = '<div class="cf-tarjeta cf-tarjeta--tabla"><table class="cf-tabla"><thead><tr><th>Empresa</th><th>Automática</th><th>Qué</th><th>Retenciones</th><th>Cada cuánto</th><th>Desde</th><th>Próxima</th><th></th></tr></thead><tbody>' +
+            var bzFrec = bz ? '<label class="cf-campo cf-campo--corto cf-auto__buzon"><span>Revisar los buzones</span><select id="cf-buzon-frec">' +
+                Object.keys(bz.frecuencias).sort(function (a, b) { return (+a || 99) - (+b || 99); }).map(function (k) {
+                    return '<option value="' + k + '"' + (+k === bz.frecuencia ? " selected" : "") + ">" + esc(bz.frecuencias[k]) + "</option>"; }).join("") + "</select></label>" : "";
+            c.innerHTML = '<div class="cf-tarjeta cf-tarjeta--tabla">' + bzFrec + '<table class="cf-tabla"><thead><tr><th>Empresa</th>' +
+                (conXml ? "<th>XML</th><th>Qué</th><th>Retenciones</th><th>Cada cuánto</th><th>Desde</th><th>Próxima</th>" : "") +
+                (conBuzon ? '<th title="Se guarda al momento">Buzón</th>' : "") + (conXml ? "<th></th>" : "") + "</tr></thead><tbody>" +
                 clientes.map(function (x) {
-                    var e = porRfc[x.rfc] || { activo: false, tipo: "ambos", frecuencia: "diaria" };
+                    var e = porRfc[x.rfc] || { activo: false, tipo: "ambos", frecuencia: "diaria" }, b = bzDe[x.rfc];
                     return '<tr data-rfc="' + esc(x.rfc) + '"><td><b>' + esc(x.alias) + "</b><small>" + esc(x.rfc) + (x.efirma_guardada ? "" : " · sin e.firma") + "</small></td>" +
-                        '<td><label class="cf-switch"><input type="checkbox" data-c="activo"' + (e.activo ? " checked" : "") + (x.efirma_guardada ? "" : " disabled") + "><span></span></label></td>" +
+                        (conXml ? '<td><label class="cf-switch"><input type="checkbox" data-c="activo"' + (e.activo ? " checked" : "") + (x.efirma_guardada ? "" : " disabled") + "><span></span></label></td>" +
                         '<td><select data-c="tipo">' + opc(cfg.tipos, e.tipo) + "</select></td>" +
                         '<td><label class="cf-switch" title="También sus CFDI de Retenciones"><input type="checkbox" data-c="retenciones"' + (e.retenciones ? " checked" : "") + "><span></span></label></td>" +
                         "<td><select data-c=\"frecuencia\">" + opc(cfg.frecuencias, e.frecuencia) + "</select></td>" +
                         '<td><select data-c="desde">' + Fiscontable.opcionesDesde(cfg.desde_minimo, cfg.mes_actual, e.desde || "") + "</select></td>" +
-                        "<td>" + (e.activo && x.efirma_guardada ? "<b>" + esc(dia(e.proxima)) + "</b>" + (e.ultima ? "<small>Última: " + esc(dia(e.ultima)) + "</small>" : "") : "—") + "</td>" +
-                        '<td class="cf-celda-acciones"><button type="button" class="cf-btn cf-btn--chico" data-guardar>Guardar</button>' +
-                        (x.efirma_guardada ? ' <button type="button" class="cf-btn cf-btn--chico" data-ahora title="Pedir ahora el periodo programado">Descargar ahora</button>' : "") + "</td></tr>";
+                        "<td>" + (e.activo && x.efirma_guardada ? "<b>" + esc(dia(e.proxima)) + "</b>" + (e.ultima ? "<small>Última: " + esc(dia(e.ultima)) + "</small>" : "") : "—") + "</td>" : "") +
+                        (conBuzon ? '<td><label class="cf-switch" title="Revisar su Buzón Tributario"><input type="checkbox" data-buzon' + ((b ? b.activo : true) && x.efirma_guardada ? " checked" : "") +
+                            (x.efirma_guardada ? "" : " disabled") + "><span></span></label></td>" : "") +
+                        (conXml ? '<td class="cf-celda-acciones"><button type="button" class="cf-btn cf-btn--chico" data-guardar>Guardar</button>' +
+                        (x.efirma_guardada ? ' <button type="button" class="cf-btn cf-btn--chico" data-ahora title="Pedir ahora el periodo programado">Descargar ahora</button>' : "") + "</td>" : "") + "</tr>";
                 }).join("") + "</tbody></table><div class=\"cf-acciones\"><span class=\"cf-msj\"></span></div></div>";
+            var fb = c.querySelector("#cf-buzon-frec");
+            if (fb) fb.addEventListener("change", async function () {
+                try { await enviar("/api/buzon/ajustes", "PUT", { frecuencia: +fb.value }); aviso(c, true, "✓ Buzones: " + fb.options[fb.selectedIndex].textContent.toLowerCase() + "."); }
+                catch (x) { aviso(c, false, x.message); }
+            });
+            c.querySelectorAll("[data-buzon]").forEach(function (sw) {
+                sw.addEventListener("change", async function () {
+                    var rfc = sw.closest("tr").dataset.rfc; sw.disabled = true;
+                    try { await enviar("/api/buzon/empresas/" + encodeURIComponent(rfc), "PUT", { activo: sw.checked }); aviso(c, true, "✓ " + (nombre[rfc] || rfc) + ": Buzón " + (sw.checked ? "encendido." : "apagado.")); }
+                    catch (x) { sw.checked = !sw.checked; aviso(c, false, x.message); }
+                    finally { sw.disabled = false; }
+                });
+            });
             c.querySelectorAll("[data-ahora]").forEach(function (b) {
                 b.addEventListener("click", async function () {
                     var rfc = b.closest("tr").dataset.rfc;
