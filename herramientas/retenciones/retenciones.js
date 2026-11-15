@@ -9,7 +9,8 @@
     var esc = Fiscontable.escapar;
     var $ = function (id) { return document.getElementById(id); };
     var q = new URLSearchParams(location.search);
-    var E = { empresas: [], rfc: null, anio: "", lado: q.get("lado") === "emitida" ? "emitida" : "recibida", datos: null };
+    var E = { empresas: [], rfc: null, anio: "", lado: q.get("lado") === "emitida" ? "emitida" : "recibida", datos: null,
+              ver: q.get("ver") === "papel" ? "papel" : "lista" };
 
     async function api(ruta, opciones) {
         var r = await fetch(API + ruta, Object.assign({ credentials: "include" }, opciones || {}));
@@ -52,6 +53,9 @@
 
     async function cargar() {
         aviso("");
+        [].forEach.call(document.querySelectorAll("[data-ver]"), function (b) { b.setAttribute("aria-pressed", String(b.dataset.ver === E.ver)); });
+        $("papel").hidden = E.ver !== "papel"; $("caja-lista").hidden = E.ver === "papel"; $("btn-zip").hidden = E.ver === "papel";
+        if (E.ver === "papel") return cargarPapel();
         if (!E.rfc) { pintar({ filas: [], totales: {}, anios: [] }); aviso("Elige una empresa."); return; }
         $("tb").innerHTML = '<tr><td colspan="10" class="rt-vacio">Cargando…</td></tr>';
         try {
@@ -88,6 +92,55 @@
         }).join("");
     }
 
+    /* ---------- Papel de trabajo: por mes y por quien retuvo (15-nov) ---------- */
+    async function cargarPapel() {
+        if (!E.rfc) { $("papel").innerHTML = ""; aviso("Elige una empresa."); return; }
+        $("papel").innerHTML = '<p class="rt-papel__nota">Cargando…</p>';
+        var p, lista;
+        try {
+            p = await (await api(base() + "/papel" + filtros())).json();
+            if (!E.datos) E.datos = await (await api(base() + filtros())).json();
+        } catch (e) { $("papel").innerHTML = ""; aviso(esc(e.message), true); return; }
+        E.papel = p;
+        pintarAnios((E.datos && E.datos.anios) || [], p.anio);
+        var t = p.total || {};
+        $("cifras").innerHTML = cifra("Año", esc(p.anio)) + cifra("ISR retenido", "$" + m(t.isr_retenido)) + cifra("IVA retenido", "$" + m(t.iva_retenido)) +
+            (t.ieps_retenido ? cifra("IEPS retenido", "$" + m(t.ieps_retenido)) : "") + cifra("Total retenido", "$" + m(t.monto_retenido));
+        $("btn-excel").disabled = !p.periodos.length;
+        var quien = E.lado === "recibida" ? "Retenedor" : "Receptor";
+        if (!p.periodos.length) {
+            $("papel").innerHTML = '<p class="rt-papel__nota">Sin retenciones ' + (E.lado === "recibida" ? "recibidas" : "emitidas") + " de " + esc(p.anio) +
+                ". Actívalas de noche en Configuración › XML automáticos o pídelas en Descarga masiva (Tipo «Retenciones»).</p>";
+            return;
+        }
+        var num = function (g) { return '<td class="xml-num">' + m(g.monto_operacion) + '</td><td class="xml-num">' + m(g.isr_retenido) + '</td><td class="xml-num">' +
+            m(g.iva_retenido) + '</td><td class="xml-num">' + m(g.ieps_retenido) + '</td><td class="xml-num"><b>' + m(g.monto_retenido) + "</b></td>"; };
+        var cab = '<th class="xml-num">Operación</th><th class="xml-num">ISR</th><th class="xml-num">IVA</th><th class="xml-num">IEPS</th><th class="xml-num">Total retenido</th>';
+        $("papel").innerHTML = '<p class="rt-papel__nota">' + (E.lado === "recibida"
+                ? "Lo que le retuvieron a la empresa, para acreditarlo en la declaración del mes y en la anual."
+                : "Lo que la empresa retuvo a terceros, para enterarlo en la declaración del mes.") + " Toca un mes para ver el detalle por " + quien.toLowerCase() + ".</p>" +
+            '<h2>Por mes · ' + esc(p.anio) + "</h2>" +
+            '<div class="rt-papel__caja"><table><thead><tr><th>Periodo</th><th>' + quien + "es y CFDI</th>" + cab + "</tr></thead><tbody>" +
+            p.periodos.map(function (per) {
+                return '<tr data-per="' + esc(per.clave) + '" aria-expanded="false" tabindex="0"><td><b>' + esc(per.nombre) + "</b></td><td>" + per.filas.length + " " + (per.filas.length === 1 ? quien.toLowerCase() : quien.toLowerCase() + "es") + " · " +
+                    per.totales.cantidad + " CFDI</td>" + num(per.totales) + "</tr>" +
+                    per.filas.map(function (g) {
+                        return '<tr class="rt-papel__det" data-de="' + esc(per.clave) + '" hidden><td>' + esc(g.nombre) + " <span class=\"rt-sub\">" + esc(g.rfc) +
+                            "</span></td><td>" + esc(g.concepto || ("Clave " + g.clave)) + " · " + g.cantidad + "</td>" + num(g) + "</tr>";
+                    }).join("");
+            }).join("") + '</tbody><tfoot><tr><td>Total del año</td><td>' + t.cantidad + " CFDI</td>" + num(t) + "</tr></tfoot></table></div>" +
+            '<h2>Por ' + quien.toLowerCase() + " en el año</h2>" +
+            '<div class="rt-papel__caja"><table><thead><tr><th>' + quien + "</th><th>Concepto</th>" + cab + "</tr></thead><tbody>" +
+            p.por_retenedor.map(function (g) {
+                return "<tr><td>" + esc(g.nombre) + ' <span class="rt-sub">' + esc(g.rfc) + "</span></td><td>" + esc(g.concepto || ("Clave " + g.clave)) + " · " + g.cantidad + "</td>" + num(g) + "</tr>";
+            }).join("") + "</tbody></table></div>";
+    }
+    function pintarAnios(anios, actual) {
+        if (actual && anios.indexOf(actual) < 0) anios = [actual].concat(anios);
+        $("sel-anio").innerHTML = (E.ver === "papel" ? "" : '<option value="">Todos los años</option>') + anios.map(function (a) {
+            return "<option" + (a === (E.anio || actual) ? " selected" : "") + ">" + a + "</option>"; }).join("");
+    }
+
     async function bajar(ruta, nombre, boton) {
         var texto = boton.textContent;
         boton.disabled = true; boton.textContent = "Descargando…";
@@ -114,12 +167,18 @@
 
     function eventos() {
         [].forEach.call(document.querySelectorAll("[data-lado]"), function (b) {
-            b.addEventListener("click", function () { E.lado = b.dataset.lado; pestanas(); cargar(); });
+            b.addEventListener("click", function () { E.lado = b.dataset.lado; E.datos = null; pestanas(); cargar(); });
         });
-        $("sel-anio").addEventListener("change", function () { E.anio = this.value; cargar(); });
+        $("sel-anio").addEventListener("change", function () { E.anio = this.value; E.datos = null; cargar(); });
         $("btn-excel").addEventListener("click", function () {
+            if (E.ver === "papel") return bajar(base() + "/papel/excel" + filtros(), E.rfc + "_Papel_retenciones_" + E.lado + "s_" + ((E.papel && E.papel.anio) || E.anio) + ".xlsx", this);
             bajar(base() + "/excel" + filtros(), E.rfc + "_Retenciones_" + E.lado + "s" + (E.anio ? "_" + E.anio : "") + ".xlsx", this);
         });
+        [].forEach.call(document.querySelectorAll("[data-ver]"), function (b) {
+            b.addEventListener("click", function () { E.ver = b.dataset.ver; cargar(); });
+        });
+        $("papel").addEventListener("click", abrirMes);
+        $("papel").addEventListener("keydown", function (ev) { if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); abrirMes(ev); } });
         $("btn-zip").addEventListener("click", function () {
             bajar(base() + "/zip" + filtros(), E.rfc + "_Retenciones" + (E.anio ? "_" + E.anio : "") + ".zip", this);
         });
@@ -139,11 +198,19 @@
         $("menu-empresa").addEventListener("click", function (ev) {
             var b = ev.target.closest("[data-rfc]");
             if (!b) return;
-            E.rfc = b.dataset.rfc; $("menu-empresa").hidden = true; titulo(); cargar();
+            E.rfc = b.dataset.rfc; E.datos = null; $("menu-empresa").hidden = true; titulo(); cargar();
         });
         document.addEventListener("click", function (ev) {
             if (!ev.target.closest(".xml-menu")) $("menu-empresa").hidden = true;
         });
+    }
+
+    function abrirMes(ev) {
+        var tr = ev.target.closest("tr[data-per]");
+        if (!tr) return;
+        var abierto = tr.getAttribute("aria-expanded") !== "true";
+        tr.setAttribute("aria-expanded", String(abierto));
+        [].forEach.call($("papel").querySelectorAll('tr[data-de="' + tr.dataset.per + '"]'), function (x) { x.hidden = !abierto; });
     }
 
     iniciar();
