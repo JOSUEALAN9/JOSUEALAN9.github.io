@@ -866,7 +866,7 @@
                              alRegistrar: function () { pintarAcceso(); } });
         if (Fiscontable.url("ver")) verResultados(Fiscontable.url("ver"));
         contarAutomaticas();
-        if (Fiscontable.url("auto")) abrirAutomatica();
+        if (Fiscontable.url("auto")) location.href = "/configuracion/?seccion=automatico&sub=xml";
     })();
 
     /* ================================================================ descarga automática
@@ -938,7 +938,8 @@
         if (!r.ok) throw new Error(await Fiscontable.leerError(r));
         Object.assign(e, await r.json());
     }
-    $("btn-automatica").addEventListener("click", abrirAutomatica);
+    // 15-nov, Alan: lo automático se configura en un solo lugar (Configuración › Lo automático); aquí solo se llega
+    $("btn-automatica").addEventListener("click", function () { location.href = "/configuracion/?seccion=automatico&sub=xml"; });
     $("dlg-automatica").addEventListener("close", function () { Fiscontable.url({ auto: null }); });
     $("dlg-automatica").addEventListener("click", function (ev) { if (ev.target.closest("[data-cerrar-auto]")) $("dlg-automatica").close(); });
     $("auto-buscar").addEventListener("input", pintarAutomatica);

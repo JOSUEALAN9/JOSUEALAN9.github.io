@@ -231,7 +231,7 @@ async function cargarDescargas(silencioso = false) {
 }
 
 function pintarProcesos(todos) {
-        // Lo programado para la madrugada no va aquí: avisa en la campana y vive en Configuración › Programaciones
+        // Lo programado para la madrugada no va aquí: avisa en la campana y vive en Configuración › Lo automático
         const D = Fiscontable.descargas;
         const procesos = D.sinProgramadas(todos).filter(pasaFiltro);
         const preparando = procesos.filter(p => p.estado === "procesando");
@@ -309,7 +309,7 @@ function verDescarga(p, lista) {
         pintar: (id, cuerpo) => {
             const x = (window._ultimosProcesos || []).find(q => q.id === id);
             if (!x) { cuerpo.innerHTML = '<p class="xml-tenue">Ya no está en la lista.</p>'; return; }
-            const f = filaLista(x), g = grupoTipo(x.tipo), mod = MODULO_DE[g] || (g === "programada" ? ["/configuracion/?seccion=programaciones", "Programaciones"] : null);
+            const f = filaLista(x), g = grupoTipo(x.tipo), mod = MODULO_DE[g] || (g === "programada" ? ["/configuracion/?seccion=automatico&sub=programado", "Lo automático"] : null);
             const pc = x.en_pc && x.en_pc.rutas && x.en_pc.rutas.length;
             cuerpo.innerHTML = `<h4>${esc(f.documento)}</h4>
                 <dl class="fc-panel__datos"><dt>Empresa</dt><dd>${esc(f.quien)}</dd><dt>Tipo</dt><dd>${esc(f.tipo_txt)}</dd>

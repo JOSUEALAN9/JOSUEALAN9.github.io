@@ -53,8 +53,12 @@
           pintar: pintarPlan },
         { id: "avisos", grupo: "Tu cuenta", titulo: "Avisos", ico: ICO.campana, desc: "Qué avisos te llegan también por correo, a qué dirección, y el resumen de tu cartera.",
           palabras: "avisos correo notificaciones campana actividad email resumen semanal diario lunes cartera", pintar: pintarAvisos },
-        { id: "programaciones", grupo: "Tu cuenta", titulo: "Programaciones", ico: ICO.reloj, desc: "Todo lo que se ejecuta automáticamente: qué, de qué empresa, cada cuánto y cuándo toca.",
-          palabras: "programar programaciones automático madrugada constancia opinión declaraciones xml buzón validación listas", pintar: pintarProgramaciones },
+        // 15-nov, Alan: «solo una sección para eso»: XML automáticos, revisión del Buzón y lo programado, todo aquí. Lo que
+        // aparezca en otro módulo (el botón «Automática» de Descarga XML, «Ver todas»…) trae a esta sección.
+        { id: "automatico", grupo: "Tu cuenta", titulo: "Lo automático", ico: ICO.reloj,
+          desc: "Todo lo que Fiscontable hace solo por tus empresas: sus XML y retenciones de madrugada, la revisión del Buzón y lo programado (constancias, opiniones, declaraciones).",
+          palabras: "automatico automatica automáticos programar programaciones programado madrugada constancia opinión declaraciones xml descarga masiva retenciones buzón tributario revisión frecuencia validación listas bajar solos",
+          pintar: pintarAutomatico },
         { id: "despacho", grupo: "Tu cuenta", titulo: "Mi despacho", ico: ICO.equipo, solo_despacho: true,
           desc: "Tu equipo, sus permisos, las solicitudes y quién hizo qué.", palabras: "despacho equipo miembros permisos titular solicitudes bitácora espacio invitar",
           ir: "/despacho/" },
@@ -65,12 +69,6 @@
           desc: "Emisor, series y folios, sello digital, logo del PDF, correo a clientes y timbres.",
           palabras: "facturar cfdi timbres serie folio csd sello logo pdf correo smtp gmail régimen código postal multifacturas",
           marco: function (sub) { return "/herramientas/facturar/?vista=config&incrustado=1&dentro=1" + (sub ? "&sub=" + encodeURIComponent(sub) : ""); } },
-        { id: "buzon", grupo: "Módulos", titulo: "Buzón tributario", ico: ICO.buzon, modulo: "buzon",
-          desc: "Cada cuánto se revisan solos los buzones de tus empresas.", palabras: "buzón tributario notificaciones revisión automática frecuencia",
-          pintar: pintarBuzon },
-        { id: "descarga_xml", grupo: "Módulos", titulo: "XML automáticos", ico: ICO.xml, modulo: "descarga_xml",
-          desc: "Qué empresas descargan automáticamente sus XML del SAT, desde qué mes y cada cuánto.", palabras: "descarga masiva automática de xml sat madrugada bajar solos",
-          pintar: pintarXmlAuto },
         { id: "impuestos", grupo: "Módulos", titulo: "Impuestos por empresa", ico: ICO.balanza, modulo: "marcas",
           desc: "Cuándo cuenta cada impuesto (flujo o devengado), estatales, alcohol y las reglas que Fiscontable aprendió de cada empresa.",
           palabras: "impuestos reglas fiscales isr iva diot deducible no deducible flujo devengado cobrado facturado profesiones alcohol régimen paquete marcas",
@@ -110,8 +108,12 @@
     }
 
     var actual = null;
+    // Lo que antes tenía su propia sección y ahora vive en «Lo automático» (los enlaces viejos siguen sirviendo)
+    var MUDADAS = { programaciones: ["automatico", "programado"], buzon: ["automatico", "buzon"], descarga_xml: ["automatico", "xml"] };
+
     function abrir(id, sub) {
         if (id === "perfil" && (sub === "pin" || sub === "olvide" || sub === "seguridad")) id = "seguridad";   // antes vivían en Mi perfil
+        if (MUDADAS[id]) { sub = MUDADAS[id][1]; id = MUDADAS[id][0]; }
         var s = visibles().filter(function (x) { return x.id === id; })[0] || visibles()[0];
         if (s.ir) { (incrustado ? window.top : window).location.href = s.ir; return; }
         actual = s.id;
@@ -563,27 +565,81 @@
                 var id = "fb-" + a.clave.replace(/\./g, "-");
                 if (a.tipo === "bool") return '<label class="ui-check cf-check"><input type="checkbox" id="' + id + '" data-fb="' + esc(a.clave) + '"' + (a.valor ? " checked" : "") + "> " + esc(a.titulo) + "</label>";
                 var campo;
-                if (a.tipo === "hora") campo = '<input type="time" id="' + id + '" data-fb="' + esc(a.clave) + '" value="' + esc(a.valor) + '">';
+                if (a.tipo === "semana") {
+                    return '<div class="cf-campo"><span>' + esc(a.titulo) + '</span><div class="cf-semana" id="' + id + '" data-fb="' + esc(a.clave) + '" data-fb-tipo="semana">' +
+                        ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"].map(function (n, i) {
+                            return '<label class="ui-check"><input type="checkbox" value="' + i + '"' + ((a.valor || []).indexOf(i) >= 0 ? " checked" : "") + "> " + n + "</label>"; }).join("") + "</div></div>";
+                }
+                if (a.tipo.indexOf("lista:") === 0) campo = '<input type="text" inputmode="numeric" id="' + id + '" data-fb="' + esc(a.clave) + '" data-fb-tipo="lista" value="' + esc((a.valor || []).join(", ")) + '">';
+                else if (a.tipo === "hora") campo = '<input type="time" id="' + id + '" data-fb="' + esc(a.clave) + '" value="' + esc(a.valor) + '">';
                 else if (a.tipo.indexOf("entero:") === 0) { var lim = a.tipo.split(":"); campo = '<input type="number" id="' + id + '" data-fb="' + esc(a.clave) + '" min="' + lim[1] + '" max="' + lim[2] + '" value="' + esc(a.valor) + '">'; }
                 else campo = '<select id="' + id + '" data-fb="' + esc(a.clave) + '">' + a.tipo.split(":")[1].split(",").map(function (o) {
-                    return '<option value="' + esc(o) + '"' + (o === a.valor ? " selected" : "") + ">" + esc({ ambos: "Emitidos y recibidos", recibidos: "Solo recibidos", emitidos: "Solo emitidos" }[o] || o) + "</option>"; }).join("") + "</select>";
+                    return '<option value="' + esc(o) + '"' + (o === a.valor ? " selected" : "") + ">" + esc({ ambos: "Emitidos y recibidos", recibidos: "Solo recibidos", emitidos: "Solo emitidos",
+                        diaria: "Cada madrugada", semanal: "Cada semana", mensual: "Cada mes" }[o] || o) + "</option>"; }).join("") + "</select>";
                 return '<label class="cf-campo cf-campo--corto"><span>' + esc(a.titulo) + "</span>" + campo + "</label>";
             };
             c.innerHTML = '<p class="cf-texto cf-fabrica__intro">Quien no lo ha cambiado sigue lo de aquí, aunque lo cambies después. ' +
                 "Marca «No lo pueden cambiar» para que nadie lo mueva en su cuenta.</p>" +
                 d.grupos.map(function (g) {
                     return '<div class="cf-tarjeta">' + d.ajustes.filter(function (a) { return a.grupo === g; }).map(function (a) {
-                        return '<div class="cf-fabrica"><div class="cf-fabrica__valor">' + control(a) + (a.ayuda ? '<small class="cf-fabrica__ayuda">' + esc(a.ayuda) + "</small>" : "") + "</div>" +
-                            '<label class="ui-check cf-fabrica__fijo"><input type="checkbox" data-fb-fijo="' + esc(a.clave) + '"' + (a.bloqueado ? " checked" : "") + "> No lo pueden cambiar</label></div>";
+                        return '<div class="cf-fabrica' + (a.grupo === "Cuándo salen los correos" ? " cf-fabrica--detalle" : "") + '" data-fb-caja="' + esc(a.clave) + '"><div class="cf-fabrica__valor">' + control(a) + (a.ayuda ? '<small class="cf-fabrica__ayuda">' + esc(a.ayuda) + "</small>" : "") + "</div>" +
+                            (a.global ? '<span class="cf-fabrica__fijo cf-fabrica__todas">Aplica a todas las cuentas</span>' :
+                            '<label class="ui-check cf-fabrica__fijo"><input type="checkbox" data-fb-fijo="' + esc(a.clave) + '"' + (a.bloqueado ? " checked" : "") + "> No lo pueden cambiar</label>") + "</div>";
                     }).join("") +
                     '<div class="cf-acciones"><button type="button" class="cf-btn cf-btn--principal" data-fb-guardar>Guardar los valores de fábrica</button><span class="cf-msj"></span></div></div>';
                 }).join("");
-            subPestanas(c, d.grupos.map(function (g) { return { "Horario de los correos": "Horario", "Al guardar la e.firma de una empresa": "Al guardar la e.firma" }[g] || g; }), "fabrica");
+            // Lo programado de fábrica (antes en Administración › Sistema › Plazos): lo que se propone al programar
+            var pl = await api("/api/admin/plazos").catch(function () { return null; });
+            var DIAS_S = ["lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo"];
+            var selDia = function (m, frec, dia) {
+                var ops = frec === "semanal" ? DIAS_S.map(function (n, i) { return [i, n]; }) : Array.from({ length: 28 }, function (_, i) { return [i + 1, "día " + (i + 1)]; });
+                return '<select data-pd-dia="' + m + '">' + ops.map(function (o) { return '<option value="' + o[0] + '"' + (+o[0] === +dia ? " selected" : "") + ">" + o[1] + "</option>"; }).join("") + "</select>";
+            };
+            if (pl) {
+                var pd = pl.prog_defecto, filaPd = function (m, nombre) {
+                    return '<div class="cf-fabrica" data-fb-caja="programado.' + m + '"><div class="cf-fabrica__valor"><div class="cf-campo"><span>' + nombre + '</span><div class="cf-pd">' +
+                        '<select data-pd-frec="' + m + '"><option value="mensual"' + (pd[m].frecuencia === "mensual" ? " selected" : "") + '>Cada mes</option><option value="semanal"' +
+                        (pd[m].frecuencia === "semanal" ? " selected" : "") + ">Cada semana</option></select>" + selDia(m, pd[m].frecuencia, pd[m].dia) + "</div></div></div>" +
+                        '<span class="cf-fabrica__fijo cf-fabrica__todas">Cada cuenta lo cambia por empresa</span></div>';
+                };
+                c.insertAdjacentHTML("beforeend", '<div class="cf-tarjeta" data-pd-caja><p class="cf-texto">Lo que se propone cuando alguien programa por primera vez (y lo que se pone solo a las ' +
+                    "empresas nuevas, si la cuenta lo activó en Lo automático). Los XML se definen en «Al guardar la e.firma».</p>" +
+                    filaPd("csf", "Constancia") + filaPd("opinion", "Opinión 32-D") + filaPd("declaraciones", "Declaraciones") +
+                    '<div class="cf-acciones"><button type="button" class="cf-btn cf-btn--principal" data-pd-guardar>Guardar lo programado</button><span class="cf-msj"></span></div></div>');
+                var cajaPd = c.querySelector("[data-pd-caja]");
+                cajaPd.addEventListener("change", function (e) {
+                    var s = e.target.closest("[data-pd-frec]"); if (!s) return;
+                    var m = s.dataset.pdFrec, viejo = cajaPd.querySelector('[data-pd-dia="' + m + '"]');
+                    viejo.outerHTML = selDia(m, s.value, s.value === "semanal" ? 0 : 1);
+                });
+                cajaPd.querySelector("[data-pd-guardar]").addEventListener("click", async function () {
+                    var v = {};
+                    ["csf", "opinion", "declaraciones"].forEach(function (m) {
+                        v[m] = { frecuencia: cajaPd.querySelector('[data-pd-frec="' + m + '"]').value, dia: +cajaPd.querySelector('[data-pd-dia="' + m + '"]').value };
+                    });
+                    try { await enviar("/api/admin/plazos", "PUT", { prog_defecto: v }); aviso(cajaPd, true, "✓ Guardado."); }
+                    catch (e) { aviso(cajaPd, false, e.message); }
+                });
+            }
+            var grupos = d.grupos.concat(pl ? ["Lo programado"] : []);
+            subPestanas(c, grupos.map(function (g) { return { "Cuándo salen los correos": "Cuándo salen", "Horario de los correos": "Horario", "Al guardar la e.firma de una empresa": "Al guardar la e.firma" }[g] || g; }), "fabrica");
+            // Desde Ctrl+K (?seccion=fabrica&sub=<clave>): abre su pestaña y lo señala
+            var pedido = Fiscontable.url("sub"), cajaPedida = pedido && c.querySelector('[data-fb-caja="' + pedido.replace(/"/g, "") + '"]');
+            if (cajaPedida) {
+                var tarjeta = cajaPedida.closest(".cf-tarjeta"), tarjetas = [].filter.call(c.children, function (x) { return x.classList.contains("cf-tarjeta"); });
+                var boton = c.querySelector('.cf-subtabs [data-sub="' + tarjetas.indexOf(tarjeta) + '"]');
+                if (boton) boton.click();
+                cajaPedida.classList.add("cf-fabrica--senalada");
+                setTimeout(function () { cajaPedida.scrollIntoView({ block: "center", behavior: "smooth" }); var x = cajaPedida.querySelector("input, select"); if (x) x.focus({ preventScroll: true }); }, 60);
+            }
             c.querySelectorAll("[data-fb-guardar]").forEach(function (b) { b.addEventListener("click", async function () {
                 var caja = b.closest(".cf-tarjeta");
                 var cambios = {};
                 c.querySelectorAll("[data-fb]").forEach(function (x) {
-                    cambios[x.dataset.fb] = { valor: x.type === "checkbox" ? x.checked : (x.type === "number" ? +x.value : x.value) };
+                    var v = x.dataset.fbTipo === "semana" ? [].map.call(x.querySelectorAll("input:checked"), function (y) { return +y.value; }) :
+                        x.dataset.fbTipo === "lista" ? x.value.split(/[\s,;]+/).filter(Boolean).map(Number) :
+                        x.type === "checkbox" ? x.checked : (x.type === "number" ? +x.value : x.value);
+                    cambios[x.dataset.fb] = { valor: v };
                 });
                 c.querySelectorAll("[data-fb-fijo]").forEach(function (x) { (cambios[x.dataset.fbFijo] = cambios[x.dataset.fbFijo] || {}).bloqueado = x.checked; });
                 try { await enviar("/api/admin/fabrica", "PUT", { cambios: cambios }); aviso(caja, true, "✓ Guardado. Ya aplica a todas las cuentas que no lo habían cambiado."); }
@@ -626,8 +682,8 @@
                 (otros.length ? '<details class="cf-otros"><summary>Otros avisos de la campana que también pueden ir por correo</summary>' +
                     '<div class="cf-temas">' + otros.map(renglon).join("") + "</div></details>" : "") +
                 '<label class="cf-campo"><span>Avisar de e.firma y sellos por vencer cuando falten (días)</span><input type="text" id="cf-av-dias" inputmode="numeric" value="' +
-                esc((p.dias_vence || []).join(", ")) + '"></label>' +
-                '<p class="cf-texto">De fábrica: 3 meses, 2 meses, 1 mes y luego 15, 10, 5, 2 y 1 días. Si ya la renovaste, deja de avisar sola.</p>' +
+                esc((p.dias_vence || []).join(", ")) + '"' + (fijo("vencimientos.dias") ? " disabled" : "") + "></label>" +
+                '<p class="cf-texto">Un aviso por cada escalón. Si ya la renovaste, deja de avisar sola.' + (fijo("vencimientos.dias") ? " Estos días los define Fiscontable." : "") + "</p>" +
                 '<label class="cf-campo"><span>Mandar los avisos a</span><input type="email" id="cf-av-destino" value="' + esc(p.destino || "") + '"></label>' +
                 '<div class="cf-acciones"><button type="button" class="cf-btn cf-btn--principal" id="cf-av-guardar">Guardar</button>' +
                 '<button type="button" class="cf-btn" id="cf-av-prueba">Mandar un correo de prueba</button><span class="cf-msj"></span></div>' +
@@ -762,8 +818,17 @@
             var d = await api("/api/programacion"), nv = await api("/api/programacion-nuevas").catch(function () { return null; });
             var fecha = function (iso) { return iso ? iso.slice(8, 10) + "/" + iso.slice(5, 7) + "/" + iso.slice(0, 4) : "—"; };
             var df = (nv && nv.defecto) || {}, regla = function (r) { return r ? (r.frecuencia === "semanal" ? "cada semana" : "el día " + r.dia + " de cada mes") : ""; };
+            var clientes = await api("/api/clientes").catch(function () { return []; });
+            var mods = (perfil && perfil.modulos_permitidos) || [];
+            var QUE = [["csf", "Constancia", "constancias"], ["opinion", "Opinión 32-D", "opinion"], ["declaraciones", "Declaraciones", "declaraciones"],
+                       ["xml", "XML", "descarga_xml"], ["buzon", "Buzón (todas tus empresas)", "buzon"]].filter(function (q) { return mods.indexOf(q[2]) !== -1; });
             c.innerHTML = '<div class="cf-tarjeta"><p class="cf-texto">Lo programado se ejecuta en horario nocturno con la e.firma registrada de cada empresa. ' +
-                "Para cambiar una, ábrela en su módulo (con esa empresa elegida arriba) y usa «Cambiar» en la línea de programación.</p>" +
+                "Cámbialo aquí con «Cambiar», o programa algo nuevo:</p>" +
+                (QUE.length ? '<div class="cf-campos cf-prog-nueva"><label class="cf-campo"><span>Qué</span><select id="cf-prog-que">' +
+                    QUE.map(function (q) { return '<option value="' + q[0] + '">' + esc(q[1]) + "</option>"; }).join("") + "</select></label>" +
+                    '<label class="cf-campo"><span>Empresa</span><select id="cf-prog-rfc">' + clientes.filter(function (x) { return x.efirma_guardada; }).map(function (x) {
+                        return '<option value="' + esc(x.rfc) + '">' + esc(x.alias || x.rfc) + "</option>"; }).join("") + "</select></label>" +
+                    '<button type="button" class="cf-btn" id="cf-prog-ir">Programar</button></div>' : "") +
                 (nv ? '<label class="ui-check cf-nuevas"><input type="checkbox" id="cf-prog-nuevas"' + (nv.activa ? " checked" : "") + "> " +
                     "<span><b>Programar solas las empresas nuevas</b><small>Cuando una empresa guarde su e.firma: constancia " + esc(regla(df.csf)) +
                     ", opinión " + esc(regla(df.opinion)) + ", declaraciones " + esc(regla(df.declaraciones)) + " y sus XML cada día. Solo lo que tu plan incluye; después lo cambias como cualquier otra.</small></span></label>" : "") +
@@ -779,6 +844,8 @@
                             '<input type="checkbox" data-mandar="' + esc(x.modulo) + '" data-rfc="' + esc(x.rfc) + '"' + (x.mandar_cliente ? " checked" : "") + (x.correo_cliente || x.mandar_cliente ? "" : " disabled") + "> Mandar</label>" +
                             (x.correo_cliente ? "" : "<small>Sin correo del cliente</small>")) + "</td>" +
                         '<td class="cf-celda-acciones">' + (pausable ? '<button type="button" class="cf-btn cf-btn--chico" data-pausa="' + esc(x.modulo) + '" data-rfc="' + esc(x.rfc) + '" data-activa="' + (x.activa ? "1" : "") + '">' + (x.activa ? "Pausar" : "Reanudar") + "</button> " : "") +
+                        (["csf", "opinion", "declaraciones", "xml", "buzon"].indexOf(x.modulo) !== -1 ? '<button type="button" class="cf-btn cf-btn--chico" data-cambiar="' + esc(x.modulo) +
+                            '" data-rfc="' + esc(x.rfc || "") + '" data-alias="' + esc(x.alias || "") + '">Cambiar</button> ' : "") +
                         '<a class="cf-btn cf-btn--chico" href="' + PAGINA_MODULO[x.modulo] + '"' + (incrustado ? ' target="_top"' : "") + ">Abrir</a></td></tr>";
                 }).join("") : '<tr><td colspan="7">Todavía no programas nada.</td></tr>') + "</tbody></table></div>" +
                 '<p class="cf-msj"></p>';
@@ -796,13 +863,58 @@
                 } catch (x) { m.checked = !m.checked; aviso(c, false, x.message); }
                 finally { m.disabled = false; }
             };
+            var repintar = function () { pintarProgramaciones(c); };
+            var ir = c.querySelector("#cf-prog-ir");
+            if (ir) ir.addEventListener("click", function () {
+                var m = c.querySelector("#cf-prog-que").value, s = c.querySelector("#cf-prog-rfc"), o = s.options[s.selectedIndex];
+                if (!window.FCProgramacion) return;
+                FCProgramacion.abrir(m, m === "buzon" || !o ? null : { rfc: o.value, alias: o.textContent }, repintar);
+            });
             c.onclick = async function (e) {
+                var cb = e.target.closest("[data-cambiar]");
+                if (cb && window.FCProgramacion) { FCProgramacion.abrir(cb.dataset.cambiar, cb.dataset.rfc ? { rfc: cb.dataset.rfc, alias: cb.dataset.alias || cb.dataset.rfc } : null, repintar); return; }
                 var b = e.target.closest("[data-pausa]"); if (!b) return;
                 b.disabled = true;
                 try { await enviar("/api/programacion/" + b.dataset.pausa, "PUT", { rfc: b.dataset.rfc, activa: !b.dataset.activa }); pintarProgramaciones(c); }
                 catch (x) { aviso(c, false, x.message); b.disabled = false; }
             };
         } catch (e) { c.innerHTML = '<div class="cf-tarjeta"><p class="cf-msj cf-msj--mal">' + esc(e.message) + "</p></div>"; }
+    }
+
+    /* ---------- Lo automático (15-nov): XML y retenciones, Buzón y lo programado en una sola sección ---------- */
+    function pintarAutomatico(c) {
+        var mods = (perfil && perfil.modulos_permitidos) || [];
+        var partes = [
+            { clave: "xml", nombre: "XML y retenciones", si: mods.indexOf("descarga_xml") !== -1, pintar: pintarXmlAuto },
+            { clave: "buzon", nombre: "Buzón", si: mods.indexOf("buzon") !== -1, pintar: pintarBuzon },
+            { clave: "programado", nombre: "Lo programado", si: true, pintar: pintarProgramaciones }
+        ].filter(function (p) { return p.si; });
+        c.innerHTML = '<p class="cf-texto cf-auto__intro">Corre de madrugada con la e.firma guardada de cada empresa. Lo que se enciende solo al ' +
+            "guardar una e.firma nueva lo verás aquí también.</p>" +
+            partes.map(function (p) { return '<div class="cf-tarjeta cf-tarjeta--plana" data-auto-parte="' + p.clave + '"><div></div></div>'; }).join("");
+        partes.forEach(function (p) { p.pintar(c.querySelector('[data-auto-parte="' + p.clave + '"] > div')); });
+        subPestanas(c, partes.map(function (p) { return p.nombre; }), "automatico");
+        var pedido = Fiscontable.url("sub"), i = partes.map(function (p) { return p.clave; }).indexOf(pedido);
+        if (i >= 0) { var b = c.querySelector('.cf-subtabs [data-sub="' + i + '"]'); if (b) b.click(); }
+        var pm = Fiscontable.url("programar"), prfc = Fiscontable.url("rfc");
+        if (pm && !prfc && pm !== "buzon") {               // sin empresa elegida: el formulario de «programar algo nuevo», ya con el qué
+            Fiscontable.url({ programar: null });
+            var espera = setInterval(function () {
+                var q = c.querySelector("#cf-prog-que"); if (!q) return;
+                clearInterval(espera);
+                if ([].some.call(q.options, function (o) { return o.value === pm; })) q.value = pm;
+                var s = c.querySelector("#cf-prog-rfc"); if (s) { s.focus(); s.closest(".cf-prog-nueva").classList.add("cf-fabrica--senalada"); }
+            }, 150);
+            setTimeout(function () { clearInterval(espera); }, 8000);
+        } else if (pm && window.FCProgramacion) {
+            Fiscontable.url({ programar: null, rfc: null });
+            api("/api/clientes").catch(function () { return []; }).then(function (cl) {
+                var e = prfc ? (cl.filter(function (x) { return x.rfc === prfc; })[0] || { rfc: prfc }) : null;
+                FCProgramacion.abrir(pm, e ? { rfc: e.rfc, alias: e.alias || e.rfc } : null, function () {
+                    var p = c.querySelector('[data-auto-parte="programado"] > div'); if (p) pintarProgramaciones(p);
+                });
+            });
+        }
     }
 
     /* ---------- Descarga automática de XML ---------- */
@@ -835,7 +947,8 @@
             var nombre = {}; clientes.forEach(function (x) { nombre[x.rfc] = x.alias; });
             var porRfc = {}; cfg.empresas.forEach(function (e) { porRfc[e.rfc] = e; });
             var opc = function (mapa, v) { return Object.keys(mapa).map(function (k) { return '<option value="' + k + '"' + (k === v ? " selected" : "") + ">" + esc(mapa[k]) + "</option>"; }).join(""); };
-            c.innerHTML = '<div class="cf-tarjeta cf-tarjeta--tabla"><table class="cf-tabla"><thead><tr><th>Empresa</th><th>Automática</th><th>Qué</th><th>Retenciones</th><th>Cada cuánto</th><th>Desde</th><th></th></tr></thead><tbody>' +
+            var dia = function (iso) { return iso ? new Date(iso.slice(0, 10) + "T12:00:00").toLocaleDateString("es-MX", { weekday: "short", day: "numeric", month: "short" }) : ""; };
+            c.innerHTML = '<div class="cf-tarjeta cf-tarjeta--tabla"><table class="cf-tabla"><thead><tr><th>Empresa</th><th>Automática</th><th>Qué</th><th>Retenciones</th><th>Cada cuánto</th><th>Desde</th><th>Próxima</th><th></th></tr></thead><tbody>' +
                 clientes.map(function (x) {
                     var e = porRfc[x.rfc] || { activo: false, tipo: "ambos", frecuencia: "diaria" };
                     return '<tr data-rfc="' + esc(x.rfc) + '"><td><b>' + esc(x.alias) + "</b><small>" + esc(x.rfc) + (x.efirma_guardada ? "" : " · sin e.firma") + "</small></td>" +
@@ -844,8 +957,21 @@
                         '<td><label class="cf-switch" title="También sus CFDI de Retenciones"><input type="checkbox" data-c="retenciones"' + (e.retenciones ? " checked" : "") + "><span></span></label></td>" +
                         "<td><select data-c=\"frecuencia\">" + opc(cfg.frecuencias, e.frecuencia) + "</select></td>" +
                         '<td><select data-c="desde">' + Fiscontable.opcionesDesde(cfg.desde_minimo, cfg.mes_actual, e.desde || "") + "</select></td>" +
-                        '<td><button type="button" class="cf-btn cf-btn--chico" data-guardar>Guardar</button></td></tr>';
+                        "<td>" + (e.activo && x.efirma_guardada ? "<b>" + esc(dia(e.proxima)) + "</b>" + (e.ultima ? "<small>Última: " + esc(dia(e.ultima)) + "</small>" : "") : "—") + "</td>" +
+                        '<td class="cf-celda-acciones"><button type="button" class="cf-btn cf-btn--chico" data-guardar>Guardar</button>' +
+                        (x.efirma_guardada ? ' <button type="button" class="cf-btn cf-btn--chico" data-ahora title="Pedir ahora el periodo programado">Descargar ahora</button>' : "") + "</td></tr>";
                 }).join("") + "</tbody></table><div class=\"cf-acciones\"><span class=\"cf-msj\"></span></div></div>";
+            c.querySelectorAll("[data-ahora]").forEach(function (b) {
+                b.addEventListener("click", async function () {
+                    var rfc = b.closest("tr").dataset.rfc;
+                    b.disabled = true;
+                    try {
+                        var d = await enviar("/api/descarga-xml/automatica/" + encodeURIComponent(rfc) + "/ahora", "POST", {});
+                        aviso(c, true, "✓ " + (nombre[rfc] || rfc) + ": se pidió del " + dia(d.desde) + " al " + dia(d.hasta) + ". Va en Descarga XML › Solicitudes.");
+                    } catch (e) { aviso(c, false, e.message); }
+                    b.disabled = false;
+                });
+            });
             c.querySelectorAll("[data-guardar]").forEach(function (b) {
                 b.addEventListener("click", async function () {
                     var fila = b.closest("tr"), val = function (k) { var el = fila.querySelector('[data-c="' + k + '"]'); return el.type === "checkbox" ? el.checked : el.value; };

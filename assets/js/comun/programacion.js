@@ -5,7 +5,9 @@
  *                          contenedor: elemento })
  *       Una línea: «Programado · mensual, día 1 · próxima: 01/12/2026 · Cambiar · Ver todas».
  *       Usa la empresa activa de la barra de arriba (y se actualiza si cambia).
- *   FCProgramacion.abrir(modulo)    abre el ajuste rápido (frecuencia, día, todas mis empresas, aviso por correo).
+ *   FCProgramacion.abrir(modulo, empresa?, alGuardar?)   abre el ajuste (frecuencia, día, todas mis empresas, aviso por
+ *       correo). Desde el 15-nov solo se abre en Configuración › Lo automático (Alan: «si aparece en otro módulo, me
+ *       reenvía a esta parte de la configuración»): en los módulos, «Cambiar» lleva allá con la empresa y el módulo.
  *
  * Lo que corre de madrugada sigue siendo el turno de siempre (pausas, reintentos, e.firma guardada).
  */
@@ -22,19 +24,20 @@
         return r.json();
     }
     async function rfcActivo() { try { var e = await Fiscontable.empresaActiva(); return e ? e.rfc : ""; } catch (x) { return ""; } }
-    async function leer(modulo) {
-        var rfc = await rfcActivo();
+    var fija = null;          // {rfc, alias} cuando se abre desde Lo automático para una empresa en particular
+    async function leer(modulo, rfc) {
+        rfc = rfc || await rfcActivo();
         return api("/api/programacion/" + modulo + (rfc ? "?rfc=" + encodeURIComponent(rfc) : ""));
     }
 
     function pintarLinea(l, d) {
         var activa = d.activa, auto = !d.editable;
+        var ir = "/configuracion/?seccion=automatico&sub=programado&programar=" + encodeURIComponent(l.modulo) + (d.rfc ? "&rfc=" + encodeURIComponent(d.rfc) : "");
         l.contenedor.innerHTML = '<div class="fpu">' +
             '<span class="ui-estado ' + (activa ? "ui-estado--ok" : "") + '">' + esc(d.linea) + "</span>" +
-            '<button type="button" class="ui-btn ui-btn--terciario ui-btn--28" data-fpu="cambiar">' +
-                (auto ? "Avisos" : activa ? "Cambiar" : "Programar") + "</button>" +
-            '<a class="fpu__todas" href="/configuracion/?seccion=programaciones">Ver todas</a></div>';
-        l.contenedor.querySelector("[data-fpu=cambiar]").addEventListener("click", function () { abrir(l.modulo); });
+            '<a class="ui-btn ui-btn--terciario ui-btn--28" href="' + esc(ir) + '" title="Se cambia en Configuración › Lo automático">' +
+                (auto ? "Avisos" : activa ? "Cambiar" : "Programar") + "</a>" +
+            '<a class="fpu__todas" href="/configuracion/?seccion=automatico&sub=programado">Ver todo lo automático</a></div>';
     }
     async function refrescar() {
         for (var i = 0; i < lineas.length; i++) {
@@ -76,11 +79,13 @@
         h.push('<label class="ui-check"><input type="checkbox" data-c="avisar"' + (d.avisar_correo ? " checked" : "") + "> " +
                (d.editable ? "Avisarme por correo cuando termine" : "Avisarme por correo cuando cambie algo") + "</label>");
         h.push('<p class="xml-tenue fpu-nota">' + (d.editable ? "Se ejecuta en horario nocturno con la e.firma registrada de cada empresa. " : "") +
-               'Los avisos también llegan a la campana de arriba. <a href="/configuracion/?seccion=programaciones">Ver todas las programaciones</a></p>');
+               'Los avisos también llegan a la campana de arriba. <a href="/configuracion/?seccion=automatico&sub=programado">Ver todo lo automático</a></p>');
         return h.join("");
     }
 
-    async function abrir(modulo) {
+    var alGuardar = null;
+    async function abrir(modulo, empresa, despues) {
+        fija = empresa && empresa.rfc ? empresa : null; alGuardar = despues || null;
         if (!dlg) {
             dlg = document.createElement("dialog");
             dlg.className = "ui-modal fpu-dlg";
@@ -99,9 +104,10 @@
             });
         }
         var err = dlg.querySelector(".fpu-error"); err.hidden = true;
-        try { actual = await leer(modulo); }
+        try { actual = await leer(modulo, fija && fija.rfc); }
         catch (e) { Fiscontable.toast(e.message); return; }
-        var empresa = null; try { empresa = await Fiscontable.empresaActiva(); } catch (x) { /* nada */ }
+        var empresa = fija;
+        if (!empresa) { try { empresa = await Fiscontable.empresaActiva(); } catch (x) { empresa = null; } }
         dlg.querySelector(".fpu-titulo").textContent = "Programar · " + actual.nombre;
         dlg.querySelector(".fpu-empresa").textContent = actual.editable && actual.modulo !== "buzon"
             ? (empresa ? "Empresa: " + (empresa.alias || empresa.rfc) : "Elige una empresa arriba o marca «todas mis empresas».")
@@ -112,7 +118,7 @@
 
     async function guardar() {
         var v = function (c) { var el = dlg.querySelector("[data-c=" + c + "]"); return el ? (el.type === "checkbox" ? el.checked : el.value) : undefined; };
-        var cuerpo = { rfc: await rfcActivo(), todas: !!v("todas"), activa: v("activa") === undefined ? true : v("activa"), avisar_correo: !!v("avisar") };
+        var cuerpo = { rfc: fija ? fija.rfc : await rfcActivo(), todas: !!v("todas"), activa: v("activa") === undefined ? true : v("activa"), avisar_correo: !!v("avisar") };
         if (v("frecuencia") !== undefined) cuerpo.frecuencia = v("frecuencia");
         if (v("dia") !== undefined) cuerpo.dia = +v("dia");
         if (v("tipo") !== undefined) cuerpo.tipo = v("tipo");
@@ -124,6 +130,7 @@
             dlg.close();
             Fiscontable.toast("Programación guardada.");
             refrescar();
+            if (alGuardar) alGuardar();
         } catch (e) {
             var err = dlg.querySelector(".fpu-error"); err.textContent = e.message; err.hidden = false;
         } finally { boton.disabled = false; }
