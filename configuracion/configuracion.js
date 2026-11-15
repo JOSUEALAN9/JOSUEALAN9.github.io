@@ -533,10 +533,19 @@
         c.innerHTML = '<div class="cf-tarjeta"><p class="cf-texto">Cargando…</p></div>';
         try {
             var p = await api("/api/actividad/preferencias");
-            c.innerHTML = '<div class="cf-tarjeta"><p class="cf-texto">Todos los avisos llegan a la campana de arriba. Marca los que quieres recibir también por correo.</p>' +
-                Object.keys(p.tipos).map(function (t) {
-                    return '<label class="ui-check cf-check"><input type="checkbox" data-tipo="' + esc(t) + '"' + (p.correo[t] ? " checked" : "") + "> " + esc(p.tipos[t]) + "</label>";
-                }).join("") +
+            // Los 9 correos por tema (diseño del 14-nov): cada uno con su «cuándo»; los de fecha se pueden probar
+            var temas = p.por_tema || Object.keys(p.tipos), conFecha = p.con_fecha || [], cuando = p.cuando || {};
+            var otros = Object.keys(p.tipos).filter(function (t) { return temas.indexOf(t) < 0; });
+            var renglon = function (t) {
+                return '<div class="cf-tema"><label class="ui-check cf-tema__check"><input type="checkbox" data-tipo="' + esc(t) + '"' + (p.correo[t] ? " checked" : "") + ">" +
+                    '<span><b>' + esc(p.tipos[t]) + '</b><small>' + esc(cuando[t] || "Al momento") + "</small></span></label>" +
+                    (conFecha.indexOf(t) >= 0 ? '<button type="button" class="cf-btn cf-btn--chico" data-probar="' + esc(t) + '" title="Te lo manda ahora, con lo de hoy">Probar</button>' : "") + "</div>";
+            };
+            c.innerHTML = '<div class="cf-tarjeta"><h3 class="cf-sub">Correos por tema</h3>' +
+                '<p class="cf-texto">Cada tema llega en su propio correo, corto y solo cuando toca. Apaga los que no quieras.</p>' +
+                '<div class="cf-temas">' + temas.filter(function (t) { return p.tipos[t]; }).map(renglon).join("") + "</div>" +
+                (otros.length ? '<details class="cf-otros"><summary>Otros avisos de la campana que también pueden ir por correo</summary>' +
+                    '<div class="cf-temas">' + otros.map(renglon).join("") + "</div></details>" : "") +
                 '<label class="cf-campo"><span>Avisar de e.firma y sellos por vencer cuando falten (días)</span><input type="text" id="cf-av-dias" inputmode="numeric" value="' +
                 esc((p.dias_vence || []).join(", ")) + '"></label>' +
                 '<p class="cf-texto">De fábrica: 3 meses, 2 meses, 1 mes y luego 15, 10, 5, 2 y 1 días. Si ya la renovaste, deja de avisar sola.</p>' +
@@ -556,8 +565,8 @@
                     "> Poner importes en el resumen (de fábrica, sin importes)</label>" +
                 (p.puede_destinatarios ? '<div class="cf-acciones"><button type="button" class="cf-btn cf-btn--principal" id="cf-av-quien-guardar">Guardar</button><span class="cf-msj"></span></div>'
                     : '<p class="cf-texto">Solo el titular del despacho puede cambiar esto.</p>') + "</div>" +
-                '<div class="cf-tarjeta" id="cf-av-caja-resumen" style="margin-top:14px"><h3 class="cf-sub">Resumen por correo</h3>' +
-                '<p class="cf-texto">Un solo correo con cómo va tu cartera: el cierre del mes, lo que pasó y lo que está por vencer. ' +
+                '<div class="cf-tarjeta" id="cf-av-caja-resumen" style="margin-top:14px"><h3 class="cf-sub">Resumen completo (opcional)</h3>' +
+                '<p class="cf-texto">Si además quieres todo junto en un solo correo: cómo va tu cartera: el cierre del mes, lo que pasó y lo que está por vencer. ' +
                 "Por empresa: notificaciones del Buzón, CFDI cancelados o con error, proveedores en listas del SAT, PPD sin complemento y trámites que no salieron. No lleva archivos.</p>" +
                 '<div class="ctx-segmento cf-segmento" role="group" aria-label="Cada cuándo llega el resumen" id="cf-av-resumen">' +
                 Object.keys(p.frecuencias_resumen || {}).map(function (f) {
@@ -609,6 +618,14 @@
                 try { var r = await enviar("/api/actividad/resumen-ahora", "POST", {}); aviso(cajaResumen, true, r.mensaje || ("✓ Enviado a " + r.destino + ".")); }
                 catch (er) { aviso(cajaResumen, false, er.message); }
                 finally { b.disabled = false; }
+            });
+            c.querySelectorAll("[data-probar]").forEach(function (b) {
+                b.addEventListener("click", async function () {
+                    b.disabled = true;
+                    try { var r = await enviar("/api/actividad/tema-ahora", "POST", { tema: b.dataset.probar }); aviso(c, true, r.mensaje); }
+                    catch (e) { aviso(c, false, e.message); }
+                    finally { b.disabled = false; }
+                });
             });
             $("cf-av-guardar").addEventListener("click", async function () {
                 var correo = {};

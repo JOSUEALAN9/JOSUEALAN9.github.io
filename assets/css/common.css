@@ -2109,3 +2109,5 @@ html.fc-incrustado .fc-reportar { display: none; }
 .ui-riel__reportar + .ui-riel__plegar { border-top: 0; }
 @media (min-width: 1024px) { html.fc-con-lateral .fc-reportar, html.fc-con-riel .fc-reportar { display: none; } }
 @media print { .fc-reportar { display: none; } }
+/* Que el botón redondo de «Informar un error» no tape lo último de la página en el teléfono */
+@media (max-width: 1023px) { html:not(.fc-incrustado) body:has(#fc-reportar) { padding-bottom: 68px; } }

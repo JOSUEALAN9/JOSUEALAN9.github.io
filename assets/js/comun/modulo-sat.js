@@ -178,15 +178,24 @@
 
     function vistaCache() {
         // G-08: bloque de estado (no un anuncio): qué documento hay, de cuándo y qué hacer con él
+        var rev = estado.cache.revision, ant = estado.cache.anterior;
         var res = estado.cache.resultado, tono = !res ? "ok" : (res === "Negativa" || res === "No inscrito" ? "error" : "ok");
         var titulo = MODULO.nombre.charAt(0).toUpperCase() + MODULO.nombre.slice(1) + " del " + fechaLarga(estado.cache.generado_en);
         pintarPaso2(Fiscontable.bloqueEstado({
             icono: "documento", tono: tono, titulo: titulo + (res ? " · " + res : ""),
             detalle: (res === "Negativa" ? "El SAT la emitió en sentido negativo: ábrela para ver los motivos. " : "") +
+                     (rev && rev.resultado ? "Revisada en el SAT el " + fechaLarga(rev.revisada_en) + ": " + rev.resultado.toLowerCase() +
+                        (rev.resultado === res ? ", sin cambios. " : ". ") : "") +
                      "Se conserva hasta el " + fechaLarga(estado.cache.expira_en) + ".",
             acciones: [{ id: "btn-ver-cache", texto: "Ver", primario: true }, { id: "btn-cache", texto: "Descargar" },
                        { id: "btn-enviar-cache", texto: "Enviar por correo" }, { id: "btn-nueva", texto: "Solicitar nueva al SAT" }]
+                .concat(ant ? [{ id: "btn-anterior", texto: "La anterior (" + fechaLarga(ant.generado_en) + (ant.resultado ? " · " + ant.resultado : "") + ")" }] : [])
         }));
+        if (ant) $("btn-anterior").addEventListener("click", function () {
+            Fiscontable.verPdf(API + "/api/documentos/anterior?rfc=" + encodeURIComponent(elegido.rfc) + "&tipo=" + MODULO.tipo,
+                { titulo: MODULO.nombre.charAt(0).toUpperCase() + MODULO.nombre.slice(1) + " anterior · " + elegido.rfc,
+                  nombre: MODULO.prefijoArchivo + "_" + elegido.rfc + "_anterior.pdf" });
+        });
         $("btn-enviar-cache").addEventListener("click", function () {
             Fiscontable.enviarCorreo({ titulo: "Enviar " + MODULO.nombre + " de " + (elegido.alias || elegido.rfc), ruta: "/api/documentos/enviar",
                                        datos: { rfc: elegido.rfc, tipo: MODULO.tipo } });
