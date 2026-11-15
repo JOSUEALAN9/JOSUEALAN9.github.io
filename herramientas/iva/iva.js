@@ -114,6 +114,7 @@
             var datos = await apiJSON("/api/iva/papel?" + pedido);
             if (yo !== E.nCarga || E.rfc !== datos.rfc) return;
             E.datos = datos; E.pedido = pedido;
+            if ($("dlg-sat").open) $("dlg-sat").close();
         } catch (e) { $("conteo").textContent = e.message; return; }
         $("saldo-favor").value = leerLocal("saldo:" + clavePeriodo()) || "";
         pintarResumen();
@@ -300,6 +301,128 @@
         window.open(ruta + "?" + q.toString(), "_blank", "noopener");
     }
 
+    /* ---------- Formato SAT (15-nov, Alan: «algo como ver formato SAT y ya me muestra esas ventanas»): los mismos números
+       del papel de trabajo, acomodados como la declaración de IVA del portal (IVA a cargo, IVA acreditable, Determinación y
+       Pago). Cada renglón con importe abre su detalle: los CFDI que lo forman, como el «Capturar» del SAT. */
+    var SAT = { pestana: "cargo", detalle: null };
+    var PESTANAS_SAT = [["cargo", "IVA a cargo"], ["acreditable", "IVA acreditable"], ["determinacion", "Determinación"], ["pago", "Pago"]];
+    function r2(v) { return Math.round((v || 0) * 100) / 100; }
+    function calculoSat() {
+        var te = E.datos.emitido.totales, tr = E.datos.recibido.totales;
+        var saldoAnt = parseFloat($("saldo-favor").value) || 0;
+        var neto = r2(te.iva - te.ret - tr.acreditable);
+        var aCargo = Math.max(neto, 0), aFavor = Math.max(-neto, 0);
+        var acred = r2(Math.min(saldoAnt, aCargo)), impuesto = r2(aCargo - acred);
+        var frontera = function (s) { return !!(s.b8 || s.i8); };
+        return {
+            cargo: [
+                ["Valor de los actos o actividades gravados a la tasa del 16 %", te.b16, { lado: "emitido", campo: "b16" }],
+                frontera(te) && ["Valor de los actos o actividades gravados a la tasa del 8 % (región fronteriza)", te.b8, { lado: "emitido", campo: "b8" }, "+"],
+                ["Valor de los actos o actividades gravados a la tasa del 0 % (exportación y otros)", te.b0, { lado: "emitido", campo: "b0" }, "+"],
+                ["Suma de los actos o actividades gravados", r2(te.b16 + te.b8 + te.b0), null, "=", true],
+                ["Valor de los actos o actividades por los que no se deba pagar el impuesto (exentos)", te.bex, { lado: "emitido", campo: "bex" }],
+                ["IVA a cargo a la tasa del 16 %", te.i16, { lado: "emitido", campo: "i16" }],
+                frontera(te) && ["IVA a cargo a la tasa del 8 %", te.i8, { lado: "emitido", campo: "i8" }],
+                ["IVA a cargo", te.iva, null, "", true]
+            ],
+            acreditable: [
+                ["Valor de los actos o actividades pagados a la tasa del 16 %", tr.b16, { lado: "recibido", campo: "b16" }],
+                frontera(tr) && ["Valor de los actos o actividades pagados sujetos al estímulo de la región fronteriza", tr.b8, { lado: "recibido", campo: "b8" }],
+                ["Valor de los demás actos o actividades pagados a la tasa del 0 %", tr.b0, { lado: "recibido", campo: "b0" }],
+                ["Valor de los actos o actividades pagados por los que no se pagará el IVA (exentos)", tr.bex, { lado: "recibido", campo: "bex" }],
+                ["IVA de actos o actividades pagados a la tasa del 16 %", tr.i16, { lado: "recibido", campo: "i16" }],
+                frontera(tr) && ["IVA pagado sujeto al estímulo de la región fronteriza", tr.i8, { lado: "recibido", campo: "i8" }],
+                tr.no_acred && ["IVA no acreditable (Marcas fiscales: efectivo, EFOS, proporción…)", -tr.no_acred, { lado: "recibido", campo: "no_acred" }, "−"],
+                ["Total de IVA acreditable", tr.acreditable, null, "=", true]
+            ],
+            determinacion: [
+                ["Total de IVA a cargo", te.iva],
+                ["IVA retenido (el que te retuvieron tus clientes)", te.ret, { lado: "emitido", campo: "ret" }, "−"],
+                ["Total de IVA acreditable", tr.acreditable, null, "−"],
+                ["Otras cantidades a cargo del contribuyente", 0],
+                ["Otras cantidades a favor del contribuyente", 0],
+                ["Cantidad a cargo", aCargo, null, "", true],
+                ["Saldo a favor", aFavor, null, "", true],
+                ["Acreditamiento del saldo a favor de periodos anteriores (sin exceder la cantidad a cargo)", acred, null, "−"],
+                ["Impuesto a cargo", impuesto, null, "=", true],
+                ["Impuesto a favor", aFavor, null, "", true]
+            ],
+            pago: [
+                ["A cargo", impuesto],
+                ["Parte actualizada", 0, null, "+"],
+                ["Recargos", 0, null, "+"],
+                ["Total de contribuciones", impuesto, null, "=", true],
+                ["¿Tienes compensaciones por aplicar?", 0],
+                ["¿Tienes estímulos por aplicar?", 0],
+                ["Total de aplicaciones", 0, null, "=", true],
+                ["Cantidad a pagar", impuesto, null, "", true]
+            ],
+            saldoAnt: saldoAnt, retuviste: tr.ret
+        };
+    }
+    function abrirSat() {
+        if (!E.datos) return;
+        SAT.detalle = null;
+        $("sat-sub").textContent = nombreDe(E.rfc) + " · " + E.rfc + " · " + (E.datos.periodo_texto || "") + " · flujo de efectivo, con tus XML";
+        pintarSat();
+        if (!$("dlg-sat").open) $("dlg-sat").showModal();
+    }
+    function pintarSat() {
+        var c = calculoSat();
+        $("sat-pestanas").innerHTML = PESTANAS_SAT.map(function (p) {
+            return '<button type="button" role="tab" data-sat-p="' + p[0] + '" aria-selected="' + (p[0] === SAT.pestana) + '">' + (p[0] === SAT.pestana ? "✓ " : "") + p[1] + "</button>";
+        }).join("");
+        var notas = {
+            cargo: "Lo cobrado en el periodo: facturas PUE de su mes, PPD cuando se cobran (complementos) y menos notas de crédito. Lo cancelado no cuenta.",
+            acreditable: "Lo pagado en el periodo, con las Marcas fiscales aplicadas (lo no acreditable resta)." + (c.retuviste ? " El IVA que tú retuviste (" + m(c.retuviste) + ") se entera aparte, en retenciones." : ""),
+            determinacion: c.saldoAnt ? "Saldo a favor de periodos anteriores capturado: " + m(c.saldoAnt) + "." : "Si tienes saldo a favor de periodos anteriores, captúralo en el resumen («Saldo a favor de meses anteriores»).",
+            pago: "Actualización y recargos solo si se presenta fuera de plazo: no se calculan aquí."
+        };
+        var cuerpo = $("sat-cuerpo");
+        if (SAT.detalle) { cuerpo.innerHTML = detalleSat(SAT.detalle); $("sat-nota").textContent = "Clic en un renglón para ver su CFDI."; return; }
+        cuerpo.innerHTML = '<p class="iva-sat__aviso">' + esc(notas[SAT.pestana]) + "</p>" + '<div class="iva-sat__lista">' +
+            c[SAT.pestana].filter(Boolean).map(function (x, i) {
+                var hay = x[2] && E.datos[x[2].lado].filas.some(function (f) { return Math.abs(f[x[2].campo] || 0) > 0.004; });
+                return '<div class="iva-sat__fila' + (x[4] ? " iva-sat__fila--total" : "") + '"><span class="iva-sat__concepto">*' + esc(x[0]) + "</span>" +
+                    '<span class="iva-sat__signo">' + (x[3] ? "(" + x[3] + ")" : "") + "</span>" +
+                    '<span class="iva-sat__importe">' + m(x[1]) + "</span>" +
+                    (hay ? '<button type="button" class="iva-sat__capturar" data-sat-det="' + i + '">Detalle</button>' : '<span class="iva-sat__capturar iva-sat__capturar--vacio"></span>') + "</div>";
+            }).join("") + "</div>";
+        $("sat-nota").textContent = "Los importes llevan centavos; el SAT los redondea a pesos al declarar.";
+    }
+    function detalleSat(d) {
+        var filas = E.datos[d.lado].filas.filter(function (f) { return Math.abs(f[d.campo] || 0) > 0.004; });
+        var total = filas.reduce(function (s, f) { return s + (f[d.campo] || 0); }, 0);
+        var ORIGEN = { PUE: "Factura PUE", PAGO: "Pago", NOTA: "Nota de crédito" };
+        return '<div class="iva-sat__det-cabeza"><button type="button" class="ui-btn ui-btn--terciario ui-btn--32" data-sat-volver>← Volver</button>' +
+            "<div><b>Detalle de: " + esc(d.titulo) + "</b><small>" + filas.length + " movimiento(s) · " + m(d.campo === "no_acred" ? -total : total) + "</small></div></div>" +
+            '<div class="iva-sat__det"><table class="iva-sat__tabla"><thead><tr><th>Fecha</th><th>Tipo</th><th>' + (d.lado === "emitido" ? "Cliente" : "Proveedor") +
+            '</th><th>Folio</th><th class="num">Importe</th></tr></thead><tbody>' +
+            filas.map(function (f) {
+                return '<tr data-sat-uuid="' + esc(f.uuid) + '"><td>' + dmy(f.fecha) + "</td><td>" + esc(ORIGEN[f.origen] || f.origen) + "</td><td><b>" + esc(f.nombre || f.rfc) +
+                    "</b><small>" + esc(f.rfc) + "</small></td><td>" + esc(f.serie_folio || f.uuid.slice(0, 8)) + '</td><td class="num">' + m(f[d.campo]) + "</td></tr>";
+            }).join("") + "</tbody></table></div>";
+    }
+    function eventosSat() {
+        $("btn-sat").addEventListener("click", abrirSat);
+        $("dlg-sat").addEventListener("click", function (e) {
+            if (e.target.closest("[data-sat-cerrar]")) { $("dlg-sat").close(); return; }
+            var p = e.target.closest("[data-sat-p]");
+            if (p) { SAT.pestana = p.dataset.satP; SAT.detalle = null; pintarSat(); return; }
+            if (e.target.closest("[data-sat-volver]")) { SAT.detalle = null; pintarSat(); return; }
+            var b = e.target.closest("[data-sat-det]");
+            if (b) {
+                var x = calculoSat()[SAT.pestana].filter(Boolean)[+b.dataset.satDet];
+                SAT.detalle = { titulo: x[0], lado: x[2].lado, campo: x[2].campo }; pintarSat(); return;
+            }
+            var tr = e.target.closest("[data-sat-uuid]");
+            if (tr) {
+                var lista = [].map.call($("sat-cuerpo").querySelectorAll("[data-sat-uuid]"), function (r) { return r.dataset.satUuid; });
+                Fiscontable.verCfdi(E.rfc, tr.dataset.satUuid, lista);
+            }
+        });
+    }
+
     function verDetalle(abrir) {
         $("iva-detalle").hidden = !abrir;
         $("btn-detalle").setAttribute("aria-expanded", String(abrir));
@@ -329,11 +452,12 @@
             verDetalle(true); E.lado = "recibido"; Fiscontable.url({ lado: E.lado }); pintar(); tablaDe("recibido").filtrar("acred", "Sí");
             $("pestanas").scrollIntoView({ behavior: "smooth", block: "start" });
         });
-        $("saldo-favor").addEventListener("input", function () { guardarLocal("saldo:" + clavePeriodo(), this.value); if (E.datos) pintarResumen(); });
+        $("saldo-favor").addEventListener("input", function () { guardarLocal("saldo:" + clavePeriodo(), this.value); if (E.datos) { pintarResumen(); if ($("dlg-sat").open) pintarSat(); } });
         $("btn-excel").addEventListener("click", function () { if (E.datos) exportar(); });
         $("btn-excel-tabla").addEventListener("click", function () { if (E.datos) { verDetalle(true); tablaDe(E.lado).exportar(); } });
         $("btn-xml").addEventListener("click", function () { irA("/herramientas/xml/"); });
         $("btn-conc").addEventListener("click", function () { irA("/herramientas/conciliacion/"); });
+        eventosSat();
     }
 
     document.addEventListener("DOMContentLoaded", iniciar);

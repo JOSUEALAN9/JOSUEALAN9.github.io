@@ -36,6 +36,7 @@
             <button type="button" id="btn-excel" class="mod-accion" title="Resumen y detalle CFDI por CFDI de los dos lados"><b>▦</b>Excel del papel de trabajo</button>
             <button type="button" id="btn-excel-tabla" class="mod-accion" title="La pestaña que ves, con tus columnas y filtros"><b>▤</b>Excel de esta tabla</button>
             <p class="mod-acciones__grupo">Con este periodo</p>
+            <button type="button" id="btn-sat" class="mod-accion mod-accion--primaria" title="Lo mismo, acomodado como la declaración de IVA del SAT: IVA a cargo, IVA acreditable, Determinación y Pago"><b>⊞</b>Ver en formato SAT</button>
             <button type="button" id="btn-xml" class="mod-accion" title="Abre sus XML"><b>⇢</b>Ver sus XML</button>
             <button type="button" id="btn-conc" class="mod-accion" title="Facturas contra pagos y notas" hidden><b>⇄</b>Conciliar</button>
             <a class="mod-accion" href="https://ptcvisorcfdiingegr.clouda.sat.gob.mx/" target="_blank" rel="noopener" title="Visor de comprobantes de ingresos y egresos del SAT: sus totales por mes son los del prellenado de la declaración (se entra con la e.firma o la contraseña)"><b>↗</b>Visor de facturas del SAT ↗</a>
@@ -79,6 +80,17 @@
         </div>
     </div>
 </main>
+
+<!-- Formato SAT (15-nov): el papel de trabajo acomodado como la declaración, con el detalle de cada renglón -->
+<dialog id="dlg-sat" class="fc-modal fc-modal--grande fc-modal--fija iva-sat" aria-labelledby="sat-titulo">
+    <div class="fc-modal__cabeza">
+        <div><h2 id="sat-titulo">Declaración de IVA · formato SAT</h2><p id="sat-sub"></p></div>
+        <button type="button" class="fc-modal__cerrar" data-sat-cerrar aria-label="Cerrar">✕</button>
+    </div>
+    <div class="iva-sat__pestanas" role="tablist" id="sat-pestanas"></div>
+    <div class="fc-modal__cuerpo" id="sat-cuerpo"></div>
+    <div class="fc-modal__pie iva-sat__pie"><span id="sat-nota"></span><button type="button" class="ui-btn ui-btn--secundario ui-btn--32" data-sat-cerrar>Cerrar</button></div>
+</dialog>
 
 <script src="/assets/js/comun/periodo-meses.js?v=202611150552"></script>
 <script src="/assets/js/comun/tabla.js?v=202611150552"></script>
