@@ -118,6 +118,7 @@ async function verificarAdminYCargar() {
         // #vencidas (el aviso de «cuenta por eliminar»): Sistema › Cuentas vencidas
         if (location.hash === "#vencidas") { abrirPestana("sistema"); const b = document.querySelector('#sub-sistema [data-sub="vencidas"]'); if (b) b.click(); }
         else if (location.hash === "#registro") { abrirRegistroAlCargar = true; abrirPestana("sistema"); }   // desde el buscador: «Registro de trámites»
+        else if (location.hash === "#reporte") { abrirReporteAlCargar = true; abrirPestana("sistema"); }      // desde el buscador: «Reporte para Claude»
         else if (location.hash === "#errores") { abrirPestana("sistema"); setTimeout(abrirErrores, 0); }        // desde el buscador: «Errores informados»
         else abrirPestana(location.hash.replace("#", "") || "usuarios");
         await cargarRoles();
@@ -883,6 +884,9 @@ function cambioCampo(e) {
 function clicTarjeta(e) {
     {
         if (e.target.closest("#btn-ver-registro")) abrirRegistro();
+        if (e.target.closest("#btn-reporte-claude")) { const c = $("reporte-caja"); c.classList.toggle("adm-menu--abierto"); ladoMenuReporte(); e.target.closest("#btn-reporte-claude").setAttribute("aria-expanded", c.classList.contains("adm-menu--abierto")); }
+        const rh = e.target.closest("[data-reporte-horas]");
+        if (rh) bajarReporteClaude(Number(rh.dataset.reporteHoras));
         if (e.target.closest("#btn-config-trabajos")) abrirTrabajadores();
         if (e.target.closest("#btn-probar-proxy")) probarProxy();
         if (e.target.closest("#btn-actualizar-tc")) actualizarTipoCambio(e.target.closest("#btn-actualizar-tc"));
@@ -944,6 +948,7 @@ async function cargarSistema() {
         try { sesionesWeb = await api("/api/admin/sesiones"); } catch (e) { sesionesWeb = null; }
         pintarEstado();
         if (abrirRegistroAlCargar && estadoTrabajadores) { abrirRegistroAlCargar = false; abrirRegistro(); }
+        if (abrirReporteAlCargar) { abrirReporteAlCargar = false; const c = $("reporte-caja"); if (c) { c.scrollIntoView({ block: "center" }); c.classList.add("adm-menu--abierto"); ladoMenuReporte(); $("btn-reporte-claude").focus(); } }
         pintarPortal();
         await cargarEstadoSAT();
         cargarListasAdmin();
@@ -953,6 +958,35 @@ async function cargarSistema() {
 
 let estadoTrabajadores = null;
 let abrirRegistroAlCargar = false;
+let abrirReporteAlCargar = false;
+
+// «Reporte para Claude»: un ZIP con lo que hizo el sistema en esas horas (trámites, visores, correos, tiempos, errores)
+async function bajarReporteClaude(horas) {
+    const caja = $("reporte-caja"), boton = $("btn-reporte-claude");
+    if (!caja || caja.classList.contains("adm-menu--ocupado")) return;
+    caja.classList.remove("adm-menu--abierto"); caja.classList.add("adm-menu--ocupado");
+    boton.setAttribute("aria-expanded", "false"); boton.disabled = true;
+    const antes = boton.textContent; boton.textContent = "Armando el reporte…";
+    try {
+        const resp = await fetch(`${API_URL}/api/admin/reporte-pruebas?horas=${horas}`, { credentials: "include" });
+        if (!resp.ok) throw new Error(await interpretarError(resp));
+        const nombre = (/filename="([^"]+)"/.exec(resp.headers.get("Content-Disposition") || "") || [])[1] || "reporte_fiscontable.zip";
+        const a = document.createElement("a"); a.href = URL.createObjectURL(await resp.blob()); a.download = nombre; a.click();
+        setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+        mostrarAlerta("exito", `Listo: ${nombre}. Súbeselo a Claude con el número de la prueba.`);
+    } catch (err) { mostrarAlerta("error", "No se pudo armar el reporte: " + err.message); }
+    finally { boton.disabled = false; boton.textContent = antes; caja.classList.remove("adm-menu--ocupado"); }
+}
+// que el menú abra hacia el lado donde cabe (en el celular el botón puede quedar a la izquierda o a la derecha)
+function ladoMenuReporte() {
+    const c = $("reporte-caja"); if (!c) return;
+    c.classList.remove("adm-menu--derecha");
+    const r = c.querySelector(".adm-menu__lista").getBoundingClientRect();
+    if (r.width && r.right > document.documentElement.clientWidth - 8) c.classList.add("adm-menu--derecha");
+}
+document.addEventListener("mouseover", e => { if (e.target.closest("#reporte-caja") && !e.target.closest(".adm-menu__lista")) ladoMenuReporte(); });
+document.addEventListener("click", e => { const c = $("reporte-caja"); if (c && !e.target.closest("#reporte-caja")) { c.classList.remove("adm-menu--abierto"); } });
+document.addEventListener("keydown", e => { const c = $("reporte-caja"); if (e.key === "Escape" && c) c.classList.remove("adm-menu--abierto"); });
 let diasInhabiles = null;
 let xmlAutoAdmin = null;
 let timbresAdmin = null;
@@ -1336,9 +1370,17 @@ function tarjetaTrabajadores() {
         `<li class="flex items-start gap-2 py-1"><span class="text-[11px] font-bold px-2 py-0.5 rounded-full flex-none ${COLOR_MODO[m]}">${esc(NOMBRE_MODO[m] || m)}</span>
          <span class="text-xs text-slate-700">${grupos[m].map(esc).join(" · ")}</span></li>`).join("");
     return `<ul class="divide-y divide-gray-100">${filas}</ul>
-        <div class="flex gap-2 mt-3">
+        <div class="flex flex-wrap gap-2 mt-3">
             <button type="button" id="btn-config-trabajos" class="text-xs font-bold text-white bg-slate-800 hover:bg-slate-700 rounded-lg py-1.5 px-3">Cambiar</button>
-            <button type="button" id="btn-ver-registro" class="text-xs font-bold text-slate-700 border border-gray-200 hover:border-slate-400 rounded-lg py-1.5 px-3">Ver registro</button></div>`;
+            <button type="button" id="btn-ver-registro" class="text-xs font-bold text-slate-700 border border-gray-200 hover:border-slate-400 rounded-lg py-1.5 px-3">Ver registro</button>
+            <div class="adm-menu" id="reporte-caja">
+                <button type="button" id="btn-reporte-claude" aria-haspopup="menu" aria-expanded="false" title="Baja un ZIP con lo que hizo el sistema, para subírselo a Claude (RFC y correos enmascarados)" class="text-xs font-bold text-slate-700 border border-gray-200 hover:border-slate-400 rounded-lg py-1.5 px-3 whitespace-nowrap">Reporte para Claude ▾</button>
+                <div class="adm-menu__lista" role="menu">
+                    ${[[1, "La última hora", "Para una prueba que acabas de hacer"], [3, "Las últimas 3 horas", ""], [6, "Las últimas 6 horas", ""],
+                       [24, "Las últimas 24 horas", "Para lo de la madrugada (correos, descargas)"], [72, "Los últimos 3 días", ""]].map(([h, t, d]) =>
+                        `<button type="button" role="menuitem" data-reporte-horas="${h}"><b>${t}</b>${d ? `<small>${d}</small>` : ""}</button>`).join("")}
+                </div>
+            </div></div>`;
 }
 
 function abrirTrabajadores() {
