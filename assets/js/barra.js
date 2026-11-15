@@ -2172,7 +2172,7 @@
                 if (!r.ok) throw new Error(await window.Fiscontable.leerError(r));
                 bloqueo.pin = true;
                 try { dlg.close(); } catch (x) { /* nada */ } dlg.remove();
-                brindis("✓ Listo, ya tienes tu PIN.");
+                brindis("Listo, ya tienes tu PIN.");
             } catch (x) { error(x.message); boton.disabled = false; }
             finally { boton.classList.remove("ui-btn--cargando"); }
         }
