@@ -847,9 +847,10 @@
                 el.disabled = true;
                 try {
                     await enviar("/api/programacion/empresa/" + encodeURIComponent(rfc), "PUT", a ? { activa: a.checked } : { mandar_cliente: m.checked });
-                    aviso(c, true, a ? (a.checked ? "✓ Programada." : "✓ Pausada: no se programa hasta que la vuelvas a encender.") :
-                        (m.checked ? "✓ Se le mandará al cliente cada vez que se baje." : "✓ Ya no se le manda al cliente."));
-                    if (a) pintarProgramaciones(c);
+                    var msj = a ? (a.checked ? "✓ Programada." : "✓ Pausada: no se programa hasta que la vuelvas a encender.") :
+                        (m.checked ? "✓ Se le mandará al cliente cada vez que se baje." : "✓ Ya no se le manda al cliente.");
+                    if (a) await pintarProgramaciones(c);          // la fila cambia (próxima, apagada); el aviso, después
+                    aviso(c, true, msj);
                 } catch (x) { el.checked = !el.checked; aviso(c, false, x.message); }
                 finally { el.disabled = false; }
             };
@@ -870,24 +871,22 @@
         subPestanas(c, partes.map(function (p) { return p.nombre; }), "automatico");
         var pedido = Fiscontable.url("sub"), i = partes.map(function (p) { return p.clave; }).indexOf(pedido === "buzon" ? "xml" : pedido);   // el Buzón ya va en la tabla
         if (i >= 0) { var b = c.querySelector('.cf-subtabs [data-sub="' + i + '"]'); if (b) b.click(); }
+        // «Cambiar/Programar» desde un módulo (?programar=csf&rfc=…): Lo programado, con esa empresa señalada. Ya no hay fecha
+        // que elegir (15-nov): solo encender o pausar, y si se le manda al cliente.
         var pm = Fiscontable.url("programar"), prfc = Fiscontable.url("rfc");
-        if (pm && !prfc && pm !== "buzon") {               // sin empresa elegida: el formulario de «programar algo nuevo», ya con el qué
-            Fiscontable.url({ programar: null });
-            var espera = setInterval(function () {
-                var q = c.querySelector("#cf-prog-que"); if (!q) return;
-                clearInterval(espera);
-                if ([].some.call(q.options, function (o) { return o.value === pm; })) q.value = pm;
-                var s = c.querySelector("#cf-prog-rfc"); if (s) { s.focus(); s.closest(".cf-prog-nueva").classList.add("cf-fabrica--senalada"); }
-            }, 150);
-            setTimeout(function () { clearInterval(espera); }, 8000);
-        } else if (pm && window.FCProgramacion) {
+        if (pm) {
             Fiscontable.url({ programar: null, rfc: null });
-            api("/api/clientes").catch(function () { return []; }).then(function (cl) {
-                var e = prfc ? (cl.filter(function (x) { return x.rfc === prfc; })[0] || { rfc: prfc }) : null;
-                FCProgramacion.abrir(pm, e ? { rfc: e.rfc, alias: e.alias || e.rfc } : null, function () {
-                    var p = c.querySelector('[data-auto-parte="programado"] > div'); if (p) pintarProgramaciones(p);
-                });
-            });
+            var j = partes.map(function (p) { return p.clave; }).indexOf(pm === "buzon" || pm === "xml" ? "xml" : "programado");
+            var bt = c.querySelector('.cf-subtabs [data-sub="' + j + '"]'); if (bt) bt.click();
+            if (prfc) {
+                var espera = setInterval(function () {
+                    var fila = c.querySelector('[data-auto-parte] tr[data-rfc="' + prfc.replace(/"/g, "") + '"]');
+                    if (!fila || !fila.offsetParent) return;
+                    clearInterval(espera);
+                    fila.classList.add("cf-fabrica--senalada"); fila.scrollIntoView({ block: "center" });
+                }, 150);
+                setTimeout(function () { clearInterval(espera); }, 8000);
+            }
         }
     }
 
