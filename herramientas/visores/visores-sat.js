@@ -27,7 +27,7 @@
         if (!$("vs-leer")) return;                      // la página se bloqueó (módulo sin acceso)
         var caja = $("vs-lista");
         if (!S.lecturas.length) {
-            caja.innerHTML = '<p class="vs-vacio">Todavía no hay lecturas guardadas de esta empresa. Pulsa «Leer el visor del SAT»: tarda de uno a tres minutos y puedes seguir trabajando mientras tanto.</p>';
+            caja.innerHTML = '<p class="vs-vacio">Todavía no hay lecturas guardadas de esta empresa. Pulsa «Leer ahora» arriba: tarda unos minutos y puedes seguir trabajando mientras tanto.</p>';
             return;
         }
         caja.innerHTML = S.lecturas.map(function (l) {

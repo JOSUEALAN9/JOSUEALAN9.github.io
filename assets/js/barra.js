@@ -56,7 +56,7 @@
         herramientas:  { nombre: "Herramientas",          permiso: null },
         conciliacion:  { nombre: "Conciliación",          permiso: "conciliacion" },
         iva:           { nombre: "Papel de trabajo de IVA", permiso: "iva" },
-        visores:       { nombre: "Visor de impuestos",    permiso: "iva" },
+        visores:       { nombre: "Visores del SAT",       permiso: "iva" },
         cierre:        { nombre: "Cierre del mes",        permiso: null },
         validador:     { nombre: "Validador SAT",         permiso: "validador" },
         xml:           { nombre: "Administración de XML", permiso: "validador" },
@@ -195,7 +195,7 @@
         { clave: "cancelaciones", grupo: "Comprobantes", nombre: "Cancelaciones", desc: "Cancela emitidas y responde las que te piden", url: "/herramientas/xml/cancelaciones.html", permiso: "cancelaciones", icono: I.prohibido, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
 
         { clave: "cierre", grupo: "Cierre del mes", nombre: "Avance por cliente", alias: "cierre del mes cartera avance tablero clientes pendientes", desc: "Qué tiene listo cada cliente y qué le falta", url: "/herramientas/cierre/", permiso: null, icono: I.lista, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
-        { clave: "visores", grupo: "Cierre del mes", nombre: "Visor de impuestos", alias: "visor facturado cobrado ingresos egresos", desc: "Facturado, cobrado y pagado por mes", url: "/herramientas/visores/", permiso: "iva", icono: I.grafica, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
+        { clave: "visores", grupo: "Cierre del mes", nombre: "Visores del SAT", alias: "visor visores sat facturado cobrado ingresos egresos nomina isr retenido enterado cruce xml", desc: "Lo que dice el SAT contra tus XML, facturas y nómina", url: "/herramientas/visores/", permiso: "iva", icono: I.grafica, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
         { clave: "conciliacion", grupo: "Cierre del mes", nombre: "Conciliación", num: 1, desc: "Facturas contra pagos y notas de crédito", url: "/herramientas/conciliacion/", permiso: "conciliacion", icono: I.cruce, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
         { clave: "iva", grupo: "Cierre del mes", nombre: "Papel de trabajo IVA", num: 2, alias: "papel de trabajo de iva", desc: "IVA cobrado y pagado del mes", url: "/herramientas/iva/", permiso: "iva", icono: I.porciento, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
         { clave: "isn", grupo: "Cierre del mes", nombre: "Impuestos estatales", num: 3, alias: "isn nominas hospedaje", desc: "ISN, hospedaje, profesiones y alcohol (Q. Roo)", url: "/herramientas/isn/", permiso: "isn", icono: I.gente, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
