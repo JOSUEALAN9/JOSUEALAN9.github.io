@@ -38,10 +38,10 @@
         if (curso.length) {
             caja.innerHTML = '<span class="vn-punto vn-punto--curso"></span>Leyendo ' + curso.map(function (x) { return NOMBRE_VISOR[x.visor] || x.visor; }).join(" y ") +
                 " en el SAT… puedes seguir trabajando; se actualiza solo.";
-            $("vn-leer").disabled = true;
+            $("vn-leer").disabled = true; $("vn-leer-caja").classList.add("vn-leer--ocupado");
             return;
         }
-        $("vn-leer").disabled = false;
+        $("vn-leer").disabled = false; $("vn-leer-caja").classList.remove("vn-leer--ocupado");
         var partes = [], f = d.lecturas.facturas, n = d.lecturas.nomina_patron;
         if (f) partes.push("facturas el " + cuando(f.terminada || f.creada));
         if (n) partes.push("nómina el " + cuando(n.terminada || n.creada));
@@ -214,40 +214,17 @@
         }
     }
 
-    /* «Leer ahora» (15-nov, Alan: «que al leer me despliegue ambos, facturas o nómina»): una ventanita para elegir qué
-       visor leer; los dos marcados de entrada. */
-    function elegirVisores() {
-        return new Promise(function (listo) {
-            var dlg = document.createElement("dialog");
-            dlg.className = "fc-modal fc-modal--chica";
-            dlg.innerHTML = '<div class="fc-modal__cabeza"><div><h2>¿Qué visores leo?</h2><p>' + esc(P.empresa.alias || P.empresa.rfc) + " · " + anio() +
-                ' · con la e.firma guardada. Solo consulta: no presenta ni envía nada.</p></div><button type="button" class="fc-modal__cerrar" data-no aria-label="Cerrar">✕</button></div>' +
-                '<div class="fc-modal__cuerpo vn-elegir">' +
-                '<label class="ui-check"><input type="checkbox" value="facturas" checked><span><b>Facturas emitidas y recibidas</b><small>Tarda varios minutos: el SAT carga cada consulta.</small></span></label>' +
-                '<label class="ui-check"><input type="checkbox" value="nomina_patron" checked><span><b>Nómina del patrón</b><small>Unos segundos. ISR retenido contra enterado, por mes, y el Excel del SAT.</small></span></label>' +
-                '<p class="vn-elegir__msj" hidden>Marca al menos uno.</p></div>' +
-                '<div class="fc-modal__pie"><button type="button" class="ui-btn ui-btn--secundario ui-btn--32" data-no>Cancelar</button>' +
-                '<button type="button" class="ui-btn ui-btn--primario ui-btn--32" data-si>Leer</button></div>';
-            document.body.appendChild(dlg);
-            var fin = function (v) { dlg.close(); dlg.remove(); listo(v); };
-            dlg.addEventListener("click", function (e) {
-                if (e.target.closest("[data-no]")) return fin(null);
-                if (e.target.closest("[data-si]")) {
-                    var v = [].filter.call(dlg.querySelectorAll("input:checked"), function () { return true; }).map(function (x) { return x.value; });
-                    if (!v.length) { dlg.querySelector(".vn-elegir__msj").hidden = false; return; }
-                    fin(v);
-                }
-            });
-            dlg.addEventListener("cancel", function (e) { e.preventDefault(); fin(null); });
-            dlg.showModal();
-        });
+    /* «Leer ahora ▾» (15-nov, Alan: «un desplegable de selección rápida: le paso el puntero o doy clic y sale ahí mismo»):
+       facturas y nómina, solo facturas o solo nómina; al elegir, empieza a leer. */
+    function menuLeer(abrir) {
+        var caja = $("vn-leer-caja");
+        caja.classList.toggle("vn-leer--abierto", abrir);
+        $("vn-leer").setAttribute("aria-expanded", String(abrir));
     }
-
-    async function leerAhora() {
-        if (!P.empresa) return;
-        var visores = await elegirVisores();
-        if (!visores) return;
-        $("vn-leer").disabled = true;
+    async function leerAhora(visores) {
+        if (!P.empresa || !visores.length) return;
+        menuLeer(false);
+        $("vn-leer").disabled = true; $("vn-leer-caja").classList.add("vn-leer--ocupado");
         var errores = [];
         for (var visor of visores) {
             try {
@@ -255,8 +232,9 @@
                     body: JSON.stringify({ rfc: P.empresa.rfc, ejercicio: anio(), visor: visor }) });
             } catch (e) { errores.push(NOMBRE_VISOR[visor] + ": " + e.message); }
         }
+        $("vn-leer-caja").classList.remove("vn-leer--ocupado");
         if (errores.length) Fiscontable.toast(errores.join(" · "));
-        else Fiscontable.toast("Leyendo " + visores.map(function (v) { return NOMBRE_VISOR[v]; }).join(" y ") + ". Al terminar se actualiza aquí y te llega a la campana.");
+        else Fiscontable.toast("Leyendo " + visores.map(function (v) { return NOMBRE_VISOR[v]; }).join(" y ") + " del SAT. Al terminar se actualiza aquí y te llega a la campana.");
         cargar();
     }
 
@@ -272,7 +250,13 @@
     async function arrancar() {
         if (!$("vn-leer") || !(await Fiscontable.exigirModulo("iva"))) return;
         $("vn-pestanas").addEventListener("click", function (e) { var b = e.target.closest("[data-vn]"); if (b) ver(b.dataset.vn); });
-        $("vn-leer").addEventListener("click", leerAhora);
+        $("vn-leer").addEventListener("click", function (e) { e.stopPropagation(); menuLeer(!$("vn-leer-caja").classList.contains("vn-leer--abierto")); });
+        $("vn-leer-menu").addEventListener("click", function (e) {
+            var b = e.target.closest("[data-leer]"); if (!b) return;
+            e.stopPropagation(); leerAhora(b.dataset.leer.split(","));
+        });
+        document.addEventListener("click", function (e) { if (!e.target.closest("#vn-leer-caja")) menuLeer(false); });
+        document.addEventListener("keydown", function (e) { if (e.key === "Escape") menuLeer(false); });
         $("vi-anio").addEventListener("change", cargar);
         document.querySelector(".mod-pagina").addEventListener("click", function (e) {
             var ir = e.target.closest("[data-ir]"); if (ir) { ver(ir.dataset.ir); return; }
