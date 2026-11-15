@@ -66,13 +66,19 @@
             return;
         }
         var bien = function (x) { return x && x.xml && !x.xml.meses_con_diferencia ? "vn-bien" : "vn-ojo"; };
-        if (r.emitidas) h += cifra("Emitidas vigentes (SAT)", dinero(r.emitidas.neto), esc(num(r.emitidas.vigentes) + " facturas · " + notaXml(r.emitidas)), bien(r.emitidas), "cruce");
-        if (r.recibidas) h += cifra("Recibidas vigentes (SAT)", dinero(r.recibidas.neto), esc(num(r.recibidas.vigentes) + " facturas · " + notaXml(r.recibidas)), bien(r.recibidas), "cruce");
-        if (r.emitidas) h += cifra("IVA trasladado (SAT)", dinero(r.emitidas.iva), "en tus facturas emitidas de ingreso", "", "facturas");
+        var sinDatos = "La última lectura de facturas no trajo datos del SAT: dale «Leer ahora»";
+        var lado = function (x, titulo) {
+            if (!x) return "";
+            if (x.sin_datos) return cifra(titulo, "Sin datos", esc(sinDatos), "vn-ojo", "cambios");
+            return cifra(titulo, dinero(x.neto), esc(num(x.vigentes) + " facturas · " + notaXml(x)), bien(x), "cruce");
+        };
+        h += lado(r.emitidas, "Emitidas vigentes (SAT)") + lado(r.recibidas, "Recibidas vigentes (SAT)");
+        if (r.emitidas && !r.emitidas.sin_datos) h += cifra("IVA trasladado (SAT)", dinero(r.emitidas.iva), "en tus facturas emitidas de ingreso", "", "facturas");
         if (r.nomina && (r.nomina.sueldos || r.nomina.asimilados)) {
             var dif = r.nomina.diferencia || 0;
             h += cifra("Nómina (SAT)", dinero((r.nomina.sueldos || 0) + (r.nomina.asimilados || 0)),
-                esc("ISR retenido " + dinero(r.nomina.isr_retenido) + (Math.abs(dif) >= 1 ? " · sin enterar " + dinero(dif) : " · enterado completo")), Math.abs(dif) >= 1 ? "vn-mal" : "vn-bien", "nomina");
+                esc("ISR retenido " + dinero(r.nomina.isr_retenido) + (Math.abs(dif) >= 1 ? " · sin enterar " + dinero(dif) + " en meses ya declarados" : " · lo declarado está enterado") +
+                    (r.nomina.por_declarar ? " · por declarar " + dinero(r.nomina.por_declarar) : "")), Math.abs(dif) >= 1 ? "vn-mal" : "vn-bien", "nomina");
         } else if (d.lecturas.facturas) {
             h += cifra("Nómina (SAT)", "—", "Sin lectura de nómina este año", "", "nomina");
         }
@@ -148,7 +154,8 @@
             cifra("Sueldos y salarios (SAT)", dinero(t.sueldos), esc((t.trabajadores_sueldos || 0) + " trabajadores en el mes con más"), "") +
             cifra("Asimilados (SAT)", dinero(t.asimilados), esc((t.trabajadores_asimilados || 0) + " personas en el mes con más"), "") +
             cifra("ISR retenido (SAT)", dinero(t.isr_retenido), esc("enterado " + dinero(t.isr_enterado)), "") +
-            cifra("Retenido sin enterar", dinero(dif), Math.abs(dif) >= 1 ? "revisa tus pagos provisionales" : "todo enterado", Math.abs(dif) >= 1 ? "vn-mal" : "vn-bien") +
+            cifra("Retenido sin enterar", dinero(dif), esc((Math.abs(dif) >= 1 ? "en meses ya declarados: revisa esos pagos" : "lo declarado está enterado") +
+                (t.por_declarar ? " · por declarar " + dinero(t.por_declarar) : "")), Math.abs(dif) >= 1 ? "vn-mal" : "vn-bien") +
             "</div>";
         var celdas = function (x) {
             if (!x) return '<td class="vs-num">—</td><td class="vs-num">—</td><td class="vs-num">—</td>';
