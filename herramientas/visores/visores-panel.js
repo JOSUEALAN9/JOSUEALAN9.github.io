@@ -75,10 +75,10 @@
         h += lado(r.emitidas, "Emitidas vigentes (SAT)") + lado(r.recibidas, "Recibidas vigentes (SAT)");
         if (r.emitidas && !r.emitidas.sin_datos) h += cifra("IVA trasladado (SAT)", dinero(r.emitidas.iva), "en tus facturas emitidas de ingreso", "", "facturas");
         if (r.nomina && (r.nomina.sueldos || r.nomina.asimilados)) {
-            var dif = r.nomina.diferencia || 0;
-            h += cifra("Nómina (SAT)", dinero((r.nomina.sueldos || 0) + (r.nomina.asimilados || 0)),
-                esc("ISR retenido " + dinero(r.nomina.isr_retenido) + (Math.abs(dif) >= 1 ? " · sin enterar " + dinero(dif) + " en meses ya declarados" : " · lo declarado está enterado") +
-                    (r.nomina.por_declarar ? " · por declarar " + dinero(r.nomina.por_declarar) : "")), Math.abs(dif) >= 1 ? "vn-mal" : "vn-bien", "nomina");
+            var rn = r.nomina, sin = rn.sin_enterar || 0, mas = rn.de_mas || 0;
+            h += cifra("Nómina (SAT)", dinero((rn.sueldos || 0) + (rn.asimilados || 0)),
+                esc("ISR retenido " + dinero(rn.isr_retenido) + (sin >= 1 ? " · sin enterar " + dinero(sin) : mas >= 1 ? " · enterado de más " + dinero(mas) : " · lo declarado está enterado") +
+                    (rn.por_declarar ? " · por declarar " + dinero(rn.por_declarar) : "")), sin >= 1 ? "vn-mal" : mas >= 1 ? "vn-ojo" : "vn-bien", "nomina");
         } else if (d.lecturas.facturas) {
             h += cifra("Nómina (SAT)", "—", "Sin lectura de nómina este año", "", "nomina");
         }
@@ -140,40 +140,63 @@
                 var x = fila[m]; return '<td class="vs-num">' + (x ? num(x.vigentes) : "—") + '</td><td class="vs-num">' + (x ? dinero(x.neto) : "—") + "</td>";
             }).join("") + "</tr>";
         }).join("") + "</tbody></table></div>";
-        html += '<div class="vn-acciones"><button type="button" class="ui-btn ui-btn--secundario ui-btn--32" data-excel="facturas">Excel de esta lectura</button>' +
+        html += '<div class="vn-acciones"><button type="button" class="ui-btn ui-btn--secundario ui-btn--32" data-excel="facturas" title="Lo arma Fiscontable con las tablas que leyó">Excel de Fiscontable</button>' +
             (f.dudosas ? '<span class="vi-nota" style="margin:0">' + f.dudosas + " consulta(s) no terminaron de cargar en el SAT y no se usan.</span>" : "") + "</div>";
         caja.innerHTML = html;
     }
 
     /* ---------- Nómina */
+    // 15-nov (pruebas 1 de Alan): tus XML separados en sueldos y asimilados, la diferencia del SAT con su signo (entre
+    // paréntesis en el SAT = enteraste DE MÁS) y el Excel del SAT o por qué no salió.
+    function tarjetaDiferencia(t) {
+        var meses = function (l) { return (l || []).join(", "); };
+        var extra = t.por_declarar ? " · por declarar " + dinero(t.por_declarar) : "";
+        if (t.sin_enterar >= 1)
+            return cifra("Retenido sin enterar", dinero(t.sin_enterar), esc("en " + meses(t.meses_sin_enterar) + ": revisa esos pagos" +
+                (t.de_mas >= 1 ? " · enterado de más " + dinero(t.de_mas) : "") + extra), "vn-mal");
+        if (t.de_mas >= 1)
+            return cifra("Enterado de más", dinero(t.de_mas), esc("en " + meses(t.meses_de_mas) + ": pagaste más de lo retenido" + extra), "vn-ojo");
+        return cifra("Retenido sin enterar", dinero(0), esc("lo declarado está enterado" + extra), "vn-bien");
+    }
     function pintarNomina() {
         var n = P.datos.nomina, caja = $("vn-nomina"), t = n.totales || {};
         if (!n.meses.length) { caja.innerHTML = vacio("Sin lectura de nómina", "Pulsa «Leer ahora» para traer del SAT la nómina del patrón de " + P.datos.anio + " (ISR retenido contra enterado, por mes)."); return; }
-        var dif = t.diferencia || 0;
+        var hayAsim = n.meses.some(function (f) { return f.asimilados || f.xml_asimilados; });
+        var grupo = hayAsim && P.nomGrupo === "asimilados" ? "asimilados" : "sueldos";
         var html = '<div class="vi-tarjetas">' +
             cifra("Sueldos y salarios (SAT)", dinero(t.sueldos), esc((t.trabajadores_sueldos || 0) + " trabajadores en el mes con más"), "") +
             cifra("Asimilados (SAT)", dinero(t.asimilados), esc((t.trabajadores_asimilados || 0) + " personas en el mes con más"), "") +
             cifra("ISR retenido (SAT)", dinero(t.isr_retenido), esc("enterado " + dinero(t.isr_enterado)), "") +
-            cifra("Retenido sin enterar", dinero(dif), esc((Math.abs(dif) >= 1 ? "en meses ya declarados: revisa esos pagos" : "lo declarado está enterado") +
-                (t.por_declarar ? " · por declarar " + dinero(t.por_declarar) : "")), Math.abs(dif) >= 1 ? "vn-mal" : "vn-bien") +
-            "</div>";
-        var celdas = function (x) {
-            if (!x) return '<td class="vs-num">—</td><td class="vs-num">—</td><td class="vs-num">—</td>';
-            var d = x.diferencia;
-            return '<td class="vs-num">' + dinero(x.isr_retenido) + '</td><td class="vs-num">' + (x.isr_enterado == null ? pill("sin enterar", "ojo") : dinero(x.isr_enterado)) +
-                '</td><td class="vs-num' + (d && Math.abs(d) >= 1 ? " vs-dif" : "") + '">' + (d == null ? "—" : dinero(d)) + "</td>";
+            tarjetaDiferencia(t) + "</div>";
+        if (hayAsim) html += '<div class="ctx-segmento vn-seg" role="group" aria-label="Qué nómina ver">' +
+            [["sueldos", "Sueldos y salarios"], ["asimilados", "Asimilados"]].map(function (g) {
+                return '<button type="button" data-nomgrupo="' + g[0] + '" aria-pressed="' + (g[0] === grupo) + '">' + g[1] + "</button>";
+            }).join("") + "</div>";
+        var difSat = function (d) {
+            if (d == null) return '<td class="vs-num">—</td>';
+            if (d >= 1) return '<td class="vs-num vs-dif" title="Retenido que el SAT no ve enterado">' + dinero(d) + "</td>";
+            if (d <= -1) return '<td class="vs-num vn-de-mas" title="Enteraste más de lo retenido">−' + dinero(-d) + "</td>";
+            return '<td class="vs-num">' + dinero(0) + "</td>";
         };
-        html += '<div class="vs-tabla__caja"><table class="vs-tabla"><thead><tr><th rowspan="2">Mes</th><th colspan="3">Sueldos y salarios</th><th colspan="3">Asimilados</th><th colspan="2">Tus recibos (XML)</th></tr>' +
-            '<tr><th class="vs-num">ISR retenido</th><th class="vs-num">Enterado</th><th class="vs-num">Diferencia</th><th class="vs-num">ISR retenido</th><th class="vs-num">Enterado</th><th class="vs-num">Diferencia</th>' +
-            '<th class="vs-num">ISR retenido</th><th></th></tr></thead><tbody>' +
+        html += '<div class="vs-tabla__caja"><table class="vs-tabla"><thead><tr><th rowspan="2">Mes</th><th colspan="3">SAT</th><th colspan="3">Tus recibos (XML)</th></tr>' +
+            '<tr><th class="vs-num">ISR retenido</th><th class="vs-num">Enterado</th><th class="vs-num">Diferencia</th>' +
+            '<th class="vs-num">ISR retenido</th><th class="vs-num">Contra el SAT</th><th></th></tr></thead><tbody>' +
             n.meses.map(function (f) {
-                var tus = f.cuadra_recibos == null ? (Object.keys(f.recibos || {}).length ? "" : pill("sin recibos", "ojo")) : f.cuadra_recibos ? pill("Cuadra", "bien") : pill("No cuadra", "mal");
-                return "<tr><td>" + esc(f.nombre.charAt(0).toUpperCase() + f.nombre.slice(1)) + "</td>" + celdas(f.sueldos) + celdas(f.asimilados) +
-                    '<td class="vs-num">' + (Object.keys(f.recibos || {}).length ? dinero(f.isr_recibos) : "—") + "</td><td>" + tus + "</td></tr>";
+                var x = f[grupo] || null, xml = f["xml_" + grupo], dx = f["dif_xml_" + grupo], cu = f["cuadra_" + grupo];
+                var estado = cu == null ? (xml == null ? pill("sin recibos", "ojo") : (x ? "" : pill("sin SAT", "ojo"))) : cu ? pill("Cuadra", "bien") : pill("No cuadra", "mal");
+                return "<tr><td>" + esc(f.nombre.charAt(0).toUpperCase() + f.nombre.slice(1)) + "</td>" +
+                    '<td class="vs-num">' + (x ? dinero(x.isr_retenido) : "—") + "</td>" +
+                    '<td class="vs-num">' + (!x ? "—" : x.isr_enterado == null ? pill("sin enterar", "ojo") : dinero(x.isr_enterado)) + "</td>" +
+                    (x ? difSat(x.isr_enterado == null ? null : x.diferencia) : '<td class="vs-num">—</td>') +
+                    '<td class="vs-num" title="' + esc((f["recibos_" + grupo] || 0) + " recibo(s)") + '">' + (xml == null ? "—" : dinero(xml)) + "</td>" +
+                    '<td class="vs-num' + (dx != null && Math.abs(dx) >= 1 && xml != null && x ? " vs-dif" : "") + '">' + (dx == null || xml == null || !x ? "—" : dinero(dx)) + "</td>" +
+                    "<td>" + estado + "</td></tr>";
             }).join("") + "</tbody></table></div>";
-        html += '<div class="vn-acciones">' + (n.archivo ? '<button type="button" class="ui-btn ui-btn--secundario ui-btn--32" data-archivo>Bajar el Excel del SAT (' + esc(n.archivo.nombre) + ")</button>" : "") +
-            '<button type="button" class="ui-btn ui-btn--secundario ui-btn--32" data-excel="nomina_patron">Excel de esta lectura</button></div>' +
-            '<p class="vi-nota">Retenido: el ISR de los CFDI de nómina que timbraste. Enterado: el que pagaste en tus declaraciones. La diferencia es lo retenido que el SAT no ve pagado. «Tus recibos» suma el ISR de los XML de nómina que tienes en la biblioteca, por mes de pago.</p>';
+        html += '<div class="vn-acciones">' + (n.archivo ? '<button type="button" class="ui-btn ui-btn--secundario ui-btn--32" data-archivo title="El archivo que da el SAT en el Detalle mensual">Excel del SAT (detalle mensual)</button>' : "") +
+            '<button type="button" class="ui-btn ui-btn--secundario ui-btn--32" data-excel="nomina_patron" title="Lo arma Fiscontable con las tablas que leyó">Excel de Fiscontable</button></div>' +
+            (!n.archivo && n.excel_motivo ? '<p class="vi-nota vn-aviso">El Excel del SAT no salió en esta lectura: ' + esc(n.excel_motivo) + ".</p>" : "") +
+            '<p class="vi-nota">Retenido: el ISR de los CFDI de nómina que timbraste. Enterado: el que pagaste en tus declaraciones. Diferencia en rojo: retenido que el SAT no ve pagado; con signo menos: enteraste más de lo retenido (el SAT la pone entre paréntesis). «Tus recibos» suma el ISR de tus XML de nómina de ' +
+            (grupo === "asimilados" ? "asimilados (régimen 05 a 11)" : "sueldos y salarios") + ", por mes de pago.</p>";
         caja.innerHTML = html;
     }
 
@@ -224,6 +247,22 @@
     async function leerAhora(visores) {
         if (!P.empresa || !visores.length) return;
         menuLeer(false);
+        // 15-nov (Alan): si ya se leyó hoy, preguntar antes de volver a entrar al SAT (cada lectura cuenta para el tope)
+        var d = P.datos || {}, hoy = new Date().toDateString();
+        var deHoy = visores.filter(function (v) {
+            var l = (d.lecturas || {})[v], t = l && (l.terminada || l.creada);
+            return t && new Date(/([zZ]|[+-]\d\d:\d\d)$/.test(t) ? t : t + "Z").toDateString() === hoy;
+        });
+        if (deHoy.length) {
+            var lleva = d.lecturas_hoy || 0, tope = d.tope_diario || 0;
+            var si = await Fiscontable.confirmar({
+                titulo: "Ya leíste hoy",
+                texto: ("Ya leíste " + deHoy.map(function (v) { var l = d.lecturas[v]; return NOMBRE_VISOR[v] + " el " + cuando(l.terminada || l.creada); }).join(" y ")).replace(/\.?$/, ".") +
+                    " ¿Leer otra vez? Llevas " + lleva + (tope ? " de " + tope : "") + " lecturas de esta empresa en las últimas 24 horas" +
+                    (visores.length > 1 ? "; esta cuenta " + visores.length : "") + ".",
+                si: "Leer otra vez", no: "No" });
+            if (!si) return;
+        }
         $("vn-leer").disabled = true; $("vn-leer-caja").classList.add("vn-leer--ocupado");
         var errores = [];
         for (var visor of visores) {
@@ -262,6 +301,7 @@
             var ir = e.target.closest("[data-ir]"); if (ir) { ver(ir.dataset.ir); return; }
             var c = e.target.closest("[data-cruce]"); if (c) { P.cruce = Number(c.dataset.cruce); pintarCruce(); return; }
             var cel = e.target.closest("[data-celda]"); if (cel) { P.celda = Number(cel.dataset.celda); pintarFacturas(); return; }
+            var ng = e.target.closest("[data-nomgrupo]"); if (ng) { P.nomGrupo = ng.dataset.nomgrupo; pintarNomina(); return; }
             var x = e.target.closest("[data-excel]");
             if (x && P.datos) { var l = P.datos.lecturas[x.dataset.excel]; if (l) bajar("/api/visores/sat/" + encodeURIComponent(l.id) + "/excel", "Visor_SAT.xlsx"); return; }
             if (e.target.closest("[data-archivo]") && P.datos && P.datos.nomina.archivo) {
