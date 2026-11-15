@@ -118,6 +118,11 @@
         .vn-tiempo time { font-size: var(--t-12); color: rgb(var(--g-500)); font-variant-numeric: tabular-nums; padding-top: 2px; }
         .vn-acciones { display: flex; gap: var(--e-2); flex-wrap: wrap; align-items: center; }
         @media (max-width: 560px) { .vn-tiempo li { grid-template-columns: minmax(0, 1fr); gap: 2px; } }
+        .vn-elegir { gap: var(--e-3); }
+        .vn-elegir .ui-check { align-items: flex-start; gap: 10px; padding: 12px 14px; border: 1px solid var(--linea); border-radius: 12px; cursor: pointer; }
+        .vn-elegir .ui-check span { display: grid; gap: 2px; }
+        .vn-elegir .ui-check small { font-size: var(--t-12); color: rgb(var(--g-600)); font-weight: 400; }
+        .vn-elegir__msj { margin: 0; font-size: var(--t-13); color: rgb(var(--er-600)); }
     </style>
 </head>
 <body class="min-h-screen flex flex-col">
@@ -131,7 +136,7 @@
         <h1>Visores del SAT</h1>
         <div class="vi-cabeza__der">
             <select id="vi-anio" class="ui-select" aria-label="Año"></select>
-            <button type="button" class="ui-btn ui-btn--primario" id="vn-leer" title="Lee ahora el visor de facturas y el de nómina del patrón con la e.firma guardada (solo consulta)">Leer ahora</button>
+            <button type="button" class="ui-btn ui-btn--primario" id="vn-leer" title="Elige qué leer del SAT ahora: facturas, nómina o los dos (solo consulta)">Leer ahora</button>
         </div>
     </div>
     <p id="vn-estado" class="vn-estado" role="status"></p>
