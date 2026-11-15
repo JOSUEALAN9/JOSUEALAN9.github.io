@@ -925,10 +925,22 @@
             var porRfc = {}; cfg.empresas.forEach(function (e) { porRfc[e.rfc] = e; });
             var opc = function (mapa, v) { return Object.keys(mapa).map(function (k) { return '<option value="' + k + '"' + (k === v ? " selected" : "") + ">" + esc(mapa[k]) + "</option>"; }).join(""); };
             var dia = function (iso) { return iso ? new Date(iso.slice(0, 10) + "T12:00:00").toLocaleDateString("es-MX", { weekday: "short", day: "numeric", month: "short" }) : ""; };
+            // 15-nov (XML seguros): el cuadre UUID por UUID con la lista del SAT, mes por mes desde «Desde»
+            var cuadre = function (e) {
+                var q = e.cuadre;
+                var expl = "Cuadre con la lista del SAT: cada semana (los meses viejos, cada mes) se compara UUID por UUID desde «Desde»; lo que falte se pide solo y los que pasen a cancelados se avisan.";
+                if (!q) return '<small class="cf-auto__cuadre" title="' + esc(expl + " Empieza cuando terminen de bajar sus XML.") + '">Cuadre SAT: en espera</small>';
+                var det = [expl, "Última revisión: " + (q.ultima ? dia(q.ultima) : "—")];
+                if (q.faltaban) det.push("faltaban " + q.faltaban + (q.pedidos ? " (se pidieron " + q.pedidos + ")" : ""));
+                if (q.cancelados_nuevos) det.push(q.cancelados_nuevos + " pasaron a cancelados");
+                if (q.errores) det.push(q.errores + " mes(es) por volver a pedir");
+                return '<small class="cf-auto__cuadre" data-cuadre title="' + esc(det.join(" · ")) + '">Cuadre SAT: ' + q.cuadrados + " de " + q.total + " meses" +
+                    (q.cancelados_nuevos ? '<span class="cf-auto__cancelados">' + q.cancelados_nuevos + (q.cancelados_nuevos === 1 ? " cancelado" : " cancelados") + "</span>" : "") + "</small>";
+            };
             var bzFrec = bz ? '<label class="cf-campo cf-campo--corto cf-auto__buzon"><span>Revisar los buzones</span><select id="cf-buzon-frec">' +
                 Object.keys(bz.frecuencias).sort(function (a, b) { return (+a || 99) - (+b || 99); }).map(function (k) {
                     return '<option value="' + k + '"' + (+k === bz.frecuencia ? " selected" : "") + ">" + esc(bz.frecuencias[k]) + "</option>"; }).join("") + "</select></label>" : "";
-            c.innerHTML = '<div class="cf-tarjeta cf-tarjeta--tabla">' + bzFrec + '<table class="cf-tabla"><thead><tr><th>Empresa</th>' +
+            c.innerHTML = '<div class="cf-tarjeta cf-tarjeta--tabla">' + bzFrec + '<table class="cf-tabla cf-auto__tabla"><thead><tr><th>Empresa</th>' +
                 (conXml ? "<th>XML</th><th>Qué</th><th>Retenciones</th><th>Cada cuánto</th><th>Desde</th><th>Próxima</th>" : "") +
                 (conBuzon ? '<th title="Se guarda al momento">Buzón</th>' : "") + (conXml ? "<th></th>" : "") + "</tr></thead><tbody>" +
                 clientes.map(function (x) {
@@ -939,7 +951,7 @@
                         '<td><label class="cf-switch" title="También sus CFDI de Retenciones"><input type="checkbox" data-c="retenciones"' + (e.retenciones ? " checked" : "") + "><span></span></label></td>" +
                         "<td><select data-c=\"frecuencia\">" + opc(cfg.frecuencias, e.frecuencia) + "</select></td>" +
                         '<td><select data-c="desde">' + Fiscontable.opcionesDesde(cfg.desde_minimo, cfg.mes_actual, e.desde || "") + "</select></td>" +
-                        "<td>" + (e.activo && x.efirma_guardada ? "<b>" + esc(dia(e.proxima)) + "</b>" + (e.ultima ? "<small>Última: " + esc(dia(e.ultima)) + "</small>" : "") : "—") + "</td>" : "") +
+                        "<td>" + (e.activo && x.efirma_guardada ? "<b>" + esc(dia(e.proxima)) + "</b>" + (e.ultima ? "<small>Última: " + esc(dia(e.ultima)) + "</small>" : "") + cuadre(e) : "—") + "</td>" : "") +
                         (conBuzon ? '<td><label class="cf-switch" title="Revisar su Buzón Tributario"><input type="checkbox" data-buzon' + ((b ? b.activo : true) && x.efirma_guardada ? " checked" : "") +
                             (x.efirma_guardada ? "" : " disabled") + "><span></span></label></td>" : "") +
                         (conXml ? '<td class="cf-celda-acciones"><button type="button" class="cf-btn cf-btn--chico" data-guardar>Guardar</button>' +
