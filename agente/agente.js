@@ -220,9 +220,15 @@ document.getElementById("lista").addEventListener("click", async (ev) => {
     if (g) return guardarPc(g);
     const ap = ev.target.closest("[data-aprobar]");
     if (ap) {
+        // 16-nov (auditoría): la PC aprobada recibe las e.firmas de tus trámites: se confirma con tu PIN (o el código del correo)
         ap.disabled = true;
-        try { await api(`/api/agentes/${ap.dataset.aprobar}/aprobar`, { method: "POST" }); alerta("ok", "PC aprobada."); cargar(true); }
-        catch (e) { ap.disabled = false; alerta("error", e.message); }
+        try {
+            const hecho = await Fiscontable.confirmarIdentidad("conectar_pc", (conf) =>
+                api(`/api/agentes/${ap.dataset.aprobar}/aprobar`, { method: "POST", headers: { "X-Confirmacion": JSON.stringify(conf) } }),
+                { titulo: "Conectar esta PC a tu cuenta", boton: "Sí, es mi PC",
+                  resumen: '<p class="fc-identidad__aviso">Esa PC hará tus trámites con el SAT usando las e.firmas de tus empresas. Apruébala solo si es tuya y tú escribiste el código en ella.</p>' });
+            if (hecho) { alerta("ok", "PC aprobada."); cargar(true); } else ap.disabled = false;
+        } catch (e) { ap.disabled = false; alerta("error", e.message); }
         return;
     }
     const pa = ev.target.closest("[data-pausa]");
