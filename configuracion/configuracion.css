@@ -183,3 +183,7 @@
 @media (hover: hover) { .cf-menu-prueba:hover .cf-menu-prueba__lista { display: block; } }
 .cf-casillas { display: flex; flex-wrap: wrap; gap: 6px 16px; }
 .cf-auto__buzon { margin: 4px 0 10px; }
+.cf-auto__cuadre { white-space: nowrap; margin-top: 2px; cursor: help; }
+.cf-auto__tabla .cf-celda-acciones { white-space: normal; width: 1%; }
+.cf-auto__tabla .cf-celda-acciones .cf-btn { display: block; width: 100%; margin: 3px 0; white-space: nowrap; }
+.cf-auto__cancelados { display: block; color: rgb(var(--er-600)); font-weight: 600; }
