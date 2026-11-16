@@ -83,6 +83,8 @@
     function descargarBlob(blob, nombre) { Fiscontable.guardarArchivo(blob, nombre); }
     function nombreArchivo(resp, porDefecto) {
         var cd = resp.headers.get("Content-Disposition") || "";
+        var u = cd.match(/filename\*=UTF-8''([^;]+)/i);          // el nombre con acentos («Nómina») viene aquí
+        if (u) { try { return decodeURIComponent(u[1]); } catch (e) { /* se usa el otro */ } }
         var m = cd.match(/filename="?([^";]+)"?/);
         return m ? m[1] : porDefecto;
     }
@@ -337,9 +339,10 @@
         $("conteo-filas").textContent = "Cargando…";
         var yo = (E.nCarga = (E.nCarga || 0) + 1), rfcPedido = E.rfc;     // si cambias el periodo mientras carga, gana el último
         try {
-            var llegaron = (await apiJSON("/api/xml/registros" + q)).modulos;
+            var respuesta = await apiJSON("/api/xml/registros" + q), llegaron = respuesta.modulos;
             if (yo !== E.nCarga || rfcPedido !== E.rfc) return;
             E.datos = llegaron;
+            E.banxico = respuesta.banxico || {};                  // para ofrecer el tipo de cambio del DOF al sacar el Excel
         } catch (e) { if (yo === E.nCarga) avisar(e.message); return; }
         E.cargado = hayEleccion() ? { rfc: E.rfc, desde: r.desde, hasta: r.hasta, fechas: porFechas(), pagosPor: E.pagosPor } : null;
         Fiscontable.url(Fiscontable.periodoAUrl(E.P.estado(), porFechas()));
@@ -392,7 +395,18 @@
         pintarSubfiltros();
         pintarRapidos();
         pintarVistas();
+        pintarBotonExcel();
         aplicar();
+    }
+
+    // En Pagos el Excel es el reporte de pagos: una hoja por pago y otra por factura pagada
+    function pintarBotonExcel() {
+        var b = document.querySelector('.mod-acciones [data-excel="vista"]');
+        if (!b || b.disabled) return;
+        var pagos = E.modulo === "pagos";
+        b.innerHTML = "<b>▦</b>" + (pagos ? "Reporte de pagos (Excel)" : "Excel de esta tabla");
+        b.title = pagos ? "Dos hojas: «Pagos» (un renglón por pago, con IVA por tasa y retenciones) y «Documentos relacionados» (un renglón por factura pagada)"
+            : "Completo: tus columnas primero, en tu orden, y después el resto de las columnas con datos";
     }
 
     function pintarSubfiltros() {
@@ -448,6 +462,14 @@
     function colPorClave(clave) { return catalogo().find(function (c) { return c.clave === clave; }); }
     function anchoDefecto(c) { return ANCHO_CLAVE[c.clave] || ANCHO_TIPO[c.tipo] || 150; }
 
+    /* En Recibidos y Emitidos «RFC contraparte» es el emisor o el receptor: el servidor dice a cuál
+       equivale y las vistas que la tenían pasan a esa columna (una sola, no dos con lo mismo). */
+    function sinRepetidas(cols) {
+        var alias = (E.datos[E.modulo] && E.datos[E.modulo].alias) || {}, vistas = {};
+        return (cols || []).map(function (c) { return alias[c.clave] ? { clave: alias[c.clave], ancho: 0 } : c; })
+            .filter(function (c) { if (vistas[c.clave]) return false; vistas[c.clave] = 1; return !!colPorClave(c.clave); });
+    }
+
     function columnasDeFabrica() {
         return E.datos[E.modulo].predeterminadas.filter(colPorClave).map(function (k) { return { clave: k, ancho: 0 }; });
     }
@@ -462,7 +484,7 @@
         var pred = E.vistas.find(function (v) { return v.modulo === E.modulo && v.predeterminada; });
         var cols = local || (pred && pred.columnas) || columnasDeFabrica();
         E.vistaActual[E.modulo] = local ? (leerLocal("vista:" + E.modulo) || "") : (pred ? pred.nombre : "");
-        E.columnas[E.modulo] = cols.filter(function (c) { return colPorClave(c.clave); });
+        E.columnas[E.modulo] = sinRepetidas(cols);
         if (!E.columnas[E.modulo].length) E.columnas[E.modulo] = columnasDeFabrica();
     }
 
@@ -501,7 +523,7 @@
 
     function aplicarVista(nombre) {
         var v = E.vistas.find(function (x) { return x.modulo === E.modulo && x.nombre === nombre; });
-        E.columnas[E.modulo] = (v ? v.columnas : columnasDeFabrica()).filter(function (c) { return colPorClave(c.clave); });
+        E.columnas[E.modulo] = sinRepetidas(v ? v.columnas : columnasDeFabrica());
         E.vistaActual[E.modulo] = v ? v.nombre : "";
         guardarColumnasLocal();
         pintarVistas();
@@ -870,16 +892,27 @@
     }
 
     /* ============================================================ acciones */
+    /* Excel. modo: "vista" (esta tabla, completo: tus columnas y después el resto con datos), "visibles"
+       (solo las columnas que ves) o "completo" (todo el periodo, una hoja por tipo y resumen).
+       Si en lo que se va a bajar hay CFDI en otra moneda, antes se pregunta si se convierten a pesos. */
     async function exportarExcel(modo) {
         var r = rangoPeriodo();
-        var cuerpo = { rfc: E.rfc, desde: r.desde, hasta: r.hasta, meses: mesesElegidos(), modo: modo, pagos_por: E.pagosPor };
-        if (modo === "vista") {
+        var cuerpo = { rfc: E.rfc, desde: r.desde, hasta: r.hasta, meses: mesesElegidos(), modo: modo === "completo" ? "completo" : "vista", pagos_por: E.pagosPor };
+        if (modo !== "completo") {
             cuerpo.modulo = E.modulo;
             cuerpo.sub = E.sub || null;
             cuerpo.columnas = E.columnas[E.modulo].map(function (c) { return c.clave; });
+            cuerpo.columnas_modo = modo === "visibles" ? "visibles" : "completas";
+            if (E.orden.clave) { cuerpo.orden_clave = E.orden.clave; cuerpo.orden_dir = E.orden.dir; }
             var filtrado = E.busqueda.trim() || Object.keys(E.rapidos).some(function (k) { return E.rapidos[k]; }) ||
                 Object.keys(E.av).some(function (k) { return E.av[k]; });
             cuerpo.uuids = filtrado ? Array.from(new Set(E.filas.map(function (f) { return f.uuid; }))) : null;
+        }
+        var monedas = monedasExtranjeras(modo === "completo" ? ["recibidos", "emitidos", "pagos"].reduce(function (t, m) { return t.concat(filasPeriodo(m)); }, []) : E.filas);
+        if (monedas.length) {
+            var eleccion = await preguntarMoneda(monedas);
+            if (eleccion === null) return;                         // canceló
+            cuerpo.convertir = eleccion || null;
         }
         var boton = document.querySelector('.mod-acciones [data-excel="' + modo + '"]');
         var texto = boton.innerHTML;
@@ -889,6 +922,59 @@
             descargarBlob(await resp.blob(), nombreArchivo(resp, "reporte.xlsx"));
         } catch (e) { avisar(e.message); }
         boton.disabled = false; boton.innerHTML = texto;
+    }
+
+    /* [["USD", 3], ["EUR", 1]]: cuántos CFDI hay en cada moneda extranjera (en Pagos cuentan la moneda del
+       pago y la de la factura pagada). */
+    function monedasExtranjeras(filas) {
+        var porMoneda = {};
+        (filas || []).forEach(function (f) {
+            [f.moneda, f.moneda_p, f.docto_moneda].forEach(function (m) {
+                if (!m || m === "MXN" || m === "XXX") return;
+                (porMoneda[m] = porMoneda[m] || new Set()).add(f.uuid);
+            });
+        });
+        return Object.keys(porMoneda).sort().map(function (m) { return [m, porMoneda[m].size]; });
+    }
+
+    /* «Hay CFDI en otra moneda»: en pesos con el tipo de cambio del XML, con el del DOF (Banxico), o sin
+       convertir. Devuelve "xml", "dof", "" (sin convertir) o null si se cancela. Recuerda la última elección. */
+    function preguntarMoneda(monedas) {
+        var dlg = $("dlg-moneda");
+        var lista = monedas.map(function (m) { return m[1].toLocaleString("es-MX") + " en " + m[0]; });
+        $("dlg-moneda-sub").textContent = "En lo que vas a descargar hay " +
+            (lista.length > 1 ? lista.slice(0, -1).join(", ") + " y " + lista[lista.length - 1] : lista[0]) + ".";
+        var usd = (E.banxico || {}).USD, hayDolares = monedas.some(function (m) { return m[0] === "USD"; });
+        var dof = dlg.querySelector('input[value="dof"]');
+        var dia = function (f) { return f.slice(8, 10) + "/" + f.slice(5, 7) + "/" + f.slice(0, 4); };
+        dof.disabled = !usd || !hayDolares;
+        $("dlg-moneda-dof").textContent = !usd ? "Todavía no hay tipos de cambio de Banxico cargados."
+            : !hayDolares ? "Banxico solo da el del dólar, y aquí no hay CFDI en dólares."
+            : "El publicado en el DOF el día anterior a la emisión (art. 20 del CFF); en los pagos, a la fecha de pago. Hay del dólar hasta el " +
+              dia(usd.hasta) + (monedas.length > 1 ? "; para las demás monedas se usa el del XML." : ".");
+        var previa = leerLocal("excelMoneda");
+        if (previa !== "xml" && previa !== "dof" && previa !== "") previa = "xml";       // de fábrica: el del XML
+        if (previa === "dof" && dof.disabled) previa = "xml";
+        dlg.querySelectorAll('input[name="moneda-conv"]').forEach(function (i) { i.checked = i.value === previa; });
+        return new Promise(function (resolver) {
+            var elegido = null;
+            function cerrar(e) {
+                var b = e.target.closest("[data-moneda]");
+                if (!b) return;
+                if (b.dataset.moneda === "ok") {
+                    elegido = dlg.querySelector('input[name="moneda-conv"]:checked').value;
+                    guardarLocal("excelMoneda", elegido);
+                }
+                dlg.close();
+            }
+            dlg.addEventListener("click", cerrar);
+            dlg.addEventListener("close", function alCerrar() {
+                dlg.removeEventListener("click", cerrar);
+                dlg.removeEventListener("close", alCerrar);
+                resolver(elegido);
+            });
+            dlg.showModal();
+        });
     }
 
     /* Conciliación: se abre con la misma empresa, periodo y lado (lee la misma biblioteca). */

@@ -62,7 +62,8 @@
             <p class="mod-acciones__grupo">SAT</p>
             <button type="button" id="btn-validar" class="mod-accion" title="Consulta en el SAT si están vigentes o cancelados"><b>✓</b>Validar estado SAT</button>
             <p class="mod-acciones__grupo">Descargar</p>
-            <button type="button" class="mod-accion" data-excel="vista" title="Con tus columnas, orden y filtros"><b>▦</b>Excel de esta tabla</button>
+            <button type="button" class="mod-accion" data-excel="vista" title="Completo: tus columnas primero, en tu orden, y después el resto de las columnas con datos"><b>▦</b>Excel de esta tabla</button>
+            <button type="button" class="mod-accion" data-excel="visibles" title="Únicamente las columnas que ves, en tu orden y con tus filtros"><b>▥</b>Excel solo de lo que ves</button>
             <button type="button" class="mod-accion" data-excel="completo" title="Todas las columnas, una hoja por tipo"><b>▤</b>Excel completo</button>
             <button type="button" id="btn-pdf" class="mod-accion" title="Representación impresa: uno en PDF, varios en ZIP (si son muchos, el ZIP se arma en segundo plano y queda en Mis descargas)"><b>⎙</b>XML a PDF</button>
             <button type="button" id="btn-zip" class="mod-accion" title="Los XML de lo que ves (o de lo seleccionado)"><b>⇩</b>Descargar XML (ZIP)</button>
@@ -149,6 +150,27 @@
         <div class="xml-modal__acciones" id="modal-validar-acciones"></div>
     </div>
 </div>
+
+<!-- Excel con CFDI en otra moneda: ¿en pesos, y con qué tipo de cambio? -->
+<dialog class="fc-modal fc-modal--chica" id="dlg-moneda" aria-labelledby="dlg-moneda-titulo">
+    <div class="fc-modal__cabeza"><div><h2 id="dlg-moneda-titulo">Hay CFDI en otra moneda</h2><p id="dlg-moneda-sub"></p></div>
+        <button type="button" class="fc-modal__cerrar" data-moneda="cerrar" aria-label="Cerrar">×</button></div>
+    <div class="fc-modal__cuerpo">
+        <fieldset class="xml-opciones"><legend>¿Cómo quieres los importes en el Excel?</legend>
+            <label class="xml-opcion"><input type="radio" name="moneda-conv" value="xml">
+                <span><strong>En pesos, con el tipo de cambio del XML</strong><small>El que trae cada CFDI.</small></span></label>
+            <label class="xml-opcion"><input type="radio" name="moneda-conv" value="dof">
+                <span><strong>En pesos, con el tipo de cambio del DOF (Banxico)</strong><small id="dlg-moneda-dof"></small></span></label>
+            <label class="xml-opcion"><input type="radio" name="moneda-conv" value="">
+                <span><strong>Sin convertir</strong><small>Cada CFDI en su moneda, con su tipo de cambio a un lado y un total por moneda.</small></span></label>
+        </fieldset>
+        <p class="xml-opciones__nota">En pesos, junto a cada importe quedan el tipo de cambio usado, la moneda original y el importe en esa moneda.</p>
+    </div>
+    <div class="fc-modal__pie">
+        <button type="button" class="ui-btn ui-btn--secundario ui-btn--36" data-moneda="cerrar">Cancelar</button>
+        <button type="button" class="ui-btn ui-btn--primario ui-btn--36" data-moneda="ok">Descargar Excel</button>
+    </div>
+</dialog>
 
 <!-- Panel de columnas -->
 <aside id="panel-columnas" class="xml-panel" hidden>
