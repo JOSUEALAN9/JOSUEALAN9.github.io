@@ -232,7 +232,10 @@
     }
 
     // Abierta dentro de la ventana de Configuración: sin barra superior (la ventana pone la suya)
-    if (/[?&]incrustado=1\b/.test(location.search)) document.documentElement.classList.add("fc-incrustado");
+    // «incrustado» solo vale DENTRO de un marco de la propia app (auditoría 16-nov): escrito a mano en la barra de
+    // direcciones dejaba la página sin el bloqueo por inactividad.
+    var enMarco = false; try { enMarco = window.top !== window.self; } catch (e) { enMarco = true; }
+    if (enMarco && /[?&]incrustado=1\b/.test(location.search)) document.documentElement.classList.add("fc-incrustado");
     // Densidad de las tablas (Configuración › Mi perfil): cada quien en su navegador
     try { if (localStorage.getItem("fc-densidad") === "compacta") document.documentElement.classList.add("fc-compacta"); } catch (e) { /* sin almacenamiento */ }
     // …y además dentro de la página de Configuración (que ya pone título y pestañas): sin su propio encabezado
@@ -1136,7 +1139,8 @@
     async function abrirDoc(fuente) {
         var lib = await cargarPdfjs();
         var datos = fuente instanceof Blob ? new Uint8Array(await fuente.arrayBuffer()) : null;
-        return lib.getDocument(datos ? { data: datos } : { url: fuente, withCredentials: true }).promise;
+        // isEvalSupported: false → PDF.js no ejecuta código que venga dentro de un PDF (CVE-2024-4367), aunque faltara la CSP
+        return lib.getDocument(datos ? { data: datos, isEvalSupported: false } : { url: fuente, withCredentials: true, isEvalSupported: false }).promise;
     }
 
     async function pintarPaginas(doc, cont, escala, ancho) {

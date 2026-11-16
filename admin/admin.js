@@ -2031,7 +2031,8 @@ function dialogoRegistro(id, titulo, filtros, cabeceras, buscar, exportar) {
 }
 
 function csvDe(nombre, cabeceras, filas) {
-    const celda = x => '"' + String(x == null ? "" : x).replace(/"/g, '""') + '"';
+    // Lo que empieza con = + - @ (o tabulador) Excel lo toma como fórmula: se le antepone un apóstrofo (auditoría 16-nov)
+    const celda = x => { const t = String(x == null ? "" : x); return '"' + (/^[=+\-@\t\r]/.test(t) ? "'" + t : t).replace(/"/g, '""') + '"'; };
     const lineas = [cabeceras.map(celda).join(",")].concat(filas.map(f => f.map(celda).join(",")));
     Fiscontable.guardarArchivo(new Blob(["\ufeff" + lineas.join("\r\n")], { type: "text/csv;charset=utf-8" }), nombre);
 }
