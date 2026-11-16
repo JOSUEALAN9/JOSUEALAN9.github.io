@@ -291,3 +291,16 @@ button.ctx-resumen__dato:hover { background: rgb(var(--g-50)); }
 .fc-compacta .xml-tabla td { height: 28px; font-size: 12.5px; }
 .fc-compacta .xml-tabla thead th { height: 34px; }
 .fc-compacta .xml-tabla td .xml-sello { padding-top: 0; padding-bottom: 0; }
+
+/* Excel con moneda extranjera: opciones de la ventana (una por renglón, con su explicación) */
+.xml-opciones { border: 0; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.xml-opciones legend { font-size: 13.5px; font-weight: 700; color: rgb(var(--g-900)); margin-bottom: 10px; padding: 0; }
+.xml-opcion { display: flex; align-items: flex-start; gap: 12px; padding: 14px 16px; border: 1px solid rgb(var(--g-200)); border-radius: 12px; cursor: pointer; background: rgb(var(--g-0)); }
+.xml-opcion:hover { border-color: rgb(var(--g-400)); }
+.xml-opcion:has(input:checked) { border-color: var(--acento, rgb(var(--ac-600))); background: var(--acento-suave, rgb(var(--ac-50))); }
+.xml-opcion:has(input:disabled) { opacity: .55; cursor: default; }
+.xml-opcion input { flex: none; width: 16px; height: 16px; margin-top: 2px; accent-color: var(--acento, rgb(var(--ac-600))); }
+.xml-opcion span { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.xml-opcion strong { font-size: 14px; font-weight: 700; color: rgb(var(--g-900)); }
+.xml-opcion small { font-size: 12.5px; color: rgb(var(--g-600)); line-height: 1.4; }
+.xml-opciones__nota { font-size: 12.5px; color: rgb(var(--g-600)); line-height: 1.45; }
