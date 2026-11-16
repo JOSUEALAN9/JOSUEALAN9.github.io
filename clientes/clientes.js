@@ -343,7 +343,11 @@ function mostrarAlerta(tipo, mensaje) {
 
 async function interpretarError(response) {
     if (!response) return "No pudimos conectar con el servidor. Verifica tu conexión, intenta de nuevo más tarde o contacta al administrador.";
-    if (response.status === 401 || response.status === 403) return "Tu sesión de acceso expiró. Recarga la página e inicia sesión de nuevo.";
+    if (response.status === 401) return "Tu sesión de acceso expiró. Recarga la página e inicia sesión de nuevo.";
+    if (response.status === 403) {            // 16-nov: el servidor dice por qué no se puede (PIN, plan, solo lectura, Agente…)
+        try { const d = await response.json(); if (d && typeof d.detail === "string" && d.detail) return d.detail; } catch { /* sin detalle */ }
+        return "No tienes permiso para hacer esto. Si acabas de iniciar sesión en otra pestaña, recarga la página.";
+    }
     if (response.status === 409) return "Ya tienes un cliente registrado con ese RFC.";
     try {
         const data = await response.json();
@@ -1948,14 +1952,21 @@ document.addEventListener("click", (ev) => {
 
 async function entregarEmpresa(rfc) {
     const c = (clientesCache || []).find(x => x.rfc === rfc) || { alias: rfc };
+    const destinoBien = () => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(campoDialogo("ent-destino"));
     const hecho = await Fiscontable.confirmarIdentidad("entregar_empresas", async (conf) => {
-        const destino = campoDialogo("ent-destino");
-        if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(destino)) throw new Error("Escribe el correo de la cuenta que la recibe.");
-        await apiJson("/api/empresas/entregar", { empresas: [rfc], destino: destino, nota: campoDialogo("ent-nota"), confirmacion: conf });
+        if (!destinoBien()) throw new Error("Escribe el correo de la cuenta que la recibe.");
+        await apiJson("/api/empresas/entregar", { empresas: [rfc], destino: campoDialogo("ent-destino"), nota: campoDialogo("ent-nota"), confirmacion: conf });
     }, { titulo: "Entregar " + (c.alias || rfc) + " a otra cuenta", boton: "Entregar",
+         // 16-nov (Alan): el código sale hasta que ya está el correo de destino y se confirmó que sale de esta cuenta
+         validar: async () => {
+             if (!destinoBien()) throw new Error("Escribe el correo de la cuenta que la recibe.");
+             const si = document.getElementById("ent-seguro");
+             if (!si || !si.checked) throw new Error("Marca la casilla para confirmar que la empresa saldrá de tu cuenta.");
+         },
          resumen: '<p class="fc-identidad__aviso">Pasa con todo su historial (XML, documentos, Buzón, facturas) cuando la otra persona la acepte con su PIN. Hasta entonces no se mueve nada.</p>' +
             '<label class="ui-campo"><span class="ui-etiqueta">Correo de la cuenta que la recibe</span><input class="ui-input" id="ent-destino" type="email" autocomplete="off" placeholder="contador@despacho.mx"></label>' +
-            '<label class="ui-campo"><span class="ui-etiqueta">Nota (opcional)</span><input class="ui-input" id="ent-nota" maxlength="200" placeholder="Ya es tu cliente desde noviembre"></label>' });
+            '<label class="ui-campo"><span class="ui-etiqueta">Nota para quien la recibe (opcional)</span><input class="ui-input" id="ent-nota" maxlength="200" placeholder="Ya es tu cliente desde noviembre"></label>' +
+            '<label class="ui-check"><input type="checkbox" id="ent-seguro"> Entiendo que ' + esc(c.alias || rfc) + " saldrá de mi cuenta cuando la acepten.</label>" });
     if (hecho) { mostrarAlerta("success", `Listo: ${c.alias || rfc} se entrega cuando la otra persona la acepte.`); pintarTraspasos(); }
 }
 
@@ -2014,8 +2025,10 @@ async function borrarTodo(rfc) {
 async function ofrecerDescargaAhora(rfc, alias, automatico) {
     const lista = automatico.join(", ").replace(/, ([^,]*)$/, " y $1");
     const xml = automatico.some(a => a.indexOf("XML") >= 0);
+    // 16-nov (Alan): decir qué periodo se baja de fábrica y dejar cambiarlo ahí mismo (antes: «Descargar ahora»)
     const ir = await Fiscontable.confirmar({ titulo: `${alias || rfc} ya quedó automática`,
-        texto: `Cada madrugada Fiscontable revisa ${lista}. No tienes que hacer nada más.` + (xml ? " Si quieres sus XML desde ya, bájalos ahora." : ""),
-        si: xml ? "Descargar ahora" : "Entendido", no: "Listo", solo: !xml });
-    if (ir && xml) location.href = "/herramientas/descarga-xml/?rfc=" + encodeURIComponent(rfc);
+        texto: `Fiscontable ya se encarga de ${lista}. No tienes que hacer nada más.` +
+            (xml ? " Las descargas inician en automático: el mes en curso se pide en este momento y lo anterior, de madrugada. Si quieres otro periodo o solo emitidos o recibidos, cámbialo ahora." : ""),
+        si: xml ? "Ver o cambiar el periodo" : "Entendido", no: "Listo", solo: !xml });
+    if (ir && xml) { await cargarClientes(); abrirModalEditar(rfc, "xml"); }
 }
