@@ -526,12 +526,26 @@ async function alternarFavorita(rfc) {
         window.dispatchEvent(new CustomEvent("fiscontable:favoritos"));
     } catch (e) { mostrarAlerta("error", e.message); }
 }
+/* El menú «⋯» de cada fila se coloca respecto a la ventana (16-nov, Alan: en la última fila quedaba cortado por el borde
+   de la tabla y no se veían las opciones): abre hacia abajo si cabe; si no, hacia arriba; nunca se sale de la pantalla. */
+function colocarMenuFila(boton, m) {
+    m.style.position = "fixed"; m.style.right = "auto"; m.style.left = "0px"; m.style.top = "0px"; m.style.maxHeight = ""; m.style.overflowY = "";
+    const r = boton.getBoundingClientRect(), alto = m.offsetHeight, ancho = m.offsetWidth, margen = 8;
+    let arriba = r.bottom + 6;
+    if (arriba + alto > window.innerHeight - margen) arriba = r.top - alto - 6;                 // no cabe abajo: hacia arriba
+    if (arriba < margen) { arriba = margen; m.style.maxHeight = (window.innerHeight - 2 * margen) + "px"; m.style.overflowY = "auto"; }
+    m.style.top = arriba + "px";
+    m.style.left = Math.max(margen, Math.min(r.right - ancho, window.innerWidth - ancho - margen)) + "px";
+}
+function cerrarMenusFila() { document.querySelectorAll(".cli-mas .xml-menu__lista").forEach(m => { m.hidden = true; }); }
+window.addEventListener("scroll", function (e) { if (!(e.target.closest && e.target.closest(".xml-menu__lista"))) cerrarMenusFila(); }, true);
+window.addEventListener("resize", cerrarMenusFila);
 document.addEventListener("click", async e => {
     const est = e.target.closest("[data-estrella]");
     if (est) { e.stopPropagation(); alternarFavorita(est.dataset.estrella); return; }
     const mas = e.target.closest("[data-mas]");
     document.querySelectorAll(".cli-mas .xml-menu__lista").forEach(m => { if (!mas || m.parentNode !== mas.parentNode) m.hidden = true; });
-    if (mas) { e.stopPropagation(); const m = mas.parentNode.querySelector(".xml-menu__lista"); m.hidden = !m.hidden; return; }
+    if (mas) { e.stopPropagation(); const m = mas.parentNode.querySelector(".xml-menu__lista"); m.hidden = !m.hidden; if (!m.hidden) colocarMenuFila(mas, m); return; }
     const acc = e.target.closest(".cli-mas [data-accion]");
     if (acc) {
         e.stopPropagation();
@@ -2028,7 +2042,8 @@ async function ofrecerDescargaAhora(rfc, alias, automatico) {
     // 16-nov (Alan): decir qué periodo se baja de fábrica y dejar cambiarlo ahí mismo (antes: «Descargar ahora»)
     const ir = await Fiscontable.confirmar({ titulo: `${alias || rfc} ya quedó automática`,
         texto: `Fiscontable ya se encarga de ${lista}. No tienes que hacer nada más.` +
-            (xml ? " Las descargas inician en automático: el mes en curso se pide en este momento y lo anterior, de madrugada. Si quieres otro periodo o solo emitidos o recibidos, cámbialo ahora." : ""),
+            (xml ? " Las descargas inician en automático: el mes en curso se pide en este momento y lo anterior, de madrugada." : "") +
+            " Puedes cambiar estos ajustes cuando quieras en Configuración › Lo automático" + (xml ? ", o aquí mismo en su ficha › Descarga de XML." : "."),
         si: xml ? "Ver o cambiar el periodo" : "Entendido", no: "Listo", solo: !xml });
     if (ir && xml) { await cargarClientes(); abrirModalEditar(rfc, "xml"); }
 }
