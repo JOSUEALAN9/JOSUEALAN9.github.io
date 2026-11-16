@@ -7,6 +7,12 @@
  *
  * ¿Para quién? La empresa activa de la barra, o una conciliación rápida de
  * alguien sin registrar (sus XML se borran solos a los 7 días).
+ *
+ * Fechas (para que no se confundan): la tabla entra al periodo por FECHA DE
+ * COBRO (la fecha de pago del complemento; de fábrica, es la del IVA) o por
+ * FECHA DE EMISIÓN de la factura. Los conteos de «PPD del periodo» van
+ * siempre por emisión y el «IVA cobrado» siempre por cobro: no cambian con
+ * ese botón.
  */
 (function () {
     "use strict";
@@ -26,7 +32,11 @@
         estado_sat: { "Vigente": "verde", "Cancelado": "rojo", "Sin validar": "gris", "No encontrado": "ambar" }
     };
     var ANCHOS = { contraparte_nombre: 250, estado_conciliacion: 150, detalle_estado: 230, alertas: 260, conceptos: 280, serie_folio: 110,
-        forma_pago: 200, uso_cfdi: 190, estado_sat: 100, ajuste_manual: 200 };
+        forma_pago: 200, uso_cfdi: 190, estado_sat: 100, ajuste_manual: 200, falta_complemento: 280, condiciones_pago: 180,
+        fecha_emision: 120, fecha_ultimo_pago: 150, fecha_ultimo_complemento: 150, tc_origen: 200 };
+    /* Con qué fecha entra una factura al periodo. De fábrica, la de cobro: es la del IVA al flujo. */
+    var BASE_FABRICA = "pago";
+    var TARJETAS_EMISION = { ppd_sin_pago: 1, ppd_parcial: 1, falta_comp: 1 };      // filtros que solo tienen sentido por fecha de emisión
 
     var E = {
         perfil: null, empresa: null, contribuyentes: [], otras: [], rfc: null, otra: null, clientesLista: null,
@@ -66,7 +76,8 @@
         var q = new URLSearchParams(location.search);
         if (q.get("lado") === "emitidos" || q.get("lado") === "recibidos") E.lado = q.get("lado");
         if (q.get("base") === "pago" || q.get("base") === "emision") $("sel-base").value = q.get("base");
-        else if (leer("base") === "pago" || leer("base") === "emision") $("sel-base").value = leer("base");
+        else if (leer("base2") === "pago" || leer("base2") === "emision") $("sel-base").value = leer("base2");
+        else $("sel-base").value = BASE_FABRICA;
         // Periodo que llega en el enlace: meses sueltos (?anio=&meses=) o fechas (?desde=&hasta=)
         if (q.get("anio")) E.urlPeriodo = { anio: q.get("anio"), meses: (q.get("meses") || "").split(",").filter(function (m) { return /^\d\d$/.test(m); }) };
         else if (q.get("desde") || q.get("hasta")) E.urlPeriodo = { desde: q.get("desde") || "", hasta: q.get("hasta") || "" };
@@ -286,7 +297,7 @@
         $("cuerpo-conc").hidden = !hay;
         $("ayuda-base").hidden = !hay;
         if (!hay) { E.datos = null; return; }
-        guardar("lado", E.lado); guardar("base", $("sel-base").value);
+        guardar("lado", E.lado); guardar("base2", $("sel-base").value);
         var r = rango();
         var sueltos = mesesSueltos();
         var comun = "?rfc=" + encodeURIComponent(E.rfc) + "&lado=" + E.lado + "&base=" + $("sel-base").value +
@@ -298,7 +309,7 @@
         history.replaceState(null, "", location.pathname + "?" + url.toString());
         $("conteo-filas").textContent = "";
         $("tablas").classList.add("conc-cargando");               // G-10: la tabla se atenúa y el resumen muestra su forma, no «Calculando…»
-        if (!E.datos) $("tarjetas").innerHTML = '<div class="ctx-resumen__dato"><span class="ui-skel" style="width:90px"></span><span class="ui-skel" style="width:120px;height:18px;margin-top:6px"></span></div>'.repeat(3);
+        if (!E.datos) { $("tarjetas").innerHTML = '<div class="ctx-resumen__dato"><span class="ui-skel" style="width:90px"></span><span class="ui-skel" style="width:120px;height:18px;margin-top:6px"></span></div>'.repeat(3); $("pendientes").innerHTML = ""; }
         document.querySelectorAll("#lados .conc-lado").forEach(function (b) { b.classList.toggle("conc-lado--activo", b.dataset.lado === E.lado); });
         var datos;
         var yo = (E.nCarga = (E.nCarga || 0) + 1);           // si cambias el periodo mientras carga, gana el último
@@ -312,6 +323,7 @@
         await asegurarTabla();
         pintarAvisoValidar();
         pintarTarjetas();
+        pintarPendientes();
         pintarChipsEstado();
         pintarRapidos();
         aplicar();
@@ -331,16 +343,42 @@
             '<button type="button" class="xml-btn" id="validar-faltan">Validar los que faltan</button>';
     }
 
-    /* "Lo facturado | Lo cobrado": cambia qué facturas entran al periodo.
-       (El análisis a detalle del flujo de efectivo irá en el módulo de IVA cobrado.) */
+    /* «El periodo es por: Fecha de cobro | Fecha de emisión», con una línea que dice qué entra y para qué sirve. */
     function pintarBase() {
         var base = $("sel-base").value;
         document.querySelectorAll("#base [data-base]").forEach(function (b) { b.setAttribute("aria-pressed", String(b.dataset.base === base)); });
-        $("base-pago").textContent = textoLado("Lo cobrado", "Lo pagado");
-        // Una línea corta; la explicación queda al pasar el mouse
-        $("ayuda-base").textContent = base === "pago" ? textoLado("Lo cobrado", "Lo pagado") + " en el periodo, de cualquier mes de factura."
-            : "Facturas del periodo con todos sus pagos.";
-        $("ayuda-base").title = base === "pago" ? "¿Cuánto dinero " + textoLado("entró", "salió") + "?" : "¿Cómo quedó lo que se facturó?";
+        $("base-pago").textContent = textoLado("Fecha de cobro", "Fecha de pago");
+        $("ayuda-base").innerHTML = base === "pago"
+            ? "Entra lo <strong>" + textoLado("cobrado", "pagado") + " en el periodo</strong>, según la fecha de pago del complemento (las PUE, su fecha de emisión), aunque la factura sea de otro mes. " +
+              "Es la que conviene para el <strong>IVA</strong>."
+            : "Entran las <strong>facturas emitidas en el periodo</strong>, con todos sus pagos hasta hoy. Es la que conviene para saber qué " +
+              textoLado("facturaste y qué te deben", "te facturaron y qué debes") + "; para el IVA usa «" + textoLado("Fecha de cobro", "Fecha de pago") + "».";
+    }
+
+    /* Lo pendiente de lo FACTURADO en el periodo (siempre por fecha de emisión) y el IVA cobrado (siempre por fecha
+       de cobro). Lo calcula el servidor aparte de la tabla, así que dice lo mismo se vea como se vea. */
+    function pintarPendientes() {
+        var caja = $("pendientes"), p = E.datos.pendientes, iva = (E.datos.iva_periodo || {}).total;
+        if (!p || !iva || (!p.ppd && !p.falta_complemento.n && !iva.n)) { caja.innerHTML = ""; return; }
+        function boton(clave, etiqueta, n, detalle, titulo) {
+            return '<button type="button" data-pendiente="' + clave + '" title="' + esc(titulo) + '" class="ctx-resumen__dato' + (n ? " ctx-resumen__dato--alerta" : "") +
+                (E.tarjeta === clave ? " ctx-resumen__dato--activo" : "") + '"' + (n ? "" : " disabled") + "><small>" + esc(etiqueta) + "</small><b>" + n.toLocaleString("es-MX") + "</b><span>" + esc(detalle) + "</span></button>";
+        }
+        var porTasa = [["16 %", iva.iva16], ["8 %", iva.iva8], ["otras", iva.iva_otras]].filter(function (t) { return t[1]; })
+            .map(function (t) { return t[0] + ": $" + dinero(t[1]); }).join(" · ");
+        var fuera = p.falta_complemento.fuera_de_plazo;
+        caja.innerHTML =
+            '<div class="ctx-resumen__dato" title="Facturas PPD emitidas en el periodo (por fecha de emisión), sin las canceladas"><small>PPD del periodo</small><b>' + p.ppd.toLocaleString("es-MX") + "</b>" +
+                "<span>" + (p.ppd ? p.ppd_pagadas.toLocaleString("es-MX") + " ya " + textoLado("cobradas", "pagadas") : "por fecha de emisión") + "</span></div>" +
+            boton("ppd_sin_pago", "Sin pago", p.sin_pago.n, p.sin_pago.n ? "$" + dinero(p.sin_pago.saldo_mxn) + " por " + textoLado("cobrar", "pagar") : "ninguna",
+                "PPD emitidas en el periodo sin complemento de pago vigente. Clic para verlas.") +
+            boton("ppd_parcial", "Pagadas en parte", p.parciales.n, p.parciales.n ? "$" + dinero(p.parciales.saldo_mxn) + " de saldo" : "ninguna",
+                "PPD emitidas en el periodo con pagos que no completan el total. Clic para verlas.") +
+            boton("falta_comp", "Les falta complemento", p.falta_complemento.n, !p.falta_complemento.n ? "ninguna" : fuera ? fuera + " ya fuera de plazo" : "revísalas",
+                "PUE con forma de pago 99, PPD vencidas según sus condiciones de pago, marcadas como " + textoLado("cobradas", "pagadas") + " a mano, parcialidades que faltan. Clic para verlas.") +
+            '<div class="ctx-resumen__dato conc-iva" title="Por fecha de ' + textoLado("cobro", "pago") + ": complementos con fecha de pago en el periodo, facturas PUE emitidas en él y notas de crédito (restan). " +
+                'El desglose por mes y por tasa va en el Excel."><small>IVA ' + textoLado("cobrado", "pagado") + " en el periodo</small><b>$" + dinero(iva.iva) + "</b>" +
+                "<span>" + (porTasa || "sin IVA") + (iva.ret_iva ? " · retenido $" + dinero(iva.ret_iva) : "") + "</span></div>";
     }
 
     function pintarTarjetas() {
@@ -349,7 +387,7 @@
         var abiertas = vivas.filter(function (f) { return ["Parcial", "Sin pago", "Pago a factura cancelada"].indexOf(f.estado_conciliacion) !== -1; });
         var canceladas = fs.length - vivas.length;
         if (!fs.length) { $("tarjetas").innerHTML = ""; return; }
-        var saldo = suma("saldo_mxn", abiertas);
+        var saldo = suma("saldo_mxn", abiertas), porCobro = $("sel-base").value === "pago";
         // M-11: el resumen en pesos se puede plegar a una línea (se recuerda en este navegador)
         var plegado = false; try { plegado = localStorage.getItem("fc-conc-resumen") === "plegado"; } catch (e) { /* nada */ }
         $("tarjetas").classList.toggle("ctx-resumen--linea", plegado);
@@ -361,8 +399,13 @@
             return;
         }
         $("tarjetas").innerHTML = '<button type="button" class="ctx-resumen__plegar" data-resumen="plegar" title="Dejar el resumen en una línea" aria-label="Plegar resumen">−</button>' +
-            '<div class="ctx-resumen__dato"><small>Total en pesos</small><b>$' + dinero(suma("total_mxn", vivas)) + "</b></div>" +
-            '<div class="ctx-resumen__dato"><small>' + textoLado("Cobrado", "Pagado") + " en pesos</small><b>$" + dinero(suma("pagado_mxn", vivas)) + "</b></div>" +
+            // Las cifras dicen de qué son, según con qué fecha se armó la tabla
+            (porCobro
+                ? '<div class="ctx-resumen__dato" title="Suma de lo ' + textoLado("cobrado", "pagado") + ' dentro del periodo (fecha de pago del complemento; las PUE, su emisión) de las facturas de la tabla">' +
+                      "<small>" + textoLado("Cobrado", "Pagado") + " en el periodo</small><b>$" + dinero(suma("pagado_periodo_mxn", vivas)) + "</b><span>" + vivas.length.toLocaleString("es-MX") + " factura" + (vivas.length === 1 ? "" : "s") + "</span></div>" +
+                  '<div class="ctx-resumen__dato"><small>Total de esas facturas</small><b>$' + dinero(suma("total_mxn", vivas)) + "</b><span>en pesos</span></div>"
+                : '<div class="ctx-resumen__dato"><small>Facturado en el periodo</small><b>$' + dinero(suma("total_mxn", vivas)) + "</b><span>" + vivas.length.toLocaleString("es-MX") + " factura" + (vivas.length === 1 ? "" : "s") + ", en pesos</span></div>" +
+                  '<div class="ctx-resumen__dato" title="Todos sus pagos cargados, sean del mes que sean"><small>' + textoLado("Cobrado", "Pagado") + " a hoy</small><b>$" + dinero(suma("pagado_mxn", vivas)) + "</b><span>en pesos</span></div>") +
             '<button type="button" data-tarjeta="saldo" title="Clic para ver solo las que tienen saldo" class="ctx-resumen__dato' +
                 (abiertas.length ? " ctx-resumen__dato--alerta" : "") + (E.tarjeta === "saldo" ? " ctx-resumen__dato--activo" : "") + '">' +
                 "<small>" + textoLado("Por cobrar", "Por pagar") + "</small><b>$" + dinero(saldo) + "</b>" +
@@ -385,7 +428,7 @@
     }
 
     /* ============================================================ filtros */
-    var RAPIDOS = [["alertas", "Con alertas"], ["ppd", "PPD"], ["pue", "PUE"], ["saldo", "Con saldo"], ["extranjera", "Moneda extranjera"],
+    var RAPIDOS = [["alertas", "Con alertas"], ["falta_comp", "Les falta complemento"], ["ppd", "PPD"], ["pue", "PUE"], ["saldo", "Con saldo"], ["extranjera", "Moneda extranjera"],
         ["notas", "Con notas de crédito"], ["sinvalidar", "Sin validar"], ["ajuste", "Con ajuste manual"]];
     var PRUEBA = {
         alertas: function (f) { return !!f.alertas; },
@@ -396,7 +439,10 @@
         notas: function (f) { return !!f.num_notas; },
         sinvalidar: function (f) { return (f.estado_sat || "Sin validar") === "Sin validar"; },
         ajuste: function (f) { return !!f.ajuste_manual; },
-        demas: function (f) { return f.estado_conciliacion === "Pagada de más"; }
+        demas: function (f) { return f.estado_conciliacion === "Pagada de más"; },
+        falta_comp: function (f) { return !!f.falta_complemento; },
+        ppd_sin_pago: function (f) { return f.metodo_pago === "PPD" && (f.estado_conciliacion === "Sin pago" || f.estado_conciliacion === "Pago a factura cancelada"); },
+        ppd_parcial: function (f) { return f.metodo_pago === "PPD" && f.estado_conciliacion === "Parcial"; }
     };
     var CAMPOS_AV = {
         contraparte: { etiqueta: function () { return textoLado("Cliente", "Proveedor"); }, valor: function (f) { return f.contraparte_nombre; } },
@@ -454,7 +500,9 @@
         tabla().ponerFilas(E.filtradas);
         var total = E.datos.facturas.length;
         $("conteo-filas").textContent = !total
-            ? "No hay facturas " + textoLado("emitidas", "recibidas") + " en este periodo (puede haber solo complementos de pago). Prueba otro periodo o «Según fecha de pago»"
+            ? ($("sel-base").value === "pago"
+                ? "No hay nada " + textoLado("cobrado", "pagado") + " en este periodo. Para ver lo facturado aunque no se haya " + textoLado("cobrado", "pagado") + ", cambia a «Fecha de emisión»"
+                : "No hay facturas " + textoLado("emitidas", "recibidas") + " en este periodo (puede haber solo complementos de pago). Prueba otro periodo o «" + textoLado("Fecha de cobro", "Fecha de pago") + "»")
             : E.filtradas.length.toLocaleString("es-MX") + (E.filtradas.length !== total ? " de " + total.toLocaleString("es-MX") : "") + " factura(s)";
         pintarAlcance();
     }
@@ -504,27 +552,50 @@
             "<div><small>Total</small><b>" + dinero(f.total) + " " + esc(mon) + "</b></div>" +
             "<div><small>" + textoLado("Cobrado", "Pagado") + "</small><b>" + dinero(f.pagado) + "</b></div>" +
             "<div><small>Notas de crédito</small><b>" + dinero(f.notas || 0) + "</b></div>" +
-            "<div><small>" + textoLado("Por cobrar", "Por pagar") + '</small><b class="' + ((f.saldo || 0) < -0.005 ? "fc-negativo" : "") + '">' + dinero(f.saldo) + "</b></div></div>");
+            "<div><small>" + textoLado("Por cobrar", "Por pagar") + " · saldo insoluto</small><b class=\"" + ((f.saldo || 0) < -0.005 ? "fc-negativo" : "") + '">' + dinero(f.saldo) + " " + esc(mon) + "</b></div></div>");
         function tablaMovs(lista) {
             if (!lista.length) return '<p class="conc-sub">' + (f.metodo_pago === "PUE" ? "Es PUE: se considera pagada al emitirse." : "No hay complementos de pago ni notas de crédito cargados para esta factura.") + "</p>";
-            return '<div class="conc-scroll"><table class="conc-mini"><thead><tr><th>Fecha</th><th>Tipo</th><th>Comprobante</th><th class="num">Parc.</th>' +
-                '<th class="num">Saldo antes</th><th class="num">Importe</th><th class="num">Saldo después</th><th class="num">En pesos</th><th>SAT</th></tr></thead><tbody>' +
+            // Cada fecha con su nombre: la de pago es la que cuenta para el IVA; la del complemento es cuándo se emitió
+            return '<div class="conc-scroll"><table class="conc-mini"><thead><tr><th title="La fecha de pago que dice el complemento (en una nota de crédito, su fecha de emisión). Es la que cuenta para el IVA.">Fecha de ' +
+                textoLado("cobro", "pago") + '</th><th title="Cuándo se emitió el complemento de pago">Complemento emitido</th><th>Tipo</th><th>Comprobante</th><th class="num">Parc.</th>' +
+                '<th class="num">Saldo antes</th><th class="num">Importe (' + esc(mon) + ')</th><th class="num">Saldo insoluto (' + esc(mon) + ')</th><th class="num">En pesos</th>' +
+                '<th class="num">IVA en pesos</th><th class="num">Retenido en pesos</th><th>SAT</th></tr></thead><tbody>' +
                 lista.map(function (m) {
                     var extra = m.moneda_pago && m.moneda_pago !== mon ? " (" + esc(m.moneda_pago) + ")" : "";
-                    return "<tr" + (m.cancelado ? ' class="conc-mov-cancelado"' : "") + "><td>" + esc(fechaMX(m.fecha)) + "</td><td>" +
+                    var esPago = m.tipo_fila === "Pago";
+                    var tasas = [["16 %", m.iva16_mxn], ["8 %", m.iva8_mxn], ["otras", m.iva_otras_mxn]].filter(function (t) { return t[1]; })
+                        .map(function (t) { return t[0] + ": " + dinero(t[1]); }).join(" · ");
+                    var retenido = [["ISR", m.ret_isr_mxn], ["IVA", m.ret_iva_mxn]].filter(function (t) { return t[1]; })
+                        .map(function (t) { return t[0] + ": " + dinero(t[1]); }).join(" · ");
+                    return "<tr" + (m.cancelado ? ' class="conc-mov-cancelado"' : "") + "><td>" + esc(fechaMX(m.fecha)) + "</td>" +
+                        "<td" + (m.fuera_de_plazo ? ' class="fc-negativo" title="Se emitió después del día 5 del mes siguiente al pago"' : "") + ">" + (esPago ? esc(fechaMX(m.fecha_emision_mov)) : "") + "</td><td>" +
                         esc(m.tipo_fila + (m.relacion && m.relacion !== "Nota de crédito" ? " · " + m.relacion : "")) + extra + "</td>" +
                         "<td>" + esc(m.serie_folio_mov || (m.uuid_mov || "").slice(0, 8)) + '</td><td class="num">' + esc(m.parcialidad || "") + "</td>" +
                         '<td class="num">' + dinero(m.saldo_anterior) + '</td><td class="num"><strong>' + dinero(m.importe) + '</strong></td><td class="num">' + dinero(m.saldo_insoluto) + "</td>" +
-                        '<td class="num">' + dinero(m.importe_mxn) + "</td>" +
+                        '<td class="num"' + (m.tc_usado ? ' title="Tipo de cambio ' + esc(fmtTc.format(m.tc_usado)) + (m.tc_origen ? " · " + esc(m.tc_origen) : "") + '"' : "") + ">" + dinero(m.importe_mxn) + "</td>" +
+                        '<td class="num"' + (tasas ? ' title="' + esc(tasas) + (m.iva_prorrateado ? " · en proporción a lo pagado: el complemento no lo desglosa" : "") + '"' : "") + ">" + dinero(m.iva_mxn) + (m.iva_prorrateado ? "*" : "") + "</td>" +
+                        '<td class="num"' + (retenido ? ' title="' + esc(retenido) + '"' : "") + ">" + dinero(m.ret_total_mxn) + "</td>" +
                         (m.cancelado ? '<td class="conc-nota-cancelado">Cancelado · no cuenta</td>' : "<td>" + esc(m.estado_sat || "") + "</td>") + "</tr>";
-                }).join("") + "</tbody></table></div>";
+                }).join("") + "</tbody></table></div>" +
+                (lista.some(function (m) { return m.iva_prorrateado; }) ? '<p class="conc-sub">* El complemento no desglosa impuestos: se calcularon en proporción a lo pagado.</p>' : "");
         }
         h.push("<h4>Pagos y notas de crédito</h4>" + tablaMovs(movs));
         if (previos.length) h.push("<h4>Aplicados a la factura que esta sustituye</h4>" + tablaMovs(previos));
 
-        if (f.alertas) h.push('<ul class="conc-alertas">' + f.alertas.split("; ").map(function (a) { return "<li>⚠ " + esc(a) + "</li>"; }).join("") + "</ul>");
+        var avisos = (f.falta_complemento ? f.falta_complemento.split("; ").map(function (a) { return "Le falta complemento de pago · " + a; }) : [])
+            .concat(f.alertas ? f.alertas.split("; ") : []);
+        if (avisos.length) h.push('<ul class="conc-alertas">' + avisos.map(function (a) { return "<li>⚠ " + esc(a) + "</li>"; }).join("") + "</ul>");
+        var ivaTasas = [["16 %", f.base16, f.iva16], ["8 %", f.base8, f.iva8], ["0 %", f.base0, 0], ["Exento", f.exento, null], ["Otras tasas", f.base_otras, f.iva_otras]]
+            .filter(function (t) { return t[1] || t[2]; })
+            .map(function (t) { return t[0] + ": base " + dinero(t[1] || 0) + (t[2] === null ? "" : " · IVA " + dinero(t[2] || 0)); }).join("<br>");
         h.push('<dl class="conc-datos">' +
-            "<dt>Emitida el</dt><dd>" + esc(fechaMX(f.fecha_emision)) + "</dd>" +
+            "<dt>Fecha de emisión de la factura</dt><dd>" + esc(fechaMX(f.fecha_emision)) + "</dd>" +
+            (f.fecha_ultimo_pago && f.metodo_pago !== "PUE" ? "<dt>Fecha del último " + textoLado("cobro", "pago") + "</dt><dd>" + esc(fechaMX(f.fecha_ultimo_pago)) +
+                " (según el complemento" + (f.fecha_ultimo_complemento ? ", emitido el " + esc(fechaMX(f.fecha_ultimo_complemento)) : "") + ")</dd>" : "") +
+            (f.condiciones_pago ? "<dt>Condiciones de pago</dt><dd>" + esc(f.condiciones_pago) + (f.vence ? " · vence el " + esc(fechaMX(f.vence)) : "") + "</dd>" : "") +
+            (ivaTasas ? "<dt>IVA de la factura (" + esc(mon) + ")</dt><dd>" + ivaTasas + "</dd>" : "") +
+            (f.ret_total ? "<dt>Retenciones (" + esc(mon) + ")</dt><dd>" + (f.ret_isr ? "ISR " + dinero(f.ret_isr) + " · " : "") + (f.ret_iva ? "IVA " + dinero(f.ret_iva) + " · " : "") +
+                "total retenido " + dinero(f.ret_total) + "</dd>" : "") +
             (mon !== "MXN" ? "<dt>Tipo de cambio</dt><dd>" + esc(f.tipo_cambio ? fmtTc.format(f.tipo_cambio) : "—") +
                 (f.tc_banxico_emision ? " · Banxico " + esc(fmtTc.format(f.tc_banxico_emision)) + " (FIX del " + esc(fechaMX(f.fecha_fix_emision)) + ")" : "") + "</dd>" : "") +
             "<dt>" + textoLado("Cobrado", "Pagado") + " en pesos</dt><dd>$" + dinero(f.pagado_mxn) + (f.fluctuacion_mxn ? " · fluctuación cambiaria $" + dinero(f.fluctuacion_mxn) : "") + "</dd>" +
@@ -771,16 +842,56 @@
     }
 
     /* ============================================================ Excel */
-    async function exportarExcel(modo) {
+    /* Monedas extranjeras de las facturas que van al Excel y de sus pagos. */
+    function monedasDe(facturas) {
+        var m = {};
+        facturas.forEach(function (f) {
+            if (f.moneda && f.moneda !== "MXN") m[f.moneda] = 1;
+            (E.movsPorFactura[f.uuid] || []).forEach(function (x) { if (!x.cancelado && x.moneda_pago && x.moneda_pago !== "MXN") m[x.moneda_pago] = 1; });
+        });
+        return Object.keys(m).sort();
+    }
+
+    function exportarExcel(modo) {
         var r = rango();
         var cuerpo = { rfc: E.rfc, lado: E.lado, desde: r.desde, hasta: r.hasta, meses: mesesSueltos(), base: $("sel-base").value, regla: E.regla,
-            columnas: tabla().columnas().map(function (c) { return c.clave; }), uuids: null };
+            columnas: tabla().columnas().map(function (c) { return c.clave; }), uuids: null, moneda: "xml" };
+        var facturas = E.datos.facturas;
         if (modo === "vista") {
             var sel = tabla().seleccion;
             if (sel.size) cuerpo.uuids = Array.from(sel);
             else if (hayFiltros()) cuerpo.uuids = E.filtradas.map(function (f) { return f.uuid; });
+            if (cuerpo.uuids) { var elegidas = new Set(cuerpo.uuids); facturas = facturas.filter(function (f) { return elegidas.has(f.uuid); }); }
         }
+        var monedas = monedasDe(facturas);
+        if (!monedas.length) { descargarExcel(modo, cuerpo); return; }
+        // Hay moneda extranjera: se pregunta cómo la quiere (se recuerda la última respuesta)
+        var previa = leer("moneda_excel"), reglas = E.datos.reglas || {};
+        if (["xml", "banxico", "original"].indexOf(previa) === -1) previa = "xml";
+        var sinBanxico = !(E.datos.tipo_cambio || {}).token_configurado;
+        function opcion(valor, titulo, detalle) {
+            return '<label class="conc-opcion"><input type="radio" name="conc-moneda" value="' + valor + '"' + (previa === valor ? " checked" : "") + ">" +
+                "<span><b>" + titulo + "</b><small>" + detalle + "</small></span></label>";
+        }
+        preguntar("Hay importes en " + monedas.join(", "),
+            "<p>Este Excel lleva facturas o pagos en moneda extranjera. ¿Cómo los quieres?</p>" +
+            opcion("xml", "En pesos, con el tipo de cambio de tus XML", "El de cada factura y el de cada complemento de pago. Es lo que dicen tus comprobantes.") +
+            opcion("banxico", "En pesos, con el tipo de cambio de Banxico", esc(reglas[E.regla] || "Publicado en el DOF") +
+                ". Si tienes un tipo de cambio propio para una fecha, se usa ese; lo que te pagaron en pesos se queda con los pesos del complemento." +
+                (sinBanxico ? " Banxico todavía no está conectado: donde falte se usa el del XML, y el Excel lo dice." : "")) +
+            opcion("original", "Sin convertir", "Cada importe en la moneda de su factura. El IVA " + textoLado("cobrado", "pagado") + " va en pesos de todos modos.") +
+            '<p class="conc-sub">En los tres casos el Excel trae al lado la moneda original, el tipo de cambio usado y el total en moneda original, y dice en qué moneda está el saldo insoluto.</p>',
+            [{ texto: "Descargar Excel", primario: true, accion: function () {
+                var elegida = document.querySelector('input[name="conc-moneda"]:checked');
+                cuerpo.moneda = elegida ? elegida.value : "xml";
+                guardar("moneda_excel", cuerpo.moneda);
+                descargarExcel(modo, cuerpo);            // la ventana se cierra ya; el botón de la izquierda muestra el avance
+            } }]);
+    }
+
+    async function descargarExcel(modo, cuerpo) {
         var boton = document.querySelector('.mod-acciones [data-excel="' + modo + '"]'), texto = boton.innerHTML;
+        if (boton.disabled) return;
         boton.disabled = true; boton.innerHTML = "<b>⏳</b>Generando…";
         try {
             var resp = await enviar("/api/conciliacion/excel", cuerpo);
@@ -808,7 +919,16 @@
             var b = e.target.closest("[data-base]");
             if (!b || $("sel-base").value === b.dataset.base) return;
             $("sel-base").value = b.dataset.base;
+            if (b.dataset.base === "pago" && TARJETAS_EMISION[E.tarjeta]) E.tarjeta = null;      // esos filtros son de lo facturado
             cargarDatos();
+        });
+        // Conteos de lo pendiente: son de lo FACTURADO en el periodo, así que al abrir uno la tabla pasa a «Fecha de emisión»
+        $("pendientes").addEventListener("click", function (e) {
+            var b = e.target.closest("[data-pendiente]"); if (!b || b.disabled) return;
+            E.tarjeta = E.tarjeta === b.dataset.pendiente ? null : b.dataset.pendiente;
+            E.estado = "";
+            if (E.tarjeta && $("sel-base").value !== "emision") { $("sel-base").value = "emision"; cargarDatos(); return; }
+            pintarTarjetas(); pintarPendientes(); pintarChipsEstado(); aplicar();
         });
         $("sin-empresa").addEventListener("click", function (e) {
             var b = e.target.closest("button");
@@ -833,7 +953,7 @@
             }
             var b = e.target.closest("[data-tarjeta]"); if (!b) return;
             E.tarjeta = E.tarjeta === b.dataset.tarjeta ? null : b.dataset.tarjeta;
-            pintarTarjetas(); aplicar();
+            pintarTarjetas(); pintarPendientes(); aplicar();
         });
         $("chips-estado").addEventListener("click", function (e) {
             var b = e.target.closest("[data-estado]"); if (!b) return;
@@ -849,7 +969,7 @@
         });
         $("quitar-filtros").addEventListener("click", function () {
             E.rapidos = {}; E.av = {}; E.estado = ""; E.tarjeta = null;
-            pintarRapidos(); pintarAvanzados(); pintarChipsEstado(); pintarTarjetas(); aplicar();
+            pintarRapidos(); pintarAvanzados(); pintarChipsEstado(); pintarTarjetas(); pintarPendientes(); aplicar();
         });
         var reloj = null;
         $("buscar").addEventListener("input", function () {
