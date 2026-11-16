@@ -531,10 +531,18 @@ async function alternarFavorita(rfc) {
 function colocarMenuFila(boton, m) {
     m.style.position = "fixed"; m.style.right = "auto"; m.style.left = "0px"; m.style.top = "0px"; m.style.maxHeight = ""; m.style.overflowY = "";
     const r = boton.getBoundingClientRect(), alto = m.offsetHeight, ancho = m.offsetWidth, margen = 8;
-    let arriba = r.bottom + 6;
-    if (arriba + alto > window.innerHeight - margen) arriba = r.top - alto - 6;                 // no cabe abajo: hacia arriba
-    if (arriba < margen) { arriba = margen; m.style.maxHeight = (window.innerHeight - 2 * margen) + "px"; m.style.overflowY = "auto"; }
-    m.style.top = arriba + "px";
+    const barra = document.querySelector(".fc-barra");
+    const techo = Math.max(margen, barra ? barra.getBoundingClientRect().bottom + 4 : margen);      // nunca debajo de la barra de arriba
+    const abajo = window.innerHeight - margen - (r.bottom + 6), arriba = (r.top - 6) - techo;
+    let y;
+    if (alto <= abajo) y = r.bottom + 6;
+    else if (alto <= arriba) y = r.top - 6 - alto;
+    else {                                                   // no cabe entero en ningún lado: el más amplio, con su propia barra
+        const cabe = Math.max(abajo, arriba, 120);
+        m.style.maxHeight = cabe + "px"; m.style.overflowY = "auto";
+        y = abajo >= arriba ? r.bottom + 6 : Math.max(techo, r.top - 6 - cabe);
+    }
+    m.style.top = y + "px";
     m.style.left = Math.max(margen, Math.min(r.right - ancho, window.innerWidth - ancho - margen)) + "px";
 }
 function cerrarMenusFila() { document.querySelectorAll(".cli-mas .xml-menu__lista").forEach(m => { m.hidden = true; }); }
