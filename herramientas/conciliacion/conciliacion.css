@@ -58,3 +58,29 @@ a.xml-btn { text-decoration: none; }
 .conc-linea b { color: rgb(var(--g-900)); }
 .conc-linea--activa { color: rgb(var(--ac-700)); text-decoration: underline; }
 .conc-cargando { opacity: .45; pointer-events: none; transition: opacity .15s; }
+/* Con qué fecha entra una factura al periodo: título chico + las dos opciones + una línea que lo explica */
+.conc-base { display: inline-flex; align-items: center; gap: 8px; max-width: 100%; }
+.conc-base__titulo { font-size: 12px; font-weight: 800; color: rgb(var(--g-600)); white-space: nowrap; }
+.conc-controles .ctx-ayuda strong { color: rgb(var(--g-900)); }
+/* Lo pendiente de lo facturado en el periodo y el IVA cobrado (no cambian con el botón de fecha) */
+.conc-pendientes { margin-top: -4px; }
+.conc-pendientes button.ctx-resumen__dato:disabled { cursor: default; opacity: .7; }
+.conc-pendientes button.ctx-resumen__dato:disabled:hover { background: none; }
+.conc-pendientes .conc-iva { margin-left: auto; border-left: 1px solid rgb(var(--g-200)); }
+.conc-pendientes .conc-iva b { color: rgb(var(--g-900)); }
+/* Excel con moneda extranjera: tres opciones que se leen completas */
+.conc-opcion { display: flex; align-items: flex-start; gap: 12px; border: 1px solid rgb(var(--g-200)); border-radius: 12px; padding: 14px 16px; margin-bottom: 10px; cursor: pointer; }
+.conc-opcion:hover { background: rgb(var(--g-50)); }
+.conc-opcion:has(input:checked) { border-color: var(--acento, rgb(var(--ac-600))); background: var(--acento-suave, rgb(var(--ac-50))); }
+.conc-opcion input { margin-top: 3px; flex: none; }
+.conc-opcion span { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.conc-opcion b { font-size: 14px; color: rgb(var(--g-900)); }
+.conc-opcion small { font-size: 12.5px; line-height: 1.45; color: rgb(var(--g-600)); }
+#modal-cuerpo .conc-sub { font-size: 12.5px; margin: 14px 0 18px; }
+.conc-panel { width: 900px; }
+.conc-mini th[title], .conc-mini td[title] { cursor: help; }
+@media (max-width: 700px) {
+  .conc-base { width: 100%; flex-wrap: wrap; }
+  .conc-base .ctx-segmento { flex: 1 1 100%; }
+  .conc-pendientes .conc-iva { margin-left: 0; border-left: 0; flex: 1 1 100%; }
+}
