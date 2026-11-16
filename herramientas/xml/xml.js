@@ -912,22 +912,81 @@
         boton.disabled = false; boton.innerHTML = texto;
     }
 
-    async function descargarZipCompleto() {
-        var uuids = uuidsParaAcciones();
-        if (uuids.length > 300) { avisar("Con PDF van hasta 300 a la vez: selecciona o filtra menos (hay " + uuids.length.toLocaleString("es-MX") + "). Para más, descarga únicamente los XML."); return; }
-        var boton = $("btn-zip-completo"), texto = boton.innerHTML;
-        boton.disabled = true; boton.innerHTML = "<b>⏳</b>Generando " + uuids.length + "…";
+    /* PDF de varios CFDI (con o sin su XML), sin tope. Pocos: el servidor manda el ZIP y se baja al momento. Muchos:
+       responde {en_cola, job_id, total, mensaje}, lo arma en segundo plano y lo deja en «Mis descargas»; aquí se sigue
+       el avance («123 de 436») y se avisa al terminar. */
+    async function pedirPaquetePdf(ruta, uuids, boton, porDefecto) {
+        var texto = boton.innerHTML;
+        boton.disabled = true; boton.innerHTML = "<b>⏳</b>Generando " + uuids.length.toLocaleString("es-MX") + "…";
         try {
-            var resp = await postJSON("/api/xml/zip-completo", { rfc: E.rfc, uuids: uuids });
-            descargarBlob(await resp.blob(), nombreArchivo(resp, "pdf_y_xml.zip"));
+            var resp = await postJSON(ruta, { rfc: E.rfc, uuids: uuids, en_cola: true });
+            if ((resp.headers.get("Content-Type") || "").indexOf("application/json") === 0) {
+                var r = await resp.json();
+                avisoPaquete(r.mensaje);
+                if (Fiscontable.refrescarDescargas) Fiscontable.refrescarDescargas();
+                seguirPaquete(r.job_id, r.total);
+            } else descargarBlob(await resp.blob(), nombreArchivo(resp, porDefecto));
         } catch (e) { avisar(e.message); }
         boton.disabled = false; boton.innerHTML = texto;
     }
 
+    var PAQ = { texto: null };      // el último aviso de avance que pusimos (para no pisar un aviso de otra cosa)
+    function avisoPaquete(texto, acciones) {
+        PAQ.texto = texto;
+        if (Fiscontable.aviso) Fiscontable.aviso(texto, acciones); else Fiscontable.avisar(texto);
+    }
+    function avisoPaqueteALaVista() {
+        var caja = document.getElementById("fc-aviso"), t = document.getElementById("fc-aviso-texto");
+        return !!(caja && t && !caja.hidden && t.textContent === PAQ.texto);
+    }
+
+    function seguirPaquete(jobId, total) {
+        var fallas = 0;
+        async function vuelta() {
+            var r;
+            try { r = await apiJSON("/api/xml/paquete/" + encodeURIComponent(jobId)); fallas = 0; }
+            catch (e) { if (++fallas < 5) setTimeout(vuelta, 6000); return; }      // sin conexión un momento, o lo quitaron de Mis descargas
+            if (r.estado === "procesando") {
+                var n = r.total || total;
+                if (r.hechos != null && avisoPaqueteALaVista())
+                    avisoPaquete("Armando tu ZIP: " + r.hechos.toLocaleString("es-MX") + " de " + n.toLocaleString("es-MX") +
+                        " comprobantes. Puedes seguir trabajando; al terminar queda en Mis descargas.");
+                setTimeout(vuelta, 3000);
+                return;
+            }
+            if (Fiscontable.refrescarDescargas) Fiscontable.refrescarDescargas();
+            var verDescargas = { texto: "Abrir Mis descargas", accion: function () { if (Fiscontable.abrirDescargas) Fiscontable.abrirDescargas(); } };
+            if (r.estado === "completado") {
+                var acciones = r.partes > 1 ? [verDescargas] : [{ texto: "Descargar", accion: function () { bajarPaquete(r); } }, verDescargas];
+                avisoPaquete("Tu ZIP está listo: " + (r.progreso || (total.toLocaleString("es-MX") + " comprobantes")) +
+                    (r.partes > 1 ? ". Los " + r.partes + " archivos están en Mis descargas." : ". También queda en Mis descargas."), acciones);
+            } else if (r.estado !== "cancelado") {
+                avisoPaquete(r.mensaje_error || "No se pudo armar el paquete. Vuelve a pedirlo.");
+            }
+        }
+        setTimeout(vuelta, 2000);
+    }
+
+    async function bajarPaquete(r) {
+        try {
+            var resp = await api(r.url_descarga);
+            descargarBlob(await resp.blob(), r.nombre_descarga || nombreArchivo(resp, "cfdi.zip"));
+        } catch (e) { avisar(e.message); }
+    }
+
+    async function descargarZipCompleto() {
+        await pedirPaquetePdf("/api/xml/zip-completo", uuidsParaAcciones(), $("btn-zip-completo"), "pdf_y_xml.zip");
+    }
+
+    /* El enlace sí tiene tope: quien lo abre (sin cuenta) ve la lista completa y arma su ZIP en ese momento. */
     function compartirXml() {
         var uuids = uuidsParaAcciones();
         if (!uuids.length) { avisar("No hay XML en lo que ves."); return; }
-        if (uuids.length > 300) { avisar("Comparte hasta 300 a la vez: selecciona o filtra menos (hay " + uuids.length.toLocaleString("es-MX") + ")."); return; }
+        if (uuids.length > 300) {
+            avisar("Un enlace para compartir lleva hasta 300 comprobantes, porque quien lo abre los ve en una lista y los baja ahí mismo. Tienes " +
+                uuids.length.toLocaleString("es-MX") + ": selecciona o filtra menos, o baja «PDF y XML (ZIP)» y envía ese archivo.");
+            return;
+        }
         var nombre = (E.empresa && (E.empresa.alias || E.empresa.nombre)) || E.rfc;
         Fiscontable.compartir({ rfc: E.rfc, items: uuids.map(function (u) { return { tipo: "xml", rfc: E.rfc, uuid: u }; }), titulo: "CFDI de " + nombre });
     }
@@ -950,17 +1009,15 @@
         boton.disabled = false; boton.innerHTML = texto;
     }
 
-    /* XML a PDF (representación impresa): uno = PDF; varios = ZIP (hasta 300). */
+    /* XML a PDF (representación impresa): uno = PDF; varios = ZIP (si son muchos, en segundo plano: pedirPaquetePdf). */
     async function descargarPdf() {
         var uuids = uuidsParaAcciones();
-        if (uuids.length > 300) { avisar("Saca hasta 300 PDF a la vez: selecciona o filtra menos XML (hay " + uuids.length.toLocaleString("es-MX") + ")."); return; }
+        if (uuids.length !== 1) { await pedirPaquetePdf("/api/xml/pdfs", uuids, $("btn-pdf"), "cfdi_pdf.zip"); return; }
         var boton = $("btn-pdf"), texto = boton.innerHTML;
-        boton.disabled = true; boton.innerHTML = "<b>⏳</b>Generando " + uuids.length + "…";
+        boton.disabled = true; boton.innerHTML = "<b>⏳</b>Generando…";
         try {
-            var resp = uuids.length === 1
-                ? await api("/api/xml/pdf?rfc=" + encodeURIComponent(E.rfc) + "&uuid=" + encodeURIComponent(uuids[0]))
-                : await postJSON("/api/xml/pdfs", { rfc: E.rfc, uuids: uuids });
-            descargarBlob(await resp.blob(), nombreArchivo(resp, uuids.length === 1 ? "cfdi.pdf" : "cfdi_pdf.zip"));
+            var resp = await api("/api/xml/pdf?rfc=" + encodeURIComponent(E.rfc) + "&uuid=" + encodeURIComponent(uuids[0]));
+            descargarBlob(await resp.blob(), nombreArchivo(resp, "cfdi.pdf"));
         } catch (e) { avisar(e.message); }
         boton.disabled = false; boton.innerHTML = texto;
     }
