@@ -84,3 +84,9 @@ a.xml-btn { text-decoration: none; }
   .conc-base .ctx-segmento { flex: 1 1 100%; }
   .conc-pendientes .conc-iva { margin-left: 0; border-left: 0; flex: 1 1 100%; }
 }
+
+/* «Usar esto siempre» en la moneda de los Excel (17-nov) */
+.conc-opcion--siempre { margin-top: 14px; border-style: dashed; }
+.conc-moneda-excel { display: block; width: 100%; margin: 6px 0 0; padding: 0 4px; background: none; border: 0; text-align: left; font-size: 12px; line-height: 1.4;
+    color: var(--texto-tenue, rgb(var(--g-600))); cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
+.conc-moneda-excel[hidden] { display: none; }

@@ -304,3 +304,14 @@ button.ctx-resumen__dato:hover { background: rgb(var(--g-50)); }
 .xml-opcion strong { font-size: 14px; font-weight: 700; color: rgb(var(--g-900)); }
 .xml-opcion small { font-size: 12.5px; color: rgb(var(--g-600)); line-height: 1.4; }
 .xml-opciones__nota { font-size: 12.5px; color: rgb(var(--g-600)); line-height: 1.45; }
+
+/* Importes en pesos en la tabla (17-nov): «usar esto siempre» en la ventana de moneda y el aviso sobre la tabla */
+.xml-siempre { display: flex; align-items: flex-start; gap: 12px; margin-top: 16px; padding-top: 16px; border-top: 1px solid rgb(var(--g-200)); cursor: pointer; }
+.xml-siempre input { flex: none; width: 16px; height: 16px; margin-top: 2px; accent-color: var(--acento, rgb(var(--ac-600))); }
+.xml-siempre span { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.xml-siempre strong { font-size: 14px; font-weight: 700; color: rgb(var(--g-900)); }
+.xml-siempre small { font-size: 12.5px; color: rgb(var(--g-600)); line-height: 1.45; }
+.xml-aviso-moneda { margin: 8px 0 0; padding: 8px 12px; border-radius: 10px; background: rgb(var(--ok-50)); border: 1px solid rgb(var(--ok-200)); color: rgb(var(--ok-600)); font-size: 13px; line-height: 1.45; }
+.xml-aviso-moneda[hidden] { display: none; }
+.xml-aviso-moneda button { background: none; border: 0; padding: 0; margin-left: 6px; color: inherit; font: inherit; font-weight: 700; text-decoration: underline; cursor: pointer; }
+#btn-moneda[hidden] { display: none; }

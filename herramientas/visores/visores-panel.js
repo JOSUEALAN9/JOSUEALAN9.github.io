@@ -108,6 +108,7 @@
                     '</td><td class="vs-num">' + dinero(f.sat_subtotal) + '</td><td class="vs-num">' + dinero(f.xml_subtotal) + '</td><td class="vs-num">' + dinero(f.sat_iva) +
                     '</td><td class="vs-num">' + dinero(f.xml_iva) + "</td>" + (s.tipo === "Ingreso" ? '<td class="vs-num">' + dinero(f.iva_papel) + "</td>" : "") + "<td>" + marca(f) + "</td></tr>";
             }).join("") + "</tbody></table></div>" +
+            '<div class="vn-acciones"><button type="button" class="ui-btn ui-btn--secundario ui-btn--32" data-cruce-excel title="Todas las hojas del cruce (emitidas, recibidas y nómina) con sus diferencias">Excel del cruce</button></div>' +
             '<p class="vi-nota">' + esc(c.nota || "") + " Faltan: descárgalos en Descarga masiva. Sobran: revisa si se cancelaron (Administración de XML).</p>";
     }
 
@@ -273,7 +274,9 @@
         }
         $("vn-leer-caja").classList.remove("vn-leer--ocupado");
         if (errores.length) Fiscontable.toast(errores.join(" · "));
-        else Fiscontable.toast("Leyendo " + visores.map(function (v) { return NOMBRE_VISOR[v]; }).join(" y ") + " del SAT. Al terminar se actualiza aquí y te llega a la campana.");
+        else Fiscontable.toast("Leyendo " + visores.map(function (v) { return NOMBRE_VISOR[v]; }).join(" y ") + " del SAT" +
+            (visores.length > 1 ? ", uno después del otro" : "") + ". Al terminar se actualizan aquí todas las pestañas y te llega a la campana.");
+        $("vn-leer").disabled = false;
         cargar();
     }
 
@@ -302,6 +305,9 @@
             var c = e.target.closest("[data-cruce]"); if (c) { P.cruce = Number(c.dataset.cruce); pintarCruce(); return; }
             var cel = e.target.closest("[data-celda]"); if (cel) { P.celda = Number(cel.dataset.celda); pintarFacturas(); return; }
             var ng = e.target.closest("[data-nomgrupo]"); if (ng) { P.nomGrupo = ng.dataset.nomgrupo; pintarNomina(); return; }
+            if (e.target.closest("[data-cruce-excel]") && P.empresa) {
+                bajar("/api/visores/cruce/excel?rfc=" + encodeURIComponent(P.empresa.rfc) + "&anio=" + anio(), "Cruce_SAT_" + P.empresa.rfc + "_" + anio() + ".xlsx"); return;
+            }
             var x = e.target.closest("[data-excel]");
             if (x && P.datos) { var l = P.datos.lecturas[x.dataset.excel]; if (l) bajar("/api/visores/sat/" + encodeURIComponent(l.id) + "/excel", "Visor_SAT.xlsx"); return; }
             if (e.target.closest("[data-archivo]") && P.datos && P.datos.nomina.archivo) {
