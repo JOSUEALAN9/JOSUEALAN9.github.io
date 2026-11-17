@@ -185,12 +185,18 @@
         var como = s.acceso === "efirma" ? (s.sin_navegador ? "e.firma, sin navegador" : "e.firma") : "contraseña";
         var texto;
         // 16-nov: el aviso se leía como «alguien más está en tu cuenta». Es la entrada al portal del SAT de otra de tus empresas.
-        if (otro) texto = "El portal del SAT sigue abierto con otra de tus empresas (" + s.rfc + "), de tu búsqueda anterior. " +
-            "No tienes que hacer nada: al buscar con esta, aquella se cierra sola y se entra con esta.";
-        else if (s.entrando) texto = "Entrando al portal…";
-        else texto = "Sesión abierta en el portal (" + como + "): tus búsquedas de " + s.rfc + ", emitidas o recibidas, ya no piden entrar." +
-            (s.ocupada || s.cierra_en_min == null ? "" : " Se cierra sola en " + Math.max(1, s.cierra_en_min) + " min sin uso.");
+        // 17-nov (Alan: «simplemente sesión iniciada en el SAT, sin detalles de más»). El detalle queda al pasar el cursor.
+        var detalle = "";
+        if (otro) {
+            texto = "Sesión iniciada en el SAT con otra empresa (" + s.rfc + ").";
+            detalle = "Es de tu búsqueda anterior. Al buscar con esta empresa, la sesión cambia sola.";
+        } else if (s.entrando) texto = "Iniciando sesión en el SAT…";
+        else {
+            texto = "Sesión iniciada en el SAT.";
+            detalle = "Acceso con " + como + " · " + s.rfc + (s.ocupada || s.cierra_en_min == null ? "" : " · se cierra en " + Math.max(1, s.cierra_en_min) + " min sin uso");
+        }
         $("sesion-texto").textContent = texto;
+        caja.title = detalle;
         $("sesion-cerrar").hidden = !s.abierta;
         if (mia && s.abierta) {                          // no hace falta volver a entrar
             $("acceso-portal").hidden = true;

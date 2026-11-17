@@ -32,11 +32,11 @@
         estado_sat: { "Vigente": "verde", "Cancelado": "rojo", "Sin validar": "gris", "No encontrado": "ambar" }
     };
     var ANCHOS = { contraparte_nombre: 250, estado_conciliacion: 150, detalle_estado: 230, alertas: 260, conceptos: 280, serie_folio: 110,
-        forma_pago: 200, uso_cfdi: 190, estado_sat: 100, ajuste_manual: 200, falta_complemento: 280, condiciones_pago: 180,
+        forma_pago: 200, uso_cfdi: 190, estado_sat: 100, ajuste_manual: 200, falta_complemento: 280, error_cfdi: 280, condiciones_pago: 180,
         fecha_emision: 120, fecha_ultimo_pago: 150, fecha_ultimo_complemento: 150, tc_origen: 200 };
     /* Con qué fecha entra una factura al periodo. De fábrica, la de cobro: es la del IVA al flujo. */
     var BASE_FABRICA = "pago";
-    var TARJETAS_EMISION = { ppd_sin_pago: 1, ppd_parcial: 1, falta_comp: 1 };      // filtros que solo tienen sentido por fecha de emisión
+    var TARJETAS_EMISION = { ppd_sin_pago: 1, ppd_parcial: 1, falta_comp: 1, error_cfdi: 1 };      // filtros que solo tienen sentido por fecha de emisión
 
     var E = {
         perfil: null, empresa: null, contribuyentes: [], otras: [], rfc: null, otra: null, clientesLista: null,
@@ -146,7 +146,7 @@
         if (!t.tabla) {
             t.tabla = FCTabla.crear({
                 caja: t.caja, id: "conc-" + E.lado, catalogo: E.datos.columnas, predeterminadas: E.datos.predeterminadas,
-                sellos: SELLOS, anchoClave: ANCHOS, claveFila: "uuid",
+                sellos: SELLOS, etiquetas: { estado_conciliacion: nombreEstado }, anchoClave: ANCHOS, claveFila: "uuid",
                 claseFila: function (f) { return f.estado_conciliacion === "Cancelada" ? "fila-cancelada" : ""; },
                 alClic: abrirFactura,
                 alSeleccionar: pintarSeleccion,
@@ -297,7 +297,7 @@
         $("elige-periodo").hidden = hay;
         $("cuerpo-conc").hidden = !hay;
         $("ayuda-base").hidden = !hay;
-        if (!hay) { E.datos = null; return; }
+        if (!hay) { E.nCarga = (E.nCarga || 0) + 1; E.datos = null; return; }      // lo que venga en camino ya no aplica (17-nov)
         guardar("lado", E.lado); guardar("base2", $("sel-base").value);
         var r = rango();
         var sueltos = mesesSueltos();
@@ -366,7 +366,8 @@
        de cobro). Lo calcula el servidor aparte de la tabla, así que dice lo mismo se vea como se vea. */
     function pintarPendientes() {
         var caja = $("pendientes"), p = E.datos.pendientes, iva = (E.datos.iva_periodo || {}).total;
-        if (!p || !iva || (!p.ppd && !p.falta_complemento.n && !iva.n)) { caja.innerHTML = ""; return; }
+        var errores = p && p.errores_cfdi ? p.errores_cfdi : { n: 0, pue_99: 0 };       // 17-nov: lo mal emitido va aparte de lo que le falta complemento
+        if (!p || !iva || (!p.ppd && !p.falta_complemento.n && !errores.n && !iva.n)) { caja.innerHTML = ""; return; }
         function boton(clave, etiqueta, n, detalle, titulo) {
             return '<button type="button" data-pendiente="' + clave + '" title="' + esc(titulo) + '" class="ctx-resumen__dato' + (n ? " ctx-resumen__dato--alerta" : "") +
                 (E.tarjeta === clave ? " ctx-resumen__dato--activo" : "") + '"' + (n ? "" : " disabled") + "><small>" + esc(etiqueta) + "</small><b>" + n.toLocaleString("es-MX") + "</b><span>" + esc(detalle) + "</span></button>";
@@ -375,14 +376,17 @@
             .map(function (t) { return t[0] + ": $" + dinero(t[1]); }).join(" · ");
         var fuera = p.falta_complemento.fuera_de_plazo;
         caja.innerHTML =
-            '<div class="ctx-resumen__dato" title="Facturas PPD emitidas en el periodo (por fecha de emisión), sin las canceladas"><small>PPD del periodo</small><b>' + p.ppd.toLocaleString("es-MX") + "</b>" +
+            '<div class="ctx-resumen__dato" title="Facturas PPD emitidas en el periodo (por fecha de emisión), sin las canceladas"><small>' + textoLado("Facturas PPD emitidas", "Facturas PPD recibidas") + '</small><b>' + p.ppd.toLocaleString("es-MX") + "</b>" +
                 "<span>" + (p.ppd ? p.ppd_pagadas.toLocaleString("es-MX") + " ya " + textoLado("cobradas", "pagadas") : "por fecha de emisión") + "</span></div>" +
-            boton("ppd_sin_pago", "Sin pago", p.sin_pago.n, p.sin_pago.n ? "$" + dinero(p.sin_pago.saldo_mxn) + " por " + textoLado("cobrar", "pagar") : "ninguna",
+            boton("ppd_sin_pago", textoLado("Pendientes de cobro", "Pendientes de pago"), p.sin_pago.n, p.sin_pago.n ? "$" + dinero(p.sin_pago.saldo_mxn) + " por " + textoLado("cobrar", "pagar") : "ninguna",
                 "PPD emitidas en el periodo sin complemento de pago vigente. Clic para verlas.") +
-            boton("ppd_parcial", "Pagadas en parte", p.parciales.n, p.parciales.n ? "$" + dinero(p.parciales.saldo_mxn) + " de saldo" : "ninguna",
+            boton("ppd_parcial", textoLado("Cobro parcial", "Pago parcial"), p.parciales.n, p.parciales.n ? "$" + dinero(p.parciales.saldo_mxn) + " de saldo" : "ninguna",
                 "PPD emitidas en el periodo con pagos que no completan el total. Clic para verlas.") +
-            boton("falta_comp", "Les falta complemento", p.falta_complemento.n, !p.falta_complemento.n ? "ninguna" : fuera ? fuera + " ya fuera de plazo" : "revísalas",
-                "PUE con forma de pago 99, PPD vencidas según sus condiciones de pago, marcadas como " + textoLado("cobradas", "pagadas") + " a mano, parcialidades que faltan. Clic para verlas.") +
+            boton("falta_comp", "Complemento de pago pendiente", p.falta_complemento.n, !p.falta_complemento.n ? "ninguna" : fuera ? fuera + " ya fuera de plazo" : "revísalas",
+                "PPD vencidas según sus condiciones de pago, marcadas como " + textoLado("cobradas", "pagadas") + " a mano, parcialidades que faltan, complemento cancelado sin reponer. Clic para verlas.") +
+            boton("error_cfdi", "Inconsistencias en CFDI", errores.n, !errores.n ? "ninguno" : errores.pue_99 === errores.n ? "PUE con forma de pago 99" :
+                    errores.pue_99 ? errores.pue_99 + " PUE con forma 99 · " + (errores.n - errores.pue_99) + " otros" : "revísalos",
+                "Facturas mal emitidas: PUE con forma de pago 99 «Por definir», PUE con complementos de pago, parcialidades repetidas o que no encadenan, complemento en otra moneda, pagos vigentes a una cancelada. Clic para verlas.") +
             '<div class="ctx-resumen__dato conc-iva" title="Por fecha de ' + textoLado("cobro", "pago") + ": complementos con fecha de pago en el periodo, facturas PUE emitidas en él y notas de crédito (restan). " +
                 'El desglose por mes y por tasa va en el Excel."><small>IVA ' + textoLado("cobrado", "pagado") + " en el periodo</small><b>$" + dinero(iva.iva) + "</b>" +
                 "<span>" + (porTasa || "sin IVA") + (iva.ret_iva ? " · retenido $" + dinero(iva.ret_iva) : "") + "</span></div>";
@@ -420,7 +424,14 @@
             (canceladas ? '<div class="ctx-resumen__nota">' + canceladas + " cancelada" + (canceladas === 1 ? "" : "s") + " en el SAT · no cuenta" + (canceladas === 1 ? "" : "n") + "</div>" : "");
     }
 
-    function nombreEstado(e) { return e; }
+    // 17-nov (nombres aprobados por Alan): cómo se VE cada estado. Por dentro sigue siendo «Sin pago», «Parcial»… (los filtros
+    // y el servidor comparan contra esos); aquí solo cambia el texto, según el lado. Igual que columnas.ESTADOS_TXT del servidor.
+    var ESTADOS_TXT = {
+        emitidos: { "Pagada": "Cobrada", "Pagada (PUE)": "Cobrada (PUE)", "Sin pago": "Pendiente de cobro", "Parcial": "Cobro parcial",
+            "Cubierta con nota de crédito": "Saldada con nota de crédito", "Pagada (ajuste manual)": "Cobrada (ajuste manual)", "Pagada de más": "Cobrada de más" },
+        recibidos: { "Sin pago": "Pendiente de pago", "Parcial": "Pago parcial", "Cubierta con nota de crédito": "Saldada con nota de crédito" }
+    };
+    function nombreEstado(e) { return (ESTADOS_TXT[E.lado] || {})[e] || e; }
 
     function pintarChipsEstado() {
         var cuenta = {};
@@ -435,7 +446,7 @@
     }
 
     /* ============================================================ filtros */
-    var RAPIDOS = [["alertas", "Con alertas"], ["falta_comp", "Les falta complemento"], ["ppd", "PPD"], ["pue", "PUE"], ["saldo", "Con saldo"], ["extranjera", "Moneda extranjera"],
+    var RAPIDOS = [["alertas", "Con alertas"], ["falta_comp", "Complemento de pago pendiente"], ["error_cfdi", "Inconsistencias en CFDI"], ["ppd", "PPD"], ["pue", "PUE"], ["saldo", "Con saldo"], ["extranjera", "Moneda extranjera"],
         ["notas", "Con notas de crédito"], ["sinvalidar", "Sin validar"], ["ajuste", "Con ajuste manual"]];
     var PRUEBA = {
         alertas: function (f) { return !!f.alertas; },
@@ -448,6 +459,7 @@
         ajuste: function (f) { return !!f.ajuste_manual; },
         demas: function (f) { return f.estado_conciliacion === "Pagada de más"; },
         falta_comp: function (f) { return !!f.falta_complemento; },
+        error_cfdi: function (f) { return !!f.error_cfdi; },
         ppd_sin_pago: function (f) { return f.metodo_pago === "PPD" && (f.estado_conciliacion === "Sin pago" || f.estado_conciliacion === "Pago a factura cancelada"); },
         ppd_parcial: function (f) { return f.metodo_pago === "PPD" && f.estado_conciliacion === "Parcial"; }
     };
@@ -589,8 +601,10 @@
         h.push("<h4>Pagos y notas de crédito</h4>" + tablaMovs(movs));
         if (previos.length) h.push("<h4>Aplicados a la factura que esta sustituye</h4>" + tablaMovs(previos));
 
-        var avisos = (f.falta_complemento ? f.falta_complemento.split("; ").map(function (a) { return "Le falta complemento de pago · " + a; }) : [])
-            .concat(f.alertas ? f.alertas.split("; ") : []);
+        var errCfdi = f.error_cfdi ? f.error_cfdi.split("; ") : [];
+        var avisos = (f.falta_complemento ? f.falta_complemento.split("; ").map(function (a) { return "Complemento de pago pendiente · " + a; }) : [])
+            .concat(errCfdi.map(function (a) { return "Inconsistencia en el CFDI · " + a; }))
+            .concat((f.alertas ? f.alertas.split("; ") : []).filter(function (a) { return errCfdi.indexOf(a) < 0; }));
         if (avisos.length) h.push('<ul class="conc-alertas">' + avisos.map(function (a) { return "<li>⚠ " + esc(a) + "</li>"; }).join("") + "</ul>");
         var ivaTasas = [["16 %", f.base16, f.iva16], ["8 %", f.base8, f.iva8], ["0 %", f.base0, 0], ["Exento", f.exento, null], ["Otras tasas", f.base_otras, f.iva_otras]]
             .filter(function (t) { return t[1] || t[2]; })
@@ -865,6 +879,7 @@
             columnas: tabla().columnas().map(function (c) { return c.clave; }), uuids: null, moneda: "xml" };
         var facturas = E.datos.facturas;
         if (modo === "vista") {
+            cuerpo.solo_tabla = true;          // 17-nov: «Excel de esta tabla» es una sola hoja con lo que ves; lo demás, en «Excel completo»
             var sel = tabla().seleccion;
             if (sel.size) cuerpo.uuids = Array.from(sel);
             else if (hayFiltros()) cuerpo.uuids = E.filtradas.map(function (f) { return f.uuid; });

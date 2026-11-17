@@ -102,6 +102,7 @@
             if (c.tipo === "moneda" && typeof v === "number" && v < -0.005) clase += " fc-negativo";
             if (fija) clase += " xml-fija xml-fija--ultima";
             var txt = formato(c, v);
+            if (o.etiquetas && o.etiquetas[c.clave] && txt) txt = String(o.etiquetas[c.clave](v));     // 17-nov: el texto que se ve (el valor no cambia)
             var sello = o.sellos && o.sellos[c.clave] && o.sellos[c.clave][v];
             var html = sello ? '<span class="xml-sello xml-sello--' + sello + '">' + esc(txt) + "</span>" : esc(txt);
             return "<td" + (clase ? ' class="' + clase.trim() + '"' : "") + estiloFija + (txt.length > 18 ? ' title="' + esc(txt) + '"' : "") + ">" + html + "</td>";
@@ -421,7 +422,7 @@
         (o.extra || []).forEach(function (el) { q(".fct-extra").appendChild(el); });
 
         var tabla = crear({
-            caja: caja, id: o.id, catalogo: o.catalogo, predeterminadas: o.predeterminadas, sellos: o.sellos, anchoClave: o.anchoClave,
+            caja: caja, id: o.id, catalogo: o.catalogo, predeterminadas: o.predeterminadas, sellos: o.sellos, etiquetas: o.etiquetas, anchoClave: o.anchoClave,
             claveFila: o.claveFila, celda: o.celda, claseFila: o.claseFila, alSeleccionar: o.alSeleccionar,
             alClic: o.alClic ? function (f, ev) { o.alClic(f, tabla.filas(), ev); } : null,
             alCambiarColumnas: function () { vistas.pintar(); }
