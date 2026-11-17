@@ -675,8 +675,7 @@
         var lector = new FileReader();
         lector.onload = function (e) {
             try {
-                var libro = XLSX.read(new Uint8Array(e.target.result), { type: "array" });
-                var filas = XLSX.utils.sheet_to_json(libro.Sheets[libro.SheetNames[0]]);
+                var filas = window.Fiscontable.leerXlsx(new Uint8Array(e.target.result));      // lector propio (comun/leer-xlsx.js)
 
                 if (!filas.length) {
                     lista.innerHTML = "<li>El Excel no tiene ningún renglón que procesar.</li>";

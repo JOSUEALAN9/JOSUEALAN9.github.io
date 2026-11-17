@@ -184,7 +184,9 @@
         caja.className = "dm-sesion" + (s.entrando ? " dm-sesion--entrando" : "") + (otro ? " dm-sesion--otro" : "");
         var como = s.acceso === "efirma" ? (s.sin_navegador ? "e.firma, sin navegador" : "e.firma") : "contraseña";
         var texto;
-        if (otro) texto = "Tienes una sesión abierta del portal con " + s.rfc + ". Al buscar con este RFC se cierra y se entra de nuevo.";
+        // 16-nov: el aviso se leía como «alguien más está en tu cuenta». Es la entrada al portal del SAT de otra de tus empresas.
+        if (otro) texto = "El portal del SAT sigue abierto con otra de tus empresas (" + s.rfc + "), de tu búsqueda anterior. " +
+            "No tienes que hacer nada: al buscar con esta, aquella se cierra sola y se entra con esta.";
         else if (s.entrando) texto = "Entrando al portal…";
         else texto = "Sesión abierta en el portal (" + como + "): tus búsquedas de " + s.rfc + ", emitidas o recibidas, ya no piden entrar." +
             (s.ocupada || s.cierra_en_min == null ? "" : " Se cierra sola en " + Math.max(1, s.cierra_en_min) + " min sin uso.");
