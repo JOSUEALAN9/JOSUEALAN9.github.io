@@ -76,7 +76,13 @@
         pintarMonedaExcel();
         var q = new URLSearchParams(location.search);
         if (q.get("lado") === "emitidos" || q.get("lado") === "recibidos") E.lado = q.get("lado");
-        if (q.get("base") === "pago" || q.get("base") === "emision") $("sel-base").value = q.get("base");
+        // 18-nov: abre en «Facturas PPD». «Inconsistencias» y «IVA del periodo» son la misma tabla con otro corte;
+        // «Complementos de pago» es la tabla de Administración de XML (se navega). Ver pestanas-conciliacion.js.
+        E.pestana = ["ppd", "errores", "iva"].indexOf(q.get("pestana")) !== -1 ? q.get("pestana") : "ppd";
+        FCPestanasConc.pintar($("conc-vista"), E.pestana, elegirPestana, function () { return E.rfc || ""; });
+        if (E.pestana === "errores") $("sel-base").value = "emision";      // lo mal emitido se cuenta por lo facturado
+        else if (E.pestana === "iva") $("sel-base").value = "pago";         // el IVA, por lo cobrado o pagado
+        else if (q.get("base") === "pago" || q.get("base") === "emision") $("sel-base").value = q.get("base");
         else if (leer("base2") === "pago" || leer("base2") === "emision") $("sel-base").value = leer("base2");
         else $("sel-base").value = BASE_FABRICA;
         // Periodo que llega en el enlace: meses sueltos (?anio=&meses=) o fechas (?desde=&hasta=)
@@ -367,6 +373,7 @@
     function pintarPendientes() {
         var caja = $("pendientes"), p = E.datos.pendientes, iva = (E.datos.iva_periodo || {}).total;
         var errores = p && p.errores_cfdi ? p.errores_cfdi : { n: 0, pue_99: 0 };       // 17-nov: lo mal emitido va aparte de lo que le falta complemento
+        FCPestanasConc.cuenta($("conc-vista"), "errores", errores.n);
         if (!p || !iva || (!p.ppd && !p.falta_complemento.n && !errores.n && !iva.n)) { caja.innerHTML = ""; return; }
         function boton(clave, etiqueta, n, detalle, titulo) {
             return '<button type="button" data-pendiente="' + clave + '" title="' + esc(titulo) + '" class="ctx-resumen__dato' + (n ? " ctx-resumen__dato--alerta" : "") +
@@ -501,11 +508,27 @@
         return f._q;
     }
 
+    /* Las pestañas de arriba: el mismo libro con otro corte. true = se atiende aquí (no se navega). */
+    function elegirPestana(clave) {
+        if (["ppd", "errores", "iva"].indexOf(clave) === -1) return false;          // «Complementos de pago» vive en otra página
+        E.pestana = clave; E.estado = ""; E.tarjeta = null;
+        Fiscontable.url({ pestana: clave === "ppd" ? null : clave });
+        var base = clave === "errores" ? "emision" : clave === "iva" ? "pago" : $("sel-base").value;
+        if (base !== $("sel-base").value) {
+            $("sel-base").value = base;
+            pintarBase();
+            cargarDatos();
+        } else if (E.datos) { pintarTarjetas(); pintarPendientes(); pintarChipsEstado(); aplicar(); }
+        return true;
+    }
+
     function aplicar() {
         if (!E.datos || !tabla()) return;
         var q = E.busqueda.trim().toLowerCase(), av = E.av;
         var activos = Object.keys(E.rapidos).filter(function (k) { return E.rapidos[k]; });
         if (E.tarjeta) activos.push(E.tarjeta);
+        if (E.pestana === "ppd") activos.push("ppd");                   // «Facturas PPD»: las PUE cuentan por dentro (IVA), pero no ocupan renglones
+        else if (E.pestana === "errores") activos.push("error_cfdi");
         var min = av.min ? +av.min : null, max = av.max ? +av.max : null, dias = av.dias ? +av.dias : null;
         E.filtradas = E.datos.facturas.filter(function (f) {
             if (E.estado && f.estado_conciliacion !== E.estado) return false;

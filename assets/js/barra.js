@@ -55,6 +55,7 @@
         clientes:      { nombre: "Clientes",          permiso: null },
         herramientas:  { nombre: "Herramientas",          permiso: null },
         conciliacion:  { nombre: "Conciliación de pagos", permiso: "conciliacion" },
+        recibos_nomina: { nombre: "Recibos de nómina",    permiso: "validador" },
         iva:           { nombre: "Papel de trabajo de IVA", permiso: "iva" },
         visores:       { nombre: "Visores del SAT",       permiso: "iva" },
         cierre:        { nombre: "Cierre del mes",        permiso: null },
@@ -188,6 +189,7 @@
         { clave: "clientes", grupo: "Clientes", nombre: "Clientes", desc: "Empresas, e.firma y obligaciones", url: "/clientes/", permiso: null, icono: I.clientes, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
 
         { clave: "xml", grupo: "Comprobantes", nombre: "Administración de XML", alias: "xml comprobantes", desc: "Tus XML por tipo, con reportes en Excel", url: "/herramientas/xml/", permiso: "validador", icono: I.xml, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
+        { clave: "recibos_nomina", grupo: "Comprobantes", nombre: "Recibos de nómina", alias: "nomina recibos timbrados cfdi de nomina sueldos asimilados", desc: "Los recibos de nómina timbrados, con su Excel", url: "/herramientas/xml/?vista=nomina", permiso: "validador", icono: I.gente, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
         { clave: "descarga_xml", grupo: "Comprobantes", nombre: "Descarga masiva", alias: "descarga masiva de xml web service portal", desc: "Emitidos y recibidos de un periodo", url: "/herramientas/descarga-xml/", permiso: "descarga_xml", icono: I.nube, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
         { clave: "retenciones", grupo: "Comprobantes", nombre: "CFDI de Retenciones", alias: "retenciones cfdi de retenciones e información de pagos constancia de retenciones isr iva dividendos intereses", desc: "CFDI de retenciones emitidos y recibidos", url: "/herramientas/retenciones/", permiso: "descarga_xml", icono: I.retencion, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
         { clave: "validador", grupo: "Comprobantes", nombre: "Validador", alias: "validador de xml vigente cancelado", desc: "¿Vigente o cancelado ante el SAT?", url: "/herramientas/validador/", permiso: "validador", icono: I.palomita, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },

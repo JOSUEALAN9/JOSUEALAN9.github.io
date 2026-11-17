@@ -10,13 +10,15 @@
 </head>
 <body class="bg-slate-50">
 <div id="app-header" data-modulo="xml" data-titulo="Administración de XML" data-migas="Herramientas|/herramientas/"></div>
+<script src="/herramientas/xml/vista.js?v=202611172337"></script>
 <script src="/assets/js/nucleo.js?v=202611172337"></script>
 <script src="/assets/js/barra.js?v=202611172337"></script>
 
 <main class="xml-pagina">
     <!-- Una sola fila: qué módulo, de quién, qué periodo y la acción principal -->
     <div class="xml-cabeza">
-        <h1>Administración de XML</h1>
+        <h1 id="xml-titulo">Administración de XML</h1>
+        <div class="fc-vista xml-conc-vista" role="tablist" aria-label="Conciliación de pagos" id="conc-vista" hidden></div>
         <div class="ctx">
             <div class="xml-menu">
                 <button type="button" id="btn-otra" class="ctx-campo" aria-haspopup="menu">
@@ -79,7 +81,11 @@
             <button type="button" id="btn-fiscal" class="mod-accion" title="Para qué impuesto cuenta cada CFDI (cobrado, deducible, profesiones, alcohol, DIOT) y por qué"><b>⚖</b>Marcas fiscales</button>
             <button type="button" id="btn-cancelaciones" class="mod-accion" title="Cancelar ante el SAT cualquier factura emitida y aceptar o rechazar las cancelaciones que te piden"><b>⊘</b>Cancelaciones</button>
             <button type="button" id="btn-listas" class="mod-accion" title="Abre Listas del SAT con esta empresa y este periodo"><b>⚑</b>Validar listas</button>
-            <button type="button" id="btn-conciliacion" class="mod-accion" title="Cruza facturas contra complementos de pago y notas de crédito" hidden><b>⇄</b>Conciliar</button>
+            <button type="button" id="btn-conciliacion" class="mod-accion" title="Cruza facturas contra complementos de pago y notas de crédito" hidden><b>⇄</b>Conciliación de pagos</button>
+            <button type="button" class="mod-accion" data-ir="pagos" title="Los complementos de pago emitidos y recibidos (pestaña de Conciliación de pagos), con esta empresa y este periodo"><b>⇢</b>Complementos de pago</button>
+            <button type="button" class="mod-accion" data-ir="nomina" title="Los recibos de nómina timbrados, con esta empresa y este periodo"><b>⇢</b>Recibos de nómina</button>
+            <button type="button" class="mod-accion" data-ir="xml" title="Facturas emitidas y recibidas, con esta empresa y este periodo" hidden><b>⇢</b>Administración de XML</button>
+            <a class="mod-accion" href="/herramientas/retenciones/" title="CFDI de retenciones e información de pagos"><b>⇢</b>CFDI de Retenciones</a>
             <a class="mod-accion" href="https://ptcvisorcfdiingegr.clouda.sat.gob.mx/" target="_blank" rel="noopener" title="Visor de comprobantes de ingresos y egresos del SAT: sus totales por mes son los del prellenado de la declaración (se entra con la e.firma o la contraseña)"><b>↗</b>Visor de facturas del SAT ↗</a>
         </aside>
         <div class="mod-layout__principal">
@@ -228,6 +234,7 @@
 <script src="/assets/js/comun/periodo-meses.js?v=202611172337"></script>
 <script src="/assets/js/comun/compartir.js?v=202611172337"></script>
 <script src="/assets/js/comun/tabla.js?v=202611172337"></script>
+<script src="/assets/js/comun/pestanas-conciliacion.js?v=202611172337"></script>
 <script src="/herramientas/xml/conceptos.js?v=202611172337"></script>
 <script src="/herramientas/xml/duplicados.js?v=202611172337"></script>
 <script src="/herramientas/xml/xml.js?v=202611172337"></script>

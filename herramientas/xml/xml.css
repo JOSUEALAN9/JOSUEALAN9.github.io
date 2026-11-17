@@ -367,3 +367,8 @@ details.xd-seccion .xd-grupo + .xd-grupo { margin-top: 12px; }
 .xd-vacio { margin: 0; padding: 18px; border: 1px dashed rgb(var(--g-300)); border-radius: 12px; color: rgb(var(--g-700)); font-size: 13.5px; line-height: 1.5; }
 .xd-vacio--error { border-color: rgb(var(--er-200, 254 202 202)); color: rgb(var(--er-600, 220 38 38)); }
 @media (max-width: 640px) { .xd-grupo header, .xd-grupo footer { padding-left: 14px; padding-right: 14px; } .xd-total { text-align: left; } .xd-ayuda { width: 100%; } }
+
+/* ---------- La misma tabla abierta como «Recibos de nómina» o «Complementos de pago» (18-nov) ---------- */
+.xml-conc-vista { margin-left: 4px; max-width: 100%; overflow-x: auto; }
+.xml-conc-vista button { flex: none; }
+.xml-conc-vista[hidden], #pestanas[hidden] { display: none !important; }
