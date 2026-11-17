@@ -58,10 +58,13 @@
         if (E.ver === "papel") return cargarPapel();
         if (!E.rfc) { pintar({ filas: [], totales: {}, anios: [] }); aviso("Elige una empresa."); return; }
         $("tb").innerHTML = '<tr><td colspan="10" class="rt-vacio">Cargando…</td></tr>';
+        E.carga = E.carga || Fiscontable.avisoCarga($("lista-marco"));          // 17-nov: «Cargando…» y «Actualizado» sobre la tabla
+        E.carga.mostrar("Cargando retenciones" + (E.anio ? " de " + E.anio : "") + "…");
         try {
             E.datos = await (await api(base() + filtros())).json();
-        } catch (e) { $("tb").innerHTML = ""; aviso(esc(e.message), true); return; }
+        } catch (e) { E.carga.quitar(); $("tb").innerHTML = ""; aviso(esc(e.message), true); return; }
         pintar(E.datos);
+        E.carga.listo("Actualizado · " + ((E.datos.filas || []).length).toLocaleString("es-MX") + " retención(es)" + (E.anio ? " de " + E.anio : ""));
     }
 
     function cifra(t, v) { return '<div class="rt-cifra"><small>' + t + "</small><b>" + v + "</b></div>"; }

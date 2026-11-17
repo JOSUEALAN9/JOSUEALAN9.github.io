@@ -309,13 +309,18 @@
         else { url.set("anio", est.anio); url.set("meses", est.meses.join(",")); }
         history.replaceState(null, "", location.pathname + "?" + url.toString());
         $("conteo-filas").textContent = "";
+        // 17-nov: etiqueta «Calculando…» sobre la tabla y, al llegar, «Actualizado · cuántas facturas» (pieza común de nucleo.js)
+        E.carga = E.carga || Fiscontable.avisoCarga($("tablas-marco"));
+        var queCarga = E.selPeriodo.texto ? E.selPeriodo.texto() : "";
+        if (queCarga.length > 34) queCarga = "los meses elegidos";
+        E.carga.mostrar("Calculando " + (queCarga || "el periodo") + "…", "Sigue calculando… un periodo grande tarda un poco más.");
         $("tablas").classList.add("conc-cargando");               // G-10: la tabla se atenúa y el resumen muestra su forma, no «Calculando…»
         if (!E.datos) { $("tarjetas").innerHTML = '<div class="ctx-resumen__dato"><span class="ui-skel" style="width:90px"></span><span class="ui-skel" style="width:120px;height:18px;margin-top:6px"></span></div>'.repeat(3); $("pendientes").innerHTML = ""; }
         document.querySelectorAll("#lados .conc-lado").forEach(function (b) { b.classList.toggle("conc-lado--activo", b.dataset.lado === E.lado); });
         var datos;
         var yo = (E.nCarga = (E.nCarga || 0) + 1);           // si cambias el periodo mientras carga, gana el último
         try { datos = await apiJSON("/api/conciliacion/datos" + comun + "&regla=" + E.regla); }
-        catch (e) { if (yo === E.nCarga) { avisar(e.message); $("conteo-filas").textContent = ""; $("tablas").classList.remove("conc-cargando"); } return; }
+        catch (e) { if (yo === E.nCarga) { E.carga.quitar(); avisar(e.message); $("conteo-filas").textContent = ""; $("tablas").classList.remove("conc-cargando"); } return; }
         if (yo !== E.nCarga || datos.lado !== E.lado || datos.rfc !== E.rfc) return;          // llegó tarde: ya cambiaste de lado o empresa
         E.datos = datos;
         $("tablas").classList.remove("conc-cargando");
@@ -328,6 +333,7 @@
         pintarChipsEstado();
         pintarRapidos();
         aplicar();
+        E.carga.listo("Actualizado · " + (queCarga || "el periodo") + " · " + E.datos.facturas.length.toLocaleString("es-MX") + " factura(s)");
         if (!$("panel-tc").hidden) pintarPanelTC();
         if (!$("panel-factura").hidden && E.facturaAbierta) {
             var f = E.datos.facturas.find(function (x) { return x.uuid === E.facturaAbierta; });
