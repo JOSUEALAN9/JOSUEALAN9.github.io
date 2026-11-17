@@ -14,7 +14,7 @@
 (function () {
     "use strict";
 
-    var VERSION = "202611170052";
+    var VERSION = "202611170144";
     // www.fiscontable.app → fiscontable.app: una sola dirección (la sesión y las preferencias guardadas son por dirección)
     if (location.hostname === "www.fiscontable.app") {
         location.replace("https://fiscontable.app" + location.pathname + location.search + location.hash);
@@ -303,6 +303,25 @@
     "use strict";
     var abajo = null;
     document.addEventListener("pointerdown", function (e) { abajo = e.target; }, true);
+    // Acciones declaradas en el HTML sin código en línea (17-nov-2026, para poder quitar 'unsafe-inline' de la política
+    // de contenido): data-fc-clic="nombreDeFuncionGlobal" (con data-fc-solo no sube a la fila), data-fc-envio (formularios),
+    // data-fc-abre="idDelCampoDeArchivo" y data-fc-quieto (un enlace que no hace nada).
+    document.addEventListener("click", function (e) {
+        var el = e.target && e.target.closest && e.target.closest("[data-fc-clic],[data-fc-abre],[data-fc-quieto]");
+        if (!el || el.disabled) return;
+        if (el.hasAttribute("data-fc-quieto")) { e.preventDefault(); return; }
+        if (el.dataset.fcAbre) { var campo = document.getElementById(el.dataset.fcAbre); if (campo) campo.click(); return; }
+        var f = window[el.dataset.fcClic];
+        if (typeof f !== "function") return;
+        if (el.hasAttribute("data-fc-solo")) e.stopPropagation();
+        f.call(el === window ? window : (el.dataset.fcClic === "print" ? window : el), e);
+    }, true);
+    document.addEventListener("submit", function (e) {
+        var el = e.target && e.target.closest && e.target.closest("[data-fc-envio]");
+        var f = el && window[el.dataset.fcEnvio];
+        if (typeof f === "function") f.call(el, e);
+    }, true);
+
     function esFondo(t) {
         if (!t || !t.matches) return false;
         return t.tagName === "DIALOG" || t.matches(".xml-modal, .xml-velo, .fp-fondo, .en-fondo, #fondo, #ventana, #modal, #modal-datos, [data-fondo]");

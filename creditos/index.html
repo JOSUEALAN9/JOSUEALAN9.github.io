@@ -4,16 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mis créditos | Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611170052">
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611170052">
-    <link rel="stylesheet" href="/creditos/creditos.css?v=202611170052">
-    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611170052">
+    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611170144">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611170144">
+    <link rel="stylesheet" href="/creditos/creditos.css?v=202611170144">
+    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611170144">
 </head>
 <body class="min-h-screen flex flex-col">
 
 <div id="app-header" data-modulo="creditos" data-titulo="Mis créditos" data-migas=""></div>
-<script src="/assets/js/nucleo.js?v=202611170052"></script>
-<script src="/assets/js/barra.js?v=202611170052"></script>
+<script src="/assets/js/nucleo.js?v=202611170144"></script>
+<script src="/assets/js/barra.js?v=202611170144"></script>
 
 <main class="flex-grow w-full mod-pagina" style="max-width:1320px">
     <div class="mod-cabeza"><h1>Mis créditos</h1></div>
@@ -99,18 +99,7 @@
     </div>
 </main>
 
-<script src="/creditos/creditos.js?v=202611170052"></script>
-<script>
-(function () {   // pestañas del historial (se recuerda la última)
-    function ver(t) {
-        document.querySelectorAll("[data-cr-tab]").forEach(function (b) { b.setAttribute("aria-pressed", String(b.dataset.crTab === t)); });
-        document.querySelectorAll("[data-cr-panel]").forEach(function (p) { p.hidden = p.dataset.crPanel !== t; });
-        try { localStorage.setItem("fc-creditos-tab", t); } catch (e) { /* nada */ }
-    }
-    document.querySelector(".cr-pestanas").addEventListener("click", function (e) { var b = e.target.closest("[data-cr-tab]"); if (b) ver(b.dataset.crTab); });
-    var t = null; try { t = localStorage.getItem("fc-creditos-tab"); } catch (e) { /* nada */ }
-    if (t) ver(t);
-})();
-</script>
+<script src="/creditos/creditos.js?v=202611170144"></script>
+<script src="/creditos/pestanas.js?v=202611170144"></script>
 </body>
 </html>

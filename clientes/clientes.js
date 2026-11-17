@@ -621,7 +621,7 @@ function filaLista(c) {
         <td class="cli-celda-nombre">${estrella(c)}${avatar(c)}<span class="cli-nombre"><b title="${esc(c.alias)}">${esc(c.alias)}</b><small class="cli-rfc">${esc(c.rfc)}${c.tipo_sociedad ? " · " + esc(c.tipo_sociedad) : ""}</small></span></td>
         <td><span class="cli-inds">${indicadores(c)}</span></td>
         <td class="cli-obl">${esc(ob)}</td>
-        <td class="cli-celda-mas">${!c.efirma_guardada && puedeGuardarEfirma && !soloLectura ? `<button type="button" class="ui-btn ui-btn--terciario ui-btn--28" data-rfc="${esc(c.rfc)}" onclick="event.stopPropagation();abrirModalEditar(this.dataset.rfc, 'accesos')">Subir e.firma</button>` : ""}${menuAcciones(c)}</td></tr>`;
+        <td class="cli-celda-mas">${!c.efirma_guardada && puedeGuardarEfirma && !soloLectura ? `<button type="button" class="ui-btn ui-btn--terciario ui-btn--28" data-rfc="${esc(c.rfc)}" data-fc-clic="abrirAccesosDeFila" data-fc-solo>Subir e.firma</button>` : ""}${menuAcciones(c)}</td></tr>`;
 }
 
 function renderizarClientes() {
@@ -2055,3 +2055,7 @@ async function ofrecerDescargaAhora(rfc, alias, automatico) {
         si: xml ? "Ver o cambiar el periodo" : "Entendido", no: "Listo", solo: !xml });
     if (ir && xml) { await cargarClientes(); abrirModalEditar(rfc, "xml"); }
 }
+
+
+// Antes iba en línea en el botón de la fila (17-nov: las páginas ya no llevan código en línea)
+function abrirAccesosDeFila() { abrirModalEditar(this.dataset.rfc, "accesos"); }

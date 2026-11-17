@@ -404,9 +404,9 @@
         var b = document.querySelector('.mod-acciones [data-excel="vista"]');
         if (!b || b.disabled) return;
         var pagos = E.modulo === "pagos";
-        b.innerHTML = "<b>▦</b>" + (pagos ? "Reporte de pagos (Excel)" : "Excel de esta tabla");
+        b.innerHTML = "<b>▦</b>" + (pagos ? "Reporte de pagos (Excel)" : "Excel");
         b.title = pagos ? "Dos hojas: «Pagos» (un renglón por pago, con IVA por tasa y retenciones) y «Documentos relacionados» (un renglón por factura pagada)"
-            : "Completo: tus columnas primero, en tu orden, y después el resto de las columnas con datos";
+            : "El reporte completo de esta pestaña, con tus filtros: las columnas acomodadas como el reporte de descarga que ya conoces";
     }
 
     function pintarSubfiltros() {
