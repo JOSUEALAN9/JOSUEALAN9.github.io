@@ -14,7 +14,7 @@
 (function () {
     "use strict";
 
-    var VERSION = "202611170243";
+    var VERSION = "202611170256";
     // www.fiscontable.app → fiscontable.app: una sola dirección (la sesión y las preferencias guardadas son por dirección)
     if (location.hostname === "www.fiscontable.app") {
         location.replace("https://fiscontable.app" + location.pathname + location.search + location.hash);
@@ -321,6 +321,24 @@
         var f = el && window[el.dataset.fcEnvio];
         if (typeof f === "function") f.call(el, e);
     }, true);
+
+    // Moneda de los reportes (17-nov): cómo quiere ver esta persona los importes en moneda extranjera, en pantalla y en
+    // los Excel de Administración de XML y de Conciliación. modo: "xml" (en pesos, T.C. de cada XML), "dof" (en pesos,
+    // T.C. del DOF) o "" (sin convertir). siempre: no volver a preguntar. Se guarda en este navegador.
+    window.Fiscontable.monedaReportes = {
+        leer: function () {
+            try {
+                var p = JSON.parse(localStorage.getItem("fc:moneda") || "null") || {};
+                return { modo: p.modo === "xml" || p.modo === "dof" || p.modo === "" ? p.modo : "xml", siempre: !!p.siempre };
+            } catch (e) { return { modo: "xml", siempre: false }; }
+        },
+        guardar: function (modo, siempre) {
+            try { localStorage.setItem("fc:moneda", JSON.stringify({ modo: modo, siempre: !!siempre })); } catch (e) { /* nada */ }
+        },
+        texto: function (modo) {
+            return modo === "xml" ? "en pesos, con el tipo de cambio de cada XML" : modo === "dof" ? "en pesos, con el tipo de cambio del DOF (Banxico)" : "sin convertir";
+        }
+    };
 
     function esFondo(t) {
         if (!t || !t.matches) return false;

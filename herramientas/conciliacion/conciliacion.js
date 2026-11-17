@@ -73,6 +73,7 @@
     async function iniciar() {
         if (!(await Fiscontable.exigirModulo("conciliacion"))) return;
         E.perfil = await Fiscontable.perfil();
+        pintarMonedaExcel();
         var q = new URLSearchParams(location.search);
         if (q.get("lado") === "emitidos" || q.get("lado") === "recibidos") E.lado = q.get("lado");
         if (q.get("base") === "pago" || q.get("base") === "emision") $("sel-base").value = q.get("base");
@@ -865,28 +866,48 @@
         }
         var monedas = monedasDe(facturas);
         if (!monedas.length) { descargarExcel(modo, cuerpo); return; }
-        // Hay moneda extranjera: se pregunta cómo la quiere (se recuerda la última respuesta)
-        var previa = leer("moneda_excel"), reglas = E.datos.reglas || {};
-        if (["xml", "banxico", "original"].indexOf(previa) === -1) previa = "xml";
+        // Hay moneda extranjera. Con «Usar esto siempre» (la misma preferencia de Administración de XML) ya no se pregunta
+        var pref = Fiscontable.monedaReportes.leer();
+        if (pref.siempre) { cuerpo.moneda = A_CONC[pref.modo] || "xml"; descargarExcel(modo, cuerpo); return; }
+        preguntarMoneda(monedas, "Descargar Excel", function (elegida) { cuerpo.moneda = elegida; descargarExcel(modo, cuerpo); });
+    }
+
+    // La preferencia es una sola para todos los reportes (Fiscontable.monedaReportes): aquí «dof» se llama «banxico»
+    var A_CONC = { xml: "xml", dof: "banxico", "": "original" }, DE_CONC = { xml: "xml", banxico: "dof", original: "" };
+
+    function preguntarMoneda(monedas, textoBoton, alElegir) {
+        var pref = Fiscontable.monedaReportes.leer(), reglas = E.datos.reglas || {};
+        var previa = A_CONC[pref.modo] || "xml";
         var sinBanxico = !(E.datos.tipo_cambio || {}).token_configurado;
         function opcion(valor, titulo, detalle) {
             return '<label class="conc-opcion"><input type="radio" name="conc-moneda" value="' + valor + '"' + (previa === valor ? " checked" : "") + ">" +
                 "<span><b>" + titulo + "</b><small>" + detalle + "</small></span></label>";
         }
-        preguntar("Hay importes en " + monedas.join(", "),
-            "<p>Este Excel lleva facturas o pagos en moneda extranjera. ¿Cómo los quieres?</p>" +
+        preguntar(monedas.length ? "Hay importes en " + monedas.join(", ") : "Moneda de los Excel",
+            "<p>" + (monedas.length ? "Este Excel lleva facturas o pagos en moneda extranjera. " : "") + "¿Cómo quieres los importes en moneda extranjera?</p>" +
             opcion("xml", "En pesos, con el tipo de cambio de tus XML", "El de cada factura y el de cada complemento de pago. Es lo que dicen tus comprobantes.") +
             opcion("banxico", "En pesos, con el tipo de cambio de Banxico", esc(reglas[E.regla] || "Publicado en el DOF") +
                 ". Si tienes un tipo de cambio propio para una fecha, se usa ese; lo que te pagaron en pesos se queda con los pesos del complemento." +
                 (sinBanxico ? " Banxico todavía no está conectado: donde falte se usa el del XML, y el Excel lo dice." : "")) +
             opcion("original", "Sin convertir", "Cada importe en la moneda de su factura. El IVA " + textoLado("cobrado", "pagado") + " va en pesos de todos modos.") +
-            '<p class="conc-sub">En los tres casos el Excel trae al lado la moneda original, el tipo de cambio usado y el total en moneda original, y dice en qué moneda está el saldo insoluto.</p>',
-            [{ texto: "Descargar Excel", primario: true, accion: function () {
+            '<p class="conc-sub">En los tres casos el Excel trae al lado la moneda original, el tipo de cambio usado y el total en moneda original, y dice en qué moneda está el saldo insoluto.</p>' +
+            '<label class="conc-opcion conc-opcion--siempre"><input type="checkbox" id="conc-moneda-siempre"' + (pref.siempre ? " checked" : "") + ">" +
+            "<span><b>Usar esto siempre</b><small>En todos los Excel (también en Administración de XML), sin volver a preguntar. Lo cambias aquí mismo, en «Moneda de los Excel».</small></span></label>",
+            [{ texto: textoBoton, primario: true, accion: function () {
                 var elegida = document.querySelector('input[name="conc-moneda"]:checked');
-                cuerpo.moneda = elegida ? elegida.value : "xml";
-                guardar("moneda_excel", cuerpo.moneda);
-                descargarExcel(modo, cuerpo);            // la ventana se cierra ya; el botón de la izquierda muestra el avance
+                var valor = elegida ? elegida.value : "xml";
+                Fiscontable.monedaReportes.guardar(DE_CONC[valor], $("conc-moneda-siempre").checked);
+                pintarMonedaExcel();
+                alElegir(valor);                          // la ventana se cierra ya; el botón de la izquierda muestra el avance
             } }]);
+    }
+
+    /* Con «Usar esto siempre» el Excel ya no pregunta: este renglón dice cómo sale y deja cambiarlo. */
+    function pintarMonedaExcel() {
+        var b = $("btn-moneda-excel"), pref = Fiscontable.monedaReportes.leer();
+        if (!b) return;
+        b.hidden = !pref.siempre;
+        b.textContent = "Moneda de los Excel: " + Fiscontable.monedaReportes.texto(pref.modo) + " · Cambiar";
     }
 
     async function descargarExcel(modo, cuerpo) {
@@ -986,6 +1007,7 @@
         document.addEventListener("click", function () { cerrarMenus(); });
         document.querySelector(".mod-acciones").addEventListener("click", function (e) {
             var b = e.target.closest("[data-excel]"); if (b && !b.disabled && E.datos) exportarExcel(b.dataset.excel);
+            if (e.target.closest("#btn-moneda-excel") && E.datos) preguntarMoneda([], "Guardar", function () {});
         });
         $("btn-listas").addEventListener("click", function () {
             var q = new URLSearchParams({ empresa: E.rfc || "" }), est = E.selPeriodo.estado();

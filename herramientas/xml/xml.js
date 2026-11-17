@@ -86,6 +86,9 @@
     function leerLocal(clave) { try { return JSON.parse(localStorage.getItem("xml:" + clave)); } catch (e) { return null; } }
     function borrarLocal(clave) { try { localStorage.removeItem("xml:" + clave); } catch (e) { /* nada */ } }
     E.pagosPor = leerLocal("pagosPor") === "pago" ? "pago" : "emision";
+    // Importes en pesos en la tabla: con «Usar esto siempre» arranca así; si no, en su moneda hasta que lo pidas
+    E.moneda = (function () { var p = Fiscontable.monedaReportes.leer(); return p.siempre ? p.modo : ""; })();
+    E.convertido = {};
     function descargarBlob(blob, nombre) { Fiscontable.guardarArchivo(blob, nombre); }
     function nombreArchivo(resp, porDefecto) {
         var cd = resp.headers.get("Content-Disposition") || "";
@@ -341,7 +344,7 @@
         // Sin elección no se trae ningún XML (solo la forma de la tabla)
         var desde = hayEleccion() ? r.desde : "1900-01-01", hasta = hayEleccion() ? r.hasta : "1900-01-01";
         var q = "?rfc=" + encodeURIComponent(E.rfc) + (desde ? "&desde=" + desde : "") + (hasta ? "&hasta=" + hasta : "") +
-            (E.pagosPor === "pago" ? "&pagos_por=pago" : "");
+            (E.pagosPor === "pago" ? "&pagos_por=pago" : "") + (E.moneda ? "&convertir=" + E.moneda : "");
         $("conteo-filas").textContent = "Cargando…";
         var yo = (E.nCarga = (E.nCarga || 0) + 1), rfcPedido = E.rfc;     // si cambias el periodo mientras carga, gana el último
         try {
@@ -349,6 +352,7 @@
             if (yo !== E.nCarga || rfcPedido !== E.rfc) return;
             E.datos = llegaron;
             E.banxico = respuesta.banxico || {};                  // para ofrecer el tipo de cambio del DOF al sacar el Excel
+            E.convertido = respuesta.convertido || {};            // {modo, con, convertidas, sin_tc} si la tabla viene en pesos
         } catch (e) { if (yo === E.nCarga) avisar(e.message); return; }
         E.cargado = hayEleccion() ? { rfc: E.rfc, desde: r.desde, hasta: r.hasta, fechas: porFechas(), pagosPor: E.pagosPor } : null;
         Fiscontable.url(Fiscontable.periodoAUrl(E.P.estado(), porFechas()));
@@ -356,6 +360,7 @@
         E.seleccion.clear();
         pintarPestanas();
         cambiarModulo(E.modulo, true);
+        pintarMoneda();
         reanudarValidacion();
     }
 
@@ -875,6 +880,7 @@
         $("cerrar-columnas").addEventListener("click", function () { $("panel-columnas").hidden = true; });
         $("buscar-columna").addEventListener("input", pintarPanelColumnas);
         $("btn-fabrica").addEventListener("click", function () { aplicarVista(""); });
+        $("btn-moneda").addEventListener("click", elegirMoneda);
         $("lista-disponibles").addEventListener("change", function (e) {
             var k = e.target.dataset.mostrar;
             if (!k) return;
@@ -923,8 +929,15 @@
         }
         var monedas = monedasExtranjeras(modo === "completo" ? ["recibidos", "emitidos", "pagos"].reduce(function (t, m) { return t.concat(filasPeriodo(m)); }, []) : E.filas);
         if (monedas.length) {
-            var eleccion = await preguntarMoneda(monedas);
-            if (eleccion === null) return;                         // canceló
+            var pref = Fiscontable.monedaReportes.leer(), eleccion;
+            if (pref.siempre) {                                    // «usar esto siempre»: ya no pregunta
+                eleccion = pref.modo === "dof" && !dofDisponible(monedas) ? "xml" : pref.modo;
+            } else {
+                var r2 = await preguntarMoneda(monedas, "excel");
+                if (r2 === null) return;                           // canceló
+                eleccion = r2.modo;
+                if (r2.siempre && E.moneda !== r2.modo) { E.moneda = r2.modo; cargarRegistros(); }      // la tabla también
+            }
             cuerpo.convertir = eleccion || null;
         }
         var boton = document.querySelector('.mod-acciones [data-excel="' + modo + '"]');
@@ -950,13 +963,21 @@
         return Object.keys(porMoneda).sort().map(function (m) { return [m, porMoneda[m].size]; });
     }
 
-    /* «Hay CFDI en otra moneda»: en pesos con el tipo de cambio del XML, con el del DOF (Banxico), o sin
-       convertir. Devuelve "xml", "dof", "" (sin convertir) o null si se cancela. Recuerda la última elección. */
-    function preguntarMoneda(monedas) {
-        var dlg = $("dlg-moneda");
+    /* «Hay CFDI en otra moneda»: en pesos con el tipo de cambio del XML, con el del DOF (Banxico), o sin convertir.
+       proposito: "excel" (al descargar) o "ver" (el botón «Importes» de la tabla). Devuelve {modo: "xml" | "dof" | "",
+       siempre: bool} o null si se cancela. Con «Usar esto siempre» queda guardado para la tabla y para todos los Excel. */
+    function dofDisponible(monedas) {
+        return !!(E.banxico || {}).USD && monedas.some(function (m) { return m[0] === "USD"; });
+    }
+
+    function preguntarMoneda(monedas, proposito) {
+        var dlg = $("dlg-moneda"), ver = proposito === "ver";
         var lista = monedas.map(function (m) { return m[1].toLocaleString("es-MX") + " en " + m[0]; });
-        $("dlg-moneda-sub").textContent = "En lo que vas a descargar hay " +
+        $("dlg-moneda-titulo").textContent = ver ? "Importes en otra moneda" : "Hay CFDI en otra moneda";
+        $("dlg-moneda-sub").textContent = (ver ? "En este periodo hay " : "En lo que vas a descargar hay ") +
             (lista.length > 1 ? lista.slice(0, -1).join(", ") + " y " + lista[lista.length - 1] : lista[0]) + ".";
+        $("dlg-moneda-pregunta").textContent = ver ? "¿Cómo quieres ver los importes?" : "¿Cómo quieres los importes en el Excel?";
+        $("dlg-moneda-ok").textContent = ver ? "Aplicar" : "Descargar Excel";
         var usd = (E.banxico || {}).USD, hayDolares = monedas.some(function (m) { return m[0] === "USD"; });
         var dof = dlg.querySelector('input[value="dof"]');
         var dia = function (f) { return f.slice(8, 10) + "/" + f.slice(5, 7) + "/" + f.slice(0, 4); };
@@ -965,18 +986,20 @@
             : !hayDolares ? "Banxico solo da el del dólar, y aquí no hay CFDI en dólares."
             : "El publicado en el DOF el día anterior a la emisión (art. 20 del CFF); en los pagos, a la fecha de pago. Hay del dólar hasta el " +
               dia(usd.hasta) + (monedas.length > 1 ? "; para las demás monedas se usa el del XML." : ".");
-        var previa = leerLocal("excelMoneda");
-        if (previa !== "xml" && previa !== "dof" && previa !== "") previa = "xml";       // de fábrica: el del XML
+        var pref = Fiscontable.monedaReportes.leer();
+        var previa = ver ? (E.moneda || "") : (E.moneda || pref.modo);      // al ver: lo que hay ahora; al descargar: lo que ves o lo último
         if (previa === "dof" && dof.disabled) previa = "xml";
         dlg.querySelectorAll('input[name="moneda-conv"]').forEach(function (i) { i.checked = i.value === previa; });
+        $("moneda-siempre").checked = pref.siempre;
         return new Promise(function (resolver) {
             var elegido = null;
             function cerrar(e) {
                 var b = e.target.closest("[data-moneda]");
                 if (!b) return;
                 if (b.dataset.moneda === "ok") {
-                    elegido = dlg.querySelector('input[name="moneda-conv"]:checked').value;
-                    guardarLocal("excelMoneda", elegido);
+                    var marcado = dlg.querySelector('input[name="moneda-conv"]:checked');
+                    elegido = { modo: marcado ? marcado.value : "", siempre: $("moneda-siempre").checked };
+                    Fiscontable.monedaReportes.guardar(elegido.modo, elegido.siempre);
                 }
                 dlg.close();
             }
@@ -988,6 +1011,34 @@
             });
             dlg.showModal();
         });
+    }
+
+    /* El botón «Importes» de la tabla y el aviso de que va en pesos. Solo aparecen si el periodo trae otra moneda. */
+    function monedasDelPeriodo() {
+        return monedasExtranjeras(["recibidos", "emitidos", "pagos"].reduce(function (t, m) { return t.concat(filasPeriodo(m)); }, []));
+    }
+
+    function pintarMoneda() {
+        var boton = $("btn-moneda"), aviso = $("aviso-moneda"), c = E.convertido || {};
+        var hay = monedasDelPeriodo().length > 0;
+        boton.hidden = !hay && !c.modo;
+        boton.textContent = "Importes: " + (c.modo ? "en pesos" : "en su moneda");
+        aviso.hidden = !c.modo;
+        if (c.modo) {
+            aviso.textContent = "Importes en pesos (MXN), convertidos con " + c.con + ": " + Number(c.convertidas || 0).toLocaleString("es-MX") + " renglón(es)" +
+                (c.sin_tc ? "; " + c.sin_tc + " no traen tipo de cambio y siguen en su moneda" : "") + ". Así salen también en el Excel.";
+            var b = document.createElement("button"); b.type = "button"; b.textContent = "Cambiar"; b.addEventListener("click", elegirMoneda);
+            aviso.appendChild(b);
+        }
+    }
+
+    async function elegirMoneda() {
+        var monedas = monedasDelPeriodo();
+        if (!monedas.length) return;
+        var r = await preguntarMoneda(monedas, "ver");
+        if (r === null) return;
+        E.moneda = r.modo;
+        cargarRegistros();
     }
 
     /* Conciliación: se abre con la misma empresa, periodo y lado (lee la misma biblioteca). */

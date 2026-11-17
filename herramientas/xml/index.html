@@ -4,14 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Administración de XML · Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611170243">
-    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611170243">
-    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611170243">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611170256">
+    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611170256">
+    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611170256">
 </head>
 <body class="bg-slate-50">
 <div id="app-header" data-modulo="xml" data-titulo="Administración de XML" data-migas="Herramientas|/herramientas/"></div>
-<script src="/assets/js/nucleo.js?v=202611170243"></script>
-<script src="/assets/js/barra.js?v=202611170243"></script>
+<script src="/assets/js/nucleo.js?v=202611170256"></script>
+<script src="/assets/js/barra.js?v=202611170256"></script>
 
 <main class="xml-pagina">
     <!-- Una sola fila: qué módulo, de quién, qué periodo y la acción principal -->
@@ -102,6 +102,7 @@
                         <button type="button" id="quitar-filtros" class="xml-enlace">Quitar todos los filtros</button>
                     </div>
                 </div>
+                <button type="button" id="btn-moneda" class="xml-btn" title="Ver los importes en moneda extranjera en pesos (como en el Excel) o en su moneda" hidden>Importes: en su moneda</button>
                 <button type="button" id="btn-columnas" class="xml-btn">Columnas</button>
                 <div class="xml-menu">
                     <button type="button" id="btn-vistas" class="xml-btn"><span id="nombre-vista">Vista de fábrica</span> ▾</button>
@@ -111,6 +112,7 @@
         </div>
 
         <div id="filtros-activos" class="xml-filtros-activos" hidden></div>
+        <p id="aviso-moneda" class="xml-aviso-moneda" role="status" hidden></p>
 
         <div id="avance-validacion" class="xml-validando" hidden>
             <div class="xml-validando__texto"><strong id="validando-titulo">Validando ante el SAT…</strong> <span id="validando-detalle"></span></div>
@@ -155,7 +157,7 @@
     <div class="fc-modal__cabeza"><div><h2 id="dlg-moneda-titulo">Hay CFDI en otra moneda</h2><p id="dlg-moneda-sub"></p></div>
         <button type="button" class="fc-modal__cerrar" data-moneda="cerrar" aria-label="Cerrar">×</button></div>
     <div class="fc-modal__cuerpo">
-        <fieldset class="xml-opciones"><legend>¿Cómo quieres los importes en el Excel?</legend>
+        <fieldset class="xml-opciones"><legend id="dlg-moneda-pregunta">¿Cómo quieres los importes en el Excel?</legend>
             <label class="xml-opcion"><input type="radio" name="moneda-conv" value="xml">
                 <span><strong>En pesos, con el tipo de cambio del XML</strong><small>El que trae cada CFDI.</small></span></label>
             <label class="xml-opcion"><input type="radio" name="moneda-conv" value="dof">
@@ -164,10 +166,12 @@
                 <span><strong>Sin convertir</strong><small>Cada CFDI en su moneda, con su tipo de cambio a un lado y un total por moneda.</small></span></label>
         </fieldset>
         <p class="xml-opciones__nota">En pesos, junto a cada importe quedan el tipo de cambio usado, la moneda original y el importe en esa moneda.</p>
+        <label class="xml-siempre"><input type="checkbox" id="moneda-siempre">
+            <span><strong>Usar esto siempre</strong><small>En la tabla y en todos los Excel (también en Conciliación), sin volver a preguntar. Lo cambias cuando quieras con el botón «Importes» de la tabla.</small></span></label>
     </div>
     <div class="fc-modal__pie">
         <button type="button" class="ui-btn ui-btn--secundario ui-btn--36" data-moneda="cerrar">Cancelar</button>
-        <button type="button" class="ui-btn ui-btn--primario ui-btn--36" data-moneda="ok">Descargar Excel</button>
+        <button type="button" class="ui-btn ui-btn--primario ui-btn--36" data-moneda="ok" id="dlg-moneda-ok">Descargar Excel</button>
     </div>
 </dialog>
 
@@ -187,8 +191,8 @@
     </div>
 </aside>
 
-<script src="/assets/js/comun/periodo-meses.js?v=202611170243"></script>
-<script src="/assets/js/comun/compartir.js?v=202611170243"></script>
-<script src="/herramientas/xml/xml.js?v=202611170243"></script>
+<script src="/assets/js/comun/periodo-meses.js?v=202611170256"></script>
+<script src="/assets/js/comun/compartir.js?v=202611170256"></script>
+<script src="/herramientas/xml/xml.js?v=202611170256"></script>
 </body>
 </html>
