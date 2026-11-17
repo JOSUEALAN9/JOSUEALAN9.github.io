@@ -2141,6 +2141,13 @@ html.fc-incrustado .fc-reportar { display: none; }
 .fc-carga--listo .fc-carga__giro { animation: none; border: 0; width: auto; height: auto; }
 .fc-carga--listo .fc-carga__giro::before { content: "✓"; font-weight: 800; }
 @keyframes fc-carga-listo { 0% { opacity: 0; transform: translate(-50%, -6px); } 8%, 80% { opacity: 1; transform: translate(-50%, 0); } 100% { opacity: 0; transform: translate(-50%, 0); } }
+/* En línea (junto a la nota de la barra de acciones): no tapa la tabla. En el celular sigue pegada abajo de la pantalla. */
+@media (min-width: 701px) {
+  .fc-carga.fc-carga--enlinea { position: static; transform: none; box-shadow: none; padding: 3px 12px; font-size: 12px; max-width: 100%; z-index: auto; order: 1; }
+  .fc-carga--enlinea.fc-carga--listo { animation-name: fc-carga-listo-enlinea; }
+  .mod-acciones--barra > .mod-acciones__der { order: 2; }
+}
+@keyframes fc-carga-listo-enlinea { 0% { opacity: 0; } 8%, 80% { opacity: 1; } 100% { opacity: 0; } }
 /* En el celular la tabla queda abajo del periodo: la etiqueta se pega a la pantalla para que se vea desde donde eliges */
 @media (max-width: 700px) { .fc-carga { position: fixed; top: auto; bottom: 84px; z-index: 60; } }
 @media (prefers-reduced-motion: reduce) { .fc-carga-barra span, .fc-carga__giro { animation: none; } .fc-carga-barra span { width: 100%; } .fc-carga--listo { animation: none; } }

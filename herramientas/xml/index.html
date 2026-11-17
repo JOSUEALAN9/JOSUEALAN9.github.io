@@ -4,14 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Administración de XML · Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611172316">
-    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611172316">
-    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611172316">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611172329">
+    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611172329">
+    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611172329">
 </head>
 <body class="bg-slate-50">
 <div id="app-header" data-modulo="xml" data-titulo="Administración de XML" data-migas="Herramientas|/herramientas/"></div>
-<script src="/assets/js/nucleo.js?v=202611172316"></script>
-<script src="/assets/js/barra.js?v=202611172316"></script>
+<script src="/assets/js/nucleo.js?v=202611172329"></script>
+<script src="/assets/js/barra.js?v=202611172329"></script>
 
 <main class="xml-pagina">
     <!-- Una sola fila: qué módulo, de quién, qué periodo y la acción principal -->
@@ -61,6 +61,8 @@
         <aside class="mod-acciones" aria-label="Acciones">
             <p class="mod-acciones__grupo">SAT</p>
             <button type="button" id="btn-validar" class="mod-accion" title="Consulta en el SAT si están vigentes o cancelados"><b>✓</b>Validar estado SAT</button>
+            <p class="mod-acciones__grupo">Reportes</p>
+            <button type="button" id="btn-conceptos" class="mod-accion" title="Un renglón por producto o servicio de las facturas que ves, con sus impuestos, y el resumen por producto y por cliente o proveedor"><b>▤</b>Reporte por conceptos</button>
             <p class="mod-acciones__grupo">Descargar</p>
             <button type="button" class="mod-accion" data-excel="vista" title="El reporte completo de esta pestaña, con tus filtros: las columnas acomodadas como el reporte de descarga que ya conoces (estado, folio fiscal, serie y folio, fechas, emisor, receptor, pago, importes, IVA, retenciones)"><b>▦</b>Excel · reporte completo</button>
             <button type="button" class="mod-accion" data-excel="visibles" title="La tabla tal como la tienes en pantalla: solo tus columnas, en tu orden y con tus filtros"><b>▥</b>Excel de esta tabla</button>
@@ -88,6 +90,25 @@
             <div class="ctx-segmento xml-seg" role="tablist" id="pestanas" aria-label="Qué XML"></div>
             <div id="subfiltros" class="xml-chips"></div>
         </div>
+
+        <!-- Reporte por conceptos (18-nov): se abre como una pestaña más y carga solo cuando se pide -->
+        <section id="conceptos" class="xc" hidden>
+            <div class="xc-cabeza">
+                <div><h2 id="conceptos-titulo">Conceptos</h2><p id="conceptos-sub"></p></div>
+                <div class="xc-cabeza__der">
+                    <button type="button" id="conceptos-excel" class="xml-btn">Excel del reporte</button>
+                    <button type="button" id="conceptos-cerrar" class="xml-btn">Volver a las facturas</button>
+                </div>
+            </div>
+            <div id="conceptos-avance" class="xml-validando" hidden>
+                <div class="xml-validando__texto"><strong id="conceptos-avance-texto">Armando el reporte…</strong></div>
+                <div class="xml-barra"><span id="conceptos-avance-barra"></span></div>
+            </div>
+            <p id="conceptos-error" class="xc-error" role="alert" hidden></p>
+            <div id="conceptos-resumen" class="xc-resumen" hidden></div>
+            <div id="conceptos-vistas" class="ctx-segmento xml-seg xc-vistas" role="tablist" aria-label="Cómo ver los conceptos" hidden></div>
+            <div id="conceptos-tablas" hidden></div>
+        </section>
 
         <div class="xml-toolbar">
             <input type="search" id="buscar" placeholder="Buscar RFC, nombre, folio, UUID…">
@@ -193,8 +214,10 @@
     </div>
 </aside>
 
-<script src="/assets/js/comun/periodo-meses.js?v=202611172316"></script>
-<script src="/assets/js/comun/compartir.js?v=202611172316"></script>
-<script src="/herramientas/xml/xml.js?v=202611172316"></script>
+<script src="/assets/js/comun/periodo-meses.js?v=202611172329"></script>
+<script src="/assets/js/comun/compartir.js?v=202611172329"></script>
+<script src="/assets/js/comun/tabla.js?v=202611172329"></script>
+<script src="/herramientas/xml/conceptos.js?v=202611172329"></script>
+<script src="/herramientas/xml/xml.js?v=202611172329"></script>
 </body>
 </html>

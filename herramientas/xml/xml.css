@@ -311,7 +311,30 @@ button.ctx-resumen__dato:hover { background: rgb(var(--g-50)); }
 .xml-siempre span { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
 .xml-siempre strong { font-size: 14px; font-weight: 700; color: rgb(var(--g-900)); }
 .xml-siempre small { font-size: 12.5px; color: rgb(var(--g-600)); line-height: 1.45; }
-.xml-aviso-moneda { margin: 8px 0 0; padding: 8px 12px; border-radius: 10px; background: rgb(var(--ok-50)); border: 1px solid rgb(var(--ok-200)); color: rgb(var(--ok-600)); font-size: 13px; line-height: 1.45; }
+.xml-aviso-moneda { margin: 6px 2px 0; padding: 0; color: rgb(var(--g-600)); font-size: 12px; line-height: 1.4; }
 .xml-aviso-moneda[hidden] { display: none; }
 .xml-aviso-moneda button { background: none; border: 0; padding: 0; margin-left: 6px; color: inherit; font: inherit; font-weight: 700; text-decoration: underline; cursor: pointer; }
 #btn-moneda[hidden] { display: none; }
+
+/* ---------- Reporte por conceptos (18-nov) ---------- */
+.xml--conceptos .xml-toolbar, .xml--conceptos #filtros-activos, .xml--conceptos #aviso-moneda, .xml--conceptos #avance-validacion,
+.xml--conceptos #barra-seleccion, .xml--conceptos #tabla-marco, .xml--conceptos .xml-pie, .xml--conceptos #subfiltros { display: none !important; }
+.xc[hidden] { display: none !important; }
+.xc { margin-top: 10px; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.xc [hidden] { display: none !important; }
+.xc-cabeza { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.xc-cabeza h2 { margin: 0; font-size: 17px; font-weight: 700; color: rgb(var(--g-900)); }
+.xc-cabeza p { margin: 2px 0 0; font-size: 12.5px; color: rgb(var(--g-600)); }
+.xc-cabeza__der { display: flex; gap: 8px; flex-wrap: wrap; }
+.xc-datos { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; }
+.xc-dato { min-width: 0; padding: 10px 12px; border: 1px solid rgb(var(--g-200)); border-radius: 12px; background: rgb(var(--g-0)); }
+.xc-dato strong { display: block; font-size: 16px; font-weight: 700; color: rgb(var(--g-900)); font-variant-numeric: tabular-nums; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.xc-dato small { display: block; margin-top: 2px; font-size: 11.5px; color: rgb(var(--g-600)); }
+.xc-avisos { margin: 8px 2px 0; font-size: 12px; color: rgb(var(--g-600)); line-height: 1.45; }
+.xc-vacio { margin: 0; padding: 18px; border: 1px dashed rgb(var(--g-300)); border-radius: 12px; color: rgb(var(--g-700)); font-size: 13.5px; }
+.xc-error { margin: 0; padding: 10px 14px; border-radius: 12px; background: rgb(var(--er-50, 254 242 242)); border: 1px solid rgb(var(--er-200, 254 202 202)); color: rgb(var(--er-600, 220 38 38)); font-size: 13px; }
+.xc-vistas { align-self: flex-start; max-width: 100%; overflow-x: auto; scrollbar-width: none; }
+.xc-vistas .pestana { flex: none; }
+.xc-tabla { min-width: 0; }
+.xc-cerrar { cursor: pointer; }
+@media (max-width: 640px) { .xc-cabeza__der { width: 100%; } .xc-cabeza__der .xml-btn { flex: 1 1 auto; } .xc-datos { grid-template-columns: repeat(2, minmax(0, 1fr)); } }

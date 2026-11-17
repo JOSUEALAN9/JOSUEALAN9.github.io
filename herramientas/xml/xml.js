@@ -326,7 +326,7 @@
 
     /* Aviso sobre la tabla (17-nov): mientras llega un periodo se ve «Cargando…» y la tabla anterior se atenúa (para que no se
        confunda con la nueva); al llegar dice «Actualizado · periodo · cuántos XML» unos segundos. */
-    var CARGA = Fiscontable.avisoCarga($("tabla-marco"), { atenuar: true });
+    var CARGA = Fiscontable.avisoCarga($("tabla-marco"), { atenuar: true, junto: $("acciones-alcance") });      // arriba, junto a «Sobre los N XML que ves»
     function periodoCorto() { var t = textoPeriodo(); return t.length > 34 ? "los meses elegidos" : t; }     // muchos meses sueltos no caben en la etiqueta
     function mostrarCarga() {
         if (hayEleccion()) CARGA.mostrar("Cargando " + periodoCorto() + "…", "Sigue cargando " + periodoCorto() + "… un periodo grande tarda un poco más.");
@@ -415,10 +415,33 @@
             var n = contarUuid(filasPeriodo(m.clave));
             return '<button type="button" role="tab" class="pestana' + (m.clave === E.modulo ? " pestana--activa" : "") + '" aria-selected="' + (m.clave === E.modulo) + '" data-modulo="' + m.clave + '">' +
                 m.nombre + '<span class="xml-cuenta">' + n + "</span></button>";
-        }).join("");
+        }).join("") + (enConceptos() ? '<button type="button" role="tab" class="pestana pestana--activa" aria-selected="true" data-modulo="conceptos">Conceptos' +
+            '<span class="xml-cuenta xc-cerrar" data-cerrar-conceptos title="Cerrar el reporte">✕</span></button>' : "");
+        if (enConceptos()) document.querySelectorAll('#pestanas .pestana:not([data-modulo="conceptos"])').forEach(function (b) { b.classList.remove("pestana--activa"); b.setAttribute("aria-selected", "false"); });
+        pintarBotonConceptos();
+    }
+    function pintarBotonConceptos() { var bc = $("btn-conceptos"); if (bc) bc.hidden = !(E.modulo === "recibidos" || E.modulo === "emitidos"); }
+
+    /* Reporte por conceptos (herramientas/xml/conceptos.js): toma la empresa, el periodo y las facturas que se ven */
+    function enConceptos() { return !!(window.XMLConceptos && XMLConceptos.abierto()); }
+    function abrirConceptos() {
+        if (!E.rfc || !hayEleccion()) return avisar("Elige empresa y periodo para armar el reporte.");
+        if (E.modulo !== "recibidos" && E.modulo !== "emitidos") return;
+        var r = rangoPeriodo();
+        var filtrado = E.busqueda.trim() || E.sub || Object.keys(E.rapidos).some(function (k) { return E.rapidos[k]; }) || Object.keys(E.av).some(function (k) { return E.av[k]; });
+        $("contenido").classList.add("xml--conceptos");
+        XMLConceptos.abrir({
+            rfc: E.rfc, lado: E.modulo, desde: r.desde, hasta: r.hasta, meses: mesesElegidos(), periodo: textoPeriodo(),
+            uuids: filtrado ? Array.from(new Set(E.filas.map(function (f) { return f.uuid; }))) : null,
+            alCerrar: function () { $("contenido").classList.remove("xml--conceptos"); pintarPestanas(); }
+        });
+        pintarPestanas();
+        var pc = document.querySelector('#pestanas [data-modulo="conceptos"]');       // en el celular la barra de pestañas se desliza: que se vea la nueva
+        if (pc && pc.scrollIntoView) pc.scrollIntoView({ block: "nearest", inline: "end" });
     }
 
     function cambiarModulo(modulo, conservarSub) {
+        if (enConceptos()) XMLConceptos.cerrar();
         E.modulo = modulo;
         Fiscontable.url({ tab: modulo });
         if (!conservarSub) E.sub = "";
@@ -433,6 +456,7 @@
         pintarRapidos();
         pintarVistas();
         pintarBotonExcel();
+        pintarBotonConceptos();
         aplicar();
     }
 
@@ -1051,8 +1075,10 @@
         boton.textContent = "Importes: " + (c.modo ? "en pesos" : "en su moneda");
         aviso.hidden = !c.modo;
         if (c.modo) {
-            aviso.textContent = "Importes en pesos (MXN), convertidos con " + c.con + ": " + Number(c.convertidas || 0).toLocaleString("es-MX") + " renglón(es)" +
-                (c.sin_tc ? "; " + c.sin_tc + " no traen tipo de cambio y siguen en su moneda" : "") + ". Así salen también en el Excel.";
+            // 18-nov (Alan: «más corto»): solo qué se hizo con lo que venía en otra moneda
+            aviso.textContent = "Importes en otra moneda: en pesos, al tipo de cambio " + (c.modo === "dof" ? "del DOF" : "de su factura") +
+                (c.sin_tc ? " (" + c.sin_tc + " sin tipo de cambio siguen en su moneda)" : "") + ".";
+            aviso.title = Number(c.convertidas || 0).toLocaleString("es-MX") + " renglón(es) convertidos con " + c.con + ". Así salen también en el Excel.";
             var b = document.createElement("button"); b.type = "button"; b.textContent = "Cambiar"; b.addEventListener("click", elegirMoneda);
             aviso.appendChild(b);
         }
@@ -1633,6 +1659,7 @@
         $("aviso-otra").addEventListener("click", function (e) { if (e.target.id === "volver-empresa") { E.otra = null; E.rfc = null; refrescarBibliotecas(); } });
         $("pestanas").addEventListener("click", function (e) {
             var b = e.target.closest(".pestana");
+            if (b && b.dataset.modulo === "conceptos") { if (e.target.closest("[data-cerrar-conceptos]")) XMLConceptos.cerrar(); return; }
             if (b && !b.disabled) cambiarModulo(b.dataset.modulo);
         });
         $("subfiltros").addEventListener("click", function (e) {
@@ -1685,6 +1712,7 @@
         $("btn-enlaces").addEventListener("click", function () { Fiscontable.enlacesCompartidos({ rfc: E.rfc }); });
         $("btn-zip-origen").addEventListener("click", descargarZipOrigen);
         $("btn-listas").addEventListener("click", abrirListas);
+        $("btn-conceptos").addEventListener("click", abrirConceptos);
         $("btn-cancelaciones").addEventListener("click", function () {
             var q = new URLSearchParams({ rfc: E.rfc || "" });
             if (E.modulo === "emitidos") q.set("vista", "emitidas");
