@@ -404,7 +404,7 @@
         var b = document.querySelector('.mod-acciones [data-excel="vista"]');
         if (!b || b.disabled) return;
         var pagos = E.modulo === "pagos";
-        b.innerHTML = "<b>▦</b>" + (pagos ? "Reporte de pagos (Excel)" : "Excel");
+        b.innerHTML = "<b>▦</b>" + (pagos ? "Excel · reporte de pagos" : "Excel · reporte completo");
         b.title = pagos ? "Dos hojas: «Pagos» (un renglón por pago, con IVA por tasa y retenciones) y «Documentos relacionados» (un renglón por factura pagada)"
             : "El reporte completo de esta pestaña, con tus filtros: las columnas acomodadas como el reporte de descarga que ya conoces";
     }
