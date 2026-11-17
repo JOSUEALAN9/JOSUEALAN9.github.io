@@ -4,15 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Conciliación · Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611152116">
-    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611152116">
-    <link rel="stylesheet" href="/herramientas/conciliacion/conciliacion.css?v=202611152116">
-    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611152116">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611170144">
+    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611170144">
+    <link rel="stylesheet" href="/herramientas/conciliacion/conciliacion.css?v=202611170144">
+    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611170144">
 </head>
 <body class="bg-slate-50">
 <div id="app-header" data-modulo="conciliacion" data-titulo="Conciliación" data-migas="Herramientas|/herramientas/"></div>
-<script src="/assets/js/nucleo.js?v=202611152116"></script>
-<script src="/assets/js/barra.js?v=202611152116"></script>
+<script src="/assets/js/nucleo.js?v=202611170144"></script>
+<script src="/assets/js/barra.js?v=202611170144"></script>
 
 <main class="xml-pagina">
     <!-- Una sola fila: qué módulo, de quién, qué periodo y las acciones -->
@@ -43,8 +43,8 @@
             <button type="button" id="btn-validar" class="mod-accion" title="Vigentes o cancelados: facturas, pagos y notas"><b>✓</b>Validar estado SAT</button>
             <button type="button" id="btn-tc" class="mod-accion" title="Tipos de cambio usados y ajustes propios"><b>$</b>Tipos de cambio</button>
             <p class="mod-acciones__grupo">Descargar</p>
-            <button type="button" class="mod-accion" data-excel="vista" title="Con tus columnas y filtros, más movimientos y tipos de cambio"><b>▦</b>Excel de esta tabla</button>
-            <button type="button" class="mod-accion" data-excel="completo" title="Todas las facturas del periodo, sin filtros"><b>▤</b>Excel completo</button>
+            <button type="button" class="mod-accion" data-excel="vista" title="Solo las facturas que ves (tus filtros o tu selección), con tus columnas; IVA por tasa, PPD pendientes y movimientos de esas facturas"><b>▦</b>Excel de esta tabla</button>
+            <button type="button" class="mod-accion" data-excel="completo" title="Todo el periodo, sin filtros: IVA por mes y por tasa, PPD sin pago, las que les falta complemento y movimientos"><b>▤</b>Excel completo</button>
             <p id="acciones-alcance" class="mod-acciones__nota"></p>
             <p class="mod-acciones__grupo">Con este periodo</p>
             <button type="button" id="btn-listas" class="mod-accion" title="Abre Listas del SAT con esta empresa y este periodo"><b>⚑</b>Validar listas</button>
@@ -59,22 +59,27 @@
         </div>
         <div id="cuerpo-conc">
 
-        <!-- Segunda fila: qué lado y qué facturas entran al periodo -->
+        <!-- Segunda fila: qué lado y con qué fecha entra una factura al periodo -->
         <div class="conc-controles">
             <div class="conc-lados" role="tablist" id="lados">
                 <button type="button" class="conc-lado" data-lado="emitidos" title="Clientes · cobranza">Facturas emitidas</button>
                 <button type="button" class="conc-lado" data-lado="recibidos" title="Proveedores · pagos">Facturas recibidas</button>
             </div>
-            <div class="ctx-segmento" id="base" role="group" aria-label="Qué facturas entran al periodo">
-                <button type="button" data-base="emision" aria-pressed="true">Lo facturado</button>
-                <button type="button" data-base="pago" aria-pressed="false" id="base-pago">Lo cobrado</button>
+            <div class="conc-base">
+                <span class="conc-base__titulo" id="base-titulo">El periodo es por</span>
+                <div class="ctx-segmento" id="base" role="group" aria-labelledby="base-titulo">
+                    <button type="button" data-base="pago" aria-pressed="true" id="base-pago">Fecha de cobro</button>
+                    <button type="button" data-base="emision" aria-pressed="false">Fecha de emisión</button>
+                </div>
             </div>
-            <input type="hidden" id="sel-base" value="emision">
+            <input type="hidden" id="sel-base" value="pago">
             <p id="ayuda-base" class="ctx-ayuda" hidden></p>
         </div>
 
         <div id="aviso-validar" class="conc-aviso" hidden></div>
         <div id="tarjetas" class="ctx-resumen"></div>
+        <!-- Lo pendiente de lo facturado en el periodo y el IVA cobrado: no cambian con el botón de arriba -->
+        <div id="pendientes" class="ctx-resumen conc-pendientes"></div>
         <div id="chips-estado" class="xml-chips"></div>
 
         <div class="xml-toolbar">
@@ -131,9 +136,9 @@
     </div>
 </div>
 
-<script src="/assets/js/comun/periodo-meses.js?v=202611152116"></script>
-<script src="/assets/js/comun/tabla.js?v=202611152116"></script>
-<script src="/assets/js/comun/bandeja-xml.js?v=202611152116"></script>
-<script src="/herramientas/conciliacion/conciliacion.js?v=202611152116"></script>
+<script src="/assets/js/comun/periodo-meses.js?v=202611170144"></script>
+<script src="/assets/js/comun/tabla.js?v=202611170144"></script>
+<script src="/assets/js/comun/bandeja-xml.js?v=202611170144"></script>
+<script src="/herramientas/conciliacion/conciliacion.js?v=202611170144"></script>
 </body>
 </html>

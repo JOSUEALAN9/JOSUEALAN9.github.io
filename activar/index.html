@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Activar licencia | Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611152116">
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611152116">
+    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611170144">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611170144">
     <style>
         .act { max-width: 720px; }
         .act-caja { display: grid; gap: 18px; padding: 28px; }
@@ -21,8 +21,8 @@
 <body class="min-h-screen flex flex-col">
 
     <div id="app-header" data-modulo="activar" data-titulo="Activar licencia" data-migas=""></div>
-<script src="/assets/js/nucleo.js?v=202611152116"></script>
-<script src="/assets/js/barra.js?v=202611152116"></script>
+<script src="/assets/js/nucleo.js?v=202611170144"></script>
+<script src="/assets/js/barra.js?v=202611170144"></script>
 
     <main class="flex-grow w-full mod-pagina mod-pagina--angosta act">
         <div class="mod-cabeza"><div><h1>Activar licencia</h1>
@@ -43,32 +43,7 @@
         </section>
     </main>
 
-<script src="/assets/js/comun/activar-licencia.js?v=202611152116"></script>
-<script>
-(function () {
-    "use strict";
-    var F = window.Fiscontable, esc = F.escapar;
-    function fecha(iso) { var d = new Date(iso); return isNaN(d) ? "" : d.toLocaleDateString("es-MX", { day: "numeric", month: "short", year: "numeric" }); }
-    async function mias() {
-        try {
-            var r = await fetch(F.API + "/api/licencias/mias", { credentials: "include" });
-            if (!r.ok) return;
-            var d = await r.json(), filas = [];
-            (d.propias || []).forEach(function (l) { filas.push([l, "Tuya"]); });
-            if (d.despacho) (d.despacho.licencias || []).forEach(function (l) { filas.push([l, "Despacho «" + d.despacho.nombre + "»"]); });
-            var vistos = {};
-            filas = filas.filter(function (x) { if (vistos[x[0].id]) return false; vistos[x[0].id] = 1; return true; });
-            document.getElementById("act-mias-caja").hidden = !filas.length;
-            document.getElementById("act-mias").innerHTML = filas.map(function (x) {
-                var l = x[0];
-                return "<li><code>" + esc(l.clave) + "</code><span>" + esc(x[1]) + "</span><span>" + (l.tipo === "despacho" ? l.asientos + " lugares · " : "") +
-                    l.meses + (l.meses === 1 ? " mes" : " meses") + "</span><span>" + (l.estado === "revocada" ? "Cancelada" : "Vence el " + esc(fecha(l.vence_en))) + "</span></li>";
-            }).join("");
-        } catch (e) { /* no pasa nada */ }
-    }
-    F.activarLicencia(document.getElementById("act-forma"), { enfocar: true, alActivar: function () { mias(); } });
-    mias();
-})();
-</script>
+<script src="/assets/js/comun/activar-licencia.js?v=202611170144"></script>
+<script src="/activar/activar.js?v=202611170144"></script>
 </body>
 </html>

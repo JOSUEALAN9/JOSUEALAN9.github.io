@@ -72,7 +72,7 @@
         html.push('<div class="det-cabeza"><div><h1>' + esc(titulo) + '</h1><div class="det-uuid">' + esc(d.uuid) + '</div><div class="det-sellos">' + sellos.join("") + "</div></div>" +
             '<div class="det-acciones"><button type="button" class="xml-btn" id="btn-validar-uno">Validar ante el SAT</button><a class="xml-btn" href="' + API + "/api/xml/archivo?rfc=" + encodeURIComponent(RFC) + "&uuid=" + encodeURIComponent(d.uuid) + '">Descargar XML</a>' +
             '<button type="button" class="xml-btn" id="btn-ver-pdf" title="Representación impresa del CFDI">Ver PDF</button>' +
-            '<button class="xml-btn" onclick="window.print()">Imprimir</button></div></div>');
+            '<button type="button" class="xml-btn" data-fc-clic="print">Imprimir</button></div></div>');
 
         if (r.alertas && r.alertas.length) {
             html.push('<div class="det-tarjeta det-alertas"><h2>Para revisar</h2><ul>' + r.alertas.map(function (a) { return "<li>⚠ " + esc(a) + "</li>"; }).join("") + "</ul></div>");

@@ -83,6 +83,8 @@
     function descargarBlob(blob, nombre) { Fiscontable.guardarArchivo(blob, nombre); }
     function nombreArchivo(resp, porDefecto) {
         var cd = resp.headers.get("Content-Disposition") || "";
+        var u = cd.match(/filename\*=UTF-8''([^;]+)/i);          // el nombre con acentos («Nómina») viene aquí
+        if (u) { try { return decodeURIComponent(u[1]); } catch (e) { /* se usa el otro */ } }
         var m = cd.match(/filename="?([^";]+)"?/);
         return m ? m[1] : porDefecto;
     }
@@ -337,9 +339,10 @@
         $("conteo-filas").textContent = "Cargando…";
         var yo = (E.nCarga = (E.nCarga || 0) + 1), rfcPedido = E.rfc;     // si cambias el periodo mientras carga, gana el último
         try {
-            var llegaron = (await apiJSON("/api/xml/registros" + q)).modulos;
+            var respuesta = await apiJSON("/api/xml/registros" + q), llegaron = respuesta.modulos;
             if (yo !== E.nCarga || rfcPedido !== E.rfc) return;
             E.datos = llegaron;
+            E.banxico = respuesta.banxico || {};                  // para ofrecer el tipo de cambio del DOF al sacar el Excel
         } catch (e) { if (yo === E.nCarga) avisar(e.message); return; }
         E.cargado = hayEleccion() ? { rfc: E.rfc, desde: r.desde, hasta: r.hasta, fechas: porFechas(), pagosPor: E.pagosPor } : null;
         Fiscontable.url(Fiscontable.periodoAUrl(E.P.estado(), porFechas()));
@@ -392,7 +395,18 @@
         pintarSubfiltros();
         pintarRapidos();
         pintarVistas();
+        pintarBotonExcel();
         aplicar();
+    }
+
+    // En Pagos el Excel es el reporte de pagos: una hoja por pago y otra por factura pagada
+    function pintarBotonExcel() {
+        var b = document.querySelector('.mod-acciones [data-excel="vista"]');
+        if (!b || b.disabled) return;
+        var pagos = E.modulo === "pagos";
+        b.innerHTML = "<b>▦</b>" + (pagos ? "Reporte de pagos (Excel)" : "Excel");
+        b.title = pagos ? "Dos hojas: «Pagos» (un renglón por pago, con IVA por tasa y retenciones) y «Documentos relacionados» (un renglón por factura pagada)"
+            : "El reporte completo de esta pestaña, con tus filtros: las columnas acomodadas como el reporte de descarga que ya conoces";
     }
 
     function pintarSubfiltros() {
@@ -448,6 +462,14 @@
     function colPorClave(clave) { return catalogo().find(function (c) { return c.clave === clave; }); }
     function anchoDefecto(c) { return ANCHO_CLAVE[c.clave] || ANCHO_TIPO[c.tipo] || 150; }
 
+    /* En Recibidos y Emitidos «RFC contraparte» es el emisor o el receptor: el servidor dice a cuál
+       equivale y las vistas que la tenían pasan a esa columna (una sola, no dos con lo mismo). */
+    function sinRepetidas(cols) {
+        var alias = (E.datos[E.modulo] && E.datos[E.modulo].alias) || {}, vistas = {};
+        return (cols || []).map(function (c) { return alias[c.clave] ? { clave: alias[c.clave], ancho: 0 } : c; })
+            .filter(function (c) { if (vistas[c.clave]) return false; vistas[c.clave] = 1; return !!colPorClave(c.clave); });
+    }
+
     function columnasDeFabrica() {
         return E.datos[E.modulo].predeterminadas.filter(colPorClave).map(function (k) { return { clave: k, ancho: 0 }; });
     }
@@ -462,7 +484,7 @@
         var pred = E.vistas.find(function (v) { return v.modulo === E.modulo && v.predeterminada; });
         var cols = local || (pred && pred.columnas) || columnasDeFabrica();
         E.vistaActual[E.modulo] = local ? (leerLocal("vista:" + E.modulo) || "") : (pred ? pred.nombre : "");
-        E.columnas[E.modulo] = cols.filter(function (c) { return colPorClave(c.clave); });
+        E.columnas[E.modulo] = sinRepetidas(cols);
         if (!E.columnas[E.modulo].length) E.columnas[E.modulo] = columnasDeFabrica();
     }
 
@@ -501,7 +523,7 @@
 
     function aplicarVista(nombre) {
         var v = E.vistas.find(function (x) { return x.modulo === E.modulo && x.nombre === nombre; });
-        E.columnas[E.modulo] = (v ? v.columnas : columnasDeFabrica()).filter(function (c) { return colPorClave(c.clave); });
+        E.columnas[E.modulo] = sinRepetidas(v ? v.columnas : columnasDeFabrica());
         E.vistaActual[E.modulo] = v ? v.nombre : "";
         guardarColumnasLocal();
         pintarVistas();
@@ -870,16 +892,27 @@
     }
 
     /* ============================================================ acciones */
+    /* Excel. modo: "vista" (esta tabla, completo: tus columnas y después el resto con datos), "visibles"
+       (solo las columnas que ves) o "completo" (todo el periodo, una hoja por tipo y resumen).
+       Si en lo que se va a bajar hay CFDI en otra moneda, antes se pregunta si se convierten a pesos. */
     async function exportarExcel(modo) {
         var r = rangoPeriodo();
-        var cuerpo = { rfc: E.rfc, desde: r.desde, hasta: r.hasta, meses: mesesElegidos(), modo: modo, pagos_por: E.pagosPor };
-        if (modo === "vista") {
+        var cuerpo = { rfc: E.rfc, desde: r.desde, hasta: r.hasta, meses: mesesElegidos(), modo: modo === "completo" ? "completo" : "vista", pagos_por: E.pagosPor };
+        if (modo !== "completo") {
             cuerpo.modulo = E.modulo;
             cuerpo.sub = E.sub || null;
             cuerpo.columnas = E.columnas[E.modulo].map(function (c) { return c.clave; });
+            cuerpo.columnas_modo = modo === "visibles" ? "visibles" : "completas";
+            if (E.orden.clave) { cuerpo.orden_clave = E.orden.clave; cuerpo.orden_dir = E.orden.dir; }
             var filtrado = E.busqueda.trim() || Object.keys(E.rapidos).some(function (k) { return E.rapidos[k]; }) ||
                 Object.keys(E.av).some(function (k) { return E.av[k]; });
             cuerpo.uuids = filtrado ? Array.from(new Set(E.filas.map(function (f) { return f.uuid; }))) : null;
+        }
+        var monedas = monedasExtranjeras(modo === "completo" ? ["recibidos", "emitidos", "pagos"].reduce(function (t, m) { return t.concat(filasPeriodo(m)); }, []) : E.filas);
+        if (monedas.length) {
+            var eleccion = await preguntarMoneda(monedas);
+            if (eleccion === null) return;                         // canceló
+            cuerpo.convertir = eleccion || null;
         }
         var boton = document.querySelector('.mod-acciones [data-excel="' + modo + '"]');
         var texto = boton.innerHTML;
@@ -889,6 +922,59 @@
             descargarBlob(await resp.blob(), nombreArchivo(resp, "reporte.xlsx"));
         } catch (e) { avisar(e.message); }
         boton.disabled = false; boton.innerHTML = texto;
+    }
+
+    /* [["USD", 3], ["EUR", 1]]: cuántos CFDI hay en cada moneda extranjera (en Pagos cuentan la moneda del
+       pago y la de la factura pagada). */
+    function monedasExtranjeras(filas) {
+        var porMoneda = {};
+        (filas || []).forEach(function (f) {
+            [f.moneda, f.moneda_p, f.docto_moneda].forEach(function (m) {
+                if (!m || m === "MXN" || m === "XXX") return;
+                (porMoneda[m] = porMoneda[m] || new Set()).add(f.uuid);
+            });
+        });
+        return Object.keys(porMoneda).sort().map(function (m) { return [m, porMoneda[m].size]; });
+    }
+
+    /* «Hay CFDI en otra moneda»: en pesos con el tipo de cambio del XML, con el del DOF (Banxico), o sin
+       convertir. Devuelve "xml", "dof", "" (sin convertir) o null si se cancela. Recuerda la última elección. */
+    function preguntarMoneda(monedas) {
+        var dlg = $("dlg-moneda");
+        var lista = monedas.map(function (m) { return m[1].toLocaleString("es-MX") + " en " + m[0]; });
+        $("dlg-moneda-sub").textContent = "En lo que vas a descargar hay " +
+            (lista.length > 1 ? lista.slice(0, -1).join(", ") + " y " + lista[lista.length - 1] : lista[0]) + ".";
+        var usd = (E.banxico || {}).USD, hayDolares = monedas.some(function (m) { return m[0] === "USD"; });
+        var dof = dlg.querySelector('input[value="dof"]');
+        var dia = function (f) { return f.slice(8, 10) + "/" + f.slice(5, 7) + "/" + f.slice(0, 4); };
+        dof.disabled = !usd || !hayDolares;
+        $("dlg-moneda-dof").textContent = !usd ? "Todavía no hay tipos de cambio de Banxico cargados."
+            : !hayDolares ? "Banxico solo da el del dólar, y aquí no hay CFDI en dólares."
+            : "El publicado en el DOF el día anterior a la emisión (art. 20 del CFF); en los pagos, a la fecha de pago. Hay del dólar hasta el " +
+              dia(usd.hasta) + (monedas.length > 1 ? "; para las demás monedas se usa el del XML." : ".");
+        var previa = leerLocal("excelMoneda");
+        if (previa !== "xml" && previa !== "dof" && previa !== "") previa = "xml";       // de fábrica: el del XML
+        if (previa === "dof" && dof.disabled) previa = "xml";
+        dlg.querySelectorAll('input[name="moneda-conv"]').forEach(function (i) { i.checked = i.value === previa; });
+        return new Promise(function (resolver) {
+            var elegido = null;
+            function cerrar(e) {
+                var b = e.target.closest("[data-moneda]");
+                if (!b) return;
+                if (b.dataset.moneda === "ok") {
+                    elegido = dlg.querySelector('input[name="moneda-conv"]:checked').value;
+                    guardarLocal("excelMoneda", elegido);
+                }
+                dlg.close();
+            }
+            dlg.addEventListener("click", cerrar);
+            dlg.addEventListener("close", function alCerrar() {
+                dlg.removeEventListener("click", cerrar);
+                dlg.removeEventListener("close", alCerrar);
+                resolver(elegido);
+            });
+            dlg.showModal();
+        });
     }
 
     /* Conciliación: se abre con la misma empresa, periodo y lado (lee la misma biblioteca). */
@@ -912,22 +998,81 @@
         boton.disabled = false; boton.innerHTML = texto;
     }
 
-    async function descargarZipCompleto() {
-        var uuids = uuidsParaAcciones();
-        if (uuids.length > 300) { avisar("Con PDF van hasta 300 a la vez: selecciona o filtra menos (hay " + uuids.length.toLocaleString("es-MX") + "). Para más, descarga únicamente los XML."); return; }
-        var boton = $("btn-zip-completo"), texto = boton.innerHTML;
-        boton.disabled = true; boton.innerHTML = "<b>⏳</b>Generando " + uuids.length + "…";
+    /* PDF de varios CFDI (con o sin su XML), sin tope. Pocos: el servidor manda el ZIP y se baja al momento. Muchos:
+       responde {en_cola, job_id, total, mensaje}, lo arma en segundo plano y lo deja en «Mis descargas»; aquí se sigue
+       el avance («123 de 436») y se avisa al terminar. */
+    async function pedirPaquetePdf(ruta, uuids, boton, porDefecto) {
+        var texto = boton.innerHTML;
+        boton.disabled = true; boton.innerHTML = "<b>⏳</b>Generando " + uuids.length.toLocaleString("es-MX") + "…";
         try {
-            var resp = await postJSON("/api/xml/zip-completo", { rfc: E.rfc, uuids: uuids });
-            descargarBlob(await resp.blob(), nombreArchivo(resp, "pdf_y_xml.zip"));
+            var resp = await postJSON(ruta, { rfc: E.rfc, uuids: uuids, en_cola: true });
+            if ((resp.headers.get("Content-Type") || "").indexOf("application/json") === 0) {
+                var r = await resp.json();
+                avisoPaquete(r.mensaje);
+                if (Fiscontable.refrescarDescargas) Fiscontable.refrescarDescargas();
+                seguirPaquete(r.job_id, r.total);
+            } else descargarBlob(await resp.blob(), nombreArchivo(resp, porDefecto));
         } catch (e) { avisar(e.message); }
         boton.disabled = false; boton.innerHTML = texto;
     }
 
+    var PAQ = { texto: null };      // el último aviso de avance que pusimos (para no pisar un aviso de otra cosa)
+    function avisoPaquete(texto, acciones) {
+        PAQ.texto = texto;
+        if (Fiscontable.aviso) Fiscontable.aviso(texto, acciones); else Fiscontable.avisar(texto);
+    }
+    function avisoPaqueteALaVista() {
+        var caja = document.getElementById("fc-aviso"), t = document.getElementById("fc-aviso-texto");
+        return !!(caja && t && !caja.hidden && t.textContent === PAQ.texto);
+    }
+
+    function seguirPaquete(jobId, total) {
+        var fallas = 0;
+        async function vuelta() {
+            var r;
+            try { r = await apiJSON("/api/xml/paquete/" + encodeURIComponent(jobId)); fallas = 0; }
+            catch (e) { if (++fallas < 5) setTimeout(vuelta, 6000); return; }      // sin conexión un momento, o lo quitaron de Mis descargas
+            if (r.estado === "procesando") {
+                var n = r.total || total;
+                if (r.hechos != null && avisoPaqueteALaVista())
+                    avisoPaquete("Armando tu ZIP: " + r.hechos.toLocaleString("es-MX") + " de " + n.toLocaleString("es-MX") +
+                        " comprobantes. Puedes seguir trabajando; al terminar queda en Mis descargas.");
+                setTimeout(vuelta, 3000);
+                return;
+            }
+            if (Fiscontable.refrescarDescargas) Fiscontable.refrescarDescargas();
+            var verDescargas = { texto: "Abrir Mis descargas", accion: function () { if (Fiscontable.abrirDescargas) Fiscontable.abrirDescargas(); } };
+            if (r.estado === "completado") {
+                var acciones = r.partes > 1 ? [verDescargas] : [{ texto: "Descargar", accion: function () { bajarPaquete(r); } }, verDescargas];
+                avisoPaquete("Tu ZIP está listo: " + (r.progreso || (total.toLocaleString("es-MX") + " comprobantes")) +
+                    (r.partes > 1 ? ". Los " + r.partes + " archivos están en Mis descargas." : ". También queda en Mis descargas."), acciones);
+            } else if (r.estado !== "cancelado") {
+                avisoPaquete(r.mensaje_error || "No se pudo armar el paquete. Vuelve a pedirlo.");
+            }
+        }
+        setTimeout(vuelta, 2000);
+    }
+
+    async function bajarPaquete(r) {
+        try {
+            var resp = await api(r.url_descarga);
+            descargarBlob(await resp.blob(), r.nombre_descarga || nombreArchivo(resp, "cfdi.zip"));
+        } catch (e) { avisar(e.message); }
+    }
+
+    async function descargarZipCompleto() {
+        await pedirPaquetePdf("/api/xml/zip-completo", uuidsParaAcciones(), $("btn-zip-completo"), "pdf_y_xml.zip");
+    }
+
+    /* El enlace sí tiene tope: quien lo abre (sin cuenta) ve la lista completa y arma su ZIP en ese momento. */
     function compartirXml() {
         var uuids = uuidsParaAcciones();
         if (!uuids.length) { avisar("No hay XML en lo que ves."); return; }
-        if (uuids.length > 300) { avisar("Comparte hasta 300 a la vez: selecciona o filtra menos (hay " + uuids.length.toLocaleString("es-MX") + ")."); return; }
+        if (uuids.length > 300) {
+            avisar("Un enlace para compartir lleva hasta 300 comprobantes, porque quien lo abre los ve en una lista y los baja ahí mismo. Tienes " +
+                uuids.length.toLocaleString("es-MX") + ": selecciona o filtra menos, o baja «PDF y XML (ZIP)» y envía ese archivo.");
+            return;
+        }
         var nombre = (E.empresa && (E.empresa.alias || E.empresa.nombre)) || E.rfc;
         Fiscontable.compartir({ rfc: E.rfc, items: uuids.map(function (u) { return { tipo: "xml", rfc: E.rfc, uuid: u }; }), titulo: "CFDI de " + nombre });
     }
@@ -950,17 +1095,15 @@
         boton.disabled = false; boton.innerHTML = texto;
     }
 
-    /* XML a PDF (representación impresa): uno = PDF; varios = ZIP (hasta 300). */
+    /* XML a PDF (representación impresa): uno = PDF; varios = ZIP (si son muchos, en segundo plano: pedirPaquetePdf). */
     async function descargarPdf() {
         var uuids = uuidsParaAcciones();
-        if (uuids.length > 300) { avisar("Saca hasta 300 PDF a la vez: selecciona o filtra menos XML (hay " + uuids.length.toLocaleString("es-MX") + ")."); return; }
+        if (uuids.length !== 1) { await pedirPaquetePdf("/api/xml/pdfs", uuids, $("btn-pdf"), "cfdi_pdf.zip"); return; }
         var boton = $("btn-pdf"), texto = boton.innerHTML;
-        boton.disabled = true; boton.innerHTML = "<b>⏳</b>Generando " + uuids.length + "…";
+        boton.disabled = true; boton.innerHTML = "<b>⏳</b>Generando…";
         try {
-            var resp = uuids.length === 1
-                ? await api("/api/xml/pdf?rfc=" + encodeURIComponent(E.rfc) + "&uuid=" + encodeURIComponent(uuids[0]))
-                : await postJSON("/api/xml/pdfs", { rfc: E.rfc, uuids: uuids });
-            descargarBlob(await resp.blob(), nombreArchivo(resp, uuids.length === 1 ? "cfdi.pdf" : "cfdi_pdf.zip"));
+            var resp = await api("/api/xml/pdf?rfc=" + encodeURIComponent(E.rfc) + "&uuid=" + encodeURIComponent(uuids[0]));
+            descargarBlob(await resp.blob(), nombreArchivo(resp, "cfdi.pdf"));
         } catch (e) { avisar(e.message); }
         boton.disabled = false; boton.innerHTML = texto;
     }

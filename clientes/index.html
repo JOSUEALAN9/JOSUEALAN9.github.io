@@ -4,16 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Clientes | Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611152116">
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611152116">
-    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611152116">
+    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611170144">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611170144">
+    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611170144">
 </head>
 <body class="min-h-screen flex flex-col relative">
 
     <!-- TOP NAV -->
     <div id="app-header" data-modulo="clientes" data-titulo="Clientes" data-migas=""></div>
-<script src="/assets/js/nucleo.js?v=202611152116"></script>
-<script src="/assets/js/barra.js?v=202611152116"></script>
+<script src="/assets/js/nucleo.js?v=202611170144"></script>
+<script src="/assets/js/barra.js?v=202611170144"></script>
 
     <!-- ÁREA DE TRABAJO -->
     <main class="flex-grow w-full mod-pagina" style="max-width:1180px">
@@ -21,7 +21,7 @@
         <div class="mod-cabeza"><h1>Clientes</h1>
             <div class="mod-cabeza__acciones">
                 <button type="button" id="btn-constancias" class="fc-btn" title="Suelta constancias y opiniones de tus clientes: se guardan como sus documentos, se leen sus obligaciones y se dan de alta los que falten">Subir constancias y opiniones</button>
-                <button type="button" id="btn-agregar-cliente" onclick="abrirModalNuevoCliente()" class="boton-principal" style="width:auto;margin:0;padding:9px 18px">+ Registrar empresa</button>
+                <button type="button" id="btn-agregar-cliente" data-fc-clic="abrirModalNuevoCliente" class="boton-principal" style="width:auto;margin:0;padding:9px 18px">+ Registrar empresa</button>
             </div>
         </div>
 
@@ -35,7 +35,7 @@
                 <svg class="w-5 h-5 text-amber-600 flex-none mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                 <p id="banner-sin-conexion-texto" class="text-sm text-amber-800"></p>
             </div>
-            <button onclick="reintentar()" id="btn-reintentar" class="flex-none bg-white border border-amber-300 text-amber-700 hover:bg-amber-100 text-xs font-bold py-2 px-4 rounded-lg transition">
+            <button data-fc-clic="reintentar" id="btn-reintentar" class="flex-none bg-white border border-amber-300 text-amber-700 hover:bg-amber-100 text-xs font-bold py-2 px-4 rounded-lg transition">
                 Reintentar
             </button>
             <a href="/login" class="flex-none bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold py-2 px-4 rounded-lg transition">
@@ -82,7 +82,7 @@
 
     <!-- MODAL: REGISTRAR EMPRESA (mismas pestañas que la ficha; con su e.firma el RFC se obtiene automáticamente del certificado) -->
     <div id="modal-nuevo-cliente" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden justify-center items-center p-4">
-        <form id="form-nuevo-cliente" class="ficha-caja-modal bg-white w-full rounded-[20px] shadow-2xl overflow-hidden flex flex-col" onsubmit="crearCliente(event)" novalidate>
+        <form id="form-nuevo-cliente" class="ficha-caja-modal bg-white w-full rounded-[20px] shadow-2xl overflow-hidden flex flex-col" data-fc-envio="crearCliente" novalidate>
             <div class="px-7 pt-6 pb-0 border-b bg-slate-50">
                 <div class="flex justify-between items-start gap-3">
                     <div class="flex items-center gap-3 min-w-0">
@@ -92,7 +92,7 @@
                             <p id="alta-sub" class="text-sm text-slate-500 mt-1">Con su e.firma no escribes el RFC: sale del certificado.</p>
                         </div>
                     </div>
-                    <button type="button" onclick="cerrarModalNuevoCliente()" class="text-gray-400 hover:text-red-500 transition flex-none" aria-label="Cerrar"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
+                    <button type="button" data-fc-clic="cerrarModalNuevoCliente" class="text-gray-400 hover:text-red-500 transition flex-none" aria-label="Cerrar"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
                 </div>
                 <div id="alta-espacio" class="alta-espacio" hidden></div>
                 <div class="ficha-tabs" role="tablist">
@@ -235,7 +235,7 @@
                             <p id="editar-rfc" class="text-sm text-slate-500 font-mono mt-1"></p>
                         </div>
                     </div>
-                    <button onclick="cerrarModalEditar()" class="text-gray-400 hover:text-red-500 transition flex-none" aria-label="Cerrar"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
+                    <button data-fc-clic="cerrarModalEditar" class="text-gray-400 hover:text-red-500 transition flex-none" aria-label="Cerrar"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
                 </div>
                 <div class="ficha-tabs" role="tablist">
                     <button type="button" role="tab" data-ficha="general">Datos generales</button>
@@ -270,7 +270,7 @@
                             <label class="block sm:col-span-5"><span class="alta-etiqueta">Correo del cliente <i class="normal-case font-normal text-slate-400">(para mandarle su constancia, opinión y XML; varios con coma)</i></span>
                                 <input type="text" id="editar-correo" maxlength="300" class="alta-control" placeholder="contabilidad@cliente.com"></label>
                         </div>
-                        <button onclick="guardarAlias()" id="btn-guardar-alias" class="mt-3 bg-violet-600 hover:bg-violet-500 text-white font-bold py-2 px-5 rounded-lg transition text-sm">Guardar</button>
+                        <button data-fc-clic="guardarAlias" id="btn-guardar-alias" class="mt-3 bg-violet-600 hover:bg-violet-500 text-white font-bold py-2 px-5 rounded-lg transition text-sm">Guardar</button>
                     </div>
                     <dl class="ficha-datos">
                         <dt>RFC</dt><dd id="editar-dato-rfc" class="font-mono"></dd>
@@ -316,7 +316,7 @@
                         <div id="efirma-bloqueo" class="efirma-bloqueo" hidden>
                             <p id="efirma-bloqueo-texto" class="efirma-bloqueo__texto"></p>
                             <div class="efirma-bloqueo__acciones">
-                                <button type="button" id="btn-comprobar-efirma" class="ui-btn ui-btn--secundario ui-btn--32" onclick="comprobarEfirma()">Volver a comprobar</button>
+                                <button type="button" id="btn-comprobar-efirma" class="ui-btn ui-btn--secundario ui-btn--32" data-fc-clic="comprobarEfirma">Volver a comprobar</button>
                                 <span id="efirma-bloqueo-cuando" class="efirma-bloqueo__cuando"></span>
                             </div>
                             <p id="efirma-bloqueo-msg" class="efirma-bloqueo__msg" hidden></p>
@@ -336,11 +336,11 @@
                                 <button type="button" class="alta-ojo" data-ojo="editar-password" aria-label="Mostrar contraseña">👁</button></span></label>
                             <p id="editar-mensaje-efirma" class="text-xs hidden"></p>
                             <div class="flex gap-2">
-                                <button onclick="guardarEfirma()" id="btn-guardar-efirma" class="flex-grow bg-violet-600 hover:bg-violet-500 text-white font-bold py-2.5 rounded-lg transition text-sm">Guardar e.firma</button>
+                                <button data-fc-clic="guardarEfirma" id="btn-guardar-efirma" class="flex-grow bg-violet-600 hover:bg-violet-500 text-white font-bold py-2.5 rounded-lg transition text-sm">Guardar e.firma</button>
                             </div>
                             <p class="text-xs text-slate-400">🔒 Antes de guardar revisamos que el certificado sea de este RFC y que la contraseña abra la llave.</p>
                         </div>
-                        <button onclick="olvidarEfirmaDesdeModal()" id="btn-olvidar-efirma" class="hidden mt-3 text-xs font-semibold text-red-600 hover:underline">Olvidar la e.firma guardada</button>
+                        <button data-fc-clic="olvidarEfirmaDesdeModal" id="btn-olvidar-efirma" class="hidden mt-3 text-xs font-semibold text-red-600 hover:underline">Olvidar la e.firma guardada</button>
                     </div>
 
                 <!-- Contraseña del SAT (CIEC): para la Descarga masiva por el portal -->
@@ -355,8 +355,8 @@
                     <div class="flex gap-2">
                         <span class="relative block flex-grow"><input type="password" id="editar-ciec-valor" autocomplete="new-password" class="alta-control pr-10" placeholder="Contraseña del portal del SAT">
                         <button type="button" class="alta-ojo" data-ojo="editar-ciec-valor" aria-label="Mostrar contraseña">👁</button></span>
-                        <button onclick="guardarCiec()" id="btn-guardar-ciec" class="bg-violet-600 hover:bg-violet-500 text-white font-bold px-4 rounded-lg transition text-sm flex-none">Guardar</button>
-                        <button onclick="olvidarCiec()" id="btn-olvidar-ciec" class="hidden bg-white border border-red-200 text-red-600 hover:bg-red-50 font-bold px-3 rounded-lg transition text-sm flex-none">Olvidar</button>
+                        <button data-fc-clic="guardarCiec" id="btn-guardar-ciec" class="bg-violet-600 hover:bg-violet-500 text-white font-bold px-4 rounded-lg transition text-sm flex-none">Guardar</button>
+                        <button data-fc-clic="olvidarCiec" id="btn-olvidar-ciec" class="hidden bg-white border border-red-200 text-red-600 hover:bg-red-50 font-bold px-3 rounded-lg transition text-sm flex-none">Olvidar</button>
                     </div>
                     <p id="editar-mensaje-ciec" class="text-xs mt-2 hidden"></p>
                 </div>
@@ -393,9 +393,9 @@
                     </div>
                     <p id="editar-mensaje-csd" class="text-xs mb-2 hidden"></p>
                     <div class="flex flex-wrap items-center gap-3">
-                        <button type="button" onclick="guardarFacturacion()" id="btn-guardar-csd" class="bg-violet-600 hover:bg-violet-500 text-white font-bold py-2 px-5 rounded-lg transition text-sm">Guardar</button>
+                        <button type="button" data-fc-clic="guardarFacturacion" id="btn-guardar-csd" class="bg-violet-600 hover:bg-violet-500 text-white font-bold py-2 px-5 rounded-lg transition text-sm">Guardar</button>
                         <a id="csd-ir-facturar" href="/herramientas/facturar/?vista=config" class="text-xs font-semibold text-violet-700 hover:underline">Series, folios y timbres en Facturar →</a>
-                        <button type="button" onclick="quitarCsd()" id="btn-quitar-csd" class="ml-auto text-xs font-semibold text-red-600 hover:underline" hidden>Quitar el CSD</button>
+                        <button type="button" data-fc-clic="quitarCsd" id="btn-quitar-csd" class="ml-auto text-xs font-semibold text-red-600 hover:underline" hidden>Quitar el CSD</button>
                     </div>
                     <p class="text-xs text-slate-400 mt-3">🔒 Antes de guardar revisamos que sea un CSD (no la e.firma), que sea de este RFC y que la contraseña abra la llave.</p>
                 </div>
@@ -414,7 +414,7 @@
                         <a href="https://firmamanifiesto.lunasoft.net/" target="_blank" rel="noopener" class="text-xs font-bold text-violet-700 border border-violet-200 hover:bg-violet-50 rounded-lg py-2 px-3">Abrir Luna Soft ↗</a>
                         <label class="block flex-1 min-w-[200px]"><span class="alta-etiqueta" id="man-etiqueta">PDF del manifiesto</span>
                             <input type="file" id="man-pdf" accept=".pdf,application/pdf" class="alta-archivo"></label>
-                        <button type="button" onclick="subirManifiestoFicha()" id="btn-subir-man" class="bg-violet-600 hover:bg-violet-500 text-white font-bold py-2 px-5 rounded-lg transition text-sm">Subir y revisar</button>
+                        <button type="button" data-fc-clic="subirManifiestoFicha" id="btn-subir-man" class="bg-violet-600 hover:bg-violet-500 text-white font-bold py-2 px-5 rounded-lg transition text-sm">Subir y revisar</button>
                     </div>
                     <p id="editar-mensaje-man" class="text-xs mt-2 hidden"></p>
                 </div>
@@ -484,7 +484,7 @@
                         <span id="xml-correo-nota" class="text-xs text-slate-500"></span></label>
                     <p id="xml-explica" class="text-xs text-slate-600"></p>
                     <p id="xml-mensaje" class="text-xs hidden"></p>
-                    <button type="button" onclick="guardarXmlAuto()" id="btn-guardar-xml" class="self-start bg-violet-600 hover:bg-violet-500 text-white font-bold py-2 px-5 rounded-lg transition text-sm">Guardar</button>
+                    <button type="button" data-fc-clic="guardarXmlAuto" id="btn-guardar-xml" class="self-start bg-violet-600 hover:bg-violet-500 text-white font-bold py-2 px-5 rounded-lg transition text-sm">Guardar</button>
                 </section>
 
                 <!-- ===== Obligaciones ===== -->
@@ -527,15 +527,15 @@
                     <p class="mt-5 text-[11px] font-bold text-slate-500 uppercase tracking-wide">Otros impuestos estatales · Quintana Roo</p>
                     <div id="obl-estatales" class="mt-2 flex flex-col gap-3"></div>
                     <p id="obl-mensaje" class="text-xs mt-2 hidden"></p>
-                    <button onclick="guardarObligaciones()" id="btn-guardar-obligaciones" class="mt-3 w-full bg-violet-600 hover:bg-violet-500 text-white font-bold py-2.5 rounded-lg transition text-sm">Guardar obligaciones</button>
+                    <button data-fc-clic="guardarObligaciones" id="btn-guardar-obligaciones" class="mt-3 w-full bg-violet-600 hover:bg-violet-500 text-white font-bold py-2.5 rounded-lg transition text-sm">Guardar obligaciones</button>
                 </div>
                 </section>
             </div>
         </div>
     </div>
 
-<script src="/assets/js/comun/leer-cer.js?v=202611152116"></script>
-<script src="/assets/js/comun/zona-archivos.js?v=202611152116"></script>
+<script src="/assets/js/comun/leer-cer.js?v=202611170144"></script>
+<script src="/assets/js/comun/zona-archivos.js?v=202611170144"></script>
 <style>
 /* Entregas de empresas y «Pasar todas al despacho» (15-nov) */
 .cli-traspasos { display: grid; gap: 8px; margin: 0 0 14px; }
@@ -681,7 +681,7 @@
     .alta-despacho { margin-top: 8px; font-size: 13px; line-height: 1.45; border-radius: 10px; padding: 9px 12px; background: rgb(var(--in-50)); border: 1px solid rgb(var(--in-200)); color: rgb(var(--g-800)); }
     .alta-error { font-size: 13px; font-weight: 600; border-radius: 10px; padding: 10px 12px; background: rgb(var(--er-50)); border: 1px solid rgb(var(--er-200)); color: rgb(var(--er-600)); }
 </style>
-<script src="/assets/js/comun/importar-clientes.js?v=202611152116"></script>
+<script src="/assets/js/comun/importar-clientes.js?v=202611170144"></script>
 <!-- Varias constancias a la vez: obligaciones federales y alta de los que falten -->
 <dialog id="dlg-constancias" class="ui-modal" style="width:min(640px, calc(100vw - 32px))">
     <div class="ui-modal__cuerpo">
@@ -693,6 +693,6 @@
     </div>
     <div class="ui-modal__pie"><button type="button" class="ui-btn ui-btn--secundario" data-cerrar>Cerrar</button></div>
 </dialog>
-<script src="/clientes/clientes.js?v=202611152116"></script>
+<script src="/clientes/clientes.js?v=202611170144"></script>
 </body>
 </html>

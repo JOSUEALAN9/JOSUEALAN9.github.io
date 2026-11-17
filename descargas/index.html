@@ -4,15 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mis Descargas | Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611152116">
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611152116">
-    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611152116">
+    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611170144">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611170144">
+    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611170144">
 </head>
 <body class="min-h-screen flex flex-col">
 
     <div id="app-header" data-modulo="descargas" data-titulo="Mis descargas" data-migas=""></div>
-<script src="/assets/js/nucleo.js?v=202611152116"></script>
-<script src="/assets/js/barra.js?v=202611152116"></script>
+<script src="/assets/js/nucleo.js?v=202611170144"></script>
+<script src="/assets/js/barra.js?v=202611170144"></script>
 
     <main class="flex-grow w-full mod-pagina" style="max-width:1024px">
 
@@ -43,7 +43,7 @@
         <section id="seccion-atencion" class="hidden mb-6">
             <div class="flex items-center justify-between mb-3">
                 <h2 class="text-sm font-bold text-slate-500 uppercase tracking-wide">No se pudieron completar</h2>
-                <button type="button" onclick="limpiarTodosLosFallidos()" class="text-xs text-slate-400 hover:text-red-500 underline transition">Quitar todos</button>
+                <button type="button" data-fc-clic="limpiarTodosLosFallidos" class="text-xs text-slate-400 hover:text-red-500 underline transition">Quitar todos</button>
             </div>
             <div id="lista-atencion" class="dsc-tarjetas"></div>
         </section>
@@ -72,7 +72,7 @@
                     <h2 class="text-lg font-bold text-slate-800">Contribuyentes sin resultado</h2>
                     <p class="text-xs text-slate-500 mt-0.5">Qué pasó con cada uno y si se puede volver a intentar</p>
                 </div>
-                <button onclick="cerrarMotivos()" class="text-gray-400 hover:text-red-500 transition">
+                <button data-fc-clic="cerrarMotivos" class="text-gray-400 hover:text-red-500 transition">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                 </button>
             </div>
@@ -80,7 +80,7 @@
         </div>
     </div>
 
-<script src="/assets/js/comun/tabla.js?v=202611152116"></script>
-<script src="/descargas/descargas.js?v=202611152116"></script>
+<script src="/assets/js/comun/tabla.js?v=202611170144"></script>
+<script src="/descargas/descargas.js?v=202611170144"></script>
 </body>
 </html>

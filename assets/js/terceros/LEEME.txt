@@ -9,6 +9,5 @@ Librerías de terceros que Fiscontable sirve desde su propio sitio (nada se carg
 
 Cada archivo conserva su aviso de licencia al inicio. Se copiaron tal cual del paquete oficial de npm.
 
-Pendiente: Constancias y Opinión LEEN el Excel que sube la persona y para eso usan SheetJS 0.20.0 desde cdn.sheetjs.com
-(las versiones anteriores a la 0.19.3 tienen una falla al leer archivos preparados con mala intención). Cuando se
-pueda bajar la 0.20.3 se copia aquí y se quita ese origen de la política de contenido (_headers).
+Constancias y Opinión LEEN el Excel que sube la persona con un lector propio (assets/js/comun/leer-xlsx.js, que abre el
+archivo con fflate): desde el 16-nov-2026 ya no traen SheetJS de cdn.sheetjs.com ni ningún otro script de fuera.

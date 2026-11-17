@@ -232,7 +232,10 @@
     }
 
     // Abierta dentro de la ventana de Configuración: sin barra superior (la ventana pone la suya)
-    if (/[?&]incrustado=1\b/.test(location.search)) document.documentElement.classList.add("fc-incrustado");
+    // «incrustado» solo vale DENTRO de un marco de la propia app (auditoría 16-nov): escrito a mano en la barra de
+    // direcciones dejaba la página sin el bloqueo por inactividad.
+    var enMarco = false; try { enMarco = window.top !== window.self; } catch (e) { enMarco = true; }
+    if (enMarco && /[?&]incrustado=1\b/.test(location.search)) document.documentElement.classList.add("fc-incrustado");
     // Densidad de las tablas (Configuración › Mi perfil): cada quien en su navegador
     try { if (localStorage.getItem("fc-densidad") === "compacta") document.documentElement.classList.add("fc-compacta"); } catch (e) { /* sin almacenamiento */ }
     // …y además dentro de la página de Configuración (que ya pone título y pestañas): sin su propio encabezado
@@ -1136,7 +1139,8 @@
     async function abrirDoc(fuente) {
         var lib = await cargarPdfjs();
         var datos = fuente instanceof Blob ? new Uint8Array(await fuente.arrayBuffer()) : null;
-        return lib.getDocument(datos ? { data: datos } : { url: fuente, withCredentials: true }).promise;
+        // isEvalSupported: false → PDF.js no ejecuta código que venga dentro de un PDF (CVE-2024-4367), aunque faltara la CSP
+        return lib.getDocument(datos ? { data: datos, isEvalSupported: false } : { url: fuente, withCredentials: true, isEvalSupported: false }).promise;
     }
 
     async function pintarPaginas(doc, cont, escala, ancho) {
@@ -2081,7 +2085,7 @@
                 '<div class="fc-modal__pie"><button type="button" class="ui-btn ui-btn--secundario ui-btn--36" data-i="cancelar">Cancelar</button>' +
                 '<button type="button" class="ui-btn ' + (op.peligro ? "ui-btn--peligro" : "ui-btn--primario") + ' ui-btn--36" data-i="ok" disabled>' + esc(op.boton || "Confirmar") + "</button></div>";
             var q = function (k) { return dlg.querySelector('[data-i="' + k + '"]'); };
-            var token = null, texto = "", terminado = false;
+            var token = null, texto = "", terminado = false, faltaCodigo = false;
             function fin(r) { if (terminado) return; terminado = true; try { dlg.close(); } catch (x) { /* nada */ } dlg.remove(); listo(r); }
             function error(t) { q("error").textContent = t || ""; q("error").hidden = !t; }
             async function llamar(ruta, cuerpo) {
@@ -2111,6 +2115,13 @@
                         q("sub").innerHTML = 'Para esto necesitas un PIN. Ponlo en <a href="/configuracion/?seccion=seguridad">Configuración › Seguridad</a> y vuelve a intentarlo.';
                         return;
                     }
+                    if (op.validar) {
+                        // 16-nov (Alan): primero se llenan y revisan los datos; el código sale hasta que la persona continúa
+                        faltaCodigo = true;
+                        q("sub").textContent = "Llena los datos y continúa: después te pedimos tu PIN y un código que llega a tu correo.";
+                        q("ok").textContent = "Continuar"; q("ok").disabled = false;
+                        return;
+                    }
                     q("campo-pin").hidden = false;
                     await mandar();
                 } else if (e.tiene_pin) {
@@ -2122,6 +2133,16 @@
             }
             async function aceptar() {
                 var conf = {};
+                if (faltaCodigo) {
+                    error("");
+                    try { await op.validar(); } catch (x) { return error(x.message); }
+                    faltaCodigo = false;
+                    dlg.querySelectorAll(".fc-identidad__resumen input, .fc-identidad__resumen select, .fc-identidad__resumen textarea").forEach(function (c) { c.readOnly = true; if (c.type === "checkbox") c.disabled = true; });
+                    q("ok").textContent = op.boton || "Confirmar";
+                    q("campo-pin").hidden = false;
+                    await mandar();
+                    return;
+                }
                 if (token) {
                     var codigo = q("codigo").value.replace(/\D/g, "");
                     if (codigo.length !== 6) return error("Escribe los 6 números del código.");

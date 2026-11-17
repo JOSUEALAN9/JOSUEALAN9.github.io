@@ -343,7 +343,11 @@ function mostrarAlerta(tipo, mensaje) {
 
 async function interpretarError(response) {
     if (!response) return "No pudimos conectar con el servidor. Verifica tu conexión, intenta de nuevo más tarde o contacta al administrador.";
-    if (response.status === 401 || response.status === 403) return "Tu sesión de acceso expiró. Recarga la página e inicia sesión de nuevo.";
+    if (response.status === 401) return "Tu sesión de acceso expiró. Recarga la página e inicia sesión de nuevo.";
+    if (response.status === 403) {            // 16-nov: el servidor dice por qué no se puede (PIN, plan, solo lectura, Agente…)
+        try { const d = await response.json(); if (d && typeof d.detail === "string" && d.detail) return d.detail; } catch { /* sin detalle */ }
+        return "No tienes permiso para hacer esto. Si acabas de iniciar sesión en otra pestaña, recarga la página.";
+    }
     if (response.status === 409) return "Ya tienes un cliente registrado con ese RFC.";
     try {
         const data = await response.json();
@@ -522,12 +526,34 @@ async function alternarFavorita(rfc) {
         window.dispatchEvent(new CustomEvent("fiscontable:favoritos"));
     } catch (e) { mostrarAlerta("error", e.message); }
 }
+/* El menú «⋯» de cada fila se coloca respecto a la ventana (16-nov, Alan: en la última fila quedaba cortado por el borde
+   de la tabla y no se veían las opciones): abre hacia abajo si cabe; si no, hacia arriba; nunca se sale de la pantalla. */
+function colocarMenuFila(boton, m) {
+    m.style.position = "fixed"; m.style.right = "auto"; m.style.left = "0px"; m.style.top = "0px"; m.style.maxHeight = ""; m.style.overflowY = "";
+    const r = boton.getBoundingClientRect(), alto = m.offsetHeight, ancho = m.offsetWidth, margen = 8;
+    const barra = document.querySelector(".fc-barra");
+    const techo = Math.max(margen, barra ? barra.getBoundingClientRect().bottom + 4 : margen);      // nunca debajo de la barra de arriba
+    const abajo = window.innerHeight - margen - (r.bottom + 6), arriba = (r.top - 6) - techo;
+    let y;
+    if (alto <= abajo) y = r.bottom + 6;
+    else if (alto <= arriba) y = r.top - 6 - alto;
+    else {                                                   // no cabe entero en ningún lado: el más amplio, con su propia barra
+        const cabe = Math.max(abajo, arriba, 120);
+        m.style.maxHeight = cabe + "px"; m.style.overflowY = "auto";
+        y = abajo >= arriba ? r.bottom + 6 : Math.max(techo, r.top - 6 - cabe);
+    }
+    m.style.top = y + "px";
+    m.style.left = Math.max(margen, Math.min(r.right - ancho, window.innerWidth - ancho - margen)) + "px";
+}
+function cerrarMenusFila() { document.querySelectorAll(".cli-mas .xml-menu__lista").forEach(m => { m.hidden = true; }); }
+window.addEventListener("scroll", function (e) { if (!(e.target.closest && e.target.closest(".xml-menu__lista"))) cerrarMenusFila(); }, true);
+window.addEventListener("resize", cerrarMenusFila);
 document.addEventListener("click", async e => {
     const est = e.target.closest("[data-estrella]");
     if (est) { e.stopPropagation(); alternarFavorita(est.dataset.estrella); return; }
     const mas = e.target.closest("[data-mas]");
     document.querySelectorAll(".cli-mas .xml-menu__lista").forEach(m => { if (!mas || m.parentNode !== mas.parentNode) m.hidden = true; });
-    if (mas) { e.stopPropagation(); const m = mas.parentNode.querySelector(".xml-menu__lista"); m.hidden = !m.hidden; return; }
+    if (mas) { e.stopPropagation(); const m = mas.parentNode.querySelector(".xml-menu__lista"); m.hidden = !m.hidden; if (!m.hidden) colocarMenuFila(mas, m); return; }
     const acc = e.target.closest(".cli-mas [data-accion]");
     if (acc) {
         e.stopPropagation();
@@ -595,7 +621,7 @@ function filaLista(c) {
         <td class="cli-celda-nombre">${estrella(c)}${avatar(c)}<span class="cli-nombre"><b title="${esc(c.alias)}">${esc(c.alias)}</b><small class="cli-rfc">${esc(c.rfc)}${c.tipo_sociedad ? " · " + esc(c.tipo_sociedad) : ""}</small></span></td>
         <td><span class="cli-inds">${indicadores(c)}</span></td>
         <td class="cli-obl">${esc(ob)}</td>
-        <td class="cli-celda-mas">${!c.efirma_guardada && puedeGuardarEfirma && !soloLectura ? `<button type="button" class="ui-btn ui-btn--terciario ui-btn--28" data-rfc="${esc(c.rfc)}" onclick="event.stopPropagation();abrirModalEditar(this.dataset.rfc, 'accesos')">Subir e.firma</button>` : ""}${menuAcciones(c)}</td></tr>`;
+        <td class="cli-celda-mas">${!c.efirma_guardada && puedeGuardarEfirma && !soloLectura ? `<button type="button" class="ui-btn ui-btn--terciario ui-btn--28" data-rfc="${esc(c.rfc)}" data-fc-clic="abrirAccesosDeFila" data-fc-solo>Subir e.firma</button>` : ""}${menuAcciones(c)}</td></tr>`;
 }
 
 function renderizarClientes() {
@@ -1948,14 +1974,21 @@ document.addEventListener("click", (ev) => {
 
 async function entregarEmpresa(rfc) {
     const c = (clientesCache || []).find(x => x.rfc === rfc) || { alias: rfc };
+    const destinoBien = () => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(campoDialogo("ent-destino"));
     const hecho = await Fiscontable.confirmarIdentidad("entregar_empresas", async (conf) => {
-        const destino = campoDialogo("ent-destino");
-        if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(destino)) throw new Error("Escribe el correo de la cuenta que la recibe.");
-        await apiJson("/api/empresas/entregar", { empresas: [rfc], destino: destino, nota: campoDialogo("ent-nota"), confirmacion: conf });
+        if (!destinoBien()) throw new Error("Escribe el correo de la cuenta que la recibe.");
+        await apiJson("/api/empresas/entregar", { empresas: [rfc], destino: campoDialogo("ent-destino"), nota: campoDialogo("ent-nota"), confirmacion: conf });
     }, { titulo: "Entregar " + (c.alias || rfc) + " a otra cuenta", boton: "Entregar",
+         // 16-nov (Alan): el código sale hasta que ya está el correo de destino y se confirmó que sale de esta cuenta
+         validar: async () => {
+             if (!destinoBien()) throw new Error("Escribe el correo de la cuenta que la recibe.");
+             const si = document.getElementById("ent-seguro");
+             if (!si || !si.checked) throw new Error("Marca la casilla para confirmar que la empresa saldrá de tu cuenta.");
+         },
          resumen: '<p class="fc-identidad__aviso">Pasa con todo su historial (XML, documentos, Buzón, facturas) cuando la otra persona la acepte con su PIN. Hasta entonces no se mueve nada.</p>' +
             '<label class="ui-campo"><span class="ui-etiqueta">Correo de la cuenta que la recibe</span><input class="ui-input" id="ent-destino" type="email" autocomplete="off" placeholder="contador@despacho.mx"></label>' +
-            '<label class="ui-campo"><span class="ui-etiqueta">Nota (opcional)</span><input class="ui-input" id="ent-nota" maxlength="200" placeholder="Ya es tu cliente desde noviembre"></label>' });
+            '<label class="ui-campo"><span class="ui-etiqueta">Nota para quien la recibe (opcional)</span><input class="ui-input" id="ent-nota" maxlength="200" placeholder="Ya es tu cliente desde noviembre"></label>' +
+            '<label class="ui-check"><input type="checkbox" id="ent-seguro"> Entiendo que ' + esc(c.alias || rfc) + " saldrá de mi cuenta cuando la acepten.</label>" });
     if (hecho) { mostrarAlerta("success", `Listo: ${c.alias || rfc} se entrega cuando la otra persona la acepte.`); pintarTraspasos(); }
 }
 
@@ -2014,8 +2047,15 @@ async function borrarTodo(rfc) {
 async function ofrecerDescargaAhora(rfc, alias, automatico) {
     const lista = automatico.join(", ").replace(/, ([^,]*)$/, " y $1");
     const xml = automatico.some(a => a.indexOf("XML") >= 0);
+    // 16-nov (Alan): decir qué periodo se baja de fábrica y dejar cambiarlo ahí mismo (antes: «Descargar ahora»)
     const ir = await Fiscontable.confirmar({ titulo: `${alias || rfc} ya quedó automática`,
-        texto: `Cada madrugada Fiscontable revisa ${lista}. No tienes que hacer nada más.` + (xml ? " Si quieres sus XML desde ya, bájalos ahora." : ""),
-        si: xml ? "Descargar ahora" : "Entendido", no: "Listo", solo: !xml });
-    if (ir && xml) location.href = "/herramientas/descarga-xml/?rfc=" + encodeURIComponent(rfc);
+        texto: `Fiscontable ya se encarga de ${lista}. No tienes que hacer nada más.` +
+            (xml ? " Las descargas inician en automático: el mes en curso se pide en este momento y lo anterior, de madrugada." : "") +
+            " Puedes cambiar estos ajustes cuando quieras en Configuración › Lo automático" + (xml ? ", o aquí mismo en su ficha › Descarga de XML." : "."),
+        si: xml ? "Ver o cambiar el periodo" : "Entendido", no: "Listo", solo: !xml });
+    if (ir && xml) { await cargarClientes(); abrirModalEditar(rfc, "xml"); }
 }
+
+
+// Antes iba en línea en el botón de la fila (17-nov: las páginas ya no llevan código en línea)
+function abrirAccesosDeFila() { abrirModalEditar(this.dataset.rfc, "accesos"); }
