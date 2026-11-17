@@ -14,7 +14,7 @@
 (function () {
     "use strict";
 
-    var VERSION = "202611170304";
+    var VERSION = "202611171249";
     // www.fiscontable.app → fiscontable.app: una sola dirección (la sesión y las preferencias guardadas son por dirección)
     if (location.hostname === "www.fiscontable.app") {
         location.replace("https://fiscontable.app" + location.pathname + location.search + location.hash);
@@ -338,6 +338,36 @@
         texto: function (modo) {
             return modo === "xml" ? "en pesos, con el tipo de cambio de cada XML" : modo === "dof" ? "en pesos, con el tipo de cambio del DOF (Banxico)" : "sin convertir";
         }
+    };
+
+    // Aviso de carga sobre una tabla (17-nov, «algo para saber que ya cargó la info nueva»): mientras llega lo pedido se ve una
+    // barra que corre y la etiqueta «Cargando…»; al llegar, «Actualizado · …» unos segundos. Lo usan Administración de XML,
+    // Conciliación y Retenciones.  var c = Fiscontable.avisoCarga(marco, {atenuar: true}); c.mostrar(texto, textoSiTarda); c.listo(texto); c.quitar();
+    window.Fiscontable.avisoCarga = function (marco, opciones) {
+        var reloj = 0, barra = document.createElement("div"), etiqueta = document.createElement("p"),
+            giro = document.createElement("span"), texto = document.createElement("span");
+        barra.className = "fc-carga-barra"; barra.setAttribute("aria-hidden", "true"); barra.appendChild(document.createElement("span"));
+        etiqueta.className = "fc-carga"; etiqueta.setAttribute("role", "status"); etiqueta.setAttribute("aria-live", "polite"); etiqueta.hidden = true;
+        giro.className = "fc-carga__giro"; giro.setAttribute("aria-hidden", "true");
+        etiqueta.appendChild(giro); etiqueta.appendChild(texto);
+        marco.classList.add("fc-carga-marco");
+        if (opciones && opciones.atenuar) marco.classList.add("fc-carga-marco--atenua");
+        marco.insertBefore(etiqueta, marco.firstChild); marco.insertBefore(barra, marco.firstChild);
+        function quitar() { clearTimeout(reloj); marco.classList.remove("fc-carga-marco--cargando"); etiqueta.hidden = true; }
+        return {
+            mostrar: function (mensaje, siTarda) {
+                clearTimeout(reloj);
+                etiqueta.className = "fc-carga"; etiqueta.hidden = false; texto.textContent = mensaje;
+                marco.classList.add("fc-carga-marco--cargando");
+                if (siTarda) reloj = setTimeout(function () { texto.textContent = siTarda; }, 6000);
+            },
+            listo: function (mensaje) {
+                quitar();
+                etiqueta.className = "fc-carga fc-carga--listo"; etiqueta.hidden = false; texto.textContent = mensaje;
+                reloj = setTimeout(function () { etiqueta.hidden = true; }, 4000);
+            },
+            quitar: quitar
+        };
     };
 
     function esFondo(t) {

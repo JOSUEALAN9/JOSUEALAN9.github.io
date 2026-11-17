@@ -324,11 +324,27 @@
             r.desde >= E.cargado.desde && r.hasta <= E.cargado.hasta);
     }
 
+    /* Aviso sobre la tabla (17-nov): mientras llega un periodo se ve «Cargando…» y la tabla anterior se atenúa (para que no se
+       confunda con la nueva); al llegar dice «Actualizado · periodo · cuántos XML» unos segundos. */
+    var CARGA = Fiscontable.avisoCarga($("tabla-marco"), { atenuar: true });
+    function periodoCorto() { var t = textoPeriodo(); return t.length > 34 ? "los meses elegidos" : t; }     // muchos meses sueltos no caben en la etiqueta
+    function mostrarCarga() {
+        if (hayEleccion()) CARGA.mostrar("Cargando " + periodoCorto() + "…", "Sigue cargando " + periodoCorto() + "… un periodo grande tarda un poco más.");
+        else CARGA.mostrar("Cargando…");
+    }
+    function quitarCarga() { CARGA.quitar(); }
+    function avisarListo() {
+        if (!hayEleccion()) return CARGA.quitar();
+        var vistos = new Set();
+        MODULOS.forEach(function (m) { filasPeriodo(m.clave).forEach(function (f) { vistos.add(f.uuid); }); });
+        CARGA.listo("Actualizado · " + periodoCorto() + " · " + vistos.size.toLocaleString("es-MX") + " XML");
+    }
+
     function alCambiarPeriodo() {
         E.seleccion.clear();
         Fiscontable.url(Fiscontable.periodoAUrl(E.P.estado(), porFechas()));
         if (periodoYaCargado()) {
-            pintarPeriodo(); pintarPestanas(); pintarSubfiltros(); aplicar();
+            pintarPeriodo(); pintarPestanas(); pintarSubfiltros(); aplicar(); avisarListo();
         } else {
             cargarRegistros();
         }
@@ -346,6 +362,7 @@
         var q = "?rfc=" + encodeURIComponent(E.rfc) + (desde ? "&desde=" + desde : "") + (hasta ? "&hasta=" + hasta : "") +
             (E.pagosPor === "pago" ? "&pagos_por=pago" : "") + (E.moneda ? "&convertir=" + E.moneda : "");
         $("conteo-filas").textContent = "Cargando…";
+        mostrarCarga();
         var yo = (E.nCarga = (E.nCarga || 0) + 1), rfcPedido = E.rfc;     // si cambias el periodo mientras carga, gana el último
         try {
             var respuesta = await apiJSON("/api/xml/registros" + q), llegaron = respuesta.modulos;
@@ -353,7 +370,7 @@
             E.datos = llegaron;
             E.banxico = respuesta.banxico || {};                  // para ofrecer el tipo de cambio del DOF al sacar el Excel
             E.convertido = respuesta.convertido || {};            // {modo, con, convertidas, sin_tc} si la tabla viene en pesos
-        } catch (e) { if (yo === E.nCarga) avisar(e.message); return; }
+        } catch (e) { if (yo === E.nCarga) { quitarCarga(); $("conteo-filas").textContent = "No se pudo cargar."; avisar(e.message); } return; }
         E.cargado = hayEleccion() ? { rfc: E.rfc, desde: r.desde, hasta: r.hasta, fechas: porFechas(), pagosPor: E.pagosPor } : null;
         Fiscontable.url(Fiscontable.periodoAUrl(E.P.estado(), porFechas()));
         cargarCuentasPago();
@@ -361,6 +378,7 @@
         pintarPestanas();
         cambiarModulo(E.modulo, true);
         pintarMoneda();
+        avisarListo();
         reanudarValidacion();
     }
 
