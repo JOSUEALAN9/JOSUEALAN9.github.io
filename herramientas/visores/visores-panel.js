@@ -200,6 +200,9 @@
         html += '<div class="vn-acciones">' + (n.archivo ? '<button type="button" class="ui-btn ui-btn--secundario ui-btn--32" data-archivo title="El archivo que da el SAT en el Detalle mensual">Excel del SAT (detalle mensual)</button>' : "") +
             '<button type="button" class="ui-btn ui-btn--secundario ui-btn--32" data-excel="nomina_patron" title="Lo arma Fiscontable con las tablas que leyó">Excel de Fiscontable</button></div>' +
             (!n.archivo && n.excel_motivo ? '<p class="vi-nota vn-aviso">El Excel del SAT no salió en esta lectura: ' + esc(n.excel_motivo) + ".</p>" : "") +
+            (n.revision && n.revision.duplicados ? '<p class="vi-nota vn-aviso">Hay ' + num(n.revision.duplicados) + " recibo(s) posiblemente duplicados (mismo trabajador, fecha de pago, periodo e importes) en " +
+                esc((n.revision.meses_duplicados || []).join(", ")) + ": si sobran, son " + dinero(n.revision.isr_de_mas) + " de ISR retenido de más. El detalle está en el «Excel del cruce», hoja «Recibos duplicados».</p>" : "") +
+            (n.revision && !n.revision.duplicados && n.revision.mixtos ? '<p class="vi-nota">Sin recibos duplicados. ' + num(n.revision.mixtos) + " caso(s) de sueldo y asimilado en el mismo mes: están en el «Excel del cruce», hoja «Sueldo y asimilado».</p>" : "") +
             (hayMixto ? '<p class="vi-nota">* Cuadra: el SAT cuenta en sueldos ' + dinero(hayMixto.isr_asimilados) + " de ISR de asimilados de " + num(hayMixto.trabajadores) +
                 " trabajador(es) que ese mes también cobraron sueldo (su renglón de asimilados es solo de pagos exclusivos de asimilados).</p>" : "") +
             '<p class="vi-nota">Retenido: el ISR de los CFDI de nómina que timbraste. Enterado: el que pagaste en tus declaraciones. Diferencia en rojo: retenido que el SAT no ve pagado; con signo menos: enteraste más de lo retenido (el SAT la pone entre paréntesis). «Tus recibos» suma el ISR de tus XML de nómina de ' +
