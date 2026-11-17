@@ -318,11 +318,15 @@
 
     /* Si lo elegido cabe en lo que ya se cargó, se filtra aquí; si no, se pide al servidor. */
     // ¿Lo elegido cabe en lo que ya se trajo? Entonces se filtra aquí, sin botón ni espera.
-    function periodoYaCargado() {
+    function rangoCubierto() {
         var r = rangoPeriodo();
         return !!(E.cargado && E.cargado.rfc === E.rfc && hayEleccion() && !porFechas() && !E.cargado.fechas && E.cargado.pagosPor === E.pagosPor &&
             r.desde >= E.cargado.desde && r.hasta <= E.cargado.hasta);
     }
+    /* 18-nov: cada pestaña se pide al abrirla (el servidor arma solo esa). Lo elegido ya está aquí si el periodo cabe en
+       lo cargado Y esta pestaña ya se trajo. */
+    function moduloCargado(m) { return !!(E.modsCargados && E.modsCargados[m]); }
+    function periodoYaCargado() { return rangoCubierto() && moduloCargado(E.modulo); }
 
     /* Aviso sobre la tabla (17-nov): mientras llega un periodo se ve «Cargando…» y la tabla anterior se atenúa (para que no se
        confunda con la nueva); al llegar dice «Actualizado · periodo · cuántos XML» unos segundos. */
@@ -335,9 +339,8 @@
     function quitarCarga() { CARGA.quitar(); }
     function avisarListo() {
         if (!hayEleccion()) return CARGA.quitar();
-        var vistos = new Set();
-        MODULOS.forEach(function (m) { filasPeriodo(m.clave).forEach(function (f) { vistos.add(f.uuid); }); });
-        CARGA.listo("Actualizado · " + periodoCorto() + " · " + vistos.size.toLocaleString("es-MX") + " XML");
+        var total = MODULOS.reduce(function (t, m) { return t + (cuentaPestana(m.clave) || 0); }, 0);
+        CARGA.listo("Actualizado · " + periodoCorto() + " · " + total.toLocaleString("es-MX") + " XML");
     }
 
     function alCambiarPeriodo() {
@@ -357,17 +360,21 @@
         }
     }
 
-    async function cargarRegistros() {
+    /* opciones.pestana: se abrió una pestaña que aún no se había traído. Se pide con el mismo periodo que ya está cargado
+       (si lo elegido cabe en él) y se SUMA a lo que hay; cualquier otra carga empieza de cero, porque algo pudo cambiar. */
+    async function cargarRegistros(opciones) {
         if (!E.rfc) return;
         $("sin-empresa").hidden = true;
         $("btn-agregar").hidden = false;
         $("contenido").hidden = false;
         pintarPeriodo();
-        var r = rangoPeriodo();
+        var dePestana = !!(opciones && opciones.pestana), moduloPedido = E.modulo;
+        var r = dePestana && rangoCubierto() ? { desde: E.cargado.desde, hasta: E.cargado.hasta } : rangoPeriodo();
         // Sin elección no se trae ningún XML (solo la forma de la tabla)
         var desde = hayEleccion() ? r.desde : "1900-01-01", hasta = hayEleccion() ? r.hasta : "1900-01-01";
         var q = "?rfc=" + encodeURIComponent(E.rfc) + (desde ? "&desde=" + desde : "") + (hasta ? "&hasta=" + hasta : "") +
-            (E.pagosPor === "pago" ? "&pagos_por=pago" : "") + (E.moneda ? "&convertir=" + E.moneda : "");
+            (E.pagosPor === "pago" ? "&pagos_por=pago" : "") + (E.moneda ? "&convertir=" + E.moneda : "") + "&solo=" + moduloPedido;
+        var clavePedido = [E.rfc, desde, hasta, E.pagosPor, E.moneda || ""].join("|");
         $("conteo-filas").textContent = "Cargando…";
         mostrarCarga();
         var yo = (E.nCarga = (E.nCarga || 0) + 1), rfcPedido = E.rfc;     // si cambias el periodo mientras carga, gana el último
@@ -375,7 +382,15 @@
         try {
             var respuesta = await apiJSON("/api/xml/registros" + q), llegaron = respuesta.modulos;
             if (yo !== E.nCarga || rfcPedido !== E.rfc) return;
-            E.datos = llegaron;
+            var trae = respuesta.solo || MODULOS.map(function (m) { return m.clave; });     // un servidor anterior responde todo
+            if (dePestana && E.datos && E.claveCargada === clavePedido) {
+                trae.forEach(function (m) { E.datos[m] = llegaron[m]; E.modsCargados[m] = true; });
+            } else {
+                E.datos = llegaron; E.modsCargados = {};
+                trae.forEach(function (m) { E.modsCargados[m] = true; });
+            }
+            E.claveCargada = clavePedido;
+            E.conteos = respuesta.conteos || null;                // cuántos XML tiene cada pestaña (las que aún no se abren)
             E.banxico = respuesta.banxico || {};                  // para ofrecer el tipo de cambio del DOF al sacar el Excel
             E.convertido = respuesta.convertido || {};            // {modo, con, convertidas, sin_tc} si la tabla viene en pesos
         } catch (e) { if (yo === E.nCarga) { quitarCarga(); $("conteo-filas").textContent = "No se pudo cargar."; avisar(e.message); } return; }
@@ -388,6 +403,21 @@
         pintarMoneda();
         avisarListo();
         reanudarValidacion();
+    }
+
+    /* Trae, sin cambiar de pestaña, las que falten del periodo ya cargado (p. ej. antes del Excel completo, que pregunta
+       por las monedas de todas). Si algo falla, se sigue con lo que hay. */
+    async function traerPestanas(lista) {
+        var faltan = lista.filter(function (m) { return !moduloCargado(m); });
+        if (!faltan.length || !E.cargado || !E.datos) return;
+        var yo = E.nCarga, clave = E.claveCargada;
+        try {
+            var resp = await apiJSON("/api/xml/registros?rfc=" + encodeURIComponent(E.rfc) + "&desde=" + E.cargado.desde + "&hasta=" + E.cargado.hasta +
+                (E.pagosPor === "pago" ? "&pagos_por=pago" : "") + (E.moneda ? "&convertir=" + E.moneda : "") + "&solo=" + faltan.join(","));
+            if (yo !== E.nCarga || clave !== E.claveCargada) return;
+            (resp.solo || faltan).forEach(function (m) { E.datos[m] = resp.modulos[m]; E.modsCargados[m] = true; });
+            pintarPestanas();
+        } catch (e) { /* se sigue con lo cargado */ }
     }
 
     /* Las acciones de arriba usan lo seleccionado; si no hay selección, lo que ves. */
@@ -404,6 +434,21 @@
     }
 
     /* ============================================================ minimódulos */
+    /* El número de cada pestaña: de lo cargado si ya se abrió; si no, de las cuentas por mes (o de lo que dijo el servidor
+       cuando el periodo es por fechas). null = todavía no se sabe (no se pinta número). */
+    function cuentaPestana(m) {
+        if (moduloCargado(m)) return contarUuid(filasPeriodo(m));
+        if (!hayEleccion()) return 0;
+        var meses = mesesElegidos();
+        if (meses && meses.length) {
+            return meses.reduce(function (t, p) {
+                if (m === "pagos" && E.pagosPor === "pago") return t + ((E.cuentasPago || {})[p] || 0);
+                var c = E.cuentas && E.cuentas[p];
+                return t + (c ? (c.modulos[m] || 0) : 0);
+            }, 0);
+        }
+        return E.conteos && E.conteos[m] !== null && E.conteos[m] !== undefined ? E.conteos[m] : null;
+    }
     function contarUuid(filas) {
         var s = new Set();
         filas.forEach(function (f) { s.add(f.uuid); });
@@ -412,9 +457,9 @@
 
     function pintarPestanas() {
         $("pestanas").innerHTML = MODULOS.map(function (m) {
-            var n = contarUuid(filasPeriodo(m.clave));
+            var n = cuentaPestana(m.clave);
             return '<button type="button" role="tab" class="pestana' + (m.clave === E.modulo ? " pestana--activa" : "") + '" aria-selected="' + (m.clave === E.modulo) + '" data-modulo="' + m.clave + '">' +
-                m.nombre + '<span class="xml-cuenta">' + n + "</span></button>";
+                m.nombre + (n === null ? "" : '<span class="xml-cuenta">' + n + "</span>") + "</button>";
         }).join("") + (enConceptos() ? '<button type="button" role="tab" class="pestana pestana--activa" aria-selected="true" data-modulo="conceptos">Conceptos' +
             '<span class="xml-cuenta xc-cerrar" data-cerrar-conceptos title="Cerrar el reporte">✕</span></button>' : "");
         if (enConceptos()) document.querySelectorAll('#pestanas .pestana:not([data-modulo="conceptos"])').forEach(function (b) { b.classList.remove("pestana--activa"); b.setAttribute("aria-selected", "false"); });
@@ -977,6 +1022,7 @@
                 Object.keys(E.av).some(function (k) { return E.av[k]; });
             cuerpo.uuids = filtrado ? Array.from(new Set(E.filas.map(function (f) { return f.uuid; }))) : null;
         }
+        if (modo === "completo") await traerPestanas(["recibidos", "emitidos", "pagos"]);     // para preguntar por las monedas de todas
         var monedas = monedasExtranjeras(modo === "completo" ? ["recibidos", "emitidos", "pagos"].reduce(function (t, m) { return t.concat(filasPeriodo(m)); }, []) : E.filas);
         if (monedas.length) {
             var pref = Fiscontable.monedaReportes.leer(), eleccion;
@@ -1660,7 +1706,16 @@
         $("pestanas").addEventListener("click", function (e) {
             var b = e.target.closest(".pestana");
             if (b && b.dataset.modulo === "conceptos") { if (e.target.closest("[data-cerrar-conceptos]")) XMLConceptos.cerrar(); return; }
-            if (b && !b.disabled) cambiarModulo(b.dataset.modulo);
+            if (!b || b.disabled) return;
+            var m = b.dataset.modulo;
+            if (moduloCargado(m) || !E.datos) return cambiarModulo(m);
+            // Esa pestaña aún no se ha traído: se pide ahora (solo ella) y al llegar se pinta
+            if (enConceptos()) XMLConceptos.cerrar();
+            E.modulo = m; E.sub = "";
+            Fiscontable.url({ tab: m });
+            document.querySelectorAll("#pestanas .pestana").forEach(function (x) { x.classList.toggle("pestana--activa", x.dataset.modulo === m); x.setAttribute("aria-selected", String(x.dataset.modulo === m)); });
+            pintarBotonConceptos();
+            cargarRegistros({ pestana: true });
         });
         $("subfiltros").addEventListener("click", function (e) {
             var pp = e.target.closest("[data-pagos-por]");
