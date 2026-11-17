@@ -465,7 +465,16 @@
         if (enConceptos()) document.querySelectorAll('#pestanas .pestana:not([data-modulo="conceptos"])').forEach(function (b) { b.classList.remove("pestana--activa"); b.setAttribute("aria-selected", "false"); });
         pintarBotonConceptos();
     }
-    function pintarBotonConceptos() { var bc = $("btn-conceptos"); if (bc) bc.hidden = !(E.modulo === "recibidos" || E.modulo === "emitidos"); }
+    function pintarBotonConceptos() {
+        var ver = E.modulo === "recibidos" || E.modulo === "emitidos";
+        ["btn-conceptos", "btn-duplicados"].forEach(function (id) { var b = $(id); if (b) b.hidden = !ver; });
+    }
+    function abrirDuplicados() {
+        if (!E.rfc || !hayEleccion()) return avisar("Elige empresa y periodo para buscar duplicados.");
+        if (E.modulo !== "recibidos" && E.modulo !== "emitidos") return;
+        var r = rangoPeriodo();
+        XMLDuplicados.abrir({ rfc: E.rfc, lado: E.modulo, desde: r.desde, hasta: r.hasta, periodo: textoPeriodo() });
+    }
 
     /* Reporte por conceptos (herramientas/xml/conceptos.js): toma la empresa, el periodo y las facturas que se ven */
     function enConceptos() { return !!(window.XMLConceptos && XMLConceptos.abierto()); }
@@ -1768,6 +1777,7 @@
         $("btn-zip-origen").addEventListener("click", descargarZipOrigen);
         $("btn-listas").addEventListener("click", abrirListas);
         $("btn-conceptos").addEventListener("click", abrirConceptos);
+        $("btn-duplicados").addEventListener("click", abrirDuplicados);
         $("btn-cancelaciones").addEventListener("click", function () {
             var q = new URLSearchParams({ rfc: E.rfc || "" });
             if (E.modulo === "emitidos") q.set("vista", "emitidas");
