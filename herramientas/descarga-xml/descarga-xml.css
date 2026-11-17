@@ -190,3 +190,19 @@
 .dm-solicitudes .dm-sol__acciones { display: inline-flex; gap: 6px; margin: 0; flex-wrap: nowrap; }
 .dm-solicitudes tr.dm-sol--activa td { background: rgb(var(--ac-50)); }
 .dm-solicitudes .fct .fct-caja { min-height: 0; }
+
+/* Cuadre con la lista del SAT (16-nov): lo que el SAT tiene de la empresa contra lo que ya está aquí */
+.dm-cuadre { margin: 14px 0 0; padding: 14px 16px; border: 1px solid var(--linea); border-radius: var(--radio, 12px); background: var(--papel, #fff); }
+.dm-cuadre[hidden] { display: none; }
+.dm-cuadre__cabeza { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; }
+.dm-cuadre__cabeza strong { font-size: 14px; }
+.dm-cuadre__nota { font-size: 12.5px; color: var(--texto-tenue); line-height: 1.45; }
+.dm-cuadre__tarjetas { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 10px; }
+.dm-cuadre__t { display: flex; flex-direction: column; gap: 2px; min-width: 0; padding: 10px 12px; border-radius: 10px; background: rgba(0, 0, 0, .025); }
+.dm-cuadre__et { font-size: 11.5px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: var(--texto-tenue); }
+.dm-cuadre__n { font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.2; }
+.dm-cuadre__n small { font-size: 12.5px; font-weight: 500; color: var(--texto-tenue); }
+.dm-cuadre__det { font-size: 12.5px; color: var(--texto-tenue); }
+.dm-cuadre__estado { font-size: 12.5px; font-weight: 600; color: rgb(var(--ok-600, 21 128 61)); }
+.dm-cuadre__estado--falta { color: rgb(var(--av-600, 180 83 9)); }
+@media (max-width: 520px) { .dm-cuadre__tarjetas { grid-template-columns: minmax(0, 1fr); } }

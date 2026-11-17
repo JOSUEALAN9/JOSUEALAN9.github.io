@@ -340,10 +340,47 @@
         E.solicitudes = [];
         pintarSolicitudes();
         cargarSolicitudes();
+        cargarCuadre();
+    }
+
+    /* ================================================================ cuadre con la lista del SAT
+       Cuántos CFDI tiene el SAT de esta empresa (vigentes y cancelados) y si ya están todos aquí. Sale de la revisión
+       de madrugada (modulos/descarga_xml/cuadre.py); aquí solo se muestra. */
+    var MESES_CORTOS = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
+    function mesCorto(m) { var p = String(m || "").split("-"); return p.length === 2 ? MESES_CORTOS[parseInt(p[1], 10) - 1] + " " + p[0] : ""; }
+
+    async function cargarCuadre() {
+        var caja = $("cuadre-sat"), q = E.elegido;
+        caja.hidden = true;
+        if (!q || !q.esCliente) return;
+        var d;
+        try { d = await api("/api/descarga-xml/cuadre/" + encodeURIComponent(q.rfc)); }
+        catch (e) { return; }
+        if (!E.elegido || E.elegido.rfc !== q.rfc || !d || !d.automatica) return;
+        var html = '<div class="dm-cuadre__cabeza"><strong>Lo que tiene el SAT de esta empresa</strong>';
+        if (!d.hay) {
+            html += '<span class="dm-cuadre__nota">Todavía no se compara con la lista del SAT: empieza sola, de madrugada, cuando terminen de bajar sus XML.</span></div>';
+            caja.innerHTML = html; caja.hidden = false; return;
+        }
+        html += '<span class="dm-cuadre__nota">Según la lista del SAT, de ' + esc(mesCorto(d.desde)) + " a " + esc(mesCorto(d.hasta)) +
+            " · " + d.cuadrados + " de " + d.meses + " meses revisados" + (d.ultima ? " · última revisión el " + parseInt(d.ultima.slice(8, 10), 10) + " de " + esc(mesCorto(d.ultima.slice(0, 7))) : "") + "</span></div>";
+        html += '<div class="dm-cuadre__tarjetas">';
+        (d.tipos || []).forEach(function (t) {
+            var falta = t.faltaban > 0;
+            html += '<div class="dm-cuadre__t"><span class="dm-cuadre__et">' + (t.tipo === "emitidos" ? "Emitidos" : "Recibidos") + "</span>" +
+                '<span class="dm-cuadre__n">' + miles(t.en_sat) + " <small>en el SAT</small></span>" +
+                '<span class="dm-cuadre__det">' + miles(t.vigentes) + " vigentes · " + miles(t.cancelados) + " cancelados</span>" +
+                '<span class="dm-cuadre__estado' + (falta ? " dm-cuadre__estado--falta" : "") + '">' +
+                (falta ? "Faltaban " + miles(t.faltaban) + ": ya se pidieron al SAT" : "Ya los tienes todos") + "</span>" +
+                (t.cancelados_nuevos ? '<span class="dm-cuadre__det">' + miles(t.cancelados_nuevos) + " pasaron de vigente a cancelado</span>" : "") + "</div>";
+        });
+        html += "</div>";
+        caja.innerHTML = html; caja.hidden = false;
     }
 
     function alLimpiar() {
         E.elegido = null;
+        $("cuadre-sat").hidden = true;
         $("paso-acceso").hidden = $("paso-filtros").hidden = $("seccion-solicitudes").hidden = true;
         cerrarResultados();
         detenerSondeo();

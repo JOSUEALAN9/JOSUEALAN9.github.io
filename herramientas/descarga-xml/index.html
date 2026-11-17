@@ -4,10 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Descarga masiva | Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611170023">
-    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611170023">
-    <link rel="stylesheet" href="/herramientas/descarga-xml/descarga-xml.css?v=202611170023">
-    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611170023">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611170052">
+    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611170052">
+    <link rel="stylesheet" href="/herramientas/descarga-xml/descarga-xml.css?v=202611170052">
+    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611170052">
 </head>
 <body class="min-h-screen flex flex-col">
 
@@ -176,6 +176,9 @@
   </div>
 
     <!-- Solicitudes al SAT de este contribuyente: tabla estándar debajo del formulario (antes, panel lateral) -->
+    <!-- Lo que el SAT tiene de esta empresa contra lo que ya está en Fiscontable (cuadre con la lista del SAT) -->
+    <div id="cuadre-sat" class="dm-cuadre" role="status" hidden></div>
+
     <section id="seccion-solicitudes" class="dm-solicitudes" hidden>
         <div class="dm-solicitudes__cabeza"><h2>Solicitudes al SAT</h2><span id="cajon-sub" class="dm-pista"></span>
             <span id="sol-resumen" class="dm-pista" hidden></span>
@@ -287,13 +290,13 @@
 
 <div id="aviso-flotante" class="dm-toast" hidden></div>
 
-<script src="/assets/js/nucleo.js?v=202611170023"></script>
-<script src="/assets/js/barra.js?v=202611170023"></script>
-<script src="/assets/js/comun/leer-cer.js?v=202611170023"></script>
-<script src="/assets/js/comun/paso-cliente.js?v=202611170023"></script>
-<script src="/assets/js/comun/tabla.js?v=202611170023"></script>
-<script src="/assets/js/comun/programacion.js?v=202611170023"></script>
-<script src="/herramientas/descarga-xml/descarga-xml.js?v=202611170023"></script>
+<script src="/assets/js/nucleo.js?v=202611170052"></script>
+<script src="/assets/js/barra.js?v=202611170052"></script>
+<script src="/assets/js/comun/leer-cer.js?v=202611170052"></script>
+<script src="/assets/js/comun/paso-cliente.js?v=202611170052"></script>
+<script src="/assets/js/comun/tabla.js?v=202611170052"></script>
+<script src="/assets/js/comun/programacion.js?v=202611170052"></script>
+<script src="/herramientas/descarga-xml/descarga-xml.js?v=202611170052"></script>
 <script>FCProgramacion.linea({ modulo: "xml", contenedor: document.getElementById("linea-programa") });
 (function () {
     function metodo() { var b = document.querySelector('.dm-modo[aria-selected="true"]'); if (b) document.getElementById("metodo-texto").textContent = b.querySelector("strong").textContent; }
