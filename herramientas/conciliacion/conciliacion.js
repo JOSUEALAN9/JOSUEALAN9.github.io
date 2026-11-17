@@ -297,7 +297,7 @@
         $("elige-periodo").hidden = hay;
         $("cuerpo-conc").hidden = !hay;
         $("ayuda-base").hidden = !hay;
-        if (!hay) { E.datos = null; return; }
+        if (!hay) { E.nCarga = (E.nCarga || 0) + 1; E.datos = null; return; }      // lo que venga en camino ya no aplica (17-nov)
         guardar("lado", E.lado); guardar("base2", $("sel-base").value);
         var r = rango();
         var sueltos = mesesSueltos();

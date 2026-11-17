@@ -343,8 +343,15 @@
     function alCambiarPeriodo() {
         E.seleccion.clear();
         Fiscontable.url(Fiscontable.periodoAUrl(E.P.estado(), porFechas()));
-        if (periodoYaCargado()) {
-            pintarPeriodo(); pintarPestanas(); pintarSubfiltros(); aplicar(); avisarListo();
+        // 17-nov (Alan: todo el año → quitar todo → octubre, y la tabla salió vacía). Al quitar todos los meses se pedía al
+        // servidor «nada» y esa respuesta, si llegaba después de elegir octubre (que ya estaba cargado y se pinta al
+        // instante), borraba la tabla. Ahora: sin periodo elegido y con datos de esta empresa no se pide nada (lo cargado
+        // se conserva), y cualquier carga que siga en camino se descarta cuando lo elegido se resuelve aquí.
+        var sinEleccion = !hayEleccion() && !porFechas() && E.datos && E.cargado && E.cargado.rfc === E.rfc;
+        if (periodoYaCargado() || sinEleccion) {
+            E.nCarga = (E.nCarga || 0) + 1;
+            pintarPeriodo(); pintarPestanas(); pintarSubfiltros(); aplicar();
+            if (sinEleccion) quitarCarga(); else avisarListo();
         } else {
             cargarRegistros();
         }
@@ -364,6 +371,7 @@
         $("conteo-filas").textContent = "Cargando…";
         mostrarCarga();
         var yo = (E.nCarga = (E.nCarga || 0) + 1), rfcPedido = E.rfc;     // si cambias el periodo mientras carga, gana el último
+        var pedido = { hay: hayEleccion(), fechas: porFechas(), pagosPor: E.pagosPor };       // lo que se pidió (no lo que haya elegido al llegar)
         try {
             var respuesta = await apiJSON("/api/xml/registros" + q), llegaron = respuesta.modulos;
             if (yo !== E.nCarga || rfcPedido !== E.rfc) return;
@@ -371,7 +379,7 @@
             E.banxico = respuesta.banxico || {};                  // para ofrecer el tipo de cambio del DOF al sacar el Excel
             E.convertido = respuesta.convertido || {};            // {modo, con, convertidas, sin_tc} si la tabla viene en pesos
         } catch (e) { if (yo === E.nCarga) { quitarCarga(); $("conteo-filas").textContent = "No se pudo cargar."; avisar(e.message); } return; }
-        E.cargado = hayEleccion() ? { rfc: E.rfc, desde: r.desde, hasta: r.hasta, fechas: porFechas(), pagosPor: E.pagosPor } : null;
+        E.cargado = pedido.hay ? { rfc: E.rfc, desde: r.desde, hasta: r.hasta, fechas: pedido.fechas, pagosPor: pedido.pagosPor } : null;
         Fiscontable.url(Fiscontable.periodoAUrl(E.P.estado(), porFechas()));
         cargarCuentasPago();
         E.seleccion.clear();
