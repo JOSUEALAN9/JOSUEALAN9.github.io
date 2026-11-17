@@ -47,7 +47,12 @@
     };
     var ANCHO_TIPO = { moneda: 122, numero: 90, fecha: 104, uuid: 130, texto: 160 };
     var ANCHO_CLAVE = { emisor_nombre: 250, receptor_nombre: 250, contraparte_nombre: 250, conceptos: 300, serie_folio: 130,
-        estado_pago: 120, estado_sat: 100, forma_pago: 210, forma_pago_p: 210, uso_cfdi: 190, docto_encontrado: 90 };
+        estado_pago: 120, estado_sat: 100, forma_pago: 210, forma_pago_p: 210, uso_cfdi: 190, docto_encontrado: 90,
+        // 17-nov: la vista de fábrica trae muchas columnas (como el reporte completo); las de dato corto van angostas
+        serie: 74, folio: 88, version: 72, tipo_desc: 104, moneda: 78, moneda_saldo: 84, tipo_cambio: 92, exportacion: 124,
+        lugar_expedicion: 96, estado_expedicion: 128, metodo_pago: 96, num_conceptos: 84, num_pagos: 84, emisor_rfc: 128,
+        receptor_rfc: 128, pac_rfc: 122, receptor_domicilio: 84, tipo_relacion: 168, cfdi_relacionados: 150,
+        emisor_regimen: 200, receptor_regimen: 200, no_cert_sat: 172, no_cert_emisor: 172, claves_prod_serv: 150, alertas: 200 };
 
     var E = {
         contribuyentes: [], rfc: null, periodo: "", datos: null, P: null, cuentas: {}, cargado: null,
@@ -79,6 +84,7 @@
     function avisar(texto, tipo) { Fiscontable.aviso ? Fiscontable.aviso(texto) : Fiscontable.avisar(texto); }
     function guardarLocal(clave, valor) { try { localStorage.setItem("xml:" + clave, JSON.stringify(valor)); } catch (e) { /* nada */ } }
     function leerLocal(clave) { try { return JSON.parse(localStorage.getItem("xml:" + clave)); } catch (e) { return null; } }
+    function borrarLocal(clave) { try { localStorage.removeItem("xml:" + clave); } catch (e) { /* nada */ } }
     E.pagosPor = leerLocal("pagosPor") === "pago" ? "pago" : "emision";
     function descargarBlob(blob, nombre) { Fiscontable.guardarArchivo(blob, nombre); }
     function nombreArchivo(resp, porDefecto) {
@@ -481,6 +487,12 @@
             if (local) { local = local.filter(function (c) { return c.clave !== "listas_sat"; }); guardarLocal("cols:" + E.modulo, local); }
             guardarLocal("mig:listas:" + E.modulo, 1);
         }
+        // 17-nov: la vista de fábrica de Recibidos y Emitidos cambió (ahora va como el reporte completo). Una sola vez se
+        // suelta lo acomodado antes para que todos la vean; las vistas guardadas con nombre siguen en su menú.
+        if ((E.modulo === "recibidos" || E.modulo === "emitidos") && !leerLocal("mig:fabrica2:" + E.modulo)) {
+            borrarLocal("cols:" + E.modulo); borrarLocal("vista:" + E.modulo); local = null;
+            guardarLocal("mig:fabrica2:" + E.modulo, 1);
+        }
         var pred = E.vistas.find(function (v) { return v.modulo === E.modulo && v.predeterminada; });
         var cols = local || (pred && pred.columnas) || columnasDeFabrica();
         E.vistaActual[E.modulo] = local ? (leerLocal("vista:" + E.modulo) || "") : (pred ? pred.nombre : "");
@@ -525,7 +537,8 @@
         var v = E.vistas.find(function (x) { return x.modulo === E.modulo && x.nombre === nombre; });
         E.columnas[E.modulo] = sinRepetidas(v ? v.columnas : columnasDeFabrica());
         E.vistaActual[E.modulo] = v ? v.nombre : "";
-        guardarColumnasLocal();
+        if (v) guardarColumnasLocal();
+        else { borrarLocal("cols:" + E.modulo); borrarLocal("vista:" + E.modulo); }      // de fábrica: sigue a la del servidor (las columnas con datos del periodo)
         pintarVistas();
         pintarTabla();
         if (!$("panel-columnas").hidden) pintarPanelColumnas();
