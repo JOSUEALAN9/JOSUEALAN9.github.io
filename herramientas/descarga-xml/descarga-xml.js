@@ -559,6 +559,8 @@
             conectando: ["activo", "Entrando al portal"], captcha: ["aviso", "Falta el captcha"], buscando: ["activo", "Buscando"],
             completado: ["bien", "Lista"], sin_datos: ["gris", "Sin comprobantes"], error: ["mal", "Error"], cancelado: ["gris", "Detenida"]
         }[s.estado] || ["gris", s.estado];
+        // Formada detrás de otra búsqueda (17-nov): dice «En cola», no «Entrando al portal»
+        if (s.estado === "conectando" && /^En cola/.test(s.progreso || s.mensaje || "")) m = ["aviso", "En cola"];
         var giro = m[0] === "activo" ? '<span class="dm-giro"></span>' : "";
         return '<span class="dm-estado dm-estado--' + m[0] + '">' + giro + esc(m[1]) + "</span>";
     }
@@ -630,7 +632,7 @@
             if (s.estado === "descargando" && s.origen !== "portal" && s.paquetes) {
                 detalle = "Paquete " + Math.min(s.paquetes_bajados + 1, s.paquetes) + " de " + s.paquetes + ". " + detalle;
             }
-            return Object.assign({}, s, { que: descripcion(s), origen_txt: origenTexto(s), estado_txt: ESTADO_TXT[s.estado] || s.estado, avance: detalle,
+            return Object.assign({}, s, { que: descripcion(s), origen_txt: origenTexto(s), estado_txt: (s.estado === "conectando" && /^En cola/.test(detalle)) ? "En cola" : (ESTADO_TXT[s.estado] || s.estado), avance: detalle,
                                           grupo: activa ? "curso" : s.estado === "completado" ? "listas" : "otras" });
         }));
     }
