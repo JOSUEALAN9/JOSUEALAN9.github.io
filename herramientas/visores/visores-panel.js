@@ -56,6 +56,7 @@
     function notaXml(lado) {
         if (!lado || !lado.xml) return "tus XML: sin cruce todavía";
         var dn = lado.xml.vigentes - lado.vigentes;
+        if (lado.xml.parcial) return "tus XML: " + num(lado.xml.vigentes) + " · no comparable (el SAT cuenta solo una parte)";   // 17-nov
         if (!lado.xml.meses_con_diferencia) return "tus XML: cuadra";
         return "tus XML: " + num(lado.xml.vigentes) + (dn ? " (" + (dn > 0 ? "+" : "") + dn + ")" : "") + " · " + lado.xml.meses_con_diferencia + " mes(es) con diferencia";
     }
@@ -94,6 +95,7 @@
             return '<button type="button" data-cruce="' + i + '" aria-pressed="' + (i === P.cruce) + '">' + esc(x.lado + " · " + x.tipo) + (x.diferencias ? " (" + x.diferencias + ")" : "") + "</button>";
         }).join("") + "</div>";
         var marca = function (f) {
+            if (f.no_comparable) return pill("No comparable", "ojo");          // 17-nov: el SAT cuenta solo una parte de las recibidas
             if (!f.diferencia) return pill("Cuadra", "bien");
             if (f.dif_vigentes < 0) return pill("Faltan " + Math.abs(f.dif_vigentes) + " XML", "ojo");
             if (f.dif_vigentes > 0) return pill("Sobran " + f.dif_vigentes + " XML", "ojo");
@@ -109,7 +111,7 @@
                     '</td><td class="vs-num">' + dinero(f.xml_iva) + "</td>" + (s.tipo === "Ingreso" ? '<td class="vs-num">' + dinero(f.iva_papel) + "</td>" : "") + "<td>" + marca(f) + "</td></tr>";
             }).join("") + "</tbody></table></div>" +
             '<div class="vn-acciones"><button type="button" class="ui-btn ui-btn--secundario ui-btn--32" data-cruce-excel title="Todas las hojas del cruce (emitidas, recibidas y nómina) con sus diferencias">Excel del cruce</button></div>' +
-            '<p class="vi-nota">' + esc(c.nota || "") + " Faltan: descárgalos en Descarga masiva. Sobran: revisa si se cancelaron (Administración de XML).</p>";
+            '<p class="vi-nota">' + esc(c.nota || "") + (s.parcial ? "" : " Faltan: descárgalos en Descarga masiva. Sobran: revisa si se cancelaron (Administración de XML).") + "</p>";
     }
 
     /* ---------- Facturas */
@@ -179,12 +181,14 @@
             if (d <= -1) return '<td class="vs-num vn-de-mas" title="Enteraste más de lo retenido">−' + dinero(-d) + "</td>";
             return '<td class="vs-num">' + dinero(0) + "</td>";
         };
+        var hayMixto = null;          // 17-nov: un mes que cuadra porque el SAT cuenta en sueldos el ISR de asimilados de quien también cobró sueldo
         html += '<div class="vs-tabla__caja"><table class="vs-tabla"><thead><tr><th rowspan="2">Mes</th><th colspan="3">SAT</th><th colspan="3">Tus recibos (XML)</th></tr>' +
             '<tr><th class="vs-num">ISR retenido</th><th class="vs-num">Enterado</th><th class="vs-num">Diferencia</th>' +
             '<th class="vs-num">ISR retenido</th><th class="vs-num">Contra el SAT</th><th></th></tr></thead><tbody>' +
             n.meses.map(function (f) {
                 var x = f[grupo] || null, xml = f["xml_" + grupo], dx = f["dif_xml_" + grupo], cu = f["cuadra_" + grupo];
-                var estado = cu == null ? (xml == null ? pill("sin recibos", "ojo") : (x ? "" : pill("sin SAT", "ojo"))) : cu ? pill("Cuadra", "bien") : pill("No cuadra", "mal");
+                var estado = cu == null ? (xml == null ? pill("sin recibos", "ojo") : (x ? "" : pill("sin SAT", "ojo"))) : cu ? pill(f.mixto ? "Cuadra *" : "Cuadra", "bien") : pill("No cuadra", "mal");
+                if (f.mixto) hayMixto = f.mixto;
                 return "<tr><td>" + esc(f.nombre.charAt(0).toUpperCase() + f.nombre.slice(1)) + "</td>" +
                     '<td class="vs-num">' + (x ? dinero(x.isr_retenido) : "—") + "</td>" +
                     '<td class="vs-num">' + (!x ? "—" : x.isr_enterado == null ? pill("sin enterar", "ojo") : dinero(x.isr_enterado)) + "</td>" +
@@ -196,6 +200,8 @@
         html += '<div class="vn-acciones">' + (n.archivo ? '<button type="button" class="ui-btn ui-btn--secundario ui-btn--32" data-archivo title="El archivo que da el SAT en el Detalle mensual">Excel del SAT (detalle mensual)</button>' : "") +
             '<button type="button" class="ui-btn ui-btn--secundario ui-btn--32" data-excel="nomina_patron" title="Lo arma Fiscontable con las tablas que leyó">Excel de Fiscontable</button></div>' +
             (!n.archivo && n.excel_motivo ? '<p class="vi-nota vn-aviso">El Excel del SAT no salió en esta lectura: ' + esc(n.excel_motivo) + ".</p>" : "") +
+            (hayMixto ? '<p class="vi-nota">* Cuadra: el SAT cuenta en sueldos ' + dinero(hayMixto.isr_asimilados) + " de ISR de asimilados de " + num(hayMixto.trabajadores) +
+                " trabajador(es) que ese mes también cobraron sueldo (su renglón de asimilados es solo de pagos exclusivos de asimilados).</p>" : "") +
             '<p class="vi-nota">Retenido: el ISR de los CFDI de nómina que timbraste. Enterado: el que pagaste en tus declaraciones. Diferencia en rojo: retenido que el SAT no ve pagado; con signo menos: enteraste más de lo retenido (el SAT la pone entre paréntesis). «Tus recibos» suma el ISR de tus XML de nómina de ' +
             (grupo === "asimilados" ? "asimilados (régimen 05 a 11)" : "sueldos y salarios") + ", por mes de pago.</p>";
         caja.innerHTML = html;
