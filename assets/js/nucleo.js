@@ -14,7 +14,7 @@
 (function () {
     "use strict";
 
-    var VERSION = "202611181443";
+    var VERSION = "202611181511";
     // www.fiscontable.app → fiscontable.app: una sola dirección (la sesión y las preferencias guardadas son por dirección)
     if (location.hostname === "www.fiscontable.app") {
         location.replace("https://fiscontable.app" + location.pathname + location.search + location.hash);

@@ -342,7 +342,7 @@
     }
 
     async function iniciar() {
-        if (!(await Fiscontable.exigirModulo("validador"))) return;
+        if (!(await Fiscontable.exigirModulo("envios"))) return;
         E.correos.para = pastillas($("ev-para")); E.correos.cc = pastillas($("ev-cc"));
         try {
             E.op = await api("/api/entregas/opciones");
