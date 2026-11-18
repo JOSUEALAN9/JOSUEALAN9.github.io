@@ -4,15 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Envíos por correo | Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611181835">
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611181835">
-    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611181835">
-    <link rel="stylesheet" href="/herramientas/envios/envios.css?v=202611181835">
+    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611182022">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611182022">
+    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611182022">
+    <link rel="stylesheet" href="/herramientas/envios/envios.css?v=202611182022">
 </head>
 <body class="min-h-screen flex flex-col">
 <div id="app-header" data-modulo="envios" data-titulo="Envíos por correo" data-migas="Herramientas|/herramientas/"></div>
-<script src="/assets/js/nucleo.js?v=202611181835"></script>
-<script src="/assets/js/barra.js?v=202611181835"></script>
+<script src="/assets/js/nucleo.js?v=202611182022"></script>
+<script src="/assets/js/barra.js?v=202611182022"></script>
 
 <main class="flex-grow mod-pagina">
     <div class="mod-cabeza">
@@ -27,14 +27,14 @@
     <div id="ev-lista" class="ev-lista" aria-live="polite"></div>
 
     <!-- Las casillas «Envío 1…5» de cada empresa (18-nov, Alan: «se check y se habilita ese otro envío») -->
-    <section id="ev-matriz" class="ev-matriz" hidden>
+    <details id="ev-matriz" class="ev-matriz" hidden>
+        <summary class="ev-matriz__resumen"><span id="ev-matriz-titulo">Empresas de cada envío</span><small id="ev-matriz-cuenta"></small></summary>
         <div class="ev-matriz__cabeza">
-            <h2 id="ev-matriz-titulo">Empresas de cada envío</h2>
-            <p class="ev-ayuda" data-globo-en="#ev-matriz-titulo" data-globo-nombre="Cómo se marcan">Marca en qué envío va cada empresa. La casilla del encabezado marca o quita todas las que ves. Una empresa puede ir en más de un envío.</p>
+            <p class="ui-ayuda">Marca en qué envío va cada empresa. La casilla del encabezado marca o quita todas las que ves. Una empresa puede ir en más de un envío.</p>
             <input type="search" id="ev-matriz-buscar" class="ui-input" placeholder="Buscar empresa o RFC…" autocomplete="off" aria-label="Buscar empresa">
         </div>
         <div class="ui-tabla-caja ev-matriz__caja"><table class="ui-tabla ev-matriz__tabla"><thead id="ev-matriz-enc"></thead><tbody id="ev-matriz-cuerpo"></tbody></table></div>
-    </section>
+    </details>
 </main>
 
 <!-- Nuevo envío / editar: cinco pasos con «Siguiente» (18-nov, Alan: «como ventanitas de siguiente») -->
@@ -120,7 +120,7 @@
                 <label class="ui-campo" id="ev-dia-caja"><span class="ui-etiqueta" id="ev-dia-etq">Qué día</span>
                     <select id="ev-dia" class="ui-select"></select></label>
                 <label class="ui-campo"><span class="ui-etiqueta">El enlace vence en</span>
-                    <select id="ev-dias-enlace" class="ui-select"><option value="3">3 días</option><option value="7">7 días</option><option value="15">15 días</option><option value="30">30 días</option></select></label>
+                    <select id="ev-dias-enlace" class="ui-select"><option value="3">3 días</option><option value="5">5 días</option><option value="7">7 días</option></select></label>
             </div>
             <div class="ev-radios" role="radiogroup" aria-label="De qué periodo">
                 <label class="ui-check ev-radio"><input type="radio" name="ev-modo" value="mes" checked>
@@ -197,6 +197,6 @@
     </div>
 </dialog>
 
-<script src="/herramientas/envios/envios.js?v=202611181835"></script>
+<script src="/herramientas/envios/envios.js?v=202611182022"></script>
 </body>
 </html>

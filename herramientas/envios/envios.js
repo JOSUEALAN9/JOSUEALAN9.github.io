@@ -171,6 +171,10 @@
         var sec = $("ev-matriz");
         sec.hidden = !E.envios.length || !E.op.empresas.length;
         if (sec.hidden) return;
+        // Plegada para el titular (ya marca las empresas en el formulario); abierta para quien solo puede marcar las suyas
+        if (!E.matrizVista) { E.matrizVista = true; sec.open = !E.titular; }
+        var marcadas = new Set(); E.envios.forEach(function (e) { e.empresas.forEach(function (r) { marcadas.add(r); }); });
+        $("ev-matriz-cuenta").textContent = plural(marcadas.size, "empresa marcada", "empresas marcadas") + " de " + E.op.empresas.length;
         var lista = visibles();
         $("ev-matriz-enc").innerHTML = "<tr><th>Empresa</th>" + E.envios.map(function (e) {
             var todas = lista.length && lista.every(function (x) { return e.empresas.indexOf(x.rfc) !== -1; });
@@ -388,7 +392,7 @@
         document.querySelector('input[name="ev-modo"][value="' + (de_ && de_.modo === "nuevo" ? "nuevo" : "mes") + '"]').checked = true;
         pintarDias();
         $("ev-dia").value = String(de_ ? de_.dia : 0);
-        $("ev-dias-enlace").value = String(de_ && [3, 7, 15, 30].indexOf(de_.dias_enlace) !== -1 ? de_.dias_enlace : 7);
+        $("ev-dias-enlace").value = String(de_ && [3, 5, 7].indexOf(de_.dias_enlace) !== -1 ? de_.dias_enlace : 7);          // una semana como máximo (18-nov)
         $("ev-avisar").checked = !!(de_ && de_.avisar_sin_novedades);
         $("ev-cierre").checked = de_ ? de_.cierre !== false : true;
         pintarPeriodo();
