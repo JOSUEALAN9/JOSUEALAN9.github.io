@@ -4,15 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Envíos por correo | Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611181729">
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611181729">
-    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611181729">
-    <link rel="stylesheet" href="/herramientas/envios/envios.css?v=202611181729">
+    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611181758">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611181758">
+    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611181758">
+    <link rel="stylesheet" href="/herramientas/envios/envios.css?v=202611181758">
 </head>
 <body class="min-h-screen flex flex-col">
 <div id="app-header" data-modulo="envios" data-titulo="Envíos por correo" data-migas="Herramientas|/herramientas/"></div>
-<script src="/assets/js/nucleo.js?v=202611181729"></script>
-<script src="/assets/js/barra.js?v=202611181729"></script>
+<script src="/assets/js/nucleo.js?v=202611181758"></script>
+<script src="/assets/js/barra.js?v=202611181758"></script>
 
 <main class="flex-grow mod-pagina">
     <div class="mod-cabeza">
@@ -128,6 +128,9 @@
                 <label class="ui-check ev-radio"><input type="radio" name="ev-modo" value="nuevo">
                     <span><b>Solo lo nuevo</b><small>Lo que llegó a Fiscontable desde el envío anterior, acomodado por su mes.</small></span></label>
             </div>
+            <label class="ui-check ev-adjuntar" id="ev-cierre-caja"><input type="checkbox" id="ev-cierre">
+                <span>El primer envío del mes lleva también el mes que acaba de cerrar
+                    <small>Quítala si el cierre lo mandas aparte, con otro envío mensual (por ejemplo, el día 4): este llevará solo el mes en curso.</small></span></label>
             <p class="ev-nota" id="ev-periodo-txt"></p>
             <label class="ui-check"><input type="checkbox" id="ev-avisar"> Avisar por correo aunque no haya nada que mandar</label>
             <p class="ui-ayuda" id="ev-verifica-txt"></p>
@@ -194,6 +197,6 @@
     </div>
 </dialog>
 
-<script src="/herramientas/envios/envios.js?v=202611181729"></script>
+<script src="/herramientas/envios/envios.js?v=202611181758"></script>
 </body>
 </html>

@@ -205,9 +205,9 @@
         return (partes.length > 1 ? partes.slice(0, -1).join(", ") + " y " + partes[partes.length - 1] : partes[0]) + (mismo ? " " + meses[0].slice(0, 4) : "");
     }
     function mesDe(d) { return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0"); }
-    function mesesDeHoy(frecuencia) {      // lo que llevaría «el mes completo» si saliera hoy
+    function mesesDeHoy(frecuencia, cierre) {      // lo que llevaría «el mes completo» si saliera hoy
         var h = new Date(), actual = mesDe(h), anterior = mesDe(new Date(h.getFullYear(), h.getMonth() - 1, 1));
-        return frecuencia === "mensual" ? [anterior] : h.getDate() <= 7 ? [anterior, actual] : [actual];
+        return frecuencia === "mensual" ? [anterior] : (cierre !== false && h.getDate() <= 7) ? [anterior, actual] : [actual];
     }
     function pintarDias() {
         var f = $("ev-frecuencia").value, sel = $("ev-dia"), previo = sel.value;
@@ -215,13 +215,14 @@
         if (f === "semanal") sel.innerHTML = E.op.dias_semana.map(function (d, i) { return '<option value="' + i + '">' + esc(d.charAt(0).toUpperCase() + d.slice(1)) + "</option>"; }).join("");
         else if (f === "mensual") { var h = ""; for (var i = 1; i <= 28; i++) h += '<option value="' + i + '">Día ' + i + "</option>"; sel.innerHTML = h; }
         if (sel.querySelector('option[value="' + previo + '"]')) sel.value = previo;
-        $("ev-modo-mes-txt").textContent = f === "mensual" ? "El mes anterior completo, ya cerrado."
-            : "El mes en curso completo cada vez (y, la primera semana, también el mes que acaba de cerrar).";
         pintarPeriodo();
     }
     function pintarPeriodo() {
-        var mes = document.querySelector('input[name="ev-modo"]:checked').value === "mes";
-        $("ev-periodo-txt").textContent = mes ? "Si saliera hoy llevaría " + periodoTxt(mesesDeHoy($("ev-frecuencia").value)) + ". Para mandar otro mes una sola vez, usa «Enviar ahora» y elígelo ahí."
+        var mes = document.querySelector('input[name="ev-modo"]:checked').value === "mes", f = $("ev-frecuencia").value, cierre = $("ev-cierre").checked;
+        $("ev-cierre-caja").hidden = !mes || f === "mensual";          // el mensual ES el cierre: siempre manda el mes anterior
+        $("ev-modo-mes-txt").textContent = f === "mensual" ? "El mes anterior completo, ya cerrado."
+            : cierre ? "El mes en curso completo cada vez (y, la primera semana, también el mes que acaba de cerrar)." : "El mes en curso completo cada vez.";
+        $("ev-periodo-txt").textContent = mes ? "Si saliera hoy llevaría " + periodoTxt(mesesDeHoy(f, cierre)) + ". Para mandar otro mes una sola vez, usa «Enviar ahora» y elígelo ahí."
             : "Lleva lo que haya llegado desde el envío anterior. Para mandar un mes completo una sola vez, usa «Enviar ahora» y elígelo ahí.";
     }
     function pintarDestino() {
@@ -276,7 +277,7 @@
         var cliente = document.querySelector('input[name="ev-destino"]:checked').value === "cliente";
         if (cliente && elegidas.length) elegidas = elegidas.slice(0, 1);
         var empresas = !elegidas.length ? "tus empresas" : elegidas.length === 1 ? elegidas[0] : elegidas.length <= 3 ? elegidas.slice(0, -1).join(", ") + " y " + elegidas[elegidas.length - 1] : elegidas.length + " empresas";
-        var hoy = new Date(), mes = document.querySelector('input[name="ev-modo"]:checked').value === "mes" ? mesesDeHoy($("ev-frecuencia").value) : [mesDe(hoy)];
+        var hoy = new Date(), mes = document.querySelector('input[name="ev-modo"]:checked').value === "mes" ? mesesDeHoy($("ev-frecuencia").value, $("ev-cierre").checked) : [mesDe(hoy)];
         var c = leerForm().contenido, partes = c.xml.map(function (k) { return "12 " + de(E.op.xml, k).toLowerCase(); });
         if (c.excel.length) partes.push(plural(c.excel.length, "Excel", "Excel"));
         var vence = new Date(hoy.getTime() + (Number($("ev-dias-enlace").value) || 7) * 86400000);
@@ -389,6 +390,8 @@
         $("ev-dia").value = String(de_ ? de_.dia : 0);
         $("ev-dias-enlace").value = String(de_ && [3, 7, 15, 30].indexOf(de_.dias_enlace) !== -1 ? de_.dias_enlace : 7);
         $("ev-avisar").checked = !!(de_ && de_.avisar_sin_novedades);
+        $("ev-cierre").checked = de_ ? de_.cierre !== false : true;
+        pintarPeriodo();
         $("ev-remitente").value = de_ && de_.remitente && de_.remitente !== E.op.remitente ? de_.remitente : "";
         $("ev-remitente").placeholder = E.op.remitente;
         $("ev-adjuntar").checked = de_ ? de_.adjuntar !== false : true;
@@ -429,7 +432,8 @@
             },
             frecuencia: $("ev-frecuencia").value, dia: Number($("ev-dia").value) || 0, modo: document.querySelector('input[name="ev-modo"]:checked').value,
             dias_enlace: Number($("ev-dias-enlace").value) || 7, avisar_sin_novedades: $("ev-avisar").checked, activa: E.editando ? E.editando.activa : true,
-            asunto: $("ev-asunto").value, mensaje: $("ev-mensaje").value, remitente: $("ev-remitente").value, adjuntar: $("ev-adjuntar").checked
+            asunto: $("ev-asunto").value, mensaje: $("ev-mensaje").value, remitente: $("ev-remitente").value, adjuntar: $("ev-adjuntar").checked,
+            cierre: $("ev-cierre").checked
         };
     }
     async function guardar() {
@@ -456,7 +460,7 @@
         var aQuien = e.destino === "cliente" ? "cada cliente, a su correo" : e.para.concat(e.cc || []).join(", ");
         $("ev-ahora-titulo").textContent = "¿Mandar el Envío " + e.numero + " ahora?";
         $("ev-ahora-sub").textContent = "Sale a " + aQuien + ".";
-        $("ev-ahora-siempre").textContent = e.modo === "mes" ? "Lleva " + periodoTxt(e.meses_hoy || mesesDeHoy(e.frecuencia)) + ", completo." : "Lo que llegó desde el envío anterior.";
+        $("ev-ahora-siempre").textContent = e.modo === "mes" ? "Lleva " + periodoTxt(e.meses_hoy || mesesDeHoy(e.frecuencia, e.cierre)) + ", completo." : "Lo que llegó desde el envío anterior.";
         var h = new Date(), ops = "";
         for (var i = 0; i < 13; i++) { var m = mesDe(new Date(h.getFullYear(), h.getMonth() - i, 1)); ops += '<option value="' + m + '"' + (i === 1 ? " selected" : "") + ">" + esc(mesTxt(m).replace(/^./, function (c) { return c.toUpperCase(); })) + "</option>"; }
         $("ev-ahora-mes").innerHTML = ops;
@@ -586,6 +590,7 @@
         $("ev-usuarios").addEventListener("change", function (ev) { E.correos.cc.alternar(ev.target.value, ev.target.checked); });
         $("ev-cc").addEventListener("cambio", pintarUsuarios);
         document.querySelectorAll('input[name="ev-modo"]').forEach(function (r) { r.addEventListener("change", pintarPeriodo); });
+        $("ev-cierre").addEventListener("change", pintarPeriodo);
         $("ev-emp-buscar").addEventListener("input", pintarEmpresas);
         $("ev-empresas").addEventListener("change", function (ev) {
             if (ev.target.checked) E.marcadas.add(ev.target.value); else E.marcadas.delete(ev.target.value);
