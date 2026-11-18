@@ -14,7 +14,10 @@
     var fmt = new Intl.NumberFormat("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     var num = function (n) { return Number(n || 0).toLocaleString("es-MX"); };
     var C = { ctx: null, datos: null, vista: "detalle", tablas: {}, turno: 0 };
-    var VISTAS = [["detalle", "Detalle"], ["producto", "Por producto"], ["clave", "Por clave SAT"], ["contraparte", ""]];
+    var VISTAS = [["detalle", "Detalle", "Un renglón por cada concepto de cada factura"],
+                  ["producto", "Por producto", "Un renglón por cada descripción distinta (con su clave del SAT y su n.º de identificación)"],
+                  ["clave", "Por clave SAT", "Un renglón por cada clave del SAT, se describa como se describa"],
+                  ["contraparte", "", "Un renglón por cada cliente o proveedor"]];
 
     async function post(ruta, cuerpo) {
         var resp;
@@ -90,7 +93,12 @@
         if (r.sin_detalle) avisos.push(num(r.sin_detalle) + " factura(s) sin su archivo XML: sin impuestos por concepto");
         caja.hidden = false;
         caja.innerHTML = '<div class="xc-datos">' +
-            dato(num(r.conceptos), "conceptos") + dato(num(r.facturas), "facturas") + dato(num(r.productos), "productos distintos") +
+            dato(num(r.conceptos), "conceptos", "Renglones de producto o servicio que traen las facturas del periodo") + dato(num(r.facturas), "facturas") +
+            // 18-nov (Alan: «el de productos me deja dudas»): se dice qué se contó. Un «producto» aquí es una descripción distinta
+            // (con su clave del SAT y su n.º de identificación); la misma cosa escrita de dos formas cuenta dos veces.
+            dato(num(r.productos), "descripciones distintas", "Cuántas descripciones diferentes hay (misma clave del SAT, misma descripción y mismo n.º de identificación = una sola). " +
+                "Si un proveedor escribe distinto la descripción en cada factura, cada una cuenta aparte; para agruparlas, usa «Por clave SAT».") +
+            dato(num(C.datos.filas.clave.length), "claves del SAT", "Cuántas claves de producto o servicio del SAT distintas se usaron, se describan como se describan") +
             dato(num(r.contrapartes), quien(true)) +
             dato("$" + fmt.format(r.importe_mxn), "importe neto en pesos", "Importe menos descuento, en pesos con el tipo de cambio de cada factura; las notas de crédito restan") +
             dato("$" + fmt.format(r.iva_mxn), "IVA en pesos") + "</div>" +
@@ -99,7 +107,7 @@
         seg.innerHTML = VISTAS.map(function (v) {
             var nombre = v[1] || "Por " + quien(false), n = C.datos.filas[v[0]].length;
             return '<button type="button" role="tab" class="pestana' + (v[0] === C.vista ? " pestana--activa" : "") + '" aria-selected="' + (v[0] === C.vista) +
-                '" data-vista="' + v[0] + '">' + esc(nombre) + '<span class="xml-cuenta">' + num(n) + "</span></button>";
+                '" data-vista="' + v[0] + '" title="' + esc(v[2]) + '">' + esc(nombre) + '<span class="xml-cuenta">' + num(n) + "</span></button>";
         }).join("");
         var tablas = $("conceptos-tablas"); tablas.hidden = false;
         tablas.innerHTML = VISTAS.map(function (v) { return '<div class="xc-tabla" data-tabla="' + v[0] + '"' + (v[0] === C.vista ? "" : " hidden") + "></div>"; }).join("");
