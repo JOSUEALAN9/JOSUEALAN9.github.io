@@ -91,7 +91,9 @@
             { n: r.errores, t: "Revisiones con error", d: r.sin_efirma ? r.sin_efirma + " empresa(s) sin e.firma guardada" : "Todo se pudo revisar", c: r.errores ? "roja" : "gris" }
         ];
         $("resumen").innerHTML = tarjetas.map(function (x) {
-            return '<div class="bz-tarjeta bz-tarjeta--' + (x.n ? x.c : "gris") + '"><strong>' + x.n + "</strong><span>" + x.t + "</span><small>" + esc(x.d) + "</small></div>";
+            // 18-nov: la explicación de cada cifra sale al pasar el cursor; visible solo la que avisa de algo (empresas sin e.firma)
+            var avisa = x.t === "Revisiones con error" && r.sin_efirma;
+            return '<div class="bz-tarjeta bz-tarjeta--' + (x.n ? x.c : "gris") + '" title="' + esc(x.d) + '"><strong>' + x.n + "</strong><span>" + x.t + "</span>" + (avisa ? "<small>" + esc(x.d) + "</small>" : "") + "</div>";
         }).join("");
     }
 

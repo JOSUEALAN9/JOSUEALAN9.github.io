@@ -119,10 +119,11 @@
         var num = function (g) { return '<td class="xml-num">' + m(g.monto_operacion) + '</td><td class="xml-num">' + m(g.isr_retenido) + '</td><td class="xml-num">' +
             m(g.iva_retenido) + '</td><td class="xml-num">' + m(g.ieps_retenido) + '</td><td class="xml-num"><b>' + m(g.monto_retenido) + "</b></td>"; };
         var cab = '<th class="xml-num">Operación</th><th class="xml-num">ISR</th><th class="xml-num">IVA</th><th class="xml-num">IEPS</th><th class="xml-num">Total retenido</th>';
-        $("papel").innerHTML = '<p class="rt-papel__nota">' + (E.lado === "recibida"
+        // 18-nov: la explicación va en un globo junto al título (antes ocupaba un renglón arriba del papel)
+        $("papel").innerHTML = '<h2 id="rt-papel-titulo">Por mes · ' + esc(p.anio) + "</h2>" +
+            '<p class="rt-papel__nota" data-globo-en="#rt-papel-titulo" data-globo-nombre="Para qué sirve el papel de trabajo">' + (E.lado === "recibida"
                 ? "Lo que le retuvieron a la empresa, para acreditarlo en la declaración del mes y en la anual."
                 : "Lo que la empresa retuvo a terceros, para enterarlo en la declaración del mes.") + " Toca un mes para ver el detalle por " + quien.toLowerCase() + ".</p>" +
-            '<h2>Por mes · ' + esc(p.anio) + "</h2>" +
             '<div class="rt-papel__caja"><table><thead><tr><th>Periodo</th><th>' + quien + "es y CFDI</th>" + cab + "</tr></thead><tbody>" +
             p.periodos.map(function (per) {
                 return '<tr data-per="' + esc(per.clave) + '" aria-expanded="false" tabindex="0"><td><b>' + esc(per.nombre) + "</b></td><td>" + per.filas.length + " " + (per.filas.length === 1 ? quien.toLowerCase() : quien.toLowerCase() + "es") + " · " +
@@ -137,6 +138,7 @@
             p.por_retenedor.map(function (g) {
                 return "<tr><td>" + esc(g.nombre) + ' <span class="rt-sub">' + esc(g.rfc) + "</span></td><td>" + esc(g.concepto || ("Clave " + g.clave)) + " · " + g.cantidad + "</td>" + num(g) + "</tr>";
             }).join("") + "</tbody></table></div>";
+        if (Fiscontable.globos) Fiscontable.globos($("papel"));
     }
     function pintarAnios(anios, actual) {
         if (actual && anios.indexOf(actual) < 0) anios = [actual].concat(anios);

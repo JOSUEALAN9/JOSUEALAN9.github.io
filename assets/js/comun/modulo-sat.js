@@ -948,11 +948,12 @@
         var panel = $("panel-masivo"); if (!panel || $("msat-cli")) return;
         var caja = document.createElement("div");
         caja.className = "ficha msat-cli"; caja.id = "msat-cli";
-        caja.innerHTML = '<h2 class="ficha__titulo">Todos tus clientes con e.firma guardada</h2>' +
-            '<p class="ficha__nota">Ya vienen marcados todos; quita los que no quieras. No tienes que subir nada: se usa la e.firma que ya guardaste de cada uno.</p>' +
+        caja.innerHTML = '<h2 class="ficha__titulo" id="msat-cli-titulo">Todos tus clientes con e.firma guardada</h2>' +
+            '<p class="ficha__nota" data-globo-en="#msat-cli-titulo" data-globo-nombre="Cómo funciona">Ya vienen marcados todos; quita los que no quieras. No tienes que subir nada: se usa la e.firma que ya guardaste de cada uno.</p>' +
             '<div class="msat-cli__cuerpo"><p class="ficha__nota">Cargando tus clientes…</p></div>';
         var antes = panel.querySelector(".ficha");
         panel.insertBefore(caja, antes);
+        if (Fiscontable.globos) Fiscontable.globos(caja);
         // «Todos los clientes» = los que tienen e.firma guardada. La carpeta (plantilla + .cer/.key) queda plegada abajo,
         // para quien no la tiene guardada; el avance del lote sigue afuera porque lo usan las dos formas.
         var plegado = document.createElement("details");

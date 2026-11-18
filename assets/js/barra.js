@@ -3088,6 +3088,54 @@
     }
     if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", accionesEnBarra); else accionesEnBarra();
 
+    /* ------------------------------------------------- globos de ayuda (18-nov)
+       Alan: «que los comentarios sean eso, comentarios al pasar el cursor, en vez de aparecer»: un texto de ayuda fijo
+       le quita renglones a la tabla. Con data-globo el texto se vuelve un globo que sale al pasar el cursor por un «?»
+       (o al enfocarlo, o al tocarlo en el celular) y ya no ocupa lugar:
+           <p data-globo>…</p>                    el «?» queda donde estaba el texto
+           <p data-globo="#boton">…</p>           el «?» va justo después de ese elemento
+           <p data-globo-en="#titulo">…</p>       el «?» va dentro de ese elemento, al final (títulos)
+       Es el MISMO elemento: quien le cambia el texto o lo oculta (hidden) sigue funcionando. Para contenido que se pinta
+       después: Fiscontable.globos(contenedor). */
+    function globos(raiz) {
+        (raiz || document).querySelectorAll("[data-globo]:not(.fc-globo), [data-globo-en]:not(.fc-globo)").forEach(function (texto) {
+            var dentro = texto.dataset.globoEn ? document.querySelector(texto.dataset.globoEn) : null;
+            var junto = !dentro && texto.dataset.globo ? document.querySelector(texto.dataset.globo) : null;
+            var caja = document.createElement("span"), b = document.createElement("button");
+            caja.className = "fc-globo-caja";
+            b.type = "button"; b.className = "fc-info"; b.textContent = "?";
+            b.setAttribute("aria-label", texto.dataset.globoNombre || "Ayuda"); b.setAttribute("aria-expanded", "false");
+            if (dentro) dentro.appendChild(caja);
+            else if (junto) junto.insertAdjacentElement("afterend", caja);
+            else texto.parentNode.insertBefore(caja, texto);
+            caja.appendChild(b); caja.appendChild(texto);
+            texto.classList.add("fc-globo"); texto.setAttribute("role", "tooltip");
+            // Dónde cabe: bajo el «?», sin salirse de la pantalla (de fábrica crece hacia la izquierda, que no desborda)
+            function colocar() {
+                var ancho = Math.min(380, window.innerWidth - 32), r = b.getBoundingClientRect();
+                var x = Math.max(16, Math.min(r.left, window.innerWidth - 16 - ancho));
+                texto.style.width = ancho + "px"; texto.style.right = "auto";
+                texto.style.left = (x - caja.getBoundingClientRect().left) + "px";
+            }
+            caja.addEventListener("mouseenter", colocar); b.addEventListener("focus", colocar);
+            b.addEventListener("click", function (e) {
+                e.preventDefault(); e.stopPropagation(); colocar();
+                var abierta = !caja.classList.contains("fc-globo-caja--abierta");
+                cerrarGlobos();
+                caja.classList.toggle("fc-globo-caja--abierta", abierta); b.setAttribute("aria-expanded", String(abierta));
+            });
+        });
+    }
+    function cerrarGlobos() {
+        document.querySelectorAll(".fc-globo-caja--abierta").forEach(function (c) {
+            c.classList.remove("fc-globo-caja--abierta"); c.querySelector(".fc-info").setAttribute("aria-expanded", "false");
+        });
+    }
+    document.addEventListener("click", function (e) { if (!e.target.closest(".fc-globo-caja")) cerrarGlobos(); });
+    document.addEventListener("keydown", function (e) { if (e.key === "Escape") cerrarGlobos(); });
+    window.Fiscontable.globos = globos;
+    if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", function () { globos(); }); else globos();
+
     /* ------------------------------------------------- bloqueo por inactividad (S-01)
        Tras N minutos sin usar la web (cada quien lo elige en Configuración › Mi perfil) se bloquea la pantalla en
        todas las pestañas. Con PIN se desbloquea sin perder lo que estaba en pantalla; el servidor también deja esa
