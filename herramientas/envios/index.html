@@ -4,15 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Envíos por correo | Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611181525">
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611181525">
-    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611181525">
-    <link rel="stylesheet" href="/herramientas/envios/envios.css?v=202611181525">
+    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611181636">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611181636">
+    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611181636">
+    <link rel="stylesheet" href="/herramientas/envios/envios.css?v=202611181636">
 </head>
 <body class="min-h-screen flex flex-col">
 <div id="app-header" data-modulo="envios" data-titulo="Envíos por correo" data-migas="Herramientas|/herramientas/"></div>
-<script src="/assets/js/nucleo.js?v=202611181525"></script>
-<script src="/assets/js/barra.js?v=202611181525"></script>
+<script src="/assets/js/nucleo.js?v=202611181636"></script>
+<script src="/assets/js/barra.js?v=202611181636"></script>
 
 <main class="flex-grow mod-pagina">
     <div class="mod-cabeza">
@@ -37,14 +37,17 @@
     </section>
 </main>
 
-<!-- Nuevo envío / editar -->
-<dialog class="fc-modal fc-modal--grande" id="ev-dlg" aria-labelledby="ev-dlg-titulo">
+<!-- Nuevo envío / editar: cinco pasos con «Siguiente» (18-nov, Alan: «como ventanitas de siguiente») -->
+<dialog class="fc-modal fc-modal--grande ev-dlg" id="ev-dlg" aria-labelledby="ev-dlg-titulo">
     <div class="fc-modal__cabeza"><div><h2 id="ev-dlg-titulo">Nuevo envío</h2><p id="ev-dlg-sub">Se manda solo, a las 7 de la mañana del día que toque.</p></div>
         <button type="button" class="fc-modal__cerrar" data-ev="cerrar" aria-label="Cerrar">×</button></div>
+    <ol class="ev-pasos" id="ev-pasos" aria-label="Pasos"></ol>
     <form class="fc-modal__cuerpo ev-form" id="ev-form" novalidate>
-        <section class="ev-bloque">
-            <h3>A quién</h3>
-            <label class="ui-campo"><span class="ui-etiqueta">Nombre del envío</span>
+        <p id="ev-base" class="ev-base" hidden></p>
+
+        <section class="ev-paso" data-paso="1" aria-labelledby="ev-p1">
+            <h3 id="ev-p1">¿A quién se le manda?</h3>
+            <label class="ui-campo"><span class="ui-etiqueta">Nombre del envío <i>(lo ve quien lo recibe)</i></span>
                 <input type="text" id="ev-nombre" class="ui-input" maxlength="80" placeholder="Clientes de Juan, semanal" autocomplete="off"></label>
             <div class="ev-radios" role="radiogroup" aria-label="A quién va">
                 <label class="ui-check ev-radio"><input type="radio" name="ev-destino" value="grupo" checked>
@@ -58,24 +61,34 @@
                 <div class="ui-campo"><span class="ui-etiqueta" id="ev-cc-etq">Con copia <i>(opcional)</i></span>
                     <div class="ev-correos" id="ev-cc" data-vacio="correo@ejemplo.com" role="group" aria-labelledby="ev-cc-etq"></div></div>
             </div>
+            <p class="ui-ayuda">Escribe un correo y pulsa Enter para agregar otro.</p>
             <div id="ev-usuarios-caja" hidden>
                 <p class="ev-sub">Copia a usuarios del despacho</p>
                 <div id="ev-usuarios" class="ev-usuarios"></div>
             </div>
         </section>
 
-        <section class="ev-bloque">
-            <div class="ev-bloque__cabeza"><h3>De qué empresas</h3><span id="ev-emp-cuenta" class="ui-ayuda"></span></div>
-            <div class="ev-emp-barra">
-                <input type="search" id="ev-emp-buscar" class="ui-input" placeholder="Buscar empresa o RFC…" autocomplete="off" aria-label="Buscar empresa">
-                <button type="button" class="ui-btn ui-btn--secundario ui-btn--32" data-ev="todas">Marcar las que ves</button>
-                <button type="button" class="ui-btn ui-btn--terciario ui-btn--32" data-ev="ninguna">Quitar todas</button>
+        <section class="ev-paso" data-paso="2" aria-labelledby="ev-p2" hidden>
+            <h3 id="ev-p2">¿De qué empresas?</h3>
+            <!-- Lista desplegable con buscador; las elegidas quedan abajo como pastillas -->
+            <div class="ev-combo" id="ev-combo">
+                <button type="button" class="ui-select ev-combo__boton" id="ev-combo-boton" aria-haspopup="listbox" aria-expanded="false" aria-controls="ev-combo-panel">Elegir empresas</button>
+                <div class="ev-combo__panel" id="ev-combo-panel" hidden>
+                    <div class="ev-emp-barra">
+                        <input type="search" id="ev-emp-buscar" class="ui-input" placeholder="Buscar empresa o RFC…" autocomplete="off" aria-label="Buscar empresa">
+                        <button type="button" class="ui-btn ui-btn--secundario ui-btn--32" data-ev="todas">Marcar las que ves</button>
+                        <button type="button" class="ui-btn ui-btn--terciario ui-btn--32" data-ev="ninguna">Quitar todas</button>
+                    </div>
+                    <div id="ev-empresas" class="ev-empresas" role="listbox" aria-multiselectable="true" aria-label="Empresas"></div>
+                    <div class="ev-combo__pie"><button type="button" class="ui-btn ui-btn--secundario ui-btn--32" data-ev="combo-listo">Listo</button></div>
+                </div>
             </div>
-            <div id="ev-empresas" class="ev-empresas" role="group" aria-label="Empresas"></div>
+            <div id="ev-elegidas" class="ev-elegidas" aria-live="polite"></div>
+            <p class="ui-ayuda">También se pueden marcar después, con las casillas de «Empresas de cada envío».</p>
         </section>
 
-        <section class="ev-bloque">
-            <h3>Qué lleva</h3>
+        <section class="ev-paso" data-paso="3" aria-labelledby="ev-p3" hidden>
+            <h3 id="ev-p3">¿Qué lleva?</h3>
             <div class="ev-dos">
                 <div>
                     <p class="ev-sub">XML y PDF <i>(en la carpeta «XML y PDF»)</i></p>
@@ -92,8 +105,8 @@
             </div>
         </section>
 
-        <section class="ev-bloque">
-            <h3>Cuándo y de qué periodo</h3>
+        <section class="ev-paso" data-paso="4" aria-labelledby="ev-p4" hidden>
+            <h3 id="ev-p4">¿Cuándo y de qué periodo?</h3>
             <div class="ev-tres">
                 <label class="ui-campo"><span class="ui-etiqueta">Cada cuánto</span>
                     <select id="ev-frecuencia" class="ui-select"><option value="semanal">Cada semana</option><option value="quincenal">Cada quincena (días 1 y 16)</option><option value="mensual">Cada mes</option></select></label>
@@ -108,15 +121,59 @@
                 <label class="ui-check ev-radio"><input type="radio" name="ev-modo" value="nuevo">
                     <span><b>Solo lo nuevo</b><small>Lo que llegó a Fiscontable desde el envío anterior, acomodado por su mes.</small></span></label>
             </div>
+            <p class="ev-nota" id="ev-periodo-txt"></p>
             <label class="ui-check"><input type="checkbox" id="ev-avisar"> Avisar por correo aunque no haya nada que mandar</label>
             <p class="ui-ayuda" id="ev-verifica-txt"></p>
+        </section>
+
+        <section class="ev-paso" data-paso="5" aria-labelledby="ev-p5" hidden>
+            <h3 id="ev-p5">¿Qué dice el correo?</h3>
+            <div class="ev-dos">
+                <label class="ui-campo"><span class="ui-etiqueta">Nombre del remitente <i>(quién aparece que lo manda)</i></span>
+                    <input type="text" id="ev-remitente" class="ui-input" maxlength="60" placeholder="Fiscontable" autocomplete="off"></label>
+                <label class="ui-check ev-adjuntar"><input type="checkbox" id="ev-adjuntar">
+                    <span>Adjuntar también el ZIP <small id="ev-adjuntar-txt"></small></span></label>
+            </div>
+            <div class="ev-plantillas" role="group" aria-label="Plantillas"><span class="ev-sub">Empieza con una plantilla</span><div id="ev-plantillas" class="ev-plantillas__lista"></div></div>
+            <label class="ui-campo"><span class="ui-etiqueta">Asunto</span>
+                <input type="text" id="ev-asunto" class="ui-input" maxlength="150" autocomplete="off"></label>
+            <label class="ui-campo"><span class="ui-etiqueta">Mensaje</span>
+                <textarea id="ev-mensaje" class="ui-input ev-mensaje" rows="6" maxlength="2000"></textarea></label>
+            <div class="ev-variables"><span>Toca una palabra para ponerla:</span><span id="ev-variables" class="ev-variables__lista"></span></div>
+            <div class="ev-vista" aria-live="polite">
+                <p class="ev-sub">Así llegaría <i>(con datos de ejemplo)</i></p>
+                <p class="ev-vista__asunto" id="ev-vista-asunto"></p>
+                <pre class="ev-vista__cuerpo" id="ev-vista-cuerpo"></pre>
+            </div>
         </section>
         <p id="ev-error" class="ui-ayuda ui-ayuda--error" role="alert" hidden></p>
     </form>
     <div class="fc-modal__pie">
         <button type="button" id="ev-borrar" class="ui-btn ui-btn--terciario ui-btn--36 ev-borrar" hidden>Borrar envío</button>
-        <button type="button" class="ui-btn ui-btn--secundario ui-btn--36" data-ev="cerrar">Cancelar</button>
+        <button type="button" id="ev-atras" class="ui-btn ui-btn--secundario ui-btn--36" data-ev="atras">Atrás</button>
+        <button type="button" id="ev-siguiente" class="ui-btn ui-btn--primario ui-btn--36" data-ev="siguiente">Siguiente</button>
         <button type="button" id="ev-guardar" class="ui-btn ui-btn--primario ui-btn--36">Guardar</button>
+    </div>
+</dialog>
+
+<!-- «Enviar ahora»: a quién va y de qué periodo -->
+<dialog class="fc-modal fc-modal--chica" id="ev-ahora" aria-labelledby="ev-ahora-titulo">
+    <div class="fc-modal__cabeza"><div><h2 id="ev-ahora-titulo">Enviar ahora</h2><p id="ev-ahora-sub"></p></div>
+        <button type="button" class="fc-modal__cerrar" data-ev="cerrar-ahora" aria-label="Cerrar">×</button></div>
+    <div class="fc-modal__cuerpo ev-ahora">
+        <div class="ev-radios ev-radios--una" role="radiogroup" aria-label="De qué periodo">
+            <label class="ui-check ev-radio"><input type="radio" name="ev-ahora-periodo" value="siempre" checked>
+                <span><b>El periodo de siempre</b><small id="ev-ahora-siempre"></small></span></label>
+            <label class="ui-check ev-radio"><input type="radio" name="ev-ahora-periodo" value="otro">
+                <span><b>Otro mes</b><small>Ese mes completo. No cambia lo que llevará el envío automático.</small></span></label>
+        </div>
+        <label class="ui-campo" id="ev-ahora-mes-caja" hidden><span class="ui-etiqueta">Qué mes</span>
+            <select id="ev-ahora-mes" class="ui-select"></select></label>
+        <p class="ui-ayuda" id="ev-ahora-nota"></p>
+    </div>
+    <div class="fc-modal__pie">
+        <button type="button" class="ui-btn ui-btn--secundario ui-btn--36" data-ev="cerrar-ahora">Cancelar</button>
+        <button type="button" id="ev-ahora-si" class="ui-btn ui-btn--primario ui-btn--36">Enviar ahora</button>
     </div>
 </dialog>
 
@@ -130,6 +187,6 @@
     </div>
 </dialog>
 
-<script src="/herramientas/envios/envios.js?v=202611181525"></script>
+<script src="/herramientas/envios/envios.js?v=202611181636"></script>
 </body>
 </html>

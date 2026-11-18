@@ -17,12 +17,66 @@
 .ev-acciones .ui-btn:first-child { margin-right: auto; }
 .ev-vacio { grid-column: 1 / -1; border: 1px dashed rgb(var(--g-300)); border-radius: var(--r-tarjeta); }
 
-/* formulario */
-.ev-form { display: grid; gap: var(--e-4); }
-.ev-bloque { display: grid; gap: 10px; min-width: 0; }
-.ev-bloque + .ev-bloque { border-top: 1px solid var(--linea); padding-top: var(--e-4); }
-.ev-bloque h3 { margin: 0; font-size: var(--t-14); font-weight: 700; color: rgb(var(--g-900)); }
-.ev-bloque__cabeza { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+/* formulario en pasos (18-nov: «como ventanitas de siguiente») */
+.ev-dlg .ev-form { display: grid; gap: var(--e-4); align-content: start; min-height: min(420px, 52vh); }
+.ev-pasos { list-style: none; margin: 0; padding: 12px var(--modal-pad); display: flex; gap: 4px; border-bottom: 1px solid var(--linea); overflow-x: auto; flex: none; }
+.ev-pasos li { flex: 1 1 0; min-width: 0; }
+.ev-pasos button { width: 100%; display: flex; align-items: center; gap: 8px; padding: 6px 8px; border: 0; border-radius: 10px; background: none; color: rgb(var(--g-600)); font: inherit; font-size: var(--t-13);
+                   font-weight: 600; cursor: pointer; white-space: nowrap; }
+.ev-pasos button:hover { background: rgb(var(--g-100)); }
+.ev-pasos button:focus-visible { outline: 2px solid rgb(var(--ac-600)); outline-offset: -2px; }
+.ev-pasos__num { flex: none; width: 22px; height: 22px; display: grid; place-items: center; border-radius: 50%; background: rgb(var(--g-200)); color: rgb(var(--g-700)); font-size: var(--t-12); font-weight: 700; }
+.ev-pasos__txt { overflow: hidden; text-overflow: ellipsis; }
+.ev-pasos .ev-pasos--hecho .ev-pasos__num { background: rgb(var(--ac-600) / .16); color: rgb(var(--ac-600)); }
+.ev-pasos [aria-current="step"] { color: rgb(var(--g-900)); background: rgb(var(--g-100)); }
+.ev-pasos [aria-current="step"] .ev-pasos__num { background: rgb(var(--g-900)); color: rgb(var(--g-0)); }
+.ev-paso { display: grid; gap: 12px; min-width: 0; align-content: start; }
+.ev-paso[hidden] { display: none; }
+.ev-paso h3 { margin: 0; font-size: var(--t-16); font-weight: 700; color: rgb(var(--g-900)); }
+.ev-base { margin: 0; padding: 8px 12px; border-radius: 10px; background: rgb(var(--in-50, var(--g-100))); color: rgb(var(--g-700)); font-size: var(--t-13); }
+.ev-nota { margin: 0; font-size: var(--t-13); color: rgb(var(--g-700)); }
+.ui-etiqueta i { font-style: normal; font-weight: 400; color: rgb(var(--g-500)); }
+/* empresas: lista desplegable */
+.ev-combo { display: grid; gap: 6px; }
+.ev-combo__boton { width: 100%; text-align: left; cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 8px; background-image: none; }
+.ev-combo__boton::after { content: "▾"; color: rgb(var(--g-500)); font-size: 12px; transition: transform .15s ease; }
+.ev-combo--abierto .ev-combo__boton::after { transform: rotate(180deg); }
+.ev-combo__panel { display: grid; gap: 8px; padding: 10px; border: 1px solid rgb(var(--g-300)); border-radius: 12px; background: rgb(var(--g-0)); box-shadow: var(--sombra-media, 0 6px 20px rgb(0 0 0 / .08)); }
+.ev-combo__panel[hidden] { display: none; }
+.ev-combo__pie { display: flex; justify-content: flex-end; }
+.ev-elegidas { display: flex; flex-wrap: wrap; gap: 6px; max-height: 132px; overflow: auto; }
+.ev-elegidas .ev-pastilla { max-width: min(100%, 280px); animation: none; }
+.ev-elegidas__vacio { font-size: var(--t-13); color: rgb(var(--g-500)); }
+/* el correo */
+.ev-plantillas { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
+.ev-plantillas .ev-sub { margin: 0; }
+.ev-plantillas__lista, .ev-variables__lista { display: inline-flex; flex-wrap: wrap; gap: 6px; }
+.ev-chip { display: inline-flex; align-items: center; height: 28px; padding: 0 12px; border: 1px solid rgb(var(--g-300)); border-radius: 999px; background: rgb(var(--g-0)); color: rgb(var(--g-800, var(--g-700)));
+           font: inherit; font-size: var(--t-13); font-weight: 600; cursor: pointer; }
+.ev-chip:hover { border-color: rgb(var(--g-400)); background: rgb(var(--g-50)); }
+.ev-chip[aria-pressed="true"] { border-color: rgb(var(--ac-600)); background: rgb(var(--ac-600) / .08); color: rgb(var(--ac-600)); }
+.ev-chip--nota { border-style: dashed; cursor: default; color: rgb(var(--g-600)); font-weight: 400; }
+.ev-chip--nota[hidden] { display: none; }
+.ev-chip--palabra { height: 24px; padding: 0 8px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; font-weight: 500; }
+.ev-mensaje { height: auto; min-height: 132px; padding: 8px 12px; line-height: 1.5; resize: vertical; font-family: inherit; }
+.ev-variables { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; font-size: var(--t-12); color: rgb(var(--g-600)); }
+.ev-vista { border: 1px solid var(--linea); border-radius: 12px; padding: 10px 14px; background: rgb(var(--g-50)); display: grid; gap: 6px; min-width: 0; }
+.ev-vista .ev-sub { margin: 0; font-size: var(--t-12); }
+.ev-vista__asunto { margin: 0; font-size: var(--t-14); font-weight: 700; color: rgb(var(--g-900)); overflow-wrap: anywhere; }
+.ev-vista__cuerpo { margin: 0; font: inherit; font-size: var(--t-13); color: rgb(var(--g-700)); white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.5; max-height: 220px; overflow: auto; }
+.ev-adjuntar { align-items: flex-start; gap: 8px; align-self: end; font-size: var(--t-14); }
+.ev-adjuntar input { margin-top: 3px; }
+.ev-adjuntar small { display: block; font-size: var(--t-12); color: rgb(var(--g-600)); line-height: 1.4; margin-top: 2px; }
+/* «Enviar ahora» */
+.ev-ahora { display: grid; gap: 12px; }
+.ev-radios--una { grid-template-columns: minmax(0, 1fr); }
+@media (max-width: 640px) {
+    .ev-pasos { padding: 8px 12px; gap: 2px; }
+    .ev-pasos li { flex: 0 0 auto; }
+    .ev-pasos button { padding: 6px; }
+    .ev-pasos button:not([aria-current="step"]) .ev-pasos__txt { display: none; }
+    .ev-dlg .ev-form { min-height: 0; }
+}
 .ev-dos { display: grid; gap: 10px var(--e-4); grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); }
 .ev-tres { display: grid; gap: 10px var(--e-3); grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr)); }
 .ev-sub { margin: 0 0 6px; font-size: var(--t-13); font-weight: 600; color: rgb(var(--g-700)); }
@@ -100,4 +154,10 @@
 .ev-matriz input[type="checkbox"] { width: 16px; height: 16px; accent-color: rgb(var(--ac-600)); cursor: pointer; }
 .ev-solo-lectura .ev-acciones [data-accion="enviar"], .ev-solo-lectura .ev-acciones [data-accion="editar"], .ev-solo-lectura .ui-switch { display: none; }
 .ev-hecho li small { color: rgb(var(--g-600)); }
+/* Un motivo largo (una e.firma revocada, con su certificado y fecha) se parte en renglones: el historial no se desborda a lo ancho */
+.ev-hecho, .ev-hecho ul, .ev-hecho li { min-width: 0; }
+.ev-hecho li, .ev-hecho__pie span { overflow-wrap: anywhere; }
+.ev-hecho li .ui-estado { display: inline; white-space: normal; }
+.ev-hecho li .ui-estado::before { display: inline-block; margin-right: 6px; vertical-align: middle; }
+#ev-hist .fc-modal__cuerpo { overflow-x: hidden; }
 @media (max-width: 640px) { .ev-matriz__cabeza .ui-input { margin-left: 0; flex: 1 1 100%; } }
