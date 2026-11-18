@@ -166,8 +166,9 @@
             }).join(" · ") + "</li>";
         }).join("");
         var pie = "";
-        if (v.estado === "enviado") {
-            pie = "<span>" + esc(peso(v.bytes) + (v.adjunto ? " · fue adjunto" : " · solo enlace") + " · " + plural(v.descargas, "descarga", "descargas")) + "</span>" +
+        // Si el correo falló pero el archivo sí se armó, su enlace sirve igual: se puede copiar y mandar a mano
+        if (v.estado === "enviado" || (v.estado === "error" && v.enlace_activo)) {
+            pie = "<span>" + esc(peso(v.bytes) + (v.estado === "error" ? " · el archivo sí se armó" : v.adjunto ? " · fue adjunto" : " · solo enlace") + " · " + plural(v.descargas, "descarga", "descargas")) + "</span>" +
                 (v.enlace_activo ? "<span>El enlace vence el " + esc(cuando(v.vence)) + "</span>" +
                     '<button type="button" class="ui-btn ui-btn--terciario ui-btn--28" data-copiar="' + esc(v.url) + '">Copiar enlace</button>' +
                     '<button type="button" class="ui-btn ui-btn--terciario ui-btn--28" data-revocar="' + esc(v.id) + '">Revocar</button>'
