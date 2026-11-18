@@ -347,7 +347,7 @@
         try {
             var titulo = "CFDI con proveedores o clientes en listas del SAT" + (E.pestana ? " · " + E.datos.grupos[E.pestana] : "");
             var resp = await postJSON("/api/listas-sat/excel", { rfc: E.rfc, uuids: uuidsParaAcciones(), titulo: titulo, periodo: textoPeriodo(), desde: E.cargado.desde, hasta: E.cargado.hasta });
-            await descargar(resp, E.rfc + "_Listas_SAT.xlsx");
+            await descargar(resp, E.rfc + "_Listas-SAT.xlsx");
         } catch (e) { aviso(e.message, true); }
         b.innerHTML = t; pintarSeleccion();
     }

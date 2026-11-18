@@ -156,7 +156,7 @@
             if (e.target.closest("[data-ver]")) { abrir(id); }
             else if (e.target.closest("[data-excel]")) {
                 var r = await api("/api/visores/sat/" + encodeURIComponent(id) + "/excel");
-                var nombre = (/filename="([^"]+)"/.exec(r.headers.get("Content-Disposition") || "") || [])[1] || "Visor_SAT.xlsx";
+                var nombre = (/filename="([^"]+)"/.exec(r.headers.get("Content-Disposition") || "") || [])[1] || "Visor-SAT.xlsx";
                 var a = document.createElement("a"); a.href = URL.createObjectURL(await r.blob()); a.download = nombre; a.click();
                 setTimeout(function () { URL.revokeObjectURL(a.href); }, 4000);
             } else if (e.target.closest("[data-detener]")) {

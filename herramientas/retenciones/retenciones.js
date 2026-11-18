@@ -176,8 +176,8 @@
         });
         $("sel-anio").addEventListener("change", function () { E.anio = this.value; E.datos = null; cargar(); });
         $("btn-excel").addEventListener("click", function () {
-            if (E.ver === "papel") return bajar(base() + "/papel/excel" + filtros(), E.rfc + "_Papel_retenciones_" + E.lado + "s_" + ((E.papel && E.papel.anio) || E.anio) + ".xlsx", this);
-            bajar(base() + "/excel" + filtros(), E.rfc + "_Retenciones_" + E.lado + "s" + (E.anio ? "_" + E.anio : "") + ".xlsx", this);
+            if (E.ver === "papel") return bajar(base() + "/papel/excel" + filtros(), E.rfc + "_Papel-retenciones-" + E.lado + "s_" + ((E.papel && E.papel.anio) || E.anio) + ".xlsx", this);
+            bajar(base() + "/excel" + filtros(), E.rfc + "_Retenciones-" + E.lado + "s" + (E.anio ? "_" + E.anio : "") + ".xlsx", this);
         });
         [].forEach.call(document.querySelectorAll("[data-ver]"), function (b) {
             b.addEventListener("click", function () { E.ver = b.dataset.ver; cargar(); });

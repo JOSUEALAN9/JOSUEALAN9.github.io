@@ -4,15 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Envíos por correo | Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611181835">
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611181835">
-    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611181835">
-    <link rel="stylesheet" href="/herramientas/envios/envios.css?v=202611181835">
+    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611182114">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611182114">
+    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611182114">
+    <link rel="stylesheet" href="/herramientas/envios/envios.css?v=202611182114">
 </head>
 <body class="min-h-screen flex flex-col">
 <div id="app-header" data-modulo="envios" data-titulo="Envíos por correo" data-migas="Herramientas|/herramientas/"></div>
-<script src="/assets/js/nucleo.js?v=202611181835"></script>
-<script src="/assets/js/barra.js?v=202611181835"></script>
+<script src="/assets/js/nucleo.js?v=202611182114"></script>
+<script src="/assets/js/barra.js?v=202611182114"></script>
 
 <main class="flex-grow mod-pagina">
     <div class="mod-cabeza">
@@ -27,14 +27,14 @@
     <div id="ev-lista" class="ev-lista" aria-live="polite"></div>
 
     <!-- Las casillas «Envío 1…5» de cada empresa (18-nov, Alan: «se check y se habilita ese otro envío») -->
-    <section id="ev-matriz" class="ev-matriz" hidden>
+    <details id="ev-matriz" class="ev-matriz" hidden>
+        <summary class="ev-matriz__resumen"><span id="ev-matriz-titulo">Empresas de cada envío</span><small id="ev-matriz-cuenta"></small></summary>
         <div class="ev-matriz__cabeza">
-            <h2 id="ev-matriz-titulo">Empresas de cada envío</h2>
-            <p class="ev-ayuda" data-globo-en="#ev-matriz-titulo" data-globo-nombre="Cómo se marcan">Marca en qué envío va cada empresa. La casilla del encabezado marca o quita todas las que ves. Una empresa puede ir en más de un envío.</p>
+            <p class="ui-ayuda">Marca en qué envío va cada empresa. La casilla del encabezado marca o quita todas las que ves. Una empresa puede ir en más de un envío.</p>
             <input type="search" id="ev-matriz-buscar" class="ui-input" placeholder="Buscar empresa o RFC…" autocomplete="off" aria-label="Buscar empresa">
         </div>
         <div class="ui-tabla-caja ev-matriz__caja"><table class="ui-tabla ev-matriz__tabla"><thead id="ev-matriz-enc"></thead><tbody id="ev-matriz-cuerpo"></tbody></table></div>
-    </section>
+    </details>
 </main>
 
 <!-- Nuevo envío / editar: cinco pasos con «Siguiente» (18-nov, Alan: «como ventanitas de siguiente») -->
@@ -119,8 +119,8 @@
                     <select id="ev-frecuencia" class="ui-select"><option value="semanal">Cada semana</option><option value="quincenal">Cada quincena (días 1 y 16)</option><option value="mensual">Cada mes</option></select></label>
                 <label class="ui-campo" id="ev-dia-caja"><span class="ui-etiqueta" id="ev-dia-etq">Qué día</span>
                     <select id="ev-dia" class="ui-select"></select></label>
-                <label class="ui-campo"><span class="ui-etiqueta">El enlace vence en</span>
-                    <select id="ev-dias-enlace" class="ui-select"><option value="3">3 días</option><option value="7">7 días</option><option value="15">15 días</option><option value="30">30 días</option></select></label>
+                <label class="ui-campo" id="ev-dias-enlace-caja"><span class="ui-etiqueta">El enlace vence en</span>
+                    <select id="ev-dias-enlace" class="ui-select"><option value="3">3 días</option><option value="5">5 días</option><option value="7">7 días</option></select></label>
             </div>
             <div class="ev-radios" role="radiogroup" aria-label="De qué periodo">
                 <label class="ui-check ev-radio"><input type="radio" name="ev-modo" value="mes" checked>
@@ -137,11 +137,17 @@
         </section>
 
         <section class="ev-paso" data-paso="5" aria-labelledby="ev-p5" hidden>
-            <h3 id="ev-p5">¿Qué dice el correo?</h3>
+            <h3 id="ev-p5">¿Dónde queda y qué dice el correo?</h3>
+            <div class="ev-radios" role="radiogroup" aria-label="Dónde queda el paquete">
+                <label class="ui-check ev-radio"><input type="radio" name="ev-lugar" value="correo" checked>
+                    <span><b>En el correo, con su enlace</b><small>Llega un enlace para bajarlo, que vence. Sirve para quien no tiene cuenta en Fiscontable.</small></span></label>
+                <label class="ui-check ev-radio" id="ev-lugar-desc-caja"><input type="radio" name="ev-lugar" value="descargas">
+                    <span><b>En Mis descargas de Fiscontable</b><small id="ev-lugar-desc-txt"></small></span></label>
+            </div>
             <div class="ev-dos">
                 <label class="ui-campo"><span class="ui-etiqueta">Nombre del remitente <i>(quién aparece que lo manda)</i></span>
                     <input type="text" id="ev-remitente" class="ui-input" maxlength="60" placeholder="Fiscontable" autocomplete="off"></label>
-                <label class="ui-check ev-adjuntar"><input type="checkbox" id="ev-adjuntar">
+                <label class="ui-check ev-adjuntar" id="ev-adjuntar-caja"><input type="checkbox" id="ev-adjuntar">
                     <span>Adjuntar también el ZIP <small id="ev-adjuntar-txt"></small></span></label>
             </div>
             <div class="ev-plantillas" role="group" aria-label="Plantillas"><span class="ev-sub">Empieza con una plantilla</span><div id="ev-plantillas" class="ev-plantillas__lista"></div></div>
@@ -197,6 +203,6 @@
     </div>
 </dialog>
 
-<script src="/herramientas/envios/envios.js?v=202611181835"></script>
+<script src="/herramientas/envios/envios.js?v=202611182114"></script>
 </body>
 </html>

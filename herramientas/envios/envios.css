@@ -115,6 +115,7 @@
 .ev-hecho__pie .ui-btn { margin-left: auto; }
 .ev-hecho__pie .ui-btn + .ui-btn { margin-left: 0; }
 .ev-hecho__error { margin: 0; font-size: var(--t-13); color: rgb(var(--er-600)); }
+.ev-hecho__aviso { color: rgb(var(--er-600)); }
 @media (max-width: 640px) { .ev-excel__fila { grid-template-columns: minmax(0, 1fr); } .ev-acciones .ui-btn:first-child { margin-right: 0; } }
 
 /* correos como pastillas (como en Cloudflare): se escribe, y con Enter, coma o espacio queda la pastilla con su × */
@@ -140,6 +141,15 @@
 
 /* casillas «Envío 1…5» por empresa */
 .ev-matriz { margin-top: var(--e-6); }
+.ev-matriz__resumen { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; padding: 12px 16px; border: 1px solid var(--linea); border-radius: 12px; background: rgb(var(--g-0));
+                      cursor: pointer; list-style: none; font-size: var(--t-16); font-weight: 700; color: rgb(var(--g-900)); }
+.ev-matriz__resumen::-webkit-details-marker { display: none; }
+.ev-matriz__resumen::after { content: "▸"; margin-left: auto; color: rgb(var(--g-500)); font-size: 13px; font-weight: 400; transition: transform .15s ease; }
+.ev-matriz[open] > .ev-matriz__resumen::after { transform: rotate(90deg); }
+.ev-matriz[open] > .ev-matriz__resumen { margin-bottom: 10px; }
+.ev-matriz__resumen small { font-size: var(--t-13); font-weight: 400; color: rgb(var(--g-600)); }
+.ev-matriz__resumen:focus-visible { outline: 2px solid rgb(var(--ac-600)); outline-offset: 2px; }
+.ev-matriz__cabeza .ui-ayuda { margin: 0; flex: 1 1 320px; }
 .ev-matriz__cabeza { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-bottom: 10px; }
 .ev-matriz__cabeza h2 { margin: 0; font-size: var(--t-16); font-weight: 700; color: rgb(var(--g-900)); }
 .ev-matriz__cabeza .ui-input { margin-left: auto; flex: 0 1 280px; min-width: 0; height: 32px; }

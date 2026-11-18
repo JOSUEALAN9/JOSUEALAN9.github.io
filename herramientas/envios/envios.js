@@ -117,7 +117,7 @@
         var u = e.ultimo;
         if (!u) return '<p class="ev-ultimo">Todavía no se ha mandado.</p>';
         if (u.estado === "error") return '<p class="ev-ultimo ev-ultimo--error"><b>El último no salió</b> (' + esc(cuando(u.momento, true)) + "): " + esc(u.error || "") + "</p>";
-        var txt = u.estado === "enviado" ? plural(u.comprobantes, "comprobante", "comprobantes") + " · " + peso(u.bytes) + (u.adjunto ? " · adjunto y enlace" : " · solo enlace")
+        var txt = u.estado === "enviado" ? plural(u.comprobantes, "comprobante", "comprobantes") + " · " + peso(u.bytes) + (u.en_descargas ? " · en Mis descargas" : u.adjunto ? " · adjunto y enlace" : " · solo enlace")
             : "nada que mandar";
         return '<p class="ev-ultimo">Último: ' + esc(cuando(u.momento, true)) + " · " + esc(txt) + "</p>";
     }
@@ -171,6 +171,10 @@
         var sec = $("ev-matriz");
         sec.hidden = !E.envios.length || !E.op.empresas.length;
         if (sec.hidden) return;
+        // Plegada para el titular (ya marca las empresas en el formulario); abierta para quien solo puede marcar las suyas
+        if (!E.matrizVista) { E.matrizVista = true; sec.open = !E.titular; }
+        var marcadas = new Set(); E.envios.forEach(function (e) { e.empresas.forEach(function (r) { marcadas.add(r); }); });
+        $("ev-matriz-cuenta").textContent = plural(marcadas.size, "empresa marcada", "empresas marcadas") + " de " + E.op.empresas.length;
         var lista = visibles();
         $("ev-matriz-enc").innerHTML = "<tr><th>Empresa</th>" + E.envios.map(function (e) {
             var todas = lista.length && lista.every(function (x) { return e.empresas.indexOf(x.rfc) !== -1; });
@@ -228,6 +232,20 @@
     function pintarDestino() {
         var cliente = document.querySelector('input[name="ev-destino"]:checked').value === "cliente";
         $("ev-para-etq").innerHTML = cliente ? "Copia <i>(opcional: además del correo de cada cliente)</i>" : "Para";
+        pintarLugar();
+    }
+    /* Dónde queda el paquete: en el correo (enlace que vence, con o sin adjunto) o en «Mis descargas» (el correo solo
+       avisa). A cada cliente siempre va por correo: el cliente no entra a Fiscontable. */
+    function enDescargas() { return document.querySelector('input[name="ev-lugar"]:checked').value === "descargas"; }
+    function pintarLugar() {
+        var cliente = document.querySelector('input[name="ev-destino"]:checked').value === "cliente";
+        var desc = document.querySelector('input[name="ev-lugar"][value="descargas"]');
+        if (cliente && desc.checked) document.querySelector('input[name="ev-lugar"][value="correo"]').checked = true;
+        desc.disabled = cliente;
+        $("ev-lugar-desc-txt").textContent = cliente ? "No aplica cuando va a cada cliente: el cliente no entra a Fiscontable."
+            : "El correo y la campana solo avisan que ya está listo; se baja al entrar. En un despacho, cada persona ve lo de sus empresas. Se conserva " + (E.op.dias_descargas || 7) + " días.";
+        var d = enDescargas();
+        $("ev-adjuntar-caja").hidden = d; $("ev-dias-enlace-caja").hidden = d;
     }
     function pintarUsuarios() {
         var us = E.op.usuarios || [];
@@ -283,7 +301,8 @@
         var vence = new Date(hoy.getTime() + (Number($("ev-dias-enlace").value) || 7) * 86400000);
         var detalle = "· " + (elegidas[0] || "Tu empresa") + ", " + mesTxt(mes[mes.length - 1]) + ": " + (partes.join(", ") || "sus documentos") + "." +
             (elegidas.length > 1 && !cliente ? "\n· … y así cada empresa" : "") +
-            "\n\nDescárgalo aquí (2.4 MB): https://…\nEl enlace vence el " + vence.toLocaleDateString("es-MX") + "; después el archivo se borra." + ($("ev-adjuntar").checked ? " También va adjunto a este correo." : "");
+            (enDescargas() ? "\n\nYa está listo en Fiscontable, en «Mis descargas» (2.4 MB): https://fiscontable.app/descargas/\nSe conserva " + (E.op.dias_descargas || 7) + " días en «Mis descargas»; después se borra. En un despacho, cada persona ve lo de sus empresas."
+                : "\n\nDescárgalo aquí (2.4 MB): https://…\nEl enlace vence el " + vence.toLocaleDateString("es-MX") + "; después el archivo se borra." + ($("ev-adjuntar").checked ? " También va adjunto a este correo." : ""));
         return { envio: $("ev-nombre").value.trim() || (E.editando ? "Envío " + E.editando.numero : "Envío " + (E.envios.length + 1)), periodo: periodoTxt(mes),
                  fecha: hoy.toLocaleDateString("es-MX", { day: "2-digit", month: "2-digit", year: "numeric" }), empresas: empresas, detalle: detalle };
     }
@@ -353,7 +372,7 @@
         $("ev-base").textContent = E.nota;
         var c = de_ ? de_.contenido : { xml: ["recibidos", "pagos"], excel: [{ que: "conciliacion_emitidos" }, { que: "pagos" }], docs: [] };      // lo que pidió Alan, de fábrica
         $("ev-dlg-titulo").textContent = e ? "Editar Envío " + e.numero : "Nuevo envío";
-        $("ev-dlg-sub").textContent = "Se manda solo, a las " + E.hora + " de la mañana del día que toque. El ZIP va adjunto si pesa hasta " + E.tope + " MB, y siempre con su enlace.";
+        $("ev-dlg-sub").textContent = "Se manda solo, a las " + E.hora + " de la mañana del día que toque. En el último paso eliges si llega por correo o se queda en Mis descargas.";
         $("ev-verifica-txt").textContent = "Antes de mandar se pide al SAT la lista de cada empresa para comprobar que estén todos los XML, y se valida el estado de todo lo que va. " +
             "Si a las " + E.limite + ":00 el SAT no ha entregado la lista, sale con la anotación de qué empresa quedó sin comparar.";
         $("ev-nombre").value = e ? e.nombre : copia ? (base.nombre + " (copia)").slice(0, 80) : "";
@@ -388,13 +407,15 @@
         document.querySelector('input[name="ev-modo"][value="' + (de_ && de_.modo === "nuevo" ? "nuevo" : "mes") + '"]').checked = true;
         pintarDias();
         $("ev-dia").value = String(de_ ? de_.dia : 0);
-        $("ev-dias-enlace").value = String(de_ && [3, 7, 15, 30].indexOf(de_.dias_enlace) !== -1 ? de_.dias_enlace : 7);
+        $("ev-dias-enlace").value = String(de_ && [3, 5, 7].indexOf(de_.dias_enlace) !== -1 ? de_.dias_enlace : 7);          // una semana como máximo (18-nov)
         $("ev-avisar").checked = !!(de_ && de_.avisar_sin_novedades);
         $("ev-cierre").checked = de_ ? de_.cierre !== false : true;
         pintarPeriodo();
         $("ev-remitente").value = de_ && de_.remitente && de_.remitente !== E.op.remitente ? de_.remitente : "";
         $("ev-remitente").placeholder = E.op.remitente;
         $("ev-adjuntar").checked = de_ ? de_.adjuntar !== false : true;
+        document.querySelector('input[name="ev-lugar"][value="' + (de_ && de_.en_descargas ? "descargas" : "correo") + '"]').checked = true;
+        pintarLugar();
         $("ev-adjuntar-txt").textContent = "(si pesa hasta " + E.tope + " MB). Sin adjunto, solo con el enlace, es menos probable que caiga en correo no deseado.";
         $("ev-asunto").value = de_ && de_.asunto ? de_.asunto : E.op.plantillas[0].asunto;
         $("ev-mensaje").value = de_ && de_.mensaje ? de_.mensaje : E.op.plantillas[0].mensaje;
@@ -433,7 +454,7 @@
             frecuencia: $("ev-frecuencia").value, dia: Number($("ev-dia").value) || 0, modo: document.querySelector('input[name="ev-modo"]:checked').value,
             dias_enlace: Number($("ev-dias-enlace").value) || 7, avisar_sin_novedades: $("ev-avisar").checked, activa: E.editando ? E.editando.activa : true,
             asunto: $("ev-asunto").value, mensaje: $("ev-mensaje").value, remitente: $("ev-remitente").value, adjuntar: $("ev-adjuntar").checked,
-            cierre: $("ev-cierre").checked
+            cierre: $("ev-cierre").checked, en_descargas: enDescargas()
         };
     }
     async function guardar() {
@@ -499,9 +520,14 @@
                 (d.validacion && d.validacion.pendientes ? " · " + d.validacion.pendientes + " sin validar su estado (el SAT no respondió)" : "") + "</small>" : "";
             return "<li><b>" + esc(d.alias) + "</b>: " + ([meses || (docs ? "" : "nada del periodo"), esc(docs)].filter(Boolean).join(" · ")) + ver + "</li>";
         }).join("");
-        var pie = "";
+        var pie = "", enDesc = v.detalle && v.detalle.descargas;
+        if (enDesc && v.estado === "enviado") {          // se quedó en «Mis descargas»: no hay enlace que copiar ni que revocar
+            pie = "<span>" + esc(peso(v.bytes) + " · en Mis descargas (se conserva " + enDesc + " días)") + "</span>" +
+                (v.detalle.aviso_fallo ? '<span class="ev-hecho__aviso">El correo de aviso no salió: ' + esc(v.detalle.aviso_fallo) + "</span>" : "") +
+                '<a class="ui-btn ui-btn--terciario ui-btn--28" href="/descargas/">Abrir Mis descargas</a>';
+        }
         // Si el correo falló pero el archivo sí se armó, su enlace sirve igual: se puede copiar y mandar a mano
-        if (v.estado === "enviado" || (v.estado === "error" && v.enlace_activo)) {
+        else if (v.estado === "enviado" || (v.estado === "error" && v.enlace_activo)) {
             pie = "<span>" + esc(peso(v.bytes) + (v.estado === "error" ? " · el archivo sí se armó" : v.adjunto ? " · fue adjunto" : " · solo enlace") + " · " + plural(v.descargas, "descarga", "descargas")) + "</span>" +
                 (v.enlace_activo ? "<span>El enlace vence el " + esc(cuando(v.vence)) + "</span>" +
                     '<button type="button" class="ui-btn ui-btn--terciario ui-btn--28" data-copiar="' + esc(v.url) + '">Copiar enlace</button>' +
@@ -629,6 +655,7 @@
             if (b.dataset.ev === "ninguna") { E.marcadas.clear(); pintarEmpresas(); }
         });
         $("ev-adjuntar").addEventListener("change", pintarVista);
+        document.querySelectorAll('input[name="ev-lugar"]').forEach(function (r) { r.addEventListener("change", function () { pintarLugar(); pintarVista(); }); });
         $("ev-excel").addEventListener("change", pintarConc);
         $("ev-conc").addEventListener("change", function () {
             var j = E.op.conciliacion.juegos[$("ev-conc").value];

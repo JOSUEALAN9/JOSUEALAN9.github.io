@@ -87,7 +87,7 @@
         try {
             var r = await api("/api/voucheo/papeles/" + encodeURIComponent(rfc) + "/" + anio + "/descargar");
             var p = E.papeles.find(function (x) { return x.rfc === rfc && x.anio === anio; });
-            Fiscontable.guardarArchivo(await r.blob(), (p && p.nombre_archivo) || rfc + "_Voucheo_Estatal_" + anio + ".xlsx");
+            Fiscontable.guardarArchivo(await r.blob(), (p && p.nombre_archivo) || rfc + "_Voucheo-Estatal_" + anio + ".xlsx");
         } catch (e) { pintarError(e.message); }
         finally { if (boton) boton.disabled = false; }
     }
