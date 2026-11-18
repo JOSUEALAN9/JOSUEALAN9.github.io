@@ -185,13 +185,13 @@ function maquetaAgente(t) {
 
 // ------------------------------------------------------------------ portada
 // Precios: los mismos que el catálogo del servidor (core/planes.py). Si cambian allá, cambian aquí (textos.mjs).
-// Plus no se muestra hasta que exista; la tercera tarjeta es el paquete para despachos.
+// 18-nov-2026: se vende solo Pro (individual y despacho), por licencia y por año, con IVA incluido.
 function planes(t) {
     const p = t.planes, dinero = (n) => "$" + Number(n).toLocaleString("es-MX");
     const tarjetas = p.niveles.map((n) => `<article class="st-plan${n.destacado ? " st-plan--destacado" : ""}${n.paquete ? " st-plan--paquete" : ""}">
             ${n.destacado ? `<span class="st-plan__marca">${p.recomendado}</span>` : ""}
             <h3>${n.nombre}</h3><p class="st-plan__resumen">${n.resumen}</p>
-            ${n.precios ? `<ul class="st-plan__precios">${n.precios.map((x) => `<li><span>${x[0]} ${p.rfc}${x[2] ? `<small>${x[2]} ${p.timbres}</small>` : ""}</span><b>${dinero(x[1])}<small>${p.mes}</small></b></li>`).join("")}</ul>` : ""}
+            ${n.precios ? `<ul class="st-plan__precios">${n.precios.map((x) => `<li><span>${x[0]} ${p.rfc}${x[2] ? `<small>${x[2]} ${p.timbres}</small>` : ""}</span><b>${dinero(x[1])}<small>${x[3] || p.mes}</small></b></li>`).join("")}</ul>` : ""}
             ${n.paquete ? `<p class="st-plan__paquete">${n.paquete}</p>` : ""}
             <ul class="st-plan__incluye">${n.incluye.map((i) => `<li>${ico("check")}${i}</li>`).join("")}</ul>
             ${n.nota ? `<p class="st-plan__nota">${n.nota}</p>` : ""}

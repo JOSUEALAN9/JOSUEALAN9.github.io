@@ -44,6 +44,15 @@
     var r2 = function (v) { return Math.round((Number(v) + Number.EPSILON) * 100) / 100; };
     var dinero = function (v) { v = Number(v || 0); return (v < 0 ? "-$" : "$") + Math.abs(v).toLocaleString("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 }); };
     var num = function (v) { var n = parseFloat(String(v == null ? "" : v).replace(/,/g, "")); return isNaN(n) ? 0 : n; };
+    /* Un importe dentro de una casilla, con sus comas («40,000.00»), para leerlo mientras NO se está escribiendo en ella.
+       Al entrar a la casilla vuelve a verse llano («40000») y lo que se guarda nunca lleva comas (18-nov, Alan). */
+    var IMPORTES = { valor_unitario: 1, final: 1, descuento: 1 };
+    var sinComas = function (v) { return String(v == null ? "" : v).replace(/,/g, ""); };
+    var conComas = function (v) {
+        var s = sinComas(v).trim();
+        if (!s || !/^-?\d*\.?\d+$/.test(s)) return String(v == null ? "" : v);
+        return Number(s).toLocaleString("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 6 });
+    };
     function opciones(mapa, actual, conClave, vacio) {
         return (vacio ? '<option value="">' + esc(vacio) + "</option>" : "") + Object.keys(mapa).map(function (k) {
             return '<option value="' + esc(k) + '"' + (k === actual ? " selected" : "") + ">" + esc(conClave === false ? mapa[k] : k + " · " + mapa[k]) + "</option>";
@@ -596,7 +605,7 @@
         return (v < 0 ? "-$" : "$") + Number(p[0]).toLocaleString("es-MX") + "." + (p[1] || "").padEnd(2, "0");
     }
     function subPrecio(c) {
-        return (num(c.valor_unitario) ? "unit. " + esc(c.valor_unitario) : "precio final") + (c.seis ? ' · <span class="fa-seis" title="Para cuadrar al centavo, este concepto lleva hasta 6 decimales (lo permite el SAT); los totales van al centavo.">6 dec.</span>' : "") +
+        return (num(c.valor_unitario) ? "precio sin impuestos " + (c.seis ? dineroExacto(num(c.valor_unitario)) : dinero(num(c.valor_unitario))) : "precio final") + (c.seis ? ' · <span class="fa-seis" title="Para cuadrar al centavo, este concepto lleva hasta 6 decimales (lo permite el SAT); los totales van al centavo.">6 dec.</span>' : "") +
             (c.difFinal ? ' <b class="fa-mal">dif ' + dinero(c.difFinal) + "</b>" : "");
     }
 
@@ -633,8 +642,11 @@
         var importe = '<td class="fa-num fa-conc__importe" data-importe>' + (c.seis ? dineroExacto(t.importeExacto) : dinero(t.importe)) + "</td>";
         var error = c.error ? '<small class="fa-conc__err" role="alert">' + esc(c.error) + "</small>" : "";
         if (!abierto) {
+            // «Incluye impuestos»: en Precio va el unitario que lleva la factura (el que se calculó) y, abajo, lo que se
+            // escribió con todo incluido. Antes salía al revés y parecía que el precio no se había ajustado (18-nov, Alan)
             var precio = c.modo === "final"
-                ? (num(c.final) ? dinero(num(c.final)) : "—") + '<small class="fa-conc__sub">incluye impuestos</small>'
+                ? (num(c.valor_unitario) ? (c.seis ? dineroExacto(num(c.valor_unitario)) : dinero(num(c.valor_unitario))) : "—") +
+                  '<small class="fa-conc__sub">' + (num(c.final) ? dinero(num(c.final)) + " con impuestos" : "incluye impuestos") + "</small>"
                 : (num(c.valor_unitario) ? (c.seis ? dineroExacto(num(c.valor_unitario)) : dinero(num(c.valor_unitario))) : "—");
             return '<tr class="fa-conc__fila fa-conc--guardado' + (c.error ? " fa-conc--error" : "") + '" data-i="' + i + '" tabindex="0" title="Toca para editar">' +
                 '<td class="fa-num" data-campo="cantidad">' + esc(c.cantidad || "") + "</td>" +
@@ -647,16 +659,16 @@
                 (varios ? botonIcono("basura", "data-quitar", "Quitar", "ui-icono-btn--peligro") : "") + "</td></tr>";
         }
         var celdaPrecio = (c.modo === "final"
-                ? '<input data-c="final" inputmode="decimal" class="fa-num fa-conc__final" value="' + esc(c.final) + '" placeholder="0.00" aria-label="Precio con impuestos">' +
+                ? '<input data-c="final" inputmode="decimal" class="fa-num fa-conc__final" value="' + esc(conComas(c.final)) + '" placeholder="0.00" aria-label="Precio con impuestos">' +
                   '<small class="fa-conc__sub">' + subPrecio(c) + "</small>"
-                : '<input data-c="valor_unitario" inputmode="decimal" class="fa-num" value="' + esc(c.valor_unitario) + '" placeholder="0.00" aria-label="Precio unitario">') +
+                : '<input data-c="valor_unitario" inputmode="decimal" class="fa-num" value="' + esc(conComas(c.valor_unitario)) + '" placeholder="0.00" aria-label="Precio unitario">') +
             '<label class="ui-check fa-conc__incl" title="Escribe lo que paga el receptor por este renglón y se calcula el precio sin impuestos, exacto al centavo"><input type="checkbox" data-c="modo"' + (c.modo === "final" ? " checked" : "") + "> Incluye impuestos</label>";
         var fila = '<tr class="fa-conc__fila fa-conc--abierto' + (c.error ? " fa-conc--error" : "") + '" data-i="' + i + '">' +
             '<td><input data-c="cantidad" inputmode="decimal" class="fa-num" value="' + esc(c.cantidad) + '" aria-label="Cantidad"></td>' +
             '<td class="fa-conc__prod"><div class="fa-prod"><input data-c="descripcion" maxlength="1000" value="' + esc(c.descripcion) + '" placeholder="Escribe o busca un producto…" autocomplete="off" aria-label="Descripción">' +
             '<div class="fa-prod__sug" hidden></div></div><small class="fa-conc__sub">' + esc(textoClave(c)) + "</small></td>" +
             "<td>" + celdaPrecio + "</td>" +
-            '<td><input data-c="descuento" inputmode="decimal" class="fa-num" value="' + esc(c.descuento) + '" placeholder="0.00" aria-label="Descuento"></td>' +
+            '<td><input data-c="descuento" inputmode="decimal" class="fa-num" value="' + esc(conComas(c.descuento)) + '" placeholder="0.00" aria-label="Descuento"></td>' +
             '<td><select data-c="impuesto" aria-label="Impuesto" title="' + esc(DETALLE_IMP[imp] || IMPUESTOS[imp][0]) + '">' + Object.keys(IMPUESTOS).map(function (k) { return '<option value="' + k + '"' + (k === imp ? " selected" : "") + ">" + esc(IMPUESTOS[k][0]) + "</option>"; }).join("") + "</select></td>" +
             importe +
             '<td class="fa-conc__acc">' + botonIcono("palomita", "data-guardar-fila", "Guardar renglón (Enter)", "ui-icono-btn--ok") + botonIcono("copiar", "data-duplicar", "Duplicar") +
@@ -2216,12 +2228,13 @@
 
     async function guardarBorrador() {
         var cap = captura(), actual = F.borradores.filter(function (x) { return x.id === F.borradorId; })[0];
-        var nombre = prompt("Nombre de la prefactura", actual ? actual.nombre : (cap.receptor.nombre || cap.receptor.rfc || "Prefactura"));
+        var nombre = prompt(actual ? "Vas a actualizar la prefactura «" + actual.nombre + "»: lo que tenía guardado se reemplaza por lo que ves ahora.\n\nNombre de la prefactura:"
+            : "Nombre de la prefactura", actual ? actual.nombre : (cap.receptor.nombre || cap.receptor.rfc || "Prefactura"));
         if (nombre === null) return;
         try {
             var r = await enviar("/api/facturacion/borradores", "POST", { id: F.borradorId, rfc: F.emisor.rfc, nombre: nombre, captura: cap, total: calcular().total });
             F.borradorId = r.id;
-            estadoCaptura("✓ Prefactura «" + r.nombre + "» guardada.");
+            estadoCaptura(actual ? "✓ Prefactura «" + r.nombre + "» actualizada: reemplazó la versión anterior." : "✓ Prefactura «" + r.nombre + "» guardada.");
             cargarBorradores();
         } catch (e) { $("t-error").textContent = e.message; $("t-error").hidden = false; }
     }
@@ -2796,7 +2809,7 @@
                 aplicarFinal(c); pintarConceptos(); enfocarConcepto(i, c.modo === "final" ? "final" : "valor_unitario"); return;
             }
             if (k === "impuesto") { c._otro = campo.value === "otro"; if (!c._otro) ponerImpuesto(c, campo.value); aplicarFinal(c); pintarConceptos(); enfocarConcepto(i, "impuesto"); return; }
-            c[k] = campo.value;
+            c[k] = IMPORTES[k] || k === "cantidad" ? sinComas(campo.value) : campo.value;
             if (k === "descripcion") { c.producto_id = null; sugerirProductos(campo); }
             if (k === "iva" || k === "ret_isr" || k === "ret_iva") { aplicarFinal(c); pintarConceptos(); enfocarConcepto(i, k); return; }
             if (k === "final" || ((k === "cantidad" || k === "descuento") && c.modo === "final")) {
@@ -2815,8 +2828,17 @@
                 ev.target.dispatchEvent(new Event("input", { bubbles: true }));
             }
         });
-        $("conceptos").addEventListener("focusin", function (ev) { if (ev.target.matches('[data-c="descripcion"]')) sugerirProductos(ev.target); });
+        $("conceptos").addEventListener("focusin", function (ev) {
+            if (ev.target.matches('[data-c="descripcion"]')) sugerirProductos(ev.target);
+            if (ev.target.matches("input[data-c]") && IMPORTES[ev.target.dataset.c] && /,/.test(ev.target.value)) {
+                // al entrar, la casilla vuelve a traer lo que se escribió («40000»), no el número ya con formato
+                var fila = ev.target.closest("[data-i]"), c = fila && F.conceptos[+fila.dataset.i], crudo = c && c[ev.target.dataset.c];
+                ev.target.value = crudo != null && crudo !== "" ? sinComas(crudo) : sinComas(ev.target.value);
+                if (ev.target.select) ev.target.select();
+            }
+        });
         $("conceptos").addEventListener("focusout", function (ev) {
+            if (ev.target.matches("input[data-c]") && IMPORTES[ev.target.dataset.c]) ev.target.value = conComas(ev.target.value);
             if (!ev.target.matches('[data-c="descripcion"]')) return;
             var caja = ev.target.parentNode.querySelector(".fa-prod__sug"); setTimeout(function () { caja.hidden = true; }, 180);
         });
@@ -2903,9 +2925,11 @@
             if (!caja.hidden) { if (!$("t-objetivo").value) $("t-objetivo").value = calcular().total ? String(calcular().total) : ""; $("t-objetivo").focus(); $("t-objetivo").select(); calcular(); }
         });
         $("t-objetivo").addEventListener("keydown", function (ev) { if (ev.key === "Enter") { ev.preventDefault(); cuadrarTotal(); } });
-        $("btn-objetivo").addEventListener("click", cuadrarTotal);
+        $("btn-objetivo").addEventListener("click", function () { cuadrarTotal(); $("t-objetivo").value = conComas($("t-objetivo").value); });
         $("t-objetivo-nota").addEventListener("click", function (ev) { var b = ev.target.closest("[data-objetivo]"); if (b) { $("t-objetivo").value = b.dataset.objetivo; cuadrarTotal(); } });
         $("t-objetivo").addEventListener("input", calcular);
+        $("t-objetivo").addEventListener("focus", function () { if (/,/.test(this.value)) { this.value = sinComas(this.value); this.select(); } });
+        $("t-objetivo").addEventListener("blur", function () { this.value = conComas(this.value); });
         $("prod-buscar").addEventListener("input", pintarProductos);
         $("btn-prod-nuevo").addEventListener("click", function () { abrirProducto(null); });
         $("prod-lista").addEventListener("click", function (ev) { var it = ev.target.closest("[data-prod]"); if (it) abrirProducto((F.productos || []).filter(function (p) { return p.id === it.dataset.prod; })[0]); });

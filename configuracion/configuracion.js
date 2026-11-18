@@ -430,7 +430,8 @@
             return b || '<span class="cf-texto">' + esc(contacto.texto || "Contacta al administrador.") + "</span>";
         };
         var html = '<div class="cf-tarjeta"><dl class="cf-datos"><dt>Plan</dt><dd>' + esc(pc ? pc.nombre : (perfil.plan_nombre || perfil.rol || "—")) + "</dd>" +
-            (pc ? "<dt>Empresas</dt><dd>" + pc.empresas_usadas + " de " + pc.empresas + "</dd>" + (Number(pc.timbres) > 0 ? "<dt>Timbres al mes</dt><dd>" + pc.timbres + "</dd>" : "") : "") +
+            (pc ? "<dt>Empresas</dt><dd>" + pc.empresas_usadas + " de " + pc.empresas + (pc.ambito === "despacho" ? " <small>(entre todo el despacho)</small>" : "") + "</dd>" +
+                (Number(pc.timbres) > 0 ? "<dt>" + (pc.timbres_periodo === "anio" ? "Timbres incluidos al año" : "Timbres al mes") + "</dt><dd>" + pc.timbres + "</dd>" : "") : "") +
             "<dt>Vigencia</dt><dd>" + esc(vence) + "</dd><dt>Módulos</dt><dd>" + esc(String((perfil.modulos_permitidos || []).length)) + " activos</dd></dl>" +
             '<a class="cf-btn cf-btn--principal" href="/creditos/"' + (incrustado ? ' target="_top"' : "") + ">Ver y recargar créditos</a></div>";
         if (cat && cat.planes && cat.planes.length) {
@@ -439,22 +440,25 @@
                 return '<div class="cf-plan' + (p.destacado ? " cf-plan--destacado" : "") + (actual ? " cf-plan--actual" : "") + '">' +
                     (actual ? '<span class="cf-plan__marca">Tu plan</span>' : pronto ? '<span class="cf-plan__marca">Próximamente</span>' : p.destacado ? '<span class="cf-plan__marca">Recomendado</span>' : "") +
                     "<h4>" + esc(p.nombre) + "</h4><small>" + esc(p.para || "") + "</small>" +
-                    '<p class="cf-plan__precio"><b>' + precio(p.precio) + "</b> al mes</p>" +
-                    '<p class="cf-plan__anual">o ' + precio(p.precio_anual) + " al año" + (cat.meses_gratis_anual ? " (" + cat.meses_gratis_anual + " meses gratis)" : "") + "</p>" +
-                    "<ul><li><b>" + p.empresas + "</b> empresas (RFC)</li>" + (Number(p.timbres) > 0 ? "<li><b>" + Number(p.timbres).toLocaleString("es-MX") + "</b> timbres al mes</li>" : "") + "</ul>" +
+                    (p.cobro === "anual" ? '<p class="cf-plan__precio"><b>' + precio(p.precio_con_iva || p.precio) + "</b> al año por licencia</p>" +
+                          '<p class="cf-plan__anual">' + (p.precio_con_iva ? "IVA incluido" : "más IVA") + (p.ambito === "despacho" && cat.despacho_minimo ? " · desde " + cat.despacho_minimo + " licencias" : "") + "</p>"
+                        : '<p class="cf-plan__precio"><b>' + precio(p.precio) + "</b> al mes</p>" +
+                          '<p class="cf-plan__anual">o ' + precio(p.precio_anual) + " al año" + (cat.meses_gratis_anual ? " (" + cat.meses_gratis_anual + " meses gratis)" : "") + "</p>") +
+                    "<ul><li><b>" + p.empresas + "</b> empresas (RFC)" + (p.ambito === "despacho" ? " entre todo el despacho" : "") + "</li>" +
+                    (Number(p.timbres) > 0 ? "<li><b>" + Number(p.timbres).toLocaleString("es-MX") + "</b> timbres " + (p.timbres_periodo === "anio" ? "al año" : "al mes") + "</li>" : "") + "</ul>" +
                     (actual || pronto ? "" : '<div class="cf-plan__acciones">' + quiero("Hola, me interesa el plan " + p.nombre + " de Fiscontable (" + (perfil.persona || perfil.correo || "") + ").") + "</div>") + "</div>";
             };
             var niveles = cat.niveles || {}, orden = Object.keys(niveles).length ? Object.keys(niveles) : [""];
-            html += '<h3 class="cf-subtitulo">Planes</h3><p class="cf-texto">Cada licencia es para una persona y su PC con Fiscontable Agente. Precios más IVA.</p>';
+            html += '<h3 class="cf-subtitulo">Planes</h3><p class="cf-texto">Una licencia por persona, válida 12 meses desde que se activa. Precios en pesos mexicanos.</p>';
             orden.forEach(function (nv) {
-                var lista = cat.planes.filter(function (p) { return (!nv || (p.nivel || p.rol) === nv) && !p.proximamente; });   // lo que aún no se vende no se muestra
+                var lista = cat.planes.filter(function (p) { return (!nv || (p.nivel || p.rol) === nv) && !p.proximamente && (!p.oculto || (pc && pc.clave === p.clave)); });   // lo que aún no se vende, o se vende por cotización, no se muestra (salvo que sea el tuyo)
                 if (!lista.length) return;
                 var info = niveles[nv];
                 if (info) html += '<h4 class="cf-plan-nivel">' + esc(info.nombre) + " <small>" + esc(info.resumen || "") + "</small></h4>" +
                     (info.incluye && info.incluye.length ? '<p class="cf-texto cf-plan-incluye">' + info.incluye.map(esc).join(" · ") + ".</p>" : "");
                 html += '<div class="cf-planes">' + lista.map(tarjeta).join("") + "</div>";
             });
-            if (cat.despacho_minimo) html += '<p class="cf-texto cf-plan-incluye"><b>Despacho:</b> junta ' + cat.despacho_minimo + " licencias o más; los RFC de todas se suman en una sola cartera.</p>";
+            if (cat.despacho_minimo) html += '<p class="cf-texto cf-plan-incluye"><b>Despacho:</b> desde ' + cat.despacho_minimo + " licencias; todo el equipo trabaja sobre las mismas empresas, cada quien con sus permisos.</p>";
             if ((cat.incluye || []).length) html += '<p class="cf-texto cf-plan-incluye"><b>Todos incluyen:</b> ' + cat.incluye.map(esc).join(" · ") + ".</p>";
             if ((cat.timbres || []).length) html += '<h3 class="cf-subtitulo">Timbres extra</h3><div class="cf-timbres">' + cat.timbres.map(function (t) {
                 return '<div class="cf-timbre"><b>' + Number(t.timbres).toLocaleString("es-MX") + "</b> timbres<span>" + precio(t.precio) + "</span><small>" +

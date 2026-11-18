@@ -70,23 +70,21 @@ export const T = {
         },
         pasos: {
             chip: "Cómo empezar", h2: "Comienza en tres pasos",
-            lista: [["Solicita tu demo", "Al aprobarse tu solicitud recibirás el acceso por correo."], ["Registra tus empresas", "Con su e.firma o su contraseña del SAT, según el trámite."], ["Instala el Agente", "Las descargas y los trámites se hacen desde tu PC. En el plan Standard es necesario."]]
+            lista: [["Solicita tu demo", "Al aprobarse tu solicitud recibirás el acceso por correo."], ["Registra tus empresas", "Con su e.firma o su contraseña del SAT, según el trámite."], ["Trabaja desde la web", "Sin instalar nada. Si prefieres que los trámites se hagan desde tu PC, conecta Fiscontable Agente (opcional)."]]
         },
         planes: {
-            chip: "Planes", h2: "Elige según tu cartera",
-            sub: "Cada licencia es para una persona y su PC con Fiscontable Agente. Precios en pesos mexicanos, más IVA.",
-            mes: "al mes", rfc: "RFC", timbres: "timbres al mes", anual: "Con pago anual, 2 meses gratis.",
-            recomendado: "Recomendado", proximamente: "Próximamente", boton: "Solicita una demo",
+            chip: "Planes", h2: "Una licencia por persona, por año",
+            sub: "Fiscontable Pro, desde la web: en cualquier computadora, tableta o celular. Precios en pesos mexicanos, con IVA incluido.",
+            mes: "al año", rfc: "RFC", timbres: "timbres al año", anual: "Cada licencia es válida 12 meses a partir de su activación. Se emite factura (CFDI).",
+            recomendado: "Para despachos", proximamente: "Próximamente", boton: "Solicita una demo",
             niveles: [
-                { clave: "standard", nombre: "Standard", resumen: "Fiscontable Agente, consulta y facturación", precios: [[5, 299, 10], [15, 649, 50], [50, 1499, 100]],
-                  incluye: ["Descarga de XML desde tu PC", "Constancia y opinión 32-D", "Buzón tributario y listas del SAT", "Administración de XML y marcas fiscales", "Conciliación e IVA", "Facturación CFDI 4.0", "Cierre del mes y reportes en Excel y PDF"],
-                  nota: "Requiere Fiscontable Agente conectado en tu PC." },
-                { clave: "pro", nombre: "Pro", resumen: "Todo lo de Standard, más impuestos y más timbres", precios: [[15, 999, 200], [50, 2199, 500]], destacado: true,
-                  incluye: ["Todo lo de Standard", "Más timbres cada mes", "Voucheo", "Impuestos estatales de Quintana Roo", "Declaraciones y acuses del SAT"],
-                  nota: "Con el Agente conectado, los trámites se hacen desde tu PC; sin él, desde nuestro servidor." },
-                { clave: "despacho", nombre: "Despachos", resumen: "Paquete para tu equipo", paquete: "Desde 5 licencias",
-                  incluye: ["Una licencia por persona, cada una con su PC", "Los RFC y timbres de todas las licencias en una sola cartera", "Permisos por persona: empresas y módulos", "Bitácora de quién hizo qué", "Standard o Pro para todo el equipo"],
-                  nota: "Te armamos el paquete según el tamaño de tu despacho.", boton: "Cotizar mi despacho" }
+                { clave: "pro", nombre: "Pro", resumen: "Para el contador independiente", precios: [[15, 3500, 50, "al año"]],
+                  incluye: ["Descarga, administración y validación de XML", "Reportes en Excel y PDF", "Conciliación de pagos (PPD) y papel de trabajo de IVA", "Cruce contra el visor del SAT: facturas y nómina",
+                            "Declaraciones, acuses, constancia y opinión de cumplimiento", "Buzón Tributario y listas del SAT (69 y 69-B)", "Impuestos estatales de Quintana Roo y voucheo", "Facturación CFDI 4.0"],
+                  nota: "Una licencia, una persona.", boton: "Solicita una demo" },
+                { clave: "despacho", nombre: "Pro despacho", resumen: "Para tu equipo, desde 5 licencias", precios: [[50, 3000, 200, "por licencia al año"]], destacado: true,
+                  incluye: ["Todo lo de Pro", "Una licencia por integrante del despacho", "Asignas empresas y permisos a cada integrante", "Registro de quién hizo cada trámite", "Envío automatizado de reportes por correo"],
+                  nota: "Los 50 RFC y los 200 timbres al año son para todo el despacho.", boton: "Cotizar mi despacho" }
             ]
         },
         registro: {
@@ -99,13 +97,13 @@ export const T = {
         dudas: {
             chip: "Preguntas", h2: "Antes de empezar",
             lista: [
-                ["¿Necesito instalar algo?", "En el plan Standard, sí: Fiscontable Agente para Windows, que realiza las descargas y los trámites desde tu PC. En Pro es opcional: con el Agente conectado los trámites se hacen desde tu PC; sin él, desde nuestro servidor."],
+                ["¿Necesito instalar algo?", "No. Fiscontable se usa desde la web. Fiscontable Agente para Windows es opcional: con él conectado los trámites se hacen desde tu PC; sin él, desde nuestro servidor."],
                 ["¿Qué necesito de cada cliente?", "Su e.firma (archivos .cer y .key y su contraseña) o su contraseña del SAT, según el trámite."],
                 ["¿Dónde quedan las e.firmas?", "Cifradas en el servidor de Fiscontable. Llegan a tu PC cifradas solo para ella en cada trámite. Con el modo sin conexión, tu PC guarda además una copia cifrada con tu cuenta de Windows. Se utilizan únicamente para los trámites que solicitas. En la demo no se guardan."],
-                ["¿Puedo trabajar con mi equipo?", "Sí. Un despacho junta 5 licencias o más: cada persona tiene su PC y ve solo las empresas y los módulos que le asignas."],
+                ["¿Puedo trabajar con mi equipo?", "Sí. Con Pro despacho, desde 5 licencias: cada persona entra con su cuenta y ve solo las empresas y los módulos que le asignas."],
                 ["¿Funciona en Mac o en el celular?", "La web sí, en cualquier navegador actual. El Agente es solo para Windows 10 y 11."],
                 ["¿Qué incluye la demo?", "Los módulos principales, para que conozcas el sistema con tus propias empresas durante 7 días. Al contratar se activan todos los de tu plan y se conserva la información registrada."],
-                ["¿Cuánto cuesta?", "Desde $299 al mes más IVA, según el plan y el número de empresas. Consulta los planes o solicita una demo."]
+                ["¿Cuánto cuesta?", "La licencia Pro cuesta $3,500 al año con IVA incluido. Para despachos, desde 5 licencias, $3,000 por licencia al año. Consulta los planes o solicita una demo."]
             ]
         },
         cierre: { h2: "Lleva tu próximo cierre con todo en orden", boton: "Solicita una demo" },
@@ -187,23 +185,21 @@ export const T = {
         },
         pasos: {
             chip: "Getting started", h2: "Ready in an afternoon",
-            lista: [["Request your demo", "We activate your access and let you know by email."], ["Add your companies", "With their e.firma or SAT password, depending on the procedure."], ["Install the Agent", "Downloads and procedures run on your own PC. Required on the Standard plan."]]
+            lista: [["Request your demo", "We activate your access and let you know by email."], ["Add your companies", "With their e.firma or SAT password, depending on the procedure."], ["Work from the web", "Nothing to install. If you prefer procedures to run on your own PC, connect Fiscontable Agent (optional)."]]
         },
         planes: {
-            chip: "Plans", h2: "Choose by the size of your portfolio",
-            sub: "Each license is for one person and their PC with Fiscontable Agent. Prices in Mexican pesos, plus VAT.",
-            mes: "per month", rfc: "RFC", timbres: "stamps per month", anual: "Pay yearly and get 2 months free.",
-            recomendado: "Recommended", proximamente: "Coming soon", boton: "Request a demo",
+            chip: "Plans", h2: "One license per person, per year",
+            sub: "Fiscontable Pro, on the web: on any computer, tablet or phone. Prices in Mexican pesos, VAT included.",
+            mes: "per year", rfc: "RFC", timbres: "stamps per year", anual: "Each license is valid for 12 months from activation. An invoice (CFDI) is issued.",
+            recomendado: "For firms", proximamente: "Coming soon", boton: "Request a demo",
             niveles: [
-                { clave: "standard", nombre: "Standard", resumen: "Fiscontable Agent, lookups and invoicing", precios: [[5, 299, 10], [15, 649, 50], [50, 1499, 100]],
-                  incluye: ["XML downloads from your PC", "Tax status certificate and 32-D opinion", "SAT tax mailbox and SAT lists", "XML management and tax tags", "Reconciliation and VAT", "CFDI 4.0 invoicing", "Month-end close and Excel and PDF reports"],
-                  nota: "Requires Fiscontable Agent connected on your PC." },
-                { clave: "pro", nombre: "Pro", resumen: "Everything in Standard, plus taxes and more stamps", precios: [[15, 999, 200], [50, 2199, 500]], destacado: true,
-                  incluye: ["Everything in Standard", "More stamps every month", "Vouching", "Quintana Roo state taxes", "SAT returns and acknowledgments"],
-                  nota: "With the Agent connected, procedures run on your PC; without it, on our server." },
-                { clave: "despacho", nombre: "Firms", resumen: "A package for your team", paquete: "From 5 licenses",
-                  incluye: ["One license per person, each with their own PC", "The RFCs and stamps of every license in one portfolio", "Per-person permissions: companies and modules", "Log of who did what", "Standard or Pro for the whole team"],
-                  nota: "We put the package together for the size of your firm.", boton: "Get a quote for my firm" }
+                { clave: "pro", nombre: "Pro", resumen: "For the independent accountant", precios: [[15, 3500, 50, "per year"]],
+                  incluye: ["XML download, management and validation", "Excel and PDF reports", "Payment reconciliation (PPD) and VAT worksheet", "Cross-check against the SAT viewer: invoices and payroll",
+                            "Returns, acknowledgments, tax status certificate and compliance opinion", "Tax mailbox and SAT lists (69 and 69-B)", "Quintana Roo state taxes and vouching", "CFDI 4.0 invoicing"],
+                  nota: "One license, one person.", boton: "Request a demo" },
+                { clave: "despacho", nombre: "Pro for firms", resumen: "For your team, from 5 licenses", precios: [[50, 3000, 200, "per license per year"]], destacado: true,
+                  incluye: ["Everything in Pro", "One license per team member", "Assign companies and permissions to each member", "Log of who did what", "Automated report delivery by email"],
+                  nota: "The 50 RFCs and 200 stamps per year are for the whole firm.", boton: "Get a quote for my firm" }
             ]
         },
         registro: {
@@ -216,13 +212,13 @@ export const T = {
         dudas: {
             chip: "FAQ", h2: "Before you start",
             lista: [
-                ["Do I need to install anything?", "On the Standard plan, yes: Fiscontable Agent for Windows, which runs downloads and procedures on your PC. On Pro it is optional: with the Agent connected, procedures run on your PC; without it, on our server."],
+                ["Do I need to install anything?", "No. Fiscontable runs on the web. Fiscontable Agent for Windows is optional: with it connected, procedures run on your PC; without it, on our server."],
                 ["What do I need from each client?", "Their e.firma (the .cer and .key files and their password) or their SAT password, depending on the procedure."],
                 ["Where are e.firmas kept?", "Encrypted on Fiscontable's server. They reach your PC encrypted for that PC only, for each procedure. With offline mode, your PC also keeps a copy encrypted with your Windows account. They are used only for the procedures you request. In the demo they are not stored."],
-                ["Can I work with my team?", "Yes. A firm combines 5 or more licenses: each person has their own PC and sees only the companies and modules you assign."],
+                ["Can I work with my team?", "Yes. With Pro for firms, from 5 licenses: each person signs in with their own account and sees only the companies and modules you assign."],
                 ["Does it work on Mac or on a phone?", "The web app does, in any current browser. The Agent is only for Windows 10 and 11."],
                 ["What does the demo include?", "The main modules, so you can get to know the system with your own companies for 7 days. When you subscribe, every module in your plan is activated and you keep what you already did."],
-                ["How much does it cost?", "From $299 MXN per month plus VAT, depending on the plan and number of companies. See the plans or request a demo."],
+                ["How much does it cost?", "The Pro license is $3,500 MXN per year, VAT included. For firms, from 5 licenses, $3,000 MXN per license per year. See the plans or request a demo."],
                 ["Is the app in English?", "The application itself is in Spanish, since it is built for accounting work in Mexico. These public pages are available in English."]
             ]
         },
