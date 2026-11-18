@@ -109,6 +109,7 @@
         if (a.fase === "fila") return "En la fila: empieza en cuanto termine el envío anterior.";
         if (a.fase === "verificando") return "Pidiendo al SAT la lista del mes…";
         if (a.fase === "validando") return a.total ? "Validando ante el SAT: " + miles(a.hechos) + " de " + miles(a.total) + "…" : "Validando ante el SAT…";
+        if (a.fase === "esperando") return "Esperando la lista del SAT: llegaron " + miles(a.hechos) + " de " + miles(a.total) + " empresas (espera hasta " + (E.esperaListas || 15) + " min)…";
         return "Armando el ZIP y mandando el correo…";
     }
     function ultimo(e) {
@@ -155,7 +156,7 @@
     }
     async function cargar() {
         var r = await api("/api/entregas");
-        E.envios = r.envios; E.tope = r.tope_adjunto_mb; E.hora = r.hora; E.limite = r.hora_limite; E.max = r.max; E.titular = r.titular;
+        E.envios = r.envios; E.tope = r.tope_adjunto_mb; E.hora = r.hora; E.limite = r.hora_limite; E.max = r.max; E.titular = r.titular; E.esperaListas = r.espera_listas_min;
         pintar();
         clearTimeout(E.reloj);
         if (E.envios.some(function (e) { return e.en_curso; })) E.reloj = setTimeout(function () { cargar().catch(function () { /* se reintenta al siguiente */ }); }, 4000);
@@ -353,7 +354,7 @@
         $("ev-dlg-titulo").textContent = e ? "Editar Envío " + e.numero : "Nuevo envío";
         $("ev-dlg-sub").textContent = "Se manda solo, a las " + E.hora + " de la mañana del día que toque. El ZIP va adjunto si pesa hasta " + E.tope + " MB, y siempre con su enlace.";
         $("ev-verifica-txt").textContent = "Antes de mandar se pide al SAT la lista de cada empresa para comprobar que estén todos los XML, y se valida el estado de todo lo que va. " +
-            "Si a las " + E.limite + ":00 el SAT no ha contestado la lista, sale con la anotación de qué empresa quedó sin verificar.";
+            "Si a las " + E.limite + ":00 el SAT no ha entregado la lista, sale con la anotación de qué empresa quedó sin comparar.";
         $("ev-nombre").value = e ? e.nombre : copia ? (base.nombre + " (copia)").slice(0, 80) : "";
         $("ev-nombre").placeholder = e ? "" : "Envío " + (E.envios.length + 1) + " (o el nombre que quieras)";
         E.correos.para.poner(todo ? todo.para : []); E.correos.cc.poner(todo ? todo.cc : []);
@@ -441,7 +442,8 @@
         $("ev-ahora-mes").innerHTML = ops;
         document.querySelector('input[name="ev-ahora-periodo"][value="siempre"]').checked = true;
         $("ev-ahora-mes-caja").hidden = true;
-        $("ev-ahora-nota").textContent = "Se valida ante el SAT y se arma con lo que hay en este momento; puede tardar unos minutos. No cambia la fecha del próximo envío automático.";
+        $("ev-ahora-nota").textContent = "Se valida ante el SAT el estado de cada comprobante y se espera hasta " + (E.esperaListas || 15) +
+            " minutos a que entregue la lista de cada empresa (para comprobar que no falte ninguno). No cambia la fecha del próximo envío automático.";
         $("ev-ahora-si").disabled = false;
         if (!$("ev-ahora").open) $("ev-ahora").showModal();
     }
