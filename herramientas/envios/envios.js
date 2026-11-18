@@ -243,7 +243,7 @@
         if (cliente && desc.checked) document.querySelector('input[name="ev-lugar"][value="correo"]').checked = true;
         desc.disabled = cliente;
         $("ev-lugar-desc-txt").textContent = cliente ? "No aplica cuando va a cada cliente: el cliente no entra a Fiscontable."
-            : "El correo solo avisa que ya está listo; se baja al entrar. En un despacho, cada persona ve lo de sus empresas. Se conserva " + (E.op.dias_descargas || 7) + " días.";
+            : "El correo y la campana solo avisan que ya está listo; se baja al entrar. En un despacho, cada persona ve lo de sus empresas. Se conserva " + (E.op.dias_descargas || 7) + " días.";
         var d = enDescargas();
         $("ev-adjuntar-caja").hidden = d; $("ev-dias-enlace-caja").hidden = d;
     }
