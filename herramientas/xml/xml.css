@@ -372,3 +372,6 @@ details.xd-seccion .xd-grupo + .xd-grupo { margin-top: 12px; }
 .xml-conc-vista { margin-left: 4px; max-width: 100%; overflow-x: auto; }
 .xml-conc-vista button { flex: none; }
 .xml-conc-vista[hidden], #pestanas[hidden] { display: none !important; }
+
+.xc-nota { margin: -4px 2px 0; font-size: 12.5px; color: rgb(var(--g-600)); line-height: 1.4; }
+.xc-nota:empty { display: none; }

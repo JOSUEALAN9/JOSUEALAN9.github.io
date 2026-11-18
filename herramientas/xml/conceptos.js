@@ -14,10 +14,13 @@
     var fmt = new Intl.NumberFormat("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     var num = function (n) { return Number(n || 0).toLocaleString("es-MX"); };
     var C = { ctx: null, datos: null, vista: "detalle", tablas: {}, turno: 0 };
-    var VISTAS = [["detalle", "Detalle", "Un renglón por cada concepto de cada factura"],
-                  ["producto", "Por producto", "Un renglón por cada descripción distinta (con su clave del SAT y su n.º de identificación)"],
-                  ["clave", "Por clave SAT", "Un renglón por cada clave del SAT, se describa como se describa"],
-                  ["contraparte", "", "Un renglón por cada cliente o proveedor"]];
+    /* 18-nov (Alan: «lo que necesitaba era el desglose por productos… dice detalle, producto, clave sat y proveedor, no
+       entiendo eso»): la primera vista ES el desglose (un renglón por cada producto de cada factura); las otras tres son
+       resúmenes de ese desglose. Los nombres y la línea de abajo lo dicen. */
+    var VISTAS = [["detalle", "Desglose por concepto", "El desglose: un renglón por cada producto o servicio de cada factura, con los datos de su factura y sus impuestos."],
+                  ["producto", "Resumen por producto", "Lo mismo, sumado: un renglón por cada descripción distinta, con su cantidad, importe y precios."],
+                  ["clave", "Resumen por clave SAT", "Lo mismo, sumado por clave del SAT, se describa como se describa."],
+                  ["contraparte", "", "Lo mismo, sumado: un renglón por cada cliente o proveedor."]];
 
     async function post(ruta, cuerpo) {
         var resp;
@@ -49,6 +52,7 @@
         $("conceptos-titulo").textContent = "Conceptos de las facturas " + (ctx.lado === "emitidos" ? "emitidas" : "recibidas");
         $("conceptos-sub").textContent = ctx.periodo + (ctx.uuids ? " · solo las " + num(ctx.uuids.length) + " facturas que tenías filtradas" : "");
         $("conceptos-resumen").hidden = true; $("conceptos-vistas").hidden = true; $("conceptos-tablas").hidden = true; $("conceptos-error").hidden = true;
+        if ($("conceptos-nota")) $("conceptos-nota").textContent = "";
         avance(0, 0);
         try {
             // 1) Completar lo guardado antes (solo la primera vez de cada periodo; después esto regresa al instante)
@@ -105,7 +109,7 @@
             (avisos.length ? '<p class="xc-avisos">' + avisos.map(esc).join(" · ") + "</p>" : "");
         var seg = $("conceptos-vistas"); seg.hidden = false;
         seg.innerHTML = VISTAS.map(function (v) {
-            var nombre = v[1] || "Por " + quien(false), n = C.datos.filas[v[0]].length;
+            var nombre = v[1] || "Resumen por " + quien(false), n = C.datos.filas[v[0]].length;
             return '<button type="button" role="tab" class="pestana' + (v[0] === C.vista ? " pestana--activa" : "") + '" aria-selected="' + (v[0] === C.vista) +
                 '" data-vista="' + v[0] + '" title="' + esc(v[2]) + '">' + esc(nombre) + '<span class="xml-cuenta">' + num(n) + "</span></button>";
         }).join("");
@@ -141,7 +145,7 @@
             anchoClave: { descripcion: 320, clave_sat: 240, contraparte_nombre: 240, principal: 280, observacion: 220, clave: 110 },
             sellos: vista === "detalle" ? { estado_sat: { "Vigente": "verde", "Cancelado": "rojo", "Sin validar": "gris" } } : {},
             buscar: buscar, filtros: filtros,
-            exportar: { nombre: function () { return nombreArchivo(vista); }, hoja: { detalle: "Conceptos", producto: "Por producto", clave: "Por clave SAT", contraparte: "Por " + quien(false) }[vista],
+            exportar: { nombre: function () { return nombreArchivo(vista); }, hoja: { detalle: "Conceptos", producto: "Resumen por producto", clave: "Resumen por clave SAT", contraparte: "Resumen por " + quien(false) }[vista],
                         extras: [{ texto: "Excel del reporte completo (4 hojas)", accion: excelCompleto }] },
             vacio: { titulo: "Sin renglones", texto: "Quita filtros para ver más." },
             alClic: function (f) {
@@ -164,6 +168,9 @@
             var activa = b.dataset.vista === vista; b.classList.toggle("pestana--activa", activa); b.setAttribute("aria-selected", String(activa));
         });
         document.querySelectorAll("#conceptos-tablas .xc-tabla").forEach(function (el) { el.hidden = el.dataset.tabla !== vista; });
+        var nota = $("conceptos-nota");                       // qué es lo que se está viendo, en una línea
+        if (!nota) { nota = document.createElement("p"); nota.id = "conceptos-nota"; nota.className = "xc-nota"; $("conceptos-vistas").insertAdjacentElement("afterend", nota); }
+        nota.textContent = (VISTAS.find(function (v) { return v[0] === vista; }) || [])[2] || "";
         if (!C.tablas[vista]) C.tablas[vista] = crearTabla(vista);
     }
 
