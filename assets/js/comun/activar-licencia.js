@@ -55,8 +55,10 @@
                 var d = await r.json();
                 campo.value = "";
                 decir("<b>Licencia activada.</b> " + esc(d.plan) + " hasta el " + esc(fechaLarga(d.vence)) + "." +
-                    (d.tipo === "despacho" ? " Tu despacho «" + esc(d.despacho) + "» tiene " + d.asientos + " lugares. " +
-                        '<a href="/despacho/">Invita a tu equipo →</a>' : ""), "ok");
+                    (d.tipo === "despacho" ? " Tu despacho «" + esc(d.despacho) + "» tiene " + d.asientos + " lugares" +
+                        (d.empresas ? " y hasta " + d.empresas + " empresas (RFC) entre todos" : "") + ". " : "") +
+                    (d.timbres ? "Ya tienes " + Number(d.timbres).toLocaleString("es-MX") + " timbres de facturación incluidos. " : "") +
+                    (d.tipo === "despacho" ? '<a href="/despacho/">Invita a tu equipo →</a>' : ""), "ok");
                 if (opciones.alActivar) opciones.alActivar(d);
             } catch (er) {
                 decir(esc(er.message), "error");
