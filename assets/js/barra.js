@@ -56,7 +56,7 @@
         herramientas:  { nombre: "Herramientas",          permiso: null },
         conciliacion:  { nombre: "Conciliación de pagos", permiso: "conciliacion" },
         recibos_nomina: { nombre: "Recibos de nómina",    permiso: "validador" },
-        envios:        { nombre: "Envíos por correo",     permiso: "validador" },
+        envios:        { nombre: "Envíos por correo",     permiso: "envios" },
         iva:           { nombre: "Papel de trabajo de IVA", permiso: "iva" },
         visores:       { nombre: "Visores del SAT",       permiso: "iva" },
         cierre:        { nombre: "Cierre del mes",        permiso: null },
@@ -193,7 +193,7 @@
         { clave: "recibos_nomina", grupo: "Comprobantes", nombre: "Recibos de nómina", alias: "nomina recibos timbrados cfdi de nomina sueldos asimilados", desc: "Los recibos de nómina timbrados, con su Excel", url: "/herramientas/xml/?vista=nomina", permiso: "validador", icono: I.gente, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
         { clave: "descarga_xml", grupo: "Comprobantes", nombre: "Descarga masiva", alias: "descarga masiva de xml web service portal", desc: "Emitidos y recibidos de un periodo", url: "/herramientas/descarga-xml/", permiso: "descarga_xml", icono: I.nube, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
         { clave: "retenciones", grupo: "Comprobantes", nombre: "CFDI de Retenciones", alias: "retenciones cfdi de retenciones e información de pagos constancia de retenciones isr iva dividendos intereses", desc: "CFDI de retenciones emitidos y recibidos", url: "/herramientas/retenciones/", permiso: "descarga_xml", icono: I.retencion, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
-        { clave: "envios", grupo: "Comprobantes", nombre: "Envíos por correo", alias: "envios por correo enviar xml pdf excel automatico programado zip despacho clientes semanal mensual", desc: "XML, PDF y Excel de tus empresas, solos por correo", url: "/herramientas/envios/", permiso: "validador", icono: I.enviar, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
+        { clave: "envios", grupo: "Comprobantes", nombre: "Envíos por correo", alias: "envios por correo enviar xml pdf excel automatico programado zip despacho clientes semanal mensual", desc: "XML, PDF y Excel de tus empresas, solos por correo", url: "/herramientas/envios/", permiso: "envios", icono: I.enviar, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
         { clave: "validador", grupo: "Comprobantes", nombre: "Validador", alias: "validador de xml vigente cancelado", desc: "¿Vigente o cancelado ante el SAT?", url: "/herramientas/validador/", permiso: "validador", icono: I.palomita, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
         { clave: "marcas", grupo: "Comprobantes", nombre: "Marcas fiscales", desc: "Para qué impuesto cuenta cada CFDI y por qué", url: "/herramientas/xml/fiscal.html", permiso: "marcas", icono: I.balanza, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
         { clave: "cancelaciones", grupo: "Comprobantes", nombre: "Cancelaciones", desc: "Cancela emitidas y responde las que te piden", url: "/herramientas/xml/cancelaciones.html", permiso: "cancelaciones", icono: I.prohibido, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
@@ -3137,6 +3137,71 @@
     document.addEventListener("keydown", function (e) { if (e.key === "Escape") cerrarGlobos(); });
     window.Fiscontable.globos = globos;
     if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", function () { globos(); }); else globos();
+
+    /* ------------------------------------------------- «Ampliar tabla» (18-nov, Alan: «o de plano ventana completa solo para eso»)
+       Deja en pantalla solo lo que la página diga (buscador, filtros y la tabla): se van la barra, el menú, el título, el
+       periodo y los resúmenes, y la tabla ocupa todo el alto. Se sale con el mismo botón o con Esc; no se recuerda al recargar.
+           Fiscontable.ampliar({ en: ".xml-toolbar__der", quedan: [".xml-toolbar", "#tabla-marco", ".xml-pie"] })
+       «en» es donde va el botón (al final); «quedan», lo único que sigue a la vista dentro de <main>. */
+    var ICO_AMPLIAR = '<svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 2H14v4.5M6.5 14H2V9.5M14 2 9.5 6.5M2 14l4.5-4.5"/></svg>';
+    var ICO_REDUCIR = '<svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 6.5H9.5V2M2 9.5h4.5V14M9.5 6.5 14 2M6.5 9.5 2 14"/></svg>';
+    function ampliar(op) {
+        var principal = document.querySelector("main"), sitio = document.querySelector(op.en);
+        if (!principal || !sitio || document.getElementById("btn-ampliar")) return null;
+        var raiz = document.documentElement, b = document.createElement("button"), activa = false, vigia = null;
+        b.type = "button"; b.id = "btn-ampliar"; b.className = "xml-btn fc-amplia-btn";
+        function pintar() {
+            b.innerHTML = (activa ? ICO_REDUCIR : ICO_AMPLIAR) + "<span>" + (activa ? "Vista normal" : "Ampliar") + "</span>";
+            b.title = activa ? "Volver a la vista normal (Esc)" : "Deja en pantalla solo la tabla, con su buscador y sus filtros";
+            b.setAttribute("aria-label", activa ? "Volver a la vista normal" : "Ampliar la tabla");
+            b.setAttribute("aria-pressed", String(activa));
+        }
+        function losQueQuedan() { return op.quedan.map(function (q) { return principal.querySelector(q); }).filter(Boolean); }
+        function marcar() {
+            var q = losQueQuedan();
+            q.forEach(function (k) {
+                for (var e = k; e && e !== principal; e = e.parentElement) {
+                    [].forEach.call(e.parentElement.children, function (h) {
+                        if (h !== e && !q.some(function (x) { return h === x || h.contains(x); })) h.classList.add("fc-amplia-fuera");
+                    });
+                }
+            });
+        }
+        // La tabla llena lo que queda de la pantalla: del borde de arriba de su caja hasta abajo, menos el renglón del pie
+        function medir() {
+            if (!activa) return;
+            var caja = principal.querySelector(".xml-tabla-caja"), pie = principal.querySelector(".xml-pie");
+            if (!caja) return;
+            var alto = Math.max(220, Math.round(window.innerHeight - caja.getBoundingClientRect().top - window.scrollY - (pie && pie.offsetParent ? pie.offsetHeight + 8 : 0) - 10));
+            if (raiz.style.getPropertyValue("--fc-amplia-alto") !== alto + "px") raiz.style.setProperty("--fc-amplia-alto", alto + "px");
+        }
+        function poner(si) {
+            if (si === activa) return;
+            activa = si;
+            principal.querySelectorAll(".fc-amplia-fuera").forEach(function (e) { e.classList.remove("fc-amplia-fuera"); });
+            if (activa) marcar();
+            raiz.classList.toggle("fc-amplia", activa);
+            if (activa) { window.scrollTo(0, 0); medir(); } else raiz.style.removeProperty("--fc-amplia-alto");
+            if (window.ResizeObserver) {
+                if (activa) { vigia = new ResizeObserver(medir); vigia.observe(principal); }
+                else if (vigia) { vigia.disconnect(); vigia = null; }
+            }
+            pintar();
+        }
+        b.addEventListener("click", function () { poner(!activa); });
+        window.addEventListener("resize", medir);
+        // Esc sale… salvo que haya algo abierto encima (ese Esc es para cerrarlo) o texto en el buscador (ese Esc lo borra)
+        document.addEventListener("keydown", function (e) {
+            if (e.key !== "Escape" || !activa) return;
+            if (document.querySelector("dialog[open], .xml-modal:not([hidden]), .xml-panel:not([hidden]), .xml-menu__lista:not([hidden]), .fc-panel:not([hidden]), .fc-periodo:not([hidden]), .fc-globo-caja--abierta")) return;
+            var a = document.activeElement;
+            if (a && a.matches && a.matches("input, textarea, select") && a.value) return;
+            poner(false);
+        }, true);
+        pintar(); sitio.appendChild(b);
+        return { poner: poner, activa: function () { return activa; } };
+    }
+    window.Fiscontable.ampliar = ampliar;
 
     /* ------------------------------------------------- bloqueo por inactividad (S-01)
        Tras N minutos sin usar la web (cada quien lo elige en Configuración › Mi perfil) se bloquea la pantalla en

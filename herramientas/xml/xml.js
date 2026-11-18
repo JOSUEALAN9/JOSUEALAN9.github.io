@@ -118,6 +118,8 @@
         E.P = FCPeriodoMeses.crear({ contenedor: $("periodo-xml"), alCambiar: function () { alCambiarPeriodo(); }, alAvisar: avisar,
                                      conBoton: true, alcanza: periodoYaCargado });
         prepararEventos();
+        // 18-nov: «Ampliar» deja solo la tabla (buscador, filtros, lo seleccionado y el avance de la validación)
+        Fiscontable.ampliar({ en: ".xml-toolbar__der", quedan: [".xml-toolbar", "#filtros-activos", "#aviso-moneda", "#avance-validacion", "#barra-seleccion", "#tabla-marco", ".xml-pie"] });
         var perfil = await Fiscontable.perfil();
         $("btn-conciliacion").hidden = !(perfil && (perfil.modulos_permitidos || []).indexOf("conciliacion") !== -1);
         await cargarVistas();
