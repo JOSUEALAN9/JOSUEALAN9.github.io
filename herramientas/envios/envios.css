@@ -1,0 +1,59 @@
+/* envios.css — Envíos por correo (18-nov-2026) */
+.ev-lista { display: grid; gap: var(--e-3); grid-template-columns: repeat(auto-fill, minmax(min(100%, 380px), 1fr)); }
+.ev-tarjeta { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.ev-tarjeta--pausado { background: rgb(var(--g-50)); }
+.ev-tarjeta header { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+.ev-tarjeta h2 { margin: 0; font-size: var(--t-16); font-weight: 700; color: rgb(var(--g-900)); overflow-wrap: anywhere; }
+.ev-tarjeta header small { display: block; margin-top: 2px; font-size: var(--t-12); color: rgb(var(--g-600)); }
+.ev-datos { display: grid; gap: 4px; margin: 0; font-size: var(--t-13); color: rgb(var(--g-700)); }
+.ev-datos div { display: grid; grid-template-columns: 74px minmax(0, 1fr); gap: 8px; }
+.ev-datos dt { color: rgb(var(--g-500)); }
+.ev-datos dd { margin: 0; overflow-wrap: anywhere; }
+.ev-ultimo { font-size: var(--t-12); color: rgb(var(--g-600)); border-top: 1px solid var(--linea); padding-top: 8px; }
+.ev-ultimo--error { color: rgb(var(--er-600)); }
+.ev-acciones { display: flex; flex-wrap: wrap; gap: 6px; margin-top: auto; }
+.ev-acciones .ui-btn:first-child { margin-right: auto; }
+.ev-vacio { grid-column: 1 / -1; border: 1px dashed rgb(var(--g-300)); border-radius: var(--r-tarjeta); }
+
+/* formulario */
+.ev-form { display: grid; gap: var(--e-4); }
+.ev-bloque { display: grid; gap: 10px; min-width: 0; }
+.ev-bloque + .ev-bloque { border-top: 1px solid var(--linea); padding-top: var(--e-4); }
+.ev-bloque h3 { margin: 0; font-size: var(--t-14); font-weight: 700; color: rgb(var(--g-900)); }
+.ev-bloque__cabeza { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.ev-dos { display: grid; gap: 10px var(--e-4); grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); }
+.ev-tres { display: grid; gap: 10px var(--e-3); grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr)); }
+.ev-sub { margin: 0 0 6px; font-size: var(--t-13); font-weight: 600; color: rgb(var(--g-700)); }
+.ev-sub i { font-style: normal; font-weight: 400; color: rgb(var(--g-600)); }
+.ev-checks { display: grid; gap: 8px; }
+.ev-excel { display: grid; gap: 6px; }
+.ev-excel__fila { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 170px); gap: 8px; align-items: center; }
+.ev-excel__fila .ui-check { min-width: 0; }
+.ev-excel__fila .ui-select { height: 32px; font-size: var(--t-13); min-width: 0; width: 100%; }
+.ev-emp-barra { display: flex; flex-wrap: wrap; gap: 6px; }
+.ev-emp-barra .ui-input { flex: 1 1 200px; min-width: 0; height: 32px; }
+.ev-empresas { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr)); gap: 2px 12px; max-height: 196px; overflow: auto;
+               border: 1px solid var(--linea); border-radius: var(--r-control); padding: 8px 10px; }
+.ev-empresas .ui-check { font-size: var(--t-13); min-width: 0; padding: 3px 0; }
+.ev-empresas .ui-check span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ev-empresas .ui-check small { color: rgb(var(--g-500)); font-size: 11.5px; }
+.ev-empresas__vacio { grid-column: 1 / -1; margin: 0; font-size: var(--t-13); color: rgb(var(--g-600)); }
+.ev-radios { display: grid; gap: 8px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); }
+.ev-radio { align-items: flex-start; gap: 10px; padding: 10px 12px; border: 1px solid var(--linea); border-radius: 12px; }
+.ev-radio:has(input:checked) { border-color: rgb(var(--ac-600)); background: rgb(var(--ac-600) / .05); }
+.ev-radio input { margin-top: 2px; }
+.ev-radio span { display: grid; gap: 2px; }
+.ev-radio small { font-size: var(--t-12); color: rgb(var(--g-600)); font-weight: 400; line-height: 1.4; }
+.ev-borrar { margin-right: auto; color: rgb(var(--er-600)); }
+
+/* historial */
+.ev-hist { display: grid; gap: 8px; }
+.ev-hecho { border: 1px solid var(--linea); border-radius: 12px; padding: 10px 14px; display: grid; gap: 6px; }
+.ev-hecho header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 12px; }
+.ev-hecho header b { font-size: var(--t-14); color: rgb(var(--g-900)); }
+.ev-hecho ul { margin: 0; padding-left: 18px; font-size: var(--t-13); color: rgb(var(--g-700)); line-height: 1.5; }
+.ev-hecho__pie { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; font-size: var(--t-12); color: rgb(var(--g-600)); }
+.ev-hecho__pie .ui-btn { margin-left: auto; }
+.ev-hecho__pie .ui-btn + .ui-btn { margin-left: 0; }
+.ev-hecho__error { margin: 0; font-size: var(--t-13); color: rgb(var(--er-600)); }
+@media (max-width: 640px) { .ev-excel__fila { grid-template-columns: minmax(0, 1fr); } .ev-acciones .ui-btn:first-child { margin-right: 0; } }
