@@ -1009,11 +1009,11 @@
     }
 
     /* Con «Usar esto siempre» el Excel ya no pregunta: este renglón dice cómo sale y deja cambiarlo. */
-    function pintarMonedaExcel() {
+    function pintarMonedaExcel() {          // va dentro del menú «Descargar»: dice cómo salen y deja cambiarlo, sin ocupar la barra
         var b = $("btn-moneda-excel"), pref = Fiscontable.monedaReportes.leer();
         if (!b) return;
-        b.hidden = !pref.siempre;
-        b.textContent = "Moneda de los Excel: " + Fiscontable.monedaReportes.texto(pref.modo) + " · Cambiar";
+        var corto = pref.modo === "xml" ? "pesos (TC de cada XML)" : pref.modo === "dof" ? "pesos (TC del DOF)" : "sin convertir";
+        b.innerHTML = "<b>$</b>Moneda de los Excel: " + esc(pref.siempre ? corto : "preguntar cada vez") + "…";
     }
 
     async function descargarExcel(modo, cuerpo) {
