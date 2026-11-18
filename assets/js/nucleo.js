@@ -14,7 +14,7 @@
 (function () {
     "use strict";
 
-    var VERSION = "202611181643";
+    var VERSION = "202611181729";
     // www.fiscontable.app → fiscontable.app: una sola dirección (la sesión y las preferencias guardadas son por dirección)
     if (location.hostname === "www.fiscontable.app") {
         location.replace("https://fiscontable.app" + location.pathname + location.search + location.hash);
@@ -327,10 +327,14 @@
     // T.C. del DOF) o "" (sin convertir). siempre: no volver a preguntar. Se guarda en este navegador.
     window.Fiscontable.monedaReportes = {
         leer: function () {
+            // 18-nov (Alan: «el reporte en Excel debe salir ya convertido a pesos… por defecto; se puede cambiar»): quien nunca
+            // ha elegido no recibe la pregunta: sale en pesos con el tipo de cambio de cada XML. Quien ya eligió, conserva lo suyo.
             try {
-                var p = JSON.parse(localStorage.getItem("fc:moneda") || "null") || {};
+                var crudo = localStorage.getItem("fc:moneda");
+                if (crudo === null) return { modo: "xml", siempre: true, deFabrica: true };
+                var p = JSON.parse(crudo) || {};
                 return { modo: p.modo === "xml" || p.modo === "dof" || p.modo === "" ? p.modo : "xml", siempre: !!p.siempre };
-            } catch (e) { return { modo: "xml", siempre: false }; }
+            } catch (e) { return { modo: "xml", siempre: true, deFabrica: true }; }
         },
         guardar: function (modo, siempre) {
             try { localStorage.setItem("fc:moneda", JSON.stringify({ modo: modo, siempre: !!siempre })); } catch (e) { /* nada */ }

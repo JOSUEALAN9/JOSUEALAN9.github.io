@@ -373,6 +373,16 @@
         $("ev-docs").innerHTML = E.op.docs.map(function (x) {
             return '<label class="ui-check"><input type="checkbox" value="' + esc(x.clave) + '"' + ((c.docs || []).indexOf(x.clave) !== -1 ? " checked" : "") + "> " + esc(x.nombre) + "</label>";
         }).join("");
+        // En qué moneda van los Excel (pesos de fábrica) y qué hojas lleva la conciliación («Para compartir» de fábrica)
+        $("ev-moneda").innerHTML = E.op.monedas.map(function (m) { return '<option value="' + esc(m.clave) + '">' + esc(m.nombre) + "</option>"; }).join("");
+        $("ev-moneda").value = c.moneda || "xml";
+        var cj = E.op.conciliacion, hc = c.conciliacion || "compartir";
+        $("ev-conc").innerHTML = Object.keys(cj.juegos).map(function (k) { return '<option value="' + esc(k) + '">' + esc(cj.nombres[k]) + " (" + cj.juegos[k].length + " hojas)</option>"; }).join("") +
+            '<option value="">Elegir hojas…</option>';
+        E.hojasConc = new Set(Array.isArray(hc) ? hc : cj.juegos[hc] || cj.juegos.compartir);
+        $("ev-conc").value = Array.isArray(hc) ? "" : (cj.juegos[hc] ? hc : "compartir");
+        $("ev-conc-hojas").innerHTML = cj.hojas.map(function (h) { return '<label class="ui-check"><input type="checkbox" value="' + esc(h.clave) + '"> <span>' + esc(h.nombre) + "</span></label>"; }).join("");
+        pintarConc();
         $("ev-frecuencia").value = de_ ? de_.frecuencia : "semanal";
         document.querySelector('input[name="ev-modo"][value="' + (de_ && de_.modo === "nuevo" ? "nuevo" : "mes") + '"]').checked = true;
         pintarDias();
@@ -395,7 +405,16 @@
         if (!$("ev-dlg").open) $("ev-dlg").showModal();
         $("ev-nombre").focus();
     }
+    // Las hojas de la conciliación solo se preguntan si el envío lleva un Excel de conciliación
+    function pintarConc() {
+        var lleva = !!$("ev-excel").querySelector('input[value^="conciliacion_"]:checked'), propio = $("ev-conc").value === "";
+        $("ev-conc-caja").hidden = !lleva;
+        $("ev-conc-hojas").hidden = !lleva || !propio;
+        $("ev-conc-hojas").querySelectorAll("input").forEach(function (i) { i.checked = E.hojasConc.has(i.value); });
+    }
     function leerForm() {
+        var juego = $("ev-conc").value, orden = E.op.conciliacion.hojas.map(function (h) { return h.clave; });
+        var hojas = juego || orden.filter(function (k) { return E.hojasConc.has(k); });
         return {
             nombre: $("ev-nombre").value, para: E.correos.para.valores().join(", "), cc: E.correos.cc.valores().join(", "), empresas: Array.from(E.marcadas),
             destino: document.querySelector('input[name="ev-destino"]:checked').value,
@@ -405,7 +424,8 @@
                     var v = $("ev-excel").querySelector('[data-vista="' + i.value + '"]').value;
                     return { que: i.value, vista: v ? Number(v) : null };
                 }),
-                docs: Array.from($("ev-docs").querySelectorAll("input:checked")).map(function (i) { return i.value; })
+                docs: Array.from($("ev-docs").querySelectorAll("input:checked")).map(function (i) { return i.value; }),
+                moneda: $("ev-moneda").value || "xml", conciliacion: (Array.isArray(hojas) && !hojas.length) ? "compartir" : hojas
             },
             frecuencia: $("ev-frecuencia").value, dia: Number($("ev-dia").value) || 0, modo: document.querySelector('input[name="ev-modo"]:checked').value,
             dias_enlace: Number($("ev-dias-enlace").value) || 7, avisar_sin_novedades: $("ev-avisar").checked, activa: E.editando ? E.editando.activa : true,
@@ -604,6 +624,15 @@
             if (b.dataset.ev === "ninguna") { E.marcadas.clear(); pintarEmpresas(); }
         });
         $("ev-adjuntar").addEventListener("change", pintarVista);
+        $("ev-excel").addEventListener("change", pintarConc);
+        $("ev-conc").addEventListener("change", function () {
+            var j = E.op.conciliacion.juegos[$("ev-conc").value];
+            if (j) E.hojasConc = new Set(j);
+            pintarConc();
+        });
+        $("ev-conc-hojas").addEventListener("change", function (ev) {
+            if (ev.target.checked) E.hojasConc.add(ev.target.value); else E.hojasConc.delete(ev.target.value);
+        });
         ["ev-asunto", "ev-mensaje"].forEach(function (id) {
             $(id).addEventListener("focus", function () { E.campoTexto = $(id); });
             $(id).addEventListener("input", pintarVista);

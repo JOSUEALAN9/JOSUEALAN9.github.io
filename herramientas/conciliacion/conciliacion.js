@@ -912,10 +912,56 @@
         return Object.keys(m).sort();
     }
 
-    function exportarExcel(modo) {
+    /* «Excel del periodo»: qué hojas lleva (18-nov, Alan: «para lo que voy a compartir no [todo]… que se pueda editar las
+       pestañas»). Dos juegos ya armados y casillas para cambiarlos; se recuerda la última elección en este navegador. */
+    function leerHojas() { try { return JSON.parse(localStorage.getItem("fc:conc-hojas") || "null"); } catch (e) { return null; } }
+    async function elegirHojas(alElegir) {
+        var cat;
+        try { cat = await apiJSON("/api/conciliacion/hojas?lado=" + encodeURIComponent(E.lado)); } catch (e) { avisar(e.message); return; }
+        var previo = leerHojas() || {}, juegoIni = cat.juegos.find(function (j) { return j.clave === previo.juego; }) ? previo.juego : (previo.hojas ? "" : "completo");
+        var marcadas = new Set(previo.hojas && !juegoIni ? previo.hojas : (cat.juegos.find(function (j) { return j.clave === (juegoIni || "completo"); }) || cat.juegos[0]).hojas);
+        function juegoDe() {
+            var j = cat.juegos.find(function (x) { return x.hojas.length === marcadas.size && x.hojas.every(function (h) { return marcadas.has(h); }); });
+            return j ? j.clave : "";
+        }
+        preguntar("Excel del periodo",
+            '<p>¿Qué hojas lleva? Empieza con un juego y marca o quita las que quieras.</p>' +
+            '<div class="conc-juegos" id="conc-juegos">' + cat.juegos.map(function (j) {
+                return '<button type="button" class="conc-juego" data-juego="' + esc(j.clave) + '"><b>' + esc(j.nombre) + "</b><small>" + j.hojas.length + " hojas</small></button>";
+            }).join("") + "</div>" +
+            '<div class="conc-hojas" id="conc-hojas">' + cat.hojas.map(function (h) {
+                return '<label class="conc-hoja"><input type="checkbox" value="' + esc(h.clave) + '"> <span>' + esc(h.nombre) + "</span></label>";
+            }).join("") + "</div>" +
+            '<p class="conc-sub" id="conc-hojas-cuenta"></p>',
+            [{ texto: "Descargar Excel", primario: true, accion: function () {
+                var lista = cat.hojas.map(function (h) { return h.clave; }).filter(function (k) { return marcadas.has(k); });
+                if (!lista.length) { avisar("Marca al menos una hoja."); return false; }
+                try { localStorage.setItem("fc:conc-hojas", JSON.stringify({ juego: juegoDe(), hojas: lista })); } catch (e) { /* nada */ }
+                alElegir(juegoDe() || lista);
+            } }]);
+        function pintar() {
+            var actual = juegoDe();
+            $("conc-hojas").querySelectorAll("input").forEach(function (i) { i.checked = marcadas.has(i.value); });
+            $("conc-juegos").querySelectorAll("[data-juego]").forEach(function (b) { b.setAttribute("aria-pressed", String(b.dataset.juego === actual)); });
+            $("conc-hojas-cuenta").textContent = marcadas.size + (marcadas.size === 1 ? " hoja" : " hojas") + (actual ? "" : " · elección propia");
+        }
+        $("conc-juegos").addEventListener("click", function (ev) {
+            var b = ev.target.closest("[data-juego]"); if (!b) return;
+            marcadas = new Set(cat.juegos.find(function (j) { return j.clave === b.dataset.juego; }).hojas); pintar();
+        });
+        $("conc-hojas").addEventListener("change", function (ev) {
+            if (ev.target.checked) marcadas.add(ev.target.value); else marcadas.delete(ev.target.value);
+            pintar();
+        });
+        pintar();
+    }
+
+    function exportarExcel(modo, hojas) {
+        if (modo === "completo" && hojas === undefined) { elegirHojas(function (h) { exportarExcel(modo, h); }); return; }
         var r = rango();
         var cuerpo = { rfc: E.rfc, lado: E.lado, desde: r.desde, hasta: r.hasta, meses: mesesSueltos(), base: $("sel-base").value, regla: E.regla,
             columnas: tabla().columnas().map(function (c) { return c.clave; }), uuids: null, moneda: "xml" };
+        if (modo === "completo") cuerpo.hojas = hojas;
         var facturas = E.datos.facturas;
         if (modo === "vista") {
             cuerpo.solo_tabla = true;          // 17-nov: «Excel de esta tabla» es una sola hoja con lo que ves; lo demás, en «Excel completo»

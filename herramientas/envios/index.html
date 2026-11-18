@@ -4,15 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Envíos por correo | Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611181643">
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611181643">
-    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611181643">
-    <link rel="stylesheet" href="/herramientas/envios/envios.css?v=202611181643">
+    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611181729">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611181729">
+    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611181729">
+    <link rel="stylesheet" href="/herramientas/envios/envios.css?v=202611181729">
 </head>
 <body class="min-h-screen flex flex-col">
 <div id="app-header" data-modulo="envios" data-titulo="Envíos por correo" data-migas="Herramientas|/herramientas/"></div>
-<script src="/assets/js/nucleo.js?v=202611181643"></script>
-<script src="/assets/js/barra.js?v=202611181643"></script>
+<script src="/assets/js/nucleo.js?v=202611181729"></script>
+<script src="/assets/js/barra.js?v=202611181729"></script>
 
 <main class="flex-grow mod-pagina">
     <div class="mod-cabeza">
@@ -99,6 +99,13 @@
                     <div id="ev-excel" class="ev-excel"></div>
                 </div>
             </div>
+            <div class="ev-dos">
+                <label class="ui-campo"><span class="ui-etiqueta">Importes de los Excel</span>
+                    <select id="ev-moneda" class="ui-select"></select></label>
+                <div class="ui-campo" id="ev-conc-caja" hidden><span class="ui-etiqueta" id="ev-conc-etq">Hojas de la conciliación</span>
+                    <select id="ev-conc" class="ui-select" aria-labelledby="ev-conc-etq"></select></div>
+            </div>
+            <div id="ev-conc-hojas" class="ev-hojas" role="group" aria-label="Hojas de la conciliación" hidden></div>
             <div>
                 <p class="ev-sub">Documentos <i>(los más recientes guardados de cada empresa, juntos en una carpeta)</i></p>
                 <div id="ev-docs" class="ev-checks ev-checks--fila"></div>
@@ -187,6 +194,6 @@
     </div>
 </dialog>
 
-<script src="/herramientas/envios/envios.js?v=202611181643"></script>
+<script src="/herramientas/envios/envios.js?v=202611181729"></script>
 </body>
 </html>

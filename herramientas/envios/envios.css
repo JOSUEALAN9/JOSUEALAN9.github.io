@@ -67,6 +67,9 @@
 .ev-adjuntar { align-items: flex-start; gap: 8px; align-self: end; font-size: var(--t-14); }
 .ev-adjuntar input { margin-top: 3px; }
 .ev-adjuntar small { display: block; font-size: var(--t-12); color: rgb(var(--g-600)); line-height: 1.4; margin-top: 2px; }
+.ev-hojas { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr)); gap: 4px 14px; padding: 10px 12px; border: 1px solid var(--linea); border-radius: 12px; }
+.ev-hojas[hidden] { display: none; }
+.ev-hojas .ui-check { font-size: var(--t-13); padding: 2px 0; }
 /* «Enviar ahora» */
 .ev-ahora { display: grid; gap: 12px; }
 .ev-radios--una { grid-template-columns: minmax(0, 1fr); }
