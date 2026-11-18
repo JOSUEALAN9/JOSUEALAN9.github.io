@@ -4,15 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Envíos por correo | Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611182022">
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611182022">
-    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611182022">
-    <link rel="stylesheet" href="/herramientas/envios/envios.css?v=202611182022">
+    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611182113">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611182113">
+    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611182113">
+    <link rel="stylesheet" href="/herramientas/envios/envios.css?v=202611182113">
 </head>
 <body class="min-h-screen flex flex-col">
 <div id="app-header" data-modulo="envios" data-titulo="Envíos por correo" data-migas="Herramientas|/herramientas/"></div>
-<script src="/assets/js/nucleo.js?v=202611182022"></script>
-<script src="/assets/js/barra.js?v=202611182022"></script>
+<script src="/assets/js/nucleo.js?v=202611182113"></script>
+<script src="/assets/js/barra.js?v=202611182113"></script>
 
 <main class="flex-grow mod-pagina">
     <div class="mod-cabeza">
@@ -119,7 +119,7 @@
                     <select id="ev-frecuencia" class="ui-select"><option value="semanal">Cada semana</option><option value="quincenal">Cada quincena (días 1 y 16)</option><option value="mensual">Cada mes</option></select></label>
                 <label class="ui-campo" id="ev-dia-caja"><span class="ui-etiqueta" id="ev-dia-etq">Qué día</span>
                     <select id="ev-dia" class="ui-select"></select></label>
-                <label class="ui-campo"><span class="ui-etiqueta">El enlace vence en</span>
+                <label class="ui-campo" id="ev-dias-enlace-caja"><span class="ui-etiqueta">El enlace vence en</span>
                     <select id="ev-dias-enlace" class="ui-select"><option value="3">3 días</option><option value="5">5 días</option><option value="7">7 días</option></select></label>
             </div>
             <div class="ev-radios" role="radiogroup" aria-label="De qué periodo">
@@ -137,11 +137,17 @@
         </section>
 
         <section class="ev-paso" data-paso="5" aria-labelledby="ev-p5" hidden>
-            <h3 id="ev-p5">¿Qué dice el correo?</h3>
+            <h3 id="ev-p5">¿Dónde queda y qué dice el correo?</h3>
+            <div class="ev-radios" role="radiogroup" aria-label="Dónde queda el paquete">
+                <label class="ui-check ev-radio"><input type="radio" name="ev-lugar" value="correo" checked>
+                    <span><b>En el correo, con su enlace</b><small>Llega un enlace para bajarlo, que vence. Sirve para quien no tiene cuenta en Fiscontable.</small></span></label>
+                <label class="ui-check ev-radio" id="ev-lugar-desc-caja"><input type="radio" name="ev-lugar" value="descargas">
+                    <span><b>En Mis descargas de Fiscontable</b><small id="ev-lugar-desc-txt"></small></span></label>
+            </div>
             <div class="ev-dos">
                 <label class="ui-campo"><span class="ui-etiqueta">Nombre del remitente <i>(quién aparece que lo manda)</i></span>
                     <input type="text" id="ev-remitente" class="ui-input" maxlength="60" placeholder="Fiscontable" autocomplete="off"></label>
-                <label class="ui-check ev-adjuntar"><input type="checkbox" id="ev-adjuntar">
+                <label class="ui-check ev-adjuntar" id="ev-adjuntar-caja"><input type="checkbox" id="ev-adjuntar">
                     <span>Adjuntar también el ZIP <small id="ev-adjuntar-txt"></small></span></label>
             </div>
             <div class="ev-plantillas" role="group" aria-label="Plantillas"><span class="ev-sub">Empieza con una plantilla</span><div id="ev-plantillas" class="ev-plantillas__lista"></div></div>
@@ -197,6 +203,6 @@
     </div>
 </dialog>
 
-<script src="/herramientas/envios/envios.js?v=202611182022"></script>
+<script src="/herramientas/envios/envios.js?v=202611182113"></script>
 </body>
 </html>

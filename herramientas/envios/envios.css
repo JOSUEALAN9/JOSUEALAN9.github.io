@@ -115,6 +115,7 @@
 .ev-hecho__pie .ui-btn { margin-left: auto; }
 .ev-hecho__pie .ui-btn + .ui-btn { margin-left: 0; }
 .ev-hecho__error { margin: 0; font-size: var(--t-13); color: rgb(var(--er-600)); }
+.ev-hecho__aviso { color: rgb(var(--er-600)); }
 @media (max-width: 640px) { .ev-excel__fila { grid-template-columns: minmax(0, 1fr); } .ev-acciones .ui-btn:first-child { margin-right: 0; } }
 
 /* correos como pastillas (como en Cloudflare): se escribe, y con Enter, coma o espacio queda la pastilla con su × */

@@ -23,13 +23,14 @@ function grupoTipo(t) {
     t = t || "";
     if (t.startsWith("programada_")) return "programada";
     if (/csf|opinion/.test(t)) return "constancias";
+    if (/^envio/.test(t)) return "envios";
     if (/xml/.test(t)) return "xml";
     if (/declarac|voucheo/.test(t)) return "declaraciones";
     if (/buzon/.test(t)) return "buzon";
     return "otros";
 }
 const GRUPOS_TIPO = { "": "Todos los tipos", constancias: "Constancias y opiniones", xml: "XML", declaraciones: "Declaraciones y voucheo",
-                      buzon: "Buzón", programada: "Programadas", otros: "Otros" };
+                      buzon: "Buzón", envios: "Envíos", programada: "Programadas", otros: "Otros" };
 
 function prepararFiltros() {
     const caja = document.getElementById("dsc-filtros");
@@ -65,6 +66,9 @@ function pasaFiltro(p) {
     }
     if (FILTRO.tipo && grupoTipo(p.tipo) !== FILTRO.tipo) return false;
     if (FILTRO.empresa === "activa" && empresaActiva && p.clase === "individual" && p.titulo !== empresaActiva.rfc) return false;
+    // Un envío de varias empresas deja el paquete entero y el de cada una. Con «Solo esta empresa» se ve el suyo; con
+    // «Todas», el entero (si esta persona lo tiene: en un despacho, quien tiene empresas limitadas solo recibe los suyos)
+    if (p.tipo === "envio_parte" && !(FILTRO.empresa === "activa" && empresaActiva) && Fiscontable.descargas.tieneEntero(p, window._ultimosProcesos)) return false;
     return true;
 }
 function pintarDeNuevo() { if (window._ultimosProcesos) pintarProcesos(window._ultimosProcesos); }

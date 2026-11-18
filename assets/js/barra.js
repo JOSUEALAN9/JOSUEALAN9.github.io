@@ -1938,18 +1938,25 @@
             '<div class="fc-fila__acciones">' + acciones + "</div>" + abajo + "</div>";
     }
 
+    /* Un envío de varias empresas deja en «Mis descargas» el paquete entero y uno por empresa (mismo `grupo`). En el
+       panel de la barra, quien tiene el entero no ve además los sueltos; quien solo recibe los suyos, los ve. */
+    function tieneEntero(p, todos) {
+        return !!p.grupo && (todos || []).some(function (q) { return q.tipo === "envio" && q.grupo === p.grupo; });
+    }
+    function sinPartes(procesos) {
+        return (procesos || []).filter(function (p) { return !(p.tipo === "envio_parte" && tieneEntero(p, procesos)); });
+    }
     function esperaMadrugada(p) { return p.clase === "programada" && p.estado === "procesando"; }
     function sinProgramadas(procesos) { return (procesos || []).filter(function (p) { return !esperaMadrugada(p); }); }
     function notaProgramadas(procesos) {
         var n = (procesos || []).filter(esperaMadrugada).length;
-        return n ? '<a class="fc-nota-prog" href="/configuracion/?seccion=automatico&sub=programado">🌙 ' + n + " programada" + (n === 1 ? "" : "s") +
-            " programados · se ven en Lo automático</a>" : "";
+        return n ? '<a class="fc-nota-prog" href="/configuracion/?seccion=automatico&sub=programado">🌙 ' + n + (n === 1 ? " proceso programado" : " procesos programados") + " · se ven en Lo automático</a>" : "";
     }
 
     function pintarLista(todos) {
         var cuerpo = document.getElementById("fc-panel-cuerpo");
         if (!cuerpo) return;
-        var procesos = sinProgramadas(todos), nota = notaProgramadas(todos);
+        var procesos = sinPartes(sinProgramadas(todos)), nota = notaProgramadas(todos);
 
         if (!procesos.length) {
             cuerpo.innerHTML = nota + '<div class="fc-vacio">Todavía no hay nada aquí.<br>' +
@@ -1984,7 +1991,7 @@
      */
     function refrescarContador(todos) {
         leerVistos().forEach(function (id) { vistos.add(id); });     // lo que se vio en otra pestaña también cuenta
-        var procesos = sinProgramadas(todos);
+        var procesos = sinPartes(sinProgramadas(todos));
         var activos = procesos.filter(function (p) { return p.estado === "procesando"; }).length;
         var nuevos = procesos.filter(function (p) {
             return p.estado !== "procesando" && !vistos.has(p.id);
@@ -4071,7 +4078,7 @@
         confirmarIdentidad: confirmarIdentidad,
         resumenPresentacion: resumenPresentacion,
         presentarConPin: presentarConPin,
-        descargas: { tarjeta: tarjeta, accion: accionPanel, sinProgramadas: sinProgramadas, notaProgramadas: notaProgramadas,
+        descargas: { tarjeta: tarjeta, accion: accionPanel, sinProgramadas: sinProgramadas, notaProgramadas: notaProgramadas, tieneEntero: tieneEntero,
                      nombre: nombreProceso, empresa: empresaProceso, titulo: tituloProceso },
         abrirModalPerfil: abrirModalPerfil,
         // La empresa elegida en el selector general (o null). Los módulos también
