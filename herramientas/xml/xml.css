@@ -278,6 +278,8 @@ button.ctx-resumen__dato:hover { background: rgb(var(--g-50)); }
 .ls-fila-rol .xml-cuenta { margin-left: 4px; }
 /* M-09: pestañas como control segmentado compacto */
 .xml-fila-seg { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-bottom: 10px; }
+/* Las pestañas llegan con los datos: su lugar se aparta desde el principio para que la tabla no brinque al recargar (18-nov) */
+.xml-fila-seg:has(> #pestanas:not([hidden])) { min-height: 40px; }
 .xml-fila-seg .xml-chips { margin: 0; }
 .xml-seg { max-width: 100%; overflow-x: auto; scrollbar-width: none; }
 .xml-seg::-webkit-scrollbar { display: none; }

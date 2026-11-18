@@ -4,18 +4,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Administración de XML · Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611180539">
-    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611180539">
-    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611180539">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611180633">
+    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611180633">
+    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611180633">
 </head>
 <body class="bg-slate-50">
 <div id="app-header" data-modulo="xml" data-titulo="Administración de XML" data-migas="Herramientas|/herramientas/"></div>
-<script src="/herramientas/xml/vista.js?v=202611180539"></script>
-<script src="/assets/js/nucleo.js?v=202611180539"></script>
-<script src="/assets/js/barra.js?v=202611180539"></script>
+<script src="/herramientas/xml/vista.js?v=202611180633"></script>
+<script src="/assets/js/nucleo.js?v=202611180633"></script>
+<script src="/assets/js/barra.js?v=202611180633"></script>
 
 <main class="xml-pagina">
-    <!-- Una sola fila: qué módulo, de quién, qué periodo y la acción principal -->
+    <!-- Una sola fila: qué módulo y de quién. «+ Agregar XML» va en la barra de acciones, junto al periodo (18-nov: encabezado compacto) -->
     <div class="xml-cabeza">
         <h1 id="xml-titulo">Administración de XML</h1>
         <div class="fc-vista xml-conc-vista" role="tablist" aria-label="Conciliación de pagos" id="conc-vista" hidden></div>
@@ -32,9 +32,6 @@
                 <span class="ctx-campo__flecha" aria-hidden="true">▾</span>
             </button>
             <input type="hidden" id="sel-periodo">
-        </div>
-        <div class="xml-cabeza__acciones">
-            <button type="button" id="btn-agregar" class="xml-btn xml-btn--primario">+ Agregar XML</button>
         </div>
     </div>
 
@@ -60,7 +57,7 @@
     <div id="sin-empresa" class="ctx-vacio" hidden></div>
 
     <div id="contenido" class="mod-layout" hidden>
-        <aside class="mod-acciones" aria-label="Acciones">
+        <aside class="mod-acciones" aria-label="Acciones" data-junto="periodo-xml">
             <p class="mod-acciones__grupo">SAT</p>
             <button type="button" id="btn-validar" class="mod-accion" title="Consulta en el SAT si están vigentes o cancelados"><b>✓</b>Validar estado SAT</button>
             <p class="mod-acciones__grupo">Reportes</p>
@@ -87,6 +84,8 @@
             <button type="button" class="mod-accion" data-ir="xml" title="Facturas emitidas y recibidas, con esta empresa y este periodo" hidden><b>⇢</b>Administración de XML</button>
             <a class="mod-accion" href="/herramientas/retenciones/" title="CFDI de retenciones e información de pagos"><b>⇢</b>CFDI de Retenciones</a>
             <a class="mod-accion" href="https://ptcvisorcfdiingegr.clouda.sat.gob.mx/" target="_blank" rel="noopener" title="Visor de comprobantes de ingresos y egresos del SAT: sus totales por mes son los del prellenado de la declaración (se entra con la e.firma o la contraseña)"><b>↗</b>Visor de facturas del SAT ↗</a>
+            <p class="mod-acciones__grupo">Agregar</p>
+            <button type="button" id="btn-agregar" class="mod-accion mod-accion--primaria" title="Sube XML o ZIP de esta empresa">+ Agregar XML</button>
         </aside>
         <div class="mod-layout__principal">
         <div id="aviso-otra" class="xml-aviso-otra" hidden></div>
@@ -231,12 +230,12 @@
     </div>
 </aside>
 
-<script src="/assets/js/comun/periodo-meses.js?v=202611180539"></script>
-<script src="/assets/js/comun/compartir.js?v=202611180539"></script>
-<script src="/assets/js/comun/tabla.js?v=202611180539"></script>
-<script src="/assets/js/comun/pestanas-conciliacion.js?v=202611180539"></script>
-<script src="/herramientas/xml/conceptos.js?v=202611180539"></script>
-<script src="/herramientas/xml/duplicados.js?v=202611180539"></script>
-<script src="/herramientas/xml/xml.js?v=202611180539"></script>
+<script src="/assets/js/comun/periodo-meses.js?v=202611180633"></script>
+<script src="/assets/js/comun/compartir.js?v=202611180633"></script>
+<script src="/assets/js/comun/tabla.js?v=202611180633"></script>
+<script src="/assets/js/comun/pestanas-conciliacion.js?v=202611180633"></script>
+<script src="/herramientas/xml/conceptos.js?v=202611180633"></script>
+<script src="/herramientas/xml/duplicados.js?v=202611180633"></script>
+<script src="/herramientas/xml/xml.js?v=202611180633"></script>
 </body>
 </html>

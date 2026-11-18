@@ -1,6 +1,6 @@
 /* Conciliación — encima de herramientas/xml/xml.css (misma tabla y controles) */
 .conc-controles { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-bottom: 10px; }
-.conc-controles .ctx-ayuda { flex: 1 1 280px; margin: 0; line-height: 1.4; }
+.conc-controles .ctx-ayuda { margin: 0; line-height: 1.4; }
 .conc-lados { display: inline-flex; background: rgb(var(--g-200)); border-radius: 12px; padding: 4px; gap: 4px; }
 .conc-lado { border: 0; background: none; border-radius: 9px; padding: 7px 14px; font-size: 13.5px; font-weight: 800; color: rgb(var(--g-600)); cursor: pointer; text-align: left; line-height: 1.2; }
 .conc-lado span { display: block; font-size: 11.5px; font-weight: 600; color: rgb(var(--g-500)); }
@@ -9,8 +9,9 @@
 
 
 .conc-aviso { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; background: rgb(var(--av-50)); border: 1px solid rgb(var(--av-200)); color: rgb(var(--av-600));
-  border-radius: 12px; padding: 10px 14px; font-size: 13px; margin-bottom: 12px; }
-.conc-aviso .xml-btn { padding: 6px 12px; font-size: 12.5px; }
+  border-radius: 12px; padding: 6px 8px 6px 14px; font-size: 13px; margin-bottom: 10px; }
+.conc-aviso > span { flex: 1 1 260px; min-width: 0; }
+.conc-aviso .xml-btn { padding: 5px 12px; font-size: 12.5px; }
 
 .fc-negativo { color: rgb(var(--er-600)); }
 .fc-disponibles { flex: 1; overflow: auto; border: 1px solid rgb(var(--g-200)); border-radius: 10px; }
@@ -57,11 +58,23 @@ a.xml-btn { text-decoration: none; }
 .conc-linea { border: 0; background: none; font: inherit; font-size: 13px; color: rgb(var(--g-700)); cursor: pointer; padding: 4px 0; text-align: left; }
 .conc-linea b { color: rgb(var(--g-900)); }
 .conc-linea--activa { color: rgb(var(--ac-700)); text-decoration: underline; }
+.conc-linea--dato { cursor: default; }
+.ctx-resumen--linea { flex-wrap: wrap; gap: 2px 18px; }
+.ctx-resumen--linea .conc-linea__ver { margin-left: auto; }
 .conc-cargando { opacity: .45; pointer-events: none; transition: opacity .15s; }
 /* Con qué fecha entra una factura al periodo: título chico + las dos opciones + una línea que lo explica */
-.conc-base { display: inline-flex; align-items: center; gap: 8px; max-width: 100%; }
+.conc-base { display: inline-flex; align-items: center; gap: 8px; max-width: 100%; position: relative; }
+/* La explicación es un globo: sale al pasar el cursor por las dos fechas (o al enfocar/tocar el «?»), sin quitarle lugar a la tabla */
+.conc-info { flex: none; width: 20px; height: 20px; border-radius: 50%; border: 1px solid rgb(var(--g-300)); background: rgb(var(--g-0)); color: rgb(var(--g-600));
+             font: inherit; font-size: 11px; font-weight: 800; line-height: 1; cursor: help; padding: 0; }
+.conc-info:hover, .conc-info[aria-expanded="true"] { border-color: rgb(var(--g-500)); color: rgb(var(--g-900)); }
+.conc-base .conc-globo { position: absolute; z-index: 25; top: calc(100% + 6px); right: 0; width: min(380px, calc(100vw - 32px)); padding: 10px 12px; border-radius: 10px;
+                         background: rgb(var(--g-900)); color: rgb(var(--g-100)); font-size: 12.5px; box-shadow: var(--sombra-2, 0 8px 24px rgba(15,23,42,.18));
+                         opacity: 0; visibility: hidden; transition: opacity .12s ease .25s, visibility 0s linear .37s; pointer-events: none; }
+.conc-base .conc-globo strong { color: rgb(var(--g-0)); }
+.conc-base:hover .conc-globo, .conc-base:focus-within .conc-globo, .conc-base--abierta .conc-globo { opacity: 1; visibility: visible; transition: opacity .12s ease .25s, visibility 0s linear .25s; }
+.conc-base--abierta .conc-globo { transition-delay: 0s; }
 .conc-base__titulo { font-size: 12px; font-weight: 800; color: rgb(var(--g-600)); white-space: nowrap; }
-.conc-controles .ctx-ayuda strong { color: rgb(var(--g-900)); }
 /* Lo pendiente de lo facturado en el periodo y el IVA cobrado (no cambian con el botón de fecha) */
 .conc-pendientes { margin-top: -4px; }
 .conc-pendientes button.ctx-resumen__dato:disabled { cursor: default; opacity: .7; }
@@ -81,7 +94,9 @@ a.xml-btn { text-decoration: none; }
 .conc-mini th[title], .conc-mini td[title] { cursor: help; }
 @media (max-width: 700px) {
   .conc-base { width: 100%; flex-wrap: wrap; }
-  .conc-base .ctx-segmento { flex: 1 1 100%; }
+  .conc-base .ctx-segmento { flex: 1 1 100%; order: 3; }
+  .conc-base .conc-info { order: 2; }
+  .conc-base .conc-globo { right: auto; left: 0; }
   .conc-pendientes .conc-iva { margin-left: 0; border-left: 0; flex: 1 1 100%; }
 }
 

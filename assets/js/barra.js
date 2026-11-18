@@ -3075,6 +3075,15 @@
             document.addEventListener("keydown", function (e) { if (e.key === "Escape") cerrar(null); });
             var layout = lado.closest(".mod-layout"), principal = layout && layout.querySelector(".mod-layout__principal");
             if (principal) { principal.insertBefore(lado, principal.firstChild); layout.classList.add("mod-layout--sin-lado"); }
+            // 18-nov (encabezado compacto): con data-junto="id del periodo", la barra comparte renglón con el periodo plegado
+            // («Periodo 2026 · Oct · 376 XML · Cambiar» a la izquierda, las acciones a la derecha). Al abrir el periodo, o si
+            // no caben, las acciones bajan a su propio renglón como antes.
+            var junto = lado.dataset.junto && document.getElementById(lado.dataset.junto);
+            if (junto && junto.parentNode) {
+                var fila = document.createElement("div"); fila.className = "mod-fila-periodo";
+                junto.parentNode.insertBefore(fila, junto);
+                fila.appendChild(junto); fila.appendChild(lado);
+            }
         });
     }
     if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", accionesEnBarra); else accionesEnBarra();
@@ -3596,6 +3605,15 @@
     }
 
     /* ------------------------------------------------------- arranque */
+
+    // 18-nov (Alan: «sigue haciendo el saltito al dar F5»): al cargar, la página se recorría a la derecha animada (el margen de la
+    // barra lateral y el ancho del logo tienen transición para cuando se pliega). Mientras arranca no hay transiciones: la página
+    // nace ya en su lugar. Se vuelven a permitir cuando todo está pintado.
+    document.documentElement.classList.add("fc-arrancando");
+    (function () {
+        function soltar() { setTimeout(function () { document.documentElement.classList.remove("fc-arrancando"); }, 350); }
+        if (document.readyState === "complete") soltar(); else window.addEventListener("load", soltar);
+    })();
 
     pintarBarra();
     pintarLateral();
