@@ -313,10 +313,11 @@
         var est = E.selPeriodo.estado(), url = new URLSearchParams({ rfc: E.rfc, lado: E.lado, base: $("sel-base").value });
         if (E.selPeriodo.porFechas()) { if (est.desde) url.set("desde", est.desde); if (est.hasta) url.set("hasta", est.hasta); }
         else { url.set("anio", est.anio); url.set("meses", est.meses.join(",")); }
+        if (E.pestana && E.pestana !== "ppd") url.set("pestana", E.pestana);       // la pestaña en la que estás se conserva al recargar
         history.replaceState(null, "", location.pathname + "?" + url.toString());
         $("conteo-filas").textContent = "";
         // 17-nov: etiqueta «Calculando…» sobre la tabla y, al llegar, «Actualizado · cuántas facturas» (pieza común de nucleo.js)
-        E.carga = E.carga || Fiscontable.avisoCarga($("tablas-marco"));
+        E.carga = E.carga || Fiscontable.avisoCarga($("tablas-marco"), { junto: $("acciones-alcance") });      // arriba, como en Administración de XML
         var queCarga = E.selPeriodo.texto ? E.selPeriodo.texto() : "";
         if (queCarga.length > 34) queCarga = "los meses elegidos";
         E.carga.mostrar("Calculando " + (queCarga || "el periodo") + "…", "Sigue calculando… un periodo grande tarda un poco más.");
@@ -442,9 +443,12 @@
 
     function pintarChipsEstado() {
         var cuenta = {};
-        E.datos.facturas.forEach(function (f) { cuenta[f.estado_conciliacion] = (cuenta[f.estado_conciliacion] || 0) + 1; });
+        // Los estados se cuentan sobre lo que enseña la pestaña (en «Facturas PPD» las PUE no ocupan renglones)
+        var corte = E.pestana === "ppd" ? PRUEBA.ppd : E.pestana === "errores" ? PRUEBA.error_cfdi : null;
+        var universo = corte ? E.datos.facturas.filter(corte) : E.datos.facturas;
+        universo.forEach(function (f) { cuenta[f.estado_conciliacion] = (cuenta[f.estado_conciliacion] || 0) + 1; });
         if (E.estado && !cuenta[E.estado]) E.estado = "";
-        var h = ['<button type="button" class="xml-chip' + (!E.estado ? " xml-chip--activo" : "") + '" data-estado="">Todas<span>' + E.datos.facturas.length + "</span></button>"];
+        var h = ['<button type="button" class="xml-chip' + (!E.estado ? " xml-chip--activo" : "") + '" data-estado="">Todas<span>' + universo.length + "</span></button>"];
         ORDEN_ESTADOS.forEach(function (e) {
             if (cuenta[e]) h.push('<button type="button" class="xml-chip' + (E.estado === e ? " xml-chip--activo" : "") + '" data-estado="' + esc(e) + '">' +
                 esc(nombreEstado(e)) + "<span>" + cuenta[e] + "</span></button>");
@@ -990,6 +994,9 @@
         // Conteos de lo pendiente: son de lo FACTURADO en el periodo, así que al abrir uno la tabla pasa a «Fecha de emisión»
         $("pendientes").addEventListener("click", function (e) {
             var b = e.target.closest("[data-pendiente]"); if (!b || b.disabled) return;
+            // 18-nov: lo mal emitido tiene su pestaña (ahí también salen las PUE); los demás cuadros son cortes de «Facturas PPD»
+            if (b.dataset.pendiente === "error_cfdi") { FCPestanasConc.marcar($("conc-vista"), "errores"); elegirPestana("errores"); return; }
+            if (E.pestana !== "ppd") { E.pestana = "ppd"; FCPestanasConc.marcar($("conc-vista"), "ppd"); }
             E.tarjeta = E.tarjeta === b.dataset.pendiente ? null : b.dataset.pendiente;
             E.estado = "";
             if (E.tarjeta && $("sel-base").value !== "emision") { $("sel-base").value = "emision"; cargarDatos(); return; }

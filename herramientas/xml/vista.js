@@ -8,6 +8,7 @@
     if (!h || !VISTAS[v]) return;
     h.setAttribute("data-modulo", VISTAS[v][0]);
     h.setAttribute("data-titulo", VISTAS[v][1]);
+    h.setAttribute("data-modulo-fijo", "1");
     document.title = (v === "pagos" ? "Complementos de pago · Conciliación de pagos" : VISTAS[v][1]) + " · Fiscontable";
     document.documentElement.setAttribute("data-xml-vista", v);
 })();

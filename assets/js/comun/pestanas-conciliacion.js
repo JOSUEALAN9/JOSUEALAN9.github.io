@@ -8,8 +8,9 @@
                     ["errores", "Inconsistencias", "Facturas mal emitidas: PUE con forma de pago 99, parcialidades repetidas, pagos en otra moneda…"],
                     ["iva", "IVA del periodo", "Lo cobrado o pagado en el periodo: PPD por fecha de pago y PUE por fecha de emisión"]];
     function destino(clave, rfc) {
-        var q = new URLSearchParams();
+        var q = new URLSearchParams(), aqui = new URLSearchParams(location.search);
         if (rfc) q.set("rfc", rfc);
+        ["anio", "meses", "desde", "hasta"].forEach(function (k) { if (aqui.get(k)) q.set(k, aqui.get(k)); });      // el mismo periodo
         if (clave === "pagos") { q.set("vista", "pagos"); return "/herramientas/xml/?" + q.toString(); }
         q.set("pestana", clave);
         return "/herramientas/conciliacion/?" + q.toString();
@@ -35,5 +36,8 @@
         var p = PESTANAS.find(function (x) { return x[0] === clave; });
         b.textContent = p[1] + (n ? " (" + Number(n).toLocaleString("es-MX") + ")" : "");
     }
-    window.FCPestanasConc = { pintar: pintar, cuenta: cuenta };
+    function marcar(caja, clave) {
+        if (caja) caja.querySelectorAll("[data-pestana]").forEach(function (x) { x.setAttribute("aria-selected", String(x.dataset.pestana === clave)); });
+    }
+    window.FCPestanasConc = { pintar: pintar, cuenta: cuenta, marcar: marcar };
 })();

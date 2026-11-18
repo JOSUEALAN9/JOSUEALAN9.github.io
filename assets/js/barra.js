@@ -432,7 +432,10 @@
 
     /* --------------------------------------------- menú «Módulos» (y Ctrl+K) */
     // El módulo de esta página, por su dirección (Listas y Validador comparten permiso, no dirección)
-    var aqui = CATALOGO.filter(function (m) { return m.url && location.pathname.indexOf(m.url) === 0; })
+    // 18-nov: una página puede abrirse como parte de otro módulo (Administración de XML como «Recibos de nómina» o como
+    // pestaña de Conciliación de pagos; ver herramientas/xml/vista.js): entonces manda el módulo que ella dice.
+    var aqui = (ancla.dataset.moduloFijo && CATALOGO.filter(function (m) { return m.clave === clave; })[0]) ||
+        CATALOGO.filter(function (m) { return m.url && location.pathname.indexOf(m.url) === 0; })
         .sort(function (a, b) { return b.url.length - a.url.length; })[0] || null;
 
     function menuModulosHTML() {
