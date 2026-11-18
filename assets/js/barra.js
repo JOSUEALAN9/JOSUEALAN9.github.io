@@ -54,7 +54,8 @@
         portada:       { nombre: "Fiscontable",           permiso: null },
         clientes:      { nombre: "Clientes",          permiso: null },
         herramientas:  { nombre: "Herramientas",          permiso: null },
-        conciliacion:  { nombre: "Conciliación",          permiso: "conciliacion" },
+        conciliacion:  { nombre: "Conciliación de pagos", permiso: "conciliacion" },
+        recibos_nomina: { nombre: "Recibos de nómina",    permiso: "validador" },
         iva:           { nombre: "Papel de trabajo de IVA", permiso: "iva" },
         visores:       { nombre: "Visores del SAT",       permiso: "iva" },
         cierre:        { nombre: "Cierre del mes",        permiso: null },
@@ -66,7 +67,7 @@
         isn:           { nombre: "Impuestos estatales",   permiso: "isn" },
         declaraciones: { nombre: "Declaraciones",         permiso: "declaraciones" },
         descarga_xml:  { nombre: "Descarga masiva de XML", permiso: "descarga_xml" },
-        retenciones:   { nombre: "Retenciones",           permiso: "descarga_xml" },
+        retenciones:   { nombre: "CFDI de Retenciones",   permiso: "descarga_xml" },
         facturar:      { nombre: "Facturar",              permiso: "facturacion" },
         documentos:    { nombre: "Documentos",            permiso: "documentos" },
         buzon:         { nombre: "Buzón Tributario",      permiso: "buzon" },
@@ -188,15 +189,16 @@
         { clave: "clientes", grupo: "Clientes", nombre: "Clientes", desc: "Empresas, e.firma y obligaciones", url: "/clientes/", permiso: null, icono: I.clientes, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
 
         { clave: "xml", grupo: "Comprobantes", nombre: "Administración de XML", alias: "xml comprobantes", desc: "Tus XML por tipo, con reportes en Excel", url: "/herramientas/xml/", permiso: "validador", icono: I.xml, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
+        { clave: "recibos_nomina", grupo: "Comprobantes", nombre: "Recibos de nómina", alias: "nomina recibos timbrados cfdi de nomina sueldos asimilados", desc: "Los recibos de nómina timbrados, con su Excel", url: "/herramientas/xml/?vista=nomina", permiso: "validador", icono: I.gente, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
         { clave: "descarga_xml", grupo: "Comprobantes", nombre: "Descarga masiva", alias: "descarga masiva de xml web service portal", desc: "Emitidos y recibidos de un periodo", url: "/herramientas/descarga-xml/", permiso: "descarga_xml", icono: I.nube, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
-        { clave: "retenciones", grupo: "Comprobantes", nombre: "Retenciones", alias: "retenciones cfdi de retenciones e información de pagos constancia de retenciones isr iva dividendos intereses", desc: "CFDI de retenciones emitidos y recibidos", url: "/herramientas/retenciones/", permiso: "descarga_xml", icono: I.retencion, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
+        { clave: "retenciones", grupo: "Comprobantes", nombre: "CFDI de Retenciones", alias: "retenciones cfdi de retenciones e información de pagos constancia de retenciones isr iva dividendos intereses", desc: "CFDI de retenciones emitidos y recibidos", url: "/herramientas/retenciones/", permiso: "descarga_xml", icono: I.retencion, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
         { clave: "validador", grupo: "Comprobantes", nombre: "Validador", alias: "validador de xml vigente cancelado", desc: "¿Vigente o cancelado ante el SAT?", url: "/herramientas/validador/", permiso: "validador", icono: I.palomita, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
         { clave: "marcas", grupo: "Comprobantes", nombre: "Marcas fiscales", desc: "Para qué impuesto cuenta cada CFDI y por qué", url: "/herramientas/xml/fiscal.html", permiso: "marcas", icono: I.balanza, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
         { clave: "cancelaciones", grupo: "Comprobantes", nombre: "Cancelaciones", desc: "Cancela emitidas y responde las que te piden", url: "/herramientas/xml/cancelaciones.html", permiso: "cancelaciones", icono: I.prohibido, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
 
         { clave: "cierre", grupo: "Cierre del mes", nombre: "Avance por cliente", alias: "cierre del mes cartera avance tablero clientes pendientes", desc: "Qué tiene listo cada cliente y qué le falta", url: "/herramientas/cierre/", permiso: null, icono: I.lista, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
         { clave: "visores", grupo: "Cierre del mes", nombre: "Visores del SAT", alias: "visor visores sat facturado cobrado ingresos egresos nomina isr retenido enterado cruce xml", desc: "Lo que dice el SAT contra tus XML, facturas y nómina", url: "/herramientas/visores/", permiso: "iva", icono: I.grafica, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
-        { clave: "conciliacion", grupo: "Cierre del mes", nombre: "Conciliación", num: 1, desc: "Facturas contra pagos y notas de crédito", url: "/herramientas/conciliacion/", permiso: "conciliacion", icono: I.cruce, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
+        { clave: "conciliacion", grupo: "Cierre del mes", nombre: "Conciliación de pagos", alias: "conciliacion ppd complementos de pago cobranza", num: 1, desc: "Facturas a crédito contra sus complementos de pago", url: "/herramientas/conciliacion/", permiso: "conciliacion", icono: I.cruce, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
         { clave: "iva", grupo: "Cierre del mes", nombre: "Papel de trabajo IVA", num: 2, alias: "papel de trabajo de iva", desc: "IVA cobrado y pagado del mes", url: "/herramientas/iva/", permiso: "iva", icono: I.porciento, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
         { clave: "isn", grupo: "Cierre del mes", nombre: "Impuestos estatales", num: 3, alias: "isn nominas hospedaje", desc: "ISN, hospedaje, profesiones y alcohol (Q. Roo)", url: "/herramientas/isn/", permiso: "isn", icono: I.gente, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
         { clave: "presentar", grupo: "Cierre del mes", pronto: true, num: 4, nombre: "Declarar", alias: "presentar declaraciones", desc: "En preparación", url: null, permiso: null, icono: I.enviar, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
@@ -430,7 +432,10 @@
 
     /* --------------------------------------------- menú «Módulos» (y Ctrl+K) */
     // El módulo de esta página, por su dirección (Listas y Validador comparten permiso, no dirección)
-    var aqui = CATALOGO.filter(function (m) { return m.url && location.pathname.indexOf(m.url) === 0; })
+    // 18-nov: una página puede abrirse como parte de otro módulo (Administración de XML como «Recibos de nómina» o como
+    // pestaña de Conciliación de pagos; ver herramientas/xml/vista.js): entonces manda el módulo que ella dice.
+    var aqui = (ancla.dataset.moduloFijo && CATALOGO.filter(function (m) { return m.clave === clave; })[0]) ||
+        CATALOGO.filter(function (m) { return m.url && location.pathname.indexOf(m.url) === 0; })
         .sort(function (a, b) { return b.url.length - a.url.length; })[0] || null;
 
     function menuModulosHTML() {
@@ -3070,6 +3075,15 @@
             document.addEventListener("keydown", function (e) { if (e.key === "Escape") cerrar(null); });
             var layout = lado.closest(".mod-layout"), principal = layout && layout.querySelector(".mod-layout__principal");
             if (principal) { principal.insertBefore(lado, principal.firstChild); layout.classList.add("mod-layout--sin-lado"); }
+            // 18-nov (encabezado compacto): con data-junto="id del periodo", la barra comparte renglón con el periodo plegado
+            // («Periodo 2026 · Oct · 376 XML · Cambiar» a la izquierda, las acciones a la derecha). Al abrir el periodo, o si
+            // no caben, las acciones bajan a su propio renglón como antes.
+            var junto = lado.dataset.junto && document.getElementById(lado.dataset.junto);
+            if (junto && junto.parentNode) {
+                var fila = document.createElement("div"); fila.className = "mod-fila-periodo";
+                junto.parentNode.insertBefore(fila, junto);
+                fila.appendChild(junto); fila.appendChild(lado);
+            }
         });
     }
     if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", accionesEnBarra); else accionesEnBarra();
@@ -3591,6 +3605,15 @@
     }
 
     /* ------------------------------------------------------- arranque */
+
+    // 18-nov (Alan: «sigue haciendo el saltito al dar F5»): al cargar, la página se recorría a la derecha animada (el margen de la
+    // barra lateral y el ancho del logo tienen transición para cuando se pliega). Mientras arranca no hay transiciones: la página
+    // nace ya en su lugar. Se vuelven a permitir cuando todo está pintado.
+    document.documentElement.classList.add("fc-arrancando");
+    (function () {
+        function soltar() { setTimeout(function () { document.documentElement.classList.remove("fc-arrancando"); }, 350); }
+        if (document.readyState === "complete") soltar(); else window.addEventListener("load", soltar);
+    })();
 
     pintarBarra();
     pintarLateral();

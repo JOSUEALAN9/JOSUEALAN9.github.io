@@ -14,7 +14,7 @@
 (function () {
     "use strict";
 
-    var VERSION = "202611171829";
+    var VERSION = "202611180633";
     // www.fiscontable.app → fiscontable.app: una sola dirección (la sesión y las preferencias guardadas son por dirección)
     if (location.hostname === "www.fiscontable.app") {
         location.replace("https://fiscontable.app" + location.pathname + location.search + location.hash);
@@ -352,18 +352,23 @@
         etiqueta.appendChild(giro); etiqueta.appendChild(texto);
         marco.classList.add("fc-carga-marco");
         if (opciones && opciones.atenuar) marco.classList.add("fc-carga-marco--atenua");
-        marco.insertBefore(etiqueta, marco.firstChild); marco.insertBefore(barra, marco.firstChild);
+        // junto: la etiqueta va en línea después de ese elemento (18-nov, Alan: flotando sobre la tabla estorbaba);
+        // la barrita de avance y el atenuado siguen en el marco.
+        var junto = opciones && opciones.junto, base = "fc-carga" + (junto ? " fc-carga--enlinea" : "");
+        etiqueta.className = base;
+        if (junto) junto.insertAdjacentElement("afterend", etiqueta); else marco.insertBefore(etiqueta, marco.firstChild);
+        marco.insertBefore(barra, marco.firstChild);
         function quitar() { clearTimeout(reloj); marco.classList.remove("fc-carga-marco--cargando"); etiqueta.hidden = true; }
         return {
             mostrar: function (mensaje, siTarda) {
                 clearTimeout(reloj);
-                etiqueta.className = "fc-carga"; etiqueta.hidden = false; texto.textContent = mensaje;
+                etiqueta.className = base; etiqueta.hidden = false; texto.textContent = mensaje;
                 marco.classList.add("fc-carga-marco--cargando");
                 if (siTarda) reloj = setTimeout(function () { texto.textContent = siTarda; }, 6000);
             },
             listo: function (mensaje) {
                 quitar();
-                etiqueta.className = "fc-carga fc-carga--listo"; etiqueta.hidden = false; texto.textContent = mensaje;
+                etiqueta.className = base + " fc-carga--listo"; etiqueta.hidden = false; texto.textContent = mensaje;
                 reloj = setTimeout(function () { etiqueta.hidden = true; }, 4000);
             },
             quitar: quitar

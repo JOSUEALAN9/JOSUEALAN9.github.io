@@ -4,19 +4,21 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Administración de XML · Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611171829">
-    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611171829">
-    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611171829">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611180633">
+    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611180633">
+    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611180633">
 </head>
 <body class="bg-slate-50">
 <div id="app-header" data-modulo="xml" data-titulo="Administración de XML" data-migas="Herramientas|/herramientas/"></div>
-<script src="/assets/js/nucleo.js?v=202611171829"></script>
-<script src="/assets/js/barra.js?v=202611171829"></script>
+<script src="/herramientas/xml/vista.js?v=202611180633"></script>
+<script src="/assets/js/nucleo.js?v=202611180633"></script>
+<script src="/assets/js/barra.js?v=202611180633"></script>
 
 <main class="xml-pagina">
-    <!-- Una sola fila: qué módulo, de quién, qué periodo y la acción principal -->
+    <!-- Una sola fila: qué módulo y de quién. «+ Agregar XML» va en la barra de acciones, junto al periodo (18-nov: encabezado compacto) -->
     <div class="xml-cabeza">
-        <h1>Administración de XML</h1>
+        <h1 id="xml-titulo">Administración de XML</h1>
+        <div class="fc-vista xml-conc-vista" role="tablist" aria-label="Conciliación de pagos" id="conc-vista" hidden></div>
         <div class="ctx">
             <div class="xml-menu">
                 <button type="button" id="btn-otra" class="ctx-campo" aria-haspopup="menu">
@@ -30,9 +32,6 @@
                 <span class="ctx-campo__flecha" aria-hidden="true">▾</span>
             </button>
             <input type="hidden" id="sel-periodo">
-        </div>
-        <div class="xml-cabeza__acciones">
-            <button type="button" id="btn-agregar" class="xml-btn xml-btn--primario">+ Agregar XML</button>
         </div>
     </div>
 
@@ -58,9 +57,12 @@
     <div id="sin-empresa" class="ctx-vacio" hidden></div>
 
     <div id="contenido" class="mod-layout" hidden>
-        <aside class="mod-acciones" aria-label="Acciones">
+        <aside class="mod-acciones" aria-label="Acciones" data-junto="periodo-xml">
             <p class="mod-acciones__grupo">SAT</p>
             <button type="button" id="btn-validar" class="mod-accion" title="Consulta en el SAT si están vigentes o cancelados"><b>✓</b>Validar estado SAT</button>
+            <p class="mod-acciones__grupo">Reportes</p>
+            <button type="button" id="btn-conceptos" class="mod-accion" title="Un renglón por producto o servicio de las facturas que ves, con sus impuestos, y el resumen por producto y por cliente o proveedor"><b>▤</b>Reporte por conceptos</button>
+            <button type="button" id="btn-duplicados" class="mod-accion" title="Facturas que parecen la misma timbrada dos veces: mismo cliente o proveedor, mismo total y mismo contenido, con pocos días de diferencia"><b>⧉</b>Posibles duplicados</button>
             <p class="mod-acciones__grupo">Descargar</p>
             <button type="button" class="mod-accion" data-excel="vista" title="El reporte completo de esta pestaña, con tus filtros: las columnas acomodadas como el reporte de descarga que ya conoces (estado, folio fiscal, serie y folio, fechas, emisor, receptor, pago, importes, IVA, retenciones)"><b>▦</b>Excel · reporte completo</button>
             <button type="button" class="mod-accion" data-excel="visibles" title="La tabla tal como la tienes en pantalla: solo tus columnas, en tu orden y con tus filtros"><b>▥</b>Excel de esta tabla</button>
@@ -76,8 +78,14 @@
             <button type="button" id="btn-fiscal" class="mod-accion" title="Para qué impuesto cuenta cada CFDI (cobrado, deducible, profesiones, alcohol, DIOT) y por qué"><b>⚖</b>Marcas fiscales</button>
             <button type="button" id="btn-cancelaciones" class="mod-accion" title="Cancelar ante el SAT cualquier factura emitida y aceptar o rechazar las cancelaciones que te piden"><b>⊘</b>Cancelaciones</button>
             <button type="button" id="btn-listas" class="mod-accion" title="Abre Listas del SAT con esta empresa y este periodo"><b>⚑</b>Validar listas</button>
-            <button type="button" id="btn-conciliacion" class="mod-accion" title="Cruza facturas contra complementos de pago y notas de crédito" hidden><b>⇄</b>Conciliar</button>
+            <button type="button" id="btn-conciliacion" class="mod-accion" title="Cruza facturas contra complementos de pago y notas de crédito" hidden><b>⇄</b>Conciliación de pagos</button>
+            <button type="button" class="mod-accion" data-ir="pagos" title="Los complementos de pago emitidos y recibidos (pestaña de Conciliación de pagos), con esta empresa y este periodo"><b>⇢</b>Complementos de pago</button>
+            <button type="button" class="mod-accion" data-ir="nomina" title="Los recibos de nómina timbrados, con esta empresa y este periodo"><b>⇢</b>Recibos de nómina</button>
+            <button type="button" class="mod-accion" data-ir="xml" title="Facturas emitidas y recibidas, con esta empresa y este periodo" hidden><b>⇢</b>Administración de XML</button>
+            <a class="mod-accion" href="/herramientas/retenciones/" title="CFDI de retenciones e información de pagos"><b>⇢</b>CFDI de Retenciones</a>
             <a class="mod-accion" href="https://ptcvisorcfdiingegr.clouda.sat.gob.mx/" target="_blank" rel="noopener" title="Visor de comprobantes de ingresos y egresos del SAT: sus totales por mes son los del prellenado de la declaración (se entra con la e.firma o la contraseña)"><b>↗</b>Visor de facturas del SAT ↗</a>
+            <p class="mod-acciones__grupo">Agregar</p>
+            <button type="button" id="btn-agregar" class="mod-accion mod-accion--primaria" title="Sube XML o ZIP de esta empresa">+ Agregar XML</button>
         </aside>
         <div class="mod-layout__principal">
         <div id="aviso-otra" class="xml-aviso-otra" hidden></div>
@@ -88,6 +96,25 @@
             <div class="ctx-segmento xml-seg" role="tablist" id="pestanas" aria-label="Qué XML"></div>
             <div id="subfiltros" class="xml-chips"></div>
         </div>
+
+        <!-- Reporte por conceptos (18-nov): se abre como una pestaña más y carga solo cuando se pide -->
+        <section id="conceptos" class="xc" hidden>
+            <div class="xc-cabeza">
+                <div><h2 id="conceptos-titulo">Conceptos</h2><p id="conceptos-sub"></p></div>
+                <div class="xc-cabeza__der">
+                    <button type="button" id="conceptos-excel" class="xml-btn">Excel del reporte</button>
+                    <button type="button" id="conceptos-cerrar" class="xml-btn">Volver a las facturas</button>
+                </div>
+            </div>
+            <div id="conceptos-avance" class="xml-validando" hidden>
+                <div class="xml-validando__texto"><strong id="conceptos-avance-texto">Armando el reporte…</strong></div>
+                <div class="xml-barra"><span id="conceptos-avance-barra"></span></div>
+            </div>
+            <p id="conceptos-error" class="xc-error" role="alert" hidden></p>
+            <div id="conceptos-resumen" class="xc-resumen" hidden></div>
+            <div id="conceptos-vistas" class="ctx-segmento xml-seg xc-vistas" role="tablist" aria-label="Cómo ver los conceptos" hidden></div>
+            <div id="conceptos-tablas" hidden></div>
+        </section>
 
         <div class="xml-toolbar">
             <input type="search" id="buscar" placeholder="Buscar RFC, nombre, folio, UUID…">
@@ -154,6 +181,16 @@
     </div>
 </div>
 
+<!-- Posibles duplicados (18-nov): grupos de facturas que parecen la misma, para decidir cada uno -->
+<dialog class="fc-modal fc-modal--grande" id="dlg-duplicados" aria-labelledby="dlg-dup-titulo">
+    <div class="fc-modal__cabeza"><div><h2 id="dlg-dup-titulo">Posibles duplicados</h2><p id="dlg-dup-sub"></p></div>
+        <button type="button" class="fc-modal__cerrar" data-dup="cerrar" aria-label="Cerrar">×</button></div>
+    <div class="fc-modal__cuerpo xd" id="dlg-dup-cuerpo"></div>
+    <div class="fc-modal__pie">
+        <button type="button" class="ui-btn ui-btn--secundario ui-btn--36" data-dup="cerrar">Cerrar</button>
+    </div>
+</dialog>
+
 <!-- Excel con CFDI en otra moneda: ¿en pesos, y con qué tipo de cambio? -->
 <dialog class="fc-modal fc-modal--chica" id="dlg-moneda" aria-labelledby="dlg-moneda-titulo">
     <div class="fc-modal__cabeza"><div><h2 id="dlg-moneda-titulo">Hay CFDI en otra moneda</h2><p id="dlg-moneda-sub"></p></div>
@@ -169,7 +206,7 @@
         </fieldset>
         <p class="xml-opciones__nota">En pesos, junto a cada importe quedan el tipo de cambio usado, la moneda original y el importe en esa moneda.</p>
         <label class="xml-siempre"><input type="checkbox" id="moneda-siempre">
-            <span><strong>Usar esto siempre</strong><small>En la tabla y en todos los Excel (también en Conciliación), sin volver a preguntar. Lo cambias cuando quieras con el botón «Importes» de la tabla.</small></span></label>
+            <span><strong>Usar esto siempre</strong><small>En la tabla y en todos los Excel (también en Conciliación de pagos), sin volver a preguntar. Lo cambias cuando quieras con el botón «Importes» de la tabla.</small></span></label>
     </div>
     <div class="fc-modal__pie">
         <button type="button" class="ui-btn ui-btn--secundario ui-btn--36" data-moneda="cerrar">Cancelar</button>
@@ -193,8 +230,12 @@
     </div>
 </aside>
 
-<script src="/assets/js/comun/periodo-meses.js?v=202611171829"></script>
-<script src="/assets/js/comun/compartir.js?v=202611171829"></script>
-<script src="/herramientas/xml/xml.js?v=202611171829"></script>
+<script src="/assets/js/comun/periodo-meses.js?v=202611180633"></script>
+<script src="/assets/js/comun/compartir.js?v=202611180633"></script>
+<script src="/assets/js/comun/tabla.js?v=202611180633"></script>
+<script src="/assets/js/comun/pestanas-conciliacion.js?v=202611180633"></script>
+<script src="/herramientas/xml/conceptos.js?v=202611180633"></script>
+<script src="/herramientas/xml/duplicados.js?v=202611180633"></script>
+<script src="/herramientas/xml/xml.js?v=202611180633"></script>
 </body>
 </html>

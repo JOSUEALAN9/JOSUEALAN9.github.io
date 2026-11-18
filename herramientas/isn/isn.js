@@ -848,7 +848,7 @@
             b.disabled = true;
             try {
                 await bajar(await api("/api/isn/plantilla?anio=" + a + "&mes=" + ms + "&rfc=" + encodeURIComponent(E.rfc)),
-                            "Plantilla_ISN_" + E.rfc + "_" + a + "-" + String(ms).padStart(2, "0") + ".xlsx");
+                            E.rfc + "_Plantilla_ISN_" + a + "-" + String(ms).padStart(2, "0") + ".xlsx");
                 $("modal-plantilla").hidden = true;
             } catch (e) { $("pl-error").textContent = e.message; $("pl-error").hidden = false; }
             b.disabled = false;

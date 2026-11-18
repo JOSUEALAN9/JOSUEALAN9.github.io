@@ -64,12 +64,13 @@
         return isNaN(f) ? null : f;
     }
     function inicioMes(ym) { return new Date(+ym.slice(0, 4), +ym.slice(5, 7) - 1, 1, 0, 0, 0); }
-    /* Último día del mes; si es el mes en curso (o uno que no ha terminado), ayer a las 23:59:59:
-       lo de hoy todavía no está completo en el SAT. El 1.º del mes, ayer es el último día del mes anterior. */
+    /* Último día del mes; si es el mes en curso (o uno que no ha terminado), HOY a las 23:59:59 (18-nov, Alan: «la
+       búsqueda sería a la fecha de hoy»). El servidor la recorta al momento en que se pide, porque el SAT no acepta
+       fechas futuras. La descarga automática de la noche y el cuadre siguen con días completos (hasta ayer). */
     function finMes(ym) {
         var fin = new Date(+ym.slice(0, 4), +ym.slice(5, 7), 0, 23, 59, 59);
-        var ayer = new Date(); ayer.setDate(ayer.getDate() - 1); ayer.setHours(23, 59, 59, 0);
-        return fin > ayer ? ayer : fin;
+        var hoy = new Date(); hoy.setHours(23, 59, 59, 0);
+        return fin > hoy ? hoy : fin;
     }
     function mesDe(f) { return f.getFullYear() + "-" + dos(f.getMonth() + 1); }
     function fechaBonita(iso, conHora) {
@@ -278,7 +279,7 @@
         var p = $("resumen-rango"), caja = $("dm-periodo");
         if (!r.inicio || !r.fin) { caja.title = "Elige el periodo."; p.hidden = true; return; }
         caja.title = "Se pedirá del " + fechaBonita(isoLocal(r.inicio), true) + " al " + fechaBonita(isoLocal(r.fin), true) +
-            (r.fin > new Date() ? " (el SAT solo tiene hasta este momento)" : "") + ".";
+            (r.fin > new Date() ? " (hasta este momento; lo de hoy puede seguir llegando al SAT)" : "") + ".";
         var largo = E.modo === "portal" && (r.fin - r.inicio) / 86400000 > 366;
         p.textContent = largo ? "En el portal se busca hasta un año a la vez." : "";
         p.hidden = !largo;

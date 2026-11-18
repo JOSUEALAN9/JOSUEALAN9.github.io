@@ -15,12 +15,16 @@
     var esc = Fiscontable.escapar;
     var $ = function (id) { return document.getElementById(id); };
 
+    /* 18-nov (Alan: «administración de xml solo emitidas y recibidas, nómina aparte»): esta página enseña Recibidos y
+       Emitidos. La misma tabla se abre con ?vista=nomina («Recibos de nómina», en el menú) o ?vista=pagos (la pestaña
+       «Complementos de pago» de Conciliación de pagos): entonces solo trae esa pestaña. Ver vista.js. */
+    var VISTA = (function () { var v = new URLSearchParams(location.search).get("vista"); return v === "nomina" || v === "pagos" ? v : ""; })();
     var MODULOS = [
         { clave: "recibidos", nombre: "Recibidos" },
         { clave: "emitidos", nombre: "Emitidos" },
         { clave: "nomina", nombre: "Nómina" },
         { clave: "pagos", nombre: "Pagos" }
-    ];
+    ].filter(function (m) { return VISTA ? m.clave === VISTA : (m.clave === "recibidos" || m.clave === "emitidos"); });
     var SUBS = {
         recibidos: [["ingresos", "Ingresos"], ["egresos", "Egresos"], ["traslados", "Traslados"]],
         emitidos: [["ingresos", "Ingresos"], ["egresos", "Egresos"], ["traslados", "Traslados"]],
@@ -120,7 +124,17 @@
         E.empresa = await Fiscontable.empresaActiva();
         E.urlPeriodo = Fiscontable.periodoDeUrl();
         var tab = Fiscontable.url("tab");
-        if (tab && MODULOS.some(function (m) { return m.clave === tab; })) E.modulo = tab;
+        if (!VISTA && (tab === "nomina" || tab === "pagos")) {            // un enlace de antes: esas pestañas ya viven en su propia vista
+            var qv = new URLSearchParams(location.search); qv.delete("tab"); qv.set("vista", tab);
+            location.replace(location.pathname + "?" + qv.toString()); return;
+        }
+        if (VISTA) {
+            E.modulo = VISTA;
+            $("xml-titulo").textContent = VISTA === "nomina" ? "Recibos de nómina" : "Conciliación de pagos";
+            $("pestanas").hidden = true;                                   // una sola pestaña: no hace falta la barra
+            document.querySelectorAll('[data-excel="completo"]').forEach(function (b) { b.hidden = true; });
+            if (VISTA === "pagos" && window.FCPestanasConc) FCPestanasConc.pintar($("conc-vista"), "pagos", null, function () { return E.rfc || ""; });
+        } else if (tab && MODULOS.some(function (m) { return m.clave === tab; })) E.modulo = tab;
         E.periodoGeneral = await Fiscontable.periodoActivo();
         // Periodo de ESTA página (como en Mi Admin): año + meses, varios a la vez. Arranca en
         // el general; cambiarlo aquí no mueve el general.
@@ -318,15 +332,19 @@
 
     /* Si lo elegido cabe en lo que ya se cargó, se filtra aquí; si no, se pide al servidor. */
     // ¿Lo elegido cabe en lo que ya se trajo? Entonces se filtra aquí, sin botón ni espera.
-    function periodoYaCargado() {
+    function rangoCubierto() {
         var r = rangoPeriodo();
         return !!(E.cargado && E.cargado.rfc === E.rfc && hayEleccion() && !porFechas() && !E.cargado.fechas && E.cargado.pagosPor === E.pagosPor &&
             r.desde >= E.cargado.desde && r.hasta <= E.cargado.hasta);
     }
+    /* 18-nov: cada pestaña se pide al abrirla (el servidor arma solo esa). Lo elegido ya está aquí si el periodo cabe en
+       lo cargado Y esta pestaña ya se trajo. */
+    function moduloCargado(m) { return !!(E.modsCargados && E.modsCargados[m]); }
+    function periodoYaCargado() { return rangoCubierto() && moduloCargado(E.modulo); }
 
     /* Aviso sobre la tabla (17-nov): mientras llega un periodo se ve «Cargando…» y la tabla anterior se atenúa (para que no se
        confunda con la nueva); al llegar dice «Actualizado · periodo · cuántos XML» unos segundos. */
-    var CARGA = Fiscontable.avisoCarga($("tabla-marco"), { atenuar: true });
+    var CARGA = Fiscontable.avisoCarga($("tabla-marco"), { atenuar: true, junto: $("acciones-alcance") });      // arriba, junto a «Sobre los N XML que ves»
     function periodoCorto() { var t = textoPeriodo(); return t.length > 34 ? "los meses elegidos" : t; }     // muchos meses sueltos no caben en la etiqueta
     function mostrarCarga() {
         if (hayEleccion()) CARGA.mostrar("Cargando " + periodoCorto() + "…", "Sigue cargando " + periodoCorto() + "… un periodo grande tarda un poco más.");
@@ -335,9 +353,8 @@
     function quitarCarga() { CARGA.quitar(); }
     function avisarListo() {
         if (!hayEleccion()) return CARGA.quitar();
-        var vistos = new Set();
-        MODULOS.forEach(function (m) { filasPeriodo(m.clave).forEach(function (f) { vistos.add(f.uuid); }); });
-        CARGA.listo("Actualizado · " + periodoCorto() + " · " + vistos.size.toLocaleString("es-MX") + " XML");
+        var total = MODULOS.reduce(function (t, m) { return t + (cuentaPestana(m.clave) || 0); }, 0);
+        CARGA.listo("Actualizado · " + periodoCorto() + " · " + total.toLocaleString("es-MX") + " XML");
     }
 
     function alCambiarPeriodo() {
@@ -357,17 +374,21 @@
         }
     }
 
-    async function cargarRegistros() {
+    /* opciones.pestana: se abrió una pestaña que aún no se había traído. Se pide con el mismo periodo que ya está cargado
+       (si lo elegido cabe en él) y se SUMA a lo que hay; cualquier otra carga empieza de cero, porque algo pudo cambiar. */
+    async function cargarRegistros(opciones) {
         if (!E.rfc) return;
         $("sin-empresa").hidden = true;
         $("btn-agregar").hidden = false;
         $("contenido").hidden = false;
         pintarPeriodo();
-        var r = rangoPeriodo();
+        var dePestana = !!(opciones && opciones.pestana), moduloPedido = E.modulo;
+        var r = dePestana && rangoCubierto() ? { desde: E.cargado.desde, hasta: E.cargado.hasta } : rangoPeriodo();
         // Sin elección no se trae ningún XML (solo la forma de la tabla)
         var desde = hayEleccion() ? r.desde : "1900-01-01", hasta = hayEleccion() ? r.hasta : "1900-01-01";
         var q = "?rfc=" + encodeURIComponent(E.rfc) + (desde ? "&desde=" + desde : "") + (hasta ? "&hasta=" + hasta : "") +
-            (E.pagosPor === "pago" ? "&pagos_por=pago" : "") + (E.moneda ? "&convertir=" + E.moneda : "");
+            (E.pagosPor === "pago" ? "&pagos_por=pago" : "") + (E.moneda ? "&convertir=" + E.moneda : "") + "&solo=" + moduloPedido;
+        var clavePedido = [E.rfc, desde, hasta, E.pagosPor, E.moneda || ""].join("|");
         $("conteo-filas").textContent = "Cargando…";
         mostrarCarga();
         var yo = (E.nCarga = (E.nCarga || 0) + 1), rfcPedido = E.rfc;     // si cambias el periodo mientras carga, gana el último
@@ -375,7 +396,15 @@
         try {
             var respuesta = await apiJSON("/api/xml/registros" + q), llegaron = respuesta.modulos;
             if (yo !== E.nCarga || rfcPedido !== E.rfc) return;
-            E.datos = llegaron;
+            var trae = respuesta.solo || MODULOS.map(function (m) { return m.clave; });     // un servidor anterior responde todo
+            if (dePestana && E.datos && E.claveCargada === clavePedido) {
+                trae.forEach(function (m) { E.datos[m] = llegaron[m]; E.modsCargados[m] = true; });
+            } else {
+                E.datos = llegaron; E.modsCargados = {};
+                trae.forEach(function (m) { E.modsCargados[m] = true; });
+            }
+            E.claveCargada = clavePedido;
+            E.conteos = respuesta.conteos || null;                // cuántos XML tiene cada pestaña (las que aún no se abren)
             E.banxico = respuesta.banxico || {};                  // para ofrecer el tipo de cambio del DOF al sacar el Excel
             E.convertido = respuesta.convertido || {};            // {modo, con, convertidas, sin_tc} si la tabla viene en pesos
         } catch (e) { if (yo === E.nCarga) { quitarCarga(); $("conteo-filas").textContent = "No se pudo cargar."; avisar(e.message); } return; }
@@ -388,6 +417,21 @@
         pintarMoneda();
         avisarListo();
         reanudarValidacion();
+    }
+
+    /* Trae, sin cambiar de pestaña, las que falten del periodo ya cargado (p. ej. antes del Excel completo, que pregunta
+       por las monedas de todas). Si algo falla, se sigue con lo que hay. */
+    async function traerPestanas(lista) {
+        var faltan = lista.filter(function (m) { return !moduloCargado(m); });
+        if (!faltan.length || !E.cargado || !E.datos) return;
+        var yo = E.nCarga, clave = E.claveCargada;
+        try {
+            var resp = await apiJSON("/api/xml/registros?rfc=" + encodeURIComponent(E.rfc) + "&desde=" + E.cargado.desde + "&hasta=" + E.cargado.hasta +
+                (E.pagosPor === "pago" ? "&pagos_por=pago" : "") + (E.moneda ? "&convertir=" + E.moneda : "") + "&solo=" + faltan.join(","));
+            if (yo !== E.nCarga || clave !== E.claveCargada) return;
+            (resp.solo || faltan).forEach(function (m) { E.datos[m] = resp.modulos[m]; E.modsCargados[m] = true; });
+            pintarPestanas();
+        } catch (e) { /* se sigue con lo cargado */ }
     }
 
     /* Las acciones de arriba usan lo seleccionado; si no hay selección, lo que ves. */
@@ -404,6 +448,21 @@
     }
 
     /* ============================================================ minimódulos */
+    /* El número de cada pestaña: de lo cargado si ya se abrió; si no, de las cuentas por mes (o de lo que dijo el servidor
+       cuando el periodo es por fechas). null = todavía no se sabe (no se pinta número). */
+    function cuentaPestana(m) {
+        if (moduloCargado(m)) return contarUuid(filasPeriodo(m));
+        if (!hayEleccion()) return 0;
+        var meses = mesesElegidos();
+        if (meses && meses.length) {
+            return meses.reduce(function (t, p) {
+                if (m === "pagos" && E.pagosPor === "pago") return t + ((E.cuentasPago || {})[p] || 0);
+                var c = E.cuentas && E.cuentas[p];
+                return t + (c ? (c.modulos[m] || 0) : 0);
+            }, 0);
+        }
+        return E.conteos && E.conteos[m] !== null && E.conteos[m] !== undefined ? E.conteos[m] : null;
+    }
     function contarUuid(filas) {
         var s = new Set();
         filas.forEach(function (f) { s.add(f.uuid); });
@@ -412,15 +471,47 @@
 
     function pintarPestanas() {
         $("pestanas").innerHTML = MODULOS.map(function (m) {
-            var n = contarUuid(filasPeriodo(m.clave));
+            var n = cuentaPestana(m.clave);
             return '<button type="button" role="tab" class="pestana' + (m.clave === E.modulo ? " pestana--activa" : "") + '" aria-selected="' + (m.clave === E.modulo) + '" data-modulo="' + m.clave + '">' +
-                m.nombre + '<span class="xml-cuenta">' + n + "</span></button>";
-        }).join("");
+                m.nombre + (n === null ? "" : '<span class="xml-cuenta">' + n + "</span>") + "</button>";
+        }).join("") + (enConceptos() ? '<button type="button" role="tab" class="pestana pestana--activa" aria-selected="true" data-modulo="conceptos">Conceptos' +
+            '<span class="xml-cuenta xc-cerrar" data-cerrar-conceptos title="Cerrar el reporte">✕</span></button>' : "");
+        if (enConceptos()) document.querySelectorAll('#pestanas .pestana:not([data-modulo="conceptos"])').forEach(function (b) { b.classList.remove("pestana--activa"); b.setAttribute("aria-selected", "false"); });
+        pintarBotonConceptos();
+    }
+    function pintarBotonConceptos() {
+        var ver = E.modulo === "recibidos" || E.modulo === "emitidos";
+        ["btn-conceptos", "btn-duplicados"].forEach(function (id) { var b = $(id); if (b) b.hidden = !ver; });
+    }
+    function abrirDuplicados() {
+        if (!E.rfc || !hayEleccion()) return avisar("Elige empresa y periodo para buscar duplicados.");
+        if (E.modulo !== "recibidos" && E.modulo !== "emitidos") return;
+        var r = rangoPeriodo();
+        XMLDuplicados.abrir({ rfc: E.rfc, lado: E.modulo, desde: r.desde, hasta: r.hasta, periodo: textoPeriodo() });
+    }
+
+    /* Reporte por conceptos (herramientas/xml/conceptos.js): toma la empresa, el periodo y las facturas que se ven */
+    function enConceptos() { return !!(window.XMLConceptos && XMLConceptos.abierto()); }
+    function abrirConceptos() {
+        if (!E.rfc || !hayEleccion()) return avisar("Elige empresa y periodo para armar el reporte.");
+        if (E.modulo !== "recibidos" && E.modulo !== "emitidos") return;
+        var r = rangoPeriodo();
+        var filtrado = E.busqueda.trim() || E.sub || Object.keys(E.rapidos).some(function (k) { return E.rapidos[k]; }) || Object.keys(E.av).some(function (k) { return E.av[k]; });
+        $("contenido").classList.add("xml--conceptos");
+        XMLConceptos.abrir({
+            rfc: E.rfc, lado: E.modulo, desde: r.desde, hasta: r.hasta, meses: mesesElegidos(), periodo: textoPeriodo(),
+            uuids: filtrado ? Array.from(new Set(E.filas.map(function (f) { return f.uuid; }))) : null,
+            alCerrar: function () { $("contenido").classList.remove("xml--conceptos"); pintarPestanas(); }
+        });
+        pintarPestanas();
+        var pc = document.querySelector('#pestanas [data-modulo="conceptos"]');       // en el celular la barra de pestañas se desliza: que se vea la nueva
+        if (pc && pc.scrollIntoView) pc.scrollIntoView({ block: "nearest", inline: "end" });
     }
 
     function cambiarModulo(modulo, conservarSub) {
+        if (enConceptos()) XMLConceptos.cerrar();
         E.modulo = modulo;
-        Fiscontable.url({ tab: modulo });
+        if (!VISTA) Fiscontable.url({ tab: modulo });
         if (!conservarSub) E.sub = "";
         E.rapidos = {};
         E.av = {};
@@ -433,6 +524,7 @@
         pintarRapidos();
         pintarVistas();
         pintarBotonExcel();
+        pintarBotonConceptos();
         aplicar();
     }
 
@@ -953,6 +1045,7 @@
                 Object.keys(E.av).some(function (k) { return E.av[k]; });
             cuerpo.uuids = filtrado ? Array.from(new Set(E.filas.map(function (f) { return f.uuid; }))) : null;
         }
+        if (modo === "completo") await traerPestanas(["recibidos", "emitidos", "pagos"]);     // para preguntar por las monedas de todas
         var monedas = monedasExtranjeras(modo === "completo" ? ["recibidos", "emitidos", "pagos"].reduce(function (t, m) { return t.concat(filasPeriodo(m)); }, []) : E.filas);
         if (monedas.length) {
             var pref = Fiscontable.monedaReportes.leer(), eleccion;
@@ -1051,8 +1144,10 @@
         boton.textContent = "Importes: " + (c.modo ? "en pesos" : "en su moneda");
         aviso.hidden = !c.modo;
         if (c.modo) {
-            aviso.textContent = "Importes en pesos (MXN), convertidos con " + c.con + ": " + Number(c.convertidas || 0).toLocaleString("es-MX") + " renglón(es)" +
-                (c.sin_tc ? "; " + c.sin_tc + " no traen tipo de cambio y siguen en su moneda" : "") + ". Así salen también en el Excel.";
+            // 18-nov (Alan: «más corto»): solo qué se hizo con lo que venía en otra moneda
+            aviso.textContent = "Importes en otra moneda: en pesos, al tipo de cambio " + (c.modo === "dof" ? "del DOF" : "de su factura") +
+                (c.sin_tc ? " (" + c.sin_tc + " sin tipo de cambio siguen en su moneda)" : "") + ".";
+            aviso.title = Number(c.convertidas || 0).toLocaleString("es-MX") + " renglón(es) convertidos con " + c.con + ". Así salen también en el Excel.";
             var b = document.createElement("button"); b.type = "button"; b.textContent = "Cambiar"; b.addEventListener("click", elegirMoneda);
             aviso.appendChild(b);
         }
@@ -1068,13 +1163,20 @@
     }
 
     /* Conciliación: se abre con la misma empresa, periodo y lado (lee la misma biblioteca). */
-    function abrirConciliacion() {
+    /* El periodo de esta página, para abrir otra con el mismo (junto con la empresa). */
+    function periodoParaUrl() {
         var r = rangoPeriodo();
+        return porFechas() ? (r.desde ? "&desde=" + r.desde : "") + (r.hasta ? "&hasta=" + r.hasta : "")
+            : hayEleccion() ? "&anio=" + anioElegido() + "&meses=" + E.P.estado().meses.join(",") : "";
+    }
+    function abrirConciliacion() {
         var lado = E.modulo === "recibidos" ? "recibidos" : "emitidos";
         if (E.modulo === "pagos") lado = E.sub === "recibidos" ? "recibidos" : "emitidos";
-        var periodo = porFechas() ? (r.desde ? "&desde=" + r.desde : "") + (r.hasta ? "&hasta=" + r.hasta : "")
-            : hayEleccion() ? "&anio=" + anioElegido() + "&meses=" + E.P.estado().meses.join(",") : "";
-        location.href = "/herramientas/conciliacion/?rfc=" + encodeURIComponent(E.rfc) + "&lado=" + lado + "&base=emision" + periodo;
+        location.href = "/herramientas/conciliacion/?rfc=" + encodeURIComponent(E.rfc) + "&lado=" + lado + "&base=emision" + periodoParaUrl();
+    }
+    /* «Ir a»: Complementos de pago, Recibos de nómina o de regreso a Administración de XML, con la misma empresa y periodo. */
+    function irA(destino) {
+        location.href = "/herramientas/xml/?" + (destino === "xml" ? "" : "vista=" + destino + "&") + "rfc=" + encodeURIComponent(E.rfc || "") + periodoParaUrl();
     }
 
     async function descargarZip() {
@@ -1616,6 +1718,10 @@
         $("menu-otra").addEventListener("click", function (e) { e.stopPropagation(); var b = e.target.closest("button"); if (b) accionMenuOtra(b); });
         $("btn-validar").addEventListener("click", pedirValidacion);
         $("btn-conciliacion").addEventListener("click", abrirConciliacion);
+        document.querySelectorAll("[data-ir]").forEach(function (b) {
+            b.hidden = b.dataset.ir === "xml" ? !VISTA : b.dataset.ir === VISTA;           // no se ofrece ir a donde ya estás
+            b.addEventListener("click", function () { irA(b.dataset.ir); });
+        });
         $("btn-detener").addEventListener("click", function () { apiJSON("/api/xml/validacion/detener", { method: "POST" }).catch(function () {}); });
         $("modal-validar").addEventListener("click", function (e) { if (e.target.id === "modal-validar") $("modal-validar").hidden = true; });
         document.addEventListener("keydown", function (e) { if (e.key === "Escape") { $("modal-validar").hidden = true; $("panel-columnas").hidden = true; } });
@@ -1633,7 +1739,17 @@
         $("aviso-otra").addEventListener("click", function (e) { if (e.target.id === "volver-empresa") { E.otra = null; E.rfc = null; refrescarBibliotecas(); } });
         $("pestanas").addEventListener("click", function (e) {
             var b = e.target.closest(".pestana");
-            if (b && !b.disabled) cambiarModulo(b.dataset.modulo);
+            if (b && b.dataset.modulo === "conceptos") { if (e.target.closest("[data-cerrar-conceptos]")) XMLConceptos.cerrar(); return; }
+            if (!b || b.disabled) return;
+            var m = b.dataset.modulo;
+            if (moduloCargado(m) || !E.datos) return cambiarModulo(m);
+            // Esa pestaña aún no se ha traído: se pide ahora (solo ella) y al llegar se pinta
+            if (enConceptos()) XMLConceptos.cerrar();
+            E.modulo = m; E.sub = "";
+            if (!VISTA) Fiscontable.url({ tab: m });
+            document.querySelectorAll("#pestanas .pestana").forEach(function (x) { x.classList.toggle("pestana--activa", x.dataset.modulo === m); x.setAttribute("aria-selected", String(x.dataset.modulo === m)); });
+            pintarBotonConceptos();
+            cargarRegistros({ pestana: true });
         });
         $("subfiltros").addEventListener("click", function (e) {
             var pp = e.target.closest("[data-pagos-por]");
@@ -1685,6 +1801,8 @@
         $("btn-enlaces").addEventListener("click", function () { Fiscontable.enlacesCompartidos({ rfc: E.rfc }); });
         $("btn-zip-origen").addEventListener("click", descargarZipOrigen);
         $("btn-listas").addEventListener("click", abrirListas);
+        $("btn-conceptos").addEventListener("click", abrirConceptos);
+        $("btn-duplicados").addEventListener("click", abrirDuplicados);
         $("btn-cancelaciones").addEventListener("click", function () {
             var q = new URLSearchParams({ rfc: E.rfc || "" });
             if (E.modulo === "emitidos") q.set("vista", "emitidas");

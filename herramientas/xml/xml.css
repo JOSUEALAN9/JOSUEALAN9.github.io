@@ -278,6 +278,8 @@ button.ctx-resumen__dato:hover { background: rgb(var(--g-50)); }
 .ls-fila-rol .xml-cuenta { margin-left: 4px; }
 /* M-09: pestañas como control segmentado compacto */
 .xml-fila-seg { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-bottom: 10px; }
+/* Las pestañas llegan con los datos: su lugar se aparta desde el principio para que la tabla no brinque al recargar (18-nov) */
+.xml-fila-seg:has(> #pestanas:not([hidden])) { min-height: 40px; }
 .xml-fila-seg .xml-chips { margin: 0; }
 .xml-seg { max-width: 100%; overflow-x: auto; scrollbar-width: none; }
 .xml-seg::-webkit-scrollbar { display: none; }
@@ -311,7 +313,67 @@ button.ctx-resumen__dato:hover { background: rgb(var(--g-50)); }
 .xml-siempre span { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
 .xml-siempre strong { font-size: 14px; font-weight: 700; color: rgb(var(--g-900)); }
 .xml-siempre small { font-size: 12.5px; color: rgb(var(--g-600)); line-height: 1.45; }
-.xml-aviso-moneda { margin: 8px 0 0; padding: 8px 12px; border-radius: 10px; background: rgb(var(--ok-50)); border: 1px solid rgb(var(--ok-200)); color: rgb(var(--ok-600)); font-size: 13px; line-height: 1.45; }
+.xml-aviso-moneda { margin: 6px 2px 0; padding: 0; color: rgb(var(--g-600)); font-size: 12px; line-height: 1.4; }
 .xml-aviso-moneda[hidden] { display: none; }
 .xml-aviso-moneda button { background: none; border: 0; padding: 0; margin-left: 6px; color: inherit; font: inherit; font-weight: 700; text-decoration: underline; cursor: pointer; }
 #btn-moneda[hidden] { display: none; }
+
+/* ---------- Reporte por conceptos (18-nov) ---------- */
+.xml--conceptos .xml-toolbar, .xml--conceptos #filtros-activos, .xml--conceptos #aviso-moneda, .xml--conceptos #avance-validacion,
+.xml--conceptos #barra-seleccion, .xml--conceptos #tabla-marco, .xml--conceptos .xml-pie, .xml--conceptos #subfiltros { display: none !important; }
+.xc[hidden] { display: none !important; }
+.xc { margin-top: 10px; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.xc [hidden] { display: none !important; }
+.xc-cabeza { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.xc-cabeza h2 { margin: 0; font-size: 17px; font-weight: 700; color: rgb(var(--g-900)); }
+.xc-cabeza p { margin: 2px 0 0; font-size: 12.5px; color: rgb(var(--g-600)); }
+.xc-cabeza__der { display: flex; gap: 8px; flex-wrap: wrap; }
+.xc-datos { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; }
+.xc-dato { min-width: 0; padding: 10px 12px; border: 1px solid rgb(var(--g-200)); border-radius: 12px; background: rgb(var(--g-0)); }
+.xc-dato strong { display: block; font-size: 16px; font-weight: 700; color: rgb(var(--g-900)); font-variant-numeric: tabular-nums; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.xc-dato small { display: block; margin-top: 2px; font-size: 11.5px; color: rgb(var(--g-600)); }
+.xc-avisos { margin: 8px 2px 0; font-size: 12px; color: rgb(var(--g-600)); line-height: 1.45; }
+.xc-vacio { margin: 0; padding: 18px; border: 1px dashed rgb(var(--g-300)); border-radius: 12px; color: rgb(var(--g-700)); font-size: 13.5px; }
+.xc-error { margin: 0; padding: 10px 14px; border-radius: 12px; background: rgb(var(--er-50, 254 242 242)); border: 1px solid rgb(var(--er-200, 254 202 202)); color: rgb(var(--er-600, 220 38 38)); font-size: 13px; }
+.xc-vistas { align-self: flex-start; max-width: 100%; overflow-x: auto; scrollbar-width: none; }
+.xc-vistas .pestana { flex: none; }
+.xc-tabla { min-width: 0; }
+.xc-cerrar { cursor: pointer; }
+@media (max-width: 640px) { .xc-cabeza__der { width: 100%; } .xc-cabeza__der .xml-btn { flex: 1 1 auto; } .xc-datos { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+/* ---------- Posibles duplicados (18-nov) ---------- */
+.xd { display: flex; flex-direction: column; gap: 16px; }
+.xd-seccion { display: flex; flex-direction: column; gap: 12px; }
+.xd-seccion h3, .xd-seccion summary { margin: 0; font-size: 13px; font-weight: 700; color: rgb(var(--g-700)); text-transform: none; }
+.xd-seccion summary { cursor: pointer; padding: 4px 0; }
+details.xd-seccion[open] summary { margin-bottom: 12px; }
+details.xd-seccion .xd-grupo + .xd-grupo { margin-top: 12px; }
+.xd-grupo { border: 1px solid rgb(var(--g-200)); border-radius: 14px; background: rgb(var(--g-0)); overflow: hidden; min-width: 0; }
+.xd-grupo header { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 14px 20px 10px; }
+.xd-grupo header strong { display: block; font-size: 14px; color: rgb(var(--g-900)); }
+.xd-grupo header small { display: block; margin-top: 2px; font-size: 12px; color: rgb(var(--g-600)); }
+.xd-total { text-align: right; }
+.xd-tabla { overflow-x: auto; }
+.xd-tabla table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.xd-tabla th { text-align: left; font-size: 11.5px; font-weight: 600; color: rgb(var(--g-600)); padding: 6px 10px; border-top: 1px solid rgb(var(--g-200)); border-bottom: 1px solid rgb(var(--g-200)); white-space: nowrap; }
+.xd-tabla td { padding: 8px 10px; border-bottom: 1px solid rgb(var(--g-100)); white-space: nowrap; }
+.xd-tabla th:first-child, .xd-tabla td:first-child { padding-left: 20px; }
+.xd-concepto { max-width: 340px; overflow: hidden; text-overflow: ellipsis; }
+.xd-concepto small { color: rgb(var(--g-600)); }
+.xd-radio { width: 56px; }
+.xd-sobra td { background: rgb(var(--am-50, 255 251 235)); }
+.xd-etq { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; }
+.xd-etq--sobra { background: rgb(var(--am-100, 254 243 199)); color: rgb(var(--am-700, 180 83 9)); }
+.xd-grupo footer { display: flex; align-items: center; justify-content: flex-end; gap: 8px; flex-wrap: wrap; padding: 12px 20px 14px; }
+.xd-ayuda { margin-right: auto; font-size: 12px; color: rgb(var(--g-600)); max-width: 520px; line-height: 1.4; }
+.xd-vacio { margin: 0; padding: 18px; border: 1px dashed rgb(var(--g-300)); border-radius: 12px; color: rgb(var(--g-700)); font-size: 13.5px; line-height: 1.5; }
+.xd-vacio--error { border-color: rgb(var(--er-200, 254 202 202)); color: rgb(var(--er-600, 220 38 38)); }
+@media (max-width: 640px) { .xd-grupo header, .xd-grupo footer { padding-left: 14px; padding-right: 14px; } .xd-total { text-align: left; } .xd-ayuda { width: 100%; } }
+
+/* ---------- La misma tabla abierta como «Recibos de nómina» o «Complementos de pago» (18-nov) ---------- */
+.xml-conc-vista { margin-left: 4px; max-width: 100%; overflow-x: auto; }
+.xml-conc-vista button { flex: none; }
+.xml-conc-vista[hidden], #pestanas[hidden] { display: none !important; }
+
+.xc-nota { margin: -4px 2px 0; font-size: 12.5px; color: rgb(var(--g-600)); line-height: 1.4; }
+.xc-nota:empty { display: none; }

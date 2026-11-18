@@ -3,21 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Conciliación · Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611171829">
-    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611171829">
-    <link rel="stylesheet" href="/herramientas/conciliacion/conciliacion.css?v=202611171829">
-    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611171829">
+    <title>Conciliación de pagos · Fiscontable</title>
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611180633">
+    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611180633">
+    <link rel="stylesheet" href="/herramientas/conciliacion/conciliacion.css?v=202611180633">
+    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611180633">
 </head>
 <body class="bg-slate-50">
-<div id="app-header" data-modulo="conciliacion" data-titulo="Conciliación" data-migas="Herramientas|/herramientas/"></div>
-<script src="/assets/js/nucleo.js?v=202611171829"></script>
-<script src="/assets/js/barra.js?v=202611171829"></script>
+<div id="app-header" data-modulo="conciliacion" data-titulo="Conciliación de pagos" data-migas="Herramientas|/herramientas/"></div>
+<script src="/assets/js/nucleo.js?v=202611180633"></script>
+<script src="/assets/js/barra.js?v=202611180633"></script>
 
 <main class="xml-pagina">
     <!-- Una sola fila: qué módulo, de quién, qué periodo y las acciones -->
     <div class="xml-cabeza">
-        <h1>Conciliación</h1>
+        <h1>Conciliación de pagos</h1>
+        <div class="fc-vista conc-vista" role="tablist" aria-label="Qué ver" id="conc-vista"></div>
         <div class="ctx">
             <div class="xml-menu">
                 <button type="button" id="btn-otra" class="ctx-campo" aria-haspopup="menu">
@@ -27,9 +28,6 @@
                 <div id="menu-otra" class="xml-menu__lista xml-menu__lista--otra" hidden></div>
             </div>
         </div>
-        <div class="xml-cabeza__acciones">
-            <button type="button" id="btn-agregar" class="xml-btn xml-btn--primario">+ Agregar XML</button>
-        </div>
     </div>
 
 
@@ -38,7 +36,7 @@
     <div id="sin-empresa" class="ctx-vacio" hidden></div>
 
     <div id="contenido" class="mod-layout" hidden>
-        <aside class="mod-acciones" aria-label="Acciones">
+        <aside class="mod-acciones" aria-label="Acciones" data-junto="periodo-conc">
             <p class="mod-acciones__grupo">SAT</p>
             <button type="button" id="btn-validar" class="mod-accion" title="Vigentes o cancelados: facturas, pagos y notas"><b>✓</b>Validar estado SAT</button>
             <button type="button" id="btn-tc" class="mod-accion" title="Tipos de cambio usados y ajustes propios"><b>$</b>Tipos de cambio</button>
@@ -50,6 +48,8 @@
             <p class="mod-acciones__grupo">Con este periodo</p>
             <button type="button" id="btn-listas" class="mod-accion" title="Abre Listas del SAT con esta empresa y este periodo"><b>⚑</b>Validar listas</button>
             <a id="btn-ir-xml" class="mod-accion" href="/herramientas/xml/" hidden><b>⇢</b>Ver sus XML</a>
+            <p class="mod-acciones__grupo">Agregar</p>
+            <button type="button" id="btn-agregar" class="mod-accion mod-accion--primaria" title="Sube XML o ZIP de esta empresa">+ Agregar XML</button>
         </aside>
         <div class="mod-layout__principal">
         <div id="aviso-otra" class="xml-aviso-otra" hidden></div>
@@ -72,9 +72,11 @@
                     <button type="button" data-base="pago" aria-pressed="true" id="base-pago">Fecha de cobro</button>
                     <button type="button" data-base="emision" aria-pressed="false">Fecha de emisión</button>
                 </div>
+                <!-- 18-nov: la explicación ya no ocupa renglón; sale al pasar el cursor (o al tocar el «?») -->
+                <button type="button" id="base-info" class="conc-info" aria-expanded="false" aria-controls="ayuda-base" aria-label="Qué significa cada fecha">?</button>
+                <p id="ayuda-base" class="ctx-ayuda conc-globo" role="tooltip" hidden></p>
             </div>
             <input type="hidden" id="sel-base" value="pago">
-            <p id="ayuda-base" class="ctx-ayuda" hidden></p>
         </div>
 
         <div id="aviso-validar" class="conc-aviso" hidden></div>
@@ -137,9 +139,10 @@
     </div>
 </div>
 
-<script src="/assets/js/comun/periodo-meses.js?v=202611171829"></script>
-<script src="/assets/js/comun/tabla.js?v=202611171829"></script>
-<script src="/assets/js/comun/bandeja-xml.js?v=202611171829"></script>
-<script src="/herramientas/conciliacion/conciliacion.js?v=202611171829"></script>
+<script src="/assets/js/comun/periodo-meses.js?v=202611180633"></script>
+<script src="/assets/js/comun/pestanas-conciliacion.js?v=202611180633"></script>
+<script src="/assets/js/comun/tabla.js?v=202611180633"></script>
+<script src="/assets/js/comun/bandeja-xml.js?v=202611180633"></script>
+<script src="/herramientas/conciliacion/conciliacion.js?v=202611180633"></script>
 </body>
 </html>

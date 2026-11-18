@@ -213,7 +213,7 @@ function portada(t) {
 </head>
 <body class="st">
 <a class="st-saltar" href="#contenido">${t.idioma === "es" ? "Ir al contenido" : "Skip to content"}</a>
-${barra(t, { ancla: "si", entra: true })}
+${barra(t, { ancla: "si" })}
 
 <main id="contenido">
 <section class="st-heroe">

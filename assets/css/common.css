@@ -1507,6 +1507,8 @@ main.fc-recien { animation: fc-recien .35s ease-out; }
     /* Misma estructura con la barra de módulos (fc-con-lateral) y con la de Ajustes (fc-con-riel) */
     html.fc-con-lateral body, html.fc-con-riel body { padding-left: var(--lateral-ancho); transition: padding-left .18s ease; }
     html.fc-con-lateral.fc-lateral-chico body, html.fc-con-riel.fc-lateral-chico body { padding-left: var(--lateral-chico); }
+    /* Al cargar la página nada se anima (si no, todo se recorre a la derecha en cada F5): ver «arranque» en barra.js */
+    html.fc-arrancando body, html.fc-arrancando .fc-barra, html.fc-arrancando .fc-marca, html.fc-arrancando .fc-lateral, html.fc-arrancando .ui-riel { transition: none !important; }
     html.fc-con-lateral .fc-barra, html.fc-con-riel .fc-barra { margin-left: calc(var(--lateral-ancho) * -1); width: calc(100% + var(--lateral-ancho)); transition: margin-left .18s ease, width .18s ease; }
     html.fc-con-lateral.fc-lateral-chico .fc-barra, html.fc-con-riel.fc-lateral-chico .fc-barra { margin-left: calc(var(--lateral-chico) * -1); width: calc(100% + var(--lateral-chico)); }
     html.fc-con-riel .cf-menu { position: fixed; z-index: 35; left: 0; top: var(--barra-alto); bottom: 0; height: auto; }
@@ -1804,6 +1806,19 @@ html.fc-bloqueada body { overflow: hidden; }
 .mod-acciones--barra > .mod-acciones__der > .mod-accion { width: auto; }
 .mod-acciones--barra .mod-accion b { display: none; }
 .mod-acciones__nota--barra { margin: 0 !important; font-size: var(--t-12) !important; color: rgb(var(--g-600)); }
+/* Periodo plegado y acciones en un solo renglón (18-nov: encabezado compacto). Si no caben, las acciones bajan. */
+.mod-fila-periodo { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-bottom: 10px; }
+.mod-fila-periodo > :first-child { flex: 1 1 300px; min-width: 0; margin-bottom: 0; }
+.mod-fila-periodo > .mod-acciones.mod-acciones--barra { flex: 0 1 auto; margin: 0 0 0 auto; max-width: 100%; }
+.mod-fila-periodo:has(.xml-periodo:not(.xml-periodo--plegado)) > :first-child { flex-basis: 100%; }
+.mod-fila-periodo .mod-acciones__nota--barra { white-space: nowrap; }
+@media (min-width: 1101px) and (max-width: 1340px) { .mod-fila-periodo .mod-acciones__nota--barra { display: none; } }
+/* «Cargando… / Actualizado» no ocupa lugar en ese renglón (si lo ocupara, las acciones brincarían de renglón al salir y al quitarse):
+   va encima del hueco del periodo, a la izquierda de las acciones y antes de «Cambiar». */
+@media (min-width: 701px) {
+  .mod-fila-periodo > .mod-acciones.mod-acciones--barra { position: relative; top: 0; }
+  .mod-fila-periodo .fc-carga.fc-carga--enlinea { position: absolute; left: auto; right: calc(100% + 86px); top: 50%; transform: translateY(-50%); white-space: nowrap; z-index: 2; max-width: none; }
+}
 .mod-menu { position: relative; }
 .mod-menu[hidden] { display: none; }
 .mod-menu__btn svg { width: 14px; height: 14px; margin-left: 2px; }
@@ -2141,6 +2156,13 @@ html.fc-incrustado .fc-reportar { display: none; }
 .fc-carga--listo .fc-carga__giro { animation: none; border: 0; width: auto; height: auto; }
 .fc-carga--listo .fc-carga__giro::before { content: "✓"; font-weight: 800; }
 @keyframes fc-carga-listo { 0% { opacity: 0; transform: translate(-50%, -6px); } 8%, 80% { opacity: 1; transform: translate(-50%, 0); } 100% { opacity: 0; transform: translate(-50%, 0); } }
+/* En línea (junto a la nota de la barra de acciones): no tapa la tabla. En el celular sigue pegada abajo de la pantalla. */
+@media (min-width: 701px) {
+  .fc-carga.fc-carga--enlinea { position: static; transform: none; box-shadow: none; padding: 3px 12px; font-size: 12px; max-width: 100%; z-index: auto; order: 1; }
+  .fc-carga--enlinea.fc-carga--listo { animation-name: fc-carga-listo-enlinea; }
+  .mod-acciones--barra > .mod-acciones__der { order: 2; }
+}
+@keyframes fc-carga-listo-enlinea { 0% { opacity: 0; } 8%, 80% { opacity: 1; } 100% { opacity: 0; } }
 /* En el celular la tabla queda abajo del periodo: la etiqueta se pega a la pantalla para que se vea desde donde eliges */
 @media (max-width: 700px) { .fc-carga { position: fixed; top: auto; bottom: 84px; z-index: 60; } }
 @media (prefers-reduced-motion: reduce) { .fc-carga-barra span, .fc-carga__giro { animation: none; } .fc-carga-barra span { width: 100%; } .fc-carga--listo { animation: none; } }

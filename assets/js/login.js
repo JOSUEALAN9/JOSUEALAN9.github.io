@@ -304,6 +304,17 @@
         }
     }
 
+    // 18-nov: si la última vez el servidor dijo «formulario propio», el formulario sale de inmediato (sin «Un momento…»);
+    // la respuesta de ahora lo confirma o lo corrige. La primera visita de un navegador sí espera la respuesta.
+    var propioListo = false;
+    function entrarPropio() {
+        if (!propioListo) { propioListo = true; prepararPropio(); }
+        panel(quiereLicencia ? "licencia" : "entrar");
+    }
+    var modoRecordado = "";
+    try { modoRecordado = localStorage.getItem("fc-modo-entrada") || ""; } catch (e) { /* sin almacenamiento */ }
+    if (modoRecordado === "propio" && !enlace && !q.has("revision")) entrarPropio();
+
     // ¿Cloudflare o propio? Lo decide el administrador. Si no se puede saber, se queda como siempre (Cloudflare).
     var cm = new AbortController();
     setTimeout(function () { cm.abort(); }, 6000);
@@ -326,11 +337,15 @@
                         .then(function (r) { return r.ok ? r.json() : null; }, function () { return null; })
                         .then(function (p) { if (p && p._sesion && !p.pantalla_bloqueada && p._sesion !== bloqueada) irVolver(); });
                 }
-                prepararPropio();
-                panel(quiereLicencia ? "licencia" : "entrar");
+                if (m.propio) { try { localStorage.setItem("fc-modo-entrada", "propio"); } catch (e) { /* sin almacenamiento */ } }
+                entrarPropio();
                 if (MENSAJES[motivo] && motivo !== "reconectando") avisar(motivo);
                 return;
             }
+            // El servidor contestó que NO es propio (m) o no contestó (null). Si no contestó y este navegador ya conocía
+            // el formulario propio, se queda en él: no se cambia de entrada por una falla de red.
+            if (m) { try { localStorage.removeItem("fc-modo-entrada"); } catch (e) { /* sin almacenamiento */ } }
+            else if (propioListo) return;
             modoAccess();
         });
 })();
