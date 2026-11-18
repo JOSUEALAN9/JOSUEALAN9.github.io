@@ -102,8 +102,17 @@
         var n = (c.excel || []).length, docs = (c.docs || []).map(function (k) { return k === "csf" ? "constancia" : "opinión 32-D"; });
         return [xml.length ? "XML y PDF de " + xml.join(", ").toLowerCase() : "", n ? plural(n, "Excel", "Excel") : "", docs.join(" y ")].filter(Boolean).join(" · ");
     }
+    // Lo que el robot va haciendo con un envío en curso (18-nov): fila, lista del SAT, validación una por una, armado
+    function textoAvance(a) {
+        var miles = function (n) { return Number(n || 0).toLocaleString("es-MX"); };
+        if (!a) return "Se está verificando y armando ahora…";
+        if (a.fase === "fila") return "En la fila: empieza en cuanto termine el envío anterior.";
+        if (a.fase === "verificando") return "Pidiendo al SAT la lista del mes…";
+        if (a.fase === "validando") return a.total ? "Validando ante el SAT: " + miles(a.hechos) + " de " + miles(a.total) + "…" : "Validando ante el SAT…";
+        return "Armando el ZIP y mandando el correo…";
+    }
     function ultimo(e) {
-        if (e.en_curso) return '<p class="ev-ultimo">Se está verificando y armando ahora…</p>';
+        if (e.en_curso) return '<p class="ev-ultimo ev-ultimo--avance">' + esc(textoAvance(e.avance)) + "</p>";
         var u = e.ultimo;
         if (!u) return '<p class="ev-ultimo">Todavía no se ha mandado.</p>';
         if (u.estado === "error") return '<p class="ev-ultimo ev-ultimo--error"><b>El último no salió</b> (' + esc(cuando(u.momento, true)) + "): " + esc(u.error || "") + "</p>";
@@ -316,8 +325,9 @@
         var e = E.histDe, cuerpo = $("ev-hist-cuerpo");
         try {
             var r = await api("/api/entregas/" + encodeURIComponent(e.id) + "/historial");
-            cuerpo.innerHTML = r.envios.length ? '<div class="ev-hist">' + r.envios.map(hecho).join("") + "</div>"
-                : '<div class="ui-vacio"><b>Todavía no se ha mandado</b><span>Pruébalo con «Enviar ahora» o espera al ' + esc(cuando(e.proxima)) + ".</span></div>";
+            cuerpo.innerHTML = (r.en_curso ? '<p class="ev-ultimo ev-ultimo--avance" id="ev-hist-avance">' + esc(textoAvance(r.avance)) + "</p>" : "") +
+                (r.envios.length ? '<div class="ev-hist">' + r.envios.map(hecho).join("") + "</div>"
+                : '<div class="ui-vacio"><b>Todavía no se ha mandado</b><span>Pruébalo con «Enviar ahora» o espera al ' + esc(cuando(e.proxima)) + ".</span></div>");
             clearTimeout(E.relojHist);
             if ((r.en_curso || r.envios.some(function (v) { return v.estado === "armando"; })) && $("ev-hist").open) E.relojHist = setTimeout(cargarHistorial, 3000);
             else if (E.esperando) { E.esperando = false; cargar().catch(function () { /* nada */ }); }

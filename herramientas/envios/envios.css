@@ -11,6 +11,8 @@
 .ev-datos dd { margin: 0; overflow-wrap: anywhere; }
 .ev-ultimo { font-size: var(--t-12); color: rgb(var(--g-600)); border-top: 1px solid var(--linea); padding-top: 8px; }
 .ev-ultimo--error { color: rgb(var(--er-600)); }
+.ev-ultimo--avance { color: rgb(var(--g-900)); font-weight: 600; font-variant-numeric: tabular-nums; }
+#ev-hist-avance { border-top: 0; padding: 0 0 10px; }
 .ev-acciones { display: flex; flex-wrap: wrap; gap: 6px; margin-top: auto; }
 .ev-acciones .ui-btn:first-child { margin-right: auto; }
 .ev-vacio { grid-column: 1 / -1; border: 1px dashed rgb(var(--g-300)); border-radius: var(--r-tarjeta); }
