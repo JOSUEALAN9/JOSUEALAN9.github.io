@@ -176,3 +176,6 @@ select.en-input option { color: #1C1B19; }
 
 /* /demo: el formulario compartido (assets/js/comun/forma-demo.js) dentro de la tarjeta */
 .dm-forma { margin-top: 22px; }
+
+/* Mientras se sabe cómo se entra (18-nov): solo un aviso discreto, sin botones */
+.en-espera { margin: 18px 0 6px; min-height: 44px; display: flex; align-items: center; justify-content: center; }
