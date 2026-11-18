@@ -4,15 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Envíos por correo | Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611181318">
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611181318">
-    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611181318">
-    <link rel="stylesheet" href="/herramientas/envios/envios.css?v=202611181318">
+    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611181432">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611181432">
+    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611181432">
+    <link rel="stylesheet" href="/herramientas/envios/envios.css?v=202611181432">
 </head>
 <body class="min-h-screen flex flex-col">
 <div id="app-header" data-modulo="envios" data-titulo="Envíos por correo" data-migas="Herramientas|/herramientas/"></div>
-<script src="/assets/js/nucleo.js?v=202611181318"></script>
-<script src="/assets/js/barra.js?v=202611181318"></script>
+<script src="/assets/js/nucleo.js?v=202611181432"></script>
+<script src="/assets/js/barra.js?v=202611181432"></script>
 
 <main class="flex-grow mod-pagina">
     <div class="mod-cabeza">
@@ -25,6 +25,16 @@
 
     <div id="ev-aviso" class="ui-aviso ui-aviso--error" hidden></div>
     <div id="ev-lista" class="ev-lista" aria-live="polite"></div>
+
+    <!-- Las casillas «Envío 1…5» de cada empresa (18-nov, Alan: «se check y se habilita ese otro envío») -->
+    <section id="ev-matriz" class="ev-matriz" hidden>
+        <div class="ev-matriz__cabeza">
+            <h2 id="ev-matriz-titulo">Empresas de cada envío</h2>
+            <p class="ev-ayuda" data-globo-en="#ev-matriz-titulo" data-globo-nombre="Cómo se marcan">Marca en qué envío va cada empresa. La casilla del encabezado marca o quita todas las que ves. Una empresa puede ir en más de un envío.</p>
+            <input type="search" id="ev-matriz-buscar" class="ui-input" placeholder="Buscar empresa o RFC…" autocomplete="off" aria-label="Buscar empresa">
+        </div>
+        <div class="ui-tabla-caja ev-matriz__caja"><table class="ui-tabla ev-matriz__tabla"><thead id="ev-matriz-enc"></thead><tbody id="ev-matriz-cuerpo"></tbody></table></div>
+    </section>
 </main>
 
 <!-- Nuevo envío / editar -->
@@ -36,11 +46,21 @@
             <h3>A quién</h3>
             <label class="ui-campo"><span class="ui-etiqueta">Nombre del envío</span>
                 <input type="text" id="ev-nombre" class="ui-input" maxlength="80" placeholder="Clientes de Juan, semanal" autocomplete="off"></label>
+            <div class="ev-radios" role="radiogroup" aria-label="A quién va">
+                <label class="ui-check ev-radio"><input type="radio" name="ev-destino" value="grupo" checked>
+                    <span><b>A un grupo</b><small>Un solo correo con el ZIP de todas las empresas del envío, a los correos que pongas.</small></span></label>
+                <label class="ui-check ev-radio"><input type="radio" name="ev-destino" value="cliente">
+                    <span><b>A cada cliente</b><small>Un correo por empresa, al correo de su ficha, solo con lo suyo. Los que pongas aquí van en copia.</small></span></label>
+            </div>
             <div class="ev-dos">
-                <label class="ui-campo"><span class="ui-etiqueta">Para <i>(uno o varios correos, separados por coma)</i></span>
-                    <input type="text" id="ev-para" class="ui-input" placeholder="contador@cliente.mx, otra@cliente.mx" autocomplete="off" inputmode="email"></label>
-                <label class="ui-campo"><span class="ui-etiqueta">Con copia <i>(opcional)</i></span>
-                    <input type="text" id="ev-cc" class="ui-input" autocomplete="off" inputmode="email"></label>
+                <div class="ui-campo"><span class="ui-etiqueta" id="ev-para-etq">Para</span>
+                    <div class="ev-correos" id="ev-para" data-vacio="correo@ejemplo.com" role="group" aria-labelledby="ev-para-etq"></div></div>
+                <div class="ui-campo"><span class="ui-etiqueta" id="ev-cc-etq">Con copia <i>(opcional)</i></span>
+                    <div class="ev-correos" id="ev-cc" data-vacio="correo@ejemplo.com" role="group" aria-labelledby="ev-cc-etq"></div></div>
+            </div>
+            <div id="ev-usuarios-caja" hidden>
+                <p class="ev-sub">Copia a usuarios del despacho</p>
+                <div id="ev-usuarios" class="ev-usuarios"></div>
             </div>
         </section>
 
@@ -66,6 +86,10 @@
                     <div id="ev-excel" class="ev-excel"></div>
                 </div>
             </div>
+            <div>
+                <p class="ev-sub">Documentos <i>(los más recientes guardados de cada empresa, juntos en una carpeta)</i></p>
+                <div id="ev-docs" class="ev-checks ev-checks--fila"></div>
+            </div>
         </section>
 
         <section class="ev-bloque">
@@ -79,12 +103,13 @@
                     <select id="ev-dias-enlace" class="ui-select"><option value="3">3 días</option><option value="7">7 días</option><option value="15">15 días</option><option value="30">30 días</option></select></label>
             </div>
             <div class="ev-radios" role="radiogroup" aria-label="De qué periodo">
-                <label class="ui-check ev-radio"><input type="radio" name="ev-modo" value="nuevo" checked>
-                    <span><b>Solo lo nuevo</b><small>Lo que llegó a Fiscontable desde el envío anterior, acomodado por su mes. Nada se repite ni se pierde.</small></span></label>
-                <label class="ui-check ev-radio"><input type="radio" name="ev-modo" value="mes">
+                <label class="ui-check ev-radio"><input type="radio" name="ev-modo" value="mes" checked>
                     <span><b>El mes completo</b><small id="ev-modo-mes-txt">El mes en curso completo cada vez (y, la primera semana, también el mes que acaba de cerrar).</small></span></label>
+                <label class="ui-check ev-radio"><input type="radio" name="ev-modo" value="nuevo">
+                    <span><b>Solo lo nuevo</b><small>Lo que llegó a Fiscontable desde el envío anterior, acomodado por su mes.</small></span></label>
             </div>
-            <label class="ui-check"><input type="checkbox" id="ev-avisar"> Avisar por correo aunque no haya novedades</label>
+            <label class="ui-check"><input type="checkbox" id="ev-avisar"> Avisar por correo aunque no haya nada que mandar</label>
+            <p class="ui-ayuda" id="ev-verifica-txt"></p>
         </section>
         <p id="ev-error" class="ui-ayuda ui-ayuda--error" role="alert" hidden></p>
     </form>
@@ -105,6 +130,6 @@
     </div>
 </dialog>
 
-<script src="/herramientas/envios/envios.js?v=202611181318"></script>
+<script src="/herramientas/envios/envios.js?v=202611181432"></script>
 </body>
 </html>
