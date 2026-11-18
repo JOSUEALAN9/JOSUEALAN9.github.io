@@ -301,7 +301,7 @@
         var vence = new Date(hoy.getTime() + (Number($("ev-dias-enlace").value) || 7) * 86400000);
         var detalle = "· " + (elegidas[0] || "Tu empresa") + ", " + mesTxt(mes[mes.length - 1]) + ": " + (partes.join(", ") || "sus documentos") + "." +
             (elegidas.length > 1 && !cliente ? "\n· … y así cada empresa" : "") +
-            (enDescargas() ? "\n\nYa está listo en Fiscontable, en «Mis descargas» (2.4 MB): https://fiscontable.app/descargas/\nSe conserva " + (E.op.dias_descargas || 7) + " días en «Mis descargas»; después se borra. En un despacho, cada persona ve lo de sus empresas."
+            (enDescargas() ? "\n\nYa está listo en tu cuenta de Fiscontable, en «Mis descargas» (2.4 MB).\nSe conserva " + (E.op.dias_descargas || 7) + " días; después se borra. En un despacho, cada persona ve lo de sus empresas."
                 : "\n\nDescárgalo aquí (2.4 MB): https://…\nEl enlace vence el " + vence.toLocaleDateString("es-MX") + "; después el archivo se borra." + ($("ev-adjuntar").checked ? " También va adjunto a este correo." : ""));
         return { envio: $("ev-nombre").value.trim() || (E.editando ? "Envío " + E.editando.numero : "Envío " + (E.envios.length + 1)), periodo: periodoTxt(mes),
                  fecha: hoy.toLocaleDateString("es-MX", { day: "2-digit", month: "2-digit", year: "numeric" }), empresas: empresas, detalle: detalle };
@@ -503,9 +503,15 @@
     }
 
     /* ============================================================ el historial */
+    /* Cada envío hecho, en corto: cuándo, cómo quedó, cuánto llevó y sus botones (copiar el enlace, revocarlo). El
+       detalle por empresa va plegado: se abre al tocarlo (18-nov, Alan: «que me dé lo importante… sin tener expandido
+       todo el detalle»). */
     function hecho(v) {
         var est = ESTADOS[v.estado] || [v.estado, "info"];
-        var lineas = (v.detalle.empresas || []).filter(function (d) { return d.meses.length || (d.docs || []).length || d.verificacion; }).map(function (d) {
+        var conAlgo = (v.detalle.empresas || []).filter(function (d) { return d.meses.length || (d.docs || []).length || d.verificacion; });
+        var verificadas = conAlgo.filter(function (d) { return d.verificacion; });
+        var porRevisar = verificadas.filter(function (d) { return d.verificacion.estado !== "completo"; }).length;
+        var lineas = conAlgo.map(function (d) {
             var meses = d.meses.map(function (m) {
                 var partes = Object.keys(m.partes).map(function (p) {
                     var x = E.op.xml.find(function (y) { return y.clave === p; }) || { nombre: p, uno: p };
@@ -530,14 +536,22 @@
         else if (v.estado === "enviado" || (v.estado === "error" && v.enlace_activo)) {
             pie = "<span>" + esc(peso(v.bytes) + (v.estado === "error" ? " · el archivo sí se armó" : v.adjunto ? " · fue adjunto" : " · solo enlace") + " · " + plural(v.descargas, "descarga", "descargas")) + "</span>" +
                 (v.enlace_activo ? "<span>El enlace vence el " + esc(cuando(v.vence)) + "</span>" +
-                    '<button type="button" class="ui-btn ui-btn--terciario ui-btn--28" data-copiar="' + esc(v.url) + '">Copiar enlace</button>' +
-                    (E.titular ? '<button type="button" class="ui-btn ui-btn--terciario ui-btn--28" data-revocar="' + esc(v.id) + '">Revocar</button>' : "")
+                    '<span class="ev-hecho__botones"><button type="button" class="ui-btn ui-btn--terciario ui-btn--28" data-copiar="' + esc(v.url) + '">Copiar enlace</button>' +
+                    (E.titular ? '<button type="button" class="ui-btn ui-btn--terciario ui-btn--28" data-revocar="' + esc(v.id) + '">Revocar</button>' : "") + "</span>"
                     : "<span>" + (v.revocado ? "Enlace revocado: el archivo ya se borró." : "Enlace vencido: el archivo ya se borró.") + "</span>");
         }
+        var resumen = [];
+        if (conAlgo.length) resumen.push(plural(conAlgo.length, "empresa", "empresas"));
+        if (v.comprobantes) resumen.push(plural(v.comprobantes, "comprobante", "comprobantes"));
+        var lista = !verificadas.length ? "" : porRevisar
+            ? '<span class="ui-estado ui-estado--aviso">' + (porRevisar === verificadas.length && porRevisar > 1 ? "Ninguna" : porRevisar + " de " + verificadas.length) +
+              (porRevisar === verificadas.length && porRevisar > 1 ? " con su lista del SAT completa" : " con algo por revisar en su lista del SAT") + "</span>"
+            : '<span class="ui-estado ui-estado--ok">Todo verificado contra el SAT</span>';
         return '<article class="ev-hecho"><header><b>' + esc(cuando(v.momento, true)) + '</b><span class="ui-estado ui-estado--' + est[1] + '">' + esc(est[0]) + "</span></header>" +
             (v.error ? '<p class="ev-hecho__error">' + esc(v.error) + "</p>" : "") +
-            (lineas ? "<ul>" + lineas + "</ul>" : "") +
-            '<div class="ev-hecho__pie"><span>A ' + esc((v.para || []).join(", ")) + " · " + esc(v.quien === "programado" ? "automático" : "lo pidió " + v.quien) + "</span>" + pie + "</div></article>";
+            (resumen.length || lista ? '<p class="ev-hecho__resumen">' + (resumen.length ? "<b>" + esc(resumen.join(" · ")) + "</b>" : "") + lista + "</p>" : "") +
+            '<div class="ev-hecho__pie"><span>A ' + esc((v.para || []).join(", ")) + " · " + esc(v.quien === "programado" ? "automático" : "lo pidió " + v.quien) + "</span>" + pie + "</div>" +
+            (lineas ? '<details class="ev-hecho__det"><summary>Detalle por empresa</summary><ul>' + lineas + "</ul></details>" : "") + "</article>";
     }
     async function cargarHistorial() {
         var e = E.histDe, cuerpo = $("ev-hist-cuerpo");
