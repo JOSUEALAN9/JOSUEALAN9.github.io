@@ -81,7 +81,7 @@
 .fi-aprendida button:hover { color: rgb(var(--er-600)); }
 @media (max-width: 680px) { .fi-buscar { min-width: 0; width: 100%; } .fi-tarjetas { grid-template-columns: 1fr 1fr; } .fi-tarjeta b { font-size: 16px; } }
 /* Cancelaciones */
-.ca-cabeza { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.ca-cabeza { display: flex; flex-wrap: wrap; gap: 10px 6px; align-items: center; justify-content: flex-start; margin-bottom: 8px; }
 .ca-texto { font-size: 13px; color: rgb(var(--g-600)); margin: 0; max-width: 720px; }
 .ca-nota { font-size: 12px; color: rgb(var(--g-500)); margin: 0 0 8px; }
 .ca-estado { background: rgb(var(--in-50)); border: 1px solid rgb(var(--in-200)); color: rgb(var(--in-600)); border-radius: 12px; padding: 10px 14px; font-size: 13px; margin-bottom: 12px; }
@@ -107,6 +107,8 @@
 .fi-celda:disabled { cursor: default; opacity: .75; }
 .fi-celda:disabled:hover { box-shadow: none; }
 .fi-cerrado .fi-guia { display: none; }
+.fi-cerrado .fc-globo-caja:has(> .fi-guia) { display: none; }
+.fi-barra > .fc-globo-caja { margin-right: auto; }           /* el «?» pegado a los filtros, no flotando a media barra */
 .fi-folio, .ca-liga { color: rgb(var(--ac-600)); font-weight: 700; text-decoration: none; border-bottom: 1px dashed rgb(var(--ac-200)); }
 .fi-folio:hover, .ca-liga:hover { color: rgb(var(--ac-800)); border-bottom-color: rgb(var(--ac-600)); }
 a.ca-uuid { font-weight: 500; }

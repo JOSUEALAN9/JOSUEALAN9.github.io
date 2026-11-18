@@ -74,6 +74,8 @@
         if (!(await Fiscontable.exigirModulo("conciliacion"))) return;
         E.perfil = await Fiscontable.perfil();
         pintarMonedaExcel();
+        // 18-nov: «Ampliar» deja solo la tabla (buscador, filtros, lo seleccionado y el avance de la validación)
+        Fiscontable.ampliar({ en: ".xml-toolbar__der", quedan: [".xml-toolbar", "#avance-validacion", "#barra-seleccion", "#tablas-marco", ".xml-pie"] });
         var q = new URLSearchParams(location.search);
         if (q.get("lado") === "emitidos" || q.get("lado") === "recibidos") E.lado = q.get("lado");
         // 18-nov: abre en «Facturas PPD». «Inconsistencias» y «IVA del periodo» son la misma tabla con otro corte;

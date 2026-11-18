@@ -118,6 +118,8 @@
         E.P = FCPeriodoMeses.crear({ contenedor: $("periodo-xml"), alCambiar: function () { alCambiarPeriodo(); }, alAvisar: avisar,
                                      conBoton: true, alcanza: periodoYaCargado });
         prepararEventos();
+        // 18-nov: «Ampliar» deja solo la tabla (buscador, filtros, lo seleccionado y el avance de la validación)
+        Fiscontable.ampliar({ en: ".xml-toolbar__der", quedan: [".xml-toolbar", "#filtros-activos", "#aviso-moneda", "#avance-validacion", "#barra-seleccion", "#tabla-marco", ".xml-pie"] });
         var perfil = await Fiscontable.perfil();
         $("btn-conciliacion").hidden = !(perfil && (perfil.modulos_permitidos || []).indexOf("conciliacion") !== -1);
         await cargarVistas();
@@ -355,7 +357,10 @@
         if (!hayEleccion()) return CARGA.quitar();
         var total = MODULOS.reduce(function (t, m) { return t + (cuentaPestana(m.clave) || 0); }, 0);
         CARGA.listo("Actualizado · " + periodoCorto() + " · " + total.toLocaleString("es-MX") + " XML");
+        // Desde Visores («Revisar y marcar»): …&duplicados=1 abre el diálogo en cuanto está el periodo, una sola vez
+        if (ABRIR_DUPLICADOS) { ABRIR_DUPLICADOS = false; abrirDuplicados(); }
     }
+    var ABRIR_DUPLICADOS = new URLSearchParams(location.search).get("duplicados") === "1";
 
     function alCambiarPeriodo() {
         E.seleccion.clear();
@@ -481,11 +486,12 @@
     }
     function pintarBotonConceptos() {
         var ver = E.modulo === "recibidos" || E.modulo === "emitidos";
-        ["btn-conceptos", "btn-duplicados"].forEach(function (id) { var b = $(id); if (b) b.hidden = !ver; });
+        if ($("btn-conceptos")) $("btn-conceptos").hidden = !ver;
+        if ($("btn-duplicados")) $("btn-duplicados").hidden = !(ver || E.modulo === "nomina");      // 18-nov: también en Recibos de nómina
     }
     function abrirDuplicados() {
         if (!E.rfc || !hayEleccion()) return avisar("Elige empresa y periodo para buscar duplicados.");
-        if (E.modulo !== "recibidos" && E.modulo !== "emitidos") return;
+        if (E.modulo !== "recibidos" && E.modulo !== "emitidos" && E.modulo !== "nomina") return;
         var r = rangoPeriodo();
         XMLDuplicados.abrir({ rfc: E.rfc, lado: E.modulo, desde: r.desde, hasta: r.hasta, periodo: textoPeriodo() });
     }

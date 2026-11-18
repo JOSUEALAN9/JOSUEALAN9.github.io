@@ -1806,7 +1806,23 @@ html.fc-bloqueada body { overflow: hidden; }
 .mod-acciones--barra > .mod-acciones__der > .mod-accion { width: auto; }
 .mod-acciones--barra .mod-accion b { display: none; }
 .mod-acciones__nota--barra { margin: 0 !important; font-size: var(--t-12) !important; color: rgb(var(--g-600)); }
+/* Globos de ayuda (18-nov): el texto con data-globo no ocupa renglón; sale al pasar el cursor por el «?» (barra.js: globos) */
+.fc-globo-caja { position: relative; display: inline-flex; align-items: center; vertical-align: middle; margin-left: 6px; flex: none; }
+.fc-globo-caja:has(> .fc-globo[hidden]) { display: none; }
+.fc-info { flex: none; width: 20px; height: 20px; border-radius: 50%; border: 1px solid rgb(var(--g-300)); background: rgb(var(--g-0)); color: rgb(var(--g-600));
+           font-family: inherit; font-size: 11px; font-weight: 800; line-height: 1; cursor: help; padding: 0; text-transform: none; letter-spacing: 0; }
+.fc-info:hover, .fc-info[aria-expanded="true"] { border-color: rgb(var(--g-500)); color: rgb(var(--g-900)); }
+.fc-globo-caja > .fc-globo { position: absolute; z-index: 45; top: calc(100% + 6px); right: 0; left: auto; width: min(380px, calc(100vw - 32px)); margin: 0 !important; padding: 10px 12px;
+                             border: 0; border-radius: 10px; background: rgb(var(--g-900)); color: rgb(var(--g-100)); font-size: 12.5px; font-weight: 400; line-height: 1.45; text-align: left;
+                             white-space: normal; text-transform: none; letter-spacing: 0; box-shadow: var(--sombra-2); opacity: 0; visibility: hidden; pointer-events: none;
+                             transition: opacity .12s ease .25s, visibility 0s linear .37s; }
+.fc-globo-caja > .fc-globo strong, .fc-globo-caja > .fc-globo b { color: rgb(var(--g-0)); }
+.fc-globo-caja > .fc-globo a { color: inherit; text-decoration: underline; }
+.fc-globo-caja:hover > .fc-globo, .fc-globo-caja:focus-within > .fc-globo, .fc-globo-caja--abierta > .fc-globo { opacity: 1; visibility: visible; transition: opacity .12s ease .25s, visibility 0s linear .25s; }
+.fc-globo-caja--abierta > .fc-globo { transition-delay: 0s; pointer-events: auto; }
+
 /* Periodo plegado y acciones en un solo renglón (18-nov: encabezado compacto). Si no caben, las acciones bajan. */
+.xml-cabeza__acciones .xml-btn.xml-btn--primario { padding: 7px 14px; font-size: 13px; }
 .mod-fila-periodo { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-bottom: 10px; }
 .mod-fila-periodo > :first-child { flex: 1 1 300px; min-width: 0; margin-bottom: 0; }
 .mod-fila-periodo > .mod-acciones.mod-acciones--barra { flex: 0 1 auto; margin: 0 0 0 auto; max-width: 100%; }
@@ -1863,6 +1879,18 @@ html.fc-bloqueada body { overflow: hidden; }
 .fc-pasos .fc-paso--mal::before { background: rgb(var(--er-600)); }
 /* Dentro de una ventana o panel (incrustado) los letreros generales ya se ven en la página de afuera */
 html.fc-incrustado .fc-letrero { display: none !important; }
+
+/* «Ampliar tabla» (18-nov): solo queda la tabla con su buscador y sus filtros; lo demás se va hasta salir (botón o Esc) */
+.fc-amplia-btn { display: inline-flex; align-items: center; gap: 6px; }
+.fc-amplia-btn svg { flex: none; }
+.fc-amplia-btn[aria-pressed="true"] { background: rgb(var(--g-900)); border-color: rgb(var(--g-900)); color: rgb(var(--g-0)); }
+html.fc-amplia .fc-barra, html.fc-amplia #fc-lateral, html.fc-amplia .fc-aviso, html.fc-amplia .fc-aviso-global, html.fc-amplia .fc-letrero,
+html.fc-amplia .fc-pie, html.fc-amplia .fc-amplia-fuera { display: none !important; }
+html.fc-amplia body { padding-left: 0 !important; padding-bottom: 0 !important; }
+html.fc-amplia main { max-width: none !important; margin: 0 !important; padding: 10px 14px 6px !important; }
+html.fc-amplia .xml-tabla-caja { height: var(--fc-amplia-alto, calc(100vh - 100px)); min-height: 0; }
+html.fc-amplia .fc-reportar { display: none; }
+@media (max-width: 640px) { .fc-amplia-btn span { display: none; } .fc-amplia-btn { padding-left: 10px; padding-right: 10px; } html.fc-amplia main { padding: 8px 8px 4px !important; } }
 
 /* Cancelaciones: barra del historial (buscar, fechas, resultado, exportar) */
 .ca-barra { display: flex; flex-wrap: wrap; align-items: center; gap: var(--e-2); margin: 0 0 10px; }

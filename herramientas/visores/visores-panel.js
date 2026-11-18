@@ -161,6 +161,35 @@
             return cifra("Enterado de más", dinero(t.de_mas), esc("en " + meses(t.meses_de_mas) + ": pagaste más de lo retenido" + extra), "vn-ojo");
         return cifra("Retenido sin enterar", dinero(0), esc("lo declarado está enterado" + extra), "vn-bien");
     }
+    /* 18-nov (Alan: «imagina que me dé una diferencia por pagar; analizando las nóminas me va a decir duplicado y esta es la
+       diferencia»): por cada mes con recibos repetidos, cuánto de la diferencia del SAT (retenido − enterado) son esos recibos
+       y cuánto queda. Se marcan en Recibos de nómina; lo marcado «no es duplicado» ya no llega aquí. */
+    function exacto(v) { return "$" + Number(v || 0).toLocaleString("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+    function bloqueDuplicados(n) {
+        var meses = n.meses.filter(function (f) { return f.duplicados; }), rv = n.revision || {};
+        if (!meses.length) return rv.descartados ? '<p class="vi-nota">Sin recibos repetidos pendientes (' + num(rv.descartados) + " grupo(s) marcados «no es duplicado»).</p>" : "";
+        var renglones = meses.map(function (f) {
+            var d = f.duplicados, mes = f.nombre.charAt(0).toUpperCase() + f.nombre.slice(1);
+            var rec = num(d.recibos_de_mas) + " recibo" + (d.recibos_de_mas === 1 ? " repetido" : "s repetidos"), frase, clase = "ojo", sello;
+            if (d.diferencia_sat == null) { sello = "sin declarar"; frase = rec + " con " + exacto(d.isr) + " de ISR. El SAT todavía no ve declarado ese mes."; }
+            else if (d.explica) { sello = "es la diferencia"; clase = "bien";
+                frase = "La diferencia por pagar de <strong>" + exacto(d.diferencia_sat) + "</strong> es justo el ISR de " + rec + ". Al cancelar " + (d.recibos_de_mas === 1 ? "el que sobra" : "los que sobran") + " queda en $0.00."; }
+            else if (d.diferencia_sat >= 1 && d.queda >= 1) { sello = "explica una parte";
+                frase = "De <strong>" + exacto(d.diferencia_sat) + "</strong> de diferencia por pagar, <strong>" + exacto(d.isr) + "</strong> son de " + rec + "; quedan <strong>" + exacto(d.queda) + "</strong> por otra causa."; }
+            else if (d.diferencia_sat >= 1) { sello = "más que la diferencia";
+                frase = "La diferencia por pagar es de <strong>" + exacto(d.diferencia_sat) + "</strong> y hay " + rec + " con <strong>" + exacto(d.isr) + "</strong> de ISR: al cancelarlos quedarían " + exacto(-d.queda) + " enterados de más."; }
+            else { sello = "sin diferencia";
+                frase = rec + " con <strong>" + exacto(d.isr) + "</strong> de ISR. El SAT no marca diferencia por pagar: ese ISR ya se enteró" + (d.diferencia_sat <= -1 ? " (hay " + exacto(-d.diferencia_sat) + " enterados de más)" : "") + "."; }
+            return "<li><b>" + esc(mes) + "</b>" + pill(sello, clase) + "<span>" + frase + "</span></li>";
+        }).join("");
+        var url = "/herramientas/xml/?vista=nomina&rfc=" + encodeURIComponent(P.empresa.rfc) + "&anio=" + anio() + "&meses=" + meses.map(function (f) { return String(f.mes).padStart(2, "0"); }).join(",") + "&duplicados=1";
+        return '<section class="vn-dup" aria-label="Recibos repetidos"><h3>Recibos repetidos y la diferencia</h3>' +
+            '<p class="vn-dup__sub">Mismo trabajador, fecha de pago, periodo e importes. El SAT cuenta el ISR de todos los recibos vigentes, aunque sean el mismo pago.</p>' +
+            "<ul>" + renglones + "</ul>" +
+            '<div class="vn-acciones"><a class="ui-btn ui-btn--primario ui-btn--32" href="' + esc(url) + '">Revisar y marcar duplicados</a>' +
+            '<span class="vi-nota vn-dup__pie">' + (rv.confirmados ? num(rv.confirmados) + " ya marcado(s) «es duplicado», falta cancelarlos. " : "") +
+            (rv.descartados ? num(rv.descartados) + " marcado(s) «no es duplicado» ya no cuentan. " : "") + "El detalle va también en el «Excel del cruce», hoja «Recibos duplicados».</span></div></section>";
+    }
     function pintarNomina() {
         var n = P.datos.nomina, caja = $("vn-nomina"), t = n.totales || {};
         if (!n.meses.length) { caja.innerHTML = vacio("Sin lectura de nómina", "Pulsa «Leer ahora» para traer del SAT la nómina del patrón de " + P.datos.anio + " (ISR retenido contra enterado, por mes)."); return; }
@@ -200,8 +229,7 @@
         html += '<div class="vn-acciones">' + (n.archivo ? '<button type="button" class="ui-btn ui-btn--secundario ui-btn--32" data-archivo title="El archivo que da el SAT en el Detalle mensual">Excel del SAT (detalle mensual)</button>' : "") +
             '<button type="button" class="ui-btn ui-btn--secundario ui-btn--32" data-excel="nomina_patron" title="Lo arma Fiscontable con las tablas que leyó">Excel de Fiscontable</button></div>' +
             (!n.archivo && n.excel_motivo ? '<p class="vi-nota vn-aviso">El Excel del SAT no salió en esta lectura: ' + esc(n.excel_motivo) + ".</p>" : "") +
-            (n.revision && n.revision.duplicados ? '<p class="vi-nota vn-aviso">Hay ' + num(n.revision.duplicados) + " recibo(s) posiblemente duplicados (mismo trabajador, fecha de pago, periodo e importes) en " +
-                esc((n.revision.meses_duplicados || []).join(", ")) + ": si sobran, son " + dinero(n.revision.isr_de_mas) + " de ISR retenido de más. El detalle está en el «Excel del cruce», hoja «Recibos duplicados».</p>" : "") +
+            bloqueDuplicados(n) +
             (n.revision && !n.revision.duplicados && n.revision.mixtos ? '<p class="vi-nota">Sin recibos duplicados. ' + num(n.revision.mixtos) + " caso(s) de sueldo y asimilado en el mismo mes: están en el «Excel del cruce», hoja «Sueldo y asimilado».</p>" : "") +
             (hayMixto ? '<p class="vi-nota">* Cuadra: el SAT cuenta en sueldos ' + dinero(hayMixto.isr_asimilados) + " de ISR de asimilados de " + num(hayMixto.trabajadores) +
                 " trabajador(es) que ese mes también cobraron sueldo (su renglón de asimilados es solo de pagos exclusivos de asimilados).</p>" : "") +

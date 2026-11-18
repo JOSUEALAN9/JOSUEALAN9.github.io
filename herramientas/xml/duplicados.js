@@ -1,10 +1,13 @@
 /**
  * duplicados.js — Posibles facturas duplicadas de Administración de XML (18-nov-2026).
  *
- *   XMLDuplicados.abrir({ rfc, lado, desde, hasta, periodo })
+ *   XMLDuplicados.abrir({ rfc, lado, desde, hasta, periodo })          lado: "emitidos" | "recibidos" | "nomina"
  * Lista los grupos de facturas (emitidas o recibidas) que parecen la misma timbrada dos veces y deja decidir cada uno:
  * «Es duplicado» (y cuál sobra) o «No lo es». Lo decidido se guarda en el servidor y no se vuelve a preguntar; cuando la
  * que sobra queda cancelada ante el SAT, el grupo se resuelve solo.
+ * Con lado "nomina" (18-nov, Alan: «me va a decir duplicado y esta es la diferencia») son recibos de nómina del mismo
+ * trabajador, fecha de pago, periodo e importes; arriba dice cuánto ISR retenido sobra por mes, que es lo que el SAT
+ * ve como «diferencia por pagar».
  */
 (function () {
     "use strict";
@@ -22,10 +25,12 @@
         return resp.json();
     }
     function fecha(iso) { var s = String(iso || ""); return s.length >= 10 ? s.slice(8, 10) + "/" + s.slice(5, 7) + "/" + s.slice(0, 4) + (s.length > 11 ? " " + s.slice(11, 16) : "") : ""; }
-    function emitidas() { return D.ctx.lado === "emitidos"; }
+    function nomina() { return D.ctx.lado === "nomina"; }
+    function emitidas() { return D.ctx.lado === "emitidos" || nomina(); }        // los recibos de nómina los timbra la empresa: los cancela ella
+    function mesTxt(n) { return n ? n.charAt(0).toUpperCase() + n.slice(1) : ""; }
 
     function tarjeta(g, estado) {
-        var quien = emitidas() ? "Cliente" : "Proveedor";
+        var quien = nomina() ? "Trabajador" : emitidas() ? "Cliente" : "Proveedor";
         var filas = g.facturas.map(function (f, i) {
             var sobra = estado === "duplicado" ? g.sobra === f.uuid : i === g.facturas.length - 1;      // de fábrica sobra la última
             return "<tr" + (estado === "duplicado" && g.sobra === f.uuid ? ' class="xd-sobra"' : "") + ">" +
@@ -33,7 +38,7 @@
                     ' aria-label="Esta es la que sobra"></td>' : '<td class="xd-radio">' + (estado === "duplicado" && sobra ? '<span class="xd-etq xd-etq--sobra">Sobra</span>' : "") + "</td>") +
                 "<td>" + esc(fecha(f.fecha)) + "</td><td>" + esc(f.serie_folio || "—") + "</td>" +
                 '<td class="xd-concepto" title="' + esc(f.concepto || "") + '">' + esc(f.concepto || "") + (f.conceptos > 1 ? " <small>+" + (f.conceptos - 1) + " más</small>" : "") + "</td>" +
-                "<td>" + esc(f.metodo_pago || "") + "</td><td>" + esc(f.estado_sat) + "</td>" +
+                (nomina() ? '<td class="xd-num">' + (f.neto == null ? "" : "$" + fmt.format(f.neto)) + "</td>" : "<td>" + esc(f.metodo_pago || "") + "</td>") + "<td>" + esc(f.estado_sat) + "</td>" +
                 '<td><button type="button" class="xml-enlace" data-ver="' + esc(f.uuid) + '" title="' + esc(f.uuid) + '">Ver</button></td></tr>';
         }).join("");
         var pie;
@@ -43,7 +48,7 @@
                 '<button type="button" class="xml-btn xml-btn--primario" data-decidir="duplicado">Es duplicado</button>';
         } else if (estado === "duplicado") {
             pie = '<span class="xd-ayuda">' + (emitidas()
-                    ? "Falta cancelar la que sobra. Al quedar cancelada ante el SAT, este aviso se quita solo."
+                    ? "Falta cancelar " + (nomina() ? "el" : "la") + " que sobra. Al quedar cancelad" + (nomina() ? "o" : "a") + " ante el SAT, este aviso se quita solo."
                     : "Pide a tu proveedor que cancele la que sobra. Al quedar cancelada ante el SAT, este aviso se quita solo.") + "</span>" +
                 (emitidas() ? '<a class="xml-btn" href="/herramientas/xml/cancelaciones.html?rfc=' + encodeURIComponent(D.ctx.rfc) + '" target="_blank" rel="noopener">Ir a Cancelaciones</a>'
                             : '<button type="button" class="xml-btn" data-copiar>Copiar datos para el proveedor</button>') +
@@ -53,8 +58,12 @@
         }
         return '<article class="xd-grupo" data-grupo="' + esc(g.id) + '">' +
             '<header><div><strong>' + esc(g.contraparte_nombre || g.contraparte_rfc) + "</strong><small>" + esc(quien + " · " + g.contraparte_rfc + " · " + g.tipo) + "</small></div>" +
-            '<div class="xd-total"><strong>$' + fmt.format(g.total) + " " + esc(g.moneda) + "</strong><small>" + esc(g.motivo + (g.dias ? " · a " + g.dias + " día(s)" : " · el mismo día")) + "</small></div></header>" +
-            '<div class="xd-tabla"><table><thead><tr><th>' + (estado === "pendiente" ? "Sobra" : "") + "</th><th>Fecha</th><th>Serie y folio</th><th>Concepto</th><th>Método</th><th>Estado SAT</th><th></th></tr></thead><tbody>" +
+            (nomina()
+                ? '<div class="xd-total"><strong>ISR retenido $' + fmt.format(g.isr) + "</strong><small>" + esc("Percepciones $" + fmt.format(g.total) + " · pagado el " + fecha(g.fecha_pago) +
+                    (estado === "descartado" ? "" : " · si sobra" + (g.facturas.length > 2 ? "n" : "") + ": $" + fmt.format(g.isr_de_mas) + " de ISR de más")) + "</small></div></header>"
+                : '<div class="xd-total"><strong>$' + fmt.format(g.total) + " " + esc(g.moneda) + "</strong><small>" + esc(g.motivo + (g.dias ? " · a " + g.dias + " día(s)" : " · el mismo día")) + "</small></div></header>") +
+            '<div class="xd-tabla"><table><thead><tr><th>' + (estado === "pendiente" ? "Sobra" : "") + "</th><th>" + (nomina() ? "Timbrado" : "Fecha") + "</th><th>Serie y folio</th><th>" +
+            (nomina() ? "Periodo pagado" : "Concepto") + "</th><th" + (nomina() ? ' class="xd-num">Neto' : ">Método") + "</th><th>Estado SAT</th><th></th></tr></thead><tbody>" +
             filas + "</tbody></table></div><footer>" + pie + "</footer></article>";
     }
 
@@ -65,14 +74,32 @@
                        : '<section class="xd-seccion"><h3>' + esc(titulo) + " (" + grupos.length + ")</h3>" + cuerpo + "</section>";
     }
 
+    /* Nómina: cuánto ISR retenido sobra por mes si lo pendiente y lo confirmado son repetidos. Es la cifra que se busca
+       cuando el SAT marca una diferencia por pagar (retenido − enterado) y no se sabe de dónde sale. */
+    function resumenNomina() {
+        var r = D.datos.resumen;
+        if (!r || !r.recibos_de_mas) return "";
+        return '<div class="xd-resumen"><p><strong>' + r.recibos_de_mas + " recibo" + (r.recibos_de_mas === 1 ? "" : "s") + " de más: $" + fmt.format(r.isr_de_mas) + " de ISR retenido</strong> " +
+            "(y $" + fmt.format(r.pagado_de_mas) + " de percepciones) que el SAT cuenta aunque sea el mismo pago. Si en ese mes tienes una diferencia por pagar de ISR de sueldos, " +
+            "esta es la parte que viene de recibos repetidos.</p>" +
+            '<ul class="xd-meses">' + r.por_mes.map(function (m) {
+                return "<li><b>" + esc(mesTxt(m.nombre)) + "</b><span>" + m.recibos_de_mas + " recibo" + (m.recibos_de_mas === 1 ? "" : "s") + " de más</span><span>ISR $" + fmt.format(m.isr) + "</span></li>";
+            }).join("") + "</ul>" +
+            '<a class="xml-enlace" href="/herramientas/visores/?rfc=' + encodeURIComponent(D.ctx.rfc) + '" target="_blank" rel="noopener">Ver la diferencia de cada mes en Visores del SAT ›</a></div>';
+    }
+
     function pintar() {
         var d = D.datos, cuerpo = $("dlg-dup-cuerpo");
         if (!d.pendientes.length && !d.duplicados.length && !d.descartados.length) {
-            cuerpo.innerHTML = '<p class="xd-vacio"><strong>Sin posibles duplicados en este periodo.</strong> Se comparan las facturas ' + (emitidas() ? "emitidas" : "recibidas") +
+            cuerpo.innerHTML = nomina()
+                ? '<p class="xd-vacio"><strong>Sin recibos repetidos en este periodo.</strong> Se comparan los recibos de nómina vigentes del mismo trabajador con la misma fecha de pago, ' +
+                  "el mismo periodo, las mismas percepciones y el mismo ISR.</p>"
+                : '<p class="xd-vacio"><strong>Sin posibles duplicados en este periodo.</strong> Se comparan las facturas ' + (emitidas() ? "emitidas" : "recibidas") +
                 " vigentes del mismo " + (emitidas() ? "cliente" : "proveedor") + ", con el mismo total y el mismo contenido, emitidas con hasta " + d.ventana_dias + " días de diferencia.</p>";
             return;
         }
         cuerpo.innerHTML =
+            (nomina() ? resumenNomina() : "") +
             (d.pendientes.length ? "" : '<p class="xd-vacio"><strong>No queda nada por revisar.</strong></p>') +
             seccion("Por revisar", d.pendientes, "pendiente") +
             seccion(emitidas() ? "Duplicados por cancelar" : "Duplicados por pedir que cancelen", d.duplicados, "duplicado") +
@@ -86,7 +113,7 @@
 
     async function cargar() {
         var x = D.ctx, cuerpo = $("dlg-dup-cuerpo");
-        cuerpo.innerHTML = '<p class="xd-vacio">Comparando las facturas del periodo…</p>';
+        cuerpo.innerHTML = '<p class="xd-vacio">Comparando ' + (nomina() ? "los recibos" : "las facturas") + " del periodo…</p>";
         try {
             D.datos = await post("/api/xml/duplicados", { rfc: x.rfc, lado: x.lado, desde: x.desde, hasta: x.hasta });
             pintar();
@@ -97,7 +124,7 @@
 
     function abrir(ctx) {
         D.ctx = ctx; D.datos = null;
-        $("dlg-dup-titulo").textContent = "Posibles duplicados · Facturas " + (ctx.lado === "emitidos" ? "emitidas" : "recibidas");
+        $("dlg-dup-titulo").textContent = "Posibles duplicados · " + (ctx.lado === "nomina" ? "Recibos de nómina" : "Facturas " + (ctx.lado === "emitidos" ? "emitidas" : "recibidas"));
         $("dlg-dup-sub").textContent = ctx.periodo;
         var dlg = $("dlg-duplicados");
         if (!dlg.open) dlg.showModal();
