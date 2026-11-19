@@ -10,6 +10,9 @@ let primeraCarga = true;
 // M-19: por defecto se ve lo de HOY y de la empresa activa; los filtros se recuerdan en este navegador.
 const FILTRO = (() => { try { return Object.assign({ cuando: "hoy", tipo: "", empresa: "activa" }, JSON.parse(localStorage.getItem("fc-descargas-filtro") || "{}")); } catch (e) { return { cuando: "hoy", tipo: "", empresa: "activa" }; } })();
 let empresaActiva = null;
+// El aviso de un envío trae «?paquete=<id>»: se abre viendo solo ese paquete (19-nov, Alan: «con el link podamos identificar
+// el descargar correcto»). «Ver todas» lo quita.
+let PAQUETE = new URLSearchParams(location.search).get("paquete") || "";
 
 document.addEventListener("DOMContentLoaded", async () => {
     try { empresaActiva = await Fiscontable.empresaActiva(); } catch (e) { empresaActiva = null; }
@@ -57,6 +60,13 @@ function prepararFiltros() {
 }
 function guardarFiltro() { try { localStorage.setItem("fc-descargas-filtro", JSON.stringify(FILTRO)); } catch (e) { /* nada */ } }
 function pasaFiltro(p) {
+    if (PAQUETE) {          // solo ese paquete: el entero si esta persona lo tiene; si no, los de sus empresas
+        if (p.grupo !== PAQUETE) return false;
+        return !(p.tipo === "envio_parte" && Fiscontable.descargas.tieneEntero(p, window._ultimosProcesos));
+    }
+    // El paquete de una sola empresa: quien tiene todas las empresas lo ve con «Solo esta empresa»; con «Todas» trabaja
+    // con el entero (aunque ya lo haya quitado de su lista: los sueltos siguen ahí para su equipo, no para él)
+    if (p.tipo === "envio_parte" && p.parte_de_todo && !(FILTRO.empresa === "activa" && empresaActiva)) return false;
     if (p.estado === "procesando") return true;                      // lo que sigue trabajando siempre se ve
     if (FILTRO.cuando !== "todo") {
         const f = new Date(String(p.creado_en).length <= 19 ? p.creado_en + "Z" : p.creado_en);
@@ -186,6 +196,28 @@ function cerrarMotivos() {
 
 document.addEventListener("keydown", (e) => { if (e.key === "Escape") cerrarMotivos(); });
 
+function verTodas() { PAQUETE = ""; try { history.replaceState(null, "", location.pathname); } catch (e) { /* nada */ } pintarDeNuevo(); }
+
+/* «Limpiar lista»: quita lo que se está viendo en «Listos para descargar» (con los filtros puestos), de una vez. */
+async function limpiarListos() {
+    const D = Fiscontable.descargas;
+    const listos = D.sinProgramadas(window._ultimosProcesos || []).filter(pasaFiltro).filter(p => p.estado === "completado");
+    if (!listos.length) return;
+    const si = await Fiscontable.confirmar({
+        titulo: "¿Quitar " + (listos.length === 1 ? "esta descarga" : "estas " + listos.length + " descargas") + " de la lista?", si: "Limpiar", peligro: true,
+        texto: "Se quitan de Mis descargas y se borra su archivo de aquí. Son las que estás viendo con los filtros puestos. " +
+               "Tus XML siguen en Administración de XML y lo que ya bajaste a tu equipo no se toca. De todos modos se borran solas a los días."
+    });
+    if (!si) return;
+    try {
+        const resp = await fetch(`${API_URL}/api/procesos/quitar`, { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ procesos: listos.map(p => ({ clase: p.clase, id: p.id })) }) });
+        if (!resp.ok) { mostrarAviso(await Fiscontable.leerError(resp)); return; }
+    } catch (e) { mostrarAviso("No se pudo conectar con el servidor."); return; }
+    await cargarDescargas(true);
+    document.dispatchEvent(new Event("fc-descargas-refrescar"));
+}
+
 async function limpiarTodosLosFallidos() {
     if (!(await Fiscontable.confirmar({ titulo: "¿Quitar todas las que no se completaron?", texto: "Solo salen de esta lista; no se borra nada que ya se haya descargado.", si: "Quitar todas" }))) return;
     const fallidos = (window._ultimosProcesos || []).filter(p => p.estado !== "completado" && p.estado !== "procesando");
@@ -242,6 +274,13 @@ function pintarProcesos(todos) {
         const listos = procesos.filter(p => p.estado === "completado");
         const atencion = procesos.filter(p => p.estado !== "procesando" && p.estado !== "completado");
 
+        const nota = document.getElementById("dsc-paquete");
+        if (nota) {
+            nota.hidden = !PAQUETE;
+            if (PAQUETE) nota.innerHTML = (listos.length ? "Estás viendo solo el paquete de ese envío. " : "Ese paquete ya no está: se borró o pasaron sus días. ") +
+                '<button type="button" class="xml-enlace" data-fc-clic="verTodas">Ver todas las descargas</button>';
+        }
+        const limpiar = document.getElementById("dsc-limpiar"); if (limpiar) limpiar.hidden = !!PAQUETE || !listos.length;
         document.getElementById("seccion-preparando").classList.toggle("hidden", preparando.length === 0);
         document.getElementById("seccion-listos").classList.toggle("hidden", listos.length === 0);
         document.getElementById("seccion-atencion").classList.toggle("hidden", atencion.length === 0);

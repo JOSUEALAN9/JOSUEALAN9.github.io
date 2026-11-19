@@ -114,8 +114,18 @@
 .ev-hecho__pie { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; font-size: var(--t-12); color: rgb(var(--g-600)); }
 .ev-hecho__pie .ui-btn { margin-left: auto; }
 .ev-hecho__pie .ui-btn + .ui-btn { margin-left: 0; }
+.ev-hecho__botones { margin-left: auto; display: inline-flex; gap: 6px; flex: none; }
+.ev-hecho__botones .ui-btn { margin-left: 0; }
 .ev-hecho__error { margin: 0; font-size: var(--t-13); color: rgb(var(--er-600)); }
 .ev-hecho__aviso { color: rgb(var(--er-600)); }
+.ev-hecho__resumen { margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; font-size: var(--t-13); color: rgb(var(--g-800)); }
+.ev-hecho__resumen b { font-weight: 600; }
+.ev-hecho__det { border-top: 1px solid var(--linea); margin-top: 2px; padding-top: 6px; }
+.ev-hecho__det summary { cursor: pointer; font-size: var(--t-12); font-weight: 600; color: rgb(var(--ac-700, var(--ac-600))); list-style: none; display: inline-flex; align-items: center; gap: 6px; padding: 2px 0; }
+.ev-hecho__det summary::-webkit-details-marker { display: none; }
+.ev-hecho__det summary::before { content: "▸"; display: inline-block; transition: transform .15s; }
+.ev-hecho__det[open] summary::before { transform: rotate(90deg); }
+.ev-hecho__det ul { margin-top: 6px; }
 @media (max-width: 640px) { .ev-excel__fila { grid-template-columns: minmax(0, 1fr); } .ev-acciones .ui-btn:first-child { margin-right: 0; } }
 
 /* correos como pastillas (como en Cloudflare): se escribe, y con Enter, coma o espacio queda la pastilla con su × */

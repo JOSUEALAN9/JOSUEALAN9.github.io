@@ -1944,7 +1944,7 @@
         return !!p.grupo && (todos || []).some(function (q) { return q.tipo === "envio" && q.grupo === p.grupo; });
     }
     function sinPartes(procesos) {
-        return (procesos || []).filter(function (p) { return !(p.tipo === "envio_parte" && tieneEntero(p, procesos)); });
+        return (procesos || []).filter(function (p) { return !(p.tipo === "envio_parte" && (p.parte_de_todo || tieneEntero(p, procesos))); });
     }
     function esperaMadrugada(p) { return p.clase === "programada" && p.estado === "procesando"; }
     function sinProgramadas(procesos) { return (procesos || []).filter(function (p) { return !esperaMadrugada(p); }); }
