@@ -4,15 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Envíos por correo | Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611192340">
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611192340">
-    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611192340">
-    <link rel="stylesheet" href="/herramientas/envios/envios.css?v=202611192340">
+    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611192355">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611192355">
+    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611192355">
+    <link rel="stylesheet" href="/herramientas/envios/envios.css?v=202611192355">
 </head>
 <body class="min-h-screen flex flex-col">
 <div id="app-header" data-modulo="envios" data-titulo="Envíos por correo" data-migas="Herramientas|/herramientas/"></div>
-<script src="/assets/js/nucleo.js?v=202611192340"></script>
-<script src="/assets/js/barra.js?v=202611192340"></script>
+<script src="/assets/js/nucleo.js?v=202611192355"></script>
+<script src="/assets/js/barra.js?v=202611192355"></script>
 
 <main class="flex-grow mod-pagina">
     <div class="mod-cabeza">
@@ -194,8 +194,9 @@
         <p class="ui-ayuda" id="ev-ahora-nota"></p>
     </div>
     <div class="fc-modal__pie">
-        <button type="button" class="ui-btn ui-btn--secundario ui-btn--36" data-ev="cerrar-ahora">Cancelar</button>
-        <button type="button" id="ev-ahora-si" class="ui-btn ui-btn--primario ui-btn--36">Enviar ahora</button>
+        <button type="button" class="ui-btn ui-btn--terciario ui-btn--36" data-ev="cerrar-ahora">Cancelar</button>
+        <button type="button" id="ev-ahora-ya" class="ui-btn ui-btn--secundario ui-btn--36" title="Sale con lo que ya hay, sin revisar contra el SAT">Enviar ya</button>
+        <button type="button" id="ev-ahora-si" class="ui-btn ui-btn--primario ui-btn--36">Validar primero</button>
     </div>
 </dialog>
 
@@ -209,6 +210,6 @@
     </div>
 </dialog>
 
-<script src="/herramientas/envios/envios.js?v=202611192340"></script>
+<script src="/herramientas/envios/envios.js?v=202611192355"></script>
 </body>
 </html>

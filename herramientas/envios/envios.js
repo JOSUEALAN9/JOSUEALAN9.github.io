@@ -39,7 +39,7 @@
     function de(lista, clave) { return (lista.find(function (x) { return x.clave === clave; }) || {}).nombre || clave; }
     var ESTADOS = { enviado: ["Enviado", "ok"], sin_novedades: ["Nada que mandar (no se envió)", "info"], sin_novedades_avisado: ["Nada que mandar (se avisó)", "info"],
                     error: ["No salió", "error"], armando: ["Verificando y armando…", "aviso"] };
-    var VERIFICA = { completo: "ok", parcial: "aviso", pendiente: "aviso", sin: "aviso" };
+    var VERIFICA = { completo: "ok", parcial: "aviso", pendiente: "aviso", sin: "aviso", omitida: "aviso" };
 
     /* ============================================================ correos como pastillas
        Como el campo de correos de Cloudflare: se escribe uno y con Enter, coma, espacio o al salir del campo queda como
@@ -109,6 +109,7 @@
         if (a.fase === "fila") return "En la fila: empieza en cuanto termine el envío anterior.";
         if (a.fase === "verificando") return "Pidiendo al SAT la lista del mes…";
         if (a.fase === "validando") return a.total ? "Validando ante el SAT: " + miles(a.hechos) + " de " + miles(a.total) + "…" : "Validando ante el SAT…";
+        if (a.fase === "documentos") return a.total ? "Pidiendo al SAT la constancia u opinión nueva: " + miles(a.hechos) + " de " + miles(a.total) + "…" : "Revisando la constancia y la opinión…";
         if (a.fase === "esperando") return "Esperando la lista del SAT: llegaron " + miles(a.hechos) + " de " + miles(a.total) + " empresas (espera hasta " + (E.esperaListas || 15) + " min)…";
         return "Armando el ZIP y mandando el correo…";
     }
@@ -505,9 +506,12 @@
         $("ev-ahora-desde").value = $("ev-ahora-hasta").value = mesDe(new Date(h.getFullYear(), h.getMonth() - 1, 1));
         document.querySelector('input[name="ev-ahora-periodo"][value="siempre"]').checked = true;
         $("ev-ahora-mes-caja").hidden = true; $("ev-ahora-calculo").hidden = true;
-        $("ev-ahora-nota").textContent = "Se valida ante el SAT el estado de cada comprobante y se espera hasta " + (E.esperaListas || 15) +
-            " minutos a que entregue la lista de cada empresa (para comprobar que no falte ninguno). No cambia la fecha del próximo envío automático.";
-        $("ev-ahora-si").disabled = false;
+        // 19-nov (Alan): «Validar primero» o «Enviar ya». Validar revisa contra el SAT (lista de cada mes con corte a ayer
+        // 23:59, estado de cada comprobante, constancia y opinión de más de 30 días); «Enviar ya» sale con lo que hay
+        $("ev-ahora-nota").textContent = "«Validar primero» revisa contra el SAT que no falte ninguno (el mes en curso, con corte a ayer 23:59) y el estado de cada comprobante, " +
+            "y pide la constancia u opinión si la guardada tiene más de 30 días. Puede tardar hasta " + (E.esperaListas || 15) + " minutos. " +
+            "«Enviar ya» sale en seguida con lo que hay y el correo dice que no se verificó. No cambia la fecha del próximo envío automático.";
+        $("ev-ahora-si").disabled = $("ev-ahora-ya").disabled = false;
         if (!$("ev-ahora").open) $("ev-ahora").showModal();
         calcularAhora();
     }
@@ -520,8 +524,9 @@
     }
     /* Antes de mandar, cuánto llevaría y cuánto pesaría (19-nov: con 12 meses y muchas empresas el ZIP puede ser grande). */
     async function calcularAhora() {
-        var e = E.ahoraDe, caja = $("ev-ahora-calculo"), b = $("ev-ahora-si"), otro = document.querySelector('input[name="ev-ahora-periodo"]:checked').value === "otro";
+        var e = E.ahoraDe, caja = $("ev-ahora-calculo"), si = $("ev-ahora-si"), ya = $("ev-ahora-ya"), otro = document.querySelector('input[name="ev-ahora-periodo"]:checked').value === "otro";
         if (!e) return;
+        var b = { set disabled(v) { si.disabled = ya.disabled = v; } };          // los dos botones van juntos
         var meses = otro ? mesesAhora() : [], tope = (E.op && E.op.max_meses_ahora) || 12, pedido = ++E.calculoN;
         if (otro && meses.length > tope) {
             caja.className = "ev-ahora__calculo ev-ahora__calculo--error"; caja.hidden = false;
@@ -539,14 +544,15 @@
             b.disabled = !r.se_puede;
         } catch (err) { if (pedido === E.calculoN) { caja.hidden = true; b.disabled = false; } }
     }
-    async function mandarAhora() {
-        var e = E.ahoraDe, b = $("ev-ahora-si"); if (!e) return;
+    async function mandarAhora(validar) {
+        var e = E.ahoraDe, b = $("ev-ahora-si"), ya = $("ev-ahora-ya"); if (!e) return;
         var otro = document.querySelector('input[name="ev-ahora-periodo"]:checked').value === "otro";
-        b.disabled = true;
+        var antes = b.disabled;
+        b.disabled = ya.disabled = true;
         try {
-            await mandar("/api/entregas/" + encodeURIComponent(e.id) + "/enviar", "POST", { meses: otro ? mesesAhora() : [] });
+            await mandar("/api/entregas/" + encodeURIComponent(e.id) + "/enviar", "POST", { meses: otro ? mesesAhora() : [], validar: validar !== false });
             $("ev-ahora").close(); E.esperando = true; abrirHistorial(e); await cargar();
-        } catch (err) { b.disabled = false; fallo(err); }
+        } catch (err) { b.disabled = antes; ya.disabled = antes; fallo(err); }
     }
 
     /* ============================================================ el historial */
@@ -567,10 +573,11 @@
                 if (m.excel.length) partes.push(plural(m.excel.length, "Excel", "Excel"));
                 return esc(m.mes.slice(5) + "/" + m.mes.slice(0, 4) + " (" + partes.join(", ") + ")");
             }).join(" · ");
-            var docs = (d.docs || []).map(function (x) { return (x.tipo === "csf" ? "constancia" : "opinión 32-D") + (x.fecha ? " del " + x.fecha.slice(8, 10) + "/" + x.fecha.slice(5, 7) : ""); })
+            var docs = (d.docs || []).map(function (x) { return (x.tipo === "csf" ? "constancia" : "opinión 32-D") + (x.fecha ? " del " + x.fecha.slice(8, 10) + "/" + x.fecha.slice(5, 7) + (x.vieja ? "/" + x.fecha.slice(0, 4) + " (vieja)" : "") : ""); })
                 .concat((d.sin_docs || []).map(function (x) { return "sin " + (x === "csf" ? "constancia" : "opinión 32-D") + " guardada"; })).join(", ");
             var ver = d.verificacion ? '<br><small><span class="ui-estado ui-estado--' + (VERIFICA[d.verificacion.estado] || "info") + '">' + esc(d.verificacion.texto) + "</span>" +
                 (d.validacion && d.validacion.pendientes ? " · " + d.validacion.pendientes + " sin validar su estado (el SAT no respondió)" : "") + "</small>" : "";
+            ver += (d.docs || []).filter(function (x) { return x.nota; }).map(function (x) { return '<br><small class="ev-hecho__nota">' + esc(x.nota.replace(/^./, function (c) { return c.toUpperCase(); })) + ".</small>"; }).join("");
             var todoPeriodo = (d.excel_periodo || []).length ? esc("todo el periodo (" + plural(d.excel_periodo.length, "Excel", "Excel") + ")") : "";
             return "<li><b>" + esc(d.alias) + "</b>: " + ([meses || (docs || todoPeriodo ? "" : "nada del periodo"), todoPeriodo, esc(docs)].filter(Boolean).join(" · ")) + ver + "</li>";
         }).join("");
@@ -598,6 +605,7 @@
         return '<article class="ev-hecho"><header><b>' + esc(cuando(v.momento, true)) + '</b><span class="ui-estado ui-estado--' + est[1] + '">' + esc(est[0]) + "</span></header>" +
             (v.error ? '<p class="ev-hecho__error">' + esc(v.error) + "</p>" : "") +
             (v.detalle && v.detalle.retomado && v.estado !== "error" ? '<small class="ev-hecho__retomado">Se retomó solo después de un reinicio del servidor.</small>' : "") +
+            (v.verificado_texto && v.estado !== "error" ? '<small class="ev-hecho__verificado' + (v.detalle.verificado && v.detalle.verificado.validar === false ? " ev-hecho__verificado--sin" : "") + '">' + esc(v.verificado_texto) + "</small>" : "") +
             (resumen.length || lista ? '<p class="ev-hecho__resumen">' + (resumen.length ? "<b>" + esc(resumen.join(" · ")) + "</b>" : "") + lista + "</p>" : "") +
             '<div class="ev-hecho__pie"><span>A ' + esc((v.para || []).join(", ")) + " · " + esc(v.quien === "programado" ? "automático" : "lo pidió " + v.quien) + "</span>" + pie + "</div>" +
             (lineas ? '<details class="ev-hecho__det"><summary>Detalle por empresa</summary><ul>' + lineas + "</ul></details>" : "") + "</article>";
@@ -660,7 +668,8 @@
             if (ev.target.name === "ev-ahora-periodo") $("ev-ahora-mes-caja").hidden = ev.target.value !== "otro";
             if (ev.target.name === "ev-ahora-periodo" || ev.target.id === "ev-ahora-desde" || ev.target.id === "ev-ahora-hasta") calcularAhora();
         });
-        $("ev-ahora-si").addEventListener("click", mandarAhora);
+        $("ev-ahora-si").addEventListener("click", function () { mandarAhora(true); });
+        $("ev-ahora-ya").addEventListener("click", function () { mandarAhora(false); });
         $("ev-lista").addEventListener("change", async function (ev) {
             var i = ev.target.closest('[data-accion="activar"]'); if (!i) return;
             var e = deTarjeta(i); if (!e) return;

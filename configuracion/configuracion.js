@@ -961,6 +961,8 @@
                 if (!q) return '<small class="cf-auto__cuadre" title="' + esc(expl + " Empieza cuando terminen de bajar sus XML.") + '">Cuadre SAT: en espera</small>';
                 var det = [expl, "Última revisión: " + (q.ultima ? dia(q.ultima) : "—")];
                 if (q.faltaban) det.push("faltaban " + q.faltaban + (q.pedidos ? " (se pidieron " + q.pedidos + ")" : ""));
+                // 19-nov: un mes cuenta cuando ya no espera XML; se vuelve a contar en cuanto termina de bajar lo que faltaba
+                if (q.esperando) det.push(q.esperando + " mes(es) esperando los XML que faltaban" + (q.por_llegar ? " (" + q.por_llegar + " por llegar)" : "") + ": cuentan en cuanto terminen de bajar");
                 if (q.cancelados_nuevos) det.push(q.cancelados_nuevos + " pasaron a cancelados");
                 if (q.errores) det.push(q.errores + " mes(es) por volver a pedir");
                 return '<small class="cf-auto__cuadre" data-cuadre title="' + esc(det.join(" · ")) + '">Cuadre SAT: ' + q.cuadrados + " de " + q.total + " meses" +
