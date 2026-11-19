@@ -27,9 +27,16 @@
 
     async function api(ruta, opciones) {
         var resp = await fetch(API + ruta, Object.assign({ credentials: "include" }, opciones || {}));
-        if (!resp.ok) { var err = new Error(await Fiscontable.leerError(resp)); err.status = resp.status; throw err; }
+        if (!resp.ok) {
+            var d = null; try { d = await resp.clone().json(); } catch (e) { /* sin cuerpo JSON */ }
+            var err = new Error(await Fiscontable.leerError(resp)); err.status = resp.status;
+            err.estado = d && d.detail && typeof d.detail === "object" ? d.detail.estado : null;    // «sin_confirmar» y demás (19-nov)
+            throw err;
+        }
         return resp;
     }
+    /* El servidor no sabe si el PAC alcanzó a timbrarla (se perdió la respuesta): 409 con detail.estado. No es «No se timbró» */
+    function sinConfirmar(e) { return !!e && e.status === 409 && ["timbrando", "sin_confirmar", "revisar"].indexOf(e.estado) !== -1; }
     async function json(ruta, opciones) { return (await api(ruta, opciones)).json(); }
     function enviar(ruta, metodo, cuerpo) {
         return json(ruta, { method: metodo, headers: { "Content-Type": "application/json" }, body: JSON.stringify(cuerpo) });
@@ -153,6 +160,8 @@
         try { F.recurrentes = await json("/api/facturacion/recurrentes?rfc=" + encodeURIComponent(F.empresa.rfc)); } catch (e) { F.recurrentes = []; }
         caja.hidden = !F.recurrentes.length;
         caja.innerHTML = F.recurrentes.length ? "<b>Hoy toca facturar:</b> " + F.recurrentes.map(function (x) {
+            /* 19-nov: si la de hoy quedó sin confirmar con el PAC, no se ofrece timbrarla a mano (sería otra factura) */
+            if (x.recurrente.revisando) return "<span>" + esc(x.nombre) + (x.total != null ? " (" + dinero(x.total) + ")" : "") + '</span> <small class="fa-nota">revisando con el PAC si se timbró; no la vuelvas a timbrar</small>';
             return '<button type="button" class="fa-link" data-recurrente="' + esc(x.id) + '">' + esc(x.nombre) + (x.total != null ? " (" + dinero(x.total) + ")" : "") + "</button>" +
                 (x.recurrente.error ? ' <small class="fa-mal">no se pudo timbrar sola: ' + esc(x.recurrente.error) + "</small>" : "");
         }).join(" · ") : "";
@@ -1018,7 +1027,7 @@
         var rfcR = $("r-rfc").value.trim().toUpperCase();
         return {
             lugar_expedicion: lugarElegido(),
-            clave_envio: F.claveEnvio, cotizacion_id: F.facturandoCot || null,
+            clave_envio: F.claveEnvio, cotizacion_id: F.facturandoCot || null, recurrente_id: F.recurrenteId || null,
             tipo: F.tipo, metodo_pago: $("p-metodo").value, forma_pago: $("p-forma").value,
             condiciones: $("p-condiciones").value.trim() || null,
             moneda: $("p-moneda").value, tipo_cambio: $("p-moneda").value === "USD" ? $("p-tc").value.trim() : null,
@@ -1044,7 +1053,7 @@
         if (!F.cfg || !F.cfg.produccion || !F.emisor || F.emisor.manifiesto) return false;
         F.actAbierto = "manifiesto"; pintarActivar();
         $("activar").scrollIntoView({ behavior: "smooth", block: "start" });
-        var err = $("t-error"); err.textContent = "Falta el manifiesto del PAC: complétalo arriba, en «Activar facturación»."; err.hidden = false;
+        var err = $("t-error"); err.classList.remove("fa-error--revisando"); err.textContent = "Falta el manifiesto del PAC: complétalo arriba, en «Activar facturación»."; err.hidden = false;
         return true;
     }
 
@@ -1082,7 +1091,7 @@
 
     async function prepararTimbrado() {
         if (faltaManifiesto()) return;
-        var err = $("t-error");
+        var err = $("t-error"); err.classList.remove("fa-error--revisando");
         err.hidden = true;
         var malo = revisarConceptos();
         if (malo) { err.textContent = malo; err.hidden = false; return; }
@@ -1130,7 +1139,7 @@
             try { r = await enviar("/api/facturacion/timbrar", "POST", { rfc: F.emisor.rfc, captura: F.pendiente }); }
             catch (e) {
                 if (e.status === 428) { $("dlg-confirmar").close(); F.emisor.manifiesto = false; abrirManifiesto(true); return; }
-                if (e.status !== 409 || !(await Fiscontable.preguntar(e.message + "\n\nAcepta solo si de verdad es otra factura."))) throw e;
+                if (sinConfirmar(e) || e.status !== 409 || !(await Fiscontable.preguntar(e.message + "\n\nAcepta solo si de verdad es otra factura."))) throw e;
                 F.pendiente.confirmar_duplicado = true;
                 r = await enviar("/api/facturacion/timbrar", "POST", { rfc: F.emisor.rfc, captura: F.pendiente });
             }
@@ -1161,7 +1170,11 @@
             }
         } catch (e) {
             $("dlg-confirmar").close();
+            /* Sin confirmar (19-nov): la respuesta del PAC se perdió. El formulario se queda igual (misma clave): volver a
+               apretar no timbra otra, solo dice cómo va; en Emitidas aparece «Revisando con el PAC…» */
+            $("t-error").classList.toggle("fa-error--revisando", sinConfirmar(e));
             $("t-error").textContent = e.message; $("t-error").hidden = false;
+            if (sinConfirmar(e)) cargarEmitidas();
         }
         b.disabled = false; b.textContent = "Timbrar";
     }
@@ -1317,6 +1330,10 @@
         if (!F.empresa) return;
         try { F.emitidas = await json("/api/facturacion/comprobantes?rfc=" + encodeURIComponent(F.empresa.rfc)); }
         catch (e) { F.emitidas = []; $("filas-emitidas").innerHTML = '<tr><td colspan="6">' + esc(e.message) + "</td></tr>"; return; }
+        /* Timbrados que todavía no se confirman con el PAC (19-nov): van aparte, arriba de la lista */
+        try { F.intentos = await json("/api/facturacion/intentos?rfc=" + encodeURIComponent(F.empresa.rfc)); } catch (e) { F.intentos = []; }
+        clearTimeout(F.esperaIntentos);
+        if (F.intentos.some(function (x) { return x.estado !== "revisar"; })) F.esperaIntentos = setTimeout(cargarEmitidas, 30000);
         cargarReceptores();
         $("lista-facturas").innerHTML = F.emitidas.filter(function (x) { return x.tipo !== "P" && x.estado !== "cancelado"; })
             .map(function (x) { return '<option value="' + esc(x.uuid) + '">' + esc((x.serie ? x.serie + "-" : "") + x.folio + " · " + x.receptor_nombre + " · " + dinero(x.total)) + "</option>"; }).join("");
@@ -1331,7 +1348,21 @@
         });
         F.emitVisibles = filas.map(function (x) { return x.id; });
         F.selEmit = F.selEmit || {};
-        $("filas-emitidas").innerHTML = filas.length ? filas.map(function (x) {
+        var pendientes = (F.intentos || []).filter(function (x) {
+            if (f === "cancelado" || (f && x.tipo !== f)) return false;
+            return !q || [x.receptor_nombre, x.receptor_rfc, (x.serie || "") + x.folio, (x.serie || "") + "-" + x.folio].join(" ").toLowerCase().indexOf(q) !== -1;
+        }).map(function (x) {
+            var revisar = x.estado === "revisar";
+            return '<tr data-intento="' + esc(x.id) + '"><td class="fa-col-check"></td><td>' + esc(fechaCorta(x.fecha)) + "</td>" +
+                "<td><b>" + esc((x.serie ? x.serie + "-" : "") + x.folio) + "</b><small>" + ({ I: "Factura", E: "Nota de crédito", P: "Recibo de pago" }[x.tipo] || "") + "</small></td>" +
+                "<td>" + esc(x.receptor_nombre || "") + "<small>" + esc(x.receptor_rfc || "") + "</small></td>" +
+                '<td class="fa-num">' + dinero(x.total) + "</td>" +
+                "<td>" + (revisar ? '<span class="fa-chip fa-chip--mal" title="' + esc(x.ultimo_error || "") + '">Por revisar</span>'
+                    : '<span class="fa-chip fa-chip--proceso" title="No sabemos todavía si el SAT la timbró. No la vuelvas a timbrar.">Revisando con el PAC…</span>') +
+                (x.pruebas ? ' <span class="fa-chip fa-chip--prueba">Prueba</span>' : "") + "</td>" +
+                '<td class="fa-acc">' + (revisar ? '<button type="button" class="fa-acc-btn" data-acc="no_se_timbro" title="Ya revisaste en el SAT que no existe">No se timbró</button>' : "") + "</td></tr>";
+        }).join("");
+        $("filas-emitidas").innerHTML = pendientes + (filas.length || !pendientes ? (filas.length ? filas.map(function (x) {
             var estado = x.estado === "cancelado" ? '<span class="fa-chip fa-chip--mal">Cancelada</span>'
                 : x.estado === "cancelando" ? '<span class="fa-chip fa-chip--proceso" title="Se pidió la cancelación; el SAT la está procesando">Cancelación en proceso</span>'
                 : '<span class="fa-chip fa-chip--ok">Vigente</span>';
@@ -1356,7 +1387,7 @@
                 '<div class="fa-mas"><button type="button" class="fa-acc-btn fa-acc-btn--mas" data-menu aria-label="Más acciones" title="Más acciones">⋯</button>' +
                 '<div class="fa-mas__menu" hidden>' + mas.map(function (m) { return '<button type="button" data-acc="' + m[0] + '"' + (m[2] ? ' class="fa-mas__rojo"' : "") + ">" + m[1] + "</button>"; }).join("") + "</div></div>" +
                 "</div></td></tr>";
-        }).join("") : '<tr><td colspan="7">' + (F.emitidas.length ? "Nada coincide." : "Todavía no hay facturas de esta empresa.") + "</td></tr>";
+        }).join("") : '<tr><td colspan="7">' + (F.emitidas.length ? "Nada coincide." : "Todavía no hay facturas de esta empresa.") + "</td></tr>") : "");
         pintarSeleccion();
     }
 
@@ -1418,6 +1449,18 @@
                   (r.estatus_cancelacion ? " (" + r.estatus_cancelacion.toLowerCase() + ")" : "") + (r.es_cancelable && r.estado === "Vigente" ? " · " + r.es_cancelable : "") + ".");
             await cargarEmitidas();
         } catch (e) { aviso(e.message, "error"); if (boton) { boton.disabled = false; boton.textContent = "SAT"; } }
+    }
+
+    /* Un timbrado «Por revisar» (ya no se pudo confirmar solo con el PAC): la persona revisó en el SAT que no existe */
+    async function resolverIntento(iid, b) {
+        var x = (F.intentos || []).filter(function (y) { return y.id === iid; })[0];
+        if (!x || !(await Fiscontable.preguntar("¿Confirmas que la " + (x.serie ? x.serie + "-" : "") + x.folio + " NO se timbró?\n\n" +
+            "Hazlo solo si ya revisaste en el SAT (Descarga masiva o Administración de XML) que no existe. El folio queda sin usar.\n" +
+            "Si sí la encuentras, súbela a Administración de XML y aparecerá aquí sola."))) return;
+        b.disabled = true;
+        try { await enviar("/api/facturacion/intentos/" + encodeURIComponent(iid) + "/resolver", "POST", { accion: "no_se_timbro" }); aviso("Listo: quedó como no timbrada. Ya puedes hacerla de nuevo.", "ok"); }
+        catch (e) { aviso(e.message, "error"); b.disabled = false; }
+        cargarEmitidas();
     }
 
     function abrirCancelar(id) {
@@ -1587,7 +1630,7 @@
 
     async function prepararPago() {
         if (faltaManifiesto()) return;
-        var err = $("pg-error"); err.hidden = true;
+        var err = $("pg-error"); err.hidden = true; err.classList.remove("fa-error--revisando");
         try {
             var cap = pagoCaptura();
             var r = await enviar("/api/facturacion/pagos/revisar", "POST", { rfc: F.emisor.rfc, pago: cap });
@@ -1619,7 +1662,12 @@
             $("dlg-listo").showModal();
             await cargarEmitidas();
             cargarPendientes();
-        } catch (e) { $("dlg-confirmar").close(); $("pg-error").textContent = e.message; $("pg-error").hidden = false; }
+        } catch (e) {
+            $("dlg-confirmar").close();
+            $("pg-error").classList.toggle("fa-error--revisando", sinConfirmar(e));
+            $("pg-error").textContent = e.message; $("pg-error").hidden = false;
+            if (sinConfirmar(e)) cargarEmitidas();
+        }
         F.confirmando = null;
         b.disabled = false; b.textContent = "Timbrar";
     }
@@ -2079,7 +2127,7 @@
 
     /* ---------------------------------------------------- vista previa */
     async function vistaPrevia() {
-        var err = $("t-error"), b = $("btn-vista");
+        var err = $("t-error"), b = $("btn-vista"); err.classList.remove("fa-error--revisando");
         err.hidden = true; b.disabled = true; b.textContent = "Revisando…";
         try {
             var resp = await api("/api/facturacion/vista-previa", { method: "POST", headers: { "Content-Type": "application/json" },
@@ -2445,7 +2493,7 @@
         var bT = $("btn-xm-timbrar"), bG = $("btn-xm-ok");
         bT.disabled = true; bG.disabled = true; F.xmCorriendo = true;
         try { await guardarAltasExcel(); } catch (e) { aviso(e.message, "error"); }
-        var bien = 0, mal = 0;
+        var bien = 0, mal = 0, revisando = 0;
         for (var i = 0; i < buenas.length; i++) {
             var f = buenas[i], celda = document.querySelector('[data-xm="' + CSS.escape(f.clave) + '"] [data-estado]');
             bT.textContent = "Timbrando " + (i + 1) + " de " + buenas.length + "…";
@@ -2455,6 +2503,11 @@
                 bien++; f.errores = ["timbrada"];
                 if (celda) celda.innerHTML = '<span class="fa-estado-ok">✓ ' + esc((r.serie ? r.serie + "-" : "") + r.folio) + (r.repetido ? " (ya estaba)" : "") + "</span>";
             } catch (e) {
+                if (sinConfirmar(e)) {      // no se sabe si se timbró: NO se guarda como prefactura (se volvería a timbrar)
+                    revisando++; f.errores = ["timbrada"];
+                    if (celda) celda.innerHTML = '<span class="fa-estado-revisando">Revisando con el PAC si se timbró.<br><b>No la vuelvas a timbrar.</b></span>';
+                    continue;
+                }
                 mal++; f.errores = [e.message];
                 try { await enviar("/api/facturacion/borradores", "POST", { rfc: F.emisor.rfc, nombre: "Excel · " + f.clave + " · " + (f.cliente.nombre || f.cliente.rfc), captura: f.captura, total: f.total }); } catch (e2) { /* se ve en la tabla */ }
                 if (celda) celda.innerHTML = '<span class="fa-estado-mal">' + esc(e.message) + "<br><b>Quedó como prefactura.</b></span>";
@@ -2465,6 +2518,7 @@
         F.xmCorriendo = false;
         bT.textContent = "Listo"; $("dlg-masiva").querySelector("[data-cerrar]").textContent = "Cerrar";
         $("xm-resumen").innerHTML = "<b>Listo:</b> " + bien + " timbrada" + (bien === 1 ? "" : "s") + (mal ? " y " + mal + " con error al timbrar (quedaron como prefactura)." : ".") +
+            (revisando ? " " + revisando + " se está" + (revisando === 1 ? "" : "n") + " revisando con el PAC (aparecen en Emitidas en unos minutos; no las vuelvas a timbrar)." : "") +
             (corregir ? " " + corregir + " quedaron en Prefacturas «por corregir»." : "") + " Las timbradas ya están en Emitidas.";
         cargarEmitidas(); cargarBorradores(); cargarRecurrentes();
         if (F.cfg.produccion) json("/api/facturacion/config").then(function (c) { F.cfg.empresas = c.empresas; F.emisor = c.empresas.filter(function (x) { return x.rfc === F.emisor.rfc; })[0] || F.emisor; pintarEmisor(); }).catch(function () {});
@@ -3005,6 +3059,7 @@
                 return;
             }
             var b = ev.target.closest("[data-acc]"); if (!b) return;
+            if (b.dataset.acc === "no_se_timbro") { resolverIntento(b.closest("tr").dataset.intento, b); return; }
             var m0 = b.closest(".fa-mas__menu"); if (m0) m0.hidden = true;
             var id = b.closest("tr").dataset.id;
             if (b.dataset.acc === "xml") bajarXml(id);

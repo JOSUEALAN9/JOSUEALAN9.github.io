@@ -212,6 +212,9 @@
 .fa-asistente__pie { display: flex; align-items: center; gap: 10px; padding: 12px 20px 16px; border-top: 1px solid rgb(var(--g-100)); margin-top: 10px; }
 .fa-asistente__pie #btn-paso-sig { margin-left: auto; }
 .fa-error--linea { margin: 0; padding: 6px 10px; }
+/* 19-nov: «No sabemos si el SAT alcanzó a timbrarla»: aviso (ámbar), no error */
+.fa-error.fa-error--revisando { color: rgb(var(--av-600)); background: rgb(var(--av-50)); border-color: rgb(var(--av-200)); }
+.fa-estado-revisando { color: rgb(var(--av-600)); font-size: 12.5px; }
 .fa-seccion { margin-top: 18px; }
 .fa-seccion:first-child { margin-top: 0; }
 .fa-seccion__cabeza { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
