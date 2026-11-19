@@ -4,15 +4,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Declaraciones | Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611190023">
-    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611190023">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611191405">
+    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611191405">
 </head>
 <body class="min-h-screen flex flex-col">
 
-<div id="app-header"
+<div id="app-header" data-carriles="1"
      data-modulo="declaraciones"
      data-titulo="Declaraciones"
      data-migas="Herramientas|/herramientas/"></div>
+<script src="/assets/js/nucleo.js?v=202611191405"></script>
+<script src="/assets/js/barra.js?v=202611191405"></script>
 
 <main class="flex-grow w-full mod-pagina mod-pagina--angosta">
 
@@ -56,6 +58,8 @@
                 </button>
             </span>
         </label>
+        <!-- 19-nov-2026: la casilla de la autorización del titular (se esconde si esa empresa ya la tiene) -->
+        <div id="decl-autoriza" style="margin-top:12px"></div>
     </section>
 
     <!-- Paso 3: qué buscar -->
@@ -100,16 +104,15 @@
 
 </main>
 
-<script src="/assets/js/nucleo.js?v=202611190023"></script>
-<script src="/assets/js/barra.js?v=202611190023"></script>
-<script src="/assets/js/comun/leer-cer.js?v=202611190023"></script>
-<script src="/assets/js/comun/paso-cliente.js?v=202611190023"></script>
-<script src="/assets/js/comun/documentos-guardados.js?v=202611190023"></script>
-<script src="/herramientas/declaraciones/declaraciones.js?v=202611190023"></script>
-<script src="/assets/js/comun/acciones.js?v=202611190023"></script>
-<script src="/assets/js/comun/programar.js?v=202611190023"></script>
-<script src="/assets/js/comun/programacion.js?v=202611190023"></script>
-<script src="/herramientas/declaraciones/programacion.js?v=202611190023"></script>
+<script src="/assets/js/comun/leer-cer.js?v=202611191405"></script>
+<script src="/assets/js/comun/paso-cliente.js?v=202611191405"></script>
+<script src="/assets/js/comun/autorizacion-efirma.js?v=202611191405"></script>
+<script src="/assets/js/comun/documentos-guardados.js?v=202611191405"></script>
+<script src="/herramientas/declaraciones/declaraciones.js?v=202611191405"></script>
+<script src="/assets/js/comun/acciones.js?v=202611191405"></script>
+<script src="/assets/js/comun/programar.js?v=202611191405"></script>
+<script src="/assets/js/comun/programacion.js?v=202611191405"></script>
+<script src="/herramientas/declaraciones/programacion.js?v=202611191405"></script>
 
 </body>
 </html>

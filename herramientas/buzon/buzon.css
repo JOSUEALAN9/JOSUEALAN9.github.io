@@ -125,6 +125,11 @@
 .bz-pendientes { border: 2px solid rgb(var(--er-200)); background: rgb(var(--er-50)); border-radius: 12px; padding: 12px 14px; margin-bottom: 12px; font-size: 13.5px; color: rgb(var(--er-600)); }
 .bz-pendientes h3 { font-size: 15px; font-weight: 800; color: rgb(var(--er-600)); margin-bottom: 4px; }
 .bz-pendientes .bz-tabla { margin: 8px 0; background: rgb(var(--g-0)); border-radius: 8px; }
+/* 19-nov-2026: hasta cuándo se puede abrir cada pendiente */
+.bz-plazos { margin: 6px 0 8px; padding: 0; list-style: none; }
+.bz-plazos li { font-weight: 700; padding: 2px 0 2px 18px; position: relative; }
+.bz-plazos li::before { content: "⚠"; position: absolute; left: 0; }
+.bz-limite { display: block; font-size: 11px; font-weight: 700; color: rgb(var(--er-600)); white-space: nowrap; margin-top: 2px; }
 .bz-fila-nueva td { background: rgb(var(--in-50)); }
 .bz-tabla code { font-size: 12.5px; }
 

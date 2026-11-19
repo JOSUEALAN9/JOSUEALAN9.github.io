@@ -32,6 +32,21 @@
         Fiscontable.guardarArchivo(await resp.blob(), mt ? mt[1] : porDefecto);
     }
 
+    /* 19-nov-2026 (hueco 12): si el año todavía no tiene su salario mínimo o sus tasas cargadas, se usan los últimos
+       conocidos y aquí se dice («Salario mínimo de 2026: falta cargar el de 2027»). Lo decide el servidor (tablas.py). */
+    var avisosTablas = {};
+    async function revisarTablas(anio) {
+        anio = +anio || new Date().getFullYear();
+        if (!avisosTablas[anio]) {
+            try { avisosTablas[anio] = (await (await api("/api/isn/tablas?anio=" + anio)).json()).avisos || []; }
+            catch (e) { avisosTablas[anio] = []; }
+        }
+        var t = avisosTablas[anio], caja = $("aviso-tablas");
+        caja.textContent = t.length ? "⚠ " + t.join(" ") + " Mientras, se usan los últimos conocidos: revisa la tasa y el salario mínimo antes de presentar." : "";
+        caja.hidden = !t.length;
+        return t;
+    }
+
     /* ------------------------------------------------------------ empresa y año */
     async function iniciar() {
         if (!(await Fiscontable.exigirModulo("isn"))) return;
@@ -50,6 +65,7 @@
         abrir(deUrl || (E.empresa ? E.empresa.rfc : (E.empresas[0] && E.empresas[0].rfc)));
         if (q.get("abrir")) setTimeout(function () { abrirDesdeUrl(q.get("abrir")); }, 700);
         ponerVista(E.vista, true);
+        revisarTablas(E.anio);
         retomarTrabajo();
         window.addEventListener("fiscontable:empresa", function (e) { E.empresa = e.detail; if (e.detail) abrir(e.detail.rfc); });
     }
@@ -284,9 +300,12 @@
                 var l = E.lineas[+fila.dataset.linea];
                 fila.querySelector(".ln-imp").textContent = sm && l.trabajadores > 0 && l.dias > 0 ? "$" + m(Math.round(l.trabajadores * l.dias * sm * 100) / 100) : "—";
             });
+            var tablaSm = E.datos.salarios_minimos || {}, anioF = +$("f-anio").value, deAnio = tablaSm[anioF] ? anioF :
+                Math.max.apply(null, Object.keys(tablaSm).map(Number).filter(function (x) { return x <= anioF; }).concat([0]));
             $("nota-minimo").textContent = sm ? (usadas.length ? usadas.map(function (l) { return l.trabajadores + " × " + l.dias + " días"; }).join(" + ") : "0") +
-                " × $" + sm.toFixed(2) + " (salario mínimo " + $("f-anio").value + ", " +
-                (((E.datos.empresa && E.datos.empresa.zona) === "frontera") ? "frontera norte" : "zona general") + ")" : "No hay salario mínimo para ese año.";
+                " × $" + sm.toFixed(2) + " (salario mínimo " + deAnio + ", " +
+                (((E.datos.empresa && E.datos.empresa.zona) === "frontera") ? "frontera norte" : "zona general") + ")" +
+                (deAnio !== anioF ? ". ⚠ Falta cargar el de " + anioF + ": se usa el de " + deAnio + "." : "") : "No hay salario mínimo para ese año.";
         }
         var base = rsm + (+$("f-rot").value || 0), tasa = +$("f-tasa").value;
         var imp = tasa ? Math.round(Math.round(base) * tasa / 100) : null;   // como el portal: A en pesos, B = A × tasa
@@ -420,8 +439,10 @@
     function resumenPlantilla() {
         var a = +$("pl-anio").value, ms = +$("pl-mes").value;
         var tabla = (E.datos && E.datos.salarios_minimos) || {}, sm = tabla[a] && tabla[a].general;
+        var anios = Object.keys(tabla).map(Number), ultimo = anios.length ? Math.max.apply(null, anios) : null;
+        if (!sm && ultimo && a > ultimo) sm = tabla[ultimo].general;      // el último conocido, y se dice
         $("pl-resumen").textContent = MESES[ms - 1] + " " + a + ": " + new Date(a, ms, 0).getDate() + " días" +
-            (sm ? " · salario mínimo zona general $" + sm.toFixed(2) : "") + ".";
+            (sm ? " · salario mínimo zona general $" + sm.toFixed(2) + (ultimo && a > ultimo ? " (el de " + ultimo + "; falta cargar el de " + a + ")" : "") : "") + ".";
     }
 
     function abrirPresentar(anio, mes) {
@@ -731,7 +752,7 @@
             $("menu-empresa").hidden = true; abrir(b.dataset.rfc);
         });
         document.addEventListener("click", function () { $("menu-empresa").hidden = true; });
-        $("sel-anio").addEventListener("change", function () { E.anio = +this.value; cargar(); });
+        $("sel-anio").addEventListener("change", function () { E.anio = +this.value; cargar(); revisarTablas(E.anio); });
         $("btn-nuevo").addEventListener("click", function () { abrirForm(null); });
         $("tbody").addEventListener("click", function (e) {
             var acuse = e.target.closest("[data-acuse]");
@@ -784,7 +805,7 @@
         $("p-cancelar").addEventListener("click", function () { $("modal-presentar").hidden = true; });
         $("p-revisar").addEventListener("click", revisarEnPortal);
         document.querySelectorAll(".isn-pestanas button").forEach(function (b) { b.addEventListener("click", function () { ponerVista(b.dataset.vista); }); });
-        $("mv-anio").addEventListener("change", function () { E.mvMarcas = {}; cargarMasivo(); });
+        $("mv-anio").addEventListener("change", function () { E.mvMarcas = {}; cargarMasivo(); revisarTablas(this.value); });
         $("mv-mes").addEventListener("change", function () { E.mvMarcas = {}; cargarMasivo(); });
         $("mv-filas").addEventListener("change", function (e) {
             if (e.target.dataset.rfc) E.mvMarcas[e.target.dataset.rfc] = e.target.checked;

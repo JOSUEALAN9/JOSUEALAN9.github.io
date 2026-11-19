@@ -58,7 +58,7 @@
         var inv = datos.invitacion;
         if (!inv) return;
         $("dp-invitacion").hidden = false;
-        $("dp-invitacion-texto").textContent = (inv.invito ? inv.invito + " te invitó" : "Te invitaron") + " al despacho «" + inv.despacho +
+        $("dp-invitacion-texto").textContent = ((inv.invito_nombre || inv.invito) ? (inv.invito_nombre || inv.invito) + " te invitó" : "Te invitaron") + " al despacho «" + inv.despacho +
             "» como " + inv.papel + ".";
     }
 
@@ -325,18 +325,30 @@
             }).join(""));
         }
         var cuerpo = $("dp-bitacora");
-        cuerpo.innerHTML = '<tr><td colspan="4">Cargando…</td></tr>';
+        cuerpo.innerHTML = '<tr><td colspan="5">Cargando…</td></tr>';
         try {
             var r = await pedir("/api/despacho/bitacora" + (sel.value ? "?correo=" + encodeURIComponent(sel.value) : ""));
             var nombres = {};
             datos.equipo.forEach(function (m) { nombres[m.correo] = m.nombre || m.correo; });
             cuerpo.innerHTML = r.eventos.length ? r.eventos.map(function (e) {
                 return "<tr><td>" + esc(fecha(e.en)) + "</td><td>" + esc(nombres[e.correo] || e.correo) + "</td><td>" + esc(e.accion) +
-                    (e.detalle ? "<small>" + esc(e.detalle) + "</small>" : "") + '</td><td class="dp-rfc">' + esc((e.rfc || "").replace(/,/g, ", ")) + "</td></tr>";
-            }).join("") : '<tr><td colspan="4">Sin movimientos todavía.</td></tr>';
+                    (e.detalle ? "<small>" + esc(e.detalle) + "</small>" : "") + '</td><td class="dp-rfc">' + esc((e.rfc || "").replace(/,/g, ", ")) + "</td><td>" + resultadoBit(e.resultado) + "</td></tr>";
+            }).join("") : '<tr><td colspan="5">Sin movimientos todavía.</td></tr>';
         } catch (e) {
-            cuerpo.innerHTML = '<tr><td colspan="4">' + esc(e.message) + "</td></tr>";
+            cuerpo.innerHTML = '<tr><td colspan="5">' + esc(e.message) + "</td></tr>";
         }
+    }
+
+    /* 19-nov-2026 (Alan): el renglón de «Pidió…» dice cómo salió (el servidor lo une con el registro de trámites).
+       Los demás movimientos (cambios, descargas) no llevan resultado. */
+    function resultadoBit(r) {
+        if (!r) return "";
+        var clase = { bien: "dp-tra-ok", mal: "dp-tra-mal", proceso: "dp-tra-proceso", sin: "dp-tra-sin" }[r.estado] || "dp-tra-sin";
+        var marca = { bien: "✓ ", mal: "✕ " }[r.estado] || "";
+        var t = String(r.texto || ""), i = t.indexOf(": ");
+        // «No salió: <motivo>»: el motivo va abajo, en chico (como en Trámites con el SAT)
+        if (r.estado === "mal" && i > 0) return '<span class="' + clase + '">' + marca + esc(t.slice(0, i)) + "</span><small>" + esc(t.slice(i + 2)) + "</small>";
+        return '<span class="' + clase + '">' + marca + esc(t) + "</span>";
     }
 
     // ------------------------------------------------------------------ trámites con el SAT (registro)

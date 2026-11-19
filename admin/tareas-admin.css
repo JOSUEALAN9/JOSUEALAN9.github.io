@@ -1,0 +1,70 @@
+/* admin/tareas-admin.css — Sistema › Tareas automáticas (admin/tareas-admin.js). Prefijo tar-. */
+.tar-bloque { margin-bottom: 16px; }
+.tar-bloque[hidden] { display: none !important; }
+.tar-titulo { font-size: var(--t-16); font-weight: 700; margin: 0 0 4px; }
+.tar-nota { font-size: var(--t-13); color: rgb(var(--g-600)); margin: 0 0 10px; }
+.tar-aviso { font-size: var(--t-13); font-weight: 600; border-radius: 10px; padding: 10px 12px; margin: 0 0 12px; }
+.tar-aviso--ok { background: rgb(var(--ok-50, 236 253 245)); color: rgb(var(--ok-700, 4 120 87)); }
+.tar-aviso--mal { background: rgb(var(--av-50, 255 251 235)); color: rgb(var(--av-700, 180 83 9)); }
+.tar-reintentar { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; justify-content: space-between; border: 1px solid var(--linea);
+    border-radius: 10px; padding: 12px 14px; margin: 4px 0 6px; }
+.tar-reintentar small { color: rgb(var(--g-500)); font-size: var(--t-12); }
+.tar-btn { font-size: var(--t-12); font-weight: 700; color: rgb(var(--g-700)); background: rgb(var(--g-0)); border: 1px solid var(--linea);
+    border-radius: 8px; padding: 6px 12px; cursor: pointer; white-space: nowrap; }
+.tar-btn:hover:not(:disabled) { border-color: rgb(var(--g-400)); }
+.tar-btn:disabled { opacity: .45; cursor: default; }
+.tar-btn--primario { background: rgb(var(--g-800)); color: #fff; border-color: rgb(var(--g-800)); }
+.tar-btn--chico { padding: 4px 10px; }
+.tar-msj { display: block; font-size: var(--t-12); margin-top: 6px; min-height: 1em; }
+.tar-msj--ok { color: rgb(var(--ok-700, 4 120 87)); }
+.tar-msj--mal { color: rgb(var(--er-700, 185 28 28)); }
+.tar-config { margin-top: 12px; }
+.tar-config summary { cursor: pointer; font-size: var(--t-13); font-weight: 700; color: rgb(var(--g-700)); }
+.tar-rejilla { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; margin-top: 12px; }
+.tar-campo { display: flex; flex-direction: column; gap: 6px; min-width: 0; font-size: var(--t-13); font-weight: 600; }
+.tar-campo input { border: 1px solid var(--linea); border-radius: 8px; padding: 6px 8px; font-size: var(--t-14); max-width: 160px; }
+.tar-campo small { font-weight: 400; color: rgb(var(--g-500)); font-size: var(--t-12); }
+.tar-acciones { display: flex; align-items: center; gap: 12px; margin-top: 14px; }
+.tar-tabla-caja { overflow-x: auto; }
+.tar-tabla { width: 100%; border-collapse: collapse; font-size: var(--t-13); }
+.tar-tabla th { text-align: left; font-size: var(--t-11, 11px); text-transform: uppercase; letter-spacing: .04em; color: rgb(var(--g-500));
+    padding: 6px 8px; border-bottom: 1px solid var(--linea); }
+.tar-tabla tr[hidden] { display: none !important; }
+.tar-tabla td:first-child { min-width: 260px; }
+.tar-tabla td[data-t="Última"], .tar-tabla td[data-t="Próxima"], .tar-tabla td[data-t="Tardó"] { white-space: nowrap; }
+.tar-tabla td { padding: 6px 8px; border-bottom: 1px solid rgb(var(--g-100)); vertical-align: top; }
+.tar-tabla td small { display: block; color: rgb(var(--g-500)); font-size: var(--t-12); }
+.tar-detalle { max-width: 360px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tar-chip { display: inline-block; font-size: 11px; font-weight: 700; border-radius: 999px; padding: 1px 8px; background: rgb(var(--g-100)); color: rgb(var(--g-600)); }
+.tar-chip--ok { background: rgb(var(--ok-50, 236 253 245)); color: rgb(var(--ok-700, 4 120 87)); }
+.tar-chip--mal { background: rgb(var(--er-50, 254 242 242)); color: rgb(var(--er-700, 185 28 28)); }
+.tar-chip--azul { background: rgb(var(--in-50, 239 246 255)); color: rgb(var(--in-700, 29 78 216)); }
+/* En el celular cada tarea es una ficha compacta: nombre y botón arriba; resultado; última · tardó · próxima en una línea */
+@media (max-width: 640px) {
+    .tar-tabla thead { display: none; }
+    .tar-tabla, .tar-tabla tbody { display: block; width: 100%; }
+    .tar-tabla tr { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 10px; border: 1px solid var(--linea); border-radius: 10px;
+        padding: 8px 10px; margin-bottom: 8px; }
+    .tar-tabla td { border: 0; padding: 0; min-width: 0 !important; }
+    .tar-tabla td[data-t="Tarea"] { flex: 1 1 60%; }
+    .tar-tabla td:last-child { order: 2; }
+    .tar-tabla td[data-t="Resultado"] { order: 3; flex: 1 1 100%; }
+    .tar-tabla td[data-t="Última"], .tar-tabla td[data-t="Tardó"], .tar-tabla td[data-t="Próxima"] { order: 4; font-size: var(--t-12); color: rgb(var(--g-600)); }
+    .tar-tabla td[data-t="Última"]::before { content: "Última "; color: rgb(var(--g-400)); }
+    .tar-tabla td[data-t="Próxima"]::before { content: "Próxima "; color: rgb(var(--g-400)); }
+    .tar-tabla td[data-t="Próxima"] small { display: none; }
+    .tar-tabla td.tar-vacio { display: none; }
+    .tar-tabla td[data-t="Resultado"] small:empty { display: none; }
+    .tar-detalle { max-width: 100%; }
+}
+.tar-filtro { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; margin: 0 0 12px; border-bottom: 1px solid var(--linea); }
+.tar-filtro button { flex: none; }
+.tar-filtro button { font-size: var(--t-12); font-weight: 600; color: rgb(var(--g-600)); background: none; border: 0; border-bottom: 2px solid transparent;
+    padding: 6px 8px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; }
+.tar-filtro button small { color: rgb(var(--g-400)); font-weight: 400; }
+.tar-filtro .tar-filtro--activo { color: rgb(var(--g-900, 15 23 42)); border-bottom-color: rgb(var(--g-800)); }
+.tar-punto { width: 7px; height: 7px; border-radius: 50%; background: rgb(var(--er-600, 220 38 38)); display: inline-block; }
+
+/* 19-nov-2026: la fila en pausa porque el SAT no responde (core/disyuntor) */
+.tar-sat { margin-bottom: 10px; }
+.tar-sat .tar-aviso small { display: block; font-weight: 400; margin-top: 2px; }

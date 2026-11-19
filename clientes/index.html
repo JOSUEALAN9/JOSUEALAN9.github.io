@@ -4,16 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Clientes | Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611190023">
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611190023">
-    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611190023">
+    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611191405">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611191405">
+    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611191405">
 </head>
 <body class="min-h-screen flex flex-col relative">
 
     <!-- TOP NAV -->
     <div id="app-header" data-modulo="clientes" data-titulo="Clientes" data-migas=""></div>
-<script src="/assets/js/nucleo.js?v=202611190023"></script>
-<script src="/assets/js/barra.js?v=202611190023"></script>
+<script src="/assets/js/nucleo.js?v=202611191405"></script>
+<script src="/assets/js/barra.js?v=202611191405"></script>
 
     <!-- ÁREA DE TRABAJO -->
     <main class="flex-grow w-full mod-pagina" style="max-width:1180px">
@@ -217,6 +217,8 @@
             </div>
 
             <div class="px-7 py-5 border-t bg-white flex flex-col gap-3">
+                <!-- 19-nov-2026: con e.firma, contraseña del SAT o sellos, la casilla de la autorización del titular (obligatoria) -->
+                <div id="alta-autoriza" hidden></div>
                 <p id="alta-error" class="alta-error" role="alert" hidden></p>
                 <button type="submit" id="btn-guardar-cliente" class="w-full sm:w-auto sm:self-end sm:px-10 bg-violet-600 hover:bg-violet-500 text-white font-bold py-3 rounded-xl shadow-md transition disabled:opacity-60">Registrar empresa</button>
             </div>
@@ -301,6 +303,8 @@
 
                 <!-- ===== Accesos: e.firma y contraseña del SAT ===== -->
                 <section data-panel="accesos" class="flex flex-col gap-6" hidden>
+                    <!-- 19-nov-2026: la autorización del titular (se esconde si la empresa ya la tiene; aviso amable si ya tenía accesos) -->
+                    <div id="editar-autoriza" hidden></div>
                     <div class="ficha-caja">
                         <div class="flex items-start justify-between gap-3 mb-3">
                             <div>
@@ -534,8 +538,9 @@
         </div>
     </div>
 
-<script src="/assets/js/comun/leer-cer.js?v=202611190023"></script>
-<script src="/assets/js/comun/zona-archivos.js?v=202611190023"></script>
+<script src="/assets/js/comun/leer-cer.js?v=202611191405"></script>
+<script src="/assets/js/comun/zona-archivos.js?v=202611191405"></script>
+<script src="/assets/js/comun/autorizacion-efirma.js?v=202611191405"></script>
 <style>
 /* Entregas de empresas y «Pasar todas al despacho» (15-nov) */
 .cli-traspasos { display: grid; gap: 8px; margin: 0 0 14px; }
@@ -681,7 +686,7 @@
     .alta-despacho { margin-top: 8px; font-size: 13px; line-height: 1.45; border-radius: 10px; padding: 9px 12px; background: rgb(var(--in-50)); border: 1px solid rgb(var(--in-200)); color: rgb(var(--g-800)); }
     .alta-error { font-size: 13px; font-weight: 600; border-radius: 10px; padding: 10px 12px; background: rgb(var(--er-50)); border: 1px solid rgb(var(--er-200)); color: rgb(var(--er-600)); }
 </style>
-<script src="/assets/js/comun/importar-clientes.js?v=202611190023"></script>
+<script src="/assets/js/comun/importar-clientes.js?v=202611191405"></script>
 <!-- Varias constancias a la vez: obligaciones federales y alta de los que falten -->
 <dialog id="dlg-constancias" class="ui-modal" style="width:min(640px, calc(100vw - 32px))">
     <div class="ui-modal__cuerpo">
@@ -693,6 +698,6 @@
     </div>
     <div class="ui-modal__pie"><button type="button" class="ui-btn ui-btn--secundario" data-cerrar>Cerrar</button></div>
 </dialog>
-<script src="/clientes/clientes.js?v=202611190023"></script>
+<script src="/clientes/clientes.js?v=202611191405"></script>
 </body>
 </html>

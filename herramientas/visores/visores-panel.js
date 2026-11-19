@@ -76,7 +76,7 @@
         h += lado(r.emitidas, "Emitidas vigentes (SAT)") + lado(r.recibidas, "Recibidas vigentes (SAT)");
         if (r.emitidas && !r.emitidas.sin_datos) h += cifra("IVA trasladado (SAT)", dinero(r.emitidas.iva), "en tus facturas emitidas de ingreso", "", "facturas");
         if (r.nomina && (r.nomina.sueldos || r.nomina.asimilados)) {
-            var rn = r.nomina, sin = rn.sin_enterar || 0, mas = rn.de_mas || 0;
+            var rn = r.nomina, sin = (rn.sin_enterar >= 1 ? rn.sin_enterar : 0) + (rn.no_declarado || 0), mas = rn.de_mas || 0;
             h += cifra("Nómina (SAT)", dinero((rn.sueldos || 0) + (rn.asimilados || 0)),
                 esc("ISR retenido " + dinero(rn.isr_retenido) + (sin >= 1 ? " · sin enterar " + dinero(sin) : mas >= 1 ? " · enterado de más " + dinero(mas) : " · lo declarado está enterado") +
                     (rn.por_declarar ? " · por declarar " + dinero(rn.por_declarar) : "")), sin >= 1 ? "vn-mal" : mas >= 1 ? "vn-ojo" : "vn-bien", "nomina");
@@ -151,11 +151,16 @@
     /* ---------- Nómina */
     // 15-nov (pruebas 1 de Alan): tus XML separados en sueldos y asimilados, la diferencia del SAT con su signo (entre
     // paréntesis en el SAT = enteraste DE MÁS) y el Excel del SAT o por qué no salió.
+    /* 19-nov (Alan: «los meses no enterados deben decir no enterado en lugar de Cuadra»): lo retenido de un mes que ya
+       venció (día 17 del mes siguiente) y el SAT no ve declarado también es «sin enterar»; lo que todavía no vence, «por declarar». */
     function tarjetaDiferencia(t) {
         var meses = function (l) { return (l || []).join(", "); };
         var extra = t.por_declarar ? " · por declarar " + dinero(t.por_declarar) : "";
-        if (t.sin_enterar >= 1)
-            return cifra("Retenido sin enterar", dinero(t.sin_enterar), esc("en " + meses(t.meses_sin_enterar) + ": revisa esos pagos" +
+        var noDecl = t.no_declarado || 0;
+        if (t.sin_enterar >= 1 || noDecl >= 1)
+            return cifra("Retenido sin enterar", dinero((t.sin_enterar >= 1 ? t.sin_enterar : 0) + noDecl), esc(
+                (t.sin_enterar >= 1 ? "en " + meses(t.meses_sin_enterar) + ": revisa esos pagos" : "") +
+                (noDecl >= 1 ? (t.sin_enterar >= 1 ? " · " : "") + "sin declarar en " + meses(t.meses_no_declarado) + " (ya venció)" : "") +
                 (t.de_mas >= 1 ? " · enterado de más " + dinero(t.de_mas) : "") + extra), "vn-mal");
         if (t.de_mas >= 1)
             return cifra("Enterado de más", dinero(t.de_mas), esc("en " + meses(t.meses_de_mas) + ": pagaste más de lo retenido" + extra), "vn-ojo");
@@ -216,11 +221,15 @@
             '<th class="vs-num">ISR retenido</th><th class="vs-num">Contra el SAT</th><th></th></tr></thead><tbody>' +
             n.meses.map(function (f) {
                 var x = f[grupo] || null, xml = f["xml_" + grupo], dx = f["dif_xml_" + grupo], cu = f["cuadra_" + grupo];
-                var estado = cu == null ? (xml == null ? pill("sin recibos", "ojo") : (x ? "" : pill("sin SAT", "ojo"))) : cu ? pill(f.mixto ? "Cuadra *" : "Cuadra", "bien") : pill("No cuadra", "mal");
+                // 19-nov: la marca la arma el servidor (la misma del Excel del cruce): «Cuadra» solo si tus recibos = el SAT y
+                // lo enterado = lo retenido; sin enterado, «Sin enterar» (ya venció) o «Por enterar» (todavía no)
+                var res = f["resultado_" + grupo];
+                var estado = res ? pill(res.texto, res.tono) :
+                    cu == null ? (xml == null ? pill("sin recibos", "ojo") : (x ? "" : pill("sin SAT", "ojo"))) : cu ? pill(f.mixto ? "Cuadra *" : "Cuadra", "bien") : pill("No cuadra", "mal");
                 if (f.mixto) hayMixto = f.mixto;
                 return "<tr><td>" + esc(f.nombre.charAt(0).toUpperCase() + f.nombre.slice(1)) + "</td>" +
                     '<td class="vs-num">' + (x ? dinero(x.isr_retenido) : "—") + "</td>" +
-                    '<td class="vs-num">' + (!x ? "—" : x.isr_enterado == null ? pill("sin enterar", "ojo") : dinero(x.isr_enterado)) + "</td>" +
+                    '<td class="vs-num">' + (!x ? "—" : x.isr_enterado == null ? (res && /por enterar/i.test(res.texto) ? pill("por enterar", "info") : pill("sin enterar", "ojo")) : dinero(x.isr_enterado)) + "</td>" +
                     (x ? difSat(x.isr_enterado == null ? null : x.diferencia) : '<td class="vs-num">—</td>') +
                     '<td class="vs-num" title="' + esc((f["recibos_" + grupo] || 0) + " recibo(s)") + '">' + (xml == null ? "—" : dinero(xml)) + "</td>" +
                     '<td class="vs-num' + (dx != null && Math.abs(dx) >= 1 && xml != null && x ? " vs-dif" : "") + '">' + (dx == null || xml == null || !x ? "—" : dinero(dx)) + "</td>" +
@@ -231,9 +240,9 @@
             (!n.archivo && n.excel_motivo ? '<p class="vi-nota vn-aviso">El Excel del SAT no salió en esta lectura: ' + esc(n.excel_motivo) + ".</p>" : "") +
             bloqueDuplicados(n) +
             (n.revision && !n.revision.duplicados && n.revision.mixtos ? '<p class="vi-nota">Sin recibos duplicados. ' + num(n.revision.mixtos) + " caso(s) de sueldo y asimilado en el mismo mes: están en el «Excel del cruce», hoja «Sueldo y asimilado».</p>" : "") +
-            (hayMixto ? '<p class="vi-nota">* Cuadra: el SAT cuenta en sueldos ' + dinero(hayMixto.isr_asimilados) + " de ISR de asimilados de " + num(hayMixto.trabajadores) +
+            (hayMixto ? '<p class="vi-nota">* Tus recibos cuadran: el SAT cuenta en sueldos ' + dinero(hayMixto.isr_asimilados) + " de ISR de asimilados de " + num(hayMixto.trabajadores) +
                 " trabajador(es) que ese mes también cobraron sueldo (su renglón de asimilados es solo de pagos exclusivos de asimilados).</p>" : "") +
-            '<p class="vi-nota">Retenido: el ISR de los CFDI de nómina que timbraste. Enterado: el que pagaste en tus declaraciones. Diferencia en rojo: retenido que el SAT no ve pagado; con signo menos: enteraste más de lo retenido (el SAT la pone entre paréntesis). «Tus recibos» suma el ISR de tus XML de nómina de ' +
+            '<p class="vi-nota">Retenido: el ISR de los CFDI de nómina que timbraste. Enterado: el que pagaste en tus declaraciones. Diferencia en rojo: retenido que el SAT no ve pagado; con signo menos: enteraste más de lo retenido (el SAT la pone entre paréntesis). «Cuadra»: tus recibos = lo retenido y lo enterado = lo retenido; sin enterado, «Sin enterar» si ya venció (día 17 del mes siguiente) o «Por enterar» si todavía no. «Tus recibos» suma el ISR de tus XML de nómina de ' +
             (grupo === "asimilados" ? "asimilados (régimen 05 a 11)" : "sueldos y salarios") + ", por mes de pago.</p>";
         caja.innerHTML = html;
     }

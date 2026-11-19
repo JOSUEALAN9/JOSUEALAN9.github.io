@@ -481,7 +481,10 @@
         try { e = await api("/api/mi-cuenta/ciclo"); } catch (x) { e = {}; }
         var texto = "Descarga en un archivo ZIP todo lo que tienes en Fiscontable: XML, constancias, opiniones y declaraciones, acomodados por empresa.";
         var botones = propia ? '<button type="button" class="cf-btn cf-btn--principal" data-ciclo="exportar">Descargar todo</button>' : "";
-        if (e.etapa === "gracia") {
+        var inv = !perfil.viendo_como && perfil.despacho && perfil.despacho.invitacion;
+        if (inv) {
+            texto = "Tienes una invitación pendiente al despacho «" + inv.despacho + "». Al aceptarla, tu acceso lo da la licencia del despacho. " + texto;
+        } else if (e.etapa === "gracia") {
             texto = "Tu plan venció el " + fecha(e.vence) + ". La cuenta sigue funcionando hasta el " + fecha(e.gracia_hasta) + "; después quedará en solo lectura.";
         } else if (e.etapa === "solo_lectura") {
             texto = "Tu plan venció el " + fecha(e.vence) + " y la cuenta está en solo lectura. " +
@@ -584,7 +587,7 @@
                 else if (a.tipo.indexOf("entero:") === 0) { var lim = a.tipo.split(":"); campo = '<input type="number" id="' + id + '" data-fb="' + esc(a.clave) + '" min="' + lim[1] + '" max="' + lim[2] + '" value="' + esc(a.valor) + '">'; }
                 else campo = '<select id="' + id + '" data-fb="' + esc(a.clave) + '">' + a.tipo.split(":")[1].split(",").map(function (o) {
                     return '<option value="' + esc(o) + '"' + (o === a.valor ? " selected" : "") + ">" + esc({ ambos: "Emitidos y recibidos", recibidos: "Solo recibidos", emitidos: "Solo emitidos",
-                        diaria: "Cada madrugada", semanal: "Cada semana", mensual: "Cada mes" }[o] || o) + "</option>"; }).join("") + "</select>";
+                        diaria: "Cada madrugada", semanal: "Cada semana", mensual: "Cada mes", quincenal: "Cada 15 días" }[o] || (o.charAt(0).toUpperCase() + o.slice(1))) + "</option>"; }).join("") + "</select>";
                 return '<label class="cf-campo cf-campo--corto"><span>' + esc(a.titulo) + "</span>" + campo + "</label>";
             };
             c.innerHTML = '<p class="cf-texto cf-fabrica__intro">Quien no lo ha cambiado sigue lo de aquí, aunque lo cambies después. ' +
@@ -870,7 +873,9 @@
         ].filter(function (p) { return p.si; });
         c.innerHTML = '<p class="cf-texto cf-auto__intro">Corre de madrugada con la e.firma guardada de cada empresa. Lo que se enciende solo al ' +
             "guardar una e.firma nueva lo verás aquí también.</p>" +
+            '<div class="cf-auto__nosalio" hidden></div>' +
             partes.map(function (p) { return '<div class="cf-tarjeta cf-tarjeta--plana" data-auto-parte="' + p.clave + '"><div></div></div>'; }).join("");
+        pintarNoSalio(c.querySelector(".cf-auto__nosalio"));
         partes.forEach(function (p) { p.pintar(c.querySelector('[data-auto-parte="' + p.clave + '"] > div')); });
         subPestanas(c, partes.map(function (p) { return p.nombre; }), "automatico");
         var pedido = Fiscontable.url("sub"), i = partes.map(function (p) { return p.clave; }).indexOf(pedido === "buzon" ? "xml" : pedido);   // el Buzón ya va en la tabla
@@ -892,6 +897,26 @@
                 setTimeout(function () { clearInterval(espera); }, 8000);
             }
         }
+    }
+
+    /* 19-nov: «Reintentar lo que no salió» — lo de las madrugadas de la última semana que no salió (solo de esta cuenta) */
+    async function pintarNoSalio(caja) {
+        if (!caja) return;
+        var d;
+        try { d = await api("/api/programadas/no-salio"); } catch (e) { return; }
+        if (!d || !d.total) { caja.hidden = true; return; }
+        var que = Object.keys(d.por_modulo || {}).map(function (k) { return d.por_modulo[k] + " de " + k; }).join(", ");
+        caja.innerHTML = '<div><b>' + d.total + (d.total === 1 ? " trámite de la madrugada no salió" : " trámites de la madrugada no salieron") + "</b>" +
+            "<small>En la última semana" + (que ? ": " + esc(que) : "") + ". Se vuelven a programar en la madrugada que toca.</small></div>" +
+            '<button type="button" class="cf-btn" data-reintentar>Reintentar lo que no salió</button>';
+        caja.hidden = false;
+        caja.querySelector("[data-reintentar]").addEventListener("click", async function (ev) {
+            var b = ev.currentTarget; b.disabled = true;
+            try {
+                var r = await enviar("/api/programadas/reintentar", "POST", {});
+                caja.innerHTML = '<div><b>✓ ' + esc(r.mensaje) + "</b><small>Lo verás en Descargas y aquí, en Lo programado.</small></div>";
+            } catch (x) { b.disabled = false; aviso(caja.parentNode, false, x.message); }
+        });
     }
 
     /* ---------- Descarga automática de XML ---------- */
@@ -941,6 +966,13 @@
                 return '<small class="cf-auto__cuadre" data-cuadre title="' + esc(det.join(" · ")) + '">Cuadre SAT: ' + q.cuadrados + " de " + q.total + " meses" +
                     (q.cancelados_nuevos ? '<span class="cf-auto__cancelados">' + q.cancelados_nuevos + (q.cancelados_nuevos === 1 ? " cancelado" : " cancelados") + "</span>" : "") + "</small>";
             };
+            // 19-nov: la primera vez se baja el historial desde «Desde» en varias noches (nunca a costa de lo del día)
+            var historial = function (e) {
+                var h = e.historial;
+                if (!h) return "";
+                return '<small class="cf-auto__historial" title="Lo de meses anteriores se baja de noche en noche, después de lo del día.">Cargando historial: ' +
+                    h.hechos + " de " + h.total + " meses</small>";
+            };
             var bzFrec = bz ? '<label class="cf-campo cf-campo--corto cf-auto__buzon"><span>Revisar los buzones</span><select id="cf-buzon-frec">' +
                 Object.keys(bz.frecuencias).sort(function (a, b) { return (+a || 99) - (+b || 99); }).map(function (k) {
                     return '<option value="' + k + '"' + (+k === bz.frecuencia ? " selected" : "") + ">" + esc(bz.frecuencias[k]) + "</option>"; }).join("") + "</select></label>" : "";
@@ -955,7 +987,7 @@
                         '<td><label class="cf-switch" title="También sus CFDI de Retenciones"><input type="checkbox" data-c="retenciones"' + (e.retenciones ? " checked" : "") + "><span></span></label></td>" +
                         "<td><select data-c=\"frecuencia\">" + opc(cfg.frecuencias, e.frecuencia) + "</select></td>" +
                         '<td><select data-c="desde">' + Fiscontable.opcionesDesde(cfg.desde_minimo, cfg.mes_actual, e.desde || "") + "</select></td>" +
-                        "<td>" + (e.activo && x.efirma_guardada ? "<b>" + esc(dia(e.proxima)) + "</b>" + (e.ultima ? "<small>Última: " + esc(dia(e.ultima)) + "</small>" : "") + cuadre(e) : "—") + "</td>" : "") +
+                        "<td>" + (e.activo && x.efirma_guardada ? "<b>" + esc(dia(e.proxima)) + "</b>" + (e.ultima ? "<small>Última: " + esc(dia(e.ultima)) + "</small>" : "") + historial(e) + cuadre(e) : "—") + "</td>" : "") +
                         (conBuzon ? '<td><label class="cf-switch" title="Revisar su Buzón Tributario"><input type="checkbox" data-buzon' + ((b ? b.activo : true) && x.efirma_guardada ? " checked" : "") +
                             (x.efirma_guardada ? "" : " disabled") + "><span></span></label></td>" : "") +
                         (conXml ? '<td class="cf-celda-acciones"><button type="button" class="cf-btn cf-btn--chico" data-guardar>Guardar</button>' +

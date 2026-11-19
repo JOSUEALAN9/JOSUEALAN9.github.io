@@ -295,13 +295,26 @@
             '<p class="xml-tenue" style="font-size:12px;margin-top:12px">' + esc(mes) + " según los XML guardados (vigentes y sin validar; notas de crédito restan). Es un estimado: el cálculo fino está en IVA y Conciliación.</p>";
     }
 
+    /* ---------------------------------------------------------------- el primer cuadro
+       19-nov-2026 (Alan: «brinquito» al cargar): el tablero se arma con varias respuestas (pasos, resumen, tabla) y cada
+       una empujaba lo de abajo. Mientras llega lo primero queda invisible (main.tb-cargando, ocupa su lugar) y se descubre
+       de una vez. Si algo tarda más de 5 s, se descubre igual. */
+    var cargando = { pasos: true, vista: true };
+    function descubrir(que) {
+        if (que) cargando[que] = false;
+        if (cargando.pasos || cargando.vista) return;
+        var m = document.querySelector("main.tb-cargando"); if (m) m.classList.remove("tb-cargando");
+    }
+    setTimeout(function () { cargando.pasos = cargando.vista = false; descubrir(); }, 5000);
+
     /* ---------------------------------------------------------------- vistas */
     function verVista(v) {
         E.vista = v; guardarVista(v);
         document.querySelectorAll("#tb-vista [data-vista]").forEach(function (b) { b.setAttribute("aria-pressed", String(b.dataset.vista === v)); });
         $("tb-despacho").hidden = v !== "despacho";
         $("tb-empresa").hidden = v !== "empresa";
-        if (v === "despacho") cargarDespacho(); else cargarEmpresa();
+        Promise.resolve(v === "despacho" ? cargarDespacho() : cargarEmpresa()).catch(function () { /* cada una enseña su error */ })
+            .then(function () { descubrir("vista"); });
     }
     $("tb-vista").addEventListener("click", function (e) { var b = e.target.closest("[data-vista]"); if (b) verVista(b.dataset.vista); });
     ["tb-resumen", "tb-cierre"].forEach(function (id) {
@@ -343,9 +356,10 @@
         var p = ev.detail;
         var nombre = p && (p.nombre || (p.correo || "").split("@")[0]);
         $("saludo").textContent = nombre ? "Hola, " + nombre.split(" ")[0] : "Bienvenido";
-        if (!p || arrancado) return;
+        if (!p || arrancado) { if (!p) { cargando.pasos = cargando.vista = false; descubrir(); } return; }
         arrancado = true;
         recientes();
+        if (/@fiscontable\.invalid$/.test(p.correo || "") || p.viendo_como) descubrir("pasos");
         // Cuenta de revisión (Microsoft Store): en vez de «Configura tu cuenta», un recorrido por la pantalla (una vez)
         var revision = /@fiscontable\.invalid$/.test(p.correo || "");
         if (revision) {
@@ -356,11 +370,13 @@
                     "después, el botón «?» de cada pantalla explica cómo se usa."]);
             }, 1200);
         } else if (!p.viendo_como) {
-            pasosCuenta();
+            pasosCuenta().catch(function () { /* sin pasos */ }).then(function () { descubrir("pasos"); });
             // Cuentas nuevas: un recorrido por la pantalla, una sola vez (después queda en el botón «?» de cada módulo).
             // Espera a que el perfil esté completo para no encimarse con la ventana de bienvenida.
             var yaVio = true; try { yaVio = localStorage.getItem("fc-recorrido:bienvenida") === "1"; } catch (e) { /* nada */ }
-            if (!yaVio && p.rol !== "admin" && p.perfil_completo && Fiscontable.recorrido) setTimeout(function () {
+            // Con una invitación pendiente a un despacho, primero la invitación: el recorrido sale ya dentro del despacho
+            var invitado = !!(Fiscontable.invitacionPendiente && Fiscontable.invitacionPendiente());
+            if (!yaVio && !invitado && p.rol !== "admin" && p.perfil_completo && Fiscontable.recorrido) setTimeout(function () {
                 if (document.querySelector("dialog[open], .fc-tour, #fc-bloqueo-pantalla:not([hidden])")) return;
                 Fiscontable.recorrido("bienvenida", ["Te damos la bienvenida a Fiscontable. Este recorrido muestra las partes principales de la pantalla; " +
                     "después, el botón «?» de cada módulo explica cómo se utiliza."]);

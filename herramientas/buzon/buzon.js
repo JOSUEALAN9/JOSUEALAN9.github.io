@@ -85,14 +85,15 @@
     function pintarResumen() {
         var r = E.panel.resumen;
         var tarjetas = [
-            { n: r.pendientes, t: "Notificaciones pendientes", d: "Sin abrir en el SAT", c: "roja" },
+            // 19-nov-2026: con la fecha en que la más próxima se tiene por notificada si no se abre (arts. 134 fr. I y 17-K CFF)
+            { n: r.pendientes, t: "Notificaciones pendientes", d: r.pendientes && r.limite_notificacion ? "Sin abrir en el SAT. Si no se abre, la más próxima se tiene por notificada el " + diaSemana(r.limite_notificacion) : "Sin abrir en el SAT", c: "roja" },
             { n: r.cancelaciones, t: "Cancelaciones por responder", d: "Dentro del plazo de 3 días hábiles", c: "ambar" },
             { n: r.por_atender, t: "Nuevos por ver", d: "Comunicados y notificaciones", c: "azul" },
             { n: r.errores, t: "Revisiones con error", d: r.sin_efirma ? r.sin_efirma + " empresa(s) sin e.firma guardada" : "Todo se pudo revisar", c: r.errores ? "roja" : "gris" }
         ];
         $("resumen").innerHTML = tarjetas.map(function (x) {
             // 18-nov: la explicación de cada cifra sale al pasar el cursor; visible solo la que avisa de algo (empresas sin e.firma)
-            var avisa = x.t === "Revisiones con error" && r.sin_efirma;
+            var avisa = (x.t === "Revisiones con error" && r.sin_efirma) || (x.t === "Notificaciones pendientes" && x.n && r.limite_notificacion);
             return '<div class="bz-tarjeta bz-tarjeta--' + (x.n ? x.c : "gris") + '" title="' + esc(x.d) + '"><strong>' + x.n + "</strong><span>" + x.t + "</span>" + (avisa ? "<small>" + esc(x.d) + "</small>" : "") + "</div>";
         }).join("");
     }
@@ -123,7 +124,9 @@
                 '<td><button type="button" class="bz-empresa-btn" data-abrir="' + esc(e.rfc) + '"><b>' + esc(e.alias || e.rfc) + "</b><small>" + esc(e.rfc) + "</small></button></td>" +
                 '<td class="num">' + (e.nuevos ? '<span class="bz-cuenta">' + e.nuevos + "</span>" : '<span class="bz-tenue">0</span>') + "</td>" +
                 "<td>" + canc + "</td>" +
-                '<td class="num">' + (e.pendientes ? '<span class="bz-cuenta bz-cuenta--roja">' + e.pendientes + "</span>" : '<span class="bz-tenue">0</span>') + "</td>" +
+                '<td class="num">' + (e.pendientes ? '<span class="bz-cuenta bz-cuenta--roja">' + e.pendientes + "</span>" +
+                    (e.limite_notificacion ? '<small class="bz-limite" title="Si no se abre, se tiene por notificada ese día">hasta ' + esc(diaSemana(e.limite_notificacion)) + "</small>" : "")
+                    : '<span class="bz-tenue">0</span>') + "</td>" +
                 "<td>" + estadoRevision(e) + "</td>" +
                 '<td><label class="bz-switch"><input type="checkbox" data-activo="' + esc(e.rfc) + '"' + (e.activo && e.efirma ? " checked" : "") + (e.efirma ? "" : " disabled") +
                 '><span></span></label></td>' +
@@ -447,8 +450,10 @@
         var html = "";
         if (pend.length) {
             html += '<div class="bz-pendientes"><h3>Notificaciones pendientes (' + pend.length + ")</h3>" +
+                // 19-nov-2026 (Alan): cada una dice hasta cuándo puede abrirse antes de tenerse por notificada
+                '<ul class="bz-plazos">' + pend.map(function (x) { return "<li>" + esc(x.aviso_texto || "Tienes una notificación del SAT sin abrir.") + "</li>"; }).join("") + "</ul>" +
                 "<p><b>Las revisiones nunca las abren.</b> Si la abres con tu e.firma quedas notificado en ese momento y empiezan a correr los plazos. " +
-                "Si no la abres, el SAT te tiene por notificado al cuarto día hábil después del aviso (art. 17-K del CFF); en ese momento se descargan automáticamente sus documentos.</p>" +
+                "Tienes tres días hábiles, contados desde el día siguiente al aviso; si no la abres, el SAT te tiene por notificado el cuarto (arts. 134 fr. I y 17-K del CFF). En ese momento se descargan automáticamente sus documentos.</p>" +
                 '<div class="bz-tabla-caja"><table class="bz-tabla"><thead><tr><th>Folio</th><th>Autoridad</th><th>Acto</th><th>Aviso</th><th>Quedas notificado</th>' + (puedeAbrir ? "<th></th>" : "") + "</tr></thead><tbody>" +
                 pend.map(function (x) {
                     var ap = x.apertura && x.apertura.estado === "error" ? '<span class="bz-apertura">Último intento de abrirla: ' + esc(x.apertura.mensaje) + "</span>" : "";

@@ -13,10 +13,21 @@
      })
    Un renglón puede juntar varios archivos (una declaración con su acuse, detalle y línea de captura):
      { id, celdas, docs: [{ id, etiqueta, nombre, url, titulo }] } → cada archivo sale como botón; las casillas y el ZIP
-     usan todos sus archivos. */
+     usan todos sus archivos.
+   19-nov-2026 (Alan: «alguna opción para contraer los meses»):
+     - agrupar: true → los renglones traen { grupo, grupoTitulo } (en orden) y salen bajo un encabezado plegable con
+       cuántos tiene cada grupo; el primero abierto y los demás cerrados. Al buscar se abren todos.
+     - una celda puede ser { texto, pastilla, etiqueta } → sale como pastilla corta (p. ej. Portal: nuevo / anterior). */
 (function () {
     "use strict";
     var esc = function (t) { return Fiscontable.escapar(t == null ? "" : String(t)); };
+    var textoCelda = function (c) { return c && typeof c === "object" ? (c.texto == null ? "" : String(c.texto)) : (c == null ? "" : String(c)); };
+    function pintarCelda(c) {
+        // etiqueta: en el celular no hay encabezados de columna, así que la pastilla dice de qué es («Portal: Nuevo»)
+        if (c && typeof c === "object" && c.pastilla) return '<span class="fc-docs-pastilla fc-docs-pastilla--' + esc(c.pastilla) + '"' +
+            (c.etiqueta ? ' data-etiqueta="' + esc(c.etiqueta) + ': " title="' + esc(c.etiqueta + ": " + c.texto) + '"' : "") + ">" + esc(c.texto) + "</span>";
+        return esc(textoCelda(c));
+    }
     var E = {};
 
     function dialogo() {
@@ -54,6 +65,8 @@
             pintar();
         });
         q("filas").addEventListener("click", function (ev) {
+            var g = ev.target.closest("[data-grupo]");
+            if (g) { if (E.cerrados[g.dataset.grupo]) delete E.cerrados[g.dataset.grupo]; else E.cerrados[g.dataset.grupo] = 1; pintar(); return; }
             var b = ev.target.closest("[data-accion]"); if (!b) return;
             var x = E.docs.filter(function (y) { return String(y.id) === b.dataset.id; })[0]; if (!x) return;
             if (b.dataset.accion === "enviar") { if (E.op.enviar) E.op.enviar(x); return; }
@@ -93,22 +106,36 @@
             var r = await E.op.cargar(valor);
             E.docs = r.documentos || [];
             E.q("nota").textContent = r.nota || "";
+            // Agrupados: abierto solo el primer grupo (el más reciente); los demás, cerrados
+            E.cerrados = {};
+            if (E.op.agrupar) E.docs.forEach(function (x, i) { if (i && x.grupo !== E.docs[0].grupo) E.cerrados[x.grupo] = 1; });
         } catch (e) { E.docs = []; E.q("error").textContent = e.message; E.q("error").hidden = false; }
         pintar();
     }
 
     function visibles() {
         var b = (E.q("buscar").value || "").trim().toLowerCase();
-        return E.docs.filter(function (x) { return !b || x.celdas.join(" ").toLowerCase().indexOf(b) !== -1; });
+        return E.docs.filter(function (x) { return !b || (x.celdas.map(textoCelda).join(" ") + " " + (x.grupoTitulo || "")).toLowerCase().indexOf(b) !== -1; });
     }
 
     function pintar() {
         var filas = visibles(), todos = filas.length && filas.every(function (x) { return E.marcados[x.id]; });
         E.q("cabeza").innerHTML = '<tr><th class="fc-docs-check"><input type="checkbox" data-todos title="Marcar todos"' + (todos ? " checked" : "") + "></th>" +
             E.op.columnas.map(function (c) { return "<th>" + esc(c) + "</th>"; }).join("") + '<th class="fc-docs-acc">' + (E.docs.some(function (x) { return x.docs; }) ? "Documentos" : "") + "</th></tr>";
+        var buscando = !!(E.q("buscar").value || "").trim(), cuantos = {};
+        if (E.op.agrupar) filas.forEach(function (x) { cuantos[x.grupo] = (cuantos[x.grupo] || 0) + 1; });
+        var u = E.op.unidad || ["documento", "documentos"], previo = null;
         E.q("filas").innerHTML = filas.length ? filas.map(function (x) {
-            return '<tr><td class="fc-docs-check"><input type="checkbox" data-sel="' + esc(x.id) + '"' + (E.marcados[x.id] ? " checked" : "") + "></td>" +
-                x.celdas.map(function (c, i) { return "<td" + (i === 0 ? ' class="fc-docs-principal"' : "") + ">" + esc(c) + "</td>"; }).join("") +
+            var cabeza = "";
+            if (E.op.agrupar && x.grupo !== previo) {
+                previo = x.grupo;
+                var abierto = buscando || !E.cerrados[x.grupo], n = cuantos[x.grupo];
+                cabeza = '<tr class="fc-docs-grupo"><td colspan="99"><button type="button" class="fc-docs-grupo__btn" data-grupo="' + esc(x.grupo) + '" aria-expanded="' + abierto + '">' +
+                    '<span class="fc-docs-grupo__flecha" aria-hidden="true"></span><b>' + esc(x.grupoTitulo || x.grupo) + '</b><span class="fc-docs-grupo__n">' + n + " " + (n === 1 ? u[0] : u[1]) + "</span></button></td></tr>";
+            }
+            if (E.op.agrupar && !buscando && E.cerrados[x.grupo]) return cabeza;
+            return cabeza + '<tr><td class="fc-docs-check"><input type="checkbox" data-sel="' + esc(x.id) + '"' + (E.marcados[x.id] ? " checked" : "") + "></td>" +
+                x.celdas.map(function (c, i) { return "<td" + (i === 0 ? ' class="fc-docs-principal"' : "") + ">" + pintarCelda(c) + "</td>"; }).join("") +
                 '<td class="fc-docs-acc">' + (x.docs && x.docs.length
                     ? x.docs.map(function (a) { return '<button type="button" class="fc-docs-chip" data-accion="ver" data-id="' + esc(x.id) + '" data-doc="' + esc(a.id) + '" title="Ver ' + esc(a.etiqueta) + '">' + esc(a.etiqueta) + "</button>"; }).join("")
                     : '<button type="button" class="fc-docs-btn" data-accion="ver" data-id="' + esc(x.id) + '">' +
@@ -180,7 +207,7 @@
 
     Fiscontable.documentosGuardados = function (op) {
         var d = dialogo();
-        E.op = op; E.docs = []; E.marcados = {};
+        E.op = op; E.docs = []; E.marcados = {}; E.cerrados = {};
         E.q("titulo").textContent = op.titulo || "Documentos guardados";
         E.q("sub").textContent = op.subtitulo || "";
         E.q("buscar").value = "";

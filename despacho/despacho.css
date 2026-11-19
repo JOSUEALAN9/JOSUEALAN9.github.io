@@ -59,6 +59,19 @@
 .dp-tra-filtros { display: flex; flex-wrap: wrap; gap: 8px; }
 .dp-tra-ok { color: rgb(var(--ok-700)); font-weight: 600; }
 .dp-tra-mal { color: rgb(var(--er-600)); font-weight: 600; }
+.dp-tra-proceso { color: rgb(var(--g-700)); font-weight: 600; }
+.dp-tra-sin { color: rgb(var(--g-500)); }
+/* Bitácora en el celular: cada movimiento es una tarjeta (cuándo y quién arriba; qué, empresa y resultado abajo), sin tabla deslizable */
+@media (max-width: 640px) {
+    .dp-tabla.dp-tabla--bitacora thead { display: none; }
+    .dp-tabla.dp-tabla--bitacora, .dp-tabla--bitacora tbody, .dp-tabla--bitacora tr { display: block; }
+    .dp-tabla.dp-tabla--bitacora tr { padding: 10px 2px; border-bottom: 1px solid rgb(var(--g-100)); }
+    .dp-tabla.dp-tabla--bitacora td { display: inline; border: 0; padding: 0; }
+    .dp-tabla.dp-tabla--bitacora td:nth-child(2)::before { content: " · "; color: rgb(var(--g-400)); }
+    .dp-tabla.dp-tabla--bitacora td:nth-child(n+3) { display: block; margin-top: 3px; }
+    .dp-tabla.dp-tabla--bitacora td:empty { display: none; }
+    .dp-tabla.dp-tabla--bitacora td[colspan] { display: block; }
+}
 .dp-tra-como { display: block; font-size: 12px; color: rgb(var(--g-600)); font-weight: 400; }
 @media (max-width: 640px) { .dp-tra-filtros, .dp-tra-filtros .dp-filtro-persona { width: 100%; min-width: 0; } }
 .dp-tabla-caja { overflow-x: auto; max-width: 100%; }

@@ -30,6 +30,7 @@
     var esc = Fiscontable.escapar;
 
     var elegido = null;          // {rfc, alias, esCliente, efirmaGuardada, cer?, nombreCert?}
+    var autMsat = null;          // la casilla de la autorización del titular del formulario de la e.firma
     var paso = null;             // el paso "¿Para quién?" montado
     var puedeGuardarEfirma = true;   // false en la Demo (lo decide el servidor)
     var estado = null;           // lo que el servidor sabe de ese RFC
@@ -313,8 +314,11 @@
                     esc(elegido.nombreCert || "") + '">' +
                 "</div>") +
 
+              '<div id="msat-autoriza" style="margin-top:12px"></div>' +
               '<button type="button" class="boton-principal" id="btn-generar">Generar ' + esc(MODULO.nombre) + "</button>" +
             "</div>");
+        // 19-nov-2026: la casilla de la autorización del titular (se esconde si esa empresa ya la tiene)
+        autMsat = window.FcAutorizacion ? window.FcAutorizacion.montar("msat-autoriza", { rfc: elegido.rfc }) : null;
 
         $("ver-password").addEventListener("click", function () {
             var c = $("password");
@@ -379,6 +383,10 @@
             alerta("error", "Faltan el .cer, el .key o la contraseña.");
             return;
         }
+        if (autMsat && !autMsat.exigir()) {
+            alerta("error", "Marca la casilla de la autorización del titular para usar su e.firma.");
+            return;
+        }
 
         var chkGuardar = $("chk-guardar");
         var quiereGuardar = !!(chkGuardar && chkGuardar.checked);
@@ -400,6 +408,7 @@
         cuerpo.append("descargar_csf", MODULO.tipo === "csf" ? "true" : String(adicional));
         cuerpo.append("descargar_32d", MODULO.tipo === "opinion" ? "true" : String(adicional));
         cuerpo.append("guardar_efirma", String(quiereGuardar));
+        cuerpo.append("autorizo", autMsat ? autMsat.valor() : "false");
         cuerpo.append("alias_cliente", alias);
 
         var boton = $("btn-generar");

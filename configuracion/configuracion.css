@@ -184,6 +184,12 @@
 .cf-casillas { display: flex; flex-wrap: wrap; gap: 6px 16px; }
 .cf-auto__buzon { margin: 4px 0 10px; }
 .cf-auto__cuadre { white-space: nowrap; margin-top: 2px; cursor: help; }
+.cf-auto__historial { display: block; white-space: normal; margin-top: 2px; cursor: help; color: rgb(var(--in-600)); }
+/* 19-nov: «Reintentar lo que no salió» (solo aparece si algo de la madrugada no salió en la última semana) */
+.cf-auto__nosalio { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin: 0 0 14px;
+    padding: 12px 16px; border-radius: 12px; border: 1px solid rgb(var(--av-600) / .35); background: rgb(var(--av-600) / .06); }
+.cf-auto__nosalio[hidden] { display: none !important; }
+.cf-auto__nosalio small { display: block; color: rgb(var(--g-600)); margin-top: 2px; }
 .cf-auto__tabla .cf-celda-acciones { white-space: normal; width: 1%; }
 .cf-auto__tabla .cf-celda-acciones .cf-btn { display: block; width: 100%; margin: 3px 0; white-space: nowrap; }
 .cf-auto__cancelados { display: block; color: rgb(var(--er-600)); font-weight: 600; }

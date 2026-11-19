@@ -71,7 +71,13 @@
 .ev-hojas[hidden] { display: none; }
 .ev-hojas .ui-check { font-size: var(--t-13); padding: 2px 0; }
 /* «Enviar ahora» */
-.ev-ahora { display: grid; gap: 12px; }
+.ev-ahora { display: grid; gap: 12px; align-content: start; }          /* en el celular la ventana es de pantalla completa: sin estirar los renglones */
+/* «Enviar ahora» de varios meses (19-nov): Desde / Hasta lado a lado también en el celular, y el aviso de tamaño */
+.ev-dos.ev-dos--fijo { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+.ev-ahora__calculo { margin: 0; padding: 10px 12px; border-radius: 10px; font-size: 13px; line-height: 1.45; background: var(--papel, #f7f6f3); color: var(--tinta, #1f2933); border: 1px solid var(--linea, #e8e7e4); }
+.ev-ahora__calculo--aviso { background: #FFF7ED; border-color: #FED7AA; color: #7C2D12; }
+.ev-ahora__calculo--error { background: #FEF2F2; border-color: #FECACA; color: #991B1B; }
+.ev-hecho__retomado { display: block; margin-top: 4px; font-size: 12px; color: #77736c; }
 .ev-radios--una { grid-template-columns: minmax(0, 1fr); }
 @media (max-width: 640px) {
     .ev-pasos { padding: 8px 12px; gap: 2px; }

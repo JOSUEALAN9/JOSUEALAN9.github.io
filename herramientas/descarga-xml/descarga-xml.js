@@ -163,7 +163,21 @@
         $("caja-guardar-ciec").hidden = !(q.esCliente && E.puedeGuardar);
         // M-06: con el web service y la e.firma guardada no hay nada que pedir: el bloque solo aparece si falta algo
         $("paso-acceso").hidden = !portal && !!q.efirmaGuardada;
+        // 19-nov-2026: la casilla de la autorización del titular, cuando se escribe o se sube algo de acceso
+        if (window.FcAutorizacion) {
+            if (!E.autDm) E.autDm = window.FcAutorizacion.montar("dm-autoriza");
+            if (E.autDmRfc !== q.rfc) { E.autDmRfc = q.rfc; E.autDm.limpiar(); E.autDm.rfc(q.rfc); }
+            $("dm-autoriza").hidden = conCiec ? usaGuardada : !!q.efirmaGuardada;
+        }
         pintarSesion();
+    }
+
+    function autorizaDm(cuerpo) {        // solo si en esta búsqueda va una contraseña o una e.firma nueva
+        if (!E.autDm || !(cuerpo.has("cer") || cuerpo.has("ciec"))) return true;
+        $("dm-autoriza").hidden = false;
+        if (!E.autDm.exigir()) { alerta("Marca la casilla de la autorización del titular para usar sus datos de acceso al SAT."); return false; }
+        cuerpo.append("autorizo", E.autDm.valor());
+        return true;
     }
 
     /* ================================================================ sesión del portal */
@@ -438,6 +452,7 @@
             ruta = "/api/descarga-xml/solicitar";
             cuerpo.append("modo", "cfdi");
             if (!adjuntarEfirma(cuerpo)) return;
+            if (!autorizaDm(cuerpo)) return;
             cuerpos.push(cuerpo);
             continue;
         } else {
@@ -455,6 +470,7 @@
                     if ($("guardar-ciec").checked && !$("caja-guardar-ciec").hidden) cuerpo.append("guardar_ciec", "true");
                 }
             } else if (!adjuntarEfirma(cuerpo)) return;
+            if (!autorizaDm(cuerpo)) return;
         }
         cuerpos.push(cuerpo);
         }
@@ -900,6 +916,22 @@
     // Al regresar con "Atrás", el navegador puede restaurar la página tal cual: el botón no debe quedar apagado
     window.addEventListener("pageshow", function () { var b = $("res-biblioteca"); if (b) b.disabled = false; });
 
+    /* Un enlace puede dejar elegido qué pedir (19-nov: «Pedir al SAT» de CFDI de retenciones): ?tipo=RET (o I, E, T, N, P) y
+       ?lado=emitidos | recibidos | ambos. Las retenciones solo se piden por Web service: con tipo=RET se pone ese método. */
+    function desdeEnlace() {
+        var tipo = (Fiscontable.url("tipo") || "").toUpperCase(), lado = (Fiscontable.url("lado") || "").toLowerCase();
+        var sel = $("tipo-comprobante");
+        if (tipo && Array.prototype.some.call(sel.options, function (o) { return o.value === tipo; })) {
+            if (tipo === "RET" && E.modo !== "webservice") ponerModo("webservice");
+            sel.value = tipo;
+        }
+        if (["emitidos", "recibidos", "ambos"].indexOf(lado) >= 0 && !(lado === "ambos" && E.modo === "portal")) {
+            E.tipo = lado;
+            pintarTipo();
+        }
+        pintarResumen();
+    }
+
     /* ================================================================ inicio */
     (async function () {
         if (!(await Fiscontable.exigirModulo("descarga_xml"))) return;
@@ -909,6 +941,7 @@
         E.acceso = leerLocal("descarga:acceso") === "efirma" ? "efirma" : "ciec";
         prepararPeriodo();
         ponerModo(leerLocal("descarga:modo") === "portal" ? "portal" : "webservice");
+        desdeEnlace();
         // soloRfc: con contraseña y captcha (modo Portal) no hace falta su e.firma
         PasoCliente.montar({ contenedor: "paso-cliente", alElegir: alElegir, alLimpiar: alLimpiar, soloRfc: true,
                              alRegistrar: function () { pintarAcceso(); } });

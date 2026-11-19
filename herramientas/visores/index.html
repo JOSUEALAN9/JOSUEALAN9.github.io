@@ -4,9 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Visores del SAT · Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611190023">
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611190023">
-    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611190023">
+    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611191405">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611191405">
+    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611191405">
     <style>
         .vi-cabeza { display: flex; flex-wrap: wrap; gap: var(--e-3); align-items: center; margin-bottom: var(--e-4); }
         .vi-cabeza h1 { margin: 0; }
@@ -125,6 +125,7 @@
         .vn-celda em { font-style: normal; }
         .vn-pill { display: inline-block; font-size: 12px; font-weight: 700; padding: 2px 9px; border-radius: 999px; white-space: nowrap; }
         .vn-pill--bien { background: rgb(var(--ok-50)); color: rgb(var(--ok-700)); } .vn-pill--ojo { background: rgb(var(--av-50)); color: rgb(var(--av-700)); } .vn-pill--mal { background: rgb(var(--er-50)); color: rgb(var(--er-600)); }
+        .vn-pill--info { background: rgb(var(--g-100)); color: rgb(var(--g-700)); }
         .vn-tiempo { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--e-3); }
         .vn-tiempo li { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: var(--e-3); font-size: var(--t-14); padding-bottom: var(--e-3); border-bottom: 1px solid var(--linea); }
         .vn-tiempo time { font-size: var(--t-12); color: rgb(var(--g-500)); font-variant-numeric: tabular-nums; padding-top: 2px; }
@@ -149,8 +150,8 @@
 </head>
 <body class="min-h-screen flex flex-col">
 <div id="app-header" data-modulo="visores" data-titulo="Visores del SAT" data-migas="Herramientas|/herramientas/"></div>
-<script src="/assets/js/nucleo.js?v=202611190023"></script>
-<script src="/assets/js/barra.js?v=202611190023"></script>
+<script src="/assets/js/nucleo.js?v=202611191405"></script>
+<script src="/assets/js/barra.js?v=202611191405"></script>
 
 <main class="flex-grow mod-pagina" style="max-width:none">
     <!-- 15-nov: el módulo nuevo de Visores (maqueta aprobada): una empresa, un año y cinco pestañas -->
@@ -216,9 +217,9 @@
     </div>
 </main>
 
-<script src="/assets/js/comun/tabla.js?v=202611190023"></script>
-<script src="/herramientas/visores/visores.js?v=202611190023"></script>
-<script src="/herramientas/visores/visores-sat.js?v=202611190023"></script>
-<script src="/herramientas/visores/visores-panel.js?v=202611190023"></script>
+<script src="/assets/js/comun/tabla.js?v=202611191405"></script>
+<script src="/herramientas/visores/visores.js?v=202611191405"></script>
+<script src="/herramientas/visores/visores-sat.js?v=202611191405"></script>
+<script src="/herramientas/visores/visores-panel.js?v=202611191405"></script>
 </body>
 </html>

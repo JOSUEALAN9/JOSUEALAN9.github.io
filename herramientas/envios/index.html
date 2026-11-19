@@ -4,15 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Envíos por correo | Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611190023">
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611190023">
-    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611190023">
-    <link rel="stylesheet" href="/herramientas/envios/envios.css?v=202611190023">
+    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611191405">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611191405">
+    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611191405">
+    <link rel="stylesheet" href="/herramientas/envios/envios.css?v=202611191405">
 </head>
 <body class="min-h-screen flex flex-col">
 <div id="app-header" data-modulo="envios" data-titulo="Envíos por correo" data-migas="Herramientas|/herramientas/"></div>
-<script src="/assets/js/nucleo.js?v=202611190023"></script>
-<script src="/assets/js/barra.js?v=202611190023"></script>
+<script src="/assets/js/nucleo.js?v=202611191405"></script>
+<script src="/assets/js/barra.js?v=202611191405"></script>
 
 <main class="flex-grow mod-pagina">
     <div class="mod-cabeza">
@@ -47,8 +47,8 @@
 
         <section class="ev-paso" data-paso="1" aria-labelledby="ev-p1">
             <h3 id="ev-p1">¿A quién se le manda?</h3>
-            <label class="ui-campo"><span class="ui-etiqueta">Nombre del envío <i>(lo ve quien lo recibe)</i></span>
-                <input type="text" id="ev-nombre" class="ui-input" maxlength="80" placeholder="Clientes de Juan, semanal" autocomplete="off"></label>
+            <label class="ui-campo"><span class="ui-etiqueta">Nombre del envío <i>(lo ve quien lo recibe; si lo dejas vacío, se arma con lo que lleva)</i></span>
+                <input type="text" id="ev-nombre" class="ui-input" maxlength="80" placeholder="Mensual · 3 empresas · XML y Excel" autocomplete="off"></label>
             <div class="ev-radios" role="radiogroup" aria-label="A quién va">
                 <label class="ui-check ev-radio"><input type="radio" name="ev-destino" value="grupo" checked>
                     <span><b>A un grupo</b><small>Un solo correo con el ZIP de todas las empresas del envío, a los correos que pongas.</small></span></label>
@@ -97,6 +97,9 @@
                 <div>
                     <p class="ev-sub">Excel <i>(afuera de la carpeta, con las columnas que elijas)</i></p>
                     <div id="ev-excel" class="ev-excel"></div>
+                    <label class="ui-check ev-adjuntar" id="ev-excel-periodo-caja"><input type="checkbox" id="ev-excel-periodo">
+                        <span>Además, un Excel con todo el periodo
+                            <small>Cuando lleva más de un mes: uno por cada Excel elegido, en la carpeta de la empresa (por ejemplo, «RFC_Recibidas_2026-08_a_2026-11.xlsx»). Los de cada mes siguen en su carpeta.</small></span></label>
                 </div>
             </div>
             <div class="ev-dos">
@@ -181,10 +184,13 @@
             <label class="ui-check ev-radio"><input type="radio" name="ev-ahora-periodo" value="siempre" checked>
                 <span><b>El periodo de siempre</b><small id="ev-ahora-siempre"></small></span></label>
             <label class="ui-check ev-radio"><input type="radio" name="ev-ahora-periodo" value="otro">
-                <span><b>Otro mes</b><small>Ese mes completo. No cambia lo que llevará el envío automático.</small></span></label>
+                <span><b>Otro periodo</b><small>Los meses completos que elijas, hasta 12. Cada mes va en su carpeta. No cambia lo que llevará el envío automático.</small></span></label>
         </div>
-        <label class="ui-campo" id="ev-ahora-mes-caja" hidden><span class="ui-etiqueta">Qué mes</span>
-            <select id="ev-ahora-mes" class="ui-select"></select></label>
+        <div class="ev-dos ev-dos--fijo" id="ev-ahora-mes-caja" hidden>
+            <label class="ui-campo"><span class="ui-etiqueta">Desde</span><select id="ev-ahora-desde" class="ui-select"></select></label>
+            <label class="ui-campo"><span class="ui-etiqueta">Hasta</span><select id="ev-ahora-hasta" class="ui-select"></select></label>
+        </div>
+        <p class="ev-ahora__calculo" id="ev-ahora-calculo" role="status" hidden></p>
         <p class="ui-ayuda" id="ev-ahora-nota"></p>
     </div>
     <div class="fc-modal__pie">
@@ -203,6 +209,6 @@
     </div>
 </dialog>
 
-<script src="/herramientas/envios/envios.js?v=202611190023"></script>
+<script src="/herramientas/envios/envios.js?v=202611191405"></script>
 </body>
 </html>

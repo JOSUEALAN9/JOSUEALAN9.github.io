@@ -4,15 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mi despacho | Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611190023">
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611190023">
-    <link rel="stylesheet" href="/despacho/despacho.css?v=202611190023">
+    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611191405">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611191405">
+    <link rel="stylesheet" href="/despacho/despacho.css?v=202611191405">
 </head>
 <body class="min-h-screen flex flex-col">
 
     <div id="app-header" data-modulo="despacho" data-titulo="Mi despacho" data-migas=""></div>
-<script src="/assets/js/nucleo.js?v=202611190023"></script>
-<script src="/assets/js/barra.js?v=202611190023"></script>
+<script src="/assets/js/nucleo.js?v=202611191405"></script>
+<script src="/assets/js/barra.js?v=202611191405"></script>
 
     <main class="flex-grow w-full mod-pagina mod-pagina--angosta dp" style="max-width:1040px">
 
@@ -110,8 +110,8 @@
                     <div class="dp-caja-cabeza"><h2>Quién hizo qué</h2>
                         <select class="ui-select dp-filtro-persona" id="dp-bit-persona" aria-label="Filtrar por persona"><option value="">Todo el equipo</option></select>
                     </div>
-                    <div class="dp-tabla-caja"><table class="dp-tabla">
-                        <thead><tr><th>Cuándo</th><th>Quién</th><th>Qué</th><th>Empresa</th></tr></thead>
+                    <div class="dp-tabla-caja"><table class="dp-tabla dp-tabla--bitacora">
+                        <thead><tr><th>Cuándo</th><th>Quién</th><th>Qué</th><th>Empresa</th><th>Resultado</th></tr></thead>
                         <tbody id="dp-bitacora"></tbody>
                     </table></div>
                 </div>
@@ -207,6 +207,6 @@
         </div>
     </dialog>
 
-<script src="/despacho/despacho.js?v=202611190023"></script>
+<script src="/despacho/despacho.js?v=202611191405"></script>
 </body>
 </html>
