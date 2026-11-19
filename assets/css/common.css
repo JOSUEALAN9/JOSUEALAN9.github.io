@@ -291,6 +291,10 @@ a.fc-miga:hover { color: rgb(var(--g-0)); }
     flex: none;
 }
 .fc-contador[hidden] { display: none; }
+/* El número de la campana y el de Descargas llegan después: van en la esquina para no ensanchar su botón (19-nov-2026) */
+#fc-btn-actividad .fc-contador, #fc-btn-descargas .fc-contador { position: absolute; top: 2px; right: 2px; min-width: 16px; height: 16px;
+    font-size: 10px; line-height: 16px; padding: 0 4px; box-shadow: 0 0 0 2px var(--tinta); }
+@media (min-width: 1401px) { #fc-btn-descargas { padding-right: 22px; } }
 
 /* Sin etiqueta visible: insignia sobre el ícono. El aro del color de la
    barra lo separa del fondo. */
@@ -623,6 +627,12 @@ input[type="password"]::-ms-clear { display: none; }
     gap: 11px;
 }
 .fc-aviso[hidden] { display: none; }
+/* 19-nov-2026 (el «brinquito»): lo que llega con el perfil no empuja la página. Los botones de la barra apartan su lugar desde
+   el primer cuadro (invisibles hasta confirmarlos) y un aviso que llega tarde sale encima del contenido. */
+.fc-accion--reservada { visibility: hidden; }
+.fc-aviso.fc-aviso--encima { position: fixed; z-index: 34; bottom: 16px; left: 50%; transform: translateX(-50%);
+    width: min(720px, calc(100vw - 24px)); margin: 0; box-shadow: 0 10px 28px rgb(0 0 0 / .16); }
+@media (max-width: 1023px) { .fc-aviso.fc-aviso--encima { bottom: 72px; } }
 .fc-aviso__acciones { display: flex; gap: 8px; margin-top: 9px; flex-wrap: wrap; }
 
 /* Pantalla de bloqueo cuando el plan no incluye el módulo */
@@ -1897,6 +1907,15 @@ html.fc-bloqueada body { overflow: hidden; }
 .fc-pasos .fc-paso--mal::before { background: rgb(var(--er-600)); }
 /* Dentro de una ventana o panel (incrustado) los letreros generales ya se ven en la página de afuera */
 html.fc-incrustado .fc-letrero { display: none !important; }
+/* Un letrero que llega cuando la página ya está pintada flota abajo, sin empujar ni tapar el título y los botones del módulo
+   (19-nov-2026, el «brinquito»); en la siguiente página ya nace arriba, en su lugar */
+#fc-letreros.fc-letreros--encima { position: fixed; z-index: 34; bottom: 16px; left: 16px; right: 16px; border-radius: var(--radio-chico);
+    overflow: hidden; box-shadow: 0 10px 28px rgb(0 0 0 / .18); }
+@media (min-width: 1024px) {
+    html.fc-con-lateral #fc-letreros.fc-letreros--encima, html.fc-con-riel #fc-letreros.fc-letreros--encima { left: calc(var(--lateral-ancho) + 16px); }
+    html.fc-con-lateral.fc-lateral-chico #fc-letreros.fc-letreros--encima, html.fc-con-riel.fc-lateral-chico #fc-letreros.fc-letreros--encima { left: calc(var(--lateral-chico) + 16px); }
+}
+@media (max-width: 1023px) { #fc-letreros.fc-letreros--encima { bottom: 72px; } }   /* arriba del botón «Informar un error» */
 
 /* «Ampliar tabla» (18-nov): solo queda la tabla con su buscador y sus filtros; lo demás se va hasta salir (botón o Esc) */
 .fc-amplia-btn { display: inline-flex; align-items: center; gap: 6px; }
@@ -1958,6 +1977,13 @@ a.fc-act-item:hover { background: rgb(var(--g-50)); }
 .fc-act-item small { font-size: var(--t-12); color: rgb(var(--g-500)); }
 .fc-act-item--nuevo b::before { content: ""; display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: rgb(var(--ac-600)); margin-right: 6px; vertical-align: middle; }
 .fc-act-item--curso svg { color: rgb(var(--in-600)); }
+/* Corrida de un proceso automático (19-nov-2026): un renglón que se abre con cada empresa */
+.fc-act-corrida + .fc-act-item, .fc-act-item + .fc-act-corrida, .fc-act-corrida + .fc-act-corrida { border-top: 1px solid rgb(var(--g-100)); }
+button.fc-act-item--grupo { width: 100%; background: none; border: 0; font: inherit; text-align: left; cursor: pointer; }
+button.fc-act-item--grupo:hover { background: rgb(var(--g-50)); }
+.fc-act-partes { margin: 0 0 var(--e-2) calc(18px + var(--e-3)); border-left: 2px solid rgb(var(--g-100)); }
+.fc-act-partes .fc-act-item { padding: var(--e-2) var(--e-3); }
+.fc-act-partes .fc-act-item svg { display: none; }
 .fc-act-navegador { display: flex; align-items: center; justify-content: space-between; gap: var(--e-2); margin-top: var(--e-4); padding: var(--e-3);
                     border: 1px solid var(--linea); border-radius: var(--r-control); font-size: var(--t-13); }
 .fc-act-pie { display: flex; gap: var(--e-2); flex-wrap: wrap; }

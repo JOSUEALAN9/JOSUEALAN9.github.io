@@ -293,6 +293,10 @@ function pintarProcesos(todos) {
         document.getElementById("lista-preparando").innerHTML = preparando.map(D.tarjeta).join("");
         tablaListos().ponerDatos(listos.map(filaLista));
         document.getElementById("lista-atencion").innerHTML = atencion.map(D.tarjeta).join("");
+        // Lo que tienes enfrente ya lo viste: el número de «Descargas» baja aquí también (19-nov-2026). La bolita de
+        // «nuevo» se queda en esta vista; desaparece la próxima vez.
+        if (D.marcarVistos) D.marcarVistos(listos.concat(atencion).filter(p => !p.visto));
+        const ret = document.getElementById("dsc-retencion"); if (ret) ret.style.visibility = "";
 }
 
 

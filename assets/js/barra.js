@@ -347,6 +347,10 @@
             migas += '<button type="button" class="fc-ayuda" id="fc-ayuda" title="Cómo se usa"><span class="fc-ayuda__icono">?</span><span class="fc-ayuda__texto">Cómo se usa</span></button>';
         }
 
+        // 19-nov-2026 (el «brinquito»): los selectores de la barra y tu nombre llegan con el perfil y ensanchaban la barra
+        // (lo de la izquierda se recorría). Nacen apartando su lugar con lo de la vez pasada (invisibles hasta confirmarlo).
+        var bc = barraGuardada();
+        if (!bc.empresa && !bc.periodo && !bc.nombre) bc = { empresa: "Elegir empresa", periodo: "Elegir periodo" };   // primera vez: siempre salen
         ancla.outerHTML =
             '<header class="fc-barra">' +
               '<div class="fc-barra__interior">' +
@@ -361,20 +365,20 @@
                 '<nav class="fc-migas" aria-label="Ruta">' + migas + "</nav>" +
                 '<div class="fc-acciones">' +
                   // Despacho (core/despachos.py del servidor): en qué espacio trabajas, siempre a la vista
-                  '<button type="button" class="fc-accion fc-espacio" id="fc-btn-espacio" aria-haspopup="menu" aria-expanded="false" hidden>' +
+                  '<button type="button" class="fc-accion fc-espacio' + (bc.espacio ? " fc-accion--reservada" : "") + '" id="fc-btn-espacio" aria-haspopup="menu" aria-expanded="false"' + (bc.espacio ? "" : " hidden") + ">" +
                     '<span class="fc-espacio__ico" id="fc-espacio-ico"></span>' +
-                    '<span class="fc-accion__etiqueta fc-espacio__nombre" id="fc-espacio-nombre"></span>' +
+                    '<span class="fc-accion__etiqueta fc-espacio__nombre" id="fc-espacio-nombre">' + esc(bc.espacio || "") + "</span>" +
                     '<span class="fc-empresa__flecha" aria-hidden="true">▾</span>' +
                     '<span class="fc-contador" id="fc-espacio-contador" hidden>0</span>' +
                   "</button>" +
-                  '<button type="button" class="fc-accion fc-empresa" id="fc-btn-empresa" aria-haspopup="menu" aria-expanded="false" hidden>' +
+                  '<button type="button" class="fc-accion fc-empresa' + (bc.empresa ? " fc-accion--reservada" : "") + '" id="fc-btn-empresa" aria-haspopup="menu" aria-expanded="false"' + (bc.empresa ? "" : " hidden") + ">" +
                     ico(D.edificio) +
-                    '<span class="fc-accion__etiqueta fc-empresa__nombre" id="fc-empresa-nombre">Elegir empresa</span>' +
+                    '<span class="fc-accion__etiqueta fc-empresa__nombre" id="fc-empresa-nombre">' + esc(bc.empresa || "Elegir empresa") + "</span>" +
                     '<span class="fc-empresa__flecha" aria-hidden="true">▾</span>' +
                   "</button>" +
-                  '<button type="button" class="fc-accion fc-empresa fc-empresa--vacia" id="fc-btn-periodo" aria-haspopup="dialog" aria-expanded="false" hidden>' +
+                  '<button type="button" class="fc-accion fc-empresa fc-empresa--vacia' + (bc.periodo ? " fc-accion--reservada" : "") + '" id="fc-btn-periodo" aria-haspopup="dialog" aria-expanded="false"' + (bc.periodo ? "" : " hidden") + ">" +
                     ico(D.calendario) +
-                    '<span class="fc-accion__etiqueta fc-empresa__nombre" id="fc-periodo-nombre">Elegir periodo</span>' +
+                    '<span class="fc-accion__etiqueta fc-empresa__nombre" id="fc-periodo-nombre">' + esc(bc.periodo || "Elegir periodo") + "</span>" +
                     '<span class="fc-empresa__flecha" aria-hidden="true">▾</span>' +
                   "</button>" +
                   '<button type="button" class="fc-accion" id="fc-btn-actividad" aria-haspopup="dialog" aria-label="Actividad" title="Actividad">' +
@@ -391,7 +395,7 @@
                   "</a>" +
                   '<button type="button" class="fc-accion" id="fc-btn-perfil" aria-haspopup="menu" aria-expanded="false">' +
                     '<span class="fc-avatar" id="fc-avatar">·</span>' +
-                    '<span class="fc-accion__etiqueta" id="fc-nombre-corto"></span>' +
+                    '<span class="fc-accion__etiqueta" id="fc-nombre-corto">' + esc(bc.nombre || "") + "</span>" +
                   "</button>" +
                 "</div>" +
                 menuPerfilHTML() + menuEspaciosHTML() + menuEmpresasHTML() + menuModulosHTML() +
@@ -1696,6 +1700,7 @@
               '<div class="fc-panel__cuerpo" id="fc-act-cuerpo"></div>' +
               '<div class="fc-panel__pie fc-act-pie">' +
                 '<button type="button" class="ui-btn ui-btn--secundario ui-btn--32" id="fc-act-leidas">Marcar todo como leído</button>' +
+                '<button type="button" class="ui-btn ui-btn--terciario ui-btn--32" id="fc-act-limpiar" title="Quitar de la lista los avisos que ya leíste">Limpiar</button>' +
                 '<a class="ui-btn ui-btn--terciario ui-btn--32" href="/configuracion/?seccion=avisos">Qué me llega por correo</a>' +
               "</div>" +
             "</aside>";
@@ -1705,19 +1710,36 @@
     /* --------------------------------------------- Centro de actividad (G-13)
        Avisos de lo que pasó sin que estuvieras mirando: programaciones que terminaron, CFDI que cambiaron de
        estado, proveedores en listas del SAT, mensajes nuevos del buzón. Mis descargas queda solo para archivos. */
-    var actividad = { datos: null, abierta: false };
+    var actividad = { datos: null, abierta: false, version: 0, abiertos: {} };
     var ICONO_AVISO = { programacion: "calendario", validacion: "alerta", listas: "alerta", buzon: "documento", descarga: "descarga", aviso: "campana" };
+    // 19-nov-2026 (Alan: «marco como visto y al ratito va de nuevo»): cada cambio (marcar leído, limpiar) sube la versión; un
+    // sondeo que salió antes del cambio y contesta después ya no vuelve a pintar el número viejo. Las demás pestañas (y el
+    // marco de Configuración) se enteran al momento por localStorage («fc:actividad-cambio») en vez de esperar su minuto.
+    var LLAVE_ACT_CAMBIO = "fc:actividad-cambio";
+
+    function pintarContadorActividad() {
+        var c = document.getElementById("fc-act-contador"), d = actividad.datos;
+        if (!c || !d) return;
+        c.textContent = d.sin_leer > 99 ? "99+" : d.sin_leer;
+        c.hidden = !d.sin_leer;
+        var b = document.getElementById("fc-btn-actividad");
+        if (b) b.setAttribute("aria-label", d.sin_leer ? "Actividad — " + d.sin_leer + " sin leer" : "Actividad");
+    }
+    function avisarOtrasPestanas(llave) {
+        try { localStorage.setItem(llave, String(Date.now()) + ":" + Math.random().toString(36).slice(2, 6)); } catch (e) { /* sin almacenamiento */ }
+    }
 
     async function sondearActividad() {
         if ((bloqueo && bloqueo.activa) || document.hidden) return;
+        var version = actividad.version;
         try {
             var r = await fetch(API + "/api/actividad?limite=30", { credentials: "include" });
             if (!r.ok) return;
             var d = await r.json(), antes = actividad.datos ? actividad.datos.sin_leer : null;
+            if (version !== actividad.version) return;              // llegó tarde: hubo un cambio mientras preguntaba
             actividad.datos = d;
-            var c = document.getElementById("fc-act-contador");
-            if (c) { c.textContent = d.sin_leer > 99 ? "99+" : d.sin_leer; c.hidden = !d.sin_leer; }
-            if (antes !== null && d.sin_leer > antes && d.avisos[0]) avisarNavegador(d.avisos[0].titulo, d.avisos[0].detalle || "");
+            pintarContadorActividad();
+            if (antes !== null && d.sin_leer > antes && d.avisos[0]) avisarNavegador(d.avisos[0].titulo, d.avisos[0].grupo ? "" : (d.avisos[0].detalle || ""));
             if (actividad.abierta) pintarActividad();
         } catch (e) { /* sin red: se vuelve a intentar */ }
     }
@@ -1728,9 +1750,19 @@
         if (m < 1440) return "hace " + Math.round(m / 60) + " h";
         return f.toLocaleDateString("es-MX", { day: "numeric", month: "short" });
     }
+    function itemAviso(a, clase) {
+        var dentro = ico(D[ICONO_AVISO[a.tipo]] || D.campana, 1.8) + "<div><b>" + esc(a.titulo) + "</b>" +
+            (a.detalle ? "<span>" + esc(a.detalle).replace(/\n/g, "<br>") + "</span>" : "") + "<small>" + esc(hace(a.creada)) + "</small></div>";
+        var ids = ' data-ids="' + esc((a.ids || [a.id]).join(",")) + '"';
+        return a.enlace && a.enlace.charAt(0) === "/" ? '<a class="' + clase + '" href="' + esc(a.enlace) + '"' + ids + ">" + dentro + "</a>"
+            : '<div class="' + clase + '"' + ids + ">" + dentro + "</div>";
+    }
     function pintarActividad() {
         var cuerpo = document.getElementById("fc-act-cuerpo"), d = actividad.datos;
+        var limpiar = document.getElementById("fc-act-limpiar"), leidas = document.getElementById("fc-act-leidas");
         if (!d) { cuerpo.innerHTML = '<span class="ui-skel" style="width:70%"></span>'; return; }
+        if (limpiar) limpiar.disabled = !(d.leidas > 0 || d.avisos.some(function (a) { return a.leida; }));
+        if (leidas) leidas.disabled = !d.sin_leer;
         var h = [];
         if (d.en_curso && d.en_curso.length) {
             h.push('<p class="fc-act-grupo">En curso</p>');
@@ -1741,10 +1773,17 @@
         h.push('<p class="fc-act-grupo">Avisos</p>');
         if (!d.avisos.length) h.push('<div class="ui-vacio">' + ico(D.campana, 1.6) + "<b>Sin avisos</b><span>Aquí verás lo que terminó o cambió.</span></div>");
         d.avisos.forEach(function (a) {
-            var dentro = ico(D[ICONO_AVISO[a.tipo]] || D.campana, 1.8) + "<div><b>" + esc(a.titulo) + "</b>" +
-                (a.detalle ? "<span>" + esc(a.detalle).replace(/\n/g, "<br>") + "</span>" : "") + "<small>" + esc(hace(a.creada)) + "</small></div>";
             var clase = "fc-act-item" + (a.leida ? "" : " fc-act-item--nuevo");
-            h.push(a.enlace && a.enlace.charAt(0) === "/" ? '<a class="' + clase + '" href="' + esc(a.enlace) + '">' + dentro + "</a>" : '<div class="' + clase + '">' + dentro + "</div>");
+            if (!a.grupo) { h.push(itemAviso(a, clase)); return; }
+            // Una corrida de un proceso automático (una empresa por aviso): un solo renglón que se abre
+            var abierto = !!actividad.abiertos[a.id];
+            h.push('<div class="fc-act-corrida' + (abierto ? " fc-act-corrida--abierta" : "") + '">' +
+                '<button type="button" class="' + clase + ' fc-act-item--grupo" data-corrida="' + esc(a.id) + '" aria-expanded="' + abierto + '">' +
+                ico(D[ICONO_AVISO[a.tipo]] || D.campana, 1.8) + "<div><b>" + esc(a.titulo) + "</b>" +
+                "<small>" + esc(hace(a.creada)) + " · " + (abierto ? "ocultar" : "ver cada una") + "</small></div></button>" +
+                (abierto ? '<div class="fc-act-partes">' + (a.partes || []).map(function (x) {
+                    return itemAviso(Object.assign({ tipo: a.tipo }, x), "fc-act-item fc-act-item--parte" + (x.leida ? "" : " fc-act-item--nuevo"));
+                }).join("") + "</div>" : "") + "</div>");
         });
         if ("Notification" in window && Notification.permission === "default")
             h.push('<div class="fc-act-navegador"><span>¿Avisos del navegador cuando termine algo?</span><button type="button" class="ui-btn ui-btn--secundario ui-btn--28" id="fc-act-permiso">Activar</button></div>');
@@ -1770,11 +1809,51 @@
         setTimeout(function () { if (!actividad.abierta) { velo.hidden = true; panel.hidden = true; } }, 260);
         var b = document.getElementById("fc-btn-actividad"); if (b) b.focus();
     }
-    async function marcarActividadLeida() {
+    // Lo marca en la pantalla al momento (el número baja ya) y luego en el servidor; si el servidor falla, lo dice.
+    async function cambiarActividad(ruta, cuerpo, local, mensajeError) {
+        actividad.version++;
+        if (actividad.datos) { local(actividad.datos); pintarContadorActividad(); if (actividad.abierta) pintarActividad(); }
         try {
-            await fetch(API + "/api/actividad/leidas", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: "{}" });
-        } catch (e) { /* nada */ }
+            var r = await fetch(API + ruta, { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(cuerpo || {}), keepalive: true });
+            if (!r.ok) throw new Error(await window.Fiscontable.leerError(r));
+            avisarOtrasPestanas(LLAVE_ACT_CAMBIO);
+        } catch (e) { aviso(e.message || mensajeError); }
+        actividad.version++;
         sondearActividad();
+    }
+    function marcarActividadLeida() {
+        cambiarActividad("/api/actividad/leidas", {}, function (d) {
+            d.sin_leer = 0;
+            d.avisos.forEach(function (a) { a.leida = 1; (a.partes || []).forEach(function (x) { x.leida = 1; }); });
+        }, "No se pudieron marcar como leídos.");
+    }
+    function limpiarActividad() {
+        cambiarActividad("/api/actividad/limpiar", {}, function (d) {
+            d.avisos = d.avisos.filter(function (a) { return !a.leida; }); d.leidas = 0;
+        }, "No se pudo limpiar la lista.");
+    }
+    // Abrir un aviso (o una empresa de una corrida) lo da por leído; abrir una corrida la despliega
+    function clicActividad(e) {
+        var corrida = e.target.closest("[data-corrida]");
+        if (corrida) {
+            var id = corrida.dataset.corrida;
+            actividad.abiertos[id] = !actividad.abiertos[id];
+            pintarActividad();
+            return;
+        }
+        var item = e.target.closest("[data-ids]");
+        if (!item || !item.classList.contains("fc-act-item--nuevo")) return;
+        var ids = item.dataset.ids.split(",").map(Number).filter(Boolean);
+        cambiarActividad("/api/actividad/leidas", { ids: ids }, function (d) {
+            d.avisos.forEach(function (a) {
+                (a.partes || []).forEach(function (x) { if (ids.indexOf(x.id) >= 0) x.leida = 1; });
+                if ((a.ids || [a.id]).every(function (i) { return ids.indexOf(i) >= 0 || (a.partes || []).some(function (x) { return x.id === i && x.leida; }); })) {
+                    if (!a.leida) d.sin_leer = Math.max(0, d.sin_leer - 1);
+                    a.leida = 1;
+                }
+            });
+        }, "No se pudo marcar como leído.");
     }
 
     var panelAbierto = false;
@@ -1786,10 +1865,14 @@
     /* --- Qué procesos ya viste ---------------------------------------
        El contador tiene dos significados distintos y antes los mezclaba:
        lo que está corriendo (se limpia solo al terminar) y lo que acabó
-       y todavía no has visto (eso sí hay que darlo por visto). Se guarda
-       en el navegador para que siga valiendo cuando cambias de módulo.  */
+       y todavía no has visto (eso sí hay que darlo por visto).
+       19-nov-2026 (Alan: «se quita y al ratito va de nuevo», «un montón de no vistos»): «visto» se guarda en el servidor por
+       persona (p.visto, /api/procesos/vistos), así vale en otra pestaña, otra computadora o el celular. Antes era solo
+       una marca en este navegador, con tope de 600: lo visto hace semanas (un lote) volvía a contar cuando las descargas
+       de cada noche llenaban la lista. Lo del navegador queda de respaldo (y para pasar al servidor lo que ya viste aquí). */
 
     var LLAVE_VISTOS = "fc:procesos-vistos";
+    var MAX_VISTOS_LOCAL = 2000;
 
     function leerVistos() {
         try {
@@ -1806,19 +1889,35 @@
     }
 
     var vistos = leerVistos();
+    var yaEnServidor = new Set();          // lo que ya se mandó al servidor desde esta página
+
+    function estaVisto(p) { return p.visto === true || vistos.has(p.id); }
+
+    // Avisa al servidor (una sola vez por proceso y por página). Si falla, queda la marca del navegador.
+    function vistosAlServidor(procesos) {
+        var nuevos = procesos.filter(function (p) { return p.estado !== "procesando" && p.clase !== "programada" && !yaEnServidor.has(p.clase + ":" + p.id); });
+        if (!nuevos.length) return;
+        nuevos.forEach(function (p) { yaEnServidor.add(p.clase + ":" + p.id); });
+        fetch(API + "/api/procesos/vistos", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, keepalive: true,
+            body: JSON.stringify({ procesos: nuevos.slice(0, 500).map(function (p) { return { clase: p.clase, id: String(p.id) }; }) }) })
+            .catch(function () { nuevos.forEach(function (p) { yaEnServidor.delete(p.clase + ":" + p.id); }); });
+    }
 
     /** Da por visto todo lo que ya terminó (bien o mal). Lo que sigue
         corriendo se deja fuera: cuando acabe volverá a contar como nuevo. */
     function marcarComoVistos(procesos) {
         // Se suma lo que otra pestaña ya dio por visto (si no, la última en guardar borraba lo de las demás)
         leerVistos().forEach(function (id) { vistos.add(id); });
-        var antes = vistos.size;
+        var antes = vistos.size, alServidor = [];
         procesos.forEach(function (p) {
-            if (p.estado !== "procesando") vistos.add(p.id);
+            if (p.estado === "procesando") return;
+            if (!p.visto) alServidor.push(p);
+            p.visto = true;
+            vistos.delete(p.id); vistos.add(p.id);          // al final: lo que sigue a la vista no se cae del tope
         });
-        // Ya no se borra lo que no viene en esta lista (otro espacio, otra pestaña): solo se guardan los 600 más recientes
-        if (vistos.size > 600) vistos = new Set(Array.from(vistos).slice(-600));
-        if (vistos.size !== antes || procesos.length) guardarVistos(vistos);
+        if (vistos.size > MAX_VISTOS_LOCAL) vistos = new Set(Array.from(vistos).slice(-MAX_VISTOS_LOCAL));
+        if (vistos.size !== antes || alServidor.length) guardarVistos(vistos);
+        vistosAlServidor(alServidor);
     }
 
     function abrirDescargas() {
@@ -1909,7 +2008,7 @@
        La usan el panel de la barra y la página Mis descargas (Fiscontable.descargas.tarjeta). */
     function tarjeta(p) {
         var id = 'data-clase="' + esc(p.clase) + '" data-id="' + esc(p.id) + '"';
-        var nuevo = p.estado !== "procesando" && !vistos.has(p.id) ? '<span class="fc-punto" title="Nuevo desde la última vez"></span>' : "";
+        var nuevo = p.estado !== "procesando" && !estaVisto(p) ? '<span class="fc-punto" title="Nuevo desde la última vez"></span>' : "";
         var nombre = esc(nombreProceso(p)), detalle = [esc(empresaProceso(p))], estado, acciones = "", abajo = "", clase = "";
         var enPc = p.en_pc && p.en_pc.rutas && p.en_pc.rutas.length;
 
@@ -2018,8 +2117,10 @@
         var procesos = sinPartes(sinProgramadas(todos));
         var activos = procesos.filter(function (p) { return p.estado === "procesando"; }).length;
         var nuevos = procesos.filter(function (p) {
-            return p.estado !== "procesando" && !vistos.has(p.id);
+            return p.estado !== "procesando" && !estaVisto(p);
         }).length;
+        // Lo que viste en este navegador antes de que «visto» se guardara en el servidor: se le pasa (una vez)
+        vistosAlServidor(procesos.filter(function (p) { return p.visto === false && vistos.has(p.id); }));
         var total = nuevos;              // solo lo nuevo sin ver (lo que sigue corriendo no suma)
 
         var contador = document.getElementById("fc-contador");
@@ -2650,14 +2751,18 @@
         pintarEmpresa();
         pintarPeriodo();
 
+        guardarBarra();
         if (invitacionPendiente(p)) {
             /* la invitación (letrero + ventana) va en lugar del aviso de acceso vencido */
+            avisoDeAcceso(null);
         } else if (p.solo_lectura && p.sin_agente && !p.viendo_como) {
-            aviso("Conecta tu PC con Fiscontable Agente para hacer trámites y cambios. Mientras tanto puedes consultar toda tu información.",
+            avisoDeAcceso("Conecta tu PC con Fiscontable Agente para hacer trámites y cambios. Mientras tanto puedes consultar toda tu información.",
                 [{ texto: "Conectar esta PC", href: "/agente/", mismaPestana: true }]);
         } else if (p.solo_lectura) {
-            aviso("Tu acceso venció. Puedes consultar tu directorio, pero no generar documentos. " +
+            avisoDeAcceso("Tu acceso venció. Puedes consultar tu directorio, pero no generar documentos. " +
                 "Contacta al administrador para renovarlo.");
+        } else {
+            avisoDeAcceso(null);
         }
         // Primer ingreso: pedimos el nombre una sola vez, caiga donde caiga.
         if (p.legales && p.legales.pendiente && window.top === window.self && !p.pantalla_bloqueada) {
@@ -3494,6 +3599,8 @@
     }
 
     function manejarErrorPerfil(tipo, motivo) {
+        // Sin perfil no hay selectores: el lugar que se apartó para ellos se suelta
+        document.querySelectorAll(".fc-accion--reservada").forEach(function (b) { b.hidden = true; b.classList.remove("fc-accion--reservada"); });
         if (tipo === "bloqueada") {
             aviso(motivo, [{ texto: "Cerrar sesión", href: API + "/cdn-cgi/access/logout" },
                            { texto: "Reintentar", accion: function () { promesaPerfil = null; iniciarPerfil(); } }]);
@@ -3558,11 +3665,61 @@
        con /api/mi-perfil: el modo mantenimiento (no se cierra) y el aviso
        global (se puede cerrar; vuelve a salir si el aviso cambia). */
 
-    function pintarLetreros(p) {
+    var LLAVE_BARRA = "fc-barra-ultima";
+    function barraGuardada() {
+        try { return JSON.parse(localStorage.getItem(LLAVE_BARRA) || "{}") || {}; } catch (e) { return {}; }
+    }
+    // Lo que quedó en la barra con el perfil (para apartar su lugar la próxima vez) y los botones ya confirmados
+    function guardarBarra() {
+        var g = {};
+        [["espacio", "fc-btn-espacio", "fc-espacio-nombre"], ["empresa", "fc-btn-empresa", "fc-empresa-nombre"], ["periodo", "fc-btn-periodo", "fc-periodo-nombre"]].forEach(function (x) {
+            var b = document.getElementById(x[1]), t = document.getElementById(x[2]);
+            if (b) b.classList.remove("fc-accion--reservada");
+            if (b && !b.hidden && t) g[x[0]] = t.textContent;
+        });
+        var n = document.getElementById("fc-nombre-corto"); if (n) g.nombre = n.textContent;
+        try { localStorage.setItem(LLAVE_BARRA, JSON.stringify(g)); } catch (e) { /* sin almacenamiento */ }
+    }
+
+    // El aviso de acceso («Tu acceso venció…», «Conecta tu PC…») sale con el perfil: igual que los letreros, nace en su lugar
+    // con lo de la vez pasada; si cambia, el nuevo va encima del contenido y el lugar del viejo se queda hasta la siguiente página.
+    var LLAVE_AVISO_ACCESO = "fc-aviso-acceso";
+    function avisoDeAcceso(texto, acciones, desdeGuardado) {
+        var caja = document.getElementById("fc-aviso");
+        if (!caja) return;
+        if (desdeGuardado) { aviso(texto, acciones); caja.dataset.guardado = texto; return; }
+        try { if (texto) localStorage.setItem(LLAVE_AVISO_ACCESO, JSON.stringify({ texto: texto, acciones: acciones || [] })); else localStorage.removeItem(LLAVE_AVISO_ACCESO); }
+        catch (e) { /* sin almacenamiento */ }
+        var previo = caja.dataset.guardado; delete caja.dataset.guardado;
+        if (previo && previo === texto && !caja.hidden) return;               // el mismo: nada se mueve
+        if (!texto) { if (previo && !caja.hidden) caja.style.visibility = "hidden"; return; }
+        aviso(texto, acciones);
+        if (!previo && document.querySelector("main")) caja.classList.add("fc-aviso--encima");
+    }
+
+    /* 19-nov-2026 (Alan: el «brinquito» al cargar): los letreros (SAT sin responder, mantenimiento, aviso general) llegaban
+       con el perfil, ya pintada la página, y la empujaban hacia abajo. Ahora: los generales se guardan en este navegador
+       y salen desde el primer cuadro (junto con la barra); si al llegar el perfil son los mismos, no se mueve nada. Si
+       cambiaron, el letrero nuevo sale encima del contenido (sin empujarlo) y el lugar del viejo se queda vacío hasta la
+       siguiente página. */
+    var LLAVE_LETREROS = "fc-letreros", HORAS_LETREROS = 12;
+    function letrerosGuardados() {
+        try {
+            var g = JSON.parse(localStorage.getItem(LLAVE_LETREROS) || "null");
+            return g && g.t > Date.now() - HORAS_LETREROS * 3600000 ? g.p : null;
+        } catch (e) { return null; }
+    }
+    function guardarLetreros(p) {
+        // Solo lo general (igual para todos): lo de cada persona no se deja en el navegador
+        try { localStorage.setItem(LLAVE_LETREROS, JSON.stringify({ t: Date.now(), p: { mantenimiento: p.mantenimiento, aviso: p.aviso, sat_fallas: p.sat_fallas, rol: p.rol } })); }
+        catch (e) { /* sin almacenamiento */ }
+    }
+
+    function pintarLetreros(p, desdeGuardados) {
         var viejo = document.getElementById("fc-letreros");
-        if (viejo) viejo.remove();
         var barra = document.querySelector(".fc-barra");
         if (!barra) return;
+        if (!desdeGuardados) guardarLetreros(p);
 
         var caja = document.createElement("div");
         caja.id = "fc-letreros";
@@ -3658,7 +3815,31 @@
                 fila.appendChild(b);
             });
         }
-        if (caja.children.length) barra.insertAdjacentElement("afterend", caja);
+        var firma = Array.prototype.map.call(caja.children, function (f) { return f.textContent; }).join("|");
+        caja.dataset.firma = firma;
+        if (desdeGuardados) {                                  // primer cuadro: en su lugar, como siempre
+            if (viejo) viejo.remove();
+            if (caja.children.length) barra.insertAdjacentElement("afterend", caja);
+            return;
+        }
+        if (viejo && viejo.dataset.firma === firma && !viejo.classList.contains("fc-letreros--encima")) {
+            viejo.replaceWith(caja);                           // los mismos: mismo alto, nada se mueve
+            return;
+        }
+        if (viejo && viejo.classList.contains("fc-letreros--encima")) viejo.remove();
+        else if (viejo) {
+            // Su lugar se queda (vacío) hasta la siguiente página; si la persona se desplaza hacia abajo y ya no se ve, se
+            // quita: el navegador sostiene lo que está a la vista, así que nada brinca
+            viejo.id = "fc-letreros-lugar"; viejo.style.visibility = "hidden";
+            var soltarLugar = function () {
+                if (viejo.getBoundingClientRect().bottom < 0) { viejo.remove(); window.removeEventListener("scroll", soltarLugar); }
+            };
+            window.addEventListener("scroll", soltarLugar, { passive: true });
+        }
+        if (!caja.children.length) return;
+        // Ya hay algo pintado debajo: el letrero nuevo va encima del contenido, sin empujarlo
+        if (document.querySelector("main")) caja.classList.add("fc-letreros--encima");
+        barra.insertAdjacentElement("afterend", caja);
     }
 
     /* ------------------------------------------------ invitación a un despacho
@@ -3769,6 +3950,7 @@
             zona.appendChild(el);
         });
         caja.hidden = false;
+        caja.style.visibility = "";
     }
 
     function ocultarAviso() {
@@ -3880,6 +4062,11 @@
     })();
 
     pintarBarra();
+    if (letrerosGuardados()) pintarLetreros(letrerosGuardados(), true);
+    (function () {
+        var g = null; try { g = JSON.parse(localStorage.getItem(LLAVE_AVISO_ACCESO) || "null"); } catch (e) { g = null; }
+        if (g && g.texto && !document.documentElement.classList.contains("fc-incrustado")) avisoDeAcceso(g.texto, (g.acciones || []).filter(function (a) { return a.href; }), true);
+    })();
     pintarLateral();
     pintarPanel();
     pintarModalPerfil();
@@ -3889,6 +4076,13 @@
     document.getElementById("fc-act-cerrar").addEventListener("click", cerrarActividad);
     document.getElementById("fc-act-velo").addEventListener("click", cerrarActividad);
     document.getElementById("fc-act-leidas").addEventListener("click", marcarActividadLeida);
+    document.getElementById("fc-act-limpiar").addEventListener("click", limpiarActividad);
+    document.getElementById("fc-act-cuerpo").addEventListener("click", clicActividad);
+    // Otra pestaña (o el marco de Configuración) marcó, limpió o vio algo: se pregunta ya, sin esperar el minuto
+    window.addEventListener("storage", function (e) {
+        if (e.key === LLAVE_ACT_CAMBIO) { actividad.version++; sondearActividad(); }
+        else if (e.key === LLAVE_VISTOS) { leerVistos().forEach(function (id) { vistos.add(id); }); if (ultimaLista.length) refrescarContador(ultimaLista); if (panelAbierto) pintarLista(ultimaLista); }
+    });
     document.addEventListener("keydown", function (e) { if (e.key === "Escape" && actividad.abierta) cerrarActividad(); });
     setTimeout(sondearActividad, 1500);
     setInterval(sondearActividad, 60000);
@@ -4160,20 +4354,26 @@
         tabla.parentNode.insertBefore(carril, tabla);
         carril.appendChild(tabla);
     }
-    document.querySelectorAll("main table").forEach(enCarril);
-    // También las tablas que se dibujan después (Administración, Créditos, Documentos…)
-    var principal = document.querySelector("main");
-    if (principal && window.MutationObserver) {
-        new MutationObserver(function (cambios) {
-            cambios.forEach(function (c) {
-                c.addedNodes.forEach(function (n) {
-                    if (n.nodeType !== 1) return;
-                    if (n.tagName === "TABLE") enCarril(n);
-                    else if (n.querySelectorAll) n.querySelectorAll("table").forEach(enCarril);
+    function montarCarriles() {
+        document.querySelectorAll("main table").forEach(enCarril);
+        // También las tablas que se dibujan después (Administración, Créditos, Documentos…)
+        var principal = document.querySelector("main");
+        if (principal && window.MutationObserver) {
+            new MutationObserver(function (cambios) {
+                cambios.forEach(function (c) {
+                    c.addedNodes.forEach(function (n) {
+                        if (n.nodeType !== 1) return;
+                        if (n.tagName === "TABLE") enCarril(n);
+                        else if (n.querySelectorAll) n.querySelectorAll("table").forEach(enCarril);
+                    });
                 });
-            });
-        }).observe(principal, { childList: true, subtree: true });
+            }).observe(principal, { childList: true, subtree: true });
+        }
     }
+    // 19-nov-2026 (el «brinquito»): las páginas que cargaban este archivo al final ahora lo cargan arriba, para que la barra
+    // salga pintada desde el primer cuadro. Ellas traen data-carriles en #app-header y siguen con sus carriles como antes.
+    if (document.querySelector("main")) montarCarriles();
+    else if (ancla && ancla.dataset.carriles) document.addEventListener("DOMContentLoaded", montarCarriles);
 
     iniciarPerfil();
     sondear();
@@ -4224,6 +4424,8 @@
         resumenPresentacion: resumenPresentacion,
         presentarConPin: presentarConPin,
         descargas: { tarjeta: tarjeta, accion: accionPanel, sinProgramadas: sinProgramadas, notaProgramadas: notaProgramadas, tieneEntero: tieneEntero,
+                     // La página Mis descargas también da por visto lo que enseña (y baja el número del botón)
+                     marcarVistos: function (lista) { marcarComoVistos(lista || []); if (ultimaLista.length) refrescarContador(ultimaLista); },
                      nombre: nombreProceso, empresa: empresaProceso, titulo: tituloProceso },
         abrirModalPerfil: abrirModalPerfil,
         // La empresa elegida en el selector general (o null). Los módulos también

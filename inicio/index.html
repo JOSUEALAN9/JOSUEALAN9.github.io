@@ -4,15 +4,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611190654">
-    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611190654">
-    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611190654">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611190706">
+    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611190706">
+    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611190706">
 </head>
 <body class="min-h-screen flex flex-col">
 
-<div id="app-header" data-modulo="portada"></div>
+<div id="app-header" data-carriles="1" data-modulo="portada"></div>
+<script src="/assets/js/nucleo.js?v=202611190706"></script>
+<script src="/assets/js/barra.js?v=202611190706"></script>
 
-<main class="flex-grow w-full mod-pagina tb-pagina">
+<main class="flex-grow w-full mod-pagina tb-pagina tb-cargando">
 
     <div class="mod-cabeza tb-cabeza">
         <h1 id="saludo"><span class="ui-skel" style="display:inline-block;width:220px;height:22px"></span></h1>
@@ -49,6 +51,9 @@
 </main>
 
 <style>
+/* 19-nov-2026 (el «brinquito»): mientras llegan los datos el tablero ocupa su lugar sin verse; se descubre de una vez
+   (si no, «Configura tu cuenta», el resumen y la tabla empujaban todo hacia abajo uno por uno). */
+.tb-cargando #tb-pasos, .tb-cargando #tb-despacho, .tb-cargando #tb-empresa, .tb-cargando #inicio-recientes { visibility: hidden; }
     .tb-pagina { max-width: none; }
     /* Tablero: indicadores arriba, tabla a todo lo ancho y, en pantallas anchas, vencimientos y actividad a la derecha */
     .tb-kpis { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--e-3); margin-bottom: var(--e-4); }
@@ -147,9 +152,7 @@
     .tb-pasos small { color: rgb(var(--g-500)); }
 </style>
 
-<script src="/assets/js/nucleo.js?v=202611190654"></script>
-<script src="/assets/js/barra.js?v=202611190654"></script>
-<script src="/assets/js/comun/tabla.js?v=202611190654"></script>
-<script src="/assets/js/inicio.js?v=202611190654"></script>
+<script src="/assets/js/comun/tabla.js?v=202611190706"></script>
+<script src="/assets/js/inicio.js?v=202611190706"></script>
 </body>
 </html>
