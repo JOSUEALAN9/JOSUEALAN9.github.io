@@ -81,6 +81,9 @@
 .tar-equipo__tipos { display: flex; flex-wrap: wrap; gap: 4px; }
 .tar-equipo small { display: block; color: rgb(var(--g-500)); font-size: var(--t-12); margin-top: 6px; }
 .tar-mal { color: rgb(var(--er-700, 185 28 28)); font-weight: 600; }
+/* 19-nov-2026: «Usar las PCs con el Agente» y «Relevo de la VPS si se cae la Vostro», lado a lado en la computadora */
+.tar-switches { display: grid; grid-template-columns: 1fr 1fr; gap: 0 28px; }
+@media (max-width: 760px) { .tar-switches { grid-template-columns: 1fr; } }
 .tar-switch { display: grid; grid-template-columns: auto 1fr; gap: 2px 10px; align-items: center; margin-top: 16px; font-size: var(--t-13); font-weight: 600; }
 .tar-switch input { width: 18px; height: 18px; }
 .tar-switch small { grid-column: 2; font-weight: 400; color: rgb(var(--g-500)); font-size: var(--t-12); }

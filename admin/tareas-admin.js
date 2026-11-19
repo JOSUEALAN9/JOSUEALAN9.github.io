@@ -4,6 +4,8 @@
  *     VPS, y «Reintentar lo que no salió» de todas las cuentas (modulos/programadas/motor.py).
  *   · 19-nov-2026 (Alan): qué máquina (Vostro o VPS) hizo cada cosa anoche y cuánto tardó cada una; el plan cuenta las
  *     dos máquinas; «Web service en la VPS» y «Usar las PCs con el Agente en la madrugada» (de fábrica apagado).
+ *   · 19-nov-2026 (Alan): «Relevo de la VPS si se cae la Vostro» (de fábrica apagado, hasta que esté el Vault de Oracle) y
+ *     el resumen de la última madrugada de relevo que la Vostro importó (core/relevo_vps.py).
  *   · Tareas automáticas: cada tarea del reloj del servidor con su última corrida, cuánto tardó, si salió, su próximo
  *     horario y «Correr ahora» (core/programador.py). Incluye la vigilancia del respaldo a la VPS.
  */
@@ -74,6 +76,15 @@
         return '<div class="tar-anoche"><h4 class="tar-sub">' + titulo + ' <small>qué hizo cada máquina · cada empresa en una sola</small></h4><div class="tar-equipos">' + tarjetas + "</div>" + avisos + "</div>";
     }
 
+    // 19-nov-2026 (Alan): la última madrugada de relevo (la VPS sola con la Vostro caída), ya importada en la Vostro
+    function bloqueRelevo(r) {
+        var u = (r && r.ultimo) || {};
+        if (!u.noche) return "";
+        var detalle = String(u.resumen_vps || u.resumen || "").replace(/^Madrugada de relevo del \d\d\/\d\d:\s*/, "");
+        return '<p class="tar-nota tar-relevo" data-relevo-ultimo><b>Madrugada de relevo del ' + esc(u.noche.slice(8, 10) + "/" + u.noche.slice(5, 7)) +
+            "</b> (la Vostro estuvo caída y la VPS hizo lo del día): " + esc(detalle) + " <small>Importada " + esc(cuando(u.importado_en)) + ".</small></p>";
+    }
+
     function tarjetaMadrugada(m) {
         var p = m.proyeccion || {}, c = m.config, ns = m.no_salio || {};
         var del = Object.values(p.del_dia || {}).reduce(function (a, b) { return a + b; }, 0);
@@ -110,7 +121,8 @@
         return '<div class="ui-tarjeta tar-bloque" data-vista="madrugada"' + (grupoActivo === "madrugada" ? "" : " hidden") + '><h3 class="tar-titulo">La madrugada</h3>' + satHtml +
             '<p class="tar-nota">Lo del día (lo de los envíos, lo que piden las cuentas, los XML del día y el Buzón) va primero y debe terminar antes de las ' +
             esc(c.fin) + "; lo que falte sigue de mañana, despacio, hasta las " + esc(c.fin_extendido) + ". El historial y el cuadre de meses viejos se reparten en varias noches.</p>" +
-            estado + maquinas + bloqueAnoche(m.anoche, c) +
+            estado + maquinas + (m.vps_version && m.vps_version.mensaje ? '<p class="tar-aviso tar-aviso--mal" data-vps-version>⚠ ' +
+                esc(m.vps_version.mensaje) + " <small>Mientras, lo hace la Vostro.</small></p>" : "") + bloqueAnoche(m.anoche, c) + bloqueRelevo(m.relevo) +
             (fondo ? '<p class="tar-nota">Historial y cuadre de esta noche: ' + esc(fondo) + " trámites (unas " + esc(horas(p.horas_fondo || 0)) + ")" +
                 (p.fondo_cabe_hoy ? "." : "; lo que no quepa sigue la noche siguiente.") + "</p>" : "") +
             '<div class="tar-reintentar"><div><b>' + (ns.total ? esc(ns.total) + " trámite(s) no salieron" : "Todo salió") + "</b> <small>en la última semana, de todas las cuentas" +
@@ -124,8 +136,11 @@
             numero("vps_ws", "Web service en la VPS", "Solicitudes, revisiones y paquetes; 0 = no se usa") +
             numero("cuadre_por_noche", "Listas del cuadre por noche", "En todo el servidor") +
             hora("inicio", "Inicio") + hora("fin", "Fin") + hora("inicio_minimo", "Lo más temprano si no cabe") + hora("fin_extendido", "Lo del día, de mañana hasta") +
-            '</div><label class="tar-switch"><input type="checkbox" data-mad="usar_agente"' + (c.usar_agente ? " checked" : "") + '><span>Usar las PCs con el Agente en la madrugada</span>' +
+            '</div><div class="tar-switches"><label class="tar-switch"><input type="checkbox" data-mad="usar_agente"' + (c.usar_agente ? " checked" : "") + '><span>Usar las PCs con el Agente en la madrugada</span>' +
             "<small>Apagado, la madrugada no cuenta con las PCs del contador: solo la Vostro y la VPS (de fábrica apagado).</small></label>" +
+            '<label class="tar-switch"><input type="checkbox" data-relevo' + ((m.relevo || {}).activo ? " checked" : "") + '><span>Relevo de la VPS si se cae la Vostro</span>' +
+            "<small>Con la Vostro caída, la VPS hace sola lo del día (nunca facturar, cancelar, DIOT ni envíos). Necesita el Vault de Oracle " +
+            "(de fábrica apagado).</small></label></div>" +
             '<div class="tar-acciones"><button type="button" class="tar-btn tar-btn--primario" id="tar-guardar-mad">Guardar</button><span class="tar-msj" id="tar-msj-mad"></span></div>' +
             "</details></div>";
     }
@@ -157,11 +172,14 @@
         var resp = r.error ? esc(r.error) : !r.instalado ? "No está instalado en este equipo (la copia corre con systemd en la Vostro)." :
             "Última copia buena: " + esc(cuando(r.ultima_ok)) + (r.fallos ? " · ⚠ " + esc(r.fallos) + " intento(s) fallido(s): " + esc(r.ultimo_error) : "") +
             (r.automatico ? "" : " · ⚠ la copia automática está apagada");
+        // 19-nov-2026 (Alan): la VPS contestó «versión distinta» (el código le llega con la copia, 5-10 min después de un cambio)
+        var vv = t.vps_version && t.vps_version.mensaje ? '<p class="tar-aviso tar-aviso--mal" data-vps-version>⚠ ' + esc(t.vps_version.mensaje) +
+            " <small>Mientras, lo hace la Vostro.</small></p>" : "";
         var fallando = t.tareas.filter(function (x) { return x.fallando_desde; }).length;
         return { filtro: filtro, tarjeta: '<div class="ui-tarjeta tar-bloque" data-vista="tareas"' + (grupoActivo === "madrugada" ? " hidden" : "") + '><h3 class="tar-titulo">Tareas automáticas</h3>' +
             '<p class="tar-nota">Lo que el servidor hace solo, a su hora (hora del centro). Si una falla, te avisamos en la campana y por correo en tu horario: una vez al día mientras siga fallando y otra cuando se recupere.</p>' +
             (fallando ? '<p class="tar-aviso tar-aviso--mal">⚠ ' + fallando + " tarea(s) fallando ahora.</p>" : "") +
-            '<p class="tar-nota"><b>Respaldo a la VPS:</b> ' + resp + "</p>" +
+            '<p class="tar-nota"><b>Respaldo a la VPS:</b> ' + resp + "</p>" + vv +
             '<div class="tar-tabla-caja"><table class="tar-tabla"><thead><tr><th>Tarea</th><th>Última</th><th>Tardó</th><th>Resultado</th><th>Próxima</th><th></th></tr></thead><tbody>' +
             filas + '</tbody></table></div><span class="tar-msj" id="tar-msj-correr"></span></div>' };
     }
@@ -175,6 +193,7 @@
             var falla = t.tareas.filter(function (x) { return x.fallando_desde || (x.ultima && x.ultima.ok === 0); })[0];
             grupoActivo = falla ? grupoDe(falla) : "madrugada";
         }
+        m.vps_version = t.vps_version;
         var tareas = tarjetaTareas(t);
         caja.innerHTML = tareas.filtro + tarjetaMadrugada(m) + tareas.tarjeta;
         var br = document.getElementById("tar-reintentar");
@@ -187,8 +206,16 @@
         document.getElementById("tar-guardar-mad").addEventListener("click", async function (ev) {
             var b = ev.currentTarget, valores = {};
             caja.querySelectorAll("[data-mad]").forEach(function (i) { valores[i.dataset.mad] = i.type === "checkbox" ? i.checked : i.type === "number" ? +i.value : i.value; });
+            var rel = caja.querySelector("[data-relevo]"), relevo = rel ? rel.checked : false, antes = !!(m.relevo || {}).activo;
+            if (relevo && !antes && !confirm("¿Prender el relevo de la VPS? Úsalo solo si ya están el Vault y el permiso en Oracle: cada vez que la VPS pida la llave te llega un correo.")) {
+                rel.checked = false; relevo = false;
+            }
             b.disabled = true;
-            try { await mandar("/api/admin/sistema/madrugada", "PUT", { valores: valores }); msj("tar-msj-mad", true, "✓ Guardado. Cuenta desde la siguiente vuelta del turno."); }
+            try {
+                await mandar("/api/admin/sistema/madrugada", "PUT", { valores: valores });
+                if (relevo !== antes) { var r = await mandar("/api/admin/sistema/relevo", "PUT", { activo: relevo }); m.relevo = r; }
+                msj("tar-msj-mad", true, "✓ Guardado. Cuenta desde la siguiente vuelta del turno." + (relevo !== antes ? (relevo ? " El relevo llega a la VPS con la siguiente copia." : " Relevo apagado.") : ""));
+            }
             catch (e) { msj("tar-msj-mad", false, e.message); }
             b.disabled = false;
         });
