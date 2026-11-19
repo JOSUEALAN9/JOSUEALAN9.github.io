@@ -68,3 +68,23 @@
 /* 19-nov-2026: la fila en pausa porque el SAT no responde (core/disyuntor) */
 .tar-sat { margin-bottom: 10px; }
 .tar-sat .tar-aviso small { display: block; font-weight: 400; margin-top: 2px; }
+
+/* 19-nov-2026 (Alan): qué máquina hizo cada cosa anoche (Vostro y VPS) y el interruptor del Agente */
+.tar-anoche { margin: 0 0 12px; }
+.tar-sub { font-size: var(--t-14); font-weight: 700; margin: 0 0 8px; }
+.tar-sub small { font-weight: 400; color: rgb(var(--g-500)); font-size: var(--t-12); margin-left: 6px; }
+.tar-equipos { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; margin-bottom: 8px; }
+.tar-equipo { border: 1px solid var(--linea); border-radius: 10px; padding: 12px 14px; min-width: 0; }
+.tar-equipo__cabeza { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; flex-wrap: wrap; font-size: var(--t-14); }
+.tar-equipo__cabeza span { font-size: var(--t-12); color: rgb(var(--g-600)); }
+.tar-equipo__cifras { font-size: var(--t-13); margin: 6px 0; }
+.tar-equipo__tipos { display: flex; flex-wrap: wrap; gap: 4px; }
+.tar-equipo small { display: block; color: rgb(var(--g-500)); font-size: var(--t-12); margin-top: 6px; }
+.tar-mal { color: rgb(var(--er-700, 185 28 28)); font-weight: 600; }
+.tar-switch { display: grid; grid-template-columns: auto 1fr; gap: 2px 10px; align-items: center; margin-top: 16px; font-size: var(--t-13); font-weight: 600; }
+.tar-switch input { width: 18px; height: 18px; }
+.tar-switch small { grid-column: 2; font-weight: 400; color: rgb(var(--g-500)); font-size: var(--t-12); }
+/* En el celular: la configuración en dos columnas y las fichas de cada máquina más compactas */
+@media (max-width: 640px) { .tar-rejilla { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; } .tar-campo input { max-width: 100%; }
+    .tar-campo input[type="time"] + small, .tar-sub small, .tar-fab { display: none; }
+    .tar-equipos { gap: 8px; } .tar-equipo { padding: 10px 12px; } .tar-switch { margin-top: 12px; } }
