@@ -1147,7 +1147,10 @@
         var lib = await cargarPdfjs();
         var datos = fuente instanceof Blob ? new Uint8Array(await fuente.arrayBuffer()) : null;
         // isEvalSupported: false → PDF.js no ejecuta código que venga dentro de un PDF (CVE-2024-4367), aunque faltara la CSP
-        return lib.getDocument(datos ? { data: datos, isEvalSupported: false } : { url: fuente, withCredentials: true, isEvalSupported: false }).promise;
+        // standardFontDataUrl: las letras estándar (Helvetica, Courier, Times…) que muchos PDF usan sin incrustar, como la constancia del SAT.
+        // Sin ellas PDF.js las cambiaba por la letra que tuviera el navegador y la vista previa se veía «rara».
+        var base = { isEvalSupported: false, standardFontDataUrl: PDFJS + "standard_fonts/" };
+        return lib.getDocument(Object.assign(base, datos ? { data: datos } : { url: fuente, withCredentials: true })).promise;
     }
 
     async function pintarPaginas(doc, cont, escala, ancho) {
