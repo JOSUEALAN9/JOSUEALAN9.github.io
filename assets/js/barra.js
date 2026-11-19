@@ -3222,7 +3222,7 @@
     var LLAVE_ACT = "fc-actividad", LLAVE_BLOQ = "fc-bloqueada", LLAVE_OLVIDE = "fc-olvide-pin", SALIR = API + "/cdn-cgi/access/logout";   // la sesión de Cloudflare vive en el servidor (api.…), no en la web
     function leerLS(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
     function ponerLS(k, v) { try { if (v == null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (e) { /* sin almacenamiento */ } }
-    var ultimaMarca = 0;
+    var ultimaMarca = 0, EVENTOS_ACT = ["pointerdown", "keydown", "wheel", "touchstart", "mousemove"];
     function marcarActividad() {
         if (bloqueo.activa) return;
         var t = Date.now(), avisando = !!(previo.capa && !previo.capa.hidden);
@@ -3306,6 +3306,20 @@
         if (con) setTimeout(function () { var i = document.getElementById("fc-bl-pin"); if (i) i.focus(); }, 50);
     }
     function bloquearPantalla(desdeServidor) {
+        // Dentro de un marco de la propia app (Configuración › Panel de administración, la ventana de Configuración) la pantalla
+        // bloqueada es la de la página de arriba: ahí está la casilla del PIN y ahí se entera de que ya se desbloqueó. Pintarla
+        // también en el marco (un 423 de su sondeo) dejaba sobre el panel otra pantalla, sin PIN y con «Iniciar sesión», que
+        // seguía ahí después de escribir el PIN arriba hasta que el marco recibía el foco.
+        if (document.documentElement.classList.contains("fc-incrustado")) {
+            try {
+                var arriba = window.top;
+                if (arriba !== window && arriba.Fiscontable && arriba.Fiscontable.bloquearPantalla) {
+                    if (window.__fcPerdioPorBloqueo) arriba.__fcPerdioPorBloqueo = true;     // al desbloquear se recarga todo, marco incluido
+                    arriba.Fiscontable.bloquearPantalla(desdeServidor);
+                    return;
+                }
+            } catch (e) { /* marco de otro origen: se bloquea aquí, como antes */ }
+        }
         if (bloqueo.activa) return;
         quitarPrevio();
         bloqueo.activa = true; bloqueo.esperando = false;
@@ -3407,7 +3421,13 @@
     }
     function prepararBloqueo(p) {
         var b = p && p.bloqueo;
-        if (!b || document.documentElement.classList.contains("fc-incrustado")) return;
+        if (!b) return;
+        if (document.documentElement.classList.contains("fc-incrustado")) {
+            // En un marco el bloqueo lo lleva la página de arriba; aquí solo se cuenta la actividad, que no le llega sola (trabajar
+            // dentro del panel no la tocaba y se bloqueaba como si no hubiera nadie)
+            if (!bloqueo.marco) { bloqueo.marco = true; EVENTOS_ACT.forEach(function (ev) { document.addEventListener(ev, marcarActividad, { passive: true }); }); }
+            return;
+        }
         bloqueo.minutos = b.minutos || 15; bloqueo.horas = b.horas_cierre || 8; bloqueo.pin = !!b.tiene_pin;
         if (!bloqueo.listo) {
             bloqueo.sesion = p._sesion || "";
@@ -3428,7 +3448,7 @@
         bloqueo.listo = true;
         if (p.pantalla_bloqueada || leerLS(LLAVE_BLOQ)) { bloqueo.activa = false; bloquearPantalla(!!p.pantalla_bloqueada); }
         else { ultimaMarca = 0; marcarActividad(); }
-        ["pointerdown", "keydown", "wheel", "touchstart", "mousemove"].forEach(function (ev) { document.addEventListener(ev, marcarActividad, { passive: true }); });
+        EVENTOS_ACT.forEach(function (ev) { document.addEventListener(ev, marcarActividad, { passive: true }); });
         setInterval(revisarInactividad, 15000);
         // Las demás pestañas: si una se bloquea o se desbloquea, todas igual
         window.addEventListener("storage", function (e) {
