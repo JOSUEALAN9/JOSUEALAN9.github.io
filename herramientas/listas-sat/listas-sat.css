@@ -81,3 +81,19 @@
 @media (max-width: 600px) { .ls-hit__det { grid-template-columns: 1fr; } .ls-hit__det dd { margin-bottom: 6px; } }
 .ls-coinc__fila .ls-sellos { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 4px; flex-shrink: 0; max-width: 55%; }
 .ls-coinc__fila .ls-sello { white-space: nowrap; }
+
+/* 19-nov-2026: fecha de cada lista y si está vigente (panel bajo la cabeza) */
+.ls-fechas { border: 1px solid rgb(var(--g-200)); border-radius: 12px; background: rgb(var(--g-0)); padding: 14px 16px; margin-bottom: 14px; }
+.ls-fechas .ls-nota { margin-top: 0; }
+.ls-fechas .ls-estado { grid-template-columns: repeat(auto-fill, minmax(min(100%, 230px), 1fr)); }
+.ls-lista { min-width: 0; }
+.ls-lista strong { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.ls-lista--vieja { border-color: rgb(var(--er-200)); background: rgb(var(--er-50)); }
+.ls-lista--vieja em { color: rgb(var(--er-600)); }
+.ls-lista .ls-vigencia, .ls-vigencia { display: inline-block; margin-top: 0; font-size: 11px; font-weight: 700; border-radius: 999px; padding: 1px 8px; border: 1px solid; white-space: nowrap; flex: none; }
+.ls-vigencia--ok { color: rgb(var(--ok-600)); background: rgb(var(--ok-50)); border-color: rgb(var(--ok-200)); }
+.ls-vigencia--vieja { color: rgb(var(--er-600)); background: rgb(var(--g-0)); border-color: rgb(var(--er-200)); }
+.ls-vigencia--nada { color: rgb(var(--g-600)); background: rgb(var(--g-50)); border-color: rgb(var(--g-200)); }
+.ls-fechas__aviso { color: rgb(var(--er-600)) !important; font-weight: 700; }
+.ls-actualizacion { flex-wrap: wrap; justify-content: flex-end; }
+.mod-pagina [hidden], .xml-pagina [hidden] { display: none !important; }

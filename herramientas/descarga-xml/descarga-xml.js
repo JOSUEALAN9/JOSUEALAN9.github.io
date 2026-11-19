@@ -384,15 +384,15 @@
             caja.innerHTML = html; caja.hidden = false; return;
         }
         html += '<span class="dm-cuadre__nota">Según la lista del SAT, de ' + esc(mesCorto(d.desde)) + " a " + esc(mesCorto(d.hasta)) +
-            " · " + d.cuadrados + " de " + d.meses + " meses revisados" + (d.ultima ? " · última revisión el " + parseInt(d.ultima.slice(8, 10), 10) + " de " + esc(mesCorto(d.ultima.slice(0, 7))) : "") + "</span></div>";
+            " · " + d.cuadrados + " de " + d.meses + " meses al día" + (d.ultima ? " · última revisión el " + parseInt(d.ultima.slice(8, 10), 10) + " de " + esc(mesCorto(d.ultima.slice(0, 7))) : "") + "</span></div>";
         html += '<div class="dm-cuadre__tarjetas">';
         (d.tipos || []).forEach(function (t) {
-            var falta = t.faltaban > 0;
+            var falta = t.por_llegar !== undefined ? t.por_llegar > 0 : t.faltaban > 0;          // 19-nov: lo que sigue por llegar (se vuelve a contar al bajar)
             html += '<div class="dm-cuadre__t"><span class="dm-cuadre__et">' + (t.tipo === "emitidos" ? "Emitidos" : "Recibidos") + "</span>" +
                 '<span class="dm-cuadre__n">' + miles(t.en_sat) + " <small>en el SAT</small></span>" +
                 '<span class="dm-cuadre__det">' + miles(t.vigentes) + " vigentes · " + miles(t.cancelados) + " cancelados</span>" +
                 '<span class="dm-cuadre__estado' + (falta ? " dm-cuadre__estado--falta" : "") + '">' +
-                (falta ? "Faltaban " + miles(t.faltaban) + ": ya se pidieron al SAT" : "Ya los tienes todos") + "</span>" +
+                (falta ? "Faltan " + miles(t.por_llegar !== undefined ? t.por_llegar : t.faltaban) + " por llegar: ya se pidieron al SAT" : "Ya los tienes todos") + "</span>" +
                 (t.cancelados_nuevos ? '<span class="dm-cuadre__det">' + miles(t.cancelados_nuevos) + " pasaron de vigente a cancelado</span>" : "") + "</div>";
         });
         html += "</div>";

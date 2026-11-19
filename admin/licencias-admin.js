@@ -91,7 +91,8 @@
         var terminar = false;
         if (activa) {
             if (!(await Fiscontable.preguntar("¿Cancelar esta licencia? Ya está en uso."))) return;
-            terminar = (await Fiscontable.preguntar("¿También termina el acceso de esa cuenta hoy mismo?\n\nAceptar = su vigencia vence hoy.\nCancelar = conserva la vigencia que ya tenía."));
+            // 19-nov-2026, Alan: terminar el acceso = ya no entran (ni su equipo, si es de un despacho) y ven por qué
+            terminar = (await Fiscontable.preguntar("¿También le cierras la entrada hoy mismo?\n\nAceptar = ya no entra (si es de un despacho, tampoco su equipo, salvo quien tenga licencia propia): se cierran sus sesiones y al intentar entrar ve «La licencia … terminó».\nCancelar = sigue entrando hasta que venza la vigencia que ya tenía."));
         } else if (!(await Fiscontable.preguntar("¿Cancelar esta clave? Ya no se podrá activar."))) return;
         try { await api("/api/admin/licencias/" + id + "/revocar", "POST", { terminar_acceso: terminar }); cargar(); } catch (e) { avisar("error", e.message); }
     }

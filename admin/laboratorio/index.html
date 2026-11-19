@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex">
     <title>Laboratorio · Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611191405">
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611191405">
+    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611192355">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611192355">
     <style>
         .lb { display: grid; gap: var(--e-4); grid-template-columns: minmax(0, 1fr); }
         @media (min-width: 1080px) { .lb { grid-template-columns: 380px minmax(0, 1fr); align-items: start; } }
@@ -95,12 +95,27 @@
         .lb-ay-paso:hover { background: rgb(var(--g-100)); }
         @media (max-width: 640px) { .lb-ay-aqui__fila { grid-template-columns: minmax(0, 1fr); gap: 4px; } .lb-ay-aqui__lista { max-height: none; } }
         @media (max-width: 640px) { .lb-ay__cab { display: none; } .lb-ay__fila { grid-template-columns: minmax(0, 1fr); gap: 6px; } }
+        /* DIOT (19-nov-2026): evidencia guardada y «Envío grabado» con PIN */
+        .lb-evid { display: grid; gap: 4px; font-size: var(--t-12); color: rgb(var(--g-600)); }
+        .lb-evid b { color: rgb(var(--g-900)); font-size: var(--t-13); }
+        .lb-envio { display: grid; gap: 12px; padding: 16px; border: 1px solid var(--linea); border-radius: 10px; background: rgb(var(--g-50)); min-width: 0; }
+        .lb-envio--activo { border-color: rgb(var(--av-200)); background: rgb(var(--av-50)); }
+        .lb-envio p { margin: 0; font-size: var(--t-13); line-height: 1.5; color: rgb(var(--g-800)); }
+        .lb-envio__cab { display: flex; gap: 10px; align-items: center; font-size: var(--t-14); color: rgb(var(--g-900)); }
+        .lb-envio__forma { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; }
+        .lb-envio__forma .lb-campo { flex: 1 1 140px; min-width: 0; }
+        .lb-envio__pie { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: flex-end; }
+        .lb-envio__reloj { margin-right: auto; font-size: var(--t-13); color: rgb(var(--av-700)); }
+        .lb-envio__reloj b { font-variant-numeric: tabular-nums; }
+        .lb-envio__msg { color: rgb(var(--g-700)) !important; }
+        .lb-envio .fc-identidad__tabla { background: rgb(var(--g-0)); }
+        .fc-identidad__tabla th[scope=row] { position: static; width: 34%; }
     </style>
 </head>
 <body class="min-h-screen flex flex-col">
 <div id="app-header" data-modulo="admin" data-titulo="Laboratorio" data-migas="Administración|/admin/"></div>
-<script src="/assets/js/nucleo.js?v=202611191405"></script>
-<script src="/assets/js/barra.js?v=202611191405"></script>
+<script src="/assets/js/nucleo.js?v=202611192355"></script>
+<script src="/assets/js/barra.js?v=202611192355"></script>
 
 <main class="flex-grow mod-pagina" style="max-width:none">
     <div class="mod-cabeza" style="margin-bottom:var(--e-4)">
@@ -169,14 +184,17 @@
             <div class="lb-ay__fila"><b>Esperar a que cargue</b><code>esperar: segundos</code><code>esperar: 5</code></div>
             <div class="lb-ay__fila"><b>Volver a ver la pantalla</b><code>actualizar</code><code>actualizar</code></div>
             <div class="lb-ay__fila"><b>Cerrar una ventanita</b><code>tecla: Escape</code><code>tecla: Escape</code></div>
+            <div class="lb-ay__fila"><b>La DIOT en ceros hasta la vista previa</b><code>diot: año / mes / Normal</code><code>diot: 2026 / Octubre / Normal</code></div>
+            <div class="lb-ay__fila"><b>Guardar la pantalla (HTML y PDF)</b><code>evidencia</code><code>evidencia</code></div>
         </div>
         <h3 class="lb-ay-sub">También entiende frases</h3>
         <ul class="lb-ay-frases"><li><code>selecciona mensual</code></li><li><code>elige 2025 en ejercicio</code></li><li><code>marca DIOT</code></li><li><code>da clic en Siguiente</code></li></ul>
         <p class="lb-ay-nota">Si hay una ventanita abierta, «clic» busca primero dentro de ella (por ejemplo su «Cerrar» o «Aceptar»). Si algo no se encuentra, el registro de ese paso dice qué opciones hay en la pantalla.</p>
-        <p class="lb-ay-nota lb-ay-nota--candado">Nunca pulsa presentar, enviar, firmar, pagar ni guardar, aunque se lo pidas.</p>
+        <p class="lb-ay-nota">«diot:» abre el borrador de ese periodo si ya existe (los de otros periodos no se tocan ni se borran), cierra el aviso de ajuste, deja «La presenta sin operaciones» y guarda la vista previa.</p>
+        <p class="lb-ay-nota lb-ay-nota--candado">Nunca pulsa presentar, enviar, firmar, pagar, guardar, reemplazar ni la basura, aunque se lo pidas. El único envío es el «Envío grabado» de la DIOT, con tu PIN dos veces.</p>
     </div>
     <div class="fc-modal__pie"><button type="button" class="ui-btn ui-btn--primario ui-btn--36" data-ayuda-cerrar>Entendido</button></div>
 </dialog>
-<script src="/admin/laboratorio/laboratorio.js?v=202611191405"></script>
+<script src="/admin/laboratorio/laboratorio.js?v=202611192355"></script>
 </body>
 </html>

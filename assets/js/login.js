@@ -181,7 +181,8 @@
 
     function alFallarReto(er) {
         // El paso intermedio venció: de vuelta al correo y la contraseña
-        if (/Pasó mucho tiempo|Demasiados intentos/.test(er.message)) { panel("entrar"); avisarTexto(er.message, "alerta"); return true; }
+        // 19-nov-2026: licencia cancelada = no entra. El código era bueno pero no hay sesión: de vuelta al inicio, con el motivo
+        if (/Pasó mucho tiempo|Demasiados intentos|[Ll]icencia de tu despacho terminó|[Tt]u licencia de Fiscontable terminó/.test(er.message)) { panel("entrar"); avisarTexto(er.message, "alerta"); return true; }
         return false;
     }
 

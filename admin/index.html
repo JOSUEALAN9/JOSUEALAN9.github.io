@@ -4,18 +4,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Administrar Usuarios | Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611191405">
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611191405">
-    <link rel="stylesheet" href="/admin/creditos-admin.css?v=202611191405">
-    <link rel="stylesheet" href="/admin/documentos-admin.css?v=202611191405">
-    <link rel="stylesheet" href="/admin/migracion-admin.css?v=202611191405">
-    <link rel="stylesheet" href="/admin/tareas-admin.css?v=202611191405">
+    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611192355">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611192355">
+    <link rel="stylesheet" href="/admin/creditos-admin.css?v=202611192355">
+    <link rel="stylesheet" href="/admin/documentos-admin.css?v=202611192355">
+    <link rel="stylesheet" href="/admin/migracion-admin.css?v=202611192355">
+    <link rel="stylesheet" href="/admin/tareas-admin.css?v=202611192355">
 </head>
 <body class="min-h-screen flex flex-col relative">
 
     <div id="app-header" data-modulo="admin" data-titulo="Administración" data-migas=""></div>
-<script src="/assets/js/nucleo.js?v=202611191405"></script>
-<script src="/assets/js/barra.js?v=202611191405"></script>
+<script src="/assets/js/nucleo.js?v=202611192355"></script>
+<script src="/assets/js/barra.js?v=202611192355"></script>
 
     <main class="flex-grow p-4 sm:p-6 w-full max-w-4xl mx-auto fc-principal">
         <style>
@@ -282,8 +282,8 @@
             <!-- ============ DESPACHOS (admin/despachos-admin.js) ============ -->
             <section id="panel-despachos" role="tabpanel" hidden>
                 <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
-                    <p class="text-sm text-slate-500 max-w-2xl">Un despacho comparte empresas con su equipo; cada persona conserva su propio espacio. Tú creas el despacho y su titular;
-                        el titular invita a su equipo y da los permisos desde <b>Mi despacho</b>.</p>
+                    <p class="text-sm text-slate-500 max-w-2xl">Un despacho comparte empresas con su equipo; cada persona conserva su propio espacio. Siempre nace de una
+                        <b>clave de despacho</b>: su titular la activa en Configuración › Plan y créditos, o tú la ligas aquí con «+ Nuevo despacho». El titular invita a su equipo y da los permisos desde <b>Mi despacho</b>.</p>
                     <button type="button" class="ui-btn ui-btn--primario ui-btn--36" id="dsa-nuevo">+ Nuevo despacho</button>
                 </div>
                 <div class="bg-white rounded-xl card-elevated border border-gray-200 overflow-hidden">
@@ -591,9 +591,14 @@
         <!-- Agregar / editar usuario -->
         <dialog id="dsa-dlg" class="fc-modal fc-modal--chica" aria-labelledby="dsa-dlg-titulo">
             <div class="fc-modal__cabeza"><div><h2 id="dsa-dlg-titulo">Nuevo despacho</h2>
-                <p>El titular lo administra: invita a su equipo y da permisos.</p></div>
+                <p>Nace con una clave de despacho: sus lugares, sus meses y sus timbres corren desde hoy.</p></div>
                 <button type="button" class="fc-modal__cerrar" data-dsa-cerrar aria-label="Cerrar">×</button></div>
             <form class="fc-modal__cuerpo" id="dsa-forma" novalidate>
+                <label class="ui-campo" id="dsa-campo-clave"><span class="ui-etiqueta">Clave de despacho</span><select class="ui-select" id="dsa-clave"></select>
+                    <span class="ui-ayuda">Se activa al crear el despacho y ya no sirve para otro.</span></label>
+                <div class="ui-ayuda" id="dsa-sin-claves" hidden style="padding:14px 16px;border:1px solid var(--linea);border-radius:10px;background:rgb(var(--g-50))">
+                    No hay claves de despacho disponibles. Emite una en <b>Licencias</b> › «+ Emitir licencias» › Despacho (equipo) y vuelve aquí.
+                    <div style="margin-top:10px"><button type="button" class="ui-btn ui-btn--secundario ui-btn--28" id="dsa-ir-licencias">Ir a Licencias</button></div></div>
                 <label class="ui-campo"><span class="ui-etiqueta">Nombre del despacho</span><input class="ui-input" id="dsa-nombre" maxlength="80" placeholder="Despacho Pérez y Asociados"></label>
                 <label class="ui-campo"><span class="ui-etiqueta">Correo del titular</span><input class="ui-input" id="dsa-titular" type="email" maxlength="120" placeholder="titular@despacho.mx"></label>
                 <fieldset class="ui-campo" style="border:0;padding:0;margin:0">
@@ -809,16 +814,16 @@
         </div>
     </div>
 
-<script src="/admin/admin.js?v=202611191405"></script>
-<script src="/admin/creditos-admin.js?v=202611191405"></script>
-<script src="/admin/planes-admin.js?v=202611191405"></script>
-<script src="/admin/documentos-admin.js?v=202611191405"></script>
-<script src="/admin/plazos-admin.js?v=202611191405"></script>
-<script src="/admin/vencidas-admin.js?v=202611191405"></script>
-<script src="/admin/despachos-admin.js?v=202611191405"></script>
-<script src="/admin/licencias-admin.js?v=202611191405"></script>
-<script src="/admin/demos-admin.js?v=202611191405"></script>
-<script src="/admin/migracion-admin.js?v=202611191405"></script>
-<script src="/admin/tareas-admin.js?v=202611191405"></script>
+<script src="/admin/admin.js?v=202611192355"></script>
+<script src="/admin/creditos-admin.js?v=202611192355"></script>
+<script src="/admin/planes-admin.js?v=202611192355"></script>
+<script src="/admin/documentos-admin.js?v=202611192355"></script>
+<script src="/admin/plazos-admin.js?v=202611192355"></script>
+<script src="/admin/vencidas-admin.js?v=202611192355"></script>
+<script src="/admin/despachos-admin.js?v=202611192355"></script>
+<script src="/admin/licencias-admin.js?v=202611192355"></script>
+<script src="/admin/demos-admin.js?v=202611192355"></script>
+<script src="/admin/migracion-admin.js?v=202611192355"></script>
+<script src="/admin/tareas-admin.js?v=202611192355"></script>
 </body>
 </html>

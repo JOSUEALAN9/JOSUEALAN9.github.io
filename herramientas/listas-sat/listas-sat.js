@@ -334,6 +334,7 @@
         var m = uuidsParaAcciones().length;
         $("acciones-alcance").textContent = n ? "Las acciones usan los " + n + " seleccionados." : m ? "Las acciones usan los " + m + " CFDI que ves." : "No hay CFDI en esta vista.";
         $("btn-excel").disabled = $("btn-acuse").disabled = !m;
+        $("btn-excel-todas").disabled = !(hayEleccion() && xmlEnPeriodo());     // aunque no haya hallazgos: es la constancia
     }
 
     function uuidsParaAcciones() {
@@ -341,12 +342,14 @@
     }
 
     // ------------------------------------------------------------ acciones
-    async function exportarExcel() {
-        var b = $("btn-excel"), t = b.innerHTML;
+    // 19-nov-2026: hojas «Hallazgos» (por proveedor) y «Facturas con hallazgo»; con «todas», también «Todas las facturas revisadas»
+    async function exportarExcel(todas) {
+        var b = $(todas ? "btn-excel-todas" : "btn-excel"), t = b.innerHTML;
         b.disabled = true; b.innerHTML = "<b>⏳</b>Generando…";
         try {
             var titulo = "CFDI con proveedores o clientes en listas del SAT" + (E.pestana ? " · " + E.datos.grupos[E.pestana] : "");
-            var resp = await postJSON("/api/listas-sat/excel", { rfc: E.rfc, uuids: uuidsParaAcciones(), titulo: titulo, periodo: textoPeriodo(), desde: E.cargado.desde, hasta: E.cargado.hasta });
+            var resp = await postJSON("/api/listas-sat/excel", { rfc: E.rfc, uuids: uuidsParaAcciones(), titulo: titulo, periodo: textoPeriodo(),
+                desde: E.cargado.desde, hasta: E.cargado.hasta, todas: !!todas });
             await descargar(resp, E.rfc + "_Listas-SAT.xlsx");
         } catch (e) { aviso(e.message, true); }
         b.innerHTML = t; pintarSeleccion();
@@ -448,10 +451,31 @@
         return "Listas al " + dmy(fechas[fechas.length - 1] || revisadas[revisadas.length - 1]) + " · revisadas " + hace(revisadas[0]);
     }
 
+    // 19-nov-2026 (Alan: «como la pantalla de bases de datos»): cada lista con su fecha y si está vigente
+    var VIGENCIA_CLASE = { "Vigente": "ok", "Desactualizada": "vieja", "Sin descargar": "nada" };
+    function pintarFechas(e) {
+        function cuantas(estado) { return e.listas.filter(function (l) { return l.vigencia && l.vigencia.estado === estado; }).length; }
+        var viejas = cuantas("Desactualizada"), nada = cuantas("Sin descargar"), partes = [];
+        if (viejas) partes.push(viejas + (viejas === 1 ? " desactualizada" : " desactualizadas"));
+        if (nada) partes.push(nada + " sin descargar");
+        var b = $("btn-fechas");
+        b.textContent = "Fecha de cada lista" + (partes.length ? " · " + partes.join(" · ") : "");
+        b.classList.toggle("ls-fechas__aviso", partes.length > 0);
+        $("lista-fechas").innerHTML = e.listas.map(function (l) {
+            var v = l.vigencia || {}, clase = VIGENCIA_CLASE[v.estado] || "nada";
+            return '<div class="ls-lista ls-lista--' + clase + '" title="' + esc(v.motivo || "") + '"><strong>' + esc(l.nombre) +
+                '<span class="ls-vigencia ls-vigencia--' + clase + '">' + esc(v.estado || "") + "</span></strong>" +
+                "<span>" + esc(l.descripcion || "") + "</span>" +
+                "<span>" + (v.fecha ? (v.fecha_de === "archivo" ? "Publicada al " : "Cambió el ") + esc(dmy(v.fecha)) : "Sin fecha") + (v.revisada ? " · revisada " + esc(hace(v.revisada)) : "") + "</span>" +
+                (v.estado !== "Vigente" && v.motivo ? "<em>" + esc(v.motivo) + "</em>" : "") + "</div>";
+        }).join("");
+    }
+
     async function cargarEstado() {
         try {
             var e = await apiJSON("/api/listas-sat/estado");
             $("texto-actualizacion").textContent = e.actualizando ? "Buscando actualizaciones en el SAT…" : resumenListas(e);
+            pintarFechas(e);
             $("btn-buscar-act").disabled = e.actualizando;
             if (e.actualizando) { setTimeout(cargarEstado, 8000); return; }
             if (antesDeBuscar) {
@@ -511,7 +535,12 @@
         });
         $("btn-limpiar-sel").addEventListener("click", function () { if (t) t.quitarSeleccion(); });
 
-        $("btn-excel").addEventListener("click", exportarExcel);
+        $("btn-excel").addEventListener("click", function () { exportarExcel(false); });
+        $("btn-excel-todas").addEventListener("click", function () { exportarExcel(true); });
+        $("btn-fechas").addEventListener("click", function () {
+            var p = $("panel-fechas"); p.hidden = !p.hidden;
+            this.setAttribute("aria-expanded", String(!p.hidden));
+        });
         $("btn-acuse").addEventListener("click", descargarAcuses);
         $("btn-rfc").addEventListener("click", function () { abrirVentana("Buscar un RFC", "rfc"); });
         $("btn-cambios").addEventListener("click", abrirCambios);

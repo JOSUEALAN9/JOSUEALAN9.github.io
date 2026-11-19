@@ -3,6 +3,9 @@
  * su registro: cada pantalla con su captura y su «mapa» (botones, enlaces, listas, campos). Desde el mapa se agregan
  * pasos para el siguiente recorrido. En vivo, la sesión queda abierta y «+ paso» (o el renglón de abajo) manda el paso
  * en ese momento. El candado vive en el servidor (modulos/laboratorio/motor.py): aquí solo se muestra.
+ * DIOT (19-nov-2026): la evidencia guardada (vista previa, acuse) se baja desde el detalle, y en una sesión en vivo de la
+ * DIOT está el «Envío grabado» (primer envío real con Alan): desbloqueo con PIN para esa empresa y ese periodo, por 15
+ * minutos, y el PIN otra vez justo antes de enviar (modulos/laboratorio/envio_diot.py). El servidor revisa todo.
  */
 (function () {
     "use strict";
@@ -11,6 +14,9 @@
     var E = { datos: null, corrida: null, paso: 0, reloj: null, imagenes: {}, firma: "" };
     var ESTADO = { en_curso: ["aviso", "En curso"], completado: ["ok", "Terminado"], error: ["error", "Con error"], detenido: ["aviso", "Detenido"], interrumpido: ["error", "Interrumpido"] };
     var RESULTADO = { hecho: "", bloqueado: "bloqueado", "no encontrado": "no", error: "error" };
+    var MESES = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+    var ENVIO = { activo: ["aviso", "Desbloqueado"], confirmado: ["aviso", "Enviando…"], enviando: ["aviso", "Enviando…"], enviado: ["ok", "Enviada"],
+        revisar: ["error", "Revisar en el SAT"], detenido: ["error", "No se envió"], vencido: ["", "Venció"], cancelado: ["", "Cancelado"], error: ["error", "Con error"] };
 
     async function api(ruta, opciones) {
         var r = await fetch(API + ruta, Object.assign({ credentials: "include" }, opciones || {}));
@@ -117,6 +123,123 @@
             "<small>«+ paso» y las opciones de las listas en el mapa también lo mandan en este momento. Lo que presenta, envía, firma o paga sigue bloqueado. " +
             '<button type="button" class="lb-enlace" data-ayuda>¿Cómo escribo un paso?</button></small></form>';
     }
+    // La evidencia que guardó la corrida (vista previa, acuse): se baja con un clic.
+    function evidencias(c) {
+        var ev = c.evidencias || [];
+        if (!ev.length) return "";
+        var nombre = function (n) {
+            var m = /^(\d+)_([a-z_]+?)(?:_(marco|documento)(\d+))?\.(html|pdf)$/.exec(n) || [];
+            var que = { vista_previa: "Vista previa", acuse: "Acuse", evidencia: "Pantalla" }[m[2]] || n;
+            return que + (m[3] === "documento" ? " · PDF del SAT" : m[3] === "marco" ? " · marco " + m[4] : m[5] === "pdf" ? " · impresa (PDF)" : " · página (HTML)");
+        };
+        return '<div class="lb-evid"><b>Evidencia guardada</b><div class="lb-ops">' + ev.map(function (n) {
+            return '<button type="button" class="lb-op" data-archivo="' + esc(n) + '" title="' + esc(n) + '">' + esc(nombre(n)) + "</button>";
+        }).join("") + "</div></div>";
+    }
+    function mesAnterior() { var d = new Date(); d.setDate(1); d.setMonth(d.getMonth() - 1); return { ej: d.getFullYear(), mes: d.getMonth() }; }
+    function periodoDe(c) {
+        // El periodo del paso «diot: 2026 / Octubre / Normal» de la corrida (si no, el mes anterior)
+        var m = /diot[^:]*:\s*(\d{4})\s*\/\s*([a-záéíóú]+)/i.exec(c.instrucciones || ""), d = mesAnterior();
+        var i = m ? MESES.map(function (x) { return x.toLowerCase(); }).indexOf(m[2].toLowerCase()) : -1;
+        return { ej: m ? +m[1] : d.ej, mes: i >= 0 ? i : d.mes };
+    }
+    function tablaEnvio(c, e) {
+        return '<div class="fc-identidad__tabla"><table><tbody>' +
+            [["Empresa", empresa(c.rfc) + " · " + c.rfc], ["Declaración", "DIOT (Operaciones con Terceros)"], ["Ejercicio", String(e.ejercicio)],
+             ["Periodo", e.periodo], ["Tipo", "Normal"], ["Operaciones", "La presenta sin operaciones"]].map(function (f) {
+                return "<tr><th scope=\"row\">" + esc(f[0]) + "</th><td><b>" + esc(f[1]) + "</b></td></tr>";
+            }).join("") + "</tbody></table></div>";
+    }
+    function cuenta(seg) { seg = Math.max(0, seg | 0); return Math.floor(seg / 60) + ":" + ("0" + (seg % 60)).slice(-2); }
+    function panelEnvio(c) {
+        if (c.receta !== "diot" || (!c.en_vivo && !c.envio)) return "";
+        var e = c.envio, s = e ? (ENVIO[e.estado] || ["", e.estado]) : null, activo = e && e.estado === "activo" && e.segundos > 0;
+        var cab = '<div class="lb-envio__cab"><b>Envío grabado</b>' + (s ? '<span class="ui-estado ui-estado--' + s[0] + '">' + esc(s[1]) + "</span>" : "") + "</div>";
+        if (activo) {
+            E.vence = Date.now() + e.segundos * 1000;
+            return '<section class="lb-envio lb-envio--activo">' + cab +
+                '<p>Se va a enviar al SAT <b>exactamente</b> esto. El robot revisa que la pantalla diga lo mismo antes de pulsar; si algo no cuadra, no envía.</p>' +
+                tablaEnvio(c, e) +
+                '<div class="lb-envio__pie"><span class="lb-envio__reloj">Vence en <b data-cuenta>' + cuenta(e.segundos) + "</b></span>" +
+                '<button type="button" class="ui-btn ui-btn--terciario ui-btn--28" data-hacer="cancelar-envio">Cancelar</button>' +
+                '<button type="button" class="ui-btn ui-btn--peligro ui-btn--28" data-hacer="enviar">Enviar al SAT…</button></div></section>';
+        }
+        var nota = e ? '<p class="lb-envio__msg">' + esc(e.mensaje || "") + (e.numero_operacion ? " · Número de operación <b>" + esc(e.numero_operacion) + "</b>" : "") + "</p>" : "";
+        if (e && (e.estado === "confirmado" || e.estado === "enviando")) return '<section class="lb-envio lb-envio--activo">' + cab + tablaEnvio(c, e) + nota + "<p>No cierres la sesión.</p></section>";
+        if (!c.en_vivo) return '<section class="lb-envio">' + cab + (e ? tablaEnvio(c, e) : "") + nota + "</section>";
+        var p = periodoDe(c);
+        return '<section class="lb-envio">' + cab + nota +
+            '<p>Para el primer envío real, con Alan presente. Solo DIOT <b>sin operaciones</b>, Normal, de esta empresa. Se desbloquea con tu PIN por 15 minutos; fuera de eso, «Enviar» sigue bloqueado.</p>' +
+            '<div class="lb-envio__forma"><label class="lb-campo">Ejercicio<input class="ui-input" id="lb-envio-ej" type="number" min="2025" max="2100" value="' + p.ej + '"></label>' +
+            '<label class="lb-campo">Periodo<select class="ui-select" id="lb-envio-mes">' + MESES.map(function (m, i) { return '<option value="' + m + '"' + (i === p.mes ? " selected" : "") + ">" + m + "</option>"; }).join("") + "</select></label>" +
+            '<button type="button" class="ui-btn ui-btn--secundario ui-btn--36" data-hacer="desbloquear">Desbloquear con PIN</button></div></section>';
+    }
+    // Ventana con lo que se va a hacer y SOLO el PIN (Alan: «solo con PIN»). ejecutar(pin) hace la acción; si falla, la
+    // ventana sigue abierta con el mensaje del servidor. Devuelve true si se hizo.
+    function pedirPin(o) {
+        return new Promise(function (listo) {
+            var dlg = document.createElement("dialog");
+            dlg.className = "fc-modal fc-modal--mediana fc-identidad";
+            dlg.innerHTML = '<div class="fc-modal__cabeza"><div><h2>' + esc(o.titulo) + "</h2><p>" + esc(o.sub || "Escribe tu PIN para confirmar.") + "</p></div>" +
+                '<button type="button" class="fc-modal__cerrar" data-i="cerrar" aria-label="Cerrar">×</button></div>' +
+                '<form class="fc-modal__cuerpo" novalidate><div class="fc-identidad__resumen">' + o.resumen + "</div>" +
+                (o.casilla ? '<label class="lb-check"><input type="checkbox" data-i="casilla"> ' + esc(o.casilla) + "</label>" : "") +
+                '<label class="ui-campo"><span class="ui-etiqueta">Tu PIN</span><input class="ui-input" data-i="pin" type="password" inputmode="numeric" autocomplete="off" maxlength="6"></label>' +
+                '<p class="ui-ayuda ui-ayuda--error" data-i="error" hidden></p></form>' +
+                '<div class="fc-modal__pie"><button type="button" class="ui-btn ui-btn--secundario ui-btn--36" data-i="cancelar">Cancelar</button>' +
+                '<button type="button" class="ui-btn ' + (o.peligro ? "ui-btn--peligro" : "ui-btn--primario") + ' ui-btn--36" data-i="ok">' + esc(o.boton) + "</button></div>";
+            var q = function (k) { return dlg.querySelector('[data-i="' + k + '"]'); }, terminado = false;
+            function fin(r) { if (terminado) return; terminado = true; try { dlg.close(); } catch (x) { /* nada */ } dlg.remove(); listo(r); }
+            function error(t) { q("error").textContent = t || ""; q("error").hidden = !t; }
+            async function aceptar() {
+                if (o.casilla && !q("casilla").checked) return error("Marca la casilla para confirmar que lo revisaste.");
+                var pin = q("pin").value.trim();
+                if (!pin) return error("Escribe tu PIN.");
+                var b = q("ok"); b.disabled = true; b.classList.add("ui-btn--cargando"); error("");
+                try { await o.ejecutar(pin); fin(true); }
+                catch (x) { error(x.message); q("pin").value = ""; q("pin").focus(); b.disabled = false; }
+                finally { b.classList.remove("ui-btn--cargando"); }
+            }
+            q("ok").addEventListener("click", aceptar);
+            q("cancelar").addEventListener("click", function () { fin(false); });
+            q("cerrar").addEventListener("click", function () { fin(false); });
+            dlg.querySelector("form").addEventListener("submit", function (ev) { ev.preventDefault(); aceptar(); });
+            dlg.addEventListener("cancel", function (ev) { ev.preventDefault(); fin(false); });
+            document.body.appendChild(dlg);
+            dlg.showModal();
+            q("pin").focus();
+        });
+    }
+    async function desbloquear(c) {
+        var ej = +$("lb-envio-ej").value, mes = $("lb-envio-mes").value, e = { ejercicio: ej, periodo: mes };
+        if (!ej) { Fiscontable.toast("Escribe el ejercicio."); return; }
+        await pedirPin({ titulo: "Desbloquear el envío de la DIOT", boton: "Desbloquear 15 minutos",
+            sub: "Solo para esta empresa y este periodo. Después te pediremos el PIN otra vez, justo antes de enviar.",
+            resumen: tablaEnvio(c, e),
+            ejecutar: async function (pin) {
+                await api("/api/admin/laboratorio/" + c.id + "/desbloqueo", { method: "POST", headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ rfc: c.rfc, ejercicio: ej, periodo: mes, tipo: "Normal", pin: pin }) });
+            } });
+        E.firma = ""; abrir(c.id, true);
+    }
+    async function enviarAhora(c) {
+        var e = c.envio;
+        var hecho = await pedirPin({ titulo: "Enviar 1 declaración al SAT", boton: "Enviar ahora", peligro: true,
+            sub: "Esto presenta la declaración ante el SAT y no se puede deshacer.",
+            resumen: '<p class="fc-identidad__aviso">Revisa que sea la empresa y el periodo correctos:</p>' + tablaEnvio(c, e) +
+                '<p class="fc-identidad__pie">El robot pulsa «ENVIAR DECLARACIÓN», confirma ese envío, firma con la e.firma de la empresa y guarda el acuse. Se graba todo.</p>',
+            casilla: "Revisé la vista previa y es la declaración correcta.",
+            ejecutar: async function (pin) {
+                await api("/api/admin/laboratorio/" + c.id + "/enviar", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ envio: e.id, pin: pin }) });
+            } });
+        if (hecho) Fiscontable.toast("Enviando: mira cada pantalla aquí.");
+        E.firma = ""; abrir(c.id, true);
+    }
+    setInterval(function () {                                   // el reloj del desbloqueo (el servidor manda los segundos)
+        var r = document.querySelector("[data-cuenta]");
+        if (r && E.vence) { var seg = Math.round((E.vence - Date.now()) / 1000); r.textContent = cuenta(seg); if (seg <= 0 && E.corrida) { E.firma = ""; abrir(E.corrida.id, true); E.vence = 0; } }
+    }, 1000);
+
     // «En esta pantalla» (dentro de la ayuda): las instrucciones listas para la pantalla que estás viendo.
     function pintarAyuda() {
         var caja = $("lb-ay-aqui"), c = E.corrida, p = c && (c.registro || [])[E.paso];
@@ -177,7 +300,7 @@
                 (reg.length ? '<button type="button" class="ui-btn ui-btn--secundario ui-btn--28" data-hacer="zip">Descargar registro</button>' : "") +
                 (c.en_curso ? "" : '<button type="button" class="ui-btn ui-btn--terciario ui-btn--28" data-hacer="borrar">Borrar</button>') + "</div>" +
             '<div class="lb-datos">' + esc(fecha(c.creada)) + (c.mensaje ? " · <b>" + esc(c.mensaje) + "</b>" : c.en_curso ? " · recorriendo…" : "") + (c.nota ? " · " + esc(c.nota) : "") + "</div>" +
-            barraVivo(c) +
+            barraVivo(c) + panelEnvio(c) + evidencias(c) +
             (reg.length ? '<div class="lb-pasos">' + reg.map(function (x, i) {
                 return '<button type="button" class="lb-paso' + (RESULTADO[x.resultado] ? " lb-paso--" + RESULTADO[x.resultado] : "") + '" data-ir="' + i + '" aria-current="' + (i === E.paso) + '">' +
                     "<b>" + x.n + (x.resultado !== "hecho" ? " · " + esc(x.resultado) : "") + "</b><span>" + esc(x.accion) + "</span></button>";
@@ -200,7 +323,8 @@
     async function abrir(cid, conservar) {
         var c;
         try { c = await api("/api/admin/laboratorio/" + cid); } catch (e) { Fiscontable.toast(e.message); return; }
-        var firma = [c.id, (c.registro || []).length, c.estado, c.mensaje, c.en_vivo, c.esperando, c.cola].join("|"), igual = E.corrida && firma === E.firma;
+        var ev = c.envio || {}, firma = [c.id, (c.registro || []).length, c.estado, c.mensaje, c.en_vivo, c.esperando, c.cola, ev.id, ev.estado, (c.evidencias || []).length].join("|"),
+            igual = E.corrida && firma === E.firma;
         E.corrida = c; E.firma = firma;
         if (!conservar) E.paso = Math.max(0, (c.registro || []).length - 1);
         if (!igual) { pintarLista(); pintarDetalle(); }        // en vivo se consulta cada 2 s: solo se repinta si algo cambió
@@ -266,8 +390,23 @@
         if (ir) { E.paso = +ir.dataset.ir; pintarDetalle(); return; }
         if (mas && c && c.en_vivo) { mandarPaso(mas.dataset.paso); return; }
         if (mas) { agregarPaso(mas.dataset.paso); return; }
+        var arch = e.target.closest("[data-archivo]");
+        if (arch && c) {
+            try {
+                var ra = await fetch(API + "/api/admin/laboratorio/" + c.id + "/archivo/" + encodeURIComponent(arch.dataset.archivo), { credentials: "include" });
+                if (!ra.ok) throw new Error(await Fiscontable.leerError(ra));
+                Fiscontable.guardarArchivo(await ra.blob(), c.rfc + "_DIOT_" + arch.dataset.archivo);
+            } catch (er) { Fiscontable.toast(er.message); }
+            return;
+        }
         if (!h || !c) return;
         try {
+            if (h.dataset.hacer === "desbloquear") { await desbloquear(c); return; }
+            if (h.dataset.hacer === "enviar") { await enviarAhora(c); return; }
+            if (h.dataset.hacer === "cancelar-envio") {
+                await api("/api/admin/laboratorio/" + c.id + "/desbloqueo", { method: "DELETE" });
+                Fiscontable.toast("Desbloqueo cancelado: «Enviar» vuelve a estar bloqueado."); E.firma = ""; abrir(c.id, true); return;
+            }
             if (h.dataset.hacer === "detener") {
                 await api("/api/admin/laboratorio/" + c.id + "/detener", { method: "POST" });
                 Fiscontable.toast(c.en_vivo ? "Se cierra la sesión en unos segundos." : "Se detiene al terminar el paso en curso.");

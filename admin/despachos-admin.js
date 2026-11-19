@@ -1,13 +1,14 @@
 /*
- * admin/despachos-admin.js — Pestaña Despachos de Administración: crear despachos (con su titular), ver su equipo y
- * cuántas empresas tienen, el tope de empresas del espacio personal y activar o desactivar.
+ * admin/despachos-admin.js — Pestaña Despachos de Administración: crear despachos (con su titular y SIEMPRE ligados a una
+ * clave de despacho disponible: decisión de Alan del 19-nov-2026), ver su licencia, su equipo y cuántas empresas tienen,
+ * el tope de empresas del espacio personal y activar o desactivar.
  * El titular administra su equipo desde /despacho/ (modulos/despacho/router.py).
  */
 (function () {
     "use strict";
     var API = Fiscontable.API, esc = Fiscontable.escapar;
     var $ = function (id) { return document.getElementById(id); };
-    var lista = [];
+    var lista = [], claves = [];
 
     async function api(ruta, metodo, cuerpo) {
         var r = await fetch(API + ruta, { method: metodo || "GET", credentials: "include",
@@ -18,8 +19,20 @@
     function avisar(tipo, texto) { if (typeof mostrarAlerta === "function") mostrarAlerta(tipo, texto); else Fiscontable.avisar(texto); }
 
     async function cargar() {
-        try { lista = (await api("/api/admin/despachos")).despachos; } catch (e) { avisar("error", e.message); return; }
+        try { var r = await api("/api/admin/despachos"); lista = r.despachos; claves = r.claves || []; } catch (e) { avisar("error", e.message); return; }
         pintar();
+    }
+
+    function fecha(iso) {
+        var d = new Date(iso);
+        return isNaN(d) ? "" : d.toLocaleDateString("es-MX", { day: "numeric", month: "short", year: "numeric" });
+    }
+    function licencia(d) {
+        if (d.cancelada) return '<span class="text-red-700">Licencia cancelada</span>';
+        if (!d.licencia) return '<span class="text-amber-700">Sin licencia (de antes)</span>';
+        var lug = d.ajustes && d.ajustes.asientos;
+        var vencio = d.vence && new Date(d.vence) < new Date();
+        return (lug ? lug + " lugares · " : "") + (d.vence ? (vencio ? '<span class="text-amber-700">venció el ' + fecha(d.vence) + "</span>" : "hasta el " + fecha(d.vence)) : "");
     }
 
     function pintar() {
@@ -29,7 +42,8 @@
             var tope = d.ajustes && d.ajustes.empresas_personales;
             return '<tr class="border-t border-gray-100' + (d.activo ? "" : " opacity-60") + '">' +
                 '<td class="p-4"><b class="text-slate-800">' + esc(d.nombre) + "</b>" +
-                    '<div class="text-xs text-slate-500">' + (d.interna ? "Cuenta propia del despacho" : "Cuenta de " + esc(d.cuenta)) + (d.activo ? "" : " · desactivado") + "</div></td>" +
+                    '<div class="text-xs text-slate-500">' + (d.interna ? "Cuenta propia del despacho" : "Cuenta de " + esc(d.cuenta)) + (d.activo ? "" : " · desactivado") + "</div>" +
+                    '<div class="text-xs text-slate-500">' + licencia(d) + "</div></td>" +
                 '<td class="p-4">' + esc(d.titulares || "—") + "</td>" +
                 '<td class="p-4">' + d.n_miembros + (d.n_invitados ? ' <span class="text-xs text-amber-700">+' + d.n_invitados + " invitados</span>" : "") + "</td>" +
                 '<td class="p-4">' + d.n_empresas + "</td>" +
@@ -45,24 +59,36 @@
         $("dsa-forma").reset();
         $("dsa-cuenta").hidden = true;
         $("dsa-error").hidden = true;
+        // Un despacho siempre lleva licencia: sin claves de despacho disponibles no se puede crear
+        $("dsa-clave").innerHTML = claves.map(function (c) {
+            return '<option value="' + c.id + '">…' + esc(c.clave.slice(-4)) + " · " + c.asientos + " lugares · " + c.meses + " meses" +
+                (c.nota ? " · " + esc(c.nota) : "") + "</option>";
+        }).join("");
+        var hay = claves.length > 0;
+        $("dsa-campo-clave").hidden = !hay;
+        $("dsa-sin-claves").hidden = hay;
+        $("dsa-crear").disabled = !hay;
         $("dsa-dlg").showModal();
-        $("dsa-nombre").focus();
+        (hay ? $("dsa-nombre") : $("dsa-ir-licencias")).focus();
     }
 
     async function crear() {
         var existente = document.querySelector('input[name="dsa-cuenta"]:checked').value === "existente";
         var cuerpo = { nombre: $("dsa-nombre").value.trim(), titular: $("dsa-titular").value.trim().toLowerCase(),
-                       cuenta: existente ? $("dsa-cuenta").value.trim().toLowerCase() : "" };
+                       cuenta: existente ? $("dsa-cuenta").value.trim().toLowerCase() : "", licencia_id: +$("dsa-clave").value || null };
         function error(t) { $("dsa-error").textContent = t; $("dsa-error").hidden = false; }
+        if (!cuerpo.licencia_id) return error("Elige la clave de despacho.");
         if (!cuerpo.nombre) return error("Ponle nombre al despacho.");
         if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(cuerpo.titular)) return error("Escribe el correo del titular.");
         if (existente && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(cuerpo.cuenta)) return error("Escribe el correo de la cuenta donde están sus empresas.");
         var b = $("dsa-crear");
         b.classList.add("ui-btn--cargando");
         try {
-            await api("/api/admin/despachos", "POST", cuerpo);
+            var d = await api("/api/admin/despachos", "POST", cuerpo);
             $("dsa-dlg").close();
-            avisar("success", "Despacho «" + cuerpo.nombre + "» creado. " + cuerpo.titular + " ya lo administra desde Mi despacho (menú con su nombre).");
+            var l = d.licencia || {};
+            avisar("success", "Despacho «" + cuerpo.nombre + "» creado con " + (l.asientos || "sus") + " lugares hasta el " + fecha(l.vence) +
+                (l.timbres ? " y " + l.timbres + " timbres" : "") + ". " + cuerpo.titular + " ya lo administra desde Mi despacho (menú con su nombre).");
             cargar();
         } catch (e) { error(e.message); } finally { b.classList.remove("ui-btn--cargando"); }
     }
@@ -87,6 +113,7 @@
     }
 
     $("dsa-nuevo").addEventListener("click", abrirNuevo);
+    $("dsa-ir-licencias").addEventListener("click", function () { $("dsa-dlg").close(); if (typeof abrirPestana === "function") abrirPestana("licencias"); });
     $("dsa-crear").addEventListener("click", crear);
     $("dsa-forma").addEventListener("submit", function (e) { e.preventDefault(); crear(); });
     $("dsa-forma").addEventListener("change", function (e) {
