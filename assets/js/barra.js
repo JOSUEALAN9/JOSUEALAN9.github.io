@@ -581,6 +581,7 @@
             { g: "Administración", i: D.llave, n: "Registro de trámites", d: "Quién hizo cada trámite: Vostro sin navegador, VPS o PC", u: adm + "registro", a: "ver registro trabajadores http sin navegador quien hizo agente pc vps robot", si: admin },
             { g: "Administración", i: D.llave, n: "Registro de auditoría", d: "Baja un ZIP con lo que hizo el sistema: trámites, visores, correos y tu bitácora", u: adm + "reporte", a: "auditoria auditar registro reporte claude prueba pruebas zip revisar visto bueno diagnostico", si: admin },
             { g: "Administración", i: D.llave, n: "Cuentas vencidas", d: "Planes vencidos y sus plazos", u: adm + "vencidas", a: "admin vencimiento", si: admin },
+            { g: "Administración", i: D.llave, n: "Tareas automáticas y madrugada", d: "Si cada tarea salió, cuánto tardó, «Correr ahora» y la carga de la madrugada", u: adm + "tareas", a: "admin programador tareas automaticas madrugada fallas reintentar no alcanzo respaldo vps carriles", si: admin },
             { g: "Administración", i: D.llave, n: "Laboratorio", d: "Pruebas con el SAT", u: "/admin/laboratorio/", a: "admin pruebas sin navegador grabacion", si: admin },
             { g: "Ayuda", i: D.ayuda, n: "Ayuda e instrucciones", d: "Cómo se usa cada parte", u: "/soporte/", a: "soporte dudas manual contacto" },
             { g: "Ayuda", i: D.alerta, n: "Informar un error", d: "Cuéntanos qué falló; llega a soporte", u: "#informar-error", a: "reportar falla bug problema no funciona soporte" },

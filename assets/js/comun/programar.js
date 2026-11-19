@@ -20,7 +20,7 @@
     var ESTADOS = {
         pendiente: ["En espera", "fp-gris"], reintentar: ["Se reintentará", "fp-ambar"], en_curso: ["Trabajando", "fp-azul"],
         lista: ["Listo", "fp-verde"], revisar: ["Revisar", "fp-rojo"], fallida: ["Falló", "fp-rojo"],
-        no_alcanzo: ["No alcanzó", "fp-ambar"], cancelada: ["Cancelada", "fp-gris"]
+        no_alcanzo: ["No alcanzó", "fp-ambar"], cancelada: ["Cancelada", "fp-gris"], reprogramada: ["Se volvió a programar", "fp-gris"]
     };
     var ESTADO_PROG = { programada: "Programada", en_curso: "Trabajando", terminada: "Terminada", cancelada: "Cancelada" };
 

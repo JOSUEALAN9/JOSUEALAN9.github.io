@@ -4,17 +4,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Administrar Usuarios | Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611190645">
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611190645">
-    <link rel="stylesheet" href="/admin/creditos-admin.css?v=202611190645">
-    <link rel="stylesheet" href="/admin/documentos-admin.css?v=202611190645">
-    <link rel="stylesheet" href="/admin/migracion-admin.css?v=202611190645">
+    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611190654">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611190654">
+    <link rel="stylesheet" href="/admin/creditos-admin.css?v=202611190654">
+    <link rel="stylesheet" href="/admin/documentos-admin.css?v=202611190654">
+    <link rel="stylesheet" href="/admin/migracion-admin.css?v=202611190654">
+    <link rel="stylesheet" href="/admin/tareas-admin.css?v=202611190654">
 </head>
 <body class="min-h-screen flex flex-col relative">
 
     <div id="app-header" data-modulo="admin" data-titulo="Administración" data-migas=""></div>
-<script src="/assets/js/nucleo.js?v=202611190645"></script>
-<script src="/assets/js/barra.js?v=202611190645"></script>
+<script src="/assets/js/nucleo.js?v=202611190654"></script>
+<script src="/assets/js/barra.js?v=202611190654"></script>
 
     <main class="flex-grow p-4 sm:p-6 w-full max-w-4xl mx-auto fc-principal">
         <style>
@@ -393,6 +394,7 @@
                     <button type="button" data-sub="estado" class="adm-sub adm-sub--activa">Estado</button>
                     <button type="button" data-sub="sat" class="adm-sub">SAT y listas</button>
                     <button type="button" data-sub="portal" class="adm-sub">Portal y acciones</button>
+                    <button type="button" data-sub="tareas" class="adm-sub">Tareas automáticas</button>
                     <button type="button" data-sub="registros" class="adm-sub">Log y bitácora</button>
                     <button type="button" data-sub="plazos" class="adm-sub">Plazos y valores</button>
                     <button type="button" data-sub="vencidas" class="adm-sub">Cuentas vencidas</button>
@@ -578,6 +580,10 @@
                 <!-- Plan vencido: cuentas por eliminar, plazos y textos de los correos (admin/vencidas-admin.js) -->
                 <div data-subpanel="vencidas" hidden>
                     <div id="vencidas-admin"></div>
+                </div>
+                <!-- 19-nov: la madrugada y las tareas automáticas, con su última corrida y «Correr ahora» (admin/tareas-admin.js) -->
+                <div data-subpanel="tareas" hidden>
+                    <div id="tareas-admin"></div>
                 </div>
             </section>
         </div>
@@ -803,15 +809,16 @@
         </div>
     </div>
 
-<script src="/admin/admin.js?v=202611190645"></script>
-<script src="/admin/creditos-admin.js?v=202611190645"></script>
-<script src="/admin/planes-admin.js?v=202611190645"></script>
-<script src="/admin/documentos-admin.js?v=202611190645"></script>
-<script src="/admin/plazos-admin.js?v=202611190645"></script>
-<script src="/admin/vencidas-admin.js?v=202611190645"></script>
-<script src="/admin/despachos-admin.js?v=202611190645"></script>
-<script src="/admin/licencias-admin.js?v=202611190645"></script>
-<script src="/admin/demos-admin.js?v=202611190645"></script>
-<script src="/admin/migracion-admin.js?v=202611190645"></script>
+<script src="/admin/admin.js?v=202611190654"></script>
+<script src="/admin/creditos-admin.js?v=202611190654"></script>
+<script src="/admin/planes-admin.js?v=202611190654"></script>
+<script src="/admin/documentos-admin.js?v=202611190654"></script>
+<script src="/admin/plazos-admin.js?v=202611190654"></script>
+<script src="/admin/vencidas-admin.js?v=202611190654"></script>
+<script src="/admin/despachos-admin.js?v=202611190654"></script>
+<script src="/admin/licencias-admin.js?v=202611190654"></script>
+<script src="/admin/demos-admin.js?v=202611190654"></script>
+<script src="/admin/migracion-admin.js?v=202611190654"></script>
+<script src="/admin/tareas-admin.js?v=202611190654"></script>
 </body>
 </html>
