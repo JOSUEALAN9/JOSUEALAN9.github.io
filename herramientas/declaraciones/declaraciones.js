@@ -53,10 +53,16 @@
 
     /* -------------------------------------------------- pasos */
 
+    var autDecl = null;
+
     function alElegir(quien) {
         elegido = quien;
         sinAlerta();
         fEfirma.hidden = quien.efirmaGuardada;
+        if (window.FcAutorizacion && !quien.efirmaGuardada) {        // 19-nov-2026: la autorización del titular
+            autDecl = autDecl || window.FcAutorizacion.montar("decl-autoriza");
+            autDecl.limpiar(); autDecl.rfc(quien.rfc);
+        }
         // Si el .cer ya vino del paso "¿Para quién?", aquí no se vuelve a pedir.
         document.getElementById("campo-cer").style.display = quien.cer ? "none" : "";
         // 12 caracteres = persona moral, 13 = persona física.
@@ -176,6 +182,11 @@
                 alerta("Faltan el .cer, el .key o la contraseña de la e.firma.");
                 return;
             }
+            if (autDecl && !autDecl.exigir()) {
+                alerta("Marca la casilla de la autorización del titular para usar su e.firma.");
+                return;
+            }
+            cuerpo.append("autorizo", autDecl ? autDecl.valor() : "false");
             ruta = "/api/declaraciones/iniciar";
             cuerpo.append("rfc", elegido.rfc);
             cuerpo.append("password", pwd);

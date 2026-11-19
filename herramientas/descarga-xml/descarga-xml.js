@@ -163,7 +163,21 @@
         $("caja-guardar-ciec").hidden = !(q.esCliente && E.puedeGuardar);
         // M-06: con el web service y la e.firma guardada no hay nada que pedir: el bloque solo aparece si falta algo
         $("paso-acceso").hidden = !portal && !!q.efirmaGuardada;
+        // 19-nov-2026: la casilla de la autorización del titular, cuando se escribe o se sube algo de acceso
+        if (window.FcAutorizacion) {
+            if (!E.autDm) E.autDm = window.FcAutorizacion.montar("dm-autoriza");
+            if (E.autDmRfc !== q.rfc) { E.autDmRfc = q.rfc; E.autDm.limpiar(); E.autDm.rfc(q.rfc); }
+            $("dm-autoriza").hidden = conCiec ? usaGuardada : !!q.efirmaGuardada;
+        }
         pintarSesion();
+    }
+
+    function autorizaDm(cuerpo) {        // solo si en esta búsqueda va una contraseña o una e.firma nueva
+        if (!E.autDm || !(cuerpo.has("cer") || cuerpo.has("ciec"))) return true;
+        $("dm-autoriza").hidden = false;
+        if (!E.autDm.exigir()) { alerta("Marca la casilla de la autorización del titular para usar sus datos de acceso al SAT."); return false; }
+        cuerpo.append("autorizo", E.autDm.valor());
+        return true;
     }
 
     /* ================================================================ sesión del portal */
@@ -438,6 +452,7 @@
             ruta = "/api/descarga-xml/solicitar";
             cuerpo.append("modo", "cfdi");
             if (!adjuntarEfirma(cuerpo)) return;
+            if (!autorizaDm(cuerpo)) return;
             cuerpos.push(cuerpo);
             continue;
         } else {
@@ -455,6 +470,7 @@
                     if ($("guardar-ciec").checked && !$("caja-guardar-ciec").hidden) cuerpo.append("guardar_ciec", "true");
                 }
             } else if (!adjuntarEfirma(cuerpo)) return;
+            if (!autorizaDm(cuerpo)) return;
         }
         cuerpos.push(cuerpo);
         }

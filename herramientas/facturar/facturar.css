@@ -574,3 +574,11 @@ tr.fa-fila-desglose > td { background: rgb(var(--g-50)); padding: 4px 12px 12px;
 .fa-bloqueo .ui-ico { width: 20px; height: 20px; color: rgb(var(--av-600)); flex: none; }
 .fa-bloqueo > div { flex: 1 1 260px; }
 .fa-layout--bloqueado { opacity: .45; filter: grayscale(.4); pointer-events: none; user-select: none; }
+
+/* ---------- Emitidas: el último correo de cada factura (19-nov-2026) ---------- */
+.fa-correo { display: block; margin-top: 4px; font-size: 11.5px; color: rgb(var(--g-600)); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 240px; }
+.fa-correo--mal { color: rgb(var(--er-600)); font-weight: 700; white-space: normal; }
+.fa-correo--espera { color: rgb(var(--av-600)); font-weight: 600; white-space: normal; }
+.fa-correo__reenviar { margin-top: 4px; border: 1px solid rgb(var(--er-200)); background: rgb(var(--g-0)); color: rgb(var(--er-600)); border-radius: 8px; padding: 3px 10px;
+                       font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; }
+.fa-correo__reenviar:hover { background: rgb(var(--er-50)); }

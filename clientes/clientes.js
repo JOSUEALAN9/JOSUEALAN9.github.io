@@ -198,6 +198,8 @@ function abrirModalNuevoCliente() {
     altaCer = null;
     errorAlta("");
     rfcDesdeCer(null);
+    if (autAlta) autAlta.limpiar();
+    verAutorizaAlta();
     ponerFichaAlta("general");
     pintarEspacioAlta();
     avisoDespacho(null);
@@ -295,6 +297,56 @@ async function pasarAlDespacho(rfc) {
         if (res.pasada) await cargarClientes();
     } catch (x) { mostrarAlerta("error", x.message); }
 }
+/* La casilla de la autorización del titular en el alta (19-nov-2026, Alan): aparece en cuanto hay e.firma, contraseña del
+   SAT o sellos, y sin marcarla no se registra (el servidor tampoco guarda nada sin ella). */
+let autAlta = null;
+function credencialesAlta() {
+    const v = id => document.getElementById(id);
+    return !!((v("alta-cer") && v("alta-cer").files[0]) || (v("alta-ciec") && v("alta-ciec").value.trim()) ||
+              (v("alta-csd-cer") && v("alta-csd-cer").files[0]));
+}
+function verAutorizaAlta() {
+    const caja = document.getElementById("alta-autoriza");
+    if (!caja || !window.FcAutorizacion) return;
+    if (!autAlta) autAlta = FcAutorizacion.montar(caja, { siempre: true });
+    caja.hidden = !(puedeGuardarEfirma && credencialesAlta());
+}
+document.addEventListener("DOMContentLoaded", () => {
+    const f = document.getElementById("form-nuevo-cliente");
+    if (f) { f.addEventListener("input", verAutorizaAlta); f.addEventListener("change", verAutorizaAlta); }
+});
+
+/* En la ficha (Accesos): una sola casilla para la e.firma, la contraseña y los sellos. Si la empresa ya está confirmada no
+   se ve; si ya tenía accesos guardados de antes, sale el aviso amable con «Confirmar» (una sola vez). */
+function pintarAutorizaFicha(cliente) {
+    const caja = document.getElementById("editar-autoriza");
+    if (!caja || !window.FcAutorizacion) return;
+    caja.hidden = true; caja.innerHTML = "";
+    if (!puedeGuardarEfirma || !cliente || cliente.autorizada) return;
+    if (cliente.autorizacion_pendiente) {
+        FcAutorizacion.franja(caja, { rfc: cliente.rfc, nombre: cliente.alias, origen: "ficha", alConfirmar: () => {
+            cliente.autorizada = true; cliente.autorizacion_pendiente = false;
+            mostrarAlerta("success", "Listo: quedó la constancia de que el titular de " + cliente.alias + " te autorizó.");
+        } });
+        return;
+    }
+    caja.innerHTML = FcAutorizacion.casilla();
+    caja.hidden = false;
+}
+function autorizaFicha() {
+    const c = clientesCache.find(x => x.rfc === rfcEnEdicion);
+    if (!puedeGuardarEfirma || (c && c.autorizada)) return true;
+    const caja = document.getElementById("editar-autoriza"), casilla = caja && caja.querySelector("[data-autoriza]");
+    if (casilla && casilla.checked) return true;
+    if (caja) {
+        ponerFicha("accesos");
+        caja.hidden = false;
+        const m = caja.querySelector("[data-autoriza-caja]"); if (m) { m.classList.add("fc-autoriza--falta"); const e = m.querySelector("[data-autoriza-error]"); if (e) e.hidden = false; }
+        caja.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    }
+    return false;
+}
+
 function cerrarModalNuevoCliente() {
     document.getElementById("modal-nuevo-cliente").classList.remove("modal-active");
     document.getElementById("form-nuevo-cliente").reset();
@@ -698,6 +750,9 @@ async function crearCliente(e) {
     }
     const fac = datosFacturarAlta();
     if (fac.error) return aviso("facturar", fac.error, fac.campo);
+    verAutorizaAlta();
+    if (puedeGuardarEfirma && credencialesAlta() && autAlta && !autAlta.exigir()) return;      // la casilla dice qué falta
+    datos.append("autorizo", autAlta ? autAlta.valor() : "false");
     datos.append("nombre", alias);
     datos.append("tipo_sociedad", document.getElementById("input-tipo").value);
     const ciec = (document.getElementById("alta-ciec") || {}).value || "";
@@ -810,6 +865,7 @@ async function guardarFacturarAlta(rfc, d) {
     }
     if (d.cer) {
         const c = new FormData(); c.append("cer", d.cer); c.append("key", d.key); c.append("password", d.pass);
+        c.append("autorizo", autAlta ? autAlta.valor() : "false");
         try { await pedir(base + "/csd", { method: "POST", body: c }); hecho.push("sello digital"); }
         catch (e) { fallas.push("sello digital: " + e.message); }
     }
@@ -1123,6 +1179,7 @@ document.addEventListener("click", (e) => {
         <label>Certificado (.cer)<input type="file" accept=".cer" name="cer" required></label>
         <label>Llave privada (.key)<input type="file" accept=".key" name="key" required></label>
         <label>Contraseña de la e.firma<input type="password" name="password" autocomplete="off" required></label>
+        ${(clientesCache.find(x => x.rfc === rfcEnEdicion) || {}).autorizada || !window.FcAutorizacion ? "" : FcAutorizacion.casilla()}
         <div><button type="submit" class="ui-btn ui-btn--primario ui-btn--32">Descargar</button>
         <button type="button" class="ui-btn ui-btn--terciario ui-btn--32" data-dom="cancelar-una">Cancelar</button></div>
         <small>La e.firma se usa solo para esta consulta y no se guarda.</small></form>`);
@@ -1134,7 +1191,12 @@ document.addEventListener("submit", (e) => {
     const f = e.target.closest(".dom-unavez"); if (!f || !rfcEnEdicion) return;
     e.preventDefault();
     if (!f.cer.files[0] || !f.key.files[0] || !f.password.value) { avisoDomicilio(rfcEnEdicion, "Adjunta el .cer, el .key y escribe la contraseña."); return; }
+    const casilla = f.querySelector("[data-autoriza]");
+    if (casilla && !casilla.checked) {
+        const m = casilla.closest("[data-autoriza-caja]"); m.classList.add("fc-autoriza--falta"); m.querySelector("[data-autoriza-error]").hidden = false; return;
+    }
     const fd = new FormData();
+    if (casilla) fd.append("autorizo", "true");
     fd.append("rfc", rfcEnEdicion); fd.append("password", f.password.value);
     fd.append("cer", f.cer.files[0]); fd.append("key", f.key.files[0]);
     fd.append("descargar_csf", "true"); fd.append("guardar_efirma", "false");
@@ -1169,6 +1231,7 @@ function abrirModalEditar(rfc, ficha) {
     document.getElementById("editar-dato-alta").textContent = cliente.creado_en ? new Date(cliente.creado_en + "Z").toLocaleDateString("es-MX", { day: "numeric", month: "long", year: "numeric" }) : "—";
     pintarCiec(cliente);
     pintarCsd(cliente);
+    pintarAutorizaFicha(cliente);
     pintarManifiestoFicha(cliente);
     pintarReceptores(cliente);
     document.getElementById("editar-cer").value = "";
@@ -1446,14 +1509,16 @@ function mensajeCiec(ok, texto) {
 async function guardarCiec() {
     const campo = document.querySelector("#editar-ciec input");
     if (!campo.value.trim()) { mensajeCiec(false, "Escribe la contraseña del SAT."); campo.focus(); return; }
+    if (!autorizaFicha()) { mensajeCiec(false, "Marca arriba la casilla de la autorización del titular."); return; }
     const b = document.getElementById("btn-guardar-ciec"); b.disabled = true;
     try {
         const r = await fetch(`${API_URL}/api/clientes/${encodeURIComponent(rfcEnEdicion)}/ciec`, {
-            method: "PUT", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ciec: campo.value.trim() })
+            method: "PUT", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ciec: campo.value.trim(), autorizo: true })
         });
         if (!r.ok) throw new Error(await interpretarError(r));
         await cargarClientes();
         pintarCiec(clientesCache.find(c => c.rfc === rfcEnEdicion) || { ciec_guardada: true });
+        pintarAutorizaFicha(clientesCache.find(c => c.rfc === rfcEnEdicion));
         mensajeCiec(true, "✓ Contraseña guardada (cifrada).");
     } catch (e) { mensajeCiec(false, e.message); }
     b.disabled = false;
@@ -1666,6 +1731,7 @@ async function guardarFacturacion() {
     if (conArchivos && (!cer || !key || !pass)) { mensajeCsd(false, "Para el sello elige el .cer, el .key y escribe su contraseña."); return; }
     const cambioDatos = (regimen || null) !== (em.regimen || null) || (cp || null) !== (em.cp || null);
     if (!cambioDatos && !conArchivos) { mensajeCsd(false, "No hay cambios que guardar."); return; }
+    if (conArchivos && !autorizaFicha()) { mensajeCsd(false, "Marca arriba la casilla de la autorización del titular."); return; }
     const b = document.getElementById("btn-guardar-csd");
     b.disabled = true; b.textContent = conArchivos ? "Revisando el sello…" : "Guardando…";
     try {
@@ -1679,10 +1745,12 @@ async function guardarFacturacion() {
         }
         if (conArchivos) {
             const cuerpo = new FormData();
-            cuerpo.append("cer", cer); cuerpo.append("key", key); cuerpo.append("password", pass);
+            cuerpo.append("cer", cer); cuerpo.append("key", key); cuerpo.append("password", pass); cuerpo.append("autorizo", "true");
             const r = await fetch(`${API_URL}/api/facturacion/emisores/${encodeURIComponent(rfc)}/csd`, { method: "POST", credentials: "include", body: cuerpo });
             if (!r.ok) throw new Error(await Fiscontable.leerError(r));
             ponerEmisor(await r.json());
+            const cl = clientesCache.find(c => c.rfc === rfc);
+            if (cl) { cl.autorizada = true; cl.autorizacion_pendiente = false; pintarAutorizaFicha(cl); }
         }
         await pintarCsd(clientesCache.find(c => c.rfc === rfc) || { rfc: rfc });
         const ahora = factCfg.empresas.find(x => x.rfc === rfc) || {};
@@ -1768,6 +1836,7 @@ async function guardarEfirma() {
         mostrarMensajeEfirma("error", "Necesitamos el .cer, el .key y la contraseña para guardarla.");
         return;
     }
+    if (!autorizaFicha()) { mostrarMensajeEfirma("error", "Marca arriba la casilla de la autorización del titular."); return; }
     ocultarMensajeEfirma();
 
     const boton = document.getElementById("btn-guardar-efirma");
@@ -1779,6 +1848,7 @@ async function guardarEfirma() {
     formData.append("cer", cer);
     formData.append("key", key);
     formData.append("password", password);
+    formData.append("autorizo", "true");             // autorizaFicha() ya revisó la casilla (o la empresa ya la tenía)
 
     try {
         const yaTenia = !!(clientesCache.find(x => x.rfc === rfcEnEdicion) || {}).efirma_guardada;
@@ -1820,6 +1890,7 @@ async function guardarEfirma() {
 function abrirModalEditarSinLimpiarMensaje(cliente) {
     pintarEfirmaFicha(cliente, true);
     pintarResumenFicha(cliente);
+    pintarAutorizaFicha(cliente);
 }
 
 /* Lo delicado se confirma con el PIN en una sola ventana (14-nov): hacer(confirmacion) hace la petición con la cabecera

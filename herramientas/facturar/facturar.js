@@ -145,6 +145,7 @@
         if (!F.emisor) { aviso("Esa empresa no está en tu directorio.", "error"); return; }
         aviso("");
         pintarEmisor();
+        prepararAutoriza();
         vista(F.vista || "nueva");
         cargarEmitidas();
         cargarReceptores();
@@ -345,17 +346,36 @@
         b.disabled = false;
     }
 
+    /* La casilla de la autorización del titular para subir los sellos (19-nov-2026): se esconde si la empresa ya la tiene. */
+    function prepararAutoriza() {
+        if (!window.FcAutorizacion || !F.emisor) return;
+        if (!F.autCsd) F.autCsd = FcAutorizacion.montar("c-csd-autoriza");
+        F.autorizada = false;
+        var rfc = F.emisor.rfc;
+        F.autCsd.rfc(rfc).then(function () { if (F.emisor && F.emisor.rfc === rfc) { F.autorizada = F.autCsd.marcada(); if ($("act-pasos") && F.autorizada) pintarActivar(); } });
+    }
+
+    function autorizaCsd(caja) {          // la casilla del paso «Sello» de Activar facturación
+        var c = caja && caja.querySelector("[data-autoriza]");
+        if (F.autorizada || !c || c.checked) return true;
+        var m = c.closest("[data-autoriza-caja]"); m.classList.add("fc-autoriza--falta"); m.querySelector("[data-autoriza-error]").hidden = false;
+        return false;
+    }
+
     async function guardarCsd() {
         var cer = $("c-cer").files[0], key = $("c-key").files[0], pass = $("c-pass").value;
         if (!cer || !key || !pass) { $("msj-csd").textContent = "Elige el .cer, el .key y escribe la contraseña."; return; }
+        if (F.autCsd && !F.autCsd.exigir()) { $("msj-csd").textContent = "Marca la casilla de la autorización del titular."; return; }
         var cuerpo = new FormData();
         cuerpo.append("cer", cer); cuerpo.append("key", key); cuerpo.append("password", pass);
+        cuerpo.append("autorizo", F.autCsd ? F.autCsd.valor() : "false");
         var b = $("btn-guardar-csd");
         b.disabled = true; b.textContent = "Revisando…";
         $("msj-csd").textContent = "";
         try {
             actualizarEmisor(await json("/api/facturacion/emisores/" + encodeURIComponent(F.emisor.rfc) + "/csd", { method: "POST", body: cuerpo }));
             $("c-pass").value = ""; $("c-cer").value = ""; $("c-key").value = "";
+            if (F.autCsd) F.autCsd.confirmada(); F.autorizada = true;
             $("msj-csd").textContent = "✓ CSD guardado.";
         } catch (e) { $("msj-csd").textContent = e.message; }
         b.disabled = false; b.textContent = "Guardar CSD";
@@ -1380,7 +1400,7 @@
                 "<td>" + esc(x.receptor_nombre) + "<small>" + esc(x.receptor_rfc) + "</small></td>" +
                 '<td class="fa-num">' + dinero(x.total) + (x.moneda === "USD" ? " <small>USD</small>" : "") +
                 (x.saldo != null && x.estado !== "cancelado" ? (x.saldo > 0.004 ? '<span class="fa-saldo">Saldo ' + dinero(x.saldo) + "</span>" : '<span class="fa-saldo fa-saldo--ok">Pagada</span>') : "") +
-                "</td><td>" + estado + "</td>" +
+                "</td><td>" + estado + lineaCorreo(x) + "</td>" +
                 '<td class="fa-acc"><div class="fa-acc__caja">' +
                 '<button type="button" class="fa-acc-btn" data-acc="pdf" title="Ver el PDF"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2.5 12C4 7.5 7.7 5 12 5s8 2.5 9.5 7c-1.5 4.5-5.2 7-9.5 7s-8-2.5-9.5-7z"/><circle cx="12" cy="12" r="3"/></svg>PDF</button>' +
                 '<button type="button" class="fa-acc-btn" data-acc="xml" title="Descargar el XML"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>XML</button>' +
@@ -1389,6 +1409,29 @@
                 "</div></td></tr>";
         }).join("") : '<tr><td colspan="7">' + (F.emitidas.length ? "Nada coincide." : "Todavía no hay facturas de esta empresa.") + "</td></tr>") : "");
         pintarSeleccion();
+    }
+
+    /* El último correo de cada factura (19-nov-2026, Alan: el de «mandar al timbrar» fallaba en silencio): salió a quién y
+       cuándo, o «No salió el correo» en rojo con «Reenviar» (abre el envío de siempre). El motivo va en el título y en el
+       historial del diálogo. */
+    function lineaCorreo(x) {
+        var c = x.correo;
+        if (!c || x.estado === "cancelado") return "";
+        if (c.estado === "ok") {
+            var para = String(c.para || "").split(",")[0].trim(), mas = String(c.para || "").split(",").length - 1;
+            var d = new Date(c.cuando + "Z"), dia = isNaN(d) ? "" : d.toLocaleDateString("es-MX", { day: "numeric", month: "short" }) +
+                (d.getFullYear() !== new Date().getFullYear() ? " " + d.getFullYear() : "");
+            return '<span class="fa-correo" title="' + esc("Salió el " + fechaCorta(c.cuando + "Z") + " a " + (c.para || "")) + '">Enviada a ' + esc(para) + (mas > 0 ? " y " + mas + " más" : "") +
+                (dia ? " · " + esc(dia) : "") + "</span>";
+        }
+        if (c.estado === "reintentar" || c.estado === "reintentado") {
+            var h = c.reintentar_en ? new Date(c.reintentar_en + "Z") : null;
+            return '<span class="fa-correo fa-correo--espera" title="' + esc(c.detalle || "") + '">El correo no salió; se vuelve a intentar solo' +
+                (h && !isNaN(h) ? " a las " + esc(h.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" })) : "") + "</span>";
+        }
+        var sin = c.estado === "sin_correo";
+        return '<span class="fa-correo fa-correo--mal" title="' + esc(c.detalle || "") + '">' + (sin ? "No salió el correo: el cliente no tiene correo" : "No salió el correo") + "</span>" +
+            '<button type="button" class="fa-correo__reenviar" data-acc="correo" title="' + esc(sin ? "Escribir su correo y mandarla" : "Volver a mandar el correo (puedes cambiar a quién)") + '">' + (sin ? "Enviar" : "Reenviar") + "</button>";
     }
 
     function pintarSeleccion() {
@@ -1742,7 +1785,8 @@
             $("co-para").value = b.para; $("co-cc").value = b.cc; $("co-asunto").value = b.asunto; $("co-cuerpo").value = b.cuerpo;
             $("co-pdf").checked = b.adjuntar_pdf; $("co-xml").checked = b.adjuntar_xml; $("co-enlace").checked = b.con_enlace; $("co-zip").checked = false;
             $("co-historial").innerHTML = b.envios.length ? "<b>Envíos:</b> " + b.envios.map(function (e) {
-                return esc(fechaCorta(e.cuando + "Z") + " · " + e.canal + (e.para ? " a " + e.para : "") + " · " + (e.estado === "ok" ? "✓" : "✗ " + (e.detalle || "")));
+                return esc(fechaCorta(e.cuando + "Z") + " · " + e.canal + (e.para ? " a " + e.para : "") + (/autom/.test(e.quien || "") ? " (al timbrar)" : "") + " · " +
+                    (e.estado === "ok" ? "✓ salió" : e.estado === "reintentado" ? "✗ no salió; se reintentó: " + (e.detalle || "") : "✗ no salió: " + (e.detalle || "")));
             }).join("<br>") : "";
             $("dlg-correo").showModal();
             if (!b.para) $("co-para").focus();
@@ -1759,8 +1803,8 @@
                 adjuntar_pdf: $("co-pdf").checked, adjuntar_xml: $("co-xml").checked, adjuntar_zip: $("co-zip").checked, con_enlace: $("co-enlace").checked, guardar_correo: $("co-guardar").checked });
             $("dlg-correo").close();
             aviso("✓ " + $("co-folio").textContent + " se mandó a " + r.para.join(", ") + ".");
-            cargarReceptores();
-        } catch (e) { $("co-error").textContent = e.message; $("co-error").hidden = false; }
+            cargarEmitidas();                       // la línea «Enviada a …» de esa factura (también recarga los clientes)
+        } catch (e) { $("co-error").textContent = e.message; $("co-error").hidden = false; cargarEmitidas(); }
         b.disabled = false; b.textContent = "Mandar";
     }
 
@@ -1933,6 +1977,7 @@
         if (id === "sello") return '<p class="fa-nota">Es el <b>Certificado de Sello Digital</b> que se tramita en CertiSAT; no es la e.firma. Suelta los dos archivos juntos.</p>' +
             '<div class="fa-act__zona" data-zona="csd"></div>' +
             '<div class="fa-act__campos"><label class="ui-campo"><span class="ui-etiqueta">Contraseña de la llave (.key)</span><input id="act-pass" type="password" class="ui-input" autocomplete="new-password"></label>' +
+            (F.autorizada || !window.FcAutorizacion ? "" : FcAutorizacion.casilla()) +
             '<button type="button" class="ui-btn ui-btn--primario ui-btn--36" data-act-guardar-csd>Revisar y guardar</button></div><p class="fa-act__msj" id="act-msj"></p>';
         if (id === "manifiesto") return '<ol class="fa-act__lista"><li>Abre la página de Luna Soft (nuestro proveedor de timbrado) y fírmalo con la <b>e.firma</b> de ' + esc(e.alias || e.rfc) + ".</li>" +
             "<li>Descarga el PDF que te da al terminar y súbelo aquí. Revisamos que sea de este RFC.</li></ol>" +
@@ -2020,11 +2065,12 @@
     async function guardarCsdAct(b) {
         var c = F.actCsd || {}, pass = $("act-pass").value;
         if (!c.cer || !c.key || !pass) { var f = [!c.cer ? "el .cer" : "", !c.key ? "el .key" : "", !pass ? "la contraseña" : ""].filter(Boolean); msjAct("Falta" + (f.length > 1 ? "n " : " ") + f.slice(0, -1).join(", ") + (f.length > 1 ? " y " : "") + f[f.length - 1] + ".", "error"); return; }
-        var cuerpo = new FormData(); cuerpo.append("cer", c.cer); cuerpo.append("key", c.key); cuerpo.append("password", pass);
+        if (!autorizaCsd($("act-pasos"))) { msjAct("Marca la casilla de la autorización del titular.", "error"); return; }
+        var cuerpo = new FormData(); cuerpo.append("cer", c.cer); cuerpo.append("key", c.key); cuerpo.append("password", pass); cuerpo.append("autorizo", "true");
         b.classList.add("ui-btn--cargando"); b.disabled = true; msjAct("");
         try {
             actualizarEmisor(await json("/api/facturacion/emisores/" + encodeURIComponent(F.emisor.rfc) + "/csd", { method: "POST", body: cuerpo }));
-            F.actCsd = {}; siguienteRequisito(); pintarActivar();
+            F.actCsd = {}; F.autorizada = true; if (F.autCsd) F.autCsd.confirmada(); siguienteRequisito(); pintarActivar();
             Fiscontable.toast("Sello digital guardado.");
         } catch (e) { msjAct(e.message, "error"); b.classList.remove("ui-btn--cargando"); b.disabled = false; }
     }

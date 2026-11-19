@@ -112,6 +112,8 @@
                 '<button type="button" class="fc-btn fc-btn--discreto" id="pc-alta-cancelar">Cancelar</button></div>' +
                 '<p class="pc-pista" id="pc-alta-error" hidden></p>' +
               "</form>" +
+              // 19-nov-2026: una empresa que ya tenía accesos guardados confirma una sola vez la autorización de su titular
+              '<div class="pc-autoriza" id="pc-autoriza" hidden style="margin-top:10px"></div>' +
             "</div>";
 
         var select = caja.querySelector("#pc-select");
@@ -166,11 +168,26 @@
 
             abierto.hidden = true;
             cerrado.hidden = false;
+            avisoAutorizacion(datos);
             if (opciones.alElegir) opciones.alElegir(datos);
+        }
+
+        /* El aviso amable de la autorización del titular (19-nov-2026): solo si la empresa ya tenía e.firma, contraseña o
+           sellos guardados de antes y nadie lo ha confirmado. No detiene nada: se confirma una vez y ya no sale. */
+        function avisoAutorizacion(datos) {
+            var franja = caja.querySelector("#pc-autoriza");
+            var cli = clientes.find(function (x) { return x.rfc === datos.rfc; });
+            datos.autorizada = !!(cli && cli.autorizada);
+            if (!franja) return;
+            franja.hidden = true; franja.innerHTML = "";
+            if (!cli || !cli.autorizacion_pendiente || !window.FcAutorizacion) return;
+            window.FcAutorizacion.franja(franja, { rfc: cli.rfc, nombre: cli.alias, origen: opciones.origen || (location.pathname.split("/")[2] || "web"),
+                alConfirmar: function () { cli.autorizada = true; cli.autorizacion_pendiente = false; datos.autorizada = true; } });
         }
 
         function reabrir() {
             elegido = null;
+            var franja = caja.querySelector("#pc-autoriza"); if (franja) { franja.hidden = true; franja.innerHTML = ""; }
             caja.classList.remove("pc--empresa", "pc--otro");
             cerrado.hidden = true;
             abierto.hidden = false;
