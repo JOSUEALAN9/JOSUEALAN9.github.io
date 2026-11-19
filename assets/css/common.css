@@ -1952,6 +1952,8 @@ a.fc-act-item:hover { background: rgb(var(--g-50)); }
 
 .dsc-filtros { display: flex; flex-wrap: wrap; gap: var(--e-2); align-items: center; margin-bottom: var(--e-4); }
 .dsc-filtros .ui-select { width: auto; }
+.dsc-paquete { margin: 0 0 var(--e-3); padding: 8px 12px; border-radius: 10px; background: rgb(var(--ac-600) / .07); font-size: var(--t-13); color: rgb(var(--g-800)); }
+.dsc-paquete[hidden] { display: none; }
 
 /* --- Bloque de estado de un documento (G-08) --- */
 .ui-bloque { display: flex; flex-wrap: wrap; align-items: center; gap: var(--e-3) var(--e-4); padding: var(--e-4); border: 1px solid var(--linea);
