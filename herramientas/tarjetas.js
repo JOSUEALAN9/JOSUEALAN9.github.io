@@ -7,7 +7,8 @@
         var motivo = null;
         function pintar() {
             var q = sinAcentos(document.getElementById("buscar-herramienta").value.trim());
-            var cat = (Fiscontable.catalogo || []).filter(function (m) { return !m.cuenta && !m.soloAdmin && !m.reservado && m.clave !== "clientes"; });
+            var cat = (Fiscontable.catalogo || []).filter(function (m) { return !m.cuenta && !m.soloAdmin && !m.reservado && m.clave !== "clientes" &&
+                (!Fiscontable.verModulo || Fiscontable.verModulo(m)); });          // lo que el titular del despacho no te dio, ni se ve
             var grupos = (Fiscontable.grupos || []).slice(), html = "", n = 0;
             grupos.forEach(function (g) {
                 var items = cat.filter(function (m) { return m.grupo === g && (!q || sinAcentos(m.nombre + " " + m.desc + " " + g).indexOf(q) !== -1); });
@@ -53,7 +54,9 @@
         document.addEventListener("fc:perfil", function (e) {
             var p = e.detail;
             perfil = p;
-            motivo = !p ? "No disponible sin conexión al servidor" : p.solo_lectura ? "Tu acceso venció." : null;
+            var inv = Fiscontable.invitacionPendiente && Fiscontable.invitacionPendiente();
+            motivo = !p ? "No disponible sin conexión al servidor" : inv ? "Primero acepta la invitación al despacho «" + inv.despacho + "»." :
+                p.solo_lectura ? "Tu acceso venció." : null;
             pintar();
         });
         pintar();

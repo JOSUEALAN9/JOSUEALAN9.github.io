@@ -360,7 +360,9 @@
             // Cuentas nuevas: un recorrido por la pantalla, una sola vez (después queda en el botón «?» de cada módulo).
             // Espera a que el perfil esté completo para no encimarse con la ventana de bienvenida.
             var yaVio = true; try { yaVio = localStorage.getItem("fc-recorrido:bienvenida") === "1"; } catch (e) { /* nada */ }
-            if (!yaVio && p.rol !== "admin" && p.perfil_completo && Fiscontable.recorrido) setTimeout(function () {
+            // Con una invitación pendiente a un despacho, primero la invitación: el recorrido sale ya dentro del despacho
+            var invitado = !!(Fiscontable.invitacionPendiente && Fiscontable.invitacionPendiente());
+            if (!yaVio && !invitado && p.rol !== "admin" && p.perfil_completo && Fiscontable.recorrido) setTimeout(function () {
                 if (document.querySelector("dialog[open], .fc-tour, #fc-bloqueo-pantalla:not([hidden])")) return;
                 Fiscontable.recorrido("bienvenida", ["Te damos la bienvenida a Fiscontable. Este recorrido muestra las partes principales de la pantalla; " +
                     "después, el botón «?» de cada módulo explica cómo se utiliza."]);

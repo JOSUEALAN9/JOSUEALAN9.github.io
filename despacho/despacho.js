@@ -58,7 +58,7 @@
         var inv = datos.invitacion;
         if (!inv) return;
         $("dp-invitacion").hidden = false;
-        $("dp-invitacion-texto").textContent = (inv.invito ? inv.invito + " te invitó" : "Te invitaron") + " al despacho «" + inv.despacho +
+        $("dp-invitacion-texto").textContent = ((inv.invito_nombre || inv.invito) ? (inv.invito_nombre || inv.invito) + " te invitó" : "Te invitaron") + " al despacho «" + inv.despacho +
             "» como " + inv.papel + ".";
     }
 

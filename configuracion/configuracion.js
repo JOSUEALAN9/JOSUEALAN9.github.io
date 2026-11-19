@@ -481,7 +481,10 @@
         try { e = await api("/api/mi-cuenta/ciclo"); } catch (x) { e = {}; }
         var texto = "Descarga en un archivo ZIP todo lo que tienes en Fiscontable: XML, constancias, opiniones y declaraciones, acomodados por empresa.";
         var botones = propia ? '<button type="button" class="cf-btn cf-btn--principal" data-ciclo="exportar">Descargar todo</button>' : "";
-        if (e.etapa === "gracia") {
+        var inv = !perfil.viendo_como && perfil.despacho && perfil.despacho.invitacion;
+        if (inv) {
+            texto = "Tienes una invitación pendiente al despacho «" + inv.despacho + "». Al aceptarla, tu acceso lo da la licencia del despacho. " + texto;
+        } else if (e.etapa === "gracia") {
             texto = "Tu plan venció el " + fecha(e.vence) + ". La cuenta sigue funcionando hasta el " + fecha(e.gracia_hasta) + "; después quedará en solo lectura.";
         } else if (e.etapa === "solo_lectura") {
             texto = "Tu plan venció el " + fecha(e.vence) + " y la cuenta está en solo lectura. " +

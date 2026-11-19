@@ -95,7 +95,8 @@ async function verificarPerfil() {
         btnAgregar.title = "";
 
         if (soloLectura) {
-            document.getElementById("banner-solo-lectura").classList.remove("hidden");
+            // Con una invitación pendiente a un despacho no «venció»: lo que toca es aceptarla (aviso de la barra)
+            document.getElementById("banner-solo-lectura").classList.toggle("hidden", !!(perfil.despacho && perfil.despacho.invitacion && !perfil.viendo_como));
             btnAgregar.classList.add("hidden");
         } else {
             document.getElementById("banner-solo-lectura").classList.add("hidden");

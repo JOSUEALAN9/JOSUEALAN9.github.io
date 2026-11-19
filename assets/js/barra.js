@@ -450,6 +450,7 @@
     // ve el administrador y la persona a quien él le asignó ese módulo: para los demás no existe (ni menú, ni buscador, ni recorrido).
     function verModulo(m) {
         var p = perfilActual, admin = !!(p && p.rol === "admin");
+        if (quitado(m)) return false;
         if (m.soloAdmin) return admin;
         if (m.reservado) {
             var permiso = m.reservado === true ? m.permiso : m.reservado;
@@ -457,6 +458,23 @@
         }
         return true;
     }
+    // 19-nov (pruebas reales): en un despacho, lo que el plan sí trae pero el titular no le dio a esta persona
+    // (perfil.modulos_quitados) no es «mejora tu plan»: no se muestra en ningún lado (menú, Herramientas, buscador).
+    function quitado(m) {
+        var q = perfilActual && perfilActual.modulos_quitados;
+        return !!(m && m.permiso && q && q.length && q.indexOf(m.permiso) !== -1);
+    }
+    function nombreTitular(p) {
+        var d = p && p.espacio && p.espacio.despacho;
+        return (d && d.titular_nombre) || "el titular del despacho";
+    }
+    // Invitación pendiente a un despacho (la cuenta nueva que crea el enlace nace como demo vencida: mientras no
+    // acepte, lo primero es la invitación, no «Tu acceso venció»)
+    function invitacionPendiente(p) {
+        p = p || perfilActual;
+        return (p && !p._error && !p.viendo_como && p.despacho && p.despacho.invitacion) || null;
+    }
+    function quienInvito(inv) { return (inv && (inv.invito_nombre || inv.invito)) || ""; }
     function permitido(m) {
         if (!m.permiso) return true;
         var p = perfilActual;
@@ -618,10 +636,12 @@
             return;
         }
         var html = "";
-        var rec = recientes().filter(function (c) { return !aqui || c !== aqui.clave; }).slice(0, 4);
+        var rec = recientes().filter(function (c) { return !aqui || c !== aqui.clave; })
+            .map(function (c) { return CATALOGO.filter(function (m) { return m.clave === c; })[0]; })
+            .filter(function (m) { return m && verModulo(m); }).slice(0, 4);
         if (rec.length) {
             html += '<div class="fc-modulos__grupo">Recientes</div><div class="fc-modulos__rejilla">' +
-                rec.map(function (c) { return itemModulo(CATALOGO.filter(function (m) { return m.clave === c; })[0]); }).join("") + "</div>";
+                rec.map(itemModulo).join("") + "</div>";
         }
         GRUPOS.concat(["Tu cuenta"]).forEach(function (g) {
             var ms = CATALOGO.filter(function (m) { return m.grupo === g && !m.pronto && verModulo(m); });
@@ -2600,6 +2620,7 @@
 
     function vigencia(p) {
         if (!p.activo) return "Desactivado";
+        if (invitacionPendiente(p)) return "Invitación pendiente";
         if (!p.fecha_expira) return "Sin vencimiento";
         var f = new Date(p.fecha_expira);
         var texto = f.toLocaleDateString("es-MX", { day: "numeric", month: "short", year: "numeric" });
@@ -2628,7 +2649,9 @@
         pintarEmpresa();
         pintarPeriodo();
 
-        if (p.solo_lectura && p.sin_agente && !p.viendo_como) {
+        if (invitacionPendiente(p)) {
+            /* la invitación (letrero + ventana) va en lugar del aviso de acceso vencido */
+        } else if (p.solo_lectura && p.sin_agente && !p.viendo_como) {
             aviso("Conecta tu PC con Fiscontable Agente para hacer trámites y cambios. Mientras tanto puedes consultar toda tu información.",
                 [{ texto: "Conectar esta PC", href: "/agente/", mismaPestana: true }]);
         } else if (p.solo_lectura) {
@@ -2647,6 +2670,11 @@
                 pedirPinObligatorio();
             })();
         }
+        pedirInvitacion(p);
+        try {
+            var recien = sessionStorage.getItem("fc-invitacion-aceptada");
+            if (recien) { sessionStorage.removeItem("fc-invitacion-aceptada"); brindis("Ya estás en el despacho <b>" + esc(recien) + "</b>"); }
+        } catch (er) { /* sin almacenamiento */ }
         pintarLateral();
         prepararBloqueo(p);
         vigilarChipEmpresa();
@@ -3612,32 +3640,109 @@
                 "background:rgb(var(--av-50));color:rgb(var(--av-600));border-bottom:1px solid rgb(var(--av-200))", false, null,
                 { href: "/agente/", texto: "Revisar" });
         }
-        // Invitación a un despacho: se acepta o se rechaza aquí mismo
-        if (p.despacho && p.despacho.invitacion && !p.viendo_como) {
-            var inv = p.despacho.invitacion;
-            letrero((inv.invito ? inv.invito + " te invitó" : "Te invitaron") + " al despacho «" + inv.despacho + "» (" + inv.papel + "). " +
-                "Tendrás las empresas del despacho y, si te lo permiten, tu propio espacio.",
+        // Invitación a un despacho: se acepta o se rechaza aquí mismo (y en la ventana que sale al entrar)
+        if (invitacionPendiente(p)) {
+            var inv = invitacionPendiente(p);
+            letrero((quienInvito(inv) ? quienInvito(inv) + " te invitó" : "Te invitaron") + " al despacho «" + inv.despacho + "» (" + inv.papel + "). " +
+                "Acéptala para trabajar con las empresas del despacho.",
                 "background:rgb(var(--in-50));color:rgb(var(--in-600));border-bottom:1px solid rgb(var(--in-200))", false);
             var fila = caja.lastChild;
-            [["Aceptar", "aceptar"], ["Rechazar", "rechazar"]].forEach(function (x) {
+            fila.id = "fc-letrero-invitacion";
+            [["Aceptar", true], ["Rechazar", false]].forEach(function (x) {
                 var b = document.createElement("button");
                 b.type = "button"; b.textContent = x[0];
-                b.className = "fc-letrero__boton" + (x[1] === "aceptar" ? " fc-letrero__boton--principal" : "");
-                b.addEventListener("click", async function () {
-                    if (x[1] === "rechazar" && !(await Fiscontable.preguntar("¿Rechazar la invitación al despacho «" + inv.despacho + "»?"))) return;
-                    b.disabled = true;
-                    try {
-                        var r = await fetch(API + "/api/despacho/invitacion/" + x[1], { method: "POST", credentials: "include" });
-                        if (!r.ok) throw new Error(await window.Fiscontable.leerError(r));
-                        if (x[1] === "aceptar") { try { sessionStorage.setItem("fc-espacio-cambio", "despacho"); } catch (er) { /* nada */ } location.reload(); }
-                        else fila.remove();
-                    } catch (er) { b.disabled = false; aviso(er.message || "No se pudo responder la invitación."); }
-                });
+                b.className = "fc-letrero__boton" + (x[1] ? " fc-letrero__boton--principal" : "");
+                b.dataset.invitacion = x[1] ? "aceptar" : "rechazar";
+                b.addEventListener("click", function () { responderInvitacion(x[1], b); });
                 fila.appendChild(b);
             });
         }
         if (caja.children.length) barra.insertAdjacentElement("afterend", caja);
     }
+
+    /* ------------------------------------------------ invitación a un despacho
+       19-nov (pruebas reales): quien entra por el enlace de la invitación tiene una cuenta nueva sin licencia propia. Antes
+       veía «Tu acceso venció…» y un letrero azul que pasaba desapercibido. Ahora, en cuanto termina lo obligatorio del
+       primer ingreso (Términos, nombre, PIN), sale esta ventana; el letrero de arriba se queda mientras no responda. */
+    async function responderInvitacion(acepta, boton) {
+        var inv = invitacionPendiente();
+        if (!inv) return;
+        if (!acepta && !(await preguntar("¿Rechazar la invitación al despacho «" + inv.despacho + "»?"))) return;
+        var botones = document.querySelectorAll("[data-invitacion]");
+        botones.forEach(function (b) { b.disabled = true; });
+        if (boton && boton.classList.contains("ui-btn")) boton.classList.add("ui-btn--cargando");
+        try {
+            var r = await fetch(API + "/api/despacho/invitacion/" + (acepta ? "aceptar" : "rechazar"), { method: "POST", credentials: "include" });
+            if (!r.ok) throw new Error(await window.Fiscontable.leerError(r));
+            try {
+                sessionStorage.removeItem("fc-invitacion-vista");
+                if (acepta) { sessionStorage.setItem("fc-espacio-cambio", "despacho"); sessionStorage.setItem("fc-invitacion-aceptada", inv.despacho); }
+            } catch (er) { /* sin almacenamiento */ }
+            // Recarga limpia: al aceptar, al Inicio ya dentro del despacho; al rechazar, la misma página con su estado real.
+            // La ventana se cierra antes (con una ventana abierta, la transición entre páginas del navegador se aborta)
+            var dlg = document.getElementById("fc-invitacion");
+            if (dlg && dlg.open) dlg.close();
+            if (acepta) location.href = INICIO; else location.reload();
+        } catch (er) {
+            botones.forEach(function (b) { b.disabled = false; });
+            if (boton) boton.classList.remove("ui-btn--cargando");
+            aviso(er.message || "No se pudo responder la invitación.");
+        }
+    }
+
+    function abrirInvitacion() {
+        var inv = invitacionPendiente();
+        if (!inv) return;
+        var dlg = document.getElementById("fc-invitacion");
+        if (dlg) { if (!dlg.open) dlg.showModal(); return; }
+        dlg = document.createElement("dialog");
+        dlg.id = "fc-invitacion";
+        dlg.className = "fc-modal fc-modal--chica";
+        dlg.setAttribute("aria-labelledby", "fc-invitacion-titulo");
+        var quien = quienInvito(inv);
+        dlg.innerHTML = '<div class="fc-modal__cabeza"><div><h2 id="fc-invitacion-titulo"></h2><p></p></div>' +
+            '<button type="button" class="fc-modal__cerrar" data-cerrar aria-label="Responder después" title="Responder después">✕</button></div>' +
+            '<div class="fc-modal__cuerpo"><p class="fc-invitacion__texto">Al aceptar, trabajas con las empresas del despacho y con los módulos que te asigne el titular. ' +
+            "Tu cuenta queda cubierta por la licencia del despacho.</p></div>" +
+            '<div class="fc-modal__pie"><button type="button" class="ui-btn ui-btn--secundario ui-btn--36" data-invitacion="rechazar">Rechazar</button>' +
+            '<button type="button" class="ui-btn ui-btn--primario ui-btn--36" data-invitacion="aceptar">Aceptar invitación</button></div>';
+        dlg.querySelector("h2").textContent = (quien ? quien + " te invitó" : "Te invitaron") + " al despacho «" + inv.despacho + "»";
+        dlg.querySelector(".fc-modal__cabeza p").textContent = "Entrarías como " + String(inv.papel || "Miembro").toLowerCase() + ".";
+        dlg.addEventListener("click", function (e) {
+            var b = e.target.closest("[data-invitacion]");
+            if (b) { responderInvitacion(b.dataset.invitacion === "aceptar", b); return; }
+            if (e.target.closest("[data-cerrar]")) dlg.close();
+        });
+        document.body.appendChild(dlg);
+        dlg.showModal();
+        var ok = dlg.querySelector('[data-invitacion="aceptar"]');
+        if (ok) ok.focus();
+    }
+
+    function pedirInvitacion(p) {
+        var inv = invitacionPendiente(p);
+        if (!inv || p.es_revision || window.top !== window.self || document.documentElement.classList.contains("fc-incrustado")) return;
+        var clave = inv.despacho + "|" + (inv.invito || "");
+        try { if (sessionStorage.getItem("fc-invitacion-vista") === clave) return; } catch (e) { /* sin almacenamiento */ }
+        var quietos = 0;
+        (function esperar() {
+            // Primero lo obligatorio del primer ingreso (Términos, nombre, PIN) y la pantalla bloqueada; luego la invitación
+            var ocupado = document.querySelector("dialog[open], .fc-tour, #fc-modal-perfil.modal-active") || document.documentElement.classList.contains("fc-bloqueada") ||
+                (p.bloqueo && !p.bloqueo.tiene_pin && !bloqueo.pin && !p.viendo_como);
+            quietos = ocupado ? 0 : quietos + 1;
+            if (quietos < 2) { setTimeout(esperar, 500); return; }
+            if (!invitacionPendiente()) return;
+            try { sessionStorage.setItem("fc-invitacion-vista", clave); } catch (e) { /* nada */ }
+            abrirInvitacion();
+        })();
+    }
+    // «Ver la invitación» (pantalla bloqueada de un módulo, Herramientas)
+    document.addEventListener("click", function (e) {
+        var a = e.target.closest && e.target.closest("[data-fc-invitacion]");
+        if (!a) return;
+        e.preventDefault();
+        abrirInvitacion();
+    });
 
     /* ------------------------------------------------ avisos y bloqueo */
 
@@ -3733,6 +3838,19 @@
             bloquear(p && p._error === "bloqueada" ? p.motivo : p && p._error === "sesion"
                 ? "Tu sesión expiró. Recarga la página para entrar de nuevo."
                 : "No pudimos conectar con el servidor. Intenta más tarde o contacta al administrador.");
+            return false;
+        }
+        var inv = invitacionPendiente(p);
+        if (inv && (p.solo_lectura || (requerido && !(p.modulos_permitidos || []).includes(requerido)))) {
+            bloquear((quienInvito(inv) ? quienInvito(inv) + " te invitó" : "Te invitaron") + " al despacho «" + inv.despacho + "». " +
+                "Acepta la invitación para trabajar con sus empresas.",
+                '<button type="button" class="fc-btn fc-btn--principal" data-fc-invitacion>Ver la invitación</button>');
+            return false;
+        }
+        if (requerido && (p.modulos_quitados || []).indexOf(requerido) !== -1) {
+            var delModulo = CATALOGO.filter(function (m) { return m.permiso === requerido; })[0];
+            bloquear("El titular del despacho no te dio acceso a " + ((modulo.permiso === requerido ? modulo : delModulo) || modulo).nombre + ". " +
+                "Pídeselo a " + nombreTitular(p) + ".");
             return false;
         }
         if (p.solo_lectura && !p.sin_agente) {
@@ -4084,6 +4202,9 @@
         nombrePlan: nombrePlan,
         recientes: recientes,
         permitido: function (m) { return permitido(m); },
+        verModulo: function (m) { return verModulo(m); },
+        invitacionPendiente: function () { return invitacionPendiente(); },
+        abrirInvitacion: abrirInvitacion,
         abrirModulos: abrirModulos,
         perfil: perfil,
         exigirModulo: exigirModulo,
