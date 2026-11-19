@@ -44,11 +44,21 @@
     function titulo() {
         $("empresa-etiqueta").textContent = E.rfc ? "Empresa · " + E.rfc : "Empresa";
         $("empresa-titulo").textContent = E.rfc ? nombreEmpresa(E.rfc) : "Elegir empresa";
-        $("btn-pedir").href = "/herramientas/descarga-xml/" + (E.rfc ? "?rfc=" + encodeURIComponent(E.rfc) : "");
+        enlacePedir();
+    }
+    /* «Pedir al SAT» (19-nov, Alan: no dejaba elegido el tipo): Descarga masiva abre con «Retenciones e información de pagos»
+       por Web service y del lado de la pestaña que ves (emitidas o recibidas). */
+    function enlacePedir() {
+        var q = new URLSearchParams();
+        if (E.rfc) q.set("rfc", E.rfc);
+        q.set("tipo", "RET");
+        q.set("lado", E.lado === "recibida" ? "recibidos" : "emitidos");
+        $("btn-pedir").href = "/herramientas/descarga-xml/?" + q.toString();
     }
     function pestanas() {
         [].forEach.call(document.querySelectorAll("[data-lado]"), function (b) { b.setAttribute("aria-selected", String(b.dataset.lado === E.lado)); });
         $("th-contraparte").textContent = E.lado === "recibida" ? "Retenedor" : "Receptor";
+        enlacePedir();
     }
 
     async function cargar() {

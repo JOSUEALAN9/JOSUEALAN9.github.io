@@ -900,6 +900,22 @@
     // Al regresar con "Atrás", el navegador puede restaurar la página tal cual: el botón no debe quedar apagado
     window.addEventListener("pageshow", function () { var b = $("res-biblioteca"); if (b) b.disabled = false; });
 
+    /* Un enlace puede dejar elegido qué pedir (19-nov: «Pedir al SAT» de CFDI de retenciones): ?tipo=RET (o I, E, T, N, P) y
+       ?lado=emitidos | recibidos | ambos. Las retenciones solo se piden por Web service: con tipo=RET se pone ese método. */
+    function desdeEnlace() {
+        var tipo = (Fiscontable.url("tipo") || "").toUpperCase(), lado = (Fiscontable.url("lado") || "").toLowerCase();
+        var sel = $("tipo-comprobante");
+        if (tipo && Array.prototype.some.call(sel.options, function (o) { return o.value === tipo; })) {
+            if (tipo === "RET" && E.modo !== "webservice") ponerModo("webservice");
+            sel.value = tipo;
+        }
+        if (["emitidos", "recibidos", "ambos"].indexOf(lado) >= 0 && !(lado === "ambos" && E.modo === "portal")) {
+            E.tipo = lado;
+            pintarTipo();
+        }
+        pintarResumen();
+    }
+
     /* ================================================================ inicio */
     (async function () {
         if (!(await Fiscontable.exigirModulo("descarga_xml"))) return;
@@ -909,6 +925,7 @@
         E.acceso = leerLocal("descarga:acceso") === "efirma" ? "efirma" : "ciec";
         prepararPeriodo();
         ponerModo(leerLocal("descarga:modo") === "portal" ? "portal" : "webservice");
+        desdeEnlace();
         // soloRfc: con contraseña y captcha (modo Portal) no hace falta su e.firma
         PasoCliente.montar({ contenedor: "paso-cliente", alElegir: alElegir, alLimpiar: alLimpiar, soloRfc: true,
                              alRegistrar: function () { pintarAcceso(); } });
