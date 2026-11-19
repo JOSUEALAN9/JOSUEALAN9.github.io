@@ -56,7 +56,9 @@
         serie: 74, folio: 88, version: 72, tipo_desc: 104, moneda: 78, moneda_saldo: 84, tipo_cambio: 92, exportacion: 124,
         lugar_expedicion: 96, estado_expedicion: 128, metodo_pago: 96, num_conceptos: 84, num_pagos: 84, emisor_rfc: 128,
         receptor_rfc: 128, pac_rfc: 122, receptor_domicilio: 84, tipo_relacion: 168, cfdi_relacionados: 150,
-        emisor_regimen: 200, receptor_regimen: 200, no_cert_sat: 172, no_cert_emisor: 172, claves_prod_serv: 150, alertas: 200 };
+        emisor_regimen: 200, receptor_regimen: 200, no_cert_sat: 172, no_cert_emisor: 172, claves_prod_serv: 150, alertas: 200,
+        // 19-nov-2026: nómina (régimen con su descripción y el grupo corto) y pagos
+        tipo_nomina: 120, tipo_regimen: 210, grupo_nomina: 110, docto_serie_folio: 120, docto_uuid: 130 };
 
     var E = {
         contribuyentes: [], rfc: null, periodo: "", datos: null, P: null, cuentas: {}, cargado: null,
@@ -621,6 +623,13 @@
         if ((E.modulo === "recibidos" || E.modulo === "emitidos") && !leerLocal("mig:fabrica2:" + E.modulo)) {
             borrarLocal("cols:" + E.modulo); borrarLocal("vista:" + E.modulo); local = null;
             guardarLocal("mig:fabrica2:" + E.modulo, 1);
+        }
+        // 19-nov-2026 (columnas base aprobadas por Alan): la vista de fábrica de cada pestaña ahora es la corta (Serie y Folio
+        // separados; las opcionales solo si el periodo las trae). Una sola vez se suelta lo acomodado SIN nombre para que
+        // se vea la nueva; si lo acomodado venía de una vista guardada, se respeta (las vistas guardadas no se tocan).
+        if (!leerLocal("mig:fabrica3:" + E.modulo)) {
+            if (local && !leerLocal("vista:" + E.modulo)) { borrarLocal("cols:" + E.modulo); borrarLocal("vista:" + E.modulo); local = null; }
+            guardarLocal("mig:fabrica3:" + E.modulo, 1);
         }
         var pred = E.vistas.find(function (v) { return v.modulo === E.modulo && v.predeterminada; });
         var cols = local || (pred && pred.columnas) || columnasDeFabrica();

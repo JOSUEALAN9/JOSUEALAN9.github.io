@@ -4,15 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Listas del SAT · Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611191708">
-    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611191708">
-    <link rel="stylesheet" href="/herramientas/listas-sat/listas-sat.css?v=202611191708">
-    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611191708">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611192340">
+    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611192340">
+    <link rel="stylesheet" href="/herramientas/listas-sat/listas-sat.css?v=202611192340">
+    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611192340">
 </head>
 <body class="bg-slate-50">
 <div id="app-header" data-modulo="validador" data-ayuda="listas" data-titulo="Listas del SAT" data-migas="Herramientas|/herramientas/"></div>
-<script src="/assets/js/nucleo.js?v=202611191708"></script>
-<script src="/assets/js/barra.js?v=202611191708"></script>
+<script src="/assets/js/nucleo.js?v=202611192340"></script>
+<script src="/assets/js/barra.js?v=202611192340"></script>
 
 <main class="xml-pagina">
     <!-- Igual que sus hermanas: de quién, qué periodo y la revisión de las listas -->
@@ -29,17 +29,24 @@
         </div>
         <div class="xml-cabeza__acciones ls-actualizacion">
             <p id="texto-actualizacion" class="ls-nota">Revisando…</p>
+            <!-- 19-nov-2026: la fecha de cada lista y si está vigente o desactualizada -->
+            <button type="button" id="btn-fechas" class="xml-enlace" aria-expanded="false" aria-controls="panel-fechas">Fecha de cada lista</button>
             <button type="button" id="btn-buscar-act" class="xml-btn">Buscar actualizaciones</button>
         </div>
     </div>
 
     <div id="aviso" class="ls-aviso" hidden></div>
+    <div id="panel-fechas" class="ls-fechas" hidden>
+        <p class="ls-nota">Cada lista con la fecha que trae el archivo del SAT. «Desactualizada»: no se ha podido revisar con el SAT en más de 4 días, o el SAT tarda más de lo normal en publicarla.</p>
+        <div id="lista-fechas" class="ls-estado"></div>
+    </div>
     <div id="sin-empresa" class="ctx-vacio" hidden></div>
 
     <div id="contenido" class="mod-layout" hidden>
         <aside class="mod-acciones" aria-label="Acciones" data-junto="periodo-ls">
             <p class="mod-acciones__grupo">Descargar</p>
-            <button type="button" id="btn-excel" class="mod-accion" title="Lo que ves en la pestaña (o lo seleccionado)"><b>▦</b>Excel</button>
+            <button type="button" id="btn-excel" class="mod-accion" title="Hallazgos por proveedor y facturas con hallazgo: lo que ves en la pestaña (o lo seleccionado), con la fecha de cada lista"><b>▦</b>Excel</button>
+            <button type="button" id="btn-excel-todas" class="mod-accion" title="El mismo Excel y, en otra hoja, todas las facturas del periodo que se cruzaron contra las listas (para dejar constancia de la revisión)"><b>▦</b>Excel con todas las revisadas</button>
             <button type="button" id="btn-acuse" class="mod-accion" title="Un PDF por CFDI: estado en el SAT y listas del SAT"><b>📄</b>Acuses de validación (PDF)</button>
             <p class="mod-acciones__grupo">Consultar</p>
             <button type="button" id="btn-rfc" class="mod-accion" title="Cualquier RFC, aunque no esté en tus XML"><b>🔍</b>Buscar un RFC</button>
@@ -91,9 +98,9 @@
     </div>
 </div>
 
-<script src="/assets/js/comun/periodo-meses.js?v=202611191708"></script>
-<script src="/assets/js/comun/programacion.js?v=202611191708"></script>
-<script src="/assets/js/comun/tabla.js?v=202611191708"></script>
-<script src="/herramientas/listas-sat/listas-sat.js?v=202611191708"></script>
+<script src="/assets/js/comun/periodo-meses.js?v=202611192340"></script>
+<script src="/assets/js/comun/programacion.js?v=202611192340"></script>
+<script src="/assets/js/comun/tabla.js?v=202611192340"></script>
+<script src="/herramientas/listas-sat/listas-sat.js?v=202611192340"></script>
 </body>
 </html>
