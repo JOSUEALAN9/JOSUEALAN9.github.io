@@ -64,3 +64,7 @@
 .tar-filtro button small { color: rgb(var(--g-400)); font-weight: 400; }
 .tar-filtro .tar-filtro--activo { color: rgb(var(--g-900, 15 23 42)); border-bottom-color: rgb(var(--g-800)); }
 .tar-punto { width: 7px; height: 7px; border-radius: 50%; background: rgb(var(--er-600, 220 38 38)); display: inline-block; }
+
+/* 19-nov-2026: la fila en pausa porque el SAT no responde (core/disyuntor) */
+.tar-sat { margin-bottom: 10px; }
+.tar-sat .tar-aviso small { display: block; font-weight: 400; margin-top: 2px; }

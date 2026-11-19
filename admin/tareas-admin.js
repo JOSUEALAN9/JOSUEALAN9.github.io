@@ -60,7 +60,17 @@
         var hora = function (k, titulo) {
             return '<label class="tar-campo"><span>' + esc(titulo) + '</span><input type="time" data-mad="' + k + '" value="' + esc(c[k]) + '"><small>De fábrica ' + esc(m.fabrica[k]) + "</small></label>";
         };
-        return '<div class="ui-tarjeta tar-bloque" data-vista="madrugada"' + (grupoActivo === "madrugada" ? "" : " hidden") + '><h3 class="tar-titulo">La madrugada</h3>' +
+        // 19-nov-2026 (Alan, disyuntor): qué servicio del SAT tiene la fila en pausa y por qué (core/disyuntor)
+        var sat = m.sat || {}, pausados = (sat.servicios || []).filter(function (x) { return x.pausado; });
+        var satHtml = '<div class="tar-sat">' + (sat.error ? '<p class="tar-aviso tar-aviso--mal">' + esc(sat.error) + "</p>"
+            : pausados.length ? pausados.map(function (x) {
+                return '<p class="tar-aviso tar-aviso--mal" data-sat-pausa="' + esc(x.servicio) + '">' + esc(x.texto) +
+                    (x.por === "revisor" ? " <small>Sigue sola cuando el revisor lo vea bien 3 veces seguidas" + (x.confirmaciones ? " (va " + esc(x.confirmaciones) + " de 3)" : "") + ".</small>"
+                        : " <small>Sigue sola: se vuelve a probar " + esc(cuando(x.reanuda_en ? x.reanuda_en.replace(/(Z|[+-]\d\d:\d\d)?$/, "Z") : null)) + ".</small>") + "</p>";
+            }).join("") : '<p class="tar-aviso tar-aviso--ok">✓ El SAT responde en todos sus servicios: la fila no está en pausa.</p>') +
+            '<p class="tar-nota">' + (sat.revisor_activo ? "Si el revisor del SAT ve caído un servicio, lo de ese servicio espera sin gastar intentos y sigue solo cuando vuelve."
+                : "El revisor del SAT está apagado: la fila lleva su propia cuenta (más del 20 % de errores 500, 503, 504 o tiempo agotado pausa ese servicio y se reanuda solo).") + "</p></div>";
+        return '<div class="ui-tarjeta tar-bloque" data-vista="madrugada"' + (grupoActivo === "madrugada" ? "" : " hidden") + '><h3 class="tar-titulo">La madrugada</h3>' + satHtml +
             '<p class="tar-nota">Lo del día (lo de los envíos, lo que piden las cuentas, los XML del día y el Buzón) va primero y debe terminar antes de las ' +
             esc(c.fin) + "; lo que falte sigue de mañana, despacio, hasta las " + esc(c.fin_extendido) + ". El historial y el cuadre de meses viejos se reparten en varias noches.</p>" +
             estado +

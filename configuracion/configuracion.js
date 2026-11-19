@@ -587,7 +587,7 @@
                 else if (a.tipo.indexOf("entero:") === 0) { var lim = a.tipo.split(":"); campo = '<input type="number" id="' + id + '" data-fb="' + esc(a.clave) + '" min="' + lim[1] + '" max="' + lim[2] + '" value="' + esc(a.valor) + '">'; }
                 else campo = '<select id="' + id + '" data-fb="' + esc(a.clave) + '">' + a.tipo.split(":")[1].split(",").map(function (o) {
                     return '<option value="' + esc(o) + '"' + (o === a.valor ? " selected" : "") + ">" + esc({ ambos: "Emitidos y recibidos", recibidos: "Solo recibidos", emitidos: "Solo emitidos",
-                        diaria: "Cada madrugada", semanal: "Cada semana", mensual: "Cada mes" }[o] || o) + "</option>"; }).join("") + "</select>";
+                        diaria: "Cada madrugada", semanal: "Cada semana", mensual: "Cada mes", quincenal: "Cada 15 días" }[o] || (o.charAt(0).toUpperCase() + o.slice(1))) + "</option>"; }).join("") + "</select>";
                 return '<label class="cf-campo cf-campo--corto"><span>' + esc(a.titulo) + "</span>" + campo + "</label>";
             };
             c.innerHTML = '<p class="cf-texto cf-fabrica__intro">Quien no lo ha cambiado sigue lo de aquí, aunque lo cambies después. ' +
