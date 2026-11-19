@@ -859,6 +859,7 @@ function prepararEventosSistema() {
     $("btn-ver-listas").addEventListener("click", () => abrirVentana("Listas del SAT", "bloque-listas"));
     $("btn-listas-actualizar").addEventListener("click", actualizarListas);
     $("btn-url-49bis").addEventListener("click", guardarUrl49bis);
+    $("listas-estado").addEventListener("click", ev => { const b = ev.target.closest("[data-confirmar-lista]"); if (b) confirmarLista(b); });
     $("ventana-cerrar").addEventListener("click", cerrarVentana);
     $("ventana").addEventListener("click", e => { if (e.target.id === "ventana") cerrarVentana(); });
     document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("ventana").hidden) cerrarVentana(); });
@@ -1735,6 +1736,7 @@ async function cargarListasAdmin() {
             <p class="text-[11px] text-slate-600 mt-1">${l.registros != null ? `${Number(l.registros).toLocaleString("es-MX")} ${l.registros === 1 ? "registro" : "registros"}${l.actualizado_al ? " · al " + esc(fechaCorta(l.actualizado_al)) : ""}` : "Todavía no se descarga"}</p>
             ${l.revisada_en ? `<p class="text-[11px] text-slate-400">Revisada ${esc(haceCuanto(l.revisada_en))}</p>` : ""}
             ${l.error ? `<p class="text-[11px] font-bold text-amber-700 mt-1">⚠ ${esc(l.error)}</p>` : ""}
+            ${l.pendiente ? `<button type="button" data-confirmar-lista="${esc(l.lista)}" class="mt-2 text-xs font-bold text-amber-800 border border-amber-300 hover:border-amber-500 rounded-lg py-1.5 px-3 bg-amber-50">Poner la lista nueva (${Number(l.pendiente.registros).toLocaleString("es-MX")} registros)</button>` : ""}
         </div>`).join("");
     const l49 = listas.find(l => l.lista === "49bis");
     if (l49 && !$("url-49bis").value) $("url-49bis").value = l49.url || "";
@@ -1742,6 +1744,18 @@ async function cargarListasAdmin() {
     clearTimeout(listasReloj);
     if (e.actualizando) listasReloj = setTimeout(cargarListasAdmin, 10000);
     if (errores.length) $("alerta-sistema").textContent = "•";
+}
+
+// 19-nov-2026: una lista que llegó con muchos menos registros que la anterior no se pone sola; aquí se confirma
+async function confirmarLista(boton) {
+    const lista = boton.dataset.confirmarLista;
+    if (!(await Fiscontable.preguntar("¿Poner la lista nueva aunque traiga muchos menos registros?\n\nHazlo solo si revisaste en el SAT que de verdad se redujo; si el archivo venía cortado, los que faltan saldrían de la lista."))) return;
+    boton.disabled = true;
+    try {
+        const r = await api("/api/listas-sat/confirmar", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ lista }) });
+        mostrarAlerta("success", r.mensaje);
+    } catch (err) { mostrarAlerta("error", err.message); boton.disabled = false; }
+    cargarListasAdmin();
 }
 
 async function actualizarListas() {

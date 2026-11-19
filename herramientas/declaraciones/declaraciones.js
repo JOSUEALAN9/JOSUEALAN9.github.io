@@ -98,22 +98,25 @@
             titulo: "Declaraciones guardadas",
             subtitulo: (elegido.alias ? elegido.alias + " · " : "") + rfc + ". Se guardan " + Fiscontable.textoPlazo("declaraciones") + "; si tu suscripción sigue vigente, se quedan. Si se van a eliminar, recibirás un aviso 30 días antes.",
             filtro: { etiqueta: "Ejercicio", valor: almacen.ejercicio, opciones: almacen.ejercicios.map(function (e) { return { valor: e, texto: e }; }) },
-            // M-05: un renglón por declaración (mes + número de operación); sus documentos salen como etiquetas
-            columnas: ["Mes", "Declaración", "No. operación", "Guardada"],
+            // M-05: un renglón por declaración (mes + número de operación); sus documentos salen como etiquetas.
+            // 19-nov-2026 (Alan): agrupadas por mes (abierto el más reciente) y con el portal del SAT de donde salió.
+            columnas: ["Declaración", "Portal", "No. operación", "Guardada"],
+            agrupar: true,
             nombreZip: "Declaraciones_" + rfc,
             unidad: ["declaración", "declaraciones"],
             // G-14: los documentos de esa declaración, adjuntos, por el correo de la cuenta
             enviar: function (x) {
-                Fiscontable.enviarCorreo({ titulo: "Enviar la declaración de " + (x.celdas[0] || "") + " · " + (elegido.alias || rfc),
+                Fiscontable.enviarCorreo({ titulo: "Enviar la declaración de " + (x.grupoTitulo || x.celdas[0] || "") + " · " + (elegido.alias || rfc),
                                            ruta: "/api/declaraciones/almacen/enviar", datos: { rfc: rfc, ids: x.docs.map(function (a) { return a.id; }) } });
             },
             cargar: async function (ej) {
                 var a = await pedirAlmacen(rfc, ej), grupos = {}, orden = [];
                 a.documentos.forEach(function (d) {
                     var k = (d.mes || "") + "|" + (d.num_operacion || ("sin-" + (d.tipo_declaracion || "") + d.id));
-                    if (!grupos[k]) { grupos[k] = { mes: d.mes, tipo: d.tipo_declaracion || "", op: d.num_operacion || "", guardada: "", docs: [] }; orden.push(k); }
+                    if (!grupos[k]) { grupos[k] = { mes: d.mes, tipo: d.tipo_declaracion || "", op: d.num_operacion || "", portal: d.portal || "", guardada: "", docs: [] }; orden.push(k); }
                     var g = grupos[k], mes = MESES[+d.mes] || d.mes || "";
                     if (!g.tipo && d.tipo_declaracion) g.tipo = d.tipo_declaracion;
+                    if (!g.portal && d.portal) g.portal = d.portal;
                     if ((d.descargado_en || "") > g.guardada) g.guardada = d.descargado_en || "";
                     g.docs.push({ id: d.id, etiqueta: d.documento || "Documento", nombre: d.nombre, url: API + "/api/declaraciones/almacen/archivo?id=" + d.id,
                                   titulo: d.documento + " · " + mes + " " + a.ejercicio + " · " + rfc, _o: +d.tipo_documento || 9 });
@@ -121,10 +124,13 @@
                 var filas = orden.map(function (k) {
                     var g = grupos[k];
                     g.docs.sort(function (x, y) { return x._o - y._o; });
-                    return { id: "d" + g.docs[0].id, mes: +g.mes || 0, docs: g.docs,
-                             celdas: [MESES[+g.mes] || g.mes || "", g.tipo, g.op, g.guardada.slice(0, 10)] };
+                    var portal = g.portal === "antiguo" ? { texto: "Anterior", pastilla: "antiguo", etiqueta: "Portal" } : g.portal === "nuevo" ? { texto: "Nuevo", pastilla: "nuevo", etiqueta: "Portal" } : "—";
+                    return { id: "d" + g.docs[0].id, mes: +g.mes || 0, docs: g.docs, guardada: g.guardada,
+                             grupo: "m" + (g.mes || "SD"), grupoTitulo: (MESES[+g.mes] || (g.mes ? "Mes " + g.mes : "Sin mes")) + " " + a.ejercicio,
+                             celdas: [g.tipo || "Declaración", portal, g.op, g.guardada.slice(0, 10)] };
                 });
-                filas.sort(function (x, y) { return y.mes - x.mes; });
+                // El mes más reciente primero; dentro del mes, la guardada al último arriba
+                filas.sort(function (x, y) { return (y.mes - x.mes) || (y.guardada > x.guardada ? 1 : y.guardada < x.guardada ? -1 : 0); });
                 return { nota: filas.length + " declaración(es) · " + a.documentos.length + " documento(s) del " + a.ejercicio + ".", documentos: filas };
             },
             zip: function (ids, ej) { return API + "/api/declaraciones/almacen/zip?rfc=" + encodeURIComponent(rfc) + "&ejercicio=" + encodeURIComponent(ej) + "&ids=" + ids.join(","); }
