@@ -2712,8 +2712,14 @@
                 })
             });
             if (!resp.ok) { aviso("No se pudo guardar tu perfil. Intenta de nuevo."); return; }
-            promesaPerfil = Promise.resolve(await resp.json());
-            pintarPerfil(await promesaPerfil);
+            // 20-nov-2026 (Alan, primera entrada de un invitado al despacho): el PUT contesta el perfil «pelón», sin la
+            // invitación ni el espacio del despacho; pintarlo tal cual mostraba «Tu acceso venció» hasta dar F5.
+            // Se vuelve a pedir el perfil completo (el mismo de GET /api/mi-perfil).
+            var anterior = promesaPerfil;
+            promesaPerfil = null;
+            var nuevo = await perfil();
+            if (nuevo && nuevo._error) { promesaPerfil = anterior; nuevo = await anterior; }
+            pintarPerfil(nuevo);
             cerrarModalPerfil();
         } catch (err) {
             aviso("No se pudo guardar tu perfil. Revisa tu conexión e intenta de nuevo.");
