@@ -125,6 +125,7 @@
         var perfil = await Fiscontable.perfil();
         $("btn-conciliacion").hidden = !(perfil && (perfil.modulos_permitidos || []).indexOf("conciliacion") !== -1);
         await cargarVistas();
+        leerFormatoReporte();
         E.empresa = await Fiscontable.empresaActiva();
         E.urlPeriodo = Fiscontable.periodoDeUrl();
         var tab = Fiscontable.url("tab");
@@ -536,12 +537,25 @@
 
     // En Pagos el Excel es el reporte de pagos: una hoja por pago y otra por factura pagada
     function pintarBotonExcel() {
+        // 20-nov-2026: «Formato del reporte completo» (Configuración › Formato de los reportes) solo en Recibidos y Emitidos
+        var conFormato = E.modulo === "recibidos" || E.modulo === "emitidos";
+        if ($("btn-formato")) $("btn-formato").hidden = !conFormato;
         var b = document.querySelector('.mod-acciones [data-excel="vista"]');
         if (!b || b.disabled) return;
-        var pagos = E.modulo === "pagos";
+        var pagos = E.modulo === "pagos", delDespacho = conFormato && E.formatoReporte && E.formatoReporte[E.modulo];
         b.innerHTML = "<b>▦</b>" + (pagos ? "Excel · reporte de pagos" : "Excel · reporte completo");
         b.title = pagos ? "Dos hojas: «Pagos» (un renglón por pago, con IVA por tasa y retenciones) y «Documentos relacionados» (un renglón por factura pagada)"
+            : delDespacho ? "El reporte completo de esta pestaña, con tus filtros, con el formato de columnas que guardó tu despacho (⚙ Formato del reporte completo)"
             : "El reporte completo de esta pestaña, con tus filtros: las columnas acomodadas como el reporte de descarga que ya conoces";
+    }
+
+    // ¿La cuenta tiene formato propio del reporte completo? (solo para decirlo en el botón; el Excel lo aplica el servidor)
+    async function leerFormatoReporte() {
+        try {
+            var d = await apiJSON("/api/xml/formato-reporte");
+            E.formatoReporte = { recibidos: !!(d.modulos.recibidos || {}).guardado, emitidos: !!(d.modulos.emitidos || {}).guardado };
+        } catch (e) { E.formatoReporte = null; }
+        pintarBotonExcel();
     }
 
     function pintarSubfiltros() {
@@ -1832,6 +1846,8 @@
             location.href = "/herramientas/xml/fiscal.html?" + q.toString();
         });
         $("btn-pdf").addEventListener("click", descargarPdf);
+        $("btn-formato").addEventListener("click", function () { Fiscontable.abrirConfiguracion("formato_reportes", E.modulo); });
+        window.addEventListener("fiscontable:config", function (ev) { if (ev.detail && ev.detail.seccion === "formato_reportes") leerFormatoReporte(); });
         $("btn-quitar").addEventListener("click", quitarSeleccion);
         $("btn-limpiar-sel").addEventListener("click", function () { E.seleccion.clear(); pintarTabla(); });
         $("tabla-caja").addEventListener("scroll", function () { pintarFilas(false); }, { passive: true });
