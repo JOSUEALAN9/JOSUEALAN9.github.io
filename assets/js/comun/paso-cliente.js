@@ -98,7 +98,7 @@
                   '<span class="pc-sello" id="pc-sello" hidden></span>' +
                   '<button type="button" class="pc-volver" id="pc-volver" hidden></button>' +
                   '<button type="button" class="pc-registrar" id="pc-registrar" hidden title="Darlo de alta en tu directorio">Registrar</button>' +
-                  '<button type="button" class="pc-cambiar" id="pc-cambiar" title="Elegir otro cliente o a alguien sin registrar, solo para este trabajo">Otro contribuyente</button>' +
+                  '<button type="button" class="pc-cambiar" id="pc-cambiar" title="Elegir otra de tus empresas, solo para este trabajo">Cambiar empresa</button>' +
                 "</div>" +
               "</div>" +
               // Alta rápida sin salir de la herramienta: nombre y tipo de sociedad (antes era una ventanita del navegador)
@@ -168,6 +168,16 @@
 
             abierto.hidden = true;
             cerrado.hidden = false;
+            // 20-nov-2026 (Alan: «que no acepte… lo de otro contribuyente»): solo se trabaja con empresas dadas de alta. Si el
+            // RFC no está en tu directorio, primero «Registrar» (cuenta en el tope de tu plan); al registrarlo, sigue solo.
+            if (!datos.esCliente) {
+                sello.textContent = "Falta darlo de alta";
+                sello.hidden = false;
+                pista.textContent = "Para trabajar con este RFC, primero dalo de alta con «Registrar». Cuenta en el tope de empresas de tu plan.";
+                pista.className = "pc-pista pc-pista--mal";
+                if (opciones.alLimpiar) opciones.alLimpiar();
+                return;
+            }
             avisoAutorizacion(datos);
             if (opciones.alElegir) opciones.alElegir(datos);
         }
@@ -243,7 +253,10 @@
                 caja.querySelector("#pc-sello").hidden = false;
                 boton.hidden = true;
                 alta.hidden = true;
+                limpiarPista();
                 if (opciones.alRegistrar) opciones.alRegistrar(elegido);
+                avisoAutorizacion(elegido);
+                if (opciones.alElegir) opciones.alElegir(elegido);
             } catch (e) {
                 error.textContent = "No se pudo registrar: " + (e.message || "error");
                 error.className = "pc-pista pc-pista--mal"; error.hidden = false;

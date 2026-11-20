@@ -85,14 +85,14 @@
                    "En ⋯ de cada empresa: Trabajar con esta empresa o abrir directo su constancia, opinión, declaraciones, XML o impuestos estatales.",
                    "Arriba: Subir constancias y opiniones (se guardan y dan de alta a las que falten). Con «Sacar de los que ves ▾» pides constancias u opiniones de todas las que estás viendo."],
         constancias: ["Arriba eliges Una empresa o Todos los clientes.",
-                      "Una empresa: toma la empresa activa (o «Otro contribuyente»), su e.firma o la guardada, y Generar. Si ya tienes la del mes, puedes verla, bajarla, mandarla por correo o pedir una nueva.",
+                      "Una empresa: toma la empresa activa (o «Cambiar empresa»), su e.firma o la guardada, y Generar. Si ya tienes la del mes, puedes verla, bajarla, mandarla por correo o pedir una nueva.",
                       "Todos los clientes: ya vienen marcados los que tienen e.firma guardada; quita los que no quieras y Generar. Para quien no la tiene guardada, abre «Con una carpeta» y arrastra la plantilla con sus .cer y .key.",
                       "Programar una vez la deja para la noche; lo que se repite cada mes se cambia con «Cambiar» (Configuración › Lo automático). Todo queda en Mis descargas."],
         opinion: ["Arriba eliges Una empresa o Todos los clientes.",
-                  "Una empresa: toma la empresa activa (o «Otro contribuyente»), su e.firma o la guardada, y Generar. Si ya tienes la del mes, puedes verla, bajarla, mandarla por correo o pedir una nueva.",
+                  "Una empresa: toma la empresa activa (o «Cambiar empresa»), su e.firma o la guardada, y Generar. Si ya tienes la del mes, puedes verla, bajarla, mandarla por correo o pedir una nueva.",
                   "Todos los clientes: ya vienen marcados los que tienen e.firma guardada; quita los que no quieras y Generar. Para quien no la tiene guardada, abre «Con una carpeta» y arrastra la plantilla con sus .cer y .key.",
                   "Programar una vez la deja para la noche; lo que se repite se cambia con «Cambiar» (Configuración › Lo automático). Todo queda en Mis descargas."],
-        declaraciones: ["Toma la empresa activa (o \"Otro contribuyente\").",
+        declaraciones: ["Toma la empresa activa (o «Cambiar empresa»). Solo empresas dadas de alta.",
                         "Si no tiene e.firma guardada, súbela. Elige persona moral o física, el año y los portales (nuevo o anterior).",
                         "Buscar y descargar baja solo lo que aún no tienes. Todo queda en «Declaraciones guardadas»: ahí ves cada una o las bajas en ZIP.",
                         "Programar una vez la deja para la noche."],
@@ -101,7 +101,7 @@
                    "Antes de timbrar se revisa todo sin gastar timbre; al confirmar se manda al SAT.",
                    "En Emitidas bajas el XML, imprimes el PDF o cancelas desde ⋯. Una nota de crédito se relaciona con su factura.",
                    "En Pagos timbras el recibo de pago de tus facturas PPD. En Cotizaciones guardas presupuestos sin gastar timbres y luego los facturas."],
-        descarga_xml: ["Elige la empresa o «Otro contribuyente» y entra con su e.firma o su contraseña.",
+        descarga_xml: ["Elige una de tus empresas (o «Cambiar empresa») y entra con su e.firma o su contraseña. Para otro RFC, primero dalo de alta.",
                        "De fábrica usa el web service: Solicitar descarga y el SAT la prepara; la sigues en «Solicitudes al SAT», abajo.",
                        "Si la quieres al momento, cambia el Método a Portal del SAT (contraseña y captcha, o e.firma).",
                        "Los XML entran solos a Administración de XML; los de retenciones, a CFDI de Retenciones.",
@@ -3181,7 +3181,7 @@
         chipCambiando = true;
         var mismo = !!activa && m[1] === activa;
         boton.classList.toggle("ctx-campo--discreto", mismo);
-        if (mismo) { et.textContent = ""; ti.textContent = "Otro contribuyente"; }
+        if (mismo) { et.textContent = ""; ti.textContent = "Cambiar empresa"; }
         chipCambiando = false;
     }
     function vigilarChipEmpresa() {

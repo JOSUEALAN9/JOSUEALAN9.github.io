@@ -200,7 +200,7 @@
         // G-02: la empresa activa ya está en la barra de arriba; aquí solo queda «Otro contribuyente ▾»
         var soloOtro = !!(rfc && !E.otra);
         boton.classList.toggle("ctx-campo--discreto", soloOtro);
-        if (soloOtro) { $("empresa-etiqueta").textContent = ""; $("empresa-titulo").textContent = "Otro contribuyente"; }
+        if (soloOtro) { $("empresa-etiqueta").textContent = ""; $("empresa-titulo").textContent = "Cambiar empresa"; }
         var aviso = $("aviso-otra");
         aviso.hidden = !E.otra;
         if (E.otra) {
@@ -224,10 +224,9 @@
                 '<div class="ctx-vacio__acciones"><button type="button" class="xml-btn xml-btn--primario" data-agregar>+ Agregar XML</button></div>';
         } else {
             caja.innerHTML = '<p class="ctx-vacio__titulo">¿De quién es la conciliación?</p>' +
-                "<p>Elige una de tus empresas, o trabaja sin registrar: agrega los XML y el portal detecta solo de quién son. " +
-                "Lo que cargues sin registrar se borra a los " + Fiscontable.textoPlazo("xml_sin_registrar") + ".</p>" +
+                "<p>Elige una de tus empresas. Para trabajar con otro RFC, primero dalo de alta en Clientes (cuenta en el tope de tu plan).</p>" +
                 '<div class="ctx-vacio__acciones"><button type="button" class="xml-btn xml-btn--primario" data-elegir>Elegir empresa</button>' +
-                '<button type="button" class="xml-btn" data-agregar>Trabajar sin registrar</button></div>';
+                '<a class="xml-btn" href="/clientes/">+ Registrar empresa</a></div>';
         }
     }
 
@@ -244,15 +243,14 @@
             h.push('<button type="button" data-empresa="' + esc(c.rfc) + '"' + (c.rfc === E.rfc ? ' class="xml-activa"' : "") + ">" + esc(c.alias) +
                 " <span>" + esc(c.rfc) + (c.rfc === activa ? " · empresa activa" : "") + "</span></button>");
         });
-        h.push('<div class="xml-separador"></div><div class="xml-otra__grupo">Sin registrar · se borran a los ' + Fiscontable.textoPlazo("xml_sin_registrar") + '</div>');
+        if (E.otras.length) h.push('<div class="xml-separador"></div><div class="xml-otra__grupo">Sin registrar · solo consulta, se borran a los ' + Fiscontable.textoPlazo("xml_sin_registrar") + '</div>');
         E.otras.forEach(function (c) {
             var dia = c.expira ? c.expira.slice(8, 10) + "/" + c.expira.slice(5, 7) : "";
             h.push('<div class="xml-otra__fila"><button type="button" data-otra="' + esc(c.rfc) + '"' + (c.rfc === E.rfc ? ' class="xml-activa"' : "") + ">" +
                 esc(c.nombre || "Sin nombre") + " <span>" + esc(c.rfc) + (dia ? " · se borra el " + dia : "") + "</span></button>" +
                 '<button type="button" class="xml-otra__borrar" data-borrar="' + esc(c.rfc) + '">Borrar</button></div>');
         });
-        h.push('<button type="button" data-nuevo>+ Trabajar sin registrar <span>Agrega XML de alguien que no está en tu directorio</span></button>');
-        h.push('<div class="xml-separador"></div><button type="button" data-ir="/clientes/">+ Registrar empresa <span>Para conservar sus XML sin límite de tiempo</span></button>');
+        h.push('<div class="xml-separador"></div><button type="button" data-ir="/clientes/">+ Registrar empresa <span>Para trabajar con otro RFC, primero dalo de alta</span></button>');
         menu.innerHTML = h.join("");
     }
 
