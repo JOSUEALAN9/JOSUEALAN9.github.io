@@ -114,6 +114,16 @@
         return "Armando el ZIP y mandando el correo…";
     }
     function ultimo(e) {
+        // 20-nov-2026 (Alan): un envío incompleto no sale solo; se detiene y el titular decide
+        if (e.detenido) {
+            var manual = String(e.detenido).indexOf("m|") === 0;
+            var txt = manual ? "No se mandó: al validar, al SAT le faltó entregar algo (el detalle está en tu campana)."
+                             : "No salió: lleva 24 horas incompleto contra el SAT (el detalle está en tu campana).";
+            return '<div class="ev-detenido"><p><b>' + (manual ? "En espera de tu decisión" : "Detenido") + "</b> · " + esc(txt) + "</p>" +
+                (E.titular ? '<div class="ev-detenido__botones"><button type="button" class="ui-btn ui-btn--primario ui-btn--28" data-accion="decidir" data-decision="mandar">Mandar así</button>' +
+                    '<button type="button" class="ui-btn ui-btn--secundario ui-btn--28" data-accion="decidir" data-decision="esperar">' + (manual ? "No mandar" : "Seguir esperando 24 h") + "</button></div>"
+                    : "<p>Lo decide el titular del despacho.</p>") + "</div>";
+        }
         if (e.en_curso) return '<p class="ev-ultimo ev-ultimo--avance">' + esc(textoAvance(e.avance)) + "</p>";
         var u = e.ultimo;
         if (!u) return '<p class="ev-ultimo">Todavía no se ha mandado.</p>';
@@ -662,6 +672,16 @@
             if (accion === "duplicar") return abrirForm(null, e, true);
             if (accion === "historial") return abrirHistorial(e);
             if (accion === "enviar") return abrirAhora(e);
+            if (accion === "decidir") {
+                var mandar = b.dataset.decision === "mandar";
+                if (mandar && !(await Fiscontable.preguntar("¿Mandarlo así? Sale con lo que hay. El cliente recibe la versión limpia; la causa de lo que falta queda solo para ti."))) return;
+                b.disabled = true;
+                try {
+                    var r = await mandar("/api/entregas/" + encodeURIComponent(e.id) + "/decidir", "POST", { accion: b.dataset.decision });
+                    Fiscontable.toast(r.accion === "mandar" ? "Se está mandando." : r.accion === "no_mandar" ? "No se mandó." : "Va a esperar otras 24 horas.");
+                    await cargar();
+                } catch (err) { Fiscontable.avisar ? Fiscontable.avisar(err.message) : alert(err.message); b.disabled = false; }
+            }
         });
         $("ev-ahora").addEventListener("click", function (ev) { if (ev.target.closest('[data-ev="cerrar-ahora"]')) $("ev-ahora").close(); });
         $("ev-ahora").addEventListener("change", function (ev) {

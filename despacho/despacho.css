@@ -105,3 +105,28 @@
 .dp-mig-lista li { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; border: 1px solid var(--linea); border-radius: 10px; padding: 10px 12px; font-size: 13.5px; }
 .dp-mig-lista li > span:first-child { flex: 1 1 220px; min-width: 0; overflow-wrap: anywhere; }
 .dp-mig-lista small { display: block; color: var(--texto-tenue); font-size: 12px; }
+
+/* Mi espacio (20-nov-2026): el titular ve cuántas empresas lleva cada quien, su tope y sus timbres del despacho */
+.dp-quien-me { color: rgb(var(--g-700)) !important; }
+.dp-chip-me { display: inline-flex; align-items: center; gap: 4px; height: 24px; padding: 0 9px; border-radius: 999px; font-size: 12px;
+    background: rgb(var(--in-50)); color: rgb(var(--in-600)); border: 1px solid rgb(var(--in-200)); white-space: nowrap; }
+.dp-chip-me b { font-weight: 800; }
+.dp-chip-me--pasado { background: rgb(var(--av-50)); color: #7A4B00; border-color: rgb(var(--av-200)); }
+.dp-salida { margin-top: 4px; max-width: 560px; text-align: left; font-size: 14px; line-height: 1.5; }
+.dp-modal-vistas { padding: 14px var(--modal-pad) 0; flex: none; overflow-x: auto; scrollbar-width: none; }
+.dp-modal-vistas .fc-vista button { flex: none; }
+.dp-pest { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+.dp-mod-rejilla { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px 22px; align-items: start; }
+.dp-mod-rejilla .dp-marcar__lista { grid-template-columns: 1fr; }
+@media (max-width: 640px) { .dp-mod-rejilla { grid-template-columns: minmax(0, 1fr); } }
+.dp-mi-cabeza { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 14px; }
+.dp-mi-propia { padding: 14px 16px; border-radius: 12px; background: rgb(var(--g-50)); border: 1px solid var(--linea); font-size: 13.5px; line-height: 1.5; }
+.dp-mi-caja { display: grid; gap: 12px; padding: 18px 20px; border: 1px solid var(--linea); border-radius: 12px; }
+.dp-mi-dato { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; flex-wrap: wrap; font-size: 13.5px; }
+.dp-mi-dato span { color: rgb(var(--g-600)); font-weight: 600; }
+.dp-mi-dato b { font-size: 18px; font-weight: 800; color: rgb(var(--g-900)); }
+.dp-mi-fila { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.dp-mi-fila .ui-input { width: 120px; }
+.dp-mi-aviso { font-size: 13px; line-height: 1.45; padding: 10px 12px; border-radius: 10px; background: #FFF7E6; color: #7A4B00; }
+.dp-mi-msj { font-size: 13px; color: #1F7A4D; }
+.dp-mi-msj--mal { color: rgb(var(--er-600)); }

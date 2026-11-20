@@ -694,7 +694,7 @@
             '<label class="ui-check fa-conc__incl" title="Escribe lo que paga el receptor por este renglón y se calcula el precio sin impuestos, exacto al centavo"><input type="checkbox" data-c="modo"' + (c.modo === "final" ? " checked" : "") + "> Incluye impuestos</label>";
         var fila = '<tr class="fa-conc__fila fa-conc--abierto' + (c.error ? " fa-conc--error" : "") + '" data-i="' + i + '">' +
             '<td><input data-c="cantidad" inputmode="decimal" class="fa-num" value="' + esc(c.cantidad) + '" aria-label="Cantidad"></td>' +
-            '<td class="fa-conc__prod"><div class="fa-prod"><input data-c="descripcion" maxlength="1000" value="' + esc(c.descripcion) + '" placeholder="Escribe o busca un producto…" autocomplete="off" aria-label="Descripción">' +
+            '<td class="fa-conc__prod"><div class="fa-prod"><input data-c="descripcion" maxlength="1000" value="' + esc(c.descripcion) + '" placeholder="Escribe el concepto o búscalo en tu catálogo…" autocomplete="off" aria-label="Concepto">' +
             '<div class="fa-prod__sug" hidden></div></div><small class="fa-conc__sub">' + esc(textoClave(c)) + "</small></td>" +
             "<td>" + celdaPrecio + "</td>" +
             '<td><input data-c="descuento" inputmode="decimal" class="fa-num" value="' + esc(conComas(c.descuento)) + '" placeholder="0.00" aria-label="Descuento"></td>' +
@@ -1647,7 +1647,7 @@
         });
         $("pg-resumen").innerHTML = n ? lineas.join("<br>") + '<br><b style="font-size:17px;color:rgb(var(--g-900))">Pago: ' + dinero(r2(total)) + " " + mp + "</b>" +
             (faltaEq ? '<br><span style="color:rgb(var(--er-600))">Escribe el tipo de cambio del día del pago.</span>' : "") : "Marca al menos una factura.";
-        $("btn-pg-timbrar").disabled = !n || faltaEq;
+        $("btn-pg-timbrar").disabled = $("btn-pg-vista").disabled = !n || faltaEq;
         $("pg-folio").textContent = F.emisor ? "Será el recibo " + (F.emisor.serie_p || "P") + "-" + (F.emisor.folio_p || 1) + "." : "";
     }
 
@@ -1687,6 +1687,21 @@
             $("conf-nota").textContent = F.cfg.produccion ? "Se manda al SAT y gasta 1 timbre de la empresa." : "Modo de pruebas: no gasta timbres ni tiene validez fiscal.";
             $("dlg-confirmar").showModal();
         } catch (e) { err.textContent = e.message; err.hidden = false; }
+    }
+
+    /* 20-nov-2026 (Alan, tras timbrar el P-1): el recibo de pago como quedaría, igual que «Vista previa PDF» de la factura:
+       las mismas revisiones que al timbrar, sin timbrar ni gastar timbre, con la marca «Vista previa · sin validez fiscal». */
+    async function vistaPreviaPago() {
+        var err = $("pg-error"), b = $("btn-pg-vista"); err.classList.remove("fa-error--revisando");
+        if (b.disabled) return;
+        err.hidden = true; b.disabled = true; b.textContent = "Revisando…";
+        try {
+            var resp = await api("/api/facturacion/pagos/vista-previa", { method: "POST", headers: { "Content-Type": "application/json" },
+                                                                          body: JSON.stringify({ rfc: F.emisor.rfc, pago: pagoCaptura() }) });
+            var m = /filename="?([^";]+)"?/i.exec(resp.headers.get("Content-Disposition") || "");
+            Fiscontable.verPdf(await resp.blob(), { titulo: "Vista previa · sin validez fiscal", nombre: m ? m[1] : "Vista_previa_recibo.pdf" });
+        } catch (e) { err.textContent = e.message; err.hidden = false; }
+        b.textContent = "Vista previa PDF"; resumenPago();
     }
 
     async function timbrarPago() {
@@ -1905,7 +1920,8 @@
             { id: "manifiesto", titulo: "Manifiesto del PAC", estado: e.manifiesto ? "ok" : prod ? "falta" : "pendiente",
               detalle: e.manifiesto ? "Firmado y guardado." : "Se firma una sola vez en la página de Luna Soft con la e.firma de la empresa; luego subes aquí el PDF." },
             { id: "timbres", titulo: "Timbres", estado: !prod ? "pendiente" : t > 0 ? "ok" : "falta",
-              detalle: !prod ? "En modo de pruebas no se gastan timbres." : t > 0 ? t + " disponible" + (t === 1 ? "" : "s") + " para esta empresa." : "Esta empresa ya no tiene timbres: pásale de tu cuenta." }
+              detalle: !prod ? "En modo de pruebas no se gastan timbres." : t > 0 ? t + " disponible" + (t === 1 ? "" : "s") + " para esta empresa."
+                  : F.cfg.comprar_timbres && !F.cfg.timbres_cuenta ? "Esta empresa no tiene timbres. " + F.cfg.comprar_timbres.texto + "." : "Esta empresa ya no tiene timbres: pásale de tu cuenta." }
         ];
     }
 
@@ -1987,10 +2003,20 @@
             '<div class="fa-act__zona" data-zona="manifiesto"></div><p class="fa-act__msj" id="act-msj"></p>';
         var prod = F.cfg.produccion, cuenta = F.cfg.timbres_cuenta;
         if (!prod) return '<p class="fa-nota">En modo de pruebas no se gastan timbres. Cuando se active producción, aquí le pasas timbres de tu cuenta.</p>';
+        if (cuenta === 0 && F.cfg.comprar_timbres) return avisoComprarTimbres();
         if (cuenta === 0) return '<p class="fa-nota">Tu cuenta no tiene timbres sin repartir. Pídele más al administrador.</p>';
         return '<p class="fa-nota">' + (cuenta == null ? "Tu cuenta no tiene tope de timbres." : "Tu cuenta tiene <b>" + cuenta + "</b> sin repartir.") + "</p>" +
             '<div class="fa-act__campos"><label class="ui-campo fa-act__cp"><span class="ui-etiqueta">¿Cuántos le pasas?</span><input id="act-timbres" class="ui-input" inputmode="numeric" value="' + (cuenta ? Math.min(cuenta, 50) : 50) + '"></label>' +
             '<button type="button" class="ui-btn ui-btn--primario ui-btn--36" data-act-timbres>Pasar timbres</button></div><p class="fa-act__msj" id="act-msj"></p>';
+    }
+
+    /* 20-nov-2026, Alan: en Mi espacio (con la licencia del despacho) los timbres los pasa el titular del despacho; si no
+       tiene, «Para comprar timbres, contáctanos» con el contacto que manda el servidor (WhatsApp solo si está configurado). */
+    function avisoComprarTimbres() {
+        var c = F.cfg.comprar_timbres;
+        return '<p class="fa-nota fa-nota--comprar"><b>' + esc(c.texto) + ":</b> " +
+            (c.whatsapp ? 'WhatsApp <a href="' + esc(c.whatsapp_enlace || "#") + '" target="_blank" rel="noopener">' + esc(c.whatsapp) + "</a> o " : "") +
+            '<a href="mailto:' + esc(c.soporte) + '">' + esc(c.soporte) + "</a>. También te los puede pasar el titular de tu despacho.</p>";
     }
 
     function msjAct(texto, tipo) { var m = $("act-msj"); if (m) { m.textContent = texto || ""; m.className = "fa-act__msj" + (tipo ? " fa-act__msj--" + tipo : ""); } }
@@ -2760,6 +2786,7 @@
         $("pg-moneda").addEventListener("change", function () { tcDelPago(); resumenPago(); });
         $("pg-fecha").addEventListener("change", function () { $("pg-tc").value = ""; tcDelPago(); });
         $("btn-pg-timbrar").addEventListener("click", prepararPago);
+        $("btn-pg-vista").addEventListener("click", vistaPreviaPago);
         document.querySelectorAll("[data-modo-correo]").forEach(function (b) { b.addEventListener("click", function () { if (!b.disabled) ponerModoCorreo(b.dataset.modoCorreo); }); });
         $("c-proveedor").addEventListener("change", ponerProveedor);
         $("btn-guardar-correo").addEventListener("click", guardarCorreo);

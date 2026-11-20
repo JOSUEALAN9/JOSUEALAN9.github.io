@@ -169,7 +169,7 @@
         if (!c.en_vivo) return '<section class="lb-envio">' + cab + (e ? tablaEnvio(c, e) : "") + nota + "</section>";
         var p = periodoDe(c);
         return '<section class="lb-envio">' + cab + nota +
-            '<p>Para el primer envío real, con Alan presente. Solo DIOT <b>sin operaciones</b>, Normal, de esta empresa. Se desbloquea con tu PIN por 15 minutos; fuera de eso, «Enviar» sigue bloqueado.</p>' +
+            '<p>Para el primer envío real, con el administrador presente. Solo DIOT <b>sin operaciones</b>, Normal, de esta empresa. Se desbloquea con tu PIN por 15 minutos; fuera de eso, «Enviar» sigue bloqueado.</p>' +
             '<div class="lb-envio__forma"><label class="lb-campo">Ejercicio<input class="ui-input" id="lb-envio-ej" type="number" min="2025" max="2100" value="' + p.ej + '"></label>' +
             '<label class="lb-campo">Periodo<select class="ui-select" id="lb-envio-mes">' + MESES.map(function (m, i) { return '<option value="' + m + '"' + (i === p.mes ? " selected" : "") + ">" + m + "</option>"; }).join("") + "</select></label>" +
             '<button type="button" class="ui-btn ui-btn--secundario ui-btn--36" data-hacer="desbloquear">Desbloquear con PIN</button></div></section>';

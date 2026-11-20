@@ -125,6 +125,7 @@
         var perfil = await Fiscontable.perfil();
         $("btn-conciliacion").hidden = !(perfil && (perfil.modulos_permitidos || []).indexOf("conciliacion") !== -1);
         await cargarVistas();
+        leerFormatoReporte();
         E.empresa = await Fiscontable.empresaActiva();
         E.urlPeriodo = Fiscontable.periodoDeUrl();
         var tab = Fiscontable.url("tab");
@@ -193,7 +194,7 @@
         // G-02: la empresa activa ya está en la barra de arriba; aquí solo queda «Otro contribuyente ▾»
         var soloOtro = !!(rfc && !E.otra);
         boton.classList.toggle("ctx-campo--discreto", soloOtro);
-        if (soloOtro) { $("empresa-etiqueta").textContent = ""; $("empresa-titulo").textContent = "Otro contribuyente"; }
+        if (soloOtro) { $("empresa-etiqueta").textContent = ""; $("empresa-titulo").textContent = "Cambiar empresa"; }
         boton.title = rfc ? "Cambiar de empresa" : "Elige de quién son los XML";
         var aviso = $("aviso-otra");
         aviso.hidden = !E.otra;
@@ -215,10 +216,9 @@
                 '<div class="ctx-vacio__acciones"><button type="button" class="xml-btn xml-btn--primario" data-agregar>+ Agregar XML</button></div>';
         } else {
             caja.innerHTML = '<p class="ctx-vacio__titulo">¿De quién son los XML?</p>' +
-                "<p>Elige una de tus empresas, o trabaja sin registrar: agrega los XML y el portal detecta solo de quién son. " +
-                "Lo que cargues sin registrar se borra a los " + Fiscontable.textoPlazo("xml_sin_registrar") + ".</p>" +
+                "<p>Elige una de tus empresas. Para trabajar con otro RFC, primero dalo de alta en Clientes (cuenta en el tope de tu plan).</p>" +
                 '<div class="ctx-vacio__acciones"><button type="button" class="xml-btn xml-btn--primario" data-elegir>Elegir empresa</button>' +
-                '<button type="button" class="xml-btn" data-agregar>Trabajar sin registrar</button></div>';
+                '<a class="xml-btn" href="/clientes/">+ Registrar empresa</a></div>';
         }
     }
 
@@ -238,15 +238,14 @@
             h.push('<button type="button" data-empresa="' + esc(c.rfc) + '"' + (c.rfc === E.rfc ? ' class="xml-activa"' : "") + ">" + esc(c.alias) +
                 ' <span>' + esc(c.rfc) + (c.rfc === activa ? " · empresa activa" : "") + "</span></button>");
         });
-        h.push('<div class="xml-separador"></div><div class="xml-otra__grupo">Sin registrar · se borran a los ' + Fiscontable.textoPlazo("xml_sin_registrar") + '</div>');
+        if (E.otras.length) h.push('<div class="xml-separador"></div><div class="xml-otra__grupo">Sin registrar · solo consulta, se borran a los ' + Fiscontable.textoPlazo("xml_sin_registrar") + '</div>');
         E.otras.forEach(function (c) {
             var dia = c.expira ? c.expira.slice(8, 10) + "/" + c.expira.slice(5, 7) : "";
             h.push('<div class="xml-otra__fila"><button type="button" data-otra="' + esc(c.rfc) + '"' + (c.rfc === E.rfc ? ' class="xml-activa"' : "") + ">" +
                 esc(c.nombre || "Sin nombre") + " <span>" + esc(c.rfc) + (dia ? " · se borra el " + dia : "") + "</span></button>" +
                 '<button type="button" class="xml-otra__borrar" data-borrar="' + esc(c.rfc) + '">Borrar</button></div>');
         });
-        h.push('<button type="button" data-nuevo>+ Trabajar sin registrar <span>Agrega XML de alguien que no está en tu directorio</span></button>');
-        h.push('<div class="xml-separador"></div><button type="button" data-ir="/clientes/">+ Registrar empresa <span>Para conservar sus XML sin límite de tiempo</span></button>');
+        h.push('<div class="xml-separador"></div><button type="button" data-ir="/clientes/">+ Registrar empresa <span>Para trabajar con otro RFC, primero dalo de alta</span></button>');
         menu.innerHTML = h.join("");
     }
 
@@ -538,12 +537,25 @@
 
     // En Pagos el Excel es el reporte de pagos: una hoja por pago y otra por factura pagada
     function pintarBotonExcel() {
+        // 20-nov-2026: «Formato del reporte completo» (Configuración › Formato de los reportes) solo en Recibidos y Emitidos
+        var conFormato = E.modulo === "recibidos" || E.modulo === "emitidos";
+        if ($("btn-formato")) $("btn-formato").hidden = !conFormato;
         var b = document.querySelector('.mod-acciones [data-excel="vista"]');
         if (!b || b.disabled) return;
-        var pagos = E.modulo === "pagos";
+        var pagos = E.modulo === "pagos", delDespacho = conFormato && E.formatoReporte && E.formatoReporte[E.modulo];
         b.innerHTML = "<b>▦</b>" + (pagos ? "Excel · reporte de pagos" : "Excel · reporte completo");
         b.title = pagos ? "Dos hojas: «Pagos» (un renglón por pago, con IVA por tasa y retenciones) y «Documentos relacionados» (un renglón por factura pagada)"
+            : delDespacho ? "El reporte completo de esta pestaña, con tus filtros, con el formato de columnas que guardó tu despacho (⚙ Formato del reporte completo)"
             : "El reporte completo de esta pestaña, con tus filtros: las columnas acomodadas como el reporte de descarga que ya conoces";
+    }
+
+    // ¿La cuenta tiene formato propio del reporte completo? (solo para decirlo en el botón; el Excel lo aplica el servidor)
+    async function leerFormatoReporte() {
+        try {
+            var d = await apiJSON("/api/xml/formato-reporte");
+            E.formatoReporte = { recibidos: !!(d.modulos.recibidos || {}).guardado, emitidos: !!(d.modulos.emitidos || {}).guardado };
+        } catch (e) { E.formatoReporte = null; }
+        pintarBotonExcel();
     }
 
     function pintarSubfiltros() {
@@ -1552,8 +1564,9 @@
         });
         var mios = BJ.clientes || {};
         return Object.keys(cuenta).sort(function (a, b) { return (!!mios[b] - !!mios[a]) || (cuenta[b] - cuenta[a]); })
+            .filter(function (r) { return !!mios[r]; })      // 20-nov-2026 (Alan): solo empresas dadas de alta; lo demás no se carga
             .slice(0, 12)
-            .map(function (r) { return { rfc: r, nombre: mios[r] || nombres[r], n: cuenta[r], cliente: !!mios[r] }; });
+            .map(function (r) { return { rfc: r, nombre: mios[r] || nombres[r], n: cuenta[r], cliente: true }; });
     }
 
     function deDestino(x, d) { return x.tipo === "N" ? x.er === d : (x.er === d || x.rr === d); }
@@ -1586,7 +1599,7 @@
             (cands.length ? '<div class="xml-resumen__destino">Estos XML son de <select id="sel-destino">' + opciones + "</select></div>" : "") +
             '<div class="xml-resumen__cifras">' +
                 cifra(n.recibidos, "Recibidos") + cifra(n.emitidos, "Emitidos") + cifra(n.nomina, "Nómina") + cifra(n.pagos, "Pagos") +
-                cifra(n.ajenos, "de otras empresas (no se cargan ahora)", true) + cifra(BJ.invalidos.length, "no son CFDI", true) +
+                cifra(n.ajenos, cands.length ? "de otras empresas o sin dar de alta (no se cargan ahora)" : "de RFC sin dar de alta: da de alta la empresa en Clientes", true) + cifra(BJ.invalidos.length, "no son CFDI", true) +
             "</div>" +
             '<div class="xml-resumen__acciones">' +
                 '<button type="button" id="btn-procesar" class="xml-btn xml-btn--primario"' + (total && !BJ.leyendo ? "" : " disabled") + ">" +
@@ -1833,6 +1846,8 @@
             location.href = "/herramientas/xml/fiscal.html?" + q.toString();
         });
         $("btn-pdf").addEventListener("click", descargarPdf);
+        $("btn-formato").addEventListener("click", function () { Fiscontable.abrirConfiguracion("formato_reportes", E.modulo); });
+        window.addEventListener("fiscontable:config", function (ev) { if (ev.detail && ev.detail.seccion === "formato_reportes") leerFormatoReporte(); });
         $("btn-quitar").addEventListener("click", quitarSeleccion);
         $("btn-limpiar-sel").addEventListener("click", function () { E.seleccion.clear(); pintarTabla(); });
         $("tabla-caja").addEventListener("scroll", function () { pintarFilas(false); }, { passive: true });

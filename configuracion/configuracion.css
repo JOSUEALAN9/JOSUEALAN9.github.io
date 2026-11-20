@@ -193,3 +193,38 @@
 .cf-auto__tabla .cf-celda-acciones { white-space: normal; width: 1%; }
 .cf-auto__tabla .cf-celda-acciones .cf-btn { display: block; width: 100%; margin: 3px 0; white-space: nowrap; }
 .cf-auto__cancelados { display: block; color: rgb(var(--er-600)); font-weight: 600; }
+
+/* 20-nov-2026: Formato de los reportes («formato del despacho» del Excel · reporte completo) */
+.cf-fmt__intro { margin: 0 0 12px; max-width: 860px; }
+.cf-fmt__aviso { margin: 0 0 14px; padding: 10px 14px; border-radius: 12px; font-size: 13.5px; color: rgb(var(--g-700));
+    border: 1px solid rgb(var(--in-600) / .3); background: rgb(var(--in-600) / .06); }
+.cf-fmt__cab { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
+.cf-fmt__cab b { font-size: 15px; color: rgb(var(--g-900)); }
+.cf-fmt__cab small { display: block; font-size: 12.5px; color: rgb(var(--g-500)); margin-top: 2px; }
+.cf-fmt__buscar { font: inherit; font-size: 13.5px; border: 1px solid rgb(var(--g-300)); border-radius: 10px; padding: 7px 11px; width: 240px; max-width: 100%; background: rgb(var(--g-0)); color: rgb(var(--g-900)); }
+/* La lista (unas 80 columnas) se desplaza adentro: la página no crece hacia abajo */
+.cf-fmt__marco { max-height: min(520px, 56vh); overflow-y: auto; border: 1px solid var(--linea); border-radius: 12px; background: rgb(var(--g-50)); padding: 6px; }
+.cf-fmt__lista { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.cf-fmt__fila { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 10px; background: rgb(var(--g-0)); border: 1px solid rgb(var(--g-200)); min-width: 0; }
+.cf-fmt__fila[hidden] { display: none; }
+.cf-fmt__fila[draggable="true"] { cursor: grab; }
+.cf-fmt__fila--fuera { background: none; border-style: dashed; }
+.cf-fmt__fila--fuera b { color: rgb(var(--g-600)); font-weight: 600; }
+.cf-fmt__fila--arrastrando { opacity: .45; }
+.cf-fmt__fila--destino { box-shadow: inset 0 3px 0 rgb(var(--ac-600)); }
+.cf-fmt__asa { flex: none; width: 14px; color: rgb(var(--g-400)); font-size: 12px; letter-spacing: -2px; user-select: none; }
+.cf-fmt__nombre { flex: 1; display: flex; align-items: center; gap: 10px; min-width: 0; cursor: pointer; }
+.cf-fmt__nombre input { flex: none; width: 16px; height: 16px; accent-color: rgb(var(--ac-600)); }
+.cf-fmt__nombre span { min-width: 0; }
+.cf-fmt__nombre b { display: block; font-size: 13.5px; font-weight: 600; color: rgb(var(--g-900)); overflow-wrap: anywhere; }
+.cf-fmt__nombre small { display: block; font-size: 11.5px; color: rgb(var(--g-500)); }
+.cf-fmt__mover { flex: none; display: flex; gap: 4px; }
+.cf-fmt__btn { width: 30px; height: 30px; border: 1px solid rgb(var(--g-200)); border-radius: 8px; background: rgb(var(--g-0)); color: rgb(var(--g-700)); font: inherit; font-size: 14px; cursor: pointer; }
+.cf-fmt__btn:hover:not(:disabled) { background: rgb(var(--ac-50)); color: rgb(var(--ac-800)); }
+.cf-fmt__btn:disabled { opacity: .35; cursor: default; }
+.cf-fmt__divisor { margin: 12px 4px 6px; font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: rgb(var(--g-500)); }
+.cf-fmt__reglas { margin-top: 12px; font-size: 13px; color: rgb(var(--g-600)); }
+.cf-fmt__reglas summary { cursor: pointer; font-weight: 700; color: rgb(var(--ac-700)); }
+.cf-fmt__reglas ul { margin: 8px 0 0; padding-left: 18px; display: grid; gap: 4px; line-height: 1.45; }
+.cf-btn:disabled { opacity: .5; cursor: default; filter: none; }
+@media (max-width: 560px) { .cf-fmt__buscar { width: 100%; } .cf-fmt__fila { padding: 6px; gap: 6px; } }

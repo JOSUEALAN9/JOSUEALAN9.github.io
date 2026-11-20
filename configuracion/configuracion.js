@@ -38,7 +38,8 @@
         campana: "M15 17h5l-1.4-1.4A2 2 0 0118 14.2V11a6 6 0 00-4-5.7V5a2 2 0 10-4 0v.3A6 6 0 006 11v3.2a2 2 0 01-.6 1.4L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9",
         reloj: "M12 7v5l3 2M21 12a9 9 0 11-18 0 9 9 0 0118 0z",
         candado: "M6 11h12v9H6zM8 11V8a4 4 0 018 0v3M12 15v2",
-        equipo: "M17 20h5v-2a3 3 0 00-5.4-1.8M17 20H7m10 0v-2c0-.7-.1-1.3-.4-1.8M7 20H2v-2a3 3 0 015.4-1.8M7 20v-2c0-.7.1-1.3.4-1.8m0 0a5 5 0 019.2 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"
+        equipo: "M17 20h5v-2a3 3 0 00-5.4-1.8M17 20H7m10 0v-2c0-.7-.1-1.3-.4-1.8M7 20H2v-2a3 3 0 015.4-1.8M7 20v-2c0-.7.1-1.3.4-1.8m0 0a5 5 0 019.2 0M15 7a3 3 0 11-6 0 3 3 0 016 0z",
+        tabla: "M4 5h16v14H4zM4 10h16M10 10v9M16 10v9"
     };
     function ico(d) { return '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="' + d + '"/></svg>'; }
 
@@ -53,6 +54,11 @@
           pintar: pintarPlan },
         { id: "avisos", grupo: "Tu cuenta", titulo: "Avisos", ico: ICO.campana, desc: "Qué avisos te llegan también por correo, a qué dirección, y el resumen de tu cartera.",
           palabras: "avisos correo notificaciones campana actividad email resumen semanal diario lunes cartera", pintar: pintarAvisos },
+        // 20-nov-2026, Alan: cómo se llaman los archivos (configuracion/nombres-archivo.js; en el despacho, los pone el titular)
+        { id: "nombres", grupo: "Tu cuenta", titulo: "Nombres de archivo", ico: ICO.factura,
+          desc: "Cómo se llaman los XML, los PDF, los Excel y los ZIP que bajas o mandas en los envíos.",
+          palabras: "nombres de archivo plantilla renombrar xml pdf excel zip paquete envío descarga serie folio uuid rfc periodo",
+          pintar: function (c) { window.FcNombresArchivo.pintar(c, { api: api, enviar: enviar }); } },
         // 15-nov, Alan: «solo una sección para eso»: XML automáticos, revisión del Buzón y lo programado, todo aquí. Lo que
         // aparezca en otro módulo (el botón «Automática» de Descarga XML, «Ver todas»…) trae a esta sección.
         { id: "automatico", grupo: "Tu cuenta", titulo: "Lo automático", ico: ICO.reloj,
@@ -73,6 +79,12 @@
           desc: "Cuándo cuenta cada impuesto (flujo o devengado), estatales, alcohol y las reglas que Fiscontable aprendió de cada empresa.",
           palabras: "impuestos reglas fiscales isr iva diot deducible no deducible flujo devengado cobrado facturado profesiones alcohol régimen paquete marcas",
           pintar: pintarImpuestos },
+        // 20-nov-2026, Alan: el «formato del despacho» del Excel · reporte completo (Recibidos y Emitidos). Lo define el titular
+        // una vez y sale así para todos y en los Envíos por correo; los integrantes lo ven sin poder cambiarlo.
+        { id: "formato_reportes", grupo: "Módulos", titulo: "Formato de los reportes", ico: ICO.tabla, modulo: "validador",
+          desc: "Qué columnas y en qué orden lleva el «Excel · reporte completo» de Recibidos y Emitidos, también en los envíos por correo.",
+          palabras: "formato reporte completo excel columnas orden recibidos emitidos administración xml despacho envíos plantilla fiscontable",
+          pintar: pintarFormatoReportes },
         { id: "fabrica", grupo: "Administración", titulo: "Valores de fábrica", ico: ICO.admin, solo_admin: true,
           desc: "Lo que les sale por defecto a todas las cuentas (correos, horario, lo automático, bloqueo) y lo que no pueden cambiar.",
           palabras: "valores de fábrica por defecto predeterminados ajustes correos horario automático madrugada bloqueo bloquear", pintar: pintarFabrica },
@@ -1029,6 +1041,137 @@
                 });
             });
         } catch (e) { c.innerHTML = '<div class="cf-tarjeta"><p class="cf-msj cf-msj--mal">' + esc(e.message) + "</p></div>"; }
+    }
+
+    /* ---------- Formato de los reportes (20-nov-2026, Alan: «formato del despacho») ----------
+       Una lista por pestaña (Recibidos, Emitidos): arriba, en su orden, las columnas que van en el reporte completo; abajo,
+       las que no van. Se ordena arrastrando o con ↑ ↓ (en el celular no hay arrastre) y se marca o desmarca cada una. El
+       folio fiscal no se puede quitar. Sin guardar nada sale el formato de Fiscontable, que es de donde parte la lista. */
+    async function pintarFormatoReportes(c) {
+        c.innerHTML = '<div class="cf-tarjeta"><p class="cf-texto">Cargando…</p></div>';
+        var d;
+        try { d = await api("/api/xml/formato-reporte"); }
+        catch (e) { c.innerHTML = '<div class="cf-tarjeta"><p class="cf-msj cf-msj--mal">' + esc(e.message) + "</p></div>"; return; }
+        var NOMBRES = { recibidos: "Recibidos", emitidos: "Emitidos" };
+        var estado = {};                 // modulo → {orden: [claves marcadas], cambiado: bool}
+        var fecha = function (iso) { return iso ? iso.slice(8, 10) + "/" + iso.slice(5, 7) + "/" + iso.slice(0, 4) : ""; };
+        function inicial(m) { var x = d.modulos[m]; return (x.guardado || x.fabrica).slice(); }
+        Object.keys(NOMBRES).forEach(function (m) { estado[m] = { orden: inicial(m), cambiado: false }; });
+        c.innerHTML = '<p class="cf-texto cf-fmt__intro">' + (d.despacho ? "Vale para todos en el despacho. " : "") +
+            "«Excel de esta tabla» no cambia: sigue con las columnas que cada quien ve en pantalla.</p>" +
+            (d.puede_editar ? "" : '<p class="cf-fmt__aviso">Solo ' + esc(d.titular || "el titular") + " (titular del despacho) lo puede cambiar. Así salen tus reportes.</p>") +
+            Object.keys(NOMBRES).map(function (m) { return '<div class="cf-tarjeta" data-fmt="' + m + '"></div>'; }).join("");
+        Object.keys(NOMBRES).forEach(function (m) { pintarLista(m); });
+        subPestanas(c, Object.keys(NOMBRES).map(function (m) { return NOMBRES[m]; }), "formato_reportes");
+        var pedido = Fiscontable.url("sub");
+        if (pedido === "emitidos" || pedido === "recibidos") { var bt = c.querySelector('.cf-subtabs [data-sub="' + (pedido === "emitidos" ? 1 : 0) + '"]'); if (bt) bt.click(); }
+
+        function pintarLista(m) {
+            var caja = c.querySelector('[data-fmt="' + m + '"]'), x = d.modulos[m], st = estado[m], ed = d.puede_editar;
+            var porClave = {}; x.catalogo.forEach(function (k) { porClave[k.clave] = k; });
+            var van = st.orden.filter(function (k) { return porClave[k]; });
+            var no = x.catalogo.filter(function (k) { return van.indexOf(k.clave) === -1; }).map(function (k) { return k.clave; });
+            var origen = x.guardado ? "Formato del despacho" + (x.actualizado_en ? " · cambiado el " + fecha(x.actualizado_en) + (x.actualizado_por ? " por " + x.actualizado_por : "") : "")
+                : "Formato de Fiscontable (de fábrica)";
+            function fila(k, i, dentro) {
+                var col = porClave[k], ob = col.obligatoria;
+                return '<li class="cf-fmt__fila' + (dentro ? "" : " cf-fmt__fila--fuera") + '" data-clave="' + esc(k) + '"' + (ed && dentro ? ' draggable="true"' : "") + ">" +
+                    (ed && dentro ? '<span class="cf-fmt__asa" aria-hidden="true">⋮⋮</span>' : '<span class="cf-fmt__asa cf-fmt__asa--vacia"></span>') +
+                    '<label class="cf-fmt__nombre"><input type="checkbox" data-marca' + (dentro ? " checked" : "") + (ob || !ed ? " disabled" : "") + ">" +
+                    "<span><b>" + esc(col.etiqueta) + "</b><small>" + esc(col.grupo || "") + (ob ? " · obligatoria" : "") + "</small></span></label>" +
+                    (ed && dentro ? '<span class="cf-fmt__mover"><button type="button" class="cf-fmt__btn" data-mover="-1" aria-label="Subir ' + esc(col.etiqueta) + '"' + (i === 0 ? " disabled" : "") + ">↑</button>" +
+                        '<button type="button" class="cf-fmt__btn" data-mover="1" aria-label="Bajar ' + esc(col.etiqueta) + '"' + (i === van.length - 1 ? " disabled" : "") + ">↓</button></span>" : "") + "</li>";
+            }
+            caja.innerHTML = '<div class="cf-fmt__cab"><div><b>' + NOMBRES[m] + " · " + van.length + " columnas</b><small>" + esc(origen) + "</small></div>" +
+                '<input type="search" class="cf-fmt__buscar" placeholder="Buscar una columna" aria-label="Buscar una columna"></div>' +
+                '<div class="cf-fmt__marco"><ol class="cf-fmt__lista" data-lista="van">' + van.map(function (k, i) { return fila(k, i, true); }).join("") + "</ol>" +
+                (no.length ? '<p class="cf-fmt__divisor">No van en el reporte (' + no.length + ")</p>" +
+                    '<ul class="cf-fmt__lista" data-lista="no">' + no.map(function (k, i) { return fila(k, i, false); }).join("") + "</ul>" : "") + "</div>" +
+                '<details class="cf-fmt__reglas"><summary>Cómo se arma el reporte</summary><ul>' +
+                "<li>Una columna marcada que no trae datos en el periodo no sale. Las básicas (estado SAT, folio fiscal, serie, folio, fechas, emisor, receptor, forma y método de pago, subtotal, descuento, total, moneda, IVA 16 %, ISR e IVA retenidos) salen siempre, para que el Excel tenga la misma forma cada mes.</li>" +
+                "<li>Con facturas en otra moneda, la moneda, el tipo de cambio y el total en pesos van junto al total aunque no estén marcados.</li>" +
+                "<li>En el Excel de un mes ya cerrado, «Pago posterior al periodo» va sola junto al estado de pago (si lo marcaste).</li>" +
+                "<li>«IEPS por tasa» y «Retenciones por tasa» se abren en las tasas que traiga el periodo. La banda de grupos sigue tu orden.</li>" +
+                "<li>El folio fiscal (UUID) no se puede quitar: sin él no se identifica la factura. Sí puedes moverlo.</li></ul></details>" +
+                (ed ? '<div class="cf-acciones"><button type="button" class="cf-btn cf-btn--principal" data-guardar' + (st.cambiado ? "" : " disabled") + ">Guardar formato</button>" +
+                    '<button type="button" class="cf-btn" data-fabrica' + (x.guardado || st.cambiado ? "" : " disabled") + ">Volver al formato de Fiscontable</button>" +
+                    '<span class="cf-msj">' + (st.cambiado ? "Sin guardar" : "") + "</span></div>" : "");
+            var buscar = caja.querySelector(".cf-fmt__buscar");
+            buscar.value = st.buscar || "";
+            function filtrar() {
+                var q = buscar.value.trim().toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, ""); st.buscar = buscar.value;
+                caja.querySelectorAll(".cf-fmt__fila").forEach(function (li) {
+                    li.hidden = !!q && li.textContent.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").indexOf(q) === -1;
+                });
+            }
+            buscar.addEventListener("input", filtrar); filtrar();
+            if (!ed) return;
+            caja._van = van;
+            if (caja.dataset.listo) { arrastrar(caja); return; }          // los eventos de la caja se ponen una sola vez (la lista se vuelve a pintar)
+            caja.dataset.listo = "1";
+            function cambio(nuevoOrden, foco) {
+                estado[m].orden = nuevoOrden; estado[m].cambiado = true; pintarLista(m);
+                if (foco) { var b = caja.querySelector('[data-clave="' + foco.clave + '"] ' + foco.sel); if (b && !b.disabled) b.focus(); else { b = caja.querySelector('[data-clave="' + foco.clave + '"] input'); if (b) b.focus(); } }
+            }
+            caja._cambio = cambio;
+            arrastrar(caja);
+            caja.addEventListener("change", function (ev) {
+                var el = ev.target.closest("[data-marca]"); if (!el) return;
+                var k = el.closest("li").dataset.clave, nuevo = caja._van.slice();
+                if (el.checked) nuevo.push(k); else nuevo.splice(nuevo.indexOf(k), 1);
+                cambio(nuevo, { clave: k, sel: "input" });
+            });
+            caja.addEventListener("click", async function (ev) {
+                var van = caja._van, b = ev.target.closest("[data-mover]");
+                if (b) {
+                    var k = b.closest("li").dataset.clave, i = van.indexOf(k), j = i + (+b.dataset.mover), nuevo = van.slice();
+                    if (j < 0 || j >= nuevo.length) return;
+                    nuevo.splice(i, 1); nuevo.splice(j, 0, k);
+                    cambio(nuevo, { clave: k, sel: '[data-mover="' + b.dataset.mover + '"]' });
+                    return;
+                }
+                if (ev.target.closest("[data-guardar]")) {
+                    var g = ev.target.closest("[data-guardar]"); g.disabled = true;
+                    try {
+                        d = await enviar("/api/xml/formato-reporte", "PUT", { modulo: m, columnas: van });
+                        estado[m] = { orden: inicial(m), cambiado: false, buscar: estado[m].buscar }; pintarLista(m);
+                        aviso(caja, true, "✓ Guardado. Así sale desde ahora el reporte completo de " + NOMBRES[m] + (d.despacho ? " para todo el despacho." : "."));
+                    } catch (e) { g.disabled = false; aviso(caja, false, e.message); }
+                    return;
+                }
+                if (ev.target.closest("[data-fabrica]")) {
+                    if (!d.modulos[m].guardado) { estado[m] = { orden: inicial(m), cambiado: false }; pintarLista(m); return; }      // solo deshacer lo no guardado
+                    if (!(await Fiscontable.confirmar({ titulo: "Volver al formato de Fiscontable", si: "Volver",
+                        texto: "El reporte completo de " + NOMBRES[m] + " vuelve a salir con las columnas de fábrica" + (d.despacho ? " para todo el despacho" : "") + "." }))) return;
+                    try {
+                        d = await api("/api/xml/formato-reporte/" + m, { method: "DELETE" });
+                        estado[m] = { orden: inicial(m), cambiado: false }; pintarLista(m);
+                        aviso(caja, true, "✓ De vuelta al formato de Fiscontable.");
+                    } catch (e) { aviso(caja, false, e.message); }
+                }
+            });
+        }
+
+        function arrastrar(caja) {
+            // Arrastrar (computadora): se suelta sobre otra columna de las que van
+            var arr = null, lista = caja.querySelector('[data-lista="van"]'), van = caja._van, cambio = caja._cambio;
+            lista.addEventListener("dragstart", function (ev) { var li = ev.target.closest("li"); if (!li) return; arr = li.dataset.clave; ev.dataTransfer.effectAllowed = "move"; ev.dataTransfer.setData("text/plain", arr); li.classList.add("cf-fmt__fila--arrastrando"); });
+            lista.addEventListener("dragend", function () { arr = null; lista.querySelectorAll(".cf-fmt__fila").forEach(function (x2) { x2.classList.remove("cf-fmt__fila--arrastrando", "cf-fmt__fila--destino"); }); });
+            lista.addEventListener("dragover", function (ev) {
+                var li = ev.target.closest("li"); if (!li || !arr) return;
+                ev.preventDefault();
+                lista.querySelectorAll(".cf-fmt__fila--destino").forEach(function (x2) { x2.classList.remove("cf-fmt__fila--destino"); });
+                li.classList.add("cf-fmt__fila--destino");
+            });
+            lista.addEventListener("drop", function (ev) {
+                var li = ev.target.closest("li"); if (!li || !arr) return;
+                ev.preventDefault();
+                var destino = li.dataset.clave, nuevo = van.slice(), i = nuevo.indexOf(arr);
+                if (destino === arr || i === -1) return;
+                nuevo.splice(i, 1); nuevo.splice(nuevo.indexOf(destino) + (van.indexOf(destino) > i ? 1 : 0), 0, arr);
+                arr = null; cambio(nuevo);
+            });
+        }
     }
 
     async function iniciar() {
