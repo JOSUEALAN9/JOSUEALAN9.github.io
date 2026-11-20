@@ -903,6 +903,8 @@ function clicTarjeta(e) {
         if (e.target.closest("#btn-actualizar-saldo")) actualizarSaldoPac(e.target.closest("#btn-actualizar-saldo"));
         if (e.target.closest("#btn-bolsa")) guardarBolsa(e.target.closest("#btn-bolsa"));
         if (e.target.closest("[data-copiar-error]")) copiarErrorPac(e.target.closest("[data-copiar-error]"));
+        if (e.target.closest("[data-pendiente]")) resolverPendienteTimbres(e.target.closest("[data-pendiente]"));
+        if (e.target.closest("#btn-mover-rfc")) moverFacturacion(e.target.closest("#btn-mover-rfc"));
         if (e.target.closest("#btn-max-pcs")) guardarMaxPcs(e.target.closest("#btn-max-pcs"));
         if (e.target.closest("#btn-revisar-instalador")) revisarInstalador(e.target.closest("#btn-revisar-instalador"));
         if (e.target.closest("#btn-max-sesiones")) guardarMaxSesiones(e.target.closest("#btn-max-sesiones"));
@@ -1321,13 +1323,60 @@ function cuerpoTimbres() {
            <div class="flex flex-wrap items-end gap-2 mb-3"><label class="text-xs font-bold text-slate-600">Saldo general en MultiFacturas <span class="font-normal text-slate-400">(el «SALDO» de arriba en tu panel)</span>
            <input id="bolsa-n" type="number" min="0" value="${b.timbres == null ? "" : b.timbres}" class="block mt-1 w-32 border border-gray-200 rounded-lg p-1.5 text-xs"></label>
            <button type="button" id="btn-bolsa" class="text-xs font-bold text-white bg-slate-800 hover:bg-slate-700 rounded-lg py-2 px-3">Guardar</button></div>`;
-    return bolsa + `<p class="text-[11px] text-slate-500">La cuenta reparte sus timbres entre sus empresas (Facturar → Configuración). Cada factura timbrada gasta uno de su empresa. Tú no tienes tope. Con número negativo se los quitas (solo de lo que no ha repartido).</p>
+    return bolsa + porRevisarTimbres(d) + `<p class="text-[11px] text-slate-500">La cuenta reparte sus timbres entre sus empresas (Facturar → Configuración). Cada factura timbrada gasta uno de su empresa. Tú no tienes tope. Con número negativo se los quitas (solo de lo que no ha repartido).</p>
         <div class="flex flex-wrap items-end gap-2 mt-3">
             <label class="text-xs font-bold text-slate-600">Cuenta<select id="timbres-correo" class="block mt-1 border border-gray-200 rounded-lg p-1.5 text-xs">${d.cuentas.filter(c => !c.sin_tope).map(c => `<option>${esc(c.correo)}</option>`).join("")}</select></label>
             <label class="text-xs font-bold text-slate-600">Timbres<input id="timbres-n" type="number" value="100" class="block mt-1 w-24 border border-gray-200 rounded-lg p-1.5 text-xs"></label>
             <button type="button" id="btn-asignar-timbres" class="text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-500 rounded-lg py-2 px-3">Asignar</button>
         </div>
-        <table class="w-full text-xs mt-4"><thead><tr class="text-left text-slate-500"><th class="pb-1">Cuenta</th><th class="pb-1 text-right pr-3">Sin repartir</th><th class="pb-1 text-right pr-3">En sus empresas</th><th class="pb-1 text-right">Facturas</th></tr></thead><tbody>${filas || '<tr><td colspan="4" class="py-2 text-slate-400">Sin cuentas.</td></tr>'}</tbody></table>`;
+        <table class="w-full text-xs mt-4"><thead><tr class="text-left text-slate-500"><th class="pb-1">Cuenta</th><th class="pb-1 text-right pr-3">Sin repartir</th><th class="pb-1 text-right pr-3">En sus empresas</th><th class="pb-1 text-right">Facturas</th></tr></thead><tbody>${filas || '<tr><td colspan="4" class="py-2 text-slate-400">Sin cuentas.</td></tr>'}</tbody></table>
+        <div class="flex flex-wrap items-end gap-2 mt-5 pt-4 border-t border-gray-100">
+            <label class="text-xs font-bold text-slate-600">Mover la facturación de un RFC<input id="mover-rfc" maxlength="13" placeholder="RFC" class="block mt-1 w-36 border border-gray-200 rounded-lg p-1.5 text-xs uppercase"></label>
+            <label class="text-xs font-bold text-slate-600">A la cuenta<select id="mover-a" class="block mt-1 max-w-full border border-gray-200 rounded-lg p-1.5 text-xs">${d.cuentas.map(c => `<option>${esc(c.correo)}</option>`).join("")}</select></label>
+            <button type="button" id="btn-mover-rfc" class="text-xs font-bold text-slate-700 bg-white border border-gray-200 hover:border-slate-400 rounded-lg py-2 px-3">Mover</button>
+        </div>
+        <p class="text-[11px] text-slate-500 mt-1">Para cuando alguien escribe «Este RFC ya factura desde otra cuenta». Sus timbres regresan a la cuenta de donde sale y la nueva ya puede pasarle los suyos. La nueva sube su propio CSD.</p>`;
+}
+
+// 20-nov-2026 (auditoría H2 y H12): lo que no se pudo resolver solo. Un movimiento de timbres que no cuadra con el panel
+// (se revisa en el panel de MultiFacturas y se dice si llegó) y un RFC dado de alta desde dos cuentas (datos de antes).
+function porRevisarTimbres(d) {
+    const pend = (d.pendientes || []).filter(p => p.estado !== "enviando"), dobles = d.rfc_en_varias_cuentas || [];
+    if (!pend.length && !dobles.length) return "";
+    return `<div class="mb-3 rounded-xl bg-amber-50 border border-amber-200 px-4 py-3"><p class="text-[11px] font-bold uppercase tracking-wide text-amber-800">Por revisar</p>
+        ${pend.map(p => `<div class="flex flex-wrap items-center gap-2 mt-2 text-xs"><span class="flex-1 min-w-0">${esc(p.owner_email)} · <span class="font-mono">${esc(p.rfc)}</span> · ${p.cantidad > 0 ? "pasarle" : "regresar"} <b>${Math.abs(p.cantidad)}</b> timbres · ${p.estado === "revisar" ? "no cuadra con el panel" : "sin confirmar"}
+            <span class="block text-[11px] text-slate-500">Revisa en tu panel de MultiFacturas si el saldo de ese RFC cambió. Mientras, esa empresa no mueve timbres.</span></span>
+            <button type="button" data-pendiente="${p.id}" data-se-hizo="1" class="text-xs font-bold text-slate-700 bg-white border border-gray-200 hover:border-slate-400 rounded-lg py-1.5 px-3 whitespace-nowrap">Sí llegó</button>
+            <button type="button" data-pendiente="${p.id}" data-se-hizo="0" class="text-xs font-bold text-slate-700 bg-white border border-gray-200 hover:border-slate-400 rounded-lg py-1.5 px-3 whitespace-nowrap">No llegó</button></div>`).join("")}
+        ${dobles.map(x => `<p class="mt-2 text-xs"><span class="font-mono">${esc(x.rfc)}</span> está dado de alta desde ${x.cuentas.length} cuentas (${x.cuentas.map(esc).join(", ")}). Mientras esté en dos, su saldo no se iguala con el panel y no se le pueden pasar más timbres.</p>`).join("")}
+    </div>`;
+}
+
+async function resolverPendienteTimbres(boton) {
+    const si = boton.dataset.seHizo === "1";
+    if (!(await Fiscontable.confirmar({ titulo: si ? "¿Sí llegó al panel?" : "¿No llegó al panel?", si: si ? "Sí llegó" : "No llegó",
+        texto: si ? "Los timbres se abonan a donde iban (a la empresa, o a la cuenta si se regresaban)." : "Los timbres que se apartaron regresan a donde estaban." }))) return;
+    boton.disabled = true;
+    try {
+        await api("/api/admin/facturacion/timbres-pendientes/" + encodeURIComponent(boton.dataset.pendiente), { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ se_hizo: si }) });
+        timbresAdmin = await api("/api/admin/facturacion/timbres");
+        pintarEstado(); refrescarVentana("dlg-timbres");
+        mostrarAlerta("success", "Listo, quedó resuelto.");
+    } catch (err) { mostrarAlerta("error", err.message); boton.disabled = false; }
+}
+
+async function moverFacturacion(boton) {
+    const rfc = $("mover-rfc").value.trim().toUpperCase(), a = $("mover-a").value;
+    if (!rfc || !a) return mostrarAlerta("error", "Escribe el RFC y elige la cuenta.");
+    if (!(await Fiscontable.confirmar({ titulo: `¿Mover la facturación de ${rfc} a ${a}?`, si: "Mover",
+        texto: "Sus timbres regresan a la cuenta de donde sale y desde ahí ya no se factura. La nueva cuenta sube su CSD y le pasa sus timbres." }))) return;
+    boton.disabled = true;
+    try {
+        const r = await api("/api/admin/facturacion/mover-rfc", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ rfc, a }) });
+        timbresAdmin = await api("/api/admin/facturacion/timbres");
+        pintarEstado(); refrescarVentana("dlg-timbres");
+        mostrarAlerta("success", `Listo: ${rfc} ya factura desde ${a}.` + (r.timbres_regresados ? ` Regresaron ${r.timbres_regresados} timbres a ${r.de}.` : ""));
+    } catch (err) { mostrarAlerta("error", err.message); boton.disabled = false; }
 }
 
 async function guardarBolsa(boton) {

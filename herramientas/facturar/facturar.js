@@ -234,8 +234,11 @@
         $("c-timbres-cuenta").textContent = F.cfg.timbres_cuenta === null ? "Sin tope" : (F.cfg.timbres_cuenta || 0);
         $("c-timbres-pac").textContent = !prod ? "En modo de pruebas no se gastan timbres; lo que repartas aquí se usará cuando se active producción."
             : !F.cfg.panel ? "Falta configurar en el servidor el acceso al panel de MultiFacturas: avísale al administrador."
+            : e.en_otra_cuenta ? "Este RFC ya factura desde otra cuenta de Fiscontable. Escríbenos para moverlo."
             : e.alta_pac ? "✓ Dada de alta en MultiFacturas. Lo que le pases aquí se le pasa también allá."
             : "La primera vez que le pases timbres se da de alta sola en MultiFacturas.";
+        // 20-nov-2026 (auditoría H2): el RFC ya factura desde otra cuenta; pasarle timbres solo repetiría el mismo aviso
+        $("btn-dar-timbres").disabled = !!(prod && F.cfg.panel && e.en_otra_cuenta);
         pintarFolio();
     }
 
@@ -2742,7 +2745,8 @@
             h += "</div>";
             h += t.empresas.length ? '<table class="fa-tabla"><thead><tr><th>Empresa</th><th class="fa-num">En Fiscontable</th><th class="fa-num">En MultiFacturas</th></tr></thead><tbody>' +
                 t.empresas.map(function (e) {
-                    return "<tr><td>" + esc(e.nombre) + "<small>" + esc(e.rfc) + "</small></td><td class='fa-num'>" + e.timbres + "</td><td class='fa-num'>" +
+                    return "<tr><td>" + esc(e.nombre) + "<small>" + esc(e.rfc) + "</small></td><td class='fa-num'>" + e.timbres +
+                        (e.por_confirmar ? " <small>(un movimiento por confirmar con MultiFacturas)</small>" : "") + "</td><td class='fa-num'>" +
                         (e.real != null ? e.real + (e.real !== e.timbres ? ' <small>(se iguala al timbrar)</small>' : "") : e.alta ? "—" : "<small>Sin alta aún</small>") + "</td></tr>";
                 }).join("") + "</tbody></table>" : '<p class="fa-vacio-chico">Todavía no le has pasado timbres a ninguna empresa.</p>';
             $("timbres-cuerpo").innerHTML = h;

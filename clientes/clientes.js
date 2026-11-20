@@ -1935,7 +1935,8 @@ async function olvidarEfirma(rfc) {
 async function eliminarCliente(rfc) {
     try {
         const hecho = await conPin("borrar_empresa", { titulo: "Quitar a " + rfc + " de tus clientes", boton: "Quitar cliente", peligro: true,
-            resumen: '<p class="fc-identidad__aviso">No borra los documentos ya generados; solo lo saca de tu directorio y de sus programaciones.</p>' },
+            resumen: '<p class="fc-identidad__aviso">No borra los documentos ya generados; solo lo saca de tu directorio y de sus programaciones. ' +
+                'Su sello digital (CSD) se borra y, si tenía timbres, regresan a los de tu cuenta.</p>' },
             (c) => fetch(`${API_URL}/api/clientes/${encodeURIComponent(rfc)}`, { method: "DELETE", credentials: "include", headers: { "X-Confirmacion": c } }));
         if (!hecho) return;
         await cargarClientes();
@@ -2109,7 +2110,7 @@ async function borrarTodo(rfc) {
         await apiJson(`/api/empresas/${encodeURIComponent(rfc)}/borrar-todo`, { rfc_escrito: campoDialogo("bt-rfc"), confirmacion: conf });
     }, { titulo: "Borrar todo de " + (c.alias || rfc), boton: "Borrar todo", peligro: true,
          resumen: '<p class="fc-identidad__aviso">Se borra la empresa y <b>todo su historial</b>: XML, documentos, retenciones, Buzón, declaraciones, facturas y sus archivos. ' +
-            "<b>No se puede deshacer.</b> Si solo quieres sacarla de tu directorio, usa «Quitar del directorio».</p>" +
+            "Si tenía timbres, regresan a los de tu cuenta. <b>No se puede deshacer.</b> Si solo quieres sacarla de tu directorio, usa «Quitar del directorio».</p>" +
             '<label class="ui-campo"><span class="ui-etiqueta">Escribe su RFC para confirmar</span><input class="ui-input" id="bt-rfc" autocomplete="off" placeholder="' + esc(rfc) + '"></label>' });
     if (hecho) { mostrarAlerta("success", `Se borró ${c.alias || rfc} con todo su historial.`); await cargarClientes(); }
 }
