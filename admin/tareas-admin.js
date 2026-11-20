@@ -163,6 +163,13 @@
             " · Última revisión: " + esc(cuando(v.ultima_revision)) + " · " + lecturas + detalle + "</p>";
     }
 
+    // 20-nov-2026 (Alan): el vigilante de corriente de la Vostro (core/corriente.py): «Corriente: normal / en batería desde
+    // las … / sin detector». El texto lo arma el servidor; aquí solo se pinta (en rojo mientras no haya luz).
+    function lineaCorriente(c) {
+        if (!c || !c.texto) return "";
+        return '<p class="' + (c.alerta ? "tar-aviso tar-aviso--mal" : "tar-nota") + '" data-corriente="' + esc(c.estado || "") + '"><b>Corriente:</b> ' + esc(c.texto) + "</p>";
+    }
+
     function tarjetaTareas(t) {
         var fallan = {};
         t.tareas.forEach(function (x) { if (x.fallando_desde || (x.ultima && x.ultima.ok === 0)) fallan[grupoDe(x)] = (fallan[grupoDe(x)] || 0) + 1; });
@@ -197,7 +204,7 @@
         return { filtro: filtro, tarjeta: '<div class="ui-tarjeta tar-bloque" data-vista="tareas"' + (grupoActivo === "madrugada" ? " hidden" : "") + '><h3 class="tar-titulo">Tareas automáticas</h3>' +
             '<p class="tar-nota">Lo que el servidor hace solo, a su hora (hora del centro). Si una falla, te avisamos en la campana y por correo en tu horario: una vez al día mientras siga fallando y otra cuando se recupere.</p>' +
             (fallando ? '<p class="tar-aviso tar-aviso--mal">⚠ ' + fallando + " tarea(s) fallando ahora.</p>" : "") +
-            '<p class="tar-nota"><b>Respaldo a la VPS:</b> ' + resp + "</p>" + vv + lineaLlave(t.vigilante_boveda) +
+            '<p class="tar-nota"><b>Respaldo a la VPS:</b> ' + resp + "</p>" + lineaCorriente(t.corriente) + vv + lineaLlave(t.vigilante_boveda) +
             '<div class="tar-tabla-caja"><table class="tar-tabla"><thead><tr><th>Tarea</th><th>Última</th><th>Tardó</th><th>Resultado</th><th>Próxima</th><th></th></tr></thead><tbody>' +
             filas + '</tbody></table></div><span class="tar-msj" id="tar-msj-correr"></span></div>' };
     }
