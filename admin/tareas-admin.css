@@ -91,3 +91,6 @@
 @media (max-width: 640px) { .tar-rejilla { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; } .tar-campo input { max-width: 100%; }
     .tar-campo input[type="time"] + small, .tar-sub small, .tar-fab { display: none; }
     .tar-equipos { gap: 8px; } .tar-equipo { padding: 10px 12px; } .tar-switch { margin-top: 12px; } }
+/* 20-nov-2026: la línea del vigilante de la llave del relevo */
+.tar-llave .tar-chip { vertical-align: 1px; }
+.tar-llave-ayuda { display: block; font-weight: 400; margin-top: 2px; overflow-wrap: anywhere; }

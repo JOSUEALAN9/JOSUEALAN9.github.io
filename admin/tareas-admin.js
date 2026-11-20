@@ -8,6 +8,8 @@
  *     el resumen de la última madrugada de relevo que la Vostro importó (core/relevo_vps.py).
  *   · Tareas automáticas: cada tarea del reloj del servidor con su última corrida, cuánto tardó, si salió, su próximo
  *     horario y «Correr ahora» (core/programador.py). Incluye la vigilancia del respaldo a la VPS.
+ *   · 20-nov-2026 (Alan): «Vigilante de la llave del relevo» (core/vigilante_boveda.py): última revisión, lecturas de la
+ *     llave en 7 días (normales y urgentes) y estado.
  */
 (function () {
     "use strict";
@@ -145,6 +147,22 @@
             "</details></div>";
     }
 
+    // 20-nov-2026 (Alan): el vigilante de la llave del relevo (core/vigilante_boveda.py): cada hora pregunta a la auditoría
+    // de Oracle quién leyó el secreto «fiscontable-relevo». Última revisión, lecturas en 7 días y estado.
+    function lineaLlave(v) {
+        if (!v) return "";
+        var chip = v.estado === "ok" ? '<span class="tar-chip tar-chip--ok">Bien</span>'
+            : v.estado === "sin_configurar" ? '<span class="tar-chip">Sin configurar</span>'
+            : '<span class="tar-chip tar-chip--mal">No pudo revisar</span>';
+        var n = v.normales_7d || 0, u = v.urgentes_7d || 0;
+        var lecturas = "Lecturas en 7 días: " + n + (n === 1 ? " normal" : " normales") + ", " +
+            (u ? "<b>" + u + (u === 1 ? " URGENTE" : " URGENTES") + "</b>" : "0 urgentes");
+        var detalle = v.estado === "sin_configurar" ? ' <small class="tar-llave-ayuda">Faltan las variables FISCONTABLE_OCI_AUDIT_… de la Vostro (pasos en docs/prd/vigilante_boveda.md).</small>'
+            : v.estado === "error" ? ' <small class="tar-llave-ayuda">' + esc(v.error || v.texto || "") + (v.fallando_desde ? " · desde " + esc(cuando(v.fallando_desde)) : "") + "</small>" : "";
+        return '<p class="' + (u ? "tar-aviso tar-aviso--mal" : "tar-nota") + ' tar-llave" data-vigilante-llave><b>Vigilante de la llave del relevo:</b> ' + chip +
+            " · Última revisión: " + esc(cuando(v.ultima_revision)) + " · " + lecturas + detalle + "</p>";
+    }
+
     function tarjetaTareas(t) {
         var fallan = {};
         t.tareas.forEach(function (x) { if (x.fallando_desde || (x.ultima && x.ultima.ok === 0)) fallan[grupoDe(x)] = (fallan[grupoDe(x)] || 0) + 1; });
@@ -179,7 +197,7 @@
         return { filtro: filtro, tarjeta: '<div class="ui-tarjeta tar-bloque" data-vista="tareas"' + (grupoActivo === "madrugada" ? " hidden" : "") + '><h3 class="tar-titulo">Tareas automáticas</h3>' +
             '<p class="tar-nota">Lo que el servidor hace solo, a su hora (hora del centro). Si una falla, te avisamos en la campana y por correo en tu horario: una vez al día mientras siga fallando y otra cuando se recupere.</p>' +
             (fallando ? '<p class="tar-aviso tar-aviso--mal">⚠ ' + fallando + " tarea(s) fallando ahora.</p>" : "") +
-            '<p class="tar-nota"><b>Respaldo a la VPS:</b> ' + resp + "</p>" + vv +
+            '<p class="tar-nota"><b>Respaldo a la VPS:</b> ' + resp + "</p>" + vv + lineaLlave(t.vigilante_boveda) +
             '<div class="tar-tabla-caja"><table class="tar-tabla"><thead><tr><th>Tarea</th><th>Última</th><th>Tardó</th><th>Resultado</th><th>Próxima</th><th></th></tr></thead><tbody>' +
             filas + '</tbody></table></div><span class="tar-msj" id="tar-msj-correr"></span></div>' };
     }
