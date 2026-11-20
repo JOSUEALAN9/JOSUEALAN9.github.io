@@ -14,7 +14,7 @@
 (function () {
     "use strict";
 
-    var VERSION = "202611200140";
+    var VERSION = "202611200200";
     // www.fiscontable.app → fiscontable.app: una sola dirección (la sesión y las preferencias guardadas son por dirección)
     if (location.hostname === "www.fiscontable.app") {
         location.replace("https://fiscontable.app" + location.pathname + location.search + location.hash);
@@ -26,15 +26,40 @@
     var DOMINIO = /(^|\.)fiscontable\.app$/.test(location.hostname) ? "fiscontable.app" : "josuealan.com";
     var API = "https://" + (PRUEBAS ? "api-pruebas." : "api.") + DOMINIO;
 
+    /* Servidor de respaldo (20-nov-2026, ensayo de Alan con la Vostro apagada): cuando la Vostro no responde, la VPS atiende
+       en solo lectura y todas sus respuestas traen la cabecera «X-Fiscontable-Modo: respaldo» (core/respaldo.py del
+       backend). Lo que no se puede hacer ahí contesta 503 CON esa cabecera: no es un corte, así que no se reintenta; se
+       dice una vez, arriba, y la pantalla sigue como estaba. */
+    var MENSAJE_RESPALDO = "El servidor principal no responde: por ahora solo puedes ver y descargar lo guardado.";
+    var enRespaldo = false, cajaRespaldo = null;
+    function esRespaldo(resp) {
+        try { return !!(resp && resp.headers && resp.headers.get("X-Fiscontable-Modo") === "respaldo"); } catch (e) { return false; }
+    }
+    function avisarRespaldo() {
+        // Un solo aviso a la vez: varios rechazos seguidos (o el mismo clic leído por dos lados) no lo repiten.
+        if (!document.body || (cajaRespaldo && cajaRespaldo.isConnected)) return;
+        var caja = cajaRespaldo = document.createElement("div");
+        caja.className = "fc-respaldo-aviso"; caja.setAttribute("role", "status");
+        var t = document.createElement("span"); t.textContent = MENSAJE_RESPALDO;
+        var x = document.createElement("button"); x.type = "button"; x.textContent = "×"; x.setAttribute("aria-label", "Cerrar");
+        x.addEventListener("click", function () { caja.remove(); });
+        caja.appendChild(t); caja.appendChild(x);
+        document.body.appendChild(caja);
+        setTimeout(function () { caja.remove(); }, 15000);
+    }
+
     /* Cortes breves (la Vostro reiniciando, un tropiezo de la red): antes de dar un error, se reintenta solo unos
        segundos con el aviso «Reconectando…». Consultas (GET): siempre. Envíos (POST, PUT, DELETE): solo si Cloudflare
-       dice que no alcanzó al servidor (502-504, 52x): ahí la petición no llegó, así que no se repite nada. */
+       dice que no alcanzó al servidor (502-504, 52x): ahí la petición no llegó, así que no se repite nada.
+       Un 503 del servidor de respaldo no se reintenta (ver arriba). Si al final no contestó, el error dice en español qué
+       pasó (antes la pantalla mostraba «Failed to fetch») y, en cuanto el servidor vuelve a contestar, abajo sale
+       «Fiscontable ya responde · Recargar» para no quedarse con la pantalla del error. */
     (function () {
         var original = window.fetch;
         if (!original) return;
         var ESPERAS = [1000, 2000, 4000, 8000];
         var SIN_SERVIDOR = [502, 503, 504, 520, 521, 522, 523, 524, 530];
-        var aviso = null, esperando = 0;
+        var aviso = null, esperando = 0, caido = false, volvioCaja = null;
         function pintar() {
             if (!document.body) return;
             if (!aviso) {
@@ -43,9 +68,34 @@
                 document.body.appendChild(aviso);
             }
             var sinRed = navigator.onLine === false;
-            aviso.textContent = sinRed ? "Sin conexión a internet" : "Reconectando con Fiscontable…";
+            aviso.textContent = sinRed ? "Sin conexión a internet" : enRespaldo ? "Servidor de respaldo: reconectando…" : "Reconectando con Fiscontable…";
             aviso.classList.toggle("fc-reconecta--sin-red", sinRed);
             aviso.hidden = !(esperando > 0 || sinRed);
+        }
+        function avisarVolvio(texto) {
+            if (!document.body || (volvioCaja && volvioCaja.isConnected)) return;
+            var caja = volvioCaja = document.createElement("div");
+            caja.className = "fc-volvio"; caja.setAttribute("role", "status");
+            var t = document.createElement("span"); t.textContent = texto;
+            var b = document.createElement("button"); b.type = "button"; b.textContent = "Recargar";
+            b.addEventListener("click", function () { location.reload(); });
+            var x = document.createElement("button"); x.type = "button"; x.textContent = "×"; x.setAttribute("aria-label", "Cerrar");
+            x.addEventListener("click", function () { caja.remove(); });
+            caja.appendChild(t); caja.appendChild(b); caja.appendChild(x);
+            document.body.appendChild(caja);
+        }
+        function contesto(r) {
+            var resp = esRespaldo(r), antes = enRespaldo;
+            if (resp !== antes) {
+                enRespaldo = resp; pintar();
+                try { window.dispatchEvent(new CustomEvent("fiscontable:respaldo", { detail: { respaldo: resp } })); } catch (e) { /* nada */ }
+            }
+            if (caido) { caido = false; avisarVolvio(resp ? "Fiscontable ya responde (servidor de respaldo: solo consulta)." : "Fiscontable ya responde."); }
+            else if (antes && !resp) avisarVolvio("El servidor principal ya responde.");
+        }
+        function sinConexion() {
+            return new TypeError(navigator.onLine === false ? "Sin conexión a internet. Revisa tu red e intenta de nuevo."
+                : "Fiscontable no responde en este momento. Intenta de nuevo en unos minutos.");
         }
         window.addEventListener("online", pintar);
         window.addEventListener("offline", pintar);
@@ -63,12 +113,15 @@
                 }
                 function probar() {
                     original.apply(yo, args).then(function (r) {
+                        var deRespaldo = esRespaldo(r);
+                        if (deRespaldo && r.status === 503) { contesto(r); cerrar(); avisarRespaldo(); return resolver(r); }
                         if (SIN_SERVIDOR.indexOf(r.status) >= 0 && intento < ESPERAS.length) return otraVez();
+                        if (SIN_SERVIDOR.indexOf(r.status) >= 0 && !deRespaldo) caido = true; else contesto(r);
                         cerrar(); resolver(r);
                     }, function (e) {
                         if (e && e.name === "AbortError") { cerrar(); return rechazar(e); }
                         if (consulta && intento < ESPERAS.length) return otraVez();
-                        cerrar(); rechazar(e);
+                        caido = true; cerrar(); rechazar(sinConexion());
                     });
                 }
                 probar();
@@ -105,6 +158,8 @@
     async function leerError(resp) {
         if (!resp) return navigator.onLine === false ? "Sin conexión a internet. Revisa tu red e intenta de nuevo."
             : "Fiscontable no responde en este momento. Intenta de nuevo en unos minutos.";
+        // Lo que el servidor de respaldo no permite: siempre el mismo mensaje (y el aviso de arriba, si no está ya)
+        if (resp.status === 503 && esRespaldo(resp)) { avisarRespaldo(); return MENSAJE_RESPALDO; }
         var d = null;
         try { d = await resp.json(); } catch (e) { /* sin cuerpo JSON */ }
         var detalle = d && typeof d.detail === "string" ? d.detail : "";
@@ -283,6 +338,9 @@
         VERSION: VERSION,
         escapar: escapar,
         leerError: leerError,
+        MENSAJE_RESPALDO: MENSAJE_RESPALDO,
+        enRespaldo: function () { return enRespaldo; },
+        avisarRespaldo: avisarRespaldo,
         guardarArchivo: guardarArchivo,
         textoEnPc: textoEnPc,
         mostrarEnPc: mostrarEnPc,

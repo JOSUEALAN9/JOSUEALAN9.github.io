@@ -308,6 +308,8 @@
     // 18-nov: si la última vez el servidor dijo «formulario propio», el formulario sale de inmediato (sin «Un momento…»);
     // la respuesta de ahora lo confirma o lo corrige. La primera visita de un navegador sí espera la respuesta.
     var propioListo = false;
+    // 20-nov-2026: si contesta el servidor de respaldo (la Vostro caída), se dice desde aquí qué se puede y qué no
+    function notaRespaldo(m) { if (m && m.respaldo && m.aviso_respaldo) avisarTexto(m.aviso_respaldo, "alerta"); }
     function entrarPropio() {
         if (!propioListo) { propioListo = true; prepararPropio(); }
         panel(quiereLicencia ? "licencia" : "entrar");
@@ -341,6 +343,7 @@
                 if (m.propio) { try { localStorage.setItem("fc-modo-entrada", "propio"); } catch (e) { /* sin almacenamiento */ } }
                 entrarPropio();
                 if (MENSAJES[motivo] && motivo !== "reconectando") avisar(motivo);
+                notaRespaldo(m);
                 return;
             }
             // El servidor contestó que NO es propio (m) o no contestó (null). Si no contestó y este navegador ya conocía
@@ -348,5 +351,6 @@
             if (m) { try { localStorage.removeItem("fc-modo-entrada"); } catch (e) { /* sin almacenamiento */ } }
             else if (propioListo) return;
             modoAccess();
+            notaRespaldo(m);
         });
 })();
