@@ -3716,6 +3716,15 @@
         catch (e) { /* sin almacenamiento */ }
     }
 
+    // 19-nov-2026: el letrero que flota abajo (p. ej. «El SAT no está respondiendo») no debe tapar lo último de la página
+    // en el celular: mientras se ve, la página deja ese espacio abajo para poder desplazarse por encima de él
+    function huecoLetreros(c) {
+        var flota = c && c.isConnected && c.classList.contains("fc-letreros--encima") && c.children.length;
+        if (c && flota === 0) c.remove();
+        document.documentElement.style.setProperty("--letreros-hueco", flota ? c.offsetHeight + "px" : "0px");
+        document.documentElement.classList.toggle("fc-con-letrero-encima", !!flota);
+    }
+
     function pintarLetreros(p, desdeGuardados) {
         var viejo = document.getElementById("fc-letreros");
         var barra = document.querySelector(".fc-barra");
@@ -3748,7 +3757,7 @@
                 b.title = "Ocultar este aviso";
                 b.setAttribute("aria-label", "Ocultar este aviso");
                 b.style.cssText = "background:none;border:0;cursor:pointer;font-size:14px;opacity:.7;padding:0 4px;color:inherit";
-                b.addEventListener("click", function () { fila.remove(); alCerrar(); });
+                b.addEventListener("click", function () { fila.remove(); alCerrar(); huecoLetreros(caja); });
                 fila.appendChild(b);
             }
             caja.appendChild(fila);
@@ -3827,7 +3836,7 @@
             viejo.replaceWith(caja);                           // los mismos: mismo alto, nada se mueve
             return;
         }
-        if (viejo && viejo.classList.contains("fc-letreros--encima")) viejo.remove();
+        if (viejo && viejo.classList.contains("fc-letreros--encima")) { viejo.remove(); huecoLetreros(null); }
         else if (viejo) {
             // Su lugar se queda (vacío) hasta la siguiente página; si la persona se desplaza hacia abajo y ya no se ve, se
             // quita: el navegador sostiene lo que está a la vista, así que nada brinca
@@ -3841,6 +3850,7 @@
         // Ya hay algo pintado debajo: el letrero nuevo va encima del contenido, sin empujarlo
         if (document.querySelector("main")) caja.classList.add("fc-letreros--encima");
         barra.insertAdjacentElement("afterend", caja);
+        huecoLetreros(caja);
     }
 
     /* ------------------------------------------------ invitación a un despacho

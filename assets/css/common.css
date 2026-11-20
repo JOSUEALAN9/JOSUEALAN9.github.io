@@ -1916,6 +1916,11 @@ html.fc-incrustado .fc-letrero { display: none !important; }
     html.fc-con-lateral.fc-lateral-chico #fc-letreros.fc-letreros--encima, html.fc-con-riel.fc-lateral-chico #fc-letreros.fc-letreros--encima { left: calc(var(--lateral-chico) + 16px); }
 }
 @media (max-width: 1023px) { #fc-letreros.fc-letreros--encima { bottom: 72px; } }   /* arriba del botón «Informar un error» */
+/* Mientras flota, la página deja su espacio abajo para que lo último se pueda ver y tocar (19-nov-2026) */
+html.fc-con-letrero-encima body { padding-bottom: calc(var(--letreros-hueco, 0px) + 32px); }
+@media (max-width: 1023px) {   /* gana también al espacio del botón «Informar un error» (body:has(#fc-reportar)) */
+    html.fc-con-letrero-encima body, html.fc-con-letrero-encima:not(.fc-incrustado) body:has(#fc-reportar) { padding-bottom: calc(var(--letreros-hueco, 0px) + 88px); }
+}
 
 /* «Ampliar tabla» (18-nov): solo queda la tabla con su buscador y sus filtros; lo demás se va hasta salir (botón o Esc) */
 .fc-amplia-btn { display: inline-flex; align-items: center; gap: 6px; }
