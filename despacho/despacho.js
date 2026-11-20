@@ -15,7 +15,7 @@
     var datos = null, filtroSol = "pendiente", edicion = null;
     var AYUDA_PAPEL = {
         titular: "Administra el equipo, los permisos y los ajustes, y acepta solicitudes. Ve todo el despacho.",
-        aprobador: "Acepta o rechaza solicitudes y ve la bitácora. Trabaja con lo que le permitas.",
+        aprobador: "Acepta o rechaza las solicitudes del equipo y ve la bitácora. Las suyas las resuelve el titular. Trabaja con lo que le permitas.",
         miembro: "Trabaja con las empresas y los módulos que le des."
     };
 
@@ -378,7 +378,12 @@
                 : s.estado === "aceptada" ? '<span class="ui-estado ui-estado--ok">Aceptada</span>'
                 : s.estado === "rechazada" ? '<span class="ui-estado ui-estado--error">Rechazada</span>' : '<span class="ui-estado">Cancelada</span>';
             var acciones = "";
-            if (s.estado === "pendiente" && datos.aprueba && s.de_correo !== yo)
+            // 20-nov-2026 (auditoría H8): la solicitud de quien aprueba la resuelve el titular
+            var dePapel = ((datos.equipo || []).filter(function (m) { return m.correo === s.de_correo; })[0] || {}).papel;
+            var alTitular = !datos.titular && (dePapel === "aprobador" || dePapel === "titular");
+            if (s.estado === "pendiente" && datos.aprueba && s.de_correo !== yo && alTitular)
+                acciones = '<small class="dp-sol-nota">La resuelve el titular</small>';
+            else if (s.estado === "pendiente" && datos.aprueba && s.de_correo !== yo)
                 acciones = '<button type="button" class="ui-btn ui-btn--primario ui-btn--28" data-aceptar="' + s.id + '">Aceptar</button>' +
                     '<button type="button" class="ui-btn ui-btn--secundario ui-btn--28" data-rechazar="' + s.id + '">Rechazar</button>';
             else if (s.estado === "pendiente" && s.de_correo === yo)
