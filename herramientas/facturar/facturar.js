@@ -1647,7 +1647,7 @@
         });
         $("pg-resumen").innerHTML = n ? lineas.join("<br>") + '<br><b style="font-size:17px;color:rgb(var(--g-900))">Pago: ' + dinero(r2(total)) + " " + mp + "</b>" +
             (faltaEq ? '<br><span style="color:rgb(var(--er-600))">Escribe el tipo de cambio del día del pago.</span>' : "") : "Marca al menos una factura.";
-        $("btn-pg-timbrar").disabled = !n || faltaEq;
+        $("btn-pg-timbrar").disabled = $("btn-pg-vista").disabled = !n || faltaEq;
         $("pg-folio").textContent = F.emisor ? "Será el recibo " + (F.emisor.serie_p || "P") + "-" + (F.emisor.folio_p || 1) + "." : "";
     }
 
@@ -1687,6 +1687,21 @@
             $("conf-nota").textContent = F.cfg.produccion ? "Se manda al SAT y gasta 1 timbre de la empresa." : "Modo de pruebas: no gasta timbres ni tiene validez fiscal.";
             $("dlg-confirmar").showModal();
         } catch (e) { err.textContent = e.message; err.hidden = false; }
+    }
+
+    /* 20-nov-2026 (Alan, tras timbrar el P-1): el recibo de pago como quedaría, igual que «Vista previa PDF» de la factura:
+       las mismas revisiones que al timbrar, sin timbrar ni gastar timbre, con la marca «Vista previa · sin validez fiscal». */
+    async function vistaPreviaPago() {
+        var err = $("pg-error"), b = $("btn-pg-vista"); err.classList.remove("fa-error--revisando");
+        if (b.disabled) return;
+        err.hidden = true; b.disabled = true; b.textContent = "Revisando…";
+        try {
+            var resp = await api("/api/facturacion/pagos/vista-previa", { method: "POST", headers: { "Content-Type": "application/json" },
+                                                                          body: JSON.stringify({ rfc: F.emisor.rfc, pago: pagoCaptura() }) });
+            var m = /filename="?([^";]+)"?/i.exec(resp.headers.get("Content-Disposition") || "");
+            Fiscontable.verPdf(await resp.blob(), { titulo: "Vista previa · sin validez fiscal", nombre: m ? m[1] : "Vista_previa_recibo.pdf" });
+        } catch (e) { err.textContent = e.message; err.hidden = false; }
+        b.textContent = "Vista previa PDF"; resumenPago();
     }
 
     async function timbrarPago() {
@@ -2760,6 +2775,7 @@
         $("pg-moneda").addEventListener("change", function () { tcDelPago(); resumenPago(); });
         $("pg-fecha").addEventListener("change", function () { $("pg-tc").value = ""; tcDelPago(); });
         $("btn-pg-timbrar").addEventListener("click", prepararPago);
+        $("btn-pg-vista").addEventListener("click", vistaPreviaPago);
         document.querySelectorAll("[data-modo-correo]").forEach(function (b) { b.addEventListener("click", function () { if (!b.disabled) ponerModoCorreo(b.dataset.modoCorreo); }); });
         $("c-proveedor").addEventListener("change", ponerProveedor);
         $("btn-guardar-correo").addEventListener("click", guardarCorreo);
