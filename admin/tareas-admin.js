@@ -10,6 +10,7 @@
  *     horario y «Correr ahora» (core/programador.py). Incluye la vigilancia del respaldo a la VPS.
  *   · 20-nov-2026 (Alan): «Vigilante de la llave del relevo» (core/vigilante_boveda.py): última revisión, lecturas de la
  *     llave en 7 días (normales y urgentes) y estado.
+ *   · 20-nov-2026 (Alan): «La VPS trabaja cuando la Vostro cae» (core/respaldo_trabaja.py), arriba de todo.
  */
 (function () {
     "use strict";
@@ -209,6 +210,22 @@
             filas + '</tbody></table></div><span class="tar-msj" id="tar-msj-correr"></span></div>' };
     }
 
+    // 20-nov-2026 (Alan, docs/prd/vps_trabaja.md): «La VPS trabaja cuando la Vostro cae» (de fábrica apagado). Con la Vostro
+    // caída, la VPS deja de ser solo lectura para una lista cerrada (XML, validar, reportes, conciliación, envíos, ZIP, constancia,
+    // opinión, declaraciones, Buzón solo listar, alta de empresa). Necesita el relevo prendido (la llave del Vault).
+    function bloqueTrabaja(v) {
+        v = v || {};
+        var u = v.ultimo || {};
+        return '<div class="ui-tarjeta tar-bloque tar-trabaja" data-vps-trabaja>' +
+            '<label class="tar-switch"><input type="checkbox" data-trabaja' + (v.activo ? " checked" : "") + (!v.relevo && !v.activo ? " disabled" : "") +
+            '><span>La VPS trabaja cuando la Vostro cae</span><small>' +
+            (v.relevo ? "Con la Vostro caída, en la VPS se puede descargar y validar XML, sacar reportes, conciliar, mandar envíos y dar de alta empresas. " +
+                "Facturar, cancelar, DIOT y lo demás esperan a la Vostro. Al volver, la Vostro junta todo sin duplicar (de fábrica apagado)."
+                : "Necesita prendido «Relevo de la VPS si se cae la Vostro» (La madrugada › Cuántos a la vez y horario): la VPS trabaja con la llave del Vault de Oracle.") +
+            (u.noche ? "<br><b>Última vez:</b> " + esc((u.resumen || "").replace(/^Lo que hizo la VPS con la Vostro caída /, "")) + " · importado " + esc(cuando(u.importado_en)) : "") +
+            '</small></label><span class="tar-msj" id="tar-msj-trabaja"></span></div>';
+    }
+
     async function pintar() {
         caja.innerHTML = '<span class="ui-skel" style="width:60%"></span>';
         var m, t;
@@ -220,7 +237,21 @@
         }
         m.vps_version = t.vps_version;
         var tareas = tarjetaTareas(t);
-        caja.innerHTML = tareas.filtro + tarjetaMadrugada(m) + tareas.tarjeta;
+        caja.innerHTML = tareas.filtro + bloqueTrabaja(t.vps_trabaja) + tarjetaMadrugada(m) + tareas.tarjeta;
+        var sw = caja.querySelector("[data-trabaja]");
+        sw.addEventListener("change", async function () {
+            var prender = sw.checked;
+            if (prender && !confirm("¿Prender «La VPS trabaja cuando la Vostro cae»? Con la Vostro caída, la VPS pedirá la llave al Vault (te llega el aviso) y aceptará XML, reportes, envíos y altas de empresa. Llega a la VPS con la siguiente copia.")) {
+                sw.checked = false; return;
+            }
+            sw.disabled = true;
+            try {
+                var r = await mandar("/api/admin/sistema/vps-trabaja", "PUT", { activo: prender });
+                sw.checked = !!r.activo;
+                msj("tar-msj-trabaja", true, prender ? "✓ Prendido. Llega a la VPS con la siguiente copia (5 a 10 min)." : "✓ Apagado: con la Vostro caída, la VPS vuelve a ser solo de consulta.");
+            } catch (e) { sw.checked = !prender; msj("tar-msj-trabaja", false, e.message); }
+            sw.disabled = false;
+        });
         var br = document.getElementById("tar-reintentar");
         br.addEventListener("click", async function () {
             if (!confirm("¿Volver a programar lo que no salió en la última semana (de todas las cuentas)? Va en la madrugada que toca.")) return;

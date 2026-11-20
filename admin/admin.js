@@ -940,6 +940,7 @@ function tarjeta(titulo, cuerpo, tono) {
 }
 
 async function cargarSistema() {
+    window.dispatchEvent(new Event("fiscontable:sistema"));      // 20-nov-2026: la tarjeta «Servidores» se carga aparte (servidores-admin.js)
     try {
         estadoSistema = await api("/api/admin/sistema/estado");
         try { estadoTrabajadores = await api("/api/admin/trabajadores"); } catch (e) { estadoTrabajadores = null; }
