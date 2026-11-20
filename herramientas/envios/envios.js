@@ -693,8 +693,8 @@
             if (accion === "historial") return abrirHistorial(e);
             if (accion === "enviar") return abrirAhora(e);
             if (accion === "decidir") {
-                var mandar = b.dataset.decision === "mandar";
-                if (mandar && !(await Fiscontable.preguntar("¿Mandarlo así? Sale con lo que hay. El cliente recibe la versión limpia; la causa de lo que falta queda solo para ti."))) return;
+                var sale = b.dataset.decision === "mandar";   // 20-nov-2026: se llamaba «mandar» y tapaba la función mandar() («mandar is not a function»)
+                if (sale && !(await Fiscontable.preguntar("¿Mandarlo así? Sale con lo que hay. El cliente recibe la versión limpia; la causa de lo que falta queda solo para ti."))) return;
                 b.disabled = true;
                 try {
                     var r = await mandar("/api/entregas/" + encodeURIComponent(e.id) + "/decidir", "POST", { accion: b.dataset.decision });
