@@ -1681,7 +1681,9 @@
             $("conf-titulo").textContent = "¿Timbrar el recibo de pago?";
             $("conf-resumen").innerHTML = '<dl class="fa-resumen"><dt>Folio</dt><dd>' + esc(r.serie + "-" + r.folio) + "</dd><dt>Receptor</dt><dd>" + esc(r.receptor_nombre + " · " + r.receptor_rfc) +
                 "</dd><dt>Fecha del pago</dt><dd>" + esc(cap.fecha.replace("T", " ")) + "</dd><dt>Pago</dt><dd>" + dinero(r.monto) + " " + esc(r.moneda) + "</dd>" +
-                r.doctos.map(function (d) { var x = F.pendientes.filter(function (p) { return p.uuid === d.uuid; })[0]; return "<dt>" + esc(x ? x.serie_folio : d.uuid.slice(0, 8)) + "</dt><dd>parcialidad " + d.parcialidad + " · " + dinero(d.pagado) + " · queda " + dinero(d.saldo_insoluto) + "</dd>"; }).join("") + "</dl>";
+                r.doctos.map(function (d) { var x = F.pendientes.filter(function (p) { return p.uuid === d.uuid; })[0]; return "<dt>" + esc(x ? x.serie_folio : d.uuid.slice(0, 8)) + "</dt><dd>parcialidad " + d.parcialidad + " · " + dinero(d.pagado) + " · queda " + dinero(d.saldo_insoluto) + "</dd>" +
+                    (d.impuestos || []).map(function (i) { return '<dt class="fa-resumen__imp">' + esc(i.tipo + " " + i.impuesto + " " + i.tasa) + "</dt><dd>base " + dinero(i.base) + (i.importe == null ? "" : " · " + (i.tipo === "Retención" ? "−" : "") + dinero(i.importe)) + "</dd>"; }).join(""); }).join("") + "</dl>" +
+                (r.doctos.some(function (d) { return (d.impuestos || []).length; }) ? '<p class="fa-resumen__nota">Impuestos en proporción a lo pagado: la base de cada impuesto de la factura × (pagado ÷ total), y el importe = esa base × la tasa.</p>' : "");
             $("conf-nota").textContent = F.cfg.produccion ? "Se manda al SAT y gasta 1 timbre de la empresa." : "Modo de pruebas: no gasta timbres ni tiene validez fiscal.";
             $("dlg-confirmar").showModal();
         } catch (e) { err.textContent = e.message; err.hidden = false; }

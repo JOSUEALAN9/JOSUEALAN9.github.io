@@ -41,7 +41,9 @@
                 '<td class="p-4 text-xs">' + esc(l.activada_por || "—") + (l.cuenta && l.cuenta !== l.activada_por ? '<div class="text-slate-500">cuenta del despacho</div>' : "") + "</td>" +
                 '<td class="p-4 whitespace-nowrap">' + (l.vence_en ? fecha(l.vence_en) : (l.caduca ? "Activar antes del " + fecha(l.caduca) : "—")) + "</td>" +
                 '<td class="p-4 text-xs text-slate-600">' + esc(l.nota || "") + "</td>" +
-                '<td class="p-4 text-right">' + (l.estado === "disponible" || l.estado === "activa" || l.estado === "vencida" ?
+                '<td class="p-4 text-right whitespace-nowrap">' + (l.estado === "disponible" || l.estado === "activa" ?
+                    '<button type="button" class="ui-btn ui-btn--terciario ui-btn--28" data-bienvenida>Bienvenida</button> ' : "") +
+                    (l.estado === "disponible" || l.estado === "activa" || l.estado === "vencida" ?
                     '<button type="button" class="ui-btn ui-btn--terciario ui-btn--28" data-revocar="' + l.id + '" data-activa="' + (l.estado !== "disponible" ? 1 : 0) + '">Cancelar</button>' : "") + "</td></tr>";
         }).join("");
         void sinUsar;
@@ -53,7 +55,7 @@
         $("lca-plan").innerHTML = datos.planes.map(function (p) { return '<option value="' + esc(p.clave) + '">' + esc(p.nombre) + "</option>"; }).join("") ||
             '<option value="">Pro</option>';
         $("lca-meses").innerHTML = datos.meses.map(function (m) { return '<option value="' + m + '"' + (m === 12 ? " selected" : "") + ">" + m + (m === 1 ? " mes" : " meses") + "</option>"; }).join("");
-        ["lca-resultado", "lca-copiar", "lca-bajar", "lca-error"].forEach(function (id) { $(id).hidden = true; });
+        ["lca-resultado", "lca-copiar", "lca-bajar", "lca-bienvenida", "lca-error"].forEach(function (id) { $(id).hidden = true; });
         $("lca-crear").hidden = false; $("lca-cancelar").textContent = "Cancelar";
         [].forEach.call($("lca-forma").querySelectorAll("input,select"), function (x) { x.disabled = false; });
         tipoCambio();
@@ -79,6 +81,7 @@
             $("lca-claves").textContent = claves.join("\n");
             $("lca-resultado").hidden = false;
             $("lca-copiar").hidden = $("lca-bajar").hidden = false;
+            $("lca-bienvenida").hidden = claves.length !== 1;
             $("lca-crear").hidden = true; $("lca-cancelar").textContent = "Listo";
             [].forEach.call($("lca-forma").querySelectorAll("input,select"), function (x) { x.disabled = true; });
             $("lca-dlg-sub").textContent = claves.length === 1 ? "Esta es la clave." : "Estas son las " + claves.length + " claves.";
@@ -122,6 +125,46 @@
         var b = e.target.closest("[data-revocar]");
         if (b) revocar(b.dataset.revocar, b.dataset.activa === "1");
     });
+
+    /* ---------------------------------------------------- bienvenida (20-nov-2026): correo con diseño, clave y factura */
+    async function abrirBienvenida(clave) {
+        $("lcb-clave").value = clave || ""; $("lcb-correo").value = ""; $("lcb-nombre").value = "";
+        $("lcb-error").hidden = $("lcb-ok").hidden = true;
+        $("lcb-factura").innerHTML = '<option value="">Sin factura</option>';
+        $("lcb-dlg").showModal();
+        (clave ? $("lcb-correo") : $("lcb-clave")).focus();
+        try {
+            var fs = (await api("/api/admin/licencias/facturas")).facturas;
+            $("lcb-factura").innerHTML = '<option value="">Sin factura</option>' + fs.map(function (f) {
+                return '<option value="' + esc(f.id) + '">' + esc(f.serie_folio + " · " + (f.receptor || f.rfc || "") + " · $" +
+                    Number(f.total || 0).toLocaleString("es-MX", { minimumFractionDigits: 2 }) + " · " + f.fecha + (f.pruebas ? " · pruebas" : "")) + "</option>";
+            }).join("");
+        } catch (e) { /* sin facturas: se manda sin adjunto */ }
+    }
+
+    async function mandarBienvenida(prueba) {
+        var b = $(prueba ? "lcb-prueba" : "lcb-mandar");
+        $("lcb-error").hidden = $("lcb-ok").hidden = true;
+        var cuerpo = { clave: $("lcb-clave").value.trim(), correo: $("lcb-correo").value.trim(), nombre: $("lcb-nombre").value.trim(),
+                       factura_id: $("lcb-factura").value || null, prueba: !!prueba };
+        if (!prueba && !(await Fiscontable.preguntar("¿Mandar la bienvenida a " + (cuerpo.correo || "ese correo") + "? Lleva la clave completa" +
+                                                      (cuerpo.factura_id ? " y la factura adjunta." : ".")))) return;
+        b.classList.add("ui-btn--cargando");
+        try {
+            var r = await api("/api/admin/licencias/bienvenida", "POST", cuerpo);
+            $("lcb-ok").textContent = prueba ? "Te mandamos la prueba a tu correo (" + r.para + "). Revisa cómo se ve y luego da «Mandar»." :
+                "Listo: la bienvenida salió a " + r.para + (r.factura ? ", con la factura " + r.factura + "." : ".");
+            $("lcb-ok").hidden = false;
+        } catch (e) { $("lcb-error").textContent = e.message; $("lcb-error").hidden = false; }
+        finally { b.classList.remove("ui-btn--cargando"); }
+    }
+
+    $("lca-bienvenida").addEventListener("click", function () { $("lca-dlg").close(); abrirBienvenida(claves[0]); });
+    $("lcb-prueba").addEventListener("click", function () { mandarBienvenida(true); });
+    $("lcb-mandar").addEventListener("click", function () { mandarBienvenida(false); });
+    $("lcb-forma").addEventListener("submit", function (e) { e.preventDefault(); });
+    $("lcb-dlg").addEventListener("click", function (e) { if (e.target.closest("[data-lcb-cerrar]") || e.target === this) this.close(); });
+    $("lca-lista").addEventListener("click", function (e) { if (e.target.closest("[data-bienvenida]")) abrirBienvenida(""); });
 
     window.LicenciasAdmin = { cargar: cargar };
 })();
