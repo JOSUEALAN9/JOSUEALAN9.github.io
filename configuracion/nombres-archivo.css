@@ -1,0 +1,24 @@
+/* Configuración › Nombres de archivo (20-nov-2026). Prefijo cf-na-. */
+.cf-na__intro { margin-top: 0; }
+.cf-na__aviso { margin: 0 0 14px; padding: 10px 14px; border-radius: 10px; background: rgb(var(--g-50)); border: 1px solid var(--linea); font-size: 13.5px; color: rgb(var(--g-700)); }
+.cf-na__lista { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.cf-na__tipo { min-width: 0; display: flex; flex-direction: column; gap: 10px; padding: 16px 18px; border: 1px solid var(--linea); border-radius: 14px; background: rgb(var(--g-0)); }
+.cf-na__cab { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.cf-na__cab .cf-sub { margin: 0; font-size: 15px; }
+.cf-na__marca { flex: none; font-size: 11.5px; font-weight: 700; color: rgb(var(--g-600)); background: rgb(var(--g-100)); border-radius: 999px; padding: 3px 10px; }
+.cf-na__marca--propia { color: rgb(var(--ac-800)); background: rgb(var(--ac-50)); }
+.cf-na__tipo .cf-campo input { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; min-width: 0; }
+.cf-na__tipo .cf-campo input[aria-invalid="true"] { border-color: rgb(var(--er-600)); }
+.cf-na__piezas { display: flex; flex-wrap: wrap; gap: 6px; }
+.cf-na__pieza { height: 24px; padding: 0 8px; border: 1px solid rgb(var(--g-300)); border-radius: 999px; background: rgb(var(--g-0)); color: rgb(var(--g-700));
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; cursor: pointer; }
+.cf-na__pieza:hover { border-color: rgb(var(--ac-600)); color: rgb(var(--ac-800)); background: rgb(var(--ac-50)); }
+.cf-na__vista { margin: 0; display: flex; flex-direction: column; gap: 3px; padding: 9px 12px; border-radius: 10px; background: rgb(var(--g-50)); min-width: 0; }
+.cf-na__vista small, .cf-na__fabrica small { font-size: 11.5px; color: rgb(var(--g-500)); }
+.cf-na__vista code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12.5px; color: rgb(var(--g-900)); overflow-wrap: anywhere; }
+.cf-na__fabrica { margin: 0; display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 8px; }
+.cf-na__fabrica code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; overflow-wrap: anywhere; }
+.cf-na__error { margin: 0; font-size: 13px; font-weight: 600; color: rgb(var(--er-600)); }
+.cf-na [hidden] { display: none !important; }
+.cf-na__nota { margin-top: 16px; }
+@media (max-width: 900px) { .cf-na__lista { grid-template-columns: minmax(0, 1fr); } }

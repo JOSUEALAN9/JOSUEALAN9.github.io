@@ -54,6 +54,11 @@
           pintar: pintarPlan },
         { id: "avisos", grupo: "Tu cuenta", titulo: "Avisos", ico: ICO.campana, desc: "Qué avisos te llegan también por correo, a qué dirección, y el resumen de tu cartera.",
           palabras: "avisos correo notificaciones campana actividad email resumen semanal diario lunes cartera", pintar: pintarAvisos },
+        // 20-nov-2026, Alan: cómo se llaman los archivos (configuracion/nombres-archivo.js; en el despacho, los pone el titular)
+        { id: "nombres", grupo: "Tu cuenta", titulo: "Nombres de archivo", ico: ICO.factura,
+          desc: "Cómo se llaman los XML, los PDF, los Excel y los ZIP que bajas o mandas en los envíos.",
+          palabras: "nombres de archivo plantilla renombrar xml pdf excel zip paquete envío descarga serie folio uuid rfc periodo",
+          pintar: function (c) { window.FcNombresArchivo.pintar(c, { api: api, enviar: enviar }); } },
         // 15-nov, Alan: «solo una sección para eso»: XML automáticos, revisión del Buzón y lo programado, todo aquí. Lo que
         // aparezca en otro módulo (el botón «Automática» de Descarga XML, «Ver todas»…) trae a esta sección.
         { id: "automatico", grupo: "Tu cuenta", titulo: "Lo automático", ico: ICO.reloj,
