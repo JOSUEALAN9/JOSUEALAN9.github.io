@@ -82,6 +82,8 @@
 .ev-hecho__verificado--sin { color: #9A3412; }
 .ev-hecho .ev-hecho__nota { color: #9A3412; }
 .ev-radios--una { grid-template-columns: minmax(0, 1fr); }
+.ev-corte { display: grid; gap: 0; min-width: 0; }          /* 20-nov: «Hasta ayer» / «Hasta este momento» en «Enviar ahora» */
+.ev-corte[hidden] { display: none; }
 @media (max-width: 640px) {
     .ev-pasos { padding: 8px 12px; gap: 2px; }
     .ev-pasos li { flex: 0 0 auto; }

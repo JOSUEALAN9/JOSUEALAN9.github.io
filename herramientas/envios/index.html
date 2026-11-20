@@ -4,15 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Envíos por correo | Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611202345">
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611202345">
-    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611202345">
-    <link rel="stylesheet" href="/herramientas/envios/envios.css?v=202611202345">
+    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611210005">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611210005">
+    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611210005">
+    <link rel="stylesheet" href="/herramientas/envios/envios.css?v=202611210005">
 </head>
 <body class="min-h-screen flex flex-col">
 <div id="app-header" data-modulo="envios" data-titulo="Envíos por correo" data-migas="Herramientas|/herramientas/"></div>
-<script src="/assets/js/nucleo.js?v=202611202345"></script>
-<script src="/assets/js/barra.js?v=202611202345"></script>
+<script src="/assets/js/nucleo.js?v=202611210005"></script>
+<script src="/assets/js/barra.js?v=202611210005"></script>
 
 <main class="flex-grow mod-pagina">
     <div class="mod-cabeza">
@@ -190,6 +190,16 @@
             <label class="ui-campo"><span class="ui-etiqueta">Desde</span><select id="ev-ahora-desde" class="ui-select"></select></label>
             <label class="ui-campo"><span class="ui-etiqueta">Hasta</span><select id="ev-ahora-hasta" class="ui-select"></select></label>
         </div>
+        <!-- 20-nov-2026 (Alan): el corte. Solo se ve si el periodo llega a este mes (un mes cerrado ya va completo) -->
+        <div class="ev-corte" id="ev-ahora-corte-caja">
+            <p class="ev-sub" id="ev-ahora-corte-titulo">Hasta cuándo</p>
+            <div class="ev-radios ev-radios--una" role="radiogroup" aria-labelledby="ev-ahora-corte-titulo">
+                <label class="ui-check ev-radio"><input type="radio" name="ev-ahora-corte" value="ayer" checked>
+                    <span><b>Hasta ayer, verificado contra el SAT</b></span></label>
+                <label class="ui-check ev-radio"><input type="radio" name="ev-ahora-corte" value="ahora">
+                    <span><b>Hasta este momento</b><small>Lleva también lo de hoy, sin compararlo con la lista del SAT.</small></span></label>
+            </div>
+        </div>
         <p class="ev-ahora__calculo" id="ev-ahora-calculo" role="status" hidden></p>
         <p class="ui-ayuda" id="ev-ahora-nota"></p>
     </div>
@@ -210,6 +220,6 @@
     </div>
 </dialog>
 
-<script src="/herramientas/envios/envios.js?v=202611202345"></script>
+<script src="/herramientas/envios/envios.js?v=202611210005"></script>
 </body>
 </html>

@@ -516,6 +516,8 @@
         $("ev-ahora-desde").value = $("ev-ahora-hasta").value = mesDe(new Date(h.getFullYear(), h.getMonth() - 1, 1));
         document.querySelector('input[name="ev-ahora-periodo"][value="siempre"]').checked = true;
         $("ev-ahora-mes-caja").hidden = true; $("ev-ahora-calculo").hidden = true;
+        document.querySelector('input[name="ev-ahora-corte"][value="ayer"]').checked = true;          // de fábrica, hasta ayer (20-nov)
+        verCorte();
         // 19-nov (Alan): «Validar primero» o «Enviar ya». Validar revisa contra el SAT (lista de cada mes con corte a ayer
         // 23:59, estado de cada comprobante, constancia y opinión de más de 30 días); «Enviar ya» sale con lo que hay
         $("ev-ahora-nota").textContent = "«Validar primero» revisa contra el SAT que no falte ninguno (el mes en curso, con corte a ayer 23:59) y el estado de cada comprobante, " +
@@ -524,6 +526,22 @@
         $("ev-ahora-si").disabled = $("ev-ahora-ya").disabled = false;
         if (!$("ev-ahora").open) $("ev-ahora").showModal();
         calcularAhora();
+    }
+    /* 20-nov-2026 (Alan): «Hasta ayer, verificado contra el SAT» (de fábrica) o «Hasta este momento» (lleva también lo de
+       hoy, sin compararlo con la lista del SAT). Solo se pregunta si el periodo llega a este mes: un mes cerrado ya va completo. */
+    function llegaAEsteMes() {
+        var e = E.ahoraDe; if (!e) return false;
+        var hoy = mesDe(new Date()), otro = document.querySelector('input[name="ev-ahora-periodo"]:checked').value === "otro";
+        if (otro) return mesesAhora().indexOf(hoy) >= 0;
+        return e.modo !== "mes" || (e.meses_hoy || mesesDeHoy(e.frecuencia, e.cierre)).indexOf(hoy) >= 0;
+    }
+    function verCorte() {
+        var se = llegaAEsteMes();
+        $("ev-ahora-corte-caja").hidden = !se;
+        if (!se) document.querySelector('input[name="ev-ahora-corte"][value="ayer"]').checked = true;
+    }
+    function corteAhora() {          // "ahora" solo si se ve y se eligió; si no, el de siempre
+        return !$("ev-ahora-corte-caja").hidden && document.querySelector('input[name="ev-ahora-corte"]:checked').value === "ahora";
     }
     function mesesAhora() {          // los meses de «Desde» a «Hasta» (si están al revés, se acomodan)
         var a = $("ev-ahora-desde").value, b = $("ev-ahora-hasta").value, salida = [];
@@ -560,7 +578,9 @@
         var antes = b.disabled;
         b.disabled = ya.disabled = true;
         try {
-            await mandar("/api/entregas/" + encodeURIComponent(e.id) + "/enviar", "POST", { meses: otro ? mesesAhora() : [], validar: validar !== false });
+            var cuerpo = { meses: otro ? mesesAhora() : [], validar: validar !== false };
+            if (corteAhora()) cuerpo.corte = "ahora";          // de fábrica no se manda: el servidor entiende «hasta ayer»
+            await mandar("/api/entregas/" + encodeURIComponent(e.id) + "/enviar", "POST", cuerpo);
             $("ev-ahora").close(); E.esperando = true; abrirHistorial(e); await cargar();
         } catch (err) { b.disabled = antes; ya.disabled = antes; fallo(err); }
     }
@@ -686,6 +706,7 @@
         $("ev-ahora").addEventListener("click", function (ev) { if (ev.target.closest('[data-ev="cerrar-ahora"]')) $("ev-ahora").close(); });
         $("ev-ahora").addEventListener("change", function (ev) {
             if (ev.target.name === "ev-ahora-periodo") $("ev-ahora-mes-caja").hidden = ev.target.value !== "otro";
+            if (ev.target.name === "ev-ahora-periodo" || ev.target.id === "ev-ahora-desde" || ev.target.id === "ev-ahora-hasta") verCorte();
             if (ev.target.name === "ev-ahora-periodo" || ev.target.id === "ev-ahora-desde" || ev.target.id === "ev-ahora-hasta") calcularAhora();
         });
         $("ev-ahora-si").addEventListener("click", function () { mandarAhora(true); });
