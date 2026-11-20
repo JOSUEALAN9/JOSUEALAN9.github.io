@@ -193,3 +193,7 @@
 .ev-hecho li .ui-estado::before { display: inline-block; margin-right: 6px; vertical-align: middle; }
 #ev-hist .fc-modal__cuerpo { overflow-x: hidden; }
 @media (max-width: 640px) { .ev-matriz__cabeza .ui-input { margin-left: 0; flex: 1 1 100%; } }
+/* 20-nov-2026: envío detenido por incompleto, esperando la decisión del titular */
+.ev-detenido { margin: 10px 0 0; padding: 10px 12px; border-radius: 10px; background: rgb(var(--ambar-50, 255 247 237)); border: 1px solid rgb(var(--ambar-200, 254 215 170)); font-size: 13px; }
+.ev-detenido p { margin: 0 0 8px; color: rgb(var(--g-800, 31 41 51)); }
+.ev-detenido__botones { display: flex; flex-wrap: wrap; gap: 8px; }
