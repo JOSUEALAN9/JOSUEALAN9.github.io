@@ -8,6 +8,9 @@
  *     el resumen de la última madrugada de relevo que la Vostro importó (core/relevo_vps.py).
  *   · Tareas automáticas: cada tarea del reloj del servidor con su última corrida, cuánto tardó, si salió, su próximo
  *     horario y «Correr ahora» (core/programador.py). Incluye la vigilancia del respaldo a la VPS.
+ *   · 20-nov-2026 (Alan): «Vigilante de la llave del relevo» (core/vigilante_boveda.py): última revisión, lecturas de la
+ *     llave en 7 días (normales y urgentes) y estado.
+ *   · 20-nov-2026 (Alan): «La VPS trabaja cuando la Vostro cae» (core/respaldo_trabaja.py), arriba de todo.
  */
 (function () {
     "use strict";
@@ -145,6 +148,29 @@
             "</details></div>";
     }
 
+    // 20-nov-2026 (Alan): el vigilante de la llave del relevo (core/vigilante_boveda.py): cada hora pregunta a la auditoría
+    // de Oracle quién leyó el secreto «fiscontable-relevo». Última revisión, lecturas en 7 días y estado.
+    function lineaLlave(v) {
+        if (!v) return "";
+        var chip = v.estado === "ok" ? '<span class="tar-chip tar-chip--ok">Bien</span>'
+            : v.estado === "sin_configurar" ? '<span class="tar-chip">Sin configurar</span>'
+            : '<span class="tar-chip tar-chip--mal">No pudo revisar</span>';
+        var n = v.normales_7d || 0, u = v.urgentes_7d || 0;
+        var lecturas = "Lecturas en 7 días: " + n + (n === 1 ? " normal" : " normales") + ", " +
+            (u ? "<b>" + u + (u === 1 ? " URGENTE" : " URGENTES") + "</b>" : "0 urgentes");
+        var detalle = v.estado === "sin_configurar" ? ' <small class="tar-llave-ayuda">Faltan las variables FISCONTABLE_OCI_AUDIT_… de la Vostro (pasos en docs/prd/vigilante_boveda.md).</small>'
+            : v.estado === "error" ? ' <small class="tar-llave-ayuda">' + esc(v.error || v.texto || "") + (v.fallando_desde ? " · desde " + esc(cuando(v.fallando_desde)) : "") + "</small>" : "";
+        return '<p class="' + (u ? "tar-aviso tar-aviso--mal" : "tar-nota") + ' tar-llave" data-vigilante-llave><b>Vigilante de la llave del relevo:</b> ' + chip +
+            " · Última revisión: " + esc(cuando(v.ultima_revision)) + " · " + lecturas + detalle + "</p>";
+    }
+
+    // 20-nov-2026 (Alan): el vigilante de corriente de la Vostro (core/corriente.py): «Corriente: normal / en batería desde
+    // las … / sin detector». El texto lo arma el servidor; aquí solo se pinta (en rojo mientras no haya luz).
+    function lineaCorriente(c) {
+        if (!c || !c.texto) return "";
+        return '<p class="' + (c.alerta ? "tar-aviso tar-aviso--mal" : "tar-nota") + '" data-corriente="' + esc(c.estado || "") + '"><b>Corriente:</b> ' + esc(c.texto) + "</p>";
+    }
+
     function tarjetaTareas(t) {
         var fallan = {};
         t.tareas.forEach(function (x) { if (x.fallando_desde || (x.ultima && x.ultima.ok === 0)) fallan[grupoDe(x)] = (fallan[grupoDe(x)] || 0) + 1; });
@@ -179,9 +205,25 @@
         return { filtro: filtro, tarjeta: '<div class="ui-tarjeta tar-bloque" data-vista="tareas"' + (grupoActivo === "madrugada" ? " hidden" : "") + '><h3 class="tar-titulo">Tareas automáticas</h3>' +
             '<p class="tar-nota">Lo que el servidor hace solo, a su hora (hora del centro). Si una falla, te avisamos en la campana y por correo en tu horario: una vez al día mientras siga fallando y otra cuando se recupere.</p>' +
             (fallando ? '<p class="tar-aviso tar-aviso--mal">⚠ ' + fallando + " tarea(s) fallando ahora.</p>" : "") +
-            '<p class="tar-nota"><b>Respaldo a la VPS:</b> ' + resp + "</p>" + vv +
+            '<p class="tar-nota"><b>Respaldo a la VPS:</b> ' + resp + "</p>" + lineaCorriente(t.corriente) + vv + lineaLlave(t.vigilante_boveda) +
             '<div class="tar-tabla-caja"><table class="tar-tabla"><thead><tr><th>Tarea</th><th>Última</th><th>Tardó</th><th>Resultado</th><th>Próxima</th><th></th></tr></thead><tbody>' +
             filas + '</tbody></table></div><span class="tar-msj" id="tar-msj-correr"></span></div>' };
+    }
+
+    // 20-nov-2026 (Alan, docs/prd/vps_trabaja.md): «La VPS trabaja cuando la Vostro cae» (de fábrica apagado). Con la Vostro
+    // caída, la VPS deja de ser solo lectura para una lista cerrada (XML, validar, reportes, conciliación, envíos, ZIP, constancia,
+    // opinión, declaraciones, Buzón solo listar, alta de empresa). Necesita el relevo prendido (la llave del Vault).
+    function bloqueTrabaja(v) {
+        v = v || {};
+        var u = v.ultimo || {};
+        return '<div class="ui-tarjeta tar-bloque tar-trabaja" data-vps-trabaja>' +
+            '<label class="tar-switch"><input type="checkbox" data-trabaja' + (v.activo ? " checked" : "") + (!v.relevo && !v.activo ? " disabled" : "") +
+            '><span>La VPS trabaja cuando la Vostro cae</span><small>' +
+            (v.relevo ? "Con la Vostro caída, en la VPS se puede descargar y validar XML, sacar reportes, conciliar, mandar envíos y dar de alta empresas. " +
+                "Facturar, cancelar, DIOT y lo demás esperan a la Vostro. Al volver, la Vostro junta todo sin duplicar (de fábrica apagado)."
+                : "Necesita prendido «Relevo de la VPS si se cae la Vostro» (La madrugada › Cuántos a la vez y horario): la VPS trabaja con la llave del Vault de Oracle.") +
+            (u.noche ? "<br><b>Última vez:</b> " + esc((u.resumen || "").replace(/^Lo que hizo la VPS con la Vostro caída /, "")) + " · importado " + esc(cuando(u.importado_en)) : "") +
+            '</small></label><span class="tar-msj" id="tar-msj-trabaja"></span></div>';
     }
 
     async function pintar() {
@@ -195,7 +237,21 @@
         }
         m.vps_version = t.vps_version;
         var tareas = tarjetaTareas(t);
-        caja.innerHTML = tareas.filtro + tarjetaMadrugada(m) + tareas.tarjeta;
+        caja.innerHTML = tareas.filtro + bloqueTrabaja(t.vps_trabaja) + tarjetaMadrugada(m) + tareas.tarjeta;
+        var sw = caja.querySelector("[data-trabaja]");
+        sw.addEventListener("change", async function () {
+            var prender = sw.checked;
+            if (prender && !confirm("¿Prender «La VPS trabaja cuando la Vostro cae»? Con la Vostro caída, la VPS pedirá la llave al Vault (te llega el aviso) y aceptará XML, reportes, envíos y altas de empresa. Llega a la VPS con la siguiente copia.")) {
+                sw.checked = false; return;
+            }
+            sw.disabled = true;
+            try {
+                var r = await mandar("/api/admin/sistema/vps-trabaja", "PUT", { activo: prender });
+                sw.checked = !!r.activo;
+                msj("tar-msj-trabaja", true, prender ? "✓ Prendido. Llega a la VPS con la siguiente copia (5 a 10 min)." : "✓ Apagado: con la Vostro caída, la VPS vuelve a ser solo de consulta.");
+            } catch (e) { sw.checked = !prender; msj("tar-msj-trabaja", false, e.message); }
+            sw.disabled = false;
+        });
         var br = document.getElementById("tar-reintentar");
         br.addEventListener("click", async function () {
             if (!confirm("¿Volver a programar lo que no salió en la última semana (de todas las cuentas)? Va en la madrugada que toca.")) return;

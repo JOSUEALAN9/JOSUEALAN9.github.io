@@ -2191,6 +2191,16 @@ tr[tabindex="0"]:focus-visible, [tabindex="0"]:focus-visible { outline: 2px soli
     border-top-color: #fff; animation: fc-gira .8s linear infinite; }
 .fc-reconecta--sin-red::before { animation: none; border-color: #F59E0B; }
 .fc-reconecta[hidden] { display: none; }
+/* Servidor de respaldo (nucleo.js, 20-nov-2026): lo que no se puede hacer ahí se dice UNA vez, arriba (abajo ya está el
+   letrero del aviso global); y «Fiscontable ya responde · Recargar» cuando el servidor vuelve después de un error */
+.fc-respaldo-aviso, .fc-volvio { position: fixed; left: 50%; transform: translateX(-50%); z-index: 410; display: flex; align-items: center; gap: 10px;
+    width: max-content; max-width: calc(100vw - 32px); box-sizing: border-box; padding: 10px 10px 10px 16px; border-radius: 12px;
+    font-size: var(--t-14); line-height: 1.4; font-weight: 600; box-shadow: var(--sombra-2); }
+.fc-respaldo-aviso { top: 72px; background: rgb(var(--av-50)); color: rgb(var(--av-600)); border: 1px solid rgb(var(--av-200)); }
+.fc-volvio { bottom: 18px; background: rgb(var(--g-900)); color: rgb(var(--g-0)); }
+.fc-respaldo-aviso button, .fc-volvio button { flex: none; border: 0; background: none; color: inherit; font: inherit; cursor: pointer; padding: 2px 6px; }
+.fc-respaldo-aviso button { font-size: 18px; line-height: 1; }
+.fc-volvio button:not([aria-label]) { background: rgb(var(--g-0)); color: rgb(var(--g-900)); border-radius: 8px; padding: 5px 10px; }
 
 /* «Informar un error» siempre a la vista: botón redondo abajo a la izquierda en el teléfono; en computadora va al pie
    de la barra lateral (ui-riel__reportar), así que el redondo se esconde ahí */

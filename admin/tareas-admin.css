@@ -91,3 +91,46 @@
 @media (max-width: 640px) { .tar-rejilla { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; } .tar-campo input { max-width: 100%; }
     .tar-campo input[type="time"] + small, .tar-sub small, .tar-fab { display: none; }
     .tar-equipos { gap: 8px; } .tar-equipo { padding: 10px 12px; } .tar-switch { margin-top: 12px; } }
+/* 20-nov-2026: la línea del vigilante de la llave del relevo */
+.tar-llave .tar-chip { vertical-align: 1px; }
+.tar-llave-ayuda { display: block; font-weight: 400; margin-top: 2px; overflow-wrap: anywhere; }
+
+/* 20-nov-2026: tarjeta «Servidores» (Sistema › Estado, admin/servidores-admin.js) y el interruptor «La VPS trabaja cuando
+   la Vostro cae» (Tareas automáticas). Mismos tonos que los chips de las tareas. */
+.srv-tarjeta { background: #fff; border: 1px solid rgb(var(--g-200)); border-radius: 12px; padding: 18px 20px; box-shadow: 0 1px 2px rgb(0 0 0 / .04); min-width: 0; }
+.srv-cabeza { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 6px; }
+.srv-titulo { font-size: 11px; font-weight: 700; color: rgb(var(--g-500)); text-transform: uppercase; letter-spacing: .04em; margin: 0; }
+.srv-cabeza .srv-titulo { margin-right: auto; }
+.srv-btn { font-size: 12px; font-weight: 700; color: rgb(var(--g-700)); border: 1px solid rgb(var(--g-200)); background: #fff; border-radius: 8px; padding: 6px 12px; cursor: pointer; }
+.srv-btn:hover:not(:disabled) { border-color: rgb(var(--g-400)); }
+.srv-btn:disabled { opacity: .45; cursor: default; }
+.srv-lista { margin: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0 24px; }
+.srv-fila { display: grid; grid-template-columns: 1fr; align-content: start; gap: 4px; padding: 9px 0; border-top: 1px solid rgb(var(--g-100)); min-width: 0; }
+.srv-fila dt { font-size: 12px; color: rgb(var(--g-500)); font-weight: 600; }
+.srv-fila dd { margin: 0; font-size: 13px; color: rgb(var(--g-800)); min-width: 0; overflow-wrap: anywhere; display: flex; flex-wrap: wrap; align-items: center; align-content: flex-start; gap: 4px 6px; }
+.srv-fila dd small { flex-basis: 100%; font-size: 11px; color: rgb(var(--g-500)); }
+.srv-fila dd small a { color: rgb(var(--g-700)); font-weight: 700; text-decoration: underline; }
+.srv-fila code { font-size: 12px; font-weight: 700; }
+.srv-chip { display: inline-block; font-size: 11px; font-weight: 700; border-radius: 999px; padding: 1px 8px; background: rgb(var(--g-100)); color: rgb(var(--g-600)); }
+.srv-chip--ok { background: rgb(var(--ok-50, 236 253 245)); color: rgb(var(--ok-700, 4 120 87)); }
+.srv-chip--mal { background: rgb(var(--er-50, 254 242 242)); color: rgb(var(--er-700, 185 28 28)); }
+.srv-chip--aviso { background: rgb(var(--av-50, 255 251 235)); color: rgb(var(--av-700, 180 83 9)); }
+.srv-chip--azul { background: rgb(var(--in-50, 239 246 255)); color: rgb(var(--in-700, 29 78 216)); }
+.srv-sw { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: rgb(var(--g-600)); margin-right: 10px; }
+.srv-sw i { width: 26px; height: 14px; border-radius: 99px; background: rgb(var(--g-300)); position: relative; flex: none; }
+.srv-sw i::after { content: ""; position: absolute; top: 2px; left: 2px; width: 10px; height: 10px; border-radius: 50%; background: #fff; }
+.srv-sw--on { color: rgb(var(--g-800)); font-weight: 600; }
+.srv-sw--on i { background: rgb(var(--ok-600, 5 150 105)); }
+.srv-sw--on i::after { left: 14px; }
+.srv-nota { font-size: 13px; color: rgb(var(--g-500)); margin: 6px 0 0; }
+.srv-nota--mal { color: rgb(var(--av-700, 180 83 9)); }
+.srv-msj { font-size: 12px; margin: 6px 0 0; min-height: 0; }
+.srv-msj:empty { display: none; }
+.srv-msj--ok { color: rgb(var(--ok-700, 4 120 87)); }
+.srv-msj--mal { color: rgb(var(--er-700, 185 28 28)); }
+@media (max-width: 1100px) { .srv-lista { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 640px) { .srv-lista { grid-template-columns: 1fr; } .srv-tarjeta { padding: 16px; } .srv-fila { padding: 7px 0; } }
+.tar-trabaja { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 10px 16px; margin-bottom: 14px; }
+.tar-trabaja .tar-switch { margin-top: 0; flex: 1 1 320px; min-width: 0; }
+.tar-trabaja .tar-msj { flex-basis: 100%; }
+.tar-trabaja .tar-msj:empty { display: none; }

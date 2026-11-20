@@ -3942,6 +3942,8 @@
     function aviso(mensaje, acciones) {
         var caja = document.getElementById("fc-aviso");
         if (!caja) return;
+        // Servidor de respaldo: nucleo.js ya lo dijo una vez arriba; no se repite aquí (20-nov-2026)
+        if (mensaje && mensaje === window.Fiscontable.MENSAJE_RESPALDO) return;
         document.getElementById("fc-aviso-texto").textContent = mensaje;
         var zona = document.getElementById("fc-aviso-acciones");
         zona.innerHTML = "";
