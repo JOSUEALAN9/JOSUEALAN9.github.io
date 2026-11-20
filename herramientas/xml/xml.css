@@ -125,7 +125,7 @@
 .xml-resumen { margin-top: 12px; border: 1px solid rgb(var(--g-200)); border-radius: 12px; padding: 14px; }
 .xml-resumen__destino { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 13.5px; color: rgb(var(--g-700)); margin-bottom: 10px; }
 .xml-resumen__destino strong { color: rgb(var(--g-900)); }
-.xml-resumen__destino select { border: 1px solid rgb(var(--g-300)); border-radius: 8px; padding: 6px 8px; font-size: 13px; font-weight: 600; }
+.xml-resumen__destino select { border: 1px solid rgb(var(--g-300)); border-radius: 8px; padding: 6px 8px; font-size: 13px; font-weight: 600; max-width: 100%; min-width: 0; }
 .xml-resumen__cifras { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
 .xml-cifra { background: rgb(var(--g-50)); border: 1px solid rgb(var(--g-200)); border-radius: 10px; padding: 8px 12px; min-width: 110px; }
 .xml-cifra b { display: block; font-size: 18px; color: rgb(var(--g-900)); }
@@ -385,3 +385,45 @@ details.xd-seccion .xd-grupo + .xd-grupo { margin-top: 12px; }
 
 .xc-nota { margin: -4px 2px 0; font-size: 12.5px; color: rgb(var(--g-600)); line-height: 1.4; }
 .xc-nota:empty { display: none; }
+
+/* «Procesar todas» (20-nov-2026): avance y resumen por empresa de la carga masiva */
+.xml-resumen__nota { margin-top: 10px; font-size: 12.5px; color: rgb(var(--g-600)); }
+.xml-enlace:disabled { opacity: .45; cursor: default; }
+.xml-todas { position: relative; margin: 0 0 14px; border: 1px solid rgb(var(--g-200)); border-radius: 12px; background: rgb(var(--g-0)); padding: 16px 44px 16px 18px; font-size: 13px; color: rgb(var(--g-700)); }
+.xml-todas--avance { padding-right: 18px; }
+.xml-todas--aviso { border-color: rgb(var(--av-200)); }
+.xml-todas__titulo { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 14.5px; color: rgb(var(--g-900)); }
+.xml-todas__titulo .xml-tenue { font-size: 13px; }
+.xml-todas__linea { margin-top: 8px; color: rgb(var(--g-800)); font-weight: 600; }
+.xml-todas .xml-tenue { margin-top: 2px; }
+.xml-avance { margin-top: 12px; height: 8px; border-radius: 99px; background: rgb(var(--g-100)); overflow: hidden; }
+.xml-avance span { display: block; height: 100%; border-radius: inherit; background: var(--acento, rgb(var(--ac-600))); transition: width .3s ease; }
+.xml-todas__caja { margin-top: 12px; border: 1px solid rgb(var(--g-200)); border-radius: 10px; overflow: hidden; }
+.xml-todas__tabla { width: 100%; border-collapse: collapse; table-layout: fixed; }
+.xml-todas__tabla th, .xml-todas__tabla td { padding: 9px 12px; border-top: 1px solid rgb(var(--g-100)); text-align: right; vertical-align: top; font-variant-numeric: tabular-nums; }
+.xml-todas__tabla thead th { border-top: 0; background: rgb(var(--g-50)); font-size: 11.5px; font-weight: 700; color: rgb(var(--g-600)); text-transform: uppercase; letter-spacing: .02em; }
+.xml-todas__tabla th:first-child { text-align: left; width: auto; }
+.xml-todas__tabla thead th:not(:first-child) { width: 104px; }
+.xml-todas__tabla tbody th { font-weight: 400; overflow-wrap: anywhere; }
+.xml-todas__tabla tbody th strong { display: block; color: rgb(var(--g-900)); }
+.xml-todas__tabla tbody th small { display: block; font-size: 11.5px; color: rgb(var(--g-500)); }
+.xml-todas__nuevo { color: rgb(var(--ok-600)); font-weight: 700; }
+.xml-todas__mal { color: rgb(var(--er-600)); font-weight: 700; }
+.xml-todas__motivos { margin-top: 4px; font-size: 12px; }
+.xml-todas__motivos summary { cursor: pointer; color: rgb(var(--g-600)); font-weight: 700; }
+.xml-todas__motivos ul { margin-top: 4px; display: flex; flex-direction: column; gap: 2px; overflow-wrap: anywhere; }
+.xml-todas__notas { margin-top: 12px; display: flex; flex-direction: column; gap: 6px; }
+.xml-todas__notas li { padding: 8px 12px; border-radius: 8px; background: rgb(var(--g-50)); }
+.xml-todas__notas .xml-todas__nota--aviso { background: rgb(var(--av-50)); color: rgb(var(--av-600)); }
+.xml-todas__pie { margin-top: 12px; }
+@media (max-width: 640px) {
+    .xml-todas { padding: 14px 40px 14px 14px; }
+    /* En el celular cada empresa es un renglón: nombre arriba y sus tres cifras abajo («42 nuevos · 0 repetidos…») */
+    .xml-todas__tabla thead { display: none; }
+    .xml-todas__tabla, .xml-todas__tabla tbody { display: block; }
+    .xml-todas__tabla tr { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 2px 8px; padding: 10px 12px; border-top: 1px solid rgb(var(--g-100)); }
+    .xml-todas__tabla tbody tr:first-child { border-top: 0; }
+    .xml-todas__tabla tbody th { grid-column: 1 / -1; padding: 0 0 4px; border: 0; }
+    .xml-todas__tabla td { padding: 0; border: 0; text-align: left; font-size: 12.5px; }
+    .xml-todas__tabla td::after { content: " " attr(data-et); color: rgb(var(--g-500)); font-weight: 400; }
+}

@@ -116,6 +116,7 @@
             $("btn-cancelaciones").hidden = m.indexOf("cancelaciones") === -1;
         });
         prepararBandeja();
+        retomarTodas();
         // Periodo de ESTA página (cuadros de año, meses y fechas; el mismo de Conciliación y Listas)
         E.P = FCPeriodoMeses.crear({ contenedor: $("periodo-xml"), alCambiar: function () { alCambiarPeriodo(); }, alAvisar: avisar,
                                      conBoton: true, alcanza: periodoYaCargado });
@@ -1474,7 +1475,7 @@
        en la bandeja por si quieres procesarlos después para otra. */
     var GENERICOS = { XAXX010101000: 1, XEXX010101000: 1 };
     var LIMITE_LOTE = 40 * 1024 * 1024, LIMITE_ARCHIVOS = 400;
-    var BJ = { xml: new Map(), invalidos: [], destino: null, cargandoZip: null, leyendo: 0, clientes: null };
+    var BJ = { xml: new Map(), invalidos: [], destino: null, cargandoZip: null, leyendo: 0, clientes: null, todas: null };
 
     function abrirBandeja() {
         $("bandeja").hidden = false;
@@ -1595,6 +1596,9 @@
                 esc((c.nombre || "Sin nombre") + " · " + c.rfc + " (" + c.n + " XML)" + (c.cliente ? "" : " · sin registrar")) + "</option>";
         }).join("");
         function cifra(v, t, ajena) { return v ? '<div class="xml-cifra' + (ajena ? " xml-cifra--ajena" : "") + '"><b>' + v.toLocaleString("es-MX") + "</b><span>" + t + "</span></div>" : ""; }
+        // 20-nov-2026 (Alan): con XML de dos o más empresas, «Procesar todas» carga cada uno a su empresa de un jalón
+        var todas = empresasDeLaBandeja(), ocupado = !!BJ.todas || !!BJ.leyendo;
+        var conTodas = todas.empresas >= 2;
         caja.innerHTML = '<div class="xml-resumen">' +
             (cands.length ? '<div class="xml-resumen__destino">Estos XML son de <select id="sel-destino">' + opciones + "</select></div>" : "") +
             '<div class="xml-resumen__cifras">' +
@@ -1602,10 +1606,16 @@
                 cifra(n.ajenos, cands.length ? "de otras empresas o sin dar de alta (no se cargan ahora)" : "de RFC sin dar de alta: da de alta la empresa en Clientes", true) + cifra(BJ.invalidos.length, "no son CFDI", true) +
             "</div>" +
             '<div class="xml-resumen__acciones">' +
-                '<button type="button" id="btn-procesar" class="xml-btn xml-btn--primario"' + (total && !BJ.leyendo ? "" : " disabled") + ">" +
+                '<button type="button" id="btn-procesar" class="xml-btn xml-btn--primario"' + (total && !ocupado ? "" : " disabled") + ">" +
                     (BJ.leyendo ? "Leyendo archivos…" : "Procesar " + total.toLocaleString("es-MX") + " XML") + "</button>" +
-                '<button type="button" id="btn-vaciar" class="xml-enlace">Vaciar bandeja</button>' +
-            "</div></div>";
+                (conTodas ? '<button type="button" id="btn-procesar-todas" class="xml-btn"' + (ocupado ? " disabled" : "") +
+                    ' title="Carga cada XML a su empresa (las ' + todas.empresas + ') y al final te muestra un resumen por empresa">' +
+                    (BJ.todas ? "Procesando todas…" : "Procesar todas · " + todas.empresas + " empresas") + "</button>" : "") +
+                '<button type="button" id="btn-vaciar" class="xml-enlace"' + (BJ.todas ? " disabled" : "") + ">Vaciar bandeja</button>" +
+            "</div>" +
+            (conTodas && !BJ.todas ? '<p class="xml-resumen__nota">«Procesar todas» guarda ' + todas.xml.toLocaleString("es-MX") +
+                " XML, cada uno en su empresa. Lo de RFC sin dar de alta se queda en la bandeja.</p>" : "") +
+            "</div>";
     }
 
     async function procesar() {
@@ -1663,6 +1673,180 @@
         $("bandeja").hidden = true;
     }
 
+    /* ============================================================ «Procesar todas» (20-nov-2026, Alan) */
+    /* Cada XML de la bandeja va a CADA empresa dada de alta que sea su emisor o su receptor (la nómina, al patrón), de un
+       jalón. Los XML suben por partes y el servidor los guarda en segundo plano (modulos/xml/carga_todas.py) mientras
+       esta página muestra el avance. Doble clic, otra pestaña o un corte a media subida: la «clave» de la bandeja hace
+       que el servidor regrese la misma carga (y solo se suben las partes que faltan); nada se carga dos veces.
+       Lo que no entró a ninguna empresa (RFC sin alta, o empresas del despacho que no son tuyas) se queda en la bandeja. */
+    var PARTE_TODAS_BYTES = 8 * 1024 * 1024, PARTE_TODAS_XML = 200;
+
+    function empresasDeLaBandeja() {
+        var mios = BJ.clientes || {}, vistas = {}, xml = 0;
+        BJ.xml.forEach(function (x) {
+            var lista = (x.tipo === "N" ? [x.er] : [x.er, x.rr]).filter(function (r) { return r && !GENERICOS[r] && mios[r]; });
+            if (lista.length) xml++;
+            lista.forEach(function (r) { vistas[r] = 1; });
+        });
+        return { empresas: Object.keys(vistas).length, xml: xml };
+    }
+
+    function claveBandeja(uuids) {
+        // FNV-1a de 32 bits con dos semillas: la misma bandeja da la misma clave (no es para seguridad)
+        var a = 0x811c9dc5, b = 0x01000193, texto = uuids.join(",");
+        for (var i = 0; i < texto.length; i++) {
+            var c = texto.charCodeAt(i);
+            a = Math.imul(a ^ c, 16777619) >>> 0;
+            b = Math.imul(b ^ c, 2246822519) >>> 0;
+        }
+        return uuids.length + "-" + a.toString(16) + b.toString(16);
+    }
+
+    function pintarAvanceTodas() {
+        var t = BJ.todas;
+        if (!t) return;
+        var pct = t.total ? Math.round(100 * t.hechos / t.total) : 0;
+        var texto = t.fase === "subiendo" ? "Subiendo los XML… " + t.hechos.toLocaleString("es-MX") + " de " + t.total.toLocaleString("es-MX")
+            : "Guardando cada XML en su empresa… " + t.hechos.toLocaleString("es-MX") + " de " + t.total.toLocaleString("es-MX");
+        var nota = t.fase === "subiendo" ? "No cierres esta página hasta que terminen de subir."
+            : "Ya puedes seguir trabajando: esto sigue en el servidor aunque cierres la página.";
+        $("resultado-carga").innerHTML = '<div class="xml-todas xml-todas--avance" role="status" aria-live="polite">' +
+            '<div class="xml-todas__titulo"><span class="xml-giro"></span><strong>Procesar todas</strong></div>' +
+            '<div class="xml-avance" aria-hidden="true"><span style="width:' + Math.max(3, pct) + '%"></span></div>' +
+            '<p class="xml-todas__linea">' + texto + ' <span class="xml-tenue">· ' + pct + ' %</span></p>' +
+            '<p class="xml-tenue">' + nota + "</p></div>";
+    }
+
+    async function procesarTodas() {
+        if (BJ.todas || BJ.leyendo) return;                  // un segundo clic mientras corre: nada
+        var lista = [];
+        BJ.xml.forEach(function (x, uuid) { lista.push([uuid, x]); });
+        if (!lista.length) return;
+        lista.sort(function (a, b) { return a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0; });   // las mismas partes cada vez
+        var partes = [], actual = [], peso = 0;
+        lista.forEach(function (par) {
+            if (actual.length && (peso + par[1].bytes.length > PARTE_TODAS_BYTES || actual.length >= PARTE_TODAS_XML)) { partes.push(actual); actual = []; peso = 0; }
+            actual.push(par); peso += par[1].bytes.length;
+        });
+        if (actual.length) partes.push(actual);
+        BJ.enviados = new Set(lista.map(function (p) { return p[0]; }));     // lo que se agregue mientras corre no se toca
+        BJ.invalidosEnviados = BJ.invalidos.slice();                          // los que el navegador ya vio que no son CFDI
+        BJ.todas = { fase: "subiendo", hechos: 0, total: lista.length };
+        pintarBandeja(); pintarAvanceTodas();
+        try {
+            var ini = await (await postJSON("/api/xml/carga-todas", { clave: claveBandeja(lista.map(function (p) { return p[0]; })),
+                                                                       total: lista.length, partes: partes.length })).json();
+            var faltan = ini.faltan || [], subidos = lista.length - faltan.reduce(function (t, i) { return t + partes[i].length; }, 0);
+            BJ.todas.hechos = subidos; pintarAvanceTodas();
+            for (var k = 0; k < faltan.length; k++) {
+                var i = faltan[k], fd = new FormData();
+                partes[i].forEach(function (par) { fd.append("archivos", new Blob([par[1].bytes], { type: "application/xml" }), par[1].nombre); });
+                fd.append("indice", String(i));
+                try { await api("/api/xml/carga-todas/" + encodeURIComponent(ini.job_id) + "/parte", { method: "POST", body: fd }); }
+                catch (e) {                                    // un tropiezo de la red: un reintento antes de rendirse
+                    await new Promise(function (r) { setTimeout(r, 1500); });
+                    await api("/api/xml/carga-todas/" + encodeURIComponent(ini.job_id) + "/parte", { method: "POST", body: fd });
+                }
+                BJ.todas.hechos += partes[i].length; pintarAvanceTodas();
+            }
+            BJ.todas = { fase: "guardando", hechos: 0, total: lista.length, job: ini.job_id };
+            pintarAvanceTodas();
+            await seguirTodas(ini.job_id);
+        } catch (e) {
+            BJ.todas = null;
+            pintarBandeja();
+            $("resultado-carga").innerHTML = '<div class="xml-resultado xml-resultado--error"><button type="button" class="xml-resultado__cerrar" title="Cerrar" data-cerrar-resultado>×</button>' +
+                "<strong>No se terminó de procesar.</strong> " + esc(e.message) +
+                ' <span>Vuelve a pulsar «Procesar todas»: lo que ya subió no se sube otra vez y nada se duplica.</span></div>';
+        }
+    }
+
+    async function seguirTodas(jobId) {
+        var espera = 600, fallas = 0;
+        while (true) {
+            await new Promise(function (r) { setTimeout(r, espera); });
+            var est;
+            try { est = await apiJSON("/api/xml/carga-todas/" + encodeURIComponent(jobId)); fallas = 0; }
+            catch (e) { if (++fallas >= 5) throw e; continue; }
+            if (est.estado === "procesando" || est.estado === "recibiendo") {
+                BJ.todas = { fase: "guardando", hechos: est.hechos || 0, total: est.total || 0, job: jobId };
+                pintarAvanceTodas();
+                espera = Math.min(2000, espera + 200);
+                continue;
+            }
+            await terminarTodas(est);
+            return;
+        }
+    }
+
+    async function terminarTodas(est) {
+        BJ.todas = null;
+        var r = est.resumen;
+        if (r) {
+            // Lo que entró sale de la bandeja; lo que no entró a ninguna empresa se queda (con su aviso)
+            var fuera = new Set(r.fuera || []);
+            var enviados = BJ.enviados || new Set(BJ.xml.keys());
+            Array.from(BJ.xml.keys()).forEach(function (u) { if (enviados.has(u) && !fuera.has(u)) BJ.xml.delete(u); });
+            BJ.enviados = null;
+            if (!BJ.xml.size) BJ.invalidos = [];
+            BJ.destino = null;
+        }
+        pintarBandeja();
+        pintarResultadoTodas(est);
+        $("bandeja").hidden = true;
+        await refrescarBibliotecas(E.rfc && E.contribuyentes.some(function (c) { return c.rfc === E.rfc; }) ? E.rfc : null);
+    }
+
+    function pintarResultadoTodas(est) {
+        var r = est.resumen || { empresas: [], nuevos: 0, repetidos: 0, rechazados_empresa: 0, sin_permiso: 0, no_registrados: { n: 0, rfcs: [] }, n_no_leidos: 0 };
+        var n = function (v) { return (v || 0).toLocaleString("es-MX"); };
+        var error = est.estado === "error";
+        var titulo = error ? "La carga se detuvo a medias" :
+            r.empresas.length ? "Listo: " + n(r.nuevos) + " XML nuevos en " + r.empresas.length + (r.empresas.length === 1 ? " empresa" : " empresas") :
+            "No se cargó ningún XML";
+        var filas = r.empresas.map(function (e) {
+            var motivos = (e.motivos || []).length ? '<details class="xml-todas__motivos"><summary>Por qué</summary><ul>' +
+                e.motivos.map(function (m) { return "<li>" + esc(m.archivo) + " — " + esc(m.motivo) + "</li>"; }).join("") + "</ul></details>" : "";
+            return '<tr><th scope="row"><strong>' + esc(e.nombre || e.rfc) + "</strong><small>" + esc(e.rfc) + "</small>" + motivos + "</th>" +
+                '<td class="xml-todas__nuevo" data-et="nuevos">' + n(e.nuevos) + '</td><td data-et="repetidos">' + n(e.repetidos) + '</td><td data-et="rechazados" class="' +
+                (e.rechazados ? "xml-todas__mal" : "") + '">' + n(e.rechazados) + "</td></tr>";
+        }).join("");
+        var notas = [];
+        if (r.sin_permiso) notas.push('<li class="xml-todas__nota--aviso"><b>' + n(r.sin_permiso) + " XML sin permiso" +
+            ":</b> son de empresas del despacho que no están entre las tuyas. Si los necesitas, pide acceso en Clientes.</li>");
+        if (r.tambien_sin_permiso) notas.push("<li><b>" + n(r.tambien_sin_permiso) + "</b> " + (r.tambien_sin_permiso === 1 ? "XML también es" : "XML también son") +
+            " de una empresa del despacho que no es tuya: se guardaron solo en la tuya.</li>");
+        var nr = r.no_registrados || { n: 0, rfcs: [] };
+        if (nr.n) notas.push('<li class="xml-todas__nota--aviso"><b>' + n(nr.n) + " XML de RFC sin dar de alta</b>" +
+            (nr.rfcs.length ? " (" + nr.rfcs.slice(0, 3).map(function (x) { return esc(x.rfc); }).join(", ") + (nr.rfcs.length > 3 ? "…" : "") + ")" : "") +
+            ". Da de alta la empresa en Clientes y vuelve a cargarlos.</li>");
+        var malos = (r.no_leidos || []).concat(BJ.invalidosEnviados || []);
+        r.n_no_leidos = (r.n_no_leidos || 0) + (BJ.invalidosEnviados || []).length;
+        if (r.n_no_leidos) notas.push('<li><b>' + n(r.n_no_leidos) + (r.n_no_leidos === 1 ? " archivo no se pudo leer" : " archivos no se pudieron leer") + "</b> (no son CFDI o están dañados)." +
+            '<details class="xml-todas__motivos"><summary>Ver cuáles</summary><ul>' + malos.slice(0, 50).map(function (m) { return "<li>" + esc(m.archivo) + " — " + esc(m.motivo) + "</li>"; }).join("") + "</ul></details></li>");
+        if (error && est.mensaje) notas.unshift('<li class="xml-todas__nota--aviso">' + esc(est.mensaje) + "</li>");
+        $("resultado-carga").innerHTML = '<div class="xml-todas' + (error || !r.empresas.length ? " xml-todas--aviso" : "") + '" data-todas-listo>' +
+            '<button type="button" class="xml-resultado__cerrar" title="Cerrar" data-cerrar-resultado>×</button>' +
+            '<div class="xml-todas__titulo"><strong>' + titulo + "</strong>" +
+                (r.repetidos ? '<span class="xml-tenue">· ' + n(r.repetidos) + " ya estaban</span>" : "") + "</div>" +
+            (filas ? '<div class="xml-todas__caja"><table class="xml-todas__tabla"><thead><tr><th scope="col">Empresa</th><th scope="col">Nuevos</th>' +
+                '<th scope="col" title="Ya estaban en su biblioteca: no se duplican">Repetidos</th><th scope="col">Rechazados</th></tr></thead><tbody>' + filas + "</tbody></table></div>" : "") +
+            (notas.length ? '<ul class="xml-todas__notas">' + notas.join("") + "</ul>" : "") +
+            (BJ.xml.size ? '<p class="xml-todas__pie">Quedaron ' + n(BJ.xml.size) + ' XML en la bandeja. <button type="button" class="xml-enlace" data-abrir-bandeja>Abrir la bandeja</button></p>' : "") +
+            "</div>";
+    }
+
+    async function retomarTodas() {
+        // Si recargaste la página mientras se guardaban, el avance sigue aquí
+        try {
+            var est = await apiJSON("/api/xml/carga-todas");
+            if (!est || !est.job_id || est.estado !== "procesando") return;
+            BJ.todas = { fase: "guardando", hechos: est.hechos || 0, total: est.total || 0, job: est.job_id };
+            pintarAvanceTodas();
+            await seguirTodas(est.job_id);
+        } catch (e) { BJ.todas = null; /* sin carga en curso o servidor anterior: nada */ }
+    }
+
     async function responderCopia(boton) {
         var caja = boton.closest(".xml-pregunta");
         if (boton.dataset.copiar === "no") { caja.remove(); return; }
@@ -1711,7 +1895,8 @@
         $("bandeja-resumen").addEventListener("change", function (e) { if (e.target.id === "sel-destino") { BJ.destino = e.target.value; pintarBandeja(); } });
         $("bandeja-resumen").addEventListener("click", function (e) {
             if (e.target.id === "btn-procesar") procesar();
-            if (e.target.id === "btn-vaciar") { BJ.xml.clear(); BJ.invalidos = []; BJ.destino = null; pintarBandeja(); }
+            if (e.target.id === "btn-procesar-todas") procesarTodas();
+            if (e.target.id === "btn-vaciar" && !BJ.todas) { BJ.xml.clear(); BJ.invalidos = []; BJ.destino = null; pintarBandeja(); }
         });
         $("resultado-carga").addEventListener("click", function (e) {
             if (e.target.closest("[data-cerrar-resultado]")) { $("resultado-carga").innerHTML = ""; return; }
