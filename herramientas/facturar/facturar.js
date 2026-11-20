@@ -694,7 +694,7 @@
             '<label class="ui-check fa-conc__incl" title="Escribe lo que paga el receptor por este renglón y se calcula el precio sin impuestos, exacto al centavo"><input type="checkbox" data-c="modo"' + (c.modo === "final" ? " checked" : "") + "> Incluye impuestos</label>";
         var fila = '<tr class="fa-conc__fila fa-conc--abierto' + (c.error ? " fa-conc--error" : "") + '" data-i="' + i + '">' +
             '<td><input data-c="cantidad" inputmode="decimal" class="fa-num" value="' + esc(c.cantidad) + '" aria-label="Cantidad"></td>' +
-            '<td class="fa-conc__prod"><div class="fa-prod"><input data-c="descripcion" maxlength="1000" value="' + esc(c.descripcion) + '" placeholder="Escribe o busca un producto…" autocomplete="off" aria-label="Descripción">' +
+            '<td class="fa-conc__prod"><div class="fa-prod"><input data-c="descripcion" maxlength="1000" value="' + esc(c.descripcion) + '" placeholder="Escribe el concepto o búscalo en tu catálogo…" autocomplete="off" aria-label="Concepto">' +
             '<div class="fa-prod__sug" hidden></div></div><small class="fa-conc__sub">' + esc(textoClave(c)) + "</small></td>" +
             "<td>" + celdaPrecio + "</td>" +
             '<td><input data-c="descuento" inputmode="decimal" class="fa-num" value="' + esc(conComas(c.descuento)) + '" placeholder="0.00" aria-label="Descuento"></td>' +
