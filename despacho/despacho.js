@@ -4,6 +4,9 @@
  *   Solicitudes   pedir acceso a una empresa; el titular y quienes aprueban aceptan o rechazan.
  *   Bitácora      quién hizo qué en las empresas del despacho (titular y quienes aprueban).
  *   Ajustes       nombre, correo de avisos y si las personas nuevas tienen su propio espacio (titular).
+ * Mi espacio (20-nov-2026, Alan): en Equipo el titular ve cuántas empresas lleva cada quien en su Mi espacio («4 de 10»,
+ * nunca cuáles) y en Permisos › Mi espacio le cambia el tope, le apaga Mi espacio y le pasa o regresa timbres del
+ * despacho; en Permisos › Módulos hay dos listas: «En el despacho» y «Extra en Mi espacio».
  * El servidor decide qué ve cada quien (modulos/despacho/router.py); aquí solo se pinta.
  */
 (function () {
@@ -55,6 +58,10 @@
 
     function pintarSin() {
         $("dp-sin").hidden = false;
+        if (datos.salida) {                       // salió hace poco: su Mi espacio quedó en solo lectura
+            $("dp-salida").hidden = false;
+            $("dp-salida-texto").textContent = datos.salida.texto;
+        }
         var inv = datos.invitacion;
         if (!inv) return;
         $("dp-invitacion").hidden = false;
@@ -107,8 +114,25 @@
         if (m.agregar_propio) partes.push("registra empresas");
         if (m.solo_lectura) partes.push("solo consulta");
         if (m.sin_conexion) partes.push("su PC trabaja sin conexión");
-        partes.push(m.personal ? "con Mi espacio" : "sin Mi espacio");
         return partes.join(" · ");
+    }
+
+    // Mi espacio de una persona tal como lo ve el titular: solo números (nunca cuáles empresas)
+    function textoMiEspacio(m) {
+        var e = m.mi_espacio || {};
+        if (!e.aplica) return "";
+        if (!e.encendido) return "Sin Mi espacio";
+        if (e.licencia_propia) return "Mi espacio con su licencia propia";
+        if (e.en_proceso) return "Mi espacio en proceso";
+        return "Mi espacio: " + e.empresas + " de " + (e.tope == null ? "sin tope" : e.tope) + (e.timbres ? " · " + e.timbres + (e.timbres === 1 ? " timbre" : " timbres") : "");
+    }
+
+    function chipMiEspacio(m) {
+        var e = m.mi_espacio || {};
+        if (!e.aplica || !e.encendido || e.licencia_propia || e.en_proceso || e.tope == null) return "";
+        var pasado = e.empresas > e.tope;
+        return '<span class="dp-chip-me' + (pasado ? " dp-chip-me--pasado" : "") + '" title="Empresas en su Mi espacio (solo el número; no ves cuáles)">' +
+            "Mi espacio <b>" + e.empresas + " de " + e.tope + "</b></span>";
     }
 
     function pintarEquipo() {
@@ -119,8 +143,9 @@
                 : m.estado === "suspendido" ? '<span class="ui-estado ui-estado--error">Suspendido</span>' : "";
             return '<li><span class="dp-inicial' + (m.papel === "titular" ? " dp-inicial--titular" : "") + '">' + inicial(m.nombre || m.correo) + "</span>" +
                 '<span class="dp-quien"><strong>' + esc(m.nombre || m.correo) + (m.correo === datos.yo.correo ? " (tú)" : "") + "</strong>" +
-                "<small>" + (m.nombre ? esc(m.correo) + " · " : "") + (datos.titular ? esc(resumenPermisos(m)) : "") + "</small></span>" +
-                '<span class="dp-lado">' + estado + '<span class="dp-etiqueta dp-etiqueta--' + esc(m.papel) + '">' + esc(m.nombre_papel) + "</span>" +
+                "<small>" + (m.nombre ? esc(m.correo) + " · " : "") + (datos.titular ? esc(resumenPermisos(m)) : "") + "</small>" +
+                (datos.titular && textoMiEspacio(m) ? '<small class="dp-quien-me">' + esc(textoMiEspacio(m)) + "</small>" : "") + "</span>" +
+                '<span class="dp-lado">' + estado + (datos.titular ? chipMiEspacio(m) : "") + '<span class="dp-etiqueta dp-etiqueta--' + esc(m.papel) + '">' + esc(m.nombre_papel) + "</span>" +
                 (datos.titular ? '<button type="button" class="ui-btn ui-btn--secundario ui-btn--28" data-editar="' + esc(m.correo) + '">Permisos</button>' : "") +
                 "</span></li>";
         }).join("") : '<li class="dp-lista__vacio">Todavía no hay nadie en el equipo.</li>';
@@ -137,11 +162,89 @@
             '<div class="dp-permiso"><span>Empresas</span>' + (y.empresas === null ? "Todas" : y.empresas.length + " asignadas") + "</div>" +
             '<div class="dp-permiso"><span>Módulos</span>' + esc(nombresMod) + "</div>" +
             '<div class="dp-permiso"><span>Registrar empresas en el despacho</span>' + (y.agregar ? "Sí" : "Con solicitud al titular") + "</div>" +
-            '<div class="dp-permiso"><span>Mi espacio</span>' + (y.personal ? "Sí, tus clientes extra solo los ves tú" : "No") + "</div>" +
+            '<div class="dp-permiso"><span>Mi espacio</span>' + esc(textoMiEspacioPropio(y)) + "</div>" +
             (y.solo_lectura ? '<div class="dp-permiso"><span>Modo</span>Solo consulta</div>' : "") + "</div>";
     }
 
+    function textoMiEspacioPropio(y) {
+        var e = y.mi_espacio || {};
+        if (!y.personal) return "No";
+        if (e.licencia_propia) return "Sí, con tu licencia propia. Tus clientes extra solo los ves tú";
+        if (e.en_proceso) return "En proceso: muy pronto";
+        var mods = {};
+        datos.modulos.forEach(function (m) { mods[m.clave] = m.nombre; });
+        var extra = (y.modulos_personal || []).map(function (c) { return mods[c]; }).filter(Boolean);
+        return "Sí · " + e.empresas + " de " + (e.tope == null ? "sin tope" : e.tope) + " empresas" +
+            (e.timbres ? " · " + e.timbres + " timbres del despacho" : "") + (extra.length ? " · además: " + extra.join(", ") : "") + ". Solo tú las ves";
+    }
+
     // ------------------------------------------------------------------ ventana de permisos / invitar
+    function mostrarPestana(clave) {
+        document.querySelectorAll("#dp-modal [data-pest]").forEach(function (b) { b.setAttribute("aria-selected", String(b.dataset.pest === clave)); });
+        document.querySelectorAll("#dp-modal [data-pest-panel]").forEach(function (p) { p.hidden = p.dataset.pestPanel !== clave; });
+    }
+
+    // «Extra en Mi espacio»: lo del plan que no tiene en el despacho (si en el despacho tiene todos, no hay nada extra)
+    function pintarExtra(marcados) {
+        var todos = document.querySelector('input[name="dp-mod"]:checked').value === "todos";
+        var enDespacho = todos ? null : [].map.call($("dp-modulos").querySelectorAll("input:checked"), function (i) { return i.value; });
+        if (marcados === undefined) marcados = [].map.call($("dp-modulos-extra").querySelectorAll("input:checked"), function (i) { return i.value; });
+        var libres = enDespacho === null ? [] : datos.modulos.filter(function (x) { return enDespacho.indexOf(x.clave) < 0 && x.clave !== "clientes"; });
+        $("dp-modulos-extra").innerHTML = libres.length ? libres.map(function (x) {
+            return '<label class="ui-check"><input type="checkbox" value="' + esc(x.clave) + '"' + (marcados.indexOf(x.clave) >= 0 ? " checked" : "") + "> " + esc(x.nombre) + "</label>";
+        }).join("") : '<p class="dp-tenue">' + (enDespacho === null ? "Ya usa todos los módulos del despacho, también en su Mi espacio." : "No queda nada más en el plan del despacho.") + "</p>";
+    }
+
+    function pintarMiEspacio() {
+        var me = datos.mi_espacio || {}, m = edicion.miembro, e = (m && m.mi_espacio) || {};
+        var listo = me.listo !== false, propia = !!e.licencia_propia;
+        var maximo = me.tope_maximo == null ? 1000 : me.tope_maximo;
+        $("dp-mi-proceso").hidden = listo;
+        $("dp-mi-ayuda").textContent = listo ? "Sus empresas de Mi espacio solo las ve esa persona; tú ves cuántas tiene, nunca cuáles."
+            : "Mi espacio está en proceso: todavía no se usa con la licencia del despacho. Lo que elijas aquí queda guardado para cuando esté listo.";
+        $("dp-mi-propia").hidden = !propia;
+        $("dp-mi-tope-caja").hidden = propia;
+        $("dp-mi-timbres-caja").hidden = propia || !m || m.estado === "invitado" || !listo;
+        $("dp-tope").max = maximo;
+        $("dp-tope-ayuda").textContent = "De 0 a " + maximo + ". No cuentan en las empresas del despacho.";
+        var tope = e.tope != null ? e.tope : maximo;
+        $("dp-tope").value = m && e.tope_propio ? tope : "";              // vacío = el de fábrica del despacho
+        $("dp-tope").placeholder = String(maximo) + " (de fábrica)";
+        $("dp-mi-conteo").textContent = m && e.empresas != null ? e.empresas + " de " + tope : "Todavía ninguna";
+        avisoTope();
+        $("dp-mi-timbres").textContent = e.timbres != null ? String(e.timbres) : "0";
+        $("dp-mi-timbres-ayuda").textContent = "Los que le pases salen de los " + (me.timbres_despacho || 0) + " sin repartir del despacho" +
+            (e.timbres_usados ? ". Ya usó " + e.timbres_usados + ": esos no se pueden regresar." : ". Puedes regresar los que no use.");
+        $("dp-timbres-msj").hidden = true;
+        $("dp-timbres-cantidad").value = "";
+    }
+
+    function avisoTope() {
+        var m = edicion && edicion.miembro, e = (m && m.mi_espacio) || {}, v = $("dp-tope").value.trim();
+        var tope = v === "" ? ((datos.mi_espacio || {}).tope_maximo) : parseInt(v, 10);
+        var pasado = m && e.empresas != null && tope != null && !isNaN(tope) && e.empresas > tope;
+        $("dp-tope-aviso").hidden = !pasado;
+        if (pasado) $("dp-tope-aviso").textContent = "Tiene " + e.empresas + ". No se borra nada: puede seguir trabajando con ellas, pero no podrá dar de alta otra hasta tener menos de " + tope + ".";
+    }
+
+    async function moverTimbres(accion) {
+        var m = edicion && edicion.miembro, n = parseInt($("dp-timbres-cantidad").value, 10), msj = $("dp-timbres-msj");
+        function decir(t, mal) { msj.textContent = t; msj.className = "dp-mi-msj" + (mal ? " dp-mi-msj--mal" : ""); msj.hidden = false; }
+        if (!m) return;
+        if (!(n > 0)) return decir("Escribe cuántos timbres.", true);
+        var boton = $(accion === "pasar" ? "dp-timbres-pasar" : "dp-timbres-regresar");
+        boton.disabled = true; boton.classList.add("ui-btn--cargando");
+        try {
+            var r = await pedir("/api/despacho/miembros/" + encodeURIComponent(m.correo) + "/timbres/" + accion, { method: "POST", body: { cantidad: n } });
+            datos = await pedir("/api/despacho");
+            edicion.miembro = datos.equipo.filter(function (x) { return x.correo === m.correo; })[0] || m;
+            pintarMiEspacio();
+            pintarEquipo();
+            decir(accion === "pasar" ? "Listo: le pasaste " + n + (n === 1 ? " timbre." : " timbres.") : "Listo: regresaron " + r.regresados + " al despacho.");
+        } catch (e) { decir(e.message, true); }
+        finally { boton.disabled = false; boton.classList.remove("ui-btn--cargando"); }
+    }
+
     function abrirModal(miembro) {
         edicion = { invitar: !miembro, miembro: miembro || null };
         var m = miembro || { papel: "miembro", empresas: null, modulos: null, agregar_propio: false, solo_lectura: false,
@@ -167,12 +270,15 @@
         $("dp-modulos").innerHTML = datos.modulos.map(function (x) {
             return '<label class="ui-check"><input type="checkbox" value="' + esc(x.clave) + '"' + (mods.indexOf(x.clave) >= 0 ? " checked" : "") + "> " + esc(x.nombre) + "</label>";
         }).join("");
+        pintarExtra(m.modulos_personal || []);
         $("dp-agregar").checked = !!m.agregar_propio;
         $("dp-personal").checked = !!m.personal;
         $("dp-lectura").checked = !!m.solo_lectura;
         $("dp-sin-conexion").checked = !!m.sin_conexion;
         $("dp-suspender").checked = m.estado === "suspendido";
         $("dp-modal-error").hidden = true;
+        pintarMiEspacio();
+        mostrarPestana("despacho");
         actualizarModal();
         $("dp-modal").showModal();
         if (!miembro) $("dp-correo").focus();
@@ -181,7 +287,10 @@
     function actualizarModal() {
         var papel = $("dp-papel").value, titular = papel === "titular";
         $("dp-papel-ayuda").textContent = AYUDA_PAPEL[papel] || "";
-        $("dp-grupo-empresas").hidden = $("dp-grupo-modulos").hidden = titular;
+        $("dp-grupo-empresas").hidden = titular;
+        // El titular usa todo, también en su Mi espacio: no hay módulos que elegir
+        document.querySelector('#dp-modal [data-pest="modulos"]').hidden = titular;
+        if (titular && document.querySelector('#dp-modal [data-pest="modulos"]').getAttribute("aria-selected") === "true") mostrarPestana("despacho");
         $("dp-agregar").closest("label").hidden = $("dp-lectura").closest("label").hidden = $("dp-sin-conexion").closest("label").hidden = titular;
         $("dp-empresas-caja").hidden = document.querySelector('input[name="dp-emp"]:checked').value !== "algunas";
         $("dp-modulos").hidden = document.querySelector('input[name="dp-mod"]:checked').value !== "algunos";
@@ -197,9 +306,16 @@
             else cuerpo.empresas = [].map.call($("dp-empresas").querySelectorAll("input:checked"), function (i) { return i.value; });
             if (document.querySelector('input[name="dp-mod"]:checked').value === "todos") cuerpo.todos_los_modulos = true;
             else cuerpo.modulos = [].map.call($("dp-modulos").querySelectorAll("input:checked"), function (i) { return i.value; });
+            cuerpo.modulos_personal = [].map.call($("dp-modulos-extra").querySelectorAll("input:checked"), function (i) { return i.value; });
             cuerpo.agregar = $("dp-agregar").checked;
             cuerpo.solo_lectura = $("dp-lectura").checked;
             cuerpo.sin_conexion = $("dp-sin-conexion").checked;
+        }
+        if (!$("dp-mi-tope-caja").hidden) {               // Mi espacio: tope por persona (vacío = el de fábrica del despacho)
+            var tope = $("dp-tope").value.trim(), maximo = parseInt($("dp-tope").max, 10);
+            if (tope === "") { if (!edicion.invitar) cuerpo.tope_de_fabrica = true; }
+            else if (!/^\d+$/.test(tope) || parseInt(tope, 10) > maximo) { mostrarPestana("mi"); return errorModal("Las empresas de Mi espacio van de 0 a " + maximo + "."); }
+            else cuerpo.tope_personal = parseInt(tope, 10);
         }
         if (edicion.invitar) {
             cuerpo.correo = $("dp-correo").value.trim().toLowerCase();
@@ -224,7 +340,7 @@
         var m = edicion && edicion.miembro;
         if (!m) return;
         var ok = await F.confirmar({ titulo: "¿Quitar a " + (m.nombre || m.correo) + " del despacho?", peligro: true, si: "Quitar",
-            texto: "Deja de ver las empresas del despacho. Lo que haya en su Mi espacio se queda con esa persona." });
+            texto: "Deja de ver las empresas del despacho. Su Mi espacio queda 30 días en solo lectura para esa persona y los timbres que le pasaste y no usó regresan al despacho." });
         if (!ok) return;
         var hecho = await F.confirmarIdentidad("quitar_miembro", function (c) {
             return pedir("/api/despacho/miembros/" + encodeURIComponent(m.correo), { method: "DELETE", body: { confirmacion: c } });
@@ -389,6 +505,11 @@
         $("dp-aj-nombre").value = d.nombre || "";
         $("dp-aj-contacto").value = d.contacto || "";
         $("dp-aj-personal").checked = !d.ajustes || d.ajustes.personal_de_fabrica !== false;
+        var me = datos.mi_espacio || {};
+        $("dp-aj-proceso").hidden = me.listo !== false;
+        $("dp-aj-ayuda").textContent = (me.listo === false ? "Mi espacio está en proceso: todavía no se usa con la licencia del despacho. " : "") +
+            "Cada persona puede tener hasta " + (me.tope_maximo == null ? "las empresas que quiera" : me.tope_maximo + " empresas") +
+            " en su Mi espacio, aparte de las del despacho. Su tope, sus módulos extra y sus timbres se cambian en Equipo → Permisos → Mi espacio.";
         cargarMigraciones();
     }
 
@@ -450,7 +571,7 @@
 
     async function salir() {
         var ok = await F.confirmar({ titulo: "¿Salir del despacho «" + datos.despacho.nombre + "»?", peligro: true, si: "Salir",
-            texto: "Dejas de ver sus empresas. Lo que pasaste al despacho se queda en el despacho; tu Mi espacio sigue siendo tuyo." });
+            texto: "Dejas de ver sus empresas. Lo que pasaste al despacho se queda en el despacho. Si tu Mi espacio va con la licencia del despacho, queda 30 días en solo lectura y los timbres del despacho que no usaste regresan." });
         if (!ok) return;
         try {
             await pedir("/api/despacho/salir", { method: "POST" });
@@ -482,7 +603,19 @@
     });
     $("dp-invitar").addEventListener("click", function () { abrirModal(null); });
     $("dp-papel").addEventListener("change", actualizarModal);
-    $("dp-forma").addEventListener("change", function (e) { if (e.target.name === "dp-emp" || e.target.name === "dp-mod") actualizarModal(); });
+    $("dp-forma").addEventListener("change", function (e) {
+        if (e.target.name === "dp-emp" || e.target.name === "dp-mod") actualizarModal();
+        if (e.target.name === "dp-mod" || e.target.closest("#dp-modulos")) pintarExtra();
+    });
+    document.querySelector("#dp-modal .dp-modal-vistas").addEventListener("click", function (e) {
+        var b = e.target.closest("[data-pest]");
+        if (b) mostrarPestana(b.dataset.pest);
+    });
+    $("dp-tope").addEventListener("input", avisoTope);
+    $("dp-tope-fabrica").addEventListener("click", function () { $("dp-tope").value = ""; avisoTope(); });
+    $("dp-timbres-cantidad").addEventListener("keydown", function (e) { if (e.key === "Enter") e.preventDefault(); });   // no guarda la ventana
+    $("dp-timbres-pasar").addEventListener("click", function () { moverTimbres("pasar"); });
+    $("dp-timbres-regresar").addEventListener("click", function () { moverTimbres("regresar"); });
     $("dp-forma").addEventListener("submit", function (e) { e.preventDefault(); guardarModal(); });
     $("dp-empresas-buscar").addEventListener("input", function () {
         var q = this.value.trim().toLowerCase();

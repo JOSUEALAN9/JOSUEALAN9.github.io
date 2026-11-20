@@ -6,7 +6,7 @@
     <title>Mi despacho | Fiscontable</title>
     <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611201830">
     <link rel="stylesheet" href="/assets/css/common.css?v=202611201830">
-    <link rel="stylesheet" href="/despacho/despacho.css?v=202611201830">
+    <link rel="stylesheet" href="/despacho/despacho.css?v=202611202200">
 </head>
 <body class="min-h-screen flex flex-col">
 
@@ -33,6 +33,7 @@
             <b>No eres parte de un despacho</b>
             <p>Un despacho comparte empresas con su equipo. Cada persona conserva, además, su propio espacio para sus clientes extra.
                Si tu despacho usa Fiscontable, pide al titular que te invite con tu correo.</p>
+            <div id="dp-salida" class="dp-invitacion dp-salida" hidden><p id="dp-salida-texto"></p></div>
             <div id="dp-invitacion" class="dp-invitacion" hidden>
                 <p id="dp-invitacion-texto"></p>
                 <div class="dp-acciones">
@@ -124,9 +125,10 @@
                     <label class="ui-campo"><span class="ui-etiqueta">Correo para los avisos del despacho</span>
                         <input class="ui-input" id="dp-aj-contacto" type="email" maxlength="120">
                         <span class="ui-ayuda">Ahí llegan los avisos por correo de las empresas del despacho (vencimientos, Buzón, listas del SAT).</span></label>
-                    <label class="ui-switch"><input type="checkbox" id="dp-aj-personal"><span class="ui-switch__riel"></span>
+                    <div class="dp-mi-cabeza"><label class="ui-switch"><input type="checkbox" id="dp-aj-personal"><span class="ui-switch__riel"></span>
                         Las personas nuevas tienen su propio espacio (Mi espacio)</label>
-                    <p class="ui-ayuda">Lo puedes cambiar a cada persona en Equipo → Permisos.</p>
+                        <span class="ui-estado ui-estado--aviso" id="dp-aj-proceso" hidden>En proceso</span></div>
+                    <p class="ui-ayuda" id="dp-aj-ayuda">Lo puedes cambiar a cada persona en Equipo → Permisos.</p>
                     <div class="dp-acciones"><button type="submit" class="ui-btn ui-btn--primario ui-btn--36">Guardar</button></div>
                 </form>
                 <div class="ui-tarjeta dp-ajustes dp-migracion">
@@ -166,7 +168,15 @@
     <dialog class="fc-modal fc-modal--fija" id="dp-modal" aria-labelledby="dp-modal-titulo">
         <div class="fc-modal__cabeza"><div><h2 id="dp-modal-titulo">Permisos</h2><p id="dp-modal-sub"></p></div>
             <button type="button" class="fc-modal__cerrar" data-cerrar aria-label="Cerrar">×</button></div>
+        <div class="dp-modal-vistas">
+            <div class="fc-vista" role="tablist" aria-label="Permisos">
+                <button type="button" role="tab" data-pest="despacho" aria-selected="true">En el despacho</button>
+                <button type="button" role="tab" data-pest="modulos">Módulos</button>
+                <button type="button" role="tab" data-pest="mi">Mi espacio</button>
+            </div>
+        </div>
         <form class="fc-modal__cuerpo" id="dp-forma" novalidate>
+          <div class="dp-pest" data-pest-panel="despacho">
             <label class="ui-campo" id="dp-campo-correo"><span class="ui-etiqueta">Correo</span>
                 <input class="ui-input" id="dp-correo" type="email" maxlength="120" placeholder="nombre@despacho.mx" autocomplete="off">
                 <span class="ui-ayuda">Con ese correo inicia sesión en Fiscontable. Le llega un aviso para aceptar.</span></label>
@@ -184,20 +194,57 @@
                 </div>
             </fieldset>
 
-            <fieldset class="dp-grupo" id="dp-grupo-modulos">
-                <legend class="ui-etiqueta">Módulos que puede usar en el despacho</legend>
-                <div class="dp-opciones"><label class="ui-check"><input type="radio" name="dp-mod" value="todos" checked> Todos los del despacho</label>
-                    <label class="ui-check"><input type="radio" name="dp-mod" value="algunos"> Solo estos</label></div>
-                <div class="dp-marcar__lista dp-marcar__lista--mod" id="dp-modulos" hidden></div>
-            </fieldset>
-
             <div class="dp-interruptores">
                 <label class="ui-switch"><input type="checkbox" id="dp-agregar"><span class="ui-switch__riel"></span> Puede registrar y quitar empresas del despacho</label>
-                <label class="ui-switch"><input type="checkbox" id="dp-personal"><span class="ui-switch__riel"></span> Tiene su propio espacio (Mi espacio)</label>
                 <label class="ui-switch"><input type="checkbox" id="dp-lectura"><span class="ui-switch__riel"></span> Solo puede consultar (no cambia nada)</label>
                 <label class="ui-switch"><input type="checkbox" id="dp-sin-conexion"><span class="ui-switch__riel"></span> Su PC trabaja sin conexión (guarda las e.firmas cifradas)</label>
                 <label class="ui-switch" id="dp-campo-suspender"><input type="checkbox" id="dp-suspender"><span class="ui-switch__riel"></span> Acceso al despacho suspendido</label>
             </div>
+          </div>
+
+          <!-- Módulos: dos listas. Mi espacio usa los del despacho y, además, los extra (20-nov-2026, Alan) -->
+          <div class="dp-pest dp-mod-rejilla" data-pest-panel="modulos" hidden>
+            <fieldset class="dp-grupo" id="dp-grupo-modulos">
+                <legend class="ui-etiqueta">En el despacho</legend>
+                <div class="dp-opciones"><label class="ui-check"><input type="radio" name="dp-mod" value="todos" checked> Todos los del despacho</label>
+                    <label class="ui-check"><input type="radio" name="dp-mod" value="algunos"> Solo estos</label></div>
+                <div class="dp-marcar__lista dp-marcar__lista--mod" id="dp-modulos" hidden></div>
+                <p class="ui-ayuda">También los usa en su Mi espacio.</p>
+            </fieldset>
+            <fieldset class="dp-grupo" id="dp-grupo-extra">
+                <legend class="ui-etiqueta">Extra en Mi espacio</legend>
+                <div class="dp-marcar__lista dp-marcar__lista--mod" id="dp-modulos-extra"></div>
+                <p class="ui-ayuda" id="dp-extra-ayuda">Solo en su Mi espacio, además de los del despacho. Nunca más de lo que trae el plan del despacho.</p>
+            </fieldset>
+          </div>
+
+          <!-- Mi espacio: encendido, tope de empresas y timbres del despacho (20-nov-2026, Alan) -->
+          <div class="dp-pest" data-pest-panel="mi" hidden>
+            <div class="dp-mi-cabeza">
+                <label class="ui-switch"><input type="checkbox" id="dp-personal"><span class="ui-switch__riel"></span> Tiene su propio espacio (Mi espacio)</label>
+                <span class="ui-estado ui-estado--aviso" id="dp-mi-proceso" hidden>En proceso</span>
+            </div>
+            <p class="ui-ayuda" id="dp-mi-ayuda">Sus empresas de Mi espacio solo las ve esa persona; tú ves cuántas tiene, nunca cuáles.</p>
+            <p class="dp-mi-propia" id="dp-mi-propia" hidden>Tiene su propia licencia: su Mi espacio va con su plan (empresas, módulos y timbres). Aquí no se le cuenta nada.</p>
+            <div class="dp-mi-caja" id="dp-mi-tope-caja">
+                <div class="dp-mi-dato"><span>Empresas en su Mi espacio</span><b id="dp-mi-conteo">—</b></div>
+                <label class="ui-campo dp-mi-tope"><span class="ui-etiqueta">Puede tener hasta</span>
+                    <span class="dp-mi-fila"><input class="ui-input" id="dp-tope" type="number" min="0" max="10" step="1" inputmode="numeric">
+                        <button type="button" class="ui-btn ui-btn--terciario ui-btn--28" id="dp-tope-fabrica">De fábrica</button></span>
+                    <span class="ui-ayuda" id="dp-tope-ayuda">De 0 a 10. No cuentan en las empresas del despacho.</span></label>
+                <p class="dp-mi-aviso" id="dp-tope-aviso" hidden></p>
+            </div>
+            <div class="dp-mi-caja" id="dp-mi-timbres-caja">
+                <div class="dp-mi-dato"><span>Timbres del despacho en su Mi espacio</span><b id="dp-mi-timbres">—</b></div>
+                <p class="ui-ayuda" id="dp-mi-timbres-ayuda"></p>
+                <div class="dp-mi-fila">
+                    <input class="ui-input dp-mi-cantidad" id="dp-timbres-cantidad" type="number" min="1" step="1" inputmode="numeric" placeholder="Cuántos" aria-label="Cuántos timbres">
+                    <button type="button" class="ui-btn ui-btn--secundario ui-btn--36" id="dp-timbres-pasar">Pasar</button>
+                    <button type="button" class="ui-btn ui-btn--terciario ui-btn--36" id="dp-timbres-regresar">Regresar</button>
+                </div>
+                <p class="dp-mi-msj" id="dp-timbres-msj" hidden></p>
+            </div>
+          </div>
             <p class="dp-error ui-ayuda ui-ayuda--error" id="dp-modal-error" hidden></p>
         </form>
         <div class="fc-modal__pie">
@@ -207,6 +254,6 @@
         </div>
     </dialog>
 
-<script src="/despacho/despacho.js?v=202611201830"></script>
+<script src="/despacho/despacho.js?v=202611202200"></script>
 </body>
 </html>

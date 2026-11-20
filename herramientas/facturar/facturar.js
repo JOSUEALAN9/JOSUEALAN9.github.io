@@ -1920,7 +1920,8 @@
             { id: "manifiesto", titulo: "Manifiesto del PAC", estado: e.manifiesto ? "ok" : prod ? "falta" : "pendiente",
               detalle: e.manifiesto ? "Firmado y guardado." : "Se firma una sola vez en la página de Luna Soft con la e.firma de la empresa; luego subes aquí el PDF." },
             { id: "timbres", titulo: "Timbres", estado: !prod ? "pendiente" : t > 0 ? "ok" : "falta",
-              detalle: !prod ? "En modo de pruebas no se gastan timbres." : t > 0 ? t + " disponible" + (t === 1 ? "" : "s") + " para esta empresa." : "Esta empresa ya no tiene timbres: pásale de tu cuenta." }
+              detalle: !prod ? "En modo de pruebas no se gastan timbres." : t > 0 ? t + " disponible" + (t === 1 ? "" : "s") + " para esta empresa."
+                  : F.cfg.comprar_timbres && !F.cfg.timbres_cuenta ? "Esta empresa no tiene timbres. " + F.cfg.comprar_timbres.texto + "." : "Esta empresa ya no tiene timbres: pásale de tu cuenta." }
         ];
     }
 
@@ -2002,10 +2003,20 @@
             '<div class="fa-act__zona" data-zona="manifiesto"></div><p class="fa-act__msj" id="act-msj"></p>';
         var prod = F.cfg.produccion, cuenta = F.cfg.timbres_cuenta;
         if (!prod) return '<p class="fa-nota">En modo de pruebas no se gastan timbres. Cuando se active producción, aquí le pasas timbres de tu cuenta.</p>';
+        if (cuenta === 0 && F.cfg.comprar_timbres) return avisoComprarTimbres();
         if (cuenta === 0) return '<p class="fa-nota">Tu cuenta no tiene timbres sin repartir. Pídele más al administrador.</p>';
         return '<p class="fa-nota">' + (cuenta == null ? "Tu cuenta no tiene tope de timbres." : "Tu cuenta tiene <b>" + cuenta + "</b> sin repartir.") + "</p>" +
             '<div class="fa-act__campos"><label class="ui-campo fa-act__cp"><span class="ui-etiqueta">¿Cuántos le pasas?</span><input id="act-timbres" class="ui-input" inputmode="numeric" value="' + (cuenta ? Math.min(cuenta, 50) : 50) + '"></label>' +
             '<button type="button" class="ui-btn ui-btn--primario ui-btn--36" data-act-timbres>Pasar timbres</button></div><p class="fa-act__msj" id="act-msj"></p>';
+    }
+
+    /* 20-nov-2026, Alan: en Mi espacio (con la licencia del despacho) los timbres los pasa el titular del despacho; si no
+       tiene, «Para comprar timbres, contáctanos» con el contacto que manda el servidor (WhatsApp solo si está configurado). */
+    function avisoComprarTimbres() {
+        var c = F.cfg.comprar_timbres;
+        return '<p class="fa-nota fa-nota--comprar"><b>' + esc(c.texto) + ":</b> " +
+            (c.whatsapp ? 'WhatsApp <a href="' + esc(c.whatsapp_enlace || "#") + '" target="_blank" rel="noopener">' + esc(c.whatsapp) + "</a> o " : "") +
+            '<a href="mailto:' + esc(c.soporte) + '">' + esc(c.soporte) + "</a>. También te los puede pasar el titular de tu despacho.</p>";
     }
 
     function msjAct(texto, tipo) { var m = $("act-msj"); if (m) { m.textContent = texto || ""; m.className = "fa-act__msj" + (tipo ? " fa-act__msj--" + tipo : ""); } }
