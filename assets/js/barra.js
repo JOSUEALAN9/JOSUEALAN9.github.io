@@ -2612,7 +2612,7 @@
               "</div>" +
               '<form id="fc-mp-form" style="padding:20px;display:flex;flex-direction:column;gap:14px">' +
                 '<label style="display:block"><span style="font-size:13px;font-weight:600">Nombre completo</span>' +
-                  '<input id="fc-mp-nombre" type="text" required placeholder="Ej. Alan Sánchez" ' +
+                  '<input id="fc-mp-nombre" type="text" required placeholder="Tu nombre y apellido" ' +
                   'style="width:100%;margin-top:6px;padding:11px;border:1px solid var(--linea);border-radius:10px;font:inherit;font-size:14px"></label>' +
                 '<label style="display:block"><span style="font-size:13px;font-weight:600">Teléfono</span> ' +
                   '<span style="font-size:12.5px;color:var(--texto-tenue)">(opcional)</span>' +
