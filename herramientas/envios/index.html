@@ -4,15 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Envíos por correo | Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611210050">
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611210050">
-    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611210050">
-    <link rel="stylesheet" href="/herramientas/envios/envios.css?v=202611210050">
+    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611210300">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611210300">
+    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611210300">
+    <link rel="stylesheet" href="/herramientas/envios/envios.css?v=202611210300">
 </head>
 <body class="min-h-screen flex flex-col">
 <div id="app-header" data-modulo="envios" data-titulo="Envíos por correo" data-migas="Herramientas|/herramientas/"></div>
-<script src="/assets/js/nucleo.js?v=202611210050"></script>
-<script src="/assets/js/barra.js?v=202611210050"></script>
+<script src="/assets/js/nucleo.js?v=202611210300"></script>
+<script src="/assets/js/barra.js?v=202611210300"></script>
 
 <main class="flex-grow mod-pagina">
     <div class="mod-cabeza">
@@ -25,6 +25,13 @@
 
     <div id="ev-aviso" class="ui-aviso ui-aviso--error" hidden></div>
     <div id="ev-lista" class="ev-lista" aria-live="polite"></div>
+
+    <!-- 21-nov-2026 (Alan): los «Solo una vez, ahora» ya enviados, plegados, con su historial y «Duplicar» (no son envíos programados) -->
+    <details id="ev-unavez" class="ev-matriz ev-unavez" hidden>
+        <summary class="ev-matriz__resumen"><span>Enviados una vez</span><small id="ev-unavez-cuenta"></small></summary>
+        <p class="ui-ayuda ev-unavez__ayuda">Salieron al guardarlos y no vuelven a salir solos. «Duplicar» abre uno nuevo con lo mismo.</p>
+        <div id="ev-unavez-lista" class="ev-unavez__lista"></div>
+    </details>
 
     <!-- Las casillas «Envío 1…5» de cada empresa (18-nov, Alan: «se check y se habilita ese otro envío») -->
     <details id="ev-matriz" class="ev-matriz" hidden>
@@ -113,19 +120,53 @@
                 <p class="ev-sub">Documentos <i>(los más recientes guardados de cada empresa, juntos en una carpeta)</i></p>
                 <div id="ev-docs" class="ev-checks ev-checks--fila"></div>
             </div>
+            <!-- 21-nov-2026 (Alan): «Solo de estos proveedores / clientes»; apagado, van todos -->
+            <div class="ev-solo">
+                <label class="ui-check ev-adjuntar"><input type="checkbox" id="ev-solo">
+                    <span>Solo de ciertos proveedores o clientes
+                        <small>Si no eliges ninguno, van todos. Aplica al ZIP, a los Excel, a los PDF y a la revisión contra el SAT.</small></span></label>
+                <div class="ev-solo__panel" id="ev-solo-panel" hidden>
+                    <div class="ev-solo__barra">
+                        <div class="ev-solo__lados" role="group" aria-label="De qué lado">
+                            <button type="button" class="ev-chip" data-solo-lado="proveedores" aria-pressed="true">Proveedores <small id="ev-solo-n-proveedores"></small></button>
+                            <button type="button" class="ev-chip" data-solo-lado="clientes" aria-pressed="false">Clientes <small id="ev-solo-n-clientes"></small></button>
+                        </div>
+                        <input type="search" id="ev-solo-buscar" class="ui-input" placeholder="Buscar por nombre o RFC…" autocomplete="off" aria-label="Buscar proveedor o cliente">
+                    </div>
+                    <p class="ui-ayuda" id="ev-solo-lado-txt"></p>
+                    <div id="ev-solo-lista" class="ev-empresas ev-solo__lista" role="listbox" aria-multiselectable="true" aria-label="Proveedores o clientes"></div>
+                    <div id="ev-solo-elegidos" class="ev-elegidas" aria-live="polite"></div>
+                </div>
+            </div>
         </section>
 
         <section class="ev-paso" data-paso="4" aria-labelledby="ev-p4" hidden>
             <h3 id="ev-p4">¿Cuándo y de qué periodo?</h3>
             <div class="ev-tres">
                 <label class="ui-campo"><span class="ui-etiqueta">Cada cuánto</span>
-                    <select id="ev-frecuencia" class="ui-select"><option value="semanal">Cada semana</option><option value="quincenal">Cada quincena (días 1 y 16)</option><option value="mensual">Cada mes</option></select></label>
+                    <select id="ev-frecuencia" class="ui-select"><option value="semanal">Cada semana</option><option value="quincenal">Cada quincena (días 1 y 16)</option><option value="mensual">Cada mes</option><option value="una_vez">Solo una vez, ahora</option></select></label>
                 <label class="ui-campo" id="ev-dia-caja"><span class="ui-etiqueta" id="ev-dia-etq">Qué día</span>
                     <select id="ev-dia" class="ui-select"></select></label>
                 <label class="ui-campo" id="ev-dias-enlace-caja"><span class="ui-etiqueta">El enlace vence en</span>
                     <select id="ev-dias-enlace" class="ui-select"><option value="3">3 días</option><option value="5">5 días</option><option value="7">7 días</option></select></label>
             </div>
-            <div class="ev-radios" role="radiogroup" aria-label="De qué periodo">
+            <!-- 21-nov-2026: «Solo una vez, ahora»: el periodo y el corte, como en «Enviar ahora» -->
+            <div class="ev-unavez-form" id="ev-una-caja" hidden>
+                <div class="ev-dos ev-dos--fijo">
+                    <label class="ui-campo"><span class="ui-etiqueta">Desde</span><select id="ev-una-desde" class="ui-select"></select></label>
+                    <label class="ui-campo"><span class="ui-etiqueta">Hasta</span><select id="ev-una-hasta" class="ui-select"></select></label>
+                </div>
+                <div class="ev-corte" id="ev-una-corte-caja">
+                    <p class="ev-sub" id="ev-una-corte-titulo">Hasta cuándo</p>
+                    <div class="ev-radios ev-radios--una" role="radiogroup" aria-labelledby="ev-una-corte-titulo">
+                        <label class="ui-check ev-radio"><input type="radio" name="ev-una-corte" value="ayer" checked>
+                            <span><b data-corte-ayer>Hasta ayer · completo y verificado</b><small>Fiscontable revisa contra el SAT que no falte nada.</small></span></label>
+                        <label class="ui-check ev-radio"><input type="radio" name="ev-una-corte" value="ahora">
+                            <span><b data-corte-hoy>Hasta hoy · trae lo de hoy del SAT</b><small>Antes de mandarlo trae lo de hoy del portal del SAT (necesita la e.firma guardada). Puede tardar unos minutos.</small></span></label>
+                    </div>
+                </div>
+            </div>
+            <div class="ev-radios" role="radiogroup" aria-label="De qué periodo" id="ev-modo-caja">
                 <label class="ui-check ev-radio"><input type="radio" name="ev-modo" value="mes" checked>
                     <span><b>El mes completo</b><small id="ev-modo-mes-txt">El mes en curso completo cada vez (y, la primera semana, también el mes que acaba de cerrar).</small></span></label>
                 <label class="ui-check ev-radio"><input type="radio" name="ev-modo" value="nuevo">
@@ -135,7 +176,7 @@
                 <span>El primer envío del mes lleva también el mes que acaba de cerrar
                     <small>Quítala si el cierre lo mandas aparte, con otro envío mensual (por ejemplo, el día 4): este llevará solo el mes en curso.</small></span></label>
             <p class="ev-nota" id="ev-periodo-txt"></p>
-            <label class="ui-check"><input type="checkbox" id="ev-avisar"> Avisar por correo aunque no haya nada que mandar</label>
+            <label class="ui-check" id="ev-avisar-caja"><input type="checkbox" id="ev-avisar"> Avisar por correo aunque no haya nada que mandar</label>
             <p class="ui-ayuda" id="ev-verifica-txt"></p>
         </section>
 
@@ -190,14 +231,15 @@
             <label class="ui-campo"><span class="ui-etiqueta">Desde</span><select id="ev-ahora-desde" class="ui-select"></select></label>
             <label class="ui-campo"><span class="ui-etiqueta">Hasta</span><select id="ev-ahora-hasta" class="ui-select"></select></label>
         </div>
-        <!-- 20-nov-2026 (Alan): el corte. Solo se ve si el periodo llega a este mes (un mes cerrado ya va completo) -->
+        <!-- 20-nov-2026 (Alan): el corte. Solo se ve si el periodo llega a este mes (un mes cerrado ya va completo). 21-nov: con
+             la fecha y la hora reales (hora del centro), calculadas al abrirla y al cambiar el periodo -->
         <div class="ev-corte" id="ev-ahora-corte-caja">
             <p class="ev-sub" id="ev-ahora-corte-titulo">Hasta cuándo</p>
             <div class="ev-radios ev-radios--una" role="radiogroup" aria-labelledby="ev-ahora-corte-titulo">
                 <label class="ui-check ev-radio"><input type="radio" name="ev-ahora-corte" value="ayer" checked>
-                    <span><b>Hasta ayer, verificado contra el SAT</b></span></label>
+                    <span><b data-corte-ayer>Hasta ayer · completo y verificado</b><small>Fiscontable revisa contra el SAT que no falte nada.</small></span></label>
                 <label class="ui-check ev-radio"><input type="radio" name="ev-ahora-corte" value="ahora">
-                    <span><b>Hasta este momento</b><small>Lleva también lo de hoy, sin compararlo con la lista del SAT.</small></span></label>
+                    <span><b data-corte-hoy>Hasta hoy · trae lo de hoy del SAT</b><small>Antes de mandarlo trae lo de hoy del portal del SAT (necesita la e.firma guardada). Puede tardar unos minutos.</small></span></label>
             </div>
         </div>
         <p class="ev-ahora__calculo" id="ev-ahora-calculo" role="status" hidden></p>
@@ -220,6 +262,6 @@
     </div>
 </dialog>
 
-<script src="/herramientas/envios/envios.js?v=202611210050"></script>
+<script src="/herramientas/envios/envios.js?v=202611210300"></script>
 </body>
 </html>
