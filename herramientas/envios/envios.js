@@ -131,8 +131,35 @@
         var xml = (c.xml || []).map(function (k) { return de(E.op.xml, k); });
         var n = (c.excel || []).length, docs = (c.docs || []).map(function (k) { return k === "csf" ? "constancia" : "opinión 32-D"; });
         var cp = c.contrapartes || {}, np = (cp.proveedores || []).length, nc = (cp.clientes || []).length, oc = cp.ocultas || 0;
-        var solo = np || nc || oc ? "solo de " + [np ? plural(np, "proveedor", "proveedores") : "", nc ? plural(nc, "cliente", "clientes") : "", oc ? oc + " más" : ""].filter(Boolean).join(" y ") : "";
+        // 21-nov-2026 (revisión de Fable, hallazgo 7): un lado sin elegidos va completo; se dice cada lado que lleva
+        var lados = ladosQueLleva(c), solo = "";
+        if ((np || nc || oc) && lados.length) {
+            solo = lados.map(function (l) {
+                var n = l === "proveedores" ? np : nc;
+                return (l === "proveedores" ? "recibidas: " : "emitidas: ") + (n ? "solo de " + plural(n, l === "proveedores" ? "proveedor" : "cliente", l) : oc ? "según lo elegido" : "todas");
+            }).join(" · ") + (oc ? " (y " + oc + " más de otras empresas)" : "");
+        }
         return [xml.length ? "XML y PDF de " + xml.join(", ").toLowerCase() : "", n ? plural(n, "Excel", "Excel") : "", docs.join(" y "), solo].filter(Boolean).join(" · ");
+    }
+    /* Qué lados lleva un envío por lo marcado (igual que contrapartes.lados_que_lleva del servidor): XML recibidos o emitidos
+       (los complementos de pago, los dos) y los Excel de cada lado. */
+    function ladosQueLleva(c) {
+        var xml = c.xml || [], ex = (c.excel || []).map(function (y) { return y && y.que ? y.que : y; });
+        var tiene = function (lista, claves) { return claves.some(function (k) { return lista.indexOf(k) !== -1; }); };
+        var lados = [];
+        if (tiene(xml, ["recibidos", "pagos"]) || tiene(ex, ["xml_recibidos", "conciliacion_recibidos", "pagos"])) lados.push("proveedores");
+        if (tiene(xml, ["emitidos", "pagos"]) || tiene(ex, ["xml_emitidos", "conciliacion_emitidos", "pagos"])) lados.push("clientes");
+        return lados;
+    }
+    /* «Recibidas: solo de ACME · Emitidas: todas.» con lo elegido (sets o listas de nombres por lado). */
+    function textoSolo(lados, nombres) {          // nombres[lado]: null = sin filtro (todas); [] = filtrado, sin nombres
+        if (!lados.some(function (l) { return nombres[l]; })) return "";
+        return lados.map(function (l) {
+            var n = nombres[l];
+            var lista = n ? n.slice(0, 5).join(", ") + (n.length > 5 ? " y " + (n.length - 5) + " más" : "") : "";
+            return (l === "proveedores" ? "Recibidas" : "Emitidas") + ": " +
+                (!n ? "todas" : n.length ? "solo de " + lista : "solo de los " + l + " elegidos");
+        }).join(" · ") + ".";
     }
     // Lo que el robot va haciendo con un envío en curso (18-nov): fila, lista del SAT, validación una por una, armado
     function textoAvance(a) {
@@ -155,11 +182,17 @@
             // 21-nov-2026 (auditoría M3): el «Enviar ahora» en espera ya no frena al programado; si los dos esperan, primero
             // se decide el programado y después sale este otro
             if (!manual && e.detenido_manual) txt += " Además, hay un «Enviar ahora» en espera de tu decisión: lo verás al decidir este.";
+            // 21-nov-2026 (revisión de Fable, hallazgo 4): la espera de un «Enviar ahora» vence (72 h, o antes si sale el
+            // programado) y no tapa el último envío: la tarjeta lo sigue enseñando debajo
+            if (manual && e.detenido_manual_vence) txt += " Esta espera vence el " + cuando(e.detenido_manual_vence, true) + " (o antes, si sale bien el envío programado).";
             return '<div class="ev-detenido"><p><b>' + (manual ? "En espera de tu decisión" : "Detenido") + "</b> · " + esc(txt) + "</p>" +
                 (E.titular ? '<div class="ev-detenido__botones"><button type="button" class="ui-btn ui-btn--primario ui-btn--28" data-accion="decidir" data-decision="mandar">Mandar así</button>' +
                     '<button type="button" class="ui-btn ui-btn--secundario ui-btn--28" data-accion="decidir" data-decision="esperar">' + (manual ? "No mandar" : "Seguir esperando 24 h") + "</button></div>"
-                    : "<p>Lo decide el titular del despacho.</p>") + "</div>";
+                    : "<p>Lo decide el titular del despacho.</p>") + "</div>" + (manual ? lineaUltimo(e) : "");
         }
+        return lineaUltimo(e);
+    }
+    function lineaUltimo(e) {
         if (e.en_curso) return '<p class="ev-ultimo ev-ultimo--avance">' + esc(textoAvance(e.avance)) + "</p>";
         var u = e.ultimo;
         if (!u) return '<p class="ev-ultimo">Todavía no se ha mandado.</p>';
@@ -562,6 +595,21 @@
             });
         });
         $("ev-solo-elegidos").innerHTML = piezas.length ? piezas.join("") : '<span class="ev-elegidas__vacio">Ninguno elegido todavía: elige al menos uno (o apaga esta opción para que vayan todos).</span>';
+        pintarSoloResumen();
+    }
+    /* 21-nov-2026 (revisión de Fable, hallazgo 7): lo que de verdad va de cada lado. Un lado sin elegidos va completo. */
+    function pintarSoloResumen() {
+        var caja = $("ev-solo-resumen"); if (!caja) return;
+        var lados = ladosQueLleva(contenidoMarcado()), nombres = {};
+        ["proveedores", "clientes"].forEach(function (l) { nombres[l] = E.solo[l].size ? Array.from(E.solo[l]).map(function (r) { return nombreSolo(l, r); }) : null; });
+        var txt = $("ev-solo").checked ? textoSolo(lados, nombres) : "";
+        caja.textContent = txt ? "Va así: " + txt : "";
+        caja.hidden = !txt;
+    }
+    function contenidoMarcado() {
+        var xml = Array.from(document.querySelectorAll("#ev-xml input:checked")).map(function (i) { return i.value; });
+        var ex = Array.from(document.querySelectorAll("#ev-excel input[type=checkbox]:checked")).map(function (i) { return { que: i.value }; });
+        return { xml: xml, excel: ex };
     }
 
     function abrirForm(e, base, copia) {
@@ -837,6 +885,17 @@
         }
         var resumen = [], solo = [];
         (v.detalle.empresas || []).forEach(function (d) { (d.solo_de || []).forEach(function (n) { if (solo.indexOf(n) === -1) solo.push(n); }); });
+        // 21-nov-2026 (hallazgo 7 de Fable): lo armado desde hoy dice cada lado («Recibidas: solo de ACME · Emitidas: todas.»)
+        var porLado = { proveedores: null, clientes: null }, ladosH = [];
+        (v.detalle.empresas || []).forEach(function (d) {
+            Object.keys(d.solo_lados || {}).forEach(function (k) {
+                var l = k === "Recibidas" ? "proveedores" : "clientes", n = d.solo_lados[k];
+                if (ladosH.indexOf(l) === -1) ladosH.push(l);
+                if (n) { porLado[l] = porLado[l] || []; n.forEach(function (x) { if (porLado[l].indexOf(x) === -1) porLado[l].push(x); }); }
+            });
+        });
+        var soloTxt = ladosH.length ? textoSolo(["proveedores", "clientes"].filter(function (l) { return ladosH.indexOf(l) !== -1; }), porLado)
+            : solo.length ? "Solo de: " + solo.slice(0, 5).join(", ") + (solo.length > 5 ? " y " + (solo.length - 5) + " más" : "") + "." : "";
         if (conAlgo.length) resumen.push(plural(conAlgo.length, "empresa", "empresas"));
         if (v.comprobantes) resumen.push(plural(v.comprobantes, "comprobante", "comprobantes"));
         var lista = !verificadas.length ? "" : porRevisar
@@ -848,7 +907,7 @@
             (v.detalle && v.detalle.retomado && v.estado !== "error" ? '<small class="ev-hecho__retomado">Se retomó solo después de un reinicio del servidor.</small>' : "") +
             (v.verificado_texto && v.estado !== "error" ? '<small class="ev-hecho__verificado' + (v.detalle.verificado && v.detalle.verificado.validar === false ? " ev-hecho__verificado--sin" : "") + '">' + esc(v.verificado_texto) + "</small>" : "") +
             (resumen.length || lista ? '<p class="ev-hecho__resumen">' + (resumen.length ? "<b>" + esc(resumen.join(" · ")) + "</b>" : "") + lista + "</p>" : "") +
-            (solo.length ? '<small class="ev-hecho__solo">Solo de: ' + esc(solo.slice(0, 5).join(", ") + (solo.length > 5 ? " y " + (solo.length - 5) + " más" : "")) + ".</small>" : "") +
+            (soloTxt ? '<small class="ev-hecho__solo">' + esc(soloTxt) + "</small>" : "") +
             '<div class="ev-hecho__pie"><span>A ' + esc((v.para || []).join(", ")) + " · " + esc(v.quien === "programado" ? "automático" : "lo pidió " + v.quien) + "</span>" + pie + "</div>" +
             (lineas ? '<details class="ev-hecho__det"><summary>Detalle por empresa</summary><ul>' + lineas + "</ul></details>" : "") + "</article>";
     }
@@ -955,6 +1014,7 @@
         ["ev-una-desde", "ev-una-hasta"].forEach(function (id) { $(id).addEventListener("change", pintarPeriodo); });
         // «Solo de estos proveedores / clientes» (21-nov-2026)
         $("ev-solo").addEventListener("change", function () { $("ev-solo-panel").hidden = !$("ev-solo").checked; if ($("ev-solo").checked) cargarSolo(); });
+        ["ev-xml", "ev-excel"].forEach(function (id) { $(id).addEventListener("change", pintarSoloResumen); });
         $("ev-solo-buscar").addEventListener("input", pintarSolo);
         $("ev-solo-lista").addEventListener("change", function (ev) {
             var i = ev.target; if (!i.value) return;

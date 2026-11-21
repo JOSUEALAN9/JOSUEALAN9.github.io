@@ -4,15 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Envíos por correo | Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611211600">
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611211600">
-    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611211600">
-    <link rel="stylesheet" href="/herramientas/envios/envios.css?v=202611211600">
+    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611211800">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611211800">
+    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611211800">
+    <link rel="stylesheet" href="/herramientas/envios/envios.css?v=202611211800">
 </head>
 <body class="min-h-screen flex flex-col">
 <div id="app-header" data-modulo="envios" data-titulo="Envíos por correo" data-migas="Herramientas|/herramientas/"></div>
-<script src="/assets/js/nucleo.js?v=202611211600"></script>
-<script src="/assets/js/barra.js?v=202611211600"></script>
+<script src="/assets/js/nucleo.js?v=202611211800"></script>
+<script src="/assets/js/barra.js?v=202611211800"></script>
 
 <main class="flex-grow mod-pagina">
     <div class="mod-cabeza">
@@ -136,6 +136,8 @@
                     <p class="ui-ayuda" id="ev-solo-lado-txt"></p>
                     <div id="ev-solo-lista" class="ev-empresas ev-solo__lista" role="listbox" aria-multiselectable="true" aria-label="Proveedores o clientes"></div>
                     <div id="ev-solo-elegidos" class="ev-elegidas" aria-live="polite"></div>
+                    <!-- 21-nov-2026 (revisión de Fable): lo que va de cada lado; un lado sin elegidos va completo -->
+                    <p class="ev-solo__resumen" id="ev-solo-resumen" aria-live="polite" hidden></p>
                 </div>
             </div>
         </section>
@@ -262,6 +264,6 @@
     </div>
 </dialog>
 
-<script src="/herramientas/envios/envios.js?v=202611211600"></script>
+<script src="/herramientas/envios/envios.js?v=202611211800"></script>
 </body>
 </html>
