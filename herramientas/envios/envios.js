@@ -15,6 +15,10 @@
  * a las 23:59 · completo y verificado» / «Hasta hoy 21/11 a las 16:35 · trae lo de hoy del SAT»); el paso «Cada cuándo»
  * tiene «Solo una vez, ahora» (sale al guardarlo; los ya enviados van plegados en «Enviados una vez»), y «Qué lleva» puede
  * limitarse a ciertos proveedores o clientes.
+ *
+ * 21-nov-2026 (Alan: «creo que es al revés: primero me pone qué mandar y hasta el final me pregunta el periodo»): los pasos
+ * son A quién · Empresas · Cuándo · Qué lleva · Mensaje. Con el periodo ya elegido, «Qué lleva» enseña el Excel de todos
+ * los meses juntos solo cuando el periodo abarca más de un mes.
  */
 (function () {
     "use strict";
@@ -303,7 +307,7 @@
     }
 
     /* ============================================================ el formulario, en pasos */
-    var PASOS = ["A quién", "Empresas", "Qué lleva", "Cuándo", "Mensaje"];
+    var PASOS = ["A quién", "Empresas", "Cuándo", "Qué lleva", "Mensaje"];          // 21-nov-2026: el periodo antes de qué lleva
     var MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
     function mesTxt(m) { return MESES[Number(m.slice(5, 7)) - 1] + " " + m.slice(0, 4); }
     function periodoTxt(meses) {          // ["2026-10", "2026-11"] -> «octubre y noviembre 2026» (igual que el servidor)
@@ -329,6 +333,7 @@
     function pintarPeriodo() {
         var mes = document.querySelector('input[name="ev-modo"]:checked').value === "mes", f = $("ev-frecuencia").value, cierre = $("ev-cierre").checked;
         var una = f === UNA_VEZ;
+        pintarExcelPeriodo();
         // «Solo una vez, ahora» (21-nov-2026): el periodo y el corte como en «Enviar ahora»; sin día, sin modo y sin «avisar»
         $("ev-una-caja").hidden = !una; $("ev-modo-caja").hidden = una; $("ev-avisar-caja").hidden = una;
         $("ev-guardar").textContent = una && !E.editando ? "Guardar y mandar" : "Guardar";
@@ -353,6 +358,27 @@
             : cierre ? "El mes en curso completo cada vez (y, la primera semana, también el mes que acaba de cerrar)." : "El mes en curso completo cada vez.";
         $("ev-periodo-txt").textContent = mes ? "Si saliera hoy llevaría " + periodoTxt(mesesDeHoy(f, cierre)) + ". Para mandar otro mes una sola vez, usa «Enviar ahora» y elígelo ahí."
             : "Lleva lo que haya llegado desde el envío anterior. Para mandar un mes completo una sola vez, usa «Enviar ahora» y elígelo ahí.";
+    }
+    /* ¿El periodo elegido en «Cuándo» abarca más de un mes? (21-nov-2026, Alan). Es la regla del servidor (motor.armar:
+       el Excel de todos los meses solo sale si el paquete lleva más de un mes): «Solo una vez» con Desde y Hasta distintos; el
+       semanal o quincenal de «mes completo» con el cierre (la primera semana lleva el mes que cerró y el que corre); «solo lo
+       nuevo», que acomoda por su mes lo que llegó tarde. El mensual, o sin el cierre, lleva un solo mes. */
+    function variosMeses() {
+        var f = $("ev-frecuencia").value;
+        if (f === UNA_VEZ) return mesesUna().length > 1;
+        if (document.querySelector('input[name="ev-modo"]:checked').value === "nuevo") return true;
+        return f !== "mensual" && $("ev-cierre").checked;
+    }
+    /* «Además, un Excel con todos los meses juntos»: solo con más de un mes y algún Excel. Si se oculta, la casilla guarda lo
+       que tenía (al editar no se pierde, y «Enviar ahora» con varios meses lo sigue usando). */
+    function pintarExcelPeriodo() {
+        $("ev-excel-periodo-caja").hidden = !$("ev-excel").querySelector("input:checked") || !variosMeses();
+    }
+    /* «Hasta hoy» solo cambia los XML, PDF y Excel: con solo la constancia o la opinión no agrega nada y tarda más (21-nov-2026) */
+    function pintarCorteLleva() {
+        var marcado = function (id) { return !!$(id).querySelector("input:checked"); };
+        var hoy = $("ev-frecuencia").value === UNA_VEZ && !$("ev-una-corte-caja").hidden && document.querySelector('input[name="ev-una-corte"]:checked').value === "ahora";
+        $("ev-lleva-corte").hidden = !(hoy && !marcado("ev-xml") && !marcado("ev-excel") && marcado("ev-docs"));
     }
     function pintarDestino() {
         var cliente = document.querySelector('input[name="ev-destino"]:checked').value === "cliente";
@@ -420,11 +446,14 @@
         var cliente = document.querySelector('input[name="ev-destino"]:checked').value === "cliente";
         if (cliente && elegidas.length) elegidas = elegidas.slice(0, 1);
         var empresas = !elegidas.length ? "tus empresas" : elegidas.length === 1 ? elegidas[0] : elegidas.length <= 3 ? elegidas.slice(0, -1).join(", ") + " y " + elegidas[elegidas.length - 1] : elegidas.length + " empresas";
-        var hoy = new Date(), mes = document.querySelector('input[name="ev-modo"]:checked').value === "mes" ? mesesDeHoy($("ev-frecuencia").value, $("ev-cierre").checked) : [mesDe(hoy)];
+        var hoy = new Date(), mes = $("ev-frecuencia").value === UNA_VEZ ? mesesUna()          // 21-nov-2026: el Desde / Hasta elegido
+            : document.querySelector('input[name="ev-modo"]:checked').value === "mes" ? mesesDeHoy($("ev-frecuencia").value, $("ev-cierre").checked) : [mesDe(hoy)];
         var c = leerForm().contenido, partes = c.xml.map(function (k) { return "12 " + de(E.op.xml, k).toLowerCase(); });
         if (c.excel.length) partes.push(plural(c.excel.length, "Excel", "Excel"));
         var vence = new Date(hoy.getTime() + (Number($("ev-dias-enlace").value) || 7) * 86400000);
+        var juntos = c.excel_periodo && !$("ev-excel-periodo-caja").hidden && mes.length > 1 && c.excel.length;
         var detalle = "· " + (elegidas[0] || "Tu empresa") + ", " + mesTxt(mes[mes.length - 1]) + ": " + (partes.join(", ") || "sus documentos") + "." +
+            (juntos ? "\n· " + (elegidas[0] || "Tu empresa") + ", todo el periodo: " + plural(c.excel.length, "Excel", "Excel") + "." : "") +
             (elegidas.length > 1 && !cliente ? "\n· … y así cada empresa" : "") +
             (enDescargas() ? "\n\nYa está listo en tu cuenta de Fiscontable, en «Mis descargas» (2.4 MB).\nSe conserva " + (E.op.dias_descargas || 7) + " días; después se borra. En un despacho, cada persona ve lo de sus empresas."
                 : "\n\nDescárgalo aquí (2.4 MB): https://…\nEl enlace vence el " + vence.toLocaleDateString("es-MX") + "; después el archivo se borra." + ($("ev-adjuntar").checked ? " También va adjunto a este correo." : ""));
@@ -463,15 +492,15 @@
             if (mal) return "Revisa los correos: «" + mal + "» no parece un correo.";
             if (document.querySelector('input[name="ev-destino"]:checked').value === "grupo" && !E.correos.para.valores().length) return "Escribe al menos un correo en «Para».";
         }
-        if (n === 3) {
+        if (n === 3 && $("ev-frecuencia").value === UNA_VEZ) {
+            if (mesesUna().length > 12) return "Se mandan hasta 12 meses de una vez: acorta el periodo.";
+            if (!E.marcadas.size) return "Elige al menos una empresa (paso 2): este envío sale en cuanto lo guardes.";
+        }
+        if (n === 4) {
             var c = leerForm().contenido;
             if (!c.xml.length && !c.excel.length && !c.docs.length) return "Marca al menos una cosa que mandar (XML y PDF, algún Excel, la constancia o la opinión).";
             var solo = errorDeSolo();
             if (solo) return solo;
-        }
-        if (n === 4 && $("ev-frecuencia").value === UNA_VEZ) {
-            if (mesesUna().length > 12) return "Se mandan hasta 12 meses de una vez: acorta el periodo.";
-            if (!E.marcadas.size) return "Elige al menos una empresa (paso 2): este envío sale en cuanto lo guardes.";
         }
         if (n === 5) {
             var r = palabrasRaras($("ev-asunto").value, true).concat(palabrasRaras($("ev-mensaje").value, false));
@@ -492,8 +521,8 @@
         $("ev-siguiente").className = "ui-btn ui-btn--36 " + ($("ev-guardar").hidden ? "ui-btn--primario" : "ui-btn--secundario");
         $("ev-base").hidden = !E.nota || E.paso !== 1;
         if (E.paso === 5) pintarVista();
-        if (E.paso === 4) pintarPeriodo();
-        if (E.paso === 3 && $("ev-solo").checked) cargarSolo();
+        if (E.paso === 3) pintarPeriodo();
+        if (E.paso === 4) { pintarExcelPeriodo(); pintarCorteLleva(); if ($("ev-solo").checked) cargarSolo(); }
     }
     // El aviso va al final del formulario: en un paso largo (Qué lleva) quedaba fuera de la vista (21-nov-2026)
     function verError() { try { $("ev-error").scrollIntoView({ block: "nearest" }); } catch (x) { /* navegador viejo */ } }
@@ -617,7 +646,7 @@
         var de_ = e || base || null, todo = e || (copia ? base : null);          // «todo»: también nombre, correos y empresas
         E.marcadas = new Set(todo ? todo.empresas : []);
         E.nota = !e && base ? (copia ? "Es una copia de «" + base.nombre + "»: cambia lo que quieras y guarda." :
-            "Empieza con lo mismo que «" + base.nombre + "» (qué lleva, cuándo y el mensaje). Cambia lo que quieras.") : "";
+            "Empieza con lo mismo que «" + base.nombre + "» (cuándo, qué lleva y el mensaje). Cambia lo que quieras.") : "";
         $("ev-base").textContent = E.nota;
         var c = de_ ? de_.contenido : { xml: ["recibidos", "pagos"], excel: [{ que: "conciliacion_emitidos" }, { que: "pagos" }], docs: [] };      // lo que pidió Alan, de fábrica
         $("ev-dlg-titulo").textContent = e ? "Editar Envío " + e.numero : "Nuevo envío";
@@ -699,7 +728,7 @@
         var lleva = !!$("ev-excel").querySelector('input[value^="conciliacion_"]:checked'), propio = $("ev-conc").value === "";
         $("ev-conc-caja").hidden = !lleva;
         $("ev-conc-hojas").hidden = !lleva || !propio;
-        $("ev-excel-periodo-caja").hidden = !$("ev-excel").querySelector("input:checked");          // solo si lleva algún Excel
+        pintarExcelPeriodo();          // solo si lleva algún Excel y el periodo abarca más de un mes
         $("ev-conc-hojas").querySelectorAll("input").forEach(function (i) { i.checked = E.hojasConc.has(i.value); });
     }
     function leerForm() {
@@ -730,6 +759,9 @@
     async function guardar() {
         var b = $("ev-guardar"), err = $("ev-error");
         err.hidden = true;
+        // 21-nov-2026: al guardar desde otro paso (editar), la lista de «Solo de…» se trae antes para revisarla aquí y abrir
+        // «Qué lleva» si algo no cuadra (el aviso del servidor todavía nombra el paso con su número viejo)
+        if ($("ev-solo").checked) await cargarSolo();
         for (var p = 1; p <= PASOS.length; p++) {          // si algo falta, se abre ese paso y lo dice
             var falta = errorDePaso(p);
             if (falta) { E.paso = p; pintarPasos(); err.textContent = falta; err.hidden = false; verError(); return; }
@@ -1067,6 +1099,7 @@
         $("ev-adjuntar").addEventListener("change", pintarVista);
         document.querySelectorAll('input[name="ev-lugar"]').forEach(function (r) { r.addEventListener("change", function () { pintarLugar(); pintarVista(); }); });
         $("ev-excel").addEventListener("change", pintarConc);
+        ["ev-xml", "ev-excel", "ev-docs"].forEach(function (id) { $(id).addEventListener("change", pintarCorteLleva); });
         $("ev-conc").addEventListener("change", function () {
             var j = E.op.conciliacion.juegos[$("ev-conc").value];
             if (j) E.hojasConc = new Set(j);
