@@ -150,8 +150,11 @@
         // 20-nov-2026 (Alan): un envío incompleto no sale solo; se detiene y el titular decide
         if (e.detenido) {
             var manual = String(e.detenido).indexOf("m|") === 0;
-            var txt = manual ? "No se mandó: al validar, al SAT le faltó entregar algo (el detalle está en tu campana)."
+            var txt = manual ? "No se mandó: al validar, al SAT le faltó entregar algo (el detalle está en tu campana). El envío programado sigue su calendario."
                              : "No salió: lleva 24 horas incompleto contra el SAT (el detalle está en tu campana).";
+            // 21-nov-2026 (auditoría M3): el «Enviar ahora» en espera ya no frena al programado; si los dos esperan, primero
+            // se decide el programado y después sale este otro
+            if (!manual && e.detenido_manual) txt += " Además, hay un «Enviar ahora» en espera de tu decisión: lo verás al decidir este.";
             return '<div class="ev-detenido"><p><b>' + (manual ? "En espera de tu decisión" : "Detenido") + "</b> · " + esc(txt) + "</p>" +
                 (E.titular ? '<div class="ev-detenido__botones"><button type="button" class="ui-btn ui-btn--primario ui-btn--28" data-accion="decidir" data-decision="mandar">Mandar así</button>' +
                     '<button type="button" class="ui-btn ui-btn--secundario ui-btn--28" data-accion="decidir" data-decision="esperar">' + (manual ? "No mandar" : "Seguir esperando 24 h") + "</button></div>"
@@ -430,6 +433,8 @@
         if (n === 3) {
             var c = leerForm().contenido;
             if (!c.xml.length && !c.excel.length && !c.docs.length) return "Marca al menos una cosa que mandar (XML y PDF, algún Excel, la constancia o la opinión).";
+            var solo = errorDeSolo();
+            if (solo) return solo;
         }
         if (n === 4 && $("ev-frecuencia").value === UNA_VEZ) {
             if (mesesUna().length > 12) return "Se mandan hasta 12 meses de una vez: acorta el periodo.";
@@ -457,12 +462,14 @@
         if (E.paso === 4) pintarPeriodo();
         if (E.paso === 3 && $("ev-solo").checked) cargarSolo();
     }
+    // El aviso va al final del formulario: en un paso largo (Qué lleva) quedaba fuera de la vista (21-nov-2026)
+    function verError() { try { $("ev-error").scrollIntoView({ block: "nearest" }); } catch (x) { /* navegador viejo */ } }
     function irA(n) {
         var err = $("ev-error");
         err.hidden = true; abrirCombo(false);
         for (var p = E.paso; p < n; p++) {           // hacia adelante, cada paso de en medio tiene que estar bien
             var e = errorDePaso(p);
-            if (e) { E.paso = p; pintarPasos(); err.textContent = e; err.hidden = false; return false; }
+            if (e) { E.paso = p; pintarPasos(); err.textContent = e; err.hidden = false; verError(); return false; }
         }
         E.paso = Math.min(Math.max(n, 1), PASOS.length);
         pintarPasos();
@@ -487,6 +494,25 @@
         return salida;
     }
     function mesesUna() { return mesesEntre($("ev-una-desde").value, $("ev-una-hasta").value); }
+
+    /* 21-nov-2026 (auditoría M9): con el interruptor prendido y sin nadie elegido (o con elegidos que ya no salen en las
+       empresas del envío) no se guarda: una lista vacía es «todos» y el envío mandaría todo. El servidor revisa lo mismo. */
+    function errorDeSolo() {
+        if (!$("ev-solo").checked) return "";
+        if (!E.solo.proveedores.size && !E.solo.clientes.size)
+            return "Elige al menos un proveedor o cliente en «Solo de estos proveedores / clientes», o apaga esa opción. Sin ninguno, el envío mandaría todo.";
+        var emp = Array.from(E.marcadas).sort().join(",");
+        if (!E.soloLista || E.soloDe !== emp) return "";          // la lista de estas empresas no ha llegado: lo revisa el servidor
+        var lados = ["proveedores", "clientes"];
+        for (var i = 0; i < lados.length; i++) {
+            var lado = lados[i], hay = {};
+            if (!E.solo[lado].size) continue;
+            (E.soloLista[lado] || []).forEach(function (x) { hay[x.rfc] = true; });
+            if (!Array.from(E.solo[lado]).some(function (r) { return hay[r]; }))
+                return "Ninguno de los " + lado + " elegidos tiene comprobantes con las empresas de este envío. Elige otros o apaga «Solo de estos proveedores / clientes»: si no, el envío mandaría lo de todos los " + lado + ".";
+        }
+        return "";
+    }
 
     /* --- «Solo de estos proveedores / clientes» (21-nov-2026): la lista sale de los XML de las empresas elegidas en el paso 2 */
     async function cargarSolo() {
@@ -535,7 +561,7 @@
                     '</span><button type="button" data-quitar-solo="' + lado + "|" + esc(rfc) + '" aria-label="Quitar ' + esc(nombreSolo(lado, rfc)) + '">×</button></span>');
             });
         });
-        $("ev-solo-elegidos").innerHTML = piezas.length ? piezas.join("") : '<span class="ev-elegidas__vacio">Ninguno elegido: van todos.</span>';
+        $("ev-solo-elegidos").innerHTML = piezas.length ? piezas.join("") : '<span class="ev-elegidas__vacio">Ninguno elegido todavía: elige al menos uno (o apaga esta opción para que vayan todos).</span>';
     }
 
     function abrirForm(e, base, copia) {
@@ -658,7 +684,7 @@
         err.hidden = true;
         for (var p = 1; p <= PASOS.length; p++) {          // si algo falta, se abre ese paso y lo dice
             var falta = errorDePaso(p);
-            if (falta) { E.paso = p; pintarPasos(); err.textContent = falta; err.hidden = false; return; }
+            if (falta) { E.paso = p; pintarPasos(); err.textContent = falta; err.hidden = false; verError(); return; }
         }
         var datos = leerForm(), una = datos.frecuencia === UNA_VEZ && !E.editando;
         if (una) {          // sale en este momento: se confirma a quién y qué periodo
@@ -680,7 +706,7 @@
                 return;
             }
             Fiscontable.toast(E.editando ? "Envío guardado." : datos.empresas.length ? "Envío creado. Pruébalo con «Enviar ahora»." : "Envío creado. Marca sus empresas y pruébalo con «Enviar ahora».");
-        } catch (e) { err.textContent = e.message; err.hidden = false; }
+        } catch (e) { err.textContent = e.message; err.hidden = false; verError(); }
         finally { b.disabled = false; }
     }
 

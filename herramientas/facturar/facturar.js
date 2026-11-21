@@ -1936,8 +1936,11 @@
         var prod = F.cfg.produccion;
         var faltan = reqs.filter(function (r) { return r.estado === "falta" && (prod || r.id === "datos"); });
         ["vista-nueva", "vista-pagos"].forEach(function (id) {
-            var vista = $(id); if (!vista) return;
-            var lay = vista.querySelector(".fa-layout"), aviso = vista.querySelector(".fa-bloqueo");
+            // 21-nov-2026 (auditoría M5): se llamaba «vista» y tapaba la función vista(): el botón «Completar …» de
+            // Recibos de pago fallaba con «vista is not a function». Revisión de todo el JS (repo del servidor):
+            // herramientas/relevo/pruebas/noche10_fix1/sombras_js.js.
+            var caja = $(id); if (!caja) return;
+            var lay = caja.querySelector(".fa-layout"), aviso = caja.querySelector(".fa-bloqueo");
             var bloquear = faltan.length > 0 && !F.incrustado;
             if (lay) { lay.classList.toggle("fa-layout--bloqueado", bloquear); if (bloquear) lay.setAttribute("inert", ""); else lay.removeAttribute("inert"); }
             if (!bloquear) { if (aviso) aviso.hidden = true; return; }

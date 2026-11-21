@@ -146,6 +146,9 @@
                 "<small>" + (m.nombre ? esc(m.correo) + " · " : "") + (datos.titular ? esc(resumenPermisos(m)) : "") + "</small>" +
                 (datos.titular && textoMiEspacio(m) ? '<small class="dp-quien-me">' + esc(textoMiEspacio(m)) + "</small>" : "") + "</span>" +
                 '<span class="dp-lado">' + estado + (datos.titular ? chipMiEspacio(m) : "") + '<span class="dp-etiqueta dp-etiqueta--' + esc(m.papel) + '">' + esc(m.nombre_papel) + "</span>" +
+                // 21-nov-2026 (auditoría M1): a quien se le venció el enlace de 72 h (o no le llegó) se le manda uno nuevo
+                (datos.titular && m.estado === "invitado" ? '<button type="button" class="ui-btn ui-btn--secundario ui-btn--28" data-reenviar="' + esc(m.correo) +
+                    '" title="Le manda un enlace nuevo (vence en 72 horas)">Reenviar invitación</button>' : "") +
                 (datos.titular ? '<button type="button" class="ui-btn ui-btn--secundario ui-btn--28" data-editar="' + esc(m.correo) + '">Permisos</button>' : "") +
                 "</span></li>";
         }).join("") : '<li class="dp-lista__vacio">Todavía no hay nadie en el equipo.</li>';
@@ -584,6 +587,20 @@
         } catch (e) { aviso(e.message); }
     }
 
+    async function reenviarInvitacion(b) {
+        var correo = b.dataset.reenviar, texto = b.textContent;
+        b.disabled = true; b.textContent = "Mandando…";
+        try {
+            var r = await pedir("/api/despacho/miembros/" + encodeURIComponent(correo) + "/reenviar", { method: "POST", body: {} });
+            aviso(r.como === "enlace" ? "Listo: le mandamos a " + correo + " un enlace nuevo. Vence en 72 horas."
+                                      : "Listo: le volvimos a mandar la invitación a " + correo + ".");
+            b.textContent = "Reenviada";
+        } catch (err) {
+            aviso(err.message);
+            b.disabled = false; b.textContent = texto;
+        }
+    }
+
     // ------------------------------------------------------------------ eventos
     document.querySelector(".dp-vistas").addEventListener("click", function (e) {
         var b = e.target.closest("[data-vista]");
@@ -597,6 +614,8 @@
         cargarSolicitudes();
     });
     $("dp-equipo").addEventListener("click", function (e) {
+        var r = e.target.closest("[data-reenviar]");
+        if (r) return reenviarInvitacion(r);
         var b = e.target.closest("[data-editar]");
         if (b) abrirModal(datos.equipo.filter(function (m) { return m.correo === b.dataset.editar; })[0]);
     });

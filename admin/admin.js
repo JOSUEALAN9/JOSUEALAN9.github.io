@@ -425,7 +425,11 @@ function abrirAjustesUsuario(correo) {
     $("ajustes-casillas").innerHTML = rolesCache.modulos.map(m => chipModulo(m, marcados.includes(m.clave), "ajuste-modulo")).join("");
 
     const sel = $("ajustes-limite-modo");
-    sel.options[0].textContent = `El de su rol (${nombreLimite(delRol.limite_rfc_diario)})`;
+    // 21-nov-2026 (A3): una cuenta con plan de despacho tiene, de fábrica, 4 × su tope de RFC si el rol trae menos
+    const rolLim = delRol.limite_rfc_diario, delPlan = u.limite_del_plan;
+    sel.options[0].textContent = delPlan && rolLim && rolLim < delPlan
+        ? `El de su rol, con su plan de despacho (${nombreLimite(delPlan)})`
+        : `El de su rol (${nombreLimite(rolLim)})`;
     if (u.limite_propio === "rol") { sel.value = "rol"; $("ajustes-limite").value = ""; }
     else if (u.limite_propio === "sin") { sel.value = "sin"; $("ajustes-limite").value = ""; }
     else { sel.value = "numero"; $("ajustes-limite").value = u.limite_propio; }
