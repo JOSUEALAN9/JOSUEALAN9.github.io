@@ -1935,7 +1935,8 @@ async function olvidarEfirma(rfc) {
 async function eliminarCliente(rfc) {
     try {
         const hecho = await conPin("borrar_empresa", { titulo: "Quitar a " + rfc + " de tus clientes", boton: "Quitar cliente", peligro: true,
-            resumen: '<p class="fc-identidad__aviso">No borra los documentos ya generados; solo lo saca de tu directorio y de sus programaciones.</p>' },
+            resumen: '<p class="fc-identidad__aviso">No borra los documentos ya generados; solo lo saca de tu directorio y de sus programaciones. ' +
+                'Su sello digital (CSD) se borra y, si tenía timbres, regresan a los de tu cuenta.</p>' },
             (c) => fetch(`${API_URL}/api/clientes/${encodeURIComponent(rfc)}`, { method: "DELETE", credentials: "include", headers: { "X-Confirmacion": c } }));
         if (!hecho) return;
         await cargarClientes();
@@ -2019,26 +2020,88 @@ async function apiJson(ruta, cuerpo) {
 }
 const campoDialogo = (id) => { const x = document.querySelector("dialog.fc-identidad[open] #" + id); return x ? x.value.trim() : ""; };
 
+/* 20-nov-2026 (caso real de Alan: «no aparece algo de que se está migrando»): la misma caja muestra el avance de una entrega
+   aceptada («Recibiendo 3 empresa(s) de …» con «2 de 3 listas»), se vuelve a preguntar sola cada pocos segundos mientras
+   corre y desaparece al terminar (con un aviso de que ya llegaron). Si algo no pasó, queda una caja con «Ver qué pasó»
+   (el estado de cada empresa en el plan de la migración) hasta que la ocultes o pasen 7 días. */
+const ENT_SONDEO_MS = 4000, ENT_DIAS_FALLA = 7, LLAVE_ENT_OCULTAS = "fc:entregas-ocultas";
+const entOcultas = () => { try { return JSON.parse(localStorage.getItem(LLAVE_ENT_OCULTAS) || "[]"); } catch (x) { return []; } };
+function entOcultar(id) { try { localStorage.setItem(LLAVE_ENT_OCULTAS, JSON.stringify(entOcultas().concat(id).slice(-50))); } catch (x) { /* sin almacenamiento */ } }
+const entCorriendo = new Set();
+
+function cajaAvance(x, recibida) {
+    const a = x.avance, n = a.total, hechas = a.listas + a.fallas, pct = n ? Math.round(hechas * 100 / n) : 0;
+    const quien = recibida ? `de <b>${esc(x.quien)}</b>` : `a <b>${esc(x.destino)}</b>`;
+    return `<div class="cli-traspaso cli-traspaso--curso" data-ent-curso="${x.id}"><span>` +
+        `<span class="cli-traspaso__titulo">${recibida ? "Recibiendo" : "Entregando"} ${n} empresa(s) ${quien}… <b>(${hechas} de ${n} listas)</b></span>` +
+        `<span class="cli-traspaso__barra" role="progressbar" aria-valuemin="0" aria-valuemax="${n}" aria-valuenow="${hechas}"><i style="width:${Math.max(pct, 4)}%"></i></span>` +
+        `<small>Puede tardar unos minutos: pasa todo su historial (XML, documentos, Buzón, facturas). Quedan en ${esc(a.donde)}. Puedes seguir trabajando; te avisamos en la campana al terminar.</small>` +
+        `</span></div>`;
+}
+function cajaFalla(x, recibida) {
+    const a = x.avance, mal = a.empresas.filter(m => m.estado !== "ok"), n = a.total;
+    const titulo = a.estado === "detenida" ? `Se detuvo el paso de las empresas ${recibida ? "de" : "que entregaste a"} ${esc(recibida ? x.quien : x.destino)}`
+        : (a.listas ? `Pasaron ${a.listas} de ${n} empresas; ${mal.length} no` : `No se pudieron pasar las empresas ${recibida ? "de " + esc(x.quien) : "que entregaste a " + esc(x.destino)}`);
+    const sigue = recibida ? `Las que no pasaron siguen en la cuenta de ${esc(x.quien)}: no se movió nada de ellas y te las puede volver a entregar.`
+        : "Las que no pasaron siguen en tu cuenta: puedes volver a entregarlas.";
+    return `<div class="cli-traspaso cli-traspaso--mal" data-ent-falla="${x.id}"><span><span class="cli-traspaso__titulo"><b>${titulo}</b></span>` +
+        `<details class="cli-traspaso__detalle"><summary>Ver qué pasó</summary><ul>` +
+        a.empresas.map(m => `<li><b>${esc(m.nombre)}</b> <span>${esc(m.rfc)}</span> — ${esc(m.estado === "pendiente" ? (a.estado === "detenida" ? "No alcanzó a pasar" : "En espera") : m.texto)}` +
+            `${m.mensaje ? ": " + esc(m.mensaje) : ""}</li>`).join("") + `</ul><small>${sigue}</small></details></span>` +
+        `<span class="cli-traspaso__acc"><button type="button" class="ui-btn ui-btn--secundario ui-btn--32" data-ent-ocultar="${x.id}">Ocultar</button></span></div>`;
+}
+const entReciente = (a) => !a.terminada || (Date.now() - new Date(a.terminada + "Z")) < ENT_DIAS_FALLA * 864e5;
+
 async function pintarTraspasos() {
     const caja = document.getElementById("cli-traspasos");
     if (!caja || soloLectura) return;
-    let d = { recibidas: [], mis_cuentas: [] };
+    let d = { recibidas: [], enviadas: [], mis_cuentas: [] };
     try { d = await apiJson("/api/empresas/entregas"); } catch (x) { /* sin entregas */ }
     const pend = (d.recibidas || []).filter(e => e.estado === "pendiente");
     const e = espacioCli, personales = e && e.tipo === "personal" && e.despacho && !e.despacho.propia ? (clientesCache || []) : [];
-    caja.innerHTML = pend.map(x => `<div class="cli-traspaso"><span><b>${esc(x.quien)}</b> te quiere entregar ${x.empresas.length} empresa(s): ` +
-            `${esc(x.nombres.map(n => n.nombre).join(", "))}${x.nota ? ` <i>«${esc(x.nota)}»</i>` : ""}</span>` +
-            `<span class="cli-traspaso__acc"><button type="button" class="ui-btn ui-btn--primario ui-btn--32" data-ent-aceptar="${x.id}">Ver y aceptar</button>` +
+    const ocultas = entOcultas(), todas = [...(d.recibidas || []).map(x => [x, true]), ...(d.enviadas || []).map(x => [x, false])];
+    const vistas = new Set(), curso = [], fallas = [];
+    todas.forEach(([x, rec]) => {
+        if (!x.avance || vistas.has(x.id)) return;
+        vistas.add(x.id);
+        if (x.avance.estado === "en_curso") curso.push([x, rec]);
+        else if ((x.avance.fallas || x.avance.estado === "detenida") && entReciente(x.avance) && !ocultas.includes(x.id)) fallas.push([x, rec]);
+    });
+    // Las que estaban pasando en esta página y ya terminaron: aviso y la lista de empresas al día
+    const ahora = new Set(curso.map(([x]) => x.id));
+    const acabaron = [...entCorriendo].filter(id => !ahora.has(id));
+    entCorriendo.clear(); ahora.forEach(id => entCorriendo.add(id));
+    const noPuede = d.no_puede_recibir;
+    caja.innerHTML = curso.map(([x, rec]) => cajaAvance(x, rec)).join("") + pend.map(x => `<div class="cli-traspaso"><span><b>${esc(x.quien)}</b> te quiere entregar ${x.empresas.length} empresa(s): ` +
+            `${esc(x.nombres.map(n => n.nombre).join(", "))}${x.nota ? ` <i>«${esc(x.nota)}»</i>` : ""}` +
+            `<small>${noPuede ? esc(noPuede) : "Nada se mueve hasta que la aceptes con tu PIN."}</small></span>` +
+            `<span class="cli-traspaso__acc">${noPuede ? "" : `<button type="button" class="ui-btn ui-btn--primario ui-btn--32" data-ent-aceptar="${x.id}">Ver y aceptar</button>`}` +
             `<button type="button" class="ui-btn ui-btn--secundario ui-btn--32" data-ent-rechazar="${x.id}">Rechazar</button></span></div>`).join("") +
+        fallas.map(([x, rec]) => cajaFalla(x, rec)).join("") +
         (personales.length ? `<div class="cli-traspaso cli-traspaso--suave"><span>Tienes ${personales.length} empresa(s) en <b>Mi espacio</b>. ` +
             `¿Son del despacho «${esc(e.despacho.nombre)}»?</span><span class="cli-traspaso__acc"><button type="button" class="ui-btn ui-btn--secundario ui-btn--32" data-pasar-todas>` +
             `${e.despacho.agregar ? "Pasar todas al despacho" : "Pedir pasarlas al despacho"}</button></span></div>` : "");
     caja.hidden = !caja.innerHTML;
     caja._entregas = d;
-    if (/[?&]entregas=1\b/.test(location.search) && pend.length && !caja._abierta) { caja._abierta = true; aceptarEntrega(pend[0].id); }
+    clearTimeout(caja._sondeo);
+    if (curso.length) caja._sondeo = setTimeout(pintarTraspasos, ENT_SONDEO_MS);
+    if (acabaron.length) {
+        const x = todas.map(([t]) => t).find(t => t.id === acabaron[0]);
+        const a = x && x.avance;
+        if (a && !a.fallas && a.estado !== "detenida") mostrarAlerta("success", `Ya llegaron las empresas: ${a.empresas.map(m => m.nombre).join(", ")}.`);
+        else if (a) mostrarAlerta("error", "No pasaron todas las empresas. Abre «Ver qué pasó» para saber por qué.");
+        cargarClientes();
+    }
+    if (/[?&]entregas=1\b/.test(location.search) && !caja._abierta) {
+        caja._abierta = true;
+        if (pend.length && !noPuede) aceptarEntrega(pend[0].id);
+        else if (!caja.hidden) caja.scrollIntoView({ block: "start", behavior: "smooth" });
+    }
 }
 document.addEventListener("click", (ev) => {
     const a = ev.target.closest("[data-ent-aceptar]"), r = ev.target.closest("[data-ent-rechazar]"), p = ev.target.closest("[data-pasar-todas]");
+    const o = ev.target.closest("[data-ent-ocultar]");
+    if (o) { entOcultar(+o.dataset.entOcultar); pintarTraspasos(); return; }
     if (a) aceptarEntrega(+a.dataset.entAceptar);
     else if (r) rechazarEntrega(+r.dataset.entRechazar);
     else if (p) pasarTodas();
@@ -2069,15 +2132,24 @@ async function aceptarEntrega(id) {
     const x = (d.recibidas || []).find(e => e.id === id);
     if (!x) return;
     const cuentas = d.mis_cuentas || [];
+    if (!cuentas.length) { mostrarAlerta("error", d.no_puede_recibir || "Ahora no puedes recibir empresas."); return; }
+    // 20-nov-2026: a dónde quedan, dicho antes del PIN; el despacho va primero (el servidor lo ordena) y sale elegido
+    const quedan = (c) => `Quedarán <b>${esc(c.quedan || ("en " + c.nombre))}</b>.`;
+    let res = null;
     const hecho = await Fiscontable.confirmarIdentidad("aceptar_entrega", async (conf) => {
-        await apiJson(`/api/empresas/entregas/${id}/aceptar`, { cuenta_destino: campoDialogo("ent-cuenta"), confirmacion: conf });
+        res = await apiJson(`/api/empresas/entregas/${id}/aceptar`, { cuenta_destino: campoDialogo("ent-cuenta"), confirmacion: conf });
     }, { titulo: "Recibir " + x.empresas.length + " empresa(s) de " + x.quien, boton: "Recibir",
          resumen: Fiscontable.resumenPresentacion({ aviso: "Pasan con todo su historial:", filas: x.nombres.map(n => ({ nombre: n.nombre, detalle: n.rfc })),
-                                                    pie: "Escribe tu PIN para recibirlas." }) +
-            (cuentas.length > 1 ? '<label class="ui-campo"><span class="ui-etiqueta">¿Dónde las recibes?</span><select class="ui-input" id="ent-cuenta">' +
-                cuentas.map(c => `<option value="${esc(c.cuenta)}">${esc(c.nombre)}</option>`).join("") + "</select></label>"
-                : `<input type="hidden" id="ent-cuenta" value="${esc((cuentas[0] || {}).cuenta || "")}">`) });
-    if (hecho) { mostrarAlerta("success", "Listo: las empresas están pasando a tu cuenta con su historial. Aparecen en unos segundos."); setTimeout(() => { cargarClientes(); pintarTraspasos(); }, 2500); }
+                                                    pie: "Nada se mueve hasta que escribas tu PIN. Puede tardar unos minutos: pasa todo su historial." }) +
+            (cuentas.length > 1 ? '<label class="ui-campo"><span class="ui-etiqueta">¿Dónde las recibes?</span><select class="ui-input" id="ent-cuenta" ' +
+                'onchange="this.closest(\'dialog\').querySelector(\'#ent-quedan\').innerHTML=this.selectedOptions[0].dataset.quedan">' +
+                cuentas.map((c, i) => `<option value="${esc(c.cuenta)}"${i ? "" : " selected"} data-quedan="${esc(quedan(c))}">${esc(c.nombre)}</option>`).join("") + "</select></label>"
+                : `<input type="hidden" id="ent-cuenta" value="${esc(cuentas[0].cuenta)}">`) +
+            `<p class="fc-identidad__aviso cli-ent-quedan" id="ent-quedan">${quedan(cuentas[0])}</p>` });
+    if (hecho) {
+        mostrarAlerta("success", `Listo: las empresas se están pasando con todo su historial y quedarán ${(res && res.quedan) || "en tu cuenta"}. Puede tardar unos minutos; aquí ves el avance.`);
+        pintarTraspasos();
+    }
 }
 
 async function rechazarEntrega(id) {
@@ -2109,7 +2181,7 @@ async function borrarTodo(rfc) {
         await apiJson(`/api/empresas/${encodeURIComponent(rfc)}/borrar-todo`, { rfc_escrito: campoDialogo("bt-rfc"), confirmacion: conf });
     }, { titulo: "Borrar todo de " + (c.alias || rfc), boton: "Borrar todo", peligro: true,
          resumen: '<p class="fc-identidad__aviso">Se borra la empresa y <b>todo su historial</b>: XML, documentos, retenciones, Buzón, declaraciones, facturas y sus archivos. ' +
-            "<b>No se puede deshacer.</b> Si solo quieres sacarla de tu directorio, usa «Quitar del directorio».</p>" +
+            "Si tenía timbres, regresan a los de tu cuenta. <b>No se puede deshacer.</b> Si solo quieres sacarla de tu directorio, usa «Quitar del directorio».</p>" +
             '<label class="ui-campo"><span class="ui-etiqueta">Escribe su RFC para confirmar</span><input class="ui-input" id="bt-rfc" autocomplete="off" placeholder="' + esc(rfc) + '"></label>' });
     if (hecho) { mostrarAlerta("success", `Se borró ${c.alias || rfc} con todo su historial.`); await cargarClientes(); }
 }

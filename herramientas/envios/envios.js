@@ -10,12 +10,42 @@
  * ahora y ver el historial con su enlace, y trae la tabla de casillas «Envío 1…5» por empresa. En un despacho, los envíos y
  * sus destinatarios los define el titular; los demás solo marcan sus empresas. Todo lo demás (verificar contra el SAT,
  * armar el ZIP, el correo, el programador) lo hace el servidor: modulos/entregas.
+ *
+ * 21-nov-2026 (Alan, pase 38): «Enviar ahora» nombra sus dos cortes con la fecha y la hora reales del centro («Hasta el 20/11
+ * a las 23:59 · completo y verificado» / «Hasta hoy 21/11 a las 16:35 · trae lo de hoy del SAT»); el paso «Cada cuándo»
+ * tiene «Solo una vez, ahora» (sale al guardarlo; los ya enviados van plegados en «Enviados una vez»), y «Qué lleva» puede
+ * limitarse a ciertos proveedores o clientes.
  */
 (function () {
     "use strict";
     var API = Fiscontable.API, esc = Fiscontable.escapar;
     var $ = function (id) { return document.getElementById(id); };
-    var E = { envios: [], op: null, editando: null, histDe: null, reloj: 0, tope: 15, max: 5, titular: true, correos: {}, calculoN: 0 };
+    var E = { envios: [], op: null, editando: null, histDe: null, reloj: 0, tope: 15, max: 5, titular: true, correos: {}, calculoN: 0,
+              solo: { proveedores: new Set(), clientes: new Set() }, soloLado: "proveedores", soloLista: null, soloDe: "", soloN: 0 };
+    var UNA_VEZ = "una_vez";
+    function programados() { return E.envios.filter(function (e) { return e.frecuencia !== UNA_VEZ; }); }
+    function deUnaVez() { return E.envios.filter(function (e) { return e.frecuencia === UNA_VEZ; }); }
+
+    /* La hora del centro (21-nov-2026): los cortes se cuentan en la hora del centro de México, no en la de la computadora
+       (Alan vive en Cancún, una hora adelante). */
+    function enCentro(d) {
+        var p = {};
+        new Intl.DateTimeFormat("en-CA", { timeZone: "America/Mexico_City", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23" })
+            .formatToParts(d || new Date()).forEach(function (x) { p[x.type] = x.value; });
+        return { iso: p.year + "-" + p.month + "-" + p.day + "T" + p.hour + ":" + p.minute, mes: p.year + "-" + p.month, h: Number(p.hour) };
+    }
+    function corteAyer(c) {          // el corte de «Hasta ayer», igual que el servidor (cuadre.tope_de): ayer 23:59; de 23:00 a 23:59, hoy a la hora en punto anterior menos una
+        if (c.h >= 23) return c.iso.slice(0, 11) + String(c.h - 1).padStart(2, "0") + ":00";
+        var d = new Date(Date.UTC(Number(c.iso.slice(0, 4)), Number(c.iso.slice(5, 7)) - 1, Number(c.iso.slice(8, 10))) - 86400000);
+        return d.toISOString().slice(0, 10) + "T23:59";
+    }
+    function diaMes(iso) { return iso.slice(8, 10) + "/" + iso.slice(5, 7); }
+    /* «Hasta el 20/11 a las 23:59 · completo y verificado» y «Hasta hoy 21/11 a las 16:35 · trae lo de hoy del SAT» */
+    function pintarCortes(caja, ayer, ahora) {
+        if (!ayer || !ahora) { var c = enCentro(); ayer = corteAyer(c); ahora = c.iso; }
+        caja.querySelectorAll("[data-corte-ayer]").forEach(function (b) { b.textContent = "Hasta el " + diaMes(ayer) + " a las " + ayer.slice(11, 16) + " · completo y verificado"; });
+        caja.querySelectorAll("[data-corte-hoy]").forEach(function (b) { b.textContent = "Hasta hoy " + diaMes(ahora) + " a las " + ahora.slice(11, 16) + " · trae lo de hoy del SAT"; });
+    }
 
     async function api(ruta, op) {
         var resp;
@@ -100,7 +130,9 @@
     function lleva(c) {
         var xml = (c.xml || []).map(function (k) { return de(E.op.xml, k); });
         var n = (c.excel || []).length, docs = (c.docs || []).map(function (k) { return k === "csf" ? "constancia" : "opinión 32-D"; });
-        return [xml.length ? "XML y PDF de " + xml.join(", ").toLowerCase() : "", n ? plural(n, "Excel", "Excel") : "", docs.join(" y ")].filter(Boolean).join(" · ");
+        var cp = c.contrapartes || {}, np = (cp.proveedores || []).length, nc = (cp.clientes || []).length, oc = cp.ocultas || 0;
+        var solo = np || nc || oc ? "solo de " + [np ? plural(np, "proveedor", "proveedores") : "", nc ? plural(nc, "cliente", "clientes") : "", oc ? oc + " más" : ""].filter(Boolean).join(" y ") : "";
+        return [xml.length ? "XML y PDF de " + xml.join(", ").toLowerCase() : "", n ? plural(n, "Excel", "Excel") : "", docs.join(" y "), solo].filter(Boolean).join(" · ");
     }
     // Lo que el robot va haciendo con un envío en curso (18-nov): fila, lista del SAT, validación una por una, armado
     function textoAvance(a) {
@@ -110,6 +142,7 @@
         if (a.fase === "verificando") return "Pidiendo al SAT la lista del mes…";
         if (a.fase === "validando") return a.total ? "Validando ante el SAT: " + miles(a.hechos) + " de " + miles(a.total) + "…" : "Validando ante el SAT…";
         if (a.fase === "documentos") return a.total ? "Pidiendo al SAT la constancia u opinión nueva: " + miles(a.hechos) + " de " + miles(a.total) + "…" : "Revisando la constancia y la opinión…";
+        if (a.fase === "hoy_portal") return "Trayendo lo de hoy del SAT" + (a.total ? " (" + Math.min(a.hechos + 1, a.total) + " de " + plural(a.total, "empresa", "empresas") + ")" : "") + "…";
         if (a.fase === "esperando") return "Esperando la lista del SAT: llegaron " + miles(a.hechos) + " de " + miles(a.total) + " empresas (espera hasta " + (E.esperaListas || 15) + " min)…";
         return "Armando el ZIP y mandando el correo…";
     }
@@ -117,8 +150,11 @@
         // 20-nov-2026 (Alan): un envío incompleto no sale solo; se detiene y el titular decide
         if (e.detenido) {
             var manual = String(e.detenido).indexOf("m|") === 0;
-            var txt = manual ? "No se mandó: al validar, al SAT le faltó entregar algo (el detalle está en tu campana)."
+            var txt = manual ? "No se mandó: al validar, al SAT le faltó entregar algo (el detalle está en tu campana). El envío programado sigue su calendario."
                              : "No salió: lleva 24 horas incompleto contra el SAT (el detalle está en tu campana).";
+            // 21-nov-2026 (auditoría M3): el «Enviar ahora» en espera ya no frena al programado; si los dos esperan, primero
+            // se decide el programado y después sale este otro
+            if (!manual && e.detenido_manual) txt += " Además, hay un «Enviar ahora» en espera de tu decisión: lo verás al decidir este.";
             return '<div class="ev-detenido"><p><b>' + (manual ? "En espera de tu decisión" : "Detenido") + "</b> · " + esc(txt) + "</p>" +
                 (E.titular ? '<div class="ev-detenido__botones"><button type="button" class="ui-btn ui-btn--primario ui-btn--28" data-accion="decidir" data-decision="mandar">Mandar así</button>' +
                     '<button type="button" class="ui-btn ui-btn--secundario ui-btn--28" data-accion="decidir" data-decision="esperar">' + (manual ? "No mandar" : "Seguir esperando 24 h") + "</button></div>"
@@ -133,18 +169,22 @@
         return '<p class="ev-ultimo">Último: ' + esc(cuando(u.momento, true)) + " · " + esc(txt) + "</p>";
     }
     function pintar() {
-        var caja = $("ev-lista");
+        var caja = $("ev-lista"), todos = E.envios, lista = programados();
         caja.classList.toggle("ev-solo-lectura", !E.titular);
-        $("ev-nuevo").hidden = !E.titular || E.envios.length >= E.max || !E.envios.length;      // vacío: el botón va en el propio aviso, uno solo
-        if (!E.envios.length) {
+        // El botón: con lugar para un programado, o siempre que se pueda mandar uno «Solo una vez» (no cuenta en el límite)
+        $("ev-nuevo").hidden = !E.titular || !todos.length;      // vacío: el botón va en el propio aviso, uno solo
+        pintarUnaVez();
+        if (!lista.length) {
             caja.innerHTML = '<div class="ui-vacio ev-vacio"><b>Todavía no hay envíos</b><span>' + (E.titular
                 ? "Crea hasta " + E.max + " para que los XML, PDF, Excel, constancias y opiniones de tus empresas salgan solos por correo."
                 : "Los define el titular del despacho. Cuando existan, aquí marcas cuáles de tus empresas van en cada uno.") + "</span>" +
                 (E.titular ? '<button type="button" class="ui-btn ui-btn--primario ui-btn--32" data-accion="nuevo">+ Nuevo envío</button>' : "") + "</div>";
+            if (todos.length) caja.innerHTML = '<div class="ui-vacio ev-vacio"><b>No hay envíos programados</b><span>' +
+                (E.titular ? "Los de «Solo una vez» están abajo. Crea uno programado con «+ Nuevo envío»." : "Los define el titular del despacho.") + "</span></div>";
             pintarMatriz();
             return;
         }
-        caja.innerHTML = E.envios.map(function (e) {
+        caja.innerHTML = lista.map(function (e) {
             var emp = e.empresas.length ? plural(e.empresas.length, "empresa", "empresas") + ": " + e.empresas.slice(0, 3).map(nombreEmpresa).join(", ") +
                 (e.empresas.length > 3 ? " y " + (e.empresas.length - 3) + " más" : "") : "ninguna todavía: márcalas abajo";
             var para = e.destino === "cliente" ? "cada cliente, a su correo" + (e.para.concat(e.cc || []).length ? " · copia a " + e.para.concat(e.cc || []).join(", ") : "")
@@ -160,7 +200,7 @@
                 ultimo(e) +
                 '<div class="ev-acciones"><button type="button" class="ui-btn ui-btn--secundario ui-btn--32" data-accion="enviar"' + (e.en_curso || !e.empresas.length ? " disabled" : "") + ">Enviar ahora</button>" +
                 '<button type="button" class="ui-btn ui-btn--terciario ui-btn--32" data-accion="historial">Historial</button>' +
-                (E.titular && E.envios.length < E.max ? '<button type="button" class="ui-btn ui-btn--terciario ui-btn--32" data-accion="duplicar" title="Otro envío con esta misma configuración">Duplicar</button>' : "") +
+                (E.titular ? '<button type="button" class="ui-btn ui-btn--terciario ui-btn--32" data-accion="duplicar" title="Otro envío con esta misma configuración">Duplicar</button>' : "") +
                 '<button type="button" class="ui-btn ui-btn--terciario ui-btn--32" data-accion="editar">Editar</button></div></article>';
         }).join("");
         pintarMatriz();
@@ -168,9 +208,29 @@
     async function cargar() {
         var r = await api("/api/entregas");
         E.envios = r.envios; E.tope = r.tope_adjunto_mb; E.hora = r.hora; E.limite = r.hora_limite; E.max = r.max; E.titular = r.titular; E.esperaListas = r.espera_listas_min;
+        E.portalHoy = r.portal_hoy_min;
         pintar();
         clearTimeout(E.reloj);
         if (E.envios.some(function (e) { return e.en_curso; })) E.reloj = setTimeout(function () { cargar().catch(function () { /* se reintenta al siguiente */ }); }, 4000);
+    }
+
+    /* ============================================================ «Enviados una vez» (21-nov-2026)
+       Los «Solo una vez, ahora» ya salieron y no vuelven a salir solos: van plegados, del más nuevo al más viejo, cada uno con
+       cuándo salió, qué periodo y corte llevó, cómo quedó y sus botones (Historial, Duplicar, Borrar). */
+    function pintarUnaVez() {
+        var sec = $("ev-unavez"), lista = deUnaVez().sort(function (a, b) { return (b.creado_en || "").localeCompare(a.creado_en || ""); });
+        sec.hidden = !lista.length;
+        if (!lista.length) { $("ev-unavez-lista").innerHTML = ""; return; }
+        $("ev-unavez-cuenta").textContent = plural(lista.length, "envío", "envíos");
+        $("ev-unavez-lista").innerHTML = lista.map(function (e) {
+            var u = e.una_vez || {}, para = e.destino === "cliente" ? "cada cliente, a su correo" : e.para.concat(e.cc || []).join(", ");
+            var corte = u.corte === "ahora" ? "hasta hoy" : "hasta ayer";
+            return '<article class="ev-unavez__fila" data-id="' + esc(e.id) + '"><div class="ev-unavez__txt"><b>' + esc(e.nombre) + "</b><small>" +
+                esc([e.periodo_una_vez, corte, "a " + para].filter(Boolean).join(" · ")) + "</small>" + ultimo(e) + "</div>" +
+                '<div class="ev-acciones"><button type="button" class="ui-btn ui-btn--terciario ui-btn--28" data-accion="historial">Historial</button>' +
+                (E.titular ? '<button type="button" class="ui-btn ui-btn--terciario ui-btn--28" data-accion="duplicar" title="Uno nuevo con lo mismo">Duplicar</button>' +
+                    '<button type="button" class="ui-btn ui-btn--terciario ui-btn--28 ev-borrar" data-accion="borrar">Borrar</button>' : "") + "</div></article>";
+        }).join("");
     }
 
     /* ============================================================ las casillas «Envío 1…5» por empresa */
@@ -179,25 +239,26 @@
         return E.op.empresas.filter(function (e) { return !q || e.alias.toLowerCase().indexOf(q) !== -1 || e.rfc.toLowerCase().indexOf(q) !== -1; });
     }
     function pintarMatriz() {
-        var sec = $("ev-matriz");
-        sec.hidden = !E.envios.length || !E.op.empresas.length;
+        var sec = $("ev-matriz"), lista = programados();          // los de una vez ya salieron: no llevan casillas
+        sec.hidden = !lista.length || !E.op.empresas.length;
         if (sec.hidden) return;
         // Plegada para el titular (ya marca las empresas en el formulario); abierta para quien solo puede marcar las suyas
         if (!E.matrizVista) { E.matrizVista = true; sec.open = !E.titular; }
-        var marcadas = new Set(); E.envios.forEach(function (e) { e.empresas.forEach(function (r) { marcadas.add(r); }); });
+        var marcadas = new Set(); lista.forEach(function (e) { e.empresas.forEach(function (r) { marcadas.add(r); }); });
         $("ev-matriz-cuenta").textContent = plural(marcadas.size, "empresa marcada", "empresas marcadas") + " de " + E.op.empresas.length;
-        var lista = visibles();
-        $("ev-matriz-enc").innerHTML = "<tr><th>Empresa</th>" + E.envios.map(function (e) {
+        var envs = lista;
+        lista = visibles();
+        $("ev-matriz-enc").innerHTML = "<tr><th>Empresa</th>" + envs.map(function (e) {
             var todas = lista.length && lista.every(function (x) { return e.empresas.indexOf(x.rfc) !== -1; });
             return '<th class="ev-col' + (e.activa ? "" : " ev-col--apagado") + '"><label title="Marcar o quitar todas las que ves en «' + esc(e.nombre) + '»"><span>Envío ' + e.numero + "</span><small>" + esc(e.nombre) +
                 '</small><input type="checkbox" data-todas="' + esc(e.id) + '"' + (todas ? " checked" : "") + ' aria-label="Todas las que ves en Envío ' + e.numero + '"></label></th>';
         }).join("") + "</tr>";
         $("ev-matriz-cuerpo").innerHTML = lista.length ? lista.map(function (x) {
-            return "<tr><td>" + esc(x.alias) + (x.alias !== x.rfc ? " <small>" + esc(x.rfc) + "</small>" : "") + "</td>" + E.envios.map(function (e) {
+            return "<tr><td>" + esc(x.alias) + (x.alias !== x.rfc ? " <small>" + esc(x.rfc) + "</small>" : "") + "</td>" + envs.map(function (e) {
                 return '<td class="ev-col"><input type="checkbox" data-envio="' + esc(e.id) + '" data-rfc="' + esc(x.rfc) + '"' + (e.empresas.indexOf(x.rfc) !== -1 ? " checked" : "") +
                     ' aria-label="' + esc(x.alias) + " en Envío " + e.numero + '"></td>';
             }).join("") + "</tr>";
-        }).join("") : '<tr><td colspan="' + (E.envios.length + 1) + '">Ninguna empresa coincide con la búsqueda.</td></tr>';
+        }).join("") : '<tr><td colspan="' + (envs.length + 1) + '">Ninguna empresa coincide con la búsqueda.</td></tr>';
     }
     async function asignar(id, rfcs, dentro, casilla) {
         try {
@@ -226,7 +287,7 @@
     }
     function pintarDias() {
         var f = $("ev-frecuencia").value, sel = $("ev-dia"), previo = sel.value;
-        $("ev-dia-caja").hidden = f === "quincenal";
+        $("ev-dia-caja").hidden = f === "quincenal" || f === UNA_VEZ;
         if (f === "semanal") sel.innerHTML = E.op.dias_semana.map(function (d, i) { return '<option value="' + i + '">' + esc(d.charAt(0).toUpperCase() + d.slice(1)) + "</option>"; }).join("");
         else if (f === "mensual") { var h = ""; for (var i = 1; i <= 28; i++) h += '<option value="' + i + '">Día ' + i + "</option>"; sel.innerHTML = h; }
         if (sel.querySelector('option[value="' + previo + '"]')) sel.value = previo;
@@ -234,6 +295,26 @@
     }
     function pintarPeriodo() {
         var mes = document.querySelector('input[name="ev-modo"]:checked').value === "mes", f = $("ev-frecuencia").value, cierre = $("ev-cierre").checked;
+        var una = f === UNA_VEZ;
+        // «Solo una vez, ahora» (21-nov-2026): el periodo y el corte como en «Enviar ahora»; sin día, sin modo y sin «avisar»
+        $("ev-una-caja").hidden = !una; $("ev-modo-caja").hidden = una; $("ev-avisar-caja").hidden = una;
+        $("ev-guardar").textContent = una && !E.editando ? "Guardar y mandar" : "Guardar";
+        $("ev-dlg-sub").textContent = una ? "Sale en cuanto lo guardes y no queda programado. En el último paso eliges si llega por correo o se queda en Mis descargas."
+            : "Se manda solo, a las " + E.hora + " de la mañana del día que toque. En el último paso eliges si llega por correo o se queda en Mis descargas.";
+        $("ev-verifica-txt").textContent = una ? "Antes de mandarlo se revisa contra el SAT que no falte ninguno y se valida el estado de todo lo que va. No vuelve a salir solo " +
+            "ni cuenta en tus " + E.max + " envíos programados; queda en «Enviados una vez», con su historial."
+            : "Antes de mandar se pide al SAT la lista de cada empresa para comprobar que estén todos los XML, y se valida el estado de todo lo que va. " +
+              "Si a las " + E.limite + ":00 el SAT no ha entregado la lista, sale con la anotación de qué empresa quedó sin comparar.";
+        if (una) {
+            $("ev-cierre-caja").hidden = true;
+            var meses = mesesUna(), hoy = enCentro().mes;
+            $("ev-una-corte-caja").hidden = meses.indexOf(hoy) === -1;          // un mes cerrado ya va completo
+            if ($("ev-una-corte-caja").hidden) document.querySelector('input[name="ev-una-corte"][value="ayer"]').checked = true;
+            pintarCortes($("ev-una-caja"));
+            $("ev-periodo-txt").textContent = meses.length > 12 ? "Son " + meses.length + " meses: se mandan hasta 12 de una vez. Acorta el periodo."
+                : "Lleva " + periodoTxt(meses) + ", cada mes en su carpeta.";
+            return;
+        }
         $("ev-cierre-caja").hidden = !mes || f === "mensual";          // el mensual ES el cierre: siempre manda el mes anterior
         $("ev-modo-mes-txt").textContent = f === "mensual" ? "El mes anterior completo, ya cerrado."
             : cierre ? "El mes en curso completo cada vez (y, la primera semana, también el mes que acaba de cerrar)." : "El mes en curso completo cada vez.";
@@ -352,6 +433,12 @@
         if (n === 3) {
             var c = leerForm().contenido;
             if (!c.xml.length && !c.excel.length && !c.docs.length) return "Marca al menos una cosa que mandar (XML y PDF, algún Excel, la constancia o la opinión).";
+            var solo = errorDeSolo();
+            if (solo) return solo;
+        }
+        if (n === 4 && $("ev-frecuencia").value === UNA_VEZ) {
+            if (mesesUna().length > 12) return "Se mandan hasta 12 meses de una vez: acorta el periodo.";
+            if (!E.marcadas.size) return "Elige al menos una empresa (paso 2): este envío sale en cuanto lo guardes.";
         }
         if (n === 5) {
             var r = palabrasRaras($("ev-asunto").value, true).concat(palabrasRaras($("ev-mensaje").value, false));
@@ -373,19 +460,110 @@
         $("ev-base").hidden = !E.nota || E.paso !== 1;
         if (E.paso === 5) pintarVista();
         if (E.paso === 4) pintarPeriodo();
+        if (E.paso === 3 && $("ev-solo").checked) cargarSolo();
     }
+    // El aviso va al final del formulario: en un paso largo (Qué lleva) quedaba fuera de la vista (21-nov-2026)
+    function verError() { try { $("ev-error").scrollIntoView({ block: "nearest" }); } catch (x) { /* navegador viejo */ } }
     function irA(n) {
         var err = $("ev-error");
         err.hidden = true; abrirCombo(false);
         for (var p = E.paso; p < n; p++) {           // hacia adelante, cada paso de en medio tiene que estar bien
             var e = errorDePaso(p);
-            if (e) { E.paso = p; pintarPasos(); err.textContent = e; err.hidden = false; return false; }
+            if (e) { E.paso = p; pintarPasos(); err.textContent = e; err.hidden = false; verError(); return false; }
         }
         E.paso = Math.min(Math.max(n, 1), PASOS.length);
         pintarPasos();
         $("ev-form").scrollTop = 0;
         return true;
     }
+    /* Los últimos 24 meses (del más reciente al más viejo), contados en la hora del centro */
+    function opcionesMeses() {
+        var c = enCentro(), a = Number(c.mes.slice(0, 4)), m = Number(c.mes.slice(5, 7)), ops = "";
+        for (var i = 0; i < 24; i++) {
+            var mm = a + "-" + String(m).padStart(2, "0");
+            ops += '<option value="' + mm + '">' + esc(mesTxt(mm).replace(/^./, function (x) { return x.toUpperCase(); })) + "</option>";
+            m -= 1; if (!m) { m = 12; a -= 1; }
+        }
+        return ops;
+    }
+    function mesesEntre(a, b) {          // de «a» a «b» (si están al revés, se acomodan)
+        var salida = [];
+        if (a > b) { var t = a; a = b; b = t; }
+        var d = new Date(Number(a.slice(0, 4)), Number(a.slice(5, 7)) - 1, 1);
+        while (mesDe(d) <= b && salida.length <= 24) { salida.push(mesDe(d)); d = new Date(d.getFullYear(), d.getMonth() + 1, 1); }
+        return salida;
+    }
+    function mesesUna() { return mesesEntre($("ev-una-desde").value, $("ev-una-hasta").value); }
+
+    /* 21-nov-2026 (auditoría M9): con el interruptor prendido y sin nadie elegido (o con elegidos que ya no salen en las
+       empresas del envío) no se guarda: una lista vacía es «todos» y el envío mandaría todo. El servidor revisa lo mismo. */
+    function errorDeSolo() {
+        if (!$("ev-solo").checked) return "";
+        if (!E.solo.proveedores.size && !E.solo.clientes.size)
+            return "Elige al menos un proveedor o cliente en «Solo de estos proveedores / clientes», o apaga esa opción. Sin ninguno, el envío mandaría todo.";
+        var emp = Array.from(E.marcadas).sort().join(",");
+        if (!E.soloLista || E.soloDe !== emp) return "";          // la lista de estas empresas no ha llegado: lo revisa el servidor
+        var lados = ["proveedores", "clientes"];
+        for (var i = 0; i < lados.length; i++) {
+            var lado = lados[i], hay = {};
+            if (!E.solo[lado].size) continue;
+            (E.soloLista[lado] || []).forEach(function (x) { hay[x.rfc] = true; });
+            if (!Array.from(E.solo[lado]).some(function (r) { return hay[r]; }))
+                return "Ninguno de los " + lado + " elegidos tiene comprobantes con las empresas de este envío. Elige otros o apaga «Solo de estos proveedores / clientes»: si no, el envío mandaría lo de todos los " + lado + ".";
+        }
+        return "";
+    }
+
+    /* --- «Solo de estos proveedores / clientes» (21-nov-2026): la lista sale de los XML de las empresas elegidas en el paso 2 */
+    async function cargarSolo() {
+        var emp = Array.from(E.marcadas).sort().join(",");
+        if (E.soloDe === emp && E.soloLista) return pintarSolo();
+        E.soloDe = emp; E.soloLista = null;
+        var n = ++E.soloN;
+        $("ev-solo-lista").innerHTML = '<p class="ev-empresas__vacio">' + (emp ? "Buscando en los XML de las empresas del envío…" : "Elige primero las empresas del envío (paso 2).") + "</p>";
+        pintarSoloElegidos();
+        if (!emp) return;
+        try {
+            var r = await api("/api/entregas/contrapartes?empresas=" + encodeURIComponent(emp));
+            if (n !== E.soloN) return;          // ya cambiaron las empresas
+            E.soloLista = r;
+        } catch (err) {
+            if (n === E.soloN) $("ev-solo-lista").innerHTML = '<p class="ev-empresas__vacio">' + esc(err.message) + "</p>";
+            return;
+        }
+        pintarSolo();
+    }
+    function nombreSolo(lado, rfc) {
+        var x = ((E.soloLista || {})[lado] || []).find(function (y) { return y.rfc === rfc; });
+        return x ? x.nombre : rfc;
+    }
+    function pintarSolo() {
+        if (!E.soloLista) return pintarSoloElegidos();          // todavía no llega la lista
+        var lado = E.soloLado, q = $("ev-solo-buscar").value.trim().toLowerCase(), todos = (E.soloLista || {})[lado] || [], elegidos = E.solo[lado];
+        document.querySelectorAll("[data-solo-lado]").forEach(function (b) { b.setAttribute("aria-pressed", String(b.dataset.soloLado === lado)); });
+        ["proveedores", "clientes"].forEach(function (l) { $("ev-solo-n-" + l).textContent = E.solo[l].size ? "(" + E.solo[l].size + ")" : ""; });
+        $("ev-solo-lado-txt").textContent = lado === "proveedores" ? "En lo recibido: de quién son las facturas y complementos de pago." : "En lo emitido: a quién se le facturó.";
+        var lista = todos.filter(function (x) { return !q || x.nombre.toLowerCase().indexOf(q) !== -1 || x.rfc.toLowerCase().indexOf(q) !== -1; });
+        var mas = lista.length > 200 ? lista.length - 200 : 0;
+        lista = lista.slice(0, 200);
+        $("ev-solo-lista").innerHTML = lista.length ? lista.map(function (x) {
+            return '<label class="ui-check" role="option" aria-selected="' + elegidos.has(x.rfc) + '"><input type="checkbox" value="' + esc(x.rfc) + '"' + (elegidos.has(x.rfc) ? " checked" : "") +
+                "><span><b>" + esc(x.nombre) + "</b> <small>" + esc(x.rfc) + " · " + plural(x.n, "comprobante", "comprobantes") + "</small></span></label>";
+        }).join("") + (mas ? '<p class="ev-empresas__vacio">Y ' + mas + " más: escribe para buscar.</p>" : "")
+            : '<p class="ev-empresas__vacio">' + (todos.length ? "Ninguno coincide con la búsqueda." : lado === "proveedores" ? "Las empresas del envío no tienen XML recibidos." : "Las empresas del envío no tienen XML emitidos.") + "</p>";
+        pintarSoloElegidos();
+    }
+    function pintarSoloElegidos() {
+        var piezas = [];
+        ["proveedores", "clientes"].forEach(function (lado) {
+            E.solo[lado].forEach(function (rfc) {
+                piezas.push('<span class="ev-pastilla" title="' + esc(rfc) + '"><span>' + (lado === "proveedores" ? "Proveedor: " : "Cliente: ") + esc(nombreSolo(lado, rfc)) +
+                    '</span><button type="button" data-quitar-solo="' + lado + "|" + esc(rfc) + '" aria-label="Quitar ' + esc(nombreSolo(lado, rfc)) + '">×</button></span>');
+            });
+        });
+        $("ev-solo-elegidos").innerHTML = piezas.length ? piezas.join("") : '<span class="ev-elegidas__vacio">Ninguno elegido todavía: elige al menos uno (o apaga esta opción para que vayan todos).</span>';
+    }
+
     function abrirForm(e, base, copia) {
         E.editando = e || null;
         var de_ = e || base || null, todo = e || (copia ? base : null);          // «todo»: también nombre, correos y empresas
@@ -415,6 +593,11 @@
                 x.vistas.map(function (v) { return '<option value="' + v.id + '"' + (puesto && puesto.vista === v.id ? " selected" : "") + ">Vista: " + esc(v.nombre) + "</option>"; }).join("") + "</select></div>";
         }).join("");
         $("ev-excel-periodo").checked = !!(c.excel_periodo);
+        // «Solo de estos proveedores / clientes» (21-nov-2026): apagado si no tiene ninguno
+        var cp = c.contrapartes || {};
+        E.solo = { proveedores: new Set(cp.proveedores || []), clientes: new Set(cp.clientes || []) };
+        E.soloLado = "proveedores"; E.soloDe = ""; E.soloLista = null; $("ev-solo-buscar").value = "";
+        $("ev-solo").checked = !!(E.solo.proveedores.size || E.solo.clientes.size); $("ev-solo-panel").hidden = !$("ev-solo").checked;
         $("ev-docs").innerHTML = E.op.docs.map(function (x) {
             return '<label class="ui-check"><input type="checkbox" value="' + esc(x.clave) + '"' + ((c.docs || []).indexOf(x.clave) !== -1 ? " checked" : "") + "> " + esc(x.nombre) + "</label>";
         }).join("");
@@ -428,7 +611,16 @@
         $("ev-conc").value = Array.isArray(hc) ? "" : (cj.juegos[hc] ? hc : "compartir");
         $("ev-conc-hojas").innerHTML = cj.hojas.map(function (h) { return '<label class="ui-check"><input type="checkbox" value="' + esc(h.clave) + '"> <span>' + esc(h.nombre) + "</span></label>"; }).join("");
         pintarConc();
-        $("ev-frecuencia").value = de_ ? de_.frecuencia : "semanal";
+        // «Solo una vez, ahora» (21-nov-2026): con los 5 programados ya hechos, uno nuevo solo puede ser de una vez
+        var lleno = !e && programados().length >= E.max;
+        $("ev-frecuencia").querySelectorAll("option").forEach(function (o) { o.disabled = (lleno && o.value !== UNA_VEZ) || (!!e && o.value === UNA_VEZ); });
+        $("ev-frecuencia").value = lleno ? UNA_VEZ : de_ ? de_.frecuencia : "semanal";
+        if (lleno) { E.nota = (E.nota ? E.nota + " " : "") + "Ya tienes los " + E.max + " envíos programados: este sale una sola vez, ahora."; $("ev-base").textContent = E.nota; }
+        var ops = opcionesMeses(), u = (de_ && de_.una_vez) || {}, um = (u.meses || []).slice().sort(), mesHoy = enCentro().mes;
+        $("ev-una-desde").innerHTML = ops; $("ev-una-hasta").innerHTML = ops;
+        $("ev-una-desde").value = um[0] && $("ev-una-desde").querySelector('option[value="' + um[0] + '"]') ? um[0] : mesHoy;
+        $("ev-una-hasta").value = um.length && $("ev-una-hasta").querySelector('option[value="' + um[um.length - 1] + '"]') ? um[um.length - 1] : mesHoy;
+        document.querySelector('input[name="ev-una-corte"][value="' + (u.corte === "ahora" ? "ahora" : "ayer") + '"]').checked = true;
         document.querySelector('input[name="ev-modo"][value="' + (de_ && de_.modo === "nuevo" ? "nuevo" : "mes") + '"]').checked = true;
         pintarDias();
         $("ev-dia").value = String(de_ ? de_.dia : 0);
@@ -476,12 +668,15 @@
                 }),
                 docs: Array.from($("ev-docs").querySelectorAll("input:checked")).map(function (i) { return i.value; }),
                 moneda: $("ev-moneda").value || "xml", conciliacion: (Array.isArray(hojas) && !hojas.length) ? "compartir" : hojas,
-                excel_periodo: $("ev-excel-periodo").checked          // además, un Excel con todo el periodo (19-nov)
+                excel_periodo: $("ev-excel-periodo").checked,          // además, un Excel con todo el periodo (19-nov)
+                contrapartes: $("ev-solo").checked ? { proveedores: Array.from(E.solo.proveedores), clientes: Array.from(E.solo.clientes) } : { proveedores: [], clientes: [] }
             },
             frecuencia: $("ev-frecuencia").value, dia: Number($("ev-dia").value) || 0, modo: document.querySelector('input[name="ev-modo"]:checked').value,
             dias_enlace: Number($("ev-dias-enlace").value) || 7, avisar_sin_novedades: $("ev-avisar").checked, activa: E.editando ? E.editando.activa : true,
             asunto: $("ev-asunto").value, mensaje: $("ev-mensaje").value, remitente: $("ev-remitente").value, adjuntar: $("ev-adjuntar").checked,
-            cierre: $("ev-cierre").checked, en_descargas: enDescargas()
+            cierre: $("ev-cierre").checked, en_descargas: enDescargas(),
+            // «Solo una vez, ahora» (21-nov-2026): el periodo y el corte, como en «Enviar ahora»
+            una_vez: $("ev-frecuencia").value === UNA_VEZ ? { meses: mesesUna(), corte: $("ev-una-corte-caja").hidden ? "ayer" : document.querySelector('input[name="ev-una-corte"]:checked').value } : null
         };
     }
     async function guardar() {
@@ -489,16 +684,29 @@
         err.hidden = true;
         for (var p = 1; p <= PASOS.length; p++) {          // si algo falta, se abre ese paso y lo dice
             var falta = errorDePaso(p);
-            if (falta) { E.paso = p; pintarPasos(); err.textContent = falta; err.hidden = false; return; }
+            if (falta) { E.paso = p; pintarPasos(); err.textContent = falta; err.hidden = false; verError(); return; }
         }
-        var datos = leerForm();
+        var datos = leerForm(), una = datos.frecuencia === UNA_VEZ && !E.editando;
+        if (una) {          // sale en este momento: se confirma a quién y qué periodo
+            var aQuien = datos.destino === "cliente" ? "cada cliente, a su correo" : E.correos.para.valores().concat(E.correos.cc.valores()).join(", ");
+            var si = await Fiscontable.confirmar({ titulo: "¿Mandarlo ahora?", si: "Mandar",
+                texto: "Sale a " + aQuien + " con " + periodoTxt(datos.una_vez.meses) + (datos.una_vez.corte === "ahora" ? ", hasta hoy (antes trae lo de hoy del SAT)" : ", hasta ayer") +
+                       ". No queda programado: no vuelve a salir solo." });
+            if (!si) return;
+        }
         b.disabled = true;
         try {
-            await mandar("/api/entregas" + (E.editando ? "/" + E.editando.id : ""), E.editando ? "PUT" : "POST", datos);
+            var r = await mandar("/api/entregas" + (E.editando ? "/" + E.editando.id : ""), E.editando ? "PUT" : "POST", datos);
             $("ev-dlg").close();
             await cargar();
+            if (una) {          // se ve cómo va en su historial
+                var hecho_ = E.envios.find(function (x) { return x.id === r.id; });
+                Fiscontable.toast("Se está mandando. Lo ves en «Enviados una vez».");
+                if (hecho_) { E.esperando = true; abrirHistorial(hecho_); }
+                return;
+            }
             Fiscontable.toast(E.editando ? "Envío guardado." : datos.empresas.length ? "Envío creado. Pruébalo con «Enviar ahora»." : "Envío creado. Marca sus empresas y pruébalo con «Enviar ahora».");
-        } catch (e) { err.textContent = e.message; err.hidden = false; }
+        } catch (e) { err.textContent = e.message; err.hidden = false; verError(); }
         finally { b.disabled = false; }
     }
 
@@ -516,21 +724,37 @@
         $("ev-ahora-desde").value = $("ev-ahora-hasta").value = mesDe(new Date(h.getFullYear(), h.getMonth() - 1, 1));
         document.querySelector('input[name="ev-ahora-periodo"][value="siempre"]').checked = true;
         $("ev-ahora-mes-caja").hidden = true; $("ev-ahora-calculo").hidden = true;
+        document.querySelector('input[name="ev-ahora-corte"][value="ayer"]').checked = true;          // de fábrica, hasta ayer (20-nov)
+        pintarCortes($("ev-ahora"));          // 21-nov-2026: con la fecha y la hora reales; el servidor las confirma al calcular
+        verCorte();
         // 19-nov (Alan): «Validar primero» o «Enviar ya». Validar revisa contra el SAT (lista de cada mes con corte a ayer
         // 23:59, estado de cada comprobante, constancia y opinión de más de 30 días); «Enviar ya» sale con lo que hay
         $("ev-ahora-nota").textContent = "«Validar primero» revisa contra el SAT que no falte ninguno (el mes en curso, con corte a ayer 23:59) y el estado de cada comprobante, " +
-            "y pide la constancia u opinión si la guardada tiene más de 30 días. Puede tardar hasta " + (E.esperaListas || 15) + " minutos. " +
-            "«Enviar ya» sale en seguida con lo que hay y el correo dice que no se verificó. No cambia la fecha del próximo envío automático.";
+            "y pide la constancia u opinión si la guardada tiene más de 30 días. Puede tardar hasta " + (E.esperaListas || 15) + " minutos" +
+            " (con «Hasta hoy», hasta " + (E.portalHoy || 10) + " más para traer lo de hoy). " +
+            "«Enviar ya» sale en seguida con lo que ya está en Fiscontable, sin ir al SAT, y el correo dice que no se verificó. No cambia la fecha del próximo envío automático.";
         $("ev-ahora-si").disabled = $("ev-ahora-ya").disabled = false;
         if (!$("ev-ahora").open) $("ev-ahora").showModal();
         calcularAhora();
     }
+    /* 20-nov-2026 (Alan): «Hasta ayer, verificado contra el SAT» (de fábrica) o «Hasta este momento» (lleva también lo de
+       hoy, sin compararlo con la lista del SAT). Solo se pregunta si el periodo llega a este mes: un mes cerrado ya va completo. */
+    function llegaAEsteMes() {
+        var e = E.ahoraDe; if (!e) return false;
+        var hoy = enCentro().mes, otro = document.querySelector('input[name="ev-ahora-periodo"]:checked').value === "otro";
+        if (otro) return mesesAhora().indexOf(hoy) >= 0;
+        return e.modo !== "mes" || (e.meses_hoy || mesesDeHoy(e.frecuencia, e.cierre)).indexOf(hoy) >= 0;
+    }
+    function verCorte() {
+        var se = llegaAEsteMes();
+        $("ev-ahora-corte-caja").hidden = !se;
+        if (!se) document.querySelector('input[name="ev-ahora-corte"][value="ayer"]').checked = true;
+    }
+    function corteAhora() {          // "ahora" solo si se ve y se eligió; si no, el de siempre
+        return !$("ev-ahora-corte-caja").hidden && document.querySelector('input[name="ev-ahora-corte"]:checked').value === "ahora";
+    }
     function mesesAhora() {          // los meses de «Desde» a «Hasta» (si están al revés, se acomodan)
-        var a = $("ev-ahora-desde").value, b = $("ev-ahora-hasta").value, salida = [];
-        if (a > b) { var t = a; a = b; b = t; }
-        var d = new Date(Number(a.slice(0, 4)), Number(a.slice(5, 7)) - 1, 1);
-        while (mesDe(d) <= b && salida.length <= 24) { salida.push(mesDe(d)); d = new Date(d.getFullYear(), d.getMonth() + 1, 1); }
-        return salida;
+        return mesesEntre($("ev-ahora-desde").value, $("ev-ahora-hasta").value);
     }
     /* Antes de mandar, cuánto llevaría y cuánto pesaría (19-nov: con 12 meses y muchas empresas el ZIP puede ser grande). */
     async function calcularAhora() {
@@ -545,8 +769,9 @@
         }
         b.disabled = false;
         try {
-            var r = await api("/api/entregas/" + encodeURIComponent(e.id) + "/calcular?meses=" + encodeURIComponent(meses.join(",")));
+            var r = await api("/api/entregas/" + encodeURIComponent(e.id) + "/calcular?meses=" + encodeURIComponent(meses.join(",")) + (corteAhora() ? "&corte=ahora" : ""));
             if (pedido !== E.calculoN) return;          // ya se cambió el periodo
+            if (r.corte_ayer && r.ahora) pintarCortes($("ev-ahora"), r.corte_ayer.slice(0, 16), r.ahora.slice(0, 16));          // la hora del servidor (centro) manda
             var lleva = (otro ? periodoTxt(meses).replace(/^./, function (c) { return c.toUpperCase(); }) + ": " : "") +
                 plural(r.comprobantes, "comprobante", "comprobantes") + (r.excel ? " y hasta " + plural(r.excel, "Excel", "Excel") : "") + (r.mb < 1 ? ", menos de 1 MB." : ", unos " + Math.round(r.mb).toLocaleString("es-MX") + " MB.");
             caja.className = "ev-ahora__calculo" + (r.aviso ? (r.se_puede ? " ev-ahora__calculo--aviso" : " ev-ahora__calculo--error") : "");
@@ -560,7 +785,9 @@
         var antes = b.disabled;
         b.disabled = ya.disabled = true;
         try {
-            await mandar("/api/entregas/" + encodeURIComponent(e.id) + "/enviar", "POST", { meses: otro ? mesesAhora() : [], validar: validar !== false });
+            var cuerpo = { meses: otro ? mesesAhora() : [], validar: validar !== false };
+            if (corteAhora()) cuerpo.corte = "ahora";          // de fábrica no se manda: el servidor entiende «hasta ayer»
+            await mandar("/api/entregas/" + encodeURIComponent(e.id) + "/enviar", "POST", cuerpo);
             $("ev-ahora").close(); E.esperando = true; abrirHistorial(e); await cargar();
         } catch (err) { b.disabled = antes; ya.disabled = antes; fallo(err); }
     }
@@ -588,6 +815,9 @@
             var ver = d.verificacion ? '<br><small><span class="ui-estado ui-estado--' + (VERIFICA[d.verificacion.estado] || "info") + '">' + esc(d.verificacion.texto) + "</span>" +
                 (d.validacion && d.validacion.pendientes ? " · " + d.validacion.pendientes + " sin validar su estado (el SAT no respondió)" : "") + "</small>" : "";
             ver += (d.docs || []).filter(function (x) { return x.nota; }).map(function (x) { return '<br><small class="ev-hecho__nota">' + esc(x.nota.replace(/^./, function (c) { return c.toUpperCase(); })) + ".</small>"; }).join("");
+            // «Hasta hoy» (21-nov-2026): si lo de hoy se trajo del portal del SAT o por qué puede no estar completo
+            if (d.hoy) ver += d.hoy.estado === "traido" ? '<br><small><span class="ui-estado ui-estado--ok">Lo de hoy se trajo del portal del SAT</span></small>'
+                : '<br><small class="ev-hecho__nota">Lo de hoy puede no estar completo: ' + esc(d.hoy.texto || "no se trajo del portal del SAT") + ".</small>";
             var todoPeriodo = (d.excel_periodo || []).length ? esc("todo el periodo (" + plural(d.excel_periodo.length, "Excel", "Excel") + ")") : "";
             return "<li><b>" + esc(d.alias) + "</b>: " + ([meses || (docs || todoPeriodo ? "" : "nada del periodo"), todoPeriodo, esc(docs)].filter(Boolean).join(" · ")) + ver + "</li>";
         }).join("");
@@ -605,7 +835,8 @@
                     (E.titular ? '<button type="button" class="ui-btn ui-btn--terciario ui-btn--28" data-revocar="' + esc(v.id) + '">Revocar</button>' : "") + "</span>"
                     : "<span>" + (v.revocado ? "Enlace revocado: el archivo ya se borró." : "Enlace vencido: el archivo ya se borró.") + "</span>");
         }
-        var resumen = [];
+        var resumen = [], solo = [];
+        (v.detalle.empresas || []).forEach(function (d) { (d.solo_de || []).forEach(function (n) { if (solo.indexOf(n) === -1) solo.push(n); }); });
         if (conAlgo.length) resumen.push(plural(conAlgo.length, "empresa", "empresas"));
         if (v.comprobantes) resumen.push(plural(v.comprobantes, "comprobante", "comprobantes"));
         var lista = !verificadas.length ? "" : porRevisar
@@ -617,6 +848,7 @@
             (v.detalle && v.detalle.retomado && v.estado !== "error" ? '<small class="ev-hecho__retomado">Se retomó solo después de un reinicio del servidor.</small>' : "") +
             (v.verificado_texto && v.estado !== "error" ? '<small class="ev-hecho__verificado' + (v.detalle.verificado && v.detalle.verificado.validar === false ? " ev-hecho__verificado--sin" : "") + '">' + esc(v.verificado_texto) + "</small>" : "") +
             (resumen.length || lista ? '<p class="ev-hecho__resumen">' + (resumen.length ? "<b>" + esc(resumen.join(" · ")) + "</b>" : "") + lista + "</p>" : "") +
+            (solo.length ? '<small class="ev-hecho__solo">Solo de: ' + esc(solo.slice(0, 5).join(", ") + (solo.length > 5 ? " y " + (solo.length - 5) + " más" : "")) + ".</small>" : "") +
             '<div class="ev-hecho__pie"><span>A ' + esc((v.para || []).join(", ")) + " · " + esc(v.quien === "programado" ? "automático" : "lo pidió " + v.quien) + "</span>" + pie + "</div>" +
             (lineas ? '<details class="ev-hecho__det"><summary>Detalle por empresa</summary><ul>' + lineas + "</ul></details>" : "") + "</article>";
     }
@@ -661,9 +893,9 @@
             return;
         }
         // Un envío nuevo arranca con la configuración del último que se hizo (Alan: «una vez lo configuro y ya está para todo»)
-        function nuevo() { abrirForm(null, E.envios.length ? E.envios[E.envios.length - 1] : null, false); }
+        function nuevo() { var ps = programados(); abrirForm(null, ps.length ? ps[ps.length - 1] : E.envios[E.envios.length - 1] || null, false); }
         $("ev-nuevo").addEventListener("click", nuevo);
-        $("ev-lista").addEventListener("click", async function (ev) {
+        async function enTarjeta(ev) {          // los botones de cada envío (los programados y los «Enviados una vez»)
             var b = ev.target.closest("[data-accion]"); if (!b || b.type === "checkbox") return;
             var accion = b.dataset.accion, e = deTarjeta(b);
             if (accion === "nuevo") return nuevo();
@@ -672,9 +904,16 @@
             if (accion === "duplicar") return abrirForm(null, e, true);
             if (accion === "historial") return abrirHistorial(e);
             if (accion === "enviar") return abrirAhora(e);
+            if (accion === "borrar") {          // 21-nov-2026: un «Enviado una vez» se borra con su historial
+                var ok_ = await Fiscontable.confirmar({ titulo: "¿Borrar «" + e.nombre + "»?", si: "Borrar", peligro: true,
+                    texto: "Se borran su historial y el archivo que siga en el servidor: el enlace que ya mandaste deja de servir." });
+                if (!ok_) return;
+                try { await mandar("/api/entregas/" + encodeURIComponent(e.id), "DELETE"); await cargar(); Fiscontable.toast("Borrado."); } catch (err) { fallo(err); }
+                return;
+            }
             if (accion === "decidir") {
-                var mandar = b.dataset.decision === "mandar";
-                if (mandar && !(await Fiscontable.preguntar("¿Mandarlo así? Sale con lo que hay. El cliente recibe la versión limpia; la causa de lo que falta queda solo para ti."))) return;
+                var sale = b.dataset.decision === "mandar";   // 20-nov-2026: se llamaba «mandar» y tapaba la función mandar() («mandar is not a function»)
+                if (sale && !(await Fiscontable.preguntar("¿Mandarlo así? Sale con lo que hay. El cliente recibe la versión limpia; la causa de lo que falta queda solo para ti."))) return;
                 b.disabled = true;
                 try {
                     var r = await mandar("/api/entregas/" + encodeURIComponent(e.id) + "/decidir", "POST", { accion: b.dataset.decision });
@@ -682,11 +921,14 @@
                     await cargar();
                 } catch (err) { Fiscontable.avisar ? Fiscontable.avisar(err.message) : alert(err.message); b.disabled = false; }
             }
-        });
+        }
+        $("ev-lista").addEventListener("click", enTarjeta);
+        $("ev-unavez-lista").addEventListener("click", enTarjeta);
         $("ev-ahora").addEventListener("click", function (ev) { if (ev.target.closest('[data-ev="cerrar-ahora"]')) $("ev-ahora").close(); });
         $("ev-ahora").addEventListener("change", function (ev) {
             if (ev.target.name === "ev-ahora-periodo") $("ev-ahora-mes-caja").hidden = ev.target.value !== "otro";
-            if (ev.target.name === "ev-ahora-periodo" || ev.target.id === "ev-ahora-desde" || ev.target.id === "ev-ahora-hasta") calcularAhora();
+            if (ev.target.name === "ev-ahora-periodo" || ev.target.id === "ev-ahora-desde" || ev.target.id === "ev-ahora-hasta") verCorte();
+            if (ev.target.name === "ev-ahora-periodo" || ev.target.id === "ev-ahora-desde" || ev.target.id === "ev-ahora-hasta" || ev.target.name === "ev-ahora-corte") calcularAhora();
         });
         $("ev-ahora-si").addEventListener("click", function () { mandarAhora(true); });
         $("ev-ahora-ya").addEventListener("click", function () { mandarAhora(false); });
@@ -710,6 +952,17 @@
         $("ev-cc").addEventListener("cambio", pintarUsuarios);
         document.querySelectorAll('input[name="ev-modo"]').forEach(function (r) { r.addEventListener("change", pintarPeriodo); });
         $("ev-cierre").addEventListener("change", pintarPeriodo);
+        ["ev-una-desde", "ev-una-hasta"].forEach(function (id) { $(id).addEventListener("change", pintarPeriodo); });
+        // «Solo de estos proveedores / clientes» (21-nov-2026)
+        $("ev-solo").addEventListener("change", function () { $("ev-solo-panel").hidden = !$("ev-solo").checked; if ($("ev-solo").checked) cargarSolo(); });
+        $("ev-solo-buscar").addEventListener("input", pintarSolo);
+        $("ev-solo-lista").addEventListener("change", function (ev) {
+            var i = ev.target; if (!i.value) return;
+            if (i.checked) E.solo[E.soloLado].add(i.value); else E.solo[E.soloLado].delete(i.value);
+            var op = i.closest('[role="option"]'); if (op) op.setAttribute("aria-selected", String(i.checked));
+            ["proveedores", "clientes"].forEach(function (l) { $("ev-solo-n-" + l).textContent = E.solo[l].size ? "(" + E.solo[l].size + ")" : ""; });
+            pintarSoloElegidos();          // sin volver a pintar la lista: no se pierde dónde ibas
+        });
         $("ev-emp-buscar").addEventListener("input", pintarEmpresas);
         $("ev-empresas").addEventListener("change", function (ev) {
             if (ev.target.checked) E.marcadas.add(ev.target.value); else E.marcadas.delete(ev.target.value);
@@ -724,6 +977,10 @@
         $("ev-dlg").addEventListener("click", function (ev) {
             var q = ev.target.closest("[data-quitar-empresa]");
             if (q) { E.marcadas.delete(q.dataset.quitarEmpresa); return pintarEmpresas(); }
+            var qs = ev.target.closest("[data-quitar-solo]");
+            if (qs) { var par = qs.dataset.quitarSolo.split("|"); E.solo[par[0]].delete(par[1]); return pintarSolo(); }
+            var ld = ev.target.closest("[data-solo-lado]");
+            if (ld) { E.soloLado = ld.dataset.soloLado; return pintarSolo(); }
             var ir = ev.target.closest("[data-ir]");
             if (ir) return irA(Number(ir.dataset.ir));
             var pl = ev.target.closest("[data-plantilla]");

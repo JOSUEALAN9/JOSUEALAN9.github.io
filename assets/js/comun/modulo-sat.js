@@ -776,9 +776,12 @@
         } catch (e) { /* sin aviso de cuota */ }
 
         if (malos) {
+            if (bloqueados(r)) html += '<div class="nota nota--alerta"><strong>Así no se puede lanzar el lote:</strong> trae RFC que no están dados de alta ' +
+                "(o que no son tuyos en el despacho). Quítalos del Excel o dalos de alta en Clientes, y vuelve a soltar la carpeta.</div>";
             html += '<div class="nota nota--alerta"><strong>Estos no se procesan hasta que los corrijas:</strong><ul>' +
                 r.con_problemas.map(function (p) {
-                    return "<li>" + esc(p.rfc) + " — " + esc(p.motivo) + "</li>";
+                    // rfc_excel (21-nov-2026): el de una empresa del despacho que no es tuya viene con esa llave (ver /api/lote/revisar)
+                    return "<li>" + esc(p.rfc || p.rfc_excel || "") + " — " + esc(p.motivo) + "</li>";
                 }).join("") + "</ul></div>";
         }
 
@@ -804,12 +807,20 @@
         actualizarBotonMasivo();
     }
 
+    function bloqueados(r) { return (r.con_problemas || []).some(function (p) { return p.bloquea; }); }
+
     function actualizarBotonMasivo() {
         var btn = $("btn-masivo");
         var r = revisionLote;
         var programar = $("caja-programar-lote");
         if (!r) { btn.disabled = false; if (programar) programar.style.display = "none"; return; }
 
+        if (bloqueados(r)) {          // 21-nov-2026 (auditoría M7): el servidor no arranca un lote con RFC sin dar de alta
+            btn.disabled = true;
+            btn.textContent = "Quita del Excel los RFC sin dar de alta";
+            if (programar) programar.style.display = "none";
+            return;
+        }
         var cuantos = forzarRegenerar ? r.listos.length + r.ya_existentes.length : r.listos.length;
         // Programar el mismo lote para la madrugada: la carpeta viaja cifrada, no hace falta el directorio
         if (programar) {

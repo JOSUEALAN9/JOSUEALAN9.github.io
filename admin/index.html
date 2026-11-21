@@ -4,18 +4,19 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Administrar Usuarios | Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611202230">
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611202230">
-    <link rel="stylesheet" href="/admin/creditos-admin.css?v=202611202230">
-    <link rel="stylesheet" href="/admin/documentos-admin.css?v=202611202230">
-    <link rel="stylesheet" href="/admin/migracion-admin.css?v=202611202230">
-    <link rel="stylesheet" href="/admin/tareas-admin.css?v=202611202230">
+    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611210330">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611210330">
+    <link rel="stylesheet" href="/admin/creditos-admin.css?v=202611210330">
+    <link rel="stylesheet" href="/admin/documentos-admin.css?v=202611210330">
+    <link rel="stylesheet" href="/admin/migracion-admin.css?v=202611210330">
+    <link rel="stylesheet" href="/admin/tareas-admin.css?v=202611210330">
+    <link rel="stylesheet" href="/admin/licencias-admin.css?v=202611210330">
 </head>
 <body class="min-h-screen flex flex-col relative">
 
     <div id="app-header" data-modulo="admin" data-titulo="Administración" data-migas=""></div>
-<script src="/assets/js/nucleo.js?v=202611202230"></script>
-<script src="/assets/js/barra.js?v=202611202230"></script>
+<script src="/assets/js/nucleo.js?v=202611210330"></script>
+<script src="/assets/js/barra.js?v=202611210330"></script>
 
     <main class="flex-grow p-4 sm:p-6 w-full max-w-4xl mx-auto fc-principal">
         <style>
@@ -314,9 +315,9 @@
                     la clave completa se muestra una sola vez, al emitirla. El cliente la activa en <b>fiscontable.app/activar</b> o en Configuración → Plan y créditos.</p>
                 <div class="bg-white rounded-xl card-elevated border border-gray-200 overflow-hidden">
                     <div class="overflow-x-auto">
-                        <table class="w-full text-sm min-w-[860px]">
+                        <table class="w-full text-sm lc-tabla">
                             <thead class="bg-slate-50 text-left text-[11px] font-bold text-slate-500 uppercase tracking-wide">
-                                <tr><th class="p-4">Clave</th><th class="p-4">Tipo</th><th class="p-4">Duración</th><th class="p-4">Estado</th><th class="p-4">Cuenta</th><th class="p-4">Vence</th><th class="p-4">Nota</th><th class="p-4"></th></tr>
+                                <tr><th class="p-4">Clave</th><th class="p-4">Tipo y nota</th><th class="p-4">Duración</th><th class="p-4">Estado</th><th class="p-4">Cuenta</th><th class="p-4">Vence</th><th class="p-4"></th></tr>
                             </thead>
                             <tbody id="lca-lista"></tbody>
                         </table>
@@ -624,13 +625,16 @@
             <form class="fc-modal__cuerpo" id="lca-forma" novalidate>
                 <fieldset class="ui-campo" style="border:0;padding:0;margin:0"><legend class="ui-etiqueta" style="margin-bottom:8px">Tipo</legend>
                     <div class="flex flex-wrap gap-5"><label class="ui-check"><input type="radio" name="lca-tipo" value="individual" checked> Individual (una persona)</label>
-                        <label class="ui-check"><input type="radio" name="lca-tipo" value="despacho"> Despacho (equipo)</label></div></fieldset>
+                        <label class="ui-check"><input type="radio" name="lca-tipo" value="despacho"> Despacho (equipo)</label>
+                        <label class="ui-check"><input type="radio" name="lca-tipo" value="lugares"> Lugares extra (a un despacho)</label></div></fieldset>
+                <p class="ui-aviso" id="lca-ayuda-lugares" hidden>Se suman a los lugares que ya tiene el despacho (6 + 2 = 8). No cambian su vigencia ni dan timbres: corren hasta
+                    que venza el despacho. La activa su titular en Configuración › Plan y créditos. Para renovar, emite otra de «Despacho».</p>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <label class="ui-campo"><span class="ui-etiqueta">Plan</span><select class="ui-select" id="lca-plan"></select></label>
-                    <label class="ui-campo"><span class="ui-etiqueta">Duración</span><select class="ui-select" id="lca-meses"></select></label>
+                    <label class="ui-campo" id="lca-campo-meses"><span class="ui-etiqueta">Duración</span><select class="ui-select" id="lca-meses"></select></label>
                 </div>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <label class="ui-campo" id="lca-campo-asientos" hidden><span class="ui-etiqueta">Licencias del despacho (mínimo 5)</span><input class="ui-input" id="lca-asientos" type="number" min="5" max="200" value="5"></label>
+                    <label class="ui-campo" id="lca-campo-asientos" hidden><span class="ui-etiqueta" id="lca-etq-asientos">Licencias del despacho (mínimo 5)</span><input class="ui-input" id="lca-asientos" type="number" min="5" max="200" value="5"></label>
                     <label class="ui-campo" id="lca-campo-cantidad"><span class="ui-etiqueta">Cuántas claves</span><input class="ui-input" id="lca-cantidad" type="number" min="1" max="50" value="1"></label>
                     <label class="ui-campo"><span class="ui-etiqueta">Caduca si no se activa <i>(opcional)</i></span>
                         <select class="ui-select" id="lca-caduca"><option value="">Nunca</option><option value="30">En 30 días</option><option value="90">En 90 días</option></select></label>
@@ -651,27 +655,77 @@
             </div>
         </dialog>
 
-        <!-- Bienvenida de una licencia (20-nov-2026, admin/licencias-admin.js): correo con el diseño de Fiscontable, la clave y la factura -->
-        <dialog id="lcb-dlg" class="fc-modal fc-modal--chica" aria-labelledby="lcb-titulo">
+        <!-- Bienvenida de una licencia (20-nov-2026, admin/licencias-admin.js): correo con el diseño de Fiscontable, la clave y la factura.
+             Por pasos (noche 10): contribuyente (a quién se le facturó) → su factura → datos → resumen con «Mandar» y «Corregir». -->
+        <dialog id="lcb-dlg" class="fc-modal fc-modal--fija" aria-labelledby="lcb-titulo">
             <div class="fc-modal__cabeza"><div><h2 id="lcb-titulo">Mandar bienvenida</h2><p>Un correo con el diseño de Fiscontable: bienvenida, la clave, cómo activarla y su factura adjunta.</p></div>
                 <button type="button" class="fc-modal__cerrar" data-lcb-cerrar aria-label="Cerrar">×</button></div>
+            <div class="lc-pasos" role="tablist" aria-label="Pasos" id="lcb-pasos">
+                <button type="button" role="tab" data-ir="1" aria-selected="true"><span>1</span>Contribuyente</button>
+                <button type="button" role="tab" data-ir="2" disabled><span>2</span>Factura</button>
+                <button type="button" role="tab" data-ir="3" disabled><span>3</span>Clave y correo</button>
+                <button type="button" role="tab" data-ir="4" disabled><span>4</span>Revisar</button>
+            </div>
             <form class="fc-modal__cuerpo" id="lcb-forma" novalidate>
-                <label class="ui-campo"><span class="ui-etiqueta">Clave de la licencia</span>
-                    <input class="ui-input" id="lcb-clave" autocomplete="off" spellcheck="false" placeholder="FSC-XXXX-XXXX-XXXX-XXXX" style="font-family:var(--fuente-mono)">
-                    <span class="ui-ayuda">Se revisa que exista; no se guarda.</span></label>
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <label class="ui-campo"><span class="ui-etiqueta">Correo de quien la recibe</span><input class="ui-input" id="lcb-correo" type="email" autocomplete="off"></label>
-                    <label class="ui-campo"><span class="ui-etiqueta">Su nombre <i>(opcional)</i></span><input class="ui-input" id="lcb-nombre" maxlength="80" autocomplete="off"></label>
+                <div class="lc-panel" data-paso="1">
+                    <label class="ui-campo"><span class="ui-etiqueta">¿A quién le facturaste la licencia?</span>
+                        <input class="ui-input" id="lcb-buscar" type="search" autocomplete="off" placeholder="Busca por nombre o RFC"></label>
+                    <ul class="lc-opciones" id="lcb-contribuyentes" aria-label="Contribuyentes"><li class="lc-vacio">Cargando…</li></ul>
+                    <div><button type="button" class="ui-btn ui-btn--terciario ui-btn--28" id="lcb-sin-factura">Mandarla sin factura →</button></div>
                 </div>
-                <label class="ui-campo"><span class="ui-etiqueta">Factura adjunta (PDF y XML)</span><select class="ui-select" id="lcb-factura"><option value="">Sin factura</option></select>
-                    <span class="ui-ayuda">Tus facturas timbradas más recientes.</span></label>
+                <div class="lc-panel" data-paso="2" hidden>
+                    <p class="lc-elegido" id="lcb-de"></p>
+                    <ul class="lc-opciones" id="lcb-facturas" aria-label="Facturas"></ul>
+                </div>
+                <div class="lc-panel" data-paso="3" hidden>
+                    <p class="lc-elegido" id="lcb-de3"></p>
+                    <label class="ui-campo"><span class="ui-etiqueta">Clave de la licencia</span>
+                        <input class="ui-input" id="lcb-clave" autocomplete="off" spellcheck="false" placeholder="FSC-XXXX-XXXX-XXXX-XXXX" style="font-family:var(--fuente-mono)">
+                        <span class="ui-ayuda">Se revisa que exista; no se guarda.</span></label>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <label class="ui-campo"><span class="ui-etiqueta">Correo de quien la recibe</span><input class="ui-input" id="lcb-correo" type="email" autocomplete="off">
+                            <span class="ui-ayuda" id="lcb-correo-ayuda" hidden>El de sus datos de Facturar. Cámbialo si es otro.</span></label>
+                        <label class="ui-campo"><span class="ui-etiqueta">Su nombre <i>(opcional)</i></span><input class="ui-input" id="lcb-nombre" maxlength="80" autocomplete="off"
+                            placeholder="Para el saludo: «Hola, …»"></label>
+                    </div>
+                </div>
+                <div class="lc-panel" data-paso="4" hidden>
+                    <p class="lc-elegido">Revisa antes de mandar. Si algo no cuadra, da «Corregir».</p>
+                    <dl class="lc-resumen" id="lcb-resumen"></dl>
+                </div>
                 <p class="ui-ayuda ui-ayuda--error" id="lcb-error" hidden></p>
-                <p class="ui-ayuda" id="lcb-ok" hidden></p>
+                <div class="ui-aviso ui-aviso--ok" id="lcb-ok" hidden></div>
             </form>
             <div class="fc-modal__pie">
-                <button type="button" class="ui-btn ui-btn--secundario ui-btn--36" data-lcb-cerrar>Cerrar</button>
-                <button type="button" class="ui-btn ui-btn--secundario ui-btn--36" id="lcb-prueba">Mandarme una prueba</button>
-                <button type="button" class="ui-btn ui-btn--primario ui-btn--36" id="lcb-mandar">Mandar</button>
+                <button type="button" class="ui-btn ui-btn--secundario ui-btn--36" id="lcb-atras" hidden>Anterior</button>
+                <button type="button" class="ui-btn ui-btn--secundario ui-btn--36" data-lcb-cerrar id="lcb-cerrar">Cerrar</button>
+                <button type="button" class="ui-btn ui-btn--secundario ui-btn--36" id="lcb-prueba" hidden>Mandarme una prueba</button>
+                <button type="button" class="ui-btn ui-btn--primario ui-btn--36" id="lcb-revisar" hidden>Revisar</button>
+                <button type="button" class="ui-btn ui-btn--primario ui-btn--36" id="lcb-mandar" hidden>Mandar</button>
+            </div>
+        </dialog>
+
+        <!-- «Acceso» de una licencia que espera que creen la cuenta (20-nov-2026, admin/licencias-admin.js): el enlace para crearla,
+             para copiarlo y mandarlo por WhatsApp. No manda correo. -->
+        <dialog id="lce-dlg" class="fc-modal fc-modal--chica" aria-labelledby="lce-titulo">
+            <div class="fc-modal__cabeza"><div><h2 id="lce-titulo">Enlace para crear su cuenta</h2><p id="lce-sub">Con él crea su contraseña y la licencia se activa sola.</p></div>
+                <button type="button" class="fc-modal__cerrar" data-lce-cerrar aria-label="Cerrar">×</button></div>
+            <form class="fc-modal__cuerpo" id="lce-forma" novalidate>
+                <label class="ui-campo"><span class="ui-etiqueta">Correo con el que va a entrar</span><input class="ui-input" id="lce-correo" type="email" autocomplete="off">
+                    <span class="ui-ayuda">Con ese correo queda su cuenta. No se le manda nada: el enlace lo copias tú.</span></label>
+                <div id="lce-resultado" hidden>
+                    <p class="lc-enlace" id="lce-enlace"></p>
+                    <p class="ui-ayuda" id="lce-vence" style="margin-top:8px"></p>
+                    <div class="ui-aviso ui-aviso--aviso" style="margin-top:12px">Quien tenga este enlace crea la cuenta con esta licencia: mándalo solo a esa persona.</div>
+                </div>
+                <p class="ui-ayuda ui-ayuda--error" id="lce-error" hidden></p>
+            </form>
+            <div class="fc-modal__pie">
+                <button type="button" class="ui-btn ui-btn--secundario ui-btn--36" data-lce-cerrar>Cerrar</button>
+                <a class="ui-btn ui-btn--secundario ui-btn--36" id="lce-whatsapp" target="_blank" rel="noopener" hidden>Abrir WhatsApp</a>
+                <button type="button" class="ui-btn ui-btn--secundario ui-btn--36" id="lce-copiar-enlace" hidden>Copiar enlace</button>
+                <button type="button" class="ui-btn ui-btn--primario ui-btn--36" id="lce-copiar" hidden>Copiar mensaje</button>
+                <button type="button" class="ui-btn ui-btn--primario ui-btn--36" id="lce-generar">Generar enlace</button>
             </div>
         </dialog>
 
@@ -841,17 +895,17 @@
         </div>
     </div>
 
-<script src="/admin/admin.js?v=202611202230"></script>
-<script src="/admin/creditos-admin.js?v=202611202230"></script>
-<script src="/admin/planes-admin.js?v=202611202230"></script>
-<script src="/admin/documentos-admin.js?v=202611202230"></script>
-<script src="/admin/plazos-admin.js?v=202611202230"></script>
-<script src="/admin/vencidas-admin.js?v=202611202230"></script>
-<script src="/admin/despachos-admin.js?v=202611202230"></script>
-<script src="/admin/licencias-admin.js?v=202611202230"></script>
-<script src="/admin/demos-admin.js?v=202611202230"></script>
-<script src="/admin/migracion-admin.js?v=202611202230"></script>
-<script src="/admin/tareas-admin.js?v=202611202230"></script>
-<script src="/admin/servidores-admin.js?v=202611202230"></script>
+<script src="/admin/admin.js?v=202611210330"></script>
+<script src="/admin/creditos-admin.js?v=202611210330"></script>
+<script src="/admin/planes-admin.js?v=202611210330"></script>
+<script src="/admin/documentos-admin.js?v=202611210330"></script>
+<script src="/admin/plazos-admin.js?v=202611210330"></script>
+<script src="/admin/vencidas-admin.js?v=202611210330"></script>
+<script src="/admin/despachos-admin.js?v=202611210330"></script>
+<script src="/admin/licencias-admin.js?v=202611210330"></script>
+<script src="/admin/demos-admin.js?v=202611210330"></script>
+<script src="/admin/migracion-admin.js?v=202611210330"></script>
+<script src="/admin/tareas-admin.js?v=202611210330"></script>
+<script src="/admin/servidores-admin.js?v=202611210330"></script>
 </body>
 </html>

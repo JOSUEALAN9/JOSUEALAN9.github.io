@@ -15,7 +15,7 @@
     var datos = null, filtroSol = "pendiente", edicion = null;
     var AYUDA_PAPEL = {
         titular: "Administra el equipo, los permisos y los ajustes, y acepta solicitudes. Ve todo el despacho.",
-        aprobador: "Acepta o rechaza solicitudes y ve la bitácora. Trabaja con lo que le permitas.",
+        aprobador: "Acepta o rechaza las solicitudes del equipo y ve la bitácora. Las suyas las resuelve el titular. Trabaja con lo que le permitas.",
         miembro: "Trabaja con las empresas y los módulos que le des."
     };
 
@@ -146,6 +146,9 @@
                 "<small>" + (m.nombre ? esc(m.correo) + " · " : "") + (datos.titular ? esc(resumenPermisos(m)) : "") + "</small>" +
                 (datos.titular && textoMiEspacio(m) ? '<small class="dp-quien-me">' + esc(textoMiEspacio(m)) + "</small>" : "") + "</span>" +
                 '<span class="dp-lado">' + estado + (datos.titular ? chipMiEspacio(m) : "") + '<span class="dp-etiqueta dp-etiqueta--' + esc(m.papel) + '">' + esc(m.nombre_papel) + "</span>" +
+                // 21-nov-2026 (auditoría M1): a quien se le venció el enlace de 72 h (o no le llegó) se le manda uno nuevo
+                (datos.titular && m.estado === "invitado" ? '<button type="button" class="ui-btn ui-btn--secundario ui-btn--28" data-reenviar="' + esc(m.correo) +
+                    '" title="Le manda un enlace nuevo (vence en 72 horas)">Reenviar invitación</button>' : "") +
                 (datos.titular ? '<button type="button" class="ui-btn ui-btn--secundario ui-btn--28" data-editar="' + esc(m.correo) + '">Permisos</button>' : "") +
                 "</span></li>";
         }).join("") : '<li class="dp-lista__vacio">Todavía no hay nadie en el equipo.</li>';
@@ -378,7 +381,12 @@
                 : s.estado === "aceptada" ? '<span class="ui-estado ui-estado--ok">Aceptada</span>'
                 : s.estado === "rechazada" ? '<span class="ui-estado ui-estado--error">Rechazada</span>' : '<span class="ui-estado">Cancelada</span>';
             var acciones = "";
-            if (s.estado === "pendiente" && datos.aprueba && s.de_correo !== yo)
+            // 20-nov-2026 (auditoría H8): la solicitud de quien aprueba la resuelve el titular
+            var dePapel = ((datos.equipo || []).filter(function (m) { return m.correo === s.de_correo; })[0] || {}).papel;
+            var alTitular = !datos.titular && (dePapel === "aprobador" || dePapel === "titular");
+            if (s.estado === "pendiente" && datos.aprueba && s.de_correo !== yo && alTitular)
+                acciones = '<small class="dp-sol-nota">La resuelve el titular</small>';
+            else if (s.estado === "pendiente" && datos.aprueba && s.de_correo !== yo)
                 acciones = '<button type="button" class="ui-btn ui-btn--primario ui-btn--28" data-aceptar="' + s.id + '">Aceptar</button>' +
                     '<button type="button" class="ui-btn ui-btn--secundario ui-btn--28" data-rechazar="' + s.id + '">Rechazar</button>';
             else if (s.estado === "pendiente" && s.de_correo === yo)
@@ -579,6 +587,20 @@
         } catch (e) { aviso(e.message); }
     }
 
+    async function reenviarInvitacion(b) {
+        var correo = b.dataset.reenviar, texto = b.textContent;
+        b.disabled = true; b.textContent = "Mandando…";
+        try {
+            var r = await pedir("/api/despacho/miembros/" + encodeURIComponent(correo) + "/reenviar", { method: "POST", body: {} });
+            aviso(r.como === "enlace" ? "Listo: le mandamos a " + correo + " un enlace nuevo. Vence en 72 horas."
+                                      : "Listo: le volvimos a mandar la invitación a " + correo + ".");
+            b.textContent = "Reenviada";
+        } catch (err) {
+            aviso(err.message);
+            b.disabled = false; b.textContent = texto;
+        }
+    }
+
     // ------------------------------------------------------------------ eventos
     document.querySelector(".dp-vistas").addEventListener("click", function (e) {
         var b = e.target.closest("[data-vista]");
@@ -592,6 +614,8 @@
         cargarSolicitudes();
     });
     $("dp-equipo").addEventListener("click", function (e) {
+        var r = e.target.closest("[data-reenviar]");
+        if (r) return reenviarInvitacion(r);
         var b = e.target.closest("[data-editar]");
         if (b) abrirModal(datos.equipo.filter(function (m) { return m.correo === b.dataset.editar; })[0]);
     });

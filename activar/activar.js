@@ -15,8 +15,8 @@
             document.getElementById("act-mias-caja").hidden = !filas.length;
             document.getElementById("act-mias").innerHTML = filas.map(function (x) {
                 var l = x[0];
-                return "<li><code>" + esc(l.clave) + "</code><span>" + esc(x[1]) + "</span><span>" + (l.tipo === "despacho" ? l.asientos + " lugares · " : "") +
-                    l.meses + (l.meses === 1 ? " mes" : " meses") + "</span><span>" + (l.estado === "revocada" ? "Cancelada" : "Vence el " + esc(fecha(l.vence_en))) + "</span></li>";
+                return "<li><code>" + esc(l.clave) + "</code><span>" + esc(x[1]) + "</span><span>" + (l.tipo === "lugares" ? "+" + l.asientos + " lugares (con la vigencia del despacho)" :      // 20-nov-2026: lugares extra (H9)
+                    (l.tipo === "despacho" ? l.asientos + " lugares · " : "") + l.meses + (l.meses === 1 ? " mes" : " meses")) + "</span><span>" + (l.estado === "revocada" ? "Cancelada" : "Vence el " + esc(fecha(l.vence_en))) + "</span></li>";
             }).join("");
         } catch (e) { /* no pasa nada */ }
     }

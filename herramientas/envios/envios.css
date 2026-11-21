@@ -82,6 +82,8 @@
 .ev-hecho__verificado--sin { color: #9A3412; }
 .ev-hecho .ev-hecho__nota { color: #9A3412; }
 .ev-radios--una { grid-template-columns: minmax(0, 1fr); }
+.ev-corte { display: grid; gap: 0; min-width: 0; }          /* 20-nov: «Hasta ayer» / «Hasta este momento» en «Enviar ahora» */
+.ev-corte[hidden] { display: none; }
 @media (max-width: 640px) {
     .ev-pasos { padding: 8px 12px; gap: 2px; }
     .ev-pasos li { flex: 0 0 auto; }
@@ -197,3 +199,28 @@
 .ev-detenido { margin: 10px 0 0; padding: 10px 12px; border-radius: 10px; background: rgb(var(--ambar-50, 255 247 237)); border: 1px solid rgb(var(--ambar-200, 254 215 170)); font-size: 13px; }
 .ev-detenido p { margin: 0 0 8px; color: rgb(var(--g-800, 31 41 51)); }
 .ev-detenido__botones { display: flex; flex-wrap: wrap; gap: 8px; }
+/* 21-nov-2026 (pase 38): «Solo una vez, ahora», «Enviados una vez» y «Solo de estos proveedores / clientes» */
+.ev-dlg [hidden], #ev-ahora [hidden], .mod-pagina .ev-unavez[hidden] { display: none !important; }
+.ev-unavez__ayuda { margin: 0 0 8px; }
+.ev-unavez__lista { display: grid; gap: 8px; }
+.ev-unavez__fila { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 8px 16px; padding: 10px 14px; border: 1px solid var(--linea); border-radius: 12px; background: rgb(var(--g-0)); min-width: 0; }
+.ev-unavez__txt { flex: 1 1 320px; min-width: 0; display: grid; gap: 2px; }
+.ev-unavez__txt b { font-size: var(--t-14); color: rgb(var(--g-900)); overflow-wrap: anywhere; }
+.ev-unavez__txt small { font-size: var(--t-12); color: rgb(var(--g-600)); overflow-wrap: anywhere; }
+.ev-unavez__txt .ev-ultimo { border-top: 0; padding-top: 0; margin: 2px 0 0; }
+.ev-unavez__txt .ev-detenido { margin-top: 6px; }
+.ev-unavez__fila .ev-acciones { flex: none; margin-top: 0; }
+.ev-unavez__fila .ev-acciones .ui-btn:first-child { margin-right: 0; }
+.ev-unavez-form { display: grid; gap: 12px; min-width: 0; }
+.ev-solo { display: grid; gap: 10px; min-width: 0; padding-top: 4px; border-top: 1px solid var(--linea); }
+.ev-solo > .ev-adjuntar { align-self: start; padding-top: 10px; }
+.ev-solo__panel { display: grid; gap: 8px; min-width: 0; padding: 10px; border: 1px solid rgb(var(--g-300)); border-radius: 12px; }
+.ev-solo__barra { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.ev-solo__lados { display: inline-flex; gap: 6px; flex: none; }
+.ev-solo__lados small { margin-left: 4px; font-weight: 400; }
+.ev-solo__barra .ui-input { flex: 1 1 200px; min-width: 0; height: 32px; }
+.ev-solo__panel .ui-ayuda { margin: 0; }
+.ev-solo__lista { max-height: 180px; }
+.ev-solo__lista .ui-check b { font-weight: 600; }
+.ev-hecho__solo { display: block; font-size: 12.5px; color: rgb(var(--g-700)); overflow-wrap: anywhere; }
+@media (max-width: 640px) { .ev-unavez__fila .ev-acciones { width: 100%; } .ev-solo__lados { width: 100%; } }
