@@ -11,6 +11,7 @@
     <link rel="stylesheet" href="/admin/migracion-admin.css?v=202611210330">
     <link rel="stylesheet" href="/admin/tareas-admin.css?v=202611210330">
     <link rel="stylesheet" href="/admin/licencias-admin.css?v=202611210330">
+    <link rel="stylesheet" href="/admin/pendientes-admin.css?v=202611210330">
 </head>
 <body class="min-h-screen flex flex-col relative">
 
@@ -95,7 +96,7 @@
                 <button type="button" class="pestana" role="tab" data-pestana="creditos" data-de-grupo="ventas">Créditos <span class="text-amber-600 font-semibold" id="cuenta-creditos"></span></button>
                 <button type="button" class="pestana" role="tab" data-pestana="actividad" data-de-grupo="operacion">Actividad <span class="text-slate-400 font-semibold" id="cuenta-actividad"></span></button>
                 <button type="button" class="pestana" role="tab" data-pestana="documentos" data-de-grupo="operacion">Documentos <span class="text-amber-600 font-semibold" id="cuenta-documentos"></span></button>
-                <button type="button" class="pestana" role="tab" data-pestana="sistema" data-de-grupo="sistema">Sistema <span class="text-amber-600 font-semibold" id="alerta-sistema"></span></button>
+                <button type="button" class="pestana" role="tab" data-pestana="sistema" data-de-grupo="sistema">Sistema <span class="text-amber-600 font-semibold" id="cuenta-pendientes"></span><span class="text-amber-600 font-semibold" id="alerta-sistema"></span></button>
                 <a class="pestana" data-de-grupo="sistema" href="/admin/laboratorio/" title="Recorrer un portal del SAT y guardar el registro (solo lectura)">Laboratorio ↗</a>
             </div>
 
@@ -405,6 +406,8 @@
                     <h2 class="text-xs font-bold text-slate-500 uppercase tracking-wide">Estado</h2>
                     <button type="button" id="btn-actualizar-sistema" class="ml-auto text-xs font-bold text-slate-500 hover:text-slate-800 underline">Actualizar</button>
                 </div>
+                <!-- 21-nov-2026 (Alan: «para que me los recuerdes»): lo que le falta, por grupos (admin/pendientes-admin.js) -->
+                <section id="tarjeta-pendientes" class="pnd-tarjeta mb-3" aria-label="Pendientes"></section>
                 <!-- 20-nov-2026: quién atiende, copia, versiones, corriente, llave e interruptores (admin/servidores-admin.js) -->
                 <section id="tarjeta-servidores" class="srv-tarjeta mb-3" aria-label="Servidores"></section>
                 <div id="tarjetas-estado" class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 mb-6"></div>
@@ -907,5 +910,6 @@
 <script src="/admin/migracion-admin.js?v=202611210330"></script>
 <script src="/admin/tareas-admin.js?v=202611210330"></script>
 <script src="/admin/servidores-admin.js?v=202611210330"></script>
+<script src="/admin/pendientes-admin.js?v=202611210330"></script>
 </body>
 </html>
