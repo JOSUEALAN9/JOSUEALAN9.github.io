@@ -1307,6 +1307,7 @@ async function pintarXmlAuto(cliente) {
     document.getElementById("xml-retenciones").checked = !!cfg.retenciones;
     document.getElementById("xml-activo").checked = !!cfg.activo && !!cliente.efirma_guardada;
     document.getElementById("xml-activo").disabled = !cliente.efirma_guardada;
+    document.getElementById("xml-activo").title = cliente.efirma_guardada ? "" : "Primero guarda su e.firma en la pestaña Accesos";   // 22-nov-2026: deshabilitado, dice por qué
     document.getElementById("xml-sin-efirma").hidden = !!cliente.efirma_guardada;
     explicarXmlAuto(cfg);
 }

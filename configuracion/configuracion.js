@@ -216,6 +216,12 @@
             '<div class="cf-acciones"><button type="button" class="cf-btn cf-btn--principal" id="cf-guardar-perfil">Guardar</button><span class="cf-msj"></span></div></div>';
         c.insertBefore(cajaFoto, c.firstChild); cajaFoto.style.marginBottom = "12px"; pintarFoto(cajaFoto);
         $("cf-guardar-perfil").addEventListener("click", async function () {
+            // 22-nov-2026 (barrido de botones): el servidor aceptaba «12ab» como teléfono; aquí se dice qué está mal y dónde
+            var tel = $("cf-telefono").value.trim();
+            if (!$("cf-nombre").value.trim()) { aviso(c, false, "Escribe tu nombre."); $("cf-nombre").focus(); return; }
+            if (tel && (!/^\+?[\d\s().-]+$/.test(tel) || tel.replace(/\D/g, "").length < 10)) {
+                aviso(c, false, "Revisa el teléfono: escribe 10 dígitos (puede llevar espacios o guiones)."); $("cf-telefono").focus(); return;
+            }
             try {
                 await enviar("/api/mi-perfil", "PUT", { nombre: $("cf-nombre").value.trim(), telefono: $("cf-telefono").value.trim() || null });
                 perfil.nombre = $("cf-nombre").value.trim();
@@ -797,7 +803,12 @@
                 }
                 catch (e) { aviso(c, false, e.message); }
             });
-            var cajaPrueba = $("cf-av-prueba-caja"), cerrarPrueba = function () { cajaPrueba.classList.remove("cf-menu-prueba--abierto"); $("cf-av-prueba-abrir").setAttribute("aria-expanded", "false"); };
+            // 22-nov-2026 (barrido de botones): los oyentes de abajo quedan en el documento al pasar a otra sección; sin esta
+            // revisión, cada clic o Esc en Mi perfil, Seguridad… tronaba («Cannot read properties of null»)
+            var cajaPrueba = $("cf-av-prueba-caja"), cerrarPrueba = function () {
+                if (!cajaPrueba.isConnected) return;
+                cajaPrueba.classList.remove("cf-menu-prueba--abierto"); var b = $("cf-av-prueba-abrir"); if (b) b.setAttribute("aria-expanded", "false");
+            };
             $("cf-av-prueba-abrir").addEventListener("click", function () {
                 var abierto = cajaPrueba.classList.toggle("cf-menu-prueba--abierto"); this.setAttribute("aria-expanded", String(abierto));
                 cajaPrueba.classList.remove("cf-menu-prueba--arriba");

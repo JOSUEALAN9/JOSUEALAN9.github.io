@@ -21,7 +21,7 @@
         var x = new Date(/Z$/.test(iso) ? iso : iso + "Z");
         return isNaN(x) ? "" : x.toLocaleString("es-MX", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
     }
-    function decir(texto, mal) { var m = $("vs-msj"); m.textContent = texto || ""; m.className = "vs-msj" + (mal ? " vs-msj--mal" : ""); }
+    function decir(texto, mal) { var m = $("vs-msj"); if (!m) return; m.textContent = texto || ""; m.className = "vs-msj" + (mal ? " vs-msj--mal" : ""); }
 
     function pintarLista() {
         if (!$("vs-leer")) return;                      // la página se bloqueó (módulo sin acceso)
@@ -171,7 +171,9 @@
     }
 
     async function arrancar() {
-        if (!$("vs-leer")) return;                      // módulo sin acceso: la página ya muestra el aviso
+        // 22-nov-2026 (barrido de botones): sin el módulo, la página se bloquea un instante después y decir() tronaba
+        // («Cannot set properties of null»); se espera el permiso, como en visores-panel.js
+        if (!$("vs-leer") || !(await Fiscontable.exigirModulo("iva"))) return;   // módulo sin acceso: la página ya muestra el aviso
         $("vs-leer").addEventListener("click", leer);
         $("vs-lista").addEventListener("click", accion);
         $("vs-detalle").addEventListener("click", async function (e) {

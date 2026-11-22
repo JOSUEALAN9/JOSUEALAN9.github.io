@@ -864,8 +864,10 @@
         } else rielModulos.pintar(gruposModulos());
     }
 
+    var origenModulos = null;                     // el botón que abrió el buscador: ahí vuelve el foco al cerrarlo
     function abrirModulos(origen) {
         var panel = document.getElementById("fc-modulos"), boton = origen || document.getElementById("fc-btn-modulos");
+        origenModulos = boton;
         cerrarEmpresas();
         document.getElementById("fc-menu").hidden = true;
         var buscar = document.getElementById("fc-modulos-buscar");
@@ -886,8 +888,12 @@
     function cerrarModulos() {
         var panel = document.getElementById("fc-modulos");
         if (!panel || panel.hidden) return false;
+        // 22-nov-2026 (barrido de botones): al cerrar con Esc el foco se perdía en la página; vuelve al botón que lo abrió
+        // (solo si el foco estaba dentro del buscador: si la persona hizo clic en otra cosa, ahí se queda)
+        var a = document.activeElement, devolver = !a || a === document.body || panel.contains(a);
         panel.hidden = true;
         document.getElementById("fc-btn-modulos").setAttribute("aria-expanded", "false");
+        if (devolver && origenModulos && origenModulos.isConnected) try { origenModulos.focus({ preventScroll: true }); } catch (e) { /* sin foco */ }
         return true;
     }
 
@@ -1087,11 +1093,20 @@
         if (activo && window.innerWidth > 700) activo.focus();
     }
 
+    // 22-nov-2026 (barrido de botones): al cerrar un menú de la barra con Esc el foco se perdía en la página; vuelve a su botón
+    // (solo si el foco estaba dentro del menú o perdido: si la persona hizo clic en otra cosa, ahí se queda)
+    function devolverFoco(panel, boton) {
+        var a = document.activeElement;
+        if (boton && (!a || a === document.body || panel.contains(a))) try { boton.focus({ preventScroll: true }); } catch (e) { /* sin foco */ }
+    }
+
     function cerrarEspacios() {
         var panel = document.getElementById("fc-espacios");
         if (!panel || panel.hidden) return;
+        var boton = document.getElementById("fc-btn-espacio"), dentro = panel.contains(document.activeElement) || document.activeElement === document.body;
         panel.hidden = true;
-        document.getElementById("fc-btn-espacio").setAttribute("aria-expanded", "false");
+        boton.setAttribute("aria-expanded", "false");
+        if (dentro) devolverFoco(panel, boton);
     }
 
     async function cambiarEspacio(clave) {
@@ -1170,8 +1185,10 @@
     function cerrarEmpresas() {
         var panel = document.getElementById("fc-empresas");
         if (!panel || panel.hidden) return;
+        var boton = document.getElementById("fc-btn-empresa"), dentro = panel.contains(document.activeElement) || document.activeElement === document.body;
         panel.hidden = true;
-        document.getElementById("fc-btn-empresa").setAttribute("aria-expanded", "false");
+        boton.setAttribute("aria-expanded", "false");
+        if (dentro) devolverFoco(panel, boton);
     }
 
     /* ---------- Visor de PDF de Fiscontable (PDF.js) ----------
@@ -3009,7 +3026,8 @@
                 var b = e.target.closest("[data-correo]"); if (!b) return;
                 if (b.dataset.correo === "no") { dlgCorreo.close(); return; }
                 var f = dlgCorreo.querySelector("form"), err = dlgCorreo.querySelector(".fc-correo-error"), op = dlgCorreo._op;
-                if (!f.para.value.trim()) { f.para.focus(); return; }
+                // 22-nov-2026 (barrido de botones): con «Para» vacío solo movía el cursor, sin decir nada; ahora lo dice
+                if (!f.para.value.trim()) { err.textContent = "Escribe al menos un correo en «Para»."; err.hidden = false; f.para.focus(); return; }
                 b.disabled = true; err.hidden = true;
                 try {
                     var r = await fetch(API + op.ruta, { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" },

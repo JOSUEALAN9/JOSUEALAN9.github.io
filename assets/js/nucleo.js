@@ -14,7 +14,7 @@
 (function () {
     "use strict";
 
-    var VERSION = "202611221330";
+    var VERSION = "202611221600";
     // www.fiscontable.app → fiscontable.app: una sola dirección (la sesión y las preferencias guardadas son por dirección)
     if (location.hostname === "www.fiscontable.app") {
         location.replace("https://fiscontable.app" + location.pathname + location.search + location.hash);
@@ -460,4 +460,40 @@
         var firme = !!t.querySelector('input:not([type="hidden"]), textarea, select, [data-firme]');
         if (arrastre || firme) e.stopImmediatePropagation();
     }, true);
+    /* 22-nov-2026 (barrido de botones): toda ventana <dialog> abierta con showModal() devuelve el foco al botón que la abrió
+       cuando se cierra (con su ✕, con Esc o por código), si el foco quedó perdido en la página o dentro de la ventana. */
+    try {
+        var DP = window.HTMLDialogElement && HTMLDialogElement.prototype, abrirModal = DP && DP.showModal;
+        // el último botón pulsado: si mientras carga se deshabilita (y el foco se cae a la página), la ventana igual sabe a dónde volver
+        var ultimoBoton = null;
+        document.addEventListener("click", function (e) { var b = e.target && e.target.closest && e.target.closest("button, a, [role=button]"); if (b) ultimoBoton = b; }, true);
+        if (abrirModal && !abrirModal.__fcFoco) {
+            DP.showModal = function () {
+                var dlg = this, previo = document.activeElement;
+                if ((!previo || previo === document.body) && ultimoBoton && ultimoBoton.isConnected && !dlg.contains(ultimoBoton)) previo = ultimoBoton;
+                var r = abrirModal.apply(dlg, arguments);
+                if (previo && previo !== document.body) dlg.addEventListener("close", function () {
+                    var a = document.activeElement;
+                    if (previo.isConnected && (!a || a === document.body || dlg.contains(a))) try { previo.focus({ preventScroll: true }); } catch (e) { /* sin foco */ }
+                }, { once: true });
+                return r;
+            };
+            DP.showModal.__fcFoco = true;
+        }
+    } catch (e) { /* navegador sin <dialog> */ }
+
+    /* 22-nov-2026 (barrido de botones): los menús desplegables de los módulos (.xml-menu__lista: «Cambiar empresa ▾»,
+       «Descargar ▾», «Filtros»…) no se cerraban con Esc. Ahora sí, en todas las pantallas, y el foco vuelve a su botón. */
+    document.addEventListener("keydown", function (e) {
+        if (e.key !== "Escape" || e.defaultPrevented) return;
+        var abiertos = document.querySelectorAll(".xml-menu__lista:not([hidden])"), volver = null;
+        Array.prototype.forEach.call(abiertos, function (m) {
+            if (!m.getClientRects().length) return;                        // ya no se ve: no es de este Esc
+            m.hidden = true;
+            var b = m.parentNode && m.parentNode.querySelector("[aria-haspopup]");
+            if (b) { if (b.hasAttribute("aria-expanded")) b.setAttribute("aria-expanded", "false"); volver = volver || b; }
+        });
+        var a = document.activeElement;
+        if (volver && (!a || a === document.body || volver.parentNode.contains(a))) try { volver.focus({ preventScroll: true }); } catch (x) { /* sin foco */ }
+    });
 })();

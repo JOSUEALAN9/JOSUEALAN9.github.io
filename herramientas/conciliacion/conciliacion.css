@@ -116,3 +116,7 @@ a.xml-btn { text-decoration: none; }
 .conc-hojas { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 210px), 1fr)); gap: 4px 14px; padding: 10px 12px; border: 1px solid rgb(var(--g-200)); border-radius: 12px; }
 .conc-hoja { display: flex; align-items: flex-start; gap: 8px; font-size: 13.5px; color: rgb(var(--g-800, var(--g-700))); padding: 3px 0; cursor: pointer; }
 .conc-hoja input { margin-top: 2px; accent-color: rgb(var(--ac-600)); }
+
+/* 22-nov-2026 (barrido de botones): aquí «Cambiar empresa ▾» queda pegado a la orilla derecha (después de las pestañas) y su menú
+   de 340 px, abierto hacia la derecha, se salía de la pantalla y la página crecía a lo ancho. Se abre hacia la izquierda. */
+@media (min-width: 701px) { .conc-vista ~ .ctx .xml-menu__lista--otra { left: auto; right: 0; } }

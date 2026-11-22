@@ -1942,7 +1942,9 @@ async function revisarVps() {
     t.textContent = "Preguntando a la VPS…";
     try {
         const r = await api("/api/admin/sistema/respaldo/vps");
-        t.className = "text-[11px] mt-1 " + (r.ok && !r.atendiendo ? "text-emerald-700" : "text-amber-700");
+        // 22-nov-2026: «la VPS NO entró: la Vostro sigue por su túnel» es un aviso, no un «todo bien» (va en ámbar)
+        const sinEntrar = !!(r.vigilante_tunel && r.vigilante_tunel.abierto);
+        t.className = "text-[11px] mt-1 " + (r.ok && !r.atendiendo && !sinEntrar ? "text-emerald-700" : "text-amber-700");
         t.textContent = r.ok || r.atendiendo
             ? `${r.mensaje} Datos en la VPS: ${tamano(r.datos)} · disco libre ${tamano(r.disco_libre)}` +
               (r.copia_en_vps ? ` · última copia recibida ${haceCuanto(r.copia_en_vps)}` : "") +

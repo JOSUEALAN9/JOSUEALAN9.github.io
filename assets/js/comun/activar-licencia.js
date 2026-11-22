@@ -31,7 +31,7 @@
         caja.innerHTML = '<form class="al__forma" novalidate>' +
             '<label class="ui-campo al__campo"><span class="ui-etiqueta">Clave de licencia</span>' +
             '<input class="ui-input al__clave" maxlength="24" placeholder="FSC-XXXX-XXXX-XXXX-XXXX" autocomplete="off" autocapitalize="characters" spellcheck="false" inputmode="text"></label>' +
-            '<button type="submit" class="ui-btn ui-btn--primario ui-btn--36 al__boton" disabled>Activar</button></form>' +
+            '<button type="submit" class="ui-btn ui-btn--primario ui-btn--36 al__boton" disabled title="Escribe la clave completa (FSC-…)">Activar</button></form>' +
             '<form class="al__forma al__forma--nombre" novalidate hidden>' +
             '<label class="ui-campo al__campo"><span class="ui-etiqueta">Nombre de tu despacho</span>' +
             '<input class="ui-input al__nombre" maxlength="80" placeholder="Pérez y Asociados" autocomplete="organization"></label>' +
@@ -47,6 +47,7 @@
             var f = formatear(campo.value);
             campo.value = f.texto;
             boton.disabled = !f.completa;
+            boton.title = f.completa ? "" : "Escribe la clave completa (FSC-…)";   // 22-nov-2026 (barrido de botones): dice por qué
             formaNombre.hidden = true;                 // otra clave: se vuelve a preguntar si hace falta
             decir("");
         });

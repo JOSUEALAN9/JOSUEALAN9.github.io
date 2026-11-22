@@ -285,7 +285,9 @@
         $("buscar").addEventListener("input", pintarClientes);
         $("noche").addEventListener("change", function () { $("noche-texto").textContent = textoNoche(this.value); });
 
+        var origen = null;                        // el botón que abrió la ventana: ahí vuelve el foco al cerrarla
         async function abrir() {
+            origen = document.activeElement;
             $("error").hidden = true;
             $("fondo").hidden = false;
             try {
@@ -313,7 +315,11 @@
                 $("error").textContent = e.message; $("error").hidden = false;
             }
         }
-        function cerrar() { $("fondo").hidden = true; }
+        function cerrar() {
+            $("fondo").hidden = true;
+            // 22-nov-2026 (barrido de botones): el foco se quedaba perdido en la página al cerrar con Esc o ✕
+            if (origen && origen !== document.body && origen.isConnected) try { origen.focus({ preventScroll: true }); } catch (e) { /* sin foco */ }
+        }
 
         $("abrir").addEventListener("click", abrir);
         $("cerrar").addEventListener("click", cerrar);

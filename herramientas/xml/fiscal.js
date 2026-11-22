@@ -271,6 +271,7 @@
         $("mk-conceptos").hidden = !(E.mk.conceptos && v === "1");
         if (v === "1" && !$("mk-pct").value && (E.mk.imp || $("mk-imp").value) === "alc" && E.datos) $("mk-pct").value = E.datos.config.alcohol_pct;
         $("mk-aplicar").disabled = v == null;
+        $("mk-aplicar").title = v == null ? "Primero elige si cuentan o no" : "";   // 22-nov-2026 (barrido de botones): dice por qué
     }
     function abrirMarcar() { prepararModal(Array.from(E.sel), null); }
     function abrirCelda(uuid, imp) { prepararModal([uuid], imp); }
