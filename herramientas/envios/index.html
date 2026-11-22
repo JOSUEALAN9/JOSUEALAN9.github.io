@@ -4,15 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Envíos por correo | Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611210330">
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611210330">
-    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611210330">
-    <link rel="stylesheet" href="/herramientas/envios/envios.css?v=202611210330">
+    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611212100">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611212100">
+    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611212100">
+    <link rel="stylesheet" href="/herramientas/envios/envios.css?v=202611212100">
 </head>
 <body class="min-h-screen flex flex-col">
 <div id="app-header" data-modulo="envios" data-titulo="Envíos por correo" data-migas="Herramientas|/herramientas/"></div>
-<script src="/assets/js/nucleo.js?v=202611210330"></script>
-<script src="/assets/js/barra.js?v=202611210330"></script>
+<script src="/assets/js/nucleo.js?v=202611212100"></script>
+<script src="/assets/js/barra.js?v=202611212100"></script>
 
 <main class="flex-grow mod-pagina">
     <div class="mod-cabeza">
@@ -94,54 +94,10 @@
             <p class="ui-ayuda">También se pueden marcar después, con las casillas de «Empresas de cada envío».</p>
         </section>
 
+        <!-- 21-nov-2026 (Alan: «creo que es al revés: primero me pone qué mandar y hasta el final me pregunta el periodo»):
+             el periodo va antes de «Qué lleva», para que lo que depende de él (el Excel de todos los meses) ya se sepa -->
         <section class="ev-paso" data-paso="3" aria-labelledby="ev-p3" hidden>
-            <h3 id="ev-p3">¿Qué lleva?</h3>
-            <div class="ev-dos">
-                <div>
-                    <p class="ev-sub">XML y PDF <i>(en la carpeta «XML y PDF»)</i></p>
-                    <div id="ev-xml" class="ev-checks"></div>
-                </div>
-                <div>
-                    <p class="ev-sub">Excel <i>(afuera de la carpeta, con las columnas que elijas)</i></p>
-                    <div id="ev-excel" class="ev-excel"></div>
-                    <label class="ui-check ev-adjuntar" id="ev-excel-periodo-caja"><input type="checkbox" id="ev-excel-periodo">
-                        <span>Además, un Excel con todo el periodo
-                            <small>Cuando lleva más de un mes: uno por cada Excel elegido, en la carpeta de la empresa (por ejemplo, «RFC_Recibidas_2026-08_a_2026-11.xlsx»). Los de cada mes siguen en su carpeta.</small></span></label>
-                </div>
-            </div>
-            <div class="ev-dos">
-                <label class="ui-campo"><span class="ui-etiqueta">Importes de los Excel</span>
-                    <select id="ev-moneda" class="ui-select"></select></label>
-                <div class="ui-campo" id="ev-conc-caja" hidden><span class="ui-etiqueta" id="ev-conc-etq">Hojas de la conciliación</span>
-                    <select id="ev-conc" class="ui-select" aria-labelledby="ev-conc-etq"></select></div>
-            </div>
-            <div id="ev-conc-hojas" class="ev-hojas" role="group" aria-label="Hojas de la conciliación" hidden></div>
-            <div>
-                <p class="ev-sub">Documentos <i>(los más recientes guardados de cada empresa, juntos en una carpeta)</i></p>
-                <div id="ev-docs" class="ev-checks ev-checks--fila"></div>
-            </div>
-            <!-- 21-nov-2026 (Alan): «Solo de estos proveedores / clientes»; apagado, van todos -->
-            <div class="ev-solo">
-                <label class="ui-check ev-adjuntar"><input type="checkbox" id="ev-solo">
-                    <span>Solo de ciertos proveedores o clientes
-                        <small>Elige al menos uno (apagado, van todos). Aplica al ZIP, a los Excel, a los PDF y a la revisión contra el SAT.</small></span></label>
-                <div class="ev-solo__panel" id="ev-solo-panel" hidden>
-                    <div class="ev-solo__barra">
-                        <div class="ev-solo__lados" role="group" aria-label="De qué lado">
-                            <button type="button" class="ev-chip" data-solo-lado="proveedores" aria-pressed="true">Proveedores <small id="ev-solo-n-proveedores"></small></button>
-                            <button type="button" class="ev-chip" data-solo-lado="clientes" aria-pressed="false">Clientes <small id="ev-solo-n-clientes"></small></button>
-                        </div>
-                        <input type="search" id="ev-solo-buscar" class="ui-input" placeholder="Buscar por nombre o RFC…" autocomplete="off" aria-label="Buscar proveedor o cliente">
-                    </div>
-                    <p class="ui-ayuda" id="ev-solo-lado-txt"></p>
-                    <div id="ev-solo-lista" class="ev-empresas ev-solo__lista" role="listbox" aria-multiselectable="true" aria-label="Proveedores o clientes"></div>
-                    <div id="ev-solo-elegidos" class="ev-elegidas" aria-live="polite"></div>
-                </div>
-            </div>
-        </section>
-
-        <section class="ev-paso" data-paso="4" aria-labelledby="ev-p4" hidden>
-            <h3 id="ev-p4">¿Cuándo y de qué periodo?</h3>
+            <h3 id="ev-p3">¿Cuándo y de qué periodo?</h3>
             <div class="ev-tres">
                 <label class="ui-campo"><span class="ui-etiqueta">Cada cuánto</span>
                     <select id="ev-frecuencia" class="ui-select"><option value="semanal">Cada semana</option><option value="quincenal">Cada quincena (días 1 y 16)</option><option value="mensual">Cada mes</option><option value="una_vez">Solo una vez, ahora</option></select></label>
@@ -178,6 +134,56 @@
             <p class="ev-nota" id="ev-periodo-txt"></p>
             <label class="ui-check" id="ev-avisar-caja"><input type="checkbox" id="ev-avisar"> Avisar por correo aunque no haya nada que mandar</label>
             <p class="ui-ayuda" id="ev-verifica-txt"></p>
+        </section>
+
+        <section class="ev-paso" data-paso="4" aria-labelledby="ev-p4" hidden>
+            <h3 id="ev-p4">¿Qué lleva?</h3>
+            <div class="ev-dos">
+                <div>
+                    <p class="ev-sub">XML y PDF <i>(en la carpeta «XML y PDF»)</i></p>
+                    <div id="ev-xml" class="ev-checks"></div>
+                </div>
+                <div>
+                    <p class="ev-sub">Excel <i>(afuera de la carpeta, con las columnas que elijas)</i></p>
+                    <div id="ev-excel" class="ev-excel"></div>
+                    <!-- 21-nov-2026 (Alan): solo se ve si el periodo elegido en «Cuándo» abarca más de un mes y lleva algún Excel -->
+                    <label class="ui-check ev-adjuntar" id="ev-excel-periodo-caja" hidden><input type="checkbox" id="ev-excel-periodo">
+                        <span>Además, un Excel con todos los meses juntos (uno por cada Excel elegido).
+                            <small>Los de cada mes siguen en su carpeta.</small></span></label>
+                </div>
+            </div>
+            <div class="ev-dos">
+                <label class="ui-campo"><span class="ui-etiqueta">Importes de los Excel</span>
+                    <select id="ev-moneda" class="ui-select"></select></label>
+                <div class="ui-campo" id="ev-conc-caja" hidden><span class="ui-etiqueta" id="ev-conc-etq">Hojas de la conciliación</span>
+                    <select id="ev-conc" class="ui-select" aria-labelledby="ev-conc-etq"></select></div>
+            </div>
+            <div id="ev-conc-hojas" class="ev-hojas" role="group" aria-label="Hojas de la conciliación" hidden></div>
+            <div>
+                <p class="ev-sub">Documentos <i>(los más recientes guardados de cada empresa, juntos en una carpeta)</i></p>
+                <div id="ev-docs" class="ev-checks ev-checks--fila"></div>
+            </div>
+            <p class="ev-nota" id="ev-lleva-corte" role="status" hidden>Con solo la constancia o la opinión, «Hasta hoy» no agrega nada y tarda unos minutos más. Puedes volver a «Cuándo» y elegir «Hasta ayer».</p>
+            <!-- 21-nov-2026 (Alan): «Solo de estos proveedores / clientes»; apagado, van todos -->
+            <div class="ev-solo">
+                <label class="ui-check ev-adjuntar"><input type="checkbox" id="ev-solo">
+                    <span>Solo de ciertos proveedores o clientes
+                        <small>Elige al menos uno (apagado, van todos). Aplica al ZIP, a los Excel, a los PDF y a la revisión contra el SAT.</small></span></label>
+                <div class="ev-solo__panel" id="ev-solo-panel" hidden>
+                    <div class="ev-solo__barra">
+                        <div class="ev-solo__lados" role="group" aria-label="De qué lado">
+                            <button type="button" class="ev-chip" data-solo-lado="proveedores" aria-pressed="true">Proveedores <small id="ev-solo-n-proveedores"></small></button>
+                            <button type="button" class="ev-chip" data-solo-lado="clientes" aria-pressed="false">Clientes <small id="ev-solo-n-clientes"></small></button>
+                        </div>
+                        <input type="search" id="ev-solo-buscar" class="ui-input" placeholder="Buscar por nombre o RFC…" autocomplete="off" aria-label="Buscar proveedor o cliente">
+                    </div>
+                    <p class="ui-ayuda" id="ev-solo-lado-txt"></p>
+                    <div id="ev-solo-lista" class="ev-empresas ev-solo__lista" role="listbox" aria-multiselectable="true" aria-label="Proveedores o clientes"></div>
+                    <div id="ev-solo-elegidos" class="ev-elegidas" aria-live="polite"></div>
+                    <!-- 21-nov-2026 (revisión de Fable): lo que va de cada lado; un lado sin elegidos va completo -->
+                    <p class="ev-solo__resumen" id="ev-solo-resumen" aria-live="polite" hidden></p>
+                </div>
+            </div>
         </section>
 
         <section class="ev-paso" data-paso="5" aria-labelledby="ev-p5" hidden>
@@ -262,6 +268,6 @@
     </div>
 </dialog>
 
-<script src="/herramientas/envios/envios.js?v=202611210330"></script>
+<script src="/herramientas/envios/envios.js?v=202611212100"></script>
 </body>
 </html>

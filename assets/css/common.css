@@ -1797,6 +1797,13 @@ main.fc-recien { animation: fc-recien .35s ease-out; }
 .fc-bloqueo-pantalla__olvide { font-size: var(--t-13); color: rgb(var(--g-600)); text-decoration: underline; text-underline-offset: 3px; }
 .fc-bloqueo-pantalla__olvide:hover { color: rgb(var(--g-900)); }
 html.fc-bloqueada body { overflow: hidden; }
+/* --- Aviso «Hay una versión nueva» (21-nov-2026): la misma pantalla del bloqueo, con «Actualizar» (barra.js) --- */
+.fc-version-nueva .fc-bloqueo-pantalla__caja h2 { font-size: var(--t-20); line-height: 1.3; }
+.fc-version-nueva .fc-bloqueo-pantalla__caja .ui-btn--primario { min-width: 200px; }
+.fc-bloqueo-pantalla__caja .fc-version-nueva__ojo { width: 100%; padding: var(--e-2) var(--e-3); border-radius: 10px; border: 1px solid rgb(var(--av-200));
+                                                   background: rgb(var(--av-50)); color: rgb(var(--av-600)); font-size: var(--t-13); }
+.fc-bloqueo-pantalla__caja .fc-version-nueva__ojo[hidden], .fc-version-nueva .ui-btn[hidden] { display: none; }
+html.fc-version-abierta body { overflow: hidden; }
 
 /* --- Selector de empresa (G-02): favoritas, recientes y todas --- */
 .fc-empresas__grupo { margin: 8px 10px 4px; font-size: var(--t-12); font-weight: 600; color: rgb(var(--g-500)); }

@@ -14,6 +14,17 @@
 .fa-aviso--error { background: rgb(var(--er-50)); border-color: rgb(var(--er-200)); color: rgb(var(--er-600)); }
 .fa-aviso--ok { background: rgb(var(--ok-50)); border-color: rgb(var(--ok-200)); color: rgb(var(--ok-600)); }
 .fa-aviso button, .fa-aviso a { font-weight: 700; text-decoration: underline; background: none; border: 0; color: inherit; cursor: pointer; font: inherit; }
+/* «Hoy toca facturar» (21-nov-2026): un renglón por recurrente, con su fecha y «Omitir este periodo» */
+.fa-hoy { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 8px; }
+.fa-hoy__fila { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-top: 8px; border-top: 1px solid rgb(var(--av-200)); min-width: 0; }
+.fa-hoy__fila:first-child { border-top: 0; padding-top: 0; }
+.fa-hoy__que { display: flex; flex-direction: column; gap: 2px; min-width: 0; overflow-wrap: anywhere; }
+.fa-hoy__que .fa-link { text-align: left; font-size: 13.5px; }
+.fa-hoy__cuando { font-size: 12.5px; color: rgb(var(--g-600)); }
+.fa-hoy__atrasada { color: rgb(var(--er-600)); font-weight: 700; }
+.fa-aviso .fa-hoy__omitir { flex: none; text-decoration: none; background: rgb(var(--g-0)); border: 1px solid rgb(var(--av-200)); color: rgb(var(--g-800)); font-size: 12.5px; padding: 6px 12px; border-radius: 9px; }
+.fa-aviso .fa-hoy__omitir:hover:not(:disabled) { background: rgb(var(--av-50)); }
+@media (max-width: 640px) { .fa-hoy__fila { flex-direction: column; align-items: stretch; } .fa-aviso .fa-hoy__omitir { align-self: flex-start; } }
 
 .fa-vacio { background: rgb(var(--g-0)); border: 1px dashed rgb(var(--g-300)); border-radius: 16px; padding: 44px 24px; text-align: center; color: rgb(var(--g-600)); font-size: 14px; }
 .fa-vacio__titulo { font-size: 17px; font-weight: 800; color: rgb(var(--g-900)); margin-bottom: 6px; }

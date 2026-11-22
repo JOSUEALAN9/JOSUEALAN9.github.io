@@ -3629,6 +3629,148 @@
         if (document.readyState !== "loading") pintarCapa();
     }
 
+    /* ------------------------------------------------- aviso «Hay una versión nueva» (docs/prd/aviso_version_nueva.md)
+       21-nov-2026, Alan: «entrando así como cuando se bloquea, le dan click y se actualiza solito». Tras cada pase a
+       producción la página que ya estaba abierta seguía con la versión vieja hasta dar F5. Ahora se compara la versión de esta
+       página (Fiscontable.VERSION) con la publicada, que se lee del mismo nucleo.js del sitio (publicar.sh la cambia ahí en
+       cada pase: no hay otro archivo que alguien olvide actualizar). Si la publicada es MAYOR, sale una pantalla como la del
+       bloqueo con «Actualizar». Se revisa un minuto después de abrir, al volver a la pestaña y cada 5 minutos (nunca más de
+       una vez por minuto, ni con la pestaña oculta). Si la red falla o la respuesta no trae versión, no se dice nada.
+       Para no perder trabajo, la pantalla ESPERA mientras: hay consultas al servidor en curso (subidas, timbrado, descargas;
+       las de más de 10 min no cuentan), la persona escribió hace menos de un minuto, hay una ventana abierta o la pantalla está
+       bloqueada. Si al salir hay campos escritos sin guardar, lo dice y deja «Primero los guardo» (vuelve en 5 minutos).
+       «Actualizar» abre la misma dirección con «_fcv=<versión>»: para la caché del navegador y de la CDN (el HTML se guarda
+       ~10 min) es una dirección nueva, así baja el HTML nuevo y con él los ?v= nuevos. La marca se quita al cargar.
+       La última versión publicada que se vio queda en este navegador: si después se abre otra página que el navegador tenía
+       guardada de antes (con caché de 10 min pasaría al navegar), se vuelve a pedir sola, sin pantalla, UNA vez por página
+       y pestaña (si aun así llega vieja, no se insiste: sale el aviso normal). */
+    var VER = { publicada: 0, ultima: 0, pospuesta: 0, reloj: null, tecla: 0, tocados: [], capa: null };
+    var VER_CADA = 5 * 60e3, VER_MIN = 60e3, VER_ESCRIBIENDO = 60e3, VER_POSPONER = 5 * 60e3, VER_LARGA = 10 * 60e3, LLAVE_VER = "fc-version-nueva";
+    function versionActual() { return +((window.Fiscontable && window.Fiscontable.VERSION) || 0); }
+    function irAVersion(v) {
+        // Sin la animación entre páginas: la página nueva trae otro CSS y, si se muestra antes de leerlo, la animación se
+        // aborta con un error en la consola (y en una actualización no aporta nada)
+        window.addEventListener("pageswap", function (e) { if (e.viewTransition) e.viewTransition.skipTransition(); }, { once: true });
+        var q = new URLSearchParams(location.search); q.set("_fcv", String(v));
+        location.replace(location.pathname + "?" + q.toString() + location.hash);
+    }
+    (function () {
+        if (/[?&]_fcv=/.test(location.search)) {
+            var q = new URLSearchParams(location.search); q.delete("_fcv");
+            var t = q.toString();
+            try { history.replaceState(history.state, "", location.pathname + (t ? "?" + t : "") + location.hash); } catch (e) { /* sin historial */ }
+            return;
+        }
+        var conocida = +(leerLS(LLAVE_VER) || 0), llave = "fc-version-intento:" + location.pathname;
+        if (enMarco || !(conocida > versionActual())) return;
+        try {
+            if (sessionStorage.getItem(llave) === String(conocida)) return;
+            sessionStorage.setItem(llave, String(conocida));
+        } catch (e) { return; }                                   // sin almacenamiento no hay cómo no insistir: no se recarga
+        irAVersion(conocida);
+    })();
+    function versionPublicada() {
+        return fetch("/assets/js/nucleo.js?t=" + Date.now(), { cache: "no-store", credentials: "same-origin" })
+            .then(function (r) { return r.ok ? r.text() : ""; })
+            .then(function (t) { var m = /var VERSION = "(\d{12})";/.exec(t || ""); return m ? +m[1] : 0; }, function () { return 0; });
+    }
+    // Lo que se escribe en la página (no en la barra de arriba ni en la casilla del PIN): «está escribiendo» y «hay datos sin guardar»
+    document.addEventListener("input", function (e) {
+        var c = e.target;
+        if (!c || !c.matches || !c.matches("input, textarea, select") || c.closest("#fc-bloqueo-pantalla, #fc-version-nueva")) return;
+        VER.tecla = Date.now();
+        if (!c.closest("#app-header") && c.type !== "search" && VER.tocados.indexOf(c) < 0) VER.tocados.push(c);
+    }, true);
+    function cambiado(c) {
+        if (!c.isConnected || c.disabled) return false;
+        if (c.type === "checkbox" || c.type === "radio") return c.checked !== c.defaultChecked;
+        if (c.type === "file") return !!(c.files && c.files.length);
+        if (c.tagName === "SELECT") return Array.prototype.some.call(c.options, function (o) { return o.selected !== o.defaultSelected; });
+        return c.value !== c.defaultValue;
+    }
+    function hayCambios() {
+        VER.tocados = VER.tocados.filter(function (c) { return c.isConnected; });
+        return VER.tocados.some(cambiado);
+    }
+    function motivoParaEsperar() {
+        var t = Date.now();
+        if (bloqueo.activa || document.documentElement.classList.contains("fc-bloqueada") || (previo.capa && !previo.capa.hidden)) return "bloqueada";
+        if (enCurso.some(function (x) { return t - x < VER_LARGA; })) return "en-curso";
+        if (t - VER.tecla < VER_ESCRIBIENDO) return "escribiendo";
+        if (document.querySelector("dialog[open]")) return "ventana";
+        if (t < VER.pospuesta) return "pospuesta";
+        return "";
+    }
+    function intentarVersion() {
+        if (VER.publicada <= versionActual()) return "igual";
+        if (VER.capa && !VER.capa.hidden) return "nueva";
+        var motivo = motivoParaEsperar();
+        if (motivo) {
+            // Solo se mira la propia página (sin red) cada 5 s, hasta que se pueda mostrar
+            if (!VER.reloj) VER.reloj = setTimeout(function () { VER.reloj = null; intentarVersion(); }, 5000);
+            return "espera:" + motivo;
+        }
+        pintarVersion();
+        return "nueva";
+    }
+    function pintarVersion() {
+        var capa = VER.capa;
+        if (!capa) {
+            capa = VER.capa = document.createElement("div");
+            capa.id = "fc-version-nueva"; capa.className = "fc-bloqueo-pantalla fc-version-nueva";
+            capa.setAttribute("role", "dialog"); capa.setAttribute("aria-modal", "true");
+            capa.setAttribute("aria-labelledby", "fc-vn-titulo"); capa.setAttribute("aria-describedby", "fc-vn-texto");
+            capa.innerHTML = '<div class="fc-bloqueo-pantalla__caja">' +
+                '<span class="fc-marca__sello">' + simboloMarca() + "</span>" +
+                '<h2 id="fc-vn-titulo">Hay una versión nueva de Fiscontable</h2>' +
+                '<p id="fc-vn-texto">Actualiza para usarla. Solo tarda unos segundos y lo que ya guardaste se queda igual.</p>' +
+                '<p class="fc-version-nueva__ojo" id="fc-vn-sin-guardar" role="alert" hidden>Tienes datos escritos sin guardar. Si actualizas ahora, se pierden.</p>' +
+                '<button type="button" class="ui-btn ui-btn--primario ui-btn--36" id="fc-vn-actualizar">Actualizar</button>' +
+                '<button type="button" class="ui-btn ui-btn--terciario" id="fc-vn-despues" hidden>Primero los guardo</button></div>';
+            document.body.appendChild(capa);
+            capa.querySelector("#fc-vn-actualizar").addEventListener("click", function () {
+                this.disabled = true; this.textContent = "Actualizando…";
+                irAVersion(VER.publicada);
+            });
+            capa.querySelector("#fc-vn-despues").addEventListener("click", function () {
+                VER.pospuesta = Date.now() + VER_POSPONER;
+                capa.hidden = true; document.documentElement.classList.remove("fc-version-abierta");
+                setTimeout(intentarVersion, VER_POSPONER + 100);
+            });
+        }
+        var sucio = hayCambios();
+        capa.querySelector("#fc-vn-sin-guardar").hidden = capa.querySelector("#fc-vn-despues").hidden = !sucio;
+        capa.hidden = false;
+        document.documentElement.classList.add("fc-version-abierta");
+        setTimeout(function () { var b = document.getElementById("fc-vn-actualizar"); if (b) b.focus(); }, 50);
+    }
+    function revisarVersion(ya) {
+        if (!ya && (document.hidden || Date.now() - VER.ultima < VER_MIN)) return Promise.resolve("pronto");
+        VER.ultima = Date.now();
+        return versionPublicada().then(function (v) {
+            if (!v) return "sin-dato";                              // red caída, error o respuesta sin versión: nada
+            // Las demás pestañas (y las páginas que se abran después) se enteran sin preguntar
+            if (+(leerLS(LLAVE_VER) || 0) !== v) ponerLS(LLAVE_VER, String(v));
+            if (v <= versionActual()) return "igual";
+            VER.publicada = Math.max(VER.publicada, v);
+            return intentarVersion();
+        });
+    }
+    // En un marco (ventana de Configuración, panel) el aviso lo da la página de arriba
+    if (!enMarco) {
+        setTimeout(function () { revisarVersion(true); }, VER_MIN);
+        setInterval(function () { revisarVersion(false); }, VER_CADA);
+        document.addEventListener("visibilitychange", function () { if (!document.hidden) revisarVersion(false); });
+        window.addEventListener("focus", function () { revisarVersion(false); });
+        window.addEventListener("pageshow", function (e) { if (e.persisted) revisarVersion(true); });     // volvió con Atrás (página guardada)
+        window.addEventListener("storage", function (e) {
+            if (e.key !== LLAVE_VER || !(+e.newValue > VER.publicada) || !(+e.newValue > versionActual())) return;
+            VER.publicada = +e.newValue; intentarVersion();
+        });
+        // Para las pruebas de pantalla: revisa ya, sin esperar el minuto
+        window.Fiscontable.revisarVersion = function () { return revisarVersion(true); };
+    }
+
     function manejarErrorPerfil(tipo, motivo) {
         // Sin perfil no hay selectores: el lugar que se apartó para ellos se suelta
         document.querySelectorAll(".fc-accion--reservada").forEach(function (b) { b.hidden = true; b.classList.remove("fc-accion--reservada"); });

@@ -70,6 +70,13 @@
         return resp.blob().then(function (b) { Fiscontable.guardarArchivo(b, m ? m[1] : nombre); });
     }
     function hoyLocal() { var d = new Date(); return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10); }
+    /* «7 de noviembre» de una fecha AAAA-MM-DD, leída como día local (new Date("2026-11-07") es medianoche UTC: en México
+       saldría el 6). 21-nov-2026, «Hoy toca facturar». */
+    function fechaDia(s) {
+        var p = String(s || "").slice(0, 10).split("-"), d = new Date(+p[0], +p[1] - 1, +p[2]);
+        if (isNaN(d)) return String(s || "");
+        return d.toLocaleDateString("es-MX", { day: "numeric", month: "long" }) + (d.getFullYear() !== new Date().getFullYear() ? " de " + d.getFullYear() : "");
+    }
     function fechaCorta(iso) {
         if (!iso) return "";
         var d = new Date(iso.length <= 19 ? iso : iso);
@@ -160,12 +167,40 @@
         var caja = $("recurrentes-hoy");
         try { F.recurrentes = await json("/api/facturacion/recurrentes?rfc=" + encodeURIComponent(F.empresa.rfc)); } catch (e) { F.recurrentes = []; }
         caja.hidden = !F.recurrentes.length;
-        caja.innerHTML = F.recurrentes.length ? "<b>Hoy toca facturar:</b> " + F.recurrentes.map(function (x) {
+        /* 21-nov-2026 (revisión de Fable): un renglón por recurrente, con la fecha que le tocaba. Una atrasada o una que falló
+           ya no sale sola: se timbra aquí o se omite ese periodo («Omitir este periodo», con confirmación). */
+        caja.innerHTML = F.recurrentes.length ? '<b class="fa-hoy__titulo">Hoy toca facturar</b><ul class="fa-hoy">' + F.recurrentes.map(function (x) {
+            var r = x.recurrente || {}, tocaba = x.tocaba || r.proxima;
+            var nombre = esc(x.nombre) + (x.total != null ? " (" + dinero(x.total) + ")" : "");
+            var cuando = x.atrasada ? '<span class="fa-hoy__atrasada">Atrasada · tocaba el ' + esc(fechaDia(tocaba)) + "</span>" : "<span>Toca hoy</span>";
+            var nota = "";
             /* 19-nov: si la de hoy quedó sin confirmar con el PAC, no se ofrece timbrarla a mano (sería otra factura) */
-            if (x.recurrente.revisando) return "<span>" + esc(x.nombre) + (x.total != null ? " (" + dinero(x.total) + ")" : "") + '</span> <small class="fa-nota">revisando con el PAC si se timbró; no la vuelvas a timbrar</small>';
-            return '<button type="button" class="fa-link" data-recurrente="' + esc(x.id) + '">' + esc(x.nombre) + (x.total != null ? " (" + dinero(x.total) + ")" : "") + "</button>" +
-                (x.recurrente.error ? ' <small class="fa-mal">no se pudo timbrar sola: ' + esc(x.recurrente.error) + "</small>" : "");
-        }).join(" · ") : "";
+            if (r.revisando) nota = '<small class="fa-nota">Revisando con el PAC si se timbró; no la vuelvas a timbrar.</small>';
+            else if (r.error) nota = '<small class="fa-mal">' + (r.espera_motivo === "duplicada" ? "No se timbró sola: " : "No se pudo timbrar sola: ") + esc(r.error) + "</small>";
+            else if (x.atrasada && r.modo === "timbrar") nota = '<small class="fa-nota">Una factura atrasada no se timbra sola: tímbrala tú o, si ese periodo ya se facturó o no va, omítelo.</small>';
+            return '<li class="fa-hoy__fila"><div class="fa-hoy__que">' +
+                (r.revisando ? "<span>" + nombre + "</span>" : '<button type="button" class="fa-link" data-recurrente="' + esc(x.id) + '">' + nombre + "</button>") +
+                '<small class="fa-hoy__cuando">' + cuando + "</small>" + nota + "</div>" +
+                (r.revisando ? "" : '<button type="button" class="fa-btn fa-btn--suave fa-hoy__omitir" data-omitir="' + esc(x.id) + '" data-fecha="' + esc(tocaba) + '">Omitir este periodo</button>') +
+                "</li>";
+        }).join("") + "</ul>" : "";
+    }
+    async function omitirPeriodo(b) {
+        var x = (F.recurrentes || []).filter(function (y) { return y.id === b.dataset.omitir; })[0];
+        if (!x) return;
+        var ok = await Fiscontable.confirmar({ titulo: "¿Omitir el periodo del " + fechaDia(b.dataset.fecha) + "?",
+            texto: "«" + x.nombre + "» pasa a su siguiente fecha sin timbrar la de este periodo. Úsalo si ya se facturó por otro lado o no va. Queda anotado quién lo omitió.",
+            si: "Omitir sin timbrar" });
+        if (!ok) return;
+        b.disabled = true;
+        try {
+            var r = await enviar("/api/facturacion/borradores/" + encodeURIComponent(x.id) + "/recurrente/omitir", "POST", { rfc: F.empresa.rfc, fecha: b.dataset.fecha });
+            Fiscontable.toast("Periodo omitido. La siguiente es el " + fechaDia(r.proxima) + ".");
+        } catch (e) {
+            Fiscontable.toast(e.message);
+        }
+        cargarRecurrentes();
+        cargarBorradores();
     }
 
     function vista(nombre) {
@@ -2901,6 +2936,7 @@
         $("subir-xml").addEventListener("change", function () { copiarDeArchivo(this.files[0]); });
         $("btn-cambiar-emisor").addEventListener("click", function (ev) { ev.stopPropagation(); var b = document.getElementById("fc-btn-empresa"); if (b) b.click(); });
         $("recurrentes-hoy").addEventListener("click", async function (ev) {
+            var o = ev.target.closest("[data-omitir]"); if (o) return omitirPeriodo(o);
             var b = ev.target.closest("[data-recurrente]"); if (!b) return;
             await cargarBorradores();
             var x = F.borradores.filter(function (y) { return y.id === b.dataset.recurrente; })[0];
