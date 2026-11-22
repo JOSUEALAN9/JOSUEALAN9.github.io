@@ -228,3 +228,8 @@
 .cf-fmt__reglas ul { margin: 8px 0 0; padding-left: 18px; display: grid; gap: 4px; line-height: 1.45; }
 .cf-btn:disabled { opacity: .5; cursor: default; filter: none; }
 @media (max-width: 560px) { .cf-fmt__buscar { width: 100%; } .cf-fmt__fila { padding: 6px; gap: 6px; } }
+
+/* 22-nov-2026 (auditoría despacho-4): ajustes del despacho que solo cambia el titular */
+.cf-solo-titular { margin: 8px 0 12px; padding: 10px 14px; border-radius: 10px; background: rgb(var(--g-50)); border: 1px solid var(--linea); font-size: 13.5px; color: rgb(var(--g-700)); }
+.cf-solo-titular__chico { font-size: 12px; color: rgb(var(--g-500)); }
+.cf-tarjeta--tabla > .cf-solo-titular { margin: 12px 16px; }

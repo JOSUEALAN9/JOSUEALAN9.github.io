@@ -249,6 +249,7 @@
         $("c-folio-e").value = e.folio_e;
         $("c-serie-p").value = e.serie_p || "P";
         $("c-folio-p").value = e.folio_p || 1;
+        ["c-folio-i", "c-folio-e", "c-folio-p"].forEach(function (id) { $(id).dataset.cargado = String(parseInt($(id).value, 10) || 1); });
         $("c-pref-dias").value = String(F.cfg.prefacturas_dias == null ? 3 : F.cfg.prefacturas_dias);
         var csd = $("c-csd-estado");
         if (e.csd) {
@@ -368,6 +369,14 @@
         pintarEmisor();
     }
 
+    /* 22-nov-2026 (auditoría, factura-v1): el folio siguiente solo se manda si la persona lo cambió. Antes iba siempre el
+       que tenía la pantalla al abrirse: si otra persona timbraba mientras tanto, «Guardar» regresaba el folio y salían dos
+       facturas con el mismo número. (El servidor, además, rechaza un folio que ya se timbró.) */
+    function folioSiCambio(id) {
+        var v = parseInt($(id).value, 10) || 1;
+        return String(v) === $(id).dataset.cargado ? undefined : v;
+    }
+
     async function guardarConfig() {
         var b = $("btn-guardar-config");
         b.disabled = true;
@@ -376,8 +385,8 @@
             actualizarEmisor(await enviar("/api/facturacion/emisores/" + encodeURIComponent(F.emisor.rfc), "PUT", {
                 regimen: $("c-regimen").value || null, cp: $("c-cp").value.trim() || null,
                 serie_i: $("c-serie-i").value.trim(), serie_e: $("c-serie-e").value.trim(),
-                folio_i: parseInt($("c-folio-i").value, 10) || 1, folio_e: parseInt($("c-folio-e").value, 10) || 1,
-                serie_p: $("c-serie-p").value.trim(), folio_p: parseInt($("c-folio-p").value, 10) || 1
+                folio_i: folioSiCambio("c-folio-i"), folio_e: folioSiCambio("c-folio-e"),
+                serie_p: $("c-serie-p").value.trim(), folio_p: folioSiCambio("c-folio-p")
             }));
             $("msj-config").textContent = "✓ Guardado.";
         } catch (e) { $("msj-config").textContent = e.message; }
@@ -448,7 +457,7 @@
 
     function nuevaFactura() {
         F.conceptos = [conceptoVacio()]; F.abierto = 0;
-        F.borradorId = null; F.tcManual = false; F.relaciones = []; F.claveEnvio = nuevaClave(); F.sustituye = null; F.notaFecha = "";
+        F.borradorId = null; F.tcManual = false; F.tcAntes = ""; F.relaciones = []; F.claveEnvio = nuevaClave(); F.sustituye = null; F.notaFecha = "";
         $("rel-activar").checked = false; $("p-nota").textContent = "";
         ["r-rfc", "r-nombre", "r-cp", "rel-uuid", "p-condiciones", "r-buscar", "p-tc", "p-fecha", "p-notas", "r-taxid", "p-pedido", "t-objetivo"].forEach(function (id) { $(id).value = ""; });
         $("objetivo-form").hidden = true; $("btn-ajustar").setAttribute("aria-expanded", "false");
@@ -486,7 +495,10 @@
         $("p-forma").disabled = $("p-metodo").value === "PPD";
         $("p-condiciones").value = cap.condiciones || "";
         $("p-moneda").value = cap.moneda === "USD" ? "USD" : "MXN";
-        $("p-tc").value = cap.tipo_cambio || ""; F.tcManual = !!cap.tipo_cambio;
+        /* 22-nov-2026 (auditoría, factura-3): el tipo de cambio de una prefactura, recurrente, cotización, copia o XML era
+           el de cuando se guardó y quedaba como «escrito a mano»: la factura salía con uno de hace semanas. Ahora se trae el
+           del día (FIX de Banxico) y la nota dice si cambió; si no hay FIX, se deja el que traía y se pide revisarlo. */
+        $("p-tc").value = ""; F.tcManual = false; F.tcAntes = cap.moneda === "USD" && cap.tipo_cambio ? String(cap.tipo_cambio) : "";
         $("p-fecha").value = "";
         F.notaFecha = "";
         if (cap.fecha && !cap.fecha_original) {
@@ -1207,8 +1219,9 @@
             if (F.tipo === "I") F.emisor.folio_i = parseInt(r.folio, 10) + 1; else F.emisor.folio_e = parseInt(r.folio, 10) + 1;
             if (F.cfg.produccion) F.emisor.timbres = Math.max((F.emisor.timbres || 0) - 1, 0);
             pintarEmisor();
-            $("listo-titulo").textContent = (F.tipo === "I" ? "Factura " : "Nota de crédito ") + (r.serie ? r.serie + "-" : "") + r.folio + " timbrada";
-            $("listo-texto").textContent = "Total " + dinero(r.total) + (r.pruebas ? " · modo de pruebas (sin validez fiscal)" : r.biblioteca ? " · ya está en Administración de XML" : "");
+            $("listo-titulo").textContent = r.repetido ? "Ya estaba timbrada: " + (r.serie ? r.serie + "-" : "") + r.folio
+                : (F.tipo === "I" ? "Factura " : "Nota de crédito ") + (r.serie ? r.serie + "-" : "") + r.folio + " timbrada";
+            $("listo-texto").textContent = (r.repetido ? "No se timbró otra: esta ya había salido. " : "") + "Total " + dinero(r.total) + (r.pruebas ? " · modo de pruebas (sin validez fiscal)" : r.biblioteca ? " · ya está en Administración de XML" : "");
             $("listo-uuid").textContent = r.uuid;
             $("dlg-listo").showModal();
             var sustituye = F.sustituye;
@@ -1784,7 +1797,10 @@
         $("c-smtp-clave").value = ""; $("c-smtp-clave").placeholder = c.clave_guardada ? "Guardada (escribe otra para cambiarla)" : "••••••••";
         $("c-proveedor").value = /gmail/.test(c.smtp_host) ? "gmail" : /office365|outlook/.test(c.smtp_host) ? "outlook" : /zoho/.test(c.smtp_host) ? "zoho" : c.smtp_host ? "otro" : "gmail";
         if (!c.smtp_host) ponerProveedor();
-        $("c-correo-nombre").value = c.remitente_nombre || (F.emisor && (F.emisor.razon_social || F.emisor.alias)) || "";
+        /* 22-nov-2026 (auditoría, factura-2): ya no se precarga la razón social de la empresa abierta. La configuración es
+           una para toda la cuenta (en el despacho, para sus 50 empresas): vacío, cada factura sale con el nombre de su empresa. */
+        $("c-correo-nombre").value = c.remitente_nombre || "";
+        $("c-correo-todas").textContent = c.despacho ? "Vale para todas las empresas del despacho." : "Vale para todas tus empresas.";
         $("c-correo-responder").value = c.responder_a; $("c-correo-cc").value = c.cc;
         $("c-correo-asunto").value = c.asunto; $("c-correo-cuerpo").value = c.cuerpo;
         $("c-correo-pdf").checked = c.adjuntar_pdf; $("c-correo-xml").checked = c.adjuntar_xml; $("c-correo-enlace").checked = c.con_enlace; $("c-correo-auto").checked = c.al_timbrar;
@@ -1897,12 +1913,23 @@
 
     async function traerTipoCambio() {
         var dia = ($("p-fecha").value || hoyLocal()).slice(0, 10);
+        var antes = F.tcAntes || ""; F.tcAntes = "";     // el que traía la prefactura o la copia (factura-3)
         try {
             var r = await json("/api/facturacion/tipo-cambio?fecha=" + dia);
             if (F.tcManual) return;
-            if (r.valor) { $("p-tc").value = r.valor; $("p-nota").textContent = "Tipo de cambio: FIX de Banxico del " + fechaCorta(r.fecha + "T12:00:00") + " (publicado en el DOF). Puedes cambiarlo."; }
-            else $("p-nota").textContent = r.motivo || "";
-        } catch (e) { $("p-nota").textContent = "No se pudo traer el tipo de cambio: escríbelo."; }
+            if (r.valor) {
+                $("p-tc").value = r.valor;
+                $("p-nota").textContent = "Tipo de cambio: FIX de Banxico del " + fechaCorta(r.fecha + "T12:00:00") + " (publicado en el DOF). Puedes cambiarlo." +
+                    (antes && Math.abs(num(antes) - num(r.valor)) > 0.00005 ? " Cambió: lo que abriste traía " + antes + "." : "");
+            } else {
+                if (antes && !$("p-tc").value) $("p-tc").value = antes;
+                $("p-nota").textContent = (r.motivo || "") + (antes ? " Se dejó el que traía (" + antes + "): revisa que sea el de hoy." : "");
+            }
+        } catch (e) {
+            if (antes && !F.tcManual && !$("p-tc").value) $("p-tc").value = antes;
+            $("p-nota").textContent = antes ? "No se pudo traer el tipo de cambio de hoy: se dejó el que traía (" + antes + "). Revisa que sea el de hoy." : "No se pudo traer el tipo de cambio: escríbelo.";
+        }
+        calcular();
     }
 
     function verFecha() {
@@ -2407,6 +2434,12 @@
         ponerCaptura(x.captura, (x.captura || {}).avisos_excel);
         F.borradorId = x.id;
         F.recurrenteId = recurrente ? x.id : null;
+        /* 22-nov-2026 (factura-1): la prefactura que viene del Excel conserva su clave por contenido: si ya salió, el servidor
+           regresa la que salió en vez de timbrar otra. Solo la prefactura suelta: la plantilla de una recurrente es otra
+           factura cada periodo (con la clave del Excel, el segundo mes regresaba la del primero y el periodo se daba por hecho),
+           y la cotización o la copia llevan clave nueva (ponerCaptura). */
+        var claveExcel = (x.captura || {}).clave_envio || "";
+        if (/^excel:/.test(claveExcel) && !recurrente && !x.recurrente) F.claveEnvio = claveExcel;
         estadoCaptura(recurrente ? "Recurrente «" + x.nombre + "»: revísala y timbra; la próxima fecha se calcula automáticamente." : "Prefactura «" + x.nombre + "» abierta.");
         irPaso(1);
     }
@@ -2562,30 +2595,42 @@
             var r = await json("/api/facturacion/excel/masiva", { method: "POST", body: cuerpo });
             F.xm = r.facturas;
             modoResultado($("dlg-masiva"), true);
-            var buenas = r.facturas.filter(function (f) { return !f.errores.length; });
+            /* 22-nov-2026 (auditoría, factura-1): las que ya salieron (misma empresa, número de «Factura», cliente, mes y total)
+               vienen marcadas del servidor y no se ofrecen; las parecidas (mismo número y cliente, otro total) solo si se pide. */
+            var yaT = r.facturas.filter(yaSalio), malas = r.facturas.filter(function (f) { return f.errores.length && !yaSalio(f); });
+            var parecidas = r.facturas.filter(function (f) { return !f.errores.length && !yaSalio(f) && f.parecida; });
+            var buenas = r.facturas.filter(function (f) { return !f.errores.length && !yaSalio(f) && !f.parecida; });
             var total = buenas.reduce(function (a, f) { return a + (f.total || 0); }, 0);
             F.xmAltas = { productos: r.productos_nuevos || [], clientes: r.clientes_nuevos || [] };
             var cuenta = function (xs, que) { var n = xs.filter(function (x) { return x.accion === "nuevo"; }).length, c = xs.length - n; return (n ? n + " " + que + (n === 1 ? " nuevo" : "s nuevos") : "") + (n && c ? " y " : "") + (c ? c + " por corregir" : ""); };
             var altas = [F.xmAltas.productos.length ? cuenta(F.xmAltas.productos, "producto") : "", F.xmAltas.clientes.length ? cuenta(F.xmAltas.clientes, "receptor") : ""].filter(Boolean);
-            $("xm-resumen").innerHTML = "<b>" + r.facturas.length + " factura" + (r.facturas.length === 1 ? "" : "s") + " en el archivo:</b> " + buenas.length + " lista" + (buenas.length === 1 ? "" : "s") +
-                " (" + dinero(total) + ")" + (r.facturas.length - buenas.length ? " y " + (r.facturas.length - buenas.length) + " con algo que corregir en el Excel." : ".") +
+            $("xm-resumen").innerHTML = "<b>" + r.facturas.length + " factura" + (r.facturas.length === 1 ? "" : "s") + " en el archivo:</b> " +
+                (yaT.length ? yaT.length + " ya timbrada" + (yaT.length === 1 ? "" : "s") + " (no se vuelve" + (yaT.length === 1 ? "" : "n") + " a timbrar) · " : "") +
+                buenas.length + " nueva" + (buenas.length === 1 ? "" : "s") + " lista" + (buenas.length === 1 ? "" : "s") + " (" + dinero(total) + ")" +
+                (parecidas.length ? " · " + parecidas.length + " parecida" + (parecidas.length === 1 ? "" : "s") + " a otra ya timbrada" : "") +
+                (malas.length ? " y " + malas.length + " con algo que corregir en el Excel." : ".") +
+                (parecidas.length ? '<label class="fa-interruptor fa-conf-pref" style="margin-top:10px;display:flex"><input type="checkbox" id="xm-parecidas"> Timbrar también ' +
+                    (parecidas.length === 1 ? "la que se parece" : "las " + parecidas.length + " que se parecen") + " a una ya timbrada (mismo número de «Factura» y cliente; en la tabla dice cuál). Si es la misma, no; si es la misma corregida, cancela antes la anterior.</label>" : "") +
                 (altas.length ? '<label class="fa-interruptor fa-conf-pref" style="margin-top:10px;display:flex"><input type="checkbox" id="xm-guardar-altas" checked> Guardar en tu catálogo y en sus receptores: ' + esc(altas.join(" · ")) + "</label>" : "") +
-                (r.facturas.length - buenas.length ? '<label class="fa-interruptor fa-conf-pref" style="margin-top:10px;display:flex"><input type="checkbox" id="xm-con-errores" checked> Guardar también ' +
-                    (r.facturas.length - buenas.length === 1 ? "la que tiene errores como prefactura" : "las " + (r.facturas.length - buenas.length) + " con errores como prefacturas") + " «por corregir» (con lo que sí entró y los renglones a revisar), para terminarlas aquí en la web</label>" : "") +
+                (malas.length ? '<label class="fa-interruptor fa-conf-pref" style="margin-top:10px;display:flex"><input type="checkbox" id="xm-con-errores" checked> Guardar también ' +
+                    (malas.length === 1 ? "la que tiene errores como prefactura" : "las " + malas.length + " con errores como prefacturas") + " «por corregir» (con lo que sí entró y los renglones a revisar), para terminarlas aquí en la web</label>" : "") +
                 (r.errores_catalogo.length ? '<ul class="fa-xe-lista fa-xe-mal">' + r.errores_catalogo.map(function (x) { return "<li>" + esc(x) + "</li>"; }).join("") + "</ul>" : "");
             $("xm-filas").innerHTML = r.facturas.map(function (f) {
                 var fecha = f.captura.fecha ? fechaCorta(f.captura.fecha + ":00") + " " + f.captura.fecha.slice(11, 16) : "Al timbrar";
-                return '<tr data-xm="' + esc(f.clave) + '" class="' + (f.errores.length ? "fa-fila-mal" : "") + '"><td><b>' + esc(f.clave) + "</b></td><td>" + esc(f.cliente.nombre || "—") + "<small>" + esc(f.cliente.rfc || "") + "</small></td>" +
+                return '<tr data-xm="' + esc(f.clave) + '" class="' + (f.errores.length && !yaSalio(f) ? "fa-fila-mal" : "") + '"><td><b>' + esc(f.clave) + "</b></td><td>" + esc(f.cliente.nombre || "—") + "<small>" + esc(f.cliente.rfc || "") + "</small></td>" +
                     "<td>" + esc(fecha) + (f.vence ? "<small>timbrar antes del " + esc(fechaCorta(f.vence + ":00") + " " + f.vence.slice(11, 16)) + "</small>" : "") + "</td>" +
                     '<td class="fa-num">' + f.conceptos + '</td><td class="fa-num">' + (f.total != null ? dinero(f.total) : "—") + (f.nota ? "<small>" + esc(f.nota) + "</small>" : "") +
                     (f.desglose ? '<button type="button" class="fa-link" data-desglose="' + esc(f.clave) + '">Ver desglose</button>' : "") + "</td><td data-estado>" +
-                    (f.errores.length ? '<span class="fa-estado-mal">' + f.errores.map(esc).join("<br>") + "</span>" : '<span class="fa-estado-ok">✓ Lista</span>') +
+                    (f.ya_timbrada ? '<span class="fa-estado-ok">Ya timbrada (' + esc(sf(f.ya_timbrada)) + ")</span><small>No se vuelve a timbrar.</small>"
+                        : f.revisando ? '<span class="fa-estado-revisando">Revisando con el PAC si se timbró (' + esc(sf(f.revisando)) + ").<br><b>No la vuelvas a timbrar.</b></span>"
+                        : f.errores.length ? '<span class="fa-estado-mal">' + f.errores.map(esc).join("<br>") + "</span>"
+                        : f.parecida ? '<span class="fa-estado-revisando">Parecida a la ' + esc(sf(f.parecida)) + "</span>" : '<span class="fa-estado-ok">✓ Lista</span>') +
                     ((f.avisos || []).length ? '<small class="fa-xe-aviso">' + f.avisos.map(esc).join("<br>") + "</small>" : "") + "</td></tr>";
             }).join("");
             $("xm-tabla").hidden = false;
-            $("btn-xm-ok").disabled = !r.facturas.length; $("btn-xm-timbrar").disabled = !buenas.length;
-            $("btn-xm-ok").textContent = buenas.length ? "Solo guardar como prefactura" + (buenas.length === 1 ? "" : "s") : "Guardar como prefacturas por corregir";
-            $("btn-xm-timbrar").textContent = buenas.length ? "Timbrar " + buenas.length + " factura" + (buenas.length === 1 ? "" : "s") : "Timbrar";
+            if ($("xm-parecidas")) $("xm-parecidas").addEventListener("change", contarMasiva);
+            if ($("xm-con-errores")) $("xm-con-errores").addEventListener("change", contarMasiva);
+            contarMasiva();
         } catch (e) { $("xm-resumen").hidden = true; $("xm-error").textContent = e.message; $("xm-error").hidden = false; }
     }
 
@@ -2596,10 +2641,40 @@
         F.xmAltas = null;
     }
 
-    /* Timbrar de una vez las que estén bien, una por una (cada una con su clave de envío: el mismo Excel no se timbra
-       dos veces). La que falle se queda como prefactura con el motivo. */
+    /* 22-nov-2026 (factura-1): ya salió (o se está revisando con el PAC si salió): no se ofrece de nuevo */
+    function yaSalio(f) { return !!(f.ya_timbrada || f.revisando); }
+    function sf(x) { return x ? (x.serie ? x.serie + "-" : "") + (x.folio == null ? "" : x.folio) : ""; }
+    /* Las que se timbran (o se guardan): sin errores, que no hayan salido, y las parecidas solo si se marcó la casilla */
+    function listasMasiva() {
+        var conParecidas = !!($("xm-parecidas") && $("xm-parecidas").checked);
+        return (F.xm || []).filter(function (f) { return !f.errores.length && !yaSalio(f) && (!f.parecida || conParecidas); });
+    }
+    function contarMasiva() {
+        if (F.xmCorriendo) return;
+        var n = listasMasiva().length, m = porCorregir().length;
+        $("btn-xm-timbrar").disabled = !n;
+        $("btn-xm-timbrar").textContent = n ? "Timbrar " + n + " factura" + (n === 1 ? "" : "s") : "Timbrar";
+        $("btn-xm-ok").disabled = !(n || m);
+        $("btn-xm-ok").textContent = n ? "Solo guardar como prefactura" + (n === 1 ? "" : "s") : "Guardar como prefacturas por corregir";
+        if (!n && !m && (F.xm || []).some(yaSalio)) { $("btn-xm-ok").textContent = "Guardar como prefacturas"; }
+    }
+    /* Una factura del Excel. Pasa por la misma revisión de parecidas que la factura suelta: si el servidor pregunta
+       «¿de verdad es otra?», se le pregunta a la persona (antes se mandaba siempre «confirmar_duplicado»). */
+    async function timbrarFilaMasiva(f) {
+        var cap = Object.assign({}, f.captura);
+        try { return await enviar("/api/facturacion/timbrar", "POST", { rfc: F.emisor.rfc, captura: cap }); }
+        catch (e) {
+            if (sinConfirmar(e) || e.status !== 409) throw e;
+            if (!(await Fiscontable.preguntar("Factura «" + f.clave + "» del Excel: " + e.message + "\n\nAcepta solo si de verdad es otra factura."))) { e.saltada = true; throw e; }
+            return await enviar("/api/facturacion/timbrar", "POST", { rfc: F.emisor.rfc, captura: Object.assign(cap, { confirmar_duplicado: true }) });
+        }
+    }
+
+    /* Timbrar de una vez las que estén bien, una por una. Cada una lleva su clave por contenido: si el Excel se vuelve a
+       subir, las que ya salieron se marcan «Ya timbrada». La que el PAC rechace se queda como prefactura con el motivo;
+       la que no tuvo respuesta (sin internet, error del servidor) NO: puede haberse timbrado, y la corrida se detiene. */
     async function timbrarMasiva() {
-        var buenas = (F.xm || []).filter(function (f) { return !f.errores.length; });
+        var buenas = listasMasiva();
         if (!buenas.length || faltaManifiesto()) return;
         var total = buenas.reduce(function (a, f) { return a + (f.total || 0); }, 0);
         if (!(await Fiscontable.preguntar("¿Timbrar " + buenas.length + " factura" + (buenas.length === 1 ? "" : "s") + " por " + dinero(total) + "?" +
@@ -2608,13 +2683,13 @@
         var bT = $("btn-xm-timbrar"), bG = $("btn-xm-ok");
         bT.disabled = true; bG.disabled = true; F.xmCorriendo = true;
         try { await guardarAltasExcel(); } catch (e) { aviso(e.message, "error"); }
-        var bien = 0, mal = 0, revisando = 0;
+        var bien = 0, mal = 0, revisando = 0, saltadas = 0, detenida = null;
         for (var i = 0; i < buenas.length; i++) {
             var f = buenas[i], celda = document.querySelector('[data-xm="' + CSS.escape(f.clave) + '"] [data-estado]');
             bT.textContent = "Timbrando " + (i + 1) + " de " + buenas.length + "…";
             if (celda) celda.innerHTML = '<span class="fa-nota">Timbrando…</span>';
             try {
-                var r = await enviar("/api/facturacion/timbrar", "POST", { rfc: F.emisor.rfc, captura: Object.assign({}, f.captura, { confirmar_duplicado: true }) });
+                var r = await timbrarFilaMasiva(f);
                 bien++; f.errores = ["timbrada"];
                 if (celda) celda.innerHTML = '<span class="fa-estado-ok">✓ ' + esc((r.serie ? r.serie + "-" : "") + r.folio) + (r.repetido ? " (ya estaba)" : "") + "</span>";
             } catch (e) {
@@ -2622,6 +2697,20 @@
                     revisando++; f.errores = ["timbrada"];
                     if (celda) celda.innerHTML = '<span class="fa-estado-revisando">Revisando con el PAC si se timbró.<br><b>No la vuelvas a timbrar.</b></span>';
                     continue;
+                }
+                if (e.saltada) {            // la persona dijo que no es otra: ni se timbra ni queda como prefactura
+                    saltadas++; f.errores = ["timbrada"];
+                    if (celda) celda.innerHTML = '<span class="fa-estado-mal">No se timbró: ' + esc(e.message) + "</span>";
+                    continue;
+                }
+                if (!e.status || e.status >= 500) {     // sin respuesta (red, 5xx, 524): pudo timbrarse. No es prefactura
+                    f.errores = ["timbrada"]; detenida = f;
+                    if (celda) celda.innerHTML = '<span class="fa-estado-revisando"><b>Sin respuesta: revisa Emitidas antes de reintentar.</b></span>';
+                    for (var j = i + 1; j < buenas.length; j++) {
+                        var c2 = document.querySelector('[data-xm="' + CSS.escape(buenas[j].clave) + '"] [data-estado]');
+                        if (c2) c2.innerHTML = '<span class="fa-nota">No se intentó.</span>';
+                    }
+                    break;
                 }
                 mal++; f.errores = [e.message];
                 try { await enviar("/api/facturacion/borradores", "POST", { rfc: F.emisor.rfc, nombre: "Excel · " + f.clave + " · " + (f.cliente.nombre || f.cliente.rfc), captura: f.captura, total: f.total }); } catch (e2) { /* se ve en la tabla */ }
@@ -2634,14 +2723,17 @@
         bT.textContent = "Listo"; $("dlg-masiva").querySelector("[data-cerrar]").textContent = "Cerrar";
         $("xm-resumen").innerHTML = "<b>Listo:</b> " + bien + " timbrada" + (bien === 1 ? "" : "s") + (mal ? " y " + mal + " con error al timbrar (quedaron como prefactura)." : ".") +
             (revisando ? " " + revisando + " se está" + (revisando === 1 ? "" : "n") + " revisando con el PAC (aparecen en Emitidas en unos minutos; no las vuelvas a timbrar)." : "") +
-            (corregir ? " " + corregir + " quedaron en Prefacturas «por corregir»." : "") + " Las timbradas ya están en Emitidas.";
+            (saltadas ? " " + saltadas + " no se timbr" + (saltadas === 1 ? "ó" : "aron") + " porque se parecía" + (saltadas === 1 ? "" : "n") + " a otra ya timbrada." : "") +
+            (corregir ? " " + corregir + " quedaron en Prefacturas «por corregir»." : "") + (bien ? " Las timbradas ya están en Emitidas." : "") +
+            (detenida ? "<br><b>Se detuvo en la «" + esc(detenida.clave) + "»: no llegó respuesta del servidor.</b> Revisa Emitidas antes de reintentar: " +
+                "si vuelves a subir el archivo, las que sí salieron aparecen como «Ya timbrada» y no se repiten." : "");
         cargarEmitidas(); cargarBorradores(); cargarRecurrentes();
         if (F.cfg.produccion) json("/api/facturacion/config").then(function (c) { F.cfg.empresas = c.empresas; F.emisor = c.empresas.filter(function (x) { return x.rfc === F.emisor.rfc; })[0] || F.emisor; pintarEmisor(); }).catch(function () {});
     }
 
     function porCorregir() {
         if (!$("xm-con-errores") || !$("xm-con-errores").checked) return [];
-        return (F.xm || []).filter(function (f) { return f.errores.length && f.errores[0] !== "timbrada" && !f.yaGuardada; });
+        return (F.xm || []).filter(function (f) { return f.errores.length && f.errores[0] !== "timbrada" && !f.yaGuardada && !yaSalio(f); });
     }
 
     async function guardarPorCorregir() {
@@ -2652,7 +2744,7 @@
     }
 
     async function guardarMasiva() {
-        var buenas = (F.xm || []).filter(function (f) { return !f.errores.length; }).concat(porCorregir());
+        var buenas = listasMasiva().concat(porCorregir());
         if (!buenas.length) return;
         var b = $("btn-xm-ok"); b.disabled = true; b.textContent = "Guardando…";
         try {

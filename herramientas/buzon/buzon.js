@@ -65,6 +65,9 @@
         var sel = $("frecuencia");
         sel.innerHTML = Object.keys(E.panel.frecuencias).sort(function (a, b) { return (+a || 99) - (+b || 99); })
             .map(function (k) { return '<option value="' + k + '"' + (+k === E.panel.frecuencia ? " selected" : "") + ">" + esc(E.panel.frecuencias[k]) + "</option>"; }).join("");
+        // 22-nov-2026 (auditoría despacho-4): vale para los buzones de todo el despacho; solo el titular la cambia
+        sel.disabled = E.panel.puede_frecuencia === false;
+        sel.title = sel.disabled ? (E.panel.motivo_frecuencia || "Lo decide el titular del despacho.") : "";
         $("caja-diagnostico").hidden = !E.panel.es_admin;
         pintarResumen();
         pintarEmpresas();

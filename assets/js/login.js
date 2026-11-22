@@ -300,7 +300,9 @@
             campoEnlace = F.campoClave($("en-clave-enlace"), { confirmar: true, oscuro: true });
             campoEnlace.entrada.focus();
         } catch (er) {
-            panel("entrar");
+            // 22-nov-2026 (auditoría despacho-7): el enlace vencido para crear la cuenta con la licencia lleva a «Activar una
+            // licencia» (ahí se vuelve a pedir), no a «¿Olvidaste tu contraseña?», que no manda nada si la cuenta no existe
+            panel(/Activar una licencia/.test(er.message || "") ? "licencia" : "entrar");
             avisarTexto(er.message, "alerta");
         }
     }
