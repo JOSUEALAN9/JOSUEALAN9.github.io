@@ -297,7 +297,7 @@ async function pasarAlDespacho(rfc) {
         if (res.pasada) await cargarClientes();
     } catch (x) { mostrarAlerta("error", x.message); }
 }
-/* La casilla de la autorización del titular en el alta (19-nov-2026, Alan): aparece en cuanto hay e.firma, contraseña del
+/* La casilla de la autorización del titular en el alta (19-nov-2026, el dueño): aparece en cuanto hay e.firma, contraseña del
    SAT o sellos, y sin marcarla no se registra (el servidor tampoco guarda nada sin ella). */
 let autAlta = null;
 function credencialesAlta() {
@@ -579,7 +579,7 @@ async function alternarFavorita(rfc) {
         window.dispatchEvent(new CustomEvent("fiscontable:favoritos"));
     } catch (e) { mostrarAlerta("error", e.message); }
 }
-/* El menú «⋯» de cada fila se coloca respecto a la ventana (16-nov, Alan: en la última fila quedaba cortado por el borde
+/* El menú «⋯» de cada fila se coloca respecto a la ventana (16-nov, el dueño: en la última fila quedaba cortado por el borde
    de la tabla y no se veían las opciones): abre hacia abajo si cabe; si no, hacia arriba; nunca se sale de la pantalla. */
 function colocarMenuFila(boton, m) {
     m.style.position = "fixed"; m.style.right = "auto"; m.style.left = "0px"; m.style.top = "0px"; m.style.maxHeight = ""; m.style.overflowY = "";
@@ -2020,7 +2020,7 @@ async function apiJson(ruta, cuerpo) {
 }
 const campoDialogo = (id) => { const x = document.querySelector("dialog.fc-identidad[open] #" + id); return x ? x.value.trim() : ""; };
 
-/* 20-nov-2026 (caso real de Alan: «no aparece algo de que se está migrando»): la misma caja muestra el avance de una entrega
+/* 20-nov-2026 (caso real del dueño: «no aparece algo de que se está migrando»): la misma caja muestra el avance de una entrega
    aceptada («Recibiendo 3 empresa(s) de …» con «2 de 3 listas»), se vuelve a preguntar sola cada pocos segundos mientras
    corre y desaparece al terminar (con un aviso de que ya llegaron). Si algo no pasó, queda una caja con «Ver qué pasó»
    (el estado de cada empresa en el plan de la migración) hasta que la ocultes o pasen 7 días. */
@@ -2114,7 +2114,7 @@ async function entregarEmpresa(rfc) {
         if (!destinoBien()) throw new Error("Escribe el correo de la cuenta que la recibe.");
         await apiJson("/api/empresas/entregar", { empresas: [rfc], destino: campoDialogo("ent-destino"), nota: campoDialogo("ent-nota"), confirmacion: conf });
     }, { titulo: "Entregar " + (c.alias || rfc) + " a otra cuenta", boton: "Entregar",
-         // 16-nov (Alan): el código sale hasta que ya está el correo de destino y se confirmó que sale de esta cuenta
+         // 16-nov (el dueño): el código sale hasta que ya está el correo de destino y se confirmó que sale de esta cuenta
          validar: async () => {
              if (!destinoBien()) throw new Error("Escribe el correo de la cuenta que la recibe.");
              const si = document.getElementById("ent-seguro");
@@ -2191,7 +2191,7 @@ async function borrarTodo(rfc) {
 async function ofrecerDescargaAhora(rfc, alias, automatico) {
     const lista = automatico.join(", ").replace(/, ([^,]*)$/, " y $1");
     const xml = automatico.some(a => a.indexOf("XML") >= 0);
-    // 16-nov (Alan): decir qué periodo se baja de fábrica y dejar cambiarlo ahí mismo (antes: «Descargar ahora»)
+    // 16-nov (el dueño): decir qué periodo se baja de fábrica y dejar cambiarlo ahí mismo (antes: «Descargar ahora»)
     const ir = await Fiscontable.confirmar({ titulo: `${alias || rfc} ya quedó automática`,
         texto: `Fiscontable ya se encarga de ${lista}. No tienes que hacer nada más.` +
             (xml ? " Las descargas inician en automático: el mes en curso se pide en este momento y lo anterior, de madrugada." : "") +

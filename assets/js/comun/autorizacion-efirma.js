@@ -1,5 +1,5 @@
 /**
- * autorizacion-efirma.js — La casilla «Confirmo que el titular de esta empresa me autorizó…» (19-nov-2026, Alan: sin
+ * autorizacion-efirma.js — La casilla «Confirmo que el titular de esta empresa me autorizó…» (19-nov-2026, el dueño: sin
  * contrato aparte, con un texto amable).
  *
  * Va donde se registra una empresa con su e.firma, sus sellos o su contraseña del SAT, y donde se sube la e.firma de un

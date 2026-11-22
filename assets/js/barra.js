@@ -1737,7 +1737,7 @@
        estado, proveedores en listas del SAT, mensajes nuevos del buzón. Mis descargas queda solo para archivos. */
     var actividad = { datos: null, abierta: false, version: 0, abiertos: {} };
     var ICONO_AVISO = { programacion: "calendario", validacion: "alerta", listas: "alerta", buzon: "documento", descarga: "descarga", aviso: "campana" };
-    // 19-nov-2026 (Alan: «marco como visto y al ratito va de nuevo»): cada cambio (marcar leído, limpiar) sube la versión; un
+    // 19-nov-2026 (el dueño: «marco como visto y al ratito va de nuevo»): cada cambio (marcar leído, limpiar) sube la versión; un
     // sondeo que salió antes del cambio y contesta después ya no vuelve a pintar el número viejo. Las demás pestañas (y el
     // marco de Configuración) se enteran al momento por localStorage («fc:actividad-cambio») en vez de esperar su minuto.
     var LLAVE_ACT_CAMBIO = "fc:actividad-cambio";
@@ -1891,7 +1891,7 @@
        El contador tiene dos significados distintos y antes los mezclaba:
        lo que está corriendo (se limpia solo al terminar) y lo que acabó
        y todavía no has visto (eso sí hay que darlo por visto).
-       19-nov-2026 (Alan: «se quita y al ratito va de nuevo», «un montón de no vistos»): «visto» se guarda en el servidor por
+       19-nov-2026 (el dueño: «se quita y al ratito va de nuevo», «un montón de no vistos»): «visto» se guarda en el servidor por
        persona (p.visto, /api/procesos/vistos), así vale en otra pestaña, otra computadora o el celular. Antes era solo
        una marca en este navegador, con tope de 600: lo visto hace semanas (un lote) volvía a contar cuando las descargas
        de cada noche llenaban la lista. Lo del navegador queda de respaldo (y para pasar al servidor lo que ya viste aquí). */
@@ -2230,7 +2230,7 @@
        Uso: await Fiscontable.confirmarIdentidad("quitar_miembro", function (c) { return pedir(..., { confirmacion: c }); }); */
     function confirmarIdentidad(accion, ejecutar, op) {
         // op (opcional): { titulo, resumen (HTML ya escapado: qué se va a hacer), boton } — una sola ventana con lo que se
-        // va a hacer y el PIN (14-nov: Alan pidió algo más claro que el «¿Todo bien?» de Tributanet)
+        // va a hacer y el PIN (14-nov: el dueño pidió algo más claro que el «¿Todo bien?» de Tributanet)
         op = op || {};
         return new Promise(function (listo) {
             var dlg = document.createElement("dialog");
@@ -2280,7 +2280,7 @@
                         return;
                     }
                     if (op.validar) {
-                        // 16-nov (Alan): primero se llenan y revisan los datos; el código sale hasta que la persona continúa
+                        // 16-nov (el dueño): primero se llenan y revisan los datos; el código sale hasta que la persona continúa
                         faltaCodigo = true;
                         q("sub").textContent = "Llena los datos y continúa: después te pedimos tu PIN y un código que llega a tu correo.";
                         q("ok").textContent = "Continuar"; q("ok").disabled = false;
@@ -2384,7 +2384,7 @@
         return hecho ? respuesta : null;
     }
 
-    /* PIN obligatorio (14-nov con Alan): quien no tiene PIN lo crea al entrar. Confirma presentar declaraciones, borrar
+    /* PIN obligatorio (14-nov con el dueño): quien no tiene PIN lo crea al entrar. Confirma presentar declaraciones, borrar
        empresas, cambiar una e.firma o el correo de los avisos, y desbloquea la pantalla. No se puede cerrar sin crearlo. */
     function pedirPinObligatorio() {
         if (document.getElementById("fc-pin-obligatorio")) return;
@@ -2712,7 +2712,7 @@
                 })
             });
             if (!resp.ok) { aviso("No se pudo guardar tu perfil. Intenta de nuevo."); return; }
-            // 20-nov-2026 (Alan, primera entrada de un invitado al despacho): el PUT contesta el perfil «pelón», sin la
+            // 20-nov-2026 (el dueño, primera entrada de un invitado al despacho): el PUT contesta el perfil «pelón», sin la
             // invitación ni el espacio del despacho; pintarlo tal cual mostraba «Tu acceso venció» hasta dar F5.
             // Se vuelve a pedir el perfil completo (el mismo de GET /api/mi-perfil).
             var anterior = promesaPerfil;
@@ -3266,7 +3266,7 @@
     if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", accionesEnBarra); else accionesEnBarra();
 
     /* ------------------------------------------------- globos de ayuda (18-nov)
-       Alan: «que los comentarios sean eso, comentarios al pasar el cursor, en vez de aparecer»: un texto de ayuda fijo
+       el dueño: «que los comentarios sean eso, comentarios al pasar el cursor, en vez de aparecer»: un texto de ayuda fijo
        le quita renglones a la tabla. Con data-globo el texto se vuelve un globo que sale al pasar el cursor por un «?»
        (o al enfocarlo, o al tocarlo en el celular) y ya no ocupa lugar:
            <p data-globo>…</p>                    el «?» queda donde estaba el texto
@@ -3313,7 +3313,7 @@
     window.Fiscontable.globos = globos;
     if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", function () { globos(); }); else globos();
 
-    /* ------------------------------------------------- «Ampliar tabla» (18-nov, Alan: «o de plano ventana completa solo para eso»)
+    /* ------------------------------------------------- «Ampliar tabla» (18-nov, el dueño: «o de plano ventana completa solo para eso»)
        Deja en pantalla solo lo que la página diga (buscador, filtros y la tabla): se van la barra, el menú, el título, el
        periodo y los resúmenes, y la tabla ocupa todo el alto. Se sale con el mismo botón o con Esc; no se recuerda al recargar.
            Fiscontable.ampliar({ en: ".xml-toolbar__der", quedan: [".xml-toolbar", "#tabla-marco", ".xml-pie"] })
@@ -3630,7 +3630,7 @@
     }
 
     /* ------------------------------------------------- aviso «Hay una versión nueva» (docs/prd/aviso_version_nueva.md)
-       21-nov-2026, Alan: «entrando así como cuando se bloquea, le dan click y se actualiza solito». Tras cada pase a
+       21-nov-2026, el dueño: «entrando así como cuando se bloquea, le dan click y se actualiza solito». Tras cada pase a
        producción la página que ya estaba abierta seguía con la versión vieja hasta dar F5. Ahora se compara la versión de esta
        página (Fiscontable.VERSION) con la publicada, que se lee del mismo nucleo.js del sitio (publicar.sh la cambia ahí en
        cada pase: no hay otro archivo que alguien olvide actualizar). Si la publicada es MAYOR, sale una pantalla como la del
@@ -3870,7 +3870,7 @@
         if (!previo && document.querySelector("main")) caja.classList.add("fc-aviso--encima");
     }
 
-    /* 19-nov-2026 (Alan: el «brinquito» al cargar): los letreros (SAT sin responder, mantenimiento, aviso general) llegaban
+    /* 19-nov-2026 (el dueño: el «brinquito» al cargar): los letreros (SAT sin responder, mantenimiento, aviso general) llegaban
        con el perfil, ya pintada la página, y la empujaban hacia abajo. Ahora: los generales se guardan en este navegador
        y salen desde el primer cuadro (junto con la barra); si al llegar el perfil son los mismos, no se mueve nada. Si
        cambiaron, el letrero nuevo sale encima del contenido (sin empujarlo) y el lugar del viejo se queda vacío hasta la
@@ -4237,7 +4237,7 @@
 
     /* ------------------------------------------------------- arranque */
 
-    // 18-nov (Alan: «sigue haciendo el saltito al dar F5»): al cargar, la página se recorría a la derecha animada (el margen de la
+    // 18-nov (el dueño: «sigue haciendo el saltito al dar F5»): al cargar, la página se recorría a la derecha animada (el margen de la
     // barra lateral y el ancho del logo tienen transición para cuando se pliega). Mientras arranca no hay transiciones: la página
     // nace ya en su lugar. Se vuelven a permitir cuando todo está pintado.
     document.documentElement.classList.add("fc-arrancando");

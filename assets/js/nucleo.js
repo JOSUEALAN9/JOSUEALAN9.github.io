@@ -14,7 +14,7 @@
 (function () {
     "use strict";
 
-    var VERSION = "202611220530";
+    var VERSION = "202611220600";
     // www.fiscontable.app → fiscontable.app: una sola dirección (la sesión y las preferencias guardadas son por dirección)
     if (location.hostname === "www.fiscontable.app") {
         location.replace("https://fiscontable.app" + location.pathname + location.search + location.hash);
@@ -32,7 +32,7 @@
     }
     var API = servidorDe(location.hostname);
 
-    /* Servidor de respaldo (20-nov-2026, ensayo de Alan con la Vostro apagada): cuando la Vostro no responde, la VPS atiende
+    /* Servidor de respaldo (20-nov-2026, ensayo del dueño con la Vostro apagada): cuando la Vostro no responde, la VPS atiende
        en solo lectura y todas sus respuestas traen la cabecera «X-Fiscontable-Modo: respaldo» (core/respaldo.py del
        backend). Lo que no se puede hacer ahí contesta 503 CON esa cabecera: no es un corte, así que no se reintenta; se
        dice una vez, arriba, y la pantalla sigue como estaba. */
@@ -397,7 +397,7 @@
     // T.C. del DOF) o "" (sin convertir). siempre: no volver a preguntar. Se guarda en este navegador.
     window.Fiscontable.monedaReportes = {
         leer: function () {
-            // 18-nov (Alan: «el reporte en Excel debe salir ya convertido a pesos… por defecto; se puede cambiar»): quien nunca
+            // 18-nov (el dueño: «el reporte en Excel debe salir ya convertido a pesos… por defecto; se puede cambiar»): quien nunca
             // ha elegido no recibe la pregunta: sale en pesos con el tipo de cambio de cada XML. Quien ya eligió, conserva lo suyo.
             try {
                 var crudo = localStorage.getItem("fc:moneda");
@@ -426,7 +426,7 @@
         etiqueta.appendChild(giro); etiqueta.appendChild(texto);
         marco.classList.add("fc-carga-marco");
         if (opciones && opciones.atenuar) marco.classList.add("fc-carga-marco--atenua");
-        // junto: la etiqueta va en línea después de ese elemento (18-nov, Alan: flotando sobre la tabla estorbaba);
+        // junto: la etiqueta va en línea después de ese elemento (18-nov, el dueño: flotando sobre la tabla estorbaba);
         // la barrita de avance y el atenuado siguen en el marco.
         var junto = opciones && opciones.junto, base = "fc-carga" + (junto ? " fc-carga--enlinea" : "");
         etiqueta.className = base;

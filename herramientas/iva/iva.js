@@ -301,7 +301,7 @@
         window.open(ruta + "?" + q.toString(), "_blank", "noopener");
     }
 
-    /* ---------- Formato SAT (15-nov, Alan: «algo como ver formato SAT y ya me muestra esas ventanas»): los mismos números
+    /* ---------- Formato SAT (15-nov, el dueño: «algo como ver formato SAT y ya me muestra esas ventanas»): los mismos números
        del papel de trabajo, acomodados como la declaración de IVA del portal (IVA a cargo, IVA acreditable, Determinación y
        Pago). Cada renglón con importe abre su detalle: los CFDI que lo forman, como el «Capturar» del SAT. */
     var SAT = { pestana: "cargo", detalle: null };

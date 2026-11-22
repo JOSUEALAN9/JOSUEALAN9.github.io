@@ -64,7 +64,7 @@
         return isNaN(f) ? null : f;
     }
     function inicioMes(ym) { return new Date(+ym.slice(0, 4), +ym.slice(5, 7) - 1, 1, 0, 0, 0); }
-    /* Último día del mes; si es el mes en curso (o uno que no ha terminado), HOY a las 23:59:59 (18-nov, Alan: «la
+    /* Último día del mes; si es el mes en curso (o uno que no ha terminado), HOY a las 23:59:59 (18-nov, el dueño: «la
        búsqueda sería a la fecha de hoy»). El servidor la recorta al momento en que se pide, porque el SAT no acepta
        fechas futuras. La descarga automática de la noche y el cuadre siguen con días completos (hasta ayer). */
     function finMes(ym) {
@@ -200,7 +200,7 @@
         var como = s.acceso === "efirma" ? (s.sin_navegador ? "e.firma, sin navegador" : "e.firma") : "contraseña";
         var texto;
         // 16-nov: el aviso se leía como «alguien más está en tu cuenta». Es la entrada al portal del SAT de otra de tus empresas.
-        // 17-nov (Alan: «simplemente sesión iniciada en el SAT, sin detalles de más»). El detalle queda al pasar el cursor.
+        // 17-nov (el dueño: «simplemente sesión iniciada en el SAT, sin detalles de más»). El detalle queda al pasar el cursor.
         var detalle = "";
         if (otro) {
             texto = "Sesión iniciada en el SAT con otra empresa (" + s.rfc + ").";
@@ -1019,7 +1019,7 @@
         if (!r.ok) throw new Error(await Fiscontable.leerError(r));
         Object.assign(e, await r.json());
     }
-    // 15-nov, Alan: lo automático se configura en un solo lugar (Configuración › Lo automático); aquí solo se llega
+    // 15-nov, el dueño: lo automático se configura en un solo lugar (Configuración › Lo automático); aquí solo se llega
     $("btn-automatica").addEventListener("click", function () { location.href = "/configuracion/?seccion=automatico&sub=xml"; });
     $("dlg-automatica").addEventListener("close", function () { Fiscontable.url({ auto: null }); });
     $("dlg-automatica").addEventListener("click", function (ev) { if (ev.target.closest("[data-cerrar-auto]")) $("dlg-automatica").close(); });

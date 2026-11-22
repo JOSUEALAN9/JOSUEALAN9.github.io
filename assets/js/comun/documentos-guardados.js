@@ -14,7 +14,7 @@
    Un renglón puede juntar varios archivos (una declaración con su acuse, detalle y línea de captura):
      { id, celdas, docs: [{ id, etiqueta, nombre, url, titulo }] } → cada archivo sale como botón; las casillas y el ZIP
      usan todos sus archivos.
-   19-nov-2026 (Alan: «alguna opción para contraer los meses»):
+   19-nov-2026 (el dueño: «alguna opción para contraer los meses»):
      - agrupar: true → los renglones traen { grupo, grupoTitulo } (en orden) y salen bajo un encabezado plegable con
        cuántos tiene cada grupo; el primero abierto y los demás cerrados. Al buscar se abren todos.
      - una celda puede ser { texto, pastilla, etiqueta } → sale como pastilla corta (p. ej. Portal: nuevo / anterior). */

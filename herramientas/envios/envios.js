@@ -1,7 +1,7 @@
 /**
  * envios.js — Envíos por correo (18-nov-2026).
  *
- * Alan: «que automaticemos el envío de los XML, PDF y Excel por correo… un ZIP por empresa y mes, se juntan todas las
+ * El dueño: «que automaticemos el envío de los XML, PDF y Excel por correo… un ZIP por empresa y mes, se juntan todas las
  * empresas seleccionadas, se hace un ZIP y se manda; si pesa más, un enlace que vence. Esto es la necesidad de un despacho.»
  * Y por la tarde: «que no sea solo lo nuevo… se valida lo que se vaya a enviar»; «envío 1, envío 2… hasta 5… se check y se
  * habilita»; «a un grupo o a cada cliente»; «igual para las constancias y opiniones»; los correos, «como el Cloudflare».
@@ -11,12 +11,12 @@
  * sus destinatarios los define el titular; los demás solo marcan sus empresas. Todo lo demás (verificar contra el SAT,
  * armar el ZIP, el correo, el programador) lo hace el servidor: modulos/entregas.
  *
- * 21-nov-2026 (Alan, pase 38): «Enviar ahora» nombra sus dos cortes con la fecha y la hora reales del centro («Hasta el 20/11
+ * 21-nov-2026 (el dueño, pase 38): «Enviar ahora» nombra sus dos cortes con la fecha y la hora reales del centro («Hasta el 20/11
  * a las 23:59 · completo y verificado» / «Hasta hoy 21/11 a las 16:35 · trae lo de hoy del SAT»); el paso «Cada cuándo»
  * tiene «Solo una vez, ahora» (sale al guardarlo; los ya enviados van plegados en «Enviados una vez»), y «Qué lleva» puede
  * limitarse a ciertos proveedores o clientes.
  *
- * 21-nov-2026 (Alan: «creo que es al revés: primero me pone qué mandar y hasta el final me pregunta el periodo»): los pasos
+ * 21-nov-2026 (el dueño: «creo que es al revés: primero me pone qué mandar y hasta el final me pregunta el periodo»): los pasos
  * son A quién · Empresas · Cuándo · Qué lleva · Mensaje. Con el periodo ya elegido, «Qué lleva» enseña el Excel de todos
  * los meses juntos solo cuando el periodo abarca más de un mes.
  */
@@ -31,7 +31,7 @@
     function deUnaVez() { return E.envios.filter(function (e) { return e.frecuencia === UNA_VEZ; }); }
 
     /* La hora del centro (21-nov-2026): los cortes se cuentan en la hora del centro de México, no en la de la computadora
-       (Alan vive en Cancún, una hora adelante). */
+       (en la zona horaria del sureste se va una hora adelante). */
     function enCentro(d) {
         var p = {};
         new Intl.DateTimeFormat("en-CA", { timeZone: "America/Mexico_City", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23" })
@@ -178,7 +178,7 @@
         return "Armando el ZIP y mandando el correo…";
     }
     function ultimo(e) {
-        // 20-nov-2026 (Alan): un envío incompleto no sale solo; se detiene y el titular decide
+        // 20-nov-2026 (el dueño): un envío incompleto no sale solo; se detiene y el titular decide
         if (e.detenido) {
             var manual = String(e.detenido).indexOf("m|") === 0;
             var txt = manual ? "No se mandó: al validar, al SAT le faltó entregar algo (el detalle está en tu campana). El envío programado sigue su calendario."
@@ -359,7 +359,7 @@
         $("ev-periodo-txt").textContent = mes ? "Si saliera hoy llevaría " + periodoTxt(mesesDeHoy(f, cierre)) + ". Para mandar otro mes una sola vez, usa «Enviar ahora» y elígelo ahí."
             : "Lleva lo que haya llegado desde el envío anterior. Para mandar un mes completo una sola vez, usa «Enviar ahora» y elígelo ahí.";
     }
-    /* ¿El periodo elegido en «Cuándo» abarca más de un mes? (21-nov-2026, Alan). Es la regla del servidor (motor.armar:
+    /* ¿El periodo elegido en «Cuándo» abarca más de un mes? (21-nov-2026, el dueño). Es la regla del servidor (motor.armar:
        el Excel de todos los meses solo sale si el paquete lleva más de un mes): «Solo una vez» con Desde y Hasta distintos; el
        semanal o quincenal de «mes completo» con el cierre (la primera semana lleva el mes que cerró y el que corre); «solo lo
        nuevo», que acomoda por su mes lo que llegó tarde. El mensual, o sin el cierre, lleva un solo mes. */
@@ -460,7 +460,7 @@
         return { envio: $("ev-nombre").value.trim() || nombreAuto(), periodo: periodoTxt(mes),
                  fecha: hoy.toLocaleDateString("es-MX", { day: "2-digit", month: "2-digit", year: "numeric" }), empresas: empresas, detalle: detalle };
     }
-    /* El nombre de un envío sin nombre (19-nov, Alan): el mismo que arma el servidor (motor.nombre_automatico), para la vista
+    /* El nombre de un envío sin nombre (19-nov, el dueño): el mismo que arma el servidor (motor.nombre_automatico), para la vista
        previa. «Mensual · 3 empresas · XML y Excel», «A cada cliente · semanal · XML». */
     function nombreAuto() {
         var f = leerForm(), c = f.contenido, frec = { semanal: "Semanal", quincenal: "Quincenal", mensual: "Mensual" }[f.frecuencia] || "Semanal";
@@ -648,7 +648,7 @@
         E.nota = !e && base ? (copia ? "Es una copia de «" + base.nombre + "»: cambia lo que quieras y guarda." :
             "Empieza con lo mismo que «" + base.nombre + "» (cuándo, qué lleva y el mensaje). Cambia lo que quieras.") : "";
         $("ev-base").textContent = E.nota;
-        var c = de_ ? de_.contenido : { xml: ["recibidos", "pagos"], excel: [{ que: "conciliacion_emitidos" }, { que: "pagos" }], docs: [] };      // lo que pidió Alan, de fábrica
+        var c = de_ ? de_.contenido : { xml: ["recibidos", "pagos"], excel: [{ que: "conciliacion_emitidos" }, { que: "pagos" }], docs: [] };      // lo que pidió el dueño, de fábrica
         $("ev-dlg-titulo").textContent = e ? "Editar Envío " + e.numero : "Nuevo envío";
         $("ev-dlg-sub").textContent = "Se manda solo, a las " + E.hora + " de la mañana del día que toque. En el último paso eliges si llega por correo o se queda en Mis descargas.";
         $("ev-verifica-txt").textContent = "Antes de mandar se pide al SAT la lista de cada empresa para comprobar que estén todos los XML, y se valida el estado de todo lo que va. " +
@@ -797,7 +797,7 @@
         $("ev-ahora-titulo").textContent = "¿Mandar el Envío " + e.numero + " ahora?";
         $("ev-ahora-sub").textContent = "Sale a " + aQuien + ".";
         $("ev-ahora-siempre").textContent = e.modo === "mes" ? "Lleva " + periodoTxt(e.meses_hoy || mesesDeHoy(e.frecuencia, e.cierre)) + ", completo." : "Lo que llegó desde el envío anterior.";
-        // Desde / Hasta (19-nov, Alan: de agosto a noviembre, hasta 12 meses): los últimos 24 meses, del más reciente al más viejo
+        // Desde / Hasta (19-nov, el dueño: de agosto a noviembre, hasta 12 meses): los últimos 24 meses, del más reciente al más viejo
         var h = new Date(), ops = "";
         for (var i = 0; i < 24; i++) { var m = mesDe(new Date(h.getFullYear(), h.getMonth() - i, 1)); ops += '<option value="' + m + '">' + esc(mesTxt(m).replace(/^./, function (c) { return c.toUpperCase(); })) + "</option>"; }
         $("ev-ahora-desde").innerHTML = ops; $("ev-ahora-hasta").innerHTML = ops;
@@ -807,7 +807,7 @@
         document.querySelector('input[name="ev-ahora-corte"][value="ayer"]').checked = true;          // de fábrica, hasta ayer (20-nov)
         pintarCortes($("ev-ahora"));          // 21-nov-2026: con la fecha y la hora reales; el servidor las confirma al calcular
         verCorte();
-        // 19-nov (Alan): «Validar primero» o «Enviar ya». Validar revisa contra el SAT (lista de cada mes con corte a ayer
+        // 19-nov (el dueño): «Validar primero» o «Enviar ya». Validar revisa contra el SAT (lista de cada mes con corte a ayer
         // 23:59, estado de cada comprobante, constancia y opinión de más de 30 días); «Enviar ya» sale con lo que hay
         $("ev-ahora-nota").textContent = "«Validar primero» revisa contra el SAT que no falte ninguno (el mes en curso, con corte a ayer 23:59) y el estado de cada comprobante, " +
             "y pide la constancia u opinión si la guardada tiene más de 30 días. Puede tardar hasta " + (E.esperaListas || 15) + " minutos" +
@@ -817,7 +817,7 @@
         if (!$("ev-ahora").open) $("ev-ahora").showModal();
         calcularAhora();
     }
-    /* 20-nov-2026 (Alan): «Hasta ayer, verificado contra el SAT» (de fábrica) o «Hasta este momento» (lleva también lo de
+    /* 20-nov-2026 (el dueño): «Hasta ayer, verificado contra el SAT» (de fábrica) o «Hasta este momento» (lleva también lo de
        hoy, sin compararlo con la lista del SAT). Solo se pregunta si el periodo llega a este mes: un mes cerrado ya va completo. */
     function llegaAEsteMes() {
         var e = E.ahoraDe; if (!e) return false;
@@ -874,7 +874,7 @@
 
     /* ============================================================ el historial */
     /* Cada envío hecho, en corto: cuándo, cómo quedó, cuánto llevó y sus botones (copiar el enlace, revocarlo). El
-       detalle por empresa va plegado: se abre al tocarlo (18-nov, Alan: «que me dé lo importante… sin tener expandido
+       detalle por empresa va plegado: se abre al tocarlo (18-nov, el dueño: «que me dé lo importante… sin tener expandido
        todo el detalle»). */
     function hecho(v) {
         var est = ESTADOS[v.estado] || [v.estado, "info"];
@@ -983,7 +983,7 @@
             $("ev-aviso").textContent = e.message; $("ev-aviso").hidden = false;
             return;
         }
-        // Un envío nuevo arranca con la configuración del último que se hizo (Alan: «una vez lo configuro y ya está para todo»)
+        // Un envío nuevo arranca con la configuración del último que se hizo (el dueño: «una vez lo configuro y ya está para todo»)
         function nuevo() { var ps = programados(); abrirForm(null, ps.length ? ps[ps.length - 1] : E.envios[E.envios.length - 1] || null, false); }
         $("ev-nuevo").addEventListener("click", nuevo);
         async function enTarjeta(ev) {          // los botones de cada envío (los programados y los «Enviados una vez»)

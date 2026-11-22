@@ -69,7 +69,7 @@
 .tar-sat { margin-bottom: 10px; }
 .tar-sat .tar-aviso small { display: block; font-weight: 400; margin-top: 2px; }
 
-/* 19-nov-2026 (Alan): qué máquina hizo cada cosa anoche (Vostro y VPS) y el interruptor del Agente */
+/* 19-nov-2026 (el dueño): qué máquina hizo cada cosa anoche (Vostro y VPS) y el interruptor del Agente */
 .tar-anoche { margin: 0 0 12px; }
 .tar-sub { font-size: var(--t-14); font-weight: 700; margin: 0 0 8px; }
 .tar-sub small { font-weight: 400; color: rgb(var(--g-500)); font-size: var(--t-12); margin-left: 6px; }

@@ -14,7 +14,7 @@
     var fmt = new Intl.NumberFormat("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     var num = function (n) { return Number(n || 0).toLocaleString("es-MX"); };
     var C = { ctx: null, datos: null, vista: "detalle", tablas: {}, turno: 0 };
-    /* 18-nov (Alan: «lo que necesitaba era el desglose por productos… dice detalle, producto, clave sat y proveedor, no
+    /* 18-nov (el dueño: «lo que necesitaba era el desglose por productos… dice detalle, producto, clave sat y proveedor, no
        entiendo eso»): la primera vista ES el desglose (un renglón por cada producto de cada factura); las otras tres son
        resúmenes de ese desglose. Los nombres y la línea de abajo lo dicen. */
     var VISTAS = [["detalle", "Desglose por concepto", "El desglose: un renglón por cada producto o servicio de cada factura, con los datos de su factura y sus impuestos."],
@@ -98,7 +98,7 @@
         caja.hidden = false;
         caja.innerHTML = '<div class="xc-datos">' +
             dato(num(r.conceptos), "conceptos", "Renglones de producto o servicio que traen las facturas del periodo") + dato(num(r.facturas), "facturas") +
-            // 18-nov (Alan: «el de productos me deja dudas»): se dice qué se contó. Un «producto» aquí es una descripción distinta
+            // 18-nov (el dueño: «el de productos me deja dudas»): se dice qué se contó. Un «producto» aquí es una descripción distinta
             // (con su clave del SAT y su n.º de identificación); la misma cosa escrita de dos formas cuenta dos veces.
             dato(num(r.productos), "descripciones distintas", "Cuántas descripciones diferentes hay (misma clave del SAT, misma descripción y mismo n.º de identificación = una sola). " +
                 "Si un proveedor escribe distinto la descripción en cada factura, cada una cuenta aparte; para agruparlas, usa «Por clave SAT».") +

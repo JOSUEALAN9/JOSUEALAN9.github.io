@@ -1,7 +1,7 @@
 /*
- * admin/pendientes-admin.js — Sistema › Estado › tarjeta «Pendientes» (solo admin). 21-nov-2026, Alan: «esos puntos que me
+ * admin/pendientes-admin.js — Sistema › Estado › tarjeta «Pendientes» (solo admin). 21-nov-2026, el dueño: «esos puntos que me
  * faltan tenlos presentes, meter una tarjeta… para que me los recuerdes».
- *   Lo que le falta a Alan (no es código), por grupos. La casilla lo marca como hecho: se ve tachado y se pliega bajo
+ *   Lo que le falta al dueño (no es código), por grupos. La casilla lo marca como hecho: se ve tachado y se pliega bajo
  *   «Hechos (N)» de su grupo. «+ Agregar» (o el + de cada grupo) abre una sola forma arriba; ✎ cambia el texto en su lugar;
  *   la papelera lo borra, con confirmación. El número de la cabecera («N pendientes») también sale en la pestaña Sistema, así
  *   que el punto del grupo «Sistema» lo recuerda desde cualquier apartado.

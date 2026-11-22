@@ -46,7 +46,7 @@
         $("empresa-titulo").textContent = E.rfc ? nombreEmpresa(E.rfc) : "Elegir empresa";
         enlacePedir();
     }
-    /* «Pedir al SAT» (19-nov, Alan: no dejaba elegido el tipo): Descarga masiva abre con «Retenciones e información de pagos»
+    /* «Pedir al SAT» (19-nov, el dueño: no dejaba elegido el tipo): Descarga masiva abre con «Retenciones e información de pagos»
        por Web service y del lado de la pestaña que ves (emitidas o recibidas). */
     function enlacePedir() {
         var q = new URLSearchParams();

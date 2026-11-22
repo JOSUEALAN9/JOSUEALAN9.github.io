@@ -105,7 +105,7 @@
             subtitulo: (elegido.alias ? elegido.alias + " · " : "") + rfc + ". Se guardan " + Fiscontable.textoPlazo("declaraciones") + "; si tu suscripción sigue vigente, se quedan. Si se van a eliminar, recibirás un aviso 30 días antes.",
             filtro: { etiqueta: "Ejercicio", valor: almacen.ejercicio, opciones: almacen.ejercicios.map(function (e) { return { valor: e, texto: e }; }) },
             // M-05: un renglón por declaración (mes + número de operación); sus documentos salen como etiquetas.
-            // 19-nov-2026 (Alan): agrupadas por mes (abierto el más reciente) y con el portal del SAT de donde salió.
+            // 19-nov-2026 (el dueño): agrupadas por mes (abierto el más reciente) y con el portal del SAT de donde salió.
             columnas: ["Declaración", "Portal", "No. operación", "Guardada"],
             agrupar: true,
             nombreZip: "Declaraciones_" + rfc,

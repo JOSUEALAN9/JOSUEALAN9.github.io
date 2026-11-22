@@ -15,7 +15,7 @@
     var esc = Fiscontable.escapar;
     var $ = function (id) { return document.getElementById(id); };
 
-    /* 18-nov (Alan: «administración de xml solo emitidas y recibidas, nómina aparte»): esta página enseña Recibidos y
+    /* 18-nov (el dueño: «administración de xml solo emitidas y recibidas, nómina aparte»): esta página enseña Recibidos y
        Emitidos. La misma tabla se abre con ?vista=nomina («Recibos de nómina», en el menú) o ?vista=pagos (la pestaña
        «Complementos de pago» de Conciliación de pagos): entonces solo trae esa pestaña. Ver vista.js. */
     var VISTA = (function () { var v = new URLSearchParams(location.search).get("vista"); return v === "nomina" || v === "pagos" ? v : ""; })();
@@ -367,7 +367,7 @@
     function alCambiarPeriodo() {
         E.seleccion.clear();
         Fiscontable.url(Fiscontable.periodoAUrl(E.P.estado(), porFechas()));
-        // 17-nov (Alan: todo el año → quitar todo → octubre, y la tabla salió vacía). Al quitar todos los meses se pedía al
+        // 17-nov (el dueño: todo el año → quitar todo → octubre, y la tabla salió vacía). Al quitar todos los meses se pedía al
         // servidor «nada» y esa respuesta, si llegaba después de elegir octubre (que ya estaba cargado y se pinta al
         // instante), borraba la tabla. Ahora: sin periodo elegido y con datos de esta empresa no se pide nada (lo cargado
         // se conserva), y cualquier carga que siga en camino se descarta cuando lo elegido se resuelve aquí.
@@ -638,7 +638,7 @@
             borrarLocal("cols:" + E.modulo); borrarLocal("vista:" + E.modulo); local = null;
             guardarLocal("mig:fabrica2:" + E.modulo, 1);
         }
-        // 19-nov-2026 (columnas base aprobadas por Alan): la vista de fábrica de cada pestaña ahora es la corta (Serie y Folio
+        // 19-nov-2026 (columnas base aprobadas por el dueño): la vista de fábrica de cada pestaña ahora es la corta (Serie y Folio
         // separados; las opcionales solo si el periodo las trae). Una sola vez se suelta lo acomodado SIN nombre para que
         // se vea la nueva; si lo acomodado venía de una vista guardada, se respeta (las vistas guardadas no se tocan).
         if (!leerLocal("mig:fabrica3:" + E.modulo)) {
@@ -1210,7 +1210,7 @@
         boton.textContent = "Importes: " + (c.modo ? "en pesos" : "en su moneda");
         aviso.hidden = !c.modo;
         if (c.modo) {
-            // 18-nov (Alan: «más corto»): solo qué se hizo con lo que venía en otra moneda
+            // 18-nov (el dueño: «más corto»): solo qué se hizo con lo que venía en otra moneda
             aviso.textContent = "Importes en otra moneda: en pesos, al tipo de cambio " + (c.modo === "dof" ? "del DOF" : "de su factura") +
                 (c.sin_tc ? " (" + c.sin_tc + " sin tipo de cambio siguen en su moneda)" : "") + ".";
             aviso.title = Number(c.convertidas || 0).toLocaleString("es-MX") + " renglón(es) convertidos con " + c.con + ". Así salen también en el Excel.";
@@ -1603,7 +1603,7 @@
         });
         var mios = BJ.clientes || {};
         return Object.keys(cuenta).sort(function (a, b) { return (!!mios[b] - !!mios[a]) || (cuenta[b] - cuenta[a]); })
-            .filter(function (r) { return !!mios[r]; })      // 20-nov-2026 (Alan): solo empresas dadas de alta; lo demás no se carga
+            .filter(function (r) { return !!mios[r]; })      // 20-nov-2026 (el dueño): solo empresas dadas de alta; lo demás no se carga
             .slice(0, 12)
             .map(function (r) { return { rfc: r, nombre: mios[r] || nombres[r], n: cuenta[r], cliente: true }; });
     }
@@ -1634,7 +1634,7 @@
                 esc((c.nombre || "Sin nombre") + " · " + c.rfc + " (" + c.n + " XML)" + (c.cliente ? "" : " · sin registrar")) + "</option>";
         }).join("");
         function cifra(v, t, ajena) { return v ? '<div class="xml-cifra' + (ajena ? " xml-cifra--ajena" : "") + '"><b>' + v.toLocaleString("es-MX") + "</b><span>" + t + "</span></div>" : ""; }
-        // 20-nov-2026 (Alan): con XML de dos o más empresas, «Procesar todas» carga cada uno a su empresa de un jalón
+        // 20-nov-2026 (el dueño): con XML de dos o más empresas, «Procesar todas» carga cada uno a su empresa de un jalón
         var todas = empresasDeLaBandeja(), ocupado = !!BJ.todas || !!BJ.leyendo;
         var conTodas = todas.empresas >= 2;
         caja.innerHTML = '<div class="xml-resumen">' +
@@ -1711,7 +1711,7 @@
         $("bandeja").hidden = true;
     }
 
-    /* ============================================================ «Procesar todas» (20-nov-2026, Alan) */
+    /* ============================================================ «Procesar todas» (20-nov-2026, el dueño) */
     /* Cada XML de la bandeja va a CADA empresa dada de alta que sea su emisor o su receptor (la nómina, al patrón), de un
        jalón. Los XML suben por partes y el servidor los guarda en segundo plano (modulos/xml/carga_todas.py) mientras
        esta página muestra el avance. Doble clic, otra pestaña o un corte a media subida: la «clave» de la bandeja hace

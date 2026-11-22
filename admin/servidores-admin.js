@@ -1,5 +1,5 @@
 /*
- * admin/servidores-admin.js — Sistema › Estado › tarjeta «Servidores» (solo admin). 20-nov-2026, Alan: «lo nuevo en un solo lugar».
+ * admin/servidores-admin.js — Sistema › Estado › tarjeta «Servidores» (solo admin). 20-nov-2026, el dueño: «lo nuevo en un solo lugar».
  *   Quién atiende ahora (la Vostro, la VPS en solo lectura o la VPS trabajando), la última copia a la VPS, la versión del
  *   código de las dos máquinas, la corriente de la Vostro, la llave del relevo y los dos interruptores (solo de lectura, con
  *   enlace a Tareas automáticas, donde se cambian). Un solo botón: «Copiar ahora a la VPS» (con tu PIN).

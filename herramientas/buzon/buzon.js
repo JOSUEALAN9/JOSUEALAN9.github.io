@@ -450,7 +450,7 @@
         var html = "";
         if (pend.length) {
             html += '<div class="bz-pendientes"><h3>Notificaciones pendientes (' + pend.length + ")</h3>" +
-                // 19-nov-2026 (Alan): cada una dice hasta cuándo puede abrirse antes de tenerse por notificada
+                // 19-nov-2026 (el dueño): cada una dice hasta cuándo puede abrirse antes de tenerse por notificada
                 '<ul class="bz-plazos">' + pend.map(function (x) { return "<li>" + esc(x.aviso_texto || "Tienes una notificación del SAT sin abrir.") + "</li>"; }).join("") + "</ul>" +
                 "<p><b>Las revisiones nunca las abren.</b> Si la abres con tu e.firma quedas notificado en ese momento y empiezan a correr los plazos. " +
                 "Tienes tres días hábiles, contados desde el día siguiente al aviso; si no la abres, el SAT te tiene por notificado el cuarto (arts. 134 fr. I y 17-K del CFF). En ese momento se descargan automáticamente sus documentos.</p>" +

@@ -1,5 +1,5 @@
 /*
- * configuracion/nombres-archivo.js — Configuración › Nombres de archivo (20-nov-2026, Alan: «que el contador personalice
+ * configuracion/nombres-archivo.js — Configuración › Nombres de archivo (20-nov-2026, el dueño: «que el contador personalice
  * los nombres de archivo en Configuración, como las plantillas de correo»).
  *
  * Una plantilla por tipo de archivo (XML y PDF de un CFDI, Excel y reportes, ZIP de comprobantes, ZIP de un envío) con

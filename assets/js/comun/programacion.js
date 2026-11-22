@@ -6,7 +6,7 @@
  *       Una línea: «Programado · mensual, día 1 · próxima: 01/12/2026 · Cambiar · Ver todas».
  *       Usa la empresa activa de la barra de arriba (y se actualiza si cambia).
  *   FCProgramacion.abrir(modulo, empresa?, alGuardar?)   abre el ajuste (frecuencia, día, todas mis empresas, aviso por
- *       correo). Desde el 15-nov solo se abre en Configuración › Lo automático (Alan: «si aparece en otro módulo, me
+ *       correo). Desde el 15-nov solo se abre en Configuración › Lo automático (el dueño: «si aparece en otro módulo, me
  *       reenvía a esta parte de la configuración»): en los módulos, «Cambiar» lleva allá con la empresa y el módulo.
  *
  * Lo que corre de madrugada sigue siendo el turno de siempre (pausas, reintentos, e.firma guardada).
@@ -58,7 +58,7 @@
     function formulario(d) {
         var m = d.modulo, r = d.regla || {}, def = d.defecto || {}, h = [];
         if (m === "csf" || m === "opinion" || m === "declaraciones") {
-            // 15-nov (Alan): la fecha es la misma para todos y la pone Fiscontable; aquí solo se activa o se pausa
+            // 15-nov (el dueño): la fecha es la misma para todos y la pone Fiscontable; aquí solo se activa o se pausa
             h.push('<label class="ui-check"><input type="checkbox" data-c="activa"' + (d.activa || !d.regla ? " checked" : "") + "> Hacerlo solo</label>");
             h.push('<p class="xml-tenue">Cada mes, el día ' + esc(String(def.dia != null ? def.dia : 1)) + ", de madrugada. La fecha la define Fiscontable.</p>");
         } else if (m === "xml") {

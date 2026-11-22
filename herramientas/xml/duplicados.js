@@ -5,7 +5,7 @@
  * Lista los grupos de facturas (emitidas o recibidas) que parecen la misma timbrada dos veces y deja decidir cada uno:
  * «Es duplicado» (y cuál sobra) o «No lo es». Lo decidido se guarda en el servidor y no se vuelve a preguntar; cuando la
  * que sobra queda cancelada ante el SAT, el grupo se resuelve solo.
- * Con lado "nomina" (18-nov, Alan: «me va a decir duplicado y esta es la diferencia») son recibos de nómina del mismo
+ * Con lado "nomina" (18-nov, el dueño: «me va a decir duplicado y esta es la diferencia») son recibos de nómina del mismo
  * trabajador, fecha de pago, periodo e importes; arriba dice cuánto ISR retenido sobra por mes, que es lo que el SAT
  * ve como «diferencia por pagar».
  */
