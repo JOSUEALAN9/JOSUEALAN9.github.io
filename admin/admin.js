@@ -117,6 +117,7 @@ async function verificarAdminYCargar() {
         prepararEventos();
         // #vencidas (el aviso de «cuenta por eliminar»): Sistema › Cuentas vencidas
         if (location.hash === "#vencidas") { abrirPestana("sistema"); const b = document.querySelector('#sub-sistema [data-sub="vencidas"]'); if (b) b.click(); }
+        else if (location.hash === "#correos") { abrirPestana("sistema"); const b = document.querySelector('#sub-sistema [data-sub="correos"]'); if (b) b.click(); }   // aviso «No salió un correo»
         else if (location.hash === "#tareas") { abrirPestana("sistema"); const b = document.querySelector('#sub-sistema [data-sub="tareas"]'); if (b) b.click(); }   // avisos de tareas y madrugada
         else if (location.hash === "#registro") { abrirRegistroAlCargar = true; abrirPestana("sistema"); }   // desde el buscador: «Registro de trámites»
         else if (location.hash === "#reporte") { abrirReporteAlCargar = true; abrirPestana("sistema"); }      // desde el buscador: «Registro de auditoría»

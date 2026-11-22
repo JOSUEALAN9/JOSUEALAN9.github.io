@@ -1,0 +1,17 @@
+/* admin/correos-admin.css — Sistema › Correos (22-nov-2026). Prefijo cor-. */
+.cor-cabeza { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-bottom: 4px; }
+.cor-cabeza .plz-titulo { margin: 0; }
+.cor-estado { font-size: var(--t-12, 12px); font-weight: 600; padding: 2px 10px; border-radius: 999px; }
+.cor-estado--bien { color: rgb(var(--ok-600)); background: rgb(var(--ok-50)); }
+.cor-estado--mal { color: rgb(var(--er-600)); background: rgb(var(--er-50)); }
+.cor-filtro { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; font-size: var(--t-13, 13px); cursor: pointer; }
+.cor-lista { max-height: 60vh; overflow: auto; border: 1px solid var(--linea, #e5e7eb); border-radius: 10px; }
+.cor-lista .ui-tabla { margin: 0; table-layout: fixed; }
+.cor-lista .ui-tabla td { white-space: normal; overflow-wrap: anywhere; height: auto; padding-top: 8px; padding-bottom: 8px; vertical-align: top; }
+.cor-lista .cor-c1 { width: 128px; } .cor-lista .cor-c2 { width: 96px; } .cor-lista .cor-c5 { width: 168px; }
+.cor-nw { white-space: nowrap !important; }
+.cor-bien { color: rgb(var(--ok-600)); font-weight: 600; }
+.cor-mal { color: rgb(var(--er-600)); font-weight: 600; }
+.cor-lista tr.cor-con-motivo td { border-bottom: 0; padding-bottom: 2px; }
+.cor-lista tr.cor-motivo td { padding-top: 0; color: rgb(var(--er-600)); font-size: var(--t-12, 12px); }
+@media (max-width: 640px) { .cor-filtro { margin-left: 0; } .cor-lista .ui-tabla { min-width: 640px; } }
