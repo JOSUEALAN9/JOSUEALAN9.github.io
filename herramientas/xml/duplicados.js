@@ -117,6 +117,8 @@
         try {
             D.datos = await post("/api/xml/duplicados", { rfc: x.rfc, lado: x.lado, desde: x.desde, hasta: x.hasta });
             pintar();
+            // 22-nov-2026: la tabla de atrás muestra la misma marca que el Excel; se le avisa lo que quedó
+            document.dispatchEvent(new CustomEvent("fiscontable:duplicados", { detail: { rfc: x.rfc, lado: x.lado, desde: x.desde, hasta: x.hasta, marcas: D.datos.marcas || {} } }));
         } catch (e) {
             cuerpo.innerHTML = '<p class="xd-vacio xd-vacio--error"><strong>No se pudo comparar.</strong> ' + esc(e.message) + ' <button type="button" class="xml-enlace" data-reintentar>Reintentar</button></p>';
         }

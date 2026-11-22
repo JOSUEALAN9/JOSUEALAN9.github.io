@@ -168,6 +168,12 @@
 .xml-modal__acciones { display: flex; flex-direction: column; gap: 10px; }
 .xml-modal__acciones .xml-btn { justify-content: center; padding: 10px 14px; }
 .xml-alerta { color: rgb(var(--av-600)); font-weight: 800; }
+/* Marca de «Posibles duplicados» en la primera columna (22-nov-2026): ámbar = por revisar; rojo = marcada, falta cancelarla.
+   Va encima, pegada a la orilla derecha de la celda (que es fija): no le quita lugar a lo que ya dice la columna. */
+.xml-dup { position: absolute; right: 5px; top: 50%; transform: translateY(-50%); display: grid; place-items: center; width: 18px; height: 18px; padding: 0; border: 0; border-radius: 6px; font-size: 12px; line-height: 1; font-weight: 800; cursor: pointer; text-decoration: none; box-shadow: 0 0 0 2px rgb(var(--g-0)); }
+.xml-dup--pendiente { background: rgb(var(--av-50)); color: rgb(var(--av-600)); }
+.xml-dup--sobra { background: rgb(var(--er-50)); color: rgb(var(--er-600)); }
+.xml-dup:hover, .xml-dup:focus-visible { outline: 2px solid currentColor; outline-offset: 1px; }
 #resultado-carga .xml-resultado { margin: 0 0 14px; position: relative; padding-right: 40px; }
 .xml-resultado__cerrar { position: absolute; right: 10px; top: 8px; border: 0; background: none; font-size: 16px; cursor: pointer; color: inherit; opacity: .6; }
 @media (max-width: 700px) { .xml-avanzados { grid-template-columns: 1fr; } }

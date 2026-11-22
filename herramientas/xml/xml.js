@@ -545,7 +545,8 @@
         if (!b || b.disabled) return;
         var pagos = E.modulo === "pagos", delDespacho = conFormato && E.formatoReporte && E.formatoReporte[E.modulo];
         b.innerHTML = "<b>▦</b>" + (pagos ? "Excel · reporte de pagos" : "Excel · reporte completo");
-        b.title = pagos ? "Dos hojas: «Pagos» (un renglón por pago, con IVA por tasa y retenciones) y «Documentos relacionados» (un renglón por factura pagada)"
+        // 21-nov-2026 (Excel v6, opción A del dueño): por fecha de pago, con sus hojas «de otros meses»
+        b.title = pagos ? "Por fecha de pago, como el IVA: «Pagos» y «Documentos relacionados» (lo pagado en el periodo) y «Pagos de otros meses» y «Documentos de otros meses» (complementos que llegaron en el periodo por pagos de otros meses)"
             : delDespacho ? "El reporte completo de esta pestaña, con tus filtros, con el formato de columnas que guardó tu despacho (⚙ Formato del reporte completo)"
             : "El reporte completo de esta pestaña, con tus filtros: las columnas acomodadas como el reporte de descarga que ya conoces";
     }
@@ -809,18 +810,54 @@
         docto_encontrado: { "Sí": "verde", "No": "ambar" }
     };
 
+    /* 22-nov-2026 (el dueño: lo marcado en «Posibles duplicados» no se veía ni en la tabla ni en el Excel): la misma frase
+       que lleva el Excel en Observaciones, como una marca ⧉ en la primera columna (se vea la columna que se vea) y al
+       inicio de «Alertas». Las marcas llegan aparte (/api/xml/duplicados), después de pintar la tabla: no la frenan. */
+    var DUP = { clave: "", marcas: {}, pidiendo: "" };
+    function marcaDup(f) { return (E.modulo === "recibidos" || E.modulo === "emitidos") && f.uuid ? DUP.marcas[f.uuid] : null; }
+    function chipDup(m) {
+        return '<button type="button" class="xml-dup xml-dup--' + (m.estado === "sobra" ? "sobra" : "pendiente") + '" data-dup title="' + esc(m.texto) +
+            '" aria-label="' + esc(m.texto) + '">⧉</button>';
+    }
+    function claveDup() {
+        if (!E.rfc || !hayEleccion() || (E.modulo !== "recibidos" && E.modulo !== "emitidos")) return "";
+        var r = rangoPeriodo();
+        return r && r.desde && r.hasta ? [E.rfc, E.modulo, r.desde, r.hasta].join("|") : "";
+    }
+    async function pedirMarcasDup() {
+        var clave = claveDup();
+        if (!clave || clave === DUP.clave || clave === DUP.pidiendo || !E.filas.length) return;
+        DUP.pidiendo = clave;
+        var r = rangoPeriodo();
+        try {
+            var d = await (await api("/api/xml/duplicados", { method: "POST", headers: { "Content-Type": "application/json" },
+                                                             body: JSON.stringify({ rfc: E.rfc, lado: E.modulo, desde: r.desde, hasta: r.hasta }) })).json();
+            if (DUP.pidiendo !== clave) return;
+            ponerMarcasDup(clave, d.marcas);
+        } catch (e) { /* es un adorno de la tabla: si no llega, la tabla sigue igual y el diálogo lo dirá */ }
+        finally { if (DUP.pidiendo === clave) DUP.pidiendo = ""; }
+    }
+    function ponerMarcasDup(clave, marcas) {
+        var antes = JSON.stringify(DUP.marcas);
+        DUP.clave = clave; DUP.marcas = marcas || {};
+        if (clave === claveDup() && JSON.stringify(DUP.marcas) !== antes) pintarFilas(true);
+    }
+
     function celda(c, f, fija) {
         var v = f[c.clave];
+        var dup = marcaDup(f);
         if (c.clave === "alertas") {
+            if (dup) v = dup.texto.replace(/\.$/, "") + (v ? "; " + v : "");
             var n = v ? v.split("; ").length : 0;
             return "<td" + (fija ? ' class="xml-fija xml-fija--ultima" style="left:36px"' : "") + (n ? ' title="' + esc(v) + '"' : "") + ">" +
-                (n ? '<span class="xml-alerta">⚠ ' + n + "</span> " + esc(v.split("; ")[0]) : "") + "</td>";
+                (n ? '<span class="xml-alerta">⚠ ' + n + "</span> " + esc(v.split("; ")[0]) : "") + (fija && dup ? chipDup(dup) : "") + "</td>";
         }
         var clase = c.tipo === "moneda" || c.tipo === "numero" ? "xml-num" : (c.tipo === "uuid" ? "xml-uuid" : "");
         if (fija) clase += " xml-fija xml-fija--ultima";
         var txt = formato(c, v);
         var sello = SELLOS[c.clave] && SELLOS[c.clave][v];
         var html = sello ? '<span class="xml-sello xml-sello--' + sello + '">' + esc(txt) + "</span>" : esc(txt);
+        if (fija && dup) html += chipDup(dup);
         return "<td" + (clase ? ' class="' + clase.trim() + '"' : "") + (fija ? ' style="left:36px"' : "") + (txt.length > 18 ? ' title="' + esc(txt) + '"' : "") + ">" + html + "</td>";
     }
 
@@ -873,6 +910,7 @@
         pintarAlcance();
         pintarFilas(true);
         pintarSeleccion();
+        pedirMarcasDup();
     }
 
     var ultimoInicio = -1;
@@ -2047,8 +2085,15 @@
                 return;
             }
             if (e.target.closest(".xml-check")) return;
+            if (e.target.closest("[data-dup]")) return abrirDuplicados();          // la marca ⧉ lleva a decidir el grupo
             var tr = e.target.closest("tr[data-i]");
             if (tr) abrirDetalle(E.filas[+tr.dataset.i]);
+        });
+        // El diálogo avisa cada vez que compara (al abrir y después de marcar): la tabla se pone al día sin volver a pedir
+        document.addEventListener("fiscontable:duplicados", function (e) {
+            var x = e.detail || {};
+            if (x.lado !== "recibidos" && x.lado !== "emitidos") return;
+            ponerMarcasDup([x.rfc, x.lado, x.desde, x.hasta].join("|"), x.marcas);
         });
         prepararEncabezados();
         prepararPanelColumnas();

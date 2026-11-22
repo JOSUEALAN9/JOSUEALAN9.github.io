@@ -14,17 +14,23 @@
 (function () {
     "use strict";
 
-    var VERSION = "202611212100";
+    var VERSION = "202611220530";
     // www.fiscontable.app → fiscontable.app: una sola dirección (la sesión y las preferencias guardadas son por dirección)
     if (location.hostname === "www.fiscontable.app") {
         location.replace("https://fiscontable.app" + location.pathname + location.search + location.hash);
     }
-    // Ambiente de pruebas (pruebas.josuealan.com, solo para el dueño): habla con su propio servidor de pruebas
+    // Ambiente de pruebas (la web en pruebas.<dominio>, solo para el dueño): habla con su propio servidor de pruebas
     var PRUEBAS = /^pruebas\./.test(location.hostname);
-    // El servidor va en el mismo dominio que la web (si no, el navegador bloquea la sesión entre dominios):
-    // fiscontable.app → api.fiscontable.app; josuealan.com (mientras dura el cambio) → api.josuealan.com.
-    var DOMINIO = /(^|\.)fiscontable\.app$/.test(location.hostname) ? "fiscontable.app" : "josuealan.com";
-    var API = "https://" + (PRUEBAS ? "api-pruebas." : "api.") + DOMINIO;
+    // A qué servidor le habla la web. 21-nov-2026: regla general, sin nombres de dominio escritos (la misma de sitio.js):
+    //   en X (o www.X) → api.X · en pruebas.X → api-pruebas.X · en localhost, una IP, *.github.io (u otro alojamiento
+    //   compartido) o cualquier otro caso → api.fiscontable.app.   X es un dominio propio de dos partes (nombre.terminación).
+    // El servidor va en el mismo dominio que la web: si no, el navegador bloquea la sesión entre dominios.
+    function servidorDe(host) {
+        var m = /^(?:(www|pruebas)\.)?([a-z0-9-]+\.[a-z][a-z0-9-]*)$/.exec(String(host || "").toLowerCase());
+        if (!m || /^(github\.io|pages\.dev|workers\.dev)$/.test(m[2])) return "https://api.fiscontable.app";
+        return "https://" + (m[1] === "pruebas" ? "api-pruebas." : "api.") + m[2];
+    }
+    var API = servidorDe(location.hostname);
 
     /* Servidor de respaldo (20-nov-2026, ensayo de Alan con la Vostro apagada): cuando la Vostro no responde, la VPS atiende
        en solo lectura y todas sus respuestas traen la cabecera «X-Fiscontable-Modo: respaldo» (core/respaldo.py del
