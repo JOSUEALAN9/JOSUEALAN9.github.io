@@ -54,12 +54,12 @@
           pintar: pintarPlan },
         { id: "avisos", grupo: "Tu cuenta", titulo: "Avisos", ico: ICO.campana, desc: "Qué avisos te llegan también por correo, a qué dirección, y el resumen de tu cartera.",
           palabras: "avisos correo notificaciones campana actividad email resumen semanal diario lunes cartera", pintar: pintarAvisos },
-        // 20-nov-2026, Alan: cómo se llaman los archivos (configuracion/nombres-archivo.js; en el despacho, los pone el titular)
+        // 20-nov-2026, el dueño: cómo se llaman los archivos (configuracion/nombres-archivo.js; en el despacho, los pone el titular)
         { id: "nombres", grupo: "Tu cuenta", titulo: "Nombres de archivo", ico: ICO.factura,
           desc: "Cómo se llaman los XML, los PDF, los Excel y los ZIP que bajas o mandas en los envíos.",
           palabras: "nombres de archivo plantilla renombrar xml pdf excel zip paquete envío descarga serie folio uuid rfc periodo",
           pintar: function (c) { window.FcNombresArchivo.pintar(c, { api: api, enviar: enviar }); } },
-        // 15-nov, Alan: «solo una sección para eso»: XML automáticos, revisión del Buzón y lo programado, todo aquí. Lo que
+        // 15-nov, el dueño: «solo una sección para eso»: XML automáticos, revisión del Buzón y lo programado, todo aquí. Lo que
         // aparezca en otro módulo (el botón «Automática» de Descarga XML, «Ver todas»…) trae a esta sección.
         { id: "automatico", grupo: "Tu cuenta", titulo: "Lo automático", ico: ICO.reloj,
           desc: "Todo lo que Fiscontable hace solo por tus empresas: sus XML y retenciones de madrugada, la revisión del Buzón y lo programado (constancias, opiniones, declaraciones).",
@@ -79,7 +79,7 @@
           desc: "Cuándo cuenta cada impuesto (flujo o devengado), estatales, alcohol y las reglas que Fiscontable aprendió de cada empresa.",
           palabras: "impuestos reglas fiscales isr iva diot deducible no deducible flujo devengado cobrado facturado profesiones alcohol régimen paquete marcas",
           pintar: pintarImpuestos },
-        // 20-nov-2026, Alan: el «formato del despacho» del Excel · reporte completo (Recibidos y Emitidos). Lo define el titular
+        // 20-nov-2026, el dueño: el «formato del despacho» del Excel · reporte completo (Recibidos y Emitidos). Lo define el titular
         // una vez y sale así para todos y en los Envíos por correo; los integrantes lo ven sin poder cambiarlo.
         { id: "formato_reportes", grupo: "Módulos", titulo: "Formato de los reportes", ico: ICO.tabla, modulo: "validador",
           desc: "Qué columnas y en qué orden lleva el «Excel · reporte completo» de Recibidos y Emitidos, también en los envíos por correo.",
@@ -649,7 +649,7 @@
             var temas = p.por_tema || Object.keys(p.tipos), conFecha = p.con_fecha || [], cuando = p.cuando || {};
             var otros = Object.keys(p.tipos).filter(function (t) { return temas.indexOf(t) < 0; });
             var bloq = p.bloqueados || [], fijo = function (clave) { return bloq.indexOf(clave) >= 0; };
-            // 15-nov (Alan): apagar un correo siempre se puede; lo que Fiscontable apagó y bloqueó no se puede prender
+            // 15-nov (el dueño): apagar un correo siempre se puede; lo que Fiscontable apagó y bloqueó no se puede prender
             var noPrende = p.no_se_prenden || [];
             var renglon = function (t) {
                 var fx = fijo("correo." + t), cerrado = noPrende.indexOf(t) >= 0;
@@ -820,7 +820,7 @@
     var PAGINA_MODULO = { csf: "/herramientas/constancias/", opinion: "/herramientas/opinion/", declaraciones: "/herramientas/declaraciones/",
                           xml: "/herramientas/descarga-xml/", buzon: "/herramientas/buzon/", validador: "/herramientas/validador/", listas: "/herramientas/listas-sat/" };
     async function pintarProgramaciones(c) {
-        // 15-nov (Alan): una sola regla para todos (la pone el administrador en Valores de fábrica › Lo automático); aquí,
+        // 15-nov (el dueño): una sola regla para todos (la pone el administrador en Valores de fábrica › Lo automático); aquí,
         // por empresa, solo encender o apagar y si se le manda al cliente. Ya no por documento ni con fechas propias.
         c.innerHTML = '<div class="cf-tarjeta"><p class="cf-texto">Cargando…</p></div>';
         try {
@@ -959,7 +959,7 @@
             var mods = (perfil && perfil.modulos_permitidos) || [], conXml = mods.indexOf("descarga_xml") !== -1, conBuzon = mods.indexOf("buzon") !== -1;
             var cfg = conXml ? await api("/api/descarga-xml/automatica") : { empresas: [], tipos: {}, frecuencias: {} };
             var clientes = await api("/api/clientes");
-            // 15-nov (Alan): el Buzón en esta misma lista; de fábrica, encendido en todas las empresas con e.firma
+            // 15-nov (el dueño): el Buzón en esta misma lista; de fábrica, encendido en todas las empresas con e.firma
             var bz = conBuzon ? await api("/api/buzon").catch(function () { return null; }) : null, bzDe = {};
             ((bz && bz.empresas) || []).forEach(function (e) { bzDe[e.rfc] = e; });
             var nombre = {}; clientes.forEach(function (x) { nombre[x.rfc] = x.alias; });
@@ -1043,7 +1043,7 @@
         } catch (e) { c.innerHTML = '<div class="cf-tarjeta"><p class="cf-msj cf-msj--mal">' + esc(e.message) + "</p></div>"; }
     }
 
-    /* ---------- Formato de los reportes (20-nov-2026, Alan: «formato del despacho») ----------
+    /* ---------- Formato de los reportes (20-nov-2026, el dueño: «formato del despacho») ----------
        Una lista por pestaña (Recibidos, Emitidos): arriba, en su orden, las columnas que van en el reporte completo; abajo,
        las que no van. Se ordena arrastrando o con ↑ ↓ (en el celular no hay arrastre) y se marca o desmarca cada una. El
        folio fiscal no se puede quitar. Sin guardar nada sale el formato de Fiscontable, que es de donde parte la lista. */

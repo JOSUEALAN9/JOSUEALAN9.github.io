@@ -1,6 +1,6 @@
 /*
  * admin/despachos-admin.js — Pestaña Despachos de Administración: crear despachos (con su titular y SIEMPRE ligados a una
- * clave de despacho disponible: decisión de Alan del 19-nov-2026), ver su licencia, su equipo y cuántas empresas tienen,
+ * clave de despacho disponible: decisión del dueño del 19-nov-2026), ver su licencia, su equipo y cuántas empresas tienen,
  * el tope de empresas del espacio personal y activar o desactivar.
  * El titular administra su equipo desde /despacho/ (modulos/despacho/router.py).
  */

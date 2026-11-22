@@ -4,7 +4,7 @@
  * pasos para el siguiente recorrido. En vivo, la sesión queda abierta y «+ paso» (o el renglón de abajo) manda el paso
  * en ese momento. El candado vive en el servidor (modulos/laboratorio/motor.py): aquí solo se muestra.
  * DIOT (19-nov-2026): la evidencia guardada (vista previa, acuse) se baja desde el detalle, y en una sesión en vivo de la
- * DIOT está el «Envío grabado» (primer envío real con Alan): desbloqueo con PIN para esa empresa y ese periodo, por 15
+ * DIOT está el «Envío grabado» (primer envío real con el dueño): desbloqueo con PIN para esa empresa y ese periodo, por 15
  * minutos, y el PIN otra vez justo antes de enviar (modulos/laboratorio/envio_diot.py). El servidor revisa todo.
  */
 (function () {
@@ -174,7 +174,7 @@
             '<label class="lb-campo">Periodo<select class="ui-select" id="lb-envio-mes">' + MESES.map(function (m, i) { return '<option value="' + m + '"' + (i === p.mes ? " selected" : "") + ">" + m + "</option>"; }).join("") + "</select></label>" +
             '<button type="button" class="ui-btn ui-btn--secundario ui-btn--36" data-hacer="desbloquear">Desbloquear con PIN</button></div></section>';
     }
-    // Ventana con lo que se va a hacer y SOLO el PIN (Alan: «solo con PIN»). ejecutar(pin) hace la acción; si falla, la
+    // Ventana con lo que se va a hacer y SOLO el PIN (el dueño: «solo con PIN»). ejecutar(pin) hace la acción; si falla, la
     // ventana sigue abierta con el mensaje del servidor. Devuelve true si se hizo.
     function pedirPin(o) {
         return new Promise(function (listo) {

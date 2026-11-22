@@ -5,7 +5,7 @@
  * Lista los grupos de facturas (emitidas o recibidas) que parecen la misma timbrada dos veces y deja decidir cada uno:
  * «Es duplicado» (y cuál sobra) o «No lo es». Lo decidido se guarda en el servidor y no se vuelve a preguntar; cuando la
  * que sobra queda cancelada ante el SAT, el grupo se resuelve solo.
- * Con lado "nomina" (18-nov, Alan: «me va a decir duplicado y esta es la diferencia») son recibos de nómina del mismo
+ * Con lado "nomina" (18-nov, el dueño: «me va a decir duplicado y esta es la diferencia») son recibos de nómina del mismo
  * trabajador, fecha de pago, periodo e importes; arriba dice cuánto ISR retenido sobra por mes, que es lo que el SAT
  * ve como «diferencia por pagar».
  */
@@ -117,6 +117,8 @@
         try {
             D.datos = await post("/api/xml/duplicados", { rfc: x.rfc, lado: x.lado, desde: x.desde, hasta: x.hasta });
             pintar();
+            // 22-nov-2026: la tabla de atrás muestra la misma marca que el Excel; se le avisa lo que quedó
+            document.dispatchEvent(new CustomEvent("fiscontable:duplicados", { detail: { rfc: x.rfc, lado: x.lado, desde: x.desde, hasta: x.hasta, marcas: D.datos.marcas || {} } }));
         } catch (e) {
             cuerpo.innerHTML = '<p class="xd-vacio xd-vacio--error"><strong>No se pudo comparar.</strong> ' + esc(e.message) + ' <button type="button" class="xml-enlace" data-reintentar>Reintentar</button></p>';
         }

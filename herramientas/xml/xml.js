@@ -15,7 +15,7 @@
     var esc = Fiscontable.escapar;
     var $ = function (id) { return document.getElementById(id); };
 
-    /* 18-nov (Alan: «administración de xml solo emitidas y recibidas, nómina aparte»): esta página enseña Recibidos y
+    /* 18-nov (el dueño: «administración de xml solo emitidas y recibidas, nómina aparte»): esta página enseña Recibidos y
        Emitidos. La misma tabla se abre con ?vista=nomina («Recibos de nómina», en el menú) o ?vista=pagos (la pestaña
        «Complementos de pago» de Conciliación de pagos): entonces solo trae esa pestaña. Ver vista.js. */
     var VISTA = (function () { var v = new URLSearchParams(location.search).get("vista"); return v === "nomina" || v === "pagos" ? v : ""; })();
@@ -367,7 +367,7 @@
     function alCambiarPeriodo() {
         E.seleccion.clear();
         Fiscontable.url(Fiscontable.periodoAUrl(E.P.estado(), porFechas()));
-        // 17-nov (Alan: todo el año → quitar todo → octubre, y la tabla salió vacía). Al quitar todos los meses se pedía al
+        // 17-nov (el dueño: todo el año → quitar todo → octubre, y la tabla salió vacía). Al quitar todos los meses se pedía al
         // servidor «nada» y esa respuesta, si llegaba después de elegir octubre (que ya estaba cargado y se pinta al
         // instante), borraba la tabla. Ahora: sin periodo elegido y con datos de esta empresa no se pide nada (lo cargado
         // se conserva), y cualquier carga que siga en camino se descarta cuando lo elegido se resuelve aquí.
@@ -545,7 +545,8 @@
         if (!b || b.disabled) return;
         var pagos = E.modulo === "pagos", delDespacho = conFormato && E.formatoReporte && E.formatoReporte[E.modulo];
         b.innerHTML = "<b>▦</b>" + (pagos ? "Excel · reporte de pagos" : "Excel · reporte completo");
-        b.title = pagos ? "Dos hojas: «Pagos» (un renglón por pago, con IVA por tasa y retenciones) y «Documentos relacionados» (un renglón por factura pagada)"
+        // 21-nov-2026 (Excel v6, opción A del dueño): por fecha de pago, con sus hojas «de otros meses»
+        b.title = pagos ? "Por fecha de pago, como el IVA: «Pagos» y «Documentos relacionados» (lo pagado en el periodo) y «Pagos de otros meses» y «Documentos de otros meses» (complementos que llegaron en el periodo por pagos de otros meses)"
             : delDespacho ? "El reporte completo de esta pestaña, con tus filtros, con el formato de columnas que guardó tu despacho (⚙ Formato del reporte completo)"
             : "El reporte completo de esta pestaña, con tus filtros: las columnas acomodadas como el reporte de descarga que ya conoces";
     }
@@ -637,7 +638,7 @@
             borrarLocal("cols:" + E.modulo); borrarLocal("vista:" + E.modulo); local = null;
             guardarLocal("mig:fabrica2:" + E.modulo, 1);
         }
-        // 19-nov-2026 (columnas base aprobadas por Alan): la vista de fábrica de cada pestaña ahora es la corta (Serie y Folio
+        // 19-nov-2026 (columnas base aprobadas por el dueño): la vista de fábrica de cada pestaña ahora es la corta (Serie y Folio
         // separados; las opcionales solo si el periodo las trae). Una sola vez se suelta lo acomodado SIN nombre para que
         // se vea la nueva; si lo acomodado venía de una vista guardada, se respeta (las vistas guardadas no se tocan).
         if (!leerLocal("mig:fabrica3:" + E.modulo)) {
@@ -809,18 +810,54 @@
         docto_encontrado: { "Sí": "verde", "No": "ambar" }
     };
 
+    /* 22-nov-2026 (el dueño: lo marcado en «Posibles duplicados» no se veía ni en la tabla ni en el Excel): la misma frase
+       que lleva el Excel en Observaciones, como una marca ⧉ en la primera columna (se vea la columna que se vea) y al
+       inicio de «Alertas». Las marcas llegan aparte (/api/xml/duplicados), después de pintar la tabla: no la frenan. */
+    var DUP = { clave: "", marcas: {}, pidiendo: "" };
+    function marcaDup(f) { return (E.modulo === "recibidos" || E.modulo === "emitidos") && f.uuid ? DUP.marcas[f.uuid] : null; }
+    function chipDup(m) {
+        return '<button type="button" class="xml-dup xml-dup--' + (m.estado === "sobra" ? "sobra" : "pendiente") + '" data-dup title="' + esc(m.texto) +
+            '" aria-label="' + esc(m.texto) + '">⧉</button>';
+    }
+    function claveDup() {
+        if (!E.rfc || !hayEleccion() || (E.modulo !== "recibidos" && E.modulo !== "emitidos")) return "";
+        var r = rangoPeriodo();
+        return r && r.desde && r.hasta ? [E.rfc, E.modulo, r.desde, r.hasta].join("|") : "";
+    }
+    async function pedirMarcasDup() {
+        var clave = claveDup();
+        if (!clave || clave === DUP.clave || clave === DUP.pidiendo || !E.filas.length) return;
+        DUP.pidiendo = clave;
+        var r = rangoPeriodo();
+        try {
+            var d = await (await api("/api/xml/duplicados", { method: "POST", headers: { "Content-Type": "application/json" },
+                                                             body: JSON.stringify({ rfc: E.rfc, lado: E.modulo, desde: r.desde, hasta: r.hasta }) })).json();
+            if (DUP.pidiendo !== clave) return;
+            ponerMarcasDup(clave, d.marcas);
+        } catch (e) { /* es un adorno de la tabla: si no llega, la tabla sigue igual y el diálogo lo dirá */ }
+        finally { if (DUP.pidiendo === clave) DUP.pidiendo = ""; }
+    }
+    function ponerMarcasDup(clave, marcas) {
+        var antes = JSON.stringify(DUP.marcas);
+        DUP.clave = clave; DUP.marcas = marcas || {};
+        if (clave === claveDup() && JSON.stringify(DUP.marcas) !== antes) pintarFilas(true);
+    }
+
     function celda(c, f, fija) {
         var v = f[c.clave];
+        var dup = marcaDup(f);
         if (c.clave === "alertas") {
+            if (dup) v = dup.texto.replace(/\.$/, "") + (v ? "; " + v : "");
             var n = v ? v.split("; ").length : 0;
             return "<td" + (fija ? ' class="xml-fija xml-fija--ultima" style="left:36px"' : "") + (n ? ' title="' + esc(v) + '"' : "") + ">" +
-                (n ? '<span class="xml-alerta">⚠ ' + n + "</span> " + esc(v.split("; ")[0]) : "") + "</td>";
+                (n ? '<span class="xml-alerta">⚠ ' + n + "</span> " + esc(v.split("; ")[0]) : "") + (fija && dup ? chipDup(dup) : "") + "</td>";
         }
         var clase = c.tipo === "moneda" || c.tipo === "numero" ? "xml-num" : (c.tipo === "uuid" ? "xml-uuid" : "");
         if (fija) clase += " xml-fija xml-fija--ultima";
         var txt = formato(c, v);
         var sello = SELLOS[c.clave] && SELLOS[c.clave][v];
         var html = sello ? '<span class="xml-sello xml-sello--' + sello + '">' + esc(txt) + "</span>" : esc(txt);
+        if (fija && dup) html += chipDup(dup);
         return "<td" + (clase ? ' class="' + clase.trim() + '"' : "") + (fija ? ' style="left:36px"' : "") + (txt.length > 18 ? ' title="' + esc(txt) + '"' : "") + ">" + html + "</td>";
     }
 
@@ -873,6 +910,7 @@
         pintarAlcance();
         pintarFilas(true);
         pintarSeleccion();
+        pedirMarcasDup();
     }
 
     var ultimoInicio = -1;
@@ -1172,7 +1210,7 @@
         boton.textContent = "Importes: " + (c.modo ? "en pesos" : "en su moneda");
         aviso.hidden = !c.modo;
         if (c.modo) {
-            // 18-nov (Alan: «más corto»): solo qué se hizo con lo que venía en otra moneda
+            // 18-nov (el dueño: «más corto»): solo qué se hizo con lo que venía en otra moneda
             aviso.textContent = "Importes en otra moneda: en pesos, al tipo de cambio " + (c.modo === "dof" ? "del DOF" : "de su factura") +
                 (c.sin_tc ? " (" + c.sin_tc + " sin tipo de cambio siguen en su moneda)" : "") + ".";
             aviso.title = Number(c.convertidas || 0).toLocaleString("es-MX") + " renglón(es) convertidos con " + c.con + ". Así salen también en el Excel.";
@@ -1565,7 +1603,7 @@
         });
         var mios = BJ.clientes || {};
         return Object.keys(cuenta).sort(function (a, b) { return (!!mios[b] - !!mios[a]) || (cuenta[b] - cuenta[a]); })
-            .filter(function (r) { return !!mios[r]; })      // 20-nov-2026 (Alan): solo empresas dadas de alta; lo demás no se carga
+            .filter(function (r) { return !!mios[r]; })      // 20-nov-2026 (el dueño): solo empresas dadas de alta; lo demás no se carga
             .slice(0, 12)
             .map(function (r) { return { rfc: r, nombre: mios[r] || nombres[r], n: cuenta[r], cliente: true }; });
     }
@@ -1596,7 +1634,7 @@
                 esc((c.nombre || "Sin nombre") + " · " + c.rfc + " (" + c.n + " XML)" + (c.cliente ? "" : " · sin registrar")) + "</option>";
         }).join("");
         function cifra(v, t, ajena) { return v ? '<div class="xml-cifra' + (ajena ? " xml-cifra--ajena" : "") + '"><b>' + v.toLocaleString("es-MX") + "</b><span>" + t + "</span></div>" : ""; }
-        // 20-nov-2026 (Alan): con XML de dos o más empresas, «Procesar todas» carga cada uno a su empresa de un jalón
+        // 20-nov-2026 (el dueño): con XML de dos o más empresas, «Procesar todas» carga cada uno a su empresa de un jalón
         var todas = empresasDeLaBandeja(), ocupado = !!BJ.todas || !!BJ.leyendo;
         var conTodas = todas.empresas >= 2;
         caja.innerHTML = '<div class="xml-resumen">' +
@@ -1673,7 +1711,7 @@
         $("bandeja").hidden = true;
     }
 
-    /* ============================================================ «Procesar todas» (20-nov-2026, Alan) */
+    /* ============================================================ «Procesar todas» (20-nov-2026, el dueño) */
     /* Cada XML de la bandeja va a CADA empresa dada de alta que sea su emisor o su receptor (la nómina, al patrón), de un
        jalón. Los XML suben por partes y el servidor los guarda en segundo plano (modulos/xml/carga_todas.py) mientras
        esta página muestra el avance. Doble clic, otra pestaña o un corte a media subida: la «clave» de la bandeja hace
@@ -2047,8 +2085,15 @@
                 return;
             }
             if (e.target.closest(".xml-check")) return;
+            if (e.target.closest("[data-dup]")) return abrirDuplicados();          // la marca ⧉ lleva a decidir el grupo
             var tr = e.target.closest("tr[data-i]");
             if (tr) abrirDetalle(E.filas[+tr.dataset.i]);
+        });
+        // El diálogo avisa cada vez que compara (al abrir y después de marcar): la tabla se pone al día sin volver a pedir
+        document.addEventListener("fiscontable:duplicados", function (e) {
+            var x = e.detail || {};
+            if (x.lado !== "recibidos" && x.lado !== "emitidos") return;
+            ponerMarcasDup([x.rfc, x.lado, x.desde, x.hasta].join("|"), x.marcas);
         });
         prepararEncabezados();
         prepararPanelColumnas();

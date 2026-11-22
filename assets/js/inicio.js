@@ -296,7 +296,7 @@
     }
 
     /* ---------------------------------------------------------------- el primer cuadro
-       19-nov-2026 (Alan: «brinquito» al cargar): el tablero se arma con varias respuestas (pasos, resumen, tabla) y cada
+       19-nov-2026 (el dueño: «brinquito» al cargar): el tablero se arma con varias respuestas (pasos, resumen, tabla) y cada
        una empujaba lo de abajo. Mientras llega lo primero queda invisible (main.tb-cargando, ocupa su lugar) y se descubre
        de una vez. Si algo tarda más de 5 s, se descubre igual. */
     var cargando = { pasos: true, vista: true };

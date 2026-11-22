@@ -149,9 +149,9 @@
     }
 
     /* ---------- Nómina */
-    // 15-nov (pruebas 1 de Alan): tus XML separados en sueldos y asimilados, la diferencia del SAT con su signo (entre
+    // 15-nov (pruebas 1 del dueño): tus XML separados en sueldos y asimilados, la diferencia del SAT con su signo (entre
     // paréntesis en el SAT = enteraste DE MÁS) y el Excel del SAT o por qué no salió.
-    /* 19-nov (Alan: «los meses no enterados deben decir no enterado en lugar de Cuadra»): lo retenido de un mes que ya
+    /* 19-nov (el dueño: «los meses no enterados deben decir no enterado en lugar de Cuadra»): lo retenido de un mes que ya
        venció (día 17 del mes siguiente) y el SAT no ve declarado también es «sin enterar»; lo que todavía no vence, «por declarar». */
     function tarjetaDiferencia(t) {
         var meses = function (l) { return (l || []).join(", "); };
@@ -166,7 +166,7 @@
             return cifra("Enterado de más", dinero(t.de_mas), esc("en " + meses(t.meses_de_mas) + ": pagaste más de lo retenido" + extra), "vn-ojo");
         return cifra("Retenido sin enterar", dinero(0), esc("lo declarado está enterado" + extra), "vn-bien");
     }
-    /* 18-nov (Alan: «imagina que me dé una diferencia por pagar; analizando las nóminas me va a decir duplicado y esta es la
+    /* 18-nov (el dueño: «imagina que me dé una diferencia por pagar; analizando las nóminas me va a decir duplicado y esta es la
        diferencia»): por cada mes con recibos repetidos, cuánto de la diferencia del SAT (retenido − enterado) son esos recibos
        y cuánto queda. Se marcan en Recibos de nómina; lo marcado «no es duplicado» ya no llega aquí. */
     function exacto(v) { return "$" + Number(v || 0).toLocaleString("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
@@ -284,7 +284,7 @@
         }
     }
 
-    /* «Leer ahora ▾» (15-nov, Alan: «un desplegable de selección rápida: le paso el puntero o doy clic y sale ahí mismo»):
+    /* «Leer ahora ▾» (15-nov, el dueño: «un desplegable de selección rápida: le paso el puntero o doy clic y sale ahí mismo»):
        facturas y nómina, solo facturas o solo nómina; al elegir, empieza a leer. */
     function menuLeer(abrir) {
         var caja = $("vn-leer-caja");
@@ -294,7 +294,7 @@
     async function leerAhora(visores) {
         if (!P.empresa || !visores.length) return;
         menuLeer(false);
-        // 15-nov (Alan): si ya se leyó hoy, preguntar antes de volver a entrar al SAT (cada lectura cuenta para el tope)
+        // 15-nov (el dueño): si ya se leyó hoy, preguntar antes de volver a entrar al SAT (cada lectura cuenta para el tope)
         var d = P.datos || {}, hoy = new Date().toDateString();
         var deHoy = visores.filter(function (v) {
             var l = (d.lecturas || {})[v], t = l && (l.terminada || l.creada);

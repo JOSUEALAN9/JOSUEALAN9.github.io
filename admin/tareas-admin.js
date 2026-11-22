@@ -2,15 +2,15 @@
  * admin/tareas-admin.js — Sistema › Tareas automáticas (solo admin). 19-nov-2026, huecos 2 y 3 del INVENTARIO.
  *   · Madrugada: la noche que viene (si lo del día cabe y desde qué hora), cuántos trámites a la vez en la Vostro y la
  *     VPS, y «Reintentar lo que no salió» de todas las cuentas (modulos/programadas/motor.py).
- *   · 19-nov-2026 (Alan): qué máquina (Vostro o VPS) hizo cada cosa anoche y cuánto tardó cada una; el plan cuenta las
+ *   · 19-nov-2026 (el dueño): qué máquina (Vostro o VPS) hizo cada cosa anoche y cuánto tardó cada una; el plan cuenta las
  *     dos máquinas; «Web service en la VPS» y «Usar las PCs con el Agente en la madrugada» (de fábrica apagado).
- *   · 19-nov-2026 (Alan): «Relevo de la VPS si se cae la Vostro» (de fábrica apagado, hasta que esté el Vault de Oracle) y
+ *   · 19-nov-2026 (el dueño): «Relevo de la VPS si se cae la Vostro» (de fábrica apagado, hasta que esté el Vault de Oracle) y
  *     el resumen de la última madrugada de relevo que la Vostro importó (core/relevo_vps.py).
  *   · Tareas automáticas: cada tarea del reloj del servidor con su última corrida, cuánto tardó, si salió, su próximo
  *     horario y «Correr ahora» (core/programador.py). Incluye la vigilancia del respaldo a la VPS.
- *   · 20-nov-2026 (Alan): «Vigilante de la llave del relevo» (core/vigilante_boveda.py): última revisión, lecturas de la
+ *   · 20-nov-2026 (el dueño): «Vigilante de la llave del relevo» (core/vigilante_boveda.py): última revisión, lecturas de la
  *     llave en 7 días (normales y urgentes) y estado.
- *   · 20-nov-2026 (Alan): «La VPS trabaja cuando la Vostro cae» (core/respaldo_trabaja.py), arriba de todo.
+ *   · 20-nov-2026 (el dueño): «La VPS trabaja cuando la Vostro cae» (core/respaldo_trabaja.py), arriba de todo.
  */
 (function () {
     "use strict";
@@ -53,7 +53,7 @@
         opinion: "Opinión", declaraciones: "Declaraciones" };
     var hhmm = function (iso) { return iso ? String(iso).slice(11, 16) : "—"; };
 
-    // 19-nov-2026 (Alan): qué máquina hizo cada cosa anoche y cuánto tardó cada una (motor.resumen_equipos)
+    // 19-nov-2026 (el dueño): qué máquina hizo cada cosa anoche y cuánto tardó cada una (motor.resumen_equipos)
     function bloqueAnoche(a, c) {
         if (!a || a.error) return a && a.error ? '<p class="tar-aviso tar-aviso--mal">' + esc(a.error) + "</p>" : "";
         var titulo = a.noche === diaDe(new Date()) ? "Esta madrugada" : "La madrugada del " + esc(a.noche.slice(8, 10) + "/" + a.noche.slice(5, 7));
@@ -79,7 +79,7 @@
         return '<div class="tar-anoche"><h4 class="tar-sub">' + titulo + ' <small>qué hizo cada máquina · cada empresa en una sola</small></h4><div class="tar-equipos">' + tarjetas + "</div>" + avisos + "</div>";
     }
 
-    // 19-nov-2026 (Alan): la última madrugada de relevo (la VPS sola con la Vostro caída), ya importada en la Vostro
+    // 19-nov-2026 (el dueño): la última madrugada de relevo (la VPS sola con la Vostro caída), ya importada en la Vostro
     function bloqueRelevo(r) {
         var u = (r && r.ultimo) || {};
         if (!u.noche) return "";
@@ -111,7 +111,7 @@
         var hora = function (k, titulo) {
             return '<label class="tar-campo"><span>' + esc(titulo) + '</span><input type="time" data-mad="' + k + '" value="' + esc(c[k]) + '"><small>De fábrica ' + esc(m.fabrica[k]) + "</small></label>";
         };
-        // 19-nov-2026 (Alan, disyuntor): qué servicio del SAT tiene la fila en pausa y por qué (core/disyuntor)
+        // 19-nov-2026 (el dueño, disyuntor): qué servicio del SAT tiene la fila en pausa y por qué (core/disyuntor)
         var sat = m.sat || {}, pausados = (sat.servicios || []).filter(function (x) { return x.pausado; });
         var satHtml = '<div class="tar-sat">' + (sat.error ? '<p class="tar-aviso tar-aviso--mal">' + esc(sat.error) + "</p>"
             : pausados.length ? pausados.map(function (x) {
@@ -148,7 +148,7 @@
             "</details></div>";
     }
 
-    // 20-nov-2026 (Alan): el vigilante de la llave del relevo (core/vigilante_boveda.py): cada hora pregunta a la auditoría
+    // 20-nov-2026 (el dueño): el vigilante de la llave del relevo (core/vigilante_boveda.py): cada hora pregunta a la auditoría
     // de Oracle quién leyó el secreto «fiscontable-relevo». Última revisión, lecturas en 7 días y estado.
     function lineaLlave(v) {
         if (!v) return "";
@@ -164,7 +164,7 @@
             " · Última revisión: " + esc(cuando(v.ultima_revision)) + " · " + lecturas + detalle + "</p>";
     }
 
-    // 20-nov-2026 (Alan): el vigilante de corriente de la Vostro (core/corriente.py): «Corriente: normal / en batería desde
+    // 20-nov-2026 (el dueño): el vigilante de corriente de la Vostro (core/corriente.py): «Corriente: normal / en batería desde
     // las … / sin detector». El texto lo arma el servidor; aquí solo se pinta (en rojo mientras no haya luz).
     function lineaCorriente(c) {
         if (!c || !c.texto) return "";
@@ -198,7 +198,7 @@
         var resp = r.error ? esc(r.error) : !r.instalado ? "No está instalado en este equipo (la copia corre con systemd en la Vostro)." :
             "Última copia buena: " + esc(cuando(r.ultima_ok)) + (r.fallos ? " · ⚠ " + esc(r.fallos) + " intento(s) fallido(s): " + esc(r.ultimo_error) : "") +
             (r.automatico ? "" : " · ⚠ la copia automática está apagada");
-        // 19-nov-2026 (Alan): la VPS contestó «versión distinta» (el código le llega con la copia, 5-10 min después de un cambio)
+        // 19-nov-2026 (el dueño): la VPS contestó «versión distinta» (el código le llega con la copia, 5-10 min después de un cambio)
         var vv = t.vps_version && t.vps_version.mensaje ? '<p class="tar-aviso tar-aviso--mal" data-vps-version>⚠ ' + esc(t.vps_version.mensaje) +
             " <small>Mientras, lo hace la Vostro.</small></p>" : "";
         var fallando = t.tareas.filter(function (x) { return x.fallando_desde; }).length;
@@ -210,7 +210,7 @@
             filas + '</tbody></table></div><span class="tar-msj" id="tar-msj-correr"></span></div>' };
     }
 
-    // 20-nov-2026 (Alan, docs/prd/vps_trabaja.md): «La VPS trabaja cuando la Vostro cae» (de fábrica apagado). Con la Vostro
+    // 20-nov-2026 (el dueño, docs/prd/vps_trabaja.md): «La VPS trabaja cuando la Vostro cae» (de fábrica apagado). Con la Vostro
     // caída, la VPS deja de ser solo lectura para una lista cerrada (XML, validar, reportes, conciliación, envíos, ZIP, constancia,
     // opinión, declaraciones, Buzón solo listar, alta de empresa). Necesita el relevo prendido (la llave del Vault).
     function bloqueTrabaja(v) {

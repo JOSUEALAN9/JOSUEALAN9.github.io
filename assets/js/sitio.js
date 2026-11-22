@@ -18,8 +18,11 @@
     // Con la sesión abierta, «Iniciar sesión» pasa a «Ir a mi tablero» (la página se queda como está).
     (function () {
         try { if (localStorage.getItem("fc-ya-entro") !== "1") return; } catch (e) { return; }
-        var h = location.hostname;
-        var api = "https://" + (/^pruebas\./.test(h) ? "api-pruebas." : "api.") + (/(^|\.)fiscontable\.app$/.test(h) ? "fiscontable.app" : "josuealan.com");
+        // El servidor según el dominio de la página (21-nov-2026: la misma regla general de nucleo.js, sin nombres escritos):
+        // en X o www.X → api.X · en pruebas.X → api-pruebas.X · en localhost, *.github.io o cualquier otro caso → api.fiscontable.app
+        var m = /^(?:(www|pruebas)\.)?([a-z0-9-]+\.[a-z][a-z0-9-]*)$/.exec(String(location.hostname || "").toLowerCase());
+        var api = (!m || /^(github\.io|pages\.dev|workers\.dev)$/.test(m[2])) ? "https://api.fiscontable.app"
+            : "https://" + (m[1] === "pruebas" ? "api-pruebas." : "api.") + m[2];
         fetch(api + "/api/mi-perfil", { credentials: "include", cache: "no-store" }).then(function (r) {
             if (r.status === 401) { try { localStorage.removeItem("fc-ya-entro"); } catch (e) { /* nada */ } }
             if (!r.ok) return;

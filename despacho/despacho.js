@@ -4,7 +4,7 @@
  *   Solicitudes   pedir acceso a una empresa; el titular y quienes aprueban aceptan o rechazan.
  *   Bitácora      quién hizo qué en las empresas del despacho (titular y quienes aprueban).
  *   Ajustes       nombre, correo de avisos y si las personas nuevas tienen su propio espacio (titular).
- * Mi espacio (20-nov-2026, Alan): en Equipo el titular ve cuántas empresas lleva cada quien en su Mi espacio («4 de 10»,
+ * Mi espacio (20-nov-2026, el dueño): en Equipo el titular ve cuántas empresas lleva cada quien en su Mi espacio («4 de 10»,
  * nunca cuáles) y en Permisos › Mi espacio le cambia el tope, le apaga Mi espacio y le pasa o regresa timbres del
  * despacho; en Permisos › Módulos hay dos listas: «En el despacho» y «Extra en Mi espacio».
  * El servidor decide qué ve cada quien (modulos/despacho/router.py); aquí solo se pinta.
@@ -463,7 +463,7 @@
         }
     }
 
-    /* 19-nov-2026 (Alan): el renglón de «Pidió…» dice cómo salió (el servidor lo une con el registro de trámites).
+    /* 19-nov-2026 (el dueño): el renglón de «Pidió…» dice cómo salió (el servidor lo une con el registro de trámites).
        Los demás movimientos (cambios, descargas) no llevan resultado. */
     function resultadoBit(r) {
         if (!r) return "";

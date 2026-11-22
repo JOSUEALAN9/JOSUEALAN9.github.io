@@ -168,7 +168,7 @@
 
             abierto.hidden = true;
             cerrado.hidden = false;
-            // 20-nov-2026 (Alan: «que no acepte… lo de otro contribuyente»): solo se trabaja con empresas dadas de alta. Si el
+            // 20-nov-2026 (el dueño: «que no acepte… lo de otro contribuyente»): solo se trabaja con empresas dadas de alta. Si el
             // RFC no está en tu directorio, primero «Registrar» (cuenta en el tope de tu plan); al registrarlo, sigue solo.
             if (!datos.esCliente) {
                 sello.textContent = "Falta darlo de alta";

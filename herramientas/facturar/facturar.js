@@ -52,7 +52,7 @@
     var dinero = function (v) { v = Number(v || 0); return (v < 0 ? "-$" : "$") + Math.abs(v).toLocaleString("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 }); };
     var num = function (v) { var n = parseFloat(String(v == null ? "" : v).replace(/,/g, "")); return isNaN(n) ? 0 : n; };
     /* Un importe dentro de una casilla, con sus comas («40,000.00»), para leerlo mientras NO se está escribiendo en ella.
-       Al entrar a la casilla vuelve a verse llano («40000») y lo que se guarda nunca lleva comas (18-nov, Alan). */
+       Al entrar a la casilla vuelve a verse llano («40000») y lo que se guarda nunca lleva comas (18-nov, el dueño). */
     var IMPORTES = { valor_unitario: 1, final: 1, descuento: 1 };
     var sinComas = function (v) { return String(v == null ? "" : v).replace(/,/g, ""); };
     var conComas = function (v) {
@@ -710,7 +710,7 @@
         var error = c.error ? '<small class="fa-conc__err" role="alert">' + esc(c.error) + "</small>" : "";
         if (!abierto) {
             // «Incluye impuestos»: en Precio va el unitario que lleva la factura (el que se calculó) y, abajo, lo que se
-            // escribió con todo incluido. Antes salía al revés y parecía que el precio no se había ajustado (18-nov, Alan)
+            // escribió con todo incluido. Antes salía al revés y parecía que el precio no se había ajustado (18-nov, el dueño)
             var precio = c.modo === "final"
                 ? (num(c.valor_unitario) ? (c.seis ? dineroExacto(num(c.valor_unitario)) : dinero(num(c.valor_unitario))) : "—") +
                   '<small class="fa-conc__sub">' + (num(c.final) ? dinero(num(c.final)) + " con impuestos" : "incluye impuestos") + "</small>"
@@ -1449,7 +1449,7 @@
         pintarSeleccion();
     }
 
-    /* El último correo de cada factura (19-nov-2026, Alan: el de «mandar al timbrar» fallaba en silencio): salió a quién y
+    /* El último correo de cada factura (19-nov-2026, el dueño: el de «mandar al timbrar» fallaba en silencio): salió a quién y
        cuándo, o «No salió el correo» en rojo con «Reenviar» (abre el envío de siempre). El motivo va en el título y en el
        historial del diálogo. */
     function lineaCorreo(x) {
@@ -1727,7 +1727,7 @@
         } catch (e) { err.textContent = e.message; err.hidden = false; }
     }
 
-    /* 20-nov-2026 (Alan, tras timbrar el P-1): el recibo de pago como quedaría, igual que «Vista previa PDF» de la factura:
+    /* 20-nov-2026 (el dueño, tras timbrar el P-1): el recibo de pago como quedaría, igual que «Vista previa PDF» de la factura:
        las mismas revisiones que al timbrar, sin timbrar ni gastar timbre, con la marca «Vista previa · sin validez fiscal». */
     async function vistaPreviaPago() {
         var err = $("pg-error"), b = $("btn-pg-vista"); err.classList.remove("fa-error--revisando");
@@ -2051,7 +2051,7 @@
             '<button type="button" class="ui-btn ui-btn--primario ui-btn--36" data-act-timbres>Pasar timbres</button></div><p class="fa-act__msj" id="act-msj"></p>';
     }
 
-    /* 20-nov-2026, Alan: en Mi espacio (con la licencia del despacho) los timbres los pasa el titular del despacho; si no
+    /* 20-nov-2026, el dueño: en Mi espacio (con la licencia del despacho) los timbres los pasa el titular del despacho; si no
        tiene, «Para comprar timbres, contáctanos» con el contacto que manda el servidor (WhatsApp solo si está configurado). */
     function avisoComprarTimbres() {
         var c = F.cfg.comprar_timbres;

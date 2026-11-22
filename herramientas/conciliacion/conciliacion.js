@@ -399,7 +399,7 @@
                 "<span>" + (porTasa || "sin IVA") + (iva.ret_iva ? " · retenido $" + dinero(iva.ret_iva) : "") + "</span></div>";
     }
 
-    /* El resumen (los dos cuadros de cifras) nace plegado en una línea: la tabla es lo principal (Alan, 18-nov: «eso me quitó
+    /* El resumen (los dos cuadros de cifras) nace plegado en una línea: la tabla es lo principal (el dueño, 18-nov: «eso me quitó
        toda la vista de la tabla»). «Ver resumen» lo abre y se recuerda en este navegador. */
     function resumenPlegado() {
         try { return localStorage.getItem("fc-conc-resumen") !== "abierto"; } catch (e) { return true; }
@@ -442,7 +442,7 @@
             (canceladas ? '<div class="ctx-resumen__nota">' + canceladas + " cancelada" + (canceladas === 1 ? "" : "s") + " en el SAT · no cuenta" + (canceladas === 1 ? "" : "n") + "</div>" : "");
     }
 
-    // 17-nov (nombres aprobados por Alan): cómo se VE cada estado. Por dentro sigue siendo «Sin pago», «Parcial»… (los filtros
+    // 17-nov (nombres aprobados por el dueño): cómo se VE cada estado. Por dentro sigue siendo «Sin pago», «Parcial»… (los filtros
     // y el servidor comparan contra esos); aquí solo cambia el texto, según el lado. Igual que columnas.ESTADOS_TXT del servidor.
     var ESTADOS_TXT = {
         emitidos: { "Pagada": "Cobrada", "Pagada (PUE)": "Cobrada (PUE)", "Sin pago": "Pendiente de cobro", "Parcial": "Cobro parcial",
@@ -910,7 +910,7 @@
         return Object.keys(m).sort();
     }
 
-    /* «Excel del periodo»: qué hojas lleva (18-nov, Alan: «para lo que voy a compartir no [todo]… que se pueda editar las
+    /* «Excel del periodo»: qué hojas lleva (18-nov, el dueño: «para lo que voy a compartir no [todo]… que se pueda editar las
        pestañas»). Dos juegos ya armados y casillas para cambiarlos; se recuerda la última elección en este navegador. */
     function leerHojas() { try { return JSON.parse(localStorage.getItem("fc:conc-hojas") || "null"); } catch (e) { return null; } }
     async function elegirHojas(alElegir) {

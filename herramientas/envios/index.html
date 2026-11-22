@@ -4,15 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Envíos por correo | Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611212100">
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611212100">
-    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611212100">
-    <link rel="stylesheet" href="/herramientas/envios/envios.css?v=202611212100">
+    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611220600">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611220600">
+    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611220600">
+    <link rel="stylesheet" href="/herramientas/envios/envios.css?v=202611220600">
 </head>
 <body class="min-h-screen flex flex-col">
 <div id="app-header" data-modulo="envios" data-titulo="Envíos por correo" data-migas="Herramientas|/herramientas/"></div>
-<script src="/assets/js/nucleo.js?v=202611212100"></script>
-<script src="/assets/js/barra.js?v=202611212100"></script>
+<script src="/assets/js/nucleo.js?v=202611220600"></script>
+<script src="/assets/js/barra.js?v=202611220600"></script>
 
 <main class="flex-grow mod-pagina">
     <div class="mod-cabeza">
@@ -26,14 +26,14 @@
     <div id="ev-aviso" class="ui-aviso ui-aviso--error" hidden></div>
     <div id="ev-lista" class="ev-lista" aria-live="polite"></div>
 
-    <!-- 21-nov-2026 (Alan): los «Solo una vez, ahora» ya enviados, plegados, con su historial y «Duplicar» (no son envíos programados) -->
+    <!-- 21-nov-2026 (el dueño): los «Solo una vez, ahora» ya enviados, plegados, con su historial y «Duplicar» (no son envíos programados) -->
     <details id="ev-unavez" class="ev-matriz ev-unavez" hidden>
         <summary class="ev-matriz__resumen"><span>Enviados una vez</span><small id="ev-unavez-cuenta"></small></summary>
         <p class="ui-ayuda ev-unavez__ayuda">Salieron al guardarlos y no vuelven a salir solos. «Duplicar» abre uno nuevo con lo mismo.</p>
         <div id="ev-unavez-lista" class="ev-unavez__lista"></div>
     </details>
 
-    <!-- Las casillas «Envío 1…5» de cada empresa (18-nov, Alan: «se check y se habilita ese otro envío») -->
+    <!-- Las casillas «Envío 1…5» de cada empresa (18-nov, el dueño: «se check y se habilita ese otro envío») -->
     <details id="ev-matriz" class="ev-matriz" hidden>
         <summary class="ev-matriz__resumen"><span id="ev-matriz-titulo">Empresas de cada envío</span><small id="ev-matriz-cuenta"></small></summary>
         <div class="ev-matriz__cabeza">
@@ -44,7 +44,7 @@
     </details>
 </main>
 
-<!-- Nuevo envío / editar: cinco pasos con «Siguiente» (18-nov, Alan: «como ventanitas de siguiente») -->
+<!-- Nuevo envío / editar: cinco pasos con «Siguiente» (18-nov, el dueño: «como ventanitas de siguiente») -->
 <dialog class="fc-modal fc-modal--grande ev-dlg" id="ev-dlg" aria-labelledby="ev-dlg-titulo">
     <div class="fc-modal__cabeza"><div><h2 id="ev-dlg-titulo">Nuevo envío</h2><p id="ev-dlg-sub">Se manda solo, a las 7 de la mañana del día que toque.</p></div>
         <button type="button" class="fc-modal__cerrar" data-ev="cerrar" aria-label="Cerrar">×</button></div>
@@ -94,7 +94,7 @@
             <p class="ui-ayuda">También se pueden marcar después, con las casillas de «Empresas de cada envío».</p>
         </section>
 
-        <!-- 21-nov-2026 (Alan: «creo que es al revés: primero me pone qué mandar y hasta el final me pregunta el periodo»):
+        <!-- 21-nov-2026 (el dueño: «creo que es al revés: primero me pone qué mandar y hasta el final me pregunta el periodo»):
              el periodo va antes de «Qué lleva», para que lo que depende de él (el Excel de todos los meses) ya se sepa -->
         <section class="ev-paso" data-paso="3" aria-labelledby="ev-p3" hidden>
             <h3 id="ev-p3">¿Cuándo y de qué periodo?</h3>
@@ -146,7 +146,7 @@
                 <div>
                     <p class="ev-sub">Excel <i>(afuera de la carpeta, con las columnas que elijas)</i></p>
                     <div id="ev-excel" class="ev-excel"></div>
-                    <!-- 21-nov-2026 (Alan): solo se ve si el periodo elegido en «Cuándo» abarca más de un mes y lleva algún Excel -->
+                    <!-- 21-nov-2026 (el dueño): solo se ve si el periodo elegido en «Cuándo» abarca más de un mes y lleva algún Excel -->
                     <label class="ui-check ev-adjuntar" id="ev-excel-periodo-caja" hidden><input type="checkbox" id="ev-excel-periodo">
                         <span>Además, un Excel con todos los meses juntos (uno por cada Excel elegido).
                             <small>Los de cada mes siguen en su carpeta.</small></span></label>
@@ -164,7 +164,7 @@
                 <div id="ev-docs" class="ev-checks ev-checks--fila"></div>
             </div>
             <p class="ev-nota" id="ev-lleva-corte" role="status" hidden>Con solo la constancia o la opinión, «Hasta hoy» no agrega nada y tarda unos minutos más. Puedes volver a «Cuándo» y elegir «Hasta ayer».</p>
-            <!-- 21-nov-2026 (Alan): «Solo de estos proveedores / clientes»; apagado, van todos -->
+            <!-- 21-nov-2026 (el dueño): «Solo de estos proveedores / clientes»; apagado, van todos -->
             <div class="ev-solo">
                 <label class="ui-check ev-adjuntar"><input type="checkbox" id="ev-solo">
                     <span>Solo de ciertos proveedores o clientes
@@ -237,7 +237,7 @@
             <label class="ui-campo"><span class="ui-etiqueta">Desde</span><select id="ev-ahora-desde" class="ui-select"></select></label>
             <label class="ui-campo"><span class="ui-etiqueta">Hasta</span><select id="ev-ahora-hasta" class="ui-select"></select></label>
         </div>
-        <!-- 20-nov-2026 (Alan): el corte. Solo se ve si el periodo llega a este mes (un mes cerrado ya va completo). 21-nov: con
+        <!-- 20-nov-2026 (el dueño): el corte. Solo se ve si el periodo llega a este mes (un mes cerrado ya va completo). 21-nov: con
              la fecha y la hora reales (hora del centro), calculadas al abrirla y al cambiar el periodo -->
         <div class="ev-corte" id="ev-ahora-corte-caja">
             <p class="ev-sub" id="ev-ahora-corte-titulo">Hasta cuándo</p>
@@ -268,6 +268,6 @@
     </div>
 </dialog>
 
-<script src="/herramientas/envios/envios.js?v=202611212100"></script>
+<script src="/herramientas/envios/envios.js?v=202611220600"></script>
 </body>
 </html>

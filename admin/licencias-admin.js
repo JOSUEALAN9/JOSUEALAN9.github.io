@@ -134,7 +134,7 @@
             if (!(await Fiscontable.preguntar("¿Cancelar estos lugares extra? Se quitan del despacho. Su vigencia, sus timbres y su entrada no cambian."))) return;
         } else if (activa) {
             if (!(await Fiscontable.preguntar("¿Cancelar esta licencia? Ya está en uso."))) return;
-            // 19-nov-2026, Alan: terminar el acceso = ya no entran (ni su equipo, si es de un despacho) y ven por qué
+            // 19-nov-2026, el dueño: terminar el acceso = ya no entran (ni su equipo, si es de un despacho) y ven por qué
             terminar = (await Fiscontable.preguntar("¿También le cierras la entrada hoy mismo?\n\nAceptar = ya no entra (si es de un despacho, tampoco su equipo, salvo quien tenga licencia propia): se cierran sus sesiones y al intentar entrar ve «La licencia … terminó».\nCancelar = sigue entrando hasta que venza la vigencia que ya tenía."));
         } else if (!(await Fiscontable.preguntar("¿Cancelar esta clave? Ya no se podrá activar."))) return;
         try {

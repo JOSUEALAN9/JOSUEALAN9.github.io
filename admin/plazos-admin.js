@@ -32,7 +32,7 @@
             }).join("") +
             d.fijos.map(function (f) { return "<tr><td>" + esc(f[0]) + '</td><td colspan="2" class="xml-tenue">' + esc(f[1]) + "</td></tr>"; }).join("") +
             '</tbody></table><div class="plz-acciones"><button type="button" class="ui-btn ui-btn--primario ui-btn--32" id="plz-guardar-ret">Guardar plazos</button><span class="plz-msj" id="plz-msj-ret"></span></div></div>' +
-            // 15-nov, Alan: lo de fábrica en un solo lugar → las programaciones por defecto viven en Valores de fábrica
+            // 15-nov, el dueño: lo de fábrica en un solo lugar → las programaciones por defecto viven en Valores de fábrica
             '<div class="ui-tarjeta"><h3 class="plz-titulo">Programaciones por defecto</h3>' +
             '<p class="xml-tenue plz-nota">Se cambiaron a <a href="/configuracion/?seccion=fabrica&amp;sub=programado.csf">Configuración › Valores de fábrica › Lo programado</a>.</p></div>';
 

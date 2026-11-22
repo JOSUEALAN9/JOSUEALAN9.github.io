@@ -10,7 +10,7 @@ let primeraCarga = true;
 // M-19: por defecto se ve lo de HOY y de la empresa activa; los filtros se recuerdan en este navegador.
 const FILTRO = (() => { try { return Object.assign({ cuando: "hoy", tipo: "", empresa: "activa" }, JSON.parse(localStorage.getItem("fc-descargas-filtro") || "{}")); } catch (e) { return { cuando: "hoy", tipo: "", empresa: "activa" }; } })();
 let empresaActiva = null;
-// El aviso de un envío trae «?paquete=<id>»: se abre viendo solo ese paquete (19-nov, Alan: «con el link podamos identificar
+// El aviso de un envío trae «?paquete=<id>»: se abre viendo solo ese paquete (19-nov, el dueño: «con el link podamos identificar
 // el descargar correcto»). «Ver todas» lo quita.
 let PAQUETE = new URLSearchParams(location.search).get("paquete") || "";
 

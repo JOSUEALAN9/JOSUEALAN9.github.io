@@ -169,7 +169,7 @@
 .cf-prog-nueva { grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr) auto; align-items: end; margin-top: 10px; }
 @media (max-width: 560px) { .cf-prog-nueva { grid-template-columns: 1fr; } }
 
-/* «Mandar un correo de prueba ▾» (15-nov, Alan: elegir cuál): se abre con clic o con el puntero, como «Leer ahora» */
+/* «Mandar un correo de prueba ▾» (15-nov, el dueño: elegir cuál): se abre con clic o con el puntero, como «Leer ahora» */
 .cf-menu-prueba { position: relative; display: inline-block; }
 .cf-menu-prueba__lista { display: none; position: absolute; left: 0; top: 100%; padding-top: 6px; z-index: 30; min-width: min(300px, calc(100vw - 32px)); }
 .cf-menu-prueba__lista::before { content: ""; position: absolute; inset: 6px 0 0; background: rgb(var(--g-0)); border: 1px solid rgb(var(--g-200)); border-radius: 12px; box-shadow: 0 12px 28px rgba(15, 23, 42, .16); }

@@ -451,7 +451,7 @@
         return "Listas al " + dmy(fechas[fechas.length - 1] || revisadas[revisadas.length - 1]) + " · revisadas " + hace(revisadas[0]);
     }
 
-    // 19-nov-2026 (Alan: «como la pantalla de bases de datos»): cada lista con su fecha y si está vigente
+    // 19-nov-2026 (el dueño: «como la pantalla de bases de datos»): cada lista con su fecha y si está vigente
     var VIGENCIA_CLASE = { "Vigente": "ok", "Desactualizada": "vieja", "Sin descargar": "nada" };
     function pintarFechas(e) {
         function cuantas(estado) { return e.listas.filter(function (l) { return l.vigencia && l.vigencia.estado === estado; }).length; }

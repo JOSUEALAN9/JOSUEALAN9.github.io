@@ -37,7 +37,7 @@ export const T = {
         },
         focos: [
             { chip: "Automático", h2: "Tus XML, siempre al día", texto: "Programa la descarga y Fiscontable incorpora cada día los comprobantes nuevos de tus empresas. Al iniciar tu jornada ya están en tu Administración de XML.",
-              puntos: ["Emitidos y recibidos", "Sin duplicados", "Aviso si algo falla"] },
+              puntos: ["Emitidos y recibidos", "Sin XML repetidos", "Aviso si algo falla"] },
             { chip: "Equipo", h2: "Un despacho, con permisos por persona", texto: "Invita a tu equipo y define qué empresas ve cada persona, qué módulos utiliza y quién solo consulta. Cada acción queda registrada en la bitácora.",
               puntos: ["Permisos por persona", "Solicitudes con aprobación", "Espacio personal aparte"] }
         ],
@@ -152,7 +152,7 @@ export const T = {
         },
         focos: [
             { chip: "Automatic", h2: "Your invoices, always up to date", texto: "Schedule the download and Fiscontable brings in what is new for your companies every day. By the time you get to the office it is already in XML management.",
-              puntos: ["Issued and received", "No duplicates", "An alert if something fails"] },
+              puntos: ["Issued and received", "No repeated XML", "An alert if something fails"] },
             { chip: "Team", h2: "One firm, everyone with their own work", texto: "Invite your team and decide which companies each person sees, which modules they use and who is read-only. Everything is logged.",
               puntos: ["Per-person permissions", "Requests with approval", "A separate personal space"] }
         ],
