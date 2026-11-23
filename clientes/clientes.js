@@ -41,7 +41,10 @@ async function inicializar() {
 function abrirDesdeUrl() {
     const q = new URLSearchParams(location.search);
     const rfc = (q.get("editar") || "").toUpperCase();
-    if (rfc && (clientesCache || []).some(c => c.rfc === rfc)) abrirModalEditar(rfc, q.get("ficha"));
+    if (rfc && (clientesCache || []).some(c => c.rfc === rfc)) {
+        const campo = q.get("campo");
+        if (campo === "ciec" || campo === "efirma") abrirAcceso(rfc, campo); else abrirModalEditar(rfc, q.get("ficha"));
+    }
     else if (q.get("nuevo")) abrirModalNuevoCliente();
 }
 
@@ -536,12 +539,23 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("editar-logo").addEventListener("change", e => { const f = e.target.files[0]; e.target.value = ""; if (f) cambiarLogo(f); });
     document.getElementById("editar-logo-quitar").addEventListener("click", () => cambiarLogo(null));
 });
+/* 23-nov-2026 (el dueño: «cuando le doy a CIEC no me lleva directo a configurar eso»): los indicadores de e.firma y CIEC son
+   botones que abren la ficha de ESA empresa en «Accesos» con el campo listo para escribir (enfocarAcceso). Antes eran texto
+   y el clic abría la ficha en «Datos generales». En solo consulta siguen siendo texto (no hay ficha que editar). */
 function indicadores(c) {
-    const ind = (ok, nombre, si, no) => `<span class="cli-ind ${ok ? "cli-ind--ok" : "cli-ind--falta"}" title="${esc(nombre + ": " + (ok ? si : no))}" aria-label="${esc(nombre + ": " + (ok ? si : no))}">${esc(nombre)}</span>`;
+    const ir = !soloLectura && !sinConexion;
+    const ind = (ok, nombre, si, no, acceso) => {
+        const t = nombre + ": " + (ok ? si : no);
+        return acceso && ir
+            ? `<button type="button" class="cli-ind cli-ind--btn ${ok ? "cli-ind--ok" : "cli-ind--falta"}" data-ir-acceso="${acceso}" data-rfc="${esc(c.rfc)}" title="${esc(t + " · " + (ok ? "clic para cambiarla" : "clic para capturarla"))}" aria-label="${esc(t + ". Abrir para " + (ok ? "cambiarla" : "capturarla"))}">${esc(nombre)}</button>`
+            : `<span class="cli-ind ${ok ? "cli-ind--ok" : "cli-ind--falta"}" title="${esc(t)}" aria-label="${esc(t)}">${esc(nombre)}</span>`;
+    };
     const efirma = c.efirma_bloqueo
-        ? `<span class="cli-ind cli-ind--mal" title="e.firma revocada según el SAT: no se usa en ningún trámite" aria-label="e.firma revocada según el SAT">e.firma revocada</span>`
-        : ind(c.efirma_guardada, "e.firma", "guardada", "falta");
-    return efirma + ind(c.ciec_guardada, "CIEC", "guardada", "sin guardar") +
+        ? (ir ? `<button type="button" class="cli-ind cli-ind--btn cli-ind--mal" data-ir-acceso="efirma" data-rfc="${esc(c.rfc)}" title="e.firma revocada según el SAT: no se usa en ningún trámite · clic para ver o subir otra" aria-label="e.firma revocada según el SAT. Abrir para subir otra">e.firma revocada</button>`
+              : `<span class="cli-ind cli-ind--mal" title="e.firma revocada según el SAT: no se usa en ningún trámite" aria-label="e.firma revocada según el SAT">e.firma revocada</span>`)
+        : ind(c.efirma_guardada, "e.firma", "guardada", "falta", puedeGuardarEfirma ? "efirma" : "");
+    // En la Demo la caja de la CIEC no se enseña (pintarCiec): ahí sigue como texto, igual que la e.firma
+    return efirma + ind(c.ciec_guardada, "CIEC", "guardada", "sin guardar", puedeGuardarEfirma ? "ciec" : "") +
         ind(tieneDoc(c, "csf"), "CSF", "constancia del mes", "sin constancia del mes") + ind(tieneDoc(c, "opinion"), "32-D", "opinión del mes", "sin opinión del mes");
 }
 function obligacionesTexto(c) {
@@ -623,6 +637,8 @@ document.addEventListener("click", async e => {
         else if (acc.dataset.accion === "trabajar") { try { await Fiscontable.elegirEmpresa(rfc); Fiscontable.toast("Trabajando con " + rfc + "."); } catch (x) { mostrarAlerta("error", x.message); } }
         return;
     }
+    const acceso = e.target.closest("[data-ir-acceso]");
+    if (acceso) { e.stopPropagation(); abrirAcceso(acceso.dataset.rfc, acceso.dataset.irAcceso); return; }
     const tarjeta = e.target.closest("[data-ficha]");
     if (tarjeta && !e.target.closest("a,button") && !soloLectura) abrirModalEditar(tarjeta.dataset.ficha);
 });
@@ -1024,8 +1040,8 @@ function pintarResumenFicha(cliente) {
     const chip = (ok, si, no, accion) => `<button type="button" class="ficha-chip ${ok ? "ficha-chip--ok" : "ficha-chip--falta"}" ${accion}>${ok ? "✓ " + si : no}</button>`;
     document.getElementById("editar-resumen").innerHTML =
         (cliente.efirma_bloqueo ? `<button type="button" class="ficha-chip ficha-chip--mal" data-ir-ficha="accesos">e.firma revocada</button>`
-            : chip(cliente.efirma_guardada, "e.firma", "Falta su e.firma", 'data-ir-ficha="accesos"')) +
-        chip(cliente.ciec_guardada, "Contraseña SAT", "Sin contraseña SAT", 'data-ir-ficha="accesos"') +
+            : chip(cliente.efirma_guardada, "e.firma", "Falta su e.firma", 'data-ir-ficha="accesos" data-enfocar="efirma"')) +
+        chip(cliente.ciec_guardada, "Contraseña SAT", "Sin contraseña SAT", 'data-ir-ficha="accesos" data-enfocar="ciec"') +
         chip(!!(cliente.domicilio && cliente.domicilio.calle), "Domicilio fiscal", "Falta domicilio fiscal", 'data-ir-ficha="general"') +
         chip(tieneDoc(cliente, "csf"), "Constancia del mes", "Sin constancia del mes", `onclick="location.href='/herramientas/constancias/?rfc=${r}'"`) +
         chip(tieneDoc(cliente, "opinion"), "Opinión del mes", "Sin opinión del mes", `onclick="location.href='/herramientas/opinion/?rfc=${r}'"`);
@@ -1254,7 +1270,7 @@ document.addEventListener("click", (e) => {
     const t = e.target.closest(".ficha-tabs [data-ficha]");
     if (t) { ponerFicha(t.dataset.ficha); return; }
     const ir = e.target.closest("[data-ir-ficha]");
-    if (ir) { ponerFicha(ir.dataset.irFicha); return; }
+    if (ir) { ponerFicha(ir.dataset.irFicha); if (ir.dataset.enfocar) enfocarAcceso(ir.dataset.enfocar); return; }
     if (e.target.closest("#btn-reemplazar-efirma")) {
         document.getElementById("efirma-guardada").hidden = true;
         document.getElementById("editar-efirma-form").classList.remove("hidden");
@@ -2114,20 +2130,63 @@ document.addEventListener("click", (ev) => {
 async function entregarEmpresa(rfc) {
     const c = (clientesCache || []).find(x => x.rfc === rfc) || { alias: rfc };
     const destinoBien = () => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(campoDialogo("ent-destino"));
-    const hecho = await Fiscontable.confirmarIdentidad("entregar_empresas", async (conf) => {
+    /* 23-nov-2026 (el dueño: la entregó a otra cuenta suya que no es titular en su despacho; «no me dejó, está bien, pero me lo
+       debió decir desde el principio»): en cuanto se escribe el correo se pregunta al servidor si ese destino puede recibirla
+       (GET /api/empresas/entregar/revisar, solo lee, las mismas reglas que al final) y se dice el motivo debajo del campo.
+       «Continuar» no deja pasar a pedir el PIN si no puede. Si la revisión no contesta, no se detiene: el servidor valida al final. */
+    // La caja del motivo se ve desde el principio (con una ayuda): si apareciera al salir del campo, empujaría la casilla
+    // de abajo justo cuando la persona le da clic (revisión del 23-nov)
+    const AYUDA_REVISION = "Al escribir el correo te decimos aquí si esa cuenta puede recibirla.";
+    let revision = null, turno = 0, espera = null;
+    async function revisarDestino() {
+        const valor = campoDialogo("ent-destino").toLowerCase(), caja = document.querySelector("dialog.fc-identidad[open] #ent-revision");
+        if (!caja) return null;
+        // El turno sube también al regresar a un correo ya revisado: así una revisión de otro correo que llegue tarde no
+        // pinta su motivo debajo de este (revisión del 23-nov)
+        const mio = ++turno;
+        if (!destinoBien()) { revision = null; caja.className = "cli-ent-revision"; caja.textContent = AYUDA_REVISION; return null; }
+        let r = revision && revision.valor === valor && revision.puede !== null ? revision : null;   // si no contestó, se vuelve a preguntar
+        if (!r) {
+            caja.className = "cli-ent-revision"; caja.textContent = "Revisando si esa cuenta puede recibirla…";
+            try {
+                const d = await apiJson(`/api/empresas/entregar/revisar?destino=${encodeURIComponent(valor)}&empresas=${encodeURIComponent(rfc)}`);
+                r = { valor, puede: !!d.puede, texto: d.puede ? d.mensaje : d.motivo };
+            } catch (x) { r = { valor, puede: null, texto: "" }; }
+            if (mio !== turno) return revision;          // ya escribieron otra cosa: vale la revisión más nueva
+            revision = r;
+        }
+        const campo = document.querySelector("dialog.fc-identidad[open] #ent-destino");
+        if (campo) campo.setAttribute("aria-invalid", r.puede === false ? "true" : "false");
+        if (r.puede === null) { caja.className = "cli-ent-revision"; caja.textContent = AYUDA_REVISION; return r; }
+        caja.className = "cli-ent-revision " + (r.puede ? "cli-ent-revision--bien" : "cli-ent-revision--mal");
+        caja.textContent = r.texto || (r.puede ? "Esa cuenta puede recibirla." : "Esa cuenta no puede recibirla.");
+        return r;
+    }
+    const pendiente = Fiscontable.confirmarIdentidad("entregar_empresas", async (conf) => {
         if (!destinoBien()) throw new Error("Escribe el correo de la cuenta que la recibe.");
         await apiJson("/api/empresas/entregar", { empresas: [rfc], destino: campoDialogo("ent-destino"), nota: campoDialogo("ent-nota"), confirmacion: conf });
     }, { titulo: "Entregar " + (c.alias || rfc) + " a otra cuenta", boton: "Entregar",
          // 16-nov (el dueño): el código sale hasta que ya está el correo de destino y se confirmó que sale de esta cuenta
          validar: async () => {
              if (!destinoBien()) throw new Error("Escribe el correo de la cuenta que la recibe.");
+             const rev = await revisarDestino();
+             if (rev && rev.puede === false) throw new Error("Esa cuenta no puede recibirla (el motivo está debajo del correo). Escribe otro correo para seguir.");
              const si = document.getElementById("ent-seguro");
              if (!si || !si.checked) throw new Error("Marca la casilla para confirmar que la empresa saldrá de tu cuenta.");
          },
          resumen: '<p class="fc-identidad__aviso">Pasa con todo su historial (XML, documentos, Buzón, facturas) cuando la otra persona la acepte con su PIN. Hasta entonces no se mueve nada.</p>' +
-            '<label class="ui-campo"><span class="ui-etiqueta">Correo de la cuenta que la recibe</span><input class="ui-input" id="ent-destino" type="email" autocomplete="off" placeholder="contador@despacho.mx"></label>' +
+            '<div class="ui-campo"><label class="ui-etiqueta" for="ent-destino">Correo de la cuenta que la recibe</label><input class="ui-input" id="ent-destino" type="email" autocomplete="off" placeholder="contador@despacho.mx" aria-describedby="ent-revision">' +
+            '<p class="cli-ent-revision" id="ent-revision" role="status" aria-live="polite">Al escribir el correo te decimos aquí si esa cuenta puede recibirla.</p></div>' +
             '<label class="ui-campo"><span class="ui-etiqueta">Nota para quien la recibe (opcional)</span><input class="ui-input" id="ent-nota" maxlength="200" placeholder="Ya es tu cliente desde noviembre"></label>' +
             '<label class="ui-check"><input type="checkbox" id="ent-seguro"> Entiendo que ' + esc(c.alias || rfc) + " saldrá de mi cuenta cuando la acepten.</label>" });
+    const campo = document.querySelector("dialog.fc-identidad[open] #ent-destino");
+    if (campo) {
+        campo.addEventListener("input", () => { clearTimeout(espera); espera = setTimeout(revisarDestino, 500); });
+        campo.addEventListener("change", () => { clearTimeout(espera); revisarDestino(); });
+        campo.addEventListener("blur", () => { clearTimeout(espera); revisarDestino(); });
+    }
+    const hecho = await pendiente;
+    clearTimeout(espera);
     if (hecho) { mostrarAlerta("success", `Listo: ${c.alias || rfc} se entrega cuando la otra persona la acepte.`); pintarTraspasos(); }
 }
 
@@ -2205,5 +2264,30 @@ async function ofrecerDescargaAhora(rfc, alias, automatico) {
 }
 
 
+/* Abre la ficha de esa empresa en «Accesos» con el campo de la CIEC (o de la e.firma) listo para escribir (23-nov-2026). */
+function abrirAcceso(rfc, campo) {
+    abrirModalEditar(rfc, "accesos");
+    if (rfcEnEdicion === rfc) enfocarAcceso(campo);
+}
+function enfocarAcceso(campo) {
+    const caja = document.getElementById(campo === "ciec" ? "editar-ciec" : "editar-efirma");
+    let el = null;
+    if (campo === "ciec") el = document.getElementById("editar-ciec-valor");
+    else {
+        const form = document.getElementById("editar-efirma-form"), reemplazar = document.getElementById("btn-reemplazar-efirma");
+        const zona = document.getElementById("editar-zona-efirma");          // la zona para soltar el .cer y el .key (FCZona)
+        const enZona = zona && zona.querySelector('[tabindex]:not([tabindex="-1"]), button, [role="button"]');
+        el = form && !form.classList.contains("hidden") ? (enZona || document.getElementById("editar-cer"))
+            : (reemplazar && !reemplazar.closest("[hidden]") ? reemplazar : null);
+    }
+    // Después de pintar la ficha (la ventana acaba de abrir): que se vea el campo y quede listo para escribir
+    requestAnimationFrame(() => {
+        const ver = caja || el;
+        if (ver) ver.scrollIntoView({ block: "center", behavior: "auto" });
+        if (el) { try { el.focus({ preventScroll: true }); } catch (x) { el.focus(); } }
+        if (caja) { caja.classList.remove("ficha-caja--resaltar"); void caja.offsetWidth; caja.classList.add("ficha-caja--resaltar"); }
+    });
+}
+
 // Antes iba en línea en el botón de la fila (17-nov: las páginas ya no llevan código en línea)
-function abrirAccesosDeFila() { abrirModalEditar(this.dataset.rfc, "accesos"); }
+function abrirAccesosDeFila() { abrirAcceso(this.dataset.rfc, "efirma"); }

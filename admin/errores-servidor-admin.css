@@ -1,0 +1,34 @@
+/* admin/errores-servidor-admin.css — Sistema › Errores del servidor (23-nov-2026). Prefijo ers-. */
+.ers-cabeza { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-bottom: 4px; }
+.ers-cabeza .plz-titulo { margin: 0; }
+.ers-buscar { margin-left: auto; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.ers-codigo { width: 190px; height: 32px; font-family: var(--mono, ui-monospace, monospace); text-transform: uppercase; }
+.ers-codigo::placeholder { text-transform: none; font-family: inherit; }
+.ers-lista { max-height: 64vh; overflow: auto; border: 1px solid var(--linea, #e5e7eb); border-radius: 10px; }
+.ers-lista .ui-tabla { margin: 0; table-layout: fixed; }
+.ers-lista .ui-tabla td { white-space: normal; overflow-wrap: anywhere; height: auto; padding-top: 8px; padding-bottom: 8px; vertical-align: top; }
+.ers-lista .ers-c1 { width: 116px; } .ers-lista .ers-c2 { width: 82px; } .ers-lista .ers-c3 { width: 180px; } .ers-lista .ers-c4 { width: 230px; }
+.ers-nw { white-space: nowrap !important; }
+.ers-cod { font-family: var(--mono, ui-monospace, monospace); letter-spacing: .02em; }
+.ers-ruta { font-family: var(--mono, ui-monospace, monospace); font-size: var(--t-12, 12px); }
+.ers-mal { color: rgb(var(--er-600)); font-weight: 600; }
+.ers-traza { margin-top: 6px; }
+.ers-traza summary { cursor: pointer; font-size: var(--t-12, 12px); font-weight: 600; color: var(--tinta-2, #475569); }
+/* pre-wrap: una ruta larga de la traza no ensancha la tarjeta (con «pre» empujaba la página bajo la barra lateral) */
+.ers-traza pre { margin: 6px 0 0; padding: 10px 12px; max-height: 320px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 11.5px; line-height: 1.45;
+                 background: var(--papel-2, #f8fafc); border: 1px solid var(--linea, #e5e7eb); border-radius: 8px; }
+.ers-vacio { padding: 12px 0 4px; }
+#errores-servidor-admin, .ers-lista { min-width: 0; max-width: 100%; }
+/* Celular: cada error es una tarjeta (la tabla escondía «Dónde» y «Qué pasó» a la derecha) */
+@media (max-width: 640px) {
+    .ers-buscar { margin-left: 0; width: 100%; }
+    .ers-codigo { flex: 1 1 140px; width: auto; min-width: 0; }
+    .ers-lista { max-height: none; overflow: visible; border: 0; border-radius: 0; }
+    .ers-lista colgroup, .ers-lista thead { display: none; }
+    .ers-lista .ui-tabla, .ers-lista tbody, .ers-lista tr, .ers-lista td { display: block; width: auto; }
+    .ers-lista tr { border: 1px solid var(--linea, #e5e7eb); border-radius: 10px; padding: 8px 12px 10px; margin-bottom: 10px; }
+    .ers-lista .ui-tabla td { border: 0; padding: 2px 0; }
+    .ers-lista td[data-l]::before { content: attr(data-l); display: block; margin-top: 6px; font-size: 11px; font-weight: 700; letter-spacing: .03em;
+                                    text-transform: uppercase; color: var(--tinta-3, #64748b); }
+    .ers-nw { white-space: normal !important; }
+}

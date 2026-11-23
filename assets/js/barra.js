@@ -48,6 +48,21 @@
         var r = e.reason; anotarErrorJs("Promesa: " + (r && r.message ? r.message : String(r)));
     });
 
+    /* 23-nov-2026 (el dueño: «me sale que el servidor no pudo… ¿cómo puedes saber qué pasó?»): cada error inesperado del
+       servidor trae un código corto (E-7F3A, core/error_500.py). El último que vio ESTA pestaña se guarda (sessionStorage:
+       es de la pestaña) y «Informar un error» lo manda solo, para encontrarlo en Administración › Sistema › Errores del servidor. */
+    var LLAVE_ULTIMO_ERROR = "fc:ultimo-error-servidor";
+    function anotarCodigoError(codigo) {
+        if (!/^E-[0-9A-F]{4}$/.test(String(codigo || ""))) return;
+        try { sessionStorage.setItem(LLAVE_ULTIMO_ERROR, JSON.stringify({ codigo: codigo, cuando: Date.now(), pagina: location.pathname })); } catch (e) { /* sin almacenamiento */ }
+    }
+    function ultimoCodigoError() {
+        try {
+            var x = JSON.parse(sessionStorage.getItem(LLAVE_ULTIMO_ERROR) || "null");
+            return x && /^E-[0-9A-F]{4}$/.test(x.codigo) && Date.now() - x.cuando < 24 * 3600e3 ? x : null;
+        } catch (e) { return null; }
+    }
+
     // Un solo lugar donde vive la identidad de cada módulo: nombre,
     // color y clave de permiso. Agregar un módulo nuevo es una línea.
     var MODULOS = {
@@ -1400,6 +1415,9 @@
                     window.__fcPerdioPorBloqueo = true;      // algo de la página no cargó por el bloqueo: al desbloquear se recarga
                     if (window.Fiscontable.bloquearPantalla) window.Fiscontable.bloquearPantalla(true);
                 }
+                if (r && r.status === 500) {                 // el código del error (E-7F3A) para «Informar un error»
+                    try { r.clone().json().then(function (d) { anotarCodigoError(d && d.codigo_error); }, function () {}); } catch (e) { /* sin cuerpo */ }
+                }
             }, function () {});
             return p;
         };
@@ -2521,12 +2539,14 @@
 
     // «Informar un error» (menú de la persona y buscador): qué pasó + datos técnicos opcionales → modulos/soporte/router.py
     function informarError() {
+        var ultimo = ultimoCodigoError();
         var dlg = document.createElement("dialog");
         dlg.className = "ui-modal fc-confirmar fc-informar";
         dlg.innerHTML = '<form method="dialog" class="ui-modal__cuerpo"><h3>Informar un error</h3>' +
             '<p class="fc-confirmar__texto">Cuéntanos qué hacías y qué pasó. Llega a soporte y lo revisamos.</p>' +
             '<label class="fc-informar__campo"><span>¿Qué pasó?</span><textarea rows="5" maxlength="3000" placeholder="Por ejemplo: al descargar los XML de recibidas de octubre se quedó en «Buscando» y no avanzó."></textarea></label>' +
             '<label class="ui-check fc-informar__check"><input type="checkbox" checked> Incluir datos técnicos: la página, la versión, el navegador y los últimos errores de la página (sin datos de tus empresas)</label>' +
+            (ultimo ? '<p class="fc-informar__codigo">Va también el código del último error que te salió aquí: <b>' + esc(ultimo.codigo) + "</b>.</p>" : "") +
             '<p class="fc-informar__msj" role="status"></p></form>' +
             '<div class="ui-modal__pie"><button type="button" class="ui-btn ui-btn--secundario ui-btn--32" data-r="no">Cancelar</button>' +
             '<button type="button" class="ui-btn ui-btn--primario ui-btn--32" data-r="si">Enviar</button></div>';
@@ -2542,7 +2562,8 @@
             try {
                 var r = await fetch(API + "/api/errores/informar", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ texto: texto.value.trim(), tecnicos: tecnicos.checked, pagina: location.pathname + location.search,
-                                           version: (window.Fiscontable && window.Fiscontable.VERSION) || "", navegador: navigator.userAgent, errores: ERRORES_JS.slice() }) });
+                                           version: (window.Fiscontable && window.Fiscontable.VERSION) || "", navegador: navigator.userAgent, errores: ERRORES_JS.slice(),
+                                           codigo_error: ultimo ? ultimo.codigo : null }) });
                 if (!r.ok) throw new Error(await Fiscontable.leerError(r));
                 var d = await r.json();
                 cerrar();

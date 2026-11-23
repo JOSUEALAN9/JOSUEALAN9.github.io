@@ -13,6 +13,7 @@
     <link rel="stylesheet" href="/admin/licencias-admin.css?v=202611230300">
     <link rel="stylesheet" href="/admin/pendientes-admin.css?v=202611230300">
     <link rel="stylesheet" href="/admin/correos-admin.css?v=202611230300">
+    <link rel="stylesheet" href="/admin/errores-servidor-admin.css?v=202611230300">
 </head>
 <body class="min-h-screen flex flex-col relative">
 
@@ -400,6 +401,7 @@
                     <button type="button" data-sub="tareas" class="adm-sub">Tareas automáticas</button>
                     <button type="button" data-sub="registros" class="adm-sub">Log y bitácora</button>
                     <button type="button" data-sub="correos" class="adm-sub">Correos</button>
+                    <button type="button" data-sub="errores-servidor" class="adm-sub">Errores del servidor</button>
                     <button type="button" data-sub="plazos" class="adm-sub">Plazos y valores</button>
                     <button type="button" data-sub="vencidas" class="adm-sub">Cuentas vencidas</button>
                 </nav>
@@ -549,6 +551,10 @@
                 <!-- 22-nov-2026: qué correos salieron y cuáles no (admin/correos-admin.js; core/actividad.bitacora_correos) -->
                 <div data-subpanel="correos" hidden>
                     <div id="correos-admin"></div>
+                </div>
+                <!-- 23-nov-2026: errores inesperados del servidor con su código E-XXXX (admin/errores-servidor-admin.js; core/error_500.py) -->
+                <div data-subpanel="errores-servidor" hidden>
+                    <div id="errores-servidor-admin"></div>
                 </div>
                 <div data-subpanel="registros" hidden>
                 <div class="flex flex-wrap items-center gap-3 mb-6">
@@ -918,5 +924,6 @@
 <script src="/admin/servidores-admin.js?v=202611230300"></script>
 <script src="/admin/pendientes-admin.js?v=202611230300"></script>
 <script src="/admin/correos-admin.js?v=202611230300"></script>
+<script src="/admin/errores-servidor-admin.js?v=202611230300"></script>
 </body>
 </html>
