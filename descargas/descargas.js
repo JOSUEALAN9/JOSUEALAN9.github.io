@@ -233,7 +233,9 @@ async function cargarDescargas(silencioso = false) {
     if (!silencioso) ocultarAviso();
 
     try {
-        const resp = await fetch(`${API_URL}/api/procesos`, { credentials: "include" });
+        // 22-nov-2026 (auditoría datos-1): la página pide todo lo que se guarda (7 días), no solo lo más reciente de todo el
+        // despacho: así «7 días», «30 días» y «Todo» sí lo tienen aunque cada noche entren ~100 descargas automáticas
+        const resp = await fetch(`${API_URL}/api/procesos?limite=3000`, { credentials: "include" });
 
         if (resp.status === 401 || resp.status === 403) {
             mostrarAviso("Tu sesión expiró. Recarga la página para volver a entrar.");

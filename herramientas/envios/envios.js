@@ -27,6 +27,9 @@
     var E = { envios: [], op: null, editando: null, histDe: null, reloj: 0, tope: 15, max: 5, titular: true, correos: {}, calculoN: 0,
               solo: { proveedores: new Set(), clientes: new Set() }, soloLado: "proveedores", soloLista: null, soloDe: "", soloN: 0 };
     var UNA_VEZ = "una_vez";
+    // 22-nov-2026: lo que de verdad hace el automático si falta algo (antes decía que a las 10 salía con la anotación)
+    var TXT_VERIFICA = "Antes de mandar se pide al SAT la lista de cada empresa para comprobar que estén todos los XML, y se valida el estado de todo lo que va. " +
+        "Si falta alguna lista, espera (se revisa cada hora) y a las 24 horas se detiene para que decidas. En «A cada cliente», los completos salen y solo espera el que falta.";
     function programados() { return E.envios.filter(function (e) { return e.frecuencia !== UNA_VEZ; }); }
     function deUnaVez() { return E.envios.filter(function (e) { return e.frecuencia === UNA_VEZ; }); }
 
@@ -44,6 +47,32 @@
         return d.toISOString().slice(0, 10) + "T23:59";
     }
     function diaMes(iso) { return iso.slice(8, 10) + "/" + iso.slice(5, 7); }
+    var DIAS = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"];
+    /* «lunes 30 de noviembre» de un «AAAA-MM-DD» */
+    function fechaLarga(iso) {
+        var d = new Date(Date.UTC(Number(iso.slice(0, 4)), Number(iso.slice(5, 7)) - 1, Number(iso.slice(8, 10))));
+        return DIAS[d.getUTCDay()] + " " + d.getUTCDate() + " de " + MESES[d.getUTCMonth()];
+    }
+    /* 22-nov-2026 (auditoría envios_correos-1): la primera vez que sale, igual que el servidor (motor.primera_fecha): si hoy le
+       toca pero ya pasó la hora de salida, la siguiente. semanal: dia 0–6 (lunes = 0); quincenal: el 1 y el 16; mensual: 1–28. */
+    function primeraFecha(f, dia) {
+        var c = enCentro(), d = new Date(Date.UTC(Number(c.iso.slice(0, 4)), Number(c.iso.slice(5, 7)) - 1, Number(c.iso.slice(8, 10))));
+        if (c.h >= (E.hora || 7)) d = new Date(d.getTime() + 86400000);
+        for (var i = 0; i < 40; i++) {
+            var lun0 = (d.getUTCDay() + 6) % 7, n = d.getUTCDate();
+            if ((f === "semanal" && lun0 === dia) || (f === "quincenal" && (n === 1 || n === 16)) || (f === "mensual" && n === dia)) return d.toISOString().slice(0, 10);
+            d = new Date(d.getTime() + 86400000);
+        }
+        return d.toISOString().slice(0, 10);
+    }
+    /* Las empresas sin correo en su ficha (envios_correos-2): en «A cada cliente» a esas no les llega nada */
+    function sinCorreo(rfcs) {
+        return (E.op.empresas || []).filter(function (x) { return !x.con_correo && (!rfcs || rfcs.indexOf(x.rfc) !== -1); });
+    }
+    function nombresCortos(lista, max) {
+        var n = lista.map(function (x) { return x.alias; });
+        return n.slice(0, max).join(", ") + (n.length > max ? " y " + (n.length - max) + " más" : "");
+    }
     /* «Hasta el 20/11 a las 23:59 · completo y verificado» y «Hasta hoy 21/11 a las 16:35 · trae lo de hoy del SAT» */
     function pintarCortes(caja, ayer, ahora) {
         if (!ayer || !ahora) { var c = enCentro(); ayer = corteAyer(c); ahora = c.iso; }
@@ -177,7 +206,21 @@
         if (a.fase === "esperando") return "Esperando la lista del SAT: llegaron " + miles(a.hechos) + " de " + miles(a.total) + " empresas (espera hasta " + (E.esperaListas || 15) + " min)…";
         return "Armando el ZIP y mandando el correo…";
     }
+    function botonesDecidir(manual, mandarTxt, esperarTxt) {
+        return E.titular ? '<div class="ev-detenido__botones"><button type="button" class="ui-btn ui-btn--primario ui-btn--28" data-accion="decidir" data-decision="mandar">' + esc(mandarTxt || "Mandar así") + "</button>" +
+            (esperarTxt === null ? "" : '<button type="button" class="ui-btn ui-btn--secundario ui-btn--28" data-accion="decidir" data-decision="esperar">' + esc(esperarTxt || (manual ? "No mandar" : "Seguir esperando 24 h")) + "</button>") + "</div>"
+            : "<p>Lo decide el titular del despacho.</p>";
+    }
     function ultimo(e) {
+        var v = e.vez || null;
+        // 22-nov-2026 (auditoría envios_correos-5): en «A cada cliente», la parte que se quedó sin su lista del SAT se detiene sola;
+        // los demás clientes ya recibieron lo suyo
+        if (e.detenido && String(e.detenido).indexOf("c|") === 0) {
+            var n = v ? v.esperan : 0;
+            return '<div class="ev-detenido"><p><b>Detenido</b> · ' + esc((n === 1 ? "1 cliente lleva" : n + " clientes llevan") + " 24 horas sin su lista del SAT (el detalle está en tu campana). " +
+                (v ? "Los demás ya recibieron el suyo (" + v.salieron + " de " + v.total + ")." : "Los demás ya recibieron el suyo.")) + "</p>" +
+                botonesDecidir(false, n > 1 ? "Mandar así a los " + n : "Mandar así", "Seguir esperando 24 h") + "</div>";
+        }
         // 20-nov-2026 (el dueño): un envío incompleto no sale solo; se detiene y el titular decide
         if (e.detenido) {
             var manual = String(e.detenido).indexOf("m|") === 0;
@@ -190,16 +233,40 @@
             // programado) y no tapa el último envío: la tarjeta lo sigue enseñando debajo
             if (manual && e.detenido_manual_vence) txt += " Esta espera vence el " + cuando(e.detenido_manual_vence, true) + " (o antes, si sale bien el envío programado).";
             return '<div class="ev-detenido"><p><b>' + (manual ? "En espera de tu decisión" : "Detenido") + "</b> · " + esc(txt) + "</p>" +
-                (E.titular ? '<div class="ev-detenido__botones"><button type="button" class="ui-btn ui-btn--primario ui-btn--28" data-accion="decidir" data-decision="mandar">Mandar así</button>' +
-                    '<button type="button" class="ui-btn ui-btn--secundario ui-btn--28" data-accion="decidir" data-decision="esperar">' + (manual ? "No mandar" : "Seguir esperando 24 h") + "</button></div>"
-                    : "<p>Lo decide el titular del despacho.</p>") + "</div>" + (manual ? lineaUltimo(e) : "");
+                botonesDecidir(manual) + "</div>" + (manual ? lineaUltimo(e) : "");
+        }
+        // 22-nov-2026 (auditoría envios_correos-5): salió a los completos y algunos esperan su lista; salen solos al llegar
+        if (v && v.automatico && v.abierta && v.esperan && !e.en_curso) {
+            return '<div class="ev-detenido ev-detenido--espera"><p><b>Salió a ' + v.salieron + " de " + v.total + "</b> · " +
+                esc((v.esperan === 1 ? "1 cliente espera" : v.esperan + " clientes esperan") + " su lista del SAT" + (v.espera_desde ? " (desde el " + cuando(v.espera_desde, true) + ")" : "") +
+                    (e.activa ? ": sale solo en cuanto llegue; a las 24 horas se detiene y te pregunta." : ". Está apagado: no sale solo hasta que lo prendas.")) + "</p>" +
+                botonesDecidir(false, v.esperan > 1 ? "Mandar así a los " + v.esperan : "Mandarlo así", null) + "</div>";
+        }
+        // 22-nov-2026 (auditoría envios_correos-1): mientras el automático espera al SAT, la tarjeta lo dice (antes solo enseñaba el
+        // último envío y una hora que ya había pasado, y el titular lo mandaba a mano: los clientes lo recibían dos veces)
+        if (e.espera && !e.en_curso) {
+            var x = e.espera;
+            return '<p class="ev-ultimo ev-ultimo--avance">' + esc("Esperando la lista del SAT desde " + (x.desde ? cuando(x.desde, true) : "las " + E.hora + ":00") +
+                (x.total ? " · " + (x.total === 1 ? "falta la empresa" : "faltan " + x.faltan + " de " + x.total + " empresas") : "") +
+                ". Se revisa cada hora; si a las 24 horas sigue incompleto, se detiene y te pregunta.") + "</p>" + lineaUltimo(e);
         }
         return lineaUltimo(e);
     }
     function lineaUltimo(e) {
         if (e.en_curso) return '<p class="ev-ultimo ev-ultimo--avance">' + esc(textoAvance(e.avance)) + "</p>";
-        var u = e.ultimo;
+        var u = e.ultimo, v = e.vez;
         if (!u) return '<p class="ev-ultimo">Todavía no se ha mandado.</p>';
+        // 22-nov-2026 (auditoría envios_correos-2): la última vez completa, no solo su último renglón («41 de 50 salieron»)
+        if (v && (v.total > 1 || v.reintentan)) {
+            var partes = [];
+            if (v.no_salieron) partes.push(v.no_salieron === 1 ? "1 no salió" : v.no_salieron + " no salieron");
+            if (v.reintentan) partes.push(v.reintentan === 1 ? "1 se vuelve a intentar en una hora" : v.reintentan + " se vuelven a intentar en una hora");
+            if (v.faltan) partes.push(v.faltan + " por mandar");
+            var mal = v.no_salieron || v.reintentan;
+            var cabeza = v.total > 1 ? v.salieron + " de " + v.total + " salieron" : v.reintentan ? "No salió" : v.salieron ? "Salió" : "No salió";
+            return '<p class="ev-ultimo' + (mal ? " ev-ultimo--error" : "") + '"><b>' + esc((v.automatico ? "Automático" : "Última vez") + " (" + cuando(u.momento, true) + "): " + cabeza) + "</b>" +
+                (partes.length ? esc(" · " + partes.join(" · ")) : "") + (mal ? esc(". El detalle está en el historial y en tu campana.") : "") + "</p>";
+        }
         if (u.estado === "error") return '<p class="ev-ultimo ev-ultimo--error"><b>El último no salió</b> (' + esc(cuando(u.momento, true)) + "): " + esc(u.error || "") + "</p>";
         var txt = u.estado === "enviado" ? plural(u.comprobantes, "comprobante", "comprobantes") + " · " + peso(u.bytes) + (u.en_descargas ? " · en Mis descargas" : u.adjunto ? " · adjunto y enlace" : " · solo enlace")
             : "nada que mandar";
@@ -341,9 +408,9 @@
             : "Se manda solo, a las " + E.hora + " de la mañana del día que toque. En el último paso eliges si llega por correo o se queda en Mis descargas.";
         $("ev-verifica-txt").textContent = una ? "Antes de mandarlo se revisa contra el SAT que no falte ninguno y se valida el estado de todo lo que va. No vuelve a salir solo " +
             "ni cuenta en tus " + E.max + " envíos programados; queda en «Enviados una vez», con su historial."
-            : "Antes de mandar se pide al SAT la lista de cada empresa para comprobar que estén todos los XML, y se valida el estado de todo lo que va. " +
-              "Si a las " + E.limite + ":00 el SAT no ha entregado la lista, sale con la anotación de qué empresa quedó sin comparar.";
+            : TXT_VERIFICA;
         if (una) {
+            if ($("ev-primera")) $("ev-primera").hidden = true;
             $("ev-cierre-caja").hidden = true;
             var meses = mesesUna(), hoy = enCentro().mes;
             $("ev-una-corte-caja").hidden = meses.indexOf(hoy) === -1;          // un mes cerrado ya va completo
@@ -353,11 +420,25 @@
                 : "Lleva " + periodoTxt(meses) + ", cada mes en su carpeta.";
             return;
         }
+        pintarPrimera(f);
         $("ev-cierre-caja").hidden = !mes || f === "mensual";          // el mensual ES el cierre: siempre manda el mes anterior
         $("ev-modo-mes-txt").textContent = f === "mensual" ? "El mes anterior completo, ya cerrado."
             : cierre ? "El mes en curso completo cada vez (y, la primera semana, también el mes que acaba de cerrar)." : "El mes en curso completo cada vez.";
         $("ev-periodo-txt").textContent = mes ? "Si saliera hoy llevaría " + periodoTxt(mesesDeHoy(f, cierre)) + ". Para mandar otro mes una sola vez, usa «Enviar ahora» y elígelo ahí."
             : "Lleva lo que haya llegado desde el envío anterior. Para mandar un mes completo una sola vez, usa «Enviar ahora» y elígelo ahí.";
+    }
+    /* 22-nov-2026 (auditoría envios_correos-1): el formulario dice cuándo sale la primera vez («El primero sale el lunes 30 de
+       noviembre»). Si se crea o se cambia el día después de las 7 del día que le toca, es la siguiente: ya no sale en la
+       siguiente vuelta de la hora. */
+    function diaElegido(f) { return f === "quincenal" ? 1 : Number($("ev-dia").value) || (f === "mensual" ? 1 : 0); }
+    function pintarPrimera(f) {
+        var caja = $("ev-primera"); if (!caja) return;
+        var ed = E.editando, dia = diaElegido(f);
+        var mismo = ed && ed.frecuencia === f && Number(ed.dia) === dia && ed.activa && ed.proxima;
+        var fecha = mismo ? String(ed.proxima).slice(0, 10) : primeraFecha(f, dia);
+        caja.textContent = ed && !ed.activa ? "Está apagado: al prenderlo, el primero sale el " + fechaLarga(primeraFecha(f, dia)) + ", a las " + E.hora + ":00."
+            : (mismo ? "El próximo sale el " : "El primero sale el ") + fechaLarga(fecha) + ", a las " + E.hora + ":00.";
+        caja.hidden = false;
     }
     /* ¿El periodo elegido en «Cuándo» abarca más de un mes? (21-nov-2026, el dueño). Es la regla del servidor (motor.armar:
        el Excel de todos los meses solo sale si el paquete lleva más de un mes): «Solo una vez» con Desde y Hasta distintos; el
@@ -384,6 +465,23 @@
         var cliente = document.querySelector('input[name="ev-destino"]:checked').value === "cliente";
         $("ev-para-etq").innerHTML = cliente ? "Copia <i>(opcional: además del correo de cada cliente)</i>" : "Para";
         pintarLugar();
+        pintarSinCorreo();
+    }
+    /* 22-nov-2026 (auditoría envios_correos-2): en «A cada cliente», qué empresas no tienen correo en su ficha (a esas no les
+       llega nada). En «A quién», de las elegidas o, si todavía no hay, de todas; en «Empresas», de las elegidas. */
+    function pintarSinCorreo() {
+        var cliente = document.querySelector('input[name="ev-destino"]:checked').value === "cliente";
+        var elegidas = Array.from(E.marcadas || []), de = sinCorreo(elegidas.length ? elegidas : null), dePasos = sinCorreo(elegidas);
+        var uno = $("ev-sin-correo"), dos = $("ev-sin-correo-emp");
+        if (uno) {
+            uno.hidden = !cliente || !de.length;
+            uno.textContent = de.length ? (de.length === 1 ? "1 empresa" : de.length + " empresas") + (elegidas.length ? " de las elegidas" : " de tu lista") +
+                " no tiene" + (de.length === 1 ? "" : "n") + " correo en su ficha: " + nombresCortos(de, 4) + (de.length === 1 ? ". A esa no le llega nada" : ". A esas no les llega nada") + " hasta que se lo agregues en Clientes." : "";
+        }
+        if (dos) {
+            dos.hidden = !cliente || !dePasos.length;
+            dos.textContent = dePasos.length ? "Sin correo en su ficha (no les llega nada): " + nombresCortos(dePasos, 6) + ". Agrégaselo en Clientes › editar › correo." : "";
+        }
     }
     /* Dónde queda el paquete: en el correo (enlace que vence, con o sin adjunto) o en «Mis descargas» (el correo solo
        avisa). A cada cliente siempre va por correo: el cliente no entra a Fiscontable. */
@@ -423,6 +521,7 @@
         $("ev-elegidas").innerHTML = elegidas.length ? elegidas.map(function (e) {
             return '<span class="ev-pastilla" title="' + esc(e.rfc) + '"><span>' + esc(e.alias) + '</span><button type="button" data-quitar-empresa="' + esc(e.rfc) + '" aria-label="Quitar ' + esc(e.alias) + '">×</button></span>';
         }).join("") : '<span class="ev-elegidas__vacio">Ninguna todavía.</span>';
+        pintarSinCorreo();
     }
     function abrirCombo(si) {
         $("ev-combo-panel").hidden = !si; $("ev-combo-boton").setAttribute("aria-expanded", String(si));
@@ -651,8 +750,7 @@
         var c = de_ ? de_.contenido : { xml: ["recibidos", "pagos"], excel: [{ que: "conciliacion_emitidos" }, { que: "pagos" }], docs: [] };      // lo que pidió el dueño, de fábrica
         $("ev-dlg-titulo").textContent = e ? "Editar Envío " + e.numero : "Nuevo envío";
         $("ev-dlg-sub").textContent = "Se manda solo, a las " + E.hora + " de la mañana del día que toque. En el último paso eliges si llega por correo o se queda en Mis descargas.";
-        $("ev-verifica-txt").textContent = "Antes de mandar se pide al SAT la lista de cada empresa para comprobar que estén todos los XML, y se valida el estado de todo lo que va. " +
-            "Si a las " + E.limite + ":00 el SAT no ha entregado la lista, sale con la anotación de qué empresa quedó sin comparar.";
+        $("ev-verifica-txt").textContent = TXT_VERIFICA;
         // Un nombre automático no se escribe en el campo: se queda vacío (y se rehace si cambia lo que lleva); se ve de ejemplo
         $("ev-nombre").value = e ? (e.nombre_auto ? "" : e.nombre) : copia && !base.nombre_auto ? (base.nombre + " (copia)").slice(0, 80) : "";
         $("ev-nombre").placeholder = e && e.nombre_auto ? e.nombre + " (automático)" : "Vacío: se arma con lo que lleva, por ejemplo «Mensual · 3 empresas · XML y Excel»";
@@ -785,7 +883,11 @@
                 if (hecho_) { E.esperando = true; abrirHistorial(hecho_); }
                 return;
             }
-            Fiscontable.toast(E.editando ? "Envío guardado." : datos.empresas.length ? "Envío creado. Pruébalo con «Enviar ahora»." : "Envío creado. Marca sus empresas y pruébalo con «Enviar ahora».");
+            // 22-nov-2026 (auditoría envios_correos-1): ya no invita a probarlo con «Enviar ahora» (el día que le toca, los clientes lo
+            // recibían dos veces): dice cuándo sale el primero
+            var primero = r && r.proxima && r.activa ? "El primero sale el " + fechaLarga(String(r.proxima).slice(0, 10)) + " a las " + E.hora + ":00." : "";
+            Fiscontable.toast(E.editando ? "Envío guardado." + (primero && E.editando.proxima !== r.proxima ? " " + primero.replace("El primero", "El próximo") : "")
+                : datos.empresas.length ? "Envío creado. " + primero : "Envío creado. Marca sus empresas. " + primero);
         } catch (e) { err.textContent = e.message; err.hidden = false; verError(); }
         finally { b.disabled = false; }
     }
@@ -795,8 +897,12 @@
         E.ahoraDe = e;
         var aQuien = e.destino === "cliente" ? "cada cliente, a su correo" : e.para.concat(e.cc || []).join(", ");
         $("ev-ahora-titulo").textContent = "¿Mandar el Envío " + e.numero + " ahora?";
-        $("ev-ahora-sub").textContent = "Sale a " + aQuien + ".";
-        $("ev-ahora-siempre").textContent = e.modo === "mes" ? "Lleva " + periodoTxt(e.meses_hoy || mesesDeHoy(e.frecuencia, e.cierre)) + ", completo." : "Lo que llegó desde el envío anterior.";
+        var v = e.vez || {};
+        // 22-nov-2026 (auditoría envios_correos-1 y -5): si el automático de hoy ya salió a algunos clientes, mandarlo otra vez les llega dos veces
+        $("ev-ahora-sub").textContent = "Sale a " + aQuien + "." + (v.automatico && v.abierta && v.salieron
+            ? " Ojo: el automático ya salió a " + v.salieron + " de " + v.total + "; a esos les llegaría otra vez. Para los que faltan, usa «Mandar así» en la tarjeta." : "");
+        $("ev-ahora-siempre").textContent = (e.modo === "mes" ? "Lleva " + periodoTxt(e.meses_hoy || mesesDeHoy(e.frecuencia, e.cierre)) + ", completo." : "Lo que llegó desde el envío anterior.") +
+            (e.cuenta_hoy ? " Cuenta como el envío automático " + (e.cuenta_hoy === enCentro().iso.slice(0, 10) ? "de hoy" : "del " + fechaLarga(e.cuenta_hoy)) + ": si sale bien, ya no sale solo otra vez." : "");
         // Desde / Hasta (19-nov, el dueño: de agosto a noviembre, hasta 12 meses): los últimos 24 meses, del más reciente al más viejo
         var h = new Date(), ops = "";
         for (var i = 0; i < 24; i++) { var m = mesDe(new Date(h.getFullYear(), h.getMonth() - i, 1)); ops += '<option value="' + m + '">' + esc(mesTxt(m).replace(/^./, function (c) { return c.toUpperCase(); })) + "</option>"; }
@@ -812,7 +918,8 @@
         $("ev-ahora-nota").textContent = "«Validar primero» revisa contra el SAT que no falte ninguno (el mes en curso, con corte a ayer 23:59) y el estado de cada comprobante, " +
             "y pide la constancia u opinión si la guardada tiene más de 30 días. Puede tardar hasta " + (E.esperaListas || 15) + " minutos" +
             " (con «Hasta hoy», hasta " + (E.portalHoy || 10) + " más para traer lo de hoy). " +
-            "«Enviar ya» sale en seguida con lo que ya está en Fiscontable, sin ir al SAT, y el correo dice que no se verificó. No cambia la fecha del próximo envío automático.";
+            "«Enviar ya» sale en seguida con lo que ya está en Fiscontable, sin ir al SAT, y el correo dice que no se verificó. " +
+            (e.cuenta_hoy ? "Con otro periodo no cuenta como el automático: no cambia su fecha." : "No cambia la fecha del próximo envío automático.");
         $("ev-ahora-si").disabled = $("ev-ahora-ya").disabled = false;
         if (!$("ev-ahora").open) $("ev-ahora").showModal();
         calcularAhora();
@@ -937,6 +1044,7 @@
         return '<article class="ev-hecho"><header><b>' + esc(cuando(v.momento, true)) + '</b><span class="ui-estado ui-estado--' + est[1] + '">' + esc(est[0]) + "</span></header>" +
             (v.error ? '<p class="ev-hecho__error">' + esc(v.error) + "</p>" : "") +
             (v.detalle && v.detalle.retomado && v.estado !== "error" ? '<small class="ev-hecho__retomado">Se retomó solo después de un reinicio del servidor.</small>' : "") +
+            (v.detalle && v.detalle.cuenta_como ? '<small class="ev-hecho__retomado">' + esc("Contó como el envío automático del " + fechaLarga(v.detalle.cuenta_como) + ": ese día ya no salió solo.") + "</small>" : "") +
             (v.verificado_texto && v.estado !== "error" ? '<small class="ev-hecho__verificado' + (v.detalle.verificado && v.detalle.verificado.validar === false ? " ev-hecho__verificado--sin" : "") + '">' + esc(v.verificado_texto) + "</small>" : "") +
             (resumen.length || lista ? '<p class="ev-hecho__resumen">' + (resumen.length ? "<b>" + esc(resumen.join(" · ")) + "</b>" : "") + lista + "</p>" : "") +
             (soloTxt ? '<small class="ev-hecho__solo">' + esc(soloTxt) + "</small>" : "") +
@@ -1026,7 +1134,11 @@
         $("ev-lista").addEventListener("change", async function (ev) {
             var i = ev.target.closest('[data-accion="activar"]'); if (!i) return;
             var e = deTarjeta(i); if (!e) return;
-            try { await mandar("/api/entregas/" + encodeURIComponent(e.id), "PUT", cuerpoDe(e, { activa: i.checked })); await cargar(); }
+            try {
+                var r = await mandar("/api/entregas/" + encodeURIComponent(e.id), "PUT", cuerpoDe(e, { activa: i.checked })); await cargar();
+                // 22-nov-2026 (auditoría envios_correos-7): al prenderlo, su fecha vieja no cuenta: sale en la siguiente que le toca
+                Fiscontable.toast(r.activa && r.proxima ? "Encendido. El próximo sale el " + fechaLarga(String(r.proxima).slice(0, 10)) + " a las " + E.hora + ":00." : "Apagado: no sale solo.");
+            }
             catch (err) { i.checked = !i.checked; fallo(err); }
         });
         // casillas por empresa
@@ -1038,6 +1150,7 @@
         });
         // formulario
         $("ev-frecuencia").addEventListener("change", pintarDias);
+        $("ev-dia").addEventListener("change", pintarPeriodo);
         document.querySelectorAll('input[name="ev-destino"]').forEach(function (r) { r.addEventListener("change", pintarDestino); });
         $("ev-usuarios").addEventListener("change", function (ev) { E.correos.cc.alternar(ev.target.value, ev.target.checked); });
         $("ev-cc").addEventListener("cambio", pintarUsuarios);
