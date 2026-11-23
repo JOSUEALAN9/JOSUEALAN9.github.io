@@ -274,15 +274,17 @@
                 Fiscontable.refrescarDescargas();
 
                 if (t.estado === "completado") {
+                    // 22-nov-2026 (auditoría sat_modulos-2): si algo no se bajó, el resumen sale en ámbar con lo que falló
+                    var como = /fallaron/i.test(t.progreso || "") ? "mal" : "bien";
                     if (t.en_pc && t.en_pc.rutas && t.en_pc.rutas.length) {
                         // Ya quedó en la PC del contador: no se vuelve a descargar automáticamente
-                        resultado("bien", t.progreso || "Listo.");
+                        resultado(como, t.progreso || "Listo.");
                         document.getElementById("resultado").appendChild(Fiscontable.cajaEnPc(t.en_pc, function (b) { bajar(jobId, t.nombre_descarga, b, "Descargar aquí"); }));
                     } else {
                         await (elegido ? cargarAlmacen(elegido.rfc) : Promise.resolve());
                         // Un solo lugar para verlas y bajarlas: la ventana de guardadas (si no hay acceso, el ZIP del trabajo)
-                        if (!document.getElementById("btn-guardadas").hidden) resultado("bien", t.progreso || "Listo.", { texto: "Ver declaraciones", hacer: abrirGuardadas });
-                        else resultado("bien", t.progreso || "Listo.", { texto: "Descargar", hacer: function (b) { bajar(jobId, t.nombre_descarga, b); } });
+                        if (!document.getElementById("btn-guardadas").hidden) resultado(como, t.progreso || "Listo.", { texto: "Ver declaraciones", hacer: abrirGuardadas });
+                        else resultado(como, t.progreso || "Listo.", { texto: "Descargar", hacer: function (b) { bajar(jobId, t.nombre_descarga, b); } });
                     }
                 } else {
                     resultado("mal", t.mensaje_error || "No se pudo completar.");

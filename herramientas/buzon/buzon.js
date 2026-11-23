@@ -92,11 +92,12 @@
             { n: r.pendientes, t: "Notificaciones pendientes", d: r.pendientes && r.limite_notificacion ? "Sin abrir en el SAT. Si no se abre, la más próxima se tiene por notificada el " + diaSemana(r.limite_notificacion) : "Sin abrir en el SAT", c: "roja" },
             { n: r.cancelaciones, t: "Cancelaciones por responder", d: "Dentro del plazo de 3 días hábiles", c: "ambar" },
             { n: r.por_atender, t: "Nuevos por ver", d: "Comunicados y notificaciones", c: "azul" },
-            { n: r.errores, t: "Revisiones con error", d: r.sin_efirma ? r.sin_efirma + " empresa(s) sin e.firma guardada" : "Todo se pudo revisar", c: r.errores ? "roja" : "gris" }
+            // 22-nov-2026 (auditoría sat_modulos-1 y -4): una revisión incompleta cuenta aquí; y las apagadas se dicen
+            { n: r.errores, t: "Revisiones con error", d: [r.sin_efirma ? r.sin_efirma + " empresa(s) sin e.firma guardada" : "", r.apagadas ? r.apagadas + " con la revisión automática apagada" : ""].filter(Boolean).join(" · ") || (r.errores ? "Revisiones incompletas o que no se pudieron hacer" : "Todo se pudo revisar"), c: r.errores ? "roja" : "gris" }
         ];
         $("resumen").innerHTML = tarjetas.map(function (x) {
             // 18-nov: la explicación de cada cifra sale al pasar el cursor; visible solo la que avisa de algo (empresas sin e.firma)
-            var avisa = (x.t === "Revisiones con error" && r.sin_efirma) || (x.t === "Notificaciones pendientes" && x.n && r.limite_notificacion);
+            var avisa = (x.t === "Revisiones con error" && (r.sin_efirma || r.apagadas)) || (x.t === "Notificaciones pendientes" && x.n && r.limite_notificacion);
             return '<div class="bz-tarjeta bz-tarjeta--' + (x.n ? x.c : "gris") + '" title="' + esc(x.d) + '"><strong>' + x.n + "</strong><span>" + x.t + "</span>" + (avisa ? "<small>" + esc(x.d) + "</small>" : "") + "</div>";
         }).join("");
     }
@@ -113,7 +114,7 @@
         if (!e.efirma) return '<span class="bz-sello bz-sello--gris">Sin e.firma</span><br><a class="bz-liga" href="/clientes/?editar=' + encodeURIComponent(e.rfc) + '">Guardarla en Mis clientes</a>';
         if (e.estado === "revisando") return '<span class="bz-sello bz-sello--azul">Revisando…</span>';
         var t = e.ultima_revision ? fechaHora(e.ultima_revision) : "Nunca";
-        var sello = e.estado === "error" ? '<span class="bz-sello bz-sello--roja">Error</span> ' : e.estado === "ok" ? '<span class="bz-sello bz-sello--verde">OK</span> ' : "";
+        var sello = e.estado === "error" ? '<span class="bz-sello bz-sello--roja">' + (e.incompleta ? "Incompleta" : "Error") + "</span> " : e.estado === "ok" ? '<span class="bz-sello bz-sello--verde">OK</span> ' : "";
         return sello + "<small>" + t + "</small>" + (e.estado === "error" && e.mensaje ? '<br><small class="bz-error">' + esc(e.mensaje) + "</small>" : "") +
             (e.proxima && e.activo ? "<br><small>Próxima: " + (e.proxima === "esta noche" || e.proxima === "hoy" ? "hoy" : fechaLocal(e.proxima)) + "</small>" : "");
     }
@@ -131,8 +132,11 @@
                     (e.limite_notificacion ? '<small class="bz-limite" title="Si no se abre, se tiene por notificada ese día">hasta ' + esc(diaSemana(e.limite_notificacion)) + "</small>" : "")
                     : '<span class="bz-tenue">0</span>') + "</td>" +
                 "<td>" + estadoRevision(e) + "</td>" +
-                '<td><label class="bz-switch"><input type="checkbox" data-activo="' + esc(e.rfc) + '"' + (e.activo && e.efirma ? " checked" : "") + (e.efirma ? "" : " disabled") +
-                '><span></span></label></td>' +
+                // 22-nov-2026 (sat_modulos-4): en un despacho solo el titular apaga la revisión de una empresa
+                '<td><label class="bz-switch"' + (e.activo && e.efirma && E.panel.puede_apagar === false ? ' title="Solo el titular del despacho puede apagarla"' : "") +
+                '><input type="checkbox" data-activo="' + esc(e.rfc) + '"' + (e.activo && e.efirma ? " checked" : "") +
+                (!e.efirma || (e.activo && E.panel.puede_apagar === false) ? " disabled" : "") +
+                ' aria-label="Revisión automática de ' + esc(e.alias || e.rfc) + '"><span></span></label></td>' +
                 '<td><button type="button" class="bz-btn" data-abrir="' + esc(e.rfc) + '">Abrir</button></td></tr>';
         }).join("") : '<tr><td colspan="8" class="bz-vacio">' + (E.panel.empresas.length ? "Nada coincide con el filtro." : "Aún no tienes empresas en Mis clientes.") + "</td></tr>";
         actualizarBotonRevisar();
@@ -168,13 +172,13 @@
 
     function pintarTrabajo(t) {
         var r = t.renglones || [];
-        var listos = r.filter(function (x) { return ["ok", "parcial", "error", "cancelado"].indexOf(x.estado) !== -1; }).length;
+        var listos = r.filter(function (x) { return ["ok", "parcial", "incompleta", "error", "cancelado"].indexOf(x.estado) !== -1; }).length;
         $("progreso").hidden = false;
         var abrir = t.tipo === "buzon_abrir";
         $("progreso-titulo").textContent = abrir ? (t.estado === "procesando" ? "Abriendo la notificación…" : "Apertura terminada")
             : (t.estado === "procesando" ? "Revisando el buzón…" : "Revisión terminada");
         $("progreso-cuenta").textContent = listos + " de " + r.length;
-        var NOM = { en_fila: "En fila", revisando: abrir ? "Abriendo en el SAT…" : "Revisando…", ok: "Listo", parcial: "Listo con avisos", error: "Error", cancelado: "Detenido" };
+        var NOM = { en_fila: "En fila", revisando: abrir ? "Abriendo en el SAT…" : "Revisando…", ok: "Listo", parcial: "Listo con avisos", incompleta: "Incompleta", error: "Error", cancelado: "Detenido" };
         $("progreso-lista").innerHTML = r.map(function (x) {
             return '<li class="bz-progreso__' + esc(x.estado) + '"><b>' + esc(x.alias || x.rfc) + "</b>" + (x.folio ? " · folio <code>" + esc(x.folio) + "</code>" : "") + " " + esc(NOM[x.estado] || x.estado) +
                 (x.mensaje ? " · <small>" + esc(x.mensaje) + "</small>" : "") + "</li>";
@@ -493,7 +497,7 @@
         return '<div class="bz-tabla-caja"><table class="bz-tabla"><thead><tr><th>Cuándo</th><th>Cómo</th><th>Resultado</th><th class="num">Nuevos</th></tr></thead><tbody>' +
             r.map(function (x) {
                 var s = x.estado === "ok" ? "verde" : x.estado === "parcial" ? "ambar" : x.estado === "revisando" ? "azul" : "roja";
-                var t = { ok: "OK", parcial: "Con avisos", error: "Error", revisando: "Revisando" }[x.estado] || x.estado;
+                var t = { ok: "OK", parcial: "Con avisos", incompleta: "Incompleta", error: "Error", revisando: "Revisando" }[x.estado] || x.estado;
                 return "<tr><td>" + esc(fechaHora(x.inicio)) + "</td><td>" + esc(ORIGEN[x.origen] || x.origen) + '</td><td><span class="bz-sello bz-sello--' + s + '">' + t + "</span> <small>" + esc(x.mensaje || "") + '</small></td><td class="num">' + (x.nuevos || 0) + "</td></tr>";
             }).join("") + "</tbody></table></div>";
     }
@@ -586,12 +590,26 @@
         });
         $("tabla-empresas").addEventListener("change", async function (e) {
             if (e.target.classList.contains("bz-elegir")) { actualizarBotonRevisar(); return; }
-            var rfc = e.target.dataset.activo;
+            var rfc = e.target.dataset.activo, sw = e.target;
             if (!rfc) return;
-            try { await api("/api/buzon/empresas/" + encodeURIComponent(rfc), "PUT", { activo: e.target.checked }); await cargarPanel(); }
-            catch (err) { aviso(esc(err.message), "error"); e.target.checked = !e.target.checked; }
+            if (!sw.checked) {
+                // 22-nov-2026 (auditoría sat_modulos-4): apagarla deja de avisar sus notificaciones: se confirma y queda en la campana
+                var emp = E.panel.empresas.filter(function (x) { return x.rfc === rfc; })[0] || {};
+                var si = await Fiscontable.confirmar({ titulo: "¿Apagar la revisión automática?", peligro: true, si: "Apagar",
+                    texto: (emp.alias || rfc) + " dejará de revisarse en la madrugada y no te avisaremos de sus notificaciones del SAT. Queda anotado y se avisa en la campana." });
+                if (!si) { sw.checked = true; return; }
+            }
+            sw.disabled = true;
+            try {
+                await api("/api/buzon/empresas/" + encodeURIComponent(rfc), "PUT", { activo: sw.checked });
+                aviso(sw.checked ? "Listo: la revisión automática quedó prendida." : "Listo: la revisión automática quedó apagada.", "ok");
+                await cargarPanel();
+            } catch (err) { aviso(esc(err.message), "error"); sw.checked = !sw.checked; sw.disabled = false; }
         });
         $("tabla-empresas").addEventListener("click", function (e) {
+            // 23-nov-2026 (revisión sat42): en el celular no hay «pasar el cursor»: al tocar el interruptor bloqueado se dice por qué
+            var bloqueado = e.target.closest(".bz-switch[title]");
+            if (bloqueado && bloqueado.querySelector("input:disabled") && Fiscontable.avisar) { Fiscontable.avisar(bloqueado.title); return; }
             var b = e.target.closest("[data-abrir]");
             if (b) { E.rfc = b.dataset.abrir; E.seccion = "comunicados"; E.abierto = null; verVista("empresa"); }
         });
