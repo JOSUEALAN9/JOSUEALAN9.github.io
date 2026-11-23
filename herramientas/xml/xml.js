@@ -84,9 +84,13 @@
         return resp;
     }
     async function apiJSON(ruta, opciones) { return (await api(ruta, opciones)).json(); }
-    function postJSON(ruta, cuerpo) {
-        return api(ruta, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(cuerpo) });
+    function postJSON(ruta, cuerpo, extra) {
+        return api(ruta, Object.assign({ method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(cuerpo) }, extra || {}));
     }
+    /* 23-nov-2026 (auditoría web-3 y web-4): las partes de la carga son seguras de repetir (el servidor no guarda dos veces
+       el mismo XML) y son un trabajo que inició la persona: la pantalla no se bloquea mientras suben y, si se bloquea, la
+       carga espera al desbloqueo y sigue donde iba (nucleo.js). */
+    var PARTE = { fcRepetible: true, fcTrabajo: true };
     function avisar(texto, tipo) { Fiscontable.aviso ? Fiscontable.aviso(texto) : Fiscontable.avisar(texto); }
     function guardarLocal(clave, valor) { try { localStorage.setItem("xml:" + clave, JSON.stringify(valor)); } catch (e) { /* nada */ } }
     function leerLocal(clave) { try { return JSON.parse(localStorage.getItem("xml:" + clave)); } catch (e) { return null; } }
@@ -1678,7 +1682,7 @@
             lotes[i].forEach(function (par) { fd.append("archivos", new Blob([par[1].bytes], { type: "application/xml" }), par[1].nombre); });
             fd.append("rfc", d);
             try {
-                var r = await apiJSON("/api/xml/cargar", { method: "POST", body: fd });
+                var r = await apiJSON("/api/xml/cargar", Object.assign({ method: "POST", body: fd }, PARTE));
                 tot.nuevos += r.nuevos; tot.duplicados += r.duplicados;
                 tot.rechazados = tot.rechazados.concat(r.rechazados);
                 (r.tambien_de || []).forEach(function (t) {
@@ -1773,17 +1777,17 @@
         pintarBandeja(); pintarAvanceTodas();
         try {
             var ini = await (await postJSON("/api/xml/carga-todas", { clave: claveBandeja(lista.map(function (p) { return p[0]; })),
-                                                                       total: lista.length, partes: partes.length })).json();
+                                                                       total: lista.length, partes: partes.length }, PARTE)).json();
             var faltan = ini.faltan || [], subidos = lista.length - faltan.reduce(function (t, i) { return t + partes[i].length; }, 0);
             BJ.todas.hechos = subidos; pintarAvanceTodas();
             for (var k = 0; k < faltan.length; k++) {
                 var i = faltan[k], fd = new FormData();
                 partes[i].forEach(function (par) { fd.append("archivos", new Blob([par[1].bytes], { type: "application/xml" }), par[1].nombre); });
                 fd.append("indice", String(i));
-                try { await api("/api/xml/carga-todas/" + encodeURIComponent(ini.job_id) + "/parte", { method: "POST", body: fd }); }
+                try { await api("/api/xml/carga-todas/" + encodeURIComponent(ini.job_id) + "/parte", Object.assign({ method: "POST", body: fd }, PARTE)); }
                 catch (e) {                                    // un tropiezo de la red: un reintento antes de rendirse
                     await new Promise(function (r) { setTimeout(r, 1500); });
-                    await api("/api/xml/carga-todas/" + encodeURIComponent(ini.job_id) + "/parte", { method: "POST", body: fd });
+                    await api("/api/xml/carga-todas/" + encodeURIComponent(ini.job_id) + "/parte", Object.assign({ method: "POST", body: fd }, PARTE));
                 }
                 BJ.todas.hechos += partes[i].length; pintarAvanceTodas();
             }
@@ -1804,7 +1808,7 @@
         while (true) {
             await new Promise(function (r) { setTimeout(r, espera); });
             var est;
-            try { est = await apiJSON("/api/xml/carga-todas/" + encodeURIComponent(jobId)); fallas = 0; }
+            try { est = await apiJSON("/api/xml/carga-todas/" + encodeURIComponent(jobId), PARTE); fallas = 0; }
             catch (e) { if (++fallas >= 5) throw e; continue; }
             if (est.estado === "procesando" || est.estado === "recibiendo") {
                 BJ.todas = { fase: "guardando", hechos: est.hechos || 0, total: est.total || 0, job: jobId };

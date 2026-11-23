@@ -61,16 +61,65 @@
     }
 
     /* Cortes breves (la Vostro reiniciando, un tropiezo de la red): antes de dar un error, se reintenta solo unos
-       segundos con el aviso «Reconectando…». Consultas (GET): siempre. Envíos (POST, PUT, DELETE): solo si Cloudflare
-       dice que no alcanzó al servidor (502-504, 52x): ahí la petición no llegó, así que no se repite nada.
-       Un 503 del servidor de respaldo no se reintenta (ver arriba). Si al final no contestó, el error dice en español qué
-       pasó (antes la pantalla mostraba «Failed to fetch») y, en cuanto el servidor vuelve a contestar, abajo sale
-       «Fiscontable ya responde · Recargar» para no quedarse con la pantalla del error. */
+       segundos con el aviso «Reconectando…». Si al final no contestó, el error dice en español qué pasó (antes la pantalla
+       mostraba «Failed to fetch») y, en cuanto el servidor vuelve a contestar, abajo sale «Fiscontable ya responde ·
+       Recargar» para no quedarse con la pantalla del error. Un 503 del servidor de respaldo no se reintenta (ver arriba).
+       23-nov-2026 (auditoría web-3): antes se repetía hasta 4 veces CUALQUIER petición que recibiera 502, 503, 504 o 524,
+       también los envíos (POST, PUT, DELETE), aunque el servidor sí la hubiera recibido: con el SAT caído cada validación se
+       intentaba 5 veces, un correo fallido quedaba anotado 5 veces y un reporte que Cloudflare cortó a los 100 s (524) se
+       volvía a pedir mientras el servidor seguía armando el primero. Ahora:
+         · Si contestó Fiscontable (respuesta JSON con su motivo, p. ej. «el SAT no respondió»), no se repite ni se dice
+           «Reconectando»: la pantalla enseña ese motivo.
+         · 524 (Cloudflare se cansó de esperar, el servidor sigue trabajando): no se repite.
+         · Consultas (GET) y lo marcado como seguro de repetir ({fcRepetible: true}, p. ej. las partes de la carga de XML,
+           que el servidor no guarda dos veces): se repiten si fue un corte (502, 503, 504, 52x, 530 sin respuesta propia).
+         · Envíos (POST, PUT, DELETE): solo si Cloudflare dice que NO alcanzó al servidor (521, 522, 523, 530): ahí la
+           petición no llegó. Con 502, 503, 504, 520 o 524 pudo haber llegado: no se repite y se avisa «revisa si se hizo».
+       Con la pantalla bloqueada (423), lo que pertenece a un trabajo largo que inició la persona ({fcTrabajo: true}: validar
+       uno por uno, subir XML por partes) espera al desbloqueo y sigue donde iba (auditoría web-4): el 423 lo da el servidor
+       sin hacer nada, así que repetir no duplica. */
+    var ESPERAS = [1000, 2000, 4000, 8000];
+    var SIN_SERVIDOR = [502, 503, 504, 520, 521, 522, 523, 524, 530];
+    var NO_LLEGO = [521, 522, 523, 530];             // Cloudflare no alcanzó al servidor: la petición no llegó
+    var MENSAJE_SIN_CONFIRMAR = "La conexión se cortó antes de que Fiscontable confirmara. Puede que sí se haya hecho: revísalo antes de repetirlo.";
+    var MENSAJE_TARDO = "Fiscontable tardó demasiado en contestar y la conexión se cortó; el servidor puede seguir trabajando en ello.";
+    function esDelServidor(r) {
+        try { return /json/i.test(r.headers.get("content-type") || ""); } catch (e) { return false; }
+    }
+    // Trabajos largos que inició la persona (barra.js no bloquea la pantalla mientras corren, con tope): cuenta una
+    // petición {fcTrabajo: true} en curso o que terminó hace menos de un minuto (entre una parte y la siguiente).
+    var trabajo = { vivas: 0, ultima: 0, enPausa: 0 };
+    function trabajoEnCurso() { return trabajo.vivas > 0 || trabajo.enPausa > 0 || Date.now() - trabajo.ultima < 60000; }
+    var cajaDudosa = null;
+    function avisarDudosa(texto) {
+        if (!document.body) return;
+        if (cajaDudosa && cajaDudosa.isConnected) cajaDudosa.remove();
+        var caja = cajaDudosa = document.createElement("div");
+        caja.className = "fc-dudosa-aviso"; caja.setAttribute("role", "alert");
+        // Mismo aspecto que el aviso del respaldo (common.css), un poco más abajo para no taparlo si salen los dos
+        caja.style.cssText = "position:fixed;left:50%;transform:translateX(-50%);top:124px;z-index:410;display:flex;align-items:center;gap:10px;" +
+            "width:max-content;max-width:calc(100vw - 32px);box-sizing:border-box;padding:10px 10px 10px 16px;border-radius:12px;font-size:14px;" +
+            "line-height:1.4;font-weight:600;box-shadow:0 10px 30px rgba(15,23,42,.18);background:rgb(var(--av-50));color:rgb(var(--av-600));border:1px solid rgb(var(--av-200))";
+        var t = document.createElement("span"); t.textContent = texto;
+        var x = document.createElement("button"); x.type = "button"; x.textContent = "×"; x.setAttribute("aria-label", "Cerrar");
+        x.style.cssText = "flex:none;border:0;background:none;color:inherit;font-size:18px;line-height:1;cursor:pointer;padding:2px 6px";
+        x.addEventListener("click", function () { caja.remove(); });
+        caja.appendChild(t); caja.appendChild(x);
+        document.body.appendChild(caja);
+        setTimeout(function () { caja.remove(); }, 20000);
+    }
+    // Espera a que se quite el bloqueo (barra.js avisa con «fiscontable:desbloqueo»); por si el aviso no llega, cada 30 s se prueba
+    function esperarDesbloqueo() {
+        return new Promise(function (listo) {
+            var hecho = false, reloj = null;
+            function fin() { if (hecho) return; hecho = true; clearTimeout(reloj); window.removeEventListener("fiscontable:desbloqueo", fin); listo(); }
+            window.addEventListener("fiscontable:desbloqueo", fin);
+            reloj = setTimeout(fin, 30000);
+        });
+    }
     (function () {
         var original = window.fetch;
         if (!original) return;
-        var ESPERAS = [1000, 2000, 4000, 8000];
-        var SIN_SERVIDOR = [502, 503, 504, 520, 521, 522, 523, 524, 530];
         var aviso = null, esperando = 0, caido = false, volvioCaja = null;
         function pintar() {
             if (!document.body) return;
@@ -116,8 +165,11 @@
             if (!url || url.indexOf(API) !== 0 || (opciones && opciones.keepalive)) return original.apply(this, arguments);
             var metodo = String((opciones && opciones.method) || "GET").toUpperCase();
             var consulta = metodo === "GET" || metodo === "HEAD";
+            var repetible = consulta || !!(opciones && opciones.fcRepetible);
+            var deTrabajo = !!(opciones && opciones.fcTrabajo);
             var yo = this, args = arguments, intento = 0, contado = false;
-            return new Promise(function (resolver, rechazar) {
+            if (deTrabajo) trabajo.vivas++;
+            var promesa = new Promise(function (resolver, rechazar) {
                 function cerrar() { if (contado) { contado = false; esperando--; pintar(); } }
                 function otraVez() {
                     if (!contado) { contado = true; esperando++; pintar(); }
@@ -127,18 +179,83 @@
                     original.apply(yo, args).then(function (r) {
                         var deRespaldo = esRespaldo(r);
                         if (deRespaldo && r.status === 503) { contesto(r); cerrar(); textoTrabaja(r).then(avisarRespaldo); return resolver(r); }
-                        if (SIN_SERVIDOR.indexOf(r.status) >= 0 && intento < ESPERAS.length) return otraVez();
-                        if (SIN_SERVIDOR.indexOf(r.status) >= 0 && !deRespaldo) caido = true; else contesto(r);
+                        if (r.status === 423 && deTrabajo) {
+                            // Pantalla bloqueada: el trabajo se pone en pausa hasta que se desbloquee y sigue donde iba
+                            cerrar();
+                            if (window.Fiscontable && window.Fiscontable.bloquearPantalla) window.Fiscontable.bloquearPantalla(true);
+                            trabajo.enPausa++;
+                            esperarDesbloqueo().then(function () { trabajo.enPausa--; probar(); });
+                            return;
+                        }
+                        if (SIN_SERVIDOR.indexOf(r.status) < 0) { contesto(r); cerrar(); return resolver(r); }
+                        if (esDelServidor(r) && !deRespaldo) { contesto(r); cerrar(); return resolver(r); }   // contestó Fiscontable: su motivo
+                        var noLlego = NO_LLEGO.indexOf(r.status) >= 0;
+                        if (r.status !== 524 && (repetible || noLlego) && intento < ESPERAS.length) return otraVez();
+                        if (r.status === 524) { try { r.fcTardo = true; } catch (e) { /* nada */ } }
+                        else if (!deRespaldo) caido = true;
+                        if (!repetible && !noLlego) {
+                            // Un envío que pudo haber llegado: no se repite; se dice que hay que revisar si se hizo
+                            try { r.fcSinConfirmar = true; } catch (e) { /* nada */ }
+                            avisarDudosa(r.status === 524 ? MENSAJE_TARDO + " Revisa si se hizo antes de repetirlo." : MENSAJE_SIN_CONFIRMAR);
+                        }
                         cerrar(); resolver(r);
                     }, function (e) {
                         if (e && e.name === "AbortError") { cerrar(); return rechazar(e); }
-                        if (consulta && intento < ESPERAS.length) return otraVez();
+                        if (repetible && intento < ESPERAS.length) return otraVez();
                         caido = true; cerrar(); rechazar(sinConexion());
                     });
                 }
                 probar();
             });
+            if (deTrabajo) promesa.then(function () { trabajo.vivas--; trabajo.ultima = Date.now(); }, function () { trabajo.vivas--; trabajo.ultima = Date.now(); });
+            return promesa;
         };
+    })();
+
+    /* 23-nov-2026 (auditoría web-7): en celular y tableta no hay «pasar el cursor», y un botón apagado no reacciona al toque
+       (además .ui-btn:disabled no recibe el dedo): se veía gris y no pasaba nada. Ahora, al tocar donde hay un botón apagado
+       que dice por qué (su title), ese motivo sale unos segundos en un globo junto al dedo. Con ratón sigue el title de siempre. */
+    (function () {
+        var globo = null, reloj = null;
+        function apagadoEn(x, y, desde) {
+            var raiz = desde && desde.querySelectorAll ? desde : document;
+            var lista = raiz.querySelectorAll("button:disabled[title], input:disabled[title], [aria-disabled='true'][title]");
+            for (var i = 0; i < lista.length; i++) {
+                var r = lista[i].getBoundingClientRect();
+                if (r.width && x >= r.left && x <= r.right && y >= r.top && y <= r.bottom && descubierto(lista[i], x, y)) return lista[i];
+            }
+            return null;
+        }
+        // Revisión 23-nov: el botón debe ser lo de más arriba en ese punto. Si una capa o una ventana lo tapa, tocar ahí no es
+        // tocar el botón (salía el motivo de un botón que ni se ve). Se le devuelve el dedo un instante para preguntárselo al navegador.
+        function descubierto(b, x, y) {
+            var antes = b.style.pointerEvents, arriba;
+            b.style.pointerEvents = "auto";
+            try { arriba = document.elementFromPoint(x, y); } finally { b.style.pointerEvents = antes; }
+            return !!arriba && (arriba === b || b.contains(arriba));
+        }
+        function mostrar(texto, x, y) {
+            if (!globo) {
+                globo = document.createElement("div");
+                globo.className = "fc-motivo-apagado"; globo.setAttribute("role", "status");
+                globo.style.cssText = "position:fixed;z-index:9998;max-width:min(320px,calc(100vw - 32px));box-sizing:border-box;padding:8px 12px;" +
+                    "border-radius:10px;background:rgb(var(--g-900));color:rgb(var(--g-0));font:600 13px/1.4 system-ui,sans-serif;" +
+                    "box-shadow:0 10px 30px rgba(15,23,42,.3);pointer-events:none";
+                document.body.appendChild(globo);
+            }
+            globo.textContent = texto; globo.hidden = false;
+            var ancho = Math.min(320, window.innerWidth - 32);
+            globo.style.left = Math.max(16, Math.min(x - ancho / 2, window.innerWidth - 16 - ancho)) + "px";
+            globo.style.top = Math.max(16, y - 64) + "px";
+            clearTimeout(reloj); reloj = setTimeout(function () { globo.hidden = true; }, 4000);
+        }
+        document.addEventListener("pointerup", function (e) {
+            if (e.pointerType === "mouse" || !document.body) return;
+            var t = e.target && e.target.closest ? e.target : null;
+            var b = (t && t.matches && t.matches(":disabled[title], [aria-disabled='true'][title]")) ? t : apagadoEn(e.clientX, e.clientY, t);
+            if (!b) b = apagadoEn(e.clientX, e.clientY, document);
+            if (b && b.title) mostrar(b.title, e.clientX, e.clientY);
+        }, true);
     })();
 
     // Transición entre páginas: si el navegador la cancela (otra navegación encima, pestaña oculta) no es un error;
@@ -184,6 +301,9 @@
         if (resp.status === 401 || (resp.status === 403 && (!detalle || /token de (cloudflare )?access|access no trae/i.test(detalle))))
             return "Tu sesión expiró. Recarga la página para entrar otra vez.";
         if (detalle) return detalle;
+        // 23-nov-2026 (auditoría web-3): un envío cortado que no se repitió dice que hay que revisar si se hizo
+        if (resp.fcSinConfirmar) return resp.status === 524 ? MENSAJE_TARDO + " Revisa si se hizo antes de repetirlo." : MENSAJE_SIN_CONFIRMAR;
+        if (resp.status === 524 || resp.fcTardo) return MENSAJE_TARDO + " Intenta de nuevo en unos minutos.";
         if (resp.status >= 500) return "Error inesperado en el servidor. Intenta en unos minutos.";
         return "Hubo un problema al procesar la solicitud (código " + resp.status + ").";
     }
@@ -353,6 +473,8 @@
         MENSAJE_RESPALDO: MENSAJE_RESPALDO,
         enRespaldo: function () { return enRespaldo; },
         avisarRespaldo: avisarRespaldo,
+        trabajoEnCurso: trabajoEnCurso,          // un trabajo largo de la persona corre (o espera el desbloqueo): barra.js no bloquea
+        esperarDesbloqueo: esperarDesbloqueo,
         guardarArchivo: guardarArchivo,
         textoEnPc: textoEnPc,
         mostrarEnPc: mostrarEnPc,

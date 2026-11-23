@@ -3474,6 +3474,20 @@
     function leerLS(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
     function ponerLS(k, v) { try { if (v == null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (e) { /* sin almacenamiento */ } }
     var ultimaMarca = 0, EVENTOS_ACT = ["pointerdown", "keydown", "wheel", "touchstart", "mousemove"];
+    /* 23-nov-2026 (auditoría web-4): un trabajo largo que inició la persona (validar uno por uno, subir XML por partes; nucleo.js
+       lo sabe por las peticiones marcadas {fcTrabajo: true}) no se corta por inactividad: el bloqueo espera a que termine, como
+       ya espera el aviso de versión: el trabajo cuenta como actividad. La pestaña que trabaja deja la hora en «fc-trabajo-largo»
+       (cada revisión, 15 s) y todas las pestañas cuentan la inactividad desde lo último entre la persona y el trabajo: al terminar,
+       se bloquea N minutos después, con su aviso de un minuto antes. Tope: TOPE_TRABAJO sin que la persona toque nada. Si aun así
+       se bloquea (pasó el tope, o la bloquearon en otra pestaña), el trabajo espera al desbloqueo y sigue donde iba, y al
+       desbloquear NO se recarga la página. */
+    var TOPE_TRABAJO = 3 * 3600e3, LLAVE_TRABAJO = "fc-trabajo-largo";
+    function trabajoAqui() { return !!(window.Fiscontable.trabajoEnCurso && window.Fiscontable.trabajoEnCurso()); }
+    function actividadReal() { return +(leerLS(LLAVE_ACT) || 0) || ultimaMarca || Date.now(); }
+    function ultimaActividad() {
+        var real = actividadReal(), trab = +(leerLS(LLAVE_TRABAJO) || 0);
+        return trab > real && trab - real <= TOPE_TRABAJO ? trab : real;
+    }
     function marcarActividad() {
         if (bloqueo.activa) return;
         var t = Date.now(), avisando = !!(previo.capa && !previo.capa.hidden);
@@ -3500,8 +3514,8 @@
         }
         previo.capa.hidden = false;
         var paso = function () {
-            var ultima = +(leerLS(LLAVE_ACT) || 0) || ultimaMarca || Date.now(), falta = Math.ceil((bloqueo.minutos * 60e3 - (Date.now() - ultima)) / 1000);
-            if (bloqueo.activa || falta > PREVIO_SEG) return quitarPrevio();             // hubo actividad (aquí o en otra pestaña)
+            var ultima = ultimaActividad(), falta = Math.ceil((bloqueo.minutos * 60e3 - (Date.now() - ultima)) / 1000);
+            if (bloqueo.activa || falta > PREVIO_SEG) return quitarPrevio();             // hubo actividad (aquí, en otra pestaña o un trabajo largo)
             if (falta <= 0) { quitarPrevio(); bloquearPantalla(false); return; }
             document.getElementById("fc-previo-reloj").textContent = Math.floor(falta / 60) + ":" + ("0" + (falta % 60)).slice(-2);
         };
@@ -3577,14 +3591,19 @@
         // La marca dice de qué inicio de sesión es: si luego entras de nuevo con tu correo, ya no aplica
         ponerLS(LLAVE_BLOQ, "1:" + (bloqueo.sesion || ""));
         pintarCapa();
-        if (!desdeServidor && bloqueo.pin) fetch(API + "/api/mi-perfil/pin/bloquear", { method: "POST", credentials: "include" }).catch(function () {});
+        // fcRepetible (revisión 23-nov): bloquear dos veces es lo mismo; sin la marca, un corte aquí sacaba «revísalo antes de repetirlo» sin que la persona hiciera nada
+        if (!desdeServidor && bloqueo.pin) fetch(API + "/api/mi-perfil/pin/bloquear", { method: "POST", credentials: "include", fcRepetible: true }).catch(function () {});
     }
     function quitarCapa() {
         bloqueo.activa = false;
         var capa = document.getElementById("fc-bloqueo-pantalla");
         if (capa) { capa.hidden = true; document.getElementById("fc-bl-pin").value = ""; document.getElementById("fc-bl-msj").textContent = ""; }
         document.documentElement.classList.remove("fc-bloqueada");
+        // Lo que esperaba el desbloqueo (un trabajo largo en pausa, nucleo.js) sigue donde iba
+        try { window.dispatchEvent(new CustomEvent("fiscontable:desbloqueo")); } catch (e) { /* nada */ }
     }
+    // Recargar al desbloquear (algo de la página no cargó por el bloqueo) borraría un trabajo largo en pausa: ese sigue solo
+    function recargarAlDesbloquear() { return window.__fcPerdioPorBloqueo && !trabajoAqui(); }
     async function desbloquear() {
         var pin = document.getElementById("fc-bl-pin").value.trim(), msj = document.getElementById("fc-bl-msj");
         if (!pin) return;
@@ -3595,7 +3614,8 @@
             if (!r.ok) { msj.textContent = await window.Fiscontable.leerError(r); document.getElementById("fc-bl-pin").select(); return; }
             ponerLS(LLAVE_BLOQ, null); ultimaMarca = 0;
             // Si mientras estaba bloqueada algo de la página no se pudo cargar, se recarga para que no quede a medias
-            if (window.__fcPerdioPorBloqueo) { window.__fcPerdioPorBloqueo = false; location.reload(); return; }
+            if (recargarAlDesbloquear()) { window.__fcPerdioPorBloqueo = false; location.reload(); return; }
+            window.__fcPerdioPorBloqueo = false;
             quitarCapa(); marcarActividad();
         } catch (e) { msj.textContent = "No se pudo conectar. Intenta de nuevo."; }
     }
@@ -3613,8 +3633,9 @@
     }
     function revisarInactividad() {
         if (!bloqueo.listo) return;
-        var ultima = +(leerLS(LLAVE_ACT) || 0) || ultimaMarca || Date.now(), quieto = Date.now() - ultima;
-        if (quieto > bloqueo.horas * 3600e3) { ponerLS(LLAVE_BLOQ, null); ponerLS(LLAVE_ACT, null); cerrarPorInactividad(); return; }
+        if (trabajoAqui()) ponerLS(LLAVE_TRABAJO, String(Date.now()));            // un trabajo largo cuenta como actividad (todas las pestañas)
+        if (Date.now() - actividadReal() > bloqueo.horas * 3600e3) { ponerLS(LLAVE_BLOQ, null); ponerLS(LLAVE_ACT, null); cerrarPorInactividad(); return; }
+        var quieto = Date.now() - ultimaActividad();
         if (!bloqueo.activa && quieto > bloqueo.minutos * 60e3) bloquearPantalla(false);
         else if (!bloqueo.activa && quieto > bloqueo.minutos * 60e3 - (PREVIO_SEG + 15) * 1000) {
             // el aviso sale justo un minuto antes (esta revisión corre cada 15 s)
@@ -3661,7 +3682,8 @@
     document.addEventListener("visibilitychange", function () { if (!document.hidden && bloqueo.activa) revisarSiYaEntro(); });
     // Otra pestaña quitó el bloqueo (PIN o inicio de sesión): se confirma que sigue siendo la misma cuenta y se reanuda
     function reanudarTrasBloqueo() {
-        if (window.__fcPerdioPorBloqueo) { location.reload(); return; }
+        if (recargarAlDesbloquear()) { location.reload(); return; }
+        window.__fcPerdioPorBloqueo = false;
         fetch(API + "/api/mi-perfil", { credentials: "include", cache: "no-store" }).then(function (r) { return r.ok ? r.json() : null; }, function () { return null; })
             .then(function (p) {
                 var antes = perfilActual && (perfilActual.persona || perfilActual.correo), ahora = p && (p.persona || p.correo);
@@ -3782,6 +3804,7 @@
         var t = Date.now();
         if (bloqueo.activa || document.documentElement.classList.contains("fc-bloqueada") || (previo.capa && !previo.capa.hidden)) return "bloqueada";
         if (enCurso.some(function (x) { return t - x < VER_LARGA; })) return "en-curso";
+        if (trabajoAqui()) return "en-curso";              // 23-nov-2026 (web-4): entre una parte y otra de un trabajo largo, también
         if (t - VER.tecla < VER_ESCRIBIENDO) return "escribiendo";
         if (document.querySelector("dialog[open]")) return "ventana";
         if (t < VER.pospuesta) return "pospuesta";
