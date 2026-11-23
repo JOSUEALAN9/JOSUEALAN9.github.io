@@ -1430,30 +1430,55 @@
         seguirValidacion();
     }
 
+    /* 23-nov-2026 (el dueño: «el porcentaje de avance está bien»): el avance dice cuánto lleva, el % y, ya que se conoce
+       el ritmo, cuánto falta. El servidor lo estima con lo observado; mientras no hay suficiente, sin tiempo. */
+    function miles(n) { return (n || 0).toLocaleString("es-MX"); }
+    function textoFaltan(min, alcanza, hasta) {
+        if (min == null || min <= 0) return "";
+        var t = min <= 1 ? " · falta menos de un minuto"
+            : min < 60 ? " · faltan unos " + min + " min"
+            : " · faltan cerca de " + Math.floor(min / 60) + " h" + (min % 60 ? " " + (min % 60) + " min" : "");
+        return t + (alcanza === false ? " (lo que no alcance antes de las " + horaLocal(hasta) + ", la otra madrugada)" : "");
+    }
+    /* El corte es a las 6:30 del centro; en Cancún son las 7:30: se dice en la hora de quien lo ve (23-nov-2026, revisión) */
+    function horaLocal(iso) {
+        var d = iso ? new Date(iso) : null;
+        if (!d || isNaN(d.getTime())) return "6:30";
+        return d.getHours() + ":" + String(d.getMinutes()).padStart(2, "0");
+    }
+
     function seguirValidacion() {
         clearTimeout(VAL.reloj);
         $("avance-validacion").hidden = false;
         $("avance-validacion").classList.remove("xml-validando--listo");
         $("btn-detener").hidden = false;
         $("btn-validar").disabled = true;
+        if ($("aviso-fondo")) $("aviso-fondo").hidden = true;          // mientras, el avance va aquí (no dos avisos)
         (async function consultar() {
             var r;
-            try { r = await apiJSON("/api/xml/validacion?desde=" + VAL.siguiente); } catch (e) { VAL.reloj = setTimeout(consultar, 4000); return; }
+            try { r = await apiJSON("/api/xml/validacion?desde=" + VAL.siguiente + "&rfc=" + encodeURIComponent(E.rfc || "")); } catch (e) { VAL.reloj = setTimeout(consultar, 4000); return; }
             if (r.estado === "ninguno") { $("avance-validacion").hidden = true; $("btn-validar").disabled = false; return; }
             VAL.siguiente = r.siguiente;
             aplicarCambiosSAT(r.cambios);
-            var pct = r.total ? Math.round(100 * r.hechos / r.total) : 100;
+            var pct = r.porcentaje != null ? r.porcentaje : (r.total ? Math.floor(100 * r.hechos / r.total) : 100);
             $("validando-barra").style.width = pct + "%";
             var c = r.conteo;
-            var detalle = r.hechos.toLocaleString("es-MX") + " de " + r.total.toLocaleString("es-MX") + " · " + c.Vigente + " vigentes · " + c.Cancelado + " cancelados" +
-                (c["No encontrado"] ? " · " + c["No encontrado"] + " no encontrados" : "") + (c.Error ? " · " + c.Error + " sin respuesta del SAT" : "");
-            $("validando-detalle").textContent = detalle;
-            if (r.estado === "corriendo") { $("validando-titulo").textContent = "Validando ante el SAT…"; VAL.reloj = setTimeout(consultar, 1500); return; }
+            var conteos = miles(c.Vigente) + " vigentes · " + miles(c.Cancelado) + " cancelados" +
+                (c["No encontrado"] ? " · " + miles(c["No encontrado"]) + " no encontrados" : "") + (c.Error ? " · " + miles(c.Error) + " sin respuesta del SAT" : "");
+            if (r.estado === "corriendo") {
+                $("validando-titulo").textContent = "Validando ante el SAT: " + miles(r.hechos) + " de " + miles(r.total) + " (" + pct + " %)" + textoFaltan(r.minutos_faltan);
+                $("validando-detalle").textContent = conteos;
+                VAL.reloj = setTimeout(consultar, 1500);
+                return;
+            }
+            var detalle = miles(r.hechos) + " de " + miles(r.total) + " · " + conteos;
             $("validando-titulo").textContent = r.estado === "detenido" ? "Validación detenida." : "Validación terminada.";
+            $("validando-detalle").textContent = detalle;
             $("avance-validacion").classList.add("xml-validando--listo");
             $("btn-detener").hidden = true;
             $("btn-validar").disabled = false;
             if (c.Error) $("validando-detalle").textContent = detalle + " — vuelve a validar esos más tarde.";
+            vigilarFondo(r);                                           // cuántos siguen sin validar, ya con lo de ahora
             VAL.reloj = setTimeout(function () { $("avance-validacion").hidden = true; }, 15000);
         })();
     }
@@ -1481,33 +1506,62 @@
         try {
             var r = await apiJSON("/api/xml/validacion?desde=0&rfc=" + encodeURIComponent(E.rfc || ""));
             if (r.estado === "corriendo" && r.rfc === E.rfc) { VAL.siguiente = 0; seguirValidacion(); }
-            vigilarFondo(r.en_fondo || 0);
+            vigilarFondo(r);
         } catch (e) { /* nada */ }
     }
 
-    /* Los XML que entran por la descarga del SAT se validan solos en segundo plano: aviso discreto y, al terminar,
-       la tabla se actualiza sola con su estado (Vigente / Cancelado). */
-    var FONDO = { reloj: null, habia: 0 };
-    function vigilarFondo(n) {
+    /* El aviso de arriba de la tabla. 23-nov-2026 (el dueño: «las validaciones no se deben hacer en el momento, sino en la
+       noche, madrugada, para no afectar lo que se quiera hacer»): lo que entra por carga o descarga ya no se valida al
+       momento, lo valida la madrugada (de 1:00 a 6:30). De día dice cuántos de esta empresa siguen sin validar; mientras la
+       madrugada valida los de esta empresa, el avance con su barra; al terminar, la tabla se actualiza sola con su estado.
+       Si se prende el ajuste «validar_xml_al_momento», el aviso de antes (en_fondo: los que esperan en la cola). */
+    var FONDO = { reloj: null, corria: false, rfc: null };
+    function vigilarFondo(r) {
         var caja = $("aviso-fondo");
         if (!caja) {
-            caja = document.createElement("p");
-            caja.id = "aviso-fondo"; caja.className = "xml-aviso-fondo";
+            caja = document.createElement("div");
+            caja.id = "aviso-fondo"; caja.setAttribute("role", "status");
             $("contenido").insertBefore(caja, $("contenido").firstChild);
         }
         clearTimeout(FONDO.reloj);
-        if (n > 0) {
+        r = r || {};
+        var a = r.avance || {}, noche = a.madrugada || {}, emp = noche.empresa, enFondo = r.en_fondo || 0, cada = 0;
+        if (FONDO.rfc !== E.rfc) FONDO.corria = false;              // otra empresa: lo de la anterior ya no cuenta
+        function pintar(clase, giro, texto, pct) {
+            caja.className = "xml-aviso-fondo" + (clase ? " " + clase : "");
+            caja.innerHTML = (giro ? '<span class="xml-giro" aria-hidden="true"></span>' : "") + '<span class="xml-aviso-fondo__texto"></span>' +
+                (pct != null ? '<span class="xml-aviso-fondo__barra" aria-hidden="true"><span></span></span>' : "");
+            caja.querySelector(".xml-aviso-fondo__texto").textContent = texto;
+            if (pct != null) caja.querySelector(".xml-aviso-fondo__barra span").style.width = pct + "%";
             caja.hidden = false;
-            caja.innerHTML = '<span class="xml-giro"></span> Validando ' + n.toLocaleString("es-MX") + " XML ante el SAT en segundo plano (vigente, cancelado, si es cancelable). Se actualizan automáticamente.";
-            FONDO.habia = Math.max(FONDO.habia, n);
-            FONDO.reloj = setTimeout(async function () {
-                try { var r = await apiJSON("/api/xml/validacion?desde=0&rfc=" + encodeURIComponent(E.rfc || "")); vigilarFondo(r.en_fondo || 0); }
-                catch (e) { vigilarFondo(n); }
-            }, 15000);
-        } else {
-            caja.hidden = true;
-            if (FONDO.habia) { FONDO.habia = 0; cargarRegistros(); }      // ya terminó: la tabla con los estados nuevos
         }
+        if (r.estado === "corriendo" && r.rfc === E.rfc) {
+            caja.hidden = true;                                       // «Validar estado SAT» lleva su propio avance
+        } else if (noche.estado === "corriendo" && emp && emp.pendientes > 0) {
+            pintar("xml-aviso-fondo--corriendo", true, "Validando ante el SAT: " + miles(emp.hechos) + " de " + miles(emp.total) +
+                " (" + emp.porcentaje + " %)" + textoFaltan(emp.minutos_faltan, emp.alcanza, noche.hasta), emp.porcentaje);
+            FONDO.corria = true; FONDO.rfc = E.rfc; cada = 15000;
+        } else if (enFondo > 0) {
+            pintar("", true, "Validando " + miles(enFondo) + " XML ante el SAT en segundo plano (vigente, cancelado, si es cancelable). Se actualizan automáticamente.");
+            FONDO.corria = true; FONDO.rfc = E.rfc; cada = 15000;
+        } else {
+            if (FONDO.corria) { FONDO.corria = false; caja.hidden = true; cargarRegistros(); return; }   // ya terminó: la tabla con los estados nuevos
+            var n = a.sin_validar || 0, cuando = noche.estado === "corriendo" ? "la próxima madrugada" : "esta madrugada";
+            if (n > 0) {
+                pintar("xml-aviso-fondo--dia", false, n === 1
+                    ? "1 XML de esta empresa todavía sin validar ante el SAT. Se valida solo " + cuando + "; si lo necesitas ya, usa «Validar estado SAT»."
+                    : miles(n) + " XML de esta empresa todavía sin validar ante el SAT. Se validan solos " + cuando + "; si necesitas alguno ya, usa «Validar estado SAT».");
+                cada = 300000;                                        // de día, cada 5 min basta (por si la página se queda abierta en la noche)
+            } else {
+                caja.hidden = true;
+            }
+        }
+        if (cada) FONDO.reloj = setTimeout(refrescarFondo, cada);
+    }
+    async function refrescarFondo() {
+        if (!E.rfc) return;
+        try { vigilarFondo(await apiJSON("/api/xml/validacion?desde=0&rfc=" + encodeURIComponent(E.rfc))); }
+        catch (e) { FONDO.reloj = setTimeout(refrescarFondo, 30000); }
     }
 
     /* ============================================================ bandeja de carga */

@@ -757,12 +757,22 @@
             try { r = await apiJSON("/api/conciliacion/validacion?desde=" + VAL.siguiente); } catch (e) { VAL.reloj = setTimeout(consultar, 4000); return; }
             if (r.estado === "ninguno") { $("avance-validacion").hidden = true; $("btn-validar").disabled = false; return; }
             VAL.siguiente = r.siguiente;
-            var pct = r.total ? Math.round(100 * r.hechos / r.total) : 100, c = r.conteo;
+            // 23-nov-2026: el mismo avance que en Administración de XML: cuánto lleva, el % y, ya que se conoce el ritmo, cuánto falta
+            var pct = r.porcentaje != null ? r.porcentaje : (r.total ? Math.floor(100 * r.hechos / r.total) : 100), c = r.conteo;
             $("validando-barra").style.width = pct + "%";
-            var detalle = r.hechos.toLocaleString("es-MX") + " de " + r.total.toLocaleString("es-MX") + " · " + c.Vigente + " vigentes · " + c.Cancelado + " cancelados" +
-                (c["No encontrado"] ? " · " + c["No encontrado"] + " no encontrados" : "") + (c.Error ? " · " + c.Error + " sin respuesta del SAT" : "");
+            var mx = function (n) { return (n || 0).toLocaleString("es-MX"); };
+            var conteos = mx(c.Vigente) + " vigentes · " + mx(c.Cancelado) + " cancelados" +
+                (c["No encontrado"] ? " · " + mx(c["No encontrado"]) + " no encontrados" : "") + (c.Error ? " · " + mx(c.Error) + " sin respuesta del SAT" : "");
+            var detalle = r.hechos.toLocaleString("es-MX") + " de " + r.total.toLocaleString("es-MX") + " · " + conteos;
             $("validando-detalle").textContent = detalle;
-            if (r.estado === "corriendo") { $("validando-titulo").textContent = "Validando ante el SAT…"; VAL.reloj = setTimeout(consultar, 1500); return; }
+            if (r.estado === "corriendo") {
+                var m = r.minutos_faltan, faltan = m == null || m <= 0 ? "" : m <= 1 ? " · falta menos de un minuto" : m < 60 ? " · faltan unos " + m + " min"
+                    : " · faltan cerca de " + Math.floor(m / 60) + " h" + (m % 60 ? " " + (m % 60) + " min" : "");
+                $("validando-titulo").textContent = "Validando ante el SAT: " + r.hechos.toLocaleString("es-MX") + " de " + r.total.toLocaleString("es-MX") + " (" + pct + " %)" + faltan;
+                $("validando-detalle").textContent = conteos;
+                VAL.reloj = setTimeout(consultar, 1500);
+                return;
+            }
             $("validando-titulo").textContent = (r.estado === "detenido" ? "Validación detenida." : "Validación terminada.") + " Conciliación actualizada.";
             $("avance-validacion").classList.add("xml-validando--listo");
             $("btn-detener").hidden = true;

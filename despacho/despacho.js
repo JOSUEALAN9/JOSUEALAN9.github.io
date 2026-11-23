@@ -7,12 +7,16 @@
  * Mi espacio (20-nov-2026, el dueño): en Equipo el titular ve cuántas empresas lleva cada quien en su Mi espacio («4 de 10»,
  * nunca cuáles) y en Permisos › Mi espacio le cambia el tope, le apaga Mi espacio y le pasa o regresa timbres del
  * despacho; en Permisos › Módulos hay dos listas: «En el despacho» y «Extra en Mi espacio».
+ * Fotos (23-nov-2026, el dueño: «la foto del equipo sí que se vea, y que al picarle te la abra en grande»): en Equipo sale la
+ * foto de cada quien en su círculo (la chica, cuando la fila se ve; si no tiene, sus iniciales) y al picarle se abre en
+ * grande con el visor compartido (assets/js/visor-foto.js). El servidor solo la da entre integrantes activos del despacho.
  * El servidor decide qué ve cada quien (modulos/despacho/router.py); aquí solo se pinta.
  */
 (function () {
     "use strict";
     var F = window.Fiscontable, API = F.API, esc = F.escapar;
     var datos = null, filtroSol = "pendiente", edicion = null;
+    var fotos = {}, vigia = null;                 // fotos chicas ya traídas: «correo|marca» → dirección local (se reusan al repintar)
     var AYUDA_PAPEL = {
         titular: "Administra el equipo, los permisos y los ajustes, y acepta solicitudes. Ve todo el despacho.",
         aprobador: "Acepta o rechaza las solicitudes del equipo y ve la bitácora. Las suyas las resuelve el titular. Trabaja con lo que le permitas.",
@@ -135,13 +139,71 @@
             "Mi espacio <b>" + e.empresas + " de " + e.tope + "</b></span>";
     }
 
+    // ------------------------------------------------------------------ fotos del equipo (23-nov-2026)
+    function rutaFoto(m, tam) {
+        return "/api/despacho/miembros/" + encodeURIComponent(m.correo) + "/foto?tam=" + tam + "&v=" + encodeURIComponent(m.foto);
+    }
+
+    // El círculo: con foto es un botón que la abre en grande; sin foto, las iniciales como siempre
+    function circulo(m) {
+        var clase = "dp-inicial" + (m.papel === "titular" ? " dp-inicial--titular" : "");
+        if (!m.foto) return '<span class="' + clase + '">' + inicial(m.nombre || m.correo) + "</span>";
+        var ya = fotos[m.correo + "|" + m.foto];
+        return '<button type="button" class="' + clase + (ya ? " dp-inicial--foto" : "") + '" data-foto="' + esc(m.correo) + '" title="Ver foto"' +
+            ' aria-label="Ver foto de ' + esc(m.nombre || m.correo) + '">' + (ya ? '<img src="' + ya + '" alt="">' : inicial(m.nombre || m.correo)) + "</button>";
+    }
+
+    // Carga diferida: la foto chica se pide cuando su fila se ve (con pocas personas es casi enseguida)
+    function cargarFotos() {
+        var pendientes = [].filter.call($("dp-equipo").querySelectorAll("[data-foto]"), function (b) { return !b.querySelector("img"); });
+        if (vigia) vigia.disconnect();
+        if (!pendientes.length) return;
+        if (!("IntersectionObserver" in window)) { pendientes.forEach(traerFoto); return; }
+        vigia = new IntersectionObserver(function (vistas) {
+            vistas.forEach(function (v) { if (v.isIntersecting) { vigia.unobserve(v.target); traerFoto(v.target); } });
+        }, { rootMargin: "200px" });
+        pendientes.forEach(function (b) { vigia.observe(b); });
+    }
+
+    function miembroDe(correo) { return (datos.equipo || []).filter(function (x) { return x.correo === correo; })[0]; }
+
+    async function traerFoto(boton) {
+        var m = miembroDe(boton.dataset.foto);
+        if (!m || !m.foto) return;
+        var llave = m.correo + "|" + m.foto;
+        try {
+            if (!fotos[llave]) {
+                var r = await fetch(API + rutaFoto(m, "chica"), { credentials: "include" });
+                if (!r.ok) throw new Error(r.status);
+                fotos[llave] = URL.createObjectURL(await r.blob());
+            }
+            if (!boton.isConnected) return;
+            boton.innerHTML = '<img src="' + fotos[llave] + '" alt="">';
+            boton.classList.add("dp-inicial--foto");
+        } catch (e) {
+            // No llegó (se quitó la foto o ya no está en el despacho): se queda con sus iniciales, sin botón
+            if (!boton.isConnected) return;
+            var span = document.createElement("span");
+            span.className = boton.className.replace(" dp-inicial--foto", "");
+            span.textContent = boton.textContent;
+            boton.replaceWith(span);
+        }
+    }
+
+    function verFoto(boton) {
+        var m = miembroDe(boton.dataset.foto);
+        if (!m || !m.foto || !F.verFoto) return;
+        F.verFoto({ titulo: (m.nombre || m.correo) + (m.correo === datos.yo.correo ? " (tú)" : ""), sub: m.nombre_papel,
+                    ruta: rutaFoto(m, "grande"), previa: fotos[m.correo + "|" + m.foto] || null, volverA: boton });
+    }
+
     function pintarEquipo() {
         var lista = datos.equipo;
         $("dp-n-equipo").textContent = lista.length + (lista.length === 1 ? " persona" : " personas");
         $("dp-equipo").innerHTML = lista.length ? lista.map(function (m) {
             var estado = m.estado === "invitado" ? '<span class="ui-estado ui-estado--aviso">Invitación pendiente</span>'
                 : m.estado === "suspendido" ? '<span class="ui-estado ui-estado--error">Suspendido</span>' : "";
-            return '<li><span class="dp-inicial' + (m.papel === "titular" ? " dp-inicial--titular" : "") + '">' + inicial(m.nombre || m.correo) + "</span>" +
+            return "<li>" + circulo(m) +
                 '<span class="dp-quien"><strong>' + esc(m.nombre || m.correo) + (m.correo === datos.yo.correo ? " (tú)" : "") + "</strong>" +
                 "<small>" + (m.nombre ? esc(m.correo) + " · " : "") + (datos.titular ? esc(resumenPermisos(m)) : "") + "</small>" +
                 (datos.titular && textoMiEspacio(m) ? '<small class="dp-quien-me">' + esc(textoMiEspacio(m)) + "</small>" : "") + "</span>" +
@@ -152,6 +214,7 @@
                 (datos.titular ? '<button type="button" class="ui-btn ui-btn--secundario ui-btn--28" data-editar="' + esc(m.correo) + '">Permisos</button>' : "") +
                 "</span></li>";
         }).join("") : '<li class="dp-lista__vacio">Todavía no hay nadie en el equipo.</li>';
+        cargarFotos();
     }
 
     function pintarYo() {
@@ -614,6 +677,8 @@
         cargarSolicitudes();
     });
     $("dp-equipo").addEventListener("click", function (e) {
+        var f = e.target.closest("[data-foto]");
+        if (f) return verFoto(f);
         var r = e.target.closest("[data-reenviar]");
         if (r) return reenviarInvitacion(r);
         var b = e.target.closest("[data-editar]");

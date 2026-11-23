@@ -22,9 +22,14 @@
 .dp-lista > li { display: flex; align-items: center; gap: 12px; padding: 12px 4px; border-top: 1px solid var(--linea); }
 .dp-lista > li:first-child { border-top: 0; }
 .dp-lista__vacio { justify-content: center; color: rgb(var(--g-600)); font-size: 13.5px; padding: 22px 4px !important; }
-.dp-inicial { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; flex: none; font-weight: 800; font-size: 14px;
+.dp-inicial { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; flex: none; font-weight: 800; font-size: 14px;
     background: rgb(var(--g-100)); color: rgb(var(--g-700)); }
 .dp-inicial--titular { background: #FBF0E1; color: #8A5A22; }
+/* Fotos del equipo (23-nov-2026): con foto, el círculo es un botón que la abre en grande (assets/js/visor-foto.js) */
+button.dp-inicial { border: 0; padding: 0; margin: 0; font-family: inherit; line-height: 1; cursor: zoom-in; overflow: hidden; }
+button.dp-inicial:hover, button.dp-inicial:focus-visible { box-shadow: 0 0 0 2px rgb(var(--ac-600)); outline: none; }
+.dp-inicial--foto { background: rgb(var(--g-100)); }
+.dp-inicial--foto img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .dp-quien { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .dp-quien strong { font-size: 14px; color: rgb(var(--g-900)); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .dp-quien small { font-size: 12.5px; color: rgb(var(--g-600)); overflow-wrap: anywhere; }
