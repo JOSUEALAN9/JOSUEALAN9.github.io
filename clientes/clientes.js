@@ -1229,10 +1229,37 @@ document.addEventListener("change", async (e) => {
     catch (x) { const c = clientesCache.find(y => y.rfc === rfc); if (c) pintarDatosFiscales(c); avisoDomicilio(rfc, x.message); }
 });
 
+/* 23-nov-2026 (barrido de botones): la ficha no es un <dialog> (nucleo.js devuelve el foco solo a esos). Al cerrarla con su ✕,
+   con Esc (barra.js le quita .modal-active) o por código, el foco vuelve al botón que la abrió: «Editar», «CIEC», «e.firma»… */
+let abridorFicha = null, vigiaFicha = false;
+function vigilarCierreFicha() {
+    const m = document.getElementById("modal-editar-cliente");
+    if (vigiaFicha || !m || !window.MutationObserver) return;
+    vigiaFicha = true;
+    let abierta = m.classList.contains("modal-active");
+    new MutationObserver(() => {
+        const ahora = m.classList.contains("modal-active");
+        if (abierta && !ahora) {
+            const volver = abridorFicha, a = document.activeElement;
+            abridorFicha = null;
+            if (volver && volver.isConnected && (!a || a === document.body || m.contains(a))) {
+                try { volver.focus({ preventScroll: true }); } catch (e) { /* sin foco */ }
+            }
+        }
+        abierta = ahora;
+    }).observe(m, { attributes: true, attributeFilter: ["class"] });
+}
+
 function abrirModalEditar(rfc, ficha) {
     if (sinConexion || soloLectura) return;
     const cliente = clientesCache.find(c => c.rfc === rfc);
     if (!cliente) return;
+    vigilarCierreFicha();
+    const modalFicha = document.getElementById("modal-editar-cliente");
+    if (modalFicha && !modalFicha.classList.contains("modal-active")) {
+        const a = document.activeElement;
+        abridorFicha = a && a !== document.body && !modalFicha.contains(a) ? a : null;
+    }
 
     rfcEnEdicion = rfc;
     document.getElementById("editar-titulo").textContent = cliente.alias;
