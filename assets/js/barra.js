@@ -488,9 +488,12 @@
     }
     // 19-nov (pruebas reales): en un despacho, lo que el plan sí trae pero el titular no le dio a esta persona
     // (perfil.modulos_quitados) no es «mejora tu plan»: no se muestra en ningún lado (menú, Herramientas, buscador).
+    // 23-nov-2026, el dueño: lo que el administrador le quitó a la cuenta en «personalizado» (perfil.modulos_ocultos) tampoco
+    // se ve con candado: no aparece en ningún lado. Si alguien abre su dirección, sale el aviso normal del plan.
     function quitado(m) {
-        var q = perfilActual && perfilActual.modulos_quitados;
-        return !!(m && m.permiso && q && q.length && q.indexOf(m.permiso) !== -1);
+        var p = perfilActual, q = p && p.modulos_quitados, o = p && p.modulos_ocultos;
+        if (!m || !m.permiso) return false;
+        return !!((q && q.length && q.indexOf(m.permiso) !== -1) || (o && o.length && o.indexOf(m.permiso) !== -1));
     }
     function nombreTitular(p) {
         var d = p && p.espacio && p.espacio.despacho;
