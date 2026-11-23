@@ -79,6 +79,12 @@
 /* M-20: foto de perfil */
 .cf-foto { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; }
 .cf-foto__vista canvas { width: 112px; height: 112px; border-radius: 50%; display: block; border: 1px solid var(--linea); }
+/* 23-nov-2026: la vista es un botón; con foto guardada se pica y se abre en grande */
+.cf-foto__vista { flex: none; padding: 0; margin: 0; border: 0; background: none; border-radius: 50%; }
+.cf-foto__vista:not(:disabled) { cursor: zoom-in; }
+.cf-foto__vista:disabled { cursor: default; opacity: 1; }
+.cf-foto__vista:not(:disabled):hover canvas, .cf-foto__vista:focus-visible canvas { box-shadow: 0 0 0 3px rgb(var(--ac-600)); }
+.cf-foto__vista:focus-visible { outline: none; }
 .cf-foto__lado { flex: 1 1 240px; display: grid; gap: 6px; }
 .cf-foto__zoom { display: flex; align-items: center; gap: 8px; font-size: 13px; color: rgb(var(--g-600)); }
 .cf-foto__zoom input { flex: 1; max-width: 220px; }

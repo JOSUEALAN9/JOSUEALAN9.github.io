@@ -181,46 +181,71 @@
     }
 
     /* ---------- Mi perfil ---------- */
-    /* M-20: foto de perfil. Se recorta cuadrada aquí (con zoom) y el servidor la vuelve a encoger a 256×256. */
+    /* M-20: foto de perfil. Se recorta cuadrada aquí (con zoom) y el servidor la vuelve a validar y a encoger.
+       23-nov-2026 (el dueño: «que al picarle te la abra en grande»): el recorte sale de hasta 720×720 (nunca más grande que la
+       imagen: no se estira) y el servidor guarda además la chica de 256 para la barra y las listas. Al picar tu foto
+       guardada se abre en grande con el visor compartido (assets/js/visor-foto.js, por Fiscontable.verFoto). */
+    var LADO_FOTO_MIN = 256, LADO_FOTO_MAX = 720;
     function pintarFoto(caja) {
-        caja.innerHTML = '<div class="cf-tarjeta cf-foto"><div class="cf-foto__vista"><canvas width="256" height="256" id="cf-foto-lienzo" aria-label="Vista previa"></canvas></div>' +
-            '<div class="cf-foto__lado"><b>Foto de perfil</b><p class="cf-texto">Sale en la barra de arriba. JPG, PNG o WebP de hasta 3 MB.</p>' +
+        caja.innerHTML = '<div class="cf-tarjeta cf-foto"><button type="button" class="cf-foto__vista" id="cf-foto-ver" aria-label="Ver tu foto en grande" title="Ver en grande">' +
+            '<canvas width="256" height="256" id="cf-foto-lienzo" aria-hidden="true"></canvas></button>' +
+            '<div class="cf-foto__lado"><b>Foto de perfil</b><p class="cf-texto">Sale en la barra de arriba' +
+            (perfil.despacho && perfil.despacho.id ? " y en el equipo de tu despacho" : "") + '. JPG, PNG o WebP de hasta 3 MB.</p>' +
             '<input type="file" id="cf-foto-archivo" accept="image/png,image/jpeg,image/webp" hidden>' +
             '<label class="cf-foto__zoom" id="cf-foto-zoom-caja" hidden>Acercar <input type="range" id="cf-foto-zoom" min="1" max="3" step="0.05" value="1"></label>' +
             '<div class="cf-acciones"><button type="button" class="cf-btn" id="cf-foto-elegir">Elegir imagen</button>' +
             '<button type="button" class="cf-btn cf-btn--principal" id="cf-foto-guardar" hidden>Guardar foto</button>' +
             '<button type="button" class="cf-btn" id="cf-foto-quitar"' + (perfil.foto ? "" : " hidden") + '>Quitar</button><span class="cf-msj"></span></div></div></div>';
-        var lienzo = $("cf-foto-lienzo"), ctx = lienzo.getContext("2d"), img = null, zoom = 1;
+        var lienzo = $("cf-foto-lienzo"), ctx = lienzo.getContext("2d"), img = null, zoom = 1, pendiente = false, previa = null;
         function dibujar() {
-            ctx.fillStyle = "#e5e7eb"; ctx.fillRect(0, 0, 256, 256);
+            // El lienzo mide lo que mide el recorte (de 256 a 720): eso es lo que se sube
+            var L = img ? Math.max(LADO_FOTO_MIN, Math.min(LADO_FOTO_MAX, Math.round(Math.min(img.width, img.height) / zoom))) : LADO_FOTO_MIN;
+            if (lienzo.width !== L) { lienzo.width = L; lienzo.height = L; }
+            ctx.fillStyle = "#e5e7eb"; ctx.fillRect(0, 0, L, L);
             if (!img) return;
             var lado = Math.min(img.width, img.height) / zoom, sx = (img.width - lado) / 2, sy = (img.height - lado) / 2;
-            ctx.drawImage(img, sx, sy, lado, lado, 0, 0, 256, 256);
+            ctx.drawImage(img, sx, sy, lado, lado, 0, 0, L, L);
         }
-        dibujar();
+        // Se pica para verla en grande solo si hay una foto guardada y no estás a media edición
+        function puedeVer() {
+            var b = $("cf-foto-ver"), si = !!perfil.foto && !pendiente;
+            b.disabled = !si;
+            b.title = si ? "Ver en grande" : "";
+        }
+        dibujar(); puedeVer();
         if (perfil.foto) fetch(API + "/api/mi-perfil/foto?v=" + encodeURIComponent(perfil.foto), { credentials: "include" }).then(function (r) { return r.ok ? r.blob() : null; })
-            .then(function (b) { if (!b) return; var i = new Image(); i.onload = function () { if (!img) ctx.drawImage(i, 0, 0, 256, 256); }; i.src = URL.createObjectURL(b); });
+            .then(function (b) { if (!b) return; var i = new Image(); i.onload = function () { if (!img) ctx.drawImage(i, 0, 0, lienzo.width, lienzo.height); }; i.src = previa = URL.createObjectURL(b); });
+        $("cf-foto-ver").addEventListener("click", function () {
+            if (!perfil.foto || pendiente || !window.Fiscontable.verFoto) return;
+            Fiscontable.verFoto({ titulo: perfil.nombre || "Tu foto", sub: "Tu foto de perfil", previa: previa, volverA: this,
+                                  ruta: "/api/mi-perfil/foto?tam=grande&v=" + encodeURIComponent(perfil.foto) });
+        });
         $("cf-foto-elegir").addEventListener("click", function () { $("cf-foto-archivo").click(); });
         $("cf-foto-archivo").addEventListener("change", function () {
             var f = this.files[0]; this.value = "";
             if (!f) return;
             if (f.size > 3 * 1024 * 1024) { aviso(caja, false, "La imagen pesa más de 3 MB."); return; }
             var i = new Image();
-            i.onload = function () { img = i; zoom = 1; $("cf-foto-zoom").value = 1; $("cf-foto-zoom-caja").hidden = false; $("cf-foto-guardar").hidden = false; dibujar(); };
+            i.onload = function () { img = i; zoom = 1; pendiente = true; $("cf-foto-zoom").value = 1; $("cf-foto-zoom-caja").hidden = false; $("cf-foto-guardar").hidden = false; dibujar(); puedeVer(); };
             i.onerror = function () { aviso(caja, false, "No se pudo abrir esa imagen."); };
             i.src = URL.createObjectURL(f);
         });
         $("cf-foto-zoom").addEventListener("input", function () { zoom = +this.value; dibujar(); });
         $("cf-foto-guardar").addEventListener("click", async function () {
             try {
-                var r = await enviar("/api/mi-perfil/foto", "PUT", { imagen: lienzo.toDataURL("image/jpeg", 0.9) });
-                perfil.foto = r.foto; aviso(caja, true, "Guardada.");
+                var subida = lienzo.toDataURL("image/jpeg", 0.9);
+                var r = await enviar("/api/mi-perfil/foto", "PUT", { imagen: subida });
+                perfil.foto = r.foto; pendiente = false; previa = subida; puedeVer(); aviso(caja, true, "Guardada.");
                 [window, window.top].forEach(function (w) { try { if (w.Fiscontable && w.Fiscontable.ponerFoto) w.Fiscontable.ponerFoto(r.foto); } catch (x) { /* otro origen */ } });
                 $("cf-foto-guardar").hidden = true; $("cf-foto-quitar").hidden = false;
             } catch (e) { aviso(caja, false, e.message); }
         });
         $("cf-foto-quitar").addEventListener("click", async function () {
-            try { await api("/api/mi-perfil/foto", { method: "DELETE" }); perfil.foto = null; img = null; dibujar(); this.hidden = true; aviso(caja, true, "Foto quitada.");
+            // 23-nov-2026 (revisión de «fotos43»): ahora la foto la ve también tu equipo; quitarla no se deshace, se pregunta antes
+            if (Fiscontable.confirmar && !(await Fiscontable.confirmar({ titulo: "¿Quitar tu foto?", peligro: true, si: "Quitar",
+                    texto: "Ya no se verá en la barra" + (perfil.despacho && perfil.despacho.id ? " ni en el equipo de tu despacho" : "") +
+                           ". Puedes subir otra cuando quieras." }))) return;
+            try { await api("/api/mi-perfil/foto", { method: "DELETE" }); perfil.foto = null; img = null; pendiente = false; previa = null; dibujar(); puedeVer(); this.hidden = true; aviso(caja, true, "Foto quitada.");
                 [window, window.top].forEach(function (w) { try { if (w.Fiscontable && w.Fiscontable.ponerFoto) w.Fiscontable.ponerFoto(null); } catch (x) { /* otro origen */ } }); }
             catch (e) { aviso(caja, false, e.message); }
         });

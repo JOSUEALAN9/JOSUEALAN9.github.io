@@ -446,9 +446,13 @@
     function menuPerfilHTML() {
         return '<div class="fc-menu" id="fc-menu" role="menu" hidden>' +
             '<div class="fc-menu__cabeza">' +
-              '<div class="fc-menu__nombre" id="fc-menu-nombre">—</div>' +
-              '<div class="fc-menu__dato" id="fc-menu-correo"></div>' +
-              '<div class="fc-menu__dato" id="fc-menu-telefono"></div>' +
+              // 23-nov-2026, el dueño: tu foto también aquí, y al picarla se abre en grande (solo si tienes foto)
+              '<button type="button" class="fc-menu__foto" id="fc-menu-foto" role="menuitem" aria-label="Ver tu foto en grande" title="Ver en grande" hidden></button>' +
+              '<div class="fc-menu__quien">' +
+                '<div class="fc-menu__nombre" id="fc-menu-nombre">—</div>' +
+                '<div class="fc-menu__dato" id="fc-menu-correo"></div>' +
+                '<div class="fc-menu__dato" id="fc-menu-telefono"></div>' +
+              "</div>" +
             "</div>" +
             '<div class="fc-menu__fila"><span>Plan</span><span class="fc-menu__plan" id="fc-menu-plan">—</span></div>' +
             '<div class="fc-menu__fila"><span>Vigencia</span><span class="fc-menu__valor" id="fc-menu-vigencia">—</span></div>' +
@@ -2955,11 +2959,32 @@
     // el servidor no la entregue. Se borra al cerrar sesión.
     function fotoGuardada() { try { return JSON.parse(localStorage.getItem("fc-foto") || "null"); } catch (e) { return null; } }
     function mostrarFoto(url) {
-        var av = document.getElementById("fc-avatar");
+        var av = document.getElementById("fc-avatar"), enMenu = document.getElementById("fc-menu-foto");
         fotoUrl = url;
+        if (enMenu) {                                   // la del menú de la cuenta (23-nov-2026): se pica y se abre en grande
+            enMenu.hidden = !url;
+            enMenu.innerHTML = url ? '<img src="' + url + '" alt="">' : "";
+        }
         if (!av) return;
         if (url) { av.innerHTML = '<img src="' + url + '" alt="">'; av.classList.add("fc-avatar--foto"); }
         else { av.classList.remove("fc-avatar--foto"); av.textContent = ((perfilActual && (perfilActual.nombre || perfilActual.correo)) || "·").charAt(0).toUpperCase(); }
+    }
+
+    /* 23-nov-2026 (fotos del equipo): ver una foto en grande. El visor vive en assets/js/visor-foto.js (uno solo para Mi
+       despacho, Mi perfil y este menú); aquí solo se carga la primera vez que se usa. Fiscontable.verFoto({ titulo, sub,
+       ruta, previa, volverA }) — ver ese archivo. */
+    var cargaVisor = null;
+    function verFoto(o) {
+        var FC = window.Fiscontable;
+        if (FC.visorFoto) { FC.visorFoto(o); return; }
+        if (!cargaVisor) cargaVisor = new Promise(function (ok, mal) {
+            var sc = document.createElement("script");
+            sc.src = "/assets/js/visor-foto.js?v=" + encodeURIComponent(FC.VERSION || "");
+            sc.onload = ok; sc.onerror = mal;
+            document.head.appendChild(sc);
+        });
+        cargaVisor.then(function () { if (FC.visorFoto) FC.visorFoto(o); },
+                        function () { cargaVisor = null; brindis("No se pudo abrir la foto. Revisa tu conexión e inténtalo otra vez."); });
     }
     async function ponerFoto(version, forzar) {
         if (!document.getElementById("fc-avatar")) return;
@@ -4526,6 +4551,15 @@
         location.href = "/configuracion/?seccion=perfil";
     });
 
+    // Tu foto en el menú: se cierra el menú y se abre en grande; al cerrar, el foco vuelve al botón de la cuenta
+    document.getElementById("fc-menu-foto").addEventListener("click", function () {
+        if (!fotoActual || !fotoUrl) return;
+        menu.hidden = true;
+        btnPerfil.setAttribute("aria-expanded", "false");
+        verFoto({ titulo: (perfilActual && perfilActual.nombre) || "Tu foto", sub: "Tu foto de perfil", previa: fotoUrl, volverA: btnPerfil,
+                  ruta: "/api/mi-perfil/foto?tam=grande&v=" + encodeURIComponent(fotoActual) });
+    });
+
     document.addEventListener("click", function (e) {
         if (!menu.hidden && !menu.contains(e.target) && !btnPerfil.contains(e.target)) {
             menu.hidden = true;
@@ -4691,6 +4725,7 @@
         bloquearPantalla: function (servidor) { bloquearPantalla(!!servidor); },
         panelTrabajo: panelTrabajo,
         ponerFoto: function (v) { ponerFoto(v, true); },
+        verFoto: verFoto,
         catalogo: CATALOGO,
         grupos: GRUPOS,
         avisoPlan: avisoPlan,
