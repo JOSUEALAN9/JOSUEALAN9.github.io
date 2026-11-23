@@ -1678,6 +1678,7 @@ main.fc-recien { animation: fc-recien .35s ease-out; }
 .fc-informar__campo textarea { width: 100%; min-height: 110px; padding: 10px 12px; border: 1px solid rgb(var(--g-300)); border-radius: var(--r-control); font: inherit; font-weight: 400; resize: vertical; box-sizing: border-box; }
 .fc-informar__check { font-size: var(--t-12); color: rgb(var(--g-600)); line-height: 1.45; }
 .fc-informar__msj { margin: 0; font-size: var(--t-13); color: rgb(var(--er-600)); }
+.fc-informar__codigo { margin: 0; font-size: var(--t-12); color: rgb(var(--g-600)); }   /* 23-nov-2026: el código E-XXXX del último error del servidor */
 .fc-informar__msj:empty { display: none; }
 .fc-confirmar__escribir { display: grid; gap: 6px; font-size: var(--t-13); color: rgb(var(--g-700)); }
 .fc-confirmar__escribir input { height: 36px; padding: 0 10px; border: 1px solid rgb(var(--g-300)); border-radius: var(--r-control); font: inherit; font-family: var(--fuente-mono); text-transform: uppercase; }

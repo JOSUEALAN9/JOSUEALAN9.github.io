@@ -71,7 +71,7 @@
 .bz-progreso ul { display: flex; flex-direction: column; gap: 3px; }
 .bz-progreso small { color: rgb(var(--g-500)); }
 .bz-progreso__ok b, .bz-progreso__parcial b { color: rgb(var(--ok-200)); }
-.bz-progreso__error b { color: rgb(var(--er-200)); }
+.bz-progreso__error b, .bz-progreso__incompleta b { color: rgb(var(--er-200)); }
 .bz-progreso__revisando b { color: rgb(var(--in-200)); }
 .bz-progreso .bz-liga { color: rgb(var(--in-200)); }
 

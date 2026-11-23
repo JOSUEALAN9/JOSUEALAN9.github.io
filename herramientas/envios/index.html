@@ -4,15 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Envíos por correo | Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611231430">
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611231430">
-    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611231430">
-    <link rel="stylesheet" href="/herramientas/envios/envios.css?v=202611231430">
+    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611231700">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611231700">
+    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611231700">
+    <link rel="stylesheet" href="/herramientas/envios/envios.css?v=202611231700">
 </head>
 <body class="min-h-screen flex flex-col">
 <div id="app-header" data-modulo="envios" data-titulo="Envíos por correo" data-migas="Herramientas|/herramientas/"></div>
-<script src="/assets/js/nucleo.js?v=202611231430"></script>
-<script src="/assets/js/barra.js?v=202611231430"></script>
+<script src="/assets/js/nucleo.js?v=202611231700"></script>
+<script src="/assets/js/barra.js?v=202611231700"></script>
 
 <main class="flex-grow mod-pagina">
     <div class="mod-cabeza">
@@ -62,6 +62,8 @@
                 <label class="ui-check ev-radio"><input type="radio" name="ev-destino" value="cliente">
                     <span><b>A cada cliente</b><small>Un correo por empresa, al correo de su ficha, solo con lo suyo. Los que pongas aquí van en copia.</small></span></label>
             </div>
+            <!-- 22-nov-2026 (auditoría envios_correos-2): en «A cada cliente», las empresas sin correo en su ficha no reciben nada -->
+            <p class="ev-sin-correo" id="ev-sin-correo" role="status" hidden></p>
             <div class="ev-dos">
                 <div class="ui-campo"><span class="ui-etiqueta" id="ev-para-etq">Para</span>
                     <div class="ev-correos" id="ev-para" data-vacio="correo@ejemplo.com" role="group" aria-labelledby="ev-para-etq"></div></div>
@@ -91,6 +93,7 @@
                 </div>
             </div>
             <div id="ev-elegidas" class="ev-elegidas" aria-live="polite"></div>
+            <p class="ev-sin-correo" id="ev-sin-correo-emp" role="status" hidden></p>
             <p class="ui-ayuda">También se pueden marcar después, con las casillas de «Empresas de cada envío».</p>
         </section>
 
@@ -106,6 +109,8 @@
                 <label class="ui-campo" id="ev-dias-enlace-caja"><span class="ui-etiqueta">El enlace vence en</span>
                     <select id="ev-dias-enlace" class="ui-select"><option value="3">3 días</option><option value="5">5 días</option><option value="7">7 días</option></select></label>
             </div>
+            <!-- 22-nov-2026 (auditoría envios_correos-1): cuándo sale la primera vez -->
+            <p class="ev-nota ev-primera" id="ev-primera" aria-live="polite" hidden></p>
             <!-- 21-nov-2026: «Solo una vez, ahora»: el periodo y el corte, como en «Enviar ahora» -->
             <div class="ev-unavez-form" id="ev-una-caja" hidden>
                 <div class="ev-dos ev-dos--fijo">
@@ -268,6 +273,6 @@
     </div>
 </dialog>
 
-<script src="/herramientas/envios/envios.js?v=202611231430"></script>
+<script src="/herramientas/envios/envios.js?v=202611231700"></script>
 </body>
 </html>

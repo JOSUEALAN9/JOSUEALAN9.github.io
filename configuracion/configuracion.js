@@ -1061,7 +1061,11 @@
             });
             c.querySelectorAll("[data-buzon]").forEach(function (sw) {
                 sw.addEventListener("change", async function () {
-                    var rfc = sw.closest("tr").dataset.rfc; sw.disabled = true;
+                    var rfc = sw.closest("tr").dataset.rfc;
+                    // 22-nov-2026 (auditoría sat_modulos-4): apagar el Buzón de una empresa se confirma (deja de avisar sus notificaciones)
+                    if (!sw.checked && window.Fiscontable && Fiscontable.confirmar && !(await Fiscontable.confirmar({ titulo: "¿Apagar la revisión automática?", peligro: true, si: "Apagar",
+                        texto: (nombre[rfc] || rfc) + " dejará de revisarse en la madrugada y no te avisaremos de sus notificaciones del SAT." }))) { sw.checked = true; return; }
+                    sw.disabled = true;
                     try { await enviar("/api/buzon/empresas/" + encodeURIComponent(rfc), "PUT", { activo: sw.checked }); aviso(c, true, "✓ " + (nombre[rfc] || rfc) + ": Buzón " + (sw.checked ? "encendido." : "apagado.")); }
                     catch (x) { sw.checked = !sw.checked; aviso(c, false, x.message); }
                     finally { sw.disabled = false; }

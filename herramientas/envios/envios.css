@@ -227,3 +227,8 @@
 /* 21-nov-2026 (revisión de Fable, hallazgo 7): qué va de cada lado con «Solo de estos proveedores / clientes» */
 .ev-solo__resumen { margin: 10px 0 0; padding: 9px 12px; border-radius: 10px; background: rgb(var(--av-50)); border: 1px solid rgb(var(--av-200));
     color: rgb(var(--g-800)); font-size: var(--t-13); font-weight: 600; overflow-wrap: anywhere; }
+/* 22-nov-2026 (auditoría de Envíos): empresas sin correo en «A cada cliente», la primera fecha y la espera por cliente */
+.ev-sin-correo { margin: 8px 0 0; padding: 8px 12px; border-radius: 10px; font-size: var(--t-13); color: rgb(var(--g-800, 31 41 51));
+    background: rgb(var(--ambar-50, 255 247 237)); border: 1px solid rgb(var(--ambar-200, 254 215 170)); }
+.ev-primera { font-weight: 600; color: rgb(var(--g-900)); }
+.ev-detenido--espera { background: rgb(var(--g-50, 248 250 252)); border-color: var(--linea); }

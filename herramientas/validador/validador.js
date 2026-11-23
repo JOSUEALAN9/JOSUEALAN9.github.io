@@ -119,10 +119,22 @@
             var cuerpo = E.origen === "empresa"
                 ? { url: "/api/validador/empresa/validar", datos: { rfc: E.empresa.rfc, uuid: f.uuid } }
                 : { url: "/validar-factura/", datos: { rfc_emisor: f.rfc_emisor, rfc_receptor: f.rfc_receptor, total: Number(f.total).toFixed(2), uuid: f.uuid } };
-            var r = await fetch(API + cuerpo.url, { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify(cuerpo.datos) });
-            if (!r.ok) throw new Error();
+            /* 23-nov-2026 (auditoría web-4): validar uno por uno es un trabajo que inició la persona (fcTrabajo): la pantalla no se
+               bloquea mientras corre y, si se bloquea, la consulta espera al desbloqueo y sigue con el mismo CFDI (nucleo.js). Antes
+               el bloqueo hacía que todos los que faltaban salieran «El SAT no respondió». Y el motivo ya es el de verdad: «El SAT no
+               respondió» solo cuando lo dice el servidor; si no, lo que dijo Fiscontable o «Sin conexión». Consultar el estado es
+               seguro de repetir (fcRepetible): si fue un corte del camino (la Vostro reiniciando), se reintenta unos segundos. */
+            var r = await fetch(API + cuerpo.url, { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify(cuerpo.datos), fcTrabajo: true, fcRepetible: true });
+            if (!r.ok) {
+                var delSat = (r.status === 502 || r.status === 504) && /json/i.test(r.headers.get("content-type") || "");
+                var motivo = delSat ? "El SAT no respondió" : await Fiscontable.leerError(r);
+                return { estado: "Sin respuesta", es_cancelable: "", estatus_cancelacion: motivo };
+            }
             return await r.json();
-        } catch (e) { return { estado: "Sin respuesta", es_cancelable: "", estatus_cancelacion: "El SAT no respondió" }; }
+        } catch (e) {
+            var texto = e && e.message && !/fetch|token|json/i.test(e.message) ? e.message : "Sin conexión con Fiscontable";
+            return { estado: "Sin respuesta", es_cancelable: "", estatus_cancelacion: texto };
+        }
     }
     async function validar(lista) {
         if (E.corriendo || !lista.length) return;

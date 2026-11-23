@@ -134,13 +134,90 @@
         $("chip-modo").hidden = F.cfg.produccion;
         eventos();
         F.empresa = await Fiscontable.empresaActiva();
-        window.addEventListener("fiscontable:empresa", function (ev) { F.empresa = ev.detail; elegirEmpresa(); });
+        window.addEventListener("fiscontable:empresa", function (ev) { cambiarDeEmpresa(ev.detail); });
         F.vista = F.incrustado ? "config" : (Fiscontable.url("vista") || "nueva");     // con F5 se queda en la misma vista
         window.addEventListener("fiscontable:config", recargarConfig);
         nuevaFactura();
         irPaso(1);
         elegirEmpresa();
         vista(F.vista);
+    }
+
+    /* 23-nov-2026 (auditoría web-2): al cambiar de empresa arriba, la factura a medio capturar se quedaba y se timbraba con
+       la empresa nueva; además seguía ligada a la recurrente, la cotización o la prefactura de la anterior, que el servidor
+       daba por hechas. Ahora, si hay algo capturado, se pregunta qué hacer con ella (guardarla como prefactura de la
+       anterior o descartarla) y SIEMPRE se limpia: emisor, serie y folio son los de la nueva empresa y no queda ligada a
+       nada de la anterior. Los cambios se atienden de uno en uno (si llega otro mientras se pregunta, espera su turno). */
+    var turnoEmpresa = Promise.resolve();
+    function cambiarDeEmpresa(nueva) {
+        // Revisión 23-nov: se cuenta al instante, para que una revisión que ya iba al servidor («Revisando…») no abra después
+        // la confirmación de la captura de A con el emisor de B (prepararTimbrado y prepararPago lo comparan al volver)
+        if (!F.emisor || !nueva || F.emisor.rfc !== nueva.rfc) F.cambiosEmpresa = (F.cambiosEmpresa || 0) + 1;
+        turnoEmpresa = turnoEmpresa.then(function () { return cambiarDeEmpresaYa(nueva); }).catch(function (e) {
+            if (window.console) console.error(e);
+            nuevaFactura(); F.empresa = nueva; elegirEmpresa();
+        });
+    }
+    function hayCaptura() {
+        if (F.borradorId || F.recurrenteId || F.facturandoCot || F.cotizacionId || F.sustituye) return true;
+        if ($("r-rfc").value.trim() || $("r-nombre").value.trim()) return true;
+        return F.conceptos.some(function (c) { return !conceptoEnBlanco(c); });
+    }
+    async function cambiarDeEmpresaYa(nueva) {
+        var antes = F.emisor;
+        if (antes && nueva && antes.rfc === nueva.rfc) { F.empresa = nueva; return; }      // la misma: nada que limpiar
+        // Un timbrado que ya salió hacia el PAC termina con su empresa; la confirmación abierta era de la anterior
+        for (var i = 0; i < 200 && $("dlg-confirmar").open && $("btn-confirmar").disabled; i++) await new Promise(function (r) { setTimeout(r, 300); });
+        if ($("dlg-confirmar").open) $("dlg-confirmar").close();
+        F.pendiente = null; F.confirmando = null;
+        if (antes && hayCaptura()) {
+            var guardar = await preguntarCaptura(antes, nueva);
+            if (guardar) await guardarCapturaDe(antes);
+        }
+        nuevaFactura();
+        F.empresa = nueva;
+        elegirEmpresa();
+    }
+    function nombreEmisor(e) { return (e && (e.alias || e.nombre)) || (e && e.rfc) || "la empresa anterior"; }
+    // ¿Guardar como prefactura de A o descartar? Cerrar la ventana (Esc) guarda: así nada se pierde sin querer.
+    function preguntarCaptura(antes, nueva) {
+        return new Promise(function (listo) {
+            var dlg = document.createElement("dialog");
+            dlg.className = "ui-modal fc-confirmar"; dlg.id = "dlg-cambio-empresa";
+            dlg.innerHTML = '<div class="ui-modal__cuerpo"><h3></h3><p class="fc-confirmar__texto"></p></div>' +
+                '<div class="ui-modal__pie"><button type="button" class="ui-btn ui-btn--secundario ui-btn--32" data-r="no">Descartar</button>' +
+                '<button type="button" class="ui-btn ui-btn--primario ui-btn--32" data-r="si"></button></div>';
+            var de = nombreEmisor(antes), a = nombreEmisor(nueva);
+            dlg.querySelector("h3").textContent = "¿Qué hacemos con la factura que llevabas de " + de + "?";
+            var liga = F.recurrenteId ? " Es una recurrente: sigue pendiente en «Hoy toca facturar» de " + de + "."
+                : F.facturandoCot || F.cotizacionId ? " Viene de una cotización de " + de + ": la cotización sigue como estaba." : "";
+            dlg.querySelector(".fc-confirmar__texto").textContent = "Cambiaste a " + a + ". Esa factura es de " + de +
+                " y no se puede timbrar con otra empresa: la guardamos como prefactura de " + de + " o la descartamos." + liga;
+            dlg.querySelector('[data-r="si"]').textContent = "Guardar como prefactura de " + de;
+            var hecho = false;
+            function fin(r) { if (hecho) return; hecho = true; try { dlg.close(); } catch (x) { /* nada */ } dlg.remove(); listo(r); }
+            dlg.addEventListener("click", function (e) { var b = e.target.closest("[data-r]"); if (b) fin(b.dataset.r === "si"); });
+            dlg.addEventListener("cancel", function (e) { e.preventDefault(); fin(true); });
+            document.body.appendChild(dlg);
+            dlg.showModal();
+            dlg.querySelector('[data-r="si"]').focus();
+        });
+    }
+    /* La captura se guarda como prefactura de la empresa ANTERIOR (su RFC), sin ligas: ni recurrente ni cotización ni la
+       factura a sustituir (abrirla después no da por hecha ninguna de ellas). Si era una prefactura suelta, se actualiza esa. */
+    async function guardarCapturaDe(antes) {
+        var cap = captura();
+        cap.recurrente_id = null; cap.cotizacion_id = null;
+        var suelta = F.borradorId && !F.recurrenteId ? F.borradores.filter(function (x) { return x.id === F.borradorId && !x.recurrente; })[0] : null;
+        var nombre = suelta ? suelta.nombre : (cap.receptor.nombre || cap.receptor.rfc || "Factura sin terminar");
+        var total = null;
+        try { total = calcular().total; } catch (e) { /* sin total: se calcula al abrirla */ }
+        try {
+            await enviar("/api/facturacion/borradores", "POST", { id: suelta ? suelta.id : null, rfc: antes.rfc, nombre: nombre, captura: cap, total: total });
+            Fiscontable.toast("Se guardó como prefactura de " + nombreEmisor(antes) + ": «" + nombre + "».");
+        } catch (e) {
+            Fiscontable.toast("No se pudo guardar la prefactura de " + nombreEmisor(antes) + ": " + e.message + " La factura se descartó para no timbrarla con otra empresa.");
+        }
     }
 
     function elegirEmpresa() {
@@ -1167,9 +1244,11 @@
         if (malo) { err.textContent = malo; err.hidden = false; return; }
         var b = $("btn-timbrar");
         b.disabled = true; b.textContent = "Revisando…";
+        var cambios = F.cambiosEmpresa;           // para saber si se cambió de empresa mientras se revisa (revisión 23-nov)
         try {
             var cap = captura();
             var r = await enviar("/api/facturacion/revisar", "POST", { rfc: F.emisor.rfc, captura: cap });
+            if (F.cambiosEmpresa !== cambios) { b.disabled = false; pintarFolio(); return; }     // cambió de empresa mientras se revisaba
             F.pendiente = cap; F.confirmando = null;
             var t = r.totales, serie = F.tipo === "I" ? F.emisor.serie_i : F.emisor.serie_e, folio = F.tipo === "I" ? F.emisor.folio_i : F.emisor.folio_e;
             $("conf-titulo").textContent = F.tipo === "I" ? "¿Timbrar esta factura?" : "¿Timbrar esta nota de crédito?";
@@ -1193,7 +1272,7 @@
             }
             $("dlg-confirmar").showModal();
         } catch (e) {
-            err.textContent = e.message; err.hidden = false;
+            if (F.cambiosEmpresa === cambios) { err.textContent = e.message; err.hidden = false; }   // el error de A no se pinta en B (revisión 23-nov)
         }
         b.disabled = false; pintarFolio();
     }
@@ -1725,9 +1804,11 @@
     async function prepararPago() {
         if (faltaManifiesto()) return;
         var err = $("pg-error"); err.hidden = true; err.classList.remove("fa-error--revisando");
+        var cambios = F.cambiosEmpresa;
         try {
             var cap = pagoCaptura();
             var r = await enviar("/api/facturacion/pagos/revisar", "POST", { rfc: F.emisor.rfc, pago: cap });
+            if (F.cambiosEmpresa !== cambios) return;           // cambió de empresa mientras se revisaba (revisión 23-nov)
             F.pendientePago = cap; F.confirmando = "pago";
             $("conf-titulo").textContent = "¿Timbrar el recibo de pago?";
             $("conf-resumen").innerHTML = '<dl class="fa-resumen"><dt>Folio</dt><dd>' + esc(r.serie + "-" + r.folio) + "</dd><dt>Receptor</dt><dd>" + esc(r.receptor_nombre + " · " + r.receptor_rfc) +
@@ -1737,7 +1818,7 @@
                 (r.doctos.some(function (d) { return (d.impuestos || []).length; }) ? '<p class="fa-resumen__nota">Impuestos en proporción a lo pagado: la base de cada impuesto de la factura × (pagado ÷ total), y el importe = esa base × la tasa.</p>' : "");
             $("conf-nota").textContent = F.cfg.produccion ? "Se manda al SAT y gasta 1 timbre de la empresa." : "Modo de pruebas: no gasta timbres ni tiene validez fiscal.";
             $("dlg-confirmar").showModal();
-        } catch (e) { err.textContent = e.message; err.hidden = false; }
+        } catch (e) { if (F.cambiosEmpresa === cambios) { err.textContent = e.message; err.hidden = false; } }
     }
 
     /* 20-nov-2026 (el dueño, tras timbrar el P-1): el recibo de pago como quedaría, igual que «Vista previa PDF» de la factura:

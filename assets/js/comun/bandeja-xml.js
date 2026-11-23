@@ -189,7 +189,8 @@
                 lotes[i].forEach(function (par) { fd.append("archivos", new Blob([par[1].bytes], { type: "application/xml" }), par[1].nombre); });
                 fd.append("rfc", d);
                 try {
-                    var r = await apiJSON(o.endpoint, { method: "POST", body: fd });
+                    // 23-nov-2026 (auditoría web-3/web-4): parte segura de repetir y trabajo de la persona (no bloquea; si se bloquea, espera)
+                    var r = await apiJSON(o.endpoint, { method: "POST", body: fd, fcRepetible: true, fcTrabajo: true });
                     tot.nuevos += r.nuevos; tot.duplicados += r.duplicados;
                     tot.rechazados = tot.rechazados.concat(r.rechazados || []);
                     lotes[i].forEach(function (par) { BJ.xml.delete(par[0]); });

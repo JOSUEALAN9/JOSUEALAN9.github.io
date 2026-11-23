@@ -35,6 +35,9 @@
     var puedeGuardarEfirma = true;   // false en la Demo (lo decide el servidor)
     var estado = null;           // lo que el servidor sabe de ese RFC
     var enCurso = {};            // RFC -> job_id, para no lanzar dos robots
+    // 23-nov-2026 (auditoría web-1): un solo seguimiento por trabajo (job_id -> {rfc, nombre, intervalo, ancho, texto}).
+    // Cada seguimiento sabe de qué empresa es y solo toca la pantalla si esa empresa es la que está elegida.
+    var seguimientos = {};
     var sondeos = [];            // todos los temporizadores vivos de la página
 
     var archivosLote = [];
@@ -48,6 +51,9 @@
     function limpiarSondeos() {
         sondeos.forEach(clearInterval);
         sondeos = [];
+        // Revisión 23-nov: sin temporizador ya no hay seguimiento. Si la página vuelve de la caché del navegador (Atrás), al
+        // elegir la empresa se abre uno nuevo; si quedara anotado, «un solo seguimiento por trabajo» lo dejaría congelado.
+        seguimientos = {};
     }
     window.addEventListener("pagehide", limpiarSondeos);
 
@@ -73,7 +79,8 @@
                 }
                 return detalle ? "No se pudo completar: " + detalle : "Error inesperado en el servidor.";
             } catch (e) {
-                return "Error inesperado en el servidor.";
+                // Sin respuesta propia del servidor (un corte del camino): nucleo.js dice si hay que revisar si se hizo
+                return Fiscontable.leerError(resp);
             }
         }
         return Fiscontable.leerError(resp);         // 4xx: el servidor ya trae el motivo en palabras (cuota, plan…)
@@ -151,16 +158,21 @@
 
     async function alElegirCliente(quien) {
         elegido = quien;
+        estado = null;               // lo de la empresa anterior ya no vale para esta (se llena abajo)
         sinAlerta();
+        quitarAjenos();
         esqueleto();
 
         var info = await investigarRFC(quien.rfc);
         if (!elegido || elegido.rfc !== quien.rfc) return;   // cambió de RFC mientras consultábamos
         estado = info;
 
-        if (estado.pendiente) {
-            vistaProgreso("Ya tenías un documento en proceso para este RFC. Retomamos el seguimiento.");
-            vigilarTrabajo(estado.pendiente);
+        // Si ya se sigue un trabajo de esta empresa (se pidió y luego se cambió de empresa), se retoma ese mismo
+        // seguimiento: no se abre otro (antes se abrían dos y el PDF se bajaba dos veces).
+        var vivo = estado.pendiente || enCurso[quien.rfc];
+        if (vivo) {
+            vistaProgreso(seguimientos[vivo] ? "Sigue en proceso." : "Ya tenías un documento en proceso para este RFC. Retomamos el seguimiento.");
+            vigilarTrabajo(vivo, quien);
             return;
         }
         if (estado.cache) { vistaCache(); return; }
@@ -172,7 +184,54 @@
         elegido = null;
         estado = null;
         sinAlerta();
+        quitarAjenos();
         pintarPaso2("");
+    }
+
+    // La caja «está en tu equipo» que dejó un trabajo es de la empresa de ese trabajo: al cambiar de empresa se quita
+    function quitarAjenos() {
+        document.querySelectorAll(".fc-en-pc").forEach(function (x) { x.remove(); });
+    }
+
+    function nombreDoc() { return MODULO.nombre.charAt(0).toUpperCase() + MODULO.nombre.slice(1); }
+
+    /* Terminó (o falló) el documento de una empresa que ya no está en pantalla: no se toca la pantalla de la otra; queda
+       un aviso arriba con su nombre y, si salió, con Ver y Descargar de ESE documento (23-nov-2026, auditoría web-1). */
+    function avisoOtra(seg, bien, texto, jobId) {
+        var lista = $("avisos-otras");
+        if (!lista) {
+            lista = document.createElement("div");
+            lista.id = "avisos-otras";
+            $("alerta").insertAdjacentElement("beforebegin", lista);
+        }
+        var caja = document.createElement("div");
+        caja.className = bien ? "fc-aviso fc-aviso--bien" : "fc-aviso";
+        caja.setAttribute("role", "status");
+        caja.style.cssText = "margin:0 0 12px;display:flex;flex-wrap:wrap;gap:8px;align-items:center";
+        caja.dataset.rfc = seg.rfc;
+        var t = document.createElement("span");
+        t.style.cssText = "flex:1 1 220px;min-width:0;overflow-wrap:anywhere";
+        t.textContent = texto;
+        caja.appendChild(t);
+        var nombre = MODULO.prefijoArchivo + "_" + seg.rfc + ".pdf", ruta = "/api/trabajos/" + jobId + "/descargar";
+        function boton(txt, fn) {
+            var b = document.createElement("button");
+            b.type = "button"; b.className = "ui-btn ui-btn--secundario ui-btn--32"; b.textContent = txt;
+            b.addEventListener("click", function () { fn(b); });
+            caja.appendChild(b);
+            return b;
+        }
+        if (bien && jobId) {
+            boton("Ver", function () { Fiscontable.verPdf(API + ruta, { titulo: nombreDoc() + " · " + seg.nombre, nombre: nombre }); });
+            boton("Descargar", function (b) {
+                b.disabled = true;
+                bajarBlob(ruta, nombre).catch(function () { t.textContent = texto + " No se pudo descargar: búscalo en Mis descargas."; })
+                    .finally(function () { b.disabled = false; });
+            });
+        }
+        var x = boton("×", function () { caja.remove(); });
+        x.className = "ui-btn ui-btn--terciario ui-btn--32"; x.setAttribute("aria-label", "Cerrar aviso");
+        lista.appendChild(caja);
     }
 
     /* --- Estado A: ya existe un documento reciente --- */
@@ -187,7 +246,7 @@
             detalle: (res === "Negativa" ? "El SAT la emitió en sentido negativo: ábrela para ver los motivos. " : "") +
                      (rev && rev.resultado ? "Revisada en el SAT el " + fechaLarga(rev.revisada_en) + ": " + rev.resultado.toLowerCase() +
                         (rev.resultado === res ? ", sin cambios. " : ". ") : "") +
-                     "Se conserva hasta el " + fechaLarga(estado.cache.expira_en) + ".",
+                     (estado.cache.expira_en ? "Se conserva hasta el " + fechaLarga(estado.cache.expira_en) + "." : ""),
             acciones: [{ id: "btn-ver-cache", texto: "Ver", primario: true }, { id: "btn-cache", texto: "Descargar" },
                        { id: "btn-enviar-cache", texto: "Enviar por correo" }, { id: "btn-nueva", texto: "Solicitar nueva al SAT" }]
                 .concat(ant ? [{ id: "btn-anterior", texto: "La anterior (" + fechaLarga(ant.generado_en) + (ant.resultado ? " · " + ant.resultado : "") + ")" }] : [])
@@ -240,26 +299,32 @@
     }
 
     async function generarConEfirmaGuardada() {
-        if (enCurso[elegido.rfc]) {
+        var quien = elegido;
+        if (!quien) return;
+        if (enCurso[quien.rfc]) {
             alerta("error", "Ya se está generando este documento. Espera a que termine.");
             return;
         }
         sinAlerta();
         vistaProgreso("Arrancando…");
+        // Mientras el servidor contesta se puede cambiar de empresa: lo que regrese es de «quien», no de la que esté en pantalla
+        var sigue = function () { return !!(elegido && elegido.rfc === quien.rfc); };
         try {
-            var resp = await fetch(API + "/api/clientes/" + encodeURIComponent(elegido.rfc) +
+            var resp = await fetch(API + "/api/clientes/" + encodeURIComponent(quien.rfc) +
                 "/generar-" + MODULO.slug, { method: "POST", credentials: "include" });
             if (!resp.ok) {
-                alerta("error", await leerError(resp));
-                vistaEfirmaGuardada();
+                var msj = await leerError(resp);
+                if (sigue()) { alerta("error", msj); vistaEfirmaGuardada(); }
+                else avisoOtra({ rfc: quien.rfc, nombre: quien.alias || quien.rfc }, false, "No se pudo pedir la " + MODULO.nombre + " de " + (quien.alias || quien.rfc) + ": " + msj);
                 return;
             }
             var datos = await resp.json();
-            vigilarTrabajo(datos.job_id);
+            vigilarTrabajo(datos.job_id, quien);
             Fiscontable.refrescarDescargas();
         } catch (e) {
-            alerta("error", await leerError(null));
-            vistaEfirmaGuardada();
+            var m = await leerError(null);
+            if (sigue()) { alerta("error", m); vistaEfirmaGuardada(); }
+            else avisoOtra({ rfc: quien.rfc, nombre: quien.alias || quien.rfc }, false, "No se pudo pedir la " + MODULO.nombre + " de " + (quien.alias || quien.rfc) + ": " + m);
         }
     }
 
@@ -371,7 +436,9 @@
 
     async function generarConFormulario() {
         sinAlerta();
-        if (enCurso[elegido.rfc]) {
+        var quien = elegido;
+        if (!quien || !estado) return;
+        if (enCurso[quien.rfc]) {
             alerta("error", "Ya se está generando este documento. Espera a que termine.");
             return;
         }
@@ -401,7 +468,7 @@
         var adicional = $("chk-adicional") ? $("chk-adicional").checked : false;
 
         var cuerpo = new FormData();
-        cuerpo.append("rfc", elegido.rfc);
+        cuerpo.append("rfc", quien.rfc);
         cuerpo.append("password", password);
         cuerpo.append("cer", cer);
         cuerpo.append("key", key);
@@ -415,23 +482,26 @@
         boton.disabled = true;
         boton.textContent = "Arrancando…";
 
+        var sigue = function () { return !!(elegido && elegido.rfc === quien.rfc); };
+        var fallo = function (msj) {
+            if (!sigue()) {
+                avisoOtra({ rfc: quien.rfc, nombre: quien.alias || quien.rfc }, false, "No se pudo pedir la " + MODULO.nombre + " de " + (quien.alias || quien.rfc) + ": " + msj);
+                return;
+            }
+            alerta("error", msj);
+            boton.disabled = false;
+            boton.textContent = "Generar " + MODULO.nombre;
+        };
         try {
             var resp = await fetch(API + "/api/" + MODULO.slug + "/iniciar",
                 { method: "POST", credentials: "include", body: cuerpo });
-            if (!resp.ok) {
-                alerta("error", await leerError(resp));
-                boton.disabled = false;
-                boton.textContent = "Generar " + MODULO.nombre;
-                return;
-            }
+            if (!resp.ok) { fallo(await leerError(resp)); return; }
             var datos = await resp.json();
-            vistaProgreso("Arrancando…");
-            vigilarTrabajo(datos.job_id);
+            if (sigue()) vistaProgreso("Arrancando…");
+            vigilarTrabajo(datos.job_id, quien);
             Fiscontable.refrescarDescargas();
         } catch (e) {
-            alerta("error", await leerError(null));
-            boton.disabled = false;
-            boton.textContent = "Generar " + MODULO.nombre;
+            fallo(await leerError(null));
         }
     }
 
@@ -448,73 +518,115 @@
             "</div>");
     }
 
-    function vigilarTrabajo(jobId) {
-        var rfc = elegido.rfc;
-        enCurso[rfc] = jobId;
-        var segundos = 0;
+    // La barra y el texto de avance de un seguimiento, solo si su empresa es la que está en pantalla
+    function pintarAvance(seg) {
+        if (!elegido || elegido.rfc !== seg.rfc) return;
+        var fill = $("progreso-fill"), texto = $("progreso-texto");
+        if (fill && seg.ancho) fill.style.width = seg.ancho + "%";
+        if (texto && seg.texto) texto.textContent = seg.texto;
+    }
 
-        var intervalo = setInterval(async function () {
-            segundos += 2;
+    /* Sigue un trabajo hasta que termina. 23-nov-2026 (auditoría web-1): antes, al terminar, escribía en la pantalla que
+       estuviera abierta: si la persona ya había cambiado a otra empresa, esa otra quedaba «generada hoy», con Ver, Descargar
+       y Enviar apuntando a su documento viejo, y se bajaba el PDF de la primera. Ahora cada seguimiento sabe de qué empresa
+       es («quien»): la pantalla solo se toca si esa empresa sigue elegida; si no, queda un aviso con el documento de ella.
+       Un mismo trabajo se sigue una sola vez, aunque se vuelva a elegir la empresa. */
+    function vigilarTrabajo(jobId, quien) {
+        quien = quien || elegido;
+        if (!quien || !jobId) return;
+        var rfc = quien.rfc;
+        enCurso[rfc] = jobId;
+        if (seguimientos[jobId]) { pintarAvance(seguimientos[jobId]); return; }
+        var seg = seguimientos[jobId] = { rfc: rfc, nombre: quien.alias || rfc, segundos: 0, ancho: 0, texto: "", ocupado: false };
+        var aqui = function () { return !!(elegido && elegido.rfc === rfc); };
+        var cerrar = function () {
+            clearInterval(seg.intervalo);
+            delete seguimientos[jobId];
+            if (enCurso[rfc] === jobId) delete enCurso[rfc];
+        };
+
+        async function vuelta() {
+            seg.segundos += 2;
             var resp;
             try {
                 resp = await fetch(API + "/api/trabajos/" + jobId, { credentials: "include" });
             } catch (e) {
                 return;    // tropiezo de red: se reintenta en la siguiente vuelta
             }
+            if (resp.status === 423) return;    // pantalla bloqueada: el trabajo sigue en el servidor; se pregunta al desbloquear
             if (!resp.ok) {
-                clearInterval(intervalo);
-                delete enCurso[rfc];
-                alerta("error", await leerError(resp));
-                vistaFormulario();
+                cerrar();
+                var msj = await leerError(resp);
+                if (aqui()) { alerta("error", msj); vistaFormulario(); }
+                else avisoOtra(seg, false, "No se pudo seguir la " + MODULO.nombre + " de " + seg.nombre + ": " + msj);
                 return;
             }
 
             var t = await resp.json();
 
             if (t.estado === "procesando") {
-                var fill = $("progreso-fill");
-                if (fill) fill.style.width = Math.min(10 + segundos * 2, 92) + "%";
-                var texto = $("progreso-texto");
-                if (texto) texto.textContent = t.progreso || "Procesando… (" + segundos + " s)";
+                seg.ancho = Math.min(10 + seg.segundos * 2, 92);
+                seg.texto = t.progreso || "Procesando… (" + seg.segundos + " s)";
+                pintarAvance(seg);
                 return;
             }
 
-            clearInterval(intervalo);
-            delete enCurso[rfc];
+            cerrar();
             Fiscontable.refrescarDescargas();
+            var nombreArchivo = t.nombre_descarga || (MODULO.prefijoArchivo + "_" + rfc + ".pdf");
 
-            if (t.estado === "completado") {
-                var fillFinal = $("progreso-fill");
-                if (fillFinal) fillFinal.style.width = "100%";
-                document.querySelectorAll(".fc-en-pc").forEach(function (x) { x.remove(); });
-                if (t.en_pc && t.en_pc.rutas && t.en_pc.rutas.length) {
-                    // Lo hizo el agente: ya está en esa PC, no se baja otra vez
-                    alerta("bien", MODULO.nombre.charAt(0).toUpperCase() + MODULO.nombre.slice(1) + " disponible en tu equipo.");
-                    var nombreArchivo = t.nombre_descarga || (MODULO.prefijoArchivo + "_" + rfc + ".pdf");
-                    $("alerta").insertAdjacentElement("afterend", Fiscontable.cajaEnPc(t.en_pc, function (b) {
-                        b.disabled = true;
-                        bajarBlob("/api/trabajos/" + jobId + "/descargar", nombreArchivo).finally(function () { b.disabled = false; });
-                    }));
-                    estado.cache = { generado_en: new Date().toISOString().slice(0, 19) };
-                    vistaCache();
-                    return;
-                }
-                try {
-                    await bajarBlob("/api/trabajos/" + jobId + "/descargar",
-                        t.nombre_descarga || (MODULO.prefijoArchivo + "_" + rfc + ".pdf"));
-                    alerta("bien", "Listo. El documento ya se descargó.");
-                } catch (err) {
-                    alerta("error", "El documento se generó, pero no se pudo descargar automáticamente. Búscalo en Mis descargas.");
-                }
-                estado.cache = { generado_en: new Date().toISOString().slice(0, 19) };
-                vistaCache();
-            } else {
-                alerta("error", t.mensaje_error || "No se pudo generar el documento.");
-                vistaFormulario();
+            if (t.estado !== "completado") {
+                var error = t.mensaje_error || "No se pudo generar el documento.";
+                if (aqui()) { alerta("error", error); vistaFormulario(); }
+                else avisoOtra(seg, false, "No salió la " + MODULO.nombre + " de " + seg.nombre + ": " + error);
+                return;
             }
-        }, 2000);
+            if (!aqui()) {
+                // Otra empresa en pantalla (o ninguna): no se baja solo ni se pinta; el aviso trae Ver y Descargar de ESTE
+                avisoOtra(seg, true, "Ya está la " + MODULO.nombre + " de " + seg.nombre + ".", jobId);
+                return;
+            }
 
-        sondeos.push(intervalo);
+            seg.ancho = 100; pintarAvance(seg);
+            quitarAjenos();
+            if (t.en_pc && t.en_pc.rutas && t.en_pc.rutas.length) {
+                // Lo hizo el agente: ya está en esa PC, no se baja otra vez
+                alerta("bien", nombreDoc() + " disponible en tu equipo.");
+                $("alerta").insertAdjacentElement("afterend", Fiscontable.cajaEnPc(t.en_pc, function (b) {
+                    b.disabled = true;
+                    bajarBlob("/api/trabajos/" + jobId + "/descargar", nombreArchivo).finally(function () { b.disabled = false; });
+                }));
+            } else {
+                try {
+                    await bajarBlob("/api/trabajos/" + jobId + "/descargar", nombreArchivo);
+                    if (aqui()) alerta("bien", "Listo. El documento ya se descargó.");
+                    else { avisoOtra(seg, true, "Ya está la " + MODULO.nombre + " de " + seg.nombre + " (ya se descargó).", jobId); return; }
+                } catch (err) {
+                    if (aqui()) alerta("error", "El documento se generó, pero no se pudo descargar automáticamente. Búscalo en Mis descargas.");
+                    else { avisoOtra(seg, true, "Ya está la " + MODULO.nombre + " de " + seg.nombre + ".", jobId); return; }   // revisión 23-nov: que no se pierda el aviso
+                }
+            }
+            await pintarRecienHecho(rfc);
+        }
+
+        seg.intervalo = setInterval(function () {
+            if (seg.ocupado) return;           // la vuelta anterior no ha terminado: no se encima (bajaba el PDF dos veces)
+            seg.ocupado = true;
+            vuelta().catch(function () { /* se intenta en la siguiente vuelta */ }).finally(function () { seg.ocupado = false; });
+        }, 2000);
+        sondeos.push(seg.intervalo);
+    }
+
+    // El documento recién hecho, con lo que el servidor sabe de él (resultado, hasta cuándo se guarda). Sin respuesta, la fecha de hoy.
+    async function pintarRecienHecho(rfc) {
+        var nuevo = null;
+        try {
+            var r = await fetch(API + "/api/documentos/estado?rfc=" + encodeURIComponent(rfc) + "&tipo=" + MODULO.tipo, { credentials: "include" });
+            if (r.ok) { var d = await r.json(); if (d.existe) nuevo = d; }
+        } catch (e) { /* se pinta con lo mínimo */ }
+        if (!elegido || elegido.rfc !== rfc || !estado) return;     // cambió de empresa mientras tanto: esa pantalla ya se pintó sola
+        estado.cache = nuevo || { generado_en: new Date().toISOString().slice(0, 19) };
+        vistaCache();
     }
 
     /* =================================== MODO MASIVO (por lote) */
