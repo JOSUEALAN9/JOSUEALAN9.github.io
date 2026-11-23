@@ -96,7 +96,10 @@ async function verificarPerfil() {
 
         if (soloLectura) {
             // Con una invitación pendiente a un despacho no «venció»: lo que toca es aceptarla (aviso de la barra)
-            document.getElementById("banner-solo-lectura").classList.toggle("hidden", !!(perfil.despacho && perfil.despacho.invitacion && !perfil.viendo_como));
+            // 22-nov-2026 (auditoría despacho-1): «Tu acceso venció» solo si de verdad venció; con «Solo consulta», sin Agente o en
+            // «Ver como» el letrero de arriba (barra) ya dice el motivo real
+            document.getElementById("banner-solo-lectura").classList.toggle("hidden", !!(perfil.despacho && perfil.despacho.invitacion && !perfil.viendo_como) ||
+                perfil.vigente !== false || !!perfil.sin_agente || !!perfil.despacho_suspendido);
             btnAgregar.classList.add("hidden");
         } else {
             document.getElementById("banner-solo-lectura").classList.add("hidden");
@@ -1307,6 +1310,7 @@ async function pintarXmlAuto(cliente) {
     document.getElementById("xml-retenciones").checked = !!cfg.retenciones;
     document.getElementById("xml-activo").checked = !!cfg.activo && !!cliente.efirma_guardada;
     document.getElementById("xml-activo").disabled = !cliente.efirma_guardada;
+    document.getElementById("xml-activo").title = cliente.efirma_guardada ? "" : "Primero guarda su e.firma en la pestaña Accesos";   // 22-nov-2026: deshabilitado, dice por qué
     document.getElementById("xml-sin-efirma").hidden = !!cliente.efirma_guardada;
     explicarXmlAuto(cfg);
 }

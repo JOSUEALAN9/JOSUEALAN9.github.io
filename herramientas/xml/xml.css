@@ -186,6 +186,12 @@
 /* Barra de contexto: ¿de quién? · ¿qué periodo? · opciones del módulo */
 .ctx { display: flex; flex-wrap: wrap; align-items: stretch; gap: 8px; margin-bottom: 14px; }
 .ctx .xml-menu__lista { left: 0; right: auto; }
+/* 22-nov-2026 (barrido de botones): en el celular los menús desplegables salían desde su botón y se cortaban o hacían crecer
+   la página a lo ancho («Cambiar empresa ▾» en Listas del SAT +126 px; «Compartir» en Administración de XML quedaba 94 px
+   fuera por la izquierda). Ahí se abren debajo de su botón, a todo lo ancho de la pantalla (menos 12 px por lado). */
+@media (max-width: 700px) {
+  .xml-menu__lista { position: fixed; top: auto; left: 12px; right: 12px; width: auto; max-width: none; max-height: 60vh; overflow: auto; }
+}
 .ctx-campo { display: inline-flex; align-items: center; gap: 10px; min-height: 42px; padding: 4px 10px 4px 12px; background: rgb(var(--g-0));
   border: 1px solid rgb(var(--g-200)); border-radius: 12px; cursor: pointer; text-align: left; font: inherit; color: rgb(var(--g-900));
   box-shadow: 0 1px 2px rgba(16,27,45,.05); transition: border-color .12s; }

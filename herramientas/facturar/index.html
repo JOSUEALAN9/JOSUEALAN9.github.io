@@ -4,15 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Facturar | Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611220600">
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611220600">
-    <link rel="stylesheet" href="/herramientas/facturar/facturar.css?v=202611220600">
+    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611221830">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611221830">
+    <link rel="stylesheet" href="/herramientas/facturar/facturar.css?v=202611221830">
 </head>
 <body class="min-h-screen flex flex-col">
 
 <div id="app-header" data-modulo="facturar" data-titulo="Facturar" data-migas="Herramientas|/herramientas/"></div>
-<script src="/assets/js/nucleo.js?v=202611220600"></script>
-<script src="/assets/js/barra.js?v=202611220600"></script>
+<script src="/assets/js/nucleo.js?v=202611221830"></script>
+<script src="/assets/js/barra.js?v=202611221830"></script>
 
 <main class="flex-grow w-full mod-pagina fa-pagina">
     <div class="mod-cabeza">
@@ -446,7 +446,7 @@
 
             <div class="fa-caja" id="caja-correo" data-subpanel="correo" hidden>
                 <div class="fa-caja__cabeza"><h2>Correo a tus receptores</h2><span id="c-correo-estado" class="fa-chip fa-chip--gris"></span></div>
-                <p class="fa-nota">Las facturas salen al correo del receptor con su PDF y XML. Elige de qué correo salen y cómo se ven.</p>
+                <p class="fa-nota">Las facturas salen al correo del receptor con su PDF y XML. Elige de qué correo salen y cómo se ven. <b id="c-correo-todas">Vale para todas tus empresas.</b></p>
                 <div class="fa-tipo fa-tipo--chico" style="margin:10px 0">
                     <button type="button" data-modo-correo="propio" aria-pressed="true"><b>Mi propio correo</b><small>Gmail, Outlook, el de tu dominio…</small></button>
                     <button type="button" data-modo-correo="fiscontable" aria-pressed="false"><b>Correo de Fiscontable</b><small id="c-correo-sistema">Sale de facturas@… y responden a ti</small></button>
@@ -459,7 +459,7 @@
                     <label class="fa-campo fa-c3"><span>Contraseña <i id="c-smtp-ayuda">(en Gmail: «contraseña de aplicación»)</i></span><input id="c-smtp-clave" type="password" autocomplete="new-password" placeholder="••••••••"></label>
                 </div>
                 <div class="fa-rejilla" style="margin-top:10px">
-                    <label class="fa-campo fa-c3"><span>Nombre que ven</span><input id="c-correo-nombre" maxlength="80" placeholder="Ej. Despacho Contable del Sur"></label>
+                    <label class="fa-campo fa-c3"><span>Nombre que ven</span><input id="c-correo-nombre" maxlength="80" placeholder="Vacío: el nombre de la empresa que factura"></label>
                     <label class="fa-campo fa-c3"><span>Responder a</span><input id="c-correo-responder" type="email"></label>
                     <label class="fa-campo fa-c6"><span>Copia siempre a <i>(opcional, separa con comas)</i></span><input id="c-correo-cc"></label>
                     <label class="fa-campo fa-c6"><span>Asunto</span><input id="c-correo-asunto" maxlength="200"></label>
@@ -710,7 +710,7 @@
             <li><b>Descarga la plantilla de esta empresa</b>, con sus receptores y su catálogo de hoy.
                 <button type="button" id="btn-xm-plantilla" class="fa-link">Descargar plantilla (.xlsx)</button></li>
             <li><b>Por renglón: número de factura, receptor, producto y cantidad.</b> Todo lo demás sale de sus receptores y de tu catálogo. Opcional: la fecha (solo el día = 23:59 de ese día), otro precio, el total del renglón (se desglosa automáticamente) o una nueva descripción.</li>
-            <li><b>Súbela:</b> se revisa cada factura con las mismas reglas que al timbrar. Luego las timbras de una vez o las guardas como prefacturas. Receptores o productos nuevos van en sus hojas y se guardan automáticamente.</li>
+            <li><b>Súbela:</b> se revisa cada factura con las mismas reglas que al timbrar. Luego las timbras de una vez o las guardas como prefacturas. Receptores o productos nuevos van en sus hojas y se guardan automáticamente. Si vuelves a subir un archivo, las que ya salieron aparecen como «Ya timbrada» y no se repiten.</li>
         </ol>
         <label class="fa-zona" id="xm-zona"><input type="file" id="xm-archivo" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden>
             <b>Arrastra tu Excel aquí</b><span>o haz clic para elegirlo</span></label>
@@ -763,10 +763,10 @@
     </div>
 </dialog>
 
-<script src="/assets/js/comun/zona-archivos.js?v=202611220600"></script>
-<script src="/assets/js/comun/autorizacion-efirma.js?v=202611220600"></script>
-<script src="/assets/js/comun/importar-clientes.js?v=202611220600"></script>
-<script src="/assets/js/comun/compartir.js?v=202611220600"></script>
-<script src="/herramientas/facturar/facturar.js?v=202611220600"></script>
+<script src="/assets/js/comun/zona-archivos.js?v=202611221830"></script>
+<script src="/assets/js/comun/autorizacion-efirma.js?v=202611221830"></script>
+<script src="/assets/js/comun/importar-clientes.js?v=202611221830"></script>
+<script src="/assets/js/comun/compartir.js?v=202611221830"></script>
+<script src="/herramientas/facturar/facturar.js?v=202611221830"></script>
 </body>
 </html>

@@ -40,10 +40,15 @@
         $("dsa-vacio").classList.toggle("hidden", lista.length > 0);
         $("dsa-lista").innerHTML = lista.map(function (d) {
             var tope = d.ajustes && d.ajustes.empresas_personales;
+            // 22-nov-2026, el dueño: si la cuenta propia de un despacho activo se desactivó (Usuarios), nadie del despacho trabaja
+            var apagada = d.activo && d.cuenta_activa === false;
             return '<tr class="border-t border-gray-100' + (d.activo ? "" : " opacity-60") + '">' +
                 '<td class="p-4"><b class="text-slate-800">' + esc(d.nombre) + "</b>" +
                     '<div class="text-xs text-slate-500">' + (d.interna ? "Cuenta propia del despacho" : "Cuenta de " + esc(d.cuenta)) + (d.activo ? "" : " · desactivado") + "</div>" +
-                    '<div class="text-xs text-slate-500">' + licencia(d) + "</div></td>" +
+                    '<div class="text-xs text-slate-500">' + licencia(d) + "</div>" +
+                    (apagada ? '<div class="text-xs font-bold text-red-700 mt-1 dsa-cuenta-apagada">La cuenta del despacho está desactivada: nadie puede trabajar ' +
+                        '<button type="button" class="ui-btn ui-btn--primario ui-btn--28 ml-1" data-reactivar="' + esc(d.cuenta) + '" title="Volver a activarla sin cambiarle rol, vigencia ni ajustes">Reactivar</button></div>' : "") +
+                    "</td>" +
                 '<td class="p-4">' + esc(d.titulares || "—") + "</td>" +
                 '<td class="p-4">' + d.n_miembros + (d.n_invitados ? ' <span class="text-xs text-amber-700">+' + d.n_invitados + " invitados</span>" : "") + "</td>" +
                 '<td class="p-4">' + d.n_empresas + "</td>" +
@@ -108,6 +113,13 @@
         try { await api("/api/admin/despachos/" + id, "PUT", { activo: valor === "1" }); cargar(); } catch (e) { avisar("error", e.message); }
     }
 
+    async function reactivar(cuenta, boton) {
+        if (typeof reactivarCuenta === "function") return reactivarCuenta(cuenta, boton);     // admin.js: aviso y recarga ambas listas
+        boton.disabled = true;
+        try { await api("/api/usuarios/" + encodeURIComponent(cuenta) + "/reactivar", "POST"); avisar("success", "Listo: la cuenta del despacho está activa otra vez."); cargar(); }
+        catch (e) { avisar("error", e.message); boton.disabled = false; }
+    }
+
     async function verComo(cuenta) {
         try { await api("/api/admin/ver-como", "POST", { correo: cuenta }); location.href = "/clientes/"; } catch (e) { avisar("error", e.message); }
     }
@@ -121,9 +133,10 @@
     });
     $("dsa-dlg").addEventListener("click", function (e) { if (e.target.closest("[data-dsa-cerrar]") || e.target === this) this.close(); });
     $("dsa-lista").addEventListener("click", function (e) {
-        var b = e.target.closest("[data-tope],[data-activo],[data-ver-cuenta]");
+        var b = e.target.closest("[data-tope],[data-activo],[data-ver-cuenta],[data-reactivar]");
         if (!b) return;
-        if (b.dataset.tope) cambiarTope(b.dataset.tope);
+        if (b.dataset.reactivar) reactivar(b.dataset.reactivar, b);
+        else if (b.dataset.tope) cambiarTope(b.dataset.tope);
         else if (b.dataset.activo) activar(b.dataset.activo, b.dataset.valor);
         else verComo(b.dataset.verCuenta);
     });

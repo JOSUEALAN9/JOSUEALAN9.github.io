@@ -68,13 +68,18 @@
                    '<label>Qué XML<select class="ui-select" data-c="tipo">' +
                    opciones(Object.keys(d.tipos).map(function (k) { return [k, d.tipos[k]]; }), r.tipo || def.tipo || "ambos") + "</select></label></div>");
         } else if (m === "buzon") {
-            h.push('<label>Cada cuánto se revisa<select class="ui-select" data-c="dias">' +
+            // 22-nov-2026 (auditoría despacho-4): la frecuencia vale para los buzones de todo el despacho; la decide el titular
+            // (puede_avisar = decide los ajustes de la cuenta)
+            var soloTit = d.puede_avisar === false ? ' disabled title="Lo decide el titular del despacho"' : "";
+            h.push('<label>Cada cuánto se revisa<select class="ui-select" data-c="dias"' + soloTit + '>' +
                    opciones(Object.keys(d.frecuencias).map(function (k) { return [k, d.frecuencias[k]]; }), (d.regla || {}).dias) + "</select></label>");
         } else {
             h.push('<p class="xml-tenue">' + esc(d.linea.replace(/^Automático · /, "")) + ".</p>");
         }
         if (m !== "buzon" && d.editable) h.push('<label class="ui-check"><input type="checkbox" data-c="todas"> Lo mismo para todas mis empresas con e.firma</label>');
-        h.push('<label class="ui-check"><input type="checkbox" data-c="avisar"' + (d.avisar_correo ? " checked" : "") + "> " +
+        // 22-nov-2026 (auditoría despacho-4): en un despacho, el aviso por correo vale para toda la cuenta y lo decide el titular
+        h.push('<label class="ui-check"' + (d.puede_avisar === false ? ' title="Lo decide el titular del despacho"' : "") + '><input type="checkbox" data-c="avisar"' +
+               (d.avisar_correo ? " checked" : "") + (d.puede_avisar === false ? " disabled" : "") + "> " +
                (d.editable ? "Avisarme por correo cuando termine" : "Avisarme por correo cuando cambie algo") + "</label>");
         h.push('<p class="xml-tenue fpu-nota">' + (d.editable ? "Se ejecuta en horario nocturno con la e.firma registrada de cada empresa. " : "") +
                'Los avisos también llegan a la campana de arriba. <a href="/configuracion/?seccion=automatico&sub=programado">Ver todo lo automático</a></p>');

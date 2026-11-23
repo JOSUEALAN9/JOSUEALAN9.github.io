@@ -409,7 +409,7 @@
                     '<button type="button" class="xml-btn" data-fct="columnas">Columnas</button>' +
                     '<div class="xml-menu"><button type="button" class="xml-btn" data-fct="vistas" aria-haspopup="true"><span class="fct-vista">Vista de fábrica</span> ▾</button>' +
                         '<div class="xml-menu__lista fct-menu-vistas" hidden></div></div>' +
-                    (o.exportar && o.exportar.enBarra !== false ? '<div class="xml-menu"><button type="button" class="xml-btn" data-fct="descargar" aria-haspopup="true" disabled>Descargar ▾</button>' +
+                    (o.exportar && o.exportar.enBarra !== false ? '<div class="xml-menu"><button type="button" class="xml-btn" data-fct="descargar" aria-haspopup="true" disabled title="No hay renglones que descargar">Descargar ▾</button>' +
                         '<div class="xml-menu__lista fct-menu-descargar" hidden><button type="button" data-fct="excel">Excel de esta tabla</button>' +
                         ((o.exportar.extras || []).map(function (x, i) { return '<button type="button" data-fct-extra="' + i + '">' + esc(x.texto) + "</button>"; }).join("")) +
                         "</div></div>" : "") +
@@ -493,7 +493,9 @@
                     '<option value="">Todos</option>' + vals.map(function (v) {
                         return '<option value="' + esc(v) + '"' + (F.filtros[f.clave] === v ? " selected" : "") + ">" + esc(textoValor(f, v)) + " (" + cuenta[v] + ")</option>";
                     }).join("") + "</select></label>";
-            }).join("") + '<button type="button" class="xml-enlace" data-quitar="*">Quitar todos los filtros</button>';
+            }).join("") + (Object.keys(F.filtros).length      // 22-nov-2026 (barrido de botones): sin filtros puestos no hace nada; lo dice
+                ? '<button type="button" class="xml-enlace" data-quitar="*">Quitar todos los filtros</button>'
+                : '<button type="button" class="xml-enlace" data-quitar="*" disabled title="No hay filtros puestos">Quitar todos los filtros</button>');
         }
         function aplicar() {
             var vis = visiblesAhora();
@@ -504,7 +506,7 @@
             }
             tabla.ponerFilas(vis);
             pintarRapidos(); pintarChips(); if (menuF && !menuF.hidden) pintarMenuFiltros();
-            var bx = q("[data-fct=descargar]"); if (bx) bx.disabled = !vis.length;
+            var bx = q("[data-fct=descargar]"); if (bx) { bx.disabled = !vis.length; bx.title = vis.length ? "" : "No hay renglones que descargar"; }
             if (o.alFiltrar) o.alFiltrar(vis);
         }
 
@@ -527,7 +529,12 @@
             } else if (que === "excel") { if (menuD) menuD.hidden = true; exportar(); }
         });
         if (menuF) {
-            menuF.addEventListener("click", function (e) { e.stopPropagation(); });
+            menuF.addEventListener("click", function (e) {
+                e.stopPropagation();
+                // 22-nov-2026 (barrido de botones): «Quitar todos los filtros» vive dentro de este menú y el stopPropagation de arriba
+                // impedía que llegara al manejador general: con filtros puestos, el botón no hacía nada
+                if (e.target.closest("[data-quitar]") && !e.target.closest("[data-quitar]").disabled) { F.filtros = {}; F.rapido = null; aplicar(); pintarMenuFiltros(); }
+            });
             menuF.addEventListener("change", function (e) {
                 var s = e.target.closest("[data-filtro]"); if (!s) return;
                 if (s.value) F.filtros[s.dataset.filtro] = s.value; else delete F.filtros[s.dataset.filtro];

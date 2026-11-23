@@ -153,6 +153,7 @@
         });
         $("lblStagedCount").textContent = E.externos.length;
         $("btnProcesarStaged").disabled = !E.externos.length;
+        $("btnProcesarStaged").title = E.externos.length ? "" : "Primero agrega XML a la lista";   // 22-nov-2026: dice por qué
     }
     var zona = FCZona.crear($("zona-carga"), { acepta: ".xml", varios: true, titulo: "Suelta los XML aquí", detalle: "o haz clic para elegirlos", alElegir: agregarExternos });
     $("folderInputArr").addEventListener("change", function () {
@@ -204,6 +205,8 @@
     /* ---------- acciones */
     $("btnValidar").addEventListener("click", function () {
         var sel = t.tabla.seleccion, vis = t.visibles();
+        // 22-nov-2026 (barrido de botones): con la tabla vacía el clic no hacía nada; ahora dice por qué
+        if (!vis.length && !E.corriendo) { Fiscontable.toast("No hay XML en la tabla para validar: cambia el periodo, los filtros o carga XML."); return; }
         validar(sel.size ? vis.filter(function (f) { return sel.has(f.uuid); }) : vis);
     });
     $("btnReintentar").addEventListener("click", function () { validar(E.filas.filter(function (f) { return f.estado === "Sin respuesta"; })); });

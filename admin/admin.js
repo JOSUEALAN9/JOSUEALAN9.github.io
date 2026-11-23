@@ -117,6 +117,7 @@ async function verificarAdminYCargar() {
         prepararEventos();
         // #vencidas (el aviso de «cuenta por eliminar»): Sistema › Cuentas vencidas
         if (location.hash === "#vencidas") { abrirPestana("sistema"); const b = document.querySelector('#sub-sistema [data-sub="vencidas"]'); if (b) b.click(); }
+        else if (location.hash === "#correos") { abrirPestana("sistema"); const b = document.querySelector('#sub-sistema [data-sub="correos"]'); if (b) b.click(); }   // aviso «No salió un correo»
         else if (location.hash === "#tareas") { abrirPestana("sistema"); const b = document.querySelector('#sub-sistema [data-sub="tareas"]'); if (b) b.click(); }   // avisos de tareas y madrugada
         else if (location.hash === "#registro") { abrirRegistroAlCargar = true; abrirPestana("sistema"); }   // desde el buscador: «Registro de trámites»
         else if (location.hash === "#reporte") { abrirReporteAlCargar = true; abrirPestana("sistema"); }      // desde el buscador: «Registro de auditoría»
@@ -189,6 +190,7 @@ function prepararEventos() {
         if (b.dataset.accion === "ver-como") verComo(correo);
         if (b.dataset.accion === "editar") abrirDialogoUsuario(correo);
         if (b.dataset.accion === "quitar") eliminarUsuario(correo);
+        if (b.dataset.accion === "reactivar") reactivarCuenta(correo, b);
         if (b.dataset.accion === "acceso") accionAcceso(correo);
     });
 
@@ -272,13 +274,32 @@ function pintarInicioPropio() {
     });
 }
 
+/* 22-nov-2026, el dueño: «d-…@despachos.fiscontable.invalid · Cuenta interna de un despacho» no decía nada y se le quitó
+ * el acceso por error a la del despacho real. Ahora la cuenta sale con el nombre de su despacho y una ayuda, y cada
+ * persona dice en qué despacho trabaja (el servidor lo manda en cuenta_de_despacho y despacho). */
+const PAPEL_EN_DESPACHO = { titular: "titular", aprobador: "aprueba solicitudes", miembro: "integrante" };
+function ayudaCuentaDespacho(cd) {
+    // La interna (d-…) no es de nadie; la de antes puede ser el correo de una persona que sí entra con él
+    return `Aquí viven las empresas, los timbres y la licencia del despacho «${cd.nombre}». ` +
+        (cd.interna ? `Nadie entra con este correo: el equipo trabaja con sus propias cuentas. ` : "") +
+        `Si se desactiva, nadie del despacho puede trabajar.`;
+}
 function chipsCuenta(u) {
     const c = cuentasEstado.cuentas[u.correo] || {};
     if (/@despachos\.fiscontable\.invalid$/.test(u.correo)) return `<span class="block mt-1 text-[11px] text-slate-400">Cuenta interna de un despacho</span>`;
     const chips = [c.tiene_clave ? (c.debe_cambiar ? "Contraseña temporal" : "Con contraseña") : "Sin contraseña"];
     if (c.totp_activo) chips.push("2 pasos");
-    return `<span class="block mt-1 text-[11px] ${c.tiene_clave ? "text-emerald-700" : "text-slate-400"}">${chips.map(esc).join(" · ")}</span>`;
+    const d = u.despacho;
+    const trabaja = d ? `<span class="block mt-0.5 text-[11px] text-slate-600 adm-trabaja-en">Trabaja en «${esc(d.nombre)}» · ${esc(PAPEL_EN_DESPACHO[d.papel] || d.papel)}</span>` : "";
+    return `<span class="block mt-1 text-[11px] ${c.tiene_clave ? "text-emerald-700" : "text-slate-400"}">${chips.map(esc).join(" · ")}</span>${trabaja}`;
 }
+
+/* Por qué el despacho no cubre hoy a esa persona (sin licencia propia); vacío si la cubre o tiene la suya */
+const SIN_COBERTURA = {
+    cuenta_desactivada: "La cuenta del despacho está desactivada: no puede trabajar en él. Reactívala en su renglón o en Despachos.",
+    vencida: "La licencia del despacho venció: no puede trabajar en él.",
+    cancelada: "La licencia del despacho está cancelada: no puede trabajar en él.",
+};
 
 async function accionAcceso(correo) {
     const c = cuentasEstado.cuentas[correo] || {};
@@ -315,16 +336,37 @@ function venceTexto(u) {
 
 function renderizarUsuarios() {
     const texto = $("buscar-usuario").value.trim().toLowerCase();
-    const lista = usuariosCache.filter(u => !texto || u.correo.includes(texto));
+    const nombreDespacho = u => ((u.cuenta_de_despacho || u.despacho || {}).nombre || "").toLowerCase();
+    const lista = usuariosCache.filter(u => !texto || u.correo.includes(texto) || nombreDespacho(u).includes(texto));
     $("sin-usuarios").classList.toggle("hidden", lista.length > 0);
     const hoyIso = new Date().toISOString();
 
     $("tabla-usuarios").innerHTML = lista.map(u => {
         const estilo = ESTILO_ROL[u.rol] || ESTILO_ROL.plus;
         const expirado = u.fecha_expira && hoyIso > u.fecha_expira;
-        const estatus = !u.activo ? sello("Desactivado", "bg-gray-100 text-gray-500")
+        const cd = u.cuenta_de_despacho, dsp = u.despacho;
+        const cubierta = !cd && dsp && dsp.cubierta;
+        let estatus = !u.activo ? sello("Desactivado", "bg-gray-100 text-gray-500")
             : expirado ? sello("Vencido", "bg-amber-100 text-amber-700")
             : sello("Vigente", "bg-green-100 text-green-700");
+        let vence = venceTexto(u);
+        if (cd && !u.activo) {
+            // La cuenta de un despacho apagada: nadie del despacho trabaja (core/despachos.py aplicar)
+            estatus = cd.activo
+                ? `<span class="block text-xs font-bold text-red-700 adm-cuenta-apagada">Desactivada: nadie del despacho puede trabajar</span>`
+                : `${sello("Desactivada", "bg-gray-100 text-gray-500")}<span class="block mt-1 text-[11px] text-slate-500">El despacho también está desactivado</span>`;
+        } else if (cubierta) {
+            const hasta = dsp.hasta ? `hasta ${esc(fechaCorta(dsp.hasta))}` : "sin vencimiento";
+            vence = `<span class="text-emerald-700 font-semibold adm-cubierta">Cubierta por el despacho ${hasta}</span>` +
+                (dsp.en_gracia ? `<span class="block text-[11px] text-amber-600">La licencia del despacho venció; por los días de gracia funciona${dsp.gracia_hasta ? ` hasta el ${esc(fechaCorta(dsp.gracia_hasta))}` : ""}</span>` : "") +
+                (u.fecha_expira ? `<span class="block mt-0.5 text-[11px] text-slate-400">Su ${u.rol === "demo" ? "demo" : "licencia"} propia ${expirado ? "venció el" : "vence el"} ${esc(fechaCorta(u.fecha_expira))}</span>` : "");
+            estatus = sello("Vigente", "bg-green-100 text-green-700");
+        } else if (!cd && dsp && SIN_COBERTURA[dsp.motivo]) {
+            estatus += `<span class="block mt-1 text-[11px] font-semibold text-red-700 adm-sin-cobertura" title="${esc(SIN_COBERTURA[dsp.motivo])}">El despacho no la cubre <span class="font-normal">ⓘ</span></span>`;
+        }
+        // Rol: el de la persona; si el despacho la cubre, más discreto (trabaja con el del despacho)
+        const rolSello = sello(u.rol.charAt(0).toUpperCase() + u.rol.slice(1), estilo.clase);
+        const rol = cubierta ? `<span class="opacity-60" title="Su rol propio. En el despacho trabaja con la licencia del despacho.">${rolSello}</span><span class="block mt-1 text-[11px] text-slate-400">rol propio</span>` : rolSello;
         const personal = u.personalizado
             ? `<span class="block mt-1 text-[11px] font-bold text-violet-700" title="${esc(resumenAjustes(u))}">⚙ Personalizado</span>` : "";
         const icono = (d) => `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${d}"></path></svg>`;
@@ -334,19 +376,23 @@ function renderizarUsuarios() {
         <tr class="border-t border-gray-100 hover:bg-slate-50/60">
             <td class="p-4">
                 <div class="flex items-center gap-3">
-                    <span class="adm-avatar ${estilo.avatar}">${esc(u.correo.charAt(0).toUpperCase())}</span>
-                    <span class="min-w-0"><span class="font-mono text-xs text-slate-700 break-all">${esc(u.correo)}</span>${chipsCuenta(u)}</span>
+                    <span class="adm-avatar ${estilo.avatar}">${esc((cd ? cd.nombre : u.correo).charAt(0).toUpperCase())}</span>
+                    <span class="min-w-0">${cd
+                        // La cuenta de un despacho: primero qué es (su nombre real); el correo interno, chico, debajo
+                        ? `<span class="block text-sm font-bold text-slate-800 adm-cuenta-despacho" title="${esc(ayudaCuentaDespacho(cd))}">Cuenta del despacho «${esc(cd.nombre)}» <span class="font-normal text-slate-400">ⓘ</span></span><span class="block mt-0.5 font-mono text-[11px] text-slate-400 break-all">${esc(u.correo)}</span>${cd.interna ? "" : chipsCuenta(u)}`
+                        : `<span class="font-mono text-xs text-slate-700 break-all">${esc(u.correo)}</span>${chipsCuenta(u)}`}</span>
                 </div>
             </td>
-            <td class="p-4">${sello(u.rol.charAt(0).toUpperCase() + u.rol.slice(1), estilo.clase)}${personal}</td>
-            <td class="p-4 text-xs">${venceTexto(u)}</td>
+            <td class="p-4">${rol}${personal}</td>
+            <td class="p-4 text-xs">${vence}</td>
             <td class="p-4">${estatus}</td>
             <td class="p-4 text-right whitespace-nowrap">
+                ${cd && !u.activo ? `<button data-accion="reactivar" data-correo="${esc(u.correo)}" title="Volver a activarla sin cambiarle rol, vigencia ni ajustes" class="ui-btn ui-btn--primario ui-btn--28 mr-1 align-middle">Reactivar</button>` : ""}
                 ${u.rol === "admin" ? "" : `<button data-accion="ajustes" data-correo="${esc(u.correo)}" title="Módulos y límite solo para esta persona" class="text-xs font-bold text-slate-600 hover:text-slate-900 border border-gray-200 hover:border-slate-400 rounded-lg py-1 px-2.5 mr-1">Ajustes</button>`}
-                ${/@despachos\.fiscontable\.invalid$/.test(u.correo) ? "" : `<button data-accion="acceso" data-correo="${esc(u.correo)}" title="Contraseña y verificación en dos pasos" class="text-xs font-bold text-slate-600 hover:text-slate-900 border border-gray-200 hover:border-slate-400 rounded-lg py-1 px-2.5 mr-1">Acceso</button>`}
+                ${(cd && cd.interna) || /@despachos\.fiscontable\.invalid$/.test(u.correo) ? "" : `<button data-accion="acceso" data-correo="${esc(u.correo)}" title="Contraseña y verificación en dos pasos" class="text-xs font-bold text-slate-600 hover:text-slate-900 border border-gray-200 hover:border-slate-400 rounded-lg py-1 px-2.5 mr-1">Acceso</button>`}
                 ${u.rol === "admin" ? "" : `<button data-accion="ver-como" data-correo="${esc(u.correo)}" title="Ver Fiscontable como esta persona (solo lectura, 60 min)" class="text-xs font-bold text-slate-600 hover:text-slate-900 border border-gray-200 hover:border-slate-400 rounded-lg py-1 px-2.5 mr-1">Ver como</button>`}
                 <button data-accion="editar" data-correo="${esc(u.correo)}" title="Cambiar rol o vigencia" class="p-1.5 text-slate-400 hover:text-slate-800 align-middle">${icono(lapiz)}</button>
-                <button data-accion="quitar" data-correo="${esc(u.correo)}" title="Quitar acceso" class="p-1.5 text-gray-300 hover:text-red-500 align-middle">${icono(bote)}</button>
+                ${cd && cd.protegida ? "" : `<button data-accion="quitar" data-correo="${esc(u.correo)}" title="Quitar acceso" class="p-1.5 text-gray-300 hover:text-red-500 align-middle">${icono(bote)}</button>`}
             </td>
         </tr>`;
     }).join("");
@@ -401,6 +447,29 @@ async function eliminarUsuario(correo) {
         mostrarAlerta("success", `La cuenta ${correo} quedó desactivada.`);
         await Promise.all([cargarUsuarios(), cargarRoles()]);
     } catch (err) { mostrarAlerta("error", err.message); }
+}
+
+/* 22-nov-2026, el dueño: vuelve a activar la cuenta SIN tocar rol, vigencia ni ajustes (el lápiz los reescribe y puede
+ * mover la fecha por la zona horaria). También lo usa Administración › Despachos (despachos-admin.js). */
+async function reactivarCuenta(correo, boton) {
+    if (boton) boton.disabled = true;
+    try {
+        const r = await api(`/api/usuarios/${encodeURIComponent(correo)}/reactivar`, { method: "POST" });
+        // Activa no basta: el equipo trabaja solo si el despacho está activo y su licencia vigente y sin cancelar
+        const queSigue = r.despacho_activo === false ? " El despacho sigue desactivado: actívalo en Despachos para que su equipo trabaje."
+            : r.vigente === false ? " Su licencia está vencida o cancelada: su equipo no puede trabajar hasta que se renueve."
+            : " Su equipo ya puede trabajar.";
+        mostrarAlerta("success", (r.ya_estaba_activa ? `${r.despacho ? `La cuenta del despacho «${r.despacho}»` : correo} ya estaba activa.`
+            : r.despacho ? `Listo: la cuenta del despacho «${r.despacho}» está activa otra vez.${queSigue}`
+            : `Listo: ${correo} está activa otra vez.`) +
+            (r.pcs_desconectadas ? ` Ojo: tiene ${r.pcs_desconectadas} PC desconectada(s); no se reconectan solas: vuelve a conectarlas desde Fiscontable Agente.` : ""));
+        await cargarUsuarios();
+        if (window.DespachosAdmin) window.DespachosAdmin.cargar();
+        return r;
+    } catch (err) {
+        mostrarAlerta("error", err.message);
+        if (boton) boton.disabled = false;
+    }
 }
 
 /* ---- Ajustes propios ---- */
@@ -1873,7 +1942,9 @@ async function revisarVps() {
     t.textContent = "Preguntando a la VPS…";
     try {
         const r = await api("/api/admin/sistema/respaldo/vps");
-        t.className = "text-[11px] mt-1 " + (r.ok && !r.atendiendo ? "text-emerald-700" : "text-amber-700");
+        // 22-nov-2026: «la VPS NO entró: la Vostro sigue por su túnel» es un aviso, no un «todo bien» (va en ámbar)
+        const sinEntrar = !!(r.vigilante_tunel && r.vigilante_tunel.abierto);
+        t.className = "text-[11px] mt-1 " + (r.ok && !r.atendiendo && !sinEntrar ? "text-emerald-700" : "text-amber-700");
         t.textContent = r.ok || r.atendiendo
             ? `${r.mensaje} Datos en la VPS: ${tamano(r.datos)} · disco libre ${tamano(r.disco_libre)}` +
               (r.copia_en_vps ? ` · última copia recibida ${haceCuanto(r.copia_en_vps)}` : "") +

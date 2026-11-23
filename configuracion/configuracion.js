@@ -157,6 +157,25 @@
         p.textContent = texto; p.className = "cf-msj " + (ok ? "cf-msj--ok" : "cf-msj--mal");
     }
 
+    /* 22-nov-2026 (auditoría despacho-4): los ajustes que valen para todo el despacho (avisos por correo, horario, resumen,
+       revisión del Buzón, empresas nuevas) solo los cambia el titular; a los demás se les enseñan deshabilitados con el
+       motivo. El servidor también lo exige. */
+    var LO_DECIDE_EL_TITULAR = "Lo decide el titular del despacho: vale para todas las empresas.";
+    // 22-nov-2026 (auditoría despacho-1): con «Solo puede consultar» (o en «Ver como») lo que cambia algo sale deshabilitado
+    function soloConsulta() { return window.Fiscontable && Fiscontable.soloConsulta ? Fiscontable.soloConsulta() : null; }
+    function soloTitular(cajas, motivo) {
+        motivo = motivo || LO_DECIDE_EL_TITULAR;
+        [].forEach.call(cajas, function (caja) {
+            caja.querySelectorAll("input, select, textarea, button").forEach(function (x) { x.disabled = true; x.title = motivo; });
+            if (!caja.querySelector(".cf-solo-titular")) {
+                var nota = document.createElement("p");
+                nota.className = "cf-solo-titular"; nota.setAttribute("role", "note"); nota.textContent = motivo;
+                var h = caja.querySelector(":scope > h3.cf-sub");
+                if (h) h.insertAdjacentElement("afterend", nota); else caja.insertBefore(nota, caja.firstChild);
+            }
+        });
+    }
+
     function enlaceA(c, titulo, texto, href, boton) {
         c.innerHTML = '<div class="cf-tarjeta"><p class="cf-texto">' + esc(texto) + '</p><a class="cf-btn cf-btn--principal" href="' + href + '"' + (incrustado ? ' target="_top"' : "") + ">" + esc(boton) + "</a></div>";
     }
@@ -216,6 +235,12 @@
             '<div class="cf-acciones"><button type="button" class="cf-btn cf-btn--principal" id="cf-guardar-perfil">Guardar</button><span class="cf-msj"></span></div></div>';
         c.insertBefore(cajaFoto, c.firstChild); cajaFoto.style.marginBottom = "12px"; pintarFoto(cajaFoto);
         $("cf-guardar-perfil").addEventListener("click", async function () {
+            // 22-nov-2026 (barrido de botones): el servidor aceptaba «12ab» como teléfono; aquí se dice qué está mal y dónde
+            var tel = $("cf-telefono").value.trim();
+            if (!$("cf-nombre").value.trim()) { aviso(c, false, "Escribe tu nombre."); $("cf-nombre").focus(); return; }
+            if (tel && (!/^\+?[\d\s().-]+$/.test(tel) || tel.replace(/\D/g, "").length < 10)) {
+                aviso(c, false, "Revisa el teléfono: escribe 10 dígitos (puede llevar espacios o guiones)."); $("cf-telefono").focus(); return;
+            }
             try {
                 await enviar("/api/mi-perfil", "PUT", { nombre: $("cf-nombre").value.trim(), telefono: $("cf-telefono").value.trim() || null });
                 perfil.nombre = $("cf-nombre").value.trim();
@@ -488,13 +513,19 @@
     /* Plan vencido (core/ciclo_cuenta.py): la etapa, las fechas y lo que la persona puede hacer. «Descargar todo» siempre. */
     async function pintarCiclo(caja) {
         var fecha = function (t) { return t ? new Date(t).toLocaleDateString("es-MX", { day: "numeric", month: "long", year: "numeric" }) : ""; };
-        var propia = !perfil.persona || perfil.persona === perfil.correo;
         var e = {};
         try { e = await api("/api/mi-cuenta/ciclo"); } catch (x) { e = {}; }
+        // 22-nov-2026 (auditoría despacho-5): en un despacho, los botones actúan sobre la cuenta del despacho y solo para el
+        // titular (lo dice el servidor: puede_actuar); antes se leía la cuenta personal, que nace como demo vencida.
+        var propia = e.puede_actuar != null ? !!e.puede_actuar : (!perfil.persona || perfil.persona === perfil.correo);
         var texto = "Descarga en un archivo ZIP todo lo que tienes en Fiscontable: XML, constancias, opiniones y declaraciones, acomodados por empresa.";
+        if (e.despacho && propia && e.titular) texto = "Descarga en un archivo ZIP todo lo del despacho: XML, constancias, opiniones y declaraciones, acomodados por empresa.";
         var botones = propia ? '<button type="button" class="cf-btn cf-btn--principal" data-ciclo="exportar">Descargar todo</button>' : "";
         var inv = !perfil.viendo_como && perfil.despacho && perfil.despacho.invitacion;
-        if (inv) {
+        if (e.cubierta) {
+            texto = "Tu acceso lo da la licencia del despacho «" + (e.despacho || "") + "»" + (e.vigente_hasta ? ", vigente hasta el " + fecha(e.vigente_hasta) : "") + ". " +
+                (propia ? texto : "Descargar todo lo del despacho lo hace el titular.");
+        } else if (inv) {
             texto = "Tienes una invitación pendiente al despacho «" + inv.despacho + "». Al aceptarla, tu acceso lo da la licencia del despacho. " + texto;
         } else if (e.etapa === "gracia") {
             texto = "Tu plan venció el " + fecha(e.vence) + ". La cuenta sigue funcionando hasta el " + fecha(e.gracia_hasta) + "; después quedará en solo lectura.";
@@ -505,7 +536,8 @@
             if (propia && e.credenciales) botones += '<button type="button" class="cf-btn" data-ciclo="borrar">Eliminar e.firmas guardadas</button>';
             if (propia && !e.no_renueva && !e.efirmas_eliminadas) botones += '<button type="button" class="cf-btn" data-ciclo="no-renueva">No voy a renovar</button>';
         }
-        if (!propia) texto += " Esto lo hace el titular desde su cuenta.";
+        if (e.del_despacho) texto = texto.replace("Tu plan venció", "La licencia del despacho «" + (e.despacho || "") + "» venció").replace("La cuenta sigue", "El despacho sigue");
+        if (!propia && !e.cubierta) texto += " Esto lo hace el titular del despacho.";
         caja.innerHTML = '<p class="cf-texto">' + esc(texto) + "</p>" + (botones ? '<div class="cf-acciones">' + botones + '<span class="cf-msj"></span></div>' : "");
         caja.addEventListener("click", async function (ev) {
             var b = ev.target.closest("[data-ciclo]");
@@ -548,6 +580,7 @@
                 try { await enviar("/api/buzon/ajustes", "PUT", { frecuencia: +this.value }); aviso(c, true, "✓ Guardado."); }
                 catch (e) { aviso(c, false, e.message); }
             });
+            if (p.puede_frecuencia === false) soloTitular([$("cf-buzon-frec").closest(".cf-campo")], p.motivo_frecuencia);
         } catch (e) { c.innerHTML = '<div class="cf-tarjeta"><p class="cf-msj cf-msj--mal">' + esc(e.message) + "</p></div>"; }
     }
 
@@ -697,7 +730,7 @@
                 '<label class="ui-check cf-check"><input type="checkbox" id="cf-av-importes"' + (p.importes ? " checked" : "") +
                     "> Poner importes en los correos (de fábrica, sin importes)</label>" +
                 (p.puede_destinatarios ? '<div class="cf-acciones"><button type="button" class="cf-btn cf-btn--principal" id="cf-av-quien-guardar">Guardar</button><span class="cf-msj"></span></div>'
-                    : '<p class="cf-texto">Solo el titular del despacho puede cambiar esto.</p>') + "</div>" +
+                    : p.puede_editar === false ? "" : '<p class="cf-texto">Solo el titular del despacho puede cambiar esto.</p>') + "</div>" +
                 '<div class="cf-tarjeta" id="cf-av-caja-resumen" style="margin-top:14px"><h3 class="cf-sub">Resumen completo (opcional)</h3>' +
                 '<p class="cf-texto">Si además quieres todo junto en un solo correo: cómo va tu cartera: el cierre del mes, lo que pasó y lo que está por vencer. ' +
                 "Por empresa: notificaciones del Buzón, CFDI cancelados o con error, proveedores en listas del SAT, PPD sin complemento y trámites que no salieron. No lleva archivos.</p>" +
@@ -709,6 +742,7 @@
                     "> Que cada persona de mi despacho reciba el de sus empresas (" + p.equipo_resumen + " personas)</label>" : "") +
                 '<div class="cf-acciones"><button type="button" class="cf-btn" id="cf-av-resumen-ya">Mándame uno ahora</button><span class="cf-msj"></span></div></div>';
             subPestanas(c, ["Correos", "Horario", "A quién llegan", "Resumen completo"], "avisos");
+            var soloVer = p.puede_editar === false;
             var guardado = p;                                   // lo último que quedó guardado (el resumen se guarda automáticamente, sin tocar lo demás)
             var cajaResumen = $("cf-av-caja-resumen");
             $("cf-av-resumen").addEventListener("click", async function (e) {
@@ -797,7 +831,12 @@
                 }
                 catch (e) { aviso(c, false, e.message); }
             });
-            var cajaPrueba = $("cf-av-prueba-caja"), cerrarPrueba = function () { cajaPrueba.classList.remove("cf-menu-prueba--abierto"); $("cf-av-prueba-abrir").setAttribute("aria-expanded", "false"); };
+            // 22-nov-2026 (barrido de botones): los oyentes de abajo quedan en el documento al pasar a otra sección; sin esta
+            // revisión, cada clic o Esc en Mi perfil, Seguridad… tronaba («Cannot read properties of null»)
+            var cajaPrueba = $("cf-av-prueba-caja"), cerrarPrueba = function () {
+                if (!cajaPrueba.isConnected) return;
+                cajaPrueba.classList.remove("cf-menu-prueba--abierto"); var b = $("cf-av-prueba-abrir"); if (b) b.setAttribute("aria-expanded", "false");
+            };
             $("cf-av-prueba-abrir").addEventListener("click", function () {
                 var abierto = cajaPrueba.classList.toggle("cf-menu-prueba--abierto"); this.setAttribute("aria-expanded", String(abierto));
                 cajaPrueba.classList.remove("cf-menu-prueba--arriba");
@@ -813,6 +852,7 @@
                 catch (e) { aviso(c, false, e.message); }
                 finally { b.disabled = false; }
             });
+            if (soloVer) soloTitular(c.querySelectorAll(":scope > .cf-tarjeta"), p.motivo_editar);
         } catch (e) { c.innerHTML = '<div class="cf-tarjeta"><p class="cf-msj cf-msj--mal">' + esc(e.message) + "</p></div>"; }
     }
 
@@ -855,6 +895,8 @@
                 (filas.length ? filas.join("") : '<tr><td colspan="5">Guarda la e.firma de tus empresas en Clientes y aquí salen programadas.</td></tr>') + "</tbody></table></div>" +
                 '<p class="cf-msj"></p>';
             var chk = c.querySelector("#cf-prog-nuevas");
+            if (soloConsulta()) soloTitular(c.querySelectorAll(":scope > .cf-tarjeta"), soloConsulta());
+            else if (chk && nv && nv.puede_cambiar === false) soloTitular([chk.closest(".cf-tarjeta")], nv.motivo);
             if (chk) chk.addEventListener("change", async function () {
                 try { await enviar("/api/programacion-nuevas", "PUT", { activa: chk.checked }); aviso(c, true, chk.checked ? "✓ Todas tus empresas con e.firma quedan programadas." : "✓ Las nuevas ya no entran solas."); pintarProgramaciones(c); }
                 catch (x) { chk.checked = !chk.checked; aviso(c, false, x.message); }
@@ -1008,6 +1050,11 @@
                         (x.efirma_guardada ? ' <button type="button" class="cf-btn cf-btn--chico" data-ahora title="Pedir ahora el periodo programado">Descargar ahora</button>' : "") + "</td>" : "") + "</tr>";
                 }).join("") + "</tbody></table><div class=\"cf-acciones\"><span class=\"cf-msj\"></span></div></div>";
             var fb = c.querySelector("#cf-buzon-frec");
+            if (soloConsulta()) soloTitular(c.querySelectorAll(":scope > .cf-tarjeta"), soloConsulta());
+            else if (fb && bz.puede_frecuencia === false) {
+                fb.disabled = true; fb.title = bz.motivo_frecuencia || LO_DECIDE_EL_TITULAR;
+                fb.insertAdjacentHTML("afterend", '<small class="cf-solo-titular__chico">Lo decide el titular</small>');
+            }
             if (fb) fb.addEventListener("change", async function () {
                 try { await enviar("/api/buzon/ajustes", "PUT", { frecuencia: +fb.value }); aviso(c, true, "✓ Buzones: " + fb.options[fb.selectedIndex].textContent.toLowerCase() + "."); }
                 catch (x) { aviso(c, false, x.message); }

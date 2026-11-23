@@ -482,7 +482,7 @@
         if (m.soloAdmin) return admin;
         if (m.reservado) {
             var permiso = m.reservado === true ? m.permiso : m.reservado;
-            return admin || !!(p && !p._error && !p.solo_lectura && (p.modulos_permitidos || []).indexOf(permiso) !== -1);
+            return admin || !!(p && !p._error && (!p.solo_lectura || soloConsulta(p)) && (p.modulos_permitidos || []).indexOf(permiso) !== -1);
         }
         return true;
     }
@@ -503,11 +503,45 @@
         return (p && !p._error && !p.viendo_como && p.despacho && p.despacho.invitacion) || null;
     }
     function quienInvito(inv) { return (inv && (inv.invito_nombre || inv.invito)) || ""; }
+    /* 22-nov-2026 (auditoría despacho-1): «Solo puede consultar» no es «venció». Quien tiene ese permiso en el despacho (con la
+       licencia vigente) y el administrador en «Ver como» ven los módulos con el letrero de solo consulta; el bloqueo y el
+       aviso de «Tu acceso venció» son solo para cuando la licencia de verdad no está vigente (p.vigente === false). */
+    var MOTIVO_SOLO_CONSULTA = "Solo consulta: puedes ver y descargar; el titular decide los cambios.";
+    function soloConsulta(p) {
+        p = p || perfilActual;
+        return !!(p && !p._error && p.solo_lectura && !p.sin_agente && p.vigente !== false && !p.despacho_suspendido);
+    }
+    function vencido(p) { return !!(p && !p._error && p.solo_lectura && !p.sin_agente && !soloConsulta(p)); }
+    function motivoSoloConsulta(p) {
+        p = p || perfilActual;
+        if (p && p.viendo_como) return "Vista de solo lectura: estás viendo como " + (p.viendo_como.correo || "otra persona") + ". Sal de «Ver como» para hacer cambios.";
+        return MOTIVO_SOLO_CONSULTA;
+    }
+    // Botones de las páginas que cambian algo: con data-fc-cambia se deshabilitan solos en solo consulta, con el motivo.
+    function marcarSoloConsulta(raiz) {
+        if (!soloConsulta()) return;
+        var motivo = motivoSoloConsulta();
+        (raiz || document).querySelectorAll("[data-fc-cambia]").forEach(function (x) {
+            if ("disabled" in x) x.disabled = true; else x.setAttribute("aria-disabled", "true");
+            x.title = motivo;
+        });
+    }
+    var vigiaSoloConsulta = null;
+    function vigilarSoloConsulta() {
+        document.documentElement.classList.toggle("fc-solo-consulta", soloConsulta());
+        if (!soloConsulta()) { if (vigiaSoloConsulta) { vigiaSoloConsulta.disconnect(); vigiaSoloConsulta = null; } return; }
+        marcarSoloConsulta();
+        if (!vigiaSoloConsulta && window.MutationObserver && document.body) {
+            vigiaSoloConsulta = new MutationObserver(function () { marcarSoloConsulta(); });
+            vigiaSoloConsulta.observe(document.body, { childList: true, subtree: true });
+        }
+    }
     function permitido(m) {
         if (!m.permiso) return true;
         var p = perfilActual;
         if (!p || p._error) return true;            // mientras carga no se ve nada como bloqueado
-        return (!p.solo_lectura || p.sin_agente) && (p.modulos_permitidos || []).indexOf(m.permiso) !== -1;   // Standard sin Agente: consulta
+        // Standard sin Agente y «Solo consulta»: ven sus módulos (solo consulta); lo vencido, no
+        return !vencido(p) && (p.modulos_permitidos || []).indexOf(m.permiso) !== -1;
     }
 
     function itemModulo(m) {
@@ -864,8 +898,10 @@
         } else rielModulos.pintar(gruposModulos());
     }
 
+    var origenModulos = null;                     // el botón que abrió el buscador: ahí vuelve el foco al cerrarlo
     function abrirModulos(origen) {
         var panel = document.getElementById("fc-modulos"), boton = origen || document.getElementById("fc-btn-modulos");
+        origenModulos = boton;
         cerrarEmpresas();
         document.getElementById("fc-menu").hidden = true;
         var buscar = document.getElementById("fc-modulos-buscar");
@@ -886,8 +922,12 @@
     function cerrarModulos() {
         var panel = document.getElementById("fc-modulos");
         if (!panel || panel.hidden) return false;
+        // 22-nov-2026 (barrido de botones): al cerrar con Esc el foco se perdía en la página; vuelve al botón que lo abrió
+        // (solo si el foco estaba dentro del buscador: si la persona hizo clic en otra cosa, ahí se queda)
+        var a = document.activeElement, devolver = !a || a === document.body || panel.contains(a);
         panel.hidden = true;
         document.getElementById("fc-btn-modulos").setAttribute("aria-expanded", "false");
+        if (devolver && origenModulos && origenModulos.isConnected) try { origenModulos.focus({ preventScroll: true }); } catch (e) { /* sin foco */ }
         return true;
     }
 
@@ -1087,11 +1127,20 @@
         if (activo && window.innerWidth > 700) activo.focus();
     }
 
+    // 22-nov-2026 (barrido de botones): al cerrar un menú de la barra con Esc el foco se perdía en la página; vuelve a su botón
+    // (solo si el foco estaba dentro del menú o perdido: si la persona hizo clic en otra cosa, ahí se queda)
+    function devolverFoco(panel, boton) {
+        var a = document.activeElement;
+        if (boton && (!a || a === document.body || panel.contains(a))) try { boton.focus({ preventScroll: true }); } catch (e) { /* sin foco */ }
+    }
+
     function cerrarEspacios() {
         var panel = document.getElementById("fc-espacios");
         if (!panel || panel.hidden) return;
+        var boton = document.getElementById("fc-btn-espacio"), dentro = panel.contains(document.activeElement) || document.activeElement === document.body;
         panel.hidden = true;
-        document.getElementById("fc-btn-espacio").setAttribute("aria-expanded", "false");
+        boton.setAttribute("aria-expanded", "false");
+        if (dentro) devolverFoco(panel, boton);
     }
 
     async function cambiarEspacio(clave) {
@@ -1170,8 +1219,10 @@
     function cerrarEmpresas() {
         var panel = document.getElementById("fc-empresas");
         if (!panel || panel.hidden) return;
+        var boton = document.getElementById("fc-btn-empresa"), dentro = panel.contains(document.activeElement) || document.activeElement === document.body;
         panel.hidden = true;
-        document.getElementById("fc-btn-empresa").setAttribute("aria-expanded", "false");
+        boton.setAttribute("aria-expanded", "false");
+        if (dentro) devolverFoco(panel, boton);
     }
 
     /* ---------- Visor de PDF de Fiscontable (PDF.js) ----------
@@ -2789,9 +2840,18 @@
         } else if (p.solo_lectura && p.sin_agente && !p.viendo_como) {
             avisoDeAcceso("Conecta tu PC con Fiscontable Agente para hacer trámites y cambios. Mientras tanto puedes consultar toda tu información.",
                 [{ texto: "Conectar esta PC", href: "/agente/", mismaPestana: true }]);
+        } else if (p.viendo_como) {
+            // 22-nov-2026 (auditoría despacho-1): antes decía «Tu acceso venció…» aunque la cuenta estuviera vigente
+            avisoDeAcceso(p.vigente === false ? "Vista de solo lectura. La licencia de esta cuenta venció: así la ve la persona."
+                : "Vista de solo lectura: así ve Fiscontable esta persona. Puedes ver y descargar; para hacer cambios, sal de «Ver como».");
+        } else if (p.despacho_suspendido) {
+            avisoDeAcceso(p.despacho_suspendido.texto);       // 22-nov-2026 (auditoría despacho-9): no «venció»: lo suspendió el titular
+        } else if (soloConsulta(p)) {
+            avisoDeAcceso(MOTIVO_SOLO_CONSULTA);
         } else if (p.solo_lectura) {
-            avisoDeAcceso("Tu acceso venció. Puedes consultar tu directorio, pero no generar documentos. " +
-                "Contacta al administrador para renovarlo.");
+            avisoDeAcceso(p.espacio && p.espacio.tipo === "despacho"
+                ? "La licencia del despacho venció. Puedes consultar, pero no generar documentos. " + nombreTitular(p).charAt(0).toUpperCase() + nombreTitular(p).slice(1) + " es quien la renueva."
+                : "Tu acceso venció. Puedes consultar tu directorio, pero no generar documentos. Contacta al administrador para renovarlo.");
         } else {
             avisoDeAcceso(null);
         }
@@ -2816,6 +2876,7 @@
         prepararBloqueo(p);
         vigilarChipEmpresa();
         pintarVerComo(p);
+        vigilarSoloConsulta();
         pintarAmbiente(p);
         cargarTextos();
         cargarPlazos();
@@ -3009,7 +3070,8 @@
                 var b = e.target.closest("[data-correo]"); if (!b) return;
                 if (b.dataset.correo === "no") { dlgCorreo.close(); return; }
                 var f = dlgCorreo.querySelector("form"), err = dlgCorreo.querySelector(".fc-correo-error"), op = dlgCorreo._op;
-                if (!f.para.value.trim()) { f.para.focus(); return; }
+                // 22-nov-2026 (barrido de botones): con «Para» vacío solo movía el cursor, sin decir nada; ahora lo dice
+                if (!f.para.value.trim()) { err.textContent = "Escribe al menos un correo en «Para»."; err.hidden = false; f.para.focus(); return; }
                 b.disabled = true; err.hidden = true;
                 try {
                     var r = await fetch(API + op.ruta, { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" },
@@ -4221,9 +4283,17 @@
                 "Pídeselo a " + nombreTitular(p) + ".");
             return false;
         }
-        if (p.solo_lectura && !p.sin_agente) {
-            bloquear("Tu acceso venció. No puedes generar documentos hasta que se renueve. " +
-                "Contacta al administrador.", botonesContacto(null));
+        // 22-nov-2026 (auditoría despacho-1): con «Solo puede consultar» (o en «Ver como») la página sí se abre; el letrero de
+        // arriba dice por qué no se puede cambiar nada. Solo se bloquea si la licencia de verdad venció o el titular suspendió.
+        if (p.despacho_suspendido && p.solo_lectura && !p.viendo_como) {
+            bloquear(p.despacho_suspendido.texto);
+            return false;
+        }
+        if (vencido(p)) {
+            bloquear(p.espacio && p.espacio.tipo === "despacho"
+                ? "La licencia del despacho venció. No puedes generar documentos hasta que el titular la renueve."
+                : "Tu acceso venció. No puedes generar documentos hasta que se renueve. Contacta al administrador.",
+                p.espacio && p.espacio.tipo === "despacho" ? "" : botonesContacto(null));
             return false;
         }
         if (requerido && !(p.modulos_permitidos || []).includes(requerido)) {
@@ -4588,6 +4658,10 @@
         nombrePlan: nombrePlan,
         recientes: recientes,
         permitido: function (m) { return permitido(m); },
+        // 22-nov-2026 (auditoría despacho-1): ¿solo consulta (o «Ver como»)? Devuelve el motivo para poner en los botones, o null
+        soloConsulta: function () { return soloConsulta() ? motivoSoloConsulta() : null; },
+        vencido: function () { return vencido(perfilActual); },
+        marcarSoloConsulta: marcarSoloConsulta,
         verModulo: function (m) { return verModulo(m); },
         invitacionPendiente: function () { return invitacionPendiente(); },
         abrirInvitacion: abrirInvitacion,

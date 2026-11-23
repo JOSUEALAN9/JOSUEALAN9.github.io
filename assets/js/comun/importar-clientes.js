@@ -40,7 +40,7 @@
             '  <div class="fc-ic-tabla-caja" data-ic="tabla" hidden><table class="fc-ic-tabla"><thead><tr><th><input type="checkbox" data-ic="todos" title="Marcar todos los que se ven"></th><th>Receptor</th><th>C.P.</th><th>Régimen</th><th>Uso del CFDI</th><th>Estado</th><th data-ic="col-origen">Facturas</th></tr></thead><tbody data-ic="filas"></tbody></table></div>' +
             '  <p class="fc-ic-error" data-ic="error" hidden></p>' +
             "</div>" +
-            '<div class="fc-modal__pie"><span class="fc-ic-cuenta" data-ic="cuenta"></span><button type="button" class="fc-btn" data-ic="cerrar">Cancelar</button><button type="button" class="fc-btn fc-btn--principal" data-ic="guardar" disabled>Guardar</button></div>';
+            '<div class="fc-modal__pie"><span class="fc-ic-cuenta" data-ic="cuenta"></span><button type="button" class="fc-btn" data-ic="cerrar">Cancelar</button><button type="button" class="fc-btn fc-btn--principal" data-ic="guardar" disabled title="Primero elige de dónde sacar los receptores y marca los que quieres guardar">Guardar</button></div>';
         document.body.appendChild(d);
         var q = function (k) { return d.querySelector('[data-ic="' + k + '"]'); };
         d.addEventListener("click", function (ev) {
@@ -164,6 +164,8 @@
         var n = (E.lista || []).filter(function (x) { return x.sel; }).length;
         E.q("cuenta").textContent = E.lista && E.lista.length ? n + " de " + E.lista.length + " marcados" : "";
         E.q("guardar").disabled = !n;
+        // 22-nov-2026 (barrido de botones): deshabilitado, dice por qué
+        E.q("guardar").title = n ? "" : (E.lista && E.lista.length ? "Marca al menos un receptor para guardarlo" : "Primero elige de dónde sacar los receptores y marca los que quieres guardar");
         var act = (E.lista || []).filter(function (x) { return x.sel && x.estado === "distinto"; }).length;
         E.q("guardar").textContent = n ? (act ? "Guardar " + (n - act) + " y actualizar " + act : "Guardar " + n + " receptor" + (n === 1 ? "" : "es")) : "Guardar";
     }

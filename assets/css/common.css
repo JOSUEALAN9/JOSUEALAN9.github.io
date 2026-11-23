@@ -1880,6 +1880,11 @@ html.fc-version-abierta body { overflow: hidden; }
                                color: rgb(var(--g-900)); text-decoration: none; }
 .mod-menu__lista .mod-accion[hidden] { display: none; }
 .mod-menu__lista .mod-accion:hover:not(:disabled) { background: rgb(var(--g-100)); border-color: transparent; }
+/* 22-nov-2026 (barrido de botones): en el celular estos menús («Compartir ▾», «Descargar ▾», «Ir a ▾»…) abrían hacia la izquierda
+   desde su botón y quedaban cortados fuera de la pantalla (Administración de XML: −94 px); ahí se abren debajo del botón a lo ancho */
+@media (max-width: 700px) {
+  .mod-menu__lista { position: fixed; top: auto; left: 12px; right: 12px; min-width: 0; max-height: 60vh; overflow: auto; }
+}
 
 /* --- Detalle de CFDI en panel lateral (G-07) --- */
 .fc-cfdi { position: fixed; top: 0; right: 0; bottom: 0; z-index: 85; width: min(760px, 100vw); display: flex; flex-direction: column;

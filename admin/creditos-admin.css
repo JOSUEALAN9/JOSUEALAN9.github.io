@@ -26,6 +26,9 @@
 .plz-msj { font-size: var(--t-13); }
 .plz-msj--ok { color: rgb(var(--ok-700)); }
 .plz-msj--mal { color: rgb(var(--er-700)); }
+/* 22-nov-2026 (barrido de botones): en el celular las tablas de Plazos y de Cuentas vencidas medían hasta 189 px más que la
+   pantalla y toda la página se movía a lo ancho; ahora la tabla se desliza dentro de su tarjeta */
+@media (max-width: 700px) { .plz-nota ~ .ui-tabla { display: block; overflow-x: auto; max-width: 100%; } }
 /* Sistema › Cuentas vencidas (admin/vencidas-admin.js) */
 .ven-correo { border-top: 1px solid var(--linea); padding: 10px 0; }
 .ven-correo summary { cursor: pointer; font-size: var(--t-14); }

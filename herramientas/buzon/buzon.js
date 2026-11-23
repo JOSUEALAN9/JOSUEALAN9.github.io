@@ -65,6 +65,9 @@
         var sel = $("frecuencia");
         sel.innerHTML = Object.keys(E.panel.frecuencias).sort(function (a, b) { return (+a || 99) - (+b || 99); })
             .map(function (k) { return '<option value="' + k + '"' + (+k === E.panel.frecuencia ? " selected" : "") + ">" + esc(E.panel.frecuencias[k]) + "</option>"; }).join("");
+        // 22-nov-2026 (auditoría despacho-4): vale para los buzones de todo el despacho; solo el titular la cambia
+        sel.disabled = E.panel.puede_frecuencia === false;
+        sel.title = sel.disabled ? (E.panel.motivo_frecuencia || "Lo decide el titular del despacho.") : "";
         $("caja-diagnostico").hidden = !E.panel.es_admin;
         pintarResumen();
         pintarEmpresas();
@@ -139,6 +142,7 @@
     function actualizarBotonRevisar() {
         var n = elegidas().length, b = $("btn-revisar");
         b.disabled = !n || !!E.trabajo;
+        b.title = E.trabajo ? "Ya hay una revisión en curso" : (n ? "" : "Marca al menos una empresa");   // 22-nov-2026: dice por qué
         b.textContent = n ? "Revisar ahora (" + n + ")" : "Revisar ahora";
     }
 
@@ -213,6 +217,8 @@
         var e = E.detalle.empresa || {};
         $("empresa-estado").innerHTML = estadoRevision(e);
         $("btn-revisar-una").disabled = !e.efirma || !!E.trabajo;
+        // 22-nov-2026 (barrido de botones): deshabilitado, dice por qué
+        $("btn-revisar-una").title = !e.efirma ? "Primero guarda la e.firma de esta empresa en Clientes" : (E.trabajo ? "Ya hay una revisión en curso" : "");
         pintarPestanas();
         pintarSeccion();
     }
@@ -612,6 +618,8 @@
             var nids = E.detalle.notificaciones.filter(function (n) { return n.estado === "notificado" && !n.visto; }).map(function (n) { return n.id; });
             if (ids.length) marcar("/api/buzon/comunicados/visto", ids, 1);
             if (nids.length) marcar("/api/buzon/notificaciones/visto", nids, 1);
+            // 22-nov-2026 (barrido de botones): si ya estaba todo visto, el clic no hacía nada; ahora lo dice
+            if (!ids.length && !nids.length) Fiscontable.toast("Ya está todo visto: no hay mensajes nuevos.");
         });
         $("contenido").addEventListener("click", function (e) {
             var b = e.target.closest("button");

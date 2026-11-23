@@ -56,7 +56,9 @@
             perfil = p;
             var inv = Fiscontable.invitacionPendiente && Fiscontable.invitacionPendiente();
             motivo = !p ? "No disponible sin conexión al servidor" : inv ? "Primero acepta la invitación al despacho «" + inv.despacho + "»." :
-                p.solo_lectura ? "Tu acceso venció." : null;
+                // 22-nov-2026 (auditoría despacho-1): «Solo consulta» y «Ver como» sí abren los módulos; solo lo vencido no
+                p.despacho_suspendido && p.solo_lectura ? p.despacho_suspendido.texto :
+                (Fiscontable.vencido ? Fiscontable.vencido() : p.solo_lectura) ? "Tu acceso venció." : null;
             pintar();
         });
         pintar();
