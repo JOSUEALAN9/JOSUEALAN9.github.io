@@ -62,11 +62,9 @@
             <button type="button" id="btn-validar" class="mod-accion" title="Consulta en el SAT si están vigentes o cancelados"><b>✓</b>Validar estado SAT</button>
             <p class="mod-acciones__grupo">Reportes</p>
             <button type="button" id="btn-conceptos" class="mod-accion" title="Un renglón por producto o servicio de las facturas que ves, con sus impuestos, y el resumen por producto y por cliente o proveedor"><b>▤</b>Reporte por conceptos</button>
-            <button type="button" id="btn-duplicados" class="mod-accion" title="Facturas que parecen la misma timbrada dos veces: mismo cliente o proveedor, mismo total y mismo contenido, con pocos días de diferencia"><b>⧉</b>Posibles duplicados</button>
+            <button type="button" id="btn-duplicados" class="mod-accion" title="Facturas que parecen la misma timbrada dos veces: mismo cliente o proveedor, mismo total y los mismos conceptos, con 3 días o menos de diferencia"><b>⧉</b>Posibles duplicados</button>
             <p class="mod-acciones__grupo">Descargar</p>
-            <button type="button" class="mod-accion" data-excel="vista" title="El reporte completo de esta pestaña, con tus filtros: las columnas acomodadas como el reporte de descarga que ya conoces (estado, folio fiscal, serie y folio, fechas, emisor, receptor, pago, importes, IVA, retenciones)"><b>▦</b>Excel · reporte completo</button>
-            <button type="button" class="mod-accion" data-excel="visibles" title="La tabla tal como la tienes en pantalla: solo tus columnas, en tu orden y con tus filtros"><b>▥</b>Excel de esta tabla</button>
-            <button type="button" id="btn-formato" class="mod-accion" title="Qué columnas y en qué orden lleva el «Excel · reporte completo» de Recibidos y Emitidos (lo define el titular del despacho)"><b>⚙</b>Formato del reporte completo</button>
+            <button type="button" class="mod-accion" data-excel="unico" title="Como ves la tabla: la vista activa, tus filtros (o lo marcado con la casilla), en pesos y, si el mes ya cerró, al cierre"><b>▦</b>Descargar Excel</button>
             <button type="button" id="btn-pdf" class="mod-accion" title="Representación impresa: uno en PDF, varios en ZIP (si son muchos, el ZIP se arma en segundo plano y queda en Mis descargas)"><b>⎙</b>XML a PDF</button>
             <button type="button" id="btn-zip" class="mod-accion" title="Los XML de lo que ves (o de lo seleccionado)"><b>⇩</b>Descargar XML (ZIP)</button>
             <button type="button" id="btn-zip-completo" class="mod-accion" title="PDF y XML juntos de lo que ves (o de lo seleccionado); si son muchos, el ZIP se arma en segundo plano y queda en Mis descargas"><b>⇩</b>PDF y XML (ZIP)</button>
@@ -103,7 +101,7 @@
             <div class="xc-cabeza">
                 <div><h2 id="conceptos-titulo">Conceptos</h2><p id="conceptos-sub"></p></div>
                 <div class="xc-cabeza__der">
-                    <button type="button" id="conceptos-excel" class="xml-btn">Excel del reporte</button>
+                    <button type="button" id="conceptos-excel" class="xml-btn" hidden>Excel del reporte</button>
                     <button type="button" id="conceptos-cerrar" class="xml-btn">Volver a las facturas</button>
                 </div>
             </div>
@@ -133,9 +131,10 @@
                 <button type="button" id="btn-moneda" class="xml-btn" title="Ver los importes en moneda extranjera en pesos (como en el Excel) o en su moneda" hidden>Importes: en su moneda</button>
                 <button type="button" id="btn-columnas" class="xml-btn">Columnas</button>
                 <div class="xml-menu">
-                    <button type="button" id="btn-vistas" class="xml-btn"><span id="nombre-vista">Vista de fábrica</span> ▾</button>
-                    <div id="menu-vistas" class="xml-menu__lista" hidden></div>
+                    <button type="button" id="btn-vistas" class="xml-btn" aria-haspopup="menu" title="Fiscontable, Formato 2 o tus vistas guardadas"><span id="nombre-vista">Vista: Fiscontable</span> ▾</button>
+                    <div id="menu-vistas" class="xml-menu__lista xml-menu__lista--vistas" role="menu" hidden></div>
                 </div>
+                <button type="button" id="btn-guardar-vista" class="xml-btn xml-btn--activo" title="Moviste, quitaste o agregaste columnas: guárdalas con un nombre para usarlas después" hidden>Guardar como vista nueva</button>
             </div>
         </div>
 
@@ -215,6 +214,23 @@
     </div>
 </dialog>
 
+<!-- 23-nov-2026: «Guardar como vista nueva» (su nombre y, para el titular, compartirla con el despacho) -->
+<dialog class="fc-modal fc-modal--chica" id="dlg-vista" aria-labelledby="dlg-vista-titulo">
+    <div class="fc-modal__cabeza"><div><h2 id="dlg-vista-titulo">Guardar como vista nueva</h2><p id="dlg-vista-sub"></p></div>
+        <button type="button" class="fc-modal__cerrar" data-vista-dlg="cerrar" aria-label="Cerrar">×</button></div>
+    <div class="fc-modal__cuerpo">
+        <label class="xml-campo">Nombre de la vista
+            <input type="text" id="vista-nombre" maxlength="60" placeholder="Por ejemplo: Revisión de IVA" autocomplete="off"></label>
+        <p id="vista-error" class="xml-campo__error" role="alert" hidden></p>
+        <label class="xml-siempre" id="vista-compartir-caja" hidden><input type="checkbox" id="vista-compartir">
+            <span><strong>Compartirla con todo el despacho</strong><small>La verán todos en su menú «Vista»; solo tú la cambias o la borras.</small></span></label>
+    </div>
+    <div class="fc-modal__pie">
+        <button type="button" class="ui-btn ui-btn--secundario ui-btn--36" data-vista-dlg="cerrar">Cancelar</button>
+        <button type="button" class="ui-btn ui-btn--primario ui-btn--36" data-vista-dlg="ok">Guardar vista</button>
+    </div>
+</dialog>
+
 <!-- Panel de columnas -->
 <aside id="panel-columnas" class="xml-panel" hidden>
     <div class="xml-panel__cabeza">
@@ -227,7 +243,7 @@
     <p class="xml-panel__sub">Disponibles</p>
     <div id="lista-disponibles"></div>
     <div class="xml-panel__pie">
-        <button type="button" id="btn-fabrica" class="xml-enlace">Regresar a las de fábrica</button>
+        <button type="button" id="btn-fabrica" class="xml-enlace">Deshacer mis cambios</button>
     </div>
 </aside>
 

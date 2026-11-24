@@ -61,7 +61,7 @@
             (nomina()
                 ? '<div class="xd-total"><strong>ISR retenido $' + fmt.format(g.isr) + "</strong><small>" + esc("Percepciones $" + fmt.format(g.total) + " · pagado el " + fecha(g.fecha_pago) +
                     (estado === "descartado" ? "" : " · si sobra" + (g.facturas.length > 2 ? "n" : "") + ": $" + fmt.format(g.isr_de_mas) + " de ISR de más")) + "</small></div></header>"
-                : '<div class="xd-total"><strong>$' + fmt.format(g.total) + " " + esc(g.moneda) + "</strong><small>" + esc(g.motivo + (g.dias ? " · a " + g.dias + " día(s)" : " · el mismo día")) + "</small></div></header>") +
+                : '<div class="xd-total"><strong>$' + fmt.format(g.total) + " " + esc(g.moneda) + "</strong><small>" + esc("Mismos conceptos" + (g.dias ? " · a " + g.dias + " día(s)" : " · el mismo día")) + "</small></div></header>") +
             '<div class="xd-tabla"><table><thead><tr><th>' + (estado === "pendiente" ? "Sobra" : "") + "</th><th>" + (nomina() ? "Timbrado" : "Fecha") + "</th><th>Serie y folio</th><th>" +
             (nomina() ? "Periodo pagado" : "Concepto") + "</th><th" + (nomina() ? ' class="xd-num">Neto' : ">Método") + "</th><th>Estado SAT</th><th></th></tr></thead><tbody>" +
             filas + "</tbody></table></div><footer>" + pie + "</footer></article>";
@@ -95,7 +95,8 @@
                 ? '<p class="xd-vacio"><strong>Sin recibos repetidos en este periodo.</strong> Se comparan los recibos de nómina vigentes del mismo trabajador con la misma fecha de pago, ' +
                   "el mismo periodo, las mismas percepciones y el mismo ISR.</p>"
                 : '<p class="xd-vacio"><strong>Sin posibles duplicados en este periodo.</strong> Se comparan las facturas ' + (emitidas() ? "emitidas" : "recibidas") +
-                " vigentes del mismo " + (emitidas() ? "cliente" : "proveedor") + ", con el mismo total y el mismo contenido, emitidas con hasta " + d.ventana_dias + " días de diferencia.</p>";
+                " vigentes del mismo " + (emitidas() ? "cliente" : "proveedor") + ", con la misma moneda y el mismo total, los mismos conceptos (clave del SAT, cantidad e importe; " +
+                "la descripción sin contar mayúsculas, acentos, espacios ni signos) y con hasta " + d.ventana_dias + " días de diferencia. Las de total $0.00 no se revisan.</p>";
             return;
         }
         cuerpo.innerHTML =
