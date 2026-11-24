@@ -291,6 +291,9 @@
         caja.innerHTML = lista.map(function (e) {
             var emp = e.empresas.length ? plural(e.empresas.length, "empresa", "empresas") + ": " + e.empresas.slice(0, 3).map(nombreEmpresa).join(", ") +
                 (e.empresas.length > 3 ? " y " + (e.empresas.length - 3) + " más" : "") : "ninguna todavía: márcalas abajo";
+            // 24-nov-2026 (B6 de Fable): con «Solo estas» empresas, las de los demás llegan contadas, sin su RFC
+            // (revisión: sin ninguna suya decía solo «N empresas de otras personas», sin aclarar que no lleva ninguna suya)
+            if (e.empresas_otras) emp = (e.empresas.length ? emp + "; además " : "ninguna tuya; ") + plural(e.empresas_otras, "empresa", "empresas") + " de otras personas del despacho";
             var para = e.destino === "cliente" ? "cada cliente, a su correo" + (e.para.concat(e.cc || []).length ? " · copia a " + e.para.concat(e.cc || []).join(", ") : "")
                 : e.para.concat(e.cc || []).join(", ");
             return '<article class="ui-tarjeta ev-tarjeta' + (e.activa ? "" : " ev-tarjeta--pausado") + '" data-id="' + esc(e.id) + '">' +
@@ -368,7 +371,7 @@
         try {
             var r = await mandar("/api/entregas/" + encodeURIComponent(id) + "/empresas", "POST", { rfcs: rfcs, dentro: dentro });
             var e = E.envios.find(function (x) { return x.id === id; });
-            if (e) e.empresas = r.empresas;
+            if (e) { e.empresas = r.empresas; if (r.empresas_otras != null) e.empresas_otras = r.empresas_otras; }
             pintar();
         } catch (err) { if (casilla) casilla.checked = !casilla.checked; Fiscontable.toast(err.message); }
     }
