@@ -104,6 +104,10 @@
 #v-recibidas[hidden], #v-emitidas[hidden], #v-historial[hidden] { display: none; }
 .fi-candado { background: rgb(var(--g-100)); border: 1px solid rgb(var(--g-300)); color: rgb(var(--g-700)); border-radius: 12px; padding: 10px 14px; font-size: 13px; margin-bottom: 12px; }
 .fi-candado[hidden] { display: none; }
+.fi-congelado { margin-top: 8px; }                     /* 23-nov-2026: lo que cambiaría en el mes cerrado */
+.fi-congelado summary { cursor: pointer; font-weight: 600; }
+.fi-congelado ul { margin: 6px 0 0 18px; padding: 0; list-style: disc; overflow-wrap: anywhere; }
+.fi-congelado li { margin: 2px 0; }
 .fi-celda:disabled { cursor: default; opacity: .75; }
 .fi-celda:disabled:hover { box-shadow: none; }
 .fi-cerrado .fi-guia { display: none; }

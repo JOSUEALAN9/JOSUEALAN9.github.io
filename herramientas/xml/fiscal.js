@@ -105,8 +105,25 @@
         $("candado").hidden = !c;
         if (c) $("candado").innerHTML = "🔒 <b>" + MESES[E.mes - 1] + " " + E.anio + " está cerrado</b>" +
             (c.por.length ? ": ya se presentó " + esc(c.por.join(" y ")) + "." : c.quien ? " (lo cerró " + esc(c.quien) + ")." : ".") +
-            " Las marcas se ven pero no se cambian. Si de verdad hay que corregir, usa «🔒 Mes cerrado» para abrirlo.";
+            " Las marcas se ven pero no se cambian. Si de verdad hay que corregir, usa «🔒 Mes cerrado» para abrirlo." + congelado();
         document.body.classList.toggle("fi-cerrado", !!c);
+    }
+
+    // 23-nov-2026 (auditoría conc_visores-3): el mes cerrado se calcula con las marcas del cierre; se dice qué cambiaría
+    // con las reglas y marcas de hoy y cuántos CFDI llegaron después (esos sí cuentan)
+    function congelado() {
+        var g = E.datos && E.datos.congelado;
+        if (!g) return "";
+        var cambios = g.cambios || [], html = "";
+        if (cambios.length) {
+            html += '<details class="fi-congelado"><summary>Con las reglas y marcas de hoy cambiarían ' + cambios.length + " marca(s) de este mes. " +
+                "El mes se queda como se cerró.</summary><ul>" + cambios.slice(0, 50).map(function (x) {
+                    return "<li><b>" + esc(x.folio || x.uuid.slice(0, 8)) + "</b> · " + esc((x.contraparte && (x.contraparte.nombre || x.contraparte.rfc)) || "") +
+                        " · " + esc(x.nombre) + ": " + esc(x.antes) + " → " + esc(x.ahora) + (x.motivo ? " (" + esc(x.motivo) + ")" : "") + "</li>";
+                }).join("") + (cambios.length > 50 ? "<li>… y " + (cambios.length - 50) + " más</li>" : "") + "</ul></details>";
+        }
+        if (g.nuevos) html += '<div class="fi-congelado">' + g.nuevos + " CFDI llegaron después de cerrar el mes: esos cuentan con las reglas de hoy.</div>";
+        return html;
     }
 
     async function cambiarCandado() {
@@ -307,7 +324,8 @@
             }
             $("modal-marcar").hidden = true;
             aviso("Guardado: " + (cuenta ? "sí cuenta" : "no cuenta") + (imp === "*" ? "" : " para " + esc(nombre(imp))) + " en " + cuerpo.uuids.length + " factura(s)." +
-                  (aprendidas ? " Fiscontable lo hará así siempre en esta empresa (lo ves o quitas en ⚙ Reglas)." : ""));
+                  (aprendidas ? " Fiscontable lo hará así siempre en esta empresa (lo ves o quitas en ⚙ Reglas)." : "") +
+                  (r && r.aviso_cerrados ? " " + esc(r.aviso_cerrados) : ""));
             E.sel.clear();
             cargar();
         } catch (e) { $("mk-error").textContent = e.message; $("mk-error").hidden = false; $("mk-aplicar").disabled = false; }
@@ -315,9 +333,9 @@
 
     async function automaticoDelModal() {
         try {
-            await enviar("/api/fiscal/" + encodeURIComponent(E.rfc) + "/automatico", "POST", { uuids: E.mk.uuids, impuesto: E.mk.imp || null, anio: E.anio, mes: E.mes });
+            var r = await enviar("/api/fiscal/" + encodeURIComponent(E.rfc) + "/automatico", "POST", { uuids: E.mk.uuids, impuesto: E.mk.imp || null, anio: E.anio, mes: E.mes });
             $("modal-marcar").hidden = true;
-            aviso("Volvió a lo automático.");
+            aviso("Volvió a lo automático." + (r && r.aviso_cerrados ? " " + esc(r.aviso_cerrados) : ""));
             cargar();
         } catch (e) { $("mk-error").textContent = e.message; $("mk-error").hidden = false; }
     }
@@ -393,9 +411,9 @@
         document.querySelectorAll("[data-regla]").forEach(function (c) { cuerpo.reglas[c.dataset.regla] = c.checked; });
         if (restablecer) cuerpo = { restablecer: true };
         try {
-            await enviar("/api/fiscal/" + encodeURIComponent(E.rfc) + "/config", "PUT", cuerpo);
+            var r = await enviar("/api/fiscal/" + encodeURIComponent(E.rfc) + "/config", "PUT", cuerpo);
             $("modal-config").hidden = true;
-            aviso(restablecer ? "Se volvió al paquete de su régimen." : "Reglas guardadas.");
+            aviso((restablecer ? "Se volvió al paquete de su régimen." : "Reglas guardadas.") + (r && r.aviso_cerrados ? " " + esc(r.aviso_cerrados) : ""));
             cargar();
         } catch (e) { $("cf-error").textContent = e.message; $("cf-error").hidden = false; }
     }
@@ -460,7 +478,11 @@
         $("cf-restablecer").addEventListener("click", async function () { if (await Fiscontable.preguntar("¿Volver al paquete de su régimen? Lo aprendido se queda.")) guardarConfig(true); });
         $("cf-aprendidas").addEventListener("click", async function (e) {
             var b = e.target.closest("[data-borrar-regla]"); if (!b) return;
-            try { await api("/api/fiscal/" + encodeURIComponent(E.rfc) + "/reglas/" + b.dataset.borrarRegla, { method: "DELETE" }); pintarAprendidas(); cargar(); }
+            try {
+                var r = await api("/api/fiscal/" + encodeURIComponent(E.rfc) + "/reglas/" + b.dataset.borrarRegla, { method: "DELETE" });
+                if (r && r.aviso_cerrados) aviso("Regla borrada. " + esc(r.aviso_cerrados));
+                pintarAprendidas(); cargar();
+            }
             catch (err) { $("cf-error").textContent = err.message; $("cf-error").hidden = false; }
         });
         document.querySelectorAll(".xml-modal").forEach(function (mo) { mo.addEventListener("click", function (e) { if (e.target === mo) mo.hidden = true; }); });

@@ -278,10 +278,25 @@
             var d = await (await api("/api/visores/panel?rfc=" + encodeURIComponent(P.empresa.rfc) + "&anio=" + anio())).json();
             if (!P.empresa || d.rfc !== P.empresa.rfc) return;
             P.datos = d; pintar();
-            if ((d.en_curso || []).length) P.reloj = setTimeout(cargar, 8000);      // mientras lee, se actualiza solo
+            if ((d.en_curso || []).length) P.reloj = setTimeout(vigilar, 8000);     // mientras lee, se actualiza solo
         } catch (e) {
             $("vn-estado").innerHTML = '<span class="vn-punto vn-punto--viejo"></span>' + esc(e.message);
         }
+    }
+
+    // 23-nov-2026 (auditoría conc_visores-5): mientras el SAT lee (10 a 15 min), solo se pregunta si sigue leyendo (ruta
+    // ligera); el panel completo, que rehace el cruce del año, se pide una vez, cuando termina (o empieza) una lectura.
+    async function vigilar() {
+        clearTimeout(P.reloj);
+        if (!P.empresa || !P.datos) return;
+        var rfc = P.empresa.rfc, ids = function (l) { return (l || []).map(function (x) { return x.id; }).sort().join(","); };
+        try {
+            var e = await (await api("/api/visores/panel/estado?rfc=" + encodeURIComponent(rfc))).json();
+            if (!P.empresa || P.empresa.rfc !== rfc || !P.datos) return;
+            if (ids(e.en_curso) !== ids(P.datos.en_curso)) { cargar(); return; }
+            P.datos.en_curso = e.en_curso; pintarEstado();
+            P.reloj = setTimeout(vigilar, 8000);
+        } catch (err) { P.reloj = setTimeout(vigilar, 15000); }
     }
 
     /* «Leer ahora ▾» (15-nov, el dueño: «un desplegable de selección rápida: le paso el puntero o doy clic y sale ahí mismo»):

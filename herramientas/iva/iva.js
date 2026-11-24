@@ -118,6 +118,7 @@
         } catch (e) { $("conteo").textContent = e.message; return; }
         $("saldo-favor").value = leerLocal("saldo:" + clavePeriodo()) || "";
         pintarResumen();
+        pintarAvisosPapel();
         pintarMarcas();
         pintar();
     }
@@ -139,12 +140,68 @@
                 filaRes('<button type="button" class="iva-link" data-ver-noacred>− No acreditable (marcas)</button>', m(-tr.no_acred), "iva-noacred") : "") +
             filaRes("IVA acreditable", m(tr.acreditable), "iva-total") +
             filaRes("Retuviste (a enterar)", m(tr.ret));
-        var saldo = parseFloat($("saldo-favor").value) || 0;
-        var final = Math.round((s.resultado_antes_saldo - saldo) * 100) / 100;
+        var x = aplicarSaldo(s.resultado_antes_saldo, parseFloat($("saldo-favor").value) || 0);
         $("res-resultado").innerHTML =
             filaRes("Cobrado − retenido", m(te.iva - te.ret)) + filaRes("− Acreditable", m(-tr.acreditable)) +
-            (saldo ? filaRes("− Saldo a favor anterior", m(-saldo)) : "") +
-            filaRes(final >= 0 ? "IVA a cargo" : "IVA a favor", m(Math.abs(final)), "iva-total " + (final >= 0 ? "iva-cargo" : "iva-favor"));
+            (x.aplicado ? filaRes("− Saldo a favor anterior aplicado", m(-x.aplicado)) : "") +
+            (x.aFavor ? filaRes("IVA a favor del periodo", m(x.aFavor), "iva-total iva-favor") : filaRes("IVA a cargo", m(x.aCargo), "iva-total iva-cargo")) +
+            (x.queda ? filaRes("Saldo a favor anterior que queda por aplicar", m(x.queda)) : "");
+    }
+
+    // 23-nov-2026 (auditoría web-5): el saldo a favor de meses anteriores se acredita solo hasta lo que sale a cargo, como el
+    // SAT; lo que sobra no es saldo a favor del periodo: se enseña aparte («queda por aplicar»). Igual en el Excel.
+    function aplicarSaldo(resultado, saldo) {
+        var r2 = function (v) { return Math.round(v * 100) / 100; };
+        saldo = Math.max(saldo || 0, 0);
+        var cargo = Math.max(resultado, 0), aplicado = r2(Math.min(saldo, cargo));
+        return { aplicado: aplicado, aCargo: r2(cargo - aplicado), aFavor: r2(Math.max(-resultado, 0)), queda: r2(saldo - aplicado) };
+    }
+
+    // 23-nov-2026 (auditoría conc_visores-8): antes de usar estas cifras: CFDI del periodo sin validar ante el SAT (con
+    // «Validar ahora»), listas del SAT que no están al día y meses cerrados en Marcas fiscales.
+    function pintarAvisosPapel() {
+        var d = E.datos, caja = $("aviso-papel");
+        if (!caja) {
+            caja = document.createElement("div"); caja.id = "aviso-papel"; caja.className = "iva-marcas"; caja.setAttribute("role", "status");
+            $("aviso-marcas").parentNode.insertBefore(caja, $("aviso-marcas"));
+            caja.addEventListener("click", function (e) { if (e.target.id === "iva-validar") validarAhora(); });
+        }
+        var lineas = [], n = (d.sin_validar || []).length, listas = d.listas_no_al_dia || [];
+        var puede = E.perfil && (E.perfil.modulos_permitidos || []).indexOf("validador") !== -1;
+        if (n) lineas.push("<b>" + n.toLocaleString("es-MX") + " CFDI del periodo sin validar</b> ante el SAT: si alguno está cancelado, el resultado cambia." +
+            (puede ? ' <button type="button" class="xml-btn" id="iva-validar">Validar ahora</button>' : ""));
+        if (listas.length) lineas.push("<b>Listas del SAT que no están al día:</b> " + listas.map(function (l) {
+            return esc(l.nombre) + " (" + (l.estado === "Sin descargar" ? "sin descargar" : "al " + dmy(l.fecha)) + ")";
+        }).join(", ") + ". El aviso de proveedores en listas puede no estar al día.");
+        // 24-nov-2026 (revisión): los meses cerrados en UNA línea (un periodo de varios meses ya presentados no llena la caja)
+        var cerr = d.meses_cerrados || [];
+        if (cerr.length) {
+            var nom = function (c) { return MESES[+c.mes.slice(5, 7) - 1] + " " + c.mes.slice(0, 4); };
+            var cambian = cerr.reduce(function (t, c) { return t + (c.cambios || 0); }, 0), uno = cerr.length === 1;
+            lineas.push("🔒 <b>" + (uno ? nom(cerr[0]).charAt(0).toUpperCase() + nom(cerr[0]).slice(1) + " está cerrado" : cerr.length + " meses están cerrados") +
+                "</b> en Marcas fiscales" + (uno ? "" : " (" + cerr.slice(0, 6).map(nom).join(", ") + (cerr.length > 6 ? "…" : "") + ")") +
+                ": se calcula" + (uno ? "" : "n") + " con las marcas del cierre" + (cambian ? " (con las de hoy cambiarían " + cambian + " CFDI)" : "") + ".");
+        }
+        caja.hidden = !lineas.length;
+        caja.innerHTML = '<span class="iva-marcas__ico" aria-hidden="true">⚠</span><span>' + lineas.join("<br>") + "</span>";
+    }
+    async function validarAhora() {
+        var b = $("iva-validar");
+        if (!b || !E.datos) return;
+        b.disabled = true; b.textContent = "Validando…";
+        try {
+            await api("/api/xml/validar", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ rfc: E.rfc, uuids: E.datos.sin_validar.slice(0, 20000) }) });   // el servidor valida hasta 20,000 por vez
+        } catch (e) { avisar(e.message); b.disabled = false; b.textContent = "Validar ahora"; return; }
+        var vueltas = 0;
+        (async function esperar() {
+            var r = null;
+            try { r = await apiJSON("/api/xml/validacion?rfc=" + encodeURIComponent(E.rfc)); } catch (e) { r = null; }
+            if (r && r.estado === "corriendo" && vueltas++ < 600) {
+                var bb = $("iva-validar"); if (bb) bb.textContent = "Validando… " + (r.hechos || 0) + " de " + (r.total || 0);
+                setTimeout(esperar, 3000); return;
+            }
+            cargar();
+        })();
     }
 
     /* ---------- tablas estándar (una por pestaña) */

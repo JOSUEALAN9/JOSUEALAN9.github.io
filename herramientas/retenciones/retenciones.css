@@ -28,3 +28,10 @@
 .rt-papel tr.rt-papel__det td { background: rgb(var(--g-50)); font-size: 12.5px; color: rgb(var(--g-700)); }
 .rt-papel tr.rt-papel__det td:first-child { padding-left: 32px; white-space: normal; }
 .rt-papel tfoot td { font-weight: 700; background: rgb(var(--g-50)); border-bottom: 0; }
+
+/* 23-nov-2026 (auditoría descarga_xml-6): estado ante el SAT. Cancelada: en gris y sin sumar; «No aparece en el SAT»: ámbar */
+.rt-estado { font-weight: 600; }
+.rt-estado--cancelada { color: rgb(185 28 28); }
+.rt-estado--rara { color: rgb(180 83 9); }
+.rt-fila--cancelada td { color: rgb(var(--g-400)); }
+.rt-fila--cancelada td.xml-num { text-decoration: line-through; }
