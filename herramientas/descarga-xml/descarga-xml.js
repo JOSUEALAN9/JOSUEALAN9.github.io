@@ -778,6 +778,8 @@
                 caja: $(clave === "portal" ? "res-tabla-portal" : "res-tabla-ws"), id: "descarga-xml-" + clave,
                 catalogo: CATALOGO, predeterminadas: PREDETERMINADAS[clave], sellos: SELLOS, claveFila: "uuid",
                 claseFila: function (f) { return f.estado === "Cancelado" ? "fila-cancelada" : ""; },
+                // 23-nov-2026 (decisión E): lo ya descargado lleva su folio como enlace real a la factura
+                ligaFila: function (f) { return f.descargado === "Sí" && E.detalle && Fiscontable.urlFactura ? Fiscontable.urlFactura(E.detalle.rfc, f.uuid) : ""; },
                 alClic: function (f) {
                     if (f.descargado !== "Sí" || !E.detalle) return;
                     window.open("/herramientas/xml/detalle/?rfc=" + encodeURIComponent(E.detalle.rfc) + "&uuid=" + encodeURIComponent(f.uuid), "_blank", "noopener");

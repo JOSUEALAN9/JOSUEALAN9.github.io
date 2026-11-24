@@ -1091,8 +1091,30 @@
         }
         if (fin < E.filas.length) html.push('<tr aria-hidden="true" style="height:' + ((E.filas.length - fin) * alto) + 'px"><td colspan="' + (cols.length + 1) + '" style="padding:0;border:0"></td></tr>');
         $("tbody").innerHTML = html.join("");
+        ligarFolios(cols);
         var muestra = $("tbody").querySelector("tr[data-i]");
         if (muestra && Math.abs(muestra.offsetHeight - E.altoFila) > 1) { E.altoFila = muestra.offsetHeight; }
+    }
+    /* 23-nov-2026, el dueño (decisión E): el folio (y la serie-folio y el UUID) es un enlace real a la página de la factura:
+       Ctrl/Cmd+clic o clic medio la abren en otra pestaña; el clic normal sigue abriendo el mini detalle (la regla es de
+       barra.js). Se pone después de pintar, solo en las celdas de texto simple, para no cambiar cómo se arma cada celda. */
+    var LIGADAS = { folio: 1, serie_folio: 1, uuid: 1 };
+    function ligarFolios(cols) {
+        if (!E.rfc || !Fiscontable.urlFactura) return;
+        var pos = [];
+        cols.forEach(function (c, j) { if (LIGADAS[c.clave]) pos.push(j + 1); });          // +1: la casilla va primero
+        if (!pos.length) return;
+        $("tbody").querySelectorAll("tr[data-i]").forEach(function (tr) {
+            var f = E.filas[+tr.dataset.i];
+            if (!f || !f.uuid) return;
+            pos.forEach(function (k) {
+                var td = tr.children[k], t = td && td.firstChild;
+                if (!t || t.nodeType !== 3 || !t.nodeValue) return;
+                var a = document.createElement("a");
+                a.className = "fc-liga-factura"; a.href = Fiscontable.urlFactura(E.rfc, f.uuid);
+                td.insertBefore(a, t); a.appendChild(t);
+            });
+        });
     }
 
     function pintarSeleccion() {

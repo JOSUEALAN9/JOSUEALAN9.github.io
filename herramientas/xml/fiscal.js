@@ -208,7 +208,9 @@
             return '<tr data-uuid="' + esc(f.uuid) + '" class="' + (E.sel.has(f.uuid) ? "fi-sel " : "") + (f.cancelado ? "fi-cancelada " : "") + (f.revisar.length ? "fi-fila-rev" : "") + '">' +
                 '<td class="fi-col-sel"><input type="checkbox" data-check="' + esc(f.uuid) + '"' + (E.sel.has(f.uuid) ? " checked" : "") + ' aria-label="Seleccionar"></td>' +
                 '<td title="' + esc(f.como || "") + '">' + esc(f.fecha.slice(8, 10) + "/" + f.fecha.slice(5, 7)) + '<small class="fi-sub">' + esc(f.metodo || "") + "</small></td>" +
-                '<td><a class="fi-folio" href="' + detalleUrl(f.uuid) + '" target="_blank" rel="noopener" title="Abrir la factura">' + esc(f.folio || f.uuid.slice(0, 8)) + "</a>" + (f.tipo === "E" ? ' <span class="xml-sello">NC</span>' : "") + "</td>" +
+                // 24-nov-2026 (decisión E, revisión): sin target, como las demás tablas de facturas: clic = mini detalle (como hoy);
+                // Ctrl/Cmd+clic o clic medio = otra pestaña (lo hace el navegador, es un enlace real)
+                '<td><a class="fi-folio" href="' + detalleUrl(f.uuid) + '" title="Ver la factura (Ctrl+clic: en otra pestaña)">' + esc(f.folio || f.uuid.slice(0, 8)) + "</a>" + (f.tipo === "E" ? ' <span class="xml-sello">NC</span>' : "") + "</td>" +
                 '<td class="fi-nombre" title="' + esc((f.contraparte.nombre || "") + " · " + (f.contraparte.rfc || "")) + '">' + esc(f.contraparte.nombre || "—") + "<small>" + esc(f.contraparte.rfc || "") + "</small></td>" +
                 '<td class="xml-num">' + m(f.total) + "</td>" +
                 imps.map(function (k) { return celda(f, k); }).join("") +

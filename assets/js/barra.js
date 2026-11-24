@@ -74,6 +74,7 @@
         envios:        { nombre: "Envíos por correo",     permiso: "envios" },
         iva:           { nombre: "Papel de trabajo de IVA", permiso: "iva" },
         visores:       { nombre: "Visores del SAT",       permiso: "iva" },
+        tipo_cambio:   { nombre: "Tipo de cambio",        permiso: null },          // 23-nov-2026 (decisión F): para todas las cuentas
         cierre:        { nombre: "Cierre del mes",        permiso: null },
         validador:     { nombre: "Validador SAT",         permiso: "validador" },
         xml:           { nombre: "Administración de XML", permiso: "validador" },
@@ -239,6 +240,7 @@
 
         { clave: "cierre", grupo: "Cierre del mes", nombre: "Avance por cliente", alias: "cierre del mes cartera avance tablero clientes pendientes", desc: "Qué tiene listo cada cliente y qué le falta", url: "/herramientas/cierre/", permiso: null, icono: I.lista, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
         { clave: "visores", grupo: "Cierre del mes", nombre: "Visores del SAT", alias: "visor visores sat facturado cobrado ingresos egresos nomina isr retenido enterado cruce xml", desc: "Lo que dice el SAT contra tus XML, facturas y nómina", url: "/herramientas/visores/", permiso: "iva", icono: I.grafica, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
+        { clave: "tipo_cambio", grupo: "Cierre del mes", nombre: "Tipo de cambio", alias: "tipo de cambio dolar usd dof fix banxico paridad", desc: "El del DOF de cada día y la serie FIX de Banxico, con Excel", url: "/herramientas/tipo-cambio/", permiso: null, icono: I.moneda, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
         { clave: "conciliacion", grupo: "Cierre del mes", nombre: "Conciliación de pagos", alias: "conciliacion ppd complementos de pago cobranza", num: 1, desc: "Facturas a crédito contra sus complementos de pago", url: "/herramientas/conciliacion/", permiso: "conciliacion", icono: I.cruce, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
         { clave: "iva", grupo: "Cierre del mes", nombre: "Papel de trabajo IVA", num: 2, alias: "papel de trabajo de iva", desc: "IVA cobrado y pagado del mes", url: "/herramientas/iva/", permiso: "iva", icono: I.porciento, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
         { clave: "isn", grupo: "Cierre del mes", nombre: "Impuestos estatales", num: 3, alias: "isn nominas hospedaje", desc: "ISN, hospedaje, profesiones y alcohol (Q. Roo)", url: "/herramientas/isn/", permiso: "isn", icono: I.gente, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
@@ -3144,17 +3146,21 @@
     /* ------------------------------------------------- detalle de un CFDI en panel lateral (G-07)
        Fiscontable.verCfdi(rfc, uuid, lista) abre el detalle de siempre (/herramientas/xml/detalle/) en un panel a la
        derecha, sin salir de la tabla. lista = uuids en el orden en que se ven: ← y → (o los botones) pasan a la
-       anterior o la siguiente. Cualquier enlace a ese detalle en la página abre el panel (Ctrl/Cmd+clic, en pestaña). */
+       anterior o la siguiente. Cualquier enlace a ese detalle en la página abre el panel (Ctrl/Cmd+clic, en pestaña).
+       23-nov-2026, el dueño (decisión E del Avance 1): con Ctrl/Cmd/Shift o clic medio (el evento que llega o window.event,
+       así sirve a todas las tablas que ya la llaman desde su clic) la factura se abre en OTRA PESTAÑA; también si hay un
+       diálogo encima (p. ej. Posibles duplicados), porque taparía el panel. */
     var cfdiPanel = null;
-    function verCfdi(rfc, uuid, lista, desde) {
+    function verCfdi(rfc, uuid, lista, desde, ev) {
         if (!rfc || !uuid) return;
+        if (aOtraPestana(ev || window.event) || modalAbierto()) { abrirPestana(urlFactura(rfc, uuid, desde)); return; }
         if (!cfdiPanel) {
             var d = document.createElement("aside");
             d.className = "fc-cfdi"; d.setAttribute("aria-label", "Detalle de la factura"); d.hidden = true;
             d.innerHTML = '<div class="fc-cfdi__cabeza"><b>Factura</b><span class="fc-cfdi__pos"></span>' +
                 '<button type="button" class="ui-icono-btn" data-cfdi="ant" aria-label="Anterior (←)" title="Anterior (←)">' + ico(D.flecha, 2).replace("<svg ", '<svg style="transform:rotate(180deg)" ') + "</button>" +
                 '<button type="button" class="ui-icono-btn" data-cfdi="sig" aria-label="Siguiente (→)" title="Siguiente (→)">' + ico(D.flecha, 2) + "</button>" +
-                '<a class="ui-btn ui-btn--terciario ui-btn--28" data-cfdi="pestana" target="_blank" rel="noopener">Abrir en pestaña</a>' +
+                '<a class="ui-btn ui-btn--terciario ui-btn--28" data-cfdi="pestana" target="_blank" rel="noopener" title="Abrir la factura en otra pestaña">Abrir factura</a>' +
                 '<button type="button" class="ui-icono-btn" data-cfdi="cerrar" aria-label="Cerrar (Esc)" title="Cerrar (Esc)">' + ico(D.cerrar, 2) + "</button></div>" +
                 '<iframe class="fc-cfdi__marco" title="Detalle de la factura"></iframe>';
             document.body.appendChild(d);
@@ -3251,11 +3257,14 @@
         document.documentElement.classList.remove("fc-con-cfdi");
     }
 
-    // Enlaces al detalle en cualquier módulo: panel lateral (con modificador o clic medio, pestaña como siempre)
+    // Enlaces al detalle en cualquier módulo: panel lateral (con modificador o clic medio, pestaña como siempre).
+    // 23-nov-2026 (decisión E): los que dicen «en otra pestaña» (target, como «Ver factura» de Conciliación o «Ver CFDI» del
+    // Buzón) ya no se vuelven panel: abren su pestaña. El folio de Marcas fiscales y de Cancelaciones no lleva target: con el
+    // clic sigue abriendo el mini detalle, como en las demás tablas (revisión del 24-nov-2026).
     document.addEventListener("click", function (e) {
         if (e.defaultPrevented || e.button !== 0 || e.ctrlKey || e.metaKey || e.shiftKey || e.altKey) return;
         var a = e.target.closest && e.target.closest('a[href*="/herramientas/xml/detalle/"]');
-        if (!a || a.closest(".fc-cfdi") || document.documentElement.classList.contains("fc-incrustado")) return;
+        if (!a || (a.target && a.target !== "_self") || a.closest(".fc-cfdi") || document.documentElement.classList.contains("fc-incrustado")) return;
         var u = new URL(a.href, location.href), rfc = u.searchParams.get("rfc"), uuid = u.searchParams.get("uuid");
         if (!rfc || !uuid) return;
         e.preventDefault();
@@ -3263,6 +3272,56 @@
             try { return new URL(x.href, location.href).searchParams.get("uuid"); } catch (err) { return null; }
         }).filter(function (x, i, arr) { return x && arr.indexOf(x) === i; });
         verCfdi(rfc, uuid, lista, u.searchParams.get("desde"));
+    });
+
+    /* 23-nov-2026, el dueño (decisión E del Avance 1): «la factura en otra pestaña», UNA regla para todas las tablas de
+       facturas. El folio es un enlace real a la página del detalle (urlFactura / ligaFactura; tabla.js lo pone con la opción
+       ligaFila y Administración de XML al pintar). En un renglón que trae ese enlace:
+         · Ctrl/Cmd/Shift + clic o clic medio, en el folio o en cualquier parte del renglón → la factura en OTRA PESTAÑA
+           (en el folio la abre el navegador; también sirve su «Abrir enlace en una pestaña nueva»);
+         · clic normal → lo de siempre (el mini detalle o el panel propio del módulo): el enlace del folio no navega.
+       La casilla, los botones y los demás enlaces del renglón siguen haciendo lo suyo. */
+    function urlFactura(rfc, uuid, desde) {
+        return "/herramientas/xml/detalle/?rfc=" + encodeURIComponent(rfc || "") + "&uuid=" + encodeURIComponent(uuid || "") +
+            (desde ? "&desde=" + encodeURIComponent(desde) : "");
+    }
+    function ligaFactura(url, html) { return url && html ? '<a class="fc-liga-factura" href="' + esc(url) + '">' + html + "</a>" : (html || ""); }
+    function aOtraPestana(ev) {
+        return !!ev && /^(click|auxclick|keydown)$/.test(ev.type || "") && !!(ev.ctrlKey || ev.metaKey || ev.shiftKey || ev.button === 1);
+    }
+    function modalAbierto() { try { return !!document.querySelector("dialog:modal"); } catch (err) { return false; } }
+    function abrirPestana(url) { window.open(url, "_blank", "noopener"); }
+    function ligaDelRenglon(t) {
+        var tr = t && t.closest ? t.closest("tr") : null;
+        return tr ? tr.querySelector("a.fc-liga-factura") : null;
+    }
+    function hacePropio(t) {
+        var a = t.closest("a[href]");
+        return !!(t.closest("input, button, select, textarea, label, [data-dup]") || (a && !a.classList.contains("fc-liga-factura")));
+    }
+    document.addEventListener("click", function (e) {
+        if (e.button !== 0 || !e.target.closest) return;
+        var liga = ligaDelRenglon(e.target);
+        if (!liga || hacePropio(e.target)) return;
+        var enLiga = !!e.target.closest("a.fc-liga-factura");
+        if (e.ctrlKey || e.metaKey || e.shiftKey) {
+            e.stopPropagation();                                            // el renglón no abre además su panel
+            // Ctrl/Cmd en el enlace: la pestaña la abre el navegador. Shift en el enlace (Chrome abriría una VENTANA) y
+            // cualquier modificador en el resto del renglón: la abrimos aquí, en pestaña (revisión del 24-nov-2026)
+            if (!enLiga || (e.shiftKey && !e.ctrlKey && !e.metaKey)) { e.preventDefault(); abrirPestana(enLiga ? e.target.closest("a.fc-liga-factura").href : liga.href); }
+            return;
+        }
+        if (enLiga) e.preventDefault();                                     // el renglón abre su mini detalle
+    }, true);
+    document.addEventListener("auxclick", function (e) {
+        if (e.button !== 1 || !e.target.closest || e.target.closest("a[href]")) return;      // en un enlace lo hace el navegador
+        var liga = ligaDelRenglon(e.target);
+        if (!liga || hacePropio(e.target)) return;
+        e.preventDefault(); abrirPestana(liga.href);
+    });
+    document.addEventListener("mousedown", function (e) {
+        // sin el desplazamiento automático de la rueda (Windows), que se come el clic medio en el renglón
+        if (e.button === 1 && e.target.closest && !e.target.closest("a[href]") && ligaDelRenglon(e.target)) e.preventDefault();
     });
 
     /* Una página que se ve dentro de un marco (el detalle de la factura en el panel lateral, Administración o un módulo
@@ -4720,6 +4779,8 @@
         riel: riel,
         excel: excel,
         verCfdi: verCfdi,
+        urlFactura: urlFactura,          // 23-nov-2026 (decisión E): el folio como enlace real a la página del detalle
+        ligaFactura: ligaFactura,
         panel: panel,
         textoPlazo: textoPlazo,
         bloquearPantalla: function (servidor) { bloquearPantalla(!!servidor); },

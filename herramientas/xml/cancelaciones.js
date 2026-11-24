@@ -36,7 +36,9 @@
         var d = new Date((iso || "").slice(0, 10) + "T12:00:00");
         return isNaN(d) ? iso : d.toLocaleDateString("es-MX", { weekday: "short", day: "numeric", month: "short" });
     }
-    function uuidCorto(u) { return '<a class="ca-uuid ca-liga" href="' + detalleUrl(u) + '" target="_blank" rel="noopener" title="Abrir la factura · ' + esc(u) + '">' + esc(u.slice(0, 8)) + "…" + esc(u.slice(-4)) + "</a>"; }
+    // 24-nov-2026 (decisión E, revisión): sin target, como las demás tablas de facturas: clic = mini detalle (como hoy);
+    // Ctrl/Cmd+clic o clic medio = otra pestaña (lo hace el navegador, es un enlace real)
+    function uuidCorto(u) { return '<a class="ca-uuid ca-liga" href="' + detalleUrl(u) + '" title="Ver la factura (Ctrl+clic: en otra pestaña) · ' + esc(u) + '">' + esc(u.slice(0, 8)) + "…" + esc(u.slice(-4)) + "</a>"; }
     function estadoSat(x) {
         if (!x || !x.estado_sat) return '<span class="ca-gris">Sin revisar</span>';
         var t = x.estado_sat + (x.estatus_cancelacion ? " · " + x.estatus_cancelacion : "");
@@ -153,7 +155,7 @@
         $("tb-emit").innerHTML = lista.length ? lista.map(function (x) {
             var s = x.solicitud, cancelada = x.estado_sat === "Cancelado" || (s && s.estado === "cancelado");
             var proceso = s && (s.estado === "en_proceso" || s.estado === "sin_confirmar");
-            return '<tr class="' + (cancelada ? "fi-cancelada" : "") + '"><td>' + esc(x.fecha) + '</td><td><a class="ca-liga" href="' + detalleUrl(x.uuid) + '" target="_blank" rel="noopener" title="Abrir la factura">' + esc(x.folio || x.uuid.slice(0, 8)) + "</a>" +
+            return '<tr class="' + (cancelada ? "fi-cancelada" : "") + '"><td>' + esc(x.fecha) + '</td><td><a class="ca-liga" href="' + detalleUrl(x.uuid) + '" title="Ver la factura (Ctrl+clic: en otra pestaña)">' + esc(x.folio || x.uuid.slice(0, 8)) + "</a>" +
                 (x.en_fiscontable ? ' <span class="ca-gris" title="Timbrada en Fiscontable">· Facturar</span>' : "") + "</td><td>" + esc(TIPOS[x.tipo] || x.tipo) + "</td>" +
                 '<td class="fi-nombre">' + esc(x.receptor.nombre || "") + "<small>" + esc(x.receptor.rfc || "") + "</small></td>" +
                 '<td class="xml-num">' + m(x.total) + "</td><td>" + estadoSat(x) + (s && !cancelada ? '<br><span class="ca-gris">' + esc(estadoTexto(s.estado)) + "</span>" : "") + "</td>" +

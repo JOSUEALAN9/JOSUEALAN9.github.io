@@ -9,7 +9,8 @@
  *       catalogo: [{clave, etiqueta, tipo, grupo}], predeterminadas: [claves],
  *       sellos: {clave: {valor: "verde"|"ambar"|"rojo"|"gris"}},
  *       claveFila: "uuid", alClic: function (fila) {}, alSeleccionar: function (set) {},
- *       claseFila: function (fila) { return "" }, alCambiarColumnas: function () {}
+ *       claseFila: function (fila) { return "" }, alCambiarColumnas: function () {},
+ *       ligaFila: function (fila) { return "/herramientas/xml/detalle/?…" }   (opcional: el folio como enlace real)
  *   });
  *   t.ponerFilas(filas)    filas ya filtradas; el orden por columna lo hace la tabla
  *   t.filas()              las filas en el orden en que se ven
@@ -28,6 +29,9 @@
     "use strict";
     var esc = Fiscontable.escapar;
     var ANCHO_TIPO = { moneda: 124, numero: 96, fecha: 104, uuid: 130, texto: 160 };
+    // 23-nov-2026, el dueño (decisión E): con la opción ligaFila(fila) → dirección del detalle, el folio (y la serie-folio
+    // y el UUID) es un enlace real: Ctrl/Cmd+clic o clic medio abren la factura en otra pestaña (la regla vive en barra.js)
+    var LIGADAS = { folio: 1, serie_folio: 1, uuid: 1 };
     var fmtMoneda = new Intl.NumberFormat("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     var fmtNumero = new Intl.NumberFormat("es-MX", { maximumFractionDigits: 4 });
 
@@ -105,6 +109,7 @@
             if (o.etiquetas && o.etiquetas[c.clave] && txt) txt = String(o.etiquetas[c.clave](v));     // 17-nov: el texto que se ve (el valor no cambia)
             var sello = o.sellos && o.sellos[c.clave] && o.sellos[c.clave][v];
             var html = sello ? '<span class="xml-sello xml-sello--' + sello + '">' + esc(txt) + "</span>" : esc(txt);
+            if (o.ligaFila && LIGADAS[c.clave] && html && Fiscontable.ligaFactura) html = Fiscontable.ligaFactura(o.ligaFila(f), html);    // E (23-nov-2026)
             return "<td" + (clase ? ' class="' + clase.trim() + '"' : "") + estiloFija + (txt.length > 18 ? ' title="' + esc(txt) + '"' : "") + ">" + html + "</td>";
         }
 
@@ -423,7 +428,7 @@
 
         var tabla = crear({
             caja: caja, id: o.id, catalogo: o.catalogo, predeterminadas: o.predeterminadas, sellos: o.sellos, etiquetas: o.etiquetas, anchoClave: o.anchoClave,
-            claveFila: o.claveFila, celda: o.celda, claseFila: o.claseFila, alSeleccionar: o.alSeleccionar,
+            claveFila: o.claveFila, celda: o.celda, claseFila: o.claseFila, alSeleccionar: o.alSeleccionar, ligaFila: o.ligaFila,
             alClic: o.alClic ? function (f, ev) { o.alClic(f, tabla.filas(), ev); } : null,
             alCambiarColumnas: function () { vistas.pintar(); }
         });

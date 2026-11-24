@@ -1897,6 +1897,10 @@ html.fc-version-abierta body { overflow: hidden; }
 .fc-cfdi__cabeza .ui-icono-btn:disabled { opacity: .35; cursor: default; }
 .fc-cfdi__cabeza .ui-icono-btn svg { width: 16px; height: 16px; }
 .fc-cfdi__marco { flex: 1; width: 100%; border: 0; background: var(--papel); }
+/* 23-nov-2026 (decisión E): el folio de las tablas de facturas es un enlace real (Ctrl+clic o clic medio: otra pestaña).
+   Se ve como el texto de siempre (mismo color, ancho y «…»); se subraya al pasar el cursor. */
+a.fc-liga-factura { color: inherit; text-decoration: none; }
+a.fc-liga-factura:hover, a.fc-liga-factura:focus-visible { text-decoration: underline; text-underline-offset: 2px; }
 /* Panel lateral de detalle (Fiscontable.panel): misma cabeza que el de CFDI, cuerpo con datos */
 .fc-cfdi--panel { width: min(520px, 100vw); }
 .fc-panel__cuerpo { flex: 1; overflow-y: auto; padding: var(--e-4); display: flex; flex-direction: column; gap: var(--e-4); background: rgb(var(--g-0)); }

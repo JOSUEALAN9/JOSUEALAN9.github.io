@@ -71,7 +71,10 @@
         var html = [];
         html.push('<div class="det-cabeza"><div><h1>' + esc(titulo) + '</h1><div class="det-uuid">' + esc(d.uuid) + '</div><div class="det-sellos">' + sellos.join("") + "</div></div>" +
             '<div class="det-acciones"><button type="button" class="xml-btn" id="btn-validar-uno">Validar ante el SAT</button><a class="xml-btn" href="' + API + "/api/xml/archivo?rfc=" + encodeURIComponent(RFC) + "&uuid=" + encodeURIComponent(d.uuid) + '">Descargar XML</a>' +
-            '<button type="button" class="xml-btn" id="btn-ver-pdf" title="Representación impresa del CFDI">Ver PDF</button>' +
+            // 23-nov-2026, el dueño (decisión E): el PDF se abre en OTRA PESTAÑA, con el visor del navegador (imprimir y descargar
+            // con su nombre). Es un enlace directo (no una ventana que se abre después de pedir el PDF: esa la bloquea el navegador).
+            '<a class="xml-btn" id="btn-ver-pdf" target="_blank" rel="noopener" title="Representación impresa del CFDI, en otra pestaña" href="' + API + "/api/xml/pdf?rfc=" +
+                encodeURIComponent(RFC) + "&uuid=" + encodeURIComponent(d.uuid) + '&ver=1">Ver PDF</a>' +
             '<button type="button" class="xml-btn" data-fc-clic="print">Imprimir</button></div></div>');
 
         if (r.alertas && r.alertas.length) {
@@ -119,16 +122,6 @@
         $("det").hidden = false;
         $("btn-validar-uno").addEventListener("click", validarAhora);
         enlaces(r);
-        $("btn-ver-pdf").addEventListener("click", async function () {
-            var b = this; b.disabled = true; b.textContent = "Abriendo…";
-            try {
-                var resp = await fetch(API + "/api/xml/pdf?rfc=" + encodeURIComponent(RFC) + "&uuid=" + encodeURIComponent(d.uuid), { credentials: "include" });
-                if (!resp.ok) throw new Error("No se pudo armar el PDF.");
-                var m = /filename="?([^";]+)"?/i.exec(resp.headers.get("Content-Disposition") || "");
-                Fiscontable.verPdf(await resp.blob(), { titulo: titulo, nombre: m ? m[1] : d.uuid + ".pdf" });
-            } catch (e) { Fiscontable.avisar(e.message); }
-            b.disabled = false; b.textContent = "Ver PDF";
-        });
     }
 
     /* ------------------------------------------------------------ enlaces con Marcas fiscales y Cancelaciones */

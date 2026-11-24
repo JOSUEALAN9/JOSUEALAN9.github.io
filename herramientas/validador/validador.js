@@ -65,6 +65,8 @@
         exportar: { nombre: function () { return (E.origen === "empresa" && E.empresa ? E.empresa.rfc + "_" : "") + "Validacion_XML.xlsx"; },
                     hoja: "Todos", porValor: { clave: "estado", valores: ["Cancelado", "En proceso", "No encontrado", "Sin respuesta"] } },
         vacio: { titulo: "Sin XML", texto: "Elige empresa y periodo arriba, o carga XML externos." },
+        // 23-nov-2026 (decisión E): de la biblioteca de la empresa, el UUID es un enlace real (Ctrl+clic: otra pestaña); los XML externos no tienen página
+        ligaFila: function (f) { return E.origen === "empresa" && E.empresa && Fiscontable.urlFactura ? Fiscontable.urlFactura(E.empresa.rfc, f.uuid) : ""; },
         alClic: function (f, lista) {
             if (E.origen === "empresa" && E.empresa) Fiscontable.verCfdi(E.empresa.rfc, f.uuid, lista.map(function (x) { return x.uuid; }));
         },

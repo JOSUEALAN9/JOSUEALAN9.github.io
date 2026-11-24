@@ -141,6 +141,7 @@
         }[vista];
         var t = FCTabla.estandar({
             contenedor: cont, id: "xml-conceptos-" + vista, claveFila: "id",
+            ligaFila: vista === "detalle" && Fiscontable.urlFactura ? function (f) { return Fiscontable.urlFactura(C.ctx.rfc, f.uuid); } : null,      // E (23-nov-2026)
             catalogo: d.columnas[vista], predeterminadas: d.predeterminadas[vista],
             anchoClave: { descripcion: 320, clave_sat: 240, contraparte_nombre: 240, principal: 280, observacion: 220, clave: 110 },
             sellos: vista === "detalle" ? { estado_sat: { "Vigente": "verde", "Cancelado": "rojo", "Sin validar": "gris" } } : {},

@@ -255,6 +255,7 @@
                 return null;
             },
             claseFila: function (f) { return f.estado_sat === "Cancelado" ? "ls-fila--cancelada" : ""; },
+            ligaFila: function (f) { return Fiscontable.urlFactura ? Fiscontable.urlFactura(E.rfc, f.uuid) : ""; },     // E (23-nov-2026): el folio, enlace real
             buscar: { texto: "Buscar RFC, nombre, folio o UUID…", campos: ["rfc", "nombre", "serie_folio", "uuid"] },
             filtros: [{ clave: "tipo_txt", etiqueta: "Tipo" }, { clave: "estado_sat_txt", etiqueta: "Estado SAT" }, { clave: "nombre", etiqueta: "Nombre" }],
             vacio: { titulo: "Sin CFDI", texto: "" },

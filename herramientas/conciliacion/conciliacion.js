@@ -157,6 +157,8 @@
                 sellos: SELLOS, etiquetas: { estado_conciliacion: nombreEstado }, anchoClave: ANCHOS, claveFila: "uuid",
                 claseFila: function (f) { return f.estado_conciliacion === "Cancelada" ? "fila-cancelada" : ""; },
                 alClic: abrirFactura,
+                // 23-nov-2026 (decisión E): el folio es un enlace real a la factura (Ctrl+clic o clic medio: otra pestaña)
+                ligaFila: function (f) { return puede("validador") && Fiscontable.urlFactura ? Fiscontable.urlFactura(E.rfc, f.uuid) : ""; },
                 alSeleccionar: pintarSeleccion,
                 alCambiarColumnas: function () { E.menuVistas.pintar(); }
             });
