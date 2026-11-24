@@ -26,15 +26,35 @@
 
     /* ---------------------------------------------------------------- semáforo */
     function sello(tono, texto) { return '<span class="tb-sello tb-sello--' + tono + '">' + esc(texto) + "</span>"; }
-    // Opinión y constancia cuentan solo si son del mes en curso (calendario): una de octubre ya no dice cómo está en noviembre
+    // Opinión y constancia cuentan solo si son del mes en curso (calendario): una de octubre ya no dice cómo está en noviembre.
+    // 24-nov-2026 (auditoría madrugada-5): la revisión semanal del sentido también cuenta. Si es más nueva que el PDF guardado,
+    // el servidor manda la de la revisión (fuente «revision», con revisada_en): el sello, el color y la fecha son los suyos.
+    function tonoOpinion(r) {
+        return r === "Positiva" || r === "Inscrito sin obligaciones" ? "ok" : r === "Consultada" || /suspensi/i.test(r) ? "aviso" : "error";
+    }
+    function deRevision(o) { return !!(o && o.fuente === "revision" && o.revisada_en); }
+    function sinPdfDelMes(o) { return o.pdf_del_mes === false && o.del_mes !== false; }
+    function notaRevision(o) { return "revisada el " + fecha(o.revisada_en) + (sinPdfDelMes(o) ? " · sin PDF del mes" : ""); }
+    // En la celda, corto («revisada el 24 nov»); el resto va al pasar el cursor
+    function notaRevisionCorta(o) { return "revisada el " + fecha(o.revisada_en).replace(/ \d{4}$/, ""); }
     function celdaOpinion(o) {
         if (!o) return sello("nada", "Sin consultar");
-        var r = o.resultado || "Consultada";
+        var r = o.resultado || "Consultada", rev = deRevision(o);
         if (o.del_mes === false) return sello(/Negativa|No inscrito/.test(r) ? "error" : "aviso", "Falta la de " + o.mes_actual) +
-            ' <small class="xml-tenue">la de ' + esc(o.mes) + ": " + esc(r.toLowerCase()) + "</small>";
-        var porque = (o.motivos || []).length ? ' title="' + esc("Por qué: " + o.motivos.join(" · ")) + '"' : "";
-        return '<span' + porque + ">" + sello(r === "Positiva" || r === "Inscrito sin obligaciones" ? "ok" : r === "Consultada" || /suspensi/i.test(r) ? "aviso" : "error", r) +
-            ' <small class="xml-tenue">' + esc((o.motivos || []).length ? o.motivos[0].split(":")[0].slice(0, 60) + "…" : fecha(o.fecha)) + "</small></span>";
+            ' <small class="xml-tenue">la de ' + esc(o.mes) + ": " + esc(r.toLowerCase()) + (rev ? " (revisada)" : "") + "</small>";
+        var titulo = (o.motivos || []).length ? "Por qué: " + o.motivos.join(" · ") : "";
+        if (rev) titulo = "Revisión semanal en el SAT del " + fecha(o.revisada_en) + ": " + r.toLowerCase() + "." +
+            (o.pdf && o.pdf.resultado && o.pdf.resultado !== r ? " El PDF guardado del " + fecha(o.pdf.fecha) + " dice " + o.pdf.resultado.toLowerCase() +
+                ": pide una nueva antes de mandarla." : "") +
+            (sinPdfDelMes(o) ? " Aún no está el PDF del mes (llega en lo programado o pídelo en Opinión 32-D)." : "");
+        return '<span' + (titulo ? ' title="' + esc(titulo) + '"' : "") + ">" + sello(tonoOpinion(r), r) +
+            ' <small class="xml-tenue">' + esc(rev ? notaRevisionCorta(o) : (o.motivos || []).length ? o.motivos[0].split(":")[0].slice(0, 60) + "…" : fecha(o.fecha)) + "</small></span>";
+    }
+    function textoOpinion(o) {
+        if (!o) return "Sin consultar";
+        var r = o.resultado || "Consultada";
+        if (o.del_mes === false) return "Falta la del mes (" + o.mes + ": " + r.toLowerCase() + ")";
+        return deRevision(o) ? r + " (" + notaRevision(o) + ")" : r;
     }
     function celdaConstancia(c) {
         if (!c) return sello("nada", "Sin constancia");
@@ -51,7 +71,8 @@
     /* Qué hay que atender en cada empresa, del más grave al más leve (rojo = atender, ámbar = revisar) */
     function motivos(f) {
         var m = [];
-        if (f.opinion && /Negativa|No inscrito/.test(f.opinion.resultado || "")) m.push(["error", "Opinión " + f.opinion.resultado.toLowerCase()]);
+        if (f.opinion && /Negativa|No inscrito/.test(f.opinion.resultado || ""))
+            m.push(["error", "Opinión " + f.opinion.resultado.toLowerCase() + (deRevision(f.opinion) ? " (revisada el " + fecha(f.opinion.revisada_en) + ")" : "")]);
         if (f.buzon && f.buzon.pendientes) m.push(["error", f.buzon.pendientes + " cancelación" + (f.buzon.pendientes === 1 ? "" : "es") + " por responder"]);
         if (f.listas) m.push(["error", f.listas + " en listas del SAT"]);
         if (f.buzon && f.buzon.nuevos) m.push(["aviso", f.buzon.nuevos + " sin leer en buzón"]);
@@ -121,7 +142,7 @@
             var m = motivos(f), em = f.xml_mes.emitido || 0, re = f.xml_mes.recibido || 0;
             return { rfc: f.rfc, empresa: f.alias || f.rfc, favorito: f.favorito, _f: f, _m: m, estado: estadoFila(f),
                      atender: m.map(function (x) { return x[1]; }).join(" · ") || "Nada pendiente",
-                     opinion_txt: f.opinion ? (opinionVieja(f) ? "Falta la del mes (" + f.opinion.mes + ": " + (f.opinion.resultado || "consultada") + ")" : (f.opinion.resultado || "Consultada")) : "Sin consultar",
+                     opinion_txt: textoOpinion(f.opinion),
                      constancia_txt: f.constancia ? (f.constancia.del_mes ? "Del mes" : "Falta la del mes (última: " + f.constancia.mes + ")") : "Sin constancia",
                      buzon_nuevos: f.buzon ? f.buzon.nuevos : "", cancelaciones: f.buzon ? f.buzon.pendientes : "",
                      listas: f.listas || 0, emitidos_mes: em, recibidos_mes: re, xml_mes: em + " emitidos · " + re + " recibidos",
@@ -148,7 +169,7 @@
             ["e:Al día", "Al día", n(function (f) { return f.estado === "Al día"; }), "sin pendientes", "ok"],
             ["f:f_cancel", "Cancelaciones", cancel, cancel ? "por responder en " + n(function (f) { return f.f_cancel; }) + " empresa(s)" : "nada por responder", cancel ? "error" : ""],
             ["f:f_listas", "En listas del SAT", n(function (f) { return f.f_listas; }), "empresas con proveedores o clientes", n(function (f) { return f.f_listas; }) ? "error" : ""],
-            ["f:f_opinion", "Opinión 32-D", neg + sinOp, neg ? neg + " negativa(s) · " + sinOp + " sin la del mes" : sinOp + " sin la del mes", neg ? "error" : sinOp ? "aviso" : ""],
+            ["f:f_opinion", "Opinión 32-D", neg + sinOp, neg ? neg + " negativa(s) · " + sinOp + " sin revisar este mes" : sinOp + " sin revisar este mes", neg ? "error" : sinOp ? "aviso" : ""],
             ["f:f_buzon", "Buzón sin leer", buzonMsj, "en " + n(function (f) { return f.f_buzon; }) + " empresa(s)", buzonMsj ? "aviso" : ""]
         ];
         $("tb-resumen").innerHTML = datos.map(function (d) {
@@ -230,7 +251,7 @@
                 // id nuevo para que nadie se quede con el acomodo anterior de 7 columnas guardado en su navegador.
                 contenedor: $("tb-tabla"), id: "tablero_v3", claveFila: "rfc", catalogo: CATALOGO,
                 predeterminadas: ["empresa", "estado", "atender", "opinion_txt", "constancia_txt", "cierre_txt"],
-                anchoClave: { empresa: 250, estado: 92, atender: 290, opinion_txt: 165, constancia_txt: 125, cierre_txt: 110, xml_mes: 170, efirma_txt: 90 },
+                anchoClave: { empresa: 250, estado: 92, atender: 290, opinion_txt: 200, constancia_txt: 125, cierre_txt: 110, xml_mes: 170, efirma_txt: 90 },
                 buscar: { texto: "Buscar empresa o RFC…", campos: ["empresa", "rfc"] },
                 filtros: FILTROS,
                 exportar: { nombre: "Tablero_empresas.xlsx", hoja: "Empresas" },

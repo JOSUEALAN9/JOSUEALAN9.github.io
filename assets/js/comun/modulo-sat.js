@@ -121,7 +121,7 @@
      * e.firma guardada, y si ya existe un documento reciente.
      */
     async function investigarRFC(rfc) {
-        var info = { pendiente: null, efirma: false, cache: null, registrado: null };
+        var info = { pendiente: null, efirma: false, cache: null, registrado: null, revision: null };
 
         try {
             var r1 = await fetch(API + "/api/trabajos/pendiente?rfc=" + encodeURIComponent(rfc) +
@@ -144,6 +144,7 @@
             if (r3.ok) {
                 var d = await r3.json();
                 if (d.existe) info.cache = d;
+                info.revision = d.revision || null;        // 24-nov-2026: la revisión semanal, aunque no haya PDF guardado
             }
         } catch (e) { /* no es bloqueante */ }
 
@@ -236,19 +237,36 @@
 
     /* --- Estado A: ya existe un documento reciente --- */
 
+    // Tono del sentido de la opinión: rojo si es negativa o no inscrito, ámbar si está en suspensión, verde lo demás
+    function tonoSentido(r) { return !r ? "ok" : (r === "Negativa" || r === "No inscrito" ? "error" : (/suspensi/i.test(r) ? "aviso" : "ok")); }
+    // ¿La revisión semanal es más nueva que el PDF guardado? (fechas ISO en UTC: se comparan como texto)
+    function revisionManda(rev, generadoEn) {
+        return !!(rev && rev.resultado && rev.revisada_en && (!generadoEn || String(rev.revisada_en).slice(0, 19) > String(generadoEn).slice(0, 19)));
+    }
+
     function vistaCache() {
         // G-08: bloque de estado (no un anuncio): qué documento hay, de cuándo y qué hacer con él
         var rev = estado.cache.revision, ant = estado.cache.anterior;
-        var res = estado.cache.resultado, tono = !res ? "ok" : (res === "Negativa" || res === "No inscrito" ? "error" : "ok");
+        var res = estado.cache.resultado, tono = tonoSentido(res);
         var titulo = MODULO.nombre.charAt(0).toUpperCase() + MODULO.nombre.slice(1) + " del " + fechaLarga(estado.cache.generado_en);
+        // 24-nov-2026 (auditoría sat_modulos-11): si la revisión semanal es más nueva que el PDF y encontró otro sentido, el
+        // título y el color son los de la revisión (antes quedaba en verde «Positiva» y la revisión iba en letra chica)
+        var contradice = revisionManda(rev, estado.cache.generado_en) && rev.resultado !== res;
+        var detalle = contradice
+            ? "El PDF guardado (del " + fechaLarga(estado.cache.generado_en) + ") " + (res ? "dice " + res.toLowerCase() : "no deja leer su sentido") +
+              ", pero la revisión más reciente la encontró " + rev.resultado.toLowerCase() + ": pide una nueva antes de mandarla. "
+            : (res === "Negativa" ? "El SAT la emitió en sentido negativo: ábrela para ver los motivos. " : "") +
+              (rev && rev.resultado ? "Revisada en el SAT el " + fechaLarga(rev.revisada_en) + ": " + rev.resultado.toLowerCase() +
+                 (rev.resultado === res ? ", sin cambios. " : ". ") : "");
         pintarPaso2(Fiscontable.bloqueEstado({
-            icono: "documento", tono: tono, titulo: titulo + (res ? " · " + res : ""),
-            detalle: (res === "Negativa" ? "El SAT la emitió en sentido negativo: ábrela para ver los motivos. " : "") +
-                     (rev && rev.resultado ? "Revisada en el SAT el " + fechaLarga(rev.revisada_en) + ": " + rev.resultado.toLowerCase() +
-                        (rev.resultado === res ? ", sin cambios. " : ". ") : "") +
-                     (estado.cache.expira_en ? "Se conserva hasta el " + fechaLarga(estado.cache.expira_en) + "." : ""),
-            acciones: [{ id: "btn-ver-cache", texto: "Ver", primario: true }, { id: "btn-cache", texto: "Descargar" },
-                       { id: "btn-enviar-cache", texto: "Enviar por correo" }, { id: "btn-nueva", texto: "Solicitar nueva al SAT" }]
+            icono: "documento", tono: contradice ? tonoSentido(rev.resultado) : tono,
+            titulo: contradice ? "Revisada en el SAT el " + fechaLarga(rev.revisada_en) + " · " + rev.resultado : titulo + (res ? " · " + res : ""),
+            detalle: detalle + (estado.cache.expira_en ? "Se conserva hasta el " + fechaLarga(estado.cache.expira_en) + "." : ""),
+            acciones: (contradice
+                ? [{ id: "btn-nueva", texto: "Solicitar nueva al SAT", primario: true }, { id: "btn-ver-cache", texto: "Ver la guardada" },
+                   { id: "btn-cache", texto: "Descargar" }, { id: "btn-enviar-cache", texto: "Enviar por correo" }]
+                : [{ id: "btn-ver-cache", texto: "Ver", primario: true }, { id: "btn-cache", texto: "Descargar" },
+                   { id: "btn-enviar-cache", texto: "Enviar por correo" }, { id: "btn-nueva", texto: "Solicitar nueva al SAT" }])
                 .concat(ant ? [{ id: "btn-anterior", texto: "La anterior (" + fechaLarga(ant.generado_en) + (ant.resultado ? " · " + ant.resultado : "") + ")" }] : [])
         }));
         if (ant) $("btn-anterior").addEventListener("click", function () {
@@ -289,10 +307,13 @@
     /* --- Estado B: e.firma guardada, sin documento reciente --- */
 
     function vistaEfirmaGuardada() {
+        // 24-nov-2026: sin PDF guardado pero con revisión semanal, se dice lo que encontró la revisión (no «sin opinión»)
+        var rev = estado && estado.revision && estado.revision.resultado ? estado.revision : null;
         pintarPaso2(Fiscontable.bloqueEstado({
-            icono: "documento", tono: "",
-            titulo: "Sin " + MODULO.nombre + " reciente",
-            detalle: "Se pide al SAT con la e.firma guardada de este contribuyente; no hay que subir nada.",
+            icono: "documento", tono: rev ? tonoSentido(rev.resultado) : "",
+            titulo: rev ? "Revisada en el SAT el " + fechaLarga(rev.revisada_en) + " · " + rev.resultado : "Sin " + MODULO.nombre + " reciente",
+            detalle: (rev ? "No hay PDF guardado de la " + MODULO.nombre.toLowerCase() + ". " : "") +
+                     "Se pide al SAT con la e.firma guardada de este contribuyente; no hay que subir nada.",
             acciones: [{ id: "btn-generar", texto: "Solicitar " + MODULO.nombre + " al SAT", primario: true }]
         }));
         $("btn-generar").addEventListener("click", generarConEfirmaGuardada);

@@ -165,7 +165,9 @@
     async function revisar(rfcs) {
         try {
             var t = await api("/api/buzon/revisar", "POST", { rfcs: rfcs, diagnostico: $("con-diagnostico").checked });
-            aviso("");
+            // 24-nov-2026 (sat_modulos-8): si alguna ya se estaba revisando (la pidió otra persona del despacho), se dice y
+            // se sigue esa revisión; ya no sale «Ya hay una revisión del buzón en curso» por las empresas de los demás
+            aviso(t.aviso ? esc(t.aviso) : "");
             vigilarTrabajo(t.job_id, t);
         } catch (e) { aviso(esc(e.message), "error"); }
     }
