@@ -8,6 +8,11 @@
     <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611241830">
     <link rel="stylesheet" href="/assets/css/common.css?v=202611241830">
     <style>
+        /* 24-nov-2026: Laboratorio y «Probar todo», dos pestañas de la misma sección */
+        .lb-pestanas { display: inline-flex; gap: 2px; padding: 3px; border-radius: 10px; background: rgb(var(--g-200)); max-width: 100%; overflow-x: auto; scrollbar-width: none; }
+        .lb-pestanas a { flex: none; padding: 6px 14px; border-radius: 8px; font-size: 13px; font-weight: 700; color: rgb(var(--g-600)); text-decoration: none; white-space: nowrap; }
+        .lb-pestanas a:hover { color: rgb(var(--g-900)); }
+        .lb-pestanas a[aria-selected="true"] { background: rgb(var(--g-0)); color: rgb(var(--g-900)); box-shadow: 0 1px 2px rgba(15, 23, 42, .12); }
         .lb { display: grid; gap: var(--e-4); grid-template-columns: minmax(0, 1fr); }
         @media (min-width: 1080px) { .lb { grid-template-columns: 380px minmax(0, 1fr); align-items: start; } }
         .lb-tarjeta { border: 1px solid var(--linea); border-radius: var(--r-tarjeta); background: rgb(var(--g-0)); padding: var(--e-4); display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--e-3); min-width: 0; }
@@ -131,6 +136,10 @@
 
 <main class="flex-grow mod-pagina" style="max-width:none">
     <div class="mod-cabeza" style="margin-bottom:var(--e-4)">
+        <div class="lb-pestanas" role="tablist" aria-label="Pruebas con el SAT" style="margin-bottom:10px">
+            <a role="tab" href="/admin/laboratorio/" aria-selected="true">Laboratorio</a>
+            <a role="tab" href="/admin/probar/" aria-selected="false">Probar todo</a>
+        </div>
         <h1 style="margin:0">Laboratorio</h1>
         <p style="margin:4px 0 0;font-size:var(--t-13);color:rgb(var(--g-600))">Recorre un portal del SAT con una de tus empresas y guarda lo que se vio en cada pantalla. Solo para ti (administrador).</p>
     </div>
