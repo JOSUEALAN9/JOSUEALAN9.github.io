@@ -196,7 +196,7 @@ function abrirModalNuevoCliente() {
     if (sinConexion || soloLectura) return;
     document.getElementById("alta-tab-obligaciones").hidden = !conIsn;
     document.getElementById("alta-tab-facturar").hidden = !conFacturar || !puedeGuardarEfirma;
-    if (conFacturar && puedeGuardarEfirma) llenarRegimenesAlta();
+    if (conFacturar && puedeGuardarEfirma) { llenarRegimenesAlta(); pintarManifiestoAlta(); }
     document.getElementById("nuevo-obl-zona").classList.add("hidden");
     document.getElementById("alta-nota-demo").hidden = puedeGuardarEfirma;
     document.getElementById("alta-ciec-caja").hidden = !puedeGuardarEfirma;
@@ -856,6 +856,30 @@ async function llenarRegimenesAlta() {
     } catch (e) { /* sin catálogo: se llena en Facturar */ }
 }
 
+/* 24-nov-2026, el dueño («Luna Soft, que ya no sea necesario»): el manifiesto del PAC solo es obligatorio si el administrador
+   prendió «Exigir el manifiesto del PAC para timbrar» (apagado de fábrica; lo manda /api/facturacion/config). Opcional: la caja
+   va plegada con «Opcional: algunos PAC lo piden…» y se puede abrir para subirlo. Exigido: abierta y fija, como antes.
+   Un servidor sin el dato: como antes (exigido). */
+const MAN_OPCIONAL = "Opcional: algunos PAC lo piden. Hoy no es necesario para timbrar.";
+function pintarCajaManifiesto(caja, exige, texto, como, textoExigido, plegar) {
+    caja.classList.toggle("cli-man--exigido", exige);
+    if (exige) caja.open = true;
+    else if (plegar || caja.dataset.exigido === "1") caja.open = false;     // otra empresa, o se acaba de apagar: plegada
+    caja.dataset.exigido = exige ? "1" : "0";
+    texto.textContent = exige ? textoExigido : MAN_OPCIONAL;
+    como.hidden = exige;                                          // exigido, el «cómo» ya va en la cabeza (como antes)
+}
+document.addEventListener("click", e => {                         // exigido no se pliega
+    if (e.target.closest(".cli-man--exigido > .cli-man__cabeza")) e.preventDefault();
+});
+
+async function pintarManifiestoAlta() {
+    let exige = false;
+    try { exige = (await cargarFactCfg()).exigir_manifiesto !== false; } catch (e) { exige = false; }     // sin la configuración: plegada
+    pintarCajaManifiesto(document.getElementById("alta-man-caja"), exige, document.getElementById("alta-man-texto"), document.getElementById("alta-man-como"),
+        "Sin él no se puede timbrar. Se firma una vez con la e.firma de la empresa en la página de Luna Soft; al terminar descargas un PDF y lo subes aquí.", true);
+}
+
 function datosFacturarAlta() {
     if (document.getElementById("alta-tab-facturar").hidden) return { hay: false };
     const v = id => document.getElementById(id);
@@ -899,10 +923,11 @@ async function guardarFacturarAlta(rfc, d) {
 }
 
 /* Manifiesto en la ficha (Accesos) */
-async function pintarManifiestoFicha(cliente) {
+async function pintarManifiestoFicha(cliente, plegar = true) {
     const caja = document.getElementById("editar-man");
     caja.hidden = !conFacturar || !puedeGuardarEfirma;
     if (caja.hidden) return;
+    if (plegar && !caja.classList.contains("cli-man--exigido")) caja.open = false;     // 24-nov-2026: cada ficha empieza plegada
     document.getElementById("man-pdf").value = "";
     document.getElementById("editar-mensaje-man").classList.add("hidden");
     const badge = document.getElementById("editar-estado-man");
@@ -913,11 +938,13 @@ async function pintarManifiestoFicha(cliente) {
         const r = await fetch(`${API_URL}/api/facturacion/manifiesto/${encodeURIComponent(cliente.rfc)}`, { credentials: "include" });
         if (!r.ok) throw new Error(await Fiscontable.leerError(r));
         m = await r.json();
-    } catch (e) { badge.textContent = ""; mensajeMan(false, e.message); return; }
+    } catch (e) { badge.textContent = ""; caja.open = true; mensajeMan(false, e.message); return; }
     if (rfcEnEdicion !== cliente.rfc) return;
-    const g = (m.pacs[0] || {}).guardado;
-    badge.textContent = g ? "Firmado" : "Falta";
-    badge.className = "text-xs font-bold px-2 py-1 rounded-full flex-none " + (g ? "bg-violet-100 text-violet-700" : "bg-amber-100 text-amber-800");
+    const g = (m.pacs[0] || {}).guardado, exige = m.exigir_manifiesto !== false;
+    pintarCajaManifiesto(caja, exige, document.getElementById("man-ficha-texto"), document.getElementById("man-ficha-como"),
+        "Sin él no se puede timbrar. Se firma una vez con la e.firma de la empresa en la página de Luna Soft y se sube el PDF.", plegar);
+    badge.textContent = g ? "Firmado" : exige ? "Falta" : "Opcional";
+    badge.className = "text-xs font-bold px-2 py-1 rounded-full flex-none " + (g ? "bg-violet-100 text-violet-700" : exige ? "bg-amber-100 text-amber-800" : "bg-gray-100 text-gray-600");
     const t = document.getElementById("man-guardado-texto");
     t.classList.toggle("hidden", !g);
     t.textContent = g ? "✓ " + [g.folio, g.firmado_en ? "firmado el " + fechaCorta(g.firmado_en) : "", g.revision && g.revision.nombre ? "por " + g.revision.nombre : ""].filter(Boolean).join(" · ") : "";
@@ -941,8 +968,8 @@ async function subirManifiestoFicha() {
         if (!r.ok) throw new Error(await Fiscontable.leerError(r));
         const d = await r.json();
         factCfg = null;
-        await pintarManifiestoFicha(clientesCache.find(c => c.rfc === rfc) || { rfc });
-        mensajeMan(true, "✓ Manifiesto revisado y guardado" + (d.revision && d.revision.folio ? " (" + d.revision.folio + ")" : "") + ". Ya puede timbrar.");
+        await pintarManifiestoFicha(clientesCache.find(c => c.rfc === rfc) || { rfc }, false);
+        mensajeMan(true, "✓ Manifiesto revisado y guardado" + (d.revision && d.revision.folio ? " (" + d.revision.folio + ")" : "") + (d.exigir_manifiesto !== false ? ". Ya puede timbrar." : "."));
     } catch (e) { mensajeMan(false, e.message); }
     b.disabled = false; b.textContent = "Subir y revisar";
 }

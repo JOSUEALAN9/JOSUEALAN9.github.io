@@ -952,6 +952,7 @@ function prepararEventosSistema() {
         if (b) revisarSAT(b.dataset.satRevisar);
     });
     ["input", "change"].forEach(ev => $("tarjetas-estado").addEventListener(ev, cambioCampo));
+    $("tarjetas-estado").addEventListener("change", e => { if (e.target.id === "chk-exigir-manifiesto") cambiarExigirManifiesto(e.target); });
     $("tarjetas-estado").addEventListener("click", clicTarjeta);
     $("actividad-sesiones").addEventListener("click", clicTarjeta);
     ["input", "change"].forEach(ev => $("actividad-sesiones").addEventListener(ev, cambioCampo));
@@ -1345,7 +1346,37 @@ function tarjetaTimbres() {
             <span class="text-[11px] text-slate-500">Se vuelve a leer solo al abrir esta página si pasaron ${d.bolsa.cada_min || 5} min, y al pasar o quitar timbres.</span></div>` : ""}</div>` : `<p class="text-[11px] text-amber-700 mt-1">Saldo general de MultiFacturas sin registrar: escríbelo en «Ver y asignar».</p>`}
         ${d.bolsa && d.bolsa.error ? `<p class="text-[11px] text-amber-700 mt-1">No se pudo leer de tu panel: ${esc(d.bolsa.error)}</p>` : ""}
         <p class="text-[11px] text-slate-500 mt-1">${con.length} cuenta${con.length === 1 ? "" : "s"} con timbres · ${total.toLocaleString("es-MX")} asignados en total</p>
-        <div class="flex gap-2 mt-3">${botonVer("btn-ver-timbres", "Ver y asignar")}${botonVer("btn-errores-pac", "Errores del PAC")}</div>`;
+        <div class="flex gap-2 mt-3">${botonVer("btn-ver-timbres", "Ver y asignar")}${botonVer("btn-errores-pac", "Errores del PAC")}</div>
+        ${interruptorManifiesto(d)}`;
+}
+
+// 24-nov-2026, el dueño («Luna Soft, que ya no sea necesario, ayúdame a quitarlo por defecto para facturar»): pedir el
+// manifiesto del PAC para timbrar es un ajuste de todas las cuentas, apagado de fábrica. Lo cambia solo el administrador.
+function interruptorManifiesto(d) {
+    if (d.exigir_manifiesto === undefined) return "";            // un servidor sin el ajuste: no se ofrece
+    const si = !!d.exigir_manifiesto;
+    return `<div class="mt-3 pt-3 border-t border-gray-100">
+        <label class="ui-switch"><input type="checkbox" id="chk-exigir-manifiesto" ${si ? "checked" : ""}><span class="ui-switch__riel"></span>
+            <span class="text-xs font-bold text-slate-800">Exigir el manifiesto del PAC para timbrar</span></label>
+        <p class="text-[11px] text-slate-500 mt-1">${si ? "Prendido: en producción ninguna empresa timbra sin su manifiesto firmado y guardado."
+            : "Apagado (de fábrica): se timbra sin él. Lo ya guardado se conserva y se puede seguir subiendo."}</p></div>`;
+}
+
+async function cambiarExigirManifiesto(chk) {
+    const exigir = chk.checked;
+    if (exigir && !(await Fiscontable.preguntar("¿Exigir el manifiesto del PAC para timbrar?\n\nLas empresas que no lo tengan guardado no podrán timbrar hasta subirlo (Clientes › ficha › Accesos, o Facturar › Configuración › Manifiesto)."))) {
+        chk.checked = false; return;
+    }
+    chk.disabled = true;
+    try {
+        const r = await api("/api/admin/facturacion/exigir-manifiesto", {
+            method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ exigir }),
+        });
+        if (timbresAdmin) timbresAdmin.exigir_manifiesto = r.exigir_manifiesto;
+        mostrarAlerta("exito", r.exigir_manifiesto ? "Listo: para timbrar se pide el manifiesto del PAC." : "Listo: ya no se pide el manifiesto del PAC para timbrar.");
+    } catch (err) { mostrarAlerta("error", err.message); chk.checked = !exigir; }
+    chk.disabled = false;
+    pintarEstado();
 }
 
 // «↻ Actualizar»: vuelve a leer en este momento el saldo general del panel de MultiFacturas.

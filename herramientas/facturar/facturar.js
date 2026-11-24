@@ -309,7 +309,7 @@
             falta.hidden = true;
         }
         pintarActivar();
-        $("punto-manifiesto").hidden = !!e.manifiesto || !prod;
+        $("punto-manifiesto").hidden = !!e.manifiesto || !prod || !exigeManifiesto();
         if (F.man && F.man.rfc !== e.rfc) F.man = null;
         if (F.sub === "manifiesto") cargarManifiesto();
         $("cinta-nombre").textContent = e.razon_social || e.alias;
@@ -371,9 +371,11 @@
     }
 
     function pintarManifiesto() {
-        var m = F.man;
-        $("c-man-estado").textContent = m.firmado ? "Guardado" : "Falta";
+        var m = F.man, exige = exigeManifiesto();
+        $("c-man-estado").textContent = m.firmado ? "Guardado" : exige ? "Falta" : "Opcional";
         $("c-man-estado").className = "fa-chip " + (m.firmado ? "fa-chip--ok" : "fa-chip--gris");
+        $("c-man-obligatorio").hidden = !exige;           // 24-nov-2026: sin exigirlo, la caja dice que es opcional
+        $("c-man-opcional").hidden = exige;
         $("c-man-pacs").innerHTML = m.pacs.map(function (p) {
             var g = p.guardado, rv = (g && g.revision) || {};
             var abrir = '<a class="fa-btn ' + (g ? "fa-btn--suave" : "fa-btn--principal") + '" href="' + esc(p.url) + '" target="_blank" rel="noopener">Abrir página de ' + esc(p.nombre) + " para firmar ↗</a>";
@@ -426,7 +428,7 @@
             try {
                 F.man = await json(base, { method: "POST", body: cuerpo });
                 var rv = F.man.revision || {};
-                despuesManifiesto("✓ Manifiesto revisado y guardado" + (rv.folio ? " (" + rv.folio + ")" : "") + ". Ya puedes timbrar con esta empresa.");
+                despuesManifiesto("✓ Manifiesto revisado y guardado" + (rv.folio ? " (" + rv.folio + ")" : "") + (exigeManifiesto() ? ". Ya puedes timbrar con esta empresa." : "."));
             } catch (e) { $("msj-man").textContent = e.message; g.disabled = false; g.textContent = "Subir y revisar"; }
         }
     }
@@ -1200,12 +1202,23 @@
         };
     }
 
-    // En producción no se timbra sin manifiesto: en vez de un error, la ventana que explica y deja subirlo
+    // En producción, si el administrador lo exige, no se timbra sin manifiesto: en vez de un error, la ventana que explica y deja subirlo
     function faltaManifiesto() {
-        if (!F.cfg || !F.cfg.produccion || !F.emisor || F.emisor.manifiesto) return false;
+        if (!F.cfg || !F.cfg.produccion || !F.emisor || F.emisor.manifiesto || !exigeManifiesto()) return false;
         F.actAbierto = "manifiesto"; pintarActivar();
         $("activar").scrollIntoView({ behavior: "smooth", block: "start" });
         var err = $("t-error"); err.classList.remove("fa-error--revisando"); err.textContent = "Falta el manifiesto del PAC: complétalo arriba, en «Activar facturación»."; err.hidden = false;
+        return true;
+    }
+
+    /* 428 al timbrar: el servidor exige el manifiesto. Lo decide él (24-nov-2026): si se prendió mientras esta página estaba
+       abierta, desde aquí ya se pide como antes (requisito en «Activar facturación», punto rojo y la ventana para subirlo). */
+    function pidioManifiesto(e) {
+        if (!e || e.status !== 428) return false;
+        $("dlg-confirmar").close();
+        F.emisor.manifiesto = false; F.cfg.exigir_manifiesto = true;
+        $("punto-manifiesto").hidden = false; pintarActivar();
+        abrirManifiesto(true);
         return true;
     }
 
@@ -1235,7 +1248,7 @@
 
     // Al entrar con una empresa sin manifiesto (producción) se recuerda una vez por sesión
     function recordarManifiesto() {
-        if (!F.cfg || !F.cfg.produccion || !F.emisor || F.emisor.manifiesto || F.emisor.faltan.length) return;
+        if (!F.cfg || !F.cfg.produccion || !F.emisor || F.emisor.manifiesto || F.emisor.faltan.length || !exigeManifiesto()) return;
         var clave = "fa-man-recordado:" + F.emisor.rfc;
         try { if (sessionStorage.getItem(clave)) return; sessionStorage.setItem(clave, "1"); } catch (e) { /* sin almacenamiento */ }
         abrirManifiesto(false);
@@ -1315,7 +1328,7 @@
             if (F.borradorId) F.pendiente.prefactura = { id: F.borradorId, conservar: $("conf-pref").hidden ? null : $("conf-pref-chk").checked };
             try { r = await enviar("/api/facturacion/timbrar", "POST", { rfc: F.emisor.rfc, captura: F.pendiente }); }
             catch (e) {
-                if (e.status === 428) { $("dlg-confirmar").close(); F.emisor.manifiesto = false; abrirManifiesto(true); return; }
+                if (pidioManifiesto(e)) return;
                 if (sinConfirmar(e) || e.status !== 409 || !(await Fiscontable.preguntar(e.message + "\n\nAcepta solo si de verdad es otra factura."))) throw e;
                 F.pendiente.confirmar_duplicado = true;
                 r = await enviar("/api/facturacion/timbrar", "POST", { rfc: F.emisor.rfc, captura: F.pendiente });
@@ -1347,6 +1360,7 @@
                 $("can-error").hidden = false;
             }
         } catch (e) {
+            if (pidioManifiesto(e)) return;          // también tras aceptar «¿de verdad es otra factura?»
             $("dlg-confirmar").close();
             /* Sin confirmar (19-nov): la respuesta del PAC se perdió. El formulario se queda igual (misma clave): volver a
                apretar no timbra otra, solo dice cómo va; en Emitidas aparece «Revisando con el PAC…» */
@@ -1959,11 +1973,13 @@
             await cargarEmitidas();
             cargarPendientes();
         } catch (e) {
-            $("dlg-confirmar").close();
-            var incierto = sinConfirmar(e) || sinRespuesta(e);         // factura-6: sin respuesta pudo timbrarse
-            $("pg-error").classList.toggle("fa-error--revisando", incierto);
-            $("pg-error").textContent = sinRespuesta(e) ? MSJ_SIN_RESPUESTA_PAGO : e.message; $("pg-error").hidden = false;
-            if (incierto) { cargarEmitidas(); cargarPendientes(); }
+            if (!pidioManifiesto(e)) {                               // 24-nov-2026: 428 → la ventana del manifiesto, como en la factura
+                $("dlg-confirmar").close();
+                var incierto = sinConfirmar(e) || sinRespuesta(e);         // factura-6: sin respuesta pudo timbrarse
+                $("pg-error").classList.toggle("fa-error--revisando", incierto);
+                $("pg-error").textContent = sinRespuesta(e) ? MSJ_SIN_RESPUESTA_PAGO : e.message; $("pg-error").hidden = false;
+                if (incierto) { cargarEmitidas(); cargarPendientes(); }
+            }
         }
         clearTimeout(lento);
         F.confirmando = null;
@@ -2152,13 +2168,18 @@
         else vista("nueva");
     }
 
-    /* ---------------------------------------------------- tarjeta «Activar facturación» (4 requisitos)
+    /* ---------------------------------------------------- tarjeta «Activar facturación» (3 requisitos; 4 con el manifiesto)
        Se ve mientras falte algo y vuelve sola si el sello está por vencer (30 días) o se acaban los timbres. */
     var LUNA_URL = "https://firmamanifiesto.lunasoft.net/";
     function diasPara(fecha) { return fecha ? Math.ceil((new Date(fecha + "T12:00:00") - new Date()) / 864e5) : null; }
     function fechaLarga(fecha) { return fecha ? fechaCorta(fecha.slice(0, 10) + "T12:00:00") : ""; }
 
     function sinRepartir() { return !!(F.cfg && F.cfg.puede_repartir === false); }
+    /* 24-nov-2026, el dueño («Luna Soft, que ya no sea necesario»): el manifiesto del PAC solo se pide si el administrador prendió
+       «Exigir el manifiesto del PAC para timbrar» (apagado de fábrica). Apagado: no sale en «Activar facturación» (3 requisitos),
+       ni punto rojo, ni ventana al timbrar; Configuración › Manifiesto sigue para subirlo o bajarlo si algún PAC lo pide. Quien
+       decide es el servidor: si aun así responde 428, sale la ventana como antes. Un servidor sin el dato: como antes. */
+    function exigeManifiesto() { return !!(F.cfg && F.cfg.exigir_manifiesto !== false); }
     function textoPideTimbres() {
         return "En el despacho, los timbres los reparte el titular" + (F.cfg.titular ? " (" + F.cfg.titular + ")" : "") + ". Pídele que le pase a esta empresa.";
     }
@@ -2180,11 +2201,11 @@
               detalle: !prod ? "En modo de pruebas no se gastan timbres." : t > 0 ? t + " disponible" + (t === 1 ? "" : "s") + " para esta empresa."
                   : sinRepartir() ? "Esta empresa no tiene timbres: pídele al titular" + (F.cfg.titular ? " (" + F.cfg.titular + ")" : "") + " que le pase."
                   : F.cfg.comprar_timbres && !F.cfg.timbres_cuenta ? "Esta empresa no tiene timbres. " + F.cfg.comprar_timbres.texto + "." : "Esta empresa ya no tiene timbres: pásale de tu cuenta." }
-        ];
+        ].filter(function (r) { return r.id !== "manifiesto" || exigeManifiesto(); });
     }
 
     /* Sin lo necesario para timbrar no se deja capturar: antes se llenaba toda la factura y el error salía al final.
-       Producción: todo lo que falte (datos, sello, manifiesto, timbres). Pruebas: solo los datos fiscales (lo demás
+       Producción: todo lo que falte (datos, sello, timbres y, si se exige, el manifiesto). Pruebas: solo los datos fiscales (lo demás
        lo pone el SAT de prueba). Aplica a la factura nueva y al recibo de pago. */
     function minus(t) { return t.charAt(0).toLowerCase() + t.slice(1); }      // «sello digital (CSD)», no «(csd)»
     function pintarBloqueo(reqs) {
@@ -2226,11 +2247,11 @@
         caja.hidden = !mostrar || F.incrustado;
         if (caja.hidden) return;
         if (F.actAbierto && !reqs.some(function (r) { return r.id === F.actAbierto; })) F.actAbierto = null;
-        var completo = listos === 4 || reqs.every(function (r) { return r.estado !== "falta"; });
+        var completo = listos === reqs.length || reqs.every(function (r) { return r.estado !== "falta"; });
         $("act-titulo").textContent = completo ? "Revisa tu facturación" : "Activar facturación de " + (F.emisor.alias || F.emisor.rfc);
-        $("act-sub").textContent = (completo ? "" : listos + " de 4 listos. ") +
+        $("act-sub").textContent = (completo ? "" : listos + " de " + reqs.length + " listos. ") +
             (prod ? "Hasta completar lo que falta, esta empresa no puede timbrar." : "En modo de pruebas ya puedes timbrar de prueba; esto es lo que se necesita para timbrar de verdad.");
-        $("act-barra").style.width = (listos * 25) + "%";
+        $("act-barra").style.width = Math.round(listos * 100 / reqs.length) + "%";
         $("act-pasos").innerHTML = reqs.map(function (r, n) {
             var abierto = F.actAbierto === r.id;
             var marca = r.estado === "ok" ? icono("palomita") : String(n + 1);
