@@ -31,6 +31,8 @@
     <section id="tb-despacho">
         <div id="tb-resumen" class="tb-kpis"></div>
         <div id="tb-cierre" class="tb-cierre" hidden></div>
+        <!-- 23-nov-2026: e.firma y sellos por vencer de todas las empresas, en su propia franja (los «Próximos vencimientos» son declaraciones) -->
+        <div id="tb-efirmas" class="tb-efirmas" hidden></div>
         <div class="tb-cuerpo">
             <div class="tb-principal"><div id="tb-tabla" class="tb-tabla"></div></div>
             <aside class="tb-lado" aria-label="Vencimientos y actividad">
@@ -132,6 +134,28 @@
     .tb-der { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: baseline; gap: 2px 6px; text-align: right; min-width: 0; max-width: 62%; }
     .tb-der > span { display: inline-flex; flex-wrap: wrap; justify-content: flex-end; align-items: baseline; gap: 2px 6px; }
     .tb-titulo { font-size: var(--t-14); font-weight: 700; margin: 0 0 var(--e-2); }
+    /* e.firma y sellos (23-nov-2026): una franja como la del cierre: «e.firma y sellos: 2 vencen en 30 días · 4 vencidos», los
+       más urgentes en pastillas y «Ver todos». En la vista de la empresa, su tarjeta (tb-efirmas-emp). */
+    .tb-efirmas { display: flex; align-items: center; gap: var(--e-2) var(--e-3); flex-wrap: wrap; padding: var(--e-3) var(--e-4); margin-bottom: var(--e-4);
+                  border: 1px solid var(--linea); border-radius: var(--r-tarjeta); background: rgb(var(--g-0)); font-size: var(--t-14); color: rgb(var(--g-900)); }
+    .tb-efirmas__titulo { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; }
+    .tb-efirmas__titulo b { font-weight: 700; }
+    .tb-efirmas__titulo a { text-decoration: none; font-weight: 600; }
+    .tb-efirmas__titulo a:hover { text-decoration: underline; }
+    .tb-efirmas__titulo span { color: rgb(var(--g-600)); font-size: var(--t-13); }
+    .tb-efirmas--error { color: rgb(var(--er-600)); }
+    .tb-efirmas--aviso { color: rgb(var(--av-600)); }
+    .tb-efirmas__pastillas { display: flex; flex-wrap: wrap; gap: var(--e-2); min-width: 0; }
+    .tb-efirmas__pastilla { display: inline-flex; gap: 6px; align-items: center; max-width: 100%; padding: 3px 10px; border-radius: 999px; font-size: var(--t-12);
+                            text-decoration: none; background: rgb(var(--av-50)); color: rgb(var(--av-600)); }
+    .tb-efirmas__pastilla span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; color: rgb(var(--g-900)); font-weight: 600; }
+    .tb-efirmas__pastilla--vencido { background: rgb(var(--er-50)); color: rgb(var(--er-600)); }
+    .tb-efirmas__pastilla--vence_90, .tb-efirmas__pastilla--vigente { background: rgb(var(--g-100)); color: rgb(var(--g-600)); }
+    .tb-efirmas__todos { margin-left: auto; font-size: var(--t-13); font-weight: 600; color: rgb(var(--ac-700)); text-decoration: none; white-space: nowrap; }
+    .tb-efirmas__todos:hover { text-decoration: underline; }
+    .tb-efirmas__cabeza { display: flex; align-items: baseline; justify-content: space-between; gap: var(--e-3); }
+    .tb-efirmas__cabeza a { font-size: var(--t-12); font-weight: 600; color: rgb(var(--ac-700)); text-decoration: none; white-space: nowrap; }
+    .tb-efirmas__cabeza a:hover { text-decoration: underline; }
     .tb-recientes { display: flex; flex-wrap: wrap; align-items: center; gap: var(--e-2); margin: var(--e-6) 0 var(--e-8); font-size: var(--t-13); color: rgb(var(--g-600)); }
     .tb-recientes__lista { display: flex; flex-wrap: wrap; gap: var(--e-2); }
     .tb-recientes__lista a { padding: 4px 10px; border: 1px solid var(--linea); border-radius: 999px; background: rgb(var(--g-0)); color: rgb(var(--g-800)); text-decoration: none; }

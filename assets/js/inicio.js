@@ -5,6 +5,7 @@
  *    por responder, listas del SAT, XML del mes). Favoritas arriba; clic en la fila = trabajar con esa empresa.
  *  · Empresa activa: ingresos y gastos del mes y del año (de sus XML), IVA estimado, opinión, constancia, próximos
  *    vencimientos y sus últimos avisos.
+ *  · e.firma y sellos (23-nov-2026): su tarjeta en las dos vistas, con el enlace al módulo Vencimientos.
  * Los accesos a los módulos están en la barra lateral y en Ctrl+K.
  */
 (function () {
@@ -156,6 +157,59 @@
         }).join("");
     }
 
+    /* ---------------------------------------------------------------- e.firma y sellos (23-nov-2026)
+       Su propia tarjeta (los «Próximos vencimientos» son de declaraciones): «e.firma y sellos: 2 vencen en 30 días», los más
+       urgentes y «Ver todos» al módulo Vencimientos. Sin el permiso de Clientes o sin empresas, no sale. */
+    var VENC = "/herramientas/vencimientos/";
+    var TONO_VENC = { vencido: "error", vence_30: "aviso", vence_90: "aviso", vigente: "ok", sin_cargar: "nada" };
+    function fechaCorta(iso) { return iso ? String(iso).slice(8, 10) + "/" + String(iso).slice(5, 7) + "/" + String(iso).slice(0, 4) : ""; }
+    // 24-nov-2026 (revisión venc1): sin el permiso de Clientes ni se pide (antes: un 403 en la consola y la tarjeta parpadeaba)
+    function conVencimientos() { return !Fiscontable.permitido || Fiscontable.permitido({ permiso: "clientes" }); }
+    function enDias(x) {        // «hoy», «mañana», «en 5 días» (antes: «en 0 días», «en 1 días»)
+        return x.dias === 0 ? "hoy" : x.dias === 1 ? "mañana" : "en " + x.dias + " días";
+    }
+    function cuandoVence(x) {
+        if (x.revocada) return "revocada por el SAT";
+        if (x.dias === null || x.dias === undefined) return x.nota || "Sin fecha";
+        if (x.dias < 0) return "venció el " + fechaCorta(x.hasta);
+        return "vence el " + fechaCorta(x.hasta) + (x.dias === 0 ? " · hoy" : x.dias === 1 ? " · mañana" : x.dias <= 90 ? " · en " + x.dias + " días" : "");
+    }
+    function pintarEfirmas(pedido) {
+        var caja = $("tb-efirmas"); if (!caja) return;
+        if (!pedido && !conVencimientos()) { caja.hidden = true; return; }
+        (pedido || api("/api/vencimientos/resumen")).then(function (d) {
+            if (!d.empresas) { caja.hidden = true; return; }
+            var c = d.conteo || {}, n30 = c.vence_30 || 0, nv = c.vencido || 0;
+            var partes = [];
+            if (n30) partes.push('<a class="tb-efirmas--aviso" href="' + VENC + '?estado=vence_30">' + n30 + " vence" + (n30 === 1 ? "" : "n") + " en 30 días</a>");
+            if (nv) partes.push('<a class="tb-efirmas--error" href="' + VENC + '?estado=vencido">' + nv + " vencido" + (nv === 1 ? "" : "s") + "</a>");
+            if (!partes.length) partes.push("<span>Nada vence en 30 días" + (d.proximo ? " · la próxima: " + esc(d.proximo.alias) + ", " + esc(fechaCorta(d.proximo.hasta)) : "") + "</span>");
+            caja.innerHTML = '<div class="tb-efirmas__titulo"><b>e.firma y sellos:</b>' + partes.join('<span aria-hidden="true">·</span>') + "</div>" +
+                (d.urgentes.length ? '<div class="tb-efirmas__pastillas">' + d.urgentes.map(function (x) {
+                    return '<a class="tb-efirmas__pastilla tb-efirmas__pastilla--' + esc(x.estado) + '" href="' + VENC + "?q=" + encodeURIComponent(x.rfc) + '" title="' +
+                        esc(x.alias + " · " + (x.origen === "efirma" ? "e.firma" : "sello digital") + " · " + cuandoVence(x)) + '"><span>' + esc(x.alias) + "</span>" +
+                        esc((x.origen === "efirma" ? "e.firma " : "sello ") + (x.revocada ? "revocada" : x.dias < 0 ? "venció " + fechaCorta(x.hasta).slice(0, 5) : enDias(x))) + "</a>";
+                }).join("") + "</div>" : "") +
+                '<a class="tb-efirmas__todos" href="' + VENC + '">Ver todos →</a>';
+            caja.hidden = false;
+        }).catch(function () { caja.hidden = true; });
+    }
+    function pintarEfirmasEmpresa(rfc) {
+        var caja = $("tb-efirmas-emp"); if (!caja) return;
+        if (!conVencimientos()) { caja.remove(); return; }
+        api("/api/vencimientos/resumen?rfc=" + encodeURIComponent(rfc)).then(function (d) {
+            var filas = d.empresa || [];
+            if (!filas.length) { caja.remove(); return; }
+            filas.sort(function (a, b) { return a.origen === "efirma" ? -1 : b.origen === "efirma" ? 1 : 0; });
+            caja.innerHTML = '<div class="tb-efirmas__cabeza"><p class="tb-titulo">e.firma y sellos</p><a href="' + VENC + "?q=" + encodeURIComponent(rfc) + '">Ver →</a></div><div class="tb-lista">' +
+                filas.map(function (x) {
+                    var t = x.revocada ? "Revocada" : { vencido: "Vencido", vence_30: "Vence pronto", vence_90: "En 90 días", vigente: "Vigente", sin_cargar: "Sin cargar" }[x.estado];
+                    return '<a href="' + VENC + "?q=" + encodeURIComponent(rfc) + '"><span>' + esc(x.origen === "efirma" ? "e.firma" : "Sello digital (CSD)") + '</span><span class="tb-der">' +
+                        sello(x.revocada ? "error" : TONO_VENC[x.estado], t) + " <small>" + esc(x.dias === null || x.dias === undefined ? (x.nota || "") : cuandoVence(x) + (x.fuente === "factura" && x.nota ? " · " + x.nota.toLowerCase() : "")) + "</small></span></a>";
+                }).join("") + "</div>";
+        }).catch(function () { caja.remove(); });
+    }
+
     function pintarLado() {
         var v = (E.datos && E.datos.vencimientos) || [];
         $("tb-venc").innerHTML = v.length ? v.map(function (x) {
@@ -211,10 +265,14 @@
             }, true);
         }
         E.tabla.cargando("Revisando tus empresas…");
+        // La tarjeta de e.firma y sellos se pide a la vez que el tablero: se pinta junto con él (sin empujar nada después)
+        var pedidoVenc = conVencimientos() ? api("/api/vencimientos/resumen") : null;
+        if (pedidoVenc) pedidoVenc.catch(function () { /* la tarjeta no sale */ });
         try { E.datos = await api("/api/tablero"); }
         catch (e) { E.tabla.error(e.message, cargarDespacho); return; }
         pintarDespacho();
         pintarLado();
+        pintarEfirmas(pedidoVenc);
     }
     function pintarDespacho() {
         var lista = filas();
@@ -280,6 +338,7 @@
                     d.cierre.pasos.map(function (p) {
                         return '<a href="' + esc(p.pagina) + '"><span>' + esc(p.texto) + "</span>" + (p.hecho ? sello("ok", "Listo") : sello("aviso", p.nota || "Falta")) + "</a>";
                     }).join("") + "</div></div>" : "") +
+                '<div class="ui-tarjeta" id="tb-efirmas-emp"><p class="tb-titulo">e.firma y sellos</p><span class="ui-skel" style="width:70%"></span></div>' +
                 '<div class="ui-tarjeta"><p class="tb-titulo">Próximos vencimientos</p><div class="tb-lista">' +
                     (d.vencimientos.length ? d.vencimientos.map(function (v) {
                         return "<div><span>" + esc(v.titulo) + "</span><small>" + esc(fecha(v.fecha)) + (v.dias >= 0 ? " · en " + v.dias + " días" : " · venció") + "</small></div>";
@@ -293,6 +352,7 @@
                 "</div></div>" +
             "</div>" +
             '<p class="xml-tenue" style="font-size:12px;margin-top:12px">' + esc(mes) + " según los XML guardados (vigentes y sin validar; notas de crédito restan). Es un estimado: el cálculo fino está en IVA y Conciliación.</p>";
+        pintarEfirmasEmpresa(empresa.rfc);
     }
 
     /* ---------------------------------------------------------------- el primer cuadro

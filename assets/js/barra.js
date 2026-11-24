@@ -68,6 +68,7 @@
     var MODULOS = {
         portada:       { nombre: "Fiscontable",           permiso: null },
         clientes:      { nombre: "Clientes",          permiso: null },
+        vencimientos:  { nombre: "Vencimientos",          permiso: "clientes" },     // e.firma y sellos de todas las empresas (23-nov-2026)
         herramientas:  { nombre: "Herramientas",          permiso: null },
         conciliacion:  { nombre: "Conciliación de pagos", permiso: "conciliacion" },
         recibos_nomina: { nombre: "Recibos de nómina",    permiso: "validador" },
@@ -189,6 +190,10 @@
         retenciones: ["Elige empresa y año; Recibidas o Emitidas.",
                       "Comprobantes es la lista; Papel de trabajo, el resumen por mes.",
                       "Pedir al SAT las trae de Descarga masiva; también puedes Subir XML. Exporta a Excel o baja los XML."],
+        vencimientos: ["Arriba, cuántas e.firmas y sellos están vencidos, vencen en 30 o en 90 días, siguen vigentes o no tienen fecha. Pica uno para ver solo esos.",
+                       "La línea de tiempo enseña los próximos 12 meses: cada círculo es una e.firma y cada rombo un sello. Pasa el cursor (o toca) para ver de quién es; pica un mes para filtrar.",
+                       "En la tabla, «Renovar» o «Subir» te lleva a la ficha de Clientes (e.firma) o a Facturar › Sello digital. Si el sello no está en Facturar, sale el de su última factura emitida.",
+                       "«Descargar Excel» baja lo que ves. Los días de aviso se cambian en Configuración › Avisos."],
         despacho: ["Equipo: quién está y con qué papel; el titular invita y cambia Permisos.",
                    "Solicitudes, Trámites y Bitácora: lo que piden, lo que está en curso y quién hizo qué.",
                    "Ajustes: nombre, correo de avisos y si las personas nuevas tienen su propio espacio."]
@@ -220,7 +225,8 @@
         clientes: "M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-1.13a4 4 0 10-4-4 4 4 0 004 4zm6 0a4 4 0 10-4-4",
         balanza: "M12 3v18m0-18l-7 3m7-3l7 3M5 6l-3 7a3 3 0 006 0L5 6zm14 0l-3 7a3 3 0 006 0l-3-7zM8 21h8",
         prohibido: "M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636",
-        moneda: "M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+        moneda: "M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z",
+        calendario: "M8 7V3m8 4V3M4 11h16M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2zM12 14.5V17l1.5 1"
     };
     // Menú agrupado por el trabajo del contador (aprobado el 9 nov 2026). Las direcciones no cambian.
     // cuenta: true = no va en el menú (Descargas y Créditos viven en la barra y en el menú de usuario).
@@ -228,6 +234,8 @@
     var GRUPOS = ["Clientes", "Comprobantes", "Cierre del mes", "Cumplimiento", "Nómina", "Facturación", "Documentos"];
     var CATALOGO = [
         { clave: "clientes", grupo: "Clientes", nombre: "Clientes", desc: "Empresas, e.firma y obligaciones", url: "/clientes/", permiso: null, icono: I.clientes, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
+        // 23-nov-2026: la e.firma y el sello digital de cada empresa con su fecha de vencimiento (mismo permiso que Clientes)
+        { clave: "vencimientos", grupo: "Clientes", nombre: "Vencimientos", alias: "vencimientos efirma e.firma fiel sello sellos csd sello digital certificado caducidad vigencia vence vencida expiracion renovar recordatorio", desc: "e.firma y sellos de tus empresas, con su fecha", url: "/herramientas/vencimientos/", permiso: "clientes", icono: I.calendario, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
 
         { clave: "xml", grupo: "Comprobantes", nombre: "Administración de XML", alias: "xml comprobantes", desc: "Tus XML por tipo, con reportes en Excel", url: "/herramientas/xml/", permiso: "validador", icono: I.xml, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
         { clave: "recibos_nomina", grupo: "Comprobantes", nombre: "Recibos de nómina", alias: "nomina recibos timbrados cfdi de nomina sueldos asimilados", desc: "Los recibos de nómina timbrados, con su Excel", url: "/herramientas/xml/?vista=nomina", permiso: "validador", icono: I.gente, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
