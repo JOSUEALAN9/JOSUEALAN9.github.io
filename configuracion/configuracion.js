@@ -1058,7 +1058,7 @@
             // 15-nov (XML seguros): el cuadre UUID por UUID con la lista del SAT, mes por mes desde «Desde»
             var cuadre = function (e) {
                 var q = e.cuadre;
-                var expl = "Cuadre con la lista del SAT: cada semana (los meses viejos, cada mes) se compara UUID por UUID desde «Desde»; lo que falte se pide solo y los que pasen a cancelados se avisan.";
+                var expl = "Cuadre con la lista del SAT: el mes en curso cada noche (del 1 al 5, también el que acaba de cerrar); los dos anteriores cada semana y los viejos cada mes. Se compara UUID por UUID desde «Desde»; lo que falte se pide solo y los que pasen a cancelados se avisan.";
                 if (!q) return '<small class="cf-auto__cuadre" title="' + esc(expl + " Empieza cuando terminen de bajar sus XML.") + '">Cuadre SAT: en espera</small>';
                 var det = [expl, "Última revisión: " + (q.ultima ? dia(q.ultima) : "—")];
                 if (q.faltaban) det.push("faltaban " + q.faltaban + (q.pedidos ? " (se pidieron " + q.pedidos + ")" : ""));
