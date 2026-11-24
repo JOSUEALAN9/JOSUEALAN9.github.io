@@ -105,13 +105,14 @@
             return '<label class="marca"><input type="checkbox" id="fp-forzar"> Sacarla aunque ya tenga una vigente</label>';
         }
         if (modulo === "declaraciones") {
+            // 23-nov-2026 (Avance 1, H): «Anterior» también viene marcado, como en la búsqueda manual y en lo automático
             var anio = new Date().getFullYear(), opts = "";
             for (var a = anio; a >= 2014; a--) opts += '<option value="' + a + '"' + (a === anio ? " selected" : "") + ">" + a + "</option>";
             return '<div class="fp-fila"><label class="campo"><span class="campo__etiqueta">Ejercicio</span>' +
                 '<select id="fp-ejercicio" class="campo__control">' + opts + "</select></label>" +
                 '<div class="campo"><span class="campo__etiqueta">Portal</span><div class="fp-segmento">' +
                 '<label class="marca"><input type="checkbox" id="fp-portal-nuevo" checked> Nuevo</label>' +
-                '<label class="marca"><input type="checkbox" id="fp-portal-antiguo"> Anterior</label></div></div></div>';
+                '<label class="marca"><input type="checkbox" id="fp-portal-antiguo" checked> Anterior</label></div></div></div>';
         }
         var mes = mesAnterior();
         return '<div class="fp-fila"><label class="campo"><span class="campo__etiqueta">Comprobantes</span>' +

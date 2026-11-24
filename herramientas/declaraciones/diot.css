@@ -1,0 +1,58 @@
+/* DIOT en ceros (Avance 1, 23-nov-2026): ventana de Declaraciones y la pastilla «DIOT» de Guardadas. Prefijo dt-. */
+.fc-docs-pastilla--diot { background: rgb(var(--av-50)); color: rgb(var(--av-700, 147 55 13)); box-shadow: inset 0 0 0 1px rgb(var(--av-200)); }
+
+.dt-periodo { display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-end; }
+.dt-periodo .ui-campo { min-width: 160px; flex: 1 1 160px; }
+.dt-buscar { flex: 2 1 220px; }
+.dt-contador { font-size: 13px; color: var(--texto-tenue); white-space: nowrap; padding-bottom: 8px; }
+.dt-contador b { color: var(--texto); }
+.dt-empresas { border: 1px solid var(--linea); border-radius: 12px; max-height: 340px; overflow: auto; }
+.dt-empresa { display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-top: 1px solid var(--linea); cursor: pointer; min-width: 0; }
+.dt-empresa:first-child { border-top: 0; }
+.dt-empresa:hover { background: var(--papel); }
+.dt-empresa input { width: 16px; height: 16px; flex: none; accent-color: rgb(var(--ac-600)); }
+.dt-empresa__nombre { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; font-size: 14px; }
+.dt-empresa__rfc { font-size: 12.5px; color: var(--texto-tenue); font-variant-numeric: tabular-nums; flex: none; }
+.dt-empresa--sin { opacity: .6; cursor: default; }
+.dt-empresa--sin:hover { background: none; }
+.dt-nota { font-size: 13px; color: var(--texto-tenue); line-height: 1.5; }
+
+.dt-lista { display: flex; flex-direction: column; gap: 10px; }
+.dt-item { border: 1px solid var(--linea); border-radius: 12px; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.dt-item__fila { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; min-width: 0; }
+.dt-item__nombre { font-weight: 700; font-size: 14px; flex: 1 1 180px; min-width: 0; overflow-wrap: anywhere; }
+.dt-item__rfc { font-size: 12.5px; color: var(--texto-tenue); }
+.dt-item__msj { font-size: 13px; color: var(--texto-tenue); line-height: 1.45; overflow-wrap: anywhere; }
+.dt-chip { display: inline-block; font-size: 12px; font-weight: 700; border-radius: 999px; padding: 3px 10px; white-space: nowrap;
+           background: rgb(var(--g-100)); color: rgb(var(--g-700)); }
+.dt-chip--ok { background: rgb(var(--ok-50)); color: rgb(var(--ok-700, 6 95 56)); }
+.dt-chip--aviso { background: rgb(var(--av-50)); color: rgb(var(--av-700, 147 55 13)); box-shadow: inset 0 0 0 1px rgb(var(--av-200)); }
+.dt-chip--mal { background: rgb(var(--er-50)); color: rgb(var(--er-600)); }
+.dt-chip--va { background: rgb(var(--ac-50)); color: rgb(var(--ac-700)); }
+.dt-avisos { margin: 0; padding-left: 18px; font-size: 13px; line-height: 1.5; color: rgb(var(--av-700, 147 55 13)); }
+.dt-bloqueos { margin: 0; padding-left: 18px; font-size: 13px; line-height: 1.5; color: rgb(var(--er-600)); }
+.dt-facturas summary { cursor: pointer; font-size: 13px; font-weight: 600; color: var(--acento); }
+.dt-facturas__caja { overflow-x: auto; margin-top: 8px; }
+.dt-facturas table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.dt-facturas th, .dt-facturas td { text-align: left; padding: 6px 8px; border-top: 1px solid var(--linea); white-space: nowrap; }
+.dt-facturas th { color: var(--texto-tenue); font-weight: 600; border-top: 0; }
+.dt-facturas td.dt-num, .dt-facturas th.dt-num { text-align: right; font-variant-numeric: tabular-nums; }
+.dt-facturas td:first-child { white-space: normal; min-width: 140px; }
+.dt-reviso { display: flex; gap: 10px; align-items: flex-start; font-size: 14px; font-weight: 600; margin-top: 14px; cursor: pointer; }
+.dt-reviso input { width: 18px; height: 18px; margin-top: 1px; flex: none; accent-color: rgb(var(--ac-600)); }
+.dt-resumen { display: flex; gap: 8px; flex-wrap: wrap; }
+@media (max-width: 640px) {
+    .dt-empresas { max-height: none; }
+    .dt-empresa { padding: 12px; }
+    /* 24-nov-2026 (revisión): en el celular la lista de facturas son tarjetas; antes el IVA quedaba fuera de la vista */
+    .dt-facturas thead { display: none; }
+    .dt-facturas table, .dt-facturas tbody { display: block; }
+    .dt-facturas tr { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 12px; padding: 8px 0; border-top: 1px solid var(--linea); }
+    .dt-facturas td { border: 0; padding: 0; white-space: normal; min-width: 0; }
+    .dt-facturas td:first-child { grid-column: 1 / -1; min-width: 0; font-weight: 600; }
+    .dt-facturas td:nth-child(2) { grid-row: 2; grid-column: 1; color: var(--texto-tenue); }
+    .dt-facturas td:nth-child(3) { grid-row: 3; grid-column: 1; color: var(--texto-tenue); }
+    .dt-facturas td:nth-child(4) { grid-row: 3; grid-column: 2; }
+    .dt-facturas td:nth-child(5) { grid-row: 2; grid-column: 2; font-weight: 700; }
+    .dt-facturas td[data-et]::before { content: attr(data-et) " "; font-weight: 400; color: var(--texto-tenue); }
+}

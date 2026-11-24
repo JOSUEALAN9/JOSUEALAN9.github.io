@@ -130,10 +130,11 @@
                 var filas = orden.map(function (k) {
                     var g = grupos[k];
                     g.docs.sort(function (x, y) { return x._o - y._o; });
-                    var portal = g.portal === "antiguo" ? { texto: "Anterior", pastilla: "antiguo", etiqueta: "Portal" } : g.portal === "nuevo" ? { texto: "Nuevo", pastilla: "nuevo", etiqueta: "Portal" } : "—";
+                    var portal = g.portal === "antiguo" ? { texto: "Anterior", pastilla: "antiguo", etiqueta: "Portal" } : g.portal === "nuevo" ? { texto: "Nuevo", pastilla: "nuevo", etiqueta: "Portal" } :
+                        g.portal === "diot" ? { texto: "DIOT", pastilla: "diot", etiqueta: "Portal" } : "—";      // 23-nov-2026: la DIOT presentada desde aquí
                     return { id: "d" + g.docs[0].id, mes: +g.mes || 0, docs: g.docs, guardada: g.guardada,
                              grupo: "m" + (g.mes || "SD"), grupoTitulo: (MESES[+g.mes] || (g.mes ? "Mes " + g.mes : "Sin mes")) + " " + a.ejercicio,
-                             celdas: [g.tipo || "Declaración", portal, g.op, g.guardada.slice(0, 10)] };
+                             celdas: [g.portal === "diot" ? "DIOT · " + (g.tipo || "Normal") : (g.tipo || "Declaración"), portal, g.op, g.guardada.slice(0, 10)] };
                 });
                 // El mes más reciente primero; dentro del mes, la guardada al último arriba
                 filas.sort(function (x, y) { return (y.mes - x.mes) || (y.guardada > x.guardada ? 1 : y.guardada < x.guardada ? -1 : 0); });
@@ -143,6 +144,8 @@
         });
     }
     document.getElementById("btn-guardadas").addEventListener("click", abrirGuardadas);
+    // 23-nov-2026 (DIOT en ceros, diot.js): al terminar un lote, el acuse ya está en el almacén de la empresa elegida
+    window.addEventListener("fiscontable:diot-terminada", function () { if (elegido) cargarAlmacen(elegido.rfc); });
 
     function alLimpiar() {
         elegido = null;
