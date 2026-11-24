@@ -26,6 +26,9 @@
         sigue: "El historial y el cuadre se reparten a propósito en varias noches: sigue solo.",
         cancelada: "Se canceló."
     };
+    // 24-nov-2026 (madrugada-8): lo que ni siquiera llegó a la fila (no se pudo programar) se explica distinto. Revisión: sin
+    // «a un lado» (en el celular el motivo va abajo) ni «la noche siguiente» (la lista de un envío se vuelve a pedir antes de mandarlo)
+    var SIN_PROGRAMAR = "No se pudo programar. El motivo dice qué pasó y cuándo se vuelve a intentar solo: no hace falta reintentarlo a mano.";
     var LEYENDA = [["verde", "Salió"], ["ambar", "Con avisos"], ["rojo", "No salió"], ["naranja", "No alcanzó"], ["azul", "En curso"], ["gris", "No le tocaba"]];
     var FLECHA = '<svg class="au-flecha" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>';
     var DIAS = ["dom", "lun", "mar", "mié", "jue", "vie", "sáb"], MESES = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
@@ -112,10 +115,15 @@
                 '</button><div class="au-desglose" data-desglose' + (abierto ? "" : " hidden") + "></div></li>";
         }
 
+        // 24-nov-2026 (madrugada-7): el reinicio del servidor (apagón) en un solo renglón de la noche
+        function notas(d) {
+            return (d.notas || []).map(function (n) { return '<p class="au-aviso" role="note">' + esc(n) + "</p>"; }).join("");
+        }
+
         function dibujar() {
             var d = est.datos;
             var procesos = d.procesos || [];
-            caja.innerHTML = cabeza(d) + total(d) + (procesos.length ? '<ul class="au-lista">' + procesos.map(renglon).join("") + "</ul>" +
+            caja.innerHTML = cabeza(d) + total(d) + notas(d) + (procesos.length ? '<ul class="au-lista">' + procesos.map(renglon).join("") + "</ul>" +
                 '<p class="au-leyenda">' + LEYENDA.map(function (x) { return '<span><i class="au-luz au-luz--' + x[0] + '"></i>' + esc(x[1]) + "</span>"; }).join("") + "</p>"
                 : '<div class="au-vacio"><b>Esa noche no hubo nada automático' + (op.admin ? "" : " para tus empresas") + ".</b>" +
                   "Lo que Fiscontable hace solo (XML, Buzón, constancias, opiniones, declaraciones) aparece aquí al día siguiente.</div>");
@@ -156,7 +164,7 @@
             var cols = reloj ? ["Tarea", "Estado", "Resultado", "Hora", ""] : envios ? ["Envío", "Estado", "Detalle", "Hora"]
                 : ["Empresa", "Estado", "Por qué", "Máquina", "Hora", "Intentos", ""];
             var filas = es.map(function (e) {
-                var explica = e.estado === "no_alcanzo" ? (x.explica || NO_ALCANZO) : (AYUDA[e.estado] || "");
+                var explica = e.sin_programar ? SIN_PROGRAMAR : e.estado === "no_alcanzo" ? (x.explica || NO_ALCANZO) : (AYUDA[e.estado] || "");
                 var oculto = est.soloMal[x.clave] && e.estado === "salio";
                 var accion = "";
                 if (!reloj && !envios && puede) {

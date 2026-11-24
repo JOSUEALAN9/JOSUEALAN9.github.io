@@ -54,6 +54,9 @@
 .au-explica { border-radius: 10px; padding: 12px 14px; background: rgb(var(--au-naranja-f)); color: rgb(var(--g-800)); font-size: var(--t-13); }
 .au-explica b { display: block; margin-bottom: 2px; color: rgb(var(--au-naranja)); }
 .au-nota { font-size: var(--t-13); color: rgb(var(--g-600)); margin: 0; }
+/* 24-nov-2026 (madrugada-7): el aviso de la noche (p. ej. «Se reinició el servidor a las 3:40…»), arriba de la lista */
+.au-aviso { margin: 0 0 12px; border-radius: 10px; padding: 10px 14px; background: rgb(var(--au-azul-f)); color: rgb(var(--g-800));
+    font-size: var(--t-13); overflow-wrap: anywhere; }
 .au-herr { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; }
 .au-herr label { display: inline-flex; align-items: center; gap: 6px; font-size: var(--t-13); color: rgb(var(--g-700)); }
 .au-herr .ui-btn { margin-left: auto; }
