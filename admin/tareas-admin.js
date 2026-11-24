@@ -140,12 +140,22 @@
             numero("vps_portal", "Portal en la VPS", "Otra IP; 0 = no se usa de madrugada") +
             numero("vps_ws", "Web service en la VPS", "Solicitudes, revisiones y paquetes; 0 = no se usa") +
             numero("cuadre_por_noche", "Listas del cuadre por noche", "En todo el servidor") +
+            numero("barrido_tope", "Empresas por el portal por noche", "Las que no cuadraron con el SAT, las más atrasadas primero; 0 = no se barre") +
             hora("inicio", "Inicio") + hora("fin", "Fin") + hora("inicio_minimo", "Lo más temprano si no cabe") + hora("fin_extendido", "Lo del día, de mañana hasta") +
             '</div><div class="tar-switches"><label class="tar-switch"><input type="checkbox" data-mad="usar_agente"' + (c.usar_agente ? " checked" : "") + '><span>Usar las PCs con el Agente en la madrugada</span>' +
             "<small>Apagado, la madrugada no cuenta con las PCs del contador: solo la Vostro y la VPS (de fábrica apagado).</small></label>" +
             '<label class="tar-switch"><input type="checkbox" data-relevo' + ((m.relevo || {}).activo ? " checked" : "") + '><span>Relevo de la VPS si se cae la Vostro</span>' +
             "<small>Con la Vostro caída, la VPS hace sola lo del día (nunca facturar, cancelar, DIOT ni envíos). Necesita el Vault de Oracle " +
-            "(de fábrica apagado).</small></label></div>" +
+            "(de fábrica apagado).</small></label>" +
+            // 24-nov-2026 (a2bar, el dueño): el barrido semanal de seguridad del mes en curso por el portal (de fábrica apagado)
+            // (revisión 24-nov-2026: el día va en su propia etiqueta, fuera de la de la casilla: tocar «La madrugada del» ya no la cambia)
+            '<div class="tar-switch-caja"><label class="tar-switch"><input type="checkbox" data-mad="barrido_semanal"' + (c.barrido_semanal ? " checked" : "") + '><span>Barrido semanal del mes por el portal</span>' +
+            "<small>Una madrugada por semana se revisa por el portal el mes en curso de todas las empresas con XML automático y se baja lo que falte (de fábrica apagado).</small></label>" +
+            '<label class="tar-dia">La madrugada del <select data-mad="barrido_dia" aria-label="Día del barrido semanal">' +
+            ["lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo"].map(function (n, i) {
+                return '<option value="' + i + '"' + (+c.barrido_dia === i ? " selected" : "") + ">" + n + "</option>";
+            }).join("") + "</select></label></div>" +
+            "</div>" +
             '<div class="tar-acciones"><button type="button" class="tar-btn tar-btn--primario" id="tar-guardar-mad">Guardar</button><span class="tar-msj" id="tar-msj-mad"></span></div>' +
             "</details></div>";
     }

@@ -382,7 +382,7 @@
         var html = '<div class="dm-cuadre__cabeza"><strong>Lo que tiene el SAT de esta empresa</strong>';
         if (!d.hay) {
             html += '<span class="dm-cuadre__nota">Todavía no se compara con la lista del SAT: empieza sola, de madrugada, cuando terminen de bajar sus XML.</span></div>';
-            caja.innerHTML = html + htmlRevisar(q, d); caja.hidden = false; prepararRevisar(q); return;
+            caja.innerHTML = html + htmlPortal(d) + htmlRevisar(q, d); caja.hidden = false; prepararRevisar(q); return;
         }
         html += '<span class="dm-cuadre__nota">Según la lista del SAT, de ' + esc(mesCorto(d.desde)) + " a " + esc(mesCorto(d.hasta)) +
             " · " + d.cuadrados + " de " + d.meses + " meses al día" + (d.ultima ? " · última revisión el " + parseInt(d.ultima.slice(8, 10), 10) + " de " + esc(mesCorto(d.ultima.slice(0, 7))) : "") + "</span></div>";
@@ -396,8 +396,33 @@
                 (falta ? "Faltan " + miles(t.por_llegar !== undefined ? t.por_llegar : t.faltaban) + " por llegar: ya se pidieron al SAT" : "Ya los tienes todos") + "</span>" +
                 (t.cancelados_nuevos ? '<span class="dm-cuadre__det">' + miles(t.cancelados_nuevos) + " pasaron de vigente a cancelado</span>" : "") + "</div>";
         });
-        html += "</div>";
+        html += "</div>" + htmlPortal(d);
         caja.innerHTML = html + htmlRevisar(q, d); caja.hidden = false; prepararRevisar(q);
+    }
+
+    /* 24-nov-2026 (a2bar, el dueño): el mes que no cuadró se barre solo por el portal de madrugada (y, si se prende, el mes en
+       curso cada semana). Aquí la nota «revisado por el portal» de cada mes y, si sigue sin cuadrar, por qué.
+       modulos/descarga_xml/barrido.para_panel */
+    function htmlPortal(d) {
+        var items = (d && d.portal) || [], fila = (d && d.portal_en_fila) || [];
+        if (!items.length && !fila.length) return "";
+        var nombre = function (t) { return t === "emitidos" ? "emitidos" : t === "recibidos" ? "recibidos" : "emitidos y recibidos"; };
+        var html = '<div class="dm-portal">';
+        if (fila.length) {
+            var meses = {};
+            fila.forEach(function (x) { (meses[x.mes] = meses[x.mes] || []).push(x.tipo); });
+            html += '<div class="dm-portal__fila">Va por el portal en la siguiente madrugada: ' + Object.keys(meses).sort().reverse().map(function (m) {
+                var tipos = meses[m]; return esc(mesCorto(m)) + " (" + esc(tipos.length > 1 ? nombre("ambos") : nombre(tipos[0])) + ")";
+            }).join(", ") + ".</div>";
+        }
+        items.slice(0, 4).forEach(function (x) {
+            var cifras = x.estado !== "ok" ? "no se pudo" + (x.sigue ? ": " + esc(x.sigue) : "") + ". Se vuelve a intentar sola otra madrugada"
+                : "SAT: " + miles(x.total) + " · teníamos: " + miles(x.teniamos) + " · se bajaron: " + miles(x.bajados);
+            html += '<div class="dm-portal__linea"><span class="dm-cuadre__et">Revisado por el portal</span> ' + esc(mesCorto(x.mes)) + " · " + esc(nombre(x.tipo)) +
+                ' <span class="dm-cuadre__det">(' + esc(cuandoFue(x.en)) + (x.semanal ? ", revisión semanal" : "") + ")</span> — " + cifras +
+                (x.estado === "ok" && x.sigue ? '<div class="dm-portal__sigue">Sigue sin cuadrar: ' + esc(x.sigue) + ".</div>" : "") + "</div>";
+        });
+        return html + "</div>";
     }
 
     /* ================================================================ «Revisar ahora contra el SAT» (24-nov-2026, a2xml)
@@ -452,7 +477,7 @@
             if (p) {
                 if (p.vivo) { lineas.push(nombre + " por el portal: buscando y bajando lo que falta…"); sigue = true; }
                 else if (p.total !== null && p.total !== undefined) {
-                    lineas.push(nombre + " por el portal — SAT: " + miles(p.total) + " · teníamos: " + miles(p.teniamos) + " · faltaban: " + miles(p.faltaban) +
+                    lineas.push(nombre + " por el portal" + (p.de_madrugada ? " (de madrugada)" : "") + " — SAT: " + miles(p.total) + " · teníamos: " + miles(p.teniamos) + " · faltaban: " + miles(p.faltaban) +
                         " · se bajaron: " + miles(p.bajados) + (p.no_bajaron ? " · no se pudieron bajar: " + miles(p.no_bajaron) : ""));
                 } else if (p.estado === "error" || p.estado === "cancelado") { lineas.push(nombre + " por el portal: no se pudo. " + esc((p.mensaje || "").split(". ")[0])); }
             }

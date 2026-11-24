@@ -214,3 +214,8 @@
 .dm-revisar__res { flex-basis: 100%; display: flex; flex-direction: column; gap: 4px; font-size: 13px; line-height: 1.45; font-variant-numeric: tabular-nums; }
 .dm-revisar__res[hidden] { display: none; }
 .dm-revisar__error { color: rgb(var(--er-600, 220 38 38)); }
+/* 24-nov-2026 (a2bar): lo que revisó el portal de madrugada (barrido del mes que no cuadró) */
+.dm-portal { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; font-size: 13px; line-height: 1.45; font-variant-numeric: tabular-nums; min-width: 0; }
+.dm-portal__linea, .dm-portal__fila { overflow-wrap: anywhere; }
+.dm-portal__fila { color: var(--texto-tenue); }
+.dm-portal__sigue { margin-top: 2px; font-weight: 600; color: rgb(var(--av-600, 180 83 9)); }

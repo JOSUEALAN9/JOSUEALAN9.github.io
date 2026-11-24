@@ -87,6 +87,9 @@
 .tar-switch { display: grid; grid-template-columns: auto 1fr; gap: 2px 10px; align-items: center; margin-top: 16px; font-size: var(--t-13); font-weight: 600; }
 .tar-switch input { width: 18px; height: 18px; }
 .tar-switch small { grid-column: 2; font-weight: 400; color: rgb(var(--g-500)); font-size: var(--t-12); }
+/* 24-nov-2026 (a2bar): el día del barrido semanal por el portal, debajo de su casilla (con su propia etiqueta) */
+.tar-dia { display: flex; margin-left: 28px; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 6px; font-weight: 400; font-size: var(--t-12); color: rgb(var(--g-600)); }
+.tar-dia select { font: inherit; padding: 4px 8px; border: 1px solid rgb(var(--g-300)); border-radius: 8px; background: transparent; color: inherit; }
 /* En el celular: la configuración en dos columnas y las fichas de cada máquina más compactas */
 @media (max-width: 640px) { .tar-rejilla { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; } .tar-campo input { max-width: 100%; }
     .tar-campo input[type="time"] + small, .tar-sub small, .tar-fab { display: none; }

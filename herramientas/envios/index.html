@@ -46,7 +46,7 @@
 
 <!-- Nuevo envío / editar: cinco pasos con «Siguiente» (18-nov, el dueño: «como ventanitas de siguiente») -->
 <dialog class="fc-modal fc-modal--grande ev-dlg" id="ev-dlg" aria-labelledby="ev-dlg-titulo">
-    <div class="fc-modal__cabeza"><div><h2 id="ev-dlg-titulo">Nuevo envío</h2><p id="ev-dlg-sub">Se manda solo, a las 7 de la mañana del día que toque.</p></div>
+    <div class="fc-modal__cabeza"><div><h2 id="ev-dlg-titulo">Nuevo envío</h2><p id="ev-dlg-sub">Se manda solo, a las 9 de la mañana (o a la hora que elijas) del día que toque.</p></div>
         <button type="button" class="fc-modal__cerrar" data-ev="cerrar" aria-label="Cerrar">×</button></div>
     <ol class="ev-pasos" id="ev-pasos" aria-label="Pasos"></ol>
     <form class="fc-modal__cuerpo ev-form" id="ev-form" novalidate>
@@ -106,6 +106,9 @@
                     <select id="ev-frecuencia" class="ui-select"><option value="semanal">Cada semana</option><option value="quincenal">Cada quincena (días 1 y 16)</option><option value="mensual">Cada mes</option><option value="una_vez">Solo una vez, ahora</option></select></label>
                 <label class="ui-campo" id="ev-dia-caja"><span class="ui-etiqueta" id="ev-dia-etq">Qué día</span>
                     <select id="ev-dia" class="ui-select"></select></label>
+                <!-- 24-nov-2026 (a2bar, el dueño): la hora de salida de este envío (de fábrica las 9:00) -->
+                <label class="ui-campo" id="ev-hora-caja"><span class="ui-etiqueta">A qué hora sale</span>
+                    <select id="ev-hora" class="ui-select"></select></label>
                 <label class="ui-campo" id="ev-dias-enlace-caja"><span class="ui-etiqueta">El enlace vence en</span>
                     <select id="ev-dias-enlace" class="ui-select"><option value="3">3 días</option><option value="5">5 días</option><option value="7">7 días</option></select></label>
             </div>
