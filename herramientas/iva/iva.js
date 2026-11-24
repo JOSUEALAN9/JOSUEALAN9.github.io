@@ -233,6 +233,7 @@
             exportar: { nombre: function () { return E.rfc + "_PPD_sin_pago.xlsx"; }, hoja: "PPD sin pago", enBarra: false },
             vacio: { titulo: "Sin facturas PPD pendientes", texto: "" },
             alFiltrar: function (vis) { $("conteo").textContent = vis.length + " factura(s) PPD sin pago"; },
+            ligaFila: ligaFila,          // 23-nov-2026 (decisión E): el folio/UUID, enlace real a la factura (Ctrl+clic: otra pestaña)
             alClic: abrirCfdi
         } : {
             contenedor: $("tabla-iva-" + lado), id: lado === "emitido" ? "iva" : "iva_recibido", claveFila: "_k",
@@ -252,9 +253,14 @@
             exportar: { nombre: function () { return E.rfc + "_IVA_" + (lado === "emitido" ? "cobrado" : "pagado") + ".xlsx"; }, hoja: lado === "emitido" ? "Emitidos" : "Recibidos", enBarra: false },
             vacio: { titulo: "Sin movimientos de IVA", texto: "No hay movimientos en el periodo elegido." },
             alFiltrar: function (vis) { $("conteo").textContent = vis.length + " movimiento(s)"; },
+            ligaFila: ligaFila,
             alClic: abrirCfdi
         });
         return TABLAS[lado];
+    }
+    function ligaFila(f) {
+        var puede = E.perfil && (E.perfil.modulos_permitidos || []).indexOf("validador") !== -1;
+        return puede && Fiscontable.urlFactura ? Fiscontable.urlFactura(E.rfc, f.uuid) : "";
     }
     function abrirCfdi(f, lista, ev) {
         if (ev && ev.target.closest("[data-marca]")) return;               // la liga a Marcas se abre automáticamente
