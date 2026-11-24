@@ -64,6 +64,12 @@
 
     function pintarSin() {
         $("dp-sin").hidden = false;
+        // 24-nov-2026 (auditoría del 22-nov, despacho-9): a quien el titular suspendió ya no le dice «No eres parte de un
+        // despacho»: le dice de cuál y con quién hablar (el mismo texto del letrero de arriba)
+        if (datos.suspendido) {
+            $("dp-sin-titulo").textContent = "Tu acceso al despacho «" + datos.suspendido.despacho + "» está suspendido";
+            $("dp-sin-texto").textContent = datos.suspendido.texto + " Mientras tanto no ves sus empresas.";
+        }
         if (datos.salida) {                       // salió hace poco: su Mi espacio quedó en solo lectura
             $("dp-salida").hidden = false;
             $("dp-salida-texto").textContent = datos.salida.texto;
@@ -83,6 +89,10 @@
         $("dp-sub").textContent = datos.yo.nombre_papel + " · " + activos + (activos === 1 ? " persona" : " personas") +
             (d.vigente === false ? " · la licencia del despacho venció" : "");
         $("dp-invitar").hidden = !datos.titular;
+        // 24-nov-2026 (auditoría del 21-nov, B1): el nombre lo puso Fiscontable al activar: que el titular lo confirme
+        var porConfirmar = !!(datos.titular && d.ajustes && d.ajustes.nombre_por_confirmar);
+        $("dp-nombre").hidden = !porConfirmar;
+        if (porConfirmar && document.activeElement !== $("dp-nombre-campo")) $("dp-nombre-campo").value = d.nombre || "";
         document.querySelector('[data-vista="bitacora"]').hidden = !datos.aprueba;
         document.querySelector('[data-vista="ajustes"]').hidden = !datos.titular;
         var n = datos.pendientes || 0;
@@ -595,6 +605,18 @@
         cargarMigraciones();
     }
 
+    async function guardarNombre(ev) {
+        ev.preventDefault();
+        var boton = ev.target.querySelector("[type=submit]"), nombre = $("dp-nombre-campo").value.trim();
+        if (!nombre) return;
+        boton.classList.add("ui-btn--cargando");
+        try {
+            datos = await pedir("/api/despacho/ajustes", { method: "PUT", body: { nombre: nombre } });
+            pintar();
+            aviso("Listo: tu despacho se llama «" + datos.despacho.nombre + "».");
+        } catch (e) { aviso(e.message); } finally { boton.classList.remove("ui-btn--cargando"); }
+    }
+
     async function guardarAjustes(ev) {
         ev.preventDefault();
         var boton = ev.target.querySelector("[type=submit]");
@@ -768,6 +790,7 @@
     $("dp-tra-persona").addEventListener("change", cargarTramites);
     $("dp-tra-ok").addEventListener("change", cargarTramites);
     $("dp-ajustes").addEventListener("submit", guardarAjustes);
+    $("dp-nombre-forma").addEventListener("submit", guardarNombre);
     $("dp-aceptar").addEventListener("click", function () { responderInvitacion(true); });
     $("dp-rechazar").addEventListener("click", function () { responderInvitacion(false); });
     $("dp-salir").addEventListener("click", salir);

@@ -143,3 +143,9 @@ button.dp-inicial:hover, button.dp-inicial:focus-visible { box-shadow: 0 0 0 2px
     .dp-enlace-pie { flex-wrap: wrap; }
     .dp-enlace-pie > * { flex: 1 1 100%; justify-content: center; }
 }
+/* 24-nov-2026 (auditoría del 21-nov, B1): confirmar el nombre que puso Fiscontable al activar la licencia */
+.dp-nombre { margin-bottom: 14px; padding: 16px 18px; border-color: rgb(var(--in-200)); background: rgb(var(--in-50)); }
+.dp-nombre b { display: block; font-size: 15px; }
+.dp-nombre p { margin: 4px 0 0; font-size: 14px; }
+.dp-nombre__forma { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 12px; }
+.dp-nombre__forma .ui-input { flex: 1 1 220px; min-width: 0; }

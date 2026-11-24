@@ -30,8 +30,8 @@
         <!-- Sin despacho -->
         <section id="dp-sin" class="ui-tarjeta dp-vacio" hidden>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M17 20h5v-2a3 3 0 00-5.4-1.8M17 20H7m10 0v-2c0-.7-.1-1.3-.4-1.8M7 20H2v-2a3 3 0 015.4-1.8M7 20v-2c0-.7.1-1.3.4-1.8m0 0a5 5 0 019.2 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
-            <b>No eres parte de un despacho</b>
-            <p>Un despacho comparte empresas con su equipo. Cada persona conserva, además, su propio espacio para sus clientes extra.
+            <b id="dp-sin-titulo">No eres parte de un despacho</b>
+            <p id="dp-sin-texto">Un despacho comparte empresas con su equipo. Cada persona conserva, además, su propio espacio para sus clientes extra.
                Si tu despacho usa Fiscontable, pide al titular que te invite con tu correo.</p>
             <div id="dp-salida" class="dp-invitacion dp-salida" hidden><p id="dp-salida-texto"></p></div>
             <div id="dp-invitacion" class="dp-invitacion" hidden>
@@ -45,6 +45,15 @@
 
         <!-- Con despacho -->
         <div id="dp-con" hidden>
+            <!-- 24-nov-2026 (auditoría del 21-nov, B1): el nombre lo puso Fiscontable al activar la licencia: que el titular lo confirme -->
+            <div id="dp-nombre" class="ui-tarjeta dp-nombre" hidden>
+                <b>¿Así se llama tu despacho?</b>
+                <p class="dp-tenue">Lo pusimos al activar tu licencia. Tu equipo lo ve en las invitaciones y tus clientes en los correos.</p>
+                <form class="dp-nombre__forma" id="dp-nombre-forma">
+                    <input class="ui-input" id="dp-nombre-campo" maxlength="80" required aria-label="Nombre del despacho">
+                    <button type="submit" class="ui-btn ui-btn--primario ui-btn--36">Guardar nombre</button>
+                </form>
+            </div>
             <div class="dp-vistas">
                 <div class="fc-vista" role="tablist" aria-label="Secciones del despacho">
                     <button type="button" role="tab" data-vista="equipo" aria-selected="true">Equipo</button>

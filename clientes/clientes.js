@@ -2106,6 +2106,15 @@ async function pintarTraspasos() {
     try { d = await apiJson("/api/empresas/entregas"); } catch (x) { /* sin entregas */ }
     const pend = (d.recibidas || []).filter(e => e.estado === "pendiente");
     const e = espacioCli, personales = e && e.tipo === "personal" && e.despacho && !e.despacho.propia ? (clientesCache || []) : [];
+    // 24-nov-2026 (auditoría del 21-nov, M6): con Mi espacio apagado, las empresas que la persona tenía en su cuenta personal
+    // (de antes de entrar al despacho) no se veían en ningún lado. En Clientes del despacho se avisa y se ofrece traerlas.
+    let mias = null;
+    if (e && e.tipo === "despacho") {
+        try { mias = await apiJson("/api/despacho/mis-empresas"); } catch (x) { mias = null; }
+    }
+    const traer = mias && (mias.empresas || []).length ? mias : null;
+    // revisión a2bajo (24-nov-2026): las que ya pidió esperan al titular; el botón solo pide las que faltan
+    const porPedir = traer ? traer.empresas.filter(x => !x.pendiente) : [];
     const ocultas = entOcultas(), todas = [...(d.recibidas || []).map(x => [x, true]), ...(d.enviadas || []).map(x => [x, false])];
     const vistas = new Set(), curso = [], fallas = [];
     todas.forEach(([x, rec]) => {
@@ -2127,9 +2136,16 @@ async function pintarTraspasos() {
         fallas.map(([x, rec]) => cajaFalla(x, rec)).join("") +
         (personales.length ? `<div class="cli-traspaso cli-traspaso--suave"><span>Tienes ${personales.length} empresa(s) en <b>Mi espacio</b>. ` +
             `¿Son del despacho «${esc(e.despacho.nombre)}»?</span><span class="cli-traspaso__acc"><button type="button" class="ui-btn ui-btn--secundario ui-btn--32" data-pasar-todas>` +
-            `${e.despacho.agregar ? "Pasar todas al despacho" : "Pedir pasarlas al despacho"}</button></span></div>` : "");
+            `${e.despacho.agregar ? "Pasar todas al despacho" : "Pedir pasarlas al despacho"}</button></span></div>` : "") +
+        (traer ? `<div class="cli-traspaso cli-traspaso--suave"><span>Tienes ${traer.empresas.length} empresa(s) en tu cuenta personal que aquí no se ven: ` +
+            `<b>${esc(traer.empresas.slice(0, 3).map(x => x.alias).join(", "))}</b>${traer.empresas.length > 3 ? ` y ${traer.empresas.length - 3} más` : ""}.` +
+            `<small>Son de cuando usabas Fiscontable con tu correo. ${!porPedir.length ? "Ya le pediste al titular que las traiga; falta que acepte."
+                : traer.directo ? "Tráelas al despacho con todo su historial." : "Pídele al titular que las traiga al despacho con todo su historial."}</small></span>` +
+            (porPedir.length ? `<span class="cli-traspaso__acc"><button type="button" class="ui-btn ui-btn--secundario ui-btn--32" data-traer-personales>` +
+            `${traer.directo ? "Traerlas al despacho" : "Pedir traerlas"}</button></span>` : "") + `</div>` : "");
     caja.hidden = !caja.innerHTML;
     caja._entregas = d;
+    caja._mias = traer;
     clearTimeout(caja._sondeo);
     if (curso.length) caja._sondeo = setTimeout(pintarTraspasos, ENT_SONDEO_MS);
     if (acabaron.length) {
@@ -2149,6 +2165,7 @@ document.addEventListener("click", (ev) => {
     const a = ev.target.closest("[data-ent-aceptar]"), r = ev.target.closest("[data-ent-rechazar]"), p = ev.target.closest("[data-pasar-todas]");
     const o = ev.target.closest("[data-ent-ocultar]");
     if (o) { entOcultar(+o.dataset.entOcultar); pintarTraspasos(); return; }
+    if (ev.target.closest("[data-traer-personales]")) { traerPersonales(); return; }
     if (a) aceptarEntrega(+a.dataset.entAceptar);
     else if (r) rechazarEntrega(+r.dataset.entRechazar);
     else if (p) pasarTodas();
@@ -2260,6 +2277,26 @@ async function pasarTodas() {
         const ok = r.resultados.filter(x => x.ok), mal = r.resultados.filter(x => !x.ok);
         mostrarAlerta(mal.length ? "error" : "success", (ok.length ? (directo ? `${ok.length} empresa(s) ya están en el despacho.` : `Mandamos ${ok.length} solicitud(es) al titular.`) : "") +
             (mal.length ? " No pasaron: " + mal.map(x => x.rfc + " (" + x.motivo + ")").join(", ") : ""));
+        await cargarClientes(); pintarTraspasos();
+    } catch (x) { mostrarAlerta("error", x.message); }
+}
+
+// 24-nov-2026 (auditoría del 21-nov, M6): traer al despacho las empresas de la cuenta personal (Mi espacio apagado).
+// Quien puede agregar empresas al despacho las pasa directo; los demás mandan una solicitud por cada una al titular.
+async function traerPersonales() {
+    const r = (document.getElementById("cli-traspasos") || {})._mias;
+    const lista = ((r && r.empresas) || []).filter(x => !x.pendiente), directo = r && r.directo;
+    if (!lista.length) return;
+    if (!(await Fiscontable.confirmar({ titulo: `¿Traer ${lista.length} empresa(s) de tu cuenta personal al despacho «${r.despacho}»?`,
+        si: directo ? "Traerlas" : "Mandar las solicitudes",
+        texto: (directo ? "Pasan con todo su historial (XML, documentos, Buzón, facturas) y dejan de estar en tu cuenta personal. El equipo las verá según sus permisos."
+                        : "Le mandamos al titular una solicitud por cada una. Cuando las acepte, pasan con todo su historial.") +
+               " Empresas: " + lista.map(x => x.alias + " (" + x.rfc + ")").join(", ") + "." }))) return;
+    try {
+        const x = await apiJson("/api/despacho/pasar", { rfcs: lista.map(e => e.rfc) });
+        const bien = x.resultados.filter(y => y.ok), mal = x.resultados.filter(y => !y.ok);
+        mostrarAlerta(mal.length ? "error" : "success", (bien.length ? (x.directo ? `${bien.length} empresa(s) ya están en el despacho.` : `Mandamos ${bien.length} solicitud(es) al titular.`) : "") +
+            (mal.length ? " No pasaron: " + mal.map(y => y.rfc + " (" + y.motivo + ")").join(", ") : ""));
         await cargarClientes(); pintarTraspasos();
     } catch (x) { mostrarAlerta("error", x.message); }
 }
