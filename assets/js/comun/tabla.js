@@ -397,7 +397,12 @@
            rapidos: { clave, valores: [{ valor, etiqueta }] },          etiquetas con conteo arriba de la tabla
            exportar: { nombre: "Archivo.xlsx", hoja: "Datos", porValor: { clave, valores: [...] },
                        extras: [{ texto, accion(filas) }],     más opciones en el menú «Descargar ▾»
-                       enBarra: false },                       sin botón: la página lo pone en su propio «Descargar» (t.exportar())
+                       enBarra: false,                         sin botón: la página lo pone en su propio «Descargar» (t.exportar())
+                       servidor: function () { return { ruta: "/api/…/excel/tabla", cuerpo: {…}, extra: fn(filas, cols) } },
+                       totales: true },                        24-nov-2026 (decisión A, Avance 2): el Excel lo arma el servidor
+                                                               (core/excel_tabla: encabezado de siempre y nombre de core/nombres)
+                                                               con lo que se ve: columnas en su orden, filtros, búsqueda o solo lo
+                                                               marcado; en la barra sale un solo botón «Descargar Excel»
            vacio: { titulo, texto }, extra: [elementos que van junto a los botones]
        });
        t.ponerDatos(filas)  t.cargando()  t.error(mensaje, reintentar)  t.visibles()  t.filtrar(clave, valor)  t.tabla
@@ -416,7 +421,9 @@
                     '<button type="button" class="xml-btn" data-fct="columnas">Columnas</button>' +
                     '<div class="xml-menu"><button type="button" class="xml-btn" data-fct="vistas" aria-haspopup="true"><span class="fct-vista">Vista: Fiscontable</span> ▾</button>' +
                         '<div class="xml-menu__lista fct-menu-vistas" hidden></div></div>' +
-                    (o.exportar && o.exportar.enBarra !== false ? '<div class="xml-menu"><button type="button" class="xml-btn" data-fct="descargar" aria-haspopup="true" disabled title="No hay renglones que descargar">Descargar ▾</button>' +
+                    (o.exportar && o.exportar.enBarra !== false && o.exportar.servidor && !(o.exportar.extras || []).length
+                        ? '<button type="button" class="xml-btn fct-excel-unico" data-fct="excel" disabled title="No hay renglones que descargar">Descargar Excel</button>' :
+                     o.exportar && o.exportar.enBarra !== false ? '<div class="xml-menu"><button type="button" class="xml-btn" data-fct="descargar" aria-haspopup="true" disabled title="No hay renglones que descargar">Descargar ▾</button>' +
                         '<div class="xml-menu__lista fct-menu-descargar" hidden><button type="button" data-fct="excel">Excel de esta tabla</button>' +
                         ((o.exportar.extras || []).map(function (x, i) { return '<button type="button" data-fct-extra="' + i + '">' + esc(x.texto) + "</button>"; }).join("")) +
                         "</div></div>" : "") +
@@ -513,7 +520,8 @@
             }
             tabla.ponerFilas(vis);
             pintarRapidos(); pintarChips(); if (menuF && !menuF.hidden) pintarMenuFiltros();
-            var bx = q("[data-fct=descargar]"); if (bx) { bx.disabled = !vis.length; bx.title = vis.length ? "" : "No hay renglones que descargar"; }
+            var bx = q("[data-fct=descargar]") || q(".fct-excel-unico");
+            if (bx && !bx.dataset.ocupado) { bx.disabled = !vis.length; bx.title = vis.length ? "Como ves la tabla: sus columnas, tus filtros o lo marcado" : "No hay renglones que descargar"; }
             if (o.alFiltrar) o.alFiltrar(vis);
         }
 
@@ -563,8 +571,55 @@
                 return c ? { titulo: c.etiqueta, clave: c.clave, tipo: c.tipo === "moneda" ? "moneda" : c.tipo === "fecha" ? "fecha" : "texto" } : null;
             }).filter(Boolean);
         }
-        function exportar() {
-            var vis = tabla.filas(), cols = columnasExcel(), x = o.exportar;
+        // 24-nov-2026 (decisión A, Avance 2): qué recortó la tabla, para que arriba del Excel lo diga
+        function describirFiltros(marcadas) {
+            if (marcadas) return "Solo " + (marcadas === 1 ? "el renglón marcado" : "los " + marcadas + " renglones marcados");
+            var partes = [];
+            if (F.rapido !== null && o.rapidos) {
+                var r = o.rapidos.valores.find(function (v) { return String(v.valor) === F.rapido; });
+                partes.push("Solo «" + (r ? r.etiqueta : F.rapido) + "»");
+            }
+            Object.keys(F.filtros).forEach(function (k) {
+                var f = (o.filtros || []).find(function (x) { return x.clave === k; }) || { etiqueta: k };
+                partes.push(f.etiqueta + ": " + textoValor(f, F.filtros[k]));
+            });
+            if (F.buscar) partes.push("búsqueda «" + F.buscar + "»");
+            return partes.join(" · ");
+        }
+        function valorExcel(c, f) {
+            var v = f[c.clave];
+            if (v === undefined || v === null) return "";
+            if (typeof v === "object") return "";
+            if (typeof v === "boolean") return v ? "Sí" : "No";
+            return v;
+        }
+        async function exportarServidor() {
+            var x = o.exportar, meta = x.servidor() || {}, sel = tabla.seleccion, clave = o.claveFila || "uuid";
+            var vis = tabla.filas().filter(function (f) { return !sel.size || sel.has(f[clave]); });
+            var cols = tabla.columnas().map(function (k) { return o.catalogo.find(function (c) { return c.clave === k.clave; }); }).filter(Boolean);
+            if (meta.extra) cols = cols.concat(meta.extra(vis, cols) || []);
+            var cuerpo = Object.assign({}, meta.cuerpo || {}, {
+                columnas: cols.map(function (c) { return { titulo: c.etiqueta, tipo: c.tipo || "texto" }; }),
+                filas: vis.map(function (f) { return cols.map(function (c) { return valorExcel(c, f); }); }),
+                hoja: typeof x.hoja === "function" ? x.hoja() : (x.hoja || ""), filtros: describirFiltros(sel.size ? vis.length : 0),
+                vista: tabla.vistaActual() || "Fiscontable", totales: !!x.totales });
+            var r = await fetch(Fiscontable.API + meta.ruta, { method: "POST", credentials: "include",
+                headers: { "Content-Type": "application/json" }, body: JSON.stringify(cuerpo) });
+            if (!r.ok) throw new Error(await Fiscontable.leerError(r));
+            var m = /filename="?([^";]+)"?/.exec(r.headers.get("Content-Disposition") || "");
+            Fiscontable.guardarArchivo(await r.blob(), m ? m[1] : "Tabla.xlsx");
+        }
+        async function exportar() {
+            var x = o.exportar;
+            if (x.servidor) {
+                var b = q(".fct-excel-unico"), texto = b && b.textContent;
+                if (b) { b.disabled = true; b.dataset.ocupado = "1"; b.textContent = "Generando…"; }
+                try { await exportarServidor(); }
+                catch (err) { if (b) { Fiscontable.toast ? Fiscontable.toast(err.message) : Fiscontable.avisar(err.message); } else throw err; }
+                finally { if (b) { delete b.dataset.ocupado; b.textContent = texto; b.disabled = !tabla.filas().length; } }
+                return;
+            }
+            var vis = tabla.filas(), cols = columnasExcel();
             var hojas = [{ hoja: x.hoja || "Datos", columnas: cols, filas: vis }];
             if (x.porValor) x.porValor.valores.forEach(function (v) {
                 var filas = vis.filter(function (f) { return String(f[x.porValor.clave]) === String(v); });
@@ -582,7 +637,7 @@
             filtrar: function (clave, valor) { if (valor === null || valor === "") delete F.filtros[clave]; else F.filtros[clave] = String(valor); aplicar(); },
             rapido: function (valor) { F.rapido = valor === null ? null : String(valor); aplicar(); },
             limpiar: function () { F.filtros = {}; F.rapido = null; F.buscar = ""; if (bus) bus.value = ""; },
-            exportar: function () { exportar(); },
+            exportar: function () { return exportar(); },
             quitarSeleccion: function () { tabla.seleccion.clear(); aplicar(); if (o.alSeleccionar) o.alSeleccionar(tabla.seleccion); },
             cargando: function (texto) {
                 caja.hidden = true; estado.hidden = false;

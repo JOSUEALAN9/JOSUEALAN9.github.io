@@ -230,7 +230,7 @@
             anchoClave: { uuid: 300, nombre: 260 },
             buscar: { texto: "Buscar RFC, nombre o UUID…", campos: ["rfc", "nombre", "uuid"] },
             rapidos: { clave: "lado_txt", valores: [{ valor: "Emitida", etiqueta: "Emitidas" }, { valor: "Recibida", etiqueta: "Recibidas" }] },
-            exportar: { nombre: function () { return E.rfc + "_PPD_sin_pago.xlsx"; }, hoja: "PPD sin pago", enBarra: false },
+            exportar: { hoja: "PPD sin pago", enBarra: false, servidor: function () { return excelServidor("ppd"); } },
             vacio: { titulo: "Sin facturas PPD pendientes", texto: "" },
             alFiltrar: function (vis) { $("conteo").textContent = vis.length + " factura(s) PPD sin pago"; },
             ligaFila: ligaFila,          // 23-nov-2026 (decisión E): el folio/UUID, enlace real a la factura (Ctrl+clic: otra pestaña)
@@ -250,13 +250,32 @@
             filtros: [{ clave: "nombre", etiqueta: "Nombre" }].concat(lado === "recibido" ? [{ clave: "acred", etiqueta: "IVA no acreditable" }] : [])
                 .concat([{ clave: "con_aviso", etiqueta: "Con avisos" }]),
             rapidos: { clave: "origen_txt", valores: [{ valor: "Factura PUE", etiqueta: "Facturas PUE" }, { valor: "Pago", etiqueta: "Pagos" }, { valor: "Nota de crédito", etiqueta: "Notas de crédito" }] },
-            exportar: { nombre: function () { return E.rfc + "_IVA_" + (lado === "emitido" ? "cobrado" : "pagado") + ".xlsx"; }, hoja: lado === "emitido" ? "Emitidos" : "Recibidos", enBarra: false },
+            exportar: { hoja: lado === "emitido" ? "Emitidos (cobrado)" : "Recibidos (pagado)", enBarra: false, totales: true,
+                        servidor: function () { return excelServidor(lado); } },
             vacio: { titulo: "Sin movimientos de IVA", texto: "No hay movimientos en el periodo elegido." },
             alFiltrar: function (vis) { $("conteo").textContent = vis.length + " movimiento(s)"; },
             ligaFila: ligaFila,
             alClic: abrirCfdi
         });
         return TABLAS[lado];
+    }
+    /* 24-nov-2026 (decisión A del dueño, Avance 2): «Descargar Excel › Esta tabla» lo arma el servidor con lo que ves (columnas en
+       su orden, filtros, búsqueda o lo marcado), con el encabezado de siempre y el nombre de todos («RFC_Papel-IVA-Emitidas_
+       2026-10_tabla.xlsx»). Los importes ya van en pesos; con moneda extranjera van al final «Moneda» y «T.C. usado». */
+    function excelServidor(lado) {
+        var r = E.P.rango();
+        return {
+            ruta: "/api/iva/excel/tabla",
+            cuerpo: { rfc: E.rfc, desde: r.desde || "2000-01-01", hasta: r.hasta || new Date().toISOString().slice(0, 10),
+                      meses: E.P.meses(), pestana: lado, nombre: nombreDe(E.rfc) },
+            extra: function (filas, cols) {
+                var hay = filas.some(function (f) { return f.moneda && f.moneda !== "MXN" && f.moneda !== "XXX"; });
+                var tiene = function (k) { return cols.some(function (c) { return c.clave === k; }); };
+                if (!hay) return [];
+                return [!tiene("moneda") && { clave: "moneda", etiqueta: "Moneda", tipo: "texto" },
+                        lado !== "ppd" && !tiene("tc") && { clave: "tc", etiqueta: "T.C. usado (del CFDI)", tipo: "numero" }].filter(Boolean);
+            }
+        };
     }
     function ligaFila(f) {
         var puede = E.perfil && (E.perfil.modulos_permitidos || []).indexOf("validador") !== -1;
@@ -517,7 +536,14 @@
         });
         $("saldo-favor").addEventListener("input", function () { guardarLocal("saldo:" + clavePeriodo(), this.value); if (E.datos) { pintarResumen(); if ($("dlg-sat").open) pintarSat(); } });
         $("btn-excel").addEventListener("click", function () { if (E.datos) exportar(); });
-        $("btn-excel-tabla").addEventListener("click", function () { if (E.datos) { verDetalle(true); tablaDe(E.lado).exportar(); } });
+        $("btn-excel-tabla").addEventListener("click", async function () {
+            if (!E.datos || this.disabled) return;
+            var b = this, t = b.innerHTML;
+            verDetalle(true);
+            b.disabled = true; b.innerHTML = "<b>⏳</b>Generando…";
+            try { await tablaDe(E.lado).exportar(); } catch (e) { avisar(e.message); }
+            b.disabled = false; b.innerHTML = t;
+        });
         $("btn-xml").addEventListener("click", function () { irA("/herramientas/xml/"); });
         $("btn-conc").addEventListener("click", function () { irA("/herramientas/conciliacion/"); });
         eventosSat();

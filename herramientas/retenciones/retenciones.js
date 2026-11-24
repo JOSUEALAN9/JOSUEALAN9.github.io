@@ -1,7 +1,7 @@
 /*
  * herramientas/retenciones/retenciones.js — CFDI de Retenciones e información de pagos de una empresa:
  * recibidas (las que le hicieron: bancos, clientes que retienen ISR/IVA, dividendos) y emitidas.
- * Llegan desde Descarga masiva (Tipo «Retenciones») o subiendo los XML. Exportar a Excel y bajar los XML.
+ * Llegan desde Descarga masiva (Tipo «Retenciones») o subiendo los XML. Descargar Excel y bajar los XML.
  */
 (function () {
     "use strict";
@@ -180,7 +180,11 @@
     async function bajar(ruta, nombre, boton) {
         var texto = boton.textContent;
         boton.disabled = true; boton.textContent = "Descargando…";
-        try { Fiscontable.guardarArchivo(await (await api(ruta)).blob(), nombre); }
+        // 24-nov-2026: el nombre lo pone el servidor (core/nombres: RFC primero); el de aquí solo si no viene
+        try {
+            var r = await api(ruta), mt = /filename="?([^";]+)"?/.exec(r.headers.get("Content-Disposition") || "");
+            Fiscontable.guardarArchivo(await r.blob(), mt ? mt[1] : nombre);
+        }
         catch (e) { aviso(esc(e.message), true); }
         finally { boton.disabled = false; boton.textContent = texto; }
     }
@@ -206,9 +210,11 @@
             b.addEventListener("click", function () { E.lado = b.dataset.lado; E.datos = null; pestanas(); cargar(); });
         });
         $("sel-anio").addEventListener("change", function () { E.anio = this.value; E.datos = null; cargar(); });
+        // 24-nov-2026 (decisión A del dueño, Avance 2): un solo «Descargar Excel»: lo que ves (los comprobantes de la pestaña o el
+        // papel de trabajo con sus tres tablas)
         $("btn-excel").addEventListener("click", function () {
-            if (E.ver === "papel") return bajar(base() + "/papel/excel" + filtros(), E.rfc + "_Papel-retenciones-" + E.lado + "s_" + ((E.papel && E.papel.anio) || E.anio) + ".xlsx", this);
-            bajar(base() + "/excel" + filtros(), E.rfc + "_Retenciones-" + E.lado + "s" + (E.anio ? "_" + E.anio : "") + ".xlsx", this);
+            if (E.ver === "papel") return bajar(base() + "/papel/excel" + filtros(), E.rfc + "_Papel-Retenciones.xlsx", this);
+            bajar(base() + "/excel" + filtros() + "&nombre=" + encodeURIComponent(nombreEmpresa(E.rfc)), E.rfc + "_Retenciones.xlsx", this);
         });
         [].forEach.call(document.querySelectorAll("[data-ver]"), function (b) {
             b.addEventListener("click", function () { E.ver = b.dataset.ver; cargar(); });

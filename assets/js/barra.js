@@ -1879,6 +1879,7 @@
             var d = await r.json(), antes = actividad.datos ? actividad.datos.sin_leer : null;
             if (version !== actividad.version) return;              // llegó tarde: hubo un cambio mientras preguntaba
             actividad.datos = d;
+            avisoReinicio(d.reinicio);
             pintarContadorActividad();
             if (antes !== null && d.sin_leer > antes && d.avisos[0]) avisarNavegador(d.avisos[0].titulo, d.avisos[0].grupo ? "" : (d.avisos[0].detalle || ""));
             if (actividad.abierta) pintarActividad();
@@ -1919,7 +1920,10 @@
         if (d.en_curso && d.en_curso.length) {
             h.push('<p class="fc-act-grupo">En curso</p>');
             d.en_curso.forEach(function (p) {
-                h.push('<div class="fc-act-item fc-act-item--curso">' + ico(D.reloj || D.calendario, 1.8) + "<div><b>" + esc(p.titulo) + "</b><span>" + esc(p.progreso) + "</span></div></div>");
+                // 24-nov-2026: lo de la madrugada llega en un solo renglón con enlace a «Lo automático» (modulos/actividad en_curso)
+                var dentro = ico(D.reloj || D.calendario, 1.8) + "<div><b>" + esc(p.titulo) + "</b><span>" + esc(p.progreso) + "</span></div>";
+                h.push(p.enlace && p.enlace.charAt(0) === "/" ? '<a class="fc-act-item fc-act-item--curso" href="' + esc(p.enlace) + '">' + dentro + "</a>"
+                    : '<div class="fc-act-item fc-act-item--curso">' + dentro + "</div>");
             });
         }
         h.push('<p class="fc-act-grupo">Avisos</p>');
@@ -2908,6 +2912,7 @@
 
         // Configuración la ven todos; la parte de Administración solo el admin (adentro de Configuración)
         pintarLetreros(p);
+        avisoReinicio(p.reinicio);
         pintarEspacio(p);
         pintarEmpresa();
         pintarPeriodo();
@@ -4120,6 +4125,60 @@
         pintarPerfil(p);
     }
 
+    /* ------------------------------------------------ «Preparar reinicio» (24-nov-2026)
+       El administrador anuncia un reinicio desde Administración › Sistema › Portal y acciones. Llega con /api/mi-perfil al abrir
+       y con la campana (/api/actividad, cada minuto): un letrero que flota abajo con la cuenta regresiva. La hora se cuenta
+       desde los segundos que dice el servidor (no del reloj de la PC). Cuando el servidor vuelve, ya no llega y se quita. */
+    var reinicio = { fin: 0, reloj: null };
+    function avisoReinicio(r) {
+        var caja = document.getElementById("fc-reinicio");
+        if (!r || typeof r.faltan_seg !== "number" || window.top !== window) {
+            reinicio.fin = 0;
+            if (reinicio.reloj) { clearInterval(reinicio.reloj); reinicio.reloj = null; }
+            if (caja) caja.remove();
+            return;
+        }
+        reinicio.fin = Date.now() + r.faltan_seg * 1000;
+        reinicio.hora = r.hora || "";
+        if (!caja) {
+            caja = document.createElement("div");
+            caja.id = "fc-reinicio";
+            caja.className = "fc-reinicio";
+            caja.setAttribute("role", "status");
+            // encima de los letreros que flotan abajo (--letreros-hueco), sin taparlos
+            caja.style.cssText = "position:fixed;left:50%;bottom:calc(16px + var(--letreros-hueco, 0px));transform:translateX(-50%);z-index:900;" +
+                "width:max-content;max-width:min(760px, calc(100vw - 32px));box-sizing:border-box;display:flex;gap:12px;align-items:flex-start;padding:12px 14px 12px 16px;" +
+                "border-radius:12px;font-size:13.5px;font-weight:600;line-height:1.4;background:rgb(var(--av-50));color:rgb(var(--av-600));" +
+                "border:1px solid rgb(var(--av-200));box-shadow:0 8px 24px rgba(15,23,42,.14)";
+            caja.innerHTML = '<span data-r="texto"></span><button type="button" data-r="cerrar" aria-label="Ocultar por ahora" title="Ocultar por ahora (vuelve a salir el último minuto)" ' +
+                'style="background:none;border:0;cursor:pointer;font-size:14px;opacity:.7;padding:0 2px;color:inherit;line-height:1.4">✕</button>';
+            // revisión 24-nov-2026: «✕» vale para ESTE aviso en todas las páginas (antes volvía a salir en cada página que se abría)
+            caja.querySelector('[data-r="cerrar"]').addEventListener("click", function () {
+                try { localStorage.setItem("fc-reinicio-oculto", reinicio.hora); } catch (e) { /* sin almacenamiento */ }
+                pasoReinicio();
+            });
+            document.body.appendChild(caja);
+        }
+        pasoReinicio();
+        if (!reinicio.reloj) reinicio.reloj = setInterval(pasoReinicio, 1000);
+    }
+    function pasoReinicio() {
+        var caja = document.getElementById("fc-reinicio");
+        if (!caja || !reinicio.fin) return;
+        var faltan = Math.round((reinicio.fin - Date.now()) / 1000);
+        var hora = new Date(reinicio.fin).toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit", timeZone: "America/Mexico_City" });
+        var texto = faltan > 0
+            ? "Fiscontable se actualiza a las " + hora + " (en " + Math.floor(faltan / 60) + ":" + ("0" + (faltan % 60)).slice(-2) +
+              "). Guarda lo que estés haciendo; en ese rato no timbres, no mandes envíos ni valides XML. Tarda uno o dos minutos." +
+              " Mientras, no se empiezan descargas nuevas."
+            : "Fiscontable se está actualizando. Si algo no responde, espera un minuto y vuelve a intentar.";
+        var oculto = false;
+        try { oculto = !!reinicio.hora && localStorage.getItem("fc-reinicio-oculto") === reinicio.hora; } catch (e) { /* sin almacenamiento */ }
+        caja.hidden = oculto && faltan > 60;         // «✕»: se oculta, pero el último minuto vuelve a salir
+        var span = caja.querySelector('[data-r="texto"]');
+        if (span.textContent !== texto) span.textContent = texto;
+    }
+
     /* ------------------------------------------------ letreros globales */
     /* Los publica el administrador desde Administración → Sistema y llegan
        con /api/mi-perfil: el modo mantenimiento (no se cierra) y el aviso
@@ -4172,7 +4231,7 @@
     }
     function guardarLetreros(p) {
         // Solo lo general (igual para todos): lo de cada persona no se deja en el navegador
-        try { localStorage.setItem(LLAVE_LETREROS, JSON.stringify({ t: Date.now(), p: { mantenimiento: p.mantenimiento, aviso: p.aviso, sat_fallas: p.sat_fallas, rol: p.rol } })); }
+        try { localStorage.setItem(LLAVE_LETREROS, JSON.stringify({ t: Date.now(), p: { mantenimiento: p.mantenimiento, reinicio: p.reinicio || null, aviso: p.aviso, sat_fallas: p.sat_fallas, rol: p.rol } })); }
         catch (e) { /* sin almacenamiento */ }
     }
 
@@ -4223,7 +4282,7 @@
             caja.appendChild(fila);
         }
 
-        if (p.mantenimiento) {
+        if (p.mantenimiento && !(p.reinicio && typeof p.reinicio.faltan_seg === "number")) {     // con «Preparar reinicio», lo dice su aviso
             letrero("Portal en mantenimiento: por ahora no se pueden iniciar descargas nuevas. Lo que ya estaba corriendo sigue." +
                 (p.rol === "admin" ? " (Tú, como administrador, sigues pudiendo usar todo.)" : ""),
                 "background:rgb(var(--av-50));color:rgb(var(--av-600));border-bottom:1px solid rgb(var(--av-200))", false);
@@ -4952,7 +5011,7 @@
         recargarLetreros: async function () {
             promesaPerfil = null;
             var p = await perfil();
-            if (p && !p._error) { perfilActual = p; pintarLetreros(p); }
+            if (p && !p._error) { perfilActual = p; pintarLetreros(p); avisoReinicio(p.reinicio); }
         }
     });
 })();

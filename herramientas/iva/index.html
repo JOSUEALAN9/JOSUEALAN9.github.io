@@ -32,9 +32,11 @@
 
     <div id="contenido" class="mod-layout" hidden>
         <aside class="mod-acciones" aria-label="Acciones">
-            <p class="mod-acciones__grupo">Descargar</p>
-            <button type="button" id="btn-excel" class="mod-accion" title="Resumen y detalle CFDI por CFDI de los dos lados"><b>▦</b>Excel del papel de trabajo</button>
-            <button type="button" id="btn-excel-tabla" class="mod-accion" title="La pestaña que ves, con tus columnas y filtros"><b>▤</b>Excel de esta tabla</button>
+            <!-- 24-nov-2026 (decisión A del dueño, Avance 2): «Descargar Excel ▾» como en Conciliación: el papel completo o la
+                 pestaña que ves, como la ves (sus columnas, filtros, búsqueda o lo marcado) -->
+            <p class="mod-acciones__grupo">Descargar Excel</p>
+            <button type="button" id="btn-excel" class="mod-accion" data-excel="completo" title="El papel de trabajo: el resumen del periodo y el detalle CFDI por CFDI de los dos lados"><b>▤</b>Reporte completo</button>
+            <button type="button" id="btn-excel-tabla" class="mod-accion" data-excel="tabla" title="Una hoja con la pestaña que ves: sus columnas en su orden, tus filtros o lo marcado"><b>▦</b>Esta tabla</button>
             <p class="mod-acciones__grupo">Con este periodo</p>
             <button type="button" id="btn-sat" class="mod-accion mod-accion--primaria" title="Lo mismo, acomodado como la declaración de IVA del SAT: IVA a cargo, IVA acreditable, Determinación y Pago"><b>⊞</b>Ver en formato SAT</button>
             <button type="button" id="btn-xml" class="mod-accion" title="Abre sus XML"><b>⇢</b>Ver sus XML</button>

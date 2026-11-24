@@ -7,7 +7,10 @@
  *    sello (rombo) con el color de su estado; al pasar el cursor o al tocarla dice de quién es. Picar un mes filtra la tabla.
  *  · La tabla (en el celular, tarjetas): ordenable, con buscador, filtro por tipo y el botón para renovar o subir.
  *  · «Descargar Excel» baja lo que se ve (filtros, búsqueda y orden): regla del Excel único (23-nov-2026).
- * ?q=RFC abre buscando esa empresa; ?estado=vence_30 abre con ese indicador puesto (los enlaces de Inicio).
+ * ?q=RFC abre buscando esa empresa; ?estado=vence_30 abre con ese indicador puesto (los enlaces de Inicio); ?tipo=recordatorio
+ * abre con los recordatorios (el enlace de la campana y del correo).
+ * 24-nov-2026 (Avance 2): recordatorios propios («+ Recordatorio»): título, empresa opcional, fecha, cada cuánto se repite y
+ * cuántos días antes avisa. Son un origen más de la lista (cuadrito en la línea de tiempo); «Editar» abre la misma ventana.
  * Los datos salen de GET /api/vencimientos (modulos/vencimientos/router.py).
  */
 (function () {
@@ -26,7 +29,7 @@
     ];
     var ESTADO_CORTO = { vencido: "Vencido", vence_30: "Vence pronto", vence_90: "Vence en 90 días", vigente: "Vigente", sin_cargar: "Sin cargar" };
     var ORDEN_ESTADO = { vencido: 0, vence_30: 1, vence_90: 2, vigente: 3, sin_cargar: 4 };
-    var TIPO_CORTO = { efirma: "e.firma", csd: "Sello CSD" };
+    var TIPO_CORTO = { efirma: "e.firma", csd: "Sello CSD", recordatorio: "Recordatorio" };
     var MESES = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
     var MESES_LARGO = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
 
@@ -36,6 +39,7 @@
         var d = r.dias;
         if (r.revocada) return "revocada por el SAT";             // cuenta con los vencidos aunque su fecha diga otra cosa
         if (d === null || d === undefined) return "";
+        if (r.origen === "recordatorio" && d <= 1) return d < 0 ? (d === -1 ? "fue ayer" : "fue hace " + plural(-d, "día", "días")) : d === 0 ? "hoy" : "mañana";
         if (d < 0) return d === -1 ? "venció ayer" : "venció hace " + plural(-d, "día", "días");
         if (d === 0) return "vence hoy";
         if (d === 1) return "vence mañana";
@@ -60,7 +64,7 @@
             if (E.mes === "vencidos" ? r.estado !== "vencido" : (r.estado === "vencido" || claveMes(r.hasta) !== E.mes)) return false;
         }
         if (E.q && excepto !== "q") {
-            var t = sinAcentos(r.alias + " " + r.rfc);
+            var t = sinAcentos(r.alias + " " + r.rfc + " " + (r.titulo || ""));
             if (t.indexOf(E.q) === -1) return false;
         }
         return true;
@@ -70,8 +74,9 @@
         if (!k) return lista;                                       // el del servidor: lo más urgente primero
         var val = function (r) {
             if (k === "estado") return ORDEN_ESTADO[r.estado] * 100000 + (r.dias === null ? 0 : r.dias);
-            if (k === "tipo") return (r.origen === "efirma" ? "0" : "1") + sinAcentos(r.alias);
-            if (k === "alias") return sinAcentos(r.alias) + (r.origen === "efirma" ? "0" : "1");
+            var o = { efirma: "0", csd: "1", recordatorio: "2" }[r.origen] || "3";
+            if (k === "tipo") return o + sinAcentos(r.alias) + sinAcentos(r.titulo || "");
+            if (k === "alias") return sinAcentos(r.alias) + o;
             return r[k] || null;
         };
         return lista.slice().sort(function (a, b) {
@@ -124,8 +129,8 @@
             c.items.sort(function (a, b) { return (a.dias || 0) - (b.dias || 0); });
             var vis = c.items.slice(0, c.clave === "vencidos" ? MARCAS_POR_MES + 4 : MARCAS_POR_MES), resto = c.items.length - vis.length;
             var marcas = vis.map(function (r) {
-                return '<button type="button" class="vc-marca vc-marca--' + r.estado + (r.origen === "csd" ? " vc-marca--csd" : "") + '" data-marca="' + esc(r.id) + '"' +
-                    ' aria-label="' + esc(r.alias + ", " + r.tipo + ", " + (r.dias < 0 ? "venció el " : "vence el ") + fecha(r.hasta)) + '"></button>';
+                return '<button type="button" class="vc-marca vc-marca--' + r.estado + (r.origen === "csd" ? " vc-marca--csd" : r.origen === "recordatorio" ? " vc-marca--rec" : "") + '" data-marca="' + esc(r.id) + '"' +
+                    ' aria-label="' + esc(r.alias + ", " + r.tipo + ", " + (r.origen === "recordatorio" ? (r.dias < 0 ? "fue el " : "es el ") : r.dias < 0 ? "venció el " : "vence el ") + fecha(r.hasta)) + '"></button>';
             }).join("") + (resto > 0 ? '<button type="button" class="vc-mas" data-mas="' + c.clave + '" aria-label="' + plural(resto, "más", "más") + '">+' + resto + "</button>" : "");
             var activo = E.mes === c.clave;
             var n = c.items.length;
@@ -146,13 +151,21 @@
     }
 
     function celdaEstado(r) {
-        var t = r.revocada ? "Revocada" : ESTADO_CORTO[r.estado];
+        var t = r.revocada ? "Revocada" : r.origen === "recordatorio" ? (r.dias < 0 ? "Ya pasó" : r.dias === 0 ? "Hoy" : r.estado === "vigente" ? "Programado" : "Próximo")
+            : ESTADO_CORTO[r.estado];
         return '<span class="vc-estado vc-estado--' + (r.revocada ? "vencido" : r.estado) + '">' + esc(t) + "</span>" +
             (r.nota ? '<span class="vc-nota"' + (r.fuente === "factura" ? ' title="El sello no está en Facturar: es el que trae su última factura emitida en Administración de XML."' : "") + ">" + esc(r.nota) + "</span>" : "");
     }
-    function celdaTipo(r) { return '<span class="vc-tipo vc-tipo--' + r.origen + '"><i aria-hidden="true"></i>' + esc(TIPO_CORTO[r.origen]) + "</span>"; }
+    function celdaTipo(r) {
+        if (r.origen === "recordatorio")
+            return '<span class="vc-tipo vc-tipo--recordatorio" title="' + esc("Recordatorio: " + r.titulo) + '"><i aria-hidden="true"></i><span>' + esc(r.titulo) + "</span></span>";
+        return '<span class="vc-tipo vc-tipo--' + r.origen + '"><i aria-hidden="true"></i>' + esc(TIPO_CORTO[r.origen]) + "</span>";
+    }
     function botonAccion(r) {
-        if (!r.accion) return '<span class="vc-tenue" title="' + esc(r.origen === "csd" ? "El sello se tramita en CertiSAT; se sube en Facturar si ahí facturas." : "") + '">—</span>';
+        if (!r.accion) return '<span class="vc-tenue" title="' + esc(r.origen === "csd" ? "El sello se tramita en CertiSAT; se sube en Facturar si ahí facturas."
+            : r.origen === "recordatorio" ? "Lo compartió el titular del despacho: solo él lo cambia." : "") + '">—</span>';
+        if (r.origen === "recordatorio")
+            return '<button type="button" class="ui-btn ui-btn--28 ui-btn--terciario" data-accion="' + esc(r.id) + '" title="Cambiar o borrar este recordatorio">Editar</button>';
         var principal = r.accion.texto === "Renovar" || r.accion.texto === "Subir";
         return '<button type="button" class="ui-btn ui-btn--28 ' + (principal ? "ui-btn--secundario" : "ui-btn--terciario") + '" data-accion="' + esc(r.id) + '"' +
             ' title="' + esc(r.origen === "efirma" ? "Abre su ficha en Clientes, en la e.firma" : "Abre Facturar › Sello digital con esta empresa") + '">' + esc(r.accion.texto) + "</button>";
@@ -162,7 +175,7 @@
         var lista = visibles();
         $("vc-filas").innerHTML = lista.map(function (r) {
             return "<tr>" +
-                '<td class="vc-emp"><b title="' + esc(r.alias) + '">' + esc(r.alias) + "</b><small>" + esc(r.rfc) + "</small></td>" +
+                '<td class="vc-emp"><b title="' + esc(r.alias) + '"' + (r.rfc ? "" : ' class="vc-tenue"') + ">" + esc(r.alias) + "</b><small>" + esc(r.rfc) + "</small></td>" +
                 "<td>" + celdaTipo(r) + "</td>" +
                 '<td><span class="vc-serie">' + (r.serie ? esc(r.serie) : '<span class="vc-tenue">—</span>') + "</span></td>" +
                 '<td class="vc-num">' + (r.desde ? esc(fecha(r.desde)) : '<span class="vc-tenue">—</span>') + "</td>" +
@@ -176,7 +189,7 @@
                 '<div class="vc-tarjeta__emp"><b title="' + esc(r.alias) + '">' + esc(r.alias) + "</b><small>" + esc(r.rfc) + "</small></div>" +
                 '<div class="vc-accion">' + botonAccion(r) + "</div>" +
                 '<div class="vc-tarjeta__linea">' + celdaEstado(r).replace('class="vc-nota"', 'class="vc-nota" hidden') + celdaTipo(r) + "</div>" +
-                '<div class="vc-tarjeta__linea">' + (r.hasta ? "<span>Vence <b>" + esc(fecha(r.hasta)) + '</b></span><span class="vc-cuando vc-cuando--' + r.estado + '">' + esc(cuando(r)) + "</span>"
+                '<div class="vc-tarjeta__linea">' + (r.hasta ? "<span>" + (r.origen === "recordatorio" ? "El" : "Vence") + " <b>" + esc(fecha(r.hasta)) + '</b></span><span class="vc-cuando vc-cuando--' + r.estado + '">' + esc(cuando(r)) + "</span>"
                     : "<span>Sin fecha</span>") + (r.serie ? '<span class="vc-serie">' + esc(r.serie) + "</span>" : "") + "</div>" +
                 (r.nota ? '<div class="vc-tarjeta__linea"><span class="vc-nota">' + esc(r.nota) + "</span></div>" : "") +
                 "</article>";
@@ -213,6 +226,7 @@
         $("vc-avisos").innerHTML = Fiscontable.icono("campana") + "<span>Te avisamos en la campana" + (a.correo ? " y por correo («e.firma y sellos por vencer»)" : "") +
             " cuando falten " + esc(lista) + " días, y una vez al vencer." + (a.correo ? "" : " El correo de «e.firma y sellos por vencer» lo tienes apagado.") +
             " Si el sello no está en Facturar, tomamos el de su última factura emitida (dice «Según su factura del…»). " +
+            "Tus recordatorios avisan los días antes que elegiste y el mismo día. " +
             '<a href="' + esc(a.configurar || "/configuracion/?seccion=avisos") + '">Cambiar en Configuración › Avisos</a></span>';
     }
 
@@ -226,6 +240,8 @@
     function pintarTodo() {
         var d = E.datos;
         $("vc-cuerpo").hidden = true;
+        // revisión 24-nov-2026: «+ Recordatorio» también sin empresas (uno «Sin empresa» no necesita ninguna)
+        $("vc-nuevo").hidden = !(d.recordatorios && d.recordatorios.puede_crear);
         if (!d.renglones.length) {
             $("vc-cuerpo").hidden = false;
             $("vc-cuerpo").innerHTML = '<div class="ui-vacio">' + Fiscontable.icono("calendario") + "<b>Todavía no tienes empresas</b>" +
@@ -270,6 +286,9 @@
         globo.style.left = x + "px"; globo.style.top = y + "px";
     }
     function lineaGlobo(r) {
+        if (r.origen === "recordatorio")
+            return "<li><b>" + esc(r.titulo) + "</b><span>" + esc((r.rfc ? r.alias + " · " : "") + (r.dias < 0 ? "fue el " : "es el ") + fecha(r.hasta)) +
+                " (" + esc(cuando(r).replace(/^venció /, "").replace(/^vence /, "")) + ")</span></li>";
         return "<li><b>" + esc(r.alias) + "</b><span>" + esc(TIPO_CORTO[r.origen]) + " · " + (r.dias < 0 ? "venció el " : "vence el ") + esc(fecha(r.hasta)) +
             " (" + esc(cuando(r).replace(/^venció /, "")) + ")</span>" + (r.nota ? "<small>" + esc(r.nota) + "</small>" : "") + "</li>";   // «venció el 04/11 (hace 20 días)»
     }
@@ -286,6 +305,7 @@
     async function accion(id, boton) {
         var r = E.datos.renglones.filter(function (x) { return x.id === id; })[0];
         if (!r || !r.accion) return;
+        if (r.origen === "recordatorio") { abrirRecordatorio(r.recordatorio); return; }
         if (r.accion.empresa) {                    // Facturar trabaja con la empresa elegida arriba: primero se elige
             boton.disabled = true;
             try { await Fiscontable.elegirEmpresa(r.accion.empresa); }
@@ -305,6 +325,59 @@
             Fiscontable.guardarArchivo(await r.blob(), nombre);
         } catch (e) { Fiscontable.toast(e.message); }
         b.classList.remove("ui-btn--cargando"); b.disabled = !visibles().length;
+    }
+
+    /* ---------------------------------------------------------------- recordatorios propios (24-nov-2026) */
+    function abrirRecordatorio(rec) {
+        var R = E.datos.recordatorios || {}, dlg = $("vc-dlg");
+        E.editando = rec ? rec.id : null;
+        $("vc-dlg-titulo").textContent = rec ? "Editar recordatorio" : "Nuevo recordatorio";
+        var sel = $("vc-r-rfc");
+        sel.innerHTML = '<option value="">Sin empresa</option>' + (R.empresas || []).map(function (x) {
+            return '<option value="' + esc(x.rfc) + '">' + esc(x.alias + " · " + x.rfc) + "</option>"; }).join("");
+        $("vc-r-titulo").value = rec ? rec.titulo : "";
+        sel.value = rec ? rec.rfc : (E.q && (R.empresas || []).some(function (x) { return sinAcentos(x.rfc) === E.q; }) ? $("vc-buscar").value.trim().toUpperCase() : "");
+        $("vc-r-fecha").value = rec ? rec.fecha : "";
+        $("vc-r-repetir").value = rec ? rec.repetir : "una_vez";
+        var av = $("vc-r-avisar"), n = String(rec ? rec.avisar_dias : 7);
+        if (![].some.call(av.options, function (o) { return o.value === n; })) av.insertAdjacentHTML("beforeend", '<option value="' + esc(n) + '">' + esc(n) + " días antes</option>");
+        av.value = n;
+        $("vc-r-nota").value = rec ? rec.nota : "";
+        $("vc-r-compartir-caja").hidden = !R.puede_compartir;
+        $("vc-r-compartido").checked = !!(rec && rec.compartido);
+        $("vc-r-borrar").hidden = !rec;
+        $("vc-r-error").hidden = true;
+        dlg.showModal();
+        setTimeout(function () { $("vc-r-titulo").focus(); }, 30);
+    }
+    function errorRecordatorio(t) { $("vc-r-error").textContent = t; $("vc-r-error").hidden = !t; }
+    async function guardarRecordatorio(e) {
+        e.preventDefault();
+        var b = $("vc-r-guardar");
+        if (b.disabled) return;
+        var datos = { titulo: $("vc-r-titulo").value.trim(), rfc: $("vc-r-rfc").value, fecha: $("vc-r-fecha").value, repetir: $("vc-r-repetir").value,
+                      avisar_dias: Number($("vc-r-avisar").value), nota: $("vc-r-nota").value.trim(), compartido: $("vc-r-compartido").checked };
+        if (!datos.titulo) { errorRecordatorio("Escribe de qué es el recordatorio."); $("vc-r-titulo").focus(); return; }
+        if (!datos.fecha) { errorRecordatorio("Elige la fecha."); $("vc-r-fecha").focus(); return; }
+        b.disabled = true; errorRecordatorio("");
+        try {
+            await api("/api/vencimientos/recordatorios" + (E.editando ? "/" + E.editando : ""), { method: E.editando ? "PUT" : "POST",
+                headers: { "Content-Type": "application/json" }, body: JSON.stringify(datos) });
+            $("vc-dlg").close();
+            Fiscontable.toast(E.editando ? "Listo: se guardó el recordatorio." : "Listo: te avisamos en la campana y por correo.");
+            await cargar();
+        } catch (err) { errorRecordatorio(err.message); }
+        b.disabled = false;
+    }
+    async function borrarRecordatorio() {
+        if (!E.editando) return;
+        if (!(await Fiscontable.preguntar("¿Borrar este recordatorio? Ya no saldrá ni avisará."))) return;
+        try {
+            await api("/api/vencimientos/recordatorios/" + E.editando, { method: "DELETE" });
+            $("vc-dlg").close();
+            Fiscontable.toast("Se borró el recordatorio.");
+            await cargar();
+        } catch (err) { errorRecordatorio(err.message); }
     }
 
     function enlazar() {
@@ -368,6 +441,10 @@
             });
         });
         $("vc-excel").addEventListener("click", excel);
+        $("vc-nuevo").addEventListener("click", function () { abrirRecordatorio(null); });
+        $("vc-form").addEventListener("submit", guardarRecordatorio);
+        $("vc-r-borrar").addEventListener("click", borrarRecordatorio);
+        $("vc-dlg").addEventListener("click", function (e) { if (e.target.closest("[data-cerrar]")) $("vc-dlg").close(); });
     }
 
     async function arrancar() {
@@ -375,6 +452,8 @@
         var q = Fiscontable.url("q"), estado = Fiscontable.url("estado");
         if (q) { $("vc-buscar").value = q; E.q = sinAcentos(q.trim()); }
         if (estado && ORDEN_ESTADO[estado] !== undefined) E.estado = estado;
+        var tipo = Fiscontable.url("tipo");
+        if (tipo && TIPO_CORTO[tipo]) E.tipo = tipo;
         enlazar();
         cargar();
     }

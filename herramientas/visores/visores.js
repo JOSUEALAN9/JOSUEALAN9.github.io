@@ -82,7 +82,13 @@
                 { clave: "resultado", etiqueta: "IVA del mes", tipo: "moneda" }
             ],
             predeterminadas: ["nombre", "n", "fact", "fact_iva", "flujo", "flujo_iva", "dif", "resultado"],
-            exportar: { nombre: "Visor_de_impuestos.xlsx", hoja: "Por mes" },
+            // 24-nov-2026 (decisión A del dueño, Avance 2): un solo «Descargar Excel», lo arma el servidor con lo que se ve
+            // (columnas en su orden), con el encabezado y el nombre de siempre («RFC_Visor-XML-Emitidas_2026.xlsx»)
+            exportar: { hoja: "Por mes", totales: true, servidor: function () {
+                return { ruta: "/api/visores/excel/tabla", cuerpo: { rfc: E.empresa && E.empresa.rfc, anio: Number($("vi-anio").value),
+                         pantalla: "xml_" + E.lado, nombre: (E.empresa && (E.empresa.alias || E.empresa.nombre)) || "",
+                         sub: E.lado === "ingresos" ? "Ingresos" : "Gastos" } };
+            } },
             vacio: { titulo: "Sin datos", texto: "No hay XML de este año en la biblioteca." },
             alClic: function (r) { abrirIva(r.mes); }
         });

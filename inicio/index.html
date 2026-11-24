@@ -133,6 +133,12 @@
     .tb-lista > * { min-width: 0; }
     .tb-der { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: baseline; gap: 2px 6px; text-align: right; min-width: 0; max-width: 62%; }
     .tb-der > span { display: inline-flex; flex-wrap: wrap; justify-content: flex-end; align-items: baseline; gap: 2px 6px; }
+    /* 24-nov-2026: en la tarjeta «e.firma y sellos» de la empresa, a 390 px, la nota de la derecha del sello («No está en
+       Facturar ni hay facturas emitidas suyas…», «según su factura del…») iba en un solo renglón (nowrap) y, alineada a la
+       derecha, se salía de la tarjeta por la izquierda, por encima de «Sello digital (CSD)». Ahora la nota se parte en
+       renglones dentro de su columna y el nombre de la izquierda no se encoge. */
+    #tb-efirmas-emp .tb-lista > a > :first-child { flex: 0 0 auto; }
+    #tb-efirmas-emp .tb-der small { white-space: normal; }
     .tb-titulo { font-size: var(--t-14); font-weight: 700; margin: 0 0 var(--e-2); }
     /* e.firma y sellos (23-nov-2026): una franja como la del cierre: «e.firma y sellos: 2 vencen en 30 días · 4 vencidos», los
        más urgentes en pastillas y «Ver todos». En la vista de la empresa, su tarjeta (tb-efirmas-emp). */

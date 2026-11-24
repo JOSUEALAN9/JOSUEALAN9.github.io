@@ -914,6 +914,8 @@ function prepararEventosSistema() {
     $("btn-quitar-aviso").addEventListener("click", quitarAviso);
     $("btn-reiniciar").addEventListener("click", reiniciarServidor);
     $("btn-puedo-reiniciar").addEventListener("click", () => revisarReinicio());
+    $("btn-preparar-reinicio").addEventListener("click", prepararReinicio);
+    $("btn-cancelar-reinicio").addEventListener("click", cancelarReinicio);
     $("semaforo-reinicio").addEventListener("click", accionSemaforo);
     $("btn-reiniciar-vscode").addEventListener("click", reiniciarVSCode);
     $("btn-revisar-atorados").addEventListener("click", revisarAtorados);
@@ -1699,8 +1701,43 @@ function pintarEstado() {
     $("alerta-sistema").textContent = (alertaGit || e.mantenimiento.activo) ? "•" : "";
 }
 
+function pintarReinicioPreparado(r) {
+    const hay = !!(r && typeof r.faltan_seg === "number");
+    const hora = hay ? new Date(Date.now() + r.faltan_seg * 1000).toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit", timeZone: "America/Mexico_City" }) : "";
+    $("estado-reinicio").textContent = !hay ? "Sin aviso de reinicio." : r.faltan_seg > 0
+        ? `Avisado: las páginas abiertas dicen «Fiscontable se actualiza a las ${hora}». Mantenimiento prendido hasta que el servidor vuelva.`
+        : `La hora del aviso (${hora}) ya pasó: reinicia cuando el semáforo lo permita. Al volver, el aviso y el mantenimiento se quitan solos.`;
+    $("estado-reinicio").className = "text-xs font-bold mt-3 " + (hay ? "text-amber-700" : "text-slate-400");
+    $("btn-cancelar-reinicio").hidden = !hay;
+    $("btn-preparar-reinicio").textContent = hay ? "Avisar otra vez" : "Avisar";
+}
+
+async function prepararReinicio() {
+    const min = Number($("sel-reinicio-min").value) || 5;
+    if (!(await Fiscontable.preguntar(`¿Avisar que Fiscontable se actualiza en ${min} minutos?\n\nTodas las páginas abiertas verán la cuenta regresiva y se prende el modo mantenimiento (no se empiezan trámites nuevos). Se apaga solo cuando el servidor vuelve.`))) return;
+    const b = $("btn-preparar-reinicio"); b.disabled = true;
+    try {
+        const r = await api("/api/admin/sistema/preparar-reinicio", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ minutos: min }) });
+        mostrarAlerta("success", "Listo: las páginas abiertas ya avisan (en menos de un minuto llega a todas).");
+        if (estadoSistema) { estadoSistema.reinicio = r.reinicio; estadoSistema.mantenimiento = { activo: true }; pintarPortal(); }
+        if (Fiscontable.recargarLetreros) Fiscontable.recargarLetreros();
+    } catch (err) { mostrarAlerta("error", err.message); }
+    b.disabled = false;
+}
+
+async function cancelarReinicio() {
+    if (!(await Fiscontable.preguntar("¿Quitar el aviso de reinicio? También se apaga el mantenimiento que prendió."))) return;
+    try {
+        await api("/api/admin/sistema/preparar-reinicio", { method: "DELETE" });
+        mostrarAlerta("success", "Se quitó el aviso de reinicio.");
+        await cargarSistema();
+        if (Fiscontable.recargarLetreros) Fiscontable.recargarLetreros();
+    } catch (err) { mostrarAlerta("error", err.message); }
+}
+
 function pintarPortal() {
     const e = estadoSistema;
+    pintarReinicioPreparado(e.reinicio);
     $("chk-mantenimiento").checked = !!e.mantenimiento.activo;
     $("estado-mantenimiento").textContent = e.mantenimiento.activo ? "Activo: los demás no pueden iniciar descargas nuevas." : "Desactivado.";
     $("estado-mantenimiento").className = "text-xs font-bold mt-3 " + (e.mantenimiento.activo ? "text-amber-700" : "text-slate-400");

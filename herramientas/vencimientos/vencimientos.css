@@ -56,6 +56,8 @@
 .vc-marca--csd { border-radius: 3px; transform: rotate(45deg) scale(.86); }
 .vc-marca:hover, .vc-marca:focus-visible { transform: scale(1.35); outline: none; box-shadow: 0 0 0 2px rgb(var(--g-0)), 0 0 0 3.5px rgb(var(--g-700)); }
 .vc-marca--csd:hover, .vc-marca--csd:focus-visible { transform: rotate(45deg) scale(1.2); }
+/* 24-nov-2026 (Avance 2): el recordatorio propio es un cuadrito (la e.firma es círculo y el sello, rombo) */
+.vc-marca--rec { border-radius: 2px; }
 .vc-marca--vencido { background: rgb(var(--er-600)); }
 .vc-marca--vence_30 { background: rgb(var(--av-600)); }
 .vc-marca--vence_90 { background: rgb(var(--av-200)); border-color: rgb(var(--av-600)); }
@@ -110,6 +112,21 @@
 .vc-tipo--csd { background: rgb(var(--g-0)); box-shadow: inset 0 0 0 1px rgb(var(--g-300)); }
 .vc-tipo i { width: 7px; height: 7px; background: rgb(var(--g-600)); border-radius: 50%; }
 .vc-tipo--csd i { border-radius: 1.5px; transform: rotate(45deg); }
+.vc-tipo--recordatorio { max-width: 100%; background: rgb(var(--in-50)); color: rgb(var(--in-600)); }
+.vc-tipo--recordatorio i { border-radius: 1px; background: rgb(var(--in-600)); flex: none; }
+.vc-tipo--recordatorio span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.vc-form { display: grid; gap: 16px; }
+.vc-campos { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.vc-campos > * { min-width: 0; }
+.vc-campo { display: grid; gap: 8px; font-size: var(--t-13); font-weight: 600; color: rgb(var(--g-800)); }
+.vc-campo small { font-weight: 400; color: rgb(var(--g-500)); }
+.vc-campo .ui-input, .vc-campo .ui-select { width: 100%; }
+.vc-ayuda { font-size: var(--t-12); }
+.vc-check { display: flex; gap: 10px; align-items: flex-start; font-size: var(--t-13); font-weight: 600; color: rgb(var(--g-800)); }
+.vc-check small { display: block; font-weight: 400; color: rgb(var(--g-500)); margin-top: 2px; }
+.vc-error { margin: 0; color: rgb(var(--er-600)); font-size: var(--t-13); font-weight: 600; }
+.vc-borrar { margin-right: auto; color: rgb(var(--er-600)); }
+@media (max-width: 420px) { .vc-campos { grid-template-columns: 1fr; } }
 
 /* Estado: punto de color + texto */
 .vc-estado { display: inline-flex; align-items: center; gap: 7px; font-weight: 600; white-space: nowrap; color: rgb(var(--g-700)); }

@@ -9,7 +9,7 @@
     "use strict";
     var API = Fiscontable.API, esc = Fiscontable.escapar;
     var $ = function (id) { return document.getElementById(id); };
-    var P = { empresa: null, datos: null, vista: "resumen", cruce: 0, celda: 0, reloj: null };
+    var P = { empresa: null, datos: null, vista: "resumen", cruce: 0, celda: 0, reloj: null, tablas: {} };
     var VISTAS = ["resumen", "cruce", "facturas", "nomina", "cambios"];
     var NOMBRE_VISOR = { facturas: "facturas", nomina_patron: "nómina del patrón" };
 
@@ -86,6 +86,39 @@
         $("vn-resumen").innerHTML = h;
     }
 
+    // La marca de cada mes del cruce, en palabras (la misma en la pantalla y en «Esta tabla»)
+    function textoMarca(f) {
+        if (f.no_comparable) return "No comparable";          // 17-nov: el SAT cuenta solo una parte de las recibidas
+        if (!f.diferencia) return "Cuadra";
+        if (f.dif_vigentes < 0) return "Faltan " + Math.abs(f.dif_vigentes) + " XML";
+        if (f.dif_vigentes > 0) return "Sobran " + f.dif_vigentes + " XML";
+        return "Importe distinto";
+    }
+    /* 24-nov-2026 (decisión A del dueño, Avance 2): un solo «Descargar Excel» por pestaña; donde hay un reporte completo que el
+       contador usa (el Excel del cruce, la copia de lo que leyó el visor), con dos opciones, como en Conciliación. «Esta tabla»
+       la arma el servidor con la tabla que se ve (POST /api/visores/excel/tabla), con el encabezado y el nombre de siempre. */
+    function botonesExcel(pantalla, atributoCompleto, tituloCompleto) {
+        return '<span class="vn-excel" role="group" aria-label="Descargar Excel"><span class="vn-excel__t">Descargar Excel</span>' +
+            '<button type="button" class="ui-btn ui-btn--secundario ui-btn--32" ' + atributoCompleto + ' title="' + esc(tituloCompleto) + '">Reporte completo</button>' +
+            '<button type="button" class="ui-btn ui-btn--secundario ui-btn--32" data-excel-tabla="' + pantalla + '" title="Una hoja con la tabla que ves, como la ves">Esta tabla</button></span>';
+    }
+    async function excelTabla(pantalla, boton) {
+        var t = P.tablas[pantalla];
+        if (!t || !P.empresa || boton.disabled) return;
+        var texto = boton.textContent;
+        boton.disabled = true; boton.textContent = "Generando…";
+        try {
+            var r = await api("/api/visores/excel/tabla", { method: "POST", headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ rfc: P.empresa.rfc, anio: anio(), pantalla: pantalla, nombre: P.empresa.alias || P.empresa.nombre || "",
+                    hoja: t.hoja, sub: t.sub || "", totales: true, vista: "Fiscontable",
+                    columnas: t.columnas.map(function (c) { return { titulo: c[0], tipo: c[1] }; }),
+                    filas: t.filas.map(function (f) { return f.map(function (v) { return v === undefined || v === null ? "" : v; }); }) }) });
+            var nombre = (/filename="([^"]+)"/.exec(r.headers.get("Content-Disposition") || "") || [])[1] || "Visor.xlsx";
+            Fiscontable.guardarArchivo(await r.blob(), nombre);
+        } catch (e) { Fiscontable.toast(e.message); }
+        boton.disabled = false; boton.textContent = texto;
+    }
+
     /* ---------- SAT contra tus XML */
     function pintarCruce() {
         var c = P.datos.cruce, caja = $("vn-cruce");
@@ -94,13 +127,15 @@
         var seg = '<div class="ctx-segmento vn-seg" role="group" aria-label="Qué cruzar">' + c.secciones.map(function (x, i) {
             return '<button type="button" data-cruce="' + i + '" aria-pressed="' + (i === P.cruce) + '">' + esc(x.lado + " · " + x.tipo) + (x.diferencias ? " (" + x.diferencias + ")" : "") + "</button>";
         }).join("") + "</div>";
-        var marca = function (f) {
-            if (f.no_comparable) return pill("No comparable", "ojo");          // 17-nov: el SAT cuenta solo una parte de las recibidas
-            if (!f.diferencia) return pill("Cuadra", "bien");
-            if (f.dif_vigentes < 0) return pill("Faltan " + Math.abs(f.dif_vigentes) + " XML", "ojo");
-            if (f.dif_vigentes > 0) return pill("Sobran " + f.dif_vigentes + " XML", "ojo");
-            return pill("Importe distinto", "ojo");
-        };
+        var marca = function (f) { return pill(textoMarca(f), f.no_comparable || f.diferencia ? "ojo" : "bien"); };
+        var ingreso = s.tipo === "Ingreso";
+        P.tablas.cruce = { hoja: s.lado + " · " + s.tipo, sub: s.lado + " · " + s.tipo,
+            columnas: [["Mes", "texto"], ["Vigentes SAT", "numero"], ["Vigentes tus XML", "numero"], ["Subtotal SAT", "moneda"], ["Subtotal tus XML", "moneda"],
+                       ["IVA SAT", "moneda"], ["IVA tus XML", "moneda"]].concat(ingreso ? [["Papel de IVA", "moneda"]] : []).concat([["Resultado", "texto"]]),
+            filas: s.filas.map(function (f) {
+                return [f.nombre.charAt(0).toUpperCase() + f.nombre.slice(1), f.sat_vigentes, f.xml_vigentes, f.sat_subtotal, f.xml_subtotal, f.sat_iva, f.xml_iva]
+                    .concat(ingreso ? [f.iva_papel] : []).concat([textoMarca(f)]);
+            }) };
         caja.innerHTML = seg + (s.consejo ? '<p class="vs-cruce__consejo">' + esc(s.consejo) + "</p>" : "") +
             '<div class="vs-tabla__caja"><table class="vs-tabla"><thead><tr><th>Mes</th><th class="vs-num">Vigentes SAT</th><th class="vs-num">Tus XML</th>' +
             '<th class="vs-num">Subtotal SAT</th><th class="vs-num">Tus XML</th><th class="vs-num">IVA SAT</th><th class="vs-num">Tus XML</th>' +
@@ -110,7 +145,7 @@
                     '</td><td class="vs-num">' + dinero(f.sat_subtotal) + '</td><td class="vs-num">' + dinero(f.xml_subtotal) + '</td><td class="vs-num">' + dinero(f.sat_iva) +
                     '</td><td class="vs-num">' + dinero(f.xml_iva) + "</td>" + (s.tipo === "Ingreso" ? '<td class="vs-num">' + dinero(f.iva_papel) + "</td>" : "") + "<td>" + marca(f) + "</td></tr>";
             }).join("") + "</tbody></table></div>" +
-            '<div class="vn-acciones"><button type="button" class="ui-btn ui-btn--secundario ui-btn--32" data-cruce-excel title="Todas las hojas del cruce (emitidas, recibidas y nómina) con sus diferencias">Excel del cruce</button></div>' +
+            '<div class="vn-acciones">' + botonesExcel("cruce", "data-cruce-excel", "Todas las hojas del cruce (emitidas, recibidas y nómina) con sus diferencias") + "</div>" +
             '<p class="vi-nota">' + esc(c.nota || "") + (s.parcial ? "" : " Faltan: descárgalos en Descarga masiva. Sobran: revisa si se cancelaron (Administración de XML).") + "</p>";
     }
 
@@ -143,7 +178,15 @@
                 var x = fila[m]; return '<td class="vs-num">' + (x ? num(x.vigentes) : "—") + '</td><td class="vs-num">' + (x ? dinero(x.neto) : "—") + "</td>";
             }).join("") + "</tr>";
         }).join("") + "</tbody></table></div>";
-        html += '<div class="vn-acciones"><button type="button" class="ui-btn ui-btn--secundario ui-btn--32" data-excel="facturas" title="Lo arma Fiscontable con las tablas que leyó">Excel de Fiscontable</button>' +
+        P.tablas.facturas = { hoja: sel.lado + " · " + sel.tipo, sub: sel.lado + " · " + sel.tipo + " · como lo muestra el SAT (vigentes, sin IVA)",
+            columnas: [["Mes", "texto"]].concat([].concat.apply([], metodos.map(function (m) {
+                var t = m === "Todos" ? "Todas" : m; return [[t + " · núm.", "numero"], [t + " · importe", "moneda"]]; }))),
+            filas: Object.keys(meses).sort(function (a, b) { return a - b; }).map(function (k) {
+                var fila = meses[k];
+                return [fila.nombre.charAt(0).toUpperCase() + fila.nombre.slice(1)].concat([].concat.apply([], metodos.map(function (m) {
+                    var x = fila[m]; return x ? [x.vigentes, x.neto] : ["", ""]; })));
+            }) };
+        html += '<div class="vn-acciones">' + botonesExcel("facturas", 'data-excel="facturas"', "Todas las pantallas que leyó el visor de facturas del SAT, una hoja por pantalla") +
             (f.dudosas ? '<span class="vi-nota" style="margin:0">' + f.dudosas + " consulta(s) no terminaron de cargar en el SAT y no se usan.</span>" : "") + "</div>";
         caja.innerHTML = html;
     }
@@ -193,7 +236,7 @@
             "<ul>" + renglones + "</ul>" +
             '<div class="vn-acciones"><a class="ui-btn ui-btn--primario ui-btn--32" href="' + esc(url) + '">Revisar y marcar duplicados</a>' +
             '<span class="vi-nota vn-dup__pie">' + (rv.confirmados ? num(rv.confirmados) + " ya marcado(s) «es duplicado», falta cancelarlos. " : "") +
-            (rv.descartados ? num(rv.descartados) + " marcado(s) «no es duplicado» ya no cuentan. " : "") + "El detalle va también en el «Excel del cruce», hoja «Recibos duplicados».</span></div></section>";
+            (rv.descartados ? num(rv.descartados) + " marcado(s) «no es duplicado» ya no cuentan. " : "") + "El detalle va también en el reporte completo de «SAT contra tus XML» (Descargar Excel), hoja «Recibos duplicados».</span></div></section>";
     }
     function pintarNomina() {
         var n = P.datos.nomina, caja = $("vn-nomina"), t = n.totales || {};
@@ -235,11 +278,22 @@
                     '<td class="vs-num' + (dx != null && Math.abs(dx) >= 1 && xml != null && x ? " vs-dif" : "") + '">' + (dx == null || xml == null || !x ? "—" : dinero(dx)) + "</td>" +
                     "<td>" + estado + "</td></tr>";
             }).join("") + "</tbody></table></div>";
-        html += '<div class="vn-acciones">' + (n.archivo ? '<button type="button" class="ui-btn ui-btn--secundario ui-btn--32" data-archivo title="El archivo que da el SAT en el Detalle mensual">Excel del SAT (detalle mensual)</button>' : "") +
-            '<button type="button" class="ui-btn ui-btn--secundario ui-btn--32" data-excel="nomina_patron" title="Lo arma Fiscontable con las tablas que leyó">Excel de Fiscontable</button></div>' +
+        P.tablas.nomina = { hoja: grupo === "asimilados" ? "Asimilados" : "Sueldos y salarios", sub: grupo === "asimilados" ? "Asimilados" : "Sueldos y salarios",
+            columnas: [["Mes", "texto"], ["ISR retenido (SAT)", "moneda"], ["Enterado (SAT)", "moneda"], ["Diferencia (SAT)", "moneda"],
+                       ["ISR retenido (tus recibos)", "moneda"], ["Tus recibos contra el SAT", "moneda"], ["Resultado", "texto"]],
+            filas: n.meses.map(function (f) {
+                var x = f[grupo] || null, xml = f["xml_" + grupo], dx = f["dif_xml_" + grupo], cu = f["cuadra_" + grupo], res = f["resultado_" + grupo];
+                return [f.nombre.charAt(0).toUpperCase() + f.nombre.slice(1), x ? x.isr_retenido : "", x && x.isr_enterado != null ? x.isr_enterado : "",
+                        // la diferencia como en la pantalla (difSat): menos de un peso es 0
+                        x && x.isr_enterado != null && x.diferencia != null ? (Math.abs(x.diferencia) < 1 ? 0 : x.diferencia) : "", xml == null ? "" : xml, dx == null || xml == null || !x ? "" : dx,
+                        res ? res.texto : cu == null ? (xml == null ? "Sin recibos" : (x ? "" : "Sin SAT")) : cu ? "Cuadra" : "No cuadra"];
+            }) };
+        // 24-nov-2026: el Excel que da el SAT en el detalle mensual es un documento del SAT: va aparte (como el PDF en otras pantallas)
+        html += '<div class="vn-acciones">' + botonesExcel("nomina", 'data-excel="nomina_patron"', "Todas las pantallas que leyó el visor de nómina del SAT, una hoja por pantalla") +
+            (n.archivo ? '<button type="button" class="ui-btn ui-btn--secundario ui-btn--32" data-archivo title="El archivo que da el SAT en el Detalle mensual">Excel del SAT (detalle mensual)</button>' : "") + "</div>" +
             (!n.archivo && n.excel_motivo ? '<p class="vi-nota vn-aviso">El Excel del SAT no salió en esta lectura: ' + esc(n.excel_motivo) + ".</p>" : "") +
             bloqueDuplicados(n) +
-            (n.revision && !n.revision.duplicados && n.revision.mixtos ? '<p class="vi-nota">Sin recibos duplicados. ' + num(n.revision.mixtos) + " caso(s) de sueldo y asimilado en el mismo mes: están en el «Excel del cruce», hoja «Sueldo y asimilado».</p>" : "") +
+            (n.revision && !n.revision.duplicados && n.revision.mixtos ? '<p class="vi-nota">Sin recibos duplicados. ' + num(n.revision.mixtos) + " caso(s) de sueldo y asimilado en el mismo mes: están en el reporte completo de «SAT contra tus XML» (Descargar Excel), hoja «Sueldo y asimilado».</p>" : "") +
             (hayMixto ? '<p class="vi-nota">* Tus recibos cuadran: el SAT cuenta en sueldos ' + dinero(hayMixto.isr_asimilados) + " de ISR de asimilados de " + num(hayMixto.trabajadores) +
                 " trabajador(es) que ese mes también cobraron sueldo (su renglón de asimilados es solo de pagos exclusivos de asimilados).</p>" : "") +
             '<p class="vi-nota">Retenido: el ISR de los CFDI de nómina que timbraste. Enterado: el que pagaste en tus declaraciones. Diferencia en rojo: retenido que el SAT no ve pagado; con signo menos: enteraste más de lo retenido (el SAT la pone entre paréntesis). «Cuadra»: tus recibos = lo retenido y lo enterado = lo retenido; sin enterado, «Sin enterar» si ya venció (día 17 del mes siguiente) o «Por enterar» si todavía no. «Tus recibos» suma el ISR de tus XML de nómina de ' +
@@ -369,6 +423,7 @@
             if (e.target.closest("[data-cruce-excel]") && P.empresa) {
                 bajar("/api/visores/cruce/excel?rfc=" + encodeURIComponent(P.empresa.rfc) + "&anio=" + anio(), P.empresa.rfc + "_Cruce-SAT_" + anio() + ".xlsx"); return;
             }
+            var xt = e.target.closest("[data-excel-tabla]"); if (xt) { excelTabla(xt.dataset.excelTabla, xt); return; }
             var x = e.target.closest("[data-excel]");
             if (x && P.datos) { var l = P.datos.lecturas[x.dataset.excel]; if (l) bajar("/api/visores/sat/" + encodeURIComponent(l.id) + "/excel", "Visor-SAT.xlsx"); return; }
             if (e.target.closest("[data-archivo]") && P.datos && P.datos.nomina.archivo) {
