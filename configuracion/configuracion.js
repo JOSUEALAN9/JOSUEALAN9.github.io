@@ -947,6 +947,8 @@
     function pintarAutomatico(c) {
         var mods = (perfil && perfil.modulos_permitidos) || [];
         var partes = [
+            // 23-nov-2026 (el dueño: «presionar y [ver] el desglose, si se hizo o no»): lo que pasó cada noche, primero
+            { clave: "anoche", nombre: "Anoche", si: !!window.FcAutomatico, pintar: pintarAnoche },
             { clave: "xml", nombre: mods.indexOf("buzon") !== -1 ? "XML, retenciones y Buzón" : "XML y retenciones", si: mods.indexOf("descarga_xml") !== -1 || mods.indexOf("buzon") !== -1, pintar: pintarXmlAuto },
             { clave: "programado", nombre: "Lo programado", si: true, pintar: pintarProgramaciones }
         ].filter(function (p) { return p.si; });
@@ -956,9 +958,10 @@
             partes.map(function (p) { return '<div class="cf-tarjeta cf-tarjeta--plana" data-auto-parte="' + p.clave + '"><div></div></div>'; }).join("");
         pintarNoSalio(c.querySelector(".cf-auto__nosalio"));
         partes.forEach(function (p) { p.pintar(c.querySelector('[data-auto-parte="' + p.clave + '"] > div')); });
-        subPestanas(c, partes.map(function (p) { return p.nombre; }), "automatico");
+        subPestanas(c, partes.map(function (p) { return p.nombre; }), "automatico2");   // «2»: antes no existía «Anoche» (los números cambiaron)
         var pedido = Fiscontable.url("sub"), i = partes.map(function (p) { return p.clave; }).indexOf(pedido === "buzon" ? "xml" : pedido);   // el Buzón ya va en la tabla
         if (i >= 0) { var b = c.querySelector('.cf-subtabs [data-sub="' + i + '"]'); if (b) b.click(); }
+        else if (Fiscontable.url("dia")) { var b0 = c.querySelector('.cf-subtabs [data-sub="0"]'); if (b0) b0.click(); }   // el anuncio de la campana
         // «Cambiar/Programar» desde un módulo (?programar=csf&rfc=…): Lo programado, con esa empresa señalada. Ya no hay fecha
         // que elegir (15-nov): solo encender o pausar, y si se le manda al cliente.
         var pm = Fiscontable.url("programar"), prfc = Fiscontable.url("rfc");
@@ -976,6 +979,15 @@
                 setTimeout(function () { clearInterval(espera); }, 8000);
             }
         }
+    }
+
+    /* 23-nov-2026: «Anoche» — lo automático de cada noche, un renglón por proceso y el desglose por empresa al picarlo
+       (assets/js/comun/automatico.js). El anuncio de la campana trae aquí (?seccion=automatico&sub=anoche&dia=…). */
+    function pintarAnoche(c) {
+        var caja = c.closest(".cf-tarjeta") || c;
+        c.innerHTML = '<p class="cf-texto">Lo que Fiscontable hizo solo cada noche por tus empresas. Pica un proceso para ver cada empresa y, si algo no salió, reintentarlo.</p><div data-anoche></div>';
+        window.FcAutomatico.pintar(c.querySelector("[data-anoche]"), { base: "/api/programadas/automatico" });
+        return caja;
     }
 
     /* 19-nov: «Reintentar lo que no salió» — lo de las madrugadas de la última semana que no salió (solo de esta cuenta) */

@@ -1853,8 +1853,19 @@
         if (m < 1440) return "hace " + Math.round(m / 60) + " h";
         return f.toLocaleDateString("es-MX", { day: "numeric", month: "short" });
     }
+    // 23-nov-2026 (el dueño: «simplificarlo a un anuncio, lo abres y te da el detalle»): el anuncio de la madrugada
+    // (modulos/programadas/resumen.py) lleva su semáforo; al abrirlo va a «Lo automático» de esa noche.
+    // 24-nov-2026 (revisión): la luz va en el lugar del ícono; junto al título se confundía con el punto verde de «nuevo».
+    function luzMadrugada(a) {
+        if (!/^Madrugada del /.test(a.titulo || "") || !/seccion=automatico|#tareas/.test(a.enlace || "")) return "";
+        var c = /todo salió bien/.test(a.titulo) ? ["var(--ok-600)", "var(--ok-50)", "Todo salió bien"]
+            : /con algo que revisar/.test(a.titulo) ? ["234 179 8", "254 248 220", "Con algo que revisar"] : ["var(--in-600)", "var(--in-50)", "En curso"];
+        return '<span class="fc-act-luz" role="img" aria-label="' + c[2] + '" title="' + c[2] + '" style="flex:none;display:inline-flex;align-items:center;' +
+            'justify-content:center;width:18px;height:18px;margin-top:2px"><i style="display:block;width:10px;height:10px;border-radius:50%;' +
+            'background:rgb(' + c[0] + ');box-shadow:0 0 0 3px rgb(' + c[1] + ')"></i></span>';
+    }
     function itemAviso(a, clase) {
-        var dentro = ico(D[ICONO_AVISO[a.tipo]] || D.campana, 1.8) + "<div><b>" + esc(a.titulo) + "</b>" +
+        var dentro = (luzMadrugada(a) || ico(D[ICONO_AVISO[a.tipo]] || D.campana, 1.8)) + "<div><b>" + esc(a.titulo) + "</b>" +
             (a.detalle ? "<span>" + esc(a.detalle).replace(/\n/g, "<br>") + "</span>" : "") + "<small>" + esc(hace(a.creada)) + "</small></div>";
         var ids = ' data-ids="' + esc((a.ids || [a.id]).join(",")) + '"';
         return a.enlace && a.enlace.charAt(0) === "/" ? '<a class="' + clase + '" href="' + esc(a.enlace) + '"' + ids + ">" + dentro + "</a>"

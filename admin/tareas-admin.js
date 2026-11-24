@@ -11,6 +11,8 @@
  *   · 20-nov-2026 (el dueño): «Vigilante de la llave del relevo» (core/vigilante_boveda.py): última revisión, lecturas de la
  *     llave en 7 días (normales y urgentes) y estado.
  *   · 20-nov-2026 (el dueño): «La VPS trabaja cuando la Vostro cae» (core/respaldo_trabaja.py), arriba de todo.
+ *   · 23-nov-2026 (el dueño: «presionar y [ver] el desglose, si se hizo o no»): la primera pestaña, «Resumen», es «Lo
+ *     automático» por día de todas las cuentas (assets/js/comun/automatico.js; modulos/programadas/resumen.py).
  */
 (function () {
     "use strict";
@@ -174,7 +176,9 @@
     function tarjetaTareas(t) {
         var fallan = {};
         t.tareas.forEach(function (x) { if (x.fallando_desde || (x.ultima && x.ultima.ok === 0)) fallan[grupoDe(x)] = (fallan[grupoDe(x)] || 0) + 1; });
-        var filtro = '<div class="tar-filtro" role="tablist"><button type="button" role="tab" data-grupo="madrugada" aria-selected="' + (grupoActivo === "madrugada") + '"' +
+        var filtro = '<div class="tar-filtro" role="tablist"><button type="button" role="tab" data-grupo="resumen" aria-selected="' + (grupoActivo === "resumen") + '"' +
+            (grupoActivo === "resumen" ? ' class="tar-filtro--activo"' : "") + ">Resumen</button>" +
+            '<button type="button" role="tab" data-grupo="madrugada" aria-selected="' + (grupoActivo === "madrugada") + '"' +
             (grupoActivo === "madrugada" ? ' class="tar-filtro--activo"' : "") + ">La madrugada</button>" + GRUPOS.map(function (g) {
             var n = t.tareas.filter(function (x) { return grupoDe(x) === g[0]; }).length;
             return '<button type="button" role="tab" data-grupo="' + g[0] + '" aria-selected="' + (g[0] === grupoActivo) + '"' + (g[0] === grupoActivo ? ' class="tar-filtro--activo"' : "") + ">" +
@@ -202,7 +206,7 @@
         var vv = t.vps_version && t.vps_version.mensaje ? '<p class="tar-aviso tar-aviso--mal" data-vps-version>⚠ ' + esc(t.vps_version.mensaje) +
             " <small>Mientras, lo hace la Vostro.</small></p>" : "";
         var fallando = t.tareas.filter(function (x) { return x.fallando_desde; }).length;
-        return { filtro: filtro, tarjeta: '<div class="ui-tarjeta tar-bloque" data-vista="tareas"' + (grupoActivo === "madrugada" ? " hidden" : "") + '><h3 class="tar-titulo">Tareas automáticas</h3>' +
+        return { filtro: filtro, tarjeta: '<div class="ui-tarjeta tar-bloque" data-vista="tareas"' + (grupoActivo === "madrugada" || grupoActivo === "resumen" ? " hidden" : "") + '><h3 class="tar-titulo">Tareas automáticas</h3>' +
             '<p class="tar-nota">Lo que el servidor hace solo, a su hora (hora del centro). Si una falla, te avisamos en la campana y por correo en tu horario: una vez al día mientras siga fallando y otra cuando se recupere.</p>' +
             (fallando ? '<p class="tar-aviso tar-aviso--mal">⚠ ' + fallando + " tarea(s) fallando ahora.</p>" : "") +
             '<p class="tar-nota"><b>Respaldo a la VPS:</b> ' + resp + "</p>" + lineaCorriente(t.corriente) + vv + lineaLlave(t.vigilante_boveda) +
@@ -231,13 +235,20 @@
         var m, t;
         try { m = await api("/api/admin/sistema/madrugada"); t = await api("/api/admin/sistema/tareas"); }
         catch (e) { caja.innerHTML = '<p class="ui-aviso ui-aviso--error">' + esc(e.message) + "</p>"; return; }
-        if (!grupoActivo) {                        // abre donde hay algo que ver: una tarea que falla o, si no, la madrugada
-            var falla = t.tareas.filter(function (x) { return x.fallando_desde || (x.ultima && x.ultima.ok === 0); })[0];
-            grupoActivo = falla ? grupoDe(falla) : "madrugada";
-        }
+        if (!grupoActivo) grupoActivo = "resumen";          // 23-nov-2026: abre en el resumen (ahí también sale lo que falló)
         m.vps_version = t.vps_version;
         var tareas = tarjetaTareas(t);
-        caja.innerHTML = tareas.filtro + bloqueTrabaja(t.vps_trabaja) + tarjetaMadrugada(m) + tareas.tarjeta;
+        caja.innerHTML = tareas.filtro + bloqueTrabaja(t.vps_trabaja) +
+            '<div class="ui-tarjeta tar-bloque" data-vista="resumen"' + (grupoActivo === "resumen" ? "" : " hidden") + '>' +
+            '<p class="tar-nota">Lo que el servidor hizo solo cada día, de todas las cuentas. Pica un proceso para ver cada empresa.</p>' +
+            '<div data-resumen></div></div>' + tarjetaMadrugada(m) + tareas.tarjeta;
+        var resumen = caja.querySelector("[data-resumen]");
+        var pintarResumen = function () {
+            if (resumen.dataset.listo || !window.FcAutomatico) return;
+            resumen.dataset.listo = "1";
+            window.FcAutomatico.pintar(resumen, { base: "/api/admin/sistema/automatico", admin: true, url: false });
+        };
+        if (grupoActivo === "resumen") pintarResumen();
         var sw = caja.querySelector("[data-trabaja]");
         sw.addEventListener("change", async function () {
             var prender = sw.checked;
@@ -281,7 +292,9 @@
                 caja.querySelectorAll(".tar-filtro [data-grupo]").forEach(function (o) { var si = o === b; o.classList.toggle("tar-filtro--activo", si); o.setAttribute("aria-selected", si); });
                 caja.querySelectorAll(".tar-tabla tbody tr").forEach(function (tr) { tr.hidden = tr.dataset.grupo !== grupoActivo; });
                 caja.querySelector('[data-vista="madrugada"]').hidden = grupoActivo !== "madrugada";
-                caja.querySelector('[data-vista="tareas"]').hidden = grupoActivo === "madrugada";
+                caja.querySelector('[data-vista="tareas"]').hidden = grupoActivo === "madrugada" || grupoActivo === "resumen";
+                caja.querySelector('[data-vista="resumen"]').hidden = grupoActivo !== "resumen";
+                if (grupoActivo === "resumen") pintarResumen();
             });
         });
         caja.querySelectorAll("[data-correr]").forEach(function (b) {
