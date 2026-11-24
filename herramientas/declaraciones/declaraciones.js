@@ -15,16 +15,34 @@
     var btnBuscar = document.getElementById("btn-buscar");
 
     /* ---- Ejercicios: se generan del año en curso hacia atrás, para no
-            tener que mantener un valor fijo cada enero. ---- */
+            tener que mantener un valor fijo cada enero.
+            24-nov-2026 (a2ses): «Desde año / Hasta año» (hasta 10 años en una sola búsqueda; de fábrica, el año en curso). ---- */
+    var MAX_ANIOS = 10;
+    var selDesde = document.getElementById("ejercicio");
+    var selHasta = document.getElementById("ejercicio-hasta");
     (function () {
-        var select = document.getElementById("ejercicio");
         var hoy = new Date().getFullYear();
-        for (var a = hoy; a >= hoy - 10; a--) {
-            var o = document.createElement("option");
-            o.value = a; o.textContent = a;
-            select.appendChild(o);
-        }
+        [selDesde, selHasta].forEach(function (select) {
+            for (var a = hoy; a >= hoy - 10; a--) {
+                var o = document.createElement("option");
+                o.value = a; o.textContent = a;
+                select.appendChild(o);
+            }
+        });
     })();
+    function aniosElegidos() {
+        var a = +selDesde.value, b = +selHasta.value;
+        return { desde: Math.min(a, b), hasta: Math.max(a, b) };
+    }
+    function alCambiarAnios(cual) {
+        // Que el rango nunca quede al revés: si «Desde» pasa a «Hasta» (o al revés), el otro lo sigue
+        if (cual === "desde" && +selDesde.value > +selHasta.value) selHasta.value = selDesde.value;
+        if (cual === "hasta" && +selHasta.value < +selDesde.value) selDesde.value = selHasta.value;
+        var r = aniosElegidos();
+        document.getElementById("nota-anios").hidden = r.desde === r.hasta;
+    }
+    selDesde.addEventListener("change", function () { alCambiarAnios("desde"); });
+    selHasta.addEventListener("change", function () { alCambiarAnios("hasta"); });
 
     document.getElementById("ver-password").addEventListener("click", function () {
         var c = document.getElementById("password");
@@ -167,9 +185,13 @@
         if (document.getElementById("portal-antiguo").checked) portales.push("antiguo");
         if (!portales.length) { alerta("Marca al menos un portal del SAT."); return; }
 
+        var anios = aniosElegidos();
+        if (anios.hasta - anios.desde + 1 > MAX_ANIOS) { alerta("Elige hasta " + MAX_ANIOS + " años por búsqueda."); return; }
+
         var cuerpo = new FormData();
         cuerpo.append("tipo_persona", document.getElementById("tipo-persona").value);
-        cuerpo.append("ejercicio", document.getElementById("ejercicio").value);
+        cuerpo.append("ejercicio", String(anios.desde));
+        if (anios.hasta !== anios.desde) cuerpo.append("ejercicio_hasta", String(anios.hasta));
         cuerpo.append("portales", portales.join(","));
         cuerpo.append("tipos_documento", "detalle,pago,recibo");
         cuerpo.append("forzar", document.getElementById("forzar").checked ? "1" : "");

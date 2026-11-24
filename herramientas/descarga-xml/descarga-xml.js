@@ -629,6 +629,10 @@
                 : cuerpos.length > 1 ? "Se enviaron dos solicitudes al SAT: emitidas y recibidas." : "Solicitud enviada al SAT.", "Ver solicitudes", irASolicitudes);
         } catch (e) {
             alerta(e.message || await Fiscontable.leerError(null));
+            /* Revisión 24-nov-2026 (a2ses): la sesión del portal ahora se cierra sola al minuto de terminar. Si la pantalla
+               todavía la creía abierta (y por eso no pidió la e.firma ni la contraseña), se vuelve a preguntar para que
+               reaparezcan los campos en vez de quedarse sin forma de entrar hasta el siguiente refresco. */
+            if (E.modo === "portal") cargarSesion();
         } finally {
             botones.forEach(function (b) { b.disabled = false; });
             boton.textContent = texto;
