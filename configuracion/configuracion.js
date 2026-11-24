@@ -50,7 +50,7 @@
         { id: "seguridad", grupo: "Tu cuenta", titulo: "Seguridad", ico: ICO.candado, desc: "Tu contraseña, la verificación en dos pasos, las sesiones abiertas y el bloqueo por inactividad.",
           palabras: "seguridad contraseña clave dos pasos verificación código autenticación sesiones abiertas equipos de confianza pin bloqueo inactividad",
           pintar: function (c) { pintarSeguridad(c); pintarBloqueo(c); } },
-        { id: "plan", grupo: "Tu cuenta", titulo: "Plan y créditos", ico: ICO.creditos, desc: "Tu plan, su vigencia y tus créditos.", palabras: "plan créditos recargar vigencia pago",
+        { id: "plan", grupo: "Tu cuenta", titulo: "Plan y licencia", ico: ICO.creditos, desc: "Tu plan, su vigencia y tu licencia.", palabras: "plan licencia clave activar créditos recargar timbres vigencia pago",
           pintar: pintarPlan },
         { id: "avisos", grupo: "Tu cuenta", titulo: "Avisos", ico: ICO.campana, desc: "Qué avisos te llegan también por correo, a qué dirección, y el resumen de tu cartera.",
           palabras: "avisos correo notificaciones campana actividad email resumen semanal diario lunes cartera", pintar: pintarAvisos },
@@ -481,6 +481,9 @@
         if (!modo && !b.tiene_pin && sub === "pin") setTimeout(function () { caja.scrollIntoView({ block: "center" }); abrirForma("crear"); }, 80);
     }
 
+    function usaCreditos() {
+        return perfil.rol === "admin" || (perfil.modulos_permitidos || []).indexOf("documentos") !== -1;
+    }
     function pintarPlan(c) {
         var vence = perfil.fecha_expira ? new Date(perfil.fecha_expira).toLocaleDateString("es-MX", { day: "numeric", month: "long", year: "numeric" }) : "Sin vencimiento";
         var pc = perfil.plan_comercial, info = perfil.planes || {}, cat = info.catalogo, contacto = info.contacto || {};
@@ -495,7 +498,9 @@
             (pc ? "<dt>Empresas</dt><dd>" + pc.empresas_usadas + " de " + pc.empresas + (pc.ambito === "despacho" ? " <small>(entre todo el despacho)</small>" : "") + "</dd>" +
                 (Number(pc.timbres) > 0 ? "<dt>" + (pc.timbres_periodo === "anio" ? "Timbres incluidos al año" : "Timbres al mes") + "</dt><dd>" + pc.timbres + "</dd>" : "") : "") +
             "<dt>Vigencia</dt><dd>" + esc(vence) + "</dd><dt>Módulos</dt><dd>" + esc(String((perfil.modulos_permitidos || []).length)) + " activos</dd></dl>" +
-            '<a class="cf-btn cf-btn--principal" href="/creditos/"' + (incrustado ? ' target="_top"' : "") + ">Ver y recargar créditos</a></div>";
+            // 24-nov-2026 (auditoría contradicciones-7): los créditos solo sirven para Documentos. A quien no lo tiene (Pro,
+            // Pro despacho) no se le invita a recargarlos; es la misma regla con la que el menú esconde «Créditos» (barra.js).
+            (usaCreditos() ? '<a class="cf-btn cf-btn--principal" href="/creditos/"' + (incrustado ? ' target="_top"' : "") + ">Ver y recargar créditos</a>" : "") + "</div>";
         if (cat && cat.planes && cat.planes.length) {
             var tarjeta = function (p) {
                 var actual = pc && pc.clave === p.clave, pronto = !!p.proximamente;
@@ -525,7 +530,11 @@
             if ((cat.timbres || []).length) html += '<h3 class="cf-subtitulo">Timbres extra</h3><div class="cf-timbres">' + cat.timbres.map(function (t) {
                 return '<div class="cf-timbre"><b>' + Number(t.timbres).toLocaleString("es-MX") + "</b> timbres<span>" + precio(t.precio) + "</span><small>" +
                     "$" + (t.precio / t.timbres).toFixed(2) + " cada uno</small></div>";
-            }).join("") + "</div>";
+            }).join("") + "</div>" +
+                // 24-nov-2026 (revisión de a2text, contradicciones-7): sin el botón de créditos, quien busca más timbres
+                // necesita saber cómo pedirlos (los timbres no se compran con créditos).
+                '<div id="cf-timbres-pedir"><p class="cf-texto" style="margin:14px 0 8px">¿Necesitas más timbres? Escríbenos:</p><div class="cf-acciones" style="margin-top:0">' +
+                quiero("Hola, quiero comprar timbres de Fiscontable (" + (perfil.persona || perfil.correo || "") + ").") + "</div></div>";
         }
         html += '<h3 class="cf-subtitulo">Activar una licencia</h3><div class="cf-tarjeta"><p class="cf-texto">¿Te dimos una clave (FSC-…)? Actívala aquí: ' +
             'se aplica a tu cuenta y, si es de despacho, crea tu despacho.</p><div id="cf-licencia"></div></div>';
@@ -753,7 +762,8 @@
                 '<label class="ui-check cf-check"><input type="checkbox" id="cf-av-cliente"' + (p.cliente ? " checked" : "") +
                     "> El informe de cada empresa, también a su cliente (el correo de su ficha)</label>" +
                 '<label class="ui-check cf-check"><input type="checkbox" id="cf-av-importes"' + (p.importes ? " checked" : "") +
-                    "> Poner importes en los correos (de fábrica, sin importes)</label>" +
+                    // 24-nov-2026 (auditoría contradicciones-6): dice lo que de verdad viene puesto (core/fabrica.py, «correo.importes»)
+                    "> Poner importes en los correos (de fábrica, " + (p.importes_fabrica === false ? "sin" : "con") + " importes)</label>" +
                 (p.puede_destinatarios ? '<div class="cf-acciones"><button type="button" class="cf-btn cf-btn--principal" id="cf-av-quien-guardar">Guardar</button><span class="cf-msj"></span></div>'
                     : p.puede_editar === false ? "" : '<p class="cf-texto">Solo el titular del despacho puede cambiar esto.</p>') + "</div>" +
                 '<div class="cf-tarjeta" id="cf-av-caja-resumen" style="margin-top:14px"><h3 class="cf-sub">Resumen completo (opcional)</h3>' +

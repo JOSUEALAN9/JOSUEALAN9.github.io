@@ -39,7 +39,7 @@ export const T = {
             { chip: "Automático", h2: "Tus XML, siempre al día", texto: "Programa la descarga y Fiscontable incorpora cada día los comprobantes nuevos de tus empresas. Al iniciar tu jornada ya están en tu Administración de XML.",
               puntos: ["Emitidos y recibidos", "Sin XML repetidos", "Aviso si algo falla"] },
             { chip: "Equipo", h2: "Un despacho, con permisos por persona", texto: "Invita a tu equipo y define qué empresas ve cada persona, qué módulos utiliza y quién solo consulta. Cada acción queda registrada en la bitácora.",
-              puntos: ["Permisos por persona", "Solicitudes con aprobación", "Espacio personal aparte"] }
+              puntos: ["Permisos por persona", "Solicitudes con aprobación", "Registro de cada trámite"] }
         ],
         maquetaXml: { titulo: "Descarga automática", sub: "Hoy · 03:10", filas: [["Comercializadora Aurora", "184 XML"], ["Ferretera del Valle", "62 XML"], ["Café Orquídea", "27 XML"]], pie: "273 comprobantes nuevos" },
         maquetaEquipo: { titulo: "Equipo del despacho", filas: [["MR", "Mariana R.", "Titular", "Todas las empresas"], ["JC", "Jorge C.", "Aprueba", "8 empresas"], ["LP", "Lucía P.", "Solo consulta", "3 empresas"]] },
@@ -90,7 +90,7 @@ export const T = {
         registro: {
             chip: "Demo", h2: "Conócelo con tus propias empresas",
             sub: "Demo de 7 días. Recibirás un correo en cuanto esté activa.",
-            puntos: ["Con tus clientes reales", "Sin instalar nada", "Tu información se conserva al contratar"],
+            puntos: ["Con tus clientes reales", "Sin instalar nada", "Al contratar, no empiezas de cero"],
             licencia: "¿Ya tienes una licencia?", licenciaEnlace: "Crea tu cuenta", cuenta: "¿Ya tienes cuenta?", cuentaEnlace: "Inicia sesión",
             sinJs: "Para enviar el formulario activa JavaScript en tu navegador."
         },
@@ -102,7 +102,7 @@ export const T = {
                 ["¿Dónde quedan las e.firmas?", "Cifradas en el servidor de Fiscontable. Llegan a tu PC cifradas solo para ella en cada trámite. Con el modo sin conexión, tu PC guarda además una copia cifrada con tu cuenta de Windows. Se utilizan únicamente para los trámites que solicitas. En la demo no se guardan."],
                 ["¿Puedo trabajar con mi equipo?", "Sí. Con Pro despacho, desde 5 licencias: cada persona entra con su cuenta y ve solo las empresas y los módulos que le asignas."],
                 ["¿Funciona en Mac o en el celular?", "La web sí, en cualquier navegador actual. El Agente es solo para Windows 10 y 11."],
-                ["¿Qué incluye la demo?", "Los módulos principales, para que conozcas el sistema con tus propias empresas durante 7 días. Al contratar se activan todos los de tu plan y se conserva la información registrada."],
+                ["¿Qué incluye la demo?", "Los módulos principales, para que conozcas el sistema con tus propias empresas durante 7 días. Al contratar Pro se activan todos los módulos de tu plan y conservas lo que registraste. Si contratas Pro despacho, te ayudamos a pasar tus empresas a la cuenta del despacho."],
                 ["¿Cuánto cuesta?", "La licencia Pro cuesta $3,500 al año con IVA incluido. Para despachos, desde 5 licencias, $3,000 por licencia al año. Consulta los planes o solicita una demo."]
             ]
         },
@@ -154,7 +154,7 @@ export const T = {
             { chip: "Automatic", h2: "Your invoices, always up to date", texto: "Schedule the download and Fiscontable brings in what is new for your companies every day. By the time you get to the office it is already in XML management.",
               puntos: ["Issued and received", "No repeated XML", "An alert if something fails"] },
             { chip: "Team", h2: "One firm, everyone with their own work", texto: "Invite your team and decide which companies each person sees, which modules they use and who is read-only. Everything is logged.",
-              puntos: ["Per-person permissions", "Requests with approval", "A separate personal space"] }
+              puntos: ["Per-person permissions", "Requests with approval", "A log of every procedure"] }
         ],
         maquetaXml: { titulo: "Automatic download", sub: "Today · 03:10", filas: [["Comercializadora Aurora", "184 XML"], ["Ferretera del Valle", "62 XML"], ["Café Orquídea", "27 XML"]], pie: "273 new invoices" },
         maquetaEquipo: { titulo: "Firm team", filas: [["MR", "Mariana R.", "Owner", "All companies"], ["JC", "Jorge C.", "Approver", "8 companies"], ["LP", "Lucía P.", "Read-only", "3 companies"]] },
@@ -205,7 +205,7 @@ export const T = {
         registro: {
             chip: "Demo", h2: "Try it with your own companies",
             sub: "7-day demo. We will email you as soon as it is ready.",
-            puntos: ["With your real clients", "Nothing to install", "What you do is kept when you subscribe"],
+            puntos: ["With your real clients", "Nothing to install", "You don't start over when you subscribe"],
             licencia: "Already have a license?", licenciaEnlace: "Create your account", cuenta: "Already have an account?", cuentaEnlace: "Sign in",
             sinJs: "To send the form, enable JavaScript in your browser."
         },
@@ -217,7 +217,7 @@ export const T = {
                 ["Where are e.firmas kept?", "Encrypted on Fiscontable's server. They reach your PC encrypted for that PC only, for each procedure. With offline mode, your PC also keeps a copy encrypted with your Windows account. They are used only for the procedures you request. In the demo they are not stored."],
                 ["Can I work with my team?", "Yes. With Pro for firms, from 5 licenses: each person signs in with their own account and sees only the companies and modules you assign."],
                 ["Does it work on Mac or on a phone?", "The web app does, in any current browser. The Agent is only for Windows 10 and 11."],
-                ["What does the demo include?", "The main modules, so you can get to know the system with your own companies for 7 days. When you subscribe, every module in your plan is activated and you keep what you already did."],
+                ["What does the demo include?", "The main modules, so you can get to know the system with your own companies for 7 days. With Pro, every module in your plan is activated and you keep what you already entered. With Pro for firms, we help you move your companies to the firm's account."],
                 ["How much does it cost?", "The Pro license is $3,500 MXN per year, VAT included. For firms, from 5 licenses, $3,000 MXN per license per year. See the plans or request a demo."],
                 ["Is the app in English?", "The application itself is in Spanish, since it is built for accounting work in Mexico. These public pages are available in English."]
             ]

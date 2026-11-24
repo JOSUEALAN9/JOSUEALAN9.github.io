@@ -94,7 +94,7 @@
 .cf-nuevas span { display: flex; flex-direction: column; gap: 2px; }
 .cf-nuevas small { font-size: var(--t-12); color: rgb(var(--g-500)); line-height: 1.45; }
 
-/* Plan y créditos: tarjetas de planes */
+/* Plan y licencia: tarjetas de planes */
 .cf-subtitulo { font-size: 15px; font-weight: 700; margin: 22px 0 10px; color: rgb(var(--g-900)); }
 .cf-planes { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
 .cf-plan { position: relative; display: flex; flex-direction: column; gap: 4px; padding: 18px 16px 16px; border: 1px solid var(--linea); border-radius: 16px; background: rgb(var(--g-0)); }

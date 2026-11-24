@@ -503,12 +503,13 @@
                 ico(D.pc) + "Conectar esta PC</a>" +
               '<a class="fc-menu__boton" href="/despacho/" id="fc-menu-despacho" role="menuitem" hidden>' +
                 ico(D.equipo) + "Mi despacho</a>" +
-              // Ayuda y contacto: las instrucciones y dos atajos de correo (soporte y sugerencias)
+              // Ayuda y contacto: las instrucciones y dos atajos de correo (soporte y sugerencias). 24-nov-2026 (auditoría contradicciones-8): un solo correo
+              // de ayuda, el de las páginas públicas (contacto-publico.js) y de los correos del servidor (core/contacto.py)
               '<a class="fc-menu__boton" href="/soporte/" target="_blank" rel="noopener" role="menuitem">' +
                 ico(D.ayuda) + "Ayuda e instrucciones</a>" +
-              '<a class="fc-menu__boton" id="fc-menu-soporte" href="mailto:soporte@fiscontable.app?subject=' + encodeURIComponent("Soporte Fiscontable") + '" role="menuitem">' +
+              '<a class="fc-menu__boton" id="fc-menu-soporte" href="mailto:contacto@fiscontable.app?subject=' + encodeURIComponent("Soporte Fiscontable") + '" role="menuitem">' +
                 ico(D.sobre) + "Escribir a soporte</a>" +
-              '<a class="fc-menu__boton" id="fc-menu-sugerencia" href="mailto:soporte@fiscontable.app?subject=' + encodeURIComponent("Sugerencia para Fiscontable") + '" role="menuitem">' +
+              '<a class="fc-menu__boton" id="fc-menu-sugerencia" href="mailto:contacto@fiscontable.app?subject=' + encodeURIComponent("Sugerencia para Fiscontable") + '" role="menuitem">' +
                 ico(D.idea) + "Enviar una sugerencia</a>" +
               '<button type="button" class="fc-menu__boton" id="fc-menu-error" data-informar-error role="menuitem">' +
                 ico(D.alerta) + "Informar un error</button>" +
@@ -625,7 +626,7 @@
             { g: "Tu cuenta", i: D.engrane, n: "Configuración", d: "Todos los ajustes", u: "/configuracion/", a: "ajustes preferencias opciones" },
             { g: "Tu cuenta", i: D.persona, n: "Mi perfil", d: "Nombre, teléfono, foto y tablas", u: cfg + "perfil", a: "foto imagen densidad compacta datos" },
             { g: "Tu cuenta", i: D.candado, n: "Seguridad", d: "Contraseña, dos pasos, sesiones y PIN", u: cfg + "seguridad", a: "clave verificacion codigo sesiones abiertas equipos de confianza bloqueo inactividad" },
-            { g: "Tu cuenta", i: D.estrella, n: "Plan y créditos", d: "Tu plan y su vigencia", u: cfg + "plan", a: "licencia pago renovar vigencia saldo" },
+            { g: "Tu cuenta", i: D.estrella, n: "Plan y licencia", d: "Tu plan y su vigencia", u: cfg + "plan", a: "licencia pago renovar vigencia saldo" },
             { g: "Tu cuenta", i: D.campana, n: "Avisos", d: "Qué te llega por correo", u: cfg + "avisos", a: "correo notificaciones resumen semanal" },
             { g: "Avisos por correo", i: D.campana, n: "Informe diario por empresa", d: "Avisos · un correo por empresa con lo nuevo", u: cfg + "avisos", a: "correo informe diario empresa buzon listas cfdi opinion" },
             { g: "Avisos por correo", i: D.campana, n: "Correo del cierre del mes", d: "Avisos · qué les falta del cierre", u: cfg + "avisos", a: "correo cierre mes pendientes estatales declaracion" },

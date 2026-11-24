@@ -19,7 +19,8 @@
  *   t.abrirPanelColumnas()
  *
  *   FCTabla.menuVistas({boton, menu, etiqueta, tabla, listar, guardar, borrar})
- *       Menú "Vista ▾": vista de fábrica, vistas guardadas, ★ predeterminada.
+ *       Menú "Vista ▾": la vista «Fiscontable» (la que viene puesta), vistas guardadas, ★ predeterminada.
+ *       24-nov-2026 (decisión A.6 del dueño, 23-nov): nada se llama «de fábrica» en los menús de vistas.
  *
  * Desplazamiento virtual: solo se dibujan las filas visibles, así que
  * miles de registros no la traban. Todo dato de un XML se muestra como
@@ -259,7 +260,7 @@
             '<input type="search" placeholder="Buscar columna…" data-buscar>' +
             '<p class="xml-panel__sub">Visibles <span class="xml-tenue">(arrastra para ordenar)</span></p><ol class="xml-lista" data-visibles></ol>' +
             '<p class="xml-panel__sub">Disponibles</p><div class="fc-disponibles" data-disponibles></div>' +
-            '<div class="xml-panel__pie"><button type="button" class="xml-enlace" data-fabrica>Regresar a las de fábrica</button></div>';
+            '<div class="xml-panel__pie"><button type="button" class="xml-enlace" data-fabrica>Regresar a la vista Fiscontable</button></div>';
         document.body.appendChild(panel);
         var pBuscar = panel.querySelector("[data-buscar]"), pVis = panel.querySelector("[data-visibles]"), pDisp = panel.querySelector("[data-disponibles]");
 
@@ -347,8 +348,9 @@
         }
         function pintar() {
             var v = actual();
-            o.etiqueta.textContent = v ? v.nombre : "Vista de fábrica";
-            var h = [item("aplicar", "", "Vista de fábrica", !v ? "xml-activa" : "")];
+            o.etiqueta.textContent = "Vista: " + (v ? v.nombre : "Fiscontable");      // como en Conciliación («Vista: …»)
+            o.etiqueta.title = o.etiqueta.textContent;          // si el nombre es largo se corta con «…» (common.css): aquí completo
+            var h = [item("aplicar", "", "Fiscontable", !v ? "xml-activa" : "")];
             vistas.forEach(function (p) { h.push(item("aplicar", p.nombre, esc(p.nombre) + (p.predeterminada ? " ★" : ""), v && p.nombre === v.nombre ? "xml-activa" : "")); });
             h.push('<div class="xml-separador"></div>');
             if (v) h.push(item("guardar", v.nombre, "Guardar cambios en «" + esc(v.nombre) + "»"));
@@ -412,7 +414,7 @@
                     (o.filtros && o.filtros.length ? '<div class="xml-menu"><button type="button" class="xml-btn" data-fct="filtros" aria-haspopup="true">Filtros<span class="xml-insignia" hidden></span></button>' +
                         '<div class="xml-menu__lista xml-menu__lista--filtros fct-menu-filtros" hidden></div></div>' : "") +
                     '<button type="button" class="xml-btn" data-fct="columnas">Columnas</button>' +
-                    '<div class="xml-menu"><button type="button" class="xml-btn" data-fct="vistas" aria-haspopup="true"><span class="fct-vista">Vista de fábrica</span> ▾</button>' +
+                    '<div class="xml-menu"><button type="button" class="xml-btn" data-fct="vistas" aria-haspopup="true"><span class="fct-vista">Vista: Fiscontable</span> ▾</button>' +
                         '<div class="xml-menu__lista fct-menu-vistas" hidden></div></div>' +
                     (o.exportar && o.exportar.enBarra !== false ? '<div class="xml-menu"><button type="button" class="xml-btn" data-fct="descargar" aria-haspopup="true" disabled title="No hay renglones que descargar">Descargar ▾</button>' +
                         '<div class="xml-menu__lista fct-menu-descargar" hidden><button type="button" data-fct="excel">Excel de esta tabla</button>' +

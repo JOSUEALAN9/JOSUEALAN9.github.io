@@ -168,7 +168,7 @@
                 </div>
                 <div class="bg-white rounded-xl card-elevated border border-gray-200 p-5 mt-4" id="caja-precios">
                     <h3 class="text-[15px] font-bold text-slate-800">Planes y precios</h3>
-                    <p class="text-xs text-slate-500 mt-1 mb-3">Lo que ve cada usuario en Configuración › Plan y créditos. Al asignar un plan, el usuario queda con el rol del plan (sus módulos se eligen arriba) y su tope de empresas. Sin plan asignado no hay tope. Los timbres del plan son informativos: se asignan en Facturar › Timbres.</p>
+                    <p class="text-xs text-slate-500 mt-1 mb-3">Lo que ve cada usuario en Configuración › Plan y licencia. Al asignar un plan, el usuario queda con el rol del plan (sus módulos se eligen arriba) y su tope de empresas. Sin plan asignado no hay tope. Los timbres del plan son informativos: se asignan en Facturar › Timbres.</p>
                     <div id="pr-planes" class="flex flex-col gap-2"></div>
                     <button type="button" id="pr-mas-plan" class="text-xs font-bold text-violet-700 border border-violet-200 hover:bg-violet-50 rounded-lg py-1.5 px-3 mt-2">+ Plan</button>
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
@@ -288,7 +288,7 @@
             <section id="panel-despachos" role="tabpanel" hidden>
                 <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
                     <p class="text-sm text-slate-500 max-w-2xl">Un despacho comparte empresas con su equipo; cada persona conserva su propio espacio. Siempre nace de una
-                        <b>clave de despacho</b>: su titular la activa en Configuración › Plan y créditos, o tú la ligas aquí con «+ Nuevo despacho». El titular invita a su equipo y da los permisos desde <b>Mi despacho</b>.</p>
+                        <b>clave de despacho</b>: su titular la activa en Configuración › Plan y licencia, o tú la ligas aquí con «+ Nuevo despacho». El titular invita a su equipo y da los permisos desde <b>Mi despacho</b>.</p>
                     <button type="button" class="ui-btn ui-btn--primario ui-btn--36" id="dsa-nuevo">+ Nuevo despacho</button>
                 </div>
                 <div class="bg-white rounded-xl card-elevated border border-gray-200 overflow-hidden">
@@ -316,7 +316,7 @@
                     <button type="button" class="ui-btn ui-btn--primario ui-btn--36" id="lca-emitir">+ Emitir licencias</button>
                 </div>
                 <p class="text-sm text-slate-500 mb-4 max-w-3xl">Cada clave es al azar, sirve una sola vez y queda ligada a la cuenta que la activa. Aquí solo se ven sus últimos 4 caracteres:
-                    la clave completa se muestra una sola vez, al emitirla. El cliente la activa en <b>fiscontable.app/activar</b> o en Configuración → Plan y créditos.</p>
+                    la clave completa se muestra una sola vez, al emitirla. El cliente la activa en <b>fiscontable.app/activar</b> o en Configuración → Plan y licencia.</p>
                 <div class="bg-white rounded-xl card-elevated border border-gray-200 overflow-hidden">
                     <div class="overflow-x-auto">
                         <table class="w-full text-sm lc-tabla">
@@ -655,7 +655,7 @@
                         <label class="ui-check"><input type="radio" name="lca-tipo" value="despacho"> Despacho (equipo)</label>
                         <label class="ui-check"><input type="radio" name="lca-tipo" value="lugares"> Lugares extra (a un despacho)</label></div></fieldset>
                 <p class="ui-aviso" id="lca-ayuda-lugares" hidden>Se suman a los lugares que ya tiene el despacho (6 + 2 = 8). No cambian su vigencia ni dan timbres: corren hasta
-                    que venza el despacho. La activa su titular en Configuración › Plan y créditos. Para renovar, emite otra de «Despacho».</p>
+                    que venza el despacho. La activa su titular en Configuración › Plan y licencia. Para renovar, emite otra de «Despacho».</p>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <label class="ui-campo"><span class="ui-etiqueta">Plan</span><select class="ui-select" id="lca-plan"></select></label>
                     <label class="ui-campo" id="lca-campo-meses"><span class="ui-etiqueta">Duración</span><select class="ui-select" id="lca-meses"></select></label>

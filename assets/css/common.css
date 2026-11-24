@@ -1977,6 +1977,9 @@ html.fc-amplia .fc-reportar { display: none; }
 .fct-filtro { display: grid; gap: 4px; padding: 6px 8px; font-size: var(--t-12); font-weight: 600; color: rgb(var(--g-600)); }
 .fct-filtro .ui-select { width: 100%; }
 .fct-menu-filtros { min-width: 280px; }
+/* 24-nov-2026 (revisión de a2text): el nombre de la vista en su botón («Vista: …») se corta con «…» y no empuja la página
+   de lado en el celular; el nombre completo sale al pasar el cursor (tabla.js lo pone en title). */
+.fct-vista, #nombre-vista { display: inline-block; max-width: min(40ch, 60vw); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: bottom; }
 
 /* --- Programación unificada (G-09) --- */
 .fpu { display: flex; flex-wrap: wrap; align-items: center; gap: var(--e-2); min-height: 32px; margin: 0 0 var(--e-2); font-size: var(--t-13); color: rgb(var(--g-700)); }
