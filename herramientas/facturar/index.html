@@ -581,6 +581,20 @@
     </div>
 </dialog>
 
+<!-- Dar por saldada (auditoría 23-nov, factura-4) -->
+<dialog id="dlg-saldada" class="fa-dialogo">
+    <div class="fa-dialogo__cuerpo">
+        <h2>Dar por saldada la <span id="sal-folio"></span></h2>
+        <p class="fa-nota"><span id="sal-saldo"></span> Ya no saldrá en Recibos de pago y en Conciliación de pagos queda «Pagada (ajuste manual)». No se timbra nada.</p>
+        <label class="fa-campo"><span>Motivo</span><input id="sal-motivo" maxlength="200" placeholder="Por ejemplo: la cubre la nota NC-3 hecha en otro sistema"></label>
+        <p id="sal-error" class="fa-error" hidden></p>
+    </div>
+    <div class="fa-dialogo__pie">
+        <button type="button" data-cerrar class="fa-btn fa-btn--suave">No</button>
+        <button type="button" id="btn-saldada-ok" class="fa-btn fa-btn--principal">Dar por saldada</button>
+    </div>
+</dialog>
+
 <!-- Producto del catálogo -->
 <dialog id="dlg-producto" class="fa-dialogo fa-dialogo--ancho">
     <div class="fa-dialogo__cuerpo">

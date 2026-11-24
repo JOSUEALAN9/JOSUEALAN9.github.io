@@ -128,7 +128,7 @@
 .fa-resumen { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; font-size: 14px; }
 .fa-resumen dt { color: rgb(var(--g-600)); } .fa-resumen dd { margin: 0; font-weight: 600; color: rgb(var(--g-900)); }
 .fa-resumen dt.fa-resumen__imp { padding-left: 12px; font-size: 13px; } .fa-resumen dt.fa-resumen__imp + dd { font-weight: 500; font-size: 13px; }
-.fa-resumen__nota { margin: 10px 0 0; font-size: 12.5px; color: rgb(var(--g-600)); }
+.fa-resumen__nota { margin: 10px 0 0; font-size: 12.5px; color: rgb(var(--g-600)); grid-column: 1 / -1; }  /* a todo lo ancho (revisión 24-nov: en la confirmación del recibo quedaba en una columna angosta a la derecha) */
 
 /* Barra de arriba: prefacturas y copiar */
 .fa-cargar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
@@ -198,6 +198,9 @@
 .fa-chip--proceso { background: rgb(var(--av-50)); color: rgb(var(--av-600)); }
 .fa-saldo { display: block; font-size: 11.5px; color: rgb(var(--av-600)); font-weight: 700; }
 .fa-saldo--ok { color: rgb(var(--ok-600)); }
+.fa-saldo__nota { display: block; font-size: 11px; color: rgb(var(--g-600)); }
+/* Quién la timbró / canceló (auditoría factura-5): una línea chica, que no ensanche la columna */
+.fa-tabla small.fa-quien { max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 @media (max-width: 640px) { .fa-pg { grid-template-columns: auto 1fr; } .fa-pg__abono { grid-column: span 2; } }
 /* Cuatro pestañas no caben en el teléfono: se deslizan de lado */
 .fa-pagina .fc-titulo { min-width: 0; max-width: 100%; }
