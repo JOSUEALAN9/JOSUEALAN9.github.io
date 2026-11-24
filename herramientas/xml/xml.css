@@ -168,6 +168,8 @@
 .xml-modal__acciones { display: flex; flex-direction: column; gap: 10px; }
 .xml-modal__acciones .xml-btn { justify-content: center; padding: 10px 14px; }
 .xml-alerta { color: rgb(var(--av-600)); font-weight: 800; }
+/* 24-nov-2026 (a2dec, B): «Observaciones» que empiezan con «Revisar:», en rojo como en el Excel v6 */
+.xml-obs-revisar { color: rgb(var(--er-600)); }
 /* Marca de «Posibles duplicados» en la primera columna (22-nov-2026): ámbar = por revisar; rojo = marcada, falta cancelarla.
    Va encima, pegada a la orilla derecha de la celda (que es fija): no le quita lugar a lo que ya dice la columna. */
 .xml-dup { position: absolute; right: 5px; top: 50%; transform: translateY(-50%); display: grid; place-items: center; width: 18px; height: 18px; padding: 0; border: 0; border-radius: 6px; font-size: 12px; line-height: 1; font-weight: 800; cursor: pointer; text-decoration: none; box-shadow: 0 0 0 2px rgb(var(--g-0)); }

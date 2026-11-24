@@ -1588,7 +1588,7 @@
         var notas = x.notas_texto ? x.notas_texto + " (" + dinero(x.notas_importe) + ")" : "";
         if (x.saldada) return '<span class="fa-saldo fa-saldo--ok" title="' + esc("Dada por saldada: " + (x.saldada.motivo || "") + (x.saldo > 0.004 ? " · el saldo era " + dinero(x.saldo) : "")) + '">Saldada a mano</span>';
         /* Revisión 24-nov: $1.00 o menos después de pagos o notas ya es «Pagada», como en Conciliación de pagos */
-        if (x.centavos) return '<span class="fa-saldo fa-saldo--ok" title="' + esc("Quedan " + dinero(x.saldo) + " de redondeo: hasta $1.00 se da por pagada, como en Conciliación de pagos" + (notas ? " · ya " + notas : "")) + '">Pagada</span>';
+        if (x.centavos) return '<span class="fa-saldo fa-saldo--ok" title="' + esc("Pagada: diferencia de " + dinero(x.saldo) + ", se considera saldada (hasta $1.00, como en Conciliación de pagos)" + (notas ? " · ya " + notas : "")) + '">Pagada</span>';
         if (x.saldo > 0.004) return '<span class="fa-saldo"' + (notas ? ' title="' + esc("Saldo ya " + notas) + '"' : "") + ">Saldo " + dinero(x.saldo) + "</span>" +
             (x.notas_texto ? '<small class="fa-saldo__nota">' + esc(x.notas_texto) + "</small>" : "");
         return '<span class="fa-saldo fa-saldo--ok"' + (notas ? ' title="' + esc(notas) + '"' : "") + ">" + (x.notas_importe && !x.pagado ? "Cubierta con nota" : "Pagada") + "</span>";

@@ -105,7 +105,11 @@
         $("candado").hidden = !c;
         if (c) $("candado").innerHTML = "🔒 <b>" + MESES[E.mes - 1] + " " + E.anio + " está cerrado</b>" +
             (c.por.length ? ": ya se presentó " + esc(c.por.join(" y ")) + "." : c.quien ? " (lo cerró " + esc(c.quien) + ")." : ".") +
-            " Las marcas se ven pero no se cambian. Si de verdad hay que corregir, usa «🔒 Mes cerrado» para abrirlo." + congelado();
+            " Las marcas se ven pero no se cambian. Si de verdad hay que corregir, usa «🔒 Mes cerrado» para abrirlo." +
+            // 24-nov-2026 (a2dec, decisión D): este botón es un atajo de Configuración › Cierre de meses
+            ' <button type="button" class="fi-enlace" data-cierres>Ver todos los meses cerrados</button>' + congelado();
+        var vc = $("candado").querySelector("[data-cierres]");
+        if (vc) vc.addEventListener("click", function () { Fiscontable.abrirConfiguracion("cierres"); });
         document.body.classList.toggle("fi-cerrado", !!c);
     }
 

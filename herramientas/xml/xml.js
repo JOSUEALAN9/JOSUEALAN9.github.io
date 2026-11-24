@@ -980,6 +980,33 @@
         } catch (e) { /* es un adorno de la tabla: si no llega, la tabla sigue igual y el diálogo lo dirá */ }
         finally { if (DUP.pidiendo === clave) DUP.pidiendo = ""; }
     }
+    /* 24-nov-2026 (a2dec, decisión B del dueño): la columna «Observaciones» (se agrega desde el catálogo) dice lo mismo que el
+       Excel v6. El servidor manda sus frases (f._obs = [[tipo, texto]]) sin la de posible duplicado, que llega aparte; aquí se
+       arman igual que modulos/conciliacion/observaciones.texto: de lo más grave a lo informativo, «Revisar:» donde toca. */
+    var OBS_ORDEN = { error: 0, revisar: 1, falta: 2, duplicada: 3, vencida: 4, vence: 5, info: 6 };
+    function textoObs(items) {
+        var vistos = {}, salida = [];
+        items.map(function (x, i) { return [x, i]; }).sort(function (a, b) {
+            var oa = OBS_ORDEN[a[0][0]] !== undefined ? OBS_ORDEN[a[0][0]] : 9, ob = OBS_ORDEN[b[0][0]] !== undefined ? OBS_ORDEN[b[0][0]] : 9;
+            return oa - ob || a[1] - b[1];
+        }).forEach(function (p) {
+            var tipo = p[0][0], t = String(p[0][1] || "");
+            if (!t || vistos[t]) return;
+            vistos[t] = 1;
+            if (tipo === "error" || tipo === "revisar" || tipo === "falta") {
+                if (t.length > 1 && t[0] !== t[0].toLowerCase() && t[1] === t[1].toLowerCase()) t = t[0].toLowerCase() + t.slice(1);
+                t = "Revisar: " + t;
+            }
+            salida.push(t);
+        });
+        return salida.join(" ");
+    }
+    function ponerObservaciones(f, x) {
+        var items = (f._obs || []).slice();
+        if (x && x.tipo && x.frase && Number(f.total) !== 0) items.push([x.tipo, x.frase]);      // total 0.00 no se revisa (D.2)
+        var t = items.length ? textoObs(items) : "";
+        if (t) f.observaciones = t; else delete f.observaciones;
+    }
     function ponerMarcasDup(clave, marcas, forzar) {
         var antes = JSON.stringify(DUP.marcas);
         DUP.clave = clave; DUP.marcas = marcas || {};
@@ -988,6 +1015,7 @@
             (E.datos[m].filas || []).forEach(function (f) {
                 var x = DUP.marcas[f.uuid];
                 if (x) f.duplicado = x.texto; else delete f.duplicado;
+                if (m === "recibidos" || m === "emitidos") ponerObservaciones(f, x);
                 if (DUP.fiscales) {
                     var fz = DUP.fiscales[f.uuid] || {};
                     CLAVES_FISCALES.forEach(function (k) { if (fz[k] !== undefined && fz[k] !== null && fz[k] !== "") f[k] = fz[k]; else delete f[k]; });
@@ -1011,7 +1039,8 @@
         var txt = formato(c, v);
         var sello = SELLOS[c.clave] && SELLOS[c.clave][v];
         var html = sello ? '<span class="xml-sello xml-sello--' + sello + '">' + esc(txt) + "</span>"
-            : v === "No viene en CFDI 3.3" ? '<span class="xml-tenue">' + esc(txt) + "</span>" : esc(txt);       // D.3 (23-nov-2026): en gris
+            : v === "No viene en CFDI 3.3" ? '<span class="xml-tenue">' + esc(txt) + "</span>"       // D.3 (23-nov-2026): en gris
+            : c.clave === "observaciones" && /^Revisar:/.test(txt) ? '<span class="xml-obs-revisar">' + esc(txt) + "</span>" : esc(txt);   // como el Excel: en rojo
         if (fija && dup) html += chipDup(dup);
         return "<td" + (clase ? ' class="' + clase.trim() + '"' : "") + (fija ? ' style="left:36px"' : "") + (txt.length > 18 ? ' title="' + esc(txt) + '"' : "") + ">" + html + "</td>";
     }

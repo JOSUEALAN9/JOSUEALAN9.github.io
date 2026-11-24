@@ -10,7 +10,9 @@
     var MESES = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
     var boton = document.getElementById("btn-diot");
     var info = null, dlg = null, sondeo = null, revision = null;
-    var CHIP = { enviado: "ok", ya_presentada: "ok", pendiente: "", en_curso: "va", detenido: "aviso", cancelado: "", revisar: "mal", error: "mal" };
+    var CHIP = { enviado: "ok", ya_presentada: "ok", pendiente: "", en_curso: "va", detenido: "aviso", cancelado: "", revisar: "mal", error: "mal",
+                 verificando: "va", no_presentada: "aviso", a_mano: "ok" };    // 24-nov-2026 (a2dec, A.1): la búsqueda sola en el SAT
+    var vistaActual = null;             // "elegir" | lote en avance (para volver a pintar después de una acción)
 
     function dinero(v) { return "$" + Number(v || 0).toLocaleString("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
     async function pedir(ruta, cuerpo) {
@@ -59,6 +61,70 @@
         if (e) { e.textContent = t || ""; e.hidden = !t; }
     }
 
+    /* 24-nov-2026 (a2dec, decisión A.1 del dueño): una DIOT que quedó en duda («Revisar en el SAT») la busca sola el robot
+       en el SAT (solo consulta). Aquí se ve cuándo es la siguiente búsqueda y lo que la persona puede hacer: la casilla
+       «Ya la revisé en el SAT» (sin PIN: la marca presentada a mano) y, si no se presentó, «Enviarla otra vez» (con PIN). */
+    function hora(iso) {
+        if (!iso) return "";
+        var d = new Date(String(iso).replace(/Z?$/, "Z"));
+        return isNaN(d) ? "" : d.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" });
+    }
+    function acciones(f) {
+        var b = f.busqueda, html = "";
+        if (f.estado === "revisar" && b && b.proxima) html += '<p class="dt-item__msj">Siguiente búsqueda en el SAT: ' + esc(hora(b.proxima)) + " (" + (b.intento + 1) + " de " + b.tope + ").</p>";
+        if (!f.puede_marcar && !f.puede_reenviar) return html;
+        return html + '<div class="dt-acciones">' +
+            (f.puede_marcar ? '<label class="dt-reviso dt-reviso--chico"><input type="checkbox" data-revisada="' + esc(f.id) + '"> Ya la revisé en el SAT</label>' : "") +
+            (f.puede_reenviar ? '<button type="button" class="fc-btn" data-reenviar="' + esc(f.id) + '" data-nombre="' + esc(f.nombre) + '" data-periodo="' + esc(f.periodo) + '">Enviarla otra vez</button>' : "") +
+            "</div>";
+    }
+    function filaHtml(f) {
+        return '<div class="dt-item"><div class="dt-item__fila"><span class="dt-item__nombre">' + esc(f.nombre) + ' <span class="dt-item__rfc">' + esc(f.rfc) +
+            (f.lote && vistaActual === "elegir" ? " · " + esc(f.periodo) : "") + "</span></span>" +
+            '<span class="dt-chip' + (CHIP[f.estado] ? " dt-chip--" + CHIP[f.estado] : "") + '">' + esc(f.estado_txt) + "</span></div>" +
+            (f.mensaje ? '<p class="dt-item__msj">' + esc(f.mensaje) + "</p>" : "") + acciones(f) + "</div>";
+    }
+    async function despues(nuevo) {
+        await cargar();
+        if (!dlg) return;
+        if (nuevo) return avance(nuevo.lote, nuevo);
+        if (vistaActual && vistaActual !== "elegir") {
+            try { pintarAvance(await pedir("/api/declaraciones/diot/lote/" + encodeURIComponent(vistaActual))); } catch (e) { /* sigue */ }
+        } else pintarPendientes();
+    }
+    function escucharAcciones(caja) {
+        if (caja.dataset.acc) return;
+        caja.dataset.acc = "1";
+        caja.addEventListener("change", async function (ev) {
+            var c = ev.target.closest("[data-revisada]"); if (!c || !c.checked) return;
+            var si = await Fiscontable.confirmar({ titulo: "¿Ya la revisaste en el SAT?", si: "Sí, ya la revisé",
+                texto: "Márcala solo si en «Consultar declaración» del SAT SÍ aparece presentada (o la presentaste tú). Queda como presentada: Fiscontable ya no la busca y ya no se puede volver a pedir desde aquí." });   // revisión 24-nov: que no se confunda con «ya vi que no está»
+            if (!si) { c.checked = false; return; }
+            c.disabled = true;
+            try { await pedir("/api/declaraciones/diot/fila/" + encodeURIComponent(c.dataset.revisada) + "/revisada", {}); await despues(); }
+            catch (e) { Fiscontable.avisar(e.message); c.checked = false; c.disabled = false; }
+        });
+        caja.addEventListener("click", async function (ev) {
+            var b = ev.target.closest("[data-reenviar]"); if (!b) return;
+            var nuevo = null;
+            var resumen = '<p class="fc-identidad__aviso">El robot vuelve a revisar en el SAT que no esté presentada y, si no está, la envía con la e.firma de la empresa. No se puede deshacer.</p>' +
+                '<div class="fc-identidad__tabla"><table><thead><tr><th>Empresa</th><th>Periodo</th><th>Declaración</th></tr></thead><tbody><tr><td>' + esc(b.dataset.nombre) +
+                "</td><td>" + esc(b.dataset.periodo) + "</td><td>Normal · sin operaciones</td></tr></tbody></table></div>";
+            var hecho = await Fiscontable.confirmarIdentidad("presentar_declaracion", async function (c) {
+                nuevo = await pedir("/api/declaraciones/diot/fila/" + encodeURIComponent(b.dataset.reenviar) + "/reenviar", { confirmacion: c });
+            }, { titulo: "Enviar otra vez la DIOT en ceros", boton: "Enviarla otra vez", resumen: resumen });
+            if (hecho && nuevo) await despues(nuevo);
+        });
+    }
+    function pintarPendientes() {
+        var caja = q("pendientes");
+        if (!caja) return;
+        var lista = (info && info.pendientes) || [];
+        caja.hidden = !lista.length;
+        caja.innerHTML = lista.length ? '<p class="dt-pendientes__titulo">Para revisar · ' + lista.length + "</p>" + lista.map(filaHtml).join("") : "";
+        escucharAcciones(caja);
+    }
+
     /* Paso 1: mes y empresas */
     var elegidas = {}, mesElegido = null;
     function opcionesMes() {
@@ -72,8 +138,9 @@
     }
     function elegir() {
         clearInterval(sondeo); sondeo = null;
+        vistaActual = "elegir";
         sub("Normal y «La presenta sin operaciones». Elige el mes y hasta " + info.tope + " empresas; antes de presentar te enseñamos lo que hay que revisar.");
-        q("cuerpo").innerHTML =
+        q("cuerpo").innerHTML = '<div class="dt-lista dt-pendientes" data-i="pendientes" hidden></div>' +
             '<div class="dt-periodo"><label class="ui-campo"><span class="ui-etiqueta">Mes</span><select class="ui-select" data-i="mes">' + opcionesMes() + "</select></label>" +
             '<label class="ui-campo dt-buscar"><span class="ui-etiqueta">Buscar empresa</span><input class="ui-input" data-i="buscar" type="search" placeholder="Nombre o RFC" autocomplete="off"></label>' +
             '<span class="dt-contador" data-i="contador"></span></div>' +
@@ -86,6 +153,7 @@
         q("mes").addEventListener("change", function () { mesElegido = this.value; });
         q("buscar").addEventListener("input", pintarEmpresas);
         pintarEmpresas();
+        pintarPendientes();
     }
     function pintarEmpresas() {
         var t = (q("buscar").value || "").trim().toLowerCase();
@@ -180,6 +248,7 @@
 
     /* Paso 4: avance del robot */
     function avance(lote, d) {
+        vistaActual = lote;
         sub("Fiscontable las presenta una por una. Puedes cerrar esta ventana: sigue sola y te avisamos al terminar.");
         q("cuerpo").innerHTML = '<div class="dt-resumen" data-i="resumen"></div><div class="dt-lista" data-i="filas"></div>';
         pie('<button type="button" class="fc-btn" data-i="detener">Detener las que faltan</button><button type="button" class="fc-btn fc-btn--principal" data-i="listo">Cerrar</button>');
@@ -191,6 +260,7 @@
             b.disabled = true;
             try { pintarAvance(await pedir("/api/declaraciones/diot/lote/" + encodeURIComponent(lote) + "/detener", {})); } catch (e) { Fiscontable.avisar(e.message); b.disabled = false; }
         });
+        escucharAcciones(q("filas"));
         if (d) pintarAvance(d);
         var vuelta = async function () {
             try { pintarAvance(await pedir("/api/declaraciones/diot/lote/" + encodeURIComponent(lote))); } catch (e) { /* reintenta en la siguiente vuelta */ }
@@ -204,12 +274,11 @@
         var c = d.conteo || {};
         q("resumen").innerHTML = '<span class="dt-chip">' + esc(d.periodo) + '</span><span class="dt-chip dt-chip--ok">Presentadas ' + (c.enviado || 0) + "</span>" +
             ((c.pendiente || 0) + (c.en_curso || 0) ? '<span class="dt-chip dt-chip--va">Faltan ' + ((c.pendiente || 0) + (c.en_curso || 0)) + "</span>" : "") +
-            ((c.revisar || 0) + (c.error || 0) + (c.detenido || 0) ? '<span class="dt-chip dt-chip--mal">Para revisar ' + ((c.revisar || 0) + (c.error || 0) + (c.detenido || 0)) + "</span>" : "");
-        q("filas").innerHTML = d.filas.map(function (f) {
-            return '<div class="dt-item"><div class="dt-item__fila"><span class="dt-item__nombre">' + esc(f.nombre) + ' <span class="dt-item__rfc">' + esc(f.rfc) + "</span></span>" +
-                '<span class="dt-chip' + (CHIP[f.estado] ? " dt-chip--" + CHIP[f.estado] : "") + '">' + esc(f.estado_txt) + "</span></div>" +
-                (f.mensaje ? '<p class="dt-item__msj">' + esc(f.mensaje) + "</p>" : "") + "</div>";
-        }).join("");
+            ((c.revisar || 0) + (c.error || 0) + (c.detenido || 0) + (c.no_presentada || 0) ? '<span class="dt-chip dt-chip--mal">Para revisar ' +
+                ((c.revisar || 0) + (c.error || 0) + (c.detenido || 0) + (c.no_presentada || 0)) + "</span>" : "") +
+            (c.verificando ? '<span class="dt-chip dt-chip--va">Buscándola en el SAT ' + c.verificando + "</span>" : "");
+        // 24-nov-2026 (a2dec): una casilla a medio marcar no se borra con el sondeo de cada 3 segundos
+        if (!q("filas").querySelector("[data-revisada]:checked")) q("filas").innerHTML = d.filas.map(filaHtml).join("");
         q("detener").hidden = !(c.pendiente);
         if (!d.en_curso) {
             clearInterval(sondeo); sondeo = null;

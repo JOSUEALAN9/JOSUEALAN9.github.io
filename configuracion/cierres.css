@@ -1,0 +1,31 @@
+/* Configuración › Cierre de meses (24-nov-2026, decisión D del dueño). Prefijo cm-. */
+.cm-barra { display: flex; flex-wrap: wrap; gap: 12px 18px; align-items: flex-end; margin-top: 6px; }
+.cm-anio { width: 120px; flex: none; }
+.cm-buscar { flex: 1 1 220px; min-width: 0; }
+.cm-leyenda { font-size: 12.5px; color: rgb(var(--g-600)); display: flex; flex-wrap: wrap; gap: 4px 6px; align-items: center; padding-bottom: 8px; }
+.cm-aviso { background: rgb(var(--av-50)); border-color: rgb(var(--av-200)); font-size: 13.5px; color: rgb(var(--g-700)); line-height: 1.5; }
+.cm-aviso ul { margin: 8px 0 0; padding-left: 18px; }
+.cm-tabla { display: flex; flex-direction: column; gap: 0; padding: 6px 18px; }
+.cm-fila { display: grid; grid-template-columns: minmax(0, 220px) minmax(0, 1fr); gap: 14px; align-items: center; padding: 12px 0; border-top: 1px solid var(--linea); }
+.cm-fila:first-child { border-top: 0; }
+.cm-empresa { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.cm-empresa b { font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cm-empresa small { font-size: 12px; color: rgb(var(--g-500)); }
+.cm-meses { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 6px; }
+.cm-mes { display: inline-flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; min-width: 0; height: 42px;
+          border-radius: 10px; border: 1px solid var(--linea); background: rgb(var(--g-0)); font: inherit; font-size: 11.5px; font-weight: 700;
+          color: rgb(var(--g-600)); cursor: pointer; padding: 0; }
+.cm-mes:hover:not([disabled]) { border-color: rgb(var(--ac-300, 147 197 253)); background: rgb(var(--ac-50)); }
+.cm-mes[disabled] { cursor: default; }
+.cm-mes__ico { font-size: 12px; line-height: 1; min-height: 12px; }
+.cm-mes--cerrado { background: rgb(var(--g-100)); color: rgb(var(--g-800)); border-color: rgb(var(--g-300)); }
+.cm-mes--declaracion { background: rgb(var(--av-50)); color: rgb(var(--av-700, 147 55 13)); border-color: rgb(var(--av-200)); }
+.cm-mes--abierto_a_mano { border-style: dashed; }
+.cm-mes--futuro { opacity: .45; }
+.cm-mes--muestra { display: inline-flex; width: 22px; height: 18px; font-size: 10px; cursor: default; border-radius: 6px; }
+.cm-paginas { display: flex; gap: 12px; align-items: center; justify-content: flex-end; padding: 10px 0 6px; border-top: 1px solid var(--linea); font-size: 13px; }
+@media (max-width: 760px) {
+    .cm-fila { grid-template-columns: minmax(0, 1fr); gap: 8px; }
+    .cm-meses { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+    .cm-tabla { padding: 4px 14px; }
+}

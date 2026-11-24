@@ -104,7 +104,7 @@
                 "Si un proveedor escribe distinto la descripción en cada factura, cada una cuenta aparte; para agruparlas, usa «Por clave SAT».") +
             dato(num(C.datos.filas.clave.length), "claves del SAT", "Cuántas claves de producto o servicio del SAT distintas se usaron, se describan como se describan") +
             dato(num(r.contrapartes), quien(true)) +
-            dato("$" + fmt.format(r.importe_mxn), "importe neto en pesos", "Importe menos descuento, en pesos con el tipo de cambio de cada factura; las notas de crédito restan") +
+            dato("$" + fmt.format(r.importe_mxn), "importe neto en pesos", "Importe menos descuento, en pesos al tipo de cambio del DOF del día de cada factura; las notas de crédito restan") +
             dato("$" + fmt.format(r.iva_mxn), "IVA en pesos") + "</div>" +
             (avisos.length ? '<p class="xc-avisos">' + avisos.map(esc).join(" · ") + "</p>" : "");
         var seg = $("conceptos-vistas"); seg.hidden = false;
