@@ -145,11 +145,13 @@
             <h3 id="ev-p4">¿Qué lleva?</h3>
             <div class="ev-dos">
                 <div>
-                    <p class="ev-sub">XML y PDF <i>(en la carpeta «XML y PDF»)</i></p>
+                    <!-- 23-nov-2026 (el dueño, C.2): los XML y PDF de cada empresa, lado y mes van en un ZIP chico con dos carpetas -->
+                    <p class="ev-sub">XML y PDF <i>(en un ZIP por empresa, con «Facturas» y «Complementos de pago»)</i></p>
                     <div id="ev-xml" class="ev-checks"></div>
                 </div>
                 <div>
-                    <p class="ev-sub">Excel <i>(afuera de la carpeta, con las columnas que elijas)</i></p>
+                    <!-- 23-nov-2026 (el dueño, C.1): el mismo Excel del botón «Descargar Excel», con la vista que elijas -->
+                    <p class="ev-sub">Excel <i>(igual al botón «Descargar Excel», con la vista que elijas)</i></p>
                     <div id="ev-excel" class="ev-excel"></div>
                     <!-- 21-nov-2026 (el dueño): solo se ve si el periodo elegido en «Cuándo» abarca más de un mes y lleva algún Excel -->
                     <label class="ui-check ev-adjuntar" id="ev-excel-periodo-caja" hidden><input type="checkbox" id="ev-excel-periodo">
@@ -157,13 +159,14 @@
                             <small>Los de cada mes siguen en su carpeta.</small></span></label>
                 </div>
             </div>
-            <div class="ev-dos">
-                <label class="ui-campo"><span class="ui-etiqueta">Importes de los Excel</span>
-                    <select id="ev-moneda" class="ui-select"></select></label>
-                <div class="ui-campo" id="ev-conc-caja" hidden><span class="ui-etiqueta" id="ev-conc-etq">Hojas de la conciliación</span>
-                    <select id="ev-conc" class="ui-select" aria-labelledby="ev-conc-etq"></select></div>
+            <!-- 23-nov-2026 (el dueño, C.1): dos casillas para los Excel de Recibidos y Emitidos (ya no se eligen moneda ni hojas:
+                 van en pesos con el T.C. del DOF, al cierre si el mes cerró, y la conciliación con su reporte completo) -->
+            <div class="ev-dos ev-casillas" id="ev-casillas" hidden>
+                <label class="ui-check ev-adjuntar"><input type="checkbox" id="ev-dup">
+                    <span>Incluir posible duplicado <small>La columna «Posible duplicado» en los Excel de Recibidos y Emitidos.</small></span></label>
+                <label class="ui-check ev-adjuntar" id="ev-marcas-caja"><input type="checkbox" id="ev-marcas">
+                    <span>Incluir marcas fiscales <small>«Deducible (ISR)», «IVA acreditable» y «Motivo», como en Marcas fiscales.</small></span></label>
             </div>
-            <div id="ev-conc-hojas" class="ev-hojas" role="group" aria-label="Hojas de la conciliación" hidden></div>
             <div>
                 <p class="ev-sub">Documentos <i>(los más recientes guardados de cada empresa, juntos en una carpeta)</i></p>
                 <div id="ev-docs" class="ev-checks ev-checks--fila"></div>

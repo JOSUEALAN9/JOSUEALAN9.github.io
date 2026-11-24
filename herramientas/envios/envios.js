@@ -761,11 +761,15 @@
         $("ev-xml").innerHTML = E.op.xml.map(function (x) {
             return '<label class="ui-check"><input type="checkbox" value="' + esc(x.clave) + '"' + (c.xml.indexOf(x.clave) !== -1 ? " checked" : "") + "> " + esc(x.nombre) + "</label>";
         }).join("");
+        // 23-nov-2026 (el dueño, C.1): cada Excel con su vista: «Fiscontable» (de fábrica), «Formato 2» (donde existe) o una guardada
         $("ev-excel").innerHTML = E.op.excel.map(function (x) {
             var puesto = (c.excel || []).find(function (y) { return y.que === x.clave; });
+            var vista = puesto && puesto.vista != null && puesto.vista !== "" ? String(puesto.vista) : "fiscontable";
+            var op = function (valor, texto) { return '<option value="' + esc(valor) + '"' + (vista === valor ? " selected" : "") + ">" + esc(texto) + "</option>"; };
             return '<div class="ev-excel__fila"><label class="ui-check"><input type="checkbox" value="' + esc(x.clave) + '"' + (puesto ? " checked" : "") + "> <span>" + esc(x.nombre) + "</span></label>" +
-                '<select class="ui-select" data-vista="' + esc(x.clave) + '" aria-label="Columnas de ' + esc(x.nombre) + '"><option value="">Columnas de fábrica</option>' +
-                x.vistas.map(function (v) { return '<option value="' + v.id + '"' + (puesto && puesto.vista === v.id ? " selected" : "") + ">Vista: " + esc(v.nombre) + "</option>"; }).join("") + "</select></div>";
+                '<select class="ui-select" data-vista="' + esc(x.clave) + '" aria-label="Vista de ' + esc(x.nombre) + '">' + op("fiscontable", "Vista: Fiscontable") +
+                (x.formato2 ? op("formato2", "Vista: Formato 2") : "") +
+                (x.vistas || []).map(function (v) { return op(String(v.id), "Vista: " + v.nombre); }).join("") + "</select></div>";
         }).join("");
         $("ev-excel-periodo").checked = !!(c.excel_periodo);
         // «Solo de estos proveedores / clientes» (21-nov-2026): apagado si no tiene ninguno
@@ -776,16 +780,11 @@
         $("ev-docs").innerHTML = E.op.docs.map(function (x) {
             return '<label class="ui-check"><input type="checkbox" value="' + esc(x.clave) + '"' + ((c.docs || []).indexOf(x.clave) !== -1 ? " checked" : "") + "> " + esc(x.nombre) + "</label>";
         }).join("");
-        // En qué moneda van los Excel (pesos de fábrica) y qué hojas lleva la conciliación («Para compartir» de fábrica)
-        $("ev-moneda").innerHTML = E.op.monedas.map(function (m) { return '<option value="' + esc(m.clave) + '">' + esc(m.nombre) + "</option>"; }).join("");
-        $("ev-moneda").value = c.moneda || "xml";
-        var cj = E.op.conciliacion, hc = c.conciliacion || "compartir";
-        $("ev-conc").innerHTML = Object.keys(cj.juegos).map(function (k) { return '<option value="' + esc(k) + '">' + esc(cj.nombres[k]) + " (" + cj.juegos[k].length + " hojas)</option>"; }).join("") +
-            '<option value="">Elegir hojas…</option>';
-        E.hojasConc = new Set(Array.isArray(hc) ? hc : cj.juegos[hc] || cj.juegos.compartir);
-        $("ev-conc").value = Array.isArray(hc) ? "" : (cj.juegos[hc] ? hc : "compartir");
-        $("ev-conc-hojas").innerHTML = cj.hojas.map(function (h) { return '<label class="ui-check"><input type="checkbox" value="' + esc(h.clave) + '"> <span>' + esc(h.nombre) + "</span></label>"; }).join("");
-        pintarConc();
+        // Las dos casillas (C.1): «Incluir posible duplicado» prendida y «Incluir marcas fiscales» apagada de fábrica
+        $("ev-dup").checked = c.incluir_duplicado !== false;
+        $("ev-marcas").checked = !!c.incluir_marcas;
+        $("ev-marcas-caja").hidden = !E.op.puede_marcas;
+        pintarExcelOpc();
         // «Solo una vez, ahora» (21-nov-2026): con los 5 programados ya hechos, uno nuevo solo puede ser de una vez
         var lleno = !e && programados().length >= E.max;
         $("ev-frecuencia").querySelectorAll("option").forEach(function (o) { o.disabled = (lleno && o.value !== UNA_VEZ) || (!!e && o.value === UNA_VEZ); });
@@ -821,17 +820,12 @@
         if (!$("ev-dlg").open) $("ev-dlg").showModal();
         $("ev-nombre").focus();
     }
-    // Las hojas de la conciliación solo se preguntan si el envío lleva un Excel de conciliación
-    function pintarConc() {
-        var lleva = !!$("ev-excel").querySelector('input[value^="conciliacion_"]:checked'), propio = $("ev-conc").value === "";
-        $("ev-conc-caja").hidden = !lleva;
-        $("ev-conc-hojas").hidden = !lleva || !propio;
+    // Las dos casillas solo se ven si el envío lleva el Excel de Recibidos o el de Emitidos (son las que cambian)
+    function pintarExcelOpc() {
+        $("ev-casillas").hidden = !$("ev-excel").querySelector('input[value="xml_recibidos"]:checked, input[value="xml_emitidos"]:checked');
         pintarExcelPeriodo();          // solo si lleva algún Excel y el periodo abarca más de un mes
-        $("ev-conc-hojas").querySelectorAll("input").forEach(function (i) { i.checked = E.hojasConc.has(i.value); });
     }
     function leerForm() {
-        var juego = $("ev-conc").value, orden = E.op.conciliacion.hojas.map(function (h) { return h.clave; });
-        var hojas = juego || orden.filter(function (k) { return E.hojasConc.has(k); });
         return {
             nombre: $("ev-nombre").value, para: E.correos.para.valores().join(", "), cc: E.correos.cc.valores().join(", "), empresas: Array.from(E.marcadas),
             destino: document.querySelector('input[name="ev-destino"]:checked').value,
@@ -839,10 +833,10 @@
                 xml: Array.from($("ev-xml").querySelectorAll("input:checked")).map(function (i) { return i.value; }),
                 excel: Array.from($("ev-excel").querySelectorAll("input:checked")).map(function (i) {
                     var v = $("ev-excel").querySelector('[data-vista="' + i.value + '"]').value;
-                    return { que: i.value, vista: v ? Number(v) : null };
+                    return { que: i.value, vista: /^\d+$/.test(v) ? Number(v) : (v || "fiscontable") };
                 }),
                 docs: Array.from($("ev-docs").querySelectorAll("input:checked")).map(function (i) { return i.value; }),
-                moneda: $("ev-moneda").value || "xml", conciliacion: (Array.isArray(hojas) && !hojas.length) ? "compartir" : hojas,
+                incluir_duplicado: $("ev-dup").checked, incluir_marcas: !$("ev-marcas-caja").hidden && $("ev-marcas").checked,
                 excel_periodo: $("ev-excel-periodo").checked,          // además, un Excel con todo el periodo (19-nov)
                 contrapartes: $("ev-solo").checked ? { proveedores: Array.from(E.solo.proveedores), clientes: Array.from(E.solo.clientes) } : { proveedores: [], clientes: [] }
             },
@@ -1211,16 +1205,8 @@
         });
         $("ev-adjuntar").addEventListener("change", pintarVista);
         document.querySelectorAll('input[name="ev-lugar"]').forEach(function (r) { r.addEventListener("change", function () { pintarLugar(); pintarVista(); }); });
-        $("ev-excel").addEventListener("change", pintarConc);
+        $("ev-excel").addEventListener("change", pintarExcelOpc);
         ["ev-xml", "ev-excel", "ev-docs"].forEach(function (id) { $(id).addEventListener("change", pintarCorteLleva); });
-        $("ev-conc").addEventListener("change", function () {
-            var j = E.op.conciliacion.juegos[$("ev-conc").value];
-            if (j) E.hojasConc = new Set(j);
-            pintarConc();
-        });
-        $("ev-conc-hojas").addEventListener("change", function (ev) {
-            if (ev.target.checked) E.hojasConc.add(ev.target.value); else E.hojasConc.delete(ev.target.value);
-        });
         ["ev-asunto", "ev-mensaje"].forEach(function (id) {
             $(id).addEventListener("focus", function () { E.campoTexto = $(id); });
             $(id).addEventListener("input", pintarVista);

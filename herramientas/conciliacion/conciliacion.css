@@ -81,14 +81,6 @@ a.xml-btn { text-decoration: none; }
 .conc-pendientes button.ctx-resumen__dato:disabled:hover { background: none; }
 .conc-pendientes .conc-iva { margin-left: auto; border-left: 1px solid rgb(var(--g-200)); }
 .conc-pendientes .conc-iva b { color: rgb(var(--g-900)); }
-/* Excel con moneda extranjera: tres opciones que se leen completas */
-.conc-opcion { display: flex; align-items: flex-start; gap: 12px; border: 1px solid rgb(var(--g-200)); border-radius: 12px; padding: 14px 16px; margin-bottom: 10px; cursor: pointer; }
-.conc-opcion:hover { background: rgb(var(--g-50)); }
-.conc-opcion:has(input:checked) { border-color: var(--acento, rgb(var(--ac-600))); background: var(--acento-suave, rgb(var(--ac-50))); }
-.conc-opcion input { margin-top: 3px; flex: none; }
-.conc-opcion span { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
-.conc-opcion b { font-size: 14px; color: rgb(var(--g-900)); }
-.conc-opcion small { font-size: 12.5px; line-height: 1.45; color: rgb(var(--g-600)); }
 #modal-cuerpo .conc-sub { font-size: 12.5px; margin: 14px 0 18px; }
 .conc-panel { width: 900px; }
 .conc-mini th[title], .conc-mini td[title] { cursor: help; }
@@ -99,23 +91,6 @@ a.xml-btn { text-decoration: none; }
   .conc-base .conc-globo { right: auto; left: 0; }
   .conc-pendientes .conc-iva { margin-left: 0; border-left: 0; flex: 1 1 100%; }
 }
-
-/* «Usar esto siempre» en la moneda de los Excel (17-nov) */
-.conc-opcion--siempre { margin-top: 14px; border-style: dashed; }
-.conc-moneda-excel { display: block; width: 100%; margin: 6px 0 0; padding: 0 4px; background: none; border: 0; text-align: left; font-size: 12px; line-height: 1.4;
-    color: var(--texto-tenue, rgb(var(--g-600))); cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
-.conc-moneda-excel[hidden] { display: none; }
-
-/* «Excel del periodo»: juegos de hojas y casillas (18-nov) */
-.conc-juegos { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr)); gap: 8px; margin: 10px 0; }
-.conc-juego { display: grid; gap: 2px; text-align: left; padding: 10px 12px; border: 1px solid rgb(var(--g-300)); border-radius: 12px; background: rgb(var(--g-0)); font: inherit; cursor: pointer; }
-.conc-juego b { font-size: 14px; color: rgb(var(--g-900)); }
-.conc-juego small { font-size: 12px; color: rgb(var(--g-600)); }
-.conc-juego:hover { border-color: rgb(var(--g-400)); }
-.conc-juego[aria-pressed="true"] { border-color: rgb(var(--ac-600)); background: rgb(var(--ac-600) / .06); }
-.conc-hojas { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 210px), 1fr)); gap: 4px 14px; padding: 10px 12px; border: 1px solid rgb(var(--g-200)); border-radius: 12px; }
-.conc-hoja { display: flex; align-items: flex-start; gap: 8px; font-size: 13.5px; color: rgb(var(--g-800, var(--g-700))); padding: 3px 0; cursor: pointer; }
-.conc-hoja input { margin-top: 2px; accent-color: rgb(var(--ac-600)); }
 
 /* 22-nov-2026 (barrido de botones): aquí «Cambiar empresa ▾» queda pegado a la orilla derecha (después de las pestañas) y su menú
    de 340 px, abierto hacia la derecha, se salía de la pantalla y la página crecía a lo ancho. Se abre hacia la izquierda. */
