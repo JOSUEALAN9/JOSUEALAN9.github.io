@@ -70,7 +70,7 @@
                 <div class="ui-tarjeta dp-pedir">
                     <div>
                         <h2>Pedir acceso a una empresa del despacho</h2>
-                        <p class="dp-tenue">Escribe su RFC. Para pasar una empresa de Mi espacio al despacho, usa <a href="/clientes/">Clientes</a> → «Pasar al despacho».</p>
+                        <p class="dp-tenue" id="dp-pedir-ayuda">Escribe su RFC. Si la empresa todavía no está en el despacho, pídele al titular que la registre (o regístrala en <a href="/clientes/">Clientes</a> si tienes permiso).</p>
                     </div>
                     <form class="dp-pedir__forma" id="dp-pedir">
                         <input class="ui-input" id="dp-pedir-rfc" placeholder="RFC de la empresa" maxlength="13" autocomplete="off" spellcheck="false" aria-label="RFC de la empresa">
@@ -161,6 +161,24 @@
         <div class="fc-modal__pie">
             <button type="button" class="ui-btn ui-btn--secundario ui-btn--36" data-mig-cerrar>Cancelar</button>
             <button type="button" class="ui-btn ui-btn--primario ui-btn--36" id="dp-mig-enviar">Solicitar</button>
+        </div>
+    </dialog>
+
+    <!-- 23-nov-2026 (el dueño, Avance 1 · I.2): el enlace de una invitación pendiente, para mandarla por WhatsApp o copiarla -->
+    <dialog class="fc-modal fc-modal--mediana" id="dp-enlace-dlg" aria-labelledby="dp-enlace-titulo">
+        <div class="fc-modal__cabeza"><div><h2 id="dp-enlace-titulo">Enlace de la invitación</h2><p id="dp-enlace-sub"></p></div>
+            <button type="button" class="fc-modal__cerrar" data-enlace-cerrar aria-label="Cerrar">×</button></div>
+        <div class="fc-modal__cuerpo">
+            <label class="ui-campo"><span class="ui-etiqueta">Enlace</span>
+                <input class="ui-input" id="dp-enlace-url" readonly></label>
+            <label class="ui-campo"><span class="ui-etiqueta">Mensaje</span>
+                <textarea class="ui-input dp-enlace-msj" id="dp-enlace-msj" rows="7" readonly></textarea></label>
+            <p class="ui-ayuda" id="dp-enlace-nota"></p>
+        </div>
+        <div class="fc-modal__pie dp-enlace-pie">
+            <button type="button" class="ui-btn ui-btn--secundario ui-btn--36" id="dp-enlace-copiar">Copiar enlace</button>
+            <button type="button" class="ui-btn ui-btn--secundario ui-btn--36" id="dp-enlace-copiar-msj">Copiar mensaje</button>
+            <a class="ui-btn ui-btn--primario ui-btn--36" id="dp-enlace-wa" href="#" target="_blank" rel="noopener">Mandar por WhatsApp</a>
         </div>
     </dialog>
 

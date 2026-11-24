@@ -135,3 +135,11 @@ button.dp-inicial:hover, button.dp-inicial:focus-visible { box-shadow: 0 0 0 2px
 .dp-mi-aviso { font-size: 13px; line-height: 1.45; padding: 10px 12px; border-radius: 10px; background: #FFF7E6; color: #7A4B00; }
 .dp-mi-msj { font-size: 13px; color: #1F7A4D; }
 .dp-mi-msj--mal { color: rgb(var(--er-600)); }
+
+/* 23-nov-2026 (Avance 1 · I.2): ventana «Enlace de la invitación» */
+.dp-enlace-msj { height: auto; padding-block: 10px; line-height: 1.45; resize: none; }
+@media (max-width: 640px) {
+    .dp-enlace-msj { min-height: 13em; }
+    .dp-enlace-pie { flex-wrap: wrap; }
+    .dp-enlace-pie > * { flex: 1 1 100%; justify-content: center; }
+}

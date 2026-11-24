@@ -301,6 +301,33 @@
     var ancla = document.getElementById("app-header");
     if (!ancla) return;
 
+    /* 23-nov-2026 (el dueño, Avance 1 · I.1, cierre de sesión seguro): «Cerrar sesión» (y el cierre por muchas horas sin
+       actividad) deja en este navegador la marca «fc-salio». Con ella, cualquier página de la app va directo a «Iniciar
+       sesión» SIN pintar nada (ni la barra con lo de la vez pasada) y sin esperar al servidor: antes, al dar F5 o abrir un
+       marcador, se veían unos segundos el nombre y el aviso de quien salió. La marca se quita al entrar (login.js) o cuando
+       /api/mi-perfil contesta bien. Las demás pestañas se enteran por el evento «storage» y se van también; al volver con
+       Atrás (página guardada por el navegador) se revisa otra vez (pageshow). Dentro de un marco no se navega: lo hace la de
+       arriba. Lo personal que quedaba guardado en el navegador se borra con olvidarCuenta(). */
+    var LLAVE_SALIO = "fc-salio";
+    function marcaSalio() {
+        try { var v = localStorage.getItem(LLAVE_SALIO); return v ? (JSON.parse(v) || { motivo: "salio" }) : null; }
+        catch (e) { return null; }
+    }
+    function irALoginPorSalida(m) {
+        document.documentElement.style.visibility = "hidden";          // nada de lo que había se vuelve a ver
+        if (enMarco) return;
+        var motivo = m && m.motivo === "inactividad" ? "sesion" : "salio";
+        // Después de salir, la siguiente entrada abre Inicio (no la última página de quien salió)
+        try { sessionStorage.setItem("fc-entrar-datos", JSON.stringify({ motivo: motivo, volver: location.origin + INICIO, en: Date.now() })); }
+        catch (e) { /* sin almacenamiento */ }
+        location.replace("/login");
+    }
+    if (marcaSalio()) { irALoginPorSalida(marcaSalio()); return; }
+    window.addEventListener("storage", function (e) {
+        // Cerró sesión en otra pestaña: esta también olvida lo suyo (lo de la pestaña no lo borra la otra) y se va
+        if (e.key === LLAVE_SALIO && e.newValue) { olvidarCuenta(); irALoginPorSalida(marcaSalio()); }
+    });
+
     var clave = ancla.dataset.modulo || "portada";
     var modulo = MODULOS[clave] || MODULOS.portada;
 
@@ -444,7 +471,8 @@
                   "</a>" +
                   '<button type="button" class="fc-accion" id="fc-btn-perfil" aria-haspopup="menu" aria-expanded="false">' +
                     '<span class="fc-avatar" id="fc-avatar">·</span>' +
-                    '<span class="fc-accion__etiqueta" id="fc-nombre-corto">' + esc(bc.nombre || "") + "</span>" +
+                    // 23-nov-2026 (I.1): el nombre de la vez pasada solo aparta su lugar; se ve cuando /api/mi-perfil lo confirma
+                    '<span class="fc-accion__etiqueta' + (bc.nombre ? " fc-accion--reservada" : "") + '" id="fc-nombre-corto">' + esc(bc.nombre || "") + "</span>" +
                   "</button>" +
                 "</div>" +
                 menuPerfilHTML() + menuEspaciosHTML() + menuEmpresasHTML() + menuModulosHTML() +
@@ -3749,7 +3777,8 @@
     function cerrarPorInactividad() {
         if (!(perfilActual && perfilActual.sesion_propia)) { location.href = SALIR; return; }
         fetch(API + "/publico/cuenta/salir", { method: "POST", credentials: "include", keepalive: true }).catch(function () {});
-        setTimeout(function () { location.replace(urlEntrar("sesion")); }, 300);
+        olvidarCuenta(); ponerMarcaSalio("inactividad");          // 23-nov-2026 (I.1)
+        setTimeout(function () { irALoginPorSalida({ motivo: "inactividad" }); }, 300);
     }
     /* «Iniciar sesión» desde la pantalla bloqueada (inicio de sesión propio): se abre en OTRA pestaña y esta se queda
        como está. Al entrar allá se quita la marca de bloqueo y todas las pestañas se reanudan donde estaban. */
@@ -3983,9 +4012,50 @@
         window.Fiscontable.revisarVersion = function () { return revisarVersion(true); };
     }
 
+    window.addEventListener("pageshow", function (e) {
+        if (!e.persisted) return;
+        if (marcaSalio()) { irALoginPorSalida(marcaSalio()); return; }
+        fetch(API + "/api/mi-perfil", { credentials: "include", cache: "no-store" }).then(function (r) {
+            // 24-nov-2026 (revisión): la sesión venció sin «Cerrar sesión»: como manejarErrorPerfil, al entrar regresa a esta página
+            if (r.status === 401 || r.status === 403) {
+                olvidarCuenta();
+                document.documentElement.style.visibility = "hidden";
+                if (!enMarco) location.replace(urlEntrar("sesion"));
+            }
+        }, function () { /* sin red: se queda; lo siguiente que pida lo dirá */ });
+    });
+
+    /* Lo personal que este navegador guarda de quien entró (para pintar la barra sin «brinquito», las empresas recientes,
+       la foto de la pantalla bloqueada, el saldo a favor de IVA escrito a mano…). Se borra al cerrar sesión, al cerrarse
+       por inactividad y cuando el servidor dice que ya no hay sesión. Las preferencias (tema, densidad, columnas, vistas,
+       filtros, modo de entrada) se quedan: no son de la persona sino del equipo. Una llave personal nueva va en esta lista. */
+    var LLAVES_PERSONALES = ["fc-barra-ultima", "fc-aviso-acceso", "fc-letreros", "fc-empresas-recientes", "fc-foto", "fc-ya-entro", "fc-recientes"];
+    var PREFIJOS_PERSONALES = ["iva:saldo:"];
+    function olvidarCuenta() {
+        try {
+            LLAVES_PERSONALES.forEach(function (k) { localStorage.removeItem(k); });
+            for (var i = localStorage.length - 1; i >= 0; i--) {
+                var k = localStorage.key(i);
+                if (k && PREFIJOS_PERSONALES.some(function (pre) { return k.indexOf(pre) === 0; })) localStorage.removeItem(k);
+            }
+        } catch (e) { /* sin almacenamiento */ }
+        try {                                 // todo lo de la pestaña, menos la marca contra las vueltas a «Entrar» (irAEntrar)
+            var vuelta = sessionStorage.getItem("fc-entrar");
+            sessionStorage.clear();
+            if (vuelta) sessionStorage.setItem("fc-entrar", vuelta);
+        } catch (e) { /* sin almacenamiento */ }
+    }
+    function ponerMarcaSalio(motivo) {
+        try { localStorage.setItem(LLAVE_SALIO, JSON.stringify({ motivo: motivo, en: Date.now() })); } catch (e) { /* sin almacenamiento */ }
+    }
+
     function manejarErrorPerfil(tipo, motivo) {
-        // Sin perfil no hay selectores: el lugar que se apartó para ellos se suelta
+        // Sin perfil no hay selectores: el lugar que se apartó para ellos se suelta. El nombre de la vez pasada se vacía
+        // (24-nov-2026, revisión: escondido con «hidden» ya no volvía a salir si «Reintentar» traía el perfil)
+        var nom = document.getElementById("fc-nombre-corto");
+        if (nom && nom.classList.contains("fc-accion--reservada")) { nom.textContent = ""; nom.classList.remove("fc-accion--reservada"); }
         document.querySelectorAll(".fc-accion--reservada").forEach(function (b) { b.hidden = true; b.classList.remove("fc-accion--reservada"); });
+        var cajaAviso = document.getElementById("fc-aviso"); if (cajaAviso) delete cajaAviso.dataset.guardado;
         if (tipo === "bloqueada") {
             aviso(motivo, [{ texto: "Cerrar sesión", href: API + "/cdn-cgi/access/logout" },
                            { texto: "Reintentar", accion: function () { promesaPerfil = null; iniciarPerfil(); } }]);
@@ -3995,6 +4065,8 @@
         var entrar = urlEntrar("sesion");
         var reintentar = { texto: "Reintentar", accion: function () { promesaPerfil = null; iniciarPerfil(); } };
         if (tipo === "sesion") {
+            olvidarCuenta();                 // 23-nov-2026 (I.1): sin sesión, lo personal guardado en el navegador ya no sirve
+            entrar = urlEntrar("sesion");
             if (!irAEntrar("sesion")) aviso("Tu sesión terminó. Inicia sesión de nuevo para continuar.", [{ texto: "Iniciar sesión", href: entrar }, reintentar]);
             document.dispatchEvent(new CustomEvent("fc:perfil", { detail: null }));
             return;
@@ -4038,10 +4110,11 @@
     }
 
     async function iniciarPerfil() {
-        ocultarAviso();
+        var cajaAviso = document.getElementById("fc-aviso");
+        if (!(cajaAviso && cajaAviso.dataset.guardado)) ocultarAviso();      // el guardado aparta su lugar (invisible) hasta confirmarlo
         var p = await perfil();
         if (p && p._error) { manejarErrorPerfil(p._error, p.motivo); return; }
-        try { sessionStorage.removeItem("fc-entrar"); localStorage.setItem("fc-ya-entro", "1"); } catch (e) { /* sin almacenamiento */ }
+        try { sessionStorage.removeItem("fc-entrar"); localStorage.setItem("fc-ya-entro", "1"); localStorage.removeItem(LLAVE_SALIO); } catch (e) { /* sin almacenamiento */ }
         pintarPerfil(p);
     }
 
@@ -4062,7 +4135,7 @@
             if (b) b.classList.remove("fc-accion--reservada");
             if (b && !b.hidden && t) g[x[0]] = t.textContent;
         });
-        var n = document.getElementById("fc-nombre-corto"); if (n) g.nombre = n.textContent;
+        var n = document.getElementById("fc-nombre-corto"); if (n) { n.classList.remove("fc-accion--reservada"); g.nombre = n.textContent; }
         try { localStorage.setItem(LLAVE_BARRA, JSON.stringify(g)); } catch (e) { /* sin almacenamiento */ }
     }
 
@@ -4072,11 +4145,12 @@
     function avisoDeAcceso(texto, acciones, desdeGuardado) {
         var caja = document.getElementById("fc-aviso");
         if (!caja) return;
-        if (desdeGuardado) { aviso(texto, acciones); caja.dataset.guardado = texto; return; }
+        // 23-nov-2026 (I.1): el de la vez pasada solo aparta su lugar (invisible): puede traer el nombre del titular
+        if (desdeGuardado) { aviso(texto, acciones); caja.dataset.guardado = texto; caja.style.visibility = "hidden"; return; }
         try { if (texto) localStorage.setItem(LLAVE_AVISO_ACCESO, JSON.stringify({ texto: texto, acciones: acciones || [] })); else localStorage.removeItem(LLAVE_AVISO_ACCESO); }
         catch (e) { /* sin almacenamiento */ }
         var previo = caja.dataset.guardado; delete caja.dataset.guardado;
-        if (previo && previo === texto && !caja.hidden) return;               // el mismo: nada se mueve
+        if (previo && previo === texto && !caja.hidden) { caja.style.visibility = ""; return; }   // el mismo: nada se mueve, ya se ve
         if (!texto) { if (previo && !caja.hidden) caja.style.visibility = "hidden"; return; }
         aviso(texto, acciones);
         if (!previo && document.querySelector("main")) caja.classList.add("fc-aviso--encima");
@@ -4608,10 +4682,14 @@
         var a = e.target.closest && e.target.closest('a[href$="/cdn-cgi/access/logout"]');
         if (!a || !perfilActual || !perfilActual.sesion_propia) return;
         e.preventDefault();
-        if (a.id === "fc-bl-salir") { reingresarEnOtraPestana(); return; }
+        if (a.id === "fc-bl-salir") { reingresarEnOtraPestana(); return; }           // ese NO pone la marca: las demás esperan
+        // 23-nov-2026 (I.1): la marca va primero (las demás pestañas se tapan y se van al momento) y la página se tapa
+        // antes de salir, para que Atrás no la regrese con sus datos
+        ponerMarcaSalio("salio");
+        document.documentElement.style.visibility = "hidden";
         try { await fetch(API + "/publico/cuenta/salir", { method: "POST", credentials: "include" }); } catch (x) { /* igual se va */ }
-        try { localStorage.removeItem("fc-ya-entro"); localStorage.removeItem("fc-foto"); } catch (x) { /* nada */ }
-        location.replace(urlEntrar("salio"));
+        olvidarCuenta();
+        irALoginPorSalida({ motivo: "salio" });
     }, true);
 
     var btnPerfil = document.getElementById("fc-btn-perfil");

@@ -18,8 +18,10 @@
     var datos = null, filtroSol = "pendiente", edicion = null;
     var fotos = {}, vigia = null;                 // fotos chicas ya traídas: «correo|marca» → dirección local (se reusan al repintar)
     var AYUDA_PAPEL = {
-        titular: "Administra el equipo, los permisos y los ajustes, y acepta solicitudes. Ve todo el despacho.",
-        aprobador: "Acepta o rechaza las solicitudes del equipo y ve la bitácora. Las suyas las resuelve el titular. Trabaja con lo que le permitas.",
+        // 23-nov-2026 (auditoría despacho-3): el interruptor «registrar y quitar» ya manda también para quien aprueba,
+        // y «Borrar todo» de una empresa del despacho solo lo hace el titular
+        titular: "Administra el equipo, los permisos y los ajustes, y acepta solicitudes. Ve todo el despacho. Solo él puede borrar todo de una empresa.",
+        aprobador: "Acepta o rechaza las solicitudes del equipo y ve la bitácora. Las suyas las resuelve el titular. Trabaja con lo que le permitas: registra o quita empresas solo si le prendes ese permiso.",
         miembro: "Trabaja con las empresas y los módulos que le des."
     };
 
@@ -211,6 +213,9 @@
                 // 21-nov-2026 (auditoría M1): a quien se le venció el enlace de 72 h (o no le llegó) se le manda uno nuevo
                 (datos.titular && m.estado === "invitado" ? '<button type="button" class="ui-btn ui-btn--secundario ui-btn--28" data-reenviar="' + esc(m.correo) +
                     '" title="Le manda un enlace nuevo (vence en 72 horas)">Reenviar invitación</button>' : "") +
+                // 23-nov-2026 (el dueño, Avance 1 · I.2): el enlace para mandarlo por WhatsApp o copiarlo, sin correo
+                (datos.titular && m.estado === "invitado" ? '<button type="button" class="ui-btn ui-btn--secundario ui-btn--28" data-enlace="' + esc(m.correo) +
+                    '" title="Para mandarle la invitación por WhatsApp o copiarla">Enlace</button>' : "") +
                 (datos.titular ? '<button type="button" class="ui-btn ui-btn--secundario ui-btn--28" data-editar="' + esc(m.correo) + '">Permisos</button>' : "") +
                 "</span></li>";
         }).join("") : '<li class="dp-lista__vacio">Todavía no hay nadie en el equipo.</li>';
@@ -218,6 +223,9 @@
     }
 
     function pintarYo() {
+        // 23-nov-2026 (auditoría contradicciones-4): el camino de Mi espacio solo se menciona cuando Mi espacio existe
+        var ayuda = $("dp-pedir-ayuda");
+        if (ayuda && datos.mi_espacio && datos.mi_espacio.listo) ayuda.innerHTML = 'Escribe su RFC. Para pasar una empresa de Mi espacio al despacho, usa <a href="/clientes/">Clientes</a> → «Pasar al despacho».';
         var caja = $("dp-yo");
         if (datos.titular) { caja.hidden = true; return; }
         var y = datos.yo, mods = {};
@@ -493,7 +501,10 @@
         if (!/^[A-ZÑ&]{3,4}\d{6}[A-Z0-9]{3}$/.test(rfc)) return decir("Ese RFC no tiene la forma correcta (12 o 13 caracteres).");
         try {
             var e = await pedir("/api/despacho/existe/" + encodeURIComponent(rfc));
-            if (!e.existe) return decir("Esa empresa no está en el despacho. Si es tuya, regístrala en Mi espacio y luego pásala al despacho desde Clientes.");
+            // 23-nov-2026 (auditoría contradicciones-4): mientras Mi espacio esté apagado no existe «Pasar al despacho»
+            if (!e.existe) return decir((datos && datos.mi_espacio && datos.mi_espacio.listo)
+                ? "Esa empresa no está en el despacho. Si es tuya, regístrala en Mi espacio y luego pásala al despacho desde Clientes."
+                : "Esa empresa no está en el despacho. Pídele al titular que la registre (o regístrala en Clientes si tienes permiso).");
             if (e.tengo_acceso) return decir("Ya tienes acceso a " + (e.alias || rfc) + ".");
             if (e.solicitud_pendiente) return decir("Ya pediste acceso a " + (e.alias || rfc) + "; está pendiente.");
             var r = await pedir("/api/despacho/solicitudes", { method: "POST", body: { tipo: "acceso", rfc: rfc } });
@@ -664,6 +675,43 @@
         }
     }
 
+    /* 23-nov-2026 (el dueño, Avance 1 · I.2): «Enlace» de una invitación pendiente. Con el PIN del titular, el servidor da un
+       enlace (72 h, una sola vez; el del correo deja de servir) o, si la persona ya tiene contraseña, la página del despacho,
+       con el mensaje ya escrito. No manda correo. Aquí: copiar el enlace, copiar el mensaje o abrir WhatsApp con el mensaje. */
+    async function sacarEnlace(b) {
+        var correo = b.dataset.enlace, m = miembroDe(correo) || { correo: correo }, r = null;
+        var hecho = await F.confirmarIdentidad("invitar_miembro", async function (c) {
+            r = await pedir("/api/despacho/miembros/" + encodeURIComponent(correo) + "/enlace", { method: "POST", body: { confirmacion: c } });
+            return r;
+        }, { titulo: "Enlace de la invitación", boton: "Sacar el enlace",
+             resumen: '<p class="fc-identidad__aviso">Es para mandarle la invitación a <b>' + esc(m.nombre || correo) + "</b> por WhatsApp o copiarla. " +
+                      "Si todavía no tiene cuenta, el enlace que le mandamos por correo deja de servir.</p>" });
+        if (!hecho || !r) return;
+        var dlg = $("dp-enlace-dlg");
+        $("dp-enlace-sub").textContent = correo;
+        $("dp-enlace-url").value = r.enlace;
+        $("dp-enlace-msj").value = r.mensaje;
+        $("dp-enlace-nota").textContent = r.como === "enlace"
+            ? "Sirve una sola vez. Vence el " + new Date(r.vence).toLocaleDateString("es-MX", { timeZone: "America/Mexico_City", day: "numeric", month: "short" }) +
+              " a las " + new Date(r.vence).toLocaleTimeString("es-MX", { timeZone: "America/Mexico_City", hour: "2-digit", minute: "2-digit" }) +
+              (/\.$/.test(new Date(r.vence).toLocaleTimeString("es-MX", { timeZone: "America/Mexico_City", hour: "2-digit", minute: "2-digit" })) ? " " : ". ") +
+              "El enlace del correo ya no sirve."
+            : "Ya tiene cuenta en Fiscontable: el enlace la lleva a Mi despacho, donde acepta la invitación.";
+        $("dp-enlace-wa").href = "https://wa.me/?text=" + encodeURIComponent(r.mensaje);
+        ["dp-enlace-copiar", "dp-enlace-copiar-msj"].forEach(function (id) { $(id).textContent = id === "dp-enlace-copiar" ? "Copiar enlace" : "Copiar mensaje"; });
+        dlg.showModal();
+    }
+    async function copiar(boton, texto, listo) {
+        var antes = boton.textContent;
+        try { await navigator.clipboard.writeText(texto); boton.textContent = listo; }
+        catch (e) {
+            // Sin permiso del navegador para copiar: se deja seleccionado para copiarlo a mano
+            var campo = boton.id === "dp-enlace-copiar" ? $("dp-enlace-url") : $("dp-enlace-msj");
+            campo.focus(); campo.select(); boton.textContent = "Cópialo a mano";        // (en el teléfono no hay Ctrl+C)
+        }
+        setTimeout(function () { boton.textContent = antes; }, 2200);
+    }
+
     // ------------------------------------------------------------------ eventos
     document.querySelector(".dp-vistas").addEventListener("click", function (e) {
         var b = e.target.closest("[data-vista]");
@@ -681,6 +729,8 @@
         if (f) return verFoto(f);
         var r = e.target.closest("[data-reenviar]");
         if (r) return reenviarInvitacion(r);
+        var en = e.target.closest("[data-enlace]");
+        if (en) return sacarEnlace(en);
         var b = e.target.closest("[data-editar]");
         if (b) abrirModal(datos.equipo.filter(function (m) { return m.correo === b.dataset.editar; })[0]);
     });
@@ -728,6 +778,10 @@
         if (e.target.name === "dp-mig-cuales") { $("dp-mig-rfcs").hidden = e.target.value !== "algunas"; if (!$("dp-mig-rfcs").hidden) $("dp-mig-rfcs").focus(); }
     });
     $("dp-mig-dlg").addEventListener("click", function (e) { if (e.target.closest("[data-mig-cerrar]")) this.close(); });
+    $("dp-enlace-dlg").addEventListener("click", function (e) { if (e.target.closest("[data-enlace-cerrar]")) this.close(); });
+    $("dp-enlace-dlg").addEventListener("close", function () { $("dp-enlace-url").value = ""; $("dp-enlace-msj").value = ""; $("dp-enlace-wa").href = "#"; });
+    $("dp-enlace-copiar").addEventListener("click", function () { copiar(this, $("dp-enlace-url").value, "Enlace copiado ✓"); });
+    $("dp-enlace-copiar-msj").addEventListener("click", function () { copiar(this, $("dp-enlace-msj").value, "Mensaje copiado ✓"); });
 
     cargar();
 })();
