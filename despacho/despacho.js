@@ -217,7 +217,8 @@
                 : m.estado === "suspendido" ? '<span class="ui-estado ui-estado--error">Suspendido</span>' : "";
             return "<li>" + circulo(m) +
                 '<span class="dp-quien"><strong>' + esc(m.nombre || m.correo) + (m.correo === datos.yo.correo ? " (tú)" : "") + "</strong>" +
-                "<small>" + (m.nombre ? esc(m.correo) + " · " : "") + (datos.titular ? esc(resumenPermisos(m)) : "") + "</small>" +
+                // 25-nov-2026 (paquete dpe): quien no es titular no ve el resumen de permisos: sin el « · » suelto tras el correo
+                "<small>" + (m.nombre ? esc(m.correo) + (datos.titular ? " · " : "") : "") + (datos.titular ? esc(resumenPermisos(m)) : "") + "</small>" +
                 (datos.titular && textoMiEspacio(m) ? '<small class="dp-quien-me">' + esc(textoMiEspacio(m)) + "</small>" : "") + "</span>" +
                 '<span class="dp-lado">' + estado + (datos.titular ? chipMiEspacio(m) : "") + '<span class="dp-etiqueta dp-etiqueta--' + esc(m.papel) + '">' + esc(m.nombre_papel) + "</span>" +
                 // 21-nov-2026 (auditoría M1): a quien se le venció el enlace de 72 h (o no le llegó) se le manda uno nuevo
@@ -238,28 +239,148 @@
         if (ayuda && datos.mi_espacio && datos.mi_espacio.listo) ayuda.innerHTML = 'Escribe su RFC. Para pasar una empresa de Mi espacio al despacho, usa <a href="/clientes/">Clientes</a> → «Pasar al despacho».';
         var caja = $("dp-yo");
         if (datos.titular) { caja.hidden = true; return; }
-        var y = datos.yo, mods = {};
-        datos.modulos.forEach(function (m) { mods[m.clave] = m.nombre; });
-        var nombresMod = y.modulos === null ? "Todos los del despacho" : (y.modulos.map(function (c) { return mods[c] || c; }).join(", ") || "Ninguno");
+        var y = datos.yo;
         caja.hidden = false;
-        caja.innerHTML = "<h2>Tus permisos en el despacho</h2><div class=\"dp-permisos\">" +
-            '<div class="dp-permiso"><span>Empresas</span>' + (y.empresas === null ? "Todas" : y.empresas.length + " asignadas") + "</div>" +
-            '<div class="dp-permiso"><span>Módulos</span>' + esc(nombresMod) + "</div>" +
-            '<div class="dp-permiso"><span>Registrar empresas en el despacho</span>' + (y.agregar ? "Sí" : "Con solicitud al titular") + "</div>" +
-            '<div class="dp-permiso"><span>Mi espacio</span>' + esc(textoMiEspacioPropio(y)) + "</div>" +
-            (y.solo_lectura ? '<div class="dp-permiso"><span>Modo</span>Solo consulta</div>' : "") + "</div>";
+        caja.innerHTML = '<div class="dp-caja-cabeza"><h2>Tus permisos en el despacho</h2><span class="dp-tenue">Los decide el titular</span></div>' +
+            // en solo consulta, lo primero (el letrero de la barra lo dice para toda la página; aquí, qué significa para sus permisos)
+            (y.solo_lectura ? '<p class="ui-aviso ui-aviso--aviso dp-yo-consulta" id="dp-yo-consulta"><span><b>Solo consulta.</b> Con estos permisos ves y descargas, ' +
+                "pero no cambias nada ni haces trámites ante el SAT.</span></p>" : "") +
+            '<ul class="dp-filas">' + filaEmpresas(y) + filaModulos(y) + filaRegistrar(y) + filaMiEspacio(y) + "</ul>";
     }
 
-    function textoMiEspacioPropio(y) {
-        var e = y.mi_espacio || {};
-        if (!y.personal) return "No";
-        if (e.licencia_propia) return "Sí, con tu licencia propia. Tus clientes extra solo los ves tú";
-        if (e.en_proceso) return "En proceso: muy pronto";
-        var mods = {};
-        datos.modulos.forEach(function (m) { mods[m.clave] = m.nombre; });
-        var extra = (y.modulos_personal || []).map(function (c) { return mods[c]; }).filter(Boolean);
-        return "Sí · " + e.empresas + " de " + (e.tope == null ? "sin tope" : e.tope) + " empresas" +
-            (e.timbres ? " · " + e.timbres + " timbres del despacho" : "") + (extra.length ? " · además: " + extra.join(", ") : "") + ". Solo tú las ves";
+    // ------------------------------------------------------------------ «Tus permisos en el despacho» (lo ve quien no es titular)
+    // 25-nov-2026, el dueño: «se ve muy feo, pide más formato». Antes eran cuatro columnas de texto y los módulos una lista
+    // larguísima separada por comas. Ahora una fila por permiso (ícono, qué es y el valor en negritas); lo largo (empresas
+    // asignadas, módulos) en pastillas, con «Ver cuáles» cuando son muchos; los módulos agrupados como en el menú de módulos
+    // (los grupos de barra.js) y los que tienen efecto fiscal con un punto ámbar. «Solo consulta» se dice arriba.
+    // El tope de Mi espacio y cuántas empresas lleva ya no se ven aquí: solo el titular, en Equipo (el servidor ya no se los
+    // manda a la persona; si llega al tope al dar de alta, el mensaje de ese momento le dice que se lo pida al titular).
+    var GRUPO_MODULO = {
+        clientes: "Clientes",
+        validador: "Comprobantes", marcas: "Comprobantes", descarga_xml: "Comprobantes", envios: "Comprobantes", cancelaciones: "Comprobantes",
+        conciliacion: "Cierre del mes", iva: "Cierre del mes", isn: "Cierre del mes", isn_presentar: "Cierre del mes", voucheo: "Cierre del mes",
+        constancias: "Cumplimiento", opinion: "Cumplimiento", declaraciones: "Cumplimiento", buzon: "Cumplimiento", buzon_abrir: "Cumplimiento",
+        facturacion: "Facturación", documentos: "Documentos"
+    };
+    var ORDEN_GRUPOS = ["Clientes", "Comprobantes", "Cierre del mes", "Cumplimiento", "Facturación", "Documentos", "Otros"];
+    // Lo que hagas ahí cuenta ante el SAT (son los trámites que el ambiente de pruebas no deja hacer, core/ambiente.py)
+    var EFECTO_FISCAL = {
+        facturacion: "timbra facturas ante el SAT",
+        cancelaciones: "cancela facturas y responde las solicitudes de cancelación ante el SAT",
+        buzon_abrir: "al abrir una notificación, el contribuyente queda notificado",
+        isn_presentar: "presenta declaraciones estatales"
+    };
+    var POCOS_MODULOS = 6, POCAS_EMPRESAS = 4;       // hasta aquí se ven las pastillas sin «Ver cuáles»
+    var ICONO = {
+        empresas: "M3 21h18M5 21V5a2 2 0 012-2h6a2 2 0 012 2v16m0-12h2a2 2 0 012 2v10M8.5 7.5h3m-3 4h3m-3 4h3",
+        modulos: "M4.5 4.5h5.5V10H4.5zM14 4.5h5.5V10H14zM4.5 14h5.5v5.5H4.5zM14 14h5.5v5.5H14z",
+        registrar: "M10 21H5a2 2 0 01-2-2V5a2 2 0 012-2h8a2 2 0 012 2v5M7 7.5h4M7 11.5h4M7 15.5h2m9-1.5v7m-3.5-3.5h7",
+        miEspacio: "M15.5 7.5a3.5 3.5 0 11-7 0 3.5 3.5 0 017 0zM5 20.5v-.5a5.5 5.5 0 015.5-5.5h3a5.5 5.5 0 015.5 5.5v.5"
+    };
+
+    function icono(d) {
+        return '<span class="dp-fila__ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" ' +
+            'stroke-linecap="round" stroke-linejoin="round"><path d="' + d + '"/></svg></span>';
+    }
+
+    function fila(clave, ico, que, valor) {
+        return '<li class="dp-fila" data-permiso="' + clave + '">' + icono(ico) + '<div class="dp-fila__cuerpo"><span class="dp-fila__que">' + que + "</span>" +
+            '<div class="dp-fila__valor">' + valor + "</div></div></li>";
+    }
+
+    // «Ver cuáles»: el botón y su panel (las pastillas). Con pocas, las pastillas se ven sin botón.
+    function verCuales(id, cuantos, pocos, contenido) {
+        var abierto = cuantos <= pocos;
+        return { boton: abierto ? "" : '<button type="button" class="ui-btn ui-btn--terciario ui-btn--28 dp-ver" data-ver="' + id + '" aria-expanded="false" aria-controls="' + id + '">' +
+                        '<span>Ver cuáles</span><svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M5.2 7.2a.75.75 0 011.06 0L10 10.94l3.74-3.74a.75.75 0 111.06 1.06l-4.27 4.27a.75.75 0 01-1.06 0L5.2 8.26a.75.75 0 010-1.06z" clip-rule="evenodd"/></svg></button>',
+                 panel: '<div class="dp-fila__panel" id="' + id + '"' + (abierto ? "" : " hidden") + ">" + contenido + "</div>" };
+    }
+
+    function linea(valor, boton, extra) {
+        return '<div class="dp-fila__linea"><b>' + esc(valor) + "</b>" + (extra || "") + (boton || "") + "</div>";
+    }
+
+    function plural(n, uno, varios) { return n + " " + (n === 1 ? uno : varios); }
+
+    function filaEmpresas(y) {
+        if (y.empresas === null) return fila("empresas", ICONO.empresas, "Empresas", linea("Todas las del despacho"));
+        var lista = y.empresas_detalle || y.empresas.map(function (r) { return { rfc: r, nombre: r }; });
+        if (!lista.length) {
+            return fila("empresas", ICONO.empresas, "Empresas", linea("Ninguna todavía") +
+                '<p class="dp-fila__nota">Pide acceso a una en <a href="?vista=solicitudes" data-ir-vista="solicitudes">Solicitudes</a>.</p>');
+        }
+        var pastillas = '<ul class="dp-pastillas">' + lista.map(function (e) {
+            return '<li class="dp-pastilla" title="' + esc(e.nombre + " · " + e.rfc) + '">' + esc(e.nombre) + "</li>";
+        }).join("") + "</ul>";
+        var v = verCuales("dp-yo-empresas", lista.length, POCAS_EMPRESAS, pastillas);
+        return fila("empresas", ICONO.empresas, "Empresas", linea(plural(lista.length, "asignada", "asignadas"), v.boton) + v.panel);
+    }
+
+    function pastillaModulo(m, marcar) {
+        var fiscal = marcar && EFECTO_FISCAL[m.clave];
+        return '<li class="dp-pastilla' + (fiscal ? " dp-pastilla--fiscal" : "") + '" title="' + esc(m.nombre + (fiscal ? " · Con efecto fiscal: " + fiscal : "")) + '">' +
+            esc(String(m.nombre || m.clave).split(" (")[0]) + (fiscal ? '<span class="sr-only"> (con efecto fiscal)</span>' : "") + "</li>";
+    }
+
+    function modulosPorGrupo(lista, marcar) {
+        var grupos = {};
+        lista.forEach(function (m) { var g = GRUPO_MODULO[m.clave] || "Otros"; (grupos[g] = grupos[g] || []).push(m); });
+        return '<div class="dp-modgrupos">' + ORDEN_GRUPOS.filter(function (g) { return grupos[g]; }).map(function (g) {
+            return '<div class="dp-modgrupo"><span>' + esc(g) + '</span><ul class="dp-pastillas">' +
+                grupos[g].map(function (m) { return pastillaModulo(m, marcar); }).join("") + "</ul></div>";
+        }).join("") + "</div>";
+    }
+
+    function leyendaFiscal(lista) {
+        var abre = lista.some(function (m) { return m.clave === "buzon_abrir"; });
+        return '<p class="dp-leyenda-fiscal"><span class="dp-punto-fiscal" aria-hidden="true"></span><span><b>Con efecto fiscal:</b> cuenta ante el SAT.' +
+            (abre ? " Al abrir una notificación del Buzón, el contribuyente queda notificado." : "") + "</span></p>";
+    }
+
+    function filaModulos(y) {
+        var todos = y.modulos === null;
+        // Solo lo que el plan del despacho trae (lo mismo que deja usar el servidor), en el orden del catálogo
+        var lista = datos.modulos.filter(function (m) { return todos || y.modulos.indexOf(m.clave) >= 0; });
+        if (!lista.length) return fila("modulos", ICONO.modulos, "Módulos", linea("Ninguno") + '<p class="dp-fila__nota">Pídele al titular los que necesites.</p>');
+        // En solo consulta no se hace nada con efecto fiscal: la marca sobra (ya lo dice el aviso de arriba)
+        var marcar = !y.solo_lectura, fiscales = marcar ? lista.filter(function (m) { return EFECTO_FISCAL[m.clave]; }) : [];
+        var dato = (todos ? '<span class="dp-fila__dato">' + plural(lista.length, "módulo", "módulos") + "</span>" : "") +
+            (fiscales.length ? '<span class="dp-marca-fiscal"><span class="dp-punto-fiscal" aria-hidden="true"></span>' + fiscales.length + " con efecto fiscal</span>" : "");
+        var contenido = modulosPorGrupo(lista, marcar) + (fiscales.length ? leyendaFiscal(fiscales) : "");
+        var v = verCuales("dp-yo-modulos", lista.length, POCOS_MODULOS, contenido);
+        return fila("modulos", ICONO.modulos, "Módulos", linea(todos ? "Todos los del despacho" : plural(lista.length, "módulo", "módulos"), v.boton, dato) + v.panel);
+    }
+
+    function filaRegistrar(y) {
+        // En solo consulta tampoco puede dar de alta: lo que sí puede es pedirlo
+        var si = y.agregar && !y.solo_lectura;
+        return fila("registrar", ICONO.registrar, "Registrar empresas", si
+            ? linea("Sí", "", '<span class="dp-fila__dato">las das de alta y las quitas en <a href="/clientes/">Clientes</a></span>')
+            : linea("Con solicitud al titular", "", '<span class="dp-fila__dato">pídelo en <a href="?vista=solicitudes" data-ir-vista="solicitudes">Solicitudes</a></span>'));
+    }
+
+    function filaMiEspacio(y) {
+        var e = y.mi_espacio || {}, html;
+        if (!y.personal) html = linea("No") + '<p class="dp-fila__nota">Trabajas solo con las empresas del despacho.</p>';
+        else if (e.licencia_propia) html = linea("Sí, con tu licencia propia", "", '<span class="dp-fila__dato">solo tú ves tus empresas</span>');
+        else if (e.en_proceso) html = linea("En proceso") + '<p class="dp-fila__nota">Muy pronto vas a poder tener aquí tus propias empresas.</p>';
+        else {
+            html = linea("Sí", "", '<span class="dp-fila__dato">solo tú ves tus empresas</span>');
+            if (e.timbres > 0) html += '<p class="dp-fila__nota dp-fila__nota--fuerte">Tienes ' + plural(e.timbres, "timbre", "timbres") + " para facturar en Mi espacio.</p>";
+            // Lo que el titular le dio solo para Mi espacio (si en el despacho ya tiene todos, no hay nada extra)
+            var extra = y.modulos === null ? [] : datos.modulos.filter(function (m) { return (y.modulos_personal || []).indexOf(m.clave) >= 0; });
+            if (extra.length) html += '<div class="dp-fila__extra"><span>Además, en Mi espacio:</span><ul class="dp-pastillas">' +
+                extra.map(function (m) { return pastillaModulo(m, true); }).join("") + "</ul></div>";
+        }
+        return fila("mi-espacio", ICONO.miEspacio, "Mi espacio", html);
+    }
+
+    function alternarVer(boton) {
+        var panel = $(boton.dataset.ver), abrir = boton.getAttribute("aria-expanded") !== "true";
+        if (!panel) return;
+        panel.hidden = !abrir;
+        boton.setAttribute("aria-expanded", String(abrir));
+        boton.querySelector("span").textContent = abrir ? "Ocultar" : "Ver cuáles";
     }
 
     // ------------------------------------------------------------------ ventana de permisos / invitar
@@ -755,6 +876,13 @@
         if (en) return sacarEnlace(en);
         var b = e.target.closest("[data-editar]");
         if (b) abrirModal(datos.equipo.filter(function (m) { return m.correo === b.dataset.editar; })[0]);
+    });
+    // «Tus permisos en el despacho»: «Ver cuáles» y el enlace a Solicitudes (sin recargar la página)
+    $("dp-yo").addEventListener("click", function (e) {
+        var b = e.target.closest("[data-ver]");
+        if (b) return alternarVer(b);
+        var a = e.target.closest("[data-ir-vista]");
+        if (a) { e.preventDefault(); mostrarVista(a.dataset.irVista); window.scrollTo({ top: 0, behavior: "smooth" }); }
     });
     $("dp-solicitudes").addEventListener("click", function (e) {
         var b = e.target.closest("[data-aceptar],[data-rechazar],[data-cancelar]");
