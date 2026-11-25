@@ -199,6 +199,7 @@
 .cf-auto__tabla .cf-celda-acciones { white-space: normal; width: 1%; }
 .cf-auto__tabla .cf-celda-acciones .cf-btn { display: block; width: 100%; margin: 3px 0; white-space: nowrap; }
 .cf-auto__cancelados { display: block; color: rgb(var(--er-600)); font-weight: 600; }
+.cf-auto__faltantes { display: block; color: rgb(var(--av-600)); font-weight: 600; }   /* 24-nov-2026 (auditoría de Fable): naranja */
 
 /* 20-nov-2026: Formato de los reportes («formato del despacho» del Excel · reporte completo) */
 .cf-fmt__intro { margin: 0 0 12px; max-width: 860px; }

@@ -389,11 +389,15 @@
         html += '<div class="dm-cuadre__tarjetas">';
         (d.tipos || []).forEach(function (t) {
             var falta = t.por_llegar !== undefined ? t.por_llegar > 0 : t.faltaban > 0;          // 19-nov: lo que sigue por llegar (se vuelve a contar al bajar)
+            // 24-nov-2026 (auditoría de Fable, decisión del dueño): vigentes que el SAT lista y no se pudieron bajar = «con faltantes» (no al día)
+            var conFaltantes = !falta && t.sin_bajar > 0;
             html += '<div class="dm-cuadre__t"><span class="dm-cuadre__et">' + (t.tipo === "emitidos" ? "Emitidos" : "Recibidos") + "</span>" +
                 '<span class="dm-cuadre__n">' + miles(t.en_sat) + " <small>en el SAT</small></span>" +
                 '<span class="dm-cuadre__det">' + miles(t.vigentes) + " vigentes · " + miles(t.cancelados) + " cancelados</span>" +
-                '<span class="dm-cuadre__estado' + (falta ? " dm-cuadre__estado--falta" : "") + '">' +
-                (falta ? "Faltan " + miles(t.por_llegar !== undefined ? t.por_llegar : t.faltaban) + " por llegar: ya se pidieron al SAT" : "Ya los tienes todos") + "</span>" +
+                '<span class="dm-cuadre__estado' + (falta || conFaltantes ? " dm-cuadre__estado--falta" : "") + '">' +
+                (falta ? "Faltan " + miles(t.por_llegar !== undefined ? t.por_llegar : t.faltaban) + " por llegar: ya se pidieron al SAT" :
+                    conFaltantes ? "Con faltantes: el SAT lista " + miles(t.sin_bajar) + " vigente" + (t.sin_bajar === 1 ? "" : "s") + " que no se " + (t.sin_bajar === 1 ? "pudo" : "pudieron") + " bajar" :   // revisión de Fable: en plural decía «pudo bajarron»; y el portal no siempre lo intentó
+                    "Ya los tienes todos") + "</span>" +
                 (t.cancelados_nuevos ? '<span class="dm-cuadre__det">' + miles(t.cancelados_nuevos) + " pasaron de vigente a cancelado</span>" : "") + "</div>";
         });
         html += "</div>" + htmlPortal(d);
@@ -471,6 +475,7 @@
             else if (t.en_sat !== null && t.en_sat !== undefined) {
                 lineas.push(nombre + " — SAT: " + miles(t.en_sat) + " · teníamos: " + miles(t.teniamos) + " · faltaban: " + miles(t.faltaban) +
                     " · se pidieron: " + miles(t.se_pidieron) + (t.por_llegar ? " · por llegar: " + miles(t.por_llegar) : "") +
+                    (t.sin_bajar ? " · con faltantes: " + miles(t.sin_bajar) + " no se pudieron bajar" : "") +
                     (t.cuadrado_en ? ' <span class="dm-cuadre__det">(' + esc(cuandoFue(t.cuadrado_en)) + ")</span>" : ""));
             } else if (t.estado === "error") { lineas.push(nombre + ": la lista del SAT no llegó. " + esc(t.mensaje || "")); }
             var p = t.portal;

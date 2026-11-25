@@ -1069,9 +1069,12 @@
                 if (q.faltaban) det.push("faltaban " + q.faltaban + (q.pedidos ? " (se pidieron " + q.pedidos + ")" : ""));
                 // 19-nov: un mes cuenta cuando ya no espera XML; se vuelve a contar en cuanto termina de bajar lo que faltaba
                 if (q.esperando) det.push(q.esperando + " mes(es) esperando los XML que faltaban" + (q.por_llegar ? " (" + q.por_llegar + " por llegar)" : "") + ": cuentan en cuanto terminen de bajar");
+                // 24-nov-2026 (auditoría de Fable): vigentes que el SAT lista y no se pudieron bajar: el mes queda «con faltantes» (no cuenta)
+                if (q.con_faltantes) det.push(q.con_faltantes + " mes(es) con faltantes: el SAT lista " + (q.sin_bajar || 0) + " vigente(s) que no se pudieron bajar; no cuentan como al día");
                 if (q.cancelados_nuevos) det.push(q.cancelados_nuevos + " pasaron a cancelados");
                 if (q.errores) det.push(q.errores + " mes(es) por volver a pedir");
                 return '<small class="cf-auto__cuadre" data-cuadre title="' + esc(det.join(" · ")) + '">Cuadre SAT: ' + q.cuadrados + " de " + q.total + " meses" +
+                    (q.con_faltantes ? '<span class="cf-auto__faltantes">' + q.con_faltantes + (q.con_faltantes === 1 ? " mes con faltantes" : " meses con faltantes") + "</span>" : "") +
                     (q.cancelados_nuevos ? '<span class="cf-auto__cancelados">' + q.cancelados_nuevos + (q.cancelados_nuevos === 1 ? " cancelado" : " cancelados") + "</span>" : "") + "</small>";
             };
             // 19-nov: la primera vez se baja el historial desde «Desde» en varias noches (nunca a costa de lo del día)

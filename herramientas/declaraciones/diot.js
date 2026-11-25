@@ -72,10 +72,12 @@
     function acciones(f) {
         var b = f.busqueda, html = "";
         if (f.estado === "revisar" && b && b.proxima) html += '<p class="dt-item__msj">Siguiente búsqueda en el SAT: ' + esc(hora(b.proxima)) + " (" + (b.intento + 1) + " de " + b.tope + ").</p>";
-        if (!f.puede_marcar && !f.puede_reenviar) return html;
+        if (!f.puede_marcar && !f.puede_reenviar && !f.puede_desmarcar) return html;
         return html + '<div class="dt-acciones">' +
             (f.puede_marcar ? '<label class="dt-reviso dt-reviso--chico"><input type="checkbox" data-revisada="' + esc(f.id) + '"> Ya la revisé en el SAT</label>' : "") +
             (f.puede_reenviar ? '<button type="button" class="fc-btn" data-reenviar="' + esc(f.id) + '" data-nombre="' + esc(f.nombre) + '" data-periodo="' + esc(f.periodo) + '">Enviarla otra vez</button>' : "") +
+            // 24-nov-2026 (auditoría de Fable, hallazgo 7): «Ya la revisé en el SAT» puesto por error se quita con PIN
+            (f.puede_desmarcar ? '<button type="button" class="fc-btn" data-desmarcar="' + esc(f.id) + '" data-nombre="' + esc(f.nombre) + '" data-periodo="' + esc(f.periodo) + '">Desmarcar</button>' : "") +
             "</div>";
     }
     function filaHtml(f) {
@@ -115,13 +117,26 @@
             }, { titulo: "Enviar otra vez la DIOT en ceros", boton: "Enviarla otra vez", resumen: resumen });
             if (hecho && nuevo) await despues(nuevo);
         });
+        caja.addEventListener("click", async function (ev) {
+            var b = ev.target.closest("[data-desmarcar]"); if (!b) return;
+            var resumen = '<p class="fc-identidad__aviso">Se quita «Ya la revisé en el SAT». Vuelve a como estaba: «No se presentó» (la puedes enviar otra vez) o «Revisar en el SAT» (Fiscontable la vuelve a buscar sola en el SAT, solo consulta). Queda en la bitácora.</p>' +
+                '<div class="fc-identidad__tabla"><table><thead><tr><th>Empresa</th><th>Periodo</th></tr></thead><tbody><tr><td>' + esc(b.dataset.nombre) +
+                "</td><td>" + esc(b.dataset.periodo) + "</td></tr></tbody></table></div>";
+            var hecho = await Fiscontable.confirmarIdentidad("presentar_declaracion", async function (c) {
+                await pedir("/api/declaraciones/diot/fila/" + encodeURIComponent(b.dataset.desmarcar) + "/desmarcar", { confirmacion: c });
+            }, { titulo: "Desmarcar «Ya la revisé en el SAT»", boton: "Desmarcar", resumen: resumen });
+            if (hecho) await despues();
+        });
     }
     function pintarPendientes() {
         var caja = q("pendientes");
         if (!caja) return;
-        var lista = (info && info.pendientes) || [];
-        caja.hidden = !lista.length;
-        caja.innerHTML = lista.length ? '<p class="dt-pendientes__titulo">Para revisar · ' + lista.length + "</p>" + lista.map(filaHtml).join("") : "";
+        var lista = (info && info.pendientes) || [], marcadas = (info && info.marcadas) || [];
+        caja.hidden = !lista.length && !marcadas.length;
+        caja.innerHTML = (lista.length ? '<p class="dt-pendientes__titulo">Para revisar · ' + lista.length + "</p>" + lista.map(filaHtml).join("") : "") +
+            // 24-nov-2026 (auditoría de Fable, hallazgo 7): las de las últimas dos semanas, por si se marcó una por error
+            (marcadas.length ? '<details class="dt-marcadas"><summary class="dt-pendientes__titulo">Marcadas «Ya la revisé en el SAT» · ' + marcadas.length +
+                "</summary>" + marcadas.map(filaHtml).join("") + "</details>" : "");
         escucharAcciones(caja);
     }
 
