@@ -52,8 +52,8 @@
           pintar: function (c) { pintarSeguridad(c); pintarBloqueo(c); } },
         { id: "plan", grupo: "Tu cuenta", titulo: "Plan y licencia", ico: ICO.creditos, desc: "Tu plan, su vigencia y tu licencia.", palabras: "plan licencia clave activar créditos recargar timbres vigencia pago",
           pintar: pintarPlan },
-        { id: "avisos", grupo: "Tu cuenta", titulo: "Avisos", ico: ICO.campana, desc: "Qué avisos te llegan también por correo, a qué dirección, y el resumen de tu cartera.",
-          palabras: "avisos correo notificaciones campana actividad email resumen semanal diario lunes cartera", pintar: pintarAvisos },
+        { id: "avisos", grupo: "Tu cuenta", titulo: "Avisos", ico: ICO.campana, desc: "Tu correo de la mañana, lo que llega al momento, a qué dirección y el resumen de tu cartera.",
+          palabras: "avisos correo mañana notificaciones campana actividad email resumen semanal diario lunes cartera vista previa", pintar: pintarAvisos },
         // 20-nov-2026, el dueño: cómo se llaman los archivos (configuracion/nombres-archivo.js; en el despacho, los pone el titular)
         { id: "nombres", grupo: "Tu cuenta", titulo: "Nombres de archivo", ico: ICO.factura,
           desc: "Cómo se llaman los XML, los PDF, los Excel y los ZIP que bajas o mandas en los envíos.",
@@ -679,14 +679,14 @@
                 "Marca «No lo pueden cambiar» para que nadie lo mueva en su cuenta.</p>" +
                 d.grupos.map(function (g) {
                     return '<div class="cf-tarjeta">' + d.ajustes.filter(function (a) { return a.grupo === g; }).map(function (a) {
-                        return '<div class="cf-fabrica' + (a.grupo === "Cuándo salen los correos" ? " cf-fabrica--detalle" : "") + '" data-fb-caja="' + esc(a.clave) + '"><div class="cf-fabrica__valor">' + control(a) + (a.ayuda ? '<small class="cf-fabrica__ayuda">' + esc(a.ayuda) + "</small>" : "") + "</div>" +
+                        return '<div class="cf-fabrica' + (a.grupo === "Cuándo salen los correos" || a.grupo === "El cierre del mes" ? " cf-fabrica--detalle" : "") + '" data-fb-caja="' + esc(a.clave) + '"><div class="cf-fabrica__valor">' + control(a) + (a.ayuda ? '<small class="cf-fabrica__ayuda">' + esc(a.ayuda) + "</small>" : "") + "</div>" +
                             (a.global ? '<span class="cf-fabrica__fijo cf-fabrica__todas">Aplica a todas las cuentas</span>' :
                             '<label class="ui-check cf-fabrica__fijo"><input type="checkbox" data-fb-fijo="' + esc(a.clave) + '"' + (a.bloqueado ? " checked" : "") + "> No lo pueden cambiar</label>") + "</div>";
                     }).join("") +
                     '<div class="cf-acciones"><button type="button" class="cf-btn cf-btn--principal" data-fb-guardar>Guardar los valores de fábrica</button><span class="cf-msj"></span></div></div>';
                 }).join("");
             // Lo programado (constancia, opinión y declaraciones) vive en «Lo automático» con una sola regla para todos (15-nov)
-            subPestanas(c, d.grupos.map(function (g) { return { "Cuándo salen los correos": "Cuándo salen", "Horario de los correos": "Horario" }[g] || g; }), "fabrica");
+            subPestanas(c, d.grupos.map(function (g) { return { "Cuándo salen los correos": "Cuándo salen", "El cierre del mes": "El cierre", "Horario de los correos": "Horario" }[g] || g; }), "fabrica");
             // Desde Ctrl+K (?seccion=fabrica&sub=<clave>): abre su pestaña y lo señala
             var pedido = Fiscontable.url("sub"), cajaPedida = pedido && c.querySelector('[data-fb-caja="' + pedido.replace(/"/g, "") + '"]');
             if (cajaPedida) {
@@ -713,14 +713,49 @@
         } catch (e) { c.innerHTML = '<div class="cf-tarjeta"><p class="cf-msj cf-msj--mal">' + esc(e.message) + "</p></div>"; }
     }
 
+    /* ---------- «Ver cómo llega mi correo de hoy» (25-nov-2026): el correo de la mañana sin mandarlo ---------- */
+    async function verCorreoDeHoy(boton) {
+        var d = $("cf-mn-vista");
+        if (!d) {
+            d = document.createElement("dialog");
+            d.id = "cf-mn-vista"; d.className = "fc-modal fc-modal--grande cf-mn-vista";
+            d.innerHTML = '<div class="fc-modal__cabeza"><div><h2>Así llega tu correo de hoy</h2><p data-mn="asunto">Cargando…</p></div>' +
+                '<button type="button" class="fc-modal__cerrar" data-mn="cerrar" aria-label="Cerrar">✕</button></div>' +
+                '<div class="fc-modal__cuerpo"><div class="ctx-segmento" role="group" aria-label="Cómo verlo" data-mn="ancho">' +
+                '<button type="button" data-ancho="720" aria-pressed="true">Computadora</button><button type="button" data-ancho="390" aria-pressed="false">Celular</button></div>' +
+                '<p class="cf-texto" data-mn="nota" hidden></p><div class="cf-mn-vista__marco"><iframe title="Tu correo de la mañana" data-mn="marco" sandbox="allow-popups allow-popups-to-escape-sandbox"></iframe></div></div>' +
+                '<div class="fc-modal__pie"><span class="cf-texto">Es solo la vista previa: no se mandó a nadie.</span><button type="button" class="cf-btn cf-btn--principal" data-mn="cerrar">Cerrar</button></div>';
+            document.body.appendChild(d);
+            d.addEventListener("click", function (e) {
+                if (e.target.closest('[data-mn="cerrar"]')) { d.close(); return; }
+                var b = e.target.closest("[data-ancho]"); if (!b) return;
+                d.querySelectorAll("[data-ancho]").forEach(function (x) { x.setAttribute("aria-pressed", String(x === b)); });
+                d.querySelector('[data-mn="marco"]').style.maxWidth = b.dataset.ancho + "px";
+            });
+        }
+        var marco = d.querySelector('[data-mn="marco"]'), nota = d.querySelector('[data-mn="nota"]'), asunto = d.querySelector('[data-mn="asunto"]');
+        if (boton) boton.disabled = true;
+        try {
+            var v = await api("/api/actividad/mi-correo/vista");
+            asunto.textContent = v.hay ? v.asunto.replace(/^Fiscontable · /, "") + (v.enviado ? " · Ya te llegó hoy" : "") : "Hoy no te llega correo de la mañana";
+            nota.hidden = !!v.hay; nota.textContent = v.motivo || "";
+            d.querySelector('[data-mn="ancho"]').hidden = !v.hay;
+            marco.parentNode.hidden = !v.hay;
+            marco.srcdoc = v.hay ? v.html : "";
+            if (!d.open) d.showModal();
+        } catch (e) { Fiscontable.avisar ? Fiscontable.avisar(e.message) : alert(e.message); }
+        finally { if (boton) boton.disabled = false; }
+    }
+
     /* ---------- Avisos (G-13 / G-14): qué llega por correo ---------- */
     async function pintarAvisos(c) {
         c.innerHTML = '<div class="cf-tarjeta"><p class="cf-texto">Cargando…</p></div>';
         try {
             var p = await api("/api/actividad/preferencias");
-            // Los 9 correos por tema (diseño del 14-nov): cada uno con su «cuándo»; los de fecha se pueden probar
-            var temas = p.por_tema || Object.keys(p.tipos), conFecha = p.con_fecha || [], cuando = p.cuando || {};
-            var otros = Object.keys(p.tipos).filter(function (t) { return temas.indexOf(t) < 0; });
+            // 25-nov-2026 (el dueño): UN correo de la mañana por persona (los 9 correos por tema ahora son sus secciones). Lo
+            // demás que puede ir suelto por correo (programaciones, descargas, avisos de Fiscontable) queda en «Otros avisos».
+            var cuando = p.cuando || {}, mn = p.manana || {};
+            var otros = (p.otros_avisos || []).filter(function (t) { return p.tipos[t]; });
             var bloq = p.bloqueados || [], fijo = function (clave) { return bloq.indexOf(clave) >= 0; };
             // 15-nov (el dueño): apagar un correo siempre se puede; lo que Fiscontable apagó y bloqueó no se puede prender
             var noPrende = p.no_se_prenden || [];
@@ -729,7 +764,6 @@
                 return '<div class="cf-tema"><label class="ui-check cf-tema__check"><input type="checkbox" data-tipo="' + esc(t) + '"' + (p.correo[t] ? " checked" : "") + (cerrado ? " disabled" : "") + ">" +
                     '<span><b>' + esc(p.tipos[t]) + '</b><small>' + esc(cuando[t] || "Al momento") + (cerrado ? " · Apagado por Fiscontable" : fx ? " · Sus fechas las define Fiscontable" : "") + "</small></span></label></div>";
             };
-            var probar = conFecha.filter(function (t) { return p.tipos[t]; });
             var h = p.horario || {};
             var hcampo = function (k, html) { return fijo("horario." + k) ? html.replace("<input", "<input disabled") : html; };
             var cajaHorario = '<div class="cf-tarjeta" style="margin-top:14px"><h3 class="cf-sub">Horario de los correos</h3>' +
@@ -740,22 +774,40 @@
                 hcampo("sabado", '<label class="ui-check cf-check"><input type="checkbox" id="cf-h-sabado"' + (h.sabado ? " checked" : "") + "> También los sábados</label>") +
                 hcampo("domingo", '<label class="ui-check cf-check"><input type="checkbox" id="cf-h-domingo"' + (h.domingo ? " checked" : "") + "> También los domingos</label>") +
                 hcampo("urgentes", '<label class="ui-check cf-check"><input type="checkbox" id="cf-h-urgentes"' + (h.urgentes ? " checked" : "") +
-                    "> Lo urgente sale al momento, a cualquier hora (notificación pendiente del Buzón, e.firma revocada)</label>") +
+                    "> Lo urgente que aparece de día me llega al momento, en un correo aparte (una notificación, carta invitación o " +
+                    "requerimiento del Buzón; una e.firma revocada). Lo de la madrugada va en el correo de la mañana.</label>") +
                 (["inicio", "fin", "sabado", "domingo", "urgentes"].some(fijo) ? '<p class="cf-texto">Lo que está apagado lo define Fiscontable.</p>' : "") +
                 '<div class="cf-acciones"><button type="button" class="cf-btn cf-btn--principal" id="cf-h-guardar">Guardar el horario</button><span class="cf-msj"></span></div></div>';
-            c.innerHTML = '<div class="cf-tarjeta"><h3 class="cf-sub">Correos</h3>' +
-                '<p class="cf-texto">Lo de cada empresa llega junto en su informe de la mañana; lo rápido, un correo por tema con todas tus empresas.</p>' +
-                '<div class="cf-temas">' + temas.filter(function (t) { return p.tipos[t]; }).map(renglon).join("") + "</div>" +
-                (otros.length ? '<details class="cf-otros"><summary>Otros avisos de la campana que también pueden ir por correo</summary>' +
+            var secciones = mn.secciones || [];
+            var cajaManana = '<div class="cf-tarjeta" id="cf-av-caja-manana"><h3 class="cf-sub">Correo de la mañana</h3>' +
+                '<p class="cf-texto">Uno solo, ' + esc((mn.cuando || "de lunes a viernes al abrir tu horario de correos").replace(/^De /, "de ")) +
+                '. Arriba, lo que requiere atención; luego lo del cierre (solo los días que toca), una tabla por tema y la ronda de la madrugada en una línea.' +
+                (p.es_despacho ? " Trae tus empresas del despacho y, aparte, las de Mi espacio." : "") + "</p>" +
+                '<label class="ui-check cf-check"><input type="checkbox" id="cf-mn-recibir"' + (mn.recibir ? " checked" : "") + (mn.apagado_fabrica ? " disabled" : "") +
+                "> Recibir mi correo de la mañana" + (mn.apagado_fabrica ? " (apagado por Fiscontable)" : "") + "</label>" +
+                '<p class="cf-texto cf-mn__nota">Qué trae, además de «Requiere atención» (eso va siempre):</p>' +
+                '<div class="cf-temas" id="cf-mn-secciones">' + (mn.opciones || []).map(function (o) {
+                    return '<div class="cf-tema"><label class="ui-check cf-tema__check"><input type="checkbox" value="' + esc(o.valor) + '"' +
+                        (secciones.indexOf(o.valor) >= 0 ? " checked" : "") + (mn.secciones_fijas ? " disabled" : "") + "><span><b>" + esc(o.texto) +
+                        "</b><small>" + esc(o.ayuda || "") + "</small></span></label></div>";
+                }).join("") + "</div>" + (mn.secciones_fijas ? '<p class="cf-texto">Qué trae lo define Fiscontable.</p>' : "") +
+                '<div class="cf-acciones"><button type="button" class="cf-btn cf-btn--principal" id="cf-mn-guardar">Guardar</button>' +
+                '<button type="button" class="cf-btn" id="cf-mn-ver">Ver cómo llega mi correo de hoy</button><span class="cf-msj"></span></div>' +
+                '<p class="cf-texto" style="margin-top:12px">' + (mn.al_momento ? "Lo urgente que aparece de día te llega al momento, en un correo aparte. " : "") +
+                "La hora y lo de «al momento» se cambian en «Horario». Esto es tuyo: en un despacho, cada persona elige el suyo.</p></div>";
+            c.innerHTML = cajaManana + '<div class="cf-tarjeta"><h3 class="cf-sub">Correo de la cuenta</h3>' +
+                '<p class="cf-texto">A dónde llegan los avisos de la cuenta y los escalones de la e.firma. Todo lo de tus empresas va en el correo de la mañana; ' +
+                "aquí puedes prender, además, avisos sueltos que no son de una empresa.</p>" +
+                (otros.length ? '<details class="cf-otros"><summary>Otros avisos que también pueden llegar sueltos por correo</summary>' +
                     '<div class="cf-temas">' + otros.map(renglon).join("") + "</div></details>" : "") +
                 '<label class="cf-campo"><span>Avisar de e.firma y sellos por vencer cuando falten (días)</span><input type="text" id="cf-av-dias" inputmode="numeric" value="' +
                 esc((p.dias_vence || []).join(", ")) + '"' + (fijo("vencimientos.dias") ? " disabled" : "") + "></label>" +
-                '<p class="cf-texto">Un aviso por cada escalón. Si ya la renovaste, deja de avisar sola.' + (fijo("vencimientos.dias") ? " Estos días los define Fiscontable." : "") + "</p>" +
+                '<p class="cf-texto">En el correo de la mañana de esos días (de 5 para abajo, en «Requiere atención»). Si ya la renovaste, deja de avisar sola.' + (fijo("vencimientos.dias") ? " Estos días los define Fiscontable." : "") + "</p>" +
                 '<label class="cf-campo"><span>Mandar los avisos a</span><input type="email" id="cf-av-destino" value="' + esc(p.destino || "") + '"></label>' +
                 '<div class="cf-acciones"><button type="button" class="cf-btn cf-btn--principal" id="cf-av-guardar">Guardar</button>' +
                 '<div class="cf-menu-prueba" id="cf-av-prueba-caja"><button type="button" class="cf-btn" id="cf-av-prueba-abrir" aria-haspopup="menu" aria-expanded="false">Mandar un correo de prueba ▾</button>' +
                 '<div class="cf-menu-prueba__lista" role="menu"><button type="button" role="menuitem" id="cf-av-prueba"><b>Solo saber si me llegan</b><small>Un correo corto de prueba</small></button>' +
-                probar.map(function (t) { return '<button type="button" role="menuitem" data-probar="' + esc(t) + '"><b>' + esc(p.tipos[t]) + "</b><small>Con lo de hoy, aunque no le toque</small></button>"; }).join("") +
+                '<button type="button" role="menuitem" id="cf-mn-prueba"><b>Mi correo de la mañana de hoy</b><small>Solo a ti; no marca nada como avisado</small></button>' +
                 '</div></div><span class="cf-msj"></span></div>' +
                 '<p class="cf-texto" style="margin-top:12px">Los correos salen por el mismo correo que usas en Facturar (el general de Fiscontable o el tuyo).</p></div>' +
                 cajaHorario +
@@ -764,9 +816,9 @@
                 '<label class="cf-campo"><span>Copias (separa con comas)</span><input type="text" id="cf-av-copias" inputmode="email" autocomplete="off" placeholder="avisos@tudespacho.mx, socio@tudespacho.mx" value="' +
                 esc((p.copias || []).join(", ")) + '"></label>' +
                 (p.es_despacho ? '<label class="ui-check cf-check"><input type="checkbox" id="cf-av-responsables"' + (p.responsables ? " checked" : "") +
-                    "> El aviso de una empresa, también a la persona que la tiene asignada</label>" : "") +
+                    "> Cada persona del despacho recibe su correo de la mañana (solo con sus empresas) y lo urgente de las que tiene asignadas</label>" : "") +
                 '<label class="ui-check cf-check"><input type="checkbox" id="cf-av-cliente"' + (p.cliente ? " checked" : "") +
-                    "> El informe de cada empresa, también a su cliente (el correo de su ficha)</label>" +
+                    "> Copia a cada cliente: lo de su empresa (Buzón, opinión, e.firma) al correo de su ficha; nunca los errores de sus facturas</label>" +
                 '<label class="ui-check cf-check"><input type="checkbox" id="cf-av-importes"' + (p.importes ? " checked" : "") +
                     // 24-nov-2026 (auditoría contradicciones-6): dice lo que de verdad viene puesto (core/fabrica.py, «correo.importes»)
                     "> Poner importes en los correos (de fábrica, " + (p.importes_fabrica === false ? "sin" : "con") + " importes)</label>" +
@@ -782,7 +834,7 @@
                 (p.equipo_resumen > 1 ? '<label class="ui-check cf-check"><input type="checkbox" id="cf-av-resumen-copia"' + (p.resumen_copia ? " checked" : "") +
                     "> Que cada persona de mi despacho reciba el de sus empresas (" + p.equipo_resumen + " personas)</label>" : "") +
                 '<div class="cf-acciones"><button type="button" class="cf-btn" id="cf-av-resumen-ya">Mándame uno ahora</button><span class="cf-msj"></span></div></div>';
-            subPestanas(c, ["Correos", "Horario", "A quién llegan", "Resumen completo"], "avisos");
+            subPestanas(c, ["Correo de la mañana", "Correo de la cuenta", "Horario", "A quién llegan", "Resumen completo"], "avisos");
             var soloVer = p.puede_editar === false;
             var guardado = p;                                   // lo último que quedó guardado (el resumen se guarda automáticamente, sin tocar lo demás)
             var cajaResumen = $("cf-av-caja-resumen");
@@ -843,16 +895,27 @@
                     aviso(caja, true, "✓ Guardado. Los correos salen de " + guardado.horario.inicio + " a " + guardado.horario.fin + ".");
                 } catch (e) { aviso(caja, false, e.message); }
             });
-            c.querySelectorAll("[data-probar]").forEach(function (b) {
-                b.addEventListener("click", async function () {
-                    b.disabled = true;
-                    try { var r = await enviar("/api/actividad/tema-ahora", "POST", { tema: b.dataset.probar }); aviso(c, true, r.mensaje); }
-                    catch (e) { aviso(c, false, e.message); }
-                    finally { b.disabled = false; }
-                });
+            // 25-nov-2026: el correo de la mañana es de cada persona (también en un despacho): sus secciones, la vista previa y la prueba
+            var cajaMn = $("cf-av-caja-manana");
+            $("cf-mn-guardar").addEventListener("click", async function () {
+                var b = this; b.disabled = true;
+                var elegidas = [].map.call(cajaMn.querySelectorAll("#cf-mn-secciones input:checked"), function (x) { return x.value; });
+                try {
+                    var g = await enviar("/api/actividad/mi-correo", "PUT", { recibir: $("cf-mn-recibir").checked, secciones: elegidas });
+                    if (g.de_la_cuenta && guardado.correo) guardado.correo.manana = !!g.recibir;     // las otras cajas mandan guardado.correo
+                    aviso(cajaMn, true, g.recibir ? "✓ Guardado. Te llega " + (g.cuando || "en la mañana").replace(/^De /, "de ") + "." : "✓ Guardado: ya no te llega el correo de la mañana.");
+                } catch (e) { aviso(cajaMn, false, e.message); }
+                finally { b.disabled = false; }
+            });
+            $("cf-mn-ver").addEventListener("click", function () { verCorreoDeHoy(this); });
+            $("cf-mn-prueba").addEventListener("click", async function () {
+                var b = this; b.disabled = true;
+                try { var r = await enviar("/api/actividad/mi-correo/prueba", "POST", {}); aviso(c, true, r.mensaje); }
+                catch (e) { aviso(c, false, e.message); }
+                finally { b.disabled = false; }
             });
             $("cf-av-guardar").addEventListener("click", async function () {
-                var correo = {};
+                var correo = {};                          // (solo los avisos sueltos de esta caja; lo demás se queda como está)
                 c.querySelectorAll("[data-tipo]").forEach(function (x) { correo[x.dataset.tipo] = x.checked; });
                 var dias = $("cf-av-dias").value.split(/[^0-9]+/).map(Number).filter(function (n) { return n > 0 && n <= 365; });
                 if (!dias.length) { aviso(c, false, "Escribe al menos un número de días (por ejemplo 30, 15, 5)."); return; }
@@ -893,7 +956,8 @@
                 catch (e) { aviso(c, false, e.message); }
                 finally { b.disabled = false; }
             });
-            if (soloVer) soloTitular(c.querySelectorAll(":scope > .cf-tarjeta"), p.motivo_editar);
+            // (el correo de la mañana es de la persona: ese no se bloquea)
+            if (soloVer) soloTitular(c.querySelectorAll(":scope > .cf-tarjeta:not(#cf-av-caja-manana)"), p.motivo_editar);
         } catch (e) { c.innerHTML = '<div class="cf-tarjeta"><p class="cf-msj cf-msj--mal">' + esc(e.message) + "</p></div>"; }
     }
 

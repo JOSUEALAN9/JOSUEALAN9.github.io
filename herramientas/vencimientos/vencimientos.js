@@ -222,9 +222,10 @@
     function pintarAvisos() {
         var a = E.datos.avisos || {}, dias = (a.dias || []).slice();
         var lista = dias.length > 1 ? dias.slice(0, -1).join(", ") + " y " + dias[dias.length - 1] : String(dias[0] || "");
-        // 24-nov-2026 (revisión venc1): el correo sale por escalones, igual que la campana (core/boletines.py), no «cada lunes»
-        $("vc-avisos").innerHTML = Fiscontable.icono("campana") + "<span>Te avisamos en la campana" + (a.correo ? " y por correo («e.firma y sellos por vencer»)" : "") +
-            " cuando falten " + esc(lista) + " días, y una vez al vencer." + (a.correo ? "" : " El correo de «e.firma y sellos por vencer» lo tienes apagado.") +
+        // 24-nov-2026 (revisión venc1): por escalones, igual que la campana. 25-nov-2026: en el correo de la mañana (core/correo_manana.py)
+        $("vc-avisos").innerHTML = Fiscontable.icono("campana") + "<span>Te avisamos en la campana" + (a.correo ? " y en tu correo de la mañana" : "") +
+            " cuando falten " + esc(lista) + " días (de 5 para abajo, en «Requiere atención»), y una vez al vencer." +
+            (a.correo ? "" : " Tu correo de la mañana lo tienes apagado.") +
             " Si el sello no está en Facturar, tomamos el de su última factura emitida (dice «Según su factura del…»). " +
             "Tus recordatorios avisan los días antes que elegiste y el mismo día. " +
             '<a href="' + esc(a.configurar || "/configuracion/?seccion=avisos") + '">Cambiar en Configuración › Avisos</a></span>';
