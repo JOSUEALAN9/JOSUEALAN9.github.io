@@ -192,11 +192,16 @@
 .dm-solicitudes .fct .fct-caja { min-height: 0; }
 
 /* Cuadre con la lista del SAT (16-nov): lo que el SAT tiene de la empresa contra lo que ya está aquí */
-.dm-cuadre { margin: 14px 0 0; padding: 14px 16px; border: 1px solid var(--linea); border-radius: var(--radio, 12px); background: var(--papel, #fff); }
+/* 25-nov-2026 (el dueño: «que se oculte de default, pero que se pueda mostrar»): un plegable de un renglón, cerrado de fábrica */
+.dm-cuadre { margin: 14px 0 0; padding: 0; border: 1px solid var(--linea); border-radius: var(--radio, 12px); background: var(--papel, #fff); min-width: 0; }
 .dm-cuadre[hidden] { display: none; }
+.dm-cuadre__resumen { cursor: pointer; padding: 10px 16px; font-size: 13px; line-height: 1.45; list-style-position: inside; overflow-wrap: anywhere; }
+.dm-cuadre__resumen b { font-weight: 700; color: var(--texto); }
+.dm-cuadre__resumen .dm-cuadre__estado { font-size: 13px; }
+#cuadre-cuerpo { padding: 0 16px 14px; }
 .dm-cuadre__cabeza { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; }
 .dm-cuadre__cabeza strong { font-size: 14px; }
-.dm-cuadre__nota { font-size: 12.5px; color: var(--texto-tenue); line-height: 1.45; }
+.dm-cuadre__nota { font-size: 12.5px; color: var(--texto-tenue); line-height: 1.45; margin: 0; }
 .dm-cuadre__tarjetas { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 10px; }
 .dm-cuadre__t { display: flex; flex-direction: column; gap: 2px; min-width: 0; padding: 10px 12px; border-radius: 10px; background: rgba(0, 0, 0, .025); }
 .dm-cuadre__et { font-size: 11.5px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: var(--texto-tenue); }
@@ -207,13 +212,23 @@
 .dm-cuadre__estado--falta { color: rgb(var(--av-600, 180 83 9)); }
 @media (max-width: 520px) { .dm-cuadre__tarjetas { grid-template-columns: minmax(0, 1fr); } }
 /* «Revisar ahora contra el SAT» (24-nov-2026, a2xml): el cuadre de un mes al momento */
-.dm-revisar { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 8px 10px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--linea); }
-.dm-revisar__mes { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
-.dm-revisar__mes select { width: auto; min-width: 130px; max-width: 100%; }
-.dm-revisar .ui-btn[hidden] { display: none; }
-.dm-revisar__res { flex-basis: 100%; display: flex; flex-direction: column; gap: 4px; font-size: 13px; line-height: 1.45; font-variant-numeric: tabular-nums; }
-.dm-revisar__res[hidden] { display: none; }
+/* «Revisar contra el SAT ▾» en la cabecera (25-nov-2026): botón con menú, como «Descargar Excel ▾» */
+.dm-cabeza__acciones { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; min-width: 0; }
+.dm-revisar-menu .mod-menu__btn span { font-size: 11px; color: var(--texto-tenue); }
+.dm-revisar-menu .mod-menu__btn:disabled { opacity: .6; cursor: wait; }
+.dm-revisar-lista { width: 290px; padding: 12px; gap: 6px; }
+.dm-revisar__mes { display: flex; flex-direction: column; gap: 4px; min-width: 0; margin-bottom: 4px; }
+.dm-revisar__mes select { width: 100%; }
+.dm-revisar__nota { margin: 4px 2px 0; font-size: 11.5px; line-height: 1.4; color: var(--texto-tenue); }
 .dm-revisar__error { color: rgb(var(--er-600, 220 38 38)); }
+@media (max-width: 640px) { .dm-revisar-lista { width: auto; } .dm-cabeza { flex-wrap: wrap; } .dm-cabeza__acciones { justify-content: flex-start; } }
+/* El resultado: un aviso corto bajo la cabecera, que se cierra con ✕ */
+.dm-revisar-aviso { max-width: none; margin: 0 0 12px; padding: 10px 12px 10px 14px; font-size: 13px; line-height: 1.45; font-variant-numeric: tabular-nums; }
+.dm-revisar-aviso__texto { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; overflow-wrap: anywhere; color: var(--texto); }
+.dm-revisar-aviso__titulo { color: inherit; }
+.dm-revisar-aviso__porque { display: block; font-size: 12.5px; color: var(--texto-tenue); }
+.dm-revisar-aviso__cerrar { flex: none; border: 0; background: none; color: var(--texto-tenue); font-size: 14px; line-height: 1; padding: 4px; cursor: pointer; border-radius: 6px; }
+.dm-revisar-aviso__cerrar:hover { color: var(--texto); background: rgba(0, 0, 0, .05); }
 /* 24-nov-2026 (a2bar): lo que revisó el portal de madrugada (barrido del mes que no cuadró) */
 .dm-portal { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; font-size: 13px; line-height: 1.45; font-variant-numeric: tabular-nums; min-width: 0; }
 .dm-portal__linea, .dm-portal__fila { overflow-wrap: anywhere; }

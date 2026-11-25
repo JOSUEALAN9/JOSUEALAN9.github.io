@@ -9,8 +9,9 @@
     var API = Fiscontable.API, esc = Fiscontable.escapar;
     var $ = function (id) { return document.getElementById(id); };
     var E = { datos: null, corrida: null, reloj: null, marcadas: null };
-    var ICONO = { ok: "✔", falla: "✘", no_aplica: "–", pendiente: "⏳", corriendo: "↻", espera: "·", detenida: "–" };
-    var TEXTO = { ok: "Bien", falla: "Falló", no_aplica: "No aplica", pendiente: "Pendiente del SAT", corriendo: "Probando…", espera: "En espera", detenida: "No se probó" };
+    // 25-nov-2026: «El SAT no contestó» (ni al volver a probar al final de la corrida) va aparte de «Falló»: no es de Fiscontable
+    var ICONO = { ok: "✔", falla: "✘", sin_sat: "⚠", no_aplica: "–", pendiente: "⏳", corriendo: "↻", espera: "·", detenida: "–" };
+    var TEXTO = { ok: "Bien", falla: "Falló", sin_sat: "El SAT no contestó", no_aplica: "No aplica", pendiente: "Pendiente del SAT", corriendo: "Probando…", espera: "En espera", detenida: "No se probó" };
     var ESTADO = { en_curso: ["aviso", "En curso"], terminada: ["ok", "Terminada"], detenida: ["aviso", "Detenida"], interrumpida: ["error", "Interrumpida"], error: ["error", "Con error"] };
 
     async function api(ruta, opciones) {
@@ -34,7 +35,7 @@
             var esMia = e.clave === mia;
             return '<label class="pt-emp' + (e.efirma ? "" : " pt-emp--sin") + '"><input type="checkbox" value="' + esc(e.clave) + '"' + (E.marcadas.has(e.clave) ? " checked" : "") + ">" +
                 "<b>" + esc(e.alias) + "</b>" +
-                '<button type="button" class="pt-mia" data-mia="' + esc(e.clave) + '" aria-pressed="' + esMia + '" title="' + (esMia ? "Tu empresa: siempre viene marcada" : "Marcar como la mía") + '">' + (esMia ? "★ La mía" : "☆ La mía") + "</button>" +
+                '<button type="button" class="pt-mia" data-mia="' + esc(e.clave) + '" aria-pressed="' + esMia + '" title="' + (esMia ? "Tu empresa: viene marcada cada vez que abres esta página" : "Marcar como la mía (no la palomea ahora; viene marcada la próxima vez)") + '">' + (esMia ? "★ La mía" : "☆ La mía") + "</button>" +
                 "<small>" + esc(e.rfc) + (d.empresas.some(function (x) { return x.owner !== e.owner; }) ? " · " + esc(e.cuenta) : "") + (e.efirma ? "" : " · sin e.firma") + "</small></label>";
         }).join("") : '<div class="ui-vacio" style="padding:var(--e-6) var(--e-4)"><b>' + (d.empresas.length ? "Ninguna coincide" : "No tienes empresas") + "</b><span>" +
             (d.empresas.length ? "Prueba con otra búsqueda." : "Registra tus empresas con su e.firma en Clientes.") + "</span></div>";
@@ -76,7 +77,7 @@
         var c = {}; Object.keys(pruebas || {}).forEach(function (k) { var e = pruebas[k].estado || "espera"; c[e] = (c[e] || 0) + 1; }); return c;
     }
     function chips(c, todas) {
-        var orden = ["ok", "falla", "pendiente", "no_aplica", "corriendo", "espera", "detenida"];
+        var orden = ["ok", "falla", "sin_sat", "pendiente", "no_aplica", "corriendo", "espera", "detenida"];
         return '<span class="pt-chips">' + orden.filter(function (k) { return c[k] && (todas || k !== "espera"); }).map(function (k) {
             return '<span class="pt-chip pt-chip--' + k + '" title="' + esc(TEXTO[k]) + '">' + ICONO[k] + " " + c[k] + "</span>";
         }).join("") + "</span>";
@@ -99,7 +100,7 @@
                 : '<button type="button" class="ui-btn ui-btn--secundario ui-btn--28" data-hacer="reporte">Descargar reporte</button>') + "</span></div>";
         Object.keys(c.resultados).forEach(function (k, i) {
             var e = c.resultados[k], p = e.pruebas || {}, n = cuenta(p);
-            var abierto = vivo ? Object.keys(p).some(function (x) { return p[x].estado === "corriendo"; }) || (i === 0 && !hechas) : !!(n.falla || n.pendiente) || i === 0;
+            var abierto = vivo ? Object.keys(p).some(function (x) { return p[x].estado === "corriendo"; }) || (i === 0 && !hechas) : !!(n.falla || n.sin_sat || n.pendiente) || i === 0;
             html += '<details class="pt-bloque" data-bloque="' + esc(k) + '"' + (abierto ? " open" : "") + "><summary><b>" + esc(e.alias) + "</b>" + chips(n, true) +
                 "<small>" + esc(e.rfc ? e.rfc + (e.cuenta && e.cuenta !== "Tu cuenta" ? " · " + e.cuenta : "") : "Lo que no es de una empresa") + "</small></summary>" +
                 Object.keys(p).map(function (x) {
@@ -163,14 +164,15 @@
     });
     $("pt-empresas").addEventListener("click", async function (ev) {
         var b = ev.target.closest("[data-mia]"); if (!b) return;
-        ev.preventDefault();
+        ev.preventDefault(); ev.stopPropagation();
         var nueva = E.datos.ajustes.mia === b.dataset.mia ? "" : b.dataset.mia;
         b.disabled = true;
         try {
             var a = await api("/api/admin/probar/ajustes", json("PUT", { mia: nueva }));
             E.datos.ajustes = a;
-            if (nueva) E.marcadas.add(nueva);
-            Fiscontable.toast(nueva ? "Listo: esa es tu empresa. Siempre viene marcada." : "Ya no hay una empresa marcada como la tuya.");
+            // 25-nov-2026 (el dueño: «le doy en la estrella y se selecciona»): la estrella solo guarda «esta es la mía»; no
+            // palomea la casilla en ese momento. La próxima vez que abras la página ya viene marcada.
+            Fiscontable.toast(nueva ? "Listo: es tu empresa. La próxima vez viene marcada." : "Ya no hay una empresa marcada como la tuya.");
             pintarEmpresas(); pintarSemanal();
         } catch (e) { Fiscontable.toast(e.message); b.disabled = false; }
     });

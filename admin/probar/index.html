@@ -64,7 +64,7 @@
         .pt-chip { display: inline-flex; align-items: center; gap: 4px; padding: 1px 8px; border-radius: 999px; font-size: 11.5px; font-weight: 700; background: rgb(var(--g-100)); color: rgb(var(--g-700)); white-space: nowrap; }
         .pt-chip--ok { background: rgb(var(--ok-50)); color: rgb(var(--ok-700)); }
         .pt-chip--falla { background: rgb(var(--er-50)); color: rgb(var(--er-700, 185 28 28)); }
-        .pt-chip--pendiente, .pt-chip--corriendo { background: rgb(var(--av-50)); color: rgb(var(--av-700)); }
+        .pt-chip--pendiente, .pt-chip--corriendo, .pt-chip--sin_sat { background: rgb(var(--av-50)); color: rgb(var(--av-700)); }
         .pt-fila { display: grid; grid-template-columns: 22px minmax(0, 1fr) auto; gap: 1px 10px; padding: 7px 14px; border-top: 1px solid rgb(var(--g-100)); align-items: start; }
         .pt-fila i { font-style: normal; font-weight: 800; font-size: 14px; line-height: 20px; text-align: center; color: rgb(var(--g-400)); }
         .pt-fila b { font-size: var(--t-13); color: rgb(var(--g-900)); line-height: 20px; }
@@ -76,7 +76,8 @@
             .pt-fila p.pt-completo { display: block; } .pt-fila { padding: 7px 10px; } .pt-bloque > summary { padding: 9px 10px; } }
         .pt-fila--falla i { color: rgb(var(--er-600)); }
         .pt-fila--falla p { color: rgb(var(--er-700, 185 28 28)); }
-        .pt-fila--pendiente i, .pt-fila--corriendo i { color: rgb(var(--av-600)); }
+        .pt-fila--pendiente i, .pt-fila--corriendo i, .pt-fila--sin_sat i { color: rgb(var(--av-600)); }
+        .pt-fila--sin_sat p { color: rgb(var(--av-700)); }
         .pt-fila--corriendo i { animation: pt-gira 1.2s linear infinite; }
         @keyframes pt-gira { to { transform: rotate(360deg); } }
         .pt-hist { display: grid; max-height: 640px; overflow-y: auto; }
@@ -118,7 +119,7 @@
                 <div class="pt-campo"><span>Empresas <small style="font-weight:400;color:rgb(var(--g-500))" id="pt-emp-cuenta"></small></span>
                     <input class="ui-input" id="pt-buscar" type="search" placeholder="Buscar empresa o RFC" autocomplete="off" hidden>
                     <div class="pt-empresas" id="pt-empresas"></div>
-                    <small style="font-weight:400;color:rgb(var(--g-500));line-height:1.45">Marca con «La mía» tu empresa: siempre viene marcada y es la de la prueba semanal si no eliges otras.</small></div>
+                    <small style="font-weight:400;color:rgb(var(--g-500));line-height:1.45">Marca con «La mía» tu empresa: viene marcada cada vez que abres esta página y es la de la prueba semanal si no eliges otras.</small></div>
                 <div class="pt-campo"><span>Pruebas <button type="button" class="pt-enlace" data-ayuda style="font-size:var(--t-12);margin-left:6px">Qué hace cada una</button><button type="button" class="pt-enlace" id="pt-todas" style="font-size:var(--t-12);margin-left:6px">Quitar todas</button></span>
                     <div class="pt-pruebas" id="pt-pruebas"></div></div>
                 <div class="pt-candado"><svg viewBox="0 0 24 24"><path d="M6 11h12v9H6zM9 11V8a3 3 0 0 1 6 0v3"/></svg>
@@ -170,7 +171,8 @@
         <ul class="pt-ay">
             <li><b>✔ Bien</b>: el trámite funcionó de punta a punta. <b>✘ Falló</b>: el motivo dice qué pasó.</li>
             <li><b>– No aplica</b>: esa prueba no se puede hacer hoy con esa empresa (por ejemplo, no tiene e.firma).</li>
-            <li><b>⏳ Pendiente del SAT</b>: se pidió y el SAT todavía no lo entrega; no cuenta como falla.</li>
+            <li><b>⏳ Pendiente del SAT</b>: se pidió y el SAT todavía no lo entrega; no cuenta como falla. Si el SAT no contestó a media corrida, esa prueba también queda así y se vuelve a probar una vez al final.</li>
+            <li><b>⚠ El SAT no contestó</b>: el SAT no respondió, ni al volver a probar al final (por ejemplo, «Connection reset»). No es una falla de Fiscontable; vuelve a probar más tarde.</li>
         </ul>
     </div>
     <div class="fc-modal__pie"><button type="button" class="ui-btn ui-btn--primario ui-btn--36" data-ayuda-cerrar>Entendido</button></div>

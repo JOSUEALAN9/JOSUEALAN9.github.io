@@ -22,9 +22,46 @@
         return r.json();
     }
 
+    /* 25-nov-2026 (el dueño: «DIOT en ceros: ¿dónde está eso?»): si la consulta del permiso falla por la red (o el servidor no
+       contesta), el botón ya no se esconde: sale deshabilitado con el motivo, y se vuelve a preguntar al recuperar la conexión.
+       Sin permiso (lo dice el servidor) sigue sin salir. */
+    var sinRed = "";
     async function cargar() {
-        try { info = await pedir("/api/declaraciones/diot"); } catch (e) { info = null; }
-        if (boton) boton.hidden = !(info && info.permitido);
+        sinRed = "";
+        try { info = await pedir("/api/declaraciones/diot"); }
+        catch (e) {
+            info = null;
+            sinRed = e instanceof TypeError || /no responde|conexi[oó]n|sin red/i.test(String(e && e.message || "")) ?
+                "No se pudo revisar si puedes presentar la DIOT en ceros: no hubo respuesta del servidor. Revisa tu conexión; " +
+                "se vuelve a intentar sola al recuperarla." : "";
+        }
+        if (!boton) return;
+        boton.hidden = !(info && info.permitido) && !sinRed;
+        boton.disabled = !!sinRed;
+        boton.title = sinRed || "Presentar la DIOT sin operaciones de una o varias empresas (hasta 20)";
+        var nota = document.getElementById("diot-sin-red");
+        if (sinRed && !nota) {
+            nota = document.createElement("p");
+            nota.id = "diot-sin-red";
+            nota.setAttribute("data-globo", "#btn-diot");
+            nota.setAttribute("data-globo-nombre", "Por qué no se puede ahora");
+            boton.insertAdjacentElement("afterend", nota);
+        }
+        if (nota) {
+            nota.textContent = sinRed;
+            if (sinRed && Fiscontable.globos) Fiscontable.globos(boton.parentNode);
+            nota.hidden = !sinRed;                  // con el globo, el «?» se esconde con su texto (common.css, .fc-globo-caja:has)
+        }
+    }
+
+    /* 25-nov-2026: el buscador de arriba lleva aquí con #diot: abre la ventana; si no se puede, lo dice o señala el botón */
+    async function desdeBuscador() {
+        if (location.hash !== "#diot") return;
+        history.replaceState(null, "", location.pathname + location.search);
+        if (info === null && !sinRed) await cargar();
+        if (info && info.permitido) { abrir(); return; }
+        if (sinRed && boton) { boton.scrollIntoView({ block: "center" }); Fiscontable.toast(sinRed); return; }
+        Fiscontable.toast((info && info.motivo) || "La DIOT en ceros no está disponible para tu cuenta.");
     }
 
     /* ------------------------------------------------------------ la ventana */
@@ -33,7 +70,7 @@
         // vez, salía «elegir» en lugar del avance del lote que sigue corriendo
         if (boton) boton.disabled = true;
         await cargar();
-        if (boton) boton.disabled = false;
+        if (boton) boton.disabled = !!sinRed;          // sin red, se queda deshabilitado con su motivo
         if (!info || !info.permitido) return;
         if (dlg) { try { dlg.close(); } catch (x) { /* nada */ } dlg.remove(); }
         dlg = document.createElement("dialog");
@@ -309,5 +346,8 @@
 
     if (boton) boton.addEventListener("click", abrir);
     window.addEventListener("pagehide", function () { clearInterval(sondeo); });
-    cargar();                       // sin permiso (o sin el módulo) el servidor dice que no y el botón no aparece
+    window.addEventListener("online", function () { if (sinRed) cargar(); });
+    window.addEventListener("hashchange", desdeBuscador);
+    // sin permiso (o sin el módulo) el servidor dice que no y el botón no aparece; sin red, sale deshabilitado con el motivo
+    cargar().then(desdeBuscador);
 })();

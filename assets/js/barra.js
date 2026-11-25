@@ -642,6 +642,8 @@
             { g: "Tu cuenta", i: D.calendario, n: "Lo programado", d: "Constancias, opiniones y declaraciones que tocan", u: cfg + "automatico&sub=programado", a: "programaciones constancia opinion declaraciones calendario" },
             { g: "Tu cuenta", i: D.pc, n: "Conectar esta PC", d: "Fiscontable Agente para Windows", u: "/agente/", a: "agente windows instalar descargar computadora pcs conectadas" },
             { g: "Ajustes de módulos", i: D.engrane, n: "Ajustes de Facturar", d: "Emisor, series, sello, logo y correo", u: cfg + "facturacion", a: "csd timbres folio serie smtp", si: con("facturacion") },
+            // 25-nov-2026 (el dueño: «DIOT en ceros: ¿dónde está eso?»): abre Declaraciones con la ventana de la DIOT (diot.js, #diot)
+            { g: "Herramientas", i: D.documento, n: "DIOT en ceros", d: "Declaraciones · presentar la DIOT sin operaciones de una o varias empresas", u: "/herramientas/declaraciones/#diot", a: "diot ceros sin operaciones presentar declaracion informativa terceros proveedores", si: con("declaraciones") },
             { g: "Ajustes de módulos", i: D.engrane, n: "Impuestos por empresa", d: "Flujo o devengado, estatales y reglas", u: cfg + "impuestos", a: "reglas fiscales isr iva diot", si: con("marcas") },
             { g: "Mi despacho", i: D.equipo, n: "Equipo del despacho", d: desp ? desp.nombre : "", u: "/despacho/", a: "despacho miembros invitar permisos", si: !!desp },
             { g: "Mi despacho", i: D.equipo, n: "Solicitudes del despacho", d: "Accesos por aprobar", u: "/despacho/?vista=solicitudes", a: "despacho aprobar acceso", si: !!desp },
@@ -707,7 +709,11 @@
             { g: "Administración", i: D.llave, n: "Cuentas vencidas", d: "Planes vencidos y sus plazos", u: adm + "vencidas", a: "admin vencimiento", si: admin },
             { g: "Administración", i: D.llave, n: "Tareas automáticas y madrugada", d: "Si cada tarea salió, cuánto tardó, «Correr ahora» y la carga de la madrugada", u: adm + "tareas", a: "admin programador tareas automaticas madrugada fallas reintentar no alcanzo respaldo vps carriles", si: admin },
             { g: "Administración", i: D.llave, n: "Laboratorio", d: "Pruebas con el SAT", u: "/admin/laboratorio/", a: "admin pruebas sin navegador grabacion", si: admin },
-            { g: "Administración", i: D.llave, n: "Probar todo", d: "Probar todo con tus empresas", u: "/admin/probar/", a: "admin probar todo prueba revisar antes de produccion", si: admin },
+            // 25-nov-2026 (el dueño: «no me especificaste bien dónde»): el camino completo en la descripción
+            { g: "Administración", i: D.llave, n: "Probar todo", d: "Administración › Sistema, junto a Laboratorio: prueba todo con tus empresas", u: "/admin/probar/", a: "admin probar todo prueba pruebas revisar antes de produccion laboratorio sat", si: admin },
+            // 25-nov-2026 (el dueño: «Preparar reinicio… no sé dónde es eso»): directo a Sistema › Portal y acciones (admin.js, #portal)
+            { g: "Administración", i: D.llave, n: "Preparar reinicio", d: "Sistema › Portal y acciones: avisa con cuenta regresiva antes de reiniciar", u: adm + "portal", a: "reiniciar reinicio avisar cuenta regresiva mantenimiento pase servidor 5 minutos", si: admin },
+            { g: "Administración", i: D.llave, n: "¿Puedo reiniciar?", d: "Sistema › Portal y acciones: quién está conectado y qué se cortaría", u: adm + "portal", a: "puedo reiniciar reinicio semaforo conectados pase servidor", si: admin },
             { g: "Ayuda", i: D.ayuda, n: "Ayuda e instrucciones", d: "Cómo se usa cada parte", u: "/soporte/", a: "soporte dudas manual contacto" },
             { g: "Ayuda", i: D.alerta, n: "Informar un error", d: "Cuéntanos qué falló; llega a soporte", u: "#informar-error", a: "reportar falla bug problema no funciona soporte" },
             { g: "Administración", i: D.llave, n: "Errores informados", d: "Lo que las personas reportaron con «Informar un error»", u: adm + "errores", a: "reportes fallas bugs soporte", si: admin },
@@ -1432,6 +1438,26 @@
             });
             window.addEventListener("message", function (ev) {
                 if (ev.origin === location.origin && ev.data && ev.data.fiscontable === "config-listo") cerrar();
+            });
+            // 25-nov-2026 (el dueño: «la ventana de configuración no me deja cerrar con Esc»): en cuanto se hace clic adentro, el
+            // teclado lo recibe la página del iframe y la tecla Esc ya no le llega a esta ventana. Se escucha también ahí (es del
+            // mismo sitio). Si adentro hay algo abierto (otra ventana, un menú, un selector) o un buscador con texto, ese Esc es
+            // para eso: se mira ANTES de que la página de adentro lo atienda (fase de captura) y, si nadie lo canceló, cierra.
+            dlg.querySelector("iframe").addEventListener("load", function () {
+                var w; try { w = this.contentWindow; if (!w || !w.document) return; } catch (e) { return; }
+                var abierto = false;
+                w.addEventListener("keydown", function (e) {
+                    if (e.key !== "Escape") return;
+                    var d = w.document, a = d.activeElement;
+                    abierto = !!d.querySelector("dialog[open], [aria-haspopup][aria-expanded=\"true\"], .xml-modal:not([hidden]), .xml-panel:not([hidden]), " +
+                        ".xml-menu__lista:not([hidden]), .mod-menu__lista:not([hidden]), .fc-panel:not([hidden]), .fc-periodo:not([hidden]), .fc-globo-caja--abierta") ||
+                        !!(a && a.matches && a.matches("input[type=search], textarea") && a.value);
+                }, true);
+                w.addEventListener("keydown", function (e) {
+                    if (e.key !== "Escape" || abierto || e.defaultPrevented) return;
+                    e.preventDefault();
+                    cerrar();
+                });
             });
         }
         dlg.dataset.seccion = seccion || "";

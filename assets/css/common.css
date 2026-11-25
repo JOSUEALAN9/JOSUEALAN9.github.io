@@ -1261,7 +1261,16 @@ dialog.fc-modal::backdrop { background: rgba(16, 27, 45, .5); backdrop-filter: b
 .fc-modal__cabeza p { font-size: 13.5px; color: var(--texto-tenue); margin-top: 4px; line-height: 1.45; }
 .fc-modal__cerrar { flex: none; width: 36px; height: 36px; border: 0; border-radius: 10px; background: none; color: var(--texto-tenue); font-size: 20px; cursor: pointer; }
 .fc-modal__cerrar:hover { background: var(--papel); color: rgb(var(--er-600)); }
-.fc-modal__cuerpo { padding: 24px var(--modal-pad); overflow: auto; flex: 1; display: flex; flex-direction: column; gap: 18px; }
+.fc-modal__cuerpo { padding: 24px var(--modal-pad); overflow: auto; flex: 1; display: flex; flex-direction: column; gap: 18px; min-height: 0;
+                   overscroll-behavior: contain; }
+/* 25-nov-2026 (el dueño, Vencimientos «+ Recordatorio»: «la pantalla se corta y cuando hago hacia abajo lo que baja es la pantalla
+   detrás»): si un <form> envuelve cabeza, cuerpo y pie, el alto se reparte igual que sin él (el pie queda fijo y el cuerpo se
+   desplaza). Y mientras haya una ventana abierta, la página de atrás no se mueve con la rueda ni con el dedo. */
+/* (revisión de Fable: solo el <form> que ENVUELVE la ventana; el que ya es el cuerpo —<form class="fc-modal__cuerpo">, p. ej. Envíos—
+   conserva sus propias reglas) */
+dialog.fc-modal > form:not(.fc-modal__cuerpo) { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; }
+html:has(dialog.fc-modal[open]) { overflow: hidden; scrollbar-gutter: stable; }
+html:has(dialog.fc-modal[open]) body { overflow: hidden; }
 .fc-modal__pie { display: flex; align-items: center; justify-content: flex-end; gap: 10px; flex-wrap: wrap; padding: 16px var(--modal-pad) 22px; border-top: 1px solid var(--linea); flex: none; background: rgb(var(--g-0)); }
 .fc-modal__pie .fc-btn { padding: 10px 18px; font-size: 14px; border-radius: 10px; }
 .fc-modal__pie > :first-child:not(.fc-btn) { margin-right: auto; }

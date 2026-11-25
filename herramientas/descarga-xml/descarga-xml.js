@@ -288,6 +288,7 @@
 
     function pintarResumen() {
         var r = rango();
+        ponerMesDeLaPagina();                    // 25-nov-2026: «Revisar contra el SAT ▾» sigue al mes de la página
         if (E.selDesde && r.inicio) E.selDesde.poner("m:" + mesDe(r.inicio));
         if (E.selHasta && r.fin) E.selHasta.poner("m:" + mesDe(r.fin));
         var p = $("resumen-rango"), caja = $("dm-periodo");
@@ -366,43 +367,60 @@
 
     /* ================================================================ cuadre con la lista del SAT
        Cuántos CFDI tiene el SAT de esta empresa (vigentes y cancelados) y si ya están todos aquí. Sale de la revisión
-       de madrugada (modulos/descarga_xml/cuadre.py); aquí solo se muestra. */
+       de madrugada (modulos/descarga_xml/cuadre.py); aquí solo se muestra.
+       25-nov-2026 (el dueño: «que se oculte de default, pero que se pueda mostrar»): plegado de fábrica; el renglón cerrado
+       dice lo esencial y se recuerda abierto o cerrado en este navegador. */
     var MESES_CORTOS = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
+    var MESES_LARGOS = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
     function mesCorto(m) { var p = String(m || "").split("-"); return p.length === 2 ? MESES_CORTOS[parseInt(p[1], 10) - 1] + " " + p[0] : ""; }
+    function mesLargo(m) { var p = String(m || "").split("-"); return p.length === 2 ? MESES_LARGOS[parseInt(p[1], 10) - 1] + " " + p[0] : ""; }
+    var CLAVE_ABIERTO = "fc-dm-cuadre-abierto";
 
     async function cargarCuadre() {
         var caja = $("cuadre-sat"), q = E.elegido;
-        caja.hidden = true;
+        caja.hidden = true; $("revisar-caja").hidden = true; ocultarRevision();
         detenerRevisar(); REV.rfc = null;
         if (!q || !q.esCliente) return;
         var d;
         try { d = await api("/api/descarga-xml/cuadre/" + encodeURIComponent(q.rfc)); }
         catch (e) { return; }
         if (!E.elegido || E.elegido.rfc !== q.rfc || !d || !d.automatica) return;
-        var html = '<div class="dm-cuadre__cabeza"><strong>Lo que tiene el SAT de esta empresa</strong>';
+        var html, resumen = '<b>Lo que tiene el SAT</b>';
         if (!d.hay) {
-            html += '<span class="dm-cuadre__nota">Todavía no se compara con la lista del SAT: empieza sola, de madrugada, cuando terminen de bajar sus XML.</span></div>';
-            caja.innerHTML = html + htmlPortal(d) + htmlRevisar(q, d); caja.hidden = false; prepararRevisar(q); return;
+            resumen += ' <span class="dm-cuadre__det">· todavía no se compara (empieza sola, de madrugada)</span>';
+            html = '<p class="dm-cuadre__nota">Todavía no se compara con la lista del SAT: empieza sola, de madrugada, cuando terminen de bajar sus XML.</p>';
+        } else {
+            var faltan = 0;
+            html = '<p class="dm-cuadre__nota">Según la lista del SAT, de ' + esc(mesCorto(d.desde)) + " a " + esc(mesCorto(d.hasta)) +
+                " · " + d.cuadrados + " de " + d.meses + " meses al día" + (d.ultima ? " · última revisión el " + parseInt(d.ultima.slice(8, 10), 10) + " de " + esc(mesCorto(d.ultima.slice(0, 7))) : "") + "</p>";
+            html += '<div class="dm-cuadre__tarjetas">';
+            (d.tipos || []).forEach(function (t) {
+                var falta = t.por_llegar !== undefined ? t.por_llegar > 0 : t.faltaban > 0;          // 19-nov: lo que sigue por llegar (se vuelve a contar al bajar)
+                // 24-nov-2026 (auditoría de Fable, decisión del dueño): vigentes que el SAT lista y no se pudieron bajar = «con faltantes» (no al día)
+                var conFaltantes = !falta && t.sin_bajar > 0;
+                if (falta) faltan += t.por_llegar !== undefined ? t.por_llegar : t.faltaban;
+                else if (conFaltantes) faltan += t.sin_bajar;
+                resumen += ' <span class="dm-cuadre__det">· ' + (t.tipo === "emitidos" ? "Emitidos " : "Recibidos ") + miles(t.en_sat) + "</span>";
+                html += '<div class="dm-cuadre__t"><span class="dm-cuadre__et">' + (t.tipo === "emitidos" ? "Emitidos" : "Recibidos") + "</span>" +
+                    '<span class="dm-cuadre__n">' + miles(t.en_sat) + " <small>en el SAT</small></span>" +
+                    '<span class="dm-cuadre__det">' + miles(t.vigentes) + " vigentes · " + miles(t.cancelados) + " cancelados</span>" +
+                    '<span class="dm-cuadre__estado' + (falta || conFaltantes ? " dm-cuadre__estado--falta" : "") + '">' +
+                    (falta ? "Faltan " + miles(t.por_llegar !== undefined ? t.por_llegar : t.faltaban) + " por llegar: ya se pidieron al SAT" :
+                        conFaltantes ? "Con faltantes: el SAT lista " + miles(t.sin_bajar) + " vigente" + (t.sin_bajar === 1 ? "" : "s") + " que no se " + (t.sin_bajar === 1 ? "pudo" : "pudieron") + " bajar" :   // revisión de Fable: en plural decía «pudo bajarron»; y el portal no siempre lo intentó
+                        "Ya los tienes todos") + "</span>" +
+                    (t.cancelados_nuevos ? '<span class="dm-cuadre__det">' + miles(t.cancelados_nuevos) + " pasaron de vigente a cancelado</span>" : "") + "</div>";
+            });
+            html += "</div>";
+            resumen += faltan ? ' <span class="dm-cuadre__estado dm-cuadre__estado--falta">· faltan ' + miles(faltan) + "</span>"
+                : ' <span class="dm-cuadre__estado">· al día</span>';
         }
-        html += '<span class="dm-cuadre__nota">Según la lista del SAT, de ' + esc(mesCorto(d.desde)) + " a " + esc(mesCorto(d.hasta)) +
-            " · " + d.cuadrados + " de " + d.meses + " meses al día" + (d.ultima ? " · última revisión el " + parseInt(d.ultima.slice(8, 10), 10) + " de " + esc(mesCorto(d.ultima.slice(0, 7))) : "") + "</span></div>";
-        html += '<div class="dm-cuadre__tarjetas">';
-        (d.tipos || []).forEach(function (t) {
-            var falta = t.por_llegar !== undefined ? t.por_llegar > 0 : t.faltaban > 0;          // 19-nov: lo que sigue por llegar (se vuelve a contar al bajar)
-            // 24-nov-2026 (auditoría de Fable, decisión del dueño): vigentes que el SAT lista y no se pudieron bajar = «con faltantes» (no al día)
-            var conFaltantes = !falta && t.sin_bajar > 0;
-            html += '<div class="dm-cuadre__t"><span class="dm-cuadre__et">' + (t.tipo === "emitidos" ? "Emitidos" : "Recibidos") + "</span>" +
-                '<span class="dm-cuadre__n">' + miles(t.en_sat) + " <small>en el SAT</small></span>" +
-                '<span class="dm-cuadre__det">' + miles(t.vigentes) + " vigentes · " + miles(t.cancelados) + " cancelados</span>" +
-                '<span class="dm-cuadre__estado' + (falta || conFaltantes ? " dm-cuadre__estado--falta" : "") + '">' +
-                (falta ? "Faltan " + miles(t.por_llegar !== undefined ? t.por_llegar : t.faltaban) + " por llegar: ya se pidieron al SAT" :
-                    conFaltantes ? "Con faltantes: el SAT lista " + miles(t.sin_bajar) + " vigente" + (t.sin_bajar === 1 ? "" : "s") + " que no se " + (t.sin_bajar === 1 ? "pudo" : "pudieron") + " bajar" :   // revisión de Fable: en plural decía «pudo bajarron»; y el portal no siempre lo intentó
-                    "Ya los tienes todos") + "</span>" +
-                (t.cancelados_nuevos ? '<span class="dm-cuadre__det">' + miles(t.cancelados_nuevos) + " pasaron de vigente a cancelado</span>" : "") + "</div>";
-        });
-        html += "</div>" + htmlPortal(d);
-        caja.innerHTML = html + htmlRevisar(q, d); caja.hidden = false; prepararRevisar(q);
+        $("cuadre-resumen").innerHTML = resumen;
+        $("cuadre-cuerpo").innerHTML = html + htmlPortal(d);
+        caja.open = leerLocal(CLAVE_ABIERTO) === "1";
+        caja.hidden = false;
+        prepararRevisar(q, d);
     }
+    $("cuadre-sat").addEventListener("toggle", function () { guardarLocal(CLAVE_ABIERTO, this.open ? "1" : "0"); });
 
     /* 24-nov-2026 (a2bar, el dueño): el mes que no cuadró se barre solo por el portal de madrugada (y, si se prende, el mes en
        curso cada semana). Aquí la nota «revisado por el portal» de cada mes y, si sigue sin cuadrar, por qué.
@@ -429,108 +447,167 @@
         return html + "</div>";
     }
 
-    /* ================================================================ «Revisar ahora contra el SAT» (24-nov-2026, a2xml)
+    /* ================================================================ «Revisar contra el SAT ▾» (24-nov-2026, a2xml)
        El cuadre de un mes al momento: la lista del SAT (web service) contra la biblioteca; lo que falte se pide solo. Si la
-       lista tarda, se ofrece por el portal (cuenta y baja lo que falta). modulos/descarga_xml/cuadre.revisar_ahora. */
-    var REV = { timer: null, rfc: null, desde: 0 };
-    function mesesRevisables(d) {
-        var ayer = new Date(Date.now() - 86400000), fin = ayer.getFullYear() * 12 + ayer.getMonth();
-        var ini = d && d.hay && d.desde ? parseInt(d.desde.slice(0, 4), 10) * 12 + parseInt(d.desde.slice(5, 7), 10) - 1 : ayer.getFullYear() * 12;
-        var salida = [];
-        for (var m = fin; m >= ini && salida.length < 36; m--) salida.push(Math.floor(m / 12) + "-" + String(m % 12 + 1).padStart(2, "0"));
+       lista tarda, se ofrece por el portal (cuenta y baja lo que falta). modulos/descarga_xml/cuadre.revisar_ahora.
+       25-nov-2026 (el dueño: «solo me deja noviembre 2026»; «roba mucho espacio»): botón con menú en la cabecera, como
+       «Descargar Excel ▾». Se elige cualquier mes desde enero de 2024 hasta el mes en curso (el servidor acepta cualquier mes
+       ya empezado; antes la lista empezaba en el primer mes ya comparado y justo los nunca comparados no se podían revisar) y
+       de fábrica viene el mes del selector «Desde» de la página. El resultado sale en un aviso corto bajo la cabecera. */
+    var REV = { timer: null, rfc: null, desde: 0, mesTocado: false };
+    var PRIMER_MES = 2024 * 12;                       // enero de 2024
+    function mesesRevisables() {
+        var hoy = new Date(), fin = hoy.getFullYear() * 12 + hoy.getMonth(), salida = [];
+        for (var m = fin; m >= PRIMER_MES; m--) salida.push(Math.floor(m / 12) + "-" + String(m % 12 + 1).padStart(2, "0"));
         return salida;
     }
-    function htmlRevisar(q, d) {
-        if (!q.efirmaGuardada) return "";
-        var meses = mesesRevisables(d);
-        if (!meses.length) return "";
-        return '<div class="dm-revisar">' +
-            '<label class="dm-revisar__mes"><span class="dm-cuadre__et">Mes</span><select id="revisar-mes" class="campo__control">' +
-            meses.map(function (m) { return '<option value="' + m + '">' + esc(mesCorto(m)) + "</option>"; }).join("") + "</select></label>" +
-            '<button type="button" id="btn-revisar" class="ui-btn ui-btn--secundario" data-fc-cambia title="Pide al SAT la lista de ese mes y la compara uno por uno con tu biblioteca; lo que falte se pide solo">Revisar ahora contra el SAT</button>' +
-            '<button type="button" id="btn-revisar-portal" class="ui-btn ui-btn--terciario" data-fc-cambia title="Busca en el portal del SAT con su e.firma, cuenta lo que hay y baja solo lo que falta" hidden>Hacerlo por el portal</button>' +
-            '<div id="revisar-res" class="dm-revisar__res" role="status" hidden></div></div>';
+    function mesDeLaPagina() {
+        var r = rango(), meses = mesesRevisables(), m = r.inicio ? mesDe(r.inicio) : (E.periodoGeneral || meses[0]);
+        if (m > meses[0]) m = meses[0];
+        if (m < meses[meses.length - 1]) m = meses[meses.length - 1];
+        return m;
+    }
+    function ponerMesDeLaPagina() {
+        var sel = $("revisar-mes");
+        if (!sel || !REV || REV.mesTocado || !sel.options.length) return;
+        var m = mesDeLaPagina();
+        if (sel.value !== m) { sel.value = m; if (REV.rfc) { detenerRevisar(); REV.desde = Date.now(); verRevision(true, true); } }
     }
     function detenerRevisar() { if (REV.timer) clearTimeout(REV.timer); REV.timer = null; }
+    function abrirMenuRevisar(abrir) {
+        var lista = $("revisar-lista"), b = $("btn-revisar-menu");
+        if (abrir && lista.hidden) ponerMesDeLaPagina();
+        lista.hidden = !abrir; b.setAttribute("aria-expanded", String(!!abrir));
+    }
     function prepararRevisar(q) {
         detenerRevisar();
-        REV.rfc = q.rfc;
-        var b = $("btn-revisar");
-        if (!b) return;
-        b.addEventListener("click", function () { revisar("ws"); });
-        $("btn-revisar-portal").addEventListener("click", function () { revisar("portal"); });
+        REV.rfc = q.rfc; REV.mesTocado = false;
+        $("revisar-caja").hidden = !q.efirmaGuardada;
+        if (!q.efirmaGuardada) return;
+        var sel = $("revisar-mes");
+        sel.innerHTML = mesesRevisables().map(function (m) { return '<option value="' + m + '">' + esc(mesCorto(m)) + "</option>"; }).join("");
+        sel.value = mesDeLaPagina();
+        $("btn-revisar-portal").hidden = true;
         // revisión a2xml (24-nov-2026): si al abrir (o al cambiar de mes) ya va una revisión en camino, se sigue sola
-        $("revisar-mes").addEventListener("change", function () { detenerRevisar(); REV.desde = Date.now(); verRevision(true); });
         REV.desde = Date.now();
-        verRevision(true);
+        verRevision(true, true);
+    }
+    (function () {
+        var caja = $("revisar-caja");
+        $("btn-revisar-menu").addEventListener("click", function (e) { e.stopPropagation(); abrirMenuRevisar($("revisar-lista").hidden); });
+        $("btn-revisar").addEventListener("click", function () { abrirMenuRevisar(false); revisar("ws"); });
+        $("btn-revisar-portal").addEventListener("click", function () { abrirMenuRevisar(false); revisar("portal"); });
+        $("revisar-mes").addEventListener("change", function () { REV.mesTocado = true; detenerRevisar(); REV.desde = Date.now(); verRevision(true); });
+        document.addEventListener("click", function (e) { if (!caja.contains(e.target)) abrirMenuRevisar(false); });
+        document.addEventListener("keydown", function (e) { if (e.key === "Escape" && !$("revisar-lista").hidden) { abrirMenuRevisar(false); $("btn-revisar-menu").focus(); } });
+        $("revisar-res").addEventListener("click", function (e) {
+            if (e.target.closest("[data-rev-cerrar]")) ocultarRevision();
+            else if (e.target.closest("[data-rev-portal]")) revisar("portal");
+        });
+    })();
+    function ocultarRevision() { var c = $("revisar-res"); if (c) { c.hidden = true; c.innerHTML = ""; } }
+
+    /* Lo que faltaba y no se pide (25-nov-2026, el dueño: «faltaban 7 · se pidieron 0, ¿es correcto?»): en recibidos solo se
+       piden los vigentes; un recibido cancelado está en la lista del SAT pero el SAT no entrega su XML. El servidor ya lo dice;
+       aquí se enseña, en su propio renglón. Se usa la explicación que manda el servidor por tipo (cuadre.estado_mes,
+       no_se_piden_texto) y, si no viene (un servidor de antes), la que trae su mensaje («(7 recibidos cancelados no se pueden
+       bajar)»). */
+    function explicacionFaltan(t) {
+        if (t.no_se_piden_texto) return String(t.no_se_piden_texto).replace(/\.\s*$/, "");
+        var m = /\(([^()]*cancelad[^()]*)\)/i.exec(String(t.mensaje || ""));
+        if (!m) return "";
+        var txt = m[1].trim().replace(/\.\s*$/, "");
+        return txt.charAt(0).toUpperCase() + txt.slice(1) + (/SAT/.test(txt) ? "" : ": el SAT no entrega el XML de un recibido cancelado");
     }
     var NOMBRE_TIPO_REV = { emitidos: "Emitidos", recibidos: "Recibidos" };
-    function pintarRevision(e, aviso) {
+    function pintarRevision(e, aviso, mes) {
         var caja = $("revisar-res");
         if (!caja) return false;
-        var lineas = [], sigue = false;
+        var lineas = [], sigue = false, malo = false, todoBien = (e.tipos || []).length > 0;
         (e.tipos || []).forEach(function (t) {
-            var nombre = "<b>" + NOMBRE_TIPO_REV[t.tipo] + "</b>";
-            if (t.esperando) { lineas.push(nombre + ": pidiendo la lista al SAT… (puede tardar de minutos a horas; no necesitas dejar esta página abierta)"); sigue = true; }
-            else if (t.en_sat !== null && t.en_sat !== undefined) {
+            var nombre = "<b>" + NOMBRE_TIPO_REV[t.tipo] + "</b>", cifras = t.en_sat !== null && t.en_sat !== undefined;
+            if (t.esperando) { lineas.push(nombre + ": pidiendo la lista al SAT… (puede tardar de minutos a horas; no necesitas dejar esta página abierta)"); sigue = true; todoBien = false; }
+            else if (cifras) {
+                var porque = t.faltaban > (t.se_pidieron || 0) ? explicacionFaltan(t) : "";
                 lineas.push(nombre + " — SAT: " + miles(t.en_sat) + " · teníamos: " + miles(t.teniamos) + " · faltaban: " + miles(t.faltaban) +
                     " · se pidieron: " + miles(t.se_pidieron) + (t.por_llegar ? " · por llegar: " + miles(t.por_llegar) : "") +
                     (t.sin_bajar ? " · con faltantes: " + miles(t.sin_bajar) + " no se pudieron bajar" : "") +
-                    (t.cuadrado_en ? ' <span class="dm-cuadre__det">(' + esc(cuandoFue(t.cuadrado_en)) + ")</span>" : ""));
-            } else if (t.estado === "error") { lineas.push(nombre + ": la lista del SAT no llegó. " + esc(t.mensaje || "")); }
+                    (t.cuadrado_en ? ' <span class="dm-cuadre__det">(' + esc(cuandoFue(t.cuadrado_en)) + ")</span>" : "") +
+                    (porque ? '<span class="dm-revisar-aviso__porque">' + esc(porque) + ".</span>" : ""));
+                if (t.por_llegar || t.sin_bajar || (t.faltaban && !porque && t.faltaban > (t.se_pidieron || 0))) todoBien = false;
+            } else if (t.estado !== "error") todoBien = false;
+            // 25-nov-2026 (análisis de Fable): si el último pedido falló, se dice aunque ya haya cifras de una revisión anterior
+            if (t.estado === "error") {
+                lineas.push('<span class="dm-revisar__error">' + nombre + ": " + (cifras ? "la última revisión no salió" : "la lista del SAT no llegó") +
+                    (t.mensaje ? ". " + esc(String(t.mensaje).replace(/\.\s*$/, "")) : "") + ".</span>");
+                malo = true; todoBien = false;
+            }
             var p = t.portal;
             if (p) {
-                if (p.vivo) { lineas.push(nombre + " por el portal: buscando y bajando lo que falta…"); sigue = true; }
+                if (p.vivo) { lineas.push(nombre + " por el portal: buscando y bajando lo que falta…"); sigue = true; todoBien = false; }
                 else if (p.total !== null && p.total !== undefined) {
                     lineas.push(nombre + " por el portal" + (p.de_madrugada ? " (de madrugada)" : "") + " — SAT: " + miles(p.total) + " · teníamos: " + miles(p.teniamos) + " · faltaban: " + miles(p.faltaban) +
                         " · se bajaron: " + miles(p.bajados) + (p.no_bajaron ? " · no se pudieron bajar: " + miles(p.no_bajaron) : ""));
-                } else if (p.estado === "error" || p.estado === "cancelado") { lineas.push(nombre + " por el portal: no se pudo. " + esc((p.mensaje || "").split(". ")[0])); }
+                } else if (p.estado === "error" || p.estado === "cancelado") { lineas.push('<span class="dm-revisar__error">' + nombre + " por el portal: no se pudo. " + esc((p.mensaje || "").split(". ")[0]) + "</span>"); malo = true; }
             }
         });
-        if (aviso) lineas.unshift(esc(aviso));
         // el portal ya se pidió (va o terminó): no se vuelve a ofrecer
         var conPortal = (e.tipos || []).length && (e.tipos || []).every(function (t) { return t.portal; });
         var ofrecer = e.tarda && !conPortal;
         if (ofrecer) lineas.push("La lista del SAT está tardando. Si lo necesitas ya, hazlo por el portal: cuenta lo que tiene el SAT y baja solo lo que falte.");
-        caja.innerHTML = lineas.map(function (l) { return "<div>" + l + "</div>"; }).join("");
-        caja.hidden = !lineas.length;
         var bp = $("btn-revisar-portal");
         if (bp) bp.hidden = !ofrecer;
+        if (!lineas.length) { if (!aviso) { ocultarRevision(); return false; } }
+        caja.classList.toggle("fc-aviso--bien", todoBien && !malo && !sigue && !ofrecer);
+        caja.innerHTML = '<div class="dm-revisar-aviso__texto"><div class="dm-revisar-aviso__titulo"><b>' + esc(mesLargo(mes || e.mes || "").replace(/^./, function (c) { return c.toUpperCase(); })) +
+            "</b> contra la lista del SAT" + (aviso ? " · " + esc(aviso) : "") + "</div>" +
+            lineas.map(function (l) { return "<div>" + l + "</div>"; }).join("") +
+            (ofrecer ? '<div class="fc-aviso__acciones"><button type="button" class="fc-btn" data-rev-portal data-fc-cambia>Hacerlo por el portal</button></div>' : "") + "</div>" +
+            '<button type="button" class="dm-revisar-aviso__cerrar" data-rev-cerrar aria-label="Cerrar el aviso">✕</button>';
+        caja.hidden = false;
         return sigue;
     }
-    async function verRevision(sondear) {
+    async function verRevision(sondear, alAbrir) {
         var sel = $("revisar-mes"), rfc = REV.rfc;
         if (!sel || !rfc) return;
         var mes = sel.value, e;
         try { e = await api("/api/descarga-xml/cuadre/" + encodeURIComponent(rfc) + "/mes/" + mes); }
         catch (err) { return; }
         if (REV.rfc !== rfc || !$("revisar-mes") || $("revisar-mes").value !== mes) return;
-        var sigue = pintarRevision(e);
+        // al abrir la empresa solo se enseña si va una revisión en camino o acaba de salir una (no las cifras de siempre)
+        var vivo = (e.tipos || []).some(function (t) { return t.esperando || (t.portal && t.portal.vivo); });
+        if (alAbrir && !vivo) { ocultarRevision(); return; }
+        var sigue = pintarRevision(e, "", mes);
         if (sondear && sigue && Date.now() - REV.desde < 30 * 60 * 1000) REV.timer = setTimeout(function () { verRevision(true); }, 5000);
     }
     async function revisar(via) {
-        var b = via === "portal" ? $("btn-revisar-portal") : $("btn-revisar"), mes = $("revisar-mes").value, rfc = REV.rfc;
+        var b = via === "portal" ? $("btn-revisar-portal") : $("btn-revisar"), menu = $("btn-revisar-menu"), mes = $("revisar-mes").value, rfc = REV.rfc;
         detenerRevisar();
-        b.disabled = true; b.classList.add("ui-btn--cargando");
+        b.disabled = true; menu.disabled = true; menu.classList.add("ui-btn--cargando");
         try {
             var r = await api("/api/descarga-xml/cuadre/" + encodeURIComponent(rfc) + "/mes/" + mes + "/revisar", {
                 method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ via: via }) });
             if (REV.rfc !== rfc) return;
-            var aviso = r.pedidas ? (via === "portal" ? "Se pidió al portal del SAT." : "Se pidió la lista al SAT.")
-                : r.ya_iban ? "Ya iba en camino una revisión igual: aquí ves cómo va (no se pide dos veces)."
-                : r.al_dia ? "Se revisó hace unos minutos con el mismo corte: este es el resultado." : "";
+            var aviso = r.pedidas ? (via === "portal" ? "se pidió al portal del SAT" : "se pidió la lista al SAT")
+                : r.ya_iban ? "ya iba en camino una revisión igual (no se pide dos veces)"
+                : r.al_dia ? "se revisó hace unos minutos con el mismo corte: este es el resultado" : "";
             REV.desde = Date.now();
-            if (pintarRevision(r.estado, aviso)) REV.timer = setTimeout(function () { verRevision(true); }, 5000);
+            if (pintarRevision(r.estado, aviso, mes)) REV.timer = setTimeout(function () { verRevision(true); }, 5000);
         } catch (err) {
             var caja = $("revisar-res");
-            if (caja) { caja.innerHTML = '<div class="dm-revisar__error">' + esc(err.message) + "</div>"; caja.hidden = false; }
-        } finally { b.disabled = false; b.classList.remove("ui-btn--cargando"); }
+            if (caja) {
+                caja.classList.remove("fc-aviso--bien");
+                caja.innerHTML = '<div class="dm-revisar-aviso__texto"><span class="dm-revisar__error">' + esc(err.message) + "</span></div>" +
+                    '<button type="button" class="dm-revisar-aviso__cerrar" data-rev-cerrar aria-label="Cerrar el aviso">✕</button>';
+                caja.hidden = false;
+            }
+        } finally { b.disabled = false; menu.disabled = false; menu.classList.remove("ui-btn--cargando"); }
     }
 
     function alLimpiar() {
         E.elegido = null;
         detenerRevisar(); REV.rfc = null;
-        $("cuadre-sat").hidden = true;
+        $("cuadre-sat").hidden = true; $("revisar-caja").hidden = true; ocultarRevision();
         $("paso-acceso").hidden = $("paso-filtros").hidden = $("seccion-solicitudes").hidden = true;
         cerrarResultados();
         detenerSondeo();
