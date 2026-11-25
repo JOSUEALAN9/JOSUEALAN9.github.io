@@ -1892,7 +1892,7 @@
        Antes (G-13): una lista larga con las corridas juntas por 3 horas; cada programación salía suelta y lo urgente quedaba
        hasta abajo. */
     var actividad = { datos: null, abierta: false, version: 0, abiertos: {}, vista: "inicio", grupo: null, detalle: null,
-                      modo: null, empresas: null, buscar: "", eligiendo: false, todos: false };
+                      modo: null, empresas: null, buscar: "", eligiendo: false, todos: false, elegidos: {} };
     var ICONO_AVISO = { programacion: "calendario", validacion: "alerta", listas: "alerta", buzon: "documento", descarga: "descarga", aviso: "campana" };
     // Los seis círculos: su ícono (mismo grosor que el resto de la barra)
     var ICONO_GRUPO = {
@@ -2108,6 +2108,20 @@
     function htmlUrgentes(lista, total, empresa) {
         if (!lista || !lista.length) return "";
         var vis = actividad.todos ? lista : lista.slice(0, 4);
+        // 25-nov-2026 (el dueño, av3): «Atender varios». Con dos o más que se pueden dar por atendidos a la vista, cada uno lleva su
+        // casilla; abajo, «Atender todos (N)» (lo que se ve) o, con algunos elegidos, «Ya los atendí (N)». Un solo PIN para el grupo.
+        var atendibles = vis.filter(function (x) { return x.aviso_id && x.atender; });
+        var casillas = atendibles.length >= 2;
+        var elegidos = atendibles.filter(function (x) { return actividad.elegidos[x.aviso_id]; });
+        var pie = [];
+        if (lista.length > 4) pie.push('<button type="button" class="fc-av-urgente__mas" data-av-todos>' + (actividad.todos ? "Ver menos" : "Ver las " + lista.length) + "</button>");
+        if (casillas) {
+            pie.push('<span class="fc-av-urg-acciones">' + (elegidos.length
+                ? '<button type="button" class="ui-btn ui-btn--terciario ui-btn--28" data-av-quitar>Quitar</button>' +
+                  '<button type="button" class="ui-btn ui-btn--primario ui-btn--28" data-av-atender-varios="elegidos">Ya los atendí (' + elegidos.length + ")</button>"
+                : '<button type="button" class="ui-btn ui-btn--secundario ui-btn--28" data-av-atender-varios="todos" title="Los que se ven aquí y se pueden dar por atendidos">' +
+                  "Atender todos (" + atendibles.length + ")</button>") + "</span>");
+        }
         return '<section class="fc-av-urgente" aria-label="Requiere atención"><p class="fc-av-urgente__titulo">' + ico(D.alerta, 2) +
             "Requiere atención <b>" + (total || lista.length) + "</b></p>" + vis.map(function (x) {
                 // con «Una empresa…» el nombre de la empresa ya está arriba: no se repite en cada renglón
@@ -2119,11 +2133,13 @@
                 // 25-nov-2026 (el dueño, avi-2): abrir un aviso no es atenderlo. Lo urgente que es un hecho (CFDI cancelado de un mes
                 // cerrado o declarado, envío que falló, algo por aprobar) sigue aquí hasta que se resuelve o alguien pica «Ya lo atendí»
                 if (!x.aviso_id || !x.atender) return renglon;
-                return '<div class="fc-av-urg-caja">' + renglon + '<button type="button" class="ui-btn ui-btn--secundario ui-btn--28 fc-av-atendi" data-av-atender="' +
+                var casilla = casillas ? '<label class="fc-av-elegir" title="Elegir para «Ya los atendí»"><input type="checkbox" data-av-elegir="' + esc(x.aviso_id) + '"' +
+                    (actividad.elegidos[x.aviso_id] ? " checked" : "") + ' aria-label="Elegir: ' + esc(titulo) + '"></label>' : "";
+                return '<div class="fc-av-urg-caja' + (casillas ? " fc-av-urg-caja--elegir" : "") + '">' + casilla + renglon +
+                    '<button type="button" class="ui-btn ui-btn--secundario ui-btn--28 fc-av-atendi" data-av-atender="' +
                     esc(x.aviso_id) + '"' + (x.atender.pin ? ' data-pin="1" title="Pide tu PIN: es de un mes cerrado o declarado"' : ' title="Se quita de «Requiere atención» para todo el despacho"') +
                     ">Ya lo atendí</button></div>";
-            }).join("") + (lista.length > 4 ? '<button type="button" class="fc-av-urgente__mas" data-av-todos>' +
-                (actividad.todos ? "Ver menos" : "Ver las " + lista.length) + "</button>" : "") + "</section>";
+            }).join("") + (pie.length ? '<div class="fc-av-urgente__pie">' + pie.join("") + "</div>" : "") + "</section>";
     }
     function htmlCirculos(grupos) {
         return '<div class="fc-av-circulos">' + grupos.map(function (g) {
@@ -2303,19 +2319,49 @@
        declarado, que pide tu PIN (como cerrar o abrir un mes). El servidor revisa que la empresa sea tuya. */
     // Fiscontable.atenderAviso(id, {pin, titulo, boton}) → la respuesta del servidor, o null si se canceló (también la ficha)
     async function atenderAvisoId(id, o) {
+        return atenderAvisosIds([id], { pin: (o || {}).pin, titulos: [(o || {}).titulo] });
+    }
+    /* 25-nov-2026 (el dueño, av3): «Ya los atendí (N)» y «Atender todos (N)»: varios en una sola petición (el servidor revisa
+       cada uno con las reglas de «Ya lo atendí» y es todo o nada) y UN solo PIN para todo el grupo si alguno lo pide.
+       Fiscontable.atenderAvisos(ids, {pin, titulos, confirmar}) → la respuesta del servidor, o null si se canceló (también la ficha).
+       confirmar: «Atender todos» pregunta antes (sin PIN); con PIN, la ventana del PIN ya lo dice. */
+    async function atenderAvisosIds(ids, o) {
         o = o || {};
+        ids = (ids || []).map(Number).filter(Boolean);
+        if (!ids.length) return null;
         async function hacer(conf) {
+            var cuerpo = ids.length === 1 ? { aviso_id: ids[0] } : { aviso_ids: ids };
+            cuerpo.confirmacion = conf || null;
             var r = await fetch(API + "/api/actividad/atendido", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ aviso_id: Number(id), confirmacion: conf || null }) });
+                body: JSON.stringify(cuerpo) });
             if (!r.ok) throw new Error(await window.Fiscontable.leerError(r));
             return r.json();
         }
-        if (!o.pin) return hacer();
+        var titulos = (o.titulos || []).filter(Boolean);
+        var lista = ids.length > 1 ? "<ul class=\"fc-av-lista-atender\">" + titulos.slice(0, 6).map(function (t) { return "<li>" + esc(t) + "</li>"; }).join("") +
+            (titulos.length > 6 ? "<li>y " + (titulos.length - 6) + " más</li>" : "") + "</ul>" : "<p><b>" + esc(titulos[0] || "Este aviso") + "</b></p>";
+        if (!o.pin) {
+            if (o.confirmar && !(await confirmar({ titulo: "¿Dar por atendidos los " + ids.length + "?", si: "Ya los atendí",
+                texto: "Se quitan de «Requiere atención» para todo el despacho y queda en la bitácora que los atendiste tú." }))) return null;
+            return hacer();
+        }
         var respuesta = null;
-        var hecho = await confirmarIdentidad("atender_aviso", async function (c) { respuesta = await hacer(c); }, { titulo: "Ya lo atendí",
-            resumen: "<p><b>" + esc(o.titulo || "Este aviso") + "</b></p><p>Es de un mes cerrado o declarado. Se quita de «Requiere atención» para todo el despacho y queda en la bitácora que lo atendiste tú.</p>",
-            boton: "Ya lo atendí" });
+        var varios = ids.length > 1;
+        var hecho = await confirmarIdentidad("atender_aviso", async function (c) { respuesta = await hacer(c); }, {
+            titulo: varios ? "Ya los atendí (" + ids.length + ")" : "Ya lo atendí",
+            resumen: lista + "<p>" + (varios ? "Hay alguno de un mes cerrado o declarado: un solo PIN para todos. Se quitan" : "Es de un mes cerrado o declarado. Se quita") +
+                " de «Requiere atención» para todo el despacho y queda en la bitácora que " + (varios ? "los" : "lo") + " atendiste tú.</p>",
+            boton: varios ? "Ya los atendí" : "Ya lo atendí" });
         return hecho ? respuesta || { ok: true } : null;
+    }
+    function quitarAtendidos(ids) {
+        var d = actividad.datos;
+        ids.forEach(function (i) { delete actividad.elegidos[i]; });
+        if (!d) return;
+        var antes = (d.urgentes || []).length;
+        d.urgentes = (d.urgentes || []).filter(function (u) { return ids.indexOf(u.aviso_id) < 0; });
+        d.franja = (d.franja || []).filter(function (u) { return ids.indexOf(u.aviso_id) < 0; });
+        d.rojo = Math.max(0, (d.rojo || 0) - (antes - d.urgentes.length));
     }
     async function atenderAviso(b) {
         var id = Number(b.dataset.avAtender), d = actividad.datos;
@@ -2326,14 +2372,41 @@
         try { respuesta = await atenderAvisoId(id, { pin: b.dataset.pin === "1", titulo: x && x.titulo }); }
         catch (err) { aviso(err.message || "No se pudo. Intenta de nuevo."); respuesta = null; }
         if (!respuesta) { b.disabled = false; b.classList.remove("ui-btn--cargando"); actividad.version++; return; }
-        if (d) {
-            d.urgentes = (d.urgentes || []).filter(function (u) { return u.aviso_id !== id; });
-            d.franja = (d.franja || []).filter(function (u) { return u.aviso_id !== id; });
-            d.rojo = Math.max(0, (d.rojo || 0) - 1);
-        }
+        quitarAtendidos([id]);
         pintarContadorActividad();
         if (actividad.abierta) pintarActividad();
         aviso((respuesta && respuesta.mensaje) || "Listo: ya no sale en «Requiere atención».");
+        avisarOtrasPestanas(LLAVE_ACT_CAMBIO);
+        actividad.version++;
+        sondearActividad();
+    }
+    // «Ya los atendí (N)» (los elegidos) y «Atender todos (N)» (los que se ven en la franja y se pueden atender)
+    async function atenderVarios(b) {
+        var d = actividad.datos;
+        var lista = d ? (d.franja || d.urgentes || []) : [];
+        var vis = (actividad.todos ? lista : lista.slice(0, 4)).filter(function (x) { return x.aviso_id && x.atender; });
+        var todos = b.dataset.avAtenderVarios === "todos";
+        var cuales = todos ? vis : vis.filter(function (x) { return actividad.elegidos[x.aviso_id]; });
+        if (!cuales.length) return;
+        var ids = cuales.map(function (x) { return x.aviso_id; });
+        var respuesta = null;
+        actividad.version++;
+        b.disabled = true; b.classList.add("ui-btn--cargando");
+        try {
+            respuesta = await atenderAvisosIds(ids, { pin: cuales.some(function (x) { return x.atender.pin; }), confirmar: todos,
+                titulos: cuales.map(function (x) { return x.titulo; }) });
+        } catch (err) {
+            // (todo o nada) uno ya no estaba o no es tuyo: no se marcó ninguno; se vuelve a leer la campana
+            aviso(err.message || "No se pudo. Intenta de nuevo."); respuesta = null;
+            actividad.elegidos = {};
+            actividad.version++;
+            sondearActividad();
+        }
+        if (!respuesta) { b.disabled = false; b.classList.remove("ui-btn--cargando"); actividad.version++; return; }
+        quitarAtendidos(respuesta.atendidos || ids);
+        pintarContadorActividad();
+        if (actividad.abierta) pintarActividad();
+        aviso(respuesta.mensaje || "Listo: ya no salen en «Requiere atención».");
         avisarOtrasPestanas(LLAVE_ACT_CAMBIO);
         actividad.version++;
         sondearActividad();
@@ -2363,6 +2436,19 @@
         if (accion) { e.preventDefault(); e.stopPropagation(); if (!accion.disabled) accionAviso(accion); return; }
         var atendi = e.target.closest("[data-av-atender]");
         if (atendi) { e.preventDefault(); e.stopPropagation(); if (!atendi.disabled) atenderAviso(atendi); return; }
+        // 25-nov-2026 (el dueño, av3): casillas, «Ya los atendí (N)» y «Atender todos (N)»
+        var elegir = e.target.closest("[data-av-elegir]");
+        if (elegir) {
+            e.stopPropagation();
+            if (elegir.checked) actividad.elegidos[Number(elegir.dataset.avElegir)] = true; else delete actividad.elegidos[Number(elegir.dataset.avElegir)];
+            pintarActividad();
+            var otra = document.querySelector('[data-av-elegir="' + elegir.dataset.avElegir + '"]'); if (otra) otra.focus();
+            return;
+        }
+        if (e.target.closest(".fc-av-elegir")) { e.stopPropagation(); return; }      // el clic en la orilla de la casilla
+        var varios = e.target.closest("[data-av-atender-varios]");
+        if (varios) { e.preventDefault(); e.stopPropagation(); if (!varios.disabled) atenderVarios(varios); return; }
+        if (e.target.closest("[data-av-quitar]")) { actividad.elegidos = {}; pintarActividad(); return; }
         var grupo = e.target.closest("[data-av-grupo]");
         if (grupo) { cargarGrupo(grupo.dataset.avGrupo); return; }
         if (e.target.closest("[data-av-volver]")) { volverAvisos(); return; }
@@ -5710,6 +5796,7 @@
         // 25-nov-2026 (paquete avi): abre la campana en una empresa (y en un círculo), p. ej. desde Inicio o la ficha
         abrirAvisos: function (o) { abrirActividad(o || {}); },
         atenderAviso: atenderAvisoId,
+        atenderAvisos: atenderAvisosIds,
         // Configuración en una ventana sobre el módulo: al dar «Listo» se cierra, se queda en el módulo y avisa con
         // window "fiscontable:config" ({seccion}) para que el módulo vuelva a leer lo que cambió.
         abrirConfiguracion: abrirConfiguracion,

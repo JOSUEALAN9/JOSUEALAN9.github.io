@@ -2147,6 +2147,16 @@ a.fc-av-urg:hover { background: rgb(var(--g-0)); }
 .fc-av-urg-caja .fc-av-atendi { margin-right: var(--e-2); white-space: nowrap; }
 .fc-av-urgente__mas { justify-self: start; padding: var(--e-1) var(--e-2); border: 0; background: none; font: inherit; font-size: var(--t-12); font-weight: 600;
                       color: rgb(var(--er-600)); cursor: pointer; }
+/* 25-nov-2026 (el dueño, av3): «Atender varios»: casilla en cada renglón que se puede atender y, abajo, «Atender todos (N)» o
+   «Ya los atendí (N)». Sin botones nuevos en la barra: todo dentro de la franja. */
+.fc-av-urg-caja--elegir { grid-template-columns: auto minmax(0, 1fr) auto; }
+.fc-av-elegir { display: grid; place-items: center; align-self: stretch; padding: 0 0 0 var(--e-2); cursor: pointer; }
+.fc-av-elegir input { width: 16px; height: 16px; margin: 0; accent-color: rgb(var(--er-600)); cursor: pointer; }
+.fc-av-urg-caja--elegir .fc-av-urg { padding-left: var(--e-1); }
+.fc-av-urgente__pie { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--e-1) var(--e-2); min-width: 0; }
+.fc-av-urg-acciones { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: var(--e-1); margin-left: auto; }
+.fc-av-urg-acciones .ui-btn { white-space: nowrap; }
+.fc-av-lista-atender { margin: 0 0 var(--e-2); padding-left: 18px; display: grid; gap: 4px; font-size: var(--t-13); font-weight: 600; overflow-wrap: anywhere; }
 .fc-av-tranquilo { display: flex; align-items: center; gap: 6px; margin: 0 0 var(--e-3); font-size: var(--t-13); color: rgb(var(--g-600)); }
 .fc-av-tranquilo svg { width: 16px; height: 16px; flex: none; color: rgb(var(--ok-600)); }
 .fc-av-circulos { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--e-2) var(--e-2); padding: 0 0 var(--e-2); }

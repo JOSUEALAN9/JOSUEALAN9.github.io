@@ -4,16 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Clientes | Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611261600">
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611261600">
-    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611261600">
+    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611261700">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611261700">
+    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611261700">
 </head>
 <body class="min-h-screen flex flex-col relative">
 
     <!-- TOP NAV -->
     <div id="app-header" data-modulo="clientes" data-titulo="Clientes" data-migas=""></div>
-<script src="/assets/js/nucleo.js?v=202611261600"></script>
-<script src="/assets/js/barra.js?v=202611261600"></script>
+<script src="/assets/js/nucleo.js?v=202611261700"></script>
+<script src="/assets/js/barra.js?v=202611261700"></script>
 
     <!-- ÁREA DE TRABAJO -->
     <main class="flex-grow w-full mod-pagina" style="max-width:1180px">
@@ -547,9 +547,9 @@
         </div>
     </div>
 
-<script src="/assets/js/comun/leer-cer.js?v=202611261600"></script>
-<script src="/assets/js/comun/zona-archivos.js?v=202611261600"></script>
-<script src="/assets/js/comun/autorizacion-efirma.js?v=202611261600"></script>
+<script src="/assets/js/comun/leer-cer.js?v=202611261700"></script>
+<script src="/assets/js/comun/zona-archivos.js?v=202611261700"></script>
+<script src="/assets/js/comun/autorizacion-efirma.js?v=202611261700"></script>
 <style>
 /* Entregas de empresas y «Pasar todas al despacho» (15-nov) */
 .cli-traspasos { display: grid; gap: 8px; margin: 0 0 14px; }
@@ -681,6 +681,12 @@
     .cli-av-urgente .cli-av-urg-caja > a, .cli-av-urgente .cli-av-urg-caja > div { background: none; }
     .cli-av-urgente .cli-av-urg-caja .ui-btn { white-space: nowrap; }
     .cli-av-atendido { color: rgb(var(--ok-700)) !important; }
+    /* 25-nov-2026 (el dueño, av3): «Atender varios» en la ficha: casilla en cada renglón y, abajo, «Atender todos» o «Ya los atendí» */
+    .cli-av-urgente .cli-av-urg-caja--elegir { grid-template-columns: auto minmax(0, 1fr) auto; }
+    .cli-av-urgente .cli-av-elegir { display: grid; place-items: center; align-self: stretch; padding: 0 0 0 8px; background: none; cursor: pointer; }
+    .cli-av-urgente .cli-av-elegir input { width: 16px; height: 16px; margin: 0; accent-color: rgb(var(--er-600)); cursor: pointer; }
+    .cli-av-urgente .cli-av-urg-pie { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; padding: 4px 0 0; background: none; }
+    .cli-av-urgente .cli-av-urg-pie .ui-btn { white-space: nowrap; }
     .cli-av-urgente b, .cli-av-lista b { font-size: 13.5px; font-weight: 600; overflow-wrap: anywhere; }
     .cli-av-urgente span, .cli-av-lista span { font-size: 12.5px; color: rgb(var(--g-600)); overflow-wrap: anywhere; }
     .cli-av-tranquilo { margin: 0; font-size: 13.5px; color: rgb(var(--g-600)); }
@@ -765,7 +771,7 @@
     .alta-despacho { margin-top: 8px; font-size: 13px; line-height: 1.45; border-radius: 10px; padding: 9px 12px; background: rgb(var(--in-50)); border: 1px solid rgb(var(--in-200)); color: rgb(var(--g-800)); }
     .alta-error { font-size: 13px; font-weight: 600; border-radius: 10px; padding: 10px 12px; background: rgb(var(--er-50)); border: 1px solid rgb(var(--er-200)); color: rgb(var(--er-600)); }
 </style>
-<script src="/assets/js/comun/importar-clientes.js?v=202611261600"></script>
+<script src="/assets/js/comun/importar-clientes.js?v=202611261700"></script>
 <!-- Varias constancias a la vez: obligaciones federales y alta de los que falten -->
 <dialog id="dlg-constancias" class="ui-modal" style="width:min(640px, calc(100vw - 32px))">
     <div class="ui-modal__cuerpo">
@@ -777,6 +783,6 @@
     </div>
     <div class="ui-modal__pie"><button type="button" class="ui-btn ui-btn--secundario" data-cerrar>Cerrar</button></div>
 </dialog>
-<script src="/clientes/clientes.js?v=202611261600"></script>
+<script src="/clientes/clientes.js?v=202611261700"></script>
 </body>
 </html>
