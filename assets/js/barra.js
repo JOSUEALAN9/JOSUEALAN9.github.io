@@ -381,6 +381,8 @@
         contraer: "M11 17l-5-5 5-5M18 17l-5-5 5-5",
         estrella: "M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z",
         calendario: "M8 7V3m8 4V3M4 11h16M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z",
+        luna:     "M20.4 14.5A8.5 8.5 0 019.5 3.6a8.5 8.5 0 1010.9 10.9z",
+        abajo:    "M6 9l6 6 6-6",
         equipo:   "M17 20h5v-2a3 3 0 00-5.4-1.8M17 20H7m10 0v-2c0-.7-.1-1.3-.4-1.8M7 20H2v-2a3 3 0 015.4-1.8M7 20v-2c0-.7.1-1.3.4-1.8m0 0a5 5 0 019.2 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
     };
 
@@ -1853,8 +1855,10 @@
                 '<div class="fc-panel__sub" id="fc-panel-sub">Lo que pediste y lo que ya está listo</div></div>' +
                 '<button type="button" class="fc-panel__cerrar" id="fc-panel-cerrar" aria-label="Cerrar">' + ico(D.cerrar) + "</button>" +
               "</div>" +
+              // 25-nov-2026 (el dueño): «Mis pedidos · Automáticas» y el alcance, arriba del cajón (sin botones nuevos en la barra)
+              '<div class="fc-dsc-barra" id="fc-dsc-barra"></div>' +
               '<div class="fc-panel__cuerpo" id="fc-panel-cuerpo"></div>' +
-              '<div class="fc-panel__pie"><a class="fc-btn" href="/descargas/" style="width:100%;justify-content:center">Ver el historial completo</a></div>' +
+              '<div class="fc-panel__pie"><a class="fc-btn" id="fc-dsc-historial" href="/descargas/" style="width:100%;justify-content:center">Ver el historial completo</a></div>' +
             "</aside>";
         envoltorio.innerHTML +=
             '<div class="fc-velo" id="fc-act-velo" hidden></div>' +
@@ -2149,11 +2153,14 @@
         panelAbierto = true;
         document.getElementById("fc-panel-cerrar").focus();
 
+        pintarControles();
         if (ultimaLista.length) {
             pintarLista(ultimaLista);
             marcarComoVistos(ultimaLista);
             refrescarContador(ultimaLista);
         }
+        // 25-nov-2026: las rondas de «Automáticas» y el alcance (la lista de empresas del selector) se piden al abrir
+        pedirAutomaticas(false).then(function () { if (panelAbierto) { pintarControles(); pintarLista(ultimaLista); } });
         sondear();
     }
 
@@ -2221,12 +2228,27 @@
             ' title="' + esc(etiqueta) + '" aria-label="' + esc(etiqueta) + '">' + ico(D[icono]) + "</button>";
     }
 
-    /* Una descarga en un renglón: estado · nombre del documento · empresa y hora · acciones con ícono.
-       La usan el panel de la barra y la página Mis descargas (Fiscontable.descargas.tarjeta). */
-    function tarjeta(p) {
+    /* Una descarga en un renglón: estado · empresa · qué es (etiqueta chica + detalle) y hora · acciones con ícono.
+       La usan el panel de la barra y la página Mis descargas (Fiscontable.descargas.tarjeta).
+       25-nov-2026 (el dueño: los títulos repetían «Descarga de XML» y la empresa quedaba abajo, chica y cortada): el título
+       es la empresa (o «Varias empresas»), se parte en renglones y nunca se corta a media palabra en el celular; qué es va
+       en una etiqueta chica (XML, Excel, PDF, ZIP…) con su detalle («Emitidos · 10–31 oct»). enBloque: dentro del bloque de
+       una empresa, el título ya lo dice el bloque: el renglón empieza por qué es. */
+    function queEs(p) {
+        if (p.que_es) return p.que_es;
+        var ext = String(p.nombre_descarga || "").toLowerCase().split(".").pop();
+        return { zip: "ZIP", pdf: "PDF", xlsx: "Excel", xls: "Excel", xml: "XML" }[ext] || (p.clase === "lote" ? "ZIP" : "Archivo");
+    }
+    function etiquetaQue(p) {
+        var que = p.clase === "lote" ? nombreProceso(p) : (p.detalle || nombreProceso(p));
+        return '<span class="fc-etq">' + esc(queEs(p)) + "</span>" + esc(que);
+    }
+    function tarjeta(p, opciones) {
+        opciones = opciones || {};
         var id = 'data-clase="' + esc(p.clase) + '" data-id="' + esc(p.id) + '"';
         var nuevo = p.estado !== "procesando" && !estaVisto(p) ? '<span class="fc-punto" title="Nuevo desde la última vez"></span>' : "";
-        var nombre = esc(nombreProceso(p)), detalle = [esc(empresaProceso(p))], estado, acciones = "", abajo = "", clase = "";
+        var enBloque = !!opciones.enBloque;
+        var nombre = enBloque ? etiquetaQue(p) : esc(empresaProceso(p)), detalle = [enBloque ? "" : etiquetaQue(p)], estado, acciones = "", abajo = "", clase = "";
         var enPc = p.en_pc && p.en_pc.rutas && p.en_pc.rutas.length;
 
         if (p.estado === "procesando") {
@@ -2272,9 +2294,9 @@
                 (extras.length ? '<div class="fc-fila__extras">' + extras.join("") + "</div>" : "");
             acciones = botonFila("quitar", "cerrar", "Quitar de la lista", id);
         }
-        return '<div class="fc-fila' + clase + '">' + estado +
-            '<div class="fc-fila__texto"><div class="fc-fila__nombre" title="' + nombre + '">' + nuevo + nombre + "</div>" +
-            '<div class="fc-fila__detalle">' + detalle.filter(Boolean).join(" · ") + "</div></div>" +
+        return '<div class="fc-fila' + clase + '" data-fila="' + esc(p.id) + '">' + estado +
+            '<div class="fc-fila__texto"><div class="fc-fila__nombre fc-fila__nombre--envuelve">' + nuevo + nombre + "</div>" +
+            '<div class="fc-fila__detalle fc-fila__detalle--envuelve">' + detalle.filter(Boolean).join(" · ") + "</div></div>" +
             '<div class="fc-fila__acciones">' + acciones + "</div>" + abajo + "</div>";
     }
 
@@ -2293,17 +2315,156 @@
         return n ? '<a class="fc-nota-prog" href="/configuracion/?seccion=automatico&sub=programado">🌙 ' + n + (n === 1 ? " proceso programado" : " procesos programados") + " · se ven en Lo automático</a>" : "";
     }
 
-    function pintarLista(todos) {
-        var cuerpo = document.getElementById("fc-panel-cuerpo");
-        if (!cuerpo) return;
-        var procesos = sinPartes(sinProgramadas(todos)), nota = notaProgramadas(todos);
+    /* --------------------------------------------- Mis descargas en dos pestañas (25-nov-2026, el dueño)
+       El cajón decía «HOY 78»: lo automático de la madrugada salía renglón por renglón. Ahora, arriba del cajón (sin botones
+       nuevos en la barra), un control segmentado «Mis pedidos · Automáticas» y el alcance «Mis asignadas · Todas · Una
+       empresa…» (REGLAS_AVISOS.md). «Mis pedidos» = solo lo que una persona pidió a mano (de fábrica); «Automáticas» = una
+       tarjeta por ronda (noche) con lo de cada empresa junto, y lo automático que deja archivo (el paquete de documentos de la
+       noche, los envíos programados). El servidor dice en qué pestaña va cada cosa (p.pestana, core/mis_descargas.py). */
+    var LLAVE_PESTANA = "fc-descargas-pestana";
+    function leerLocal(k) { try { return localStorage.getItem(k) || ""; } catch (e) { return ""; } }
+    function guardarLocal(k, v) { try { if (v) localStorage.setItem(k, v); else localStorage.removeItem(k); } catch (e) { /* sin almacenamiento */ } }
+    var dsc = { pestana: leerLocal(LLAVE_PESTANA) === "automaticas" ? "automaticas" : "pedidos", llave: null, alcance: "", auto: null, autoDe: null,
+                autoEn: 0, pidiendo: null, bloques: {}, rondas: {} };
+    var cacheHtml = new WeakMap();          // lo último que se pintó en cada lugar (el cajón, la página)
 
-        if (!procesos.length) {
-            cuerpo.innerHTML = nota + '<div class="fc-vacio">Todavía no hay nada aquí.<br>' +
-                "Lo que generes va a aparecer en esta lista.</div>";
-            return;
+    // El alcance elegido se recuerda en este navegador y por espacio (Mi espacio y el despacho tienen empresas distintas)
+    function llaveAlcance() { var e = perfilActual && perfilActual.espacio; return "fc-descargas-alcance:" + ((e && e.tipo) || "cuenta"); }
+    function alcanceActual() {
+        var k = llaveAlcance();
+        if (dsc.llave !== k) { dsc.llave = k; dsc.alcance = leerLocal(k); }
+        return dsc.alcance || "";
+    }
+    function ponerAlcance(valor) { alcanceActual(); dsc.alcance = valor || ""; guardarLocal(dsc.llave, dsc.alcance); dsc.auto = null; }
+    function ponerPestana(p) { dsc.pestana = p === "automaticas" ? "automaticas" : "pedidos"; guardarLocal(LLAVE_PESTANA, dsc.pestana); }
+    function urlProcesos(extra) {
+        var a = alcanceActual(), q = [];
+        if (a) q.push("alcance=" + encodeURIComponent(a));
+        if (extra) q.push(extra);
+        return API + "/api/procesos" + (q.length ? "?" + q.join("&") : "");
+    }
+    function pedirAutomaticas(forzar) {
+        var a = alcanceActual();
+        if (!forzar && dsc.auto && dsc.autoDe === a && Date.now() - dsc.autoEn < 60000) return Promise.resolve(dsc.auto);
+        if (dsc.pidiendo) return dsc.pidiendo;
+        dsc.pidiendo = fetch(API + "/api/procesos/automaticas" + (a ? "?alcance=" + encodeURIComponent(a) : ""), { credentials: "include" })
+            .then(function (r) { return r.ok ? r.json() : null; })
+            .then(function (d) { if (d) { dsc.auto = d; dsc.autoEn = Date.now(); dsc.autoDe = a; } dsc.pidiendo = null; return dsc.auto; })
+            .catch(function () { dsc.pidiendo = null; return dsc.auto; });
+        return dsc.pidiendo;
+    }
+    function dePestana(procesos, pestana) { return (procesos || []).filter(function (p) { return (p.pestana || "pedidos") === pestana; }); }
+
+    // --- los controles de arriba (los mismos en el cajón y en la página Mis descargas)
+    function nombreAlcance(a) {
+        var modo = a ? a.modo : (alcanceActual() || "todas");
+        if (modo === "asignadas") return "Mis asignadas";
+        if (modo === "todas" || !modo) return "Todas";
+        var e = a && (a.empresas || []).filter(function (x) { return x.rfc === modo; })[0];
+        return e ? e.nombre : modo;
+    }
+    function controlesHtml(pestana) {
+        return '<div class="ctx-segmento" role="group" aria-label="Qué ver">' +
+            '<button type="button" data-dsc-pestana="pedidos" aria-pressed="' + (pestana === "pedidos") + '">Mis pedidos</button>' +
+            '<button type="button" data-dsc-pestana="automaticas" aria-pressed="' + (pestana === "automaticas") + '">Automáticas</button></div>' +
+            '<div class="fc-alcance"><button type="button" class="fc-alcance__boton" data-dsc-alcance-abrir aria-haspopup="true" aria-expanded="false" ' +
+            'title="De qué empresas"><span>' + esc(nombreAlcance(dsc.auto && dsc.auto.alcance)) + '</span><i class="fc-plegar">' + ico(D.abajo) + "</i></button>" +
+            '<div class="fc-alcance__menu" hidden></div></div>';
+    }
+    function menuAlcanceHtml(a) {
+        var modo = a.modo;
+        function op(valor, titulo, sub) {
+            return '<button type="button" class="fc-alcance__op" data-dsc-alcance="' + esc(valor) + '" aria-pressed="' + (modo === valor) + '"><b>' + esc(titulo) + "</b>" +
+                (sub ? "<small>" + esc(sub) + "</small>" : "") + "</button>";
         }
+        var h = (a.con_asignadas ? op("asignadas", "Mis asignadas", "Las empresas que tienes asignadas") : "") +
+            op("todas", "Todas", a.con_asignadas ? "Todas las que puedes ver" : "Todas tus empresas");
+        if ((a.empresas || []).length) {
+            h += '<div class="fc-alcance__sep">Una empresa</div>' +
+                '<input type="search" class="ui-input" data-dsc-alcance-buscar placeholder="Buscar empresa o RFC…" aria-label="Buscar empresa">' +
+                '<div class="fc-alcance__lista">' + a.empresas.map(function (e) {
+                    return '<button type="button" class="fc-alcance__op" data-dsc-alcance="' + esc(e.rfc) + '" data-buscar="' + esc(sinAcentos(e.nombre + " " + e.rfc)) +
+                        '" aria-pressed="' + (modo === e.rfc) + '"><b>' + esc(e.nombre) + "</b><small>" + esc(e.rfc) + "</small></button>";
+                }).join("") + "</div>";
+        }
+        return h;
+    }
+    function sinAcentos(t) { return String(t || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, ""); }
+    function cerrarMenusAlcance(menos) {
+        document.querySelectorAll(".fc-alcance__menu").forEach(function (m) {
+            if (m === menos) return;
+            m.hidden = true;
+            var b = m.parentNode.querySelector("[data-dsc-alcance-abrir]"); if (b) b.setAttribute("aria-expanded", "false");
+        });
+    }
+    document.addEventListener("click", function (e) { if (!e.target.closest(".fc-alcance")) cerrarMenusAlcance(); });
+    /* alCambiar(que): «pestana» o «alcance» (la página o el cajón vuelven a pintar). */
+    function atenderControles(contenedor, alCambiar) {
+        contenedor.addEventListener("click", async function (e) {
+            var b = e.target.closest("[data-dsc-pestana]");
+            if (b) { ponerPestana(b.getAttribute("data-dsc-pestana")); contenedor.innerHTML = controlesHtml(dsc.pestana); alCambiar("pestana"); return; }
+            var abrir = e.target.closest("[data-dsc-alcance-abrir]");
+            if (abrir) {
+                var menu = abrir.parentNode.querySelector(".fc-alcance__menu");
+                if (!menu.hidden) { cerrarMenusAlcance(); return; }
+                cerrarMenusAlcance(menu);
+                menu.innerHTML = '<div class="fc-ronda__nada">Cargando…</div>'; menu.hidden = false; abrir.setAttribute("aria-expanded", "true");
+                var d = await pedirAutomaticas(false);
+                if (d && d.alcance) menu.innerHTML = menuAlcanceHtml(d.alcance);
+                var q = menu.querySelector("[data-dsc-alcance-buscar]"); if (q && window.innerWidth > 640) q.focus();
+                return;
+            }
+            var op = e.target.closest("[data-dsc-alcance]");
+            if (op) {
+                ponerAlcance(op.getAttribute("data-dsc-alcance"));
+                cerrarMenusAlcance();
+                await pedirAutomaticas(true);
+                contenedor.innerHTML = controlesHtml(dsc.pestana);
+                alCambiar("alcance");
+            }
+        });
+        contenedor.addEventListener("input", function (e) {
+            var q = e.target.closest("[data-dsc-alcance-buscar]"); if (!q) return;
+            var t = sinAcentos(q.value.trim());
+            q.parentNode.querySelectorAll(".fc-alcance__lista [data-buscar]").forEach(function (x) { x.hidden = !!t && x.dataset.buscar.indexOf(t) === -1; });
+        });
+        contenedor.addEventListener("keydown", function (e) {          // Esc cierra el menú del alcance, no el cajón
+            if (e.key === "Escape" && contenedor.querySelector(".fc-alcance__menu:not([hidden])")) { cerrarMenusAlcance(); e.stopPropagation(); }
+        });
+    }
 
+    // --- «Mis pedidos»: varios seguidos de la misma empresa y el mismo día, en un bloque plegable
+    function diaLocal(iso) { var f = new Date((iso || "") + "Z"); return isNaN(f) ? "" : f.toDateString(); }
+    function claveBloque(p) { return p.clase === "individual" && p.estado !== "procesando" && p.titulo && p.titulo !== "VARIOS" ? p.titulo + "|" + diaLocal(p.creado_en) : null; }
+    function filasConBloques(lista) {
+        var salida = [], i = 0;
+        while (i < lista.length) {
+            var k = claveBloque(lista[i]), j = i + 1;
+            while (k && j < lista.length && claveBloque(lista[j]) === k) j++;
+            if (j - i >= 2) salida.push(bloqueHtml(k, lista.slice(i, j))); else salida.push(tarjeta(lista[i]));
+            i = j;
+        }
+        return salida.join("");
+    }
+    function bloqueHtml(clave, ps) {
+        var abierto = !!dsc.bloques[clave], mal = ps.some(function (p) { return p.estado !== "completado"; });
+        var nuevo = ps.some(function (p) { return !estaVisto(p); }) ? '<span class="fc-punto" title="Nuevo desde la última vez"></span>' : "";
+        var tipos = ps.map(queEs).filter(function (x, n, a) { return a.indexOf(x) === n; }).join(" · ");
+        return '<div class="fc-bloque"><button type="button" class="fc-bloque__cabeza" data-dsc-bloque="' + esc(clave) + '" aria-expanded="' + abierto + '">' +
+            '<span class="fc-fila__estado fc-fila__estado--' + (mal ? "alerta" : "listo") + '">' + ICONO_ESTADO[mal ? "alerta" : "listo"] + "</span>" +
+            '<span class="fc-bloque__texto"><b>' + nuevo + esc(empresaProceso(ps[0])) + " · " + ps.length + " archivos</b><small>" + esc(tipos) + " · " +
+            esc(horaCorta(ps[0].creado_en)) + (mal ? " · alguno no se completó" : "") + "</small></span>" +
+            '<i class="fc-plegar">' + ico(D.abajo) + "</i></button>" +
+            '<div class="fc-bloque__filas"' + (abierto ? "" : " hidden") + '><div class="fc-filas">' +
+            ps.map(function (p) { return tarjeta(p, { enBloque: true }); }).join("") + "</div></div></div>";
+    }
+    function htmlPedidos(todos) {
+        var procesos = sinPartes(dePestana(todos, "pedidos"));
+        if (!procesos.length) {
+            var hayAuto = dePestana(todos, "automaticas").length || (dsc.auto && (dsc.auto.rondas || []).length);
+            return '<div class="fc-vacio">Todavía no has pedido nada.<br>Lo que generes va a aparecer aquí.' +
+                (hayAuto ? '<br><button type="button" class="fc-enlace-chico" data-dsc-pestana-ir="automaticas">Lo que Fiscontable hizo solo está en «Automáticas»</button>' : "") + "</div>";
+        }
         var hechos = procesos.filter(function (p) { return p.estado !== "procesando"; });
         var grupos = [
             ["En preparación", procesos.filter(function (p) { return p.estado === "procesando"; })],
@@ -2311,11 +2472,144 @@
             ["Ayer", hechos.filter(function (p) { return diaDe(p.creado_en) === "ayer"; })],
             ["Antes", hechos.filter(function (p) { return diaDe(p.creado_en) === "antes"; })]
         ];
-
-        cuerpo.innerHTML = nota + grupos.filter(function (g) { return g[1].length; }).map(function (g) {
+        return grupos.filter(function (g) { return g[1].length; }).map(function (g) {
             return '<div class="fc-grupo"><div class="fc-grupo__titulo">' + g[0] + "<span>" + g[1].length + "</span></div>" +
-                '<div class="fc-filas">' + g[1].map(tarjeta).join("") + "</div></div>";
+                '<div class="fc-filas">' + (g[0] === "En preparación" ? g[1].map(function (p) { return tarjeta(p); }).join("") : filasConBloques(g[1])) + "</div></div>";
         }).join("");
+    }
+
+    // --- «Automáticas»: una tarjeta por ronda (noche), plegada
+    var CHIPS = [["con_archivos", "Con archivos"], ["sin_cambios", "Sin cambios"], ["con_error", "Con error"], ["en_curso", "En curso"]];
+    function numero(n) { return Number(n || 0).toLocaleString("es-MX"); }
+    function resumenRonda(r) {
+        var partes = [esc(numero(r.empresas)) + (r.empresas === 1 ? " empresa" : " empresas")];
+        if (r.con_archivos) partes.push(esc(numero(r.con_archivos)) + " con archivos");
+        if (r.sin_cambios) partes.push(esc(numero(r.sin_cambios)) + " sin cambios");
+        if (r.con_error) partes.push("<i>" + esc(numero(r.con_error)) + " con error</i>");
+        if (r.en_curso) partes.push(esc(numero(r.en_curso)) + " en curso");
+        return partes.join(" · ");
+    }
+    function filasRonda(r, st) {
+        var t = sinAcentos((st.buscar || "").trim());
+        var filas = (r.renglones || []).filter(function (x) {
+            return (!st.filtro || x.estado === st.filtro) && (!t || sinAcentos(x.nombre + " " + x.rfc).indexOf(t) !== -1);
+        });
+        if (!filas.length) return '<div class="fc-ronda__nada">Ninguna empresa con ese filtro.</div>';
+        return filas.map(function (x) {
+            var partes = (x.partes || []).map(function (p) {
+                var v = p.estado === "error" ? "no salió" : p.estado === "en_curso" ? "en curso" : numero(p.n);
+                // (revisión, 25-nov-2026: cada parte entera en su renglón; en el celular «Retenciones» quedaba arriba y su «0» solo abajo)
+                return '<span class="fc-ronda__parte">' + esc(p.que) + ' <em class="' + (p.estado === "sin_cambios" || (p.estado === "archivos" && !p.n) ? "fc-cero" : "") + '">' + esc(v) + "</em></span>";
+            }).join(" · ");
+            return '<div class="fc-ronda__fila fc-ronda__fila--' + esc(x.estado) + '"><div class="fc-ronda__empresa"><b>' + esc(x.nombre) + "</b><span>" + partes + "</span>" +
+                (x.motivo ? '<span class="fc-ronda__motivo">' + esc(x.motivo) + "</span>" : "") + "</div>" +
+                '<a class="ui-btn ui-btn--terciario ui-btn--28" href="' + esc(x.ver_xml || "/herramientas/xml/") + '" data-dsc-ver-xml="' + esc(x.rfc) + '">Ver XML →</a></div>';
+        }).join("");
+    }
+    function rondaHtml(r, docs) {
+        var st = dsc.rondas[r.noche] || (dsc.rondas[r.noche] = {});
+        var abierta = !!st.abierta;
+        var h = '<div class="fc-ronda' + (st.resaltada ? " fc-ronda--resaltada" : "") + '" data-ronda="' + esc(r.noche) + '">' +
+            '<button type="button" class="fc-ronda__cabeza" data-dsc-ronda="' + esc(r.noche) + '" aria-expanded="' + abierta + '">' +
+            '<span class="fc-ronda__icono">' + ico(D.luna) + '</span><span class="fc-ronda__texto"><b>' + esc(r.titulo + (r.hora ? " · " + r.hora : "")) +
+            "</b><small>" + resumenRonda(r) + '</small></span><i class="fc-plegar">' + ico(D.abajo) + "</i></button>";
+        (docs || []).forEach(function (p) {
+            h += '<div class="fc-ronda__docs" data-fila="' + esc(p.id) + '"><span>' + (estaVisto(p) ? "" : '<span class="fc-punto" title="Nuevo desde la última vez"></span>') +
+                '<span class="fc-etq">' + esc(queEs(p)) + "</span>" + esc(String(p.resumen || p.nombre || "Documentos de la noche").replace(/^[^:]*:\s*/, "")) + "</span>" +
+                botonFila("descargar", "descarga", "Descargar", 'data-url="' + esc(p.url_descarga) + '" data-nombre="' + esc(p.nombre_descarga || "documentos.zip") + '"', "fc-fila__btn--principal") + "</div>";
+        });
+        if (abierta) {
+            h += '<div class="fc-ronda__cuerpo">' +
+                '<input type="search" class="ui-input" data-dsc-ronda-buscar="' + esc(r.noche) + '" value="' + esc(st.buscar || "") + '" placeholder="Buscar empresa o RFC…" aria-label="Buscar empresa">' +
+                '<div class="fc-chips" role="group" aria-label="Filtrar">' + CHIPS.filter(function (c) { return c[0] !== "en_curso" || r.en_curso; }).map(function (c) {
+                    return '<button type="button" class="fc-chip" data-dsc-chip="' + c[0] + '" data-noche="' + esc(r.noche) + '" aria-pressed="' + (st.filtro === c[0]) + '"' +
+                        (r[c[0]] ? "" : " disabled") + ">" + c[1] + " <span>" + esc(numero(r[c[0]])) + "</span></button>";
+                }).join("") + "</div>" +
+                '<div class="fc-ronda__lista" data-dsc-lista="' + esc(r.noche) + '">' + filasRonda(r, st) + "</div></div>";
+        }
+        return h + "</div>";
+    }
+    function htmlAutomaticas(todos, auto) {
+        var nota = notaProgramadas(todos);
+        var paquetes = sinPartes(dePestana(todos, "automaticas")).filter(function (p) { return !esperaMadrugada(p); });
+        if (!auto) return nota + '<div class="fc-vacio">Cargando lo automático…</div>';
+        var rondas = auto.rondas || [], deNoche = {}, sueltos = [];
+        paquetes.forEach(function (p) {
+            if (p.noche && /^programada_/.test(p.tipo || "") && rondas.some(function (r) { return r.noche === p.noche; })) (deNoche[p.noche] = deNoche[p.noche] || []).push(p);
+            else sueltos.push(p);
+        });
+        var hoy = new Date(), ayer = new Date(hoy); ayer.setDate(hoy.getDate() - 1);
+        function iso(d) { return d.getFullYear() + "-" + ("0" + (d.getMonth() + 1)).slice(-2) + "-" + ("0" + d.getDate()).slice(-2); }
+        function cuando(noche, creado) {
+            var dia = noche || (creado ? iso(new Date(creado + "Z")) : "");
+            return dia === iso(hoy) ? "Hoy" : dia === iso(ayer) ? "Ayer" : "Antes";
+        }
+        var grupos = { Hoy: [], Ayer: [], Antes: [] };
+        rondas.forEach(function (r) { grupos[cuando(r.noche)].push({ orden: r.noche + "T99", html: rondaHtml(r, deNoche[r.noche]) }); });
+        sueltos.forEach(function (p) { grupos[cuando(p.noche, p.creado_en)].push({ orden: (p.noche || "") + "T" + (p.creado_en || ""), html: '<div class="fc-filas">' + tarjeta(p) + "</div>" }); });
+        var cuerpo = ["Hoy", "Ayer", "Antes"].filter(function (g) { return grupos[g].length; }).map(function (g) {
+            return '<div class="fc-grupo"><div class="fc-grupo__titulo">' + g + "</div>" +
+                grupos[g].sort(function (a, b) { return a.orden < b.orden ? 1 : -1; }).map(function (x) { return x.html; }).join("") + "</div>";
+        }).join("");
+        if (!cuerpo) return nota + '<div class="fc-vacio">No hay nada automático en estos ' + (auto.dias || 7) + " días.<br>" +
+            "Lo que Fiscontable baja solo de madrugada aparece aquí, una tarjeta por noche.</div>";
+        return nota + cuerpo + '<p class="fc-dsc-nota">Lo automático se borra solo de aquí a los ' + (auto.dias || 7) + " días. Los XML siguen en Administración de XML.</p>";
+    }
+    // Clics de las dos pestañas (bloques, rondas, chips, «Ver XML →»); repintar() vuelve a dibujar donde se usen
+    function clicDescargas(e, repintar) {
+        var ir = e.target.closest("[data-dsc-pestana-ir]");
+        if (ir) { ponerPestana(ir.getAttribute("data-dsc-pestana-ir")); repintar("pestana"); return true; }
+        var b = e.target.closest("[data-dsc-bloque]");
+        if (b) { var k = b.getAttribute("data-dsc-bloque"); dsc.bloques[k] = !dsc.bloques[k]; repintar(); return true; }
+        var r = e.target.closest("[data-dsc-ronda]");
+        if (r) { var st = dsc.rondas[r.getAttribute("data-dsc-ronda")] || {}; st.abierta = !st.abierta; st.resaltada = false; dsc.rondas[r.getAttribute("data-dsc-ronda")] = st; repintar(); return true; }
+        var c = e.target.closest("[data-dsc-chip]");
+        if (c) { var s = dsc.rondas[c.dataset.noche] || {}; s.filtro = s.filtro === c.dataset.dscChip ? "" : c.dataset.dscChip; repintar(); return true; }
+        var x = e.target.closest("[data-dsc-ver-xml]");
+        if (x) { e.preventDefault(); irAXml(x.getAttribute("data-dsc-ver-xml"), x.getAttribute("href")); return true; }
+        return false;
+    }
+    function buscarEnRonda(e) {
+        var q = e.target.closest("[data-dsc-ronda-buscar]"); if (!q || !dsc.auto) return;
+        var noche = q.getAttribute("data-dsc-ronda-buscar"), st = dsc.rondas[noche] || (dsc.rondas[noche] = {});
+        st.buscar = q.value;
+        var r = (dsc.auto.rondas || []).filter(function (x) { return x.noche === noche; })[0];
+        var lista = q.parentNode.querySelector("[data-dsc-lista]");
+        if (r && lista) lista.innerHTML = filasRonda(r, st);
+    }
+    // «Ver XML →»: Administración de XML ya en esa empresa (la empresa activa es la de toda la barra) y en el periodo de esa noche
+    async function irAXml(rfc, href) {
+        var activa = perfilActual && perfilActual.empresa_activa && perfilActual.empresa_activa.rfc;
+        if (rfc && rfc !== activa) await elegirEmpresa(rfc);
+        var ya = perfilActual && perfilActual.empresa_activa && perfilActual.empresa_activa.rfc;
+        if (!rfc || ya === rfc) location.href = href || "/herramientas/xml/";
+    }
+    // Pinta sin perder el foco del buscador ni lo que ya se había bajado en cada lista (el cajón se refresca solo)
+    function ponerHtml(cuerpo, html) {
+        if (cacheHtml.get(cuerpo) === html && cuerpo.childNodes.length) return;
+        var scrolls = {}, foco = document.activeElement, focoSel = null, pos = null;
+        cuerpo.querySelectorAll("[data-dsc-lista]").forEach(function (l) { scrolls[l.getAttribute("data-dsc-lista")] = l.scrollTop; });
+        if (foco && cuerpo.contains(foco) && foco.hasAttribute("data-dsc-ronda-buscar")) { focoSel = foco.getAttribute("data-dsc-ronda-buscar"); pos = foco.selectionStart; }
+        var arriba = cuerpo.scrollTop;
+        cuerpo.innerHTML = html; cacheHtml.set(cuerpo, html);
+        cuerpo.scrollTop = arriba;
+        cuerpo.querySelectorAll("[data-dsc-lista]").forEach(function (l) { var v = scrolls[l.getAttribute("data-dsc-lista")]; if (v) l.scrollTop = v; });
+        if (focoSel) { var q = cuerpo.querySelector('[data-dsc-ronda-buscar="' + focoSel + '"]'); if (q) { q.focus(); try { q.setSelectionRange(pos, pos); } catch (x) { /* nada */ } } }
+    }
+
+    function pintarControles() {
+        var barra = document.getElementById("fc-dsc-barra");
+        if (barra && !barra.querySelector(".fc-alcance__menu:not([hidden])")) barra.innerHTML = controlesHtml(dsc.pestana);
+        var sub = document.getElementById("fc-panel-sub");
+        if (sub) sub.textContent = dsc.pestana === "automaticas" ? "Lo que Fiscontable hizo solo, una tarjeta por noche" : "Lo que pediste y lo que ya está listo";
+        var hist = document.getElementById("fc-dsc-historial");
+        if (hist) hist.href = "/descargas/" + (dsc.pestana === "automaticas" ? "?pestana=automaticas" : "");
+    }
+
+    function pintarLista(todos) {
+        var cuerpo = document.getElementById("fc-panel-cuerpo");
+        if (!cuerpo) return;
+        ponerHtml(cuerpo, dsc.pestana === "automaticas" ? htmlAutomaticas(todos, dsc.auto) : htmlPedidos(todos));
     }
 
     function avisarNavegador(titulo, cuerpo) {
@@ -2359,10 +2653,11 @@
     async function sondear() {
         if (bloqueo && bloqueo.activa) { programar(); return; }      // con la pantalla bloqueada no se pregunta nada
         try {
-            var resp = await fetch(API + "/api/procesos", { credentials: "include" });
+            var resp = await fetch(urlProcesos(), { credentials: "include" });
             if (!resp.ok) { programar(); return; }
             var procesos = await resp.json();
             ultimaLista = procesos;
+            if (panelAbierto && dsc.pestana === "automaticas") await pedirAutomaticas(false);
 
             var activos = refrescarContador(procesos);
 
@@ -4690,6 +4985,16 @@
     document.getElementById("fc-panel-cerrar").addEventListener("click", cerrarDescargas);
     document.getElementById("fc-velo").addEventListener("click", cerrarDescargas);
     document.getElementById("fc-panel-cuerpo").addEventListener("click", accionPanel);
+    // 25-nov-2026: las dos pestañas del cajón (Mis pedidos · Automáticas), el alcance, los bloques y las rondas
+    function repintarCajon(que) {
+        pintarControles();
+        if (que === "alcance") sondear();
+        pintarLista(ultimaLista);
+        if (dsc.pestana === "automaticas") pedirAutomaticas(false).then(function () { if (panelAbierto) { pintarControles(); pintarLista(ultimaLista); } });
+    }
+    atenderControles(document.getElementById("fc-dsc-barra"), repintarCajon);
+    document.getElementById("fc-panel-cuerpo").addEventListener("click", function (e) { clicDescargas(e, repintarCajon); });
+    document.getElementById("fc-panel-cuerpo").addEventListener("input", buscarEnRonda);
 
     prepararEmpresas();
     prepararEspacios();
@@ -5069,7 +5374,16 @@
         descargas: { tarjeta: tarjeta, accion: accionPanel, sinProgramadas: sinProgramadas, notaProgramadas: notaProgramadas, tieneEntero: tieneEntero,
                      // La página Mis descargas también da por visto lo que enseña (y baja el número del botón)
                      marcarVistos: function (lista) { marcarComoVistos(lista || []); if (ultimaLista.length) refrescarContador(ultimaLista); },
-                     nombre: nombreProceso, empresa: empresaProceso, titulo: tituloProceso },
+                     nombre: nombreProceso, empresa: empresaProceso, titulo: tituloProceso,
+                     // 25-nov-2026 (dos pestañas): lo mismo que usa el cajón, para la página Mis descargas
+                     queEs: queEs, etiquetaQue: etiquetaQue, dePestana: dePestana, filasConBloques: filasConBloques,
+                     controles: function (contenedor, alCambiar) { contenedor.innerHTML = controlesHtml(dsc.pestana); atenderControles(contenedor, alCambiar);
+                                                                  return function () { if (!contenedor.querySelector(".fc-alcance__menu:not([hidden])")) contenedor.innerHTML = controlesHtml(dsc.pestana); }; },
+                     pestana: function (p) { if (p) ponerPestana(p); return dsc.pestana; }, alcance: alcanceActual, urlProcesos: urlProcesos,
+                     automaticas: function (forzar) { return pedirAutomaticas(forzar); }, datosAutomaticas: function () { return dsc.auto; },
+                     htmlAutomaticas: function (todos) { return htmlAutomaticas(todos, dsc.auto); }, htmlPedidos: htmlPedidos,
+                     clic: clicDescargas, buscarEnRonda: buscarEnRonda, ponerHtml: ponerHtml,
+                     resaltar: function (noche) { var st = dsc.rondas[noche] || (dsc.rondas[noche] = {}); st.abierta = true; st.resaltada = true; } },
         abrirModalPerfil: abrirModalPerfil,
         // La empresa elegida en el selector general (o null). Los módulos también
         // pueden escuchar window "fiscontable:empresa" para enterarse de un cambio.
