@@ -979,7 +979,7 @@ let rfcEnEdicion = null;
 /* ---------------------------------------------------------------- ficha del cliente (pestañas)
    Datos generales · Accesos (e.firma y contraseña del SAT) · Obligaciones. ?editar=RFC&ficha=accesos abre directo. */
 let fichaActual = "general";
-const FICHAS = ["general", "accesos", "receptores", "xml", "obligaciones"];
+const FICHAS = ["general", "accesos", "avisos", "receptores", "xml", "obligaciones"];
 function ponerFicha(nombre) {
     if (FICHAS.indexOf(nombre) === -1) nombre = "general";
     if (nombre === "obligaciones" && document.getElementById("tab-obligaciones").hidden) nombre = "general";
@@ -991,7 +991,69 @@ function ponerFicha(nombre) {
         b.setAttribute("aria-selected", String(si)); b.tabIndex = si ? 0 : -1;
     });
     document.querySelectorAll("#modal-editar-cliente [data-panel]").forEach(p => { p.hidden = p.dataset.panel !== nombre; });
+    if (nombre === "avisos" && rfcEnEdicion) {
+        if (avisosFicha.rfc === rfcEnEdicion && avisosFicha.datos) pintarAvisosFicha(avisosFicha.datos);
+        else cargarAvisosFicha(rfcEnEdicion);
+    }
 }
+
+/* ---------------------------------------------------------------- pestaña «Avisos» (25-nov-2026, paquete avi)
+   Todo lo de esta empresa, lo urgente arriba, con las mismas reglas de la campana e Inicio (core/avisos_reglas.py en el
+   servidor) y solo si la persona tiene la empresa en el espacio en que está. Lo demás va por grupo (Buzón, CFDI…), 20 a la
+   vez: nada de una lista infinita. 25-nov-2026 (el dueño): este es el ÚNICO lugar de los avisos de una empresa; los chips de Inicio
+   y «Una empresa…» de la campana traen aquí. */
+let avisosFicha = { rfc: null, datos: null, grupo: "", mas: 20 };
+async function cargarAvisosFicha(rfc, soloPunto) {
+    const caja = document.getElementById("ficha-avisos");
+    if (!soloPunto) caja.innerHTML = '<span class="ui-skel" style="width:70%"></span>';
+    try {
+        const r = await fetch(`${API_URL}/api/actividad/empresa?rfc=${encodeURIComponent(rfc)}`, { credentials: "include" });
+        if (!r.ok) throw new Error(await interpretarError(r));
+        const d = await r.json();
+        if (rfcEnEdicion !== rfc) return;
+        avisosFicha = { rfc, datos: d, grupo: "", mas: 20 };
+        document.getElementById("ficha-aviso-avisos").hidden = !d.urgentes.length;
+        if (!soloPunto || fichaActual === "avisos") pintarAvisosFicha(d);
+    } catch (e) {
+        if (!soloPunto) caja.innerHTML = `<div class="ui-falla"><b>No se pudieron leer sus avisos</b><span>${esc(e.message)}</span></div>`;
+    }
+}
+function haceFicha(iso) {
+    const f = new Date(String(iso).length <= 19 ? iso + "Z" : iso);
+    return f.toLocaleDateString("es-MX", { day: "numeric", month: "short", year: "numeric" }) + " · " + f.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" });
+}
+function pintarAvisosFicha(d) {
+    const caja = document.getElementById("ficha-avisos");
+    const nombres = Object.fromEntries(d.grupos.map(g => [g.clave, g.nombre]));
+    const cuenta = {};
+    d.avisos.forEach(a => { cuenta[a.grupo] = (cuenta[a.grupo] || 0) + 1; });
+    const lista = d.avisos.filter(a => !avisosFicha.grupo || a.grupo === avisosFicha.grupo);
+    const enlace = (x, dentro, clase) => x.enlace && x.enlace.charAt(0) === "/" ? `<a${clase ? ` class="${clase}"` : ""} href="${esc(x.enlace)}">${dentro}</a>`
+        : `<div${clase ? ` class="${clase}"` : ""}>${dentro}</div>`;
+    caja.innerHTML =
+        (d.urgentes.length ? `<section class="cli-av-urgente" aria-label="Requiere atención"><p class="cli-av-urgente__titulo">Requiere atención · ${d.urgentes.length}</p>` +
+            d.urgentes.map(x => enlace(x, `<b>${esc(String(x.titulo).replace(" · " + (x.alias || d.alias), ""))}</b>${x.detalle ? `<span>${esc(x.detalle)}</span>` : ""}`)).join("") + "</section>"
+            : `<p class="cli-av-tranquilo">Nada requiere atención en esta empresa.</p>`) +
+        `<div class="cli-av-cabeza"><div class="cli-av-grupos" role="group" aria-label="Grupo de avisos">` +
+            `<button type="button" data-av-grupo="" aria-pressed="${!avisosFicha.grupo}">Todos · ${d.avisos.length}</button>` +
+            d.grupos.map(g => `<button type="button" data-av-grupo="${esc(g.clave)}" aria-pressed="${avisosFicha.grupo === g.clave}"${cuenta[g.clave] ? "" : " disabled"}>` +
+                `${esc(g.nombre)}${cuenta[g.clave] ? " · " + cuenta[g.clave] : ""}</button>`).join("") +
+        `</div></div>` +
+        (lista.length ? `<div class="cli-av-lista">` + lista.slice(0, avisosFicha.mas).map(a => enlace(a,
+            (a.urgente && !a.leida ? "<em>Requiere atención</em>" : "") + `<b>${esc(a.titulo)}</b>` +
+            (a.detalle ? `<span>${esc(a.detalle).replace(/\n/g, "<br>")}</span>` : "") +
+            (a.motivo && !a.urgente ? `<span>${esc(a.motivo)}</span>` : "") +
+            `<small>${esc(nombres[a.grupo] || "")} · ${esc(haceFicha(a.creada))}</small>`, a.urgente && !a.leida ? "cli-av--urgente" : "")).join("") + "</div>" +
+            (lista.length > avisosFicha.mas ? `<button type="button" class="ui-btn ui-btn--secundario ui-btn--32 cli-av-mas" data-av-mas>Ver ${Math.min(20, lista.length - avisosFicha.mas)} más</button>` : "")
+            : `<p class="cli-av-tranquilo">Sin avisos${avisosFicha.grupo ? " de " + esc(nombres[avisosFicha.grupo]) : ""} de esta empresa.</p>`);
+}
+document.addEventListener("click", (e) => {
+    const caja = document.getElementById("ficha-avisos");
+    if (!caja || !caja.contains(e.target) || !avisosFicha.datos) return;
+    const g = e.target.closest("[data-av-grupo]");
+    if (g) { avisosFicha.grupo = g.dataset.avGrupo; avisosFicha.mas = 20; pintarAvisosFicha(avisosFicha.datos); return; }
+    if (e.target.closest("[data-av-mas]")) { avisosFicha.mas += 20; pintarAvisosFicha(avisosFicha.datos); }
+});
 
 function pintarEfirmaFicha(cliente, conservarMensaje) {
     const badge = document.getElementById("editar-estado-efirma");
@@ -1315,7 +1377,10 @@ function abrirModalEditar(rfc, ficha) {
     pintarResumenFicha(cliente);
     pintarObligaciones(cliente);
     pintarXmlAuto(cliente);
+    avisosFicha = { rfc: null, datos: null, grupo: "", mas: 20 };
+    document.getElementById("ficha-aviso-avisos").hidden = true;
     ponerFicha(ficha || "general");
+    if (ficha !== "avisos") cargarAvisosFicha(rfc, true);      // el punto rojo de la pestaña si hay algo urgente
     document.getElementById("modal-editar-cliente").classList.add("modal-active");
 }
 

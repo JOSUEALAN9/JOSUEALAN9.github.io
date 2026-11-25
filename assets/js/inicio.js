@@ -62,25 +62,31 @@
             : sello("aviso", "Falta la de " + c.mes_actual) + ' <small class="xml-tenue">la última es de ' + esc(c.mes) + "</small>";
     }
     function opinionVieja(f) { return f.opinion && f.opinion.del_mes === false; }
+    function opinionMala(f) { return !!(f.opinion && /Negativa|No inscrito/.test(f.opinion.resultado || "")); }
+    function importantes(f) { return (f.buzon && f.buzon.importantes) || 0; }
+    function comunicados(f) { return (f.buzon && f.buzon.comunicados) || 0; }
+    function listasOtras(f) { return Math.max((f.listas || 0) - (f.listas_urgentes || 0), 0); }
+    // 25-nov-2026 (el dueño, paquete avi): «Atender» = algo en «Requiere atención» de la campana (las mismas reglas del servidor,
+    // core/avisos_reglas.py: f.atender). Una opinión que ya era negativa, un 69-B presunto o los comunicados del Buzón ya no son
+    // «Atender»: la opinión y el presunto quedan en «Revisar»; los comunicados, en gris.
     function estadoFila(f) {
-        if ((f.opinion && /Negativa|No inscrito/.test(f.opinion.resultado || "")) || f.listas || (f.buzon && f.buzon.pendientes)) return "Atender";
-        if (!f.opinion || opinionVieja(f) || !f.constancia || !f.constancia.del_mes || (f.buzon && f.buzon.nuevos) || !f.efirma) return "Revisar";
+        if ((f.atender || []).length) return "Atender";
+        if (opinionMala(f) || !f.opinion || opinionVieja(f) || !f.constancia || !f.constancia.del_mes || !f.efirma || listasOtras(f)) return "Revisar";
         return "Al día";
     }
 
-    /* Qué hay que atender en cada empresa, del más grave al más leve (rojo = atender, ámbar = revisar) */
+    /* Qué hay que atender en cada empresa, del más grave al más leve (rojo = atender, ámbar = revisar, gris = comunicados) */
     function motivos(f) {
-        var m = [];
-        if (f.opinion && /Negativa|No inscrito/.test(f.opinion.resultado || ""))
-            m.push(["error", "Opinión " + f.opinion.resultado.toLowerCase() + (deRevision(f.opinion) ? " (revisada el " + fecha(f.opinion.revisada_en) + ")" : "")]);
-        if (f.buzon && f.buzon.pendientes) m.push(["error", f.buzon.pendientes + " cancelación" + (f.buzon.pendientes === 1 ? "" : "es") + " por responder"]);
-        if (f.listas) m.push(["error", f.listas + " en listas del SAT"]);
-        if (f.buzon && f.buzon.nuevos) m.push(["aviso", f.buzon.nuevos + " sin leer en buzón"]);
-        if (!f.opinion) m.push(["aviso", "Sin opinión"]);
-        else if (opinionVieja(f)) m.push(["aviso", "Falta la opinión de " + f.opinion.mes_actual]);
-        if (!f.constancia) m.push(["aviso", "Sin constancia"]);
-        else if (!f.constancia.del_mes) m.push(["aviso", "Falta la constancia de " + f.constancia.mes_actual]);
-        if (!f.efirma) m.push(["aviso", "Falta e.firma"]);
+        var m = (f.atender || []).map(function (x) { return ["error", x.chip || x.titulo, x.grupo]; });
+        if (opinionMala(f) && !(f.atender || []).some(function (x) { return x.grupo === "cumplimiento" && /Opini/.test(x.chip || ""); }))
+            m.push(["aviso", "Opinión " + f.opinion.resultado.toLowerCase() + (deRevision(f.opinion) ? " (revisada el " + fecha(f.opinion.revisada_en) + ")" : ""), "cumplimiento"]);
+        if (listasOtras(f)) m.push(["aviso", listasOtras(f) + " en 69-B presunto u otras listas", "cfdi"]);
+        if (!f.opinion) m.push(["aviso", "Sin opinión", "cumplimiento"]);
+        else if (opinionVieja(f)) m.push(["aviso", "Falta la opinión de " + f.opinion.mes_actual, "cumplimiento"]);
+        if (!f.constancia) m.push(["aviso", "Sin constancia", "cumplimiento"]);
+        else if (!f.constancia.del_mes) m.push(["aviso", "Falta la constancia de " + f.constancia.mes_actual, "cumplimiento"]);
+        if (!f.efirma) m.push(["aviso", "Falta e.firma", "cumplimiento"]);
+        if (comunicados(f)) m.push(["gris", comunicados(f) + " comunicado" + (comunicados(f) === 1 ? "" : "s") + " sin leer", "buzon"]);
         return m;
     }
 
@@ -91,7 +97,7 @@
         { clave: "opinion_txt", etiqueta: "Opinión 32-D", tipo: "texto" },
         { clave: "constancia_txt", etiqueta: "Constancia", tipo: "texto" },
         { clave: "cierre_txt", etiqueta: "Cierre del mes", tipo: "texto" },
-        { clave: "buzon_nuevos", etiqueta: "Buzón sin leer", tipo: "numero" },
+        { clave: "buzon_nuevos", etiqueta: "Buzón por atender", tipo: "numero" },
         { clave: "cancelaciones", etiqueta: "Cancelaciones por responder", tipo: "numero" },
         { clave: "listas", etiqueta: "En listas del SAT", tipo: "numero" },
         { clave: "xml_mes", etiqueta: "XML del mes", tipo: "texto" },
@@ -144,13 +150,13 @@
                      atender: m.map(function (x) { return x[1]; }).join(" · ") || "Nada pendiente",
                      opinion_txt: textoOpinion(f.opinion),
                      constancia_txt: f.constancia ? (f.constancia.del_mes ? "Del mes" : "Falta la del mes (última: " + f.constancia.mes + ")") : "Sin constancia",
-                     buzon_nuevos: f.buzon ? f.buzon.nuevos : "", cancelaciones: f.buzon ? f.buzon.pendientes : "",
-                     listas: f.listas || 0, emitidos_mes: em, recibidos_mes: re, xml_mes: em + " emitidos · " + re + " recibidos",
+                     buzon_nuevos: f.buzon ? importantes(f) : "", cancelaciones: f.cancelaciones || 0,
+                     listas: f.listas_urgentes || 0, emitidos_mes: em, recibidos_mes: re, xml_mes: em + " emitidos · " + re + " recibidos",
                      efirma_txt: f.efirma ? "Guardada" : "Falta",
                      f_opinion: !f.opinion || opinionVieja(f) || /Negativa|No inscrito/.test(f.opinion.resultado || "") ? "Negativa o sin consultar" : "",
-                     f_buzon: f.buzon && f.buzon.nuevos ? "Con mensajes sin leer" : "",
-                     f_cancel: f.buzon && f.buzon.pendientes ? "Por responder" : "",
-                     f_listas: f.listas ? "Con proveedores o clientes en listas" : "",
+                     f_buzon: importantes(f) ? "Con algo importante en el Buzón" : "",
+                     f_cancel: f.cancelaciones ? "Por responder" : "",
+                     f_listas: f.listas_urgentes ? "Con proveedores o clientes en listas" : "",
                      cierre_txt: f.cierre ? f.cierre.hechos + " de " + f.cierre.total : "",
                      f_cierre: f.cierre && f.cierre.hechos < f.cierre.total ? "Le falta algo al cierre" : "" };
         });
@@ -159,7 +165,10 @@
     function pintarResumen(lista) {
         var n = function (fn) { return lista.filter(fn).length; };
         var suma = function (fn) { return lista.reduce(function (s, f) { return s + (fn(f) || 0); }, 0); };
-        var buzonMsj = suma(function (f) { return f._f.buzon && f._f.buzon.nuevos; }), cancel = suma(function (f) { return f._f.buzon && f._f.buzon.pendientes; });
+        // 25-nov-2026 (el dueño): el Buzón cuenta solo lo que importa (notificaciones, cartas invitación, requerimientos y solicitudes
+        // de cancelación); los comunicados normales van aparte, en gris
+        var buzonMsj = suma(function (f) { return importantes(f._f); }), cancel = suma(function (f) { return f._f.cancelaciones; });
+        var comun = suma(function (f) { return comunicados(f._f); });
         var neg = n(function (f) { return f._f.opinion && /Negativa|No inscrito/.test(f._f.opinion.resultado || ""); }), sinOp = n(function (f) { return !f._f.opinion || opinionVieja(f._f); });
         // [id, título, número, nota, tono]  — id: «e:<estado>» filtra por estado, «f:<clave>» por filtro
         var datos = [
@@ -170,7 +179,8 @@
             ["f:f_cancel", "Cancelaciones", cancel, cancel ? "por responder en " + n(function (f) { return f.f_cancel; }) + " empresa(s)" : "nada por responder", cancel ? "error" : ""],
             ["f:f_listas", "En listas del SAT", n(function (f) { return f.f_listas; }), "empresas con proveedores o clientes", n(function (f) { return f.f_listas; }) ? "error" : ""],
             ["f:f_opinion", "Opinión 32-D", neg + sinOp, neg ? neg + " negativa(s) · " + sinOp + " sin revisar este mes" : sinOp + " sin revisar este mes", neg ? "error" : sinOp ? "aviso" : ""],
-            ["f:f_buzon", "Buzón sin leer", buzonMsj, "en " + n(function (f) { return f.f_buzon; }) + " empresa(s)", buzonMsj ? "aviso" : ""]
+            ["f:f_buzon", "Buzón por atender", buzonMsj, (buzonMsj ? "en " + n(function (f) { return f.f_buzon; }) + " empresa(s)" : "nada importante") +
+                (comun ? " · " + comun + " comunicado" + (comun === 1 ? "" : "s") + " sin leer" : ""), buzonMsj ? "error" : ""]
         ];
         $("tb-resumen").innerHTML = datos.map(function (d) {
             return '<button type="button" class="tb-kpi' + (d[4] ? " tb-kpi--" + d[4] : "") + (!d[2] && d[0] ? " tb-kpi--cero" : "") + ((E.filtro || "") === d[0] ? " tb-kpi--activo" : "") +
@@ -236,8 +246,10 @@
         $("tb-venc").innerHTML = v.length ? v.map(function (x) {
             return "<div><span>" + esc(x.titulo) + "</span><small>" + esc(fecha(x.fecha)) + (x.dias >= 0 ? " · en " + x.dias + " días" : " · venció") + "</small></div>";
         }).join("") : "<div><span>Nada próximo</span></div>";
-        api("/api/actividad?limite=6").then(function (d) {
-            $("tb-act").innerHTML = d.avisos.length ? d.avisos.map(function (a) {
+        // 25-nov-2026 (paquete avi): lo último de la campana con sus reglas (el integrante no ve lo del equipo ni nadie lo de la VPS)
+        api("/api/actividad/campana?modo=todas").then(function (d) {
+            var recientes = d.recientes || [];
+            $("tb-act").innerHTML = recientes.length ? recientes.map(function (a) {
                 var dentro = "<span>" + esc(a.titulo) + "</span><small>" + esc(fecha(a.creada)) + "</small>";
                 return a.enlace && a.enlace.charAt(0) === "/" ? '<a href="' + esc(a.enlace) + '">' + dentro + "</a>" : "<div>" + dentro + "</div>";
             }).join("") : "<div><span>Sin actividad reciente</span></div>";
@@ -264,25 +276,35 @@
                     if (c.clave === "atender") {
                         if (!r._m.length) return sello("ok", "Nada pendiente");
                         var vis = r._m.slice(0, 2);
-                        return '<span class="tb-motivos" title="' + esc(r.atender) + '">' + vis.map(function (x) { return '<span class="tb-motivo tb-motivo--' + x[0] + '">' + esc(x[1]) + "</span>"; }).join("") +
-                            (r._m.length > 2 ? '<span class="tb-motivo tb-motivo--mas">+' + (r._m.length - 2) + "</span>" : "") + "</span>";
+                        // 25-nov-2026 (el dueño): cada chip abre los avisos de la empresa en SU lugar, la ficha de la empresa
+                        // (Clientes › la empresa › Avisos); no hay otra lista ni otra ventana con lo mismo
+                        return '<span class="tb-motivos" title="' + esc(r.atender) + '">' + vis.map(function (x) {
+                            return '<button type="button" class="tb-motivo tb-motivo--' + x[0] + '" data-avisos="' + esc(f.rfc) + '">' + esc(x[1]) + "</button>";
+                        }).join("") + (r._m.length > 2 ? '<button type="button" class="tb-motivo tb-motivo--mas" data-avisos="' + esc(f.rfc) + '">+' + (r._m.length - 2) + "</button>" : "") + "</span>";
                     }
                     if (c.clave === "opinion_txt") return celdaOpinion(f.opinion);
                     if (c.clave === "constancia_txt") return celdaConstancia(f.constancia);
                     if (c.clave === "cierre_txt") return celdaCierre(f.cierre);
                     if (c.clave === "xml_mes") return (r.emitidos_mes + r.recibidos_mes) ? esc(r.emitidos_mes) + ' <small class="xml-tenue">emitidos</small> · ' + esc(r.recibidos_mes) + ' <small class="xml-tenue">recibidos</small>' : '<span class="xml-tenue">—</span>';
-                    if (c.clave === "buzon_nuevos") return f.buzon ? (f.buzon.nuevos ? sello("aviso", f.buzon.nuevos + " sin leer") : sello("nada", "—")) : "";
-                    if (c.clave === "cancelaciones") return f.buzon && f.buzon.pendientes ? sello("error", f.buzon.pendientes + " por responder") : "";
-                    if (c.clave === "listas") return f.listas ? sello("error", f.listas + " en listas") : "";
+                    if (c.clave === "buzon_nuevos") return f.buzon ? (importantes(f) ? sello("error", importantes(f) + " por atender") : sello("nada", "—")) +
+                        (comunicados(f) ? ' <small class="xml-tenue">' + comunicados(f) + " comunicado" + (comunicados(f) === 1 ? "" : "s") + "</small>" : "") : "";
+                    if (c.clave === "cancelaciones") return f.cancelaciones ? sello("error", f.cancelaciones + " por responder") : "";
+                    if (c.clave === "listas") return f.listas_urgentes ? sello("error", f.listas_urgentes + " en listas") : (f.listas ? sello("aviso", f.listas + " presunto u otras") : "");
                     if (c.clave === "efirma_txt") return f.efirma ? sello("ok", "Guardada") : sello("aviso", "Falta");
                     return null;
                 },
+                // 25-nov-2026 (el dueño): picar la empresa te cambia a ella, como siempre; sus avisos se abren con los chips de
+                // «Qué atender»
                 alClic: function (r) { trabajarCon(r.rfc); }
             });
             $("tb-tabla").addEventListener("click", function (e) {
-                var b = e.target.closest("[data-estrella]"); if (!b) return;
-                e.stopPropagation();
-                marcarFavorita(b.dataset.estrella);
+                var b = e.target.closest("[data-estrella]");
+                if (b) { e.stopPropagation(); marcarFavorita(b.dataset.estrella); return; }
+                var chip = e.target.closest("[data-avisos]");
+                if (chip) {
+                    e.stopPropagation(); e.preventDefault();
+                    verAvisos(chip.dataset.avisos);
+                }
             }, true);
         }
         E.tabla.cargando("Revisando tus empresas…");
@@ -319,6 +341,8 @@
             window.dispatchEvent(new CustomEvent("fiscontable:favoritos"));
         } catch (e) { Fiscontable.toast(e.message); }
     }
+    // Los avisos de una empresa viven en un solo lugar: su ficha, pestaña «Avisos»
+    function verAvisos(rfc) { location.href = "/clientes/?editar=" + encodeURIComponent(rfc) + "&ficha=avisos"; }
     async function trabajarCon(rfc) {
         try { await Fiscontable.elegirEmpresa(rfc); } catch (e) { Fiscontable.toast(e.message); return; }
         verVista("empresa");
@@ -365,11 +389,10 @@
                         return "<div><span>" + esc(v.titulo) + "</span><small>" + esc(fecha(v.fecha)) + (v.dias >= 0 ? " · en " + v.dias + " días" : " · venció") + "</small></div>";
                     }).join("") : "<div><span>Nada próximo</span></div>") +
                 '</div><p class="xml-tenue" style="font-size:12px;margin:8px 0 0">Fechas generales; revisa las de tu régimen.</p></div>' +
-                '<div class="ui-tarjeta"><p class="tb-titulo">Últimos avisos</p><div class="tb-lista">' +
-                    (d.avisos.length ? d.avisos.map(function (a) {
-                        var dentro = "<span>" + esc(a.titulo) + "</span><small>" + esc(fecha(a.creada)) + "</small>";
-                        return a.enlace && a.enlace.charAt(0) === "/" ? '<a href="' + esc(a.enlace) + '">' + dentro + "</a>" : "<div>" + dentro + "</div>";
-                    }).join("") : "<div><span>Sin avisos de esta empresa</span></div>") +
+                // 25-nov-2026 (el dueño): aquí ya no se repite la lista de avisos de la empresa; viven en su ficha
+                '<div class="ui-tarjeta"><p class="tb-titulo">Avisos</p><div class="tb-lista">' +
+                    '<a href="/clientes/?editar=' + encodeURIComponent(empresa.rfc) + '&ficha=avisos"><span>' +
+                    (d.avisos.length ? "Ver los avisos de esta empresa" : "Sin avisos de esta empresa") + "</span><small>En su ficha ›</small></a>" +
                 "</div></div>" +
             "</div>" +
             '<p class="xml-tenue" style="font-size:12px;margin-top:12px">' + esc(mes) + " según los XML guardados (vigentes y sin validar; notas de crédito restan). Es un estimado: el cálculo fino está en IVA y Conciliación.</p>";

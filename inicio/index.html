@@ -99,6 +99,10 @@
     .tb-motivo--error { background: rgb(var(--er-50)); color: rgb(var(--er-700)); }
     .tb-motivo--aviso { background: rgb(var(--av-50)); color: rgb(var(--av-700)); }
     .tb-motivo--mas { background: rgb(var(--g-100)); color: rgb(var(--g-600)); }
+    /* 25-nov-2026 (paquete avi): cada chip abre los avisos de la empresa; los comunicados del Buzón van en gris */
+    button.tb-motivo { border: 0; font-family: inherit; cursor: pointer; line-height: inherit; }
+    button.tb-motivo:hover { filter: brightness(.96); text-decoration: underline; }
+    .tb-motivo--gris { background: rgb(var(--g-100)); color: rgb(var(--g-500)); font-weight: 500; }
     .tb-cabeza { align-items: center; }
     .tb-cabeza .ctx-segmento { margin-left: auto; }
 

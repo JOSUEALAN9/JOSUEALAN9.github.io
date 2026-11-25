@@ -244,6 +244,7 @@
                 <div class="ficha-tabs" role="tablist">
                     <button type="button" role="tab" data-ficha="general">Datos generales</button>
                     <button type="button" role="tab" data-ficha="accesos">Accesos <span id="ficha-aviso-accesos" class="ficha-punto" hidden></span></button>
+                    <button type="button" role="tab" data-ficha="avisos" id="tab-avisos" title="Todo lo de esta empresa: lo urgente arriba">Avisos <span id="ficha-aviso-avisos" class="ficha-punto ficha-punto--rojo" hidden></span></button>
                     <button type="button" role="tab" data-ficha="receptores" id="tab-receptores" hidden title="A quién le factura esta empresa">Sus clientes</button>
                     <button type="button" role="tab" data-ficha="xml" id="tab-xml" hidden>Descarga de XML</button>
                     <button type="button" role="tab" data-ficha="obligaciones" id="tab-obligaciones" hidden>Obligaciones</button>
@@ -430,6 +431,10 @@
                 </section>
 
                 <!-- ===== Receptores: a quién le factura esta empresa (para elegirlos al timbrar) ===== -->
+                <!-- ===== Avisos (25-nov-2026, paquete avi): las mismas reglas de la campana e Inicio ===== -->
+                <section data-panel="avisos" class="flex flex-col gap-4" hidden>
+                    <div id="ficha-avisos" class="cli-av"></div>
+                </section>
                 <section data-panel="receptores" class="flex flex-col gap-6" hidden>
                     <div class="flex items-start justify-between gap-3">
                         <div>
@@ -662,6 +667,35 @@
     .ficha-tabs button[aria-selected="true"] { color: rgb(var(--ac-600)); border-bottom-color: rgb(var(--ac-600)); }
     .ficha-punto { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: rgb(var(--av-600)); margin-left: 4px; vertical-align: middle; }
     .ficha-caja { border: 1px solid rgb(var(--g-200)); border-radius: 14px; padding: 20px; }
+    /* Pestaña «Avisos» de la ficha (25-nov-2026, paquete avi): «Requiere atención» en rojo tenue y lo demás por grupo */
+    .ficha-punto.ficha-punto--rojo { background: rgb(var(--er-600)); }
+    section[data-panel="avisos"] { min-width: 0; }
+    .cli-av { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; min-width: 0; width: 100%; }
+    .cli-av > * { min-width: 0; }
+    .cli-av-urgente { display: grid; gap: 2px; padding: 8px; border: 1px solid rgb(var(--er-200)); border-radius: 12px; background: rgb(var(--er-50)); }
+    .cli-av-urgente__titulo { margin: 2px 8px 4px; font-size: 12px; font-weight: 700; color: rgb(var(--er-600)); text-transform: uppercase; letter-spacing: .04em; }
+    .cli-av-urgente a, .cli-av-urgente div { display: grid; gap: 1px; padding: 8px; border-radius: 8px; background: rgb(var(--g-0) / .65); color: rgb(var(--g-900)); text-decoration: none; min-width: 0; }
+    .cli-av-urgente a:hover { background: rgb(var(--g-0)); }
+    .cli-av-urgente b, .cli-av-lista b { font-size: 13.5px; font-weight: 600; overflow-wrap: anywhere; }
+    .cli-av-urgente span, .cli-av-lista span { font-size: 12.5px; color: rgb(var(--g-600)); overflow-wrap: anywhere; }
+    .cli-av-tranquilo { margin: 0; font-size: 13.5px; color: rgb(var(--g-600)); }
+    .cli-av-cabeza { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px; }
+    .cli-av-grupos { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; min-width: 0; flex: 1 1 0; max-width: 100%; }
+    .cli-av-grupos::-webkit-scrollbar { display: none; }
+    .cli-av-grupos button { flex: none; border: 1px solid rgb(var(--g-200)); background: rgb(var(--g-0)); border-radius: 999px; padding: 4px 10px; font: inherit; font-size: 12.5px;
+                            font-weight: 600; color: rgb(var(--g-600)); cursor: pointer; }
+    .cli-av-grupos button[aria-pressed="true"] { border-color: rgb(var(--ac-600)); background: rgb(var(--ac-50)); color: rgb(var(--ac-700)); }
+    .cli-av-grupos button:disabled { opacity: .5; cursor: default; }
+    .cli-av-campana { border: 0; background: none; font: inherit; font-size: 13px; font-weight: 600; color: rgb(var(--ac-700)); cursor: pointer; white-space: nowrap; padding: 0; }
+    .cli-av-campana:hover { text-decoration: underline; }
+    .cli-av-lista { display: grid; border: 1px solid rgb(var(--g-200)); border-radius: 12px; overflow: hidden; }
+    .cli-av-lista > * { display: grid; gap: 2px; padding: 10px 14px; color: rgb(var(--g-900)); text-decoration: none; min-width: 0; }
+    .cli-av-lista > * + * { border-top: 1px solid rgb(var(--g-100)); }
+    .cli-av-lista > a:hover { background: rgb(var(--g-50)); }
+    .cli-av-lista small { font-size: 12px; color: rgb(var(--g-500)); }
+    .cli-av-lista .cli-av--urgente { box-shadow: inset 3px 0 0 rgb(var(--er-600)); background: rgb(var(--er-50)); }
+    .cli-av-lista em { font-style: normal; font-size: 11px; font-weight: 700; color: rgb(var(--er-600)); text-transform: uppercase; letter-spacing: .04em; }
+    .cli-av-mas { justify-self: center; }
     /* 24-nov-2026: el manifiesto del PAC, plegado mientras sea opcional; exigido, abierto y sin flecha (como antes) */
     .cli-man[hidden] { display: none; }
     .cli-man__cabeza { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; cursor: pointer; list-style: none; }

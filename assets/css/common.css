@@ -2106,6 +2106,85 @@ button.fc-act-item--grupo:hover { background: rgb(var(--g-50)); }
                     border: 1px solid var(--linea); border-radius: var(--r-control); font-size: var(--t-13); }
 .fc-act-pie { display: flex; gap: var(--e-2); flex-wrap: wrap; }
 #fc-btn-actividad { position: relative; }
+
+/* --- La campana (25-nov-2026, paquete avi): «Requiere atención» arriba (rojo tenue) y seis círculos con lo nuevo de cada
+   grupo; tocar uno cambia el mismo panel a su detalle. El numerito de la campana es rojo: cuenta solo lo urgente. --- */
+.fc-contador.fc-contador--rojo { background: rgb(var(--er-600)); }
+.fc-av-cabeza__der { display: inline-flex; gap: 2px; align-items: center; flex: none; }
+.fc-av-alcance { flex: none; display: grid; gap: var(--e-2); padding: var(--e-3) 18px 0; }
+.fc-av-alcance:empty { display: none; }
+/* (doble clase: le gana a .ctx-segmento, que va después, y a la regla del celular de xml.css que reparte parejo) */
+.fc-av-modos.ctx-segmento { display: flex; width: 100%; gap: 2px; padding: 3px; }
+.fc-av-modos.ctx-segmento button { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; padding: 7px var(--e-2); font-weight: 700; }
+.fc-av-buscar { display: grid; gap: var(--e-2); }
+.fc-av-buscar .ui-input { width: 100%; }
+.fc-av-opciones { display: grid; max-height: 260px; overflow-y: auto; border: 1px solid var(--linea); border-radius: var(--r-control); background: rgb(var(--g-0)); }
+.fc-av-opciones button { display: grid; gap: 1px; padding: var(--e-2) var(--e-3); border: 0; background: none; font: inherit; text-align: left; cursor: pointer; }
+.fc-av-opciones button + button { border-top: 1px solid rgb(var(--g-100)); }
+.fc-av-opciones button:hover { background: rgb(var(--g-50)); }
+.fc-av-opciones b { font-size: var(--t-13); font-weight: 600; color: rgb(var(--g-900)); overflow-wrap: anywhere; }
+.fc-av-opciones small { font-size: var(--t-12); color: rgb(var(--g-500)); font-family: var(--fuente-mono); }
+.fc-av-nada { padding: var(--e-2) var(--e-3); font-size: var(--t-12); color: rgb(var(--g-500)); }
+.fc-av-urgente { display: grid; gap: 2px; margin: 0 0 var(--e-2); padding: var(--e-2); border: 1px solid rgb(var(--er-200)); border-radius: var(--r-tarjeta);
+                 background: rgb(var(--er-50)); }
+.fc-av-urgente__titulo { display: flex; align-items: center; gap: 6px; margin: 2px var(--e-2) var(--e-1); font-size: var(--t-12); font-weight: 700;
+                         color: rgb(var(--er-600)); text-transform: uppercase; letter-spacing: .04em; }
+.fc-av-urgente__titulo svg { width: 15px; height: 15px; flex: none; }
+.fc-av-urgente__titulo b { margin-left: auto; font-variant-numeric: tabular-nums; }
+.fc-av-urg { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 1px var(--e-2); align-items: center; padding: var(--e-2);
+             border-radius: var(--r-control); color: rgb(var(--g-900)); text-decoration: none; background: rgb(var(--g-0) / .65); }
+.fc-av-urg b { font-size: var(--t-13); font-weight: 600; overflow-wrap: anywhere; }
+.fc-av-urg span { grid-column: 1; font-size: var(--t-12); color: rgb(var(--g-600)); overflow-wrap: anywhere; }
+.fc-av-urg svg { grid-column: 2; grid-row: 1 / span 2; width: 14px; height: 14px; color: rgb(var(--er-600)); }
+a.fc-av-urg:hover { background: rgb(var(--g-0)); }
+.fc-av-urgente__mas { justify-self: start; padding: var(--e-1) var(--e-2); border: 0; background: none; font: inherit; font-size: var(--t-12); font-weight: 600;
+                      color: rgb(var(--er-600)); cursor: pointer; }
+.fc-av-tranquilo { display: flex; align-items: center; gap: 6px; margin: 0 0 var(--e-3); font-size: var(--t-13); color: rgb(var(--g-600)); }
+.fc-av-tranquilo svg { width: 16px; height: 16px; flex: none; color: rgb(var(--ok-600)); }
+.fc-av-circulos { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--e-2) var(--e-2); padding: 0 0 var(--e-2); }
+.fc-av-circulo { display: grid; justify-items: center; gap: 6px; min-width: 0; padding: var(--e-2) 0; border: 0; border-radius: var(--r-tarjeta); background: none;
+                 font: inherit; color: rgb(var(--g-900)); cursor: pointer; }
+.fc-av-circulo:hover { background: rgb(var(--g-50)); }
+.fc-av-circulo__ico { position: relative; display: grid; place-items: center; width: 56px; height: 56px; border-radius: 50%; background: rgb(var(--ac-50));
+                      color: rgb(var(--ac-700)); box-shadow: inset 0 0 0 1px rgb(var(--ac-100)); }
+.fc-av-circulo__ico svg { width: 24px; height: 24px; }
+.fc-av-circulo__nombre { font-size: var(--t-13); font-weight: 600; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fc-av-globo { position: absolute; top: -2px; right: -6px; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 999px; background: rgb(var(--ac-600));
+               color: rgb(var(--g-0)); font-size: 11px; font-weight: 700; font-style: normal; line-height: 20px; text-align: center;
+               font-variant-numeric: tabular-nums; box-shadow: 0 0 0 2px rgb(var(--g-0)); }
+.fc-av-circulo--cero .fc-av-circulo__ico { background: rgb(var(--g-100)); color: rgb(var(--g-400)); box-shadow: none; }
+.fc-av-circulo--cero .fc-av-circulo__nombre { color: rgb(var(--g-500)); font-weight: 500; }
+.fc-av-detalle__cabeza { display: flex; align-items: center; justify-content: space-between; gap: var(--e-2); margin: 0 0 var(--e-2); }
+.fc-av-volver { padding: var(--e-1) var(--e-2) var(--e-1) 0; border: 0; background: none; font: inherit; font-size: var(--t-14); font-weight: 700;
+                color: rgb(var(--g-900)); cursor: pointer; white-space: nowrap; }
+.fc-av-detalle__cabeza a, .fc-av-ir, .fc-av-pie-nota a, .fc-av-empresa a, .fc-av-empresa button, .fc-av-ronda__enlaces a {
+    font-size: var(--t-13); font-weight: 600; color: rgb(var(--ac-700)); text-decoration: none; white-space: nowrap; }
+.fc-av-detalle__cabeza a:hover, .fc-av-ir:hover, .fc-av-pie-nota a:hover, .fc-av-empresa a:hover, .fc-av-empresa button:hover, .fc-av-ronda__enlaces a:hover { text-decoration: underline; }
+.fc-av-empresa { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--e-1) var(--e-3); margin: 0 0 var(--e-3);
+                 font-size: var(--t-14); min-width: 0; }
+.fc-av-empresa b { overflow-wrap: anywhere; }
+.fc-av-empresa span { display: inline-flex; flex-wrap: wrap; gap: var(--e-1) var(--e-3); }
+.fc-av-empresa button { padding: 0; border: 0; background: none; font-family: inherit; cursor: pointer; }
+.fc-act-item.fc-act-item--urgente { background: rgb(var(--er-50)); box-shadow: inset 3px 0 0 rgb(var(--er-600)); }
+.fc-av-marca { font-size: 11px; font-weight: 700; font-style: normal; color: rgb(var(--er-600)); text-transform: uppercase; letter-spacing: .04em; }
+.fc-act-item span.fc-av-motivo { color: rgb(var(--g-500)); }
+.fc-av-ronda { display: grid; gap: var(--e-2); padding: var(--e-3) var(--e-4); border: 1px solid var(--linea); border-radius: var(--r-tarjeta); background: rgb(var(--g-0)); }
+.fc-av-ronda + .fc-av-ronda { margin-top: var(--e-3); }
+.fc-av-ronda--nueva { border-color: rgb(var(--ac-200)); box-shadow: inset 3px 0 0 rgb(var(--ac-600)); }
+.fc-av-ronda__titulo { margin: 0; font-size: var(--t-13); }
+.fc-av-ronda__titulo b { font-weight: 600; }
+.fc-av-ronda__lineas { display: grid; gap: 4px; margin: 0; padding: 0; list-style: none; }
+.fc-av-ronda__lineas li { display: grid; grid-template-columns: 10px minmax(0, 1fr); column-gap: var(--e-2); align-items: baseline; font-size: var(--t-13); }
+.fc-av-ronda__lineas small { grid-column: 2; font-size: var(--t-12); color: rgb(var(--g-600)); overflow-wrap: anywhere; }
+.fc-av-punto { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: rgb(var(--g-300)); }
+.fc-av-punto--verde { background: rgb(var(--ok-600)); }
+.fc-av-punto--rojo { background: rgb(var(--er-600)); }
+.fc-av-punto--naranja, .fc-av-punto--ambar { background: rgb(var(--av-600)); }
+.fc-av-punto--azul { background: rgb(var(--in-600)); }
+.fc-av-ronda__otros { margin: 0; padding-left: 18px; font-size: var(--t-12); color: rgb(var(--g-600)); }
+.fc-av-ronda__enlaces { display: flex; flex-wrap: wrap; gap: var(--e-1) var(--e-4); margin: 0; }
+.fc-av-pie-nota { margin: var(--e-4) 0 0; text-align: center; }
+.fc-act-pie .fc-av-ir { margin-left: auto; align-self: center; }
 /* Mis descargas: las mismas tarjetas del panel de la barra, en dos columnas cuando caben */
 .dsc-tarjetas { display: grid; gap: var(--e-3); grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); }
 .dsc-tarjetas .fc-item { margin: 0; }
