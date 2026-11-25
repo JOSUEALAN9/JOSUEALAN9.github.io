@@ -783,10 +783,10 @@
                 '<p class="cf-texto">Uno solo, ' + esc((mn.cuando || "de lunes a viernes al abrir tu horario de correos").replace(/^De /, "de ")) +
                 '. Arriba, lo que requiere atención; luego lo del cierre (solo los días que toca), una tabla por tema y la ronda de la madrugada en una línea.' +
                 (p.es_despacho ? " Trae tus empresas del despacho y, aparte, las de Mi espacio." : "") + "</p>" +
-                // 25-nov-2026 (el dueño, av3): el Buzón sin abrir no va todos los días (core/correo_manana.cadencia_buzon)
+                // 25-nov-2026 (el dueño, av3 y av4): el Buzón sin abrir no va todos los días (core/correo_manana.cadencia_buzon)
                 '<p class="cf-texto" id="cf-mn-buzon">Lo del Buzón sin abrir (una notificación, una carta invitación o un requerimiento) no llega todos los días: ' +
-                "va el día que lo encontramos, otra vez un día hábil antes de que el SAT la tenga por notificada (aunque nadie la abra) y, después, cada lunes mientras siga sin abrirse. " +
-                "La campana lo enseña todos los días. Fiscontable solo te avisa: nunca abre una notificación; si quieres verla, ábrela tú en el Buzón.</p>" +
+                "va el día que lo encontramos, otra vez un día hábil antes de que el SAT la tenga por notificada, el mismo día en que el SAT la tiene por notificada (desde ese día corren los plazos) y, después, cada lunes mientras siga sin abrirse. " +
+                "Si uno de esos días no sale tu correo, llega en el siguiente. La campana lo enseña todos los días. Fiscontable solo te avisa: nunca abre una notificación; para ver qué dice, ábrela tú en el Buzón.</p>" +
                 '<label class="ui-check cf-check"><input type="checkbox" id="cf-mn-recibir"' + (mn.recibir ? " checked" : "") + (mn.apagado_fabrica ? " disabled" : "") +
                 "> Recibir mi correo de la mañana" + (mn.apagado_fabrica ? " (apagado por Fiscontable)" : "") + "</label>" +
                 '<p class="cf-texto cf-mn__nota">Qué trae, además de «Requiere atención» (eso va siempre):</p>' +
