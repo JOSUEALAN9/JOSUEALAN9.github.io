@@ -1968,7 +1968,7 @@
             return '<button type="button" class="ui-btn ui-btn--28 ' + (x.primario ? "ui-btn--primario" : "ui-btn--secundario") + '" data-act-accion="' + i +
                 '" data-act-aviso="' + esc(a.id) + '">' + esc(x.texto) + "</button>";
         }).join("") + "</p>" : "";
-        var urgente = a.urgente && !a.leida;
+        var urgente = (a.urgente && !a.leida) || !!a.por_atender;       // 25-nov-2026 (avi-2): abrirlo no es atenderlo
         var dentro = ico(D[ICONO_AVISO[a.tipo]] || D.campana, 1.8) + "<div>" + (urgente ? '<em class="fc-av-marca">Requiere atención</em>' : "") +
             "<b>" + esc(a.titulo) + "</b>" + (a.detalle ? "<span>" + esc(a.detalle).replace(/\n/g, "<br>") + "</span>" : "") +
             (a.motivo && !a.urgente ? '<span class="fc-av-motivo">' + esc(a.motivo) + "</span>" : "") + botones +
@@ -2050,8 +2050,15 @@
     // 25-nov-2026 (el dueño): los avisos de una empresa viven en UN solo lugar, su ficha (Clientes › la empresa › Avisos).
     // «Una empresa…» y los chips de Inicio llevan ahí; la campana ya no arma otra lista con lo mismo.
     function irAvisosEmpresa(rfc) { location.href = "/clientes/?editar=" + encodeURIComponent(rfc) + "&ficha=avisos"; }
+    // 25-nov-2026 (el dueño, avi-2): sin el módulo Clientes no hay ficha; entonces «Una empresa…» y los chips de Inicio enseñan
+    // los avisos de esa empresa aquí mismo, en la campana (como respaldo). El servidor dice si hay ficha (campana.ficha).
+    function tieneFicha() {
+        if (actividad.datos && typeof actividad.datos.ficha === "boolean") return actividad.datos.ficha;
+        var p = perfilActual || {};
+        return p.rol === "admin" || !p.modulos_permitidos || p.modulos_permitidos.indexOf("clientes") !== -1;
+    }
     function elegirModo(modo) {
-        if (esRfc(modo)) { actividad.eligiendo = false; actividad.buscar = ""; irAvisosEmpresa(modo); return; }
+        if (esRfc(modo) && tieneFicha()) { actividad.eligiendo = false; actividad.buscar = ""; irAvisosEmpresa(modo); return; }
         actividad.eligiendo = false; actividad.buscar = "";
         actividad.modo = modo;
         if (modo === "asignadas" || modo === "todas") { try { localStorage.setItem(LLAVE_MODO, modo); } catch (e) { /* */ } }
@@ -2107,8 +2114,14 @@
                 var titulo = empresa && x.alias ? String(x.titulo).replace(" · " + x.alias, "") : x.titulo;
                 var dentro = "<b>" + esc(titulo) + "</b>" + (x.detalle ? "<span>" + esc(x.detalle) + "</span>" : "");
                 var marca = x.aviso_id ? ' data-ids="' + esc(x.aviso_id) + '"' : "";
-                return x.enlace && x.enlace.charAt(0) === "/" ? '<a class="fc-av-urg"' + marca + ' href="' + esc(x.enlace) + '">' + dentro + ico(D.flecha, 2) + "</a>"
+                var renglon = x.enlace && x.enlace.charAt(0) === "/" ? '<a class="fc-av-urg"' + marca + ' href="' + esc(x.enlace) + '">' + dentro + ico(D.flecha, 2) + "</a>"
                     : '<div class="fc-av-urg"' + marca + ">" + dentro + "</div>";
+                // 25-nov-2026 (el dueño, avi-2): abrir un aviso no es atenderlo. Lo urgente que es un hecho (CFDI cancelado de un mes
+                // cerrado o declarado, envío que falló, algo por aprobar) sigue aquí hasta que se resuelve o alguien pica «Ya lo atendí»
+                if (!x.aviso_id || !x.atender) return renglon;
+                return '<div class="fc-av-urg-caja">' + renglon + '<button type="button" class="ui-btn ui-btn--secundario ui-btn--28 fc-av-atendi" data-av-atender="' +
+                    esc(x.aviso_id) + '"' + (x.atender.pin ? ' data-pin="1" title="Pide tu PIN: es de un mes cerrado o declarado"' : ' title="Se quita de «Requiere atención» para todo el despacho"') +
+                    ">Ya lo atendí</button></div>";
             }).join("") + (lista.length > 4 ? '<button type="button" class="fc-av-urgente__mas" data-av-todos>' +
                 (actividad.todos ? "Ver menos" : "Ver las " + lista.length) + "</button>" : "") + "</section>";
     }
@@ -2124,9 +2137,12 @@
         if (!lista || !lista.length) return "";
         return '<p class="fc-act-grupo">En curso</p>' + lista.slice(0, 4).map(function (p) {
             // 24-nov-2026: lo de la madrugada llega en un solo renglón con enlace a «Lo automático» (modulos/actividad en_curso)
-            var dentro = ico(D.reloj || D.calendario, 1.8) + "<div><b>" + esc(p.titulo) + "</b><span>" + esc(p.progreso) + "</span></div>";
-            return p.enlace && p.enlace.charAt(0) === "/" ? '<a class="fc-act-item fc-act-item--curso" href="' + esc(p.enlace) + '">' + dentro + "</a>"
-                : '<div class="fc-act-item fc-act-item--curso">' + dentro + "</div>";
+            // 25-nov-2026: lo que todavía no empieza (programado para la madrugada, o en fila detrás de otro) va en ámbar, «esperando»
+            var espera = /^(Programado|En (fila|cola)\b)/.test(String(p.progreso || ""));
+            var clase = "fc-act-item fc-act-item--curso" + (espera ? " fc-act-item--fila" : "");
+            var dentro = ico(D.reloj || D.calendario, 1.8) + "<div><b>" + esc(p.titulo) + "</b><span>" + esc(window.Fiscontable.enFila(p.progreso)) + "</span></div>";
+            return p.enlace && p.enlace.charAt(0) === "/" ? '<a class="' + clase + '" href="' + esc(p.enlace) + '">' + dentro + "</a>"
+                : '<div class="' + clase + '">' + dentro + "</div>";
         }).join("");
     }
     function pintarActividad() {
@@ -2137,7 +2153,8 @@
         if (limpiar) limpiar.disabled = !(d.leidas > 0);
         if (actividad.vista === "grupo") { pintarGrupo(); return; }
         var g = d.grupos || [];
-        // «Marcar leídos» no toca lo urgente sin leer (se queda hasta abrirlo o resolverlo): si solo queda eso, el botón se apaga
+        // «Marcar leídos» no toca lo urgente sin leer (y lo urgente que es un hecho sigue en «Requiere atención» hasta resolverse o
+        // que alguien pique «Ya lo atendí»): si solo queda eso, el botón se apaga
         if (leidas) leidas.disabled = typeof d.por_marcar === "number" ? !d.por_marcar : !g.some(function (x) { return x.sin_leer > 0; });
         var h = [];
         h.push(htmlUrgentes(d.franja || d.urgentes, d.rojo, !!d.empresa));
@@ -2226,8 +2243,14 @@
     function abrirActividad(opciones) {
         var velo = document.getElementById("fc-act-velo"), panel = document.getElementById("fc-act-panel");
         var o = opciones && !(opciones instanceof Event) ? opciones : {};
-        if (o.rfc && esRfc(String(o.rfc).toUpperCase())) { irAvisosEmpresa(String(o.rfc).toUpperCase()); return; }
+        var rfcPedido = o.rfc && esRfc(String(o.rfc).toUpperCase()) ? String(o.rfc).toUpperCase() : "";
+        if (rfcPedido && !actividad.datos && !o._esperado) {          // todavía no se sabe si hay ficha: se pregunta una vez
+            sondearActividad().then(function () { abrirActividad(Object.assign({}, o, { _esperado: true })); });
+            return;
+        }
+        if (rfcPedido && tieneFicha()) { irAvisosEmpresa(rfcPedido); return; }
         actividad.vista = "inicio"; actividad.grupo = null; actividad.detalle = null; actividad.todos = false; actividad.eligiendo = false;
+        if (rfcPedido) { actividad.modo = rfcPedido; actividad.version++; if (actividad.datos) { actividad.datos.modo = rfcPedido; actividad.datos.empresa = { rfc: rfcPedido, alias: aliasDe(rfcPedido) }; } }
         velo.hidden = false; panel.hidden = false;
         requestAnimationFrame(function () { velo.classList.add("abierto"); panel.classList.add("abierto"); });
         document.body.classList.add("fc-sin-scroll");
@@ -2275,6 +2298,46 @@
             if (det && det.rondas) det.rondas.forEach(function (x) { x.leida = true; });
         }, "No se pudieron marcar como leídos.");
     }
+    /* «Ya lo atendí» (25-nov-2026, el dueño, avi-2): lo quita de «Requiere atención» para todo el despacho y queda en la bitácora
+       con quién y cuándo. Solo marca (no cancela, no reenvía, no aprueba): sin PIN, salvo el CFDI cancelado de un mes cerrado o
+       declarado, que pide tu PIN (como cerrar o abrir un mes). El servidor revisa que la empresa sea tuya. */
+    // Fiscontable.atenderAviso(id, {pin, titulo, boton}) → la respuesta del servidor, o null si se canceló (también la ficha)
+    async function atenderAvisoId(id, o) {
+        o = o || {};
+        async function hacer(conf) {
+            var r = await fetch(API + "/api/actividad/atendido", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ aviso_id: Number(id), confirmacion: conf || null }) });
+            if (!r.ok) throw new Error(await window.Fiscontable.leerError(r));
+            return r.json();
+        }
+        if (!o.pin) return hacer();
+        var respuesta = null;
+        var hecho = await confirmarIdentidad("atender_aviso", async function (c) { respuesta = await hacer(c); }, { titulo: "Ya lo atendí",
+            resumen: "<p><b>" + esc(o.titulo || "Este aviso") + "</b></p><p>Es de un mes cerrado o declarado. Se quita de «Requiere atención» para todo el despacho y queda en la bitácora que lo atendiste tú.</p>",
+            boton: "Ya lo atendí" });
+        return hecho ? respuesta || { ok: true } : null;
+    }
+    async function atenderAviso(b) {
+        var id = Number(b.dataset.avAtender), d = actividad.datos;
+        var x = d && (d.urgentes || []).filter(function (u) { return u.aviso_id === id; })[0];
+        var respuesta = null;
+        actividad.version++;
+        b.disabled = true; b.classList.add("ui-btn--cargando");
+        try { respuesta = await atenderAvisoId(id, { pin: b.dataset.pin === "1", titulo: x && x.titulo }); }
+        catch (err) { aviso(err.message || "No se pudo. Intenta de nuevo."); respuesta = null; }
+        if (!respuesta) { b.disabled = false; b.classList.remove("ui-btn--cargando"); actividad.version++; return; }
+        if (d) {
+            d.urgentes = (d.urgentes || []).filter(function (u) { return u.aviso_id !== id; });
+            d.franja = (d.franja || []).filter(function (u) { return u.aviso_id !== id; });
+            d.rojo = Math.max(0, (d.rojo || 0) - 1);
+        }
+        pintarContadorActividad();
+        if (actividad.abierta) pintarActividad();
+        aviso((respuesta && respuesta.mensaje) || "Listo: ya no sale en «Requiere atención».");
+        avisarOtrasPestanas(LLAVE_ACT_CAMBIO);
+        actividad.version++;
+        sondearActividad();
+    }
     function limpiarActividad() {
         cambiarActividad("/api/actividad/limpiar", {}, function (d) {
             d.leidas = 0;
@@ -2290,15 +2353,16 @@
                 if ((a.ids || [a.id]).every(function (i) { return ids.indexOf(i) >= 0; })) a.leida = 1;
             });
             if (det && det.rondas) det.rondas.forEach(function (x) { if (x.ids.some(function (i) { return ids.indexOf(i) >= 0; })) x.leida = true; });
-            if (d.urgentes) d.urgentes = d.urgentes.filter(function (x) { return !(x.aviso_id && ids.indexOf(x.aviso_id) >= 0); });
-            if (d.franja) d.franja = d.franja.filter(function (x) { return !(x.aviso_id && ids.indexOf(x.aviso_id) >= 0); });
-            d.rojo = (d.urgentes || []).length;
+            // 25-nov-2026 (el dueño, avi-2): abrirlo no es atenderlo; lo urgente que es un hecho se queda en «Requiere atención»
+            // (se quita al resolverse o con «Ya lo atendí»)
         }, "No se pudo marcar como leído.");
     }
     // Abrir un aviso (o una empresa de una corrida, o una ronda) lo da por leído; abrir una corrida la despliega
     function clicActividad(e) {
         var accion = e.target.closest("[data-act-accion]");
         if (accion) { e.preventDefault(); e.stopPropagation(); if (!accion.disabled) accionAviso(accion); return; }
+        var atendi = e.target.closest("[data-av-atender]");
+        if (atendi) { e.preventDefault(); e.stopPropagation(); if (!atendi.disabled) atenderAviso(atendi); return; }
         var grupo = e.target.closest("[data-av-grupo]");
         if (grupo) { cargarGrupo(grupo.dataset.avGrupo); return; }
         if (e.target.closest("[data-av-volver]")) { volverAvisos(); return; }
@@ -2462,8 +2526,13 @@
 
     var ICONO_ESTADO = {
         listo: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',
-        alerta: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8v5m0 3.5v.01"/></svg>'
+        alerta: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8v5m0 3.5v.01"/></svg>',
+        fila: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 7v5l3 2"/><circle cx="12" cy="12" r="8"/></svg>'
     };
+    // 25-nov-2026 (el dueño): lo que espera su turno dice «En fila» (nunca «En cola», también lo guardado de antes) y lleva el
+    // color de «esperando» (ámbar), igual en Mis descargas, el panel de la barra, la campana y cada módulo
+    var EN_FILA = /^En (fila|cola)\b/;
+    function esEnFila(p) { return !!p && EN_FILA.test(String(p.progreso || "")); }
     function botonFila(accion, icono, etiqueta, datos, clase) {
         return '<button type="button" class="fc-fila__btn' + (clase ? " " + clase : "") + '" data-accion="' + accion + '" ' + datos +
             ' title="' + esc(etiqueta) + '" aria-label="' + esc(etiqueta) + '">' + ico(D[icono]) + "</button>";
@@ -2492,7 +2561,11 @@
         var nombre = enBloque ? etiquetaQue(p) : esc(empresaProceso(p)), detalle = [enBloque ? "" : etiquetaQue(p)], estado, acciones = "", abajo = "", clase = "";
         var enPc = p.en_pc && p.en_pc.rutas && p.en_pc.rutas.length;
 
-        if (p.estado === "procesando") {
+        if (p.estado === "procesando" && esEnFila(p)) {
+            estado = '<span class="fc-fila__estado fc-fila__estado--fila" title="En fila">' + ICONO_ESTADO.fila + "</span>";
+            detalle.push(esc(window.Fiscontable.enFila(p.progreso)));
+            acciones = botonFila("detener", "cerrar", "Detener", id);
+        } else if (p.estado === "procesando") {
             estado = '<span class="fc-fila__estado fc-fila__estado--corre" title="En preparación"></span>';
             if (p.clase === "lote" && p.total > 0) {
                 detalle.push(p.procesados + " de " + p.total + (p.rfc_actual ? " · " + esc(p.rfc_actual) : ""));
@@ -5636,6 +5709,7 @@
         elegirEmpresa: function (rfc) { return elegirEmpresa(rfc); },
         // 25-nov-2026 (paquete avi): abre la campana en una empresa (y en un círculo), p. ej. desde Inicio o la ficha
         abrirAvisos: function (o) { abrirActividad(o || {}); },
+        atenderAviso: atenderAvisoId,
         // Configuración en una ventana sobre el módulo: al dar «Listo» se cierra, se queda en el módulo y avisa con
         // window "fiscontable:config" ({seccion}) para que el módulo vuelva a leer lo que cambió.
         abrirConfiguracion: abrirConfiguracion,

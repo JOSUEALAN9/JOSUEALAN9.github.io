@@ -341,8 +341,12 @@
             window.dispatchEvent(new CustomEvent("fiscontable:favoritos"));
         } catch (e) { Fiscontable.toast(e.message); }
     }
-    // Los avisos de una empresa viven en un solo lugar: su ficha, pestaña «Avisos»
-    function verAvisos(rfc) { location.href = "/clientes/?editar=" + encodeURIComponent(rfc) + "&ficha=avisos"; }
+    // Los avisos de una empresa viven en un solo lugar: su ficha, pestaña «Avisos». 25-nov-2026 (el dueño, avi-2): sin el módulo
+    // Clientes no hay ficha: la campana los enseña ahí mismo, como respaldo (lo decide Fiscontable.abrirAvisos)
+    function verAvisos(rfc) {
+        if (Fiscontable.abrirAvisos) Fiscontable.abrirAvisos({ rfc: rfc });
+        else location.href = "/clientes/?editar=" + encodeURIComponent(rfc) + "&ficha=avisos";
+    }
     async function trabajarCon(rfc) {
         try { await Fiscontable.elegirEmpresa(rfc); } catch (e) { Fiscontable.toast(e.message); return; }
         verVista("empresa");
@@ -391,7 +395,7 @@
                 '</div><p class="xml-tenue" style="font-size:12px;margin:8px 0 0">Fechas generales; revisa las de tu régimen.</p></div>' +
                 // 25-nov-2026 (el dueño): aquí ya no se repite la lista de avisos de la empresa; viven en su ficha
                 '<div class="ui-tarjeta"><p class="tb-titulo">Avisos</p><div class="tb-lista">' +
-                    '<a href="/clientes/?editar=' + encodeURIComponent(empresa.rfc) + '&ficha=avisos"><span>' +
+                    '<a href="/clientes/?editar=' + encodeURIComponent(empresa.rfc) + '&ficha=avisos" data-avisos-emp="' + esc(empresa.rfc) + '"><span>' +
                     (d.avisos.length ? "Ver los avisos de esta empresa" : "Sin avisos de esta empresa") + "</span><small>En su ficha ›</small></a>" +
                 "</div></div>" +
             "</div>" +
@@ -421,6 +425,11 @@
             .then(function () { descubrir("vista"); });
     }
     $("tb-vista").addEventListener("click", function (e) { var b = e.target.closest("[data-vista]"); if (b) verVista(b.dataset.vista); });
+    // «Ver los avisos de esta empresa» (vista de una empresa): a su ficha o, sin el módulo Clientes, a la campana (avi-2)
+    document.addEventListener("click", function (e) {
+        var a = e.target.closest("[data-avisos-emp]");
+        if (a && Fiscontable.abrirAvisos) { e.preventDefault(); verAvisos(a.dataset.avisosEmp); }
+    });
     ["tb-resumen", "tb-cierre"].forEach(function (id) {
         if ($(id)) $(id).addEventListener("click", function (e) {
             var b = e.target.closest("[data-filtro]"); if (!b) return;

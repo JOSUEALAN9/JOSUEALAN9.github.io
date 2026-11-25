@@ -775,7 +775,7 @@
                 hcampo("domingo", '<label class="ui-check cf-check"><input type="checkbox" id="cf-h-domingo"' + (h.domingo ? " checked" : "") + "> También los domingos</label>") +
                 hcampo("urgentes", '<label class="ui-check cf-check"><input type="checkbox" id="cf-h-urgentes"' + (h.urgentes ? " checked" : "") +
                     "> Lo urgente que aparece de día me llega al momento, en un correo aparte (una notificación, carta invitación o " +
-                    "requerimiento del Buzón; una e.firma revocada). Lo de la madrugada va en el correo de la mañana.</label>") +
+                    "requerimiento del Buzón; una e.firma revocada o con la contraseña rechazada). Lo de la madrugada va en el correo de la mañana.</label>") +
                 (["inicio", "fin", "sabado", "domingo", "urgentes"].some(fijo) ? '<p class="cf-texto">Lo que está apagado lo define Fiscontable.</p>' : "") +
                 '<div class="cf-acciones"><button type="button" class="cf-btn cf-btn--principal" id="cf-h-guardar">Guardar el horario</button><span class="cf-msj"></span></div></div>';
             var secciones = mn.secciones || [];

@@ -35,7 +35,26 @@
         .pt-mia { grid-row: span 2; border: 1px solid transparent; background: none; border-radius: 999px; padding: 2px 8px; font: inherit; font-size: 11.5px; font-weight: 600; color: rgb(var(--g-500)); cursor: pointer; white-space: nowrap; }
         .pt-mia:hover { border-color: rgb(var(--g-300)); color: rgb(var(--g-800)); }
         .pt-mia[aria-pressed="true"] { border-color: rgb(var(--ac-600) / .4); background: rgb(var(--ac-600) / .08); color: rgb(var(--ac-700)); }
-        .pt-pruebas { display: grid; gap: 8px 12px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        /* 25-nov-2026 (lim-2): por tema, en bloques plegables */
+        .pt-pruebas { display: grid; gap: 6px; }
+        .pt-tema { border: 1px solid var(--linea); border-radius: 10px; min-width: 0; }
+        .pt-tema > summary { list-style: none; display: flex; align-items: baseline; gap: 8px; padding: 8px 12px; cursor: pointer; font-size: var(--t-13); }
+        .pt-tema > summary::-webkit-details-marker { display: none; }
+        .pt-tema > summary b { color: rgb(var(--g-900)); font-weight: 700; }
+        .pt-tema > summary small { margin-left: auto; font-size: var(--t-12); font-weight: 400; color: rgb(var(--g-500)); white-space: nowrap; }
+        .pt-tema > summary::after { content: "▾"; color: rgb(var(--g-500)); }
+        .pt-tema[open] > summary::after { content: "▴"; }
+        .pt-pruebas__lista { display: grid; gap: 8px 12px; grid-template-columns: repeat(2, minmax(0, 1fr)); padding: 2px 12px 10px; }
+        .pt-ay-tema { margin-top: 8px; font-size: var(--t-12) !important; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: rgb(var(--g-600)) !important; }
+        .pt-ay-tema:first-child { margin-top: 0; }
+        /* el resultado de cada empresa, por tema (se abre solo lo que tiene algo que ver) */
+        .pt-subtema { border-top: 1px solid rgb(var(--g-100)); min-width: 0; }
+        .pt-subtema > summary { list-style: none; display: flex; align-items: center; gap: 8px; padding: 7px 14px; cursor: pointer; font-size: var(--t-12); font-weight: 700; color: rgb(var(--g-600)); }
+        .pt-subtema > summary::-webkit-details-marker { display: none; }
+        .pt-subtema > summary > span:first-child { margin-right: auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .pt-subtema > summary::after { content: "▾"; color: rgb(var(--g-500)); }
+        .pt-subtema[open] > summary::after { content: "▴"; }
+        @media (max-width: 640px) { .pt-subtema > summary { padding: 7px 10px; } }
         .pt-prueba { display: flex; gap: 8px; align-items: flex-start; font-size: var(--t-13); font-weight: 400; color: rgb(var(--g-800)); cursor: pointer; }
         .pt-prueba input { margin-top: 2px; width: 16px; height: 16px; accent-color: rgb(var(--ac-600)); flex: none; }
         .pt-prueba span { min-width: 0; line-height: 1.35; }

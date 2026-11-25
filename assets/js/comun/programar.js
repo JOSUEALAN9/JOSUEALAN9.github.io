@@ -18,7 +18,8 @@
 
     var NOMBRES = { csf: "constancias", opinion: "opiniones", declaraciones: "declaraciones", xml: "XML" };
     var ESTADOS = {
-        pendiente: ["En espera", "fp-gris"], reintentar: ["Se reintentará", "fp-ambar"], en_curso: ["Trabajando", "fp-azul"],
+        pendiente: ["En fila", "fp-ambar"],   // 25-nov-2026 (el dueño): «En fila» y el color de «esperando» en todos lados
+        reintentar: ["Se reintentará", "fp-ambar"], en_curso: ["Trabajando", "fp-azul"],
         lista: ["Listo", "fp-verde"], revisar: ["Revisar", "fp-rojo"], fallida: ["Falló", "fp-rojo"],
         no_alcanzo: ["No alcanzó", "fp-ambar"], cancelada: ["Cancelada", "fp-gris"], reprogramada: ["Se volvió a programar", "fp-gris"]
     };

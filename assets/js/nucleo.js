@@ -5,6 +5,7 @@
  *   Fiscontable.API        dirección del backend (el único lugar donde vive)
  *   Fiscontable.VERSION    versión de la interfaz (la cambia publicar.sh)
  *   Fiscontable.escapar(t) texto seguro para meter en HTML
+ *   Fiscontable.enFila(t)  «En cola…» (lo guardado de antes) → «En fila…» (25-nov-2026, el dueño: un solo término)
  *   Fiscontable.leerError(resp) -> Promise<mensaje>  errores del servidor
  *                                   en lenguaje de contador
  *
@@ -284,6 +285,10 @@
             .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
     }
 
+    // 25-nov-2026 (el dueño): lo que espera su turno se llama «En fila» en todos lados (nunca «En cola»); los trámites guardados
+    // de antes todavía pueden decir «En cola…»: se enseñan igual
+    function enFila(texto) { return typeof texto === "string" ? texto.replace(/\bEn cola\b/g, "En fila") : texto; }
+
     async function leerError(resp) {
         if (!resp) return navigator.onLine === false ? "Sin conexión a internet. Revisa tu red e intenta de nuevo."
             : "Fiscontable no responde en este momento. Intenta de nuevo en unos minutos.";
@@ -469,6 +474,7 @@
         PRUEBAS: PRUEBAS,
         VERSION: VERSION,
         escapar: escapar,
+        enFila: enFila,
         leerError: leerError,
         MENSAJE_RESPALDO: MENSAJE_RESPALDO,
         enRespaldo: function () { return enRespaldo; },

@@ -1032,7 +1032,12 @@ function pintarAvisosFicha(d) {
         : `<div${clase ? ` class="${clase}"` : ""}>${dentro}</div>`;
     caja.innerHTML =
         (d.urgentes.length ? `<section class="cli-av-urgente" aria-label="Requiere atención"><p class="cli-av-urgente__titulo">Requiere atención · ${d.urgentes.length}</p>` +
-            d.urgentes.map(x => enlace(x, `<b>${esc(String(x.titulo).replace(" · " + (x.alias || d.alias), ""))}</b>${x.detalle ? `<span>${esc(x.detalle)}</span>` : ""}`)).join("") + "</section>"
+            d.urgentes.map(x => {
+                const renglon = enlace(x, `<b>${esc(String(x.titulo).replace(" · " + (x.alias || d.alias), ""))}</b>${x.detalle ? `<span>${esc(x.detalle)}</span>` : ""}`);
+                // 25-nov-2026 (el dueño, avi-2): lo urgente que es un hecho se queda hasta que se resuelve o alguien pica «Ya lo atendí»
+                return x.aviso_id && x.atender && Fiscontable.atenderAviso ? `<div class="cli-av-urg-caja">${renglon}<button type="button" class="ui-btn ui-btn--secundario ui-btn--28" ` +
+                    `data-av-atender="${esc(x.aviso_id)}"${x.atender.pin ? ' data-pin="1"' : ""}>Ya lo atendí</button></div>` : renglon;
+            }).join("") + "</section>"
             : `<p class="cli-av-tranquilo">Nada requiere atención en esta empresa.</p>`) +
         `<div class="cli-av-cabeza"><div class="cli-av-grupos" role="group" aria-label="Grupo de avisos">` +
             `<button type="button" data-av-grupo="" aria-pressed="${!avisosFicha.grupo}">Todos · ${d.avisos.length}</button>` +
@@ -1040,10 +1045,11 @@ function pintarAvisosFicha(d) {
                 `${esc(g.nombre)}${cuenta[g.clave] ? " · " + cuenta[g.clave] : ""}</button>`).join("") +
         `</div></div>` +
         (lista.length ? `<div class="cli-av-lista">` + lista.slice(0, avisosFicha.mas).map(a => enlace(a,
-            (a.urgente && !a.leida ? "<em>Requiere atención</em>" : "") + `<b>${esc(a.titulo)}</b>` +
+            ((a.urgente && !a.leida) || a.por_atender ? "<em>Requiere atención</em>" : "") + `<b>${esc(a.titulo)}</b>` +
             (a.detalle ? `<span>${esc(a.detalle).replace(/\n/g, "<br>")}</span>` : "") +
             (a.motivo && !a.urgente ? `<span>${esc(a.motivo)}</span>` : "") +
-            `<small>${esc(nombres[a.grupo] || "")} · ${esc(haceFicha(a.creada))}</small>`, a.urgente && !a.leida ? "cli-av--urgente" : "")).join("") + "</div>" +
+            (a.atendido ? `<span class="cli-av-atendido">Lo atendió ${esc(a.atendido.por)} · ${esc(haceFicha(a.atendido.en))}</span>` : "") +
+            `<small>${esc(nombres[a.grupo] || "")} · ${esc(haceFicha(a.creada))}</small>`, (a.urgente && !a.leida) || a.por_atender ? "cli-av--urgente" : "")).join("") + "</div>" +
             (lista.length > avisosFicha.mas ? `<button type="button" class="ui-btn ui-btn--secundario ui-btn--32 cli-av-mas" data-av-mas>Ver ${Math.min(20, lista.length - avisosFicha.mas)} más</button>` : "")
             : `<p class="cli-av-tranquilo">Sin avisos${avisosFicha.grupo ? " de " + esc(nombres[avisosFicha.grupo]) : ""} de esta empresa.</p>`);
 }
@@ -1053,7 +1059,20 @@ document.addEventListener("click", (e) => {
     const g = e.target.closest("[data-av-grupo]");
     if (g) { avisosFicha.grupo = g.dataset.avGrupo; avisosFicha.mas = 20; pintarAvisosFicha(avisosFicha.datos); return; }
     if (e.target.closest("[data-av-mas]")) { avisosFicha.mas += 20; pintarAvisosFicha(avisosFicha.datos); }
+    const atendi = e.target.closest("[data-av-atender]");
+    if (atendi && !atendi.disabled) { e.preventDefault(); atenderDesdeFicha(atendi); }
 });
+// «Ya lo atendí» desde la ficha: el mismo de la campana (Fiscontable.atenderAviso: PIN solo si es de un mes cerrado o declarado)
+async function atenderDesdeFicha(b) {
+    const id = Number(b.dataset.avAtender), x = (avisosFicha.datos.urgentes || []).find(u => u.aviso_id === id);
+    b.disabled = true;
+    try {
+        const r = await Fiscontable.atenderAviso(id, { pin: b.dataset.pin === "1", titulo: x && x.titulo });
+        if (!r) { b.disabled = false; return; }
+        Fiscontable.toast(r.mensaje || "Listo.");
+        cargarAvisosFicha(avisosFicha.rfc);
+    } catch (err) { Fiscontable.toast(err.message); b.disabled = false; }
+}
 
 function pintarEfirmaFicha(cliente, conservarMensaje) {
     const badge = document.getElementById("editar-estado-efirma");

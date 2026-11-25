@@ -9,7 +9,8 @@
     var $ = function (id) { return document.getElementById(id); };
     var S = { empresa: null, lecturas: [], abierta: null, pantalla: 0, reloj: null, tope: 4 };
     var VIVA = { en_cola: 1, en_curso: 1 };
-    var ESTADO = { en_cola: ["En espera", ""], en_curso: ["Leyendo…", "ui-estado--info"], completado: ["Guardada", "ui-estado--ok"],
+    // 25-nov-2026 (el dueño): lo que espera su turno se llama «En fila», con el color de «esperando» (ámbar)
+    var ESTADO = { en_cola: ["En fila", "ui-estado--aviso"], en_curso: ["Leyendo…", "ui-estado--info"], completado: ["Guardada", "ui-estado--ok"],
                    detenido: ["Detenida", ""], error: ["No se pudo", "ui-estado--error"] };
 
     async function api(ruta, opciones) {

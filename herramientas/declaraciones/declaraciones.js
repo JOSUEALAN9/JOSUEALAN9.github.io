@@ -290,7 +290,7 @@
         var f = { titulo: nombreDe(b), b: b, clase: "", texto: "" };
         if (b.estado === "corriendo") { f.clase = "va"; f.texto = b.progreso || "Buscando…"; }
         else if (b.estado === "deteniendo") { f.clase = "va"; f.texto = "Deteniendo: termina el paso en que va con el SAT; después sigue la fila."; }
-        else if (b.estado === "en_fila") { f.texto = b.progreso || "En fila."; }
+        else if (b.estado === "en_fila") { f.clase = "fila"; f.texto = Fiscontable.enFila(b.progreso) || "En fila."; }   // 25-nov-2026: ámbar, como «esperando»
         else if (b.estado === "completado") { f.clase = /fallaron/i.test(b.progreso || "") ? "mal" : "ok"; f.texto = b.progreso || "Terminó."; }
         else if (b.estado === "cancelado") { f.clase = "mal"; f.texto = "Detenida."; }
         else { f.clase = "mal"; f.texto = b.mensaje_error || "No se pudo completar."; }

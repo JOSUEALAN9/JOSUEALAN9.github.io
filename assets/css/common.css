@@ -482,6 +482,8 @@ a.fc-miga:hover { color: rgb(var(--g-0)); }
 .fc-fila__estado--listo { background: rgb(var(--ok-50)); color: rgb(var(--ok-700)); }
 .fc-fila__estado--alerta { background: rgb(var(--av-50)); color: rgb(var(--av-700)); box-shadow: inset 0 0 0 1px rgb(var(--av-200)); }
 .fc-fila__estado--corre { background: rgb(var(--g-100)); position: relative; }
+/* 25-nov-2026 (el dueño): «En fila» con el color de «esperando» (ámbar), igual en todos lados */
+.fc-fila__estado--fila { background: rgb(var(--av-50)); color: rgb(var(--av-600)); box-shadow: inset 0 0 0 1px rgb(var(--av-200)); }
 .fc-fila__estado--corre::after { content: ""; width: 12px; height: 12px; border-radius: 50%; border: 2px solid rgb(var(--g-300)); border-top-color: rgb(var(--ac-600)); animation: fc-gira .8s linear infinite; }
 @keyframes fc-gira { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .fc-fila__estado--corre::after, .fc-fila__btn--ocupado svg { animation-duration: 2.4s; } }
@@ -1852,6 +1854,7 @@ main.fc-recien { animation: fc-recien .35s ease-out; }
 .fc-trabajo__filas li.ok { border-color: rgb(var(--ac-500)); }
 .fc-trabajo__filas li.mal { border-color: rgb(var(--er-600)); }
 .fc-trabajo__filas li.va { border-color: rgb(var(--in-600)); }
+.fc-trabajo__filas li.fila { border-color: rgb(var(--av-600)); }      /* 25-nov-2026: «En fila», el color de «esperando» */
 /* 24-nov-2026 (la fila de Declaraciones): subtítulos «En curso / En fila (N) / Terminadas» y un botón por renglón */
 .fc-trabajo__filas li.fc-trabajo__seccion { border: 0; padding: 6px 0 0; font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: rgb(var(--g-600)); }
 .fc-trabajo__filas li.fc-trabajo__seccion:first-child { padding-top: 0; }
@@ -2093,6 +2096,7 @@ a.fc-act-item:hover { background: rgb(var(--g-50)); }
 .fc-act-item small { font-size: var(--t-12); color: rgb(var(--g-500)); }
 .fc-act-item--nuevo b::before { content: ""; display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: rgb(var(--ac-600)); margin-right: 6px; vertical-align: middle; }
 .fc-act-item--curso svg { color: rgb(var(--in-600)); }
+.fc-act-item--fila svg { color: rgb(var(--av-600)); }      /* 25-nov-2026: lo que espera su turno, ámbar */
 /* 25-nov-2026 (paquete xml): botones de un aviso que pide respuesta («Aprobar», «Rechazar») */
 .fc-act-item .fc-act-acciones { display: flex; flex-wrap: wrap; gap: var(--e-2); margin: var(--e-2) 0 2px; }
 /* Corrida de un proceso automático (19-nov-2026): un renglón que se abre con cada empresa */
@@ -2137,6 +2141,10 @@ button.fc-act-item--grupo:hover { background: rgb(var(--g-50)); }
 .fc-av-urg span { grid-column: 1; font-size: var(--t-12); color: rgb(var(--g-600)); overflow-wrap: anywhere; }
 .fc-av-urg svg { grid-column: 2; grid-row: 1 / span 2; width: 14px; height: 14px; color: rgb(var(--er-600)); }
 a.fc-av-urg:hover { background: rgb(var(--g-0)); }
+/* 25-nov-2026 (avi-2): el renglón con «Ya lo atendí» (lo urgente que es un hecho no se quita al abrirlo) */
+.fc-av-urg-caja { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: var(--e-1); border-radius: var(--r-control); background: rgb(var(--g-0) / .65); }
+.fc-av-urg-caja .fc-av-urg { background: none; }
+.fc-av-urg-caja .fc-av-atendi { margin-right: var(--e-2); white-space: nowrap; }
 .fc-av-urgente__mas { justify-self: start; padding: var(--e-1) var(--e-2); border: 0; background: none; font: inherit; font-size: var(--t-12); font-weight: 600;
                       color: rgb(var(--er-600)); cursor: pointer; }
 .fc-av-tranquilo { display: flex; align-items: center; gap: 6px; margin: 0 0 var(--e-3); font-size: var(--t-13); color: rgb(var(--g-600)); }
@@ -2193,6 +2201,8 @@ a.fc-av-urg:hover { background: rgb(var(--g-0)); }
 
 .dsc-filtros { display: flex; flex-wrap: wrap; gap: var(--e-2); align-items: center; margin-bottom: var(--e-4); }
 .dsc-filtros .ui-select { width: auto; }
+.dsc-cuando { align-items: center; }
+.dsc-filtros__etq { font-size: var(--t-12); font-weight: 700; color: rgb(var(--g-500)); margin-right: 2px; }
 .dsc-paquete { margin: 0 0 var(--e-3); padding: 8px 12px; border-radius: 10px; background: rgb(var(--ac-600) / .07); font-size: var(--t-13); color: rgb(var(--g-800)); }
 .dsc-paquete[hidden] { display: none; }
 /* 25-nov-2026: las pestañas y el alcance arriba de la página (sin la raya del cajón) y lo automático en una columna */

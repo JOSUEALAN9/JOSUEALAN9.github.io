@@ -676,6 +676,11 @@
     .cli-av-urgente__titulo { margin: 2px 8px 4px; font-size: 12px; font-weight: 700; color: rgb(var(--er-600)); text-transform: uppercase; letter-spacing: .04em; }
     .cli-av-urgente a, .cli-av-urgente div { display: grid; gap: 1px; padding: 8px; border-radius: 8px; background: rgb(var(--g-0) / .65); color: rgb(var(--g-900)); text-decoration: none; min-width: 0; }
     .cli-av-urgente a:hover { background: rgb(var(--g-0)); }
+    /* 25-nov-2026 (avi-2): el renglón con «Ya lo atendí» */
+    .cli-av-urgente .cli-av-urg-caja { grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 4px; padding: 0 8px 0 0; }
+    .cli-av-urgente .cli-av-urg-caja > a, .cli-av-urgente .cli-av-urg-caja > div { background: none; }
+    .cli-av-urgente .cli-av-urg-caja .ui-btn { white-space: nowrap; }
+    .cli-av-atendido { color: rgb(var(--ok-700)) !important; }
     .cli-av-urgente b, .cli-av-lista b { font-size: 13.5px; font-weight: 600; overflow-wrap: anywhere; }
     .cli-av-urgente span, .cli-av-lista span { font-size: 12.5px; color: rgb(var(--g-600)); overflow-wrap: anywhere; }
     .cli-av-tranquilo { margin: 0; font-size: 13.5px; color: rgb(var(--g-600)); }

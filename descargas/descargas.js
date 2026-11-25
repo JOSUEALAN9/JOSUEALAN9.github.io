@@ -47,10 +47,12 @@ const GRUPOS_TIPO = { "": "Todos los tipos", constancias: "Constancias y opinion
 function prepararFiltros() {
     const caja = document.getElementById("dsc-filtros");
     if (!caja) return;
+    // 25-nov-2026 (revisión de Fable a mdes): el filtro de fechas va en pastillas (fc-chip), no en otra barra segmentada igual a la
+    // de «Mis pedidos · Automáticas» de arriba: así se ve que es un filtro y no otra pestaña
     caja.innerHTML =
-        '<div class="ctx-segmento" role="group" aria-label="Cuándo">' +
+        '<div class="fc-chips dsc-cuando" role="group" aria-label="Cuándo"><span class="dsc-filtros__etq">Cuándo</span>' +
         [["hoy", "Hoy"], ["7", "7 días"], ["30", "30 días"], ["todo", "Todo"]].map(([v, t]) =>
-            `<button type="button" data-cuando="${v}" aria-pressed="${FILTRO.cuando === v}">${t}</button>`).join("") + "</div>" +
+            `<button type="button" class="fc-chip" data-cuando="${v}" aria-pressed="${FILTRO.cuando === v}">${t}</button>`).join("") + "</div>" +
         '<select class="ui-select" id="dsc-tipo" aria-label="Tipo">' + Object.entries(GRUPOS_TIPO).map(([v, t]) =>
             `<option value="${v}"${FILTRO.tipo === v ? " selected" : ""}>${esc(t)}</option>`).join("") + "</select>";
     caja.onclick = (e) => {
@@ -296,17 +298,19 @@ function pintarProcesos(todos) {
         const listos = procesos.filter(p => p.estado === "completado");
         const atencion = procesos.filter(p => p.estado !== "procesando" && p.estado !== "completado");
 
+        // 25-nov-2026 (revisión de Fable a mdes): la nota vivía dentro de «Listos para descargar», que se esconde cuando el paquete
+        // ya no está: «Ese paquete ya no está» nunca se veía. Ahora va arriba de las secciones y cuenta todo lo del paquete.
         const nota = document.getElementById("dsc-paquete");
         if (nota) {
             nota.hidden = !PAQUETE;
-            if (PAQUETE) nota.innerHTML = (listos.length ? "Estás viendo solo el paquete de ese envío. " : "Ese paquete ya no está: se borró o pasaron sus días. ") +
+            if (PAQUETE) nota.innerHTML = (procesos.length ? "Estás viendo solo el paquete de ese envío. " : "Ese paquete ya no está: se borró o pasaron sus días. ") +
                 '<button type="button" class="xml-enlace" data-fc-clic="verTodas">Ver todas las descargas</button>';
         }
         const limpiar = document.getElementById("dsc-limpiar"); if (limpiar) limpiar.hidden = !!PAQUETE || !listos.length;
         document.getElementById("seccion-preparando").classList.toggle("hidden", preparando.length === 0);
         document.getElementById("seccion-listos").classList.toggle("hidden", listos.length === 0);
         document.getElementById("seccion-atencion").classList.toggle("hidden", atencion.length === 0);
-        document.getElementById("estado-vacio").classList.toggle("hidden", procesos.length > 0);
+        document.getElementById("estado-vacio").classList.toggle("hidden", procesos.length > 0 || !!PAQUETE);   // con ?paquete= lo dice la nota
         document.getElementById("vacio-titulo").textContent = todos.length ? "Nada con estos filtros" : "Todavía no has descargado nada";
         document.getElementById("vacio-texto").textContent = todos.length ? "Prueba con «7 días», «Todo» o «Todas» arriba." : "Aquí aparece lo que pides: constancias, opiniones, declaraciones, XML y reportes. Lo que Fiscontable hace solo está en «Automáticas».";
 
@@ -325,6 +329,7 @@ function pintarProcesos(todos) {
 function pintarAutomaticas(todos) {
     const D = Fiscontable.descargas;
     ["seccion-preparando", "seccion-listos", "seccion-atencion", "estado-vacio"].forEach(id => document.getElementById(id).classList.add("hidden"));
+    const notaPedidos = document.getElementById("dsc-paquete"); if (notaPedidos) notaPedidos.hidden = true;     // la de «Mis pedidos»
     document.getElementById("nota-programadas").innerHTML = "";
     const caja = document.getElementById("dsc-auto"), nota = document.getElementById("dsc-paquete-auto");
     const solo = PAQUETE ? todos.filter(pasaFiltro) : null;

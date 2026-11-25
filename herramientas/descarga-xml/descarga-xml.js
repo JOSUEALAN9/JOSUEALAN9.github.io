@@ -786,14 +786,17 @@
         E.sondeo = null;
     }
 
+    var EN_FILA = /^En (fila|cola)\b/;
+    function enFila(t) { return String(t || "").replace(/\bEn cola\b/g, "En fila"); }
     function sello(s) {
         var m = {
             enviando: ["activo", "Enviando al SAT"], en_sat: ["activo", "El SAT la prepara"], descargando: ["activo", "Descargando"],
             conectando: ["activo", "Entrando al portal"], captcha: ["aviso", "Falta el captcha"], buscando: ["activo", "Buscando"],
             completado: ["bien", "Lista"], sin_datos: ["gris", "Sin comprobantes"], error: ["mal", "Error"], cancelado: ["gris", "Detenida"]
         }[s.estado] || ["gris", s.estado];
-        // Formada detrás de otra búsqueda (17-nov): dice «En cola», no «Entrando al portal»
-        if (s.estado === "conectando" && /^En cola/.test(s.progreso || s.mensaje || "")) m = ["aviso", "En cola"];
+        // Formada detrás de otra búsqueda (17-nov): dice «En fila», no «Entrando al portal». 25-nov-2026 (el dueño): un solo
+        // término, «En fila», con el color de «esperando»; las búsquedas guardadas de antes dicen «En cola»: también cuentan
+        if (s.estado === "conectando" && EN_FILA.test(s.progreso || s.mensaje || "")) m = ["aviso", "En fila"];
         var giro = m[0] === "activo" ? '<span class="dm-giro"></span>' : "";
         return '<span class="dm-estado dm-estado--' + m[0] + '">' + giro + esc(m[1]) + "</span>";
     }
@@ -861,11 +864,11 @@
         $("seccion-solicitudes").hidden = !E.elegido;
         tablaSolicitudes().ponerDatos(E.solicitudes.map(function (s) {
             var activa = ACTIVOS.indexOf(s.estado) >= 0;
-            var detalle = activa ? (s.progreso || s.mensaje || "") : (s.mensaje || "");
+            var detalle = enFila(activa ? (s.progreso || s.mensaje || "") : (s.mensaje || ""));
             if (s.estado === "descargando" && s.origen !== "portal" && s.paquetes) {
                 detalle = "Paquete " + Math.min(s.paquetes_bajados + 1, s.paquetes) + " de " + s.paquetes + ". " + detalle;
             }
-            return Object.assign({}, s, { que: descripcion(s), origen_txt: origenTexto(s), estado_txt: (s.estado === "conectando" && /^En cola/.test(detalle)) ? "En cola" : (ESTADO_TXT[s.estado] || s.estado), avance: detalle,
+            return Object.assign({}, s, { que: descripcion(s), origen_txt: origenTexto(s), estado_txt: (s.estado === "conectando" && EN_FILA.test(detalle)) ? "En fila" : (ESTADO_TXT[s.estado] || s.estado), avance: detalle,
                                           grupo: activa ? "curso" : s.estado === "completado" ? "listas" : "otras" });
         }));
     }
