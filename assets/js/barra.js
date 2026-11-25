@@ -167,7 +167,7 @@
         marcas: ["Elige empresa, mes y Emitidas o Recibidas.",
                  "Casi todo se marca automáticamente y dice por qué; revisa «Por revisar».",
                  "Toca la casilla de un impuesto para decir si cuenta o no; el folio abre la factura.",
-                 "⚙ Reglas: momento de cada impuesto, alcohol y lo aprendido. «Cerrar mes» cuando ya presentaste."],
+                 "⚙ Reglas: momento de cada impuesto, alcohol y lo aprendido. Cuando ya presentaste, cierra el mes en Configuración › Cierre de meses (con tu PIN)."],
         cancelaciones: ["«Por responder»: Buscar en el SAT y aceptar o rechazar una por una (72 horas).",
                         "«Cancelar emitidas»: elige el mes y Cancelar… en la factura (necesita el CSD en Facturar).",
                         "«Historial»: lo enviado, su resultado, Revisar en el SAT y el acuse."],

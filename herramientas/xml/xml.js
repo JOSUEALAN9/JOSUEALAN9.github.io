@@ -1578,14 +1578,19 @@
         window.open("/herramientas/listas-sat/?" + q.toString(), "_blank", "noopener");
     }
 
+    /* 25-nov-2026, el dueño: «quitar de la biblioteca debe pedir PIN». Una sola ventana con lo que se quita y el PIN
+       (Fiscontable.confirmarIdentidad, acción «quitar_xml»); el servidor también lo exige. */
     async function quitarSeleccion() {
-        var n = E.seleccion.size;
-        if (!(await Fiscontable.confirmar({ titulo: "¿Quitar " + n + " XML de la biblioteca de " + E.rfc + "?", texto: "Se borran el archivo y su registro. Puedes volver a cargarlos después.", si: "Quitar " + n + " XML", peligro: true }))) return;
-        try {
-            await postJSON("/api/xml/quitar", { rfc: E.rfc, uuids: Array.from(E.seleccion) });
-            E.seleccion.clear();
-            await refrescarBibliotecas(E.rfc);
-        } catch (e) { avisar(e.message); }
+        var n = E.seleccion.size, rfc = E.rfc, uuids = Array.from(E.seleccion);
+        if (!n) return;
+        var hecho = await Fiscontable.confirmarIdentidad("quitar_xml", function (conf) {
+            return postJSON("/api/xml/quitar", { rfc: rfc, uuids: uuids, confirmacion: conf });
+        }, { titulo: "Quitar " + n + " XML de la biblioteca", peligro: true, boton: "Quitar " + n + " XML",
+             resumen: "<p class=\"fc-identidad__aviso\">Vas a quitar <b>" + n + " XML</b> de la biblioteca de <b>" + esc(nombreDe(rfc)) +
+                      "</b> (" + esc(rfc) + ").</p><p class=\"fc-identidad__pie\">Se borran el archivo y su registro. Puedes volver a cargarlos después.</p>" });
+        if (!hecho) return;
+        E.seleccion.clear();
+        try { await refrescarBibliotecas(rfc); } catch (e) { avisar(e.message); }
     }
 
     /* ============================================================ validar ante el SAT */

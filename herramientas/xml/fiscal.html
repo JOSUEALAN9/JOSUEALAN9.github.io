@@ -34,7 +34,9 @@
             </div>
             <select id="sel-mes" class="isn-anio" aria-label="Mes"></select>
             <select id="sel-anio" class="isn-anio" aria-label="Año"></select>
-            <button type="button" id="btn-candado" class="fi-config" hidden></button>
+            <!-- 25-nov-2026, el dueño: aquí ya no se cierra; se enseña el candado y, a quien puede, el enlace a Configuración -->
+            <span id="btn-candado" class="fi-mes-estado" role="status" hidden></span>
+            <button type="button" id="btn-cierres" class="fi-enlace fi-cierres" hidden>Cerrar o abrir en Configuración</button>
             <button type="button" id="btn-config" class="fi-config" title="Reglas de esta empresa: momento de cada impuesto, alcohol, reglas generales y aprendidas">⚙ Reglas</button>
         </div>
     </div>

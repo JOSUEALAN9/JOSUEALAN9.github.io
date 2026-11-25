@@ -135,3 +135,9 @@ a.ca-uuid { font-weight: 500; }
 
 /* 24-nov-2026 (a2dec, D): «Ver todos los meses cerrados» (Configuración › Cierre de meses) */
 .fi-enlace { border: 0; background: none; padding: 0; font: inherit; font-weight: 700; color: var(--acento); cursor: pointer; text-decoration: underline; }
+/* 25-nov-2026, el dueño: el candado del mes ya no es un botón (se cierra en Configuración); el enlace solo a quien puede */
+.fi-mes-estado { display: inline-flex; align-items: center; border: 1px solid rgb(var(--g-200)); background: rgb(var(--g-0)); border-radius: 10px; padding: 9px 12px;
+                 font-size: 13px; font-weight: 700; color: rgb(var(--g-600)); white-space: nowrap; }
+.fi-mes-estado--cerrado { background: rgb(var(--g-100)); border-color: rgb(var(--g-300)); color: rgb(var(--g-800)); }
+.fi-mes-estado[hidden], .fi-cierres[hidden] { display: none; }
+.fi-cierres { font-size: 13px; white-space: nowrap; }

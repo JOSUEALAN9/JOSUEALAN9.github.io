@@ -1,31 +1,150 @@
-/* Configuración › Cierre de meses (24-nov-2026, decisión D del dueño). Prefijo cm-. */
-.cm-barra { display: flex; flex-wrap: wrap; gap: 12px 18px; align-items: flex-end; margin-top: 6px; }
-.cm-anio { width: 120px; flex: none; }
-.cm-buscar { flex: 1 1 220px; min-width: 0; }
-.cm-leyenda { font-size: 12.5px; color: rgb(var(--g-600)); display: flex; flex-wrap: wrap; gap: 4px 6px; align-items: center; padding-bottom: 8px; }
-.cm-aviso { background: rgb(var(--av-50)); border-color: rgb(var(--av-200)); font-size: 13.5px; color: rgb(var(--g-700)); line-height: 1.5; }
-.cm-aviso ul { margin: 8px 0 0; padding-left: 18px; }
-.cm-tabla { display: flex; flex-direction: column; gap: 0; padding: 6px 18px; }
-.cm-fila { display: grid; grid-template-columns: minmax(0, 220px) minmax(0, 1fr); gap: 14px; align-items: center; padding: 12px 0; border-top: 1px solid var(--linea); }
-.cm-fila:first-child { border-top: 0; }
+/* Configuración › Cierre de meses. Prefijo cm-.
+   24-nov-2026 (decisión D del dueño): la primera versión.
+   25-nov-2026, el dueño («esa vista está fea, me muestra todas las empresas muy feo»): rediseño. Una barra con año, buscador y
+   filtro; una fila por empresa con sus 12 meses en casillas chicas (los nombres de los meses una sola vez, arriba); acciones
+   por fila y por empresas marcadas; en el celular, una tarjeta por empresa con los meses en rejilla de 4 × 3.
+   Solo tokens de common.css y piezas que ya existen (cf-tarjeta, ui-campo, ui-input, ui-select, ctx-segmento, ui-btn,
+   ui-check, ui-aviso, cf-solo-titular; la barra de marcadas es la de Administración de XML, xml-seleccion). */
+.cm { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.cm [hidden] { display: none !important; }
+.cm .cf-solo-titular { margin: 0; }
+
+/* --- Barra: año, buscador, filtro y resumen --- */
+.cm-barra { display: flex; flex-direction: column; gap: 14px; padding: 16px 18px; }
+.cm-filtros { display: flex; flex-wrap: wrap; gap: 12px 16px; align-items: flex-end; min-width: 0; }
+.cm-anio { width: 112px; flex: none; }
+.cm-buscar { flex: 1 1 240px; min-width: 0; }
+.cm-buscar__caja { position: relative; display: block; }
+.cm-buscar__caja svg { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; color: rgb(var(--g-500)); pointer-events: none; }
+.cm-buscar__caja .ui-input { width: 100%; padding-left: 34px; }
+.cm-mostrar { flex: none; max-width: 100%; }
+.cm-segmento button b { font-weight: 700; color: rgb(var(--g-500)); margin-left: 4px; font-variant-numeric: tabular-nums; }
+.cm-segmento button[aria-pressed="true"] b { color: rgb(var(--ac-700)); }
+.cm-resumen { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 18px; padding-top: 12px; border-top: 1px solid var(--linea);
+              font-size: var(--t-13); color: rgb(var(--g-600)); }
+.cm-resumen b { color: rgb(var(--g-900)); font-weight: 700; font-variant-numeric: tabular-nums; }
+.cm-resumen__datos { display: contents; }
+.cm-resumen .fc-globo-caja { margin-left: auto; }
+.cm-dato { display: inline-flex; align-items: center; gap: 6px; }
+.cm-dato::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: rgb(var(--g-300)); flex: none; }
+.cm-dato--ok::before { background: rgb(var(--ac-600)); }
+.cm-dato--abierto::before { background: rgb(var(--g-0)); box-shadow: inset 0 0 0 1.5px rgb(var(--g-400)); }
+.cm-dato--decl::before { background: rgb(var(--av-600)); }
+.cm-dato button { border: 0; background: none; padding: 0; font: inherit; font-weight: 600; color: rgb(var(--ac-700)); cursor: pointer; text-decoration: underline; }
+.cm-decl { margin: 0; padding: 10px 14px; border-radius: 10px; background: rgb(var(--av-50)); border: 1px solid rgb(var(--av-200)); font-size: var(--t-13);
+           color: rgb(var(--g-800)); line-height: 1.5; }
+.cm-decl ul { margin: 6px 0 0; padding-left: 18px; }
+
+/* --- La lista --- */
+.cm-lista { padding: 0; overflow: hidden; }
+.cm-msj { margin: 14px 18px 0; }
+.cm-cab, .cm-fila { display: grid; grid-template-columns: 22px minmax(150px, 1fr) auto 128px; gap: 14px; align-items: center; padding: 0 18px; }
+.cm-cab { height: 40px; background: rgb(var(--g-50)); border-bottom: 1px solid var(--linea); font-size: var(--t-12); font-weight: 600; color: rgb(var(--g-600)); }
+.cm-cab .cm-meses span { text-align: center; }
+.cm-cab .cm-hoy { color: rgb(var(--ac-700)); font-weight: 800; }
+.cm-fila { padding-top: 10px; padding-bottom: 10px; border-bottom: 1px solid rgb(var(--g-100)); }
+.cm-fila:last-of-type { border-bottom: 0; }
+.cm-fila--marcada { background: rgb(var(--in-50)); }
+.cm-check { display: grid; place-items: center; }
+.cm-check input { width: 16px; height: 16px; margin: 0; accent-color: rgb(var(--ac-600)); cursor: pointer; }
 .cm-empresa { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
-.cm-empresa b { font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.cm-empresa small { font-size: 12px; color: rgb(var(--g-500)); }
-.cm-meses { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 6px; }
-.cm-mes { display: inline-flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; min-width: 0; height: 42px;
-          border-radius: 10px; border: 1px solid var(--linea); background: rgb(var(--g-0)); font: inherit; font-size: 11.5px; font-weight: 700;
-          color: rgb(var(--g-600)); cursor: pointer; padding: 0; }
-.cm-mes:hover:not([disabled]) { border-color: rgb(var(--ac-300, 147 197 253)); background: rgb(var(--ac-50)); }
-.cm-mes[disabled] { cursor: default; }
-.cm-mes__ico { font-size: 12px; line-height: 1; min-height: 12px; }
-.cm-mes--cerrado { background: rgb(var(--g-100)); color: rgb(var(--g-800)); border-color: rgb(var(--g-300)); }
-.cm-mes--declaracion { background: rgb(var(--av-50)); color: rgb(var(--av-700, 147 55 13)); border-color: rgb(var(--av-200)); }
-.cm-mes--abierto_a_mano { border-style: dashed; }
-.cm-mes--futuro { opacity: .45; }
-.cm-mes--muestra { display: inline-flex; width: 22px; height: 18px; font-size: 10px; cursor: default; border-radius: 6px; }
-.cm-paginas { display: flex; gap: 12px; align-items: center; justify-content: flex-end; padding: 10px 0 6px; border-top: 1px solid var(--linea); font-size: 13px; }
-@media (max-width: 760px) {
-    .cm-fila { grid-template-columns: minmax(0, 1fr); gap: 8px; }
-    .cm-meses { grid-template-columns: repeat(6, minmax(0, 1fr)); }
-    .cm-tabla { padding: 4px 14px; }
+.cm-empresa b { font-size: var(--t-14); font-weight: 600; color: rgb(var(--g-900)); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cm-empresa small { font-size: var(--t-12); color: rgb(var(--g-500)); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cm-empresa small i { font-style: normal; color: rgb(var(--g-700)); }
+.cm-empresa small .cm-aldia { color: rgb(var(--ac-700)); font-weight: 600; }
+.cm-meses { display: grid; grid-template-columns: repeat(12, 34px); gap: 4px; }
+.cm-accion { display: flex; justify-content: flex-end; }
+.cm-accion .ui-btn { white-space: nowrap; }
+
+/* Una casilla de mes: cerrado (verde con candado), solo por una declaración (ámbar), abierto (blanca, candado abierto tenue),
+   abierto a propósito con una declaración (borde ámbar punteado), todavía no empieza (gris claro, sin candado) */
+.cm-mes { position: relative; display: grid; place-items: center; height: 30px; min-width: 0; padding: 0; border: 1px solid rgb(var(--g-300)); border-radius: 7px;
+          background: rgb(var(--g-0)); color: rgb(var(--g-300)); font: inherit; cursor: pointer; transition: box-shadow .12s, border-color .12s; }
+.cm-mes svg { width: 14px; height: 14px; }
+.cm-mes__nombre { display: none; }
+.cm-mes:hover, .cm-mes:focus-visible { border-color: rgb(var(--g-500)); box-shadow: 0 0 0 3px rgb(var(--ac-600) / .12); outline: none; }
+.cm-mes--cerrado { background: rgb(var(--ac-100)); border-color: rgb(var(--ac-200)); color: rgb(var(--ac-700)); }
+.cm-mes--cerrado:hover, .cm-mes--cerrado:focus-visible { border-color: rgb(var(--ac-600)); }
+.cm-mes--declaracion { background: rgb(var(--av-50)); border-color: rgb(var(--av-200)); color: rgb(var(--av-600)); }
+.cm-mes--abierto_a_mano { border: 1.5px dashed rgb(var(--av-600)); color: rgb(var(--av-600)); }
+.cm-mes--futuro { background: rgb(var(--g-100)); border-color: transparent; color: rgb(var(--g-400)); cursor: default; }
+.cm-mes--futuro:hover { box-shadow: none; border-color: transparent; }
+.cm-mes--hoy:not(.cm-mes--cerrado) { border-color: rgb(var(--ac-300)); }
+.cm-mes--previa { background: rgb(var(--ac-50)); border: 1.5px dashed rgb(var(--ac-600)); color: rgb(var(--ac-700)); }
+.cm-mes--previa-abrir { background: rgb(var(--g-0)); border: 1.5px dashed rgb(var(--er-600)); color: rgb(var(--er-600)); }
+
+/* Leyenda y páginas */
+.cm-pie { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 18px; padding: 12px 18px; border-top: 1px solid var(--linea);
+          background: rgb(var(--g-50)); font-size: var(--t-12); color: rgb(var(--g-600)); }
+.cm-leyenda { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; }
+.cm-leyenda span { display: inline-flex; align-items: center; gap: 6px; }
+.cm-leyenda .cm-mes { width: 22px; height: 18px; border-radius: 5px; cursor: default; box-shadow: none; }
+.cm-leyenda .cm-mes svg { width: 11px; height: 11px; }
+.cm-paginas { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+.cm-paginas span { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.cm-vacio { padding: 36px 18px; }
+
+/* --- Ventanitas: el detalle de un mes y elegir «hasta / desde qué mes» --- */
+.cm-pop { position: fixed; z-index: 60; width: 300px; max-width: calc(100vw - 32px); background: rgb(var(--g-0)); border: 1px solid rgb(var(--g-200));
+          border-radius: 12px; box-shadow: var(--sombra-2); padding: 14px; display: flex; flex-direction: column; gap: 10px; font-size: var(--t-13); color: rgb(var(--g-800)); }
+.cm-pop__titulo { font-size: var(--t-14); font-weight: 700; color: rgb(var(--g-900)); margin: 0; }
+.cm-pop__empresa { font-size: var(--t-12); color: rgb(var(--g-500)); margin: -6px 0 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cm-pop__estado { display: flex; gap: 8px; align-items: flex-start; margin: 0; line-height: 1.45; }
+.cm-pop__estado .cm-mes { flex: none; width: 26px; height: 22px; cursor: default; box-shadow: none; }
+.cm-pop__acciones { display: flex; flex-direction: column; gap: 6px; }
+.cm-pop__acciones .ui-btn { width: 100%; }
+.cm-pop__nota { margin: 0; font-size: var(--t-12); color: rgb(var(--g-500)); line-height: 1.45; }
+.cm-pop .ctx-segmento { width: 100%; }
+.cm-pop .ctx-segmento button { flex: 1; padding: 6px 8px; }
+.cm-rejilla { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.cm-rejilla button { height: 36px; border: 1px solid rgb(var(--g-300)); border-radius: 8px; background: rgb(var(--g-0)); font: inherit; font-size: var(--t-13);
+                     font-weight: 600; color: rgb(var(--g-800)); cursor: pointer; }
+.cm-rejilla button:hover:not(:disabled), .cm-rejilla button:focus-visible { border-color: rgb(var(--ac-600)); background: rgb(var(--ac-50)); color: rgb(var(--ac-800)); outline: none; }
+.cm-rejilla button:disabled { background: rgb(var(--g-100)); border-color: transparent; color: rgb(var(--g-400)); cursor: not-allowed; }
+
+/* --- Barra de empresas marcadas (la misma de Administración de XML: oscura, abajo y siempre a la mano) --- */
+.cm-seleccion { position: sticky; bottom: 12px; z-index: 20; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 10px 14px;
+                border-radius: 12px; background: rgb(var(--g-900)); color: rgb(var(--g-0)); font-size: var(--t-13); font-weight: 700; box-shadow: var(--sombra-2); }
+.cm-seleccion__acciones { display: flex; flex-wrap: wrap; gap: 8px; margin-left: auto; }
+.cm-seleccion .ui-btn--secundario { background: rgb(var(--g-0)); }
+.cm-seleccion__enlace { border: 0; background: none; padding: 0; font: inherit; font-weight: 600; color: rgb(var(--g-300)); cursor: pointer; text-decoration: underline; }
+.cm-seleccion__enlace:hover { color: rgb(var(--g-0)); }
+
+/* --- El resumen de la ventana del PIN --- */
+.cm-resumen-pin { display: grid; gap: 10px; }
+.cm-resumen-pin p { margin: 0; font-size: var(--t-14); color: rgb(var(--g-800)); line-height: 1.5; }
+.cm-resumen-pin .cm-resumen-pin__chico { font-size: var(--t-13); color: rgb(var(--g-600)); }
+.cm-resumen-pin .cm-resumen-pin__ojo { font-size: var(--t-13); color: rgb(var(--av-600)); }
+
+/* --- Angosta (celular, o una ventana estrecha): una tarjeta por empresa, meses en rejilla de 4 × 3 con su nombre --- */
+.cm--angosta .cm-cab { display: none; }
+.cm--angosta .cm-fila { grid-template-columns: 22px minmax(0, 1fr) auto; grid-template-areas: "check empresa accion" "meses meses meses";
+                         gap: 10px 10px; padding: 14px 16px; }
+.cm--angosta .cm-check { grid-area: check; }
+.cm--angosta .cm-empresa { grid-area: empresa; }
+.cm--angosta .cm-accion { grid-area: accion; }
+.cm--angosta .cm-fila > .cm-meses { grid-area: meses; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.cm--angosta .cm-empresa small { white-space: normal; }
+.cm--angosta .cm-fila .cm-mes { height: 40px; grid-template-columns: auto auto; gap: 6px; border-radius: 9px; }
+.cm--angosta .cm-fila .cm-mes__nombre { display: inline; font-size: var(--t-13); font-weight: 600; color: rgb(var(--g-800)); }
+.cm--angosta .cm-fila .cm-mes--futuro .cm-mes__nombre { color: rgb(var(--g-400)); }
+.cm--angosta .cm-fila .cm-mes--cerrado .cm-mes__nombre { color: rgb(var(--ac-800)); }
+.cm--angosta .cm-sin-check .cm-fila { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "empresa accion" "meses meses"; }
+.cm--angosta .cm-marcar-pagina { display: flex; padding: 12px 16px 0; }
+.cm-marcar-pagina { display: none; }
+.cm--angosta .cm-pie { padding: 12px 16px; }
+.cm--angosta .cm-paginas { margin-left: 0; width: 100%; justify-content: space-between; }
+.cm--angosta .cm-seleccion { bottom: 8px; }
+.cm--angosta .cm-seleccion__acciones { margin-left: 0; width: 100%; }
+.cm--angosta .cm-seleccion__acciones .ui-btn { flex: 1 1 auto; }
+.cm-sin-check .cm-cab, .cm-sin-check .cm-fila { grid-template-columns: minmax(150px, 1fr) auto; }
+.cm-sin-check .cm-accion, .cm-sin-check .cm-check { display: none; }
+@media (max-width: 520px) {
+    .cm-barra { padding: 14px 16px; }
+    .cm-anio { width: 96px; }
+    .cm-buscar { flex-basis: 150px; }
+    .cm-mostrar { width: 100%; }
+    .cm-mostrar .ctx-segmento { display: flex; width: 100%; }
+    .cm-mostrar .ctx-segmento button { flex: 1 1 auto; padding: 7px 6px; font-size: 12.5px; }
+    .cm-largo { display: none; }                  /* «Con abiertos» / «Con cerrados»: que quepan en un renglón */
 }

@@ -79,10 +79,11 @@
           desc: "Cuándo cuenta cada impuesto (flujo o devengado), estatales, alcohol y las reglas que Fiscontable aprendió de cada empresa.",
           palabras: "impuestos reglas fiscales isr iva diot deducible no deducible flujo devengado cobrado facturado profesiones alcohol régimen paquete marcas",
           pintar: pintarImpuestos },
-        // 24-nov-2026 (a2dec, decisión D del dueño): cerrar y abrir meses por empresa (el botón de Marcas fiscales es un atajo)
+        // 24-nov-2026 (a2dec, decisión D del dueño): cerrar y abrir meses por empresa. 25-nov-2026, el dueño: SOLO aquí (Marcas
+        // fiscales trae a esta sección), con PIN, y en un despacho solo el titular (configuracion/cierres.js)
         { id: "cierres", grupo: "Módulos", titulo: "Cierre de meses", ico: ICO.candado, modulo: "marcas",
-          desc: "Por empresa y mes: cerrar o abrir, quién y cuándo, y los meses que cerró solo una declaración.",
-          palabras: "cierre cerrar mes meses abrir candado marcas fiscales declaración congelar periodo cerrado bloqueado",
+          desc: "Por empresa y mes: cerrar o abrir (con tu PIN), quién y cuándo, y los meses que cerró solo una declaración.",
+          palabras: "cierre cerrar mes meses abrir candado marcas fiscales declaración congelar periodo cerrado bloqueado pin cerrar hasta",
           pintar: function (c) { window.FcCierres.pintar(c, { api: api, enviar: enviar }); } },
         // 23-nov-2026, el dueño (A.6): lo que era «Formato de los reportes» ahora son las vistas compartidas del despacho
         // 24-nov-2026 (revisión): solo en un despacho (fuera de él no hay vistas que compartir: las de antes pasan a «Mis vistas»)

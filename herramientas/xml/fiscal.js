@@ -97,21 +97,27 @@
         }).join("");
     }
 
+    /* 25-nov-2026, el dueño: «que no se pueda cerrar desde Marcas fiscales». Aquí solo se ve si el mes está cerrado o abierto;
+       se cierra y se abre en Configuración › Cierre de meses (con PIN). El enlace solo sale a quien puede (en una cuenta
+       individual, su dueño; en un despacho, el titular: puede_cerrar del servidor). */
     function pintarCandado() {
-        var c = E.datos && E.datos.candado, b = $("btn-candado");
+        var c = E.datos && E.datos.candado, b = $("btn-candado"), puede = !!(E.datos && E.datos.puede_cerrar);
         b.hidden = !E.datos;
-        b.textContent = c ? "🔒 Mes cerrado" : "🔓 Cerrar mes";
-        b.title = c ? "Abrir el mes para volver a cambiar marcas" : "Ya no se podrán cambiar las marcas de este mes (por ejemplo, cuando ya presentaste)";
+        b.textContent = c ? "🔒 Mes cerrado" : "🔓 Mes abierto";
+        b.classList.toggle("fi-mes-estado--cerrado", !!c);
+        b.title = c ? "Sus marcas ya no se cambian. Se abre en Configuración › Cierre de meses." : "Sus marcas se pueden cambiar. Se cierra en Configuración › Cierre de meses.";
+        $("btn-cierres").hidden = !E.datos || !puede;
         $("candado").hidden = !c;
         if (c) $("candado").innerHTML = "🔒 <b>" + MESES[E.mes - 1] + " " + E.anio + " está cerrado</b>" +
-            (c.por.length ? ": ya se presentó " + esc(c.por.join(" y ")) + "." : c.quien ? " (lo cerró " + esc(c.quien) + ")." : ".") +
-            " Las marcas se ven pero no se cambian. Si de verdad hay que corregir, usa «🔒 Mes cerrado» para abrirlo." +
-            // 24-nov-2026 (a2dec, decisión D): este botón es un atajo de Configuración › Cierre de meses
-            ' <button type="button" class="fi-enlace" data-cierres>Ver todos los meses cerrados</button>' + congelado();
+            (c.por.length ? ": ya se presentó " + esc(c.por.join(" y ")) + "." : c.quien ? " (lo cerró " + esc(c.quien_nombre || c.quien) + ")." : ".") +
+            " Las marcas se ven pero no se cambian." +
+            (puede ? ' Si hay que corregir, <button type="button" class="fi-enlace" data-cierres>ábrelo en Configuración</button>.'
+                   : " Solo quien cierra los meses (en un despacho, el titular) lo puede abrir, en Configuración › Cierre de meses.") + congelado();
         var vc = $("candado").querySelector("[data-cierres]");
-        if (vc) vc.addEventListener("click", function () { Fiscontable.abrirConfiguracion("cierres"); });
+        if (vc) vc.addEventListener("click", abrirCierres);
         document.body.classList.toggle("fi-cerrado", !!c);
     }
+    function abrirCierres() { Fiscontable.abrirConfiguracion("cierres", E.rfc ? E.rfc + ":" + E.anio : null); }
 
     // 23-nov-2026 (auditoría conc_visores-3): el mes cerrado se calcula con las marcas del cierre; se dice qué cambiaría
     // con las reglas y marcas de hoy y cuántos CFDI llegaron después (esos sí cuentan)
@@ -128,18 +134,6 @@
         }
         if (g.nuevos) html += '<div class="fi-congelado">' + g.nuevos + " CFDI llegaron después de cerrar el mes: esos cuentan con las reglas de hoy.</div>";
         return html;
-    }
-
-    async function cambiarCandado() {
-        var c = E.datos && E.datos.candado;
-        if (c && !(await Fiscontable.preguntar((c.por.length ? "Ya se presentó " + c.por.join(" y ") + " de este mes. " : "") +
-                          "¿Abrir " + MESES[E.mes - 1] + " " + E.anio + " para cambiar marcas? Si cambias algo, revisa si toca una complementaria."))) return;
-        try {
-            var r = await enviar("/api/fiscal/" + encodeURIComponent(E.rfc) + "/candado", "POST", { anio: E.anio, mes: E.mes, cerrar: !c });
-            E.datos.candado = r.candado;
-            aviso(r.candado ? "Mes cerrado: sus marcas ya no se cambian." : "Mes abierto: ya puedes cambiar marcas.");
-            pintarCandado(); pintarTabla();
-        } catch (e) { aviso(esc(e.message), true); }
     }
 
     function uso(imp) {
@@ -476,7 +470,9 @@
         document.querySelectorAll(".fi-mk__si-no [data-cuenta]").forEach(function (b) { b.addEventListener("click", function () { elegirCuenta(b.dataset.cuenta); }); });
         $("mk-auto").addEventListener("click", automaticoDelModal);
         $("btn-config").addEventListener("click", abrirConfig);
-        $("btn-candado").addEventListener("click", cambiarCandado);
+        $("btn-cierres").addEventListener("click", abrirCierres);
+        // al cerrar la ventana de Configuración › Cierre de meses, el mes se vuelve a leer (pudo cerrarse o abrirse)
+        window.addEventListener("fiscontable:config", function (ev) { if (ev.detail && ev.detail.seccion === "cierres") cargar(); });
         $("cf-cancelar").addEventListener("click", function () { $("modal-config").hidden = true; });
         $("cf-guardar").addEventListener("click", function () { guardarConfig(false); });
         $("cf-restablecer").addEventListener("click", async function () { if (await Fiscontable.preguntar("¿Volver al paquete de su régimen? Lo aprendido se queda.")) guardarConfig(true); });
