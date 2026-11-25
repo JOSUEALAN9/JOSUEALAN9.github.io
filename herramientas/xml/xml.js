@@ -96,6 +96,7 @@
     function leerLocal(clave) { try { return JSON.parse(localStorage.getItem("xml:" + clave)); } catch (e) { return null; } }
     function borrarLocal(clave) { try { localStorage.removeItem("xml:" + clave); } catch (e) { /* nada */ } }
     E.pagosPor = leerLocal("pagosPor") === "pago" ? "pago" : "emision";
+    E.ocultarVacias = leerLocal("ocultarVacias") === true;          // 25-nov-2026: solo la pantalla, en este navegador
     // Importes en pesos en la tabla: con «Usar esto siempre» arranca así; si no, en su moneda hasta que lo pidas
     E.moneda = (function () { var p = Fiscontable.monedaReportes.leer(); return p.siempre ? p.modo : ""; })();
     E.convertido = {};
@@ -608,8 +609,9 @@
          «Fiscontable»: la de siempre (la de fábrica de la pestaña; en Recibidas con las marcas fiscales y en las dos con
            «Posible duplicado»). «Formato 2»: el reporte de 148 columnas tal cual (solo Emitidas y Recibidas). Y las vistas
            guardadas: las de la persona y las que el titular compartió con el despacho (se guardan en el servidor).
-         Mover, quitar o agregar columnas deja la vista «con cambios» y aparece «Guardar como vista nueva». Las dos de base
-         nunca se sobrescriben. El Excel sale con las columnas que se ven, aunque no estén guardadas.
+         Mover, quitar o agregar columnas deja la vista «sin guardar» (insignia en el botón «Vista ▾»; 25-nov-2026: ya no hay
+         botón suelto) y el menú ofrece guardar los cambios, guardarla como nueva o deshacer. Las dos de base nunca se
+         sobrescriben. El Excel sale con las columnas que se ven, aunque no estén guardadas.
        Lo que se acomodó sin guardar se recuerda en este navegador (por pestaña) hasta que se elija otra vista. */
     var BASES = { fiscontable: "Fiscontable", formato2: "Formato 2" };
     function conF2(m) { m = m || E.modulo; return m === "recibidos" || m === "emitidos"; }
@@ -625,12 +627,32 @@
         var s = selActual();
         return s.tipo === "guardada" ? ((vistaGuardada(s.id) || {}).nombre || "Fiscontable") : BASES[s.tipo] || "Fiscontable";
     }
-    function catalogo() {
-        if (baseActual() === "formato2") return E.f2Columnas || [];
-        var todas = E.datos[E.modulo].columnas;
+    function catalogoFiscontable() {
+        var todas = (E.datos && E.datos[E.modulo] && E.datos[E.modulo].columnas) || [];
         return E.sinMarcas ? todas.filter(function (c) { return c.clave.indexOf("fiscal_") !== 0; }) : todas;
     }
-    function colPorClave(clave) { return catalogo().find(function (c) { return c.clave === clave; }); }
+    /* 25-nov-2026 (el dueño): una vista que parte de «Formato 2» puede llevar también columnas de «Fiscontable»
+       («Observaciones», «Posible duplicado», las marcas fiscales…). El catálogo es el de «Formato 2» (sus 148, igual que
+       siempre) y después el de «Fiscontable» sin las que dicen lo mismo que una de «Formato 2» (el servidor las marca con
+       «igual»). «Formato 2» como vista de base sigue siendo exactamente sus 148: agregar otra la deja «sin guardar».
+       Los valores de las dos familias ya viven en el mismo renglón. Se arma una vez por pestaña y catálogo (se pide mucho). */
+    var CAT = { firma: null, lista: [], mapa: {} };
+    function catalogo() {
+        var base = baseActual(), bloque = E.datos && E.datos[E.modulo];
+        if (CAT.firma === E.modulo + "|" + base + "|" + (E.sinMarcas ? 1 : 0) && CAT.bloque === bloque && CAT.f2 === E.f2Columnas) return CAT.lista;
+        var lista;
+        if (base === "formato2") {
+            var f2 = E.f2Columnas || [], cubiertas = {};
+            f2.forEach(function (c) { if (c.igual) cubiertas[c.igual] = 1; });
+            lista = !f2.length ? [] : f2.concat(catalogoFiscontable().filter(function (c) { return !cubiertas[c.clave]; })
+                .map(function (c) { return Object.assign({}, c, { familia: "Fiscontable" }); }));
+        } else lista = catalogoFiscontable();
+        var mapa = Object.create(null);
+        lista.forEach(function (c) { mapa[c.clave] = c; });
+        CAT = { firma: E.modulo + "|" + base + "|" + (E.sinMarcas ? 1 : 0), bloque: bloque, f2: E.f2Columnas, lista: lista, mapa: mapa };
+        return lista;
+    }
+    function colPorClave(clave) { catalogo(); return CAT.mapa[clave]; }
     function anchoDefecto(c) { return ANCHO_CLAVE[c.clave] || ANCHO_TIPO[c.tipo] || 150; }
 
     /* En Recibidos y Emitidos «RFC contraparte» es el emisor o el receptor: el servidor dice a cuál
@@ -705,20 +727,33 @@
         try {
             var d = await apiJSON("/api/xml/vistas?con_estado=1");
             E.vistas = d.vistas || []; E.inicial = d.inicial || {}; E.puedeCompartir = !!d.puede_compartir;
-        } catch (e) { E.vistas = []; E.inicial = {}; E.puedeCompartir = false; }
+            E.puedeProponer = d.puede_proponer !== undefined ? !!d.puede_proponer : false;
+        } catch (e) { E.vistas = []; E.inicial = {}; E.puedeCompartir = false; E.puedeProponer = false; }
     }
 
+    /* 25-nov-2026 (el dueño: la barra «abarca mucho espacio»): el botón dice solo el nombre de la vista (cortado si es largo)
+       y una insignia chica «sin guardar»; ya no hay botón suelto «Guardar como vista nueva». Con cambios, el menú empieza
+       por lo que se hace con ellos: «Guardar cambios en «X»» (si es tuya), «Guardar como vista nueva…» y «Deshacer». */
     function pintarVistas() {
         var s = selActual(), cambios = conCambios(), v = s.tipo === "guardada" ? vistaGuardada(s.id) : null;
         if (E.datos) pintarMoneda();
-        $("nombre-vista").textContent = "Vista: " + nombreVistaActual() + (cambios ? " (con cambios)" : "");
-        $("btn-guardar-vista").hidden = !cambios;
+        $("nombre-vista").textContent = nombreVistaActual();
+        $("vista-sin-guardar").hidden = !cambios;
+        $("btn-vistas").title = "Vista: " + nombreVistaActual() + (cambios ? " · tiene cambios sin guardar" : "") + ". Fiscontable, Formato 2 o tus vistas guardadas";
         function item(accion, valor, texto, clase, titulo) {
             return '<button type="button" role="menuitem" data-accion="' + accion + '" data-valor="' + esc(String(valor)) + '"' + (clase ? ' class="' + clase + '"' : "") +
                 (titulo ? ' title="' + esc(titulo) + '"' : "") + ">" + texto + "</button>";
         }
         var activa = function (t, id) { return s.tipo === t && (t !== "guardada" || s.id === id) ? "xml-activa" : ""; };
-        var h = [item("base", "fiscontable", "Fiscontable", activa("fiscontable"), "Nuestro diseño de siempre: las columnas con datos de esta pestaña")];
+        var h = [];
+        if (cambios) {
+            h.push('<p class="xml-menu__titulo">Cambios sin guardar</p>');
+            if (v && v.puede_cambiar) h.push(item("guardar", v.id, "Guardar cambios en «" + esc(v.nombre) + "»", "xml-menu__principal"));
+            h.push(item("nueva", "", "Guardar como vista nueva…", v && v.puede_cambiar ? "" : "xml-menu__principal"));
+            h.push(item("deshacer", "", "Deshacer mis cambios"));
+            h.push('<div class="xml-separador"></div>');
+        }
+        h.push(item("base", "fiscontable", "Fiscontable", activa("fiscontable"), "Nuestro diseño de siempre: las columnas con datos de esta pestaña"));
         if (conF2()) h.push(item("base", "formato2", "Formato 2", activa("formato2"), "El reporte «Facturas» de 148 columnas, tal cual"));
         // 24-nov-2026 (revisión): fuera de un despacho no hay «Del despacho» ni «Compartir»: todas son «Mis vistas»
         var mias = E.vistas.filter(function (x) { return x.modulo === E.modulo && (!x.compartida || !E.enDespacho); });
@@ -732,13 +767,17 @@
             desp.forEach(function (x) { h.push(item("vista", x.id, esc(x.nombre) + (E.inicial[E.modulo] === x.id ? " ★" : ""), activa("guardada", x.id))); });
         }
         h.push('<div class="xml-separador"></div>');
-        if (cambios && v && v.puede_cambiar) h.push(item("guardar", v.id, "Guardar cambios en «" + esc(v.nombre) + "»"));
-        h.push(item("nueva", "", "Guardar como vista nueva…"));
-        if (cambios) h.push(item("deshacer", "", "Deshacer mis cambios"));
+        if (!cambios) h.push(item("nueva", "", "Guardar como vista nueva…"));
+        if (v && v.puede_cambiar) h.push(item("renombrar", v.id, "Cambiar nombre…"));
         var actual = s.tipo === "guardada" ? s.id : s.tipo;
         var yaInicial = (E.inicial[E.modulo] || "fiscontable") === actual;
         if (!yaInicial) h.push(item("inicial", actual, "Abrir siempre con esta vista ★"));
         if (v && E.puedeCompartir && E.enDespacho && (v.mia || v.compartida)) h.push(item("compartir", v.id, v.compartida ? "Dejar de compartir con el despacho" : "Compartir con el despacho"));
+        // 25-nov-2026, el dueño: cualquier integrante propone una vista suya; el titular la aprueba desde su campana
+        if (v && v.mia && !v.compartida && E.puedeProponer && E.enDespacho) {
+            h.push(v.propuesta === "pendiente" ? '<p class="xml-menu__nota" role="note">Propuesta al despacho: falta que el titular la apruebe.</p>'
+                : item("proponer", v.id, "Proponer al despacho…", "", "Le llega al titular en su campana; si la aprueba, la ve todo el despacho"));
+        }
         if (v && v.puede_cambiar) h.push(item("borrar", v.id, "Borrar «" + esc(v.nombre) + "»", "xml-peligro"));
         $("menu-vistas").innerHTML = h.join("");
     }
@@ -758,23 +797,39 @@
         if (!$("panel-columnas").hidden) pintarPanelColumnas();
     }
 
-    /* «Guardar como vista nueva»: su nombre y, si eres el titular, si la ve todo el despacho. */
-    function preguntarNombreVista() {
-        var dlg = $("dlg-vista");
-        $("vista-nombre").value = "";
+    /* «Guardar como vista nueva» (o, con o.vista, «Cambiar nombre…»): su nombre y, si eres el titular, si la ve todo el
+       despacho. 25-nov-2026 (el dueño: «al guardar que haga algo para reemplazar la que tengo»): si el nombre ya es de una
+       vista que puedes cambiar, regresa {reemplazar: esa vista} para preguntar «¿La reemplazo?»; si es de una que no puedes
+       cambiar (del despacho), lo dice aquí mismo. */
+    var RESERVADOS = { "fiscontable": 1, "formato 2": 1, "formato2": 1, "vista de fábrica": 1, "vista de fabrica": 1 };
+    function mismoNombre(a, b) { return String(a || "").replace(/\s+/g, " ").trim().toLowerCase() === String(b || "").replace(/\s+/g, " ").trim().toLowerCase(); }
+    function preguntarNombreVista(o) {
+        o = o || {};
+        var dlg = $("dlg-vista"), renombrar = !!o.vista;
+        $("dlg-vista-titulo").textContent = renombrar ? "Cambiar nombre" : "Guardar como vista nueva";
+        $("vista-dlg-ok").textContent = renombrar ? "Cambiar nombre" : "Guardar vista";
+        $("vista-nombre").value = o.nombre || "";
         $("vista-error").hidden = true;
-        $("vista-compartir-caja").hidden = !(E.puedeCompartir && E.enDespacho);
+        $("vista-compartir-caja").hidden = renombrar || !(E.puedeCompartir && E.enDespacho);
         $("vista-compartir").checked = false;
-        $("dlg-vista-sub").textContent = "Con las columnas que ves ahora, en su orden (" + E.columnas[E.modulo].length + "). «Fiscontable» y «Formato 2» no cambian.";
+        $("dlg-vista-sub").textContent = renombrar ? "Solo cambia el nombre de «" + o.vista.nombre + "»; sus columnas guardadas quedan igual." +
+                (conCambios() ? " Tus cambios sin guardar se quedan como están." : "")
+            : "Con las columnas que ves ahora, en su orden (" + E.columnas[E.modulo].length + "). «Fiscontable» y «Formato 2» no cambian.";
+        function error(texto) { $("vista-error").textContent = texto; $("vista-error").hidden = false; $("vista-nombre").focus(); }
         return new Promise(function (resolver) {
             var hecho = false;
             function terminar(valor) { if (hecho) return; hecho = true; dlg.removeEventListener("click", clic); dlg.removeEventListener("close", cerro); if (dlg.open) dlg.close(); resolver(valor); }
             function clic(e) {
                 var b = e.target.closest("[data-vista-dlg]"); if (!b) return;
                 if (b.dataset.vistaDlg !== "ok") return terminar(null);
-                var n = $("vista-nombre").value.trim();
-                if (!n) { $("vista-error").textContent = "Escribe el nombre de la vista."; $("vista-error").hidden = false; $("vista-nombre").focus(); return; }
-                terminar({ nombre: n.slice(0, 60), compartida: !$("vista-compartir-caja").hidden && $("vista-compartir").checked });
+                var n = $("vista-nombre").value.replace(/\s+/g, " ").trim().slice(0, 60);
+                if (!n) return error("Escribe el nombre de la vista.");
+                if (RESERVADOS[n.toLowerCase()]) return error("«" + n + "» es el nombre de una vista de base; elige otro.");
+                var otra = (E.vistas || []).find(function (x) { return x.modulo === E.modulo && mismoNombre(x.nombre, n) && (!renombrar || x.id !== o.vista.id); });
+                var compartida = !$("vista-compartir-caja").hidden && $("vista-compartir").checked;
+                if (otra && renombrar) return error("Ya hay una vista «" + otra.nombre + "» en esta pestaña; elige otro nombre.");
+                if (otra && !otra.puede_cambiar) return error("«" + otra.nombre + "» es una vista del despacho y solo el titular la cambia; elige otro nombre.");
+                terminar({ nombre: n, compartida: compartida, reemplazar: otra || null });
             }
             function cerro() { terminar(null); }
             dlg.addEventListener("click", clic);
@@ -801,16 +856,15 @@
 
     async function accionVista(accion, valor) {
         $("menu-vistas").hidden = true;
+        $("btn-vistas").setAttribute("aria-expanded", "false");
         var s = selActual(), v = s.tipo === "guardada" ? vistaGuardada(s.id) : null;
         if (accion === "base") return elegirVista({ tipo: valor });
         if (accion === "vista") return elegirVista({ tipo: "guardada", id: +valor });
         if (accion === "deshacer") return elegirVista(s);
-        if (accion === "nueva") {
-            var r = await preguntarNombreVista();
-            if (r) await guardarVista({ nombre: r.nombre, compartida: r.compartida || null, nueva: true });
-            return;
-        }
+        if (accion === "nueva") return guardarComoNueva("");
         if (accion === "guardar" && v) return guardarVista({ id: v.id, nombre: v.nombre });
+        if (accion === "renombrar" && v) return cambiarNombre(v);
+        if (accion === "proponer" && v) return proponerVista(v);
         if (accion === "inicial") {
             try {
                 await api("/api/xml/vistas/inicial", { method: "PUT", headers: { "Content-Type": "application/json" },
@@ -840,6 +894,49 @@
         }
     }
 
+    async function guardarComoNueva(nombre) {
+        await cargarVistas();                     // por si en otra pestaña se guardó una con ese nombre
+        var r = await preguntarNombreVista({ nombre: nombre });
+        if (!r) return;
+        if (r.reemplazar) {
+            var x = r.reemplazar;
+            var si = await Fiscontable.confirmar({ titulo: "¿La reemplazo?", si: "Reemplazar", no: "Elegir otro nombre",
+                texto: (x.compartida ? "Ya hay una vista del despacho «" : "Ya tienes una vista «") + x.nombre + "» en esta pestaña. Sus columnas cambian por las que ves ahora (" +
+                    E.columnas[E.modulo].length + ")" + (x.compartida ? " y así la verán todos en el despacho." : ".") });
+            if (!si) return guardarComoNueva(r.nombre);
+            return guardarVista({ id: x.id, nombre: x.nombre, compartida: r.compartida ? true : null });
+        }
+        return guardarVista({ nombre: r.nombre, compartida: r.compartida || null, nueva: true });
+    }
+
+    /* «Cambiar nombre…»: solo el nombre; las columnas guardadas quedan igual y lo que tengas sin guardar, también. */
+    async function cambiarNombre(v) {
+        var r = await preguntarNombreVista({ nombre: v.nombre, vista: v });
+        if (!r || r.nombre === v.nombre) return;
+        try {
+            await api("/api/xml/vistas", { method: "PUT", headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ modulo: E.modulo, id: v.id, nombre: r.nombre, base: v.base, columnas: v.columnas }) });
+            await cargarVistas();
+            pintarVistas(); pintarBotonExcel();
+            avisar("Listo: la vista ahora se llama «" + r.nombre + "».");
+        } catch (e) { avisar(e.message); }
+    }
+
+    /* «Proponer al despacho…» (25-nov-2026, el dueño): le llega al titular en su campana con «Aprobar» y «Rechazar». */
+    async function proponerVista(v) {
+        var cambios = conCambios();
+        var si = await Fiscontable.confirmar({ titulo: "Proponer «" + v.nombre + "» al despacho", si: cambios ? "Guardar y proponer" : "Proponer",
+            texto: (cambios ? "Primero se guardan tus cambios en «" + v.nombre + "». " : "") + "Le llega al titular en su campana. Si la aprueba, " +
+                "la verán todos en su menú «Vista» y desde entonces solo el titular la cambia." });
+        if (!si) return;
+        if (cambios && !(await guardarVista({ id: v.id, nombre: v.nombre }))) return;
+        try {
+            var r = await (await api("/api/xml/vistas/" + v.id + "/proponer", { method: "POST" })).json();
+            await cargarVistas(); pintarVistas();
+            avisar(r.mensaje || "Listo: se la propusiste al titular.");
+        } catch (e) { avisar(e.message); }
+    }
+
     /* «Formato 2» en pantalla: sus 148 columnas con lo que trae cada XML (el servidor lee el XML guardado; se pide una vez
        por empresa, periodo y pestaña, cuando se elige esa vista). */
     function claveF2() { var r = rangoPeriodo(); return [E.rfc, E.modulo, r.desde, r.hasta, E.claveCargada].join("|"); }
@@ -849,6 +946,8 @@
         if (E.f2Pidiendo === clave) return;
         E.f2Pidiendo = clave;
         $("conteo-filas").textContent = "Leyendo los XML para «Formato 2»…";
+        // 25-nov-2026: el aviso de «cargando» sobre la tabla, para que no parezca trabada (la primera vez lee cada XML)
+        CARGA.mostrar("Leyendo los XML para «Formato 2»…", "Sigue leyendo los XML para «Formato 2»… un periodo grande tarda un poco más.");
         var r = rangoPeriodo();
         try {
             var d = await (await postJSON("/api/xml/formato2", { rfc: E.rfc, desde: r.desde, hasta: r.hasta, modulo: m, meses: mesesElegidos() })).json();
@@ -860,7 +959,7 @@
             });
             E.f2Hecho = E.f2Hecho || {}; E.f2Hecho[m] = clave;
         } catch (e) { avisar(e.message); E.vistaSel[m] = { tipo: "fiscontable" }; }
-        finally { if (E.f2Pidiendo === clave) E.f2Pidiendo = ""; }
+        finally { if (E.f2Pidiendo === clave) { E.f2Pidiendo = ""; CARGA.quitar(); } }
         if (m !== E.modulo) return;
         var local = leerLocal("vista3:" + m);
         var cols = local && local.cols && baseActual() === "formato2" ? sinRepetidas(local.cols) : columnasDeVista(selActual());
@@ -1025,7 +1124,10 @@
                 }
             });
         }
-        if (clave === claveDup() && (forzar || JSON.stringify(DUP.marcas) !== antes)) pintarFilas(true);
+        if (clave === claveDup() && (forzar || JSON.stringify(DUP.marcas) !== antes)) {
+            if (E.ocultarVacias) { olvidarVacias(); pintarTabla(); }       // «Observaciones» o una marca pudo dejar de estar vacía
+            else pintarFilas(true);
+        }
     }
 
     function celda(c, f, fija) {
@@ -1049,11 +1151,43 @@
     }
 
     function visibles() {
-        return E.columnas[E.modulo].map(function (x) {
+        var cols = E.columnas[E.modulo].map(function (x) {
             var c = colPorClave(x.clave);
             return c ? Object.assign({}, c, { ancho: x.ancho || anchoDefecto(c) }) : null;
         }).filter(Boolean);
+        // 25-nov-2026: «Ocultar columnas vacías» (panel Columnas) esconde aquí, solo en la pantalla, las que no traen nada en
+        // lo que se ve. No toca E.columnas: la vista no queda «sin guardar» y el Excel sale con las columnas de la vista.
+        var vacias = columnasVacias();
+        if (vacias) {
+            var llenas = cols.filter(function (c) { return !vacias[c.clave]; });
+            if (llenas.length) cols = llenas;
+        }
+        return cols;
     }
+
+    /* Las columnas de la vista que no traen ningún dato en lo que se ve (E.filas), o null si el interruptor está apagado o no
+       hay renglones. Vacío = sin valor; en importes y números, también 0 (como las columnas opcionales de la vista de
+       fábrica). Se recalcula cuando cambian los renglones, las columnas o llegan las marcas aparte. */
+    var VAC = { filas: null, firma: "", vacias: null, n: 0 };
+    function columnasVacias() {
+        if (!E.ocultarVacias || !E.filas || !E.filas.length || !E.columnas[E.modulo]) return null;
+        var firmaC = E.modulo + "|" + firma(E.columnas[E.modulo]);
+        if (VAC.filas === E.filas && VAC.firma === firmaC && VAC.vacias) return VAC.vacias;
+        var vacias = {}, n = 0;
+        E.columnas[E.modulo].forEach(function (x) {
+            var c = colPorClave(x.clave);
+            if (!c) return;
+            var num = c.tipo === "moneda" || c.tipo === "numero";
+            for (var i = 0; i < E.filas.length; i++) {
+                var v = E.filas[i][c.clave];
+                if (v !== undefined && v !== null && v !== "" && !(num && v === 0)) return;
+            }
+            vacias[c.clave] = 1; n++;
+        });
+        VAC = { filas: E.filas, firma: firmaC, vacias: vacias, n: n };
+        return vacias;
+    }
+    function olvidarVacias() { VAC.filas = null; }
 
     function pintarTabla() {
         var cols = visibles();
@@ -1061,14 +1195,23 @@
         $("tabla").style.width = (36 + cols.reduce(function (s, c) { return s + c.ancho; }, 0)) + "px";
 
         var todasSel = E.filas.length > 0 && E.filas.every(function (f) { return E.seleccion.has(f.uuid); });
+        // Un solo ⋮ en el orden del Tab (con 148 columnas serían 148 paradas): las flechas pasan al de al lado
+        var tabClave = MC.tab && cols.some(function (x) { return x.clave === MC.tab; }) ? MC.tab : (cols[0] || {}).clave;
         $("thead").innerHTML = "<tr>" +
             '<th class="xml-check xml-fija" style="left:0"><input type="checkbox" id="sel-todas"' + (todasSel ? " checked" : "") + ' title="Seleccionar todo lo filtrado"></th>' +
             cols.map(function (c, i) {
                 var orden = E.orden.clave === c.clave ? (E.orden.dir > 0 ? "▲" : "▼") : "";
                 var fija = i === 0 ? " xml-fija xml-fija--ultima" : "";
+                // 25-nov-2026 (el dueño: «¿puedo seleccionar la columna y quitarla?»): ⋮ abre el menú de la columna (también con
+                // clic derecho); el clic en el nombre sigue ordenando y arrastrarlo, moviéndola
                 return '<th data-clave="' + esc(c.clave) + '" class="' + (c.tipo === "moneda" || c.tipo === "numero" ? "xml-num" : "") + fija + '"' +
-                    (i === 0 ? ' style="left:36px"' : "") + ' title="' + esc(c.etiqueta + " · " + c.grupo) + '"><span class="xml-th-txt" draggable="true">' + esc(c.etiqueta) + "</span>" +
-                    '<span class="xml-orden">' + orden + '</span><span class="xml-asa" data-asa="' + esc(c.clave) + '"></span></th>';
+                    (i === 0 ? ' style="left:36px"' : "") + ' title="' + esc(c.etiqueta + " · " + (c.familia ? c.familia + " · " : "") + c.grupo) + '"' +
+                    (E.orden.clave === c.clave ? ' aria-sort="' + (E.orden.dir > 0 ? "ascending" : "descending") + '"' : "") +
+                    '><span class="xml-th-txt" draggable="true">' + esc(c.etiqueta) + "</span>" +
+                    '<span class="xml-orden">' + orden + '</span><button type="button" class="xml-th-menu" data-col-menu="' + esc(c.clave) + '" aria-haspopup="menu" ' +
+                    'tabindex="' + (c.clave === tabClave ? "0" : "-1") + '" ' +
+                    'aria-label="Opciones de la columna ' + esc(c.etiqueta) + '" title="Ordenar, mover u ocultar esta columna">⋮</button>' +
+                    '<span class="xml-asa" data-asa="' + esc(c.clave) + '"></span></th>';
             }).join("") + "</tr>";
 
         // Totales de las columnas de importes (de lo filtrado)
@@ -1093,7 +1236,9 @@
                 : "No hay XML de " + nombreMod + " en " + textoPeriodo() + "." +
                   (porFechas() ? "" : conXml.length ? " En " + anio + " sí hay en: " + conXml.join(", ") + "." : " En " + anio + " no hay de este tipo.");
         }
-        $("conteo-filas").textContent = E.filas.length.toLocaleString("es-MX") + " registro(s)";
+        var ocultas = E.ocultarVacias && VAC.vacias && VAC.filas === E.filas ? E.columnas[E.modulo].length - cols.length : 0;
+        $("conteo-filas").textContent = E.filas.length.toLocaleString("es-MX") + " registro(s)" +
+            (ocultas > 0 ? " · " + ocultas + " columna" + (ocultas === 1 ? " vacía oculta" : "s vacías ocultas") : "");
         pintarAlcance();
         pintarFilas(true);
         pintarSeleccion();
@@ -1237,8 +1382,35 @@
             document.addEventListener("mousemove", mover);
             document.addEventListener("mouseup", soltar);
         });
+        // 25-nov-2026: clic derecho en un encabezado = el mismo menú del ⋮
+        thead.addEventListener("contextmenu", function (e) {
+            var th = e.target.closest("th[data-clave]");
+            if (!th) return;
+            e.preventDefault();
+            // Con la tecla de menú (o Mayús+F10) no hay posición del ratón: se abre junto a su ⋮
+            abrirMenuColumna(th.dataset.clave, e.clientX || e.clientY ? { x: e.clientX, y: e.clientY } : null);
+        });
+        // Flechas izquierda/derecha (Inicio/Fin) entre los ⋮ de los encabezados
+        thead.addEventListener("keydown", function (e) {
+            var bm = e.target.closest && e.target.closest("[data-col-menu]");
+            if (!bm || ["ArrowLeft", "ArrowRight", "Home", "End"].indexOf(e.key) === -1) return;
+            var todos = Array.prototype.slice.call(thead.querySelectorAll("[data-col-menu]")), i = todos.indexOf(bm);
+            var j = e.key === "Home" ? 0 : e.key === "End" ? todos.length - 1 : Math.max(0, Math.min(todos.length - 1, i + (e.key === "ArrowRight" ? 1 : -1)));
+            if (j === i || !todos[j]) return;
+            e.preventDefault();
+            bm.setAttribute("tabindex", "-1"); todos[j].setAttribute("tabindex", "0"); MC.tab = todos[j].dataset.colMenu;
+            todos[j].focus();
+            if (todos[j].scrollIntoView) todos[j].closest("th").scrollIntoView({ block: "nearest", inline: "nearest" });
+        });
         thead.addEventListener("click", function (e) {
             if (e.target.closest("[data-asa]")) return;
+            var bm = e.target.closest("[data-col-menu]");
+            if (bm) {
+                e.stopPropagation();                       // si no, el clic en la página lo cerraría al momento
+                if (MC.clave === bm.dataset.colMenu && !$("menu-columna").hidden) cerrarMenuColumna(true);
+                else abrirMenuColumna(bm.dataset.colMenu);
+                return;
+            }
             if (e.target.id === "sel-todas") {
                 var marcar = e.target.checked;
                 E.filas.forEach(function (f) { if (marcar) E.seleccion.add(f.uuid); else E.seleccion.delete(f.uuid); });
@@ -1253,33 +1425,172 @@
         });
     }
 
+    /* ============================================================ menú de una columna
+       25-nov-2026 (el dueño: «¿puedo seleccionar la columna y quitarla?»): el ⋮ de cada encabezado (o clic derecho) abre
+       ordenar, mover a la izquierda o a la derecha y ocultar esa columna, sin ir al panel. Con teclado: Tab hasta el ⋮,
+       Enter; flechas arriba y abajo; Esc lo cierra y regresa al ⋮. Mover y ocultar dejan la vista «sin guardar». */
+    var MC = { clave: null };
+    function botonMenuColumna(clave) {
+        var lista = $("thead").querySelectorAll("[data-col-menu]");
+        for (var i = 0; i < lista.length; i++) if (lista[i].dataset.colMenu === clave) return lista[i];
+        return null;
+    }
+    function abrirMenuColumna(clave, punto) {
+        var cols = visibles(), i = cols.findIndex(function (c) { return c.clave === clave; });
+        if (i < 0) return;
+        cerrarMenus("menu-columna");
+        var c = cols[i], num = c.tipo === "moneda" || c.tipo === "numero", fecha = c.tipo === "fecha";
+        var dir = E.orden.clave === clave ? E.orden.dir : 0;
+        function item(accion, texto, apagado, clase) {
+            return '<button type="button" role="menuitem" data-mc="' + accion + '"' + (apagado ? " disabled" : "") + (clase ? ' class="' + clase + '"' : "") + ">" + texto + "</button>";
+        }
+        var h = ['<p class="xml-menu__titulo" title="' + esc(c.etiqueta) + '">' + esc(c.etiqueta) + "</p>",
+            item("asc", (dir > 0 ? "✓ " : "") + (num ? "Ordenar de menor a mayor" : fecha ? "Ordenar del más antiguo al más reciente" : "Ordenar de la A a la Z"), false, dir > 0 ? "xml-activa" : ""),
+            item("desc", (dir < 0 ? "✓ " : "") + (num ? "Ordenar de mayor a menor" : fecha ? "Ordenar del más reciente al más antiguo" : "Ordenar de la Z a la A"), false, dir < 0 ? "xml-activa" : "")];
+        if (dir) h.push(item("sin-orden", "Quitar el orden"));
+        h.push('<div class="xml-separador"></div>',
+            item("izq", "Mover a la izquierda", i === 0), item("der", "Mover a la derecha", i === cols.length - 1),
+            '<div class="xml-separador"></div>', item("ocultar", "Ocultar esta columna", cols.length <= 1, "xml-peligro"));
+        var menu = $("menu-columna");
+        menu.innerHTML = h.join("");
+        MC.clave = clave; MC.tab = clave;
+        MC.scroll = [$("tabla-caja").scrollLeft, $("tabla-caja").scrollTop];
+        var boton = botonMenuColumna(clave);
+        if (boton) boton.setAttribute("aria-expanded", "true");
+        menu.hidden = false;
+        // Junto al ⋮ (o donde se hizo clic derecho), sin salirse de la pantalla. En el celular el CSS lo pone a todo lo ancho.
+        var r = punto ? { left: punto.x, right: punto.x, top: punto.y, bottom: punto.y } : (boton || $("thead")).getBoundingClientRect();
+        var alto = menu.offsetHeight, ancho = menu.offsetWidth;
+        var arriba = r.bottom + 4 + alto > window.innerHeight - 8 ? Math.max(8, r.top - alto - 4) : r.bottom + 4;
+        menu.style.top = arriba + "px";
+        menu.style.left = window.innerWidth <= 700 ? "" : Math.max(8, Math.min(punto ? r.left : r.right - ancho, window.innerWidth - ancho - 8)) + "px";
+        var primero = menu.querySelector("button:not([disabled])");
+        if (primero) primero.focus();
+    }
+    function cerrarMenuColumna(regresar) {
+        var menu = $("menu-columna");
+        if (menu.hidden) return;
+        menu.hidden = true;
+        var b = MC.clave && botonMenuColumna(MC.clave);
+        if (b) { b.setAttribute("aria-expanded", "false"); if (regresar) b.focus(); }
+    }
+    function accionColumna(accion) {
+        var clave = MC.clave, cols = visibles(), i = cols.findIndex(function (c) { return c.clave === clave; });
+        cerrarMenuColumna(false);
+        if (i < 0) return;
+        var c = cols[i], foco = clave;
+        if (accion === "asc" || accion === "desc") { E.orden = { clave: clave, dir: accion === "asc" ? 1 : -1 }; aplicar(); }
+        else if (accion === "sin-orden") { E.orden = { clave: null, dir: 1 }; aplicar(); }
+        else if (accion === "izq" && i > 0) moverColumna(clave, cols[i - 1].clave, false);
+        else if (accion === "der" && i < cols.length - 1) moverColumna(clave, cols[i + 1].clave, true);
+        else if (accion === "ocultar" && cols.length > 1) {
+            var antes = E.columnas[E.modulo].slice();
+            E.columnas[E.modulo] = E.columnas[E.modulo].filter(function (x) { return x.clave !== clave; });
+            if (E.orden.clave === clave) E.orden = { clave: null, dir: 1 };
+            foco = (cols[i + 1] || cols[i - 1]).clave;
+            MC.tab = foco;
+            guardarColumnasLocal(); aplicar();
+            if (!$("panel-columnas").hidden) pintarPanelColumnas();
+            var deshacer = function () {
+                E.columnas[E.modulo] = antes; guardarColumnasLocal(); aplicar();
+                if (!$("panel-columnas").hidden) pintarPanelColumnas();
+                if (Fiscontable.aviso) Fiscontable.aviso("Volvió «" + c.etiqueta + "».");
+            };
+            if (Fiscontable.aviso) Fiscontable.aviso("Ocultaste «" + c.etiqueta + "». La regresas desde «Columnas» o aquí.", [{ texto: "Deshacer", accion: deshacer }]);
+            else avisar("Ocultaste «" + c.etiqueta + "».");
+        }
+        var b = botonMenuColumna(foco);
+        if (b) b.focus();
+    }
+    function prepararMenuColumna() {
+        var menu = $("menu-columna");
+        menu.addEventListener("click", function (e) {
+            e.stopPropagation();
+            var b = e.target.closest("[data-mc]");
+            if (b && !b.disabled) accionColumna(b.dataset.mc);
+        });
+        menu.addEventListener("keydown", function (e) {
+            var botones = Array.prototype.filter.call(menu.querySelectorAll("button"), function (b) { return !b.disabled; });
+            var i = botones.indexOf(document.activeElement);
+            if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+                e.preventDefault();
+                var j = e.key === "ArrowDown" ? (i + 1) % botones.length : (i - 1 + botones.length) % botones.length;
+                if (botones[j]) botones[j].focus();
+            } else if (e.key === "Home" || e.key === "End") {
+                e.preventDefault();
+                var x = botones[e.key === "Home" ? 0 : botones.length - 1]; if (x) x.focus();
+            } else if (e.key === "Escape") {
+                e.preventDefault(); e.stopPropagation(); cerrarMenuColumna(true);
+            } else if (e.key === "Tab") {
+                cerrarMenuColumna(false);
+            }
+        });
+        // Si la tabla se desplaza, el menú ya no queda junto a su columna: se cierra (un ajuste de 1-2 px del navegador, no)
+        $("tabla-caja").addEventListener("scroll", function () {
+            var c = $("tabla-caja");
+            if (!MC.scroll || Math.abs(c.scrollLeft - MC.scroll[0]) > 4 || Math.abs(c.scrollTop - MC.scroll[1]) > 4) cerrarMenuColumna(false);
+        }, { passive: true });
+        window.addEventListener("resize", function () { cerrarMenuColumna(false); });
+    }
+
     /* ============================================================ panel de columnas */
     function pintarPanelColumnas() {
-        var q = $("buscar-columna").value.trim().toLowerCase();
-        var vis = E.columnas[E.modulo];
+        var bruto = $("buscar-columna").value.trim(), q = bruto.toLowerCase();
+        var vis = E.columnas[E.modulo] || [];
         var visSet = new Set(vis.map(function (c) { return c.clave; }));
-        $("lista-visibles").innerHTML = vis.map(function (x) {
+        var coincide = function (c) { return !q || (c.etiqueta + " " + c.grupo + " " + (c.familia || "")).toLowerCase().indexOf(q) !== -1; };
+        // 25-nov-2026: «Ocultar columnas vacías» (solo la pantalla): las que esconde siguen en la lista, marcadas «vacía»
+        $("ocultar-vacias").checked = !!E.ocultarVacias;
+        var vacias = columnasVacias() || {}, nVacias = Object.keys(vacias).length;
+        $("cuenta-vacias").textContent = E.ocultarVacias && nVacias ? "(" + nVacias + " en lo que ves)" : "";
+        var itemsVis = vis.map(function (x) {
             var c = colPorClave(x.clave);
-            if (!c || (q && c.etiqueta.toLowerCase().indexOf(q) === -1)) return "";
-            return '<li draggable="true" data-clave="' + esc(c.clave) + '"><span class="xml-agarre">⋮⋮</span>' + esc(c.etiqueta) +
-                '<button type="button" data-ocultar="' + esc(c.clave) + '" title="Ocultar">×</button></li>';
-        }).join("");
-        var grupos = {};
+            if (!c || !coincide(c)) return "";
+            return '<li draggable="true" data-clave="' + esc(c.clave) + '"' + (vacias[c.clave] ? ' class="xml-lista__vacia"' : "") + '><span class="xml-agarre">⋮⋮</span>' + esc(c.etiqueta) +
+                (vacias[c.clave] ? ' <small class="xml-tenue">vacía</small>' : "") +
+                '<button type="button" data-ocultar="' + esc(c.clave) + '" title="Ocultar" aria-label="Ocultar ' + esc(c.etiqueta) + '">×</button></li>';
+        }).filter(Boolean);
+        $("lista-visibles").innerHTML = itemsVis.join("");
+        $("lista-visibles").hidden = !itemsVis.length;
+        // Disponibles: por grupo. En una vista que parte de «Formato 2», primero sus columnas y después las de «Fiscontable»
+        // (25-nov-2026, el dueño), cada familia con su título y las de «Fiscontable» en sus grupos de siempre.
+        var mezcla = baseActual() === "formato2", familias = {}, orden = [];
         catalogo().forEach(function (c) {
-            if (visSet.has(c.clave) || (q && (c.etiqueta + " " + c.grupo).toLowerCase().indexOf(q) === -1)) return;
-            (grupos[c.grupo] = grupos[c.grupo] || []).push(c);
+            if (visSet.has(c.clave) || !coincide(c)) return;
+            var f = mezcla ? (c.familia || "Formato 2") : "";
+            if (!familias[f]) { familias[f] = {}; orden.push(f); }
+            (familias[f][c.grupo] = familias[f][c.grupo] || []).push(c);
         });
-        $("lista-disponibles").innerHTML = Object.keys(grupos).map(function (g) {
-            return '<div class="xml-grupo">' + esc(g) + "</div>" + grupos[g].map(function (c) {
-                return '<label class="xml-disp"><input type="checkbox" data-mostrar="' + esc(c.clave) + '"> ' + esc(c.etiqueta) + "</label>";
+        var disp = orden.map(function (f) {
+            var grupos = familias[f];
+            return (f ? '<div class="xml-grupo xml-grupo--familia">' + esc(f) + "</div>" : "") + Object.keys(grupos).map(function (g) {
+                return (g !== f ? '<div class="xml-grupo' + (f ? " xml-grupo--sub" : "") + '">' + esc(g) + "</div>" : "") + grupos[g].map(function (c) {
+                    return '<label class="xml-disp"><input type="checkbox" data-mostrar="' + esc(c.clave) + '"> ' + esc(c.etiqueta) + "</label>";
+                }).join("");
             }).join("");
-        }).join("") || '<p class="xml-tenue" style="padding:10px">Ya están todas visibles.</p>';
+        }).join("");
+        // 25-nov-2026 (el dueño escribió «obser» y le decía «Ya están todas visibles»): cada caso con su mensaje
+        var con = "«" + bruto + "»";
+        var msjVis = "", msjDisp = "";
+        if (q && !itemsVis.length && !disp) msjDisp = "No hay columnas con " + con + ".";
+        else {
+            if (q && !itemsVis.length) msjVis = "Ninguna de las visibles tiene " + con + ".";
+            if (!disp) msjDisp = q ? "Las que tienen " + con + " ya están visibles." : "Ya están todas visibles.";
+        }
+        $("visibles-vacio").textContent = msjVis;
+        $("visibles-vacio").hidden = !msjVis;
+        $("lista-disponibles").innerHTML = disp || '<p class="xml-tenue xml-panel__vacio">' + esc(msjDisp) + "</p>";
     }
 
     function prepararPanelColumnas() {
         $("btn-columnas").addEventListener("click", function () { $("panel-columnas").hidden = false; pintarPanelColumnas(); });
         $("cerrar-columnas").addEventListener("click", function () { $("panel-columnas").hidden = true; });
         $("buscar-columna").addEventListener("input", pintarPanelColumnas);
+        $("ocultar-vacias").addEventListener("change", function () {
+            E.ocultarVacias = this.checked;
+            guardarLocal("ocultarVacias", E.ocultarVacias);
+            olvidarVacias(); pintarTabla(); pintarPanelColumnas();
+        });
         $("btn-fabrica").addEventListener("click", function () { elegirVista(selActual()); });
         $("btn-moneda").addEventListener("click", elegirMoneda);
         $("lista-disponibles").addEventListener("change", function (e) {
@@ -1719,6 +2030,7 @@
                 if (lista.length) f.alertas = lista.join("; "); else delete f.alertas;
             });
         });
+        olvidarVacias();
         pintarFilas(true);
     }
 
@@ -2235,6 +2547,8 @@
     /* ============================================================ eventos */
     function cerrarMenus(excepto) {
         ["menu-vistas", "menu-filtros", "menu-otra"].forEach(function (id) { if (id !== excepto) $(id).hidden = true; });
+        if (excepto !== "menu-columna") cerrarMenuColumna(false);
+        $("btn-vistas").setAttribute("aria-expanded", String(!$("menu-vistas").hidden));
     }
 
     function prepararEventos() {
@@ -2316,12 +2630,12 @@
             $(par[0]).addEventListener("click", function (e) {
                 e.stopPropagation(); cerrarMenus(par[1]); $(par[1]).hidden = !$(par[1]).hidden;
                 if (par[1] === "menu-filtros" && !$(par[1]).hidden) pintarAvanzados();
+                if (par[1] === "menu-vistas") $("btn-vistas").setAttribute("aria-expanded", String(!$("menu-vistas").hidden));
             });
             $(par[1]).addEventListener("click", function (e) { e.stopPropagation(); });
         });
         document.addEventListener("click", function () { cerrarMenus(); });
         $("menu-vistas").addEventListener("click", function (e) { var b = e.target.closest("[data-accion]"); if (b) accionVista(b.dataset.accion, b.dataset.valor); });
-        $("btn-guardar-vista").addEventListener("click", function () { accionVista("nueva"); });
         document.querySelector(".mod-acciones").addEventListener("click", function (e) {
             var b = e.target.closest("[data-excel]"); if (b && !b.disabled) exportarExcel(b.dataset.excel);
         });
@@ -2375,6 +2689,7 @@
             ponerMarcasDup([x.rfc, x.lado, x.desde, x.hasta].join("|"), x.marcas);
         });
         prepararEncabezados();
+        prepararMenuColumna();
         prepararPanelColumnas();
     }
 })();

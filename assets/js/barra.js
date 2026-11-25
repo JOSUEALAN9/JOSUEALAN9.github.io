@@ -1930,11 +1930,44 @@
             'background:rgb(' + c[0] + ');box-shadow:0 0 0 3px rgb(' + c[1] + ')"></i></span>';
     }
     function itemAviso(a, clase) {
+        // 25-nov-2026 (paquete xml, «Proponer al despacho»): un aviso puede traer botones («Aprobar», «Rechazar»); entonces no
+        // es un enlace (un botón no va dentro de un enlace). Los quita el servidor al contestar.
+        var botones = a.acciones && a.acciones.length ? '<p class="fc-act-acciones">' + a.acciones.map(function (x, i) {
+            return '<button type="button" class="ui-btn ui-btn--28 ' + (x.primario ? "ui-btn--primario" : "ui-btn--secundario") + '" data-act-accion="' + i +
+                '" data-act-aviso="' + esc(a.id) + '">' + esc(x.texto) + "</button>";
+        }).join("") + "</p>" : "";
         var dentro = (luzMadrugada(a) || ico(D[ICONO_AVISO[a.tipo]] || D.campana, 1.8)) + "<div><b>" + esc(a.titulo) + "</b>" +
-            (a.detalle ? "<span>" + esc(a.detalle).replace(/\n/g, "<br>") + "</span>" : "") + "<small>" + esc(hace(a.creada)) + "</small></div>";
+            (a.detalle ? "<span>" + esc(a.detalle).replace(/\n/g, "<br>") + "</span>" : "") + botones + "<small>" + esc(hace(a.creada)) + "</small></div>";
         var ids = ' data-ids="' + esc((a.ids || [a.id]).join(",")) + '"';
-        return a.enlace && a.enlace.charAt(0) === "/" ? '<a class="' + clase + '" href="' + esc(a.enlace) + '"' + ids + ">" + dentro + "</a>"
+        return !botones && a.enlace && a.enlace.charAt(0) === "/" ? '<a class="' + clase + '" href="' + esc(a.enlace) + '"' + ids + ">" + dentro + "</a>"
             : '<div class="' + clase + '"' + ids + ">" + dentro + "</div>";
+    }
+    async function accionAviso(b) {
+        var id = Number(b.dataset.actAviso), lista = (actividad.datos && actividad.datos.avisos) || [];
+        var a = lista.find(function (x) { return x.id === id; }), x = a && a.acciones && a.acciones[Number(b.dataset.actAccion)];
+        if (!x || !/^\/api\//.test(String(x.post || ""))) return;
+        if (x.confirmar && !(await confirmar({ titulo: x.confirmar, si: x.texto, peligro: !x.primario }))) return;
+        var hermanos = b.parentNode.querySelectorAll("button");
+        hermanos.forEach(function (y) { y.disabled = true; });
+        b.classList.add("ui-btn--cargando");
+        actividad.version++;
+        try {
+            var r = await fetch(API + x.post, { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(x.cuerpo || {}) });
+            if (!r.ok) throw new Error(await window.Fiscontable.leerError(r));
+            var d = {};
+            try { d = await r.json(); } catch (e) { /* sin cuerpo */ }
+            a.acciones = null; a.leida = 1;
+            if (actividad.abierta) pintarActividad();
+            aviso(d.mensaje || "Listo.");
+            avisarOtrasPestanas(LLAVE_ACT_CAMBIO);
+        } catch (e) {
+            aviso(e.message || "No se pudo. Intenta de nuevo.");
+            hermanos.forEach(function (y) { y.disabled = false; });
+            b.classList.remove("ui-btn--cargando");
+        }
+        actividad.version++;
+        sondearActividad();
     }
     function pintarActividad() {
         var cuerpo = document.getElementById("fc-act-cuerpo"), d = actividad.datos;
@@ -2017,6 +2050,8 @@
     }
     // Abrir un aviso (o una empresa de una corrida) lo da por leído; abrir una corrida la despliega
     function clicActividad(e) {
+        var accion = e.target.closest("[data-act-accion]");
+        if (accion) { e.preventDefault(); e.stopPropagation(); if (!accion.disabled) accionAviso(accion); return; }
         var corrida = e.target.closest("[data-corrida]");
         if (corrida) {
             var id = corrida.dataset.corrida;

@@ -133,11 +133,12 @@
                 </div>
                 <button type="button" id="btn-moneda" class="xml-btn" title="Ver los importes en moneda extranjera en pesos (como en el Excel) o en su moneda" hidden>Importes: en su moneda</button>
                 <button type="button" id="btn-columnas" class="xml-btn">Columnas</button>
+                <!-- 25-nov-2026 (el dueño: «abarca mucho espacio»): sin el botón suelto «Guardar como vista nueva»; guardar, cambiar
+                     el nombre y proponer al despacho van en este menú, y «sin guardar» es una insignia chica en el mismo botón -->
                 <div class="xml-menu">
-                    <button type="button" id="btn-vistas" class="xml-btn" aria-haspopup="menu" title="Fiscontable, Formato 2 o tus vistas guardadas"><span id="nombre-vista">Vista: Fiscontable</span> ▾</button>
+                    <button type="button" id="btn-vistas" class="xml-btn xml-btn--vista" aria-haspopup="menu" aria-expanded="false" title="Vista: Fiscontable, Formato 2 o tus vistas guardadas"><span class="xml-btn__pre">Vista:</span><span id="nombre-vista" class="xml-btn__nombre">Fiscontable</span><span id="vista-sin-guardar" class="xml-insignia" hidden>sin guardar</span><span aria-hidden="true">▾</span></button>
                     <div id="menu-vistas" class="xml-menu__lista xml-menu__lista--vistas" role="menu" hidden></div>
                 </div>
-                <button type="button" id="btn-guardar-vista" class="xml-btn xml-btn--activo" title="Moviste, quitaste o agregaste columnas: guárdalas con un nombre para usarlas después" hidden>Guardar como vista nueva</button>
             </div>
         </div>
 
@@ -168,7 +169,7 @@
             <p id="sin-filas" class="xml-vacio xml-vacio--tabla" hidden>No hay registros con estos filtros.</p>
         </div>
         </div>
-        <p class="xml-pie"><span id="conteo-filas"></span> · Clic en un registro para ver su detalle (Ctrl+clic o clic medio: en otra pestaña) · Arrastra los encabezados para reordenar y su borde para cambiar el ancho.</p>
+        <p class="xml-pie"><span id="conteo-filas"></span> · Clic en un registro para ver su detalle (Ctrl+clic o clic medio: en otra pestaña) · Arrastra los encabezados para reordenar y su borde para cambiar el ancho · ⋮ o clic derecho en un encabezado: ordenar, mover u ocultar esa columna.</p>
         </div>
     </div>
 </main>
@@ -217,7 +218,8 @@
     </div>
 </dialog>
 
-<!-- 23-nov-2026: «Guardar como vista nueva» (su nombre y, para el titular, compartirla con el despacho) -->
+<!-- 23-nov-2026: «Guardar como vista nueva» (su nombre y, para el titular, compartirla con el despacho). 25-nov-2026: también
+     «Cambiar nombre…» (mismo diálogo, sin la casilla) -->
 <dialog class="fc-modal fc-modal--chica" id="dlg-vista" aria-labelledby="dlg-vista-titulo">
     <div class="fc-modal__cabeza"><div><h2 id="dlg-vista-titulo">Guardar como vista nueva</h2><p id="dlg-vista-sub"></p></div>
         <button type="button" class="fc-modal__cerrar" data-vista-dlg="cerrar" aria-label="Cerrar">×</button></div>
@@ -230,7 +232,7 @@
     </div>
     <div class="fc-modal__pie">
         <button type="button" class="ui-btn ui-btn--secundario ui-btn--36" data-vista-dlg="cerrar">Cancelar</button>
-        <button type="button" class="ui-btn ui-btn--primario ui-btn--36" data-vista-dlg="ok">Guardar vista</button>
+        <button type="button" class="ui-btn ui-btn--primario ui-btn--36" data-vista-dlg="ok" id="vista-dlg-ok">Guardar vista</button>
     </div>
 </dialog>
 
@@ -241,14 +243,23 @@
         <button type="button" id="cerrar-columnas" class="xml-enlace">Cerrar</button>
     </div>
     <input type="search" id="buscar-columna" placeholder="Buscar columna…">
+    <!-- 25-nov-2026, el dueño: esconder las que no traen nada en lo que ves. Es solo de la pantalla: no cambia la vista -->
+    <label class="ui-switch xml-panel__vacias" title="Solo en la pantalla: no cambia tu vista ni el Excel">
+        <input type="checkbox" id="ocultar-vacias"><span class="ui-switch__riel" aria-hidden="true"></span>
+        <span>Ocultar columnas vacías <small id="cuenta-vacias" class="xml-tenue"></small></span>
+    </label>
     <p class="xml-panel__sub">Visibles <span class="xml-tenue">(arrastra para ordenar)</span></p>
     <ol id="lista-visibles" class="xml-lista"></ol>
+    <p id="visibles-vacio" class="xml-tenue xml-panel__vacio" hidden></p>
     <p class="xml-panel__sub">Disponibles</p>
     <div id="lista-disponibles"></div>
     <div class="xml-panel__pie">
         <button type="button" id="btn-fabrica" class="xml-enlace">Deshacer mis cambios</button>
     </div>
 </aside>
+
+<!-- 25-nov-2026, el dueño («¿puedo seleccionar la columna y quitarla?»): el menú ⋮ de cada encabezado (o clic derecho) -->
+<div id="menu-columna" class="xml-menu__lista xml-menu__lista--columna" role="menu" aria-label="Opciones de la columna" hidden></div>
 
 <script src="/assets/js/comun/periodo-meses.js?v=202611252100"></script>
 <script src="/assets/js/comun/compartir.js?v=202611252100"></script>

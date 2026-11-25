@@ -1167,9 +1167,11 @@
         var html = '<div class="cf-tarjeta"><p class="cf-texto">Cada quien ve la tabla con su vista: <b>Fiscontable</b> (la de siempre), <b>Formato 2</b> ' +
             "(las 148 columnas del reporte «Facturas», en Emitidas y Recibidas) o una propia. Para guardar una, acomoda las columnas en " +
             "Administración de XML y usa <b>Vista ▾ › Guardar como vista nueva</b>. «Descargar Excel» sale con la vista que tengas puesta.</p>" +
-            (d.puede_compartir ? '<p class="cf-texto">' + (d.despacho ? "Como titular, puedes compartir una vista con todo el despacho desde ese menú. " : "") +
-                "Aquí las dejas de compartir o las borras.</p>"
-                : '<p class="cf-fmt__aviso">Solo ' + esc(d.titular || "el titular") + " (titular del despacho) comparte, cambia o borra estas vistas. Tú las usas desde el menú «Vista».</p>") +
+            // 25-nov-2026 (el dueño): cualquiera del despacho propone una vista suya; el titular la aprueba desde su campana
+            (d.puede_compartir ? '<p class="cf-texto">' + (d.despacho ? "Como titular, puedes compartir una vista con todo el despacho desde ese menú; " +
+                "las que te propongan te llegan a la campana para aprobarlas o rechazarlas. " : "") + "Aquí las dejas de compartir o las borras.</p>"
+                : '<p class="cf-fmt__aviso">Solo ' + esc(d.titular || "el titular") + " (titular del despacho) comparte, cambia o borra estas vistas. Tú las usas desde el menú «Vista». " +
+                  "Para que una tuya sea del despacho, proponla: <b>Vista ▾ › Proponer al despacho…</b></p>") +
             '<p class="cf-msj"></p></div>';
         var hay = Object.keys(NOMBRES).filter(function (m) { return (porModulo[m] || []).length; });
         if (!hay.length) html += '<div class="cf-tarjeta"><p class="cf-texto"><b>Todavía no hay vistas compartidas.</b> ' +

@@ -2017,6 +2017,8 @@ a.fc-act-item:hover { background: rgb(var(--g-50)); }
 .fc-act-item small { font-size: var(--t-12); color: rgb(var(--g-500)); }
 .fc-act-item--nuevo b::before { content: ""; display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: rgb(var(--ac-600)); margin-right: 6px; vertical-align: middle; }
 .fc-act-item--curso svg { color: rgb(var(--in-600)); }
+/* 25-nov-2026 (paquete xml): botones de un aviso que pide respuesta («Aprobar», «Rechazar») */
+.fc-act-item .fc-act-acciones { display: flex; flex-wrap: wrap; gap: var(--e-2); margin: var(--e-2) 0 2px; }
 /* Corrida de un proceso automático (19-nov-2026): un renglón que se abre con cada empresa */
 .fc-act-corrida + .fc-act-item, .fc-act-item + .fc-act-corrida, .fc-act-corrida + .fc-act-corrida { border-top: 1px solid rgb(var(--g-100)); }
 button.fc-act-item--grupo { width: 100%; background: none; border: 0; font: inherit; text-align: left; cursor: pointer; }

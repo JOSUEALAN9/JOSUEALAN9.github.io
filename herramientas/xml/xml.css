@@ -456,3 +456,47 @@ details.xd-seccion .xd-grupo + .xd-grupo { margin-top: 12px; }
 .xml-campo__error { margin: 8px 0 0; color: rgb(var(--er-600)); font-size: 13px; }
 #dlg-vista .xml-siempre { margin-top: 18px; }
 td .xml-tenue { font-size: inherit; }
+
+/* 25-nov-2026 (paquete xml, el dueño: la barra de vistas «abarca mucho espacio»): el botón «Vista ▾» dice solo el nombre
+   (cortado si es largo) y una insignia chica «sin guardar»; el menú ⋮ de cada columna; «Ocultar columnas vacías»; el panel
+   con las dos familias de columnas en una vista que parte de «Formato 2» */
+.xml-btn--vista { max-width: 300px; }
+.xml-btn--vista .xml-btn__pre { color: rgb(var(--g-500)); font-weight: 600; }
+.xml-btn--vista .xml-btn__nombre { min-width: 0; max-width: 170px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.xml-btn--vista .xml-insignia { margin-left: 0; font-weight: 700; }
+.xml-menu__lista .xml-menu__principal { color: var(--acento, rgb(var(--ac-600))); }
+.xml-menu__lista .xml-menu__nota { font-size: 12px; color: rgb(var(--g-600)); padding: 6px 10px; margin: 0; }
+.xml-menu__lista button:disabled { color: rgb(var(--g-300)); cursor: default; background: none; }
+.xml-menu__lista--columna { position: fixed; width: 260px; min-width: 0; z-index: 100; }     /* sobre el letrero «Ambiente de pruebas» (95) */
+.xml-menu__lista--columna .xml-menu__titulo { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.xml-tabla thead th .xml-th-menu { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); width: 20px; height: 26px; padding: 0;
+  border: 0; border-radius: 6px; background: rgb(var(--g-900)); color: rgb(var(--g-300)); font-size: 16px; font-weight: 800; line-height: 1; cursor: pointer; }
+.xml-tabla thead th .xml-th-menu:hover, .xml-tabla thead th .xml-th-menu[aria-expanded="true"] { background: rgb(var(--g-700)); color: rgb(var(--g-0)); }
+.xml-tabla thead th .xml-th-menu:focus-visible { outline: 2px solid rgb(var(--in-200)); outline-offset: -2px; color: rgb(var(--g-0)); }
+/* En las de importe el nombre va a la derecha: ahí el ⋮ va a la izquierda, para no taparlo */
+.xml-tabla thead th.xml-num .xml-th-menu { right: auto; left: 4px; }
+/* Con ratón solo aparece al pasar por el encabezado (o con el foco del teclado); escondido no estorba al clic ni al arrastre */
+@media (hover: hover) {
+  .xml-tabla thead th .xml-th-menu { opacity: 0; pointer-events: none; }
+  .xml-tabla thead th:hover .xml-th-menu, .xml-tabla thead th .xml-th-menu:focus-visible, .xml-tabla thead th .xml-th-menu[aria-expanded="true"] { opacity: 1; pointer-events: auto; }
+}
+.xml-panel__vacias { font-size: 13px; font-weight: 600; color: rgb(var(--g-700)); }
+.xml-panel__vacias small { font-weight: 500; }
+.xml-panel__vacio { padding: 10px; margin: 0; }
+.xml-lista li.xml-lista__vacia { color: rgb(var(--g-500)); }
+.xml-grupo.xml-grupo--familia { background: rgb(var(--g-100)); text-transform: uppercase; letter-spacing: .04em; }
+.xml-grupo.xml-grupo--sub { position: static; background: none; color: rgb(var(--g-600)); padding-top: 8px; }
+/* En el celular «sin guardar» es un punto (el texto lo sigue leyendo el lector de pantalla y lo dice el «title»), para que la
+   barra no baje un renglón más al hacer un cambio */
+@media (max-width: 640px) {
+  .xml-btn--vista { position: relative; }
+  .xml-btn--vista .xml-btn__pre { display: none; }
+  .xml-btn--vista .xml-btn__nombre { max-width: 120px; }
+  .xml-btn--vista .xml-insignia { position: absolute; top: 3px; right: 3px; width: 9px; height: 9px; padding: 0; overflow: hidden; color: transparent;
+    font-size: 1px; box-shadow: 0 0 0 2px rgb(var(--g-0)); }
+}
+@media (max-width: 700px) { .xml-menu__lista.xml-menu__lista--columna { width: auto; } }
+/* Revisión del 25-nov-2026: en el celular el menú «Vista» creció (cambios sin guardar, cambiar nombre, proponer) y, pegado
+   bajo su botón, lo de abajo («Proponer al despacho…», «Borrar») quedaba fuera de la pantalla sin poder alcanzarse. Ahora
+   sale desde abajo, completo, y se desliza por dentro; va sobre el letrero «Ambiente de pruebas» (95), como el de la columna */
+@media (max-width: 700px) { .xml-menu__lista.xml-menu__lista--vistas { top: auto; bottom: 12px; max-height: min(70vh, calc(100dvh - 24px)); z-index: 100; } }
