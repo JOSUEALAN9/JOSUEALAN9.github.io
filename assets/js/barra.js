@@ -4803,17 +4803,27 @@
        Abajo a la derecha: título, avance, «Ocultar / Mostrar» (el detalle renglón por renglón), «Detener» mientras
        corre y «Cerrar» al terminar. Lo usan Tributanet (presentar, revisar, descargar acuses) y Declaraciones del SAT.
        Si se oculta, se queda oculto la próxima vez (por navegador). Esc: lo oculta; ya terminado, lo cierra.
-         var p = Fiscontable.panelTrabajo({ alDetener: fn });
-         p.pintar({ titulo, estado, corre, filas: [{ clase: "ok" | "mal" | "va" | "", titulo, texto }] });   p.cerrar(); */
+         var p = Fiscontable.panelTrabajo({ alDetener: fn, alAccion: fn(fila, boton) });
+         p.pintar({ titulo, estado, corre, filas: [{ clase: "ok" | "mal" | "va" | "", titulo, texto, boton?, seccion? }] });   p.cerrar();
+       24-nov-2026 (la fila de Declaraciones): un renglón puede traer su botón ({ boton: "Detener" } → alAccion(fila, botón)) y
+       uno con { seccion: "En fila (2)" } es solo un subtítulo. Sin alDetener no hay «Detener» arriba (va en cada renglón). */
     function panelTrabajo(o) {
         o = o || {};
-        var LLAVE = "fc-trabajo-min", caja = null, min = false, corre = false;
+        var LLAVE = "fc-trabajo-min", caja = null, min = false, corre = false, filasPintadas = [];
         try { min = localStorage.getItem(LLAVE) === "1"; } catch (e) { /* sin almacenamiento */ }
         function parte(n) { return caja.querySelector('[data-t="' + n + '"]'); }
+        // 24-nov-2026: con varias búsquedas el panel crece; la página deja abajo su alto para que se pueda bajar y que el panel
+        // no tape lo último (p. ej. el aviso «Terminó…» con su botón)
+        function apartar() {
+            if (!caja) return;
+            var alto = caja.hidden ? 0 : Math.ceil(caja.getBoundingClientRect().height) + 32;
+            document.body.style.paddingBottom = alto ? alto + "px" : "";
+        }
         function ponerMin(v) {
             min = v; caja.classList.toggle("fc-trabajo--min", min);
             parte("min").textContent = min ? "Mostrar" : "Ocultar"; parte("min").setAttribute("aria-expanded", String(!min));
             try { localStorage.setItem(LLAVE, min ? "1" : "0"); } catch (e) { /* nada */ }
+            apartar();
         }
         function crear() {
             if (caja) return;
@@ -4827,11 +4837,17 @@
             document.body.appendChild(caja);
             ponerMin(min);
             parte("min").addEventListener("click", function () { ponerMin(!min); });
-            parte("cerrar").addEventListener("click", function () { caja.hidden = true; });
+            parte("cerrar").addEventListener("click", function () { caja.hidden = true; apartar(); });
             parte("detener").addEventListener("click", function () { if (o.alDetener) o.alDetener(parte("detener")); });
+            parte("filas").addEventListener("click", function (e) {
+                var b = e.target.closest("[data-fila]");
+                if (!b || !o.alAccion) return;
+                var f = filasPintadas[+b.dataset.fila];
+                if (f) o.alAccion(f, b);
+            });
             document.addEventListener("keydown", function (e) {
                 if (e.key !== "Escape" || caja.hidden || document.querySelector("dialog[open]")) return;
-                if (!corre) caja.hidden = true; else if (!min) ponerMin(true);
+                if (!corre) { caja.hidden = true; apartar(); } else if (!min) ponerMin(true);
             });
         }
         return {
@@ -4843,12 +4859,18 @@
                 parte("detener").hidden = !corre || !o.alDetener;
                 parte("detener").disabled = false;
                 parte("cerrar").hidden = corre;
-                parte("filas").innerHTML = (e.filas || []).map(function (f) {
-                    return '<li class="' + esc(f.clase || "") + '">' + (f.titulo ? "<b>" + esc(f.titulo) + "</b>" : "") + esc(f.texto || "") + "</li>";
+                filasPintadas = e.filas || [];
+                parte("filas").innerHTML = filasPintadas.map(function (f, i) {
+                    if (f.seccion) return '<li class="fc-trabajo__seccion">' + esc(f.seccion) + "</li>";
+                    var dentro = (f.titulo ? "<b>" + esc(f.titulo) + "</b>" : "") + esc(f.texto || "");
+                    if (f.boton) dentro = '<div class="fc-trabajo__fila"><span>' + dentro + '</span><button type="button" class="fc-trabajo__enlace" data-fila="' +
+                        i + '"' + (f.botonTitulo ? ' title="' + esc(f.botonTitulo) + '"' : "") + ">" + esc(f.boton) + "</button></div>";
+                    return '<li class="' + esc(f.clase || "") + '">' + dentro + "</li>";
                 }).join("");
                 caja.hidden = false;
+                apartar();
             },
-            cerrar: function () { if (caja) caja.hidden = true; },
+            cerrar: function () { if (caja) { caja.hidden = true; apartar(); } },
             abierto: function () { return !!caja && !caja.hidden; }
         };
     }

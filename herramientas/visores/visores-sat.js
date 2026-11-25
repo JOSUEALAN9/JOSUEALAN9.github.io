@@ -106,8 +106,13 @@
         if (!$("vs-leer")) return;                      // la página se bloqueó (módulo sin acceso)
         if (!S.empresa) { $("vs-caja").hidden = true; return; }
         $("vs-caja").hidden = false;
+        // 24-nov-2026 (Alan, misma falla que en Declaraciones): si se cambia de empresa mientras esta respuesta viene en camino,
+        // ya no se pinta (antes salía la lista de la otra empresa y, si su lectura acababa de terminar, «✓ Lectura guardada» y
+        // se abría en la pantalla de la nueva)
+        var empresa = S.empresa;
         try {
-            var r = await (await api("/api/visores/sat?rfc=" + encodeURIComponent(S.empresa.rfc))).json();
+            var r = await (await api("/api/visores/sat?rfc=" + encodeURIComponent(empresa.rfc))).json();
+            if (!S.empresa || S.empresa.rfc !== empresa.rfc) return;
             S.lecturas = r.lecturas; S.tope = r.tope_diario;
             var sel = $("vs-visor");
             if (sel && !sel.options.length && r.visores) {
@@ -119,7 +124,7 @@
             $("vs-leer").disabled = viva;
             clearTimeout(S.reloj);
             if (viva) S.reloj = setTimeout(function () { cargar(true); }, 3000);
-            else if (silencio && S.lecturas[0] && S.lecturas[0].estado === "completado" && S.lecturas[0].pantallas) { decir("✓ Lectura guardada."); abrir(S.lecturas[0].id); }
+            else if (silencio && S.lecturas[0] && S.lecturas[0].estado === "completado" && S.lecturas[0].pantallas) { decir("✓ Lectura guardada de " + (empresa.alias || empresa.nombre || empresa.rfc) + "."); abrir(S.lecturas[0].id); }
         } catch (e) { if (!silencio) decir(e.message, true); }
     }
     async function abrir(id) {

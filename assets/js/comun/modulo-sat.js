@@ -162,6 +162,7 @@
         estado = null;               // lo de la empresa anterior ya no vale para esta (se llena abajo)
         sinAlerta();
         quitarAjenos();
+        pintarEnCurso();
         esqueleto();
 
         var info = await investigarRFC(quien.rfc);
@@ -186,6 +187,7 @@
         estado = null;
         sinAlerta();
         quitarAjenos();
+        pintarEnCurso();
         pintarPaso2("");
     }
 
@@ -564,6 +566,7 @@
             clearInterval(seg.intervalo);
             delete seguimientos[jobId];
             if (enCurso[rfc] === jobId) delete enCurso[rfc];
+            pintarEnCurso();
         };
 
         async function vuelta() {
@@ -636,6 +639,38 @@
             vuelta().catch(function () { /* se intenta en la siguiente vuelta */ }).finally(function () { seg.ocupado = false; });
         }, 2000);
         sondeos.push(seg.intervalo);
+    }
+
+    /* 24-nov-2026 (Alan): al volver a la página (F5), lo que esta persona pidió y sigue en proceso, de cualquier empresa, se
+       vuelve a seguir y se dice con SU empresa («Sigue en proceso: constancia de …»); al terminar sale su aviso con Ver y
+       Descargar de ESE documento (avisoOtra), o su pantalla si es la empresa elegida. */
+    async function retomarEnCurso() {
+        try {
+            var r = await fetch(API + "/api/trabajos/en-curso?tipo=" + encodeURIComponent(MODULO.tipo), { credentials: "include" });
+            if (!r.ok) return;
+            var d = await r.json();
+            (d.trabajos || []).forEach(function (t) {
+                if (seguimientos[t.job_id]) return;
+                vigilarTrabajo(t.job_id, { rfc: t.rfc, alias: t.alias && t.alias !== t.rfc ? t.alias : "" });
+                if (seguimientos[t.job_id]) seguimientos[t.job_id].retomado = true;
+            });
+            pintarEnCurso();
+        } catch (e) { /* no es bloqueante */ }
+    }
+    // Una línea con los retomados que no son de la empresa en pantalla (la de la pantalla ya muestra su avance)
+    function pintarEnCurso() {
+        var nombres = Object.keys(seguimientos).map(function (id) { return seguimientos[id]; })
+            .filter(function (g) { return g.retomado && !(elegido && elegido.rfc === g.rfc); })
+            .map(function (g) { return g.nombre; });
+        var caja = $("en-curso-otras");
+        if (!nombres.length) { if (caja) caja.remove(); return; }
+        if (!caja) {
+            caja = document.createElement("p");
+            caja.id = "en-curso-otras"; caja.className = "ficha__nota"; caja.setAttribute("role", "status");
+            caja.style.cssText = "margin:0 0 12px;overflow-wrap:anywhere";
+            $("alerta").insertAdjacentElement("beforebegin", caja);
+        }
+        caja.textContent = "Sigue en proceso: " + MODULO.nombre.toLowerCase() + " de " + nombres.join(", ") + ". Te avisamos aquí al terminar.";
     }
 
     // El documento recién hecho, con lo que el servidor sabe de él (resultado, hasta cuándo se guarda). Sin respuesta, la fecha de hoy.
@@ -1232,6 +1267,7 @@
             alElegir: alElegirCliente,
             alLimpiar: alLimpiarCliente
         });
+        retomarEnCurso();            // 24-nov-2026: lo que sigue en proceso al volver a la página, con su empresa
 
         prepararDropzone();
         prepararDesdeClientes();
