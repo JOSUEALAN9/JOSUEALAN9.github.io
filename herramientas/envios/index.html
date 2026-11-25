@@ -55,7 +55,7 @@
         <section class="ev-paso" data-paso="1" aria-labelledby="ev-p1">
             <h3 id="ev-p1">¿A quién se le manda?</h3>
             <label class="ui-campo"><span class="ui-etiqueta">Nombre del envío <i>(lo ve quien lo recibe; si lo dejas vacío, se arma con lo que lleva)</i></span>
-                <input type="text" id="ev-nombre" class="ui-input" maxlength="80" placeholder="Mensual · 3 empresas · XML y Excel" autocomplete="off"></label>
+                <input type="text" id="ev-nombre" class="ui-input" maxlength="80" placeholder="Mensual · 3 empresas · XML, PDF y Excel" autocomplete="off"></label>
             <div class="ev-radios" role="radiogroup" aria-label="A quién va">
                 <label class="ui-check ev-radio"><input type="radio" name="ev-destino" value="grupo" checked>
                     <span><b>A un grupo</b><small>Un solo correo con el ZIP de todas las empresas del envío, a los correos que pongas.</small></span></label>
@@ -79,20 +79,10 @@
 
         <section class="ev-paso" data-paso="2" aria-labelledby="ev-p2" hidden>
             <h3 id="ev-p2">¿De qué empresas?</h3>
-            <!-- Lista desplegable con buscador; las elegidas quedan abajo como pastillas -->
-            <div class="ev-combo" id="ev-combo">
-                <button type="button" class="ui-select ev-combo__boton" id="ev-combo-boton" aria-haspopup="listbox" aria-expanded="false" aria-controls="ev-combo-panel">Elegir empresas</button>
-                <div class="ev-combo__panel" id="ev-combo-panel" hidden>
-                    <div class="ev-emp-barra">
-                        <input type="search" id="ev-emp-buscar" class="ui-input" placeholder="Buscar empresa o RFC…" autocomplete="off" aria-label="Buscar empresa">
-                        <button type="button" class="ui-btn ui-btn--secundario ui-btn--32" data-ev="todas">Marcar las que ves</button>
-                        <button type="button" class="ui-btn ui-btn--terciario ui-btn--32" data-ev="ninguna">Quitar todas</button>
-                    </div>
-                    <div id="ev-empresas" class="ev-empresas" role="listbox" aria-multiselectable="true" aria-label="Empresas"></div>
-                    <div class="ev-combo__pie"><button type="button" class="ui-btn ui-btn--secundario ui-btn--32" data-ev="combo-listo">Listo</button></div>
-                </div>
-            </div>
-            <div id="ev-elegidas" class="ev-elegidas" aria-live="polite"></div>
+            <!-- 25-nov-2026 (el dueño: «muy amontonados y en varias columnas»): el selector de la casa para listas largas, igual que
+                 el de proveedores y clientes: lo elegido arriba, buscador, «Todas» / «Ninguna», el conteo y una sola columna con
+                 scroll adentro; en el celular se abre a pantalla completa (lo arma envios.js) -->
+            <div class="ev-sel" id="ev-sel-emp"></div>
             <p class="ev-sin-correo" id="ev-sin-correo-emp" role="status" hidden></p>
             <p class="ui-ayuda">También se pueden marcar después, con las casillas de «Empresas de cada envío».</p>
         </section>
@@ -146,24 +136,24 @@
 
         <section class="ev-paso" data-paso="4" aria-labelledby="ev-p4" hidden>
             <h3 id="ev-p4">¿Qué lleva?</h3>
-            <div class="ev-dos">
-                <div>
-                    <!-- 23-nov-2026 (el dueño, C.2): los XML y PDF de cada empresa, lado y mes van en un ZIP chico con dos carpetas -->
-                    <p class="ev-sub">XML y PDF <i>(en un ZIP por empresa, con «Facturas» y «Complementos de pago»)</i></p>
-                    <div id="ev-xml" class="ev-checks"></div>
-                </div>
-                <div>
-                    <!-- 23-nov-2026 (el dueño, C.1): el mismo Excel del botón «Descargar Excel», con la vista que elijas -->
-                    <p class="ev-sub">Excel <i>(igual al botón «Descargar Excel», con la vista que elijas)</i></p>
-                    <div id="ev-excel" class="ev-excel"></div>
-                    <!-- 21-nov-2026 (el dueño): solo se ve si el periodo elegido en «Cuándo» abarca más de un mes y lleva algún Excel -->
-                    <label class="ui-check ev-adjuntar" id="ev-excel-periodo-caja" hidden><input type="checkbox" id="ev-excel-periodo">
-                        <span>Además, un Excel con todos los meses juntos (uno por cada Excel elegido).
-                            <small>Los de cada mes siguen en su carpeta.</small></span></label>
-                </div>
+            <!-- 25-nov-2026 (el dueño, paquete env): XML, PDF y el reporte en Excel por separado, por lado: solo XML, solo PDF, solo
+                 reportes o cualquier combinación. Los XML y PDF de cada empresa, lado y mes van en un ZIP chico con «Facturas» y
+                 «Complementos de pago» (C.2); cada Excel es el del botón «Descargar Excel», con la vista que elijas (C.1) -->
+            <div>
+                <p class="ev-sub">Comprobantes <i>(los XML y PDF, en un ZIP por empresa y lado; el Excel, suelto)</i></p>
+                <div id="ev-lleva" class="ev-lleva" role="group" aria-label="Qué lleva de cada lado"></div>
             </div>
-            <!-- 23-nov-2026 (el dueño, C.1): dos casillas para los Excel de Recibidos y Emitidos (ya no se eligen moneda ni hojas:
-                 van en pesos con el T.C. del DOF, al cierre si el mes cerró, y la conciliación con su reporte completo) -->
+            <div>
+                <!-- 25-nov-2026 (el dueño: «a ellos no les interesa tanto, a mí sí»): qué hojas del «Reporte completo» van -->
+                <p class="ev-sub">Conciliación de pagos (PPD) <i>(el «Reporte completo» de la pantalla; puedes dejar solo algunas hojas)</i></p>
+                <div id="ev-conc" class="ev-lleva" role="group" aria-label="Conciliación de pagos"></div>
+            </div>
+            <!-- 21-nov-2026 (el dueño): solo se ve si el periodo elegido en «Cuándo» abarca más de un mes y lleva algún Excel -->
+            <label class="ui-check ev-adjuntar" id="ev-excel-periodo-caja" hidden><input type="checkbox" id="ev-excel-periodo">
+                <span>Además, un Excel con todos los meses juntos (uno por cada Excel elegido).
+                    <small>Los de cada mes siguen en su carpeta.</small></span></label>
+            <!-- 23-nov-2026 (el dueño, C.1): dos casillas para los Excel de Recibidos y Emitidos (sin moneda: van en pesos con el T.C.
+                 del DOF, al cierre si el mes cerró) -->
             <div class="ev-dos ev-casillas" id="ev-casillas" hidden>
                 <label class="ui-check ev-adjuntar"><input type="checkbox" id="ev-dup">
                     <span>Incluir posible duplicado <small>La columna «Posible duplicado» en los Excel de Recibidos y Emitidos.</small></span></label>
@@ -181,16 +171,9 @@
                     <span>Solo de ciertos proveedores o clientes
                         <small>Elige al menos uno (apagado, van todos). Aplica al ZIP, a los Excel, a los PDF y a la revisión contra el SAT.</small></span></label>
                 <div class="ev-solo__panel" id="ev-solo-panel" hidden>
-                    <div class="ev-solo__barra">
-                        <div class="ev-solo__lados" role="group" aria-label="De qué lado">
-                            <button type="button" class="ev-chip" data-solo-lado="proveedores" aria-pressed="true">Proveedores <small id="ev-solo-n-proveedores"></small></button>
-                            <button type="button" class="ev-chip" data-solo-lado="clientes" aria-pressed="false">Clientes <small id="ev-solo-n-clientes"></small></button>
-                        </div>
-                        <input type="search" id="ev-solo-buscar" class="ui-input" placeholder="Buscar por nombre o RFC…" autocomplete="off" aria-label="Buscar proveedor o cliente">
-                    </div>
-                    <p class="ui-ayuda" id="ev-solo-lado-txt"></p>
-                    <div id="ev-solo-lista" class="ev-empresas ev-solo__lista" role="listbox" aria-multiselectable="true" aria-label="Proveedores o clientes"></div>
-                    <div id="ev-solo-elegidos" class="ev-elegidas" aria-live="polite"></div>
+                    <!-- 25-nov-2026 (el dueño): el mismo selector que el de las empresas (lo arma envios.js), con Proveedores / Clientes
+                         arriba y cada uno con su nombre y, abajo, su RFC -->
+                    <div class="ev-sel ev-sel--solo" id="ev-sel-solo"></div>
                     <!-- 21-nov-2026 (revisión de Fable): lo que va de cada lado; un lado sin elegidos va completo -->
                     <p class="ev-solo__resumen" id="ev-solo-resumen" aria-live="polite" hidden></p>
                 </div>

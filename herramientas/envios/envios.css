@@ -36,17 +36,45 @@
 .ev-base { margin: 0; padding: 8px 12px; border-radius: 10px; background: rgb(var(--in-50, var(--g-100))); color: rgb(var(--g-700)); font-size: var(--t-13); }
 .ev-nota { margin: 0; font-size: var(--t-13); color: rgb(var(--g-700)); }
 .ui-etiqueta i { font-style: normal; font-weight: 400; color: rgb(var(--g-500)); }
-/* empresas: lista desplegable */
-.ev-combo { display: grid; gap: 6px; }
-.ev-combo__boton { width: 100%; text-align: left; cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 8px; background-image: none; }
-.ev-combo__boton::after { content: "▾"; color: rgb(var(--g-500)); font-size: 12px; transition: transform .15s ease; }
-.ev-combo--abierto .ev-combo__boton::after { transform: rotate(180deg); }
-.ev-combo__panel { display: grid; gap: 8px; padding: 10px; border: 1px solid rgb(var(--g-300)); border-radius: 12px; background: rgb(var(--g-0)); box-shadow: var(--sombra-media, 0 6px 20px rgb(0 0 0 / .08)); }
-.ev-combo__panel[hidden] { display: none; }
-.ev-combo__pie { display: flex; justify-content: flex-end; }
-.ev-elegidas { display: flex; flex-wrap: wrap; gap: 6px; max-height: 132px; overflow: auto; }
-.ev-elegidas .ev-pastilla { max-width: min(100%, 280px); animation: none; }
+/* 25-nov-2026 (el dueño: «muy amontonados y en varias columnas»): el selector de listas largas, el mismo para las empresas y
+   para los proveedores / clientes: lo elegido arriba, buscador, «Todas» / «Ninguna» y el conteo, y una sola columna de alto
+   fijo con scroll adentro (nombre en negritas y, abajo, el RFC). En el celular se abre a pantalla completa. */
+.ev-sel { display: grid; gap: 8px; min-width: 0; }
+.ev-sel__abrir, .ev-sel__cabeza, .ev-sel__pie { display: none; }
+.ev-sel__panel { display: grid; gap: 10px; min-width: 0; }
+.ev-sel__elegidas { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; min-height: 26px; max-height: 92px; overflow: auto; }
+.ev-sel__elegidas .ev-pastilla { max-width: min(100%, 280px); animation: none; }
 .ev-elegidas__vacio { font-size: var(--t-13); color: rgb(var(--g-500)); }
+.ev-sel__buscar { height: 36px; min-width: 0; }
+.ev-sel__barra { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; }
+.ev-sel__cuenta { margin-left: auto; font-size: var(--t-13); color: rgb(var(--g-600)); font-variant-numeric: tabular-nums; }
+.ev-sel__lista { display: flex; flex-direction: column; height: 288px; overflow-y: auto; overscroll-behavior: contain; padding: 4px; border: 1px solid var(--linea); border-radius: var(--r-control); background: rgb(var(--g-0)); }
+.ev-sel--solo .ev-sel__lista { height: 252px; }
+.ev-sel__op { flex: none; display: flex; align-items: flex-start; gap: 10px; min-width: 0; padding: 7px 10px; border-radius: 8px; cursor: pointer; }
+.ev-sel__op:hover { background: rgb(var(--g-50)); }
+.ev-sel__op[aria-selected="true"] { background: rgb(var(--ac-600) / .06); }
+.ev-sel__op input { flex: none; margin-top: 3px; }
+.ev-sel__op > span { display: grid; gap: 1px; min-width: 0; }
+.ev-sel__op b { font-size: var(--t-14); font-weight: 600; color: rgb(var(--g-900)); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ev-sel__op small { font-size: var(--t-12); color: rgb(var(--g-600)); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ev-sel__vacio { margin: 0; padding: 10px; font-size: var(--t-13); color: rgb(var(--g-600)); }
+.ev-sel__lados { display: flex; flex-wrap: wrap; gap: 6px; }
+.ev-sel__lados small { margin-left: 4px; font-weight: 400; }
+.ev-sel__ayuda { margin: -4px 0 0; }
+@media (max-width: 640px) {
+    .ev-sel__abrir { display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%; min-width: 0; text-align: left; cursor: pointer; background-image: none; }
+    .ev-sel__abrir::after { content: "▸"; flex: none; color: rgb(var(--g-500)); font-size: 12px; }
+    .ev-sel__resumen { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .ev-sel__panel { display: none; }
+    .ev-sel--abierto .ev-sel__panel { position: fixed; inset: 0; z-index: 60; display: flex; flex-direction: column; gap: 10px; padding: 0 var(--modal-pad); background: rgb(var(--g-0)); }
+    .ev-sel--abierto .ev-sel__cabeza { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex: none; margin: 0 calc(-1 * var(--modal-pad)); padding: 12px var(--modal-pad); border-bottom: 1px solid var(--linea); font-size: var(--t-16); color: rgb(var(--g-900)); }
+    .ev-sel--abierto .ev-sel__elegidas, .ev-sel--abierto .ev-sel__buscar, .ev-sel--abierto .ev-sel__barra, .ev-sel--abierto .ev-sel__lados, .ev-sel--abierto .ev-sel__ayuda { flex: none; }
+    .ev-sel--abierto .ev-sel__barra .ev-sel__cuenta { display: none; }
+    .ev-sel--abierto .ev-sel__lista { flex: 1; height: auto; min-height: 0; }
+    .ev-sel--abierto .ev-sel__pie { display: flex; align-items: center; gap: 10px; flex: none; margin: 0 calc(-1 * var(--modal-pad)); padding: 12px var(--modal-pad) 18px; border-top: 1px solid var(--linea); }
+    .ev-sel--abierto .ev-sel__pie .ev-sel__cuenta { margin-left: 0; }
+    .ev-sel--abierto .ev-sel__pie .ui-btn { margin-left: auto; }
+}
 /* el correo */
 .ev-plantillas { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
 .ev-plantillas .ev-sub { margin: 0; }
@@ -67,8 +95,46 @@
 .ev-adjuntar { align-items: flex-start; gap: 8px; align-self: end; font-size: var(--t-14); }
 .ev-adjuntar input { margin-top: 3px; }
 .ev-adjuntar small { display: block; font-size: var(--t-12); color: rgb(var(--g-600)); line-height: 1.4; margin-top: 2px; }
-/* 23-nov-2026 (C.1): «Incluir posible duplicado» e «Incluir marcas fiscales» (ya no se eligen moneda ni hojas) */
+/* 23-nov-2026 (C.1): «Incluir posible duplicado» e «Incluir marcas fiscales» */
 .ev-casillas[hidden], .ev-casillas [hidden] { display: none; }
+/* 25-nov-2026 (paquete env): «Qué lleva», un renglón por lado con XML, PDF y Excel aparte, y la vista del Excel; la conciliación
+   con su vista y sus hojas */
+.ev-lleva { display: grid; min-width: 0; border: 1px solid var(--linea); border-radius: 12px; background: rgb(var(--g-0)); }
+.ev-lleva__fila { display: grid; grid-template-columns: minmax(140px, 1fr) auto minmax(0, 260px); align-items: center; gap: 8px 16px; min-width: 0; padding: 10px 14px; }
+.ev-lleva__fila + .ev-lleva__fila { border-top: 1px solid var(--linea); }
+.ev-lleva__nombre { display: grid; gap: 1px; min-width: 0; font-size: var(--t-14); font-weight: 600; color: rgb(var(--g-900)); }
+.ev-lleva__nombre small { font-size: var(--t-12); font-weight: 400; color: rgb(var(--g-600)); }
+.ev-lleva__cajas { display: flex; flex-wrap: wrap; gap: 6px; }
+.ev-toggle { display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 12px 0 10px; border: 1px solid rgb(var(--g-300)); border-radius: 999px; background: rgb(var(--g-0));
+             font-size: var(--t-13); font-weight: 600; color: rgb(var(--g-700)); cursor: pointer; user-select: none; }
+.ev-toggle:hover { border-color: rgb(var(--g-400)); }
+.ev-toggle input { margin: 0; accent-color: rgb(var(--ac-600)); }
+.ev-toggle:has(input:checked) { border-color: rgb(var(--ac-600)); background: rgb(var(--ac-600) / .08); color: rgb(var(--ac-700, var(--ac-600))); }
+.ev-toggle:has(input:focus-visible) { outline: 2px solid rgb(var(--ac-600)); outline-offset: 2px; }
+.ev-lleva__vista { display: grid; gap: 6px; min-width: 0; }
+.ev-lleva__vista .ui-select { width: 100%; min-width: 0; height: 32px; font-size: var(--t-13); }
+.ev-lleva__vista .ui-select:disabled { opacity: .5; cursor: not-allowed; }
+/* 25-nov-2026 (revisión de Fable): con las hojas de las dos conciliaciones abiertas, «Qué lleva» pasaba del alto de la regla
+   (1,591 px de 1,300). El botón sigue debajo de la vista; sus casillas van a lo ancho del renglón, en cuatro columnas */
+.ev-lleva__fila > .ev-hojas { grid-column: 1 / -1; min-width: 0; margin-top: -2px; }
+.ev-lleva__fila > .ev-hojas > .ev-hojas__boton { width: min(100%, 260px); margin-left: auto; }
+.ev-hojas__boton { display: flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px; border: 1px solid rgb(var(--g-300)); border-radius: var(--r-control);
+                   font-size: var(--t-13); color: rgb(var(--g-700)); cursor: pointer; list-style: none; }
+.ev-hojas__boton::-webkit-details-marker { display: none; }
+.ev-hojas__boton::after { content: "▾"; margin-left: auto; color: rgb(var(--g-500)); font-size: 12px; transition: transform .15s ease; }
+.ev-hojas[open] .ev-hojas__boton::after { transform: rotate(180deg); }
+.ev-hojas__boton b { font-weight: 600; color: rgb(var(--g-900)); }
+.ev-hojas--error .ev-hojas__boton { border-color: rgb(var(--er-600)); }
+.ev-hojas__panel { display: grid; gap: 6px; margin-top: 6px; padding: 10px 12px; border: 1px solid var(--linea); border-radius: 10px; background: rgb(var(--g-50)); }
+.ev-hojas__panel .ui-check { font-size: var(--t-13); }
+.ev-hojas__pie { display: flex; justify-content: flex-end; }
+@media (min-width: 641px) { .ev-hojas__panel { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px 14px; align-items: center; } .ev-hojas__pie { grid-column: 4; } }
+@media (max-width: 640px) {
+    .ev-lleva__fila { grid-template-columns: minmax(0, 1fr); gap: 8px; padding: 12px; }
+    .ev-lleva__fila > .ev-hojas { grid-column: auto; margin-top: 0; }
+    .ev-lleva__fila > .ev-hojas > .ev-hojas__boton { width: auto; margin-left: 0; }
+    .ev-lleva__vista:has(select:disabled) { display: none; }          /* sin su Excel, en el celular no ocupa lugar */
+}
 /* «Enviar ahora» */
 .ev-ahora { display: grid; gap: 12px; align-content: start; }          /* en el celular la ventana es de pantalla completa: sin estirar los renglones */
 /* «Enviar ahora» de varios meses (19-nov): Desde / Hasta lado a lado también en el celular, y el aviso de tamaño */
@@ -95,18 +161,6 @@
 .ev-sub { margin: 0 0 6px; font-size: var(--t-13); font-weight: 600; color: rgb(var(--g-700)); }
 .ev-sub i { font-style: normal; font-weight: 400; color: rgb(var(--g-600)); }
 .ev-checks { display: grid; gap: 8px; }
-.ev-excel { display: grid; gap: 6px; }
-.ev-excel__fila { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 170px); gap: 8px; align-items: center; }
-.ev-excel__fila .ui-check { min-width: 0; }
-.ev-excel__fila .ui-select { height: 32px; font-size: var(--t-13); min-width: 0; width: 100%; }
-.ev-emp-barra { display: flex; flex-wrap: wrap; gap: 6px; }
-.ev-emp-barra .ui-input { flex: 1 1 200px; min-width: 0; height: 32px; }
-.ev-empresas { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr)); gap: 2px 12px; max-height: 196px; overflow: auto;
-               border: 1px solid var(--linea); border-radius: var(--r-control); padding: 8px 10px; }
-.ev-empresas .ui-check { font-size: var(--t-13); min-width: 0; padding: 3px 0; }
-.ev-empresas .ui-check span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.ev-empresas .ui-check small { color: rgb(var(--g-500)); font-size: 11.5px; }
-.ev-empresas__vacio { grid-column: 1 / -1; margin: 0; font-size: var(--t-13); color: rgb(var(--g-600)); }
 .ev-radios { display: grid; gap: 8px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); }
 .ev-radio { align-items: flex-start; gap: 10px; padding: 10px 12px; border: 1px solid var(--linea); border-radius: 12px; }
 .ev-radio:has(input:checked) { border-color: rgb(var(--ac-600)); background: rgb(var(--ac-600) / .05); }
@@ -136,7 +190,7 @@
 .ev-hecho__det summary::before { content: "▸"; display: inline-block; transition: transform .15s; }
 .ev-hecho__det[open] summary::before { transform: rotate(90deg); }
 .ev-hecho__det ul { margin-top: 6px; }
-@media (max-width: 640px) { .ev-excel__fila { grid-template-columns: minmax(0, 1fr); } .ev-acciones .ui-btn:first-child { margin-right: 0; } }
+@media (max-width: 640px) { .ev-acciones .ui-btn:first-child { margin-right: 0; } }
 
 /* correos como pastillas (como en Cloudflare): se escribe, y con Enter, coma o espacio queda la pastilla con su × */
 .ev-correos { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; min-height: 36px; padding: 3px 8px; border: 1px solid rgb(var(--g-300)); border-radius: var(--r-control);
@@ -213,16 +267,10 @@
 .ev-unavez-form { display: grid; gap: 12px; min-width: 0; }
 .ev-solo { display: grid; gap: 10px; min-width: 0; padding-top: 4px; border-top: 1px solid var(--linea); }
 .ev-solo > .ev-adjuntar { align-self: start; padding-top: 10px; }
-.ev-solo__panel { display: grid; gap: 8px; min-width: 0; padding: 10px; border: 1px solid rgb(var(--g-300)); border-radius: 12px; }
-.ev-solo__barra { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
-.ev-solo__lados { display: inline-flex; gap: 6px; flex: none; }
-.ev-solo__lados small { margin-left: 4px; font-weight: 400; }
-.ev-solo__barra .ui-input { flex: 1 1 200px; min-width: 0; height: 32px; }
+.ev-solo__panel { display: grid; gap: 8px; min-width: 0; padding: 12px; border: 1px solid rgb(var(--g-300)); border-radius: 12px; }
 .ev-solo__panel .ui-ayuda { margin: 0; }
-.ev-solo__lista { max-height: 180px; }
-.ev-solo__lista .ui-check b { font-weight: 600; }
 .ev-hecho__solo { display: block; font-size: 12.5px; color: rgb(var(--g-700)); overflow-wrap: anywhere; }
-@media (max-width: 640px) { .ev-unavez__fila .ev-acciones { width: 100%; } .ev-solo__lados { width: 100%; } }
+@media (max-width: 640px) { .ev-unavez__fila .ev-acciones { width: 100%; } .ev-solo__panel { padding: 0; border: 0; } }
 /* 21-nov-2026 (revisión de Fable, hallazgo 7): qué va de cada lado con «Solo de estos proveedores / clientes» */
 .ev-solo__resumen { margin: 10px 0 0; padding: 9px 12px; border-radius: 10px; background: rgb(var(--av-50)); border: 1px solid rgb(var(--av-200));
     color: rgb(var(--g-800)); font-size: var(--t-13); font-weight: 600; overflow-wrap: anywhere; }
