@@ -459,6 +459,9 @@
         $("acciones-alcance").textContent = !n ? "No hay XML en la tabla."
             : E.seleccion.size ? "Sobre los " + n.toLocaleString("es-MX") + " seleccionados." : "Sobre los " + n.toLocaleString("es-MX") + " XML que ves.";
         $("btn-zip").disabled = $("btn-pdf").disabled = $("btn-zip-completo").disabled = $("btn-compartir").disabled = !n;
+        // 25-nov-2026 (el dueño): «Formato 2 para importar (sin títulos)» solo aparece con una vista de «Formato 2»
+        var imp = document.querySelector('.mod-acciones [data-excel="importar"]');
+        if (imp) imp.hidden = !(conF2() && baseActual() === "formato2") || enConceptos();
     }
 
     /* ============================================================ minimódulos */
@@ -1149,7 +1152,15 @@
     function pintarSeleccion() {
         var n = E.seleccion.size;
         $("barra-seleccion").hidden = n === 0;
-        $("texto-seleccion").textContent = n + " XML seleccionado" + (n === 1 ? "" : "s");
+        // 25-nov-2026 (el dueño: «marqué 3 y salieron 2»): lo marcado se queda aunque cambies el chip, la búsqueda o un filtro, y
+        // va completo al Excel; si alguna marcada ya no se ve en la tabla, se dice aquí
+        var ocultas = 0;
+        if (n) {
+            var vistas = new Set((E.filas || []).map(function (f) { return f.uuid; }));
+            E.seleccion.forEach(function (u) { if (!vistas.has(u)) ocultas++; });
+        }
+        $("texto-seleccion").textContent = n + " XML seleccionado" + (n === 1 ? "" : "s") +
+            (ocultas ? " · " + ocultas + (ocultas === 1 ? " no se ve" : " no se ven") + " con estos filtros" : "");
         pintarAlcance();
     }
 
@@ -1305,9 +1316,12 @@
        las columnas de la vista activa en su orden (aunque no la hayas guardado), los renglones de la pantalla (periodo,
        pestaña, chip, búsqueda y filtros) o, si marcaste renglones con su casilla, solo esos. En pesos con el T.C. del DOF
        sin preguntar (las columnas de la moneda original se quedan) y, si el mes ya cerró, al cierre con «Pago posterior al
-       periodo». Con «Formato 2», la hoja «XML» de 148 columnas. Con el reporte por conceptos abierto, su Excel. */
-    async function exportarExcel() {
-        var boton = document.querySelector('.mod-acciones [data-excel="unico"]');
+       periodo». Con «Formato 2», sus 148 columnas. Con el reporte por conceptos abierto, su Excel.
+       25-nov-2026 (el dueño): «Formato 2» también con nuestro formato (los mismos 148 nombres y en su orden); formato
+       "importar" = «Formato 2 para importar (sin títulos)», como antes. Con renglones marcados se manda cuántos son: van
+       todos (aunque el chip esconda alguno) y el Excel dice «Selección: N facturas marcadas». */
+    async function exportarExcel(formato) {
+        var boton = document.querySelector('.mod-acciones [data-excel="' + (formato === "importar" ? "importar" : "unico") + '"]');
         if (!boton || boton.disabled) return;
         if (enConceptos()) { if (XMLConceptos.excel) XMLConceptos.excel(boton); return; }
         if (!E.rfc || !hayEleccion()) return avisar("Elige empresa y periodo para descargar el Excel.");
@@ -1320,6 +1334,8 @@
         var filtrado = E.busqueda.trim() || Object.keys(E.rapidos).some(function (k) { return E.rapidos[k]; }) ||
             Object.keys(E.av).some(function (k) { return E.av[k]; });
         cuerpo.uuids = E.seleccion.size ? Array.from(E.seleccion) : filtrado ? Array.from(new Set(E.filas.map(function (f) { return f.uuid; }))) : null;
+        if (E.seleccion.size) cuerpo.marcadas = E.seleccion.size;
+        if (formato === "importar" && baseActual() === "formato2") cuerpo.formato_excel = "importar";
         var texto = boton.innerHTML;
         boton.disabled = true; boton.innerHTML = "<b>⏳</b>Generando…";
         try {
@@ -2307,7 +2323,7 @@
         $("menu-vistas").addEventListener("click", function (e) { var b = e.target.closest("[data-accion]"); if (b) accionVista(b.dataset.accion, b.dataset.valor); });
         $("btn-guardar-vista").addEventListener("click", function () { accionVista("nueva"); });
         document.querySelector(".mod-acciones").addEventListener("click", function (e) {
-            var b = e.target.closest("[data-excel]"); if (b && !b.disabled) exportarExcel();
+            var b = e.target.closest("[data-excel]"); if (b && !b.disabled) exportarExcel(b.dataset.excel);
         });
         $("btn-zip").addEventListener("click", descargarZip);
         $("btn-zip-completo").addEventListener("click", descargarZipCompleto);
