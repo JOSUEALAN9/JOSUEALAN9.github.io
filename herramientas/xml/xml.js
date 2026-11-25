@@ -2118,6 +2118,7 @@
     }
 
     function leerXML(nombre, bytes) {
+        if (!bytes.length) { BJ.invalidos.push({ archivo: nombre, motivo: NO_XML.vacio }); return; }
         if (bytes.length > 5 * 1024 * 1024) { BJ.invalidos.push({ archivo: nombre, motivo: "Pesa más de 5 MB." }); return; }
         var texto = new TextDecoder("utf-8").decode(bytes);
         var doc = new DOMParser().parseFromString(texto, "application/xml");
@@ -2147,10 +2148,36 @@
         return BJ.cargandoZip;
     }
 
+    // 25-nov-2026 (hueco H6, el dueño): un PDF u otro archivo ya no se ignora en silencio: queda en «no son CFDI» con su
+    // motivo y se avisa. El PDF que llega junto con su XML (mismo nombre, como en los ZIP de Fiscontable) se omite sin aviso:
+    // ese XML sí se carga y el PDF se arma solo. Lo mismo hace el servidor (modulos/xml/biblioteca.expandir_archivos).
+    var NO_XML = { pdf: "Es un PDF: aquí se cargan los XML de las facturas (o un ZIP con ellos). Carga su XML; el PDF se arma solo.",
+        otro: "No es un XML ni un ZIP: aquí se cargan los XML de las facturas (o un ZIP con ellos).", vacio: "El archivo está vacío." };
+    function separarArchivos(archivos) {
+        function raiz(n) { return String(n || "").split("/").pop().replace(/\.[^.]*$/, "").toLowerCase(); }
+        var conXml = {}, utiles = [], fuera = [];
+        archivos.forEach(function (f) { if (/\.xml$/i.test(f.name)) conXml[raiz(f.name)] = true; });
+        archivos.forEach(function (f) {
+            var pdf = /\.pdf$/i.test(f.name);
+            if (/\.(xml|zip)$/i.test(f.name)) utiles.push(f);
+            else if (!(pdf && conXml[raiz(f.name)])) fuera.push({ archivo: f.name, motivo: pdf ? NO_XML.pdf : NO_XML.otro });
+        });
+        var texto = "";
+        if (fuera.length === 1) texto = "«" + fuera[0].archivo + "» no se carga. " + fuera[0].motivo;
+        else if (fuera.length) {
+            var pdfs = fuera.filter(function (x) { return x.motivo === NO_XML.pdf; }).length;
+            texto = fuera.length + " archivos no se cargan porque no son XML ni ZIP" + (pdfs ? " (" + pdfs + " PDF)" : "") +
+                ". Aquí se cargan los XML de las facturas (o un ZIP con ellos).";
+        }
+        return { utiles: utiles, fuera: fuera, texto: texto };
+    }
+
     async function agregarArchivos(archivos) {
         abrirBandeja();
-        var utiles = archivos.filter(function (f) { return /\.(xml|zip)$/i.test(f.name); });
-        if (!utiles.length) { avisar("No encontré XML ni ZIP en lo que agregaste."); return; }
+        var sep = separarArchivos(archivos), utiles = sep.utiles;
+        BJ.invalidos = BJ.invalidos.concat(sep.fuera);
+        if (sep.texto) avisar(sep.texto);
+        if (!utiles.length) { if (!sep.texto) avisar("No encontré XML ni ZIP en lo que agregaste."); pintarBandeja(); return; }
         var leyendo = $("leyendo");
         leyendo.hidden = false;
         leyendo.textContent = "Leyendo…";
@@ -2164,6 +2191,7 @@
                     await cargarJSZip();
                     var zip = await window.JSZip.loadAsync(f);
                     var entradas = Object.keys(zip.files).filter(function (n) { return !zip.files[n].dir && /\.xml$/i.test(n); });
+                    if (!entradas.length) BJ.invalidos.push({ archivo: f.name, motivo: "El ZIP no trae ningún XML." });
                     for (var j = 0; j < entradas.length; j++) {
                         leerXML(entradas[j].split("/").pop(), await zip.files[entradas[j]].async("uint8array"));
                         if (++hechos % 50 === 0) { leyendo.textContent = "Leyendo… " + hechos + " XML"; await new Promise(function (r) { setTimeout(r, 0); }); }

@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex">
+    <title>Probar con errores · Fiscontable</title>
+    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611252100">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611252100">
+    <style>
+        /* 25-nov-2026 (el dueño): «Probar con errores», la tercera pestaña junto a Laboratorio y Probar todo. Mismo diseño que
+           «Probar todo» (las reglas pt- son las de /admin/probar/); lo propio de esta página lleva el prefijo pe-. */
+        .pt-pestanas { justify-self: start; display: inline-flex; gap: 2px; padding: 3px; border-radius: 10px; background: rgb(var(--g-200)); max-width: 100%; overflow-x: auto; scrollbar-width: none; }
+        .pt-pestanas a { flex: none; padding: 6px 14px; border-radius: 8px; font-size: 13px; font-weight: 700; color: rgb(var(--g-600)); text-decoration: none; white-space: nowrap; }
+        .pt-pestanas a:hover { color: rgb(var(--g-900)); }
+        .pt-pestanas a[aria-selected="true"] { background: rgb(var(--g-0)); color: rgb(var(--g-900)); box-shadow: 0 1px 2px rgba(15, 23, 42, .12); }
+        .pt { display: grid; gap: var(--e-4); grid-template-columns: minmax(0, 1fr); }
+        @media (min-width: 1080px) { .pt { grid-template-columns: 400px minmax(0, 1fr); align-items: start; } }
+        .pt > *, .pt-tarjeta > * { min-width: 0; }
+        .pt-col { display: grid; gap: var(--e-4); min-width: 0; }
+        .pt-tarjeta { border: 1px solid var(--linea); border-radius: var(--r-tarjeta); background: rgb(var(--g-0)); padding: var(--e-4); display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--e-3); min-width: 0; }
+        .pt-tarjeta h2 { margin: 0; font-size: var(--t-16); font-weight: 700; color: rgb(var(--g-900)); }
+        .pt-cab { display: flex; flex-wrap: wrap; gap: var(--e-2); align-items: center; }
+        .pt-cab h2 { margin-right: auto; }
+        .pt-sub { margin: 0; font-size: var(--t-12); color: rgb(var(--g-600)); line-height: 1.5; }
+        .pt-campo { display: grid; gap: 8px; font-size: var(--t-13); font-weight: 600; color: rgb(var(--g-700)); }
+        .pt-candado { display: flex; gap: 10px; padding: 10px 12px; border-radius: var(--r-control); background: rgb(var(--ok-50)); color: rgb(var(--ok-700)); font-size: var(--t-12); line-height: 1.5; }
+        .pt-candado svg { width: 18px; height: 18px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; margin-top: 1px; }
+        .pt-enlace { border: 0; background: none; padding: 0; font: inherit; font-weight: 600; color: rgb(var(--ac-700)); cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
+        .pt-barra { height: 6px; border-radius: 999px; background: rgb(var(--g-200)); overflow: hidden; }
+        .pt-barra span { display: block; height: 100%; background: rgb(var(--ac-600)); transition: width .3s; }
+        .pt-cuenta { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; font-size: var(--t-13); color: rgb(var(--g-700)); }
+        .pt-cuenta b { color: rgb(var(--g-900)); }
+        .pt-bloque { border: 1px solid var(--linea); border-radius: 10px; overflow: hidden; min-width: 0; }
+        .pt-bloque > summary { list-style: none; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 10px; align-items: center; padding: 10px 14px; cursor: pointer; background: rgb(var(--g-50)); }
+        .pt-bloque > summary::-webkit-details-marker { display: none; }
+        .pt-bloque > summary b { font-size: var(--t-14); color: rgb(var(--g-900)); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .pt-bloque > summary small { font-size: var(--t-12); color: rgb(var(--g-500)); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .pt-bloque > summary .pt-chips { grid-row: span 2; }
+        .pt-chips { display: flex; flex-wrap: wrap; gap: 4px; justify-content: flex-end; }
+        .pt-chip { display: inline-flex; align-items: center; gap: 4px; padding: 1px 8px; border-radius: 999px; font-size: 11.5px; font-weight: 700; background: rgb(var(--g-100)); color: rgb(var(--g-700)); white-space: nowrap; }
+        .pt-chip--ok { background: rgb(var(--ok-50)); color: rgb(var(--ok-700)); }
+        .pt-chip--falla { background: rgb(var(--er-50)); color: rgb(var(--er-700, 185 28 28)); }
+        .pt-chip--conocido, .pt-chip--corriendo { background: rgb(var(--av-50)); color: rgb(var(--av-700)); }
+        .pt-fila { display: grid; grid-template-columns: 22px minmax(0, 1fr) auto; gap: 1px 10px; padding: 7px 14px; border-top: 1px solid rgb(var(--g-100)); align-items: start; }
+        .pt-fila i { font-style: normal; font-weight: 800; font-size: 14px; line-height: 20px; text-align: center; color: rgb(var(--g-400)); }
+        .pt-fila b { font-size: var(--t-13); color: rgb(var(--g-900)); line-height: 20px; }
+        .pt-fila em { font-style: normal; font-size: var(--t-12); color: rgb(var(--g-500)); white-space: nowrap; line-height: 20px; }
+        .pt-fila p { grid-column: 2 / -1; margin: 0; font-size: var(--t-12); color: rgb(var(--g-600)); line-height: 1.5; overflow-wrap: anywhere; }
+        .pt-fila--ok i { color: rgb(var(--ok-600)); }
+        .pt-fila--falla i { color: rgb(var(--er-600)); }
+        .pt-fila--falla .pe-paso { color: rgb(var(--er-700, 185 28 28)); }
+        .pt-fila--conocido i, .pt-fila--corriendo i { color: rgb(var(--av-600)); }
+        .pt-fila--conocido .pe-conocido { color: rgb(var(--av-700)); }
+        .pt-fila--corriendo i { animation: pt-gira 1.2s linear infinite; }
+        @keyframes pt-gira { to { transform: rotate(360deg); } }
+        /* En el celular lo que salió bien dice lo que pasó en 2 renglones (tócalo para leerlo completo); lo que falló, completo */
+        @media (max-width: 640px) { .pt-fila--ok p { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; cursor: pointer; }
+            .pt-fila p.pt-completo { display: block; } .pt-fila { padding: 7px 10px; } .pt-bloque > summary { padding: 9px 10px; } }
+        .pt-hist { display: grid; max-height: 640px; overflow-y: auto; }
+        .pt-hfila { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 10px; padding: 9px 8px; border: 0; border-top: 1px solid rgb(var(--g-100)); background: none; text-align: left; font: inherit; cursor: pointer; border-radius: 8px; }
+        .pt-hfila:first-child { border-top: 0; }
+        .pt-hfila:hover, .pt-hfila[aria-current="true"] { background: rgb(var(--g-50)); }
+        .pt-hfila b { font-size: var(--t-13); color: rgb(var(--g-900)); }
+        .pt-hfila small { font-size: var(--t-12); color: rgb(var(--g-500)); }
+        .pt-hfila .pt-chips { grid-row: span 2; align-self: center; }
+        .pt-acciones { display: flex; flex-wrap: wrap; gap: 8px; }
+        .pt-ay { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; }
+        .pt-ay li { font-size: var(--t-13); line-height: 1.5; color: rgb(var(--g-800)); }
+        .pt-ay b { color: rgb(var(--g-900)); }
+        .pt-ay-sub { margin: 18px 0 8px; font-size: var(--t-13); font-weight: 700; color: rgb(var(--g-900)); }
+        #pe-ayuda .fc-modal__cuerpo > * { flex: none; }
+        /* Lo propio: la lista de grupos (casilla por grupo con cuántos escenarios trae) */
+        .pe-grupos { display: grid; border: 1px solid var(--linea); border-radius: 10px; }
+        .pe-grupo { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 9px 12px; border-top: 1px solid rgb(var(--g-100)); cursor: pointer; font-size: var(--t-13); font-weight: 400; color: rgb(var(--g-800)); }
+        .pe-grupo:first-child { border-top: 0; }
+        .pe-grupo:hover { background: rgb(var(--g-50)); }
+        .pe-grupo input { width: 16px; height: 16px; accent-color: rgb(var(--ac-600)); }
+        .pe-grupo small { font-size: var(--t-12); color: rgb(var(--g-500)); white-space: nowrap; }
+        /* Los grupos vienen todos marcados: la lista se abre con «Elegir» (así la pantalla cabe en el celular) */
+        .pe-elegir { font-size: var(--t-13); font-weight: 600; color: rgb(var(--g-700)); min-width: 0; }
+        .pe-elegir > summary { list-style: none; display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline; cursor: pointer; }
+        .pe-elegir > summary::-webkit-details-marker { display: none; }
+        .pe-elegir > summary small { font-weight: 400; color: rgb(var(--g-500)); margin-right: auto; }
+        .pe-elegir > summary::after { content: "▾"; color: rgb(var(--g-500)); }
+        .pe-elegir[open] > summary::after { content: "▴"; }
+        @media (max-width: 640px) { .pt-fila--ok p:not(.pe-paso) { display: none; } }
+        /* Los resultados: una sola lista con un renglón plegable por grupo (13 grupos caben en una pantalla) */
+        .pe-lista { border: 1px solid var(--linea); border-radius: 10px; overflow: hidden; min-width: 0; }
+        .pe-lista > .pt-bloque { border: 0; border-radius: 0; border-top: 1px solid var(--linea); }
+        .pe-lista > .pt-bloque:first-child { border-top: 0; }
+        .pe-lista .pt-bloque > summary { padding: 9px 14px; background: rgb(var(--g-0)); }
+        .pe-lista .pt-bloque > summary:hover, .pe-lista .pt-bloque[open] > summary { background: rgb(var(--g-50)); }
+        .pe-lista .pt-bloque > summary .pt-chips { grid-row: auto; }
+        .pe-nombre { display: flex; gap: 8px; align-items: baseline; min-width: 0; }
+        .pe-nombre b { min-width: 0; }
+        .pe-nombre small { flex: none; }
+        @media (max-width: 640px) { .pe-lista .pt-bloque > summary { padding: 9px 10px; } .pe-nombre small { display: none; } }
+        .pe-caja { margin: 0; font-size: var(--t-12); color: rgb(var(--g-600)); line-height: 1.5; }
+        .pe-caja b { color: rgb(var(--g-800)); }
+        .mod-pagina [hidden] { display: none !important; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+<div id="app-header" data-modulo="admin" data-titulo="Probar con errores" data-migas="Administración|/admin/"></div>
+<script src="/assets/js/nucleo.js?v=202611252100"></script>
+<script src="/assets/js/barra.js?v=202611252100"></script>
+
+<main class="flex-grow mod-pagina" style="max-width:none">
+    <div class="mod-cabeza" style="margin-bottom:var(--e-4);display:grid;gap:10px">
+        <div class="pt-pestanas" role="tablist" aria-label="Pruebas con el SAT">
+            <a role="tab" href="/admin/laboratorio/" aria-selected="false">Laboratorio</a>
+            <a role="tab" href="/admin/probar/" aria-selected="false">Probar todo</a>
+            <a role="tab" href="/admin/probar/errores/" aria-selected="true">Con errores</a>
+        </div>
+        <h1 style="margin:0">Probar con errores</h1>
+        <p style="margin:0;font-size:var(--t-13);color:rgb(var(--g-600))">Pruebas hechas mal a propósito (contraseñas equivocadas, archivos que no son, personas sin permiso, doble clic…) para ver cómo responde Fiscontable. Corren en una caja aparte con datos inventados que se borra al terminar. Solo para ti (administrador).
+            <button type="button" class="pt-enlace" data-ayuda>Qué hace y qué no</button></p>
+    </div>
+    <div id="pe-aviso" class="ui-vacio" hidden></div>
+    <div class="pt" id="pe" hidden>
+        <div class="pt-col">
+            <form class="pt-tarjeta" id="pe-forma">
+                <div class="pt-cab"><h2>Qué probar</h2><span class="ui-estado" id="pe-servidor"></span></div>
+                <details class="pe-elegir" id="pe-elegir">
+                    <summary><span>Grupos</span><small id="pe-cuenta"></small><span class="pt-enlace" style="font-size:var(--t-12)">Elegir</span></summary>
+                    <div style="display:grid;gap:8px;margin-top:8px">
+                        <button type="button" class="pt-enlace" id="pe-todas" style="justify-self:start;font-size:var(--t-12)">Quitar todas</button>
+                        <div class="pe-grupos" id="pe-grupos"></div>
+                    </div>
+                </details>
+                <div class="pt-candado"><svg viewBox="0 0 24 24"><path d="M6 11h12v9H6zM9 11V8a3 3 0 0 1 6 0v3"/></svg>
+                    <span>Caja aparte: una cuenta y empresas inventadas, una base nueva y sin internet. No toca tus empresas, el SAT ni el PAC, y no sale ningún correo. Al terminar se borra.</span></div>
+                <button type="submit" class="ui-btn ui-btn--primario ui-btn--36" id="pe-lanzar">Probar con errores</button>
+            </form>
+        </div>
+        <div class="pt-col">
+            <div class="fc-vista" role="tablist" aria-label="Resultado o historial" id="pe-vista" style="justify-self:start">
+                <button type="button" role="tab" aria-selected="true" data-vista="corrida">Resultado</button>
+                <button type="button" role="tab" aria-selected="false" data-vista="historial">Historial <span id="pe-hist-n" style="color:rgb(var(--g-500))"></span></button>
+            </div>
+            <section class="pt-tarjeta" id="pe-corrida" data-panel="corrida"><div class="ui-vacio"><b>Todavía no hay corridas</b><span>Pulsa «Probar con errores»: en menos de un minuto verás, por escenario, qué se esperaba, qué pasó y si Fiscontable respondió bien.</span></div></section>
+            <section class="pt-tarjeta" data-panel="historial" hidden>
+                <h2>Historial</h2>
+                <p class="pt-sub">Las últimas corridas, con su resultado. Pulsa una para verla.</p>
+                <div class="pt-hist" id="pe-hist"></div>
+            </section>
+        </div>
+    </div>
+</main>
+<dialog class="fc-modal" id="pe-ayuda" aria-labelledby="pe-ayuda-titulo">
+    <div class="fc-modal__cabeza"><div><h2 id="pe-ayuda-titulo">Qué hace «Probar con errores»</h2>
+        <p>Hace a propósito lo que no se debe y revisa que Fiscontable lo detenga con un mensaje claro y sin dejar nada a medias.</p></div>
+        <button type="button" class="fc-modal__cerrar" data-ayuda-cerrar aria-label="Cerrar">×</button></div>
+    <div class="fc-modal__cuerpo">
+        <ul class="pt-ay" id="pe-ay-grupos"></ul>
+        <h3 class="pt-ay-sub">Lo que nunca hace</h3>
+        <ul class="pt-ay">
+            <li>No toca tus empresas ni tu base: todo pasa en una caja aparte, con una cuenta, un despacho y empresas inventadas (RFC de pruebas del SAT y certificados sintéticos).</li>
+            <li>No va al SAT ni al PAC y no manda correos: la caja no tiene internet; el SAT, el PAC y el correo son simulados.</li>
+            <li>No deja nada: al terminar (o si la detienes) la caja se borra completa. Aquí solo queda el resultado.</li>
+        </ul>
+        <h3 class="pt-ay-sub">Cómo leer el resultado</h3>
+        <ul class="pt-ay">
+            <li><b>✔ Bien</b>: Fiscontable respondió como se esperaba (por ejemplo, rechazó el PDF con un mensaje claro).</li>
+            <li><b>✘ Falló</b>: respondió distinto; «Pasó» dice qué hizo.</li>
+            <li><b>⚠ Falló — error conocido</b>: es un error que ya se conoce y se arregla aparte; dice cuál.</li>
+        </ul>
+    </div>
+    <div class="fc-modal__pie"><button type="button" class="ui-btn ui-btn--primario ui-btn--36" data-ayuda-cerrar>Entendido</button></div>
+</dialog>
+<script src="/admin/probar/errores.js?v=202611252100"></script>
+</body>
+</html>
