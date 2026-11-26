@@ -94,7 +94,7 @@
 .cf-nuevas span { display: flex; flex-direction: column; gap: 2px; }
 .cf-nuevas small { font-size: var(--t-12); color: rgb(var(--g-500)); line-height: 1.45; }
 
-/* Plan y créditos: tarjetas de planes */
+/* Plan y licencia: tarjetas de planes */
 .cf-subtitulo { font-size: 15px; font-weight: 700; margin: 22px 0 10px; color: rgb(var(--g-900)); }
 .cf-planes { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
 .cf-plan { position: relative; display: flex; flex-direction: column; gap: 4px; padding: 18px 16px 16px; border: 1px solid var(--linea); border-radius: 16px; background: rgb(var(--g-0)); }
@@ -196,9 +196,41 @@
     padding: 12px 16px; border-radius: 12px; border: 1px solid rgb(var(--av-600) / .35); background: rgb(var(--av-600) / .06); }
 .cf-auto__nosalio[hidden] { display: none !important; }
 .cf-auto__nosalio small { display: block; color: rgb(var(--g-600)); margin-top: 2px; }
-.cf-auto__tabla .cf-celda-acciones { white-space: normal; width: 1%; }
-.cf-auto__tabla .cf-celda-acciones .cf-btn { display: block; width: 100%; margin: 3px 0; white-space: nowrap; }
+/* 26-nov-2026 (el dueño: «me molesta mucho que haya un botón para cada empresa»): sin botones por renglón. Cada renglón se guarda
+   solo («✓ Guardado» verde junto a lo que se movió, 2 s, sin mover nada; si no se pudo, el motivo en rojo bajo el renglón) y
+   «Descargar ahora» va con casillas y la barra de las marcadas (la de Cierre de meses, flotando como la de Administración de
+   XML: abajo al centro; en el celular, arriba). */
+.cf-auto__tabla td { position: relative; }
+/* 26-nov-2026 (revisión de fix3): sin los botones, la tabla debe caber completa a 1280 con el menú desplegado (el interruptor del
+   Buzón quedaba cortado a la derecha): celdas y listas más juntas, y el nombre de la empresa en un renglón mientras quepa. En
+   pantallas más angostas se sigue deslizando dentro de su tarjeta. */
+.cf-auto__tabla thead th, .cf-auto__tabla tr[data-rfc] > td { padding-left: 7px; padding-right: 7px; }
+.cf-auto__tabla thead th:first-child, .cf-auto__tabla tr[data-rfc] > td:first-child { padding-left: 14px; }
+.cf-auto__tabla thead th:last-child, .cf-auto__tabla tr[data-rfc] > td:last-child { padding-right: 14px; }
+.cf-auto__tabla select { padding: 6px 2px 6px 6px; }
+.cf-auto__tabla .cf-auto__marca { width: 1%; padding-right: 0; }
+.cf-auto__marca input { display: block; width: 16px; height: 16px; margin: 0; accent-color: rgb(var(--ac-600)); cursor: pointer; }
+.cf-auto__marca input:disabled { cursor: not-allowed; }
+.cf-tabla small.cf-auto__dijo { position: absolute; left: 12px; top: calc(50% + 17px); white-space: nowrap; font-size: 11.5px; font-weight: 600; color: rgb(var(--ok-600)); pointer-events: none; }
+.cf-tabla.cf-auto__tabla small.cf-auto__dijo { left: 7px; }          /* (revisión) alineado con lo de su celda, que ahora empieza a 7 px */
+.cf-auto__buzon small.cf-auto__dijo { position: static; display: block; min-height: 16px; white-space: normal; font-size: 12px; font-weight: 600; color: rgb(var(--ok-600)); }
+.cf-auto__buzon small.cf-auto__dijo--mal { color: rgb(var(--er-600)); }
+.cf-auto__tabla tr:has(+ .cf-auto__error) td { border-bottom: 0; }
+.cf-auto__tabla .cf-auto__error td { padding: 0 12px 10px; }
+.cf-auto__error span { position: sticky; left: 12px; display: inline-block; max-width: min(560px, calc(100vw - 72px)); font-size: 12.5px; font-weight: 600; color: rgb(var(--er-600)); }
+.cm-seleccion.cf-auto__sel { position: fixed; z-index: 50; left: 50%; bottom: 60px; transform: translateX(-50%); width: max-content; max-width: min(920px, calc(100vw - 24px)); margin: 0;
+                padding: 8px 8px 8px 14px; box-shadow: 0 12px 32px rgba(15, 23, 42, .28); }
+.cm-seleccion.cf-auto__sel[hidden] { display: none; }
+.cf-auto__sel-quitar { border: 0; background: none; border-radius: 8px; padding: 4px 8px; font: inherit; font-size: 15px; line-height: 1; color: rgb(var(--g-300)); cursor: pointer; }
+.cf-auto__sel-quitar:hover { color: rgb(var(--g-0)); }
+body:has(.cf-auto__sel:not([hidden])) .cf-contenido { padding-bottom: 110px; }      /* lo último de la tabla no queda debajo de la barra */
+@media (max-width: 700px) {
+    .cm-seleccion.cf-auto__sel { top: calc(var(--barra-alto, 56px) + 8px); bottom: auto; width: calc(100vw - 24px); }
+    .cf-auto__sel [data-sel-ahora] { margin-left: auto; }
+    .cf-incrustado .cm-seleccion.cf-auto__sel { top: 8px; }
+}
 .cf-auto__cancelados { display: block; color: rgb(var(--er-600)); font-weight: 600; }
+.cf-auto__faltantes { display: block; color: rgb(var(--av-600)); font-weight: 600; }   /* 24-nov-2026 (auditoría de Fable): naranja */
 
 /* 20-nov-2026: Formato de los reportes («formato del despacho» del Excel · reporte completo) */
 .cf-fmt__intro { margin: 0 0 12px; max-width: 860px; }
@@ -239,3 +271,25 @@
 .cf-solo-titular { margin: 8px 0 12px; padding: 10px 14px; border-radius: 10px; background: rgb(var(--g-50)); border: 1px solid var(--linea); font-size: 13.5px; color: rgb(var(--g-700)); }
 .cf-solo-titular__chico { font-size: 12px; color: rgb(var(--g-500)); }
 .cf-tarjeta--tabla > .cf-solo-titular { margin: 12px 16px; }
+
+/* 23-nov-2026 (Avance 1): Vistas del despacho */
+.cf-vd__lista { list-style: none; margin: 0; padding: 0; }
+.cf-vd__fila { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 12px 0; border-top: 1px solid rgb(var(--g-200)); }
+.cf-vd__fila span { min-width: 0; }
+.cf-vd__fila b { display: block; font-size: 14.5px; color: rgb(var(--g-900)); overflow-wrap: anywhere; }
+.cf-vd__fila small { display: block; font-size: 12.5px; color: rgb(var(--g-500)); margin-top: 2px; }
+.cf-vd__acciones { display: flex; gap: 8px; flex-wrap: wrap; }
+.cf-vd__acciones .cf-btn--peligro { color: rgb(var(--er-600)); }
+
+/* 25-nov-2026: el correo de la mañana (Configuración › Avisos) y su vista previa */
+.cf-mn__nota { margin: 14px 0 2px; font-weight: 600; color: rgb(var(--g-700)); }
+.cf-mn-vista .fc-modal__cuerpo { gap: 14px; background: #f4f4f2; }
+.cf-mn-vista__marco { display: flex; justify-content: center; min-width: 0; }
+.cf-mn-vista__marco[hidden] { display: none; }
+.cf-mn-vista iframe { width: 100%; max-width: 720px; height: min(68vh, 760px); border: 1px solid var(--linea); border-radius: 12px; background: #f4f4f2; }
+@media (max-width: 640px) {
+    .cf-mn-vista [data-mn="ancho"] { display: none; }            /* en el celular ya se ve como en el celular */
+    .cf-mn-vista .fc-modal__cuerpo { padding: 12px; overflow: hidden; }
+    .cf-mn-vista__marco { flex: 1; min-height: 0; }
+    .cf-mn-vista iframe { height: 100%; min-height: 280px; border-radius: 10px; }
+}

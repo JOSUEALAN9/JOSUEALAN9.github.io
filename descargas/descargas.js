@@ -7,20 +7,29 @@ let hayEnPreparacion = false;
 let procesosConocidos = new Map();
 let primeraCarga = true;
 
-// M-19: por defecto se ve lo de HOY y de la empresa activa; los filtros se recuerdan en este navegador.
-const FILTRO = (() => { try { return Object.assign({ cuando: "hoy", tipo: "", empresa: "activa" }, JSON.parse(localStorage.getItem("fc-descargas-filtro") || "{}")); } catch (e) { return { cuando: "hoy", tipo: "", empresa: "activa" }; } })();
-let empresaActiva = null;
-// El aviso de un envío trae «?paquete=<id>»: se abre viendo solo ese paquete (19-nov, el dueño: «con el link podamos identificar
-// el descargar correcto»). «Ver todas» lo quita.
+// M-19: por defecto se ve lo de HOY; los filtros se recuerdan en este navegador. 25-nov-2026 (el dueño): el filtro de
+// empresa es el alcance de arriba («Mis asignadas · Todas · Una empresa…»), el mismo del cajón de la barra.
+const FILTRO = (() => { try { return Object.assign({ cuando: "hoy", tipo: "" }, JSON.parse(localStorage.getItem("fc-descargas-filtro") || "{}")); } catch (e) { return { cuando: "hoy", tipo: "" }; } })();
+// El aviso de un envío (o el del paquete de la noche) trae «?paquete=<id>»: se abre viendo ese paquete, en su pestaña (19-nov,
+// el dueño: «con el link podamos identificar el descargar correcto»; Z25). «Ver todas» lo quita.
 let PAQUETE = new URLSearchParams(location.search).get("paquete") || "";
+let paqueteUbicado = false;
+let repintarControles = null;
 
 document.addEventListener("DOMContentLoaded", async () => {
-    try { empresaActiva = await Fiscontable.empresaActiva(); } catch (e) { empresaActiva = null; }
+    const D = Fiscontable.descargas;
+    if (new URLSearchParams(location.search).get("pestana") === "automaticas") D.pestana("automaticas");
+    repintarControles = D.controles(document.getElementById("dsc-controles"), alCambiarControles);
     prepararFiltros();
-    cargarDescargas();
+    await cargarDescargas();
+    D.automaticas(false).then(() => { if (repintarControles) repintarControles(); pintarDeNuevo(); });
     programarRefresco();
 });
-window.addEventListener("fiscontable:empresa", (e) => { empresaActiva = e.detail || null; prepararFiltros(); pintarDeNuevo(); });
+function alCambiarControles(que) {
+    if (que === "alcance") { cargarDescargas(true); Fiscontable.descargas.automaticas(false).then(pintarDeNuevo); return; }   // ya se pidió al elegir
+    pintarDeNuevo();
+    if (Fiscontable.descargas.pestana() === "automaticas") Fiscontable.descargas.automaticas(false).then(pintarDeNuevo);
+}
 
 function grupoTipo(t) {
     t = t || "";
@@ -38,35 +47,34 @@ const GRUPOS_TIPO = { "": "Todos los tipos", constancias: "Constancias y opinion
 function prepararFiltros() {
     const caja = document.getElementById("dsc-filtros");
     if (!caja) return;
-    const nombre = empresaActiva ? (empresaActiva.alias || empresaActiva.rfc) : "";
+    // 25-nov-2026 (revisión de Fable a mdes): el filtro de fechas va en pastillas (fc-chip), no en otra barra segmentada igual a la
+    // de «Mis pedidos · Automáticas» de arriba: así se ve que es un filtro y no otra pestaña
     caja.innerHTML =
-        '<div class="ctx-segmento" role="group" aria-label="Cuándo">' +
+        '<div class="fc-chips dsc-cuando" role="group" aria-label="Cuándo"><span class="dsc-filtros__etq">Cuándo</span>' +
         [["hoy", "Hoy"], ["7", "7 días"], ["30", "30 días"], ["todo", "Todo"]].map(([v, t]) =>
-            `<button type="button" data-cuando="${v}" aria-pressed="${FILTRO.cuando === v}">${t}</button>`).join("") + "</div>" +
+            `<button type="button" class="fc-chip" data-cuando="${v}" aria-pressed="${FILTRO.cuando === v}">${t}</button>`).join("") + "</div>" +
         '<select class="ui-select" id="dsc-tipo" aria-label="Tipo">' + Object.entries(GRUPOS_TIPO).map(([v, t]) =>
-            `<option value="${v}"${FILTRO.tipo === v ? " selected" : ""}>${esc(t)}</option>`).join("") + "</select>" +
-        '<select class="ui-select" id="dsc-empresa" aria-label="Empresa">' +
-            (nombre ? `<option value="activa"${FILTRO.empresa === "activa" ? " selected" : ""}>Solo ${esc(nombre)}</option>` : "") +
-            `<option value="todas"${FILTRO.empresa !== "activa" || !nombre ? " selected" : ""}>Todas las empresas</option></select>`;
+            `<option value="${v}"${FILTRO.tipo === v ? " selected" : ""}>${esc(t)}</option>`).join("") + "</select>";
     caja.onclick = (e) => {
         const b = e.target.closest("[data-cuando]"); if (!b) return;
         FILTRO.cuando = b.dataset.cuando; guardarFiltro(); prepararFiltros(); pintarDeNuevo();
     };
     caja.onchange = (e) => {
         if (e.target.id === "dsc-tipo") FILTRO.tipo = e.target.value;
-        if (e.target.id === "dsc-empresa") FILTRO.empresa = e.target.value;
         guardarFiltro(); pintarDeNuevo();
     };
 }
 function guardarFiltro() { try { localStorage.setItem("fc-descargas-filtro", JSON.stringify(FILTRO)); } catch (e) { /* nada */ } }
+function deUnaEmpresa() { const a = Fiscontable.descargas.alcance(); return !!a && a !== "todas" && a !== "asignadas"; }
+function esElPaquete(p) { return !!PAQUETE && (p.grupo === PAQUETE || String(p.id) === PAQUETE); }
 function pasaFiltro(p) {
     if (PAQUETE) {          // solo ese paquete: el entero si esta persona lo tiene; si no, los de sus empresas
-        if (p.grupo !== PAQUETE) return false;
+        if (!esElPaquete(p)) return false;
         return !(p.tipo === "envio_parte" && Fiscontable.descargas.tieneEntero(p, window._ultimosProcesos));
     }
-    // El paquete de una sola empresa: quien tiene todas las empresas lo ve con «Solo esta empresa»; con «Todas» trabaja
-    // con el entero (aunque ya lo haya quitado de su lista: los sueltos siguen ahí para su equipo, no para él)
-    if (p.tipo === "envio_parte" && p.parte_de_todo && !(FILTRO.empresa === "activa" && empresaActiva)) return false;
+    // El paquete de una sola empresa: quien tiene todas las empresas lo ve con «Una empresa»; con «Todas» trabaja con el
+    // entero (aunque ya lo haya quitado de su lista: los sueltos siguen ahí para su equipo, no para él)
+    if (p.tipo === "envio_parte" && p.parte_de_todo && !deUnaEmpresa()) return false;
     if (p.estado === "procesando") return true;                      // lo que sigue trabajando siempre se ve
     if (FILTRO.cuando !== "todo") {
         const f = new Date(String(p.creado_en).length <= 19 ? p.creado_en + "Z" : p.creado_en);
@@ -75,10 +83,9 @@ function pasaFiltro(p) {
         if (f < limite) return false;
     }
     if (FILTRO.tipo && grupoTipo(p.tipo) !== FILTRO.tipo) return false;
-    if (FILTRO.empresa === "activa" && empresaActiva && p.clase === "individual" && p.titulo !== empresaActiva.rfc) return false;
-    // Un envío de varias empresas deja el paquete entero y el de cada una. Con «Solo esta empresa» se ve el suyo; con
-    // «Todas», el entero (si esta persona lo tiene: en un despacho, quien tiene empresas limitadas solo recibe los suyos)
-    if (p.tipo === "envio_parte" && !(FILTRO.empresa === "activa" && empresaActiva) && Fiscontable.descargas.tieneEntero(p, window._ultimosProcesos)) return false;
+    // Un envío de varias empresas deja el paquete entero y el de cada una. Con «Una empresa» se ve el suyo; con «Todas», el
+    // entero (si esta persona lo tiene: en un despacho, quien tiene empresas limitadas solo recibe los suyos)
+    if (p.tipo === "envio_parte" && !deUnaEmpresa() && Fiscontable.descargas.tieneEntero(p, window._ultimosProcesos)) return false;
     return true;
 }
 function pintarDeNuevo() { if (window._ultimosProcesos) pintarProcesos(window._ultimosProcesos); }
@@ -197,11 +204,12 @@ function cerrarMotivos() {
 document.addEventListener("keydown", (e) => { if (e.key === "Escape") cerrarMotivos(); });
 
 function verTodas() { PAQUETE = ""; try { history.replaceState(null, "", location.pathname); } catch (e) { /* nada */ } pintarDeNuevo(); }
+window.verTodas = verTodas;
 
 /* «Limpiar lista»: quita lo que se está viendo en «Listos para descargar» (con los filtros puestos), de una vez. */
 async function limpiarListos() {
     const D = Fiscontable.descargas;
-    const listos = D.sinProgramadas(window._ultimosProcesos || []).filter(pasaFiltro).filter(p => p.estado === "completado");
+    const listos = D.dePestana(window._ultimosProcesos || [], "pedidos").filter(pasaFiltro).filter(p => p.estado === "completado");
     if (!listos.length) return;
     const si = await Fiscontable.confirmar({
         titulo: "¿Quitar " + (listos.length === 1 ? "esta descarga" : "estas " + listos.length + " descargas") + " de la lista?", si: "Limpiar", peligro: true,
@@ -220,7 +228,7 @@ async function limpiarListos() {
 
 async function limpiarTodosLosFallidos() {
     if (!(await Fiscontable.confirmar({ titulo: "¿Quitar todas las que no se completaron?", texto: "Solo salen de esta lista; no se borra nada que ya se haya descargado.", si: "Quitar todas" }))) return;
-    const fallidos = (window._ultimosProcesos || []).filter(p => p.estado !== "completado" && p.estado !== "procesando");
+    const fallidos = Fiscontable.descargas.dePestana(window._ultimosProcesos || [], "pedidos").filter(p => p.estado !== "completado" && p.estado !== "procesando");
     for (const p of fallidos) {
         try {
             await fetch(`${API_URL}/api/procesos/${p.clase}/${p.id}`, { method: "DELETE", credentials: "include" });
@@ -235,7 +243,8 @@ async function cargarDescargas(silencioso = false) {
     try {
         // 22-nov-2026 (auditoría datos-1): la página pide todo lo que se guarda (7 días), no solo lo más reciente de todo el
         // despacho: así «7 días», «30 días» y «Todo» sí lo tienen aunque cada noche entren ~100 descargas automáticas
-        const resp = await fetch(`${API_URL}/api/procesos?limite=3000`, { credentials: "include" });
+        // 25-nov-2026: con el alcance de arriba (Mis asignadas · Todas · Una empresa)
+        const resp = await fetch(Fiscontable.descargas.urlProcesos("limite=3000"), { credentials: "include" });
 
         if (resp.status === 401 || resp.status === 403) {
             mostrarAviso("Tu sesión expiró. Recarga la página para volver a entrar.");
@@ -269,29 +278,44 @@ async function cargarDescargas(silencioso = false) {
 }
 
 function pintarProcesos(todos) {
-        // Lo programado para la madrugada no va aquí: avisa en la campana y vive en Configuración › Lo automático
         const D = Fiscontable.descargas;
-        const procesos = D.sinProgramadas(todos).filter(pasaFiltro);
+        // 25-nov-2026: el aviso de un paquete (?paquete=) abre la pestaña donde está; el de la noche, su ronda abierta
+        if (PAQUETE && !paqueteUbicado) {
+            const p = todos.find(esElPaquete);
+            if (p) {
+                paqueteUbicado = true;
+                if (D.pestana() !== p.pestana) { D.pestana(p.pestana); if (repintarControles) repintarControles(); }
+                if (p.pestana === "automaticas" && p.noche && /^programada_/.test(p.tipo || "")) { D.resaltar(p.noche); PAQUETE = ""; }
+            }
+        }
+        const auto = D.pestana() === "automaticas";
+        document.getElementById("seccion-automaticas").hidden = !auto;
+        document.getElementById("dsc-filtros").hidden = auto;
+        if (auto) { pintarAutomaticas(todos); return; }
+        // Lo programado para la madrugada y lo automático no van aquí: «Automáticas» (y Configuración › Lo automático)
+        const procesos = D.dePestana(todos, "pedidos").filter(pasaFiltro);
         const preparando = procesos.filter(p => p.estado === "procesando");
         const listos = procesos.filter(p => p.estado === "completado");
         const atencion = procesos.filter(p => p.estado !== "procesando" && p.estado !== "completado");
 
+        // 25-nov-2026 (revisión de Fable a mdes): la nota vivía dentro de «Listos para descargar», que se esconde cuando el paquete
+        // ya no está: «Ese paquete ya no está» nunca se veía. Ahora va arriba de las secciones y cuenta todo lo del paquete.
         const nota = document.getElementById("dsc-paquete");
         if (nota) {
             nota.hidden = !PAQUETE;
-            if (PAQUETE) nota.innerHTML = (listos.length ? "Estás viendo solo el paquete de ese envío. " : "Ese paquete ya no está: se borró o pasaron sus días. ") +
+            if (PAQUETE) nota.innerHTML = (procesos.length ? "Estás viendo solo el paquete de ese envío. " : "Ese paquete ya no está: se borró o pasaron sus días. ") +
                 '<button type="button" class="xml-enlace" data-fc-clic="verTodas">Ver todas las descargas</button>';
         }
         const limpiar = document.getElementById("dsc-limpiar"); if (limpiar) limpiar.hidden = !!PAQUETE || !listos.length;
         document.getElementById("seccion-preparando").classList.toggle("hidden", preparando.length === 0);
         document.getElementById("seccion-listos").classList.toggle("hidden", listos.length === 0);
         document.getElementById("seccion-atencion").classList.toggle("hidden", atencion.length === 0);
-        document.getElementById("estado-vacio").classList.toggle("hidden", procesos.length > 0);
+        document.getElementById("estado-vacio").classList.toggle("hidden", procesos.length > 0 || !!PAQUETE);   // con ?paquete= lo dice la nota
         document.getElementById("vacio-titulo").textContent = todos.length ? "Nada con estos filtros" : "Todavía no has descargado nada";
-        document.getElementById("vacio-texto").textContent = todos.length ? "Prueba con «7 días», «Todo» o «Todas las empresas»." : "Aquí aparecen tus constancias, opiniones, declaraciones y XML.";
+        document.getElementById("vacio-texto").textContent = todos.length ? "Prueba con «7 días», «Todo» o «Todas» arriba." : "Aquí aparece lo que pides: constancias, opiniones, declaraciones, XML y reportes. Lo que Fiscontable hace solo está en «Automáticas».";
 
         // Misma tarjeta y mismas acciones que el panel de Descargas de la barra
-        document.getElementById("nota-programadas").innerHTML = D.notaProgramadas(todos);
+        document.getElementById("nota-programadas").innerHTML = "";
         document.getElementById("lista-preparando").innerHTML = preparando.map(D.tarjeta).join("");
         tablaListos().ponerDatos(listos.map(filaLista));
         document.getElementById("lista-atencion").innerHTML = atencion.map(D.tarjeta).join("");
@@ -299,6 +323,25 @@ function pintarProcesos(todos) {
         // «nuevo» se queda en esta vista; desaparece la próxima vez.
         if (D.marcarVistos) D.marcarVistos(listos.concat(atencion).filter(p => !p.visto));
         const ret = document.getElementById("dsc-retencion"); if (ret) ret.style.visibility = "";
+}
+
+/* ---------- «Automáticas» (25-nov-2026): las rondas y lo automático con archivo, como en el cajón de la barra */
+function pintarAutomaticas(todos) {
+    const D = Fiscontable.descargas;
+    ["seccion-preparando", "seccion-listos", "seccion-atencion", "estado-vacio"].forEach(id => document.getElementById(id).classList.add("hidden"));
+    const notaPedidos = document.getElementById("dsc-paquete"); if (notaPedidos) notaPedidos.hidden = true;     // la de «Mis pedidos»
+    document.getElementById("nota-programadas").innerHTML = "";
+    const caja = document.getElementById("dsc-auto"), nota = document.getElementById("dsc-paquete-auto");
+    const solo = PAQUETE ? todos.filter(pasaFiltro) : null;
+    nota.hidden = !PAQUETE;
+    if (PAQUETE) {
+        nota.innerHTML = (solo.length ? "Estás viendo solo el paquete de ese envío. " : "Ese paquete ya no está: se borró o pasaron sus días. ") +
+            '<button type="button" class="xml-enlace" data-fc-clic="verTodas">Ver todo lo automático</button>';
+        D.ponerHtml(caja, solo.length ? '<div class="fc-filas">' + solo.map(p => D.tarjeta(p)).join("") + "</div>" : "");
+    } else D.ponerHtml(caja, D.htmlAutomaticas(todos));
+    const vistos = D.dePestana(todos, "automaticas").filter(p => p.clase !== "programada" && !p.visto);
+    if (D.marcarVistos && vistos.length) D.marcarVistos(vistos);
+    const ret = document.getElementById("dsc-retencion"); if (ret) ret.style.visibility = "";
 }
 
 
@@ -311,7 +354,7 @@ function resumenDe(p) {
 }
 function filaLista(p) {
     return Object.assign({}, p, {
-        documento: nombreDocumento(p), quien: Fiscontable.descargas.empresa(p), rfc_txt: p.clase === "lote" || p.titulo === "VARIOS" ? "" : p.titulo,
+        documento: Fiscontable.descargas.queEs(p) + " · " + (p.detalle || nombreDocumento(p)), quien: Fiscontable.descargas.empresa(p), rfc_txt: p.clase === "lote" || p.titulo === "VARIOS" ? "" : p.titulo,
         tipo_txt: GRUPOS_TIPO[grupoTipo(p.tipo)] || "Otros", resultado: resumenDe(p),
         incompleto: (p.fallidos && p.fallidos.length) || /revisar|fall|no alcanz|cancelad/i.test(p.resumen || "") ? "Sí" : "No",
         en_mi_pc: p.en_pc && p.en_pc.rutas && p.en_pc.rutas.length ? "Sí" : "No"
@@ -327,10 +370,11 @@ function tablaListos() {
             { clave: "resultado", etiqueta: "Resultado", tipo: "texto" }, { clave: "incompleto", etiqueta: "Faltaron", tipo: "texto" },
             { clave: "en_mi_pc", etiqueta: "En mi PC", tipo: "texto" }, { clave: "acciones", etiqueta: "Archivo", tipo: "texto" }
         ],
-        predeterminadas: ["creado_en", "documento", "quien", "resultado", "acciones"],
+        predeterminadas: ["creado_en", "quien", "documento", "resultado", "acciones"],          // 25-nov-2026: la empresa primero
         anchoClave: { documento: 240, quien: 170, resultado: 260, acciones: 130, tipo_txt: 170 },
         celda: (c, p) => {
             if (c.clave === "acciones") return p.url_descarga ? `<button type="button" class="ui-btn ui-btn--primario ui-btn--28" data-bajar="${esc(p.id)}">Descargar</button>` : "";
+            if (c.clave === "documento") return Fiscontable.descargas.etiquetaQue(p);
             if (c.clave === "incompleto") return p.incompleto === "Sí" ? '<span class="xml-sello xml-sello--ambar">Sí</span>' : "";
             return null;
         },
@@ -396,6 +440,9 @@ function mostrarPc(id, boton) {
 ["lista-preparando", "lista-atencion"].forEach(id => {
     document.getElementById(id).addEventListener("click", e => Fiscontable.descargas.accion(e));
 });
+// «Automáticas»: las rondas (abrir, buscar, chips, «Ver XML →») y las descargas de lo que dejó archivo
+document.getElementById("dsc-auto").addEventListener("click", e => { if (!Fiscontable.descargas.clic(e, alCambiarControles)) Fiscontable.descargas.accion(e); });
+document.getElementById("dsc-auto").addEventListener("input", e => Fiscontable.descargas.buscarEnRonda(e));
 document.addEventListener("fc-descargas-cambio", () => cargarDescargas(true));
 // «ver por qué» desde el panel de otra página: /descargas/?motivos=<id>
 (function () {

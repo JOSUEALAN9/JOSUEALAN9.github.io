@@ -28,6 +28,10 @@
     function nomina() { return D.ctx.lado === "nomina"; }
     function emitidas() { return D.ctx.lado === "emitidos" || nomina(); }        // los recibos de nómina los timbra la empresa: los cancela ella
     function mesTxt(n) { return n ? n.charAt(0).toUpperCase() + n.slice(1) : ""; }
+    function urlVer(uuid) {
+        return Fiscontable.urlFactura ? Fiscontable.urlFactura(D.ctx.rfc, uuid)
+            : "/herramientas/xml/detalle/?rfc=" + encodeURIComponent(D.ctx.rfc) + "&uuid=" + encodeURIComponent(uuid);
+    }
 
     function tarjeta(g, estado) {
         var quien = nomina() ? "Trabajador" : emitidas() ? "Cliente" : "Proveedor";
@@ -39,7 +43,8 @@
                 "<td>" + esc(fecha(f.fecha)) + "</td><td>" + esc(f.serie_folio || "—") + "</td>" +
                 '<td class="xd-concepto" title="' + esc(f.concepto || "") + '">' + esc(f.concepto || "") + (f.conceptos > 1 ? " <small>+" + (f.conceptos - 1) + " más</small>" : "") + "</td>" +
                 (nomina() ? '<td class="xd-num">' + (f.neto == null ? "" : "$" + fmt.format(f.neto)) + "</td>" : "<td>" + esc(f.metodo_pago || "") + "</td>") + "<td>" + esc(f.estado_sat) + "</td>" +
-                '<td><button type="button" class="xml-enlace" data-ver="' + esc(f.uuid) + '" title="' + esc(f.uuid) + '">Ver</button></td></tr>';
+                // 23-nov-2026 (decisión E): «Ver» abre la factura en otra pestaña (el diálogo tapaba el mini detalle)
+                '<td><a class="xml-enlace" data-ver="' + esc(f.uuid) + '" href="' + esc(urlVer(f.uuid)) + '" target="_blank" rel="noopener" title="Abrir en otra pestaña · ' + esc(f.uuid) + '">Ver</a></td></tr>';
         }).join("");
         var pie;
         if (estado === "pendiente") {
@@ -61,7 +66,7 @@
             (nomina()
                 ? '<div class="xd-total"><strong>ISR retenido $' + fmt.format(g.isr) + "</strong><small>" + esc("Percepciones $" + fmt.format(g.total) + " · pagado el " + fecha(g.fecha_pago) +
                     (estado === "descartado" ? "" : " · si sobra" + (g.facturas.length > 2 ? "n" : "") + ": $" + fmt.format(g.isr_de_mas) + " de ISR de más")) + "</small></div></header>"
-                : '<div class="xd-total"><strong>$' + fmt.format(g.total) + " " + esc(g.moneda) + "</strong><small>" + esc(g.motivo + (g.dias ? " · a " + g.dias + " día(s)" : " · el mismo día")) + "</small></div></header>") +
+                : '<div class="xd-total"><strong>$' + fmt.format(g.total) + " " + esc(g.moneda) + "</strong><small>" + esc("Mismos conceptos" + (g.dias ? " · a " + g.dias + " día(s)" : " · el mismo día")) + "</small></div></header>") +
             '<div class="xd-tabla"><table><thead><tr><th>' + (estado === "pendiente" ? "Sobra" : "") + "</th><th>" + (nomina() ? "Timbrado" : "Fecha") + "</th><th>Serie y folio</th><th>" +
             (nomina() ? "Periodo pagado" : "Concepto") + "</th><th" + (nomina() ? ' class="xd-num">Neto' : ">Método") + "</th><th>Estado SAT</th><th></th></tr></thead><tbody>" +
             filas + "</tbody></table></div><footer>" + pie + "</footer></article>";
@@ -95,7 +100,8 @@
                 ? '<p class="xd-vacio"><strong>Sin recibos repetidos en este periodo.</strong> Se comparan los recibos de nómina vigentes del mismo trabajador con la misma fecha de pago, ' +
                   "el mismo periodo, las mismas percepciones y el mismo ISR.</p>"
                 : '<p class="xd-vacio"><strong>Sin posibles duplicados en este periodo.</strong> Se comparan las facturas ' + (emitidas() ? "emitidas" : "recibidas") +
-                " vigentes del mismo " + (emitidas() ? "cliente" : "proveedor") + ", con el mismo total y el mismo contenido, emitidas con hasta " + d.ventana_dias + " días de diferencia.</p>";
+                " vigentes del mismo " + (emitidas() ? "cliente" : "proveedor") + ", con la misma moneda y el mismo total, los mismos conceptos (clave del SAT, cantidad e importe; " +
+                "la descripción sin contar mayúsculas, acentos, espacios ni signos) y con hasta " + d.ventana_dias + " días de diferencia. Las de total $0.00 no se revisan.</p>";
             return;
         }
         cuerpo.innerHTML =
@@ -140,7 +146,7 @@
             if (e.target.closest("[data-dup='cerrar']")) return dlg.close();
             if (e.target.closest("[data-reintentar]")) return cargar();
             var ver = e.target.closest("[data-ver]");
-            if (ver) { if (Fiscontable.verCfdi) Fiscontable.verCfdi(D.ctx.rfc, ver.dataset.ver, [ver.dataset.ver]); return; }
+            if (ver) return;                         // «Ver» es un enlace: la pestaña la abre el navegador (23-nov-2026)
             var art = e.target.closest(".xd-grupo"); if (!art) return;
             var g = grupoDe(art.dataset.grupo); if (!g) return;
             if (e.target.closest("[data-copiar]")) {

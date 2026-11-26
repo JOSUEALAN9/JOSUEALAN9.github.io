@@ -4,15 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mis Descargas | Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611231800">
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611231800">
-    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611231800">
+    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611271300">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611271300">
+    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611271300">
 </head>
 <body class="min-h-screen flex flex-col">
 
     <div id="app-header" data-modulo="descargas" data-titulo="Mis descargas" data-migas=""></div>
-<script src="/assets/js/nucleo.js?v=202611231800"></script>
-<script src="/assets/js/barra.js?v=202611231800"></script>
+<script src="/assets/js/nucleo.js?v=202611271300"></script>
+<script src="/assets/js/barra.js?v=202611271300"></script>
 
     <main class="flex-grow w-full mod-pagina" style="max-width:1024px">
 
@@ -23,8 +23,17 @@
             <p id="aviso-texto" class="text-sm text-amber-800"></p>
         </div>
 
+        <!-- 25-nov-2026 (el dueño): «Mis pedidos · Automáticas» y el alcance, los mismos del cajón de la barra -->
+        <div id="dsc-controles" class="fc-dsc-barra dsc-controles"></div>
         <div id="dsc-filtros" class="dsc-filtros"></div>
         <div id="nota-programadas"></div>
+        <p id="dsc-paquete" class="dsc-paquete" hidden></p>
+
+        <!-- AUTOMÁTICAS: una tarjeta por ronda (noche) y lo automático que deja archivo -->
+        <section id="seccion-automaticas" class="mb-6" hidden>
+            <p id="dsc-paquete-auto" class="dsc-paquete" hidden></p>
+            <div id="dsc-auto" class="dsc-auto"></div>
+        </section>
 
         <!-- EN PREPARACIÓN -->
         <section id="seccion-preparando" class="hidden mb-6">
@@ -38,7 +47,6 @@
                 <h2 class="text-sm font-bold text-slate-500 uppercase tracking-wide">Listos para descargar</h2>
                 <button type="button" id="dsc-limpiar" data-fc-clic="limpiarListos" class="text-xs text-slate-400 hover:text-red-500 underline transition">Limpiar lista</button>
             </div>
-            <p id="dsc-paquete" class="dsc-paquete" hidden></p>
             <!-- Tabla estándar; el detalle de cada descarga abre en el panel lateral -->
             <div id="tabla-dsc"></div>
         </section>
@@ -84,7 +92,7 @@
         </div>
     </div>
 
-<script src="/assets/js/comun/tabla.js?v=202611231800"></script>
-<script src="/descargas/descargas.js?v=202611231800"></script>
+<script src="/assets/js/comun/tabla.js?v=202611271300"></script>
+<script src="/descargas/descargas.js?v=202611271300"></script>
 </body>
 </html>

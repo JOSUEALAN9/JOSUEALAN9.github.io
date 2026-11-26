@@ -5,8 +5,8 @@ window.FC_CONTACTO = { correo: "contacto@fiscontable.app", ventas: "ventas@fisco
 (function () {
     var c = window.FC_CONTACTO, en = (document.documentElement.lang || "es").slice(0, 2) === "en", txt;
     if (c.correo) txt = (en ? "to " : "a ") + '<a href="mailto:' + c.correo + '">' + c.correo + "</a>";
-    else if (en) txt = 'through <a href="/en/?sitio#registro">the form on our home page</a> or, if you already have an account, from <b>Settings → Plan and credits</b> inside Fiscontable';
-    else txt = 'desde <a href="/?sitio#registro">el formulario de la página principal</a> o, si ya tienes cuenta, en <b>Configuración → Plan y créditos</b> dentro de Fiscontable';
+    else if (en) txt = 'through <a href="/en/?sitio#registro">the form on our home page</a> or, if you already have an account, from <b>Settings → Plan and license</b> inside Fiscontable';
+    else txt = 'desde <a href="/?sitio#registro">el formulario de la página principal</a> o, si ya tienes cuenta, en <b>Configuración → Plan y licencia</b> dentro de Fiscontable';
     document.querySelectorAll("[data-contacto]").forEach(function (el) { el.innerHTML = txt; });
     if (c.telefono) document.querySelectorAll("[data-telefono]").forEach(function (el) {
         el.innerHTML = '<a href="tel:+52' + c.telefono.replace(/\D/g, "") + '">' + c.telefono + "</a>";

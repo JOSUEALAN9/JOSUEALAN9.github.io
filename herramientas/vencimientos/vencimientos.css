@@ -1,0 +1,186 @@
+/* herramientas/vencimientos/vencimientos.css — Vencimientos de e.firma y sellos digitales (23-nov-2026). Prefijo vc-.
+   Colores solo de los tokens de common.css. El amarillo de «vence en 90 días» no existe allá: es el av-200 de los avisos
+   (relleno) con su borde av-600, así se distingue del ámbar sin inventar otro color. */
+.vc-pagina { max-width: 1320px; }
+.vc-cabeza { align-items: flex-end; }
+.vc-cabeza h1 { margin: 0; }
+.vc-sub { margin: 4px 0 0; font-size: var(--t-13); color: rgb(var(--g-600)); }
+.vc-sub b { color: rgb(var(--g-900)); font-weight: 600; }
+
+/* ---- Indicadores (cada uno filtra) */
+.vc-kpis { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: var(--e-3); margin-bottom: var(--e-4); }
+.vc-kpi { position: relative; display: grid; gap: 2px; padding: var(--e-3) var(--e-4); border: 1px solid var(--linea); border-radius: var(--r-tarjeta);
+          background: rgb(var(--g-0)); text-align: left; font: inherit; color: inherit; cursor: pointer; overflow: hidden; min-width: 0; }
+.vc-kpi::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: rgb(var(--g-300)); }
+.vc-kpi small { font-size: var(--t-12); color: rgb(var(--g-600)); font-weight: 600; }
+.vc-kpi b { font-size: var(--t-24); font-weight: 700; color: rgb(var(--g-900)); font-variant-numeric: tabular-nums; line-height: 1.15; }
+.vc-kpi span { font-size: var(--t-12); color: rgb(var(--g-500)); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.vc-kpi:hover { border-color: rgb(var(--g-400)); }
+.vc-kpi:focus-visible { outline: 2px solid var(--acento); outline-offset: 1px; }
+.vc-kpi--vencido::before { background: rgb(var(--er-600)); }
+.vc-kpi--vencido b { color: rgb(var(--er-600)); }
+.vc-kpi--vence_30::before { background: rgb(var(--av-600)); }
+.vc-kpi--vence_90::before { background: rgb(var(--av-200)); }
+.vc-kpi--vigente::before { background: rgb(var(--ok-600)); }
+.vc-kpi--cero { opacity: .55; }
+.vc-kpi[aria-pressed="true"] { border-color: rgb(var(--ac-600)); box-shadow: 0 0 0 1px rgb(var(--ac-600)); opacity: 1; }
+
+/* ---- Línea de tiempo: vencidos a la izquierda y los próximos 12 meses */
+.vc-tiempo { padding: var(--e-3) var(--e-4) var(--e-3); margin-bottom: var(--e-4); min-width: 0; }
+.vc-tiempo__cabeza { display: flex; align-items: center; gap: var(--e-3); flex-wrap: wrap; margin-bottom: var(--e-2); }
+.vc-tiempo__cabeza h2 { font-size: var(--t-14); font-weight: 700; margin: 0; color: rgb(var(--g-900)); }
+.vc-leyenda { display: flex; flex-wrap: wrap; gap: 4px 14px; margin-left: auto; font-size: var(--t-12); color: rgb(var(--g-600)); }
+.vc-leyenda span { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+.vc-rio { overflow-x: auto; scrollbar-width: thin; padding-bottom: 2px; }
+.vc-meses { display: grid; grid-template-columns: minmax(70px, .9fr) repeat(12, minmax(42px, 1fr)); min-width: 640px; align-items: end; }
+.vc-mes { display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 0; padding: 0 2px; border-left: 1px dashed rgb(var(--g-200)); }
+.vc-mes:first-child { border-left: 0; }
+.vc-mes--vencidos { border-right: 1px solid rgb(var(--g-300)); background: linear-gradient(to top, rgb(var(--er-50)), transparent 75%); border-radius: 6px 6px 0 0; }
+.vc-mes__marcas { display: flex; flex-wrap: wrap-reverse; justify-content: center; align-content: flex-start; gap: 4px; height: 76px; width: 100%; max-width: 46px; padding-top: 2px; }
+.vc-mes--vencidos .vc-mes__marcas { max-width: 64px; }
+.vc-mes__pie { display: grid; justify-items: center; gap: 1px; width: 100%; padding: 6px 0 2px; border-top: 1px solid rgb(var(--g-200));
+               background: none; border-left: 0; border-right: 0; border-bottom: 0; font: inherit; cursor: pointer; border-radius: 0 0 6px 6px; }
+.vc-mes__pie:hover, .vc-mes__pie[aria-pressed="true"] { background: rgb(var(--g-100)); }
+.vc-mes__pie[aria-pressed="true"] b { color: rgb(var(--ac-700)); }
+.vc-mes__pie b { font-size: var(--t-12); font-weight: 700; color: rgb(var(--g-800)); text-transform: capitalize; white-space: nowrap; }
+.vc-mes__pie small { font-size: 11px; color: rgb(var(--g-500)); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.vc-mes__pie:disabled { cursor: default; }
+.vc-mes__pie:disabled:hover { background: none; }
+.vc-mas { font-size: 11px; font-weight: 700; color: rgb(var(--g-600)); background: rgb(var(--g-100)); border: 0; border-radius: 999px; padding: 0 6px; height: 16px;
+          line-height: 16px; cursor: pointer; }
+.vc-tiempo__nota { margin: 8px 0 0; font-size: var(--t-12); color: rgb(var(--g-500)); }
+
+/* Las marcas: e.firma = círculo, sello = cuadro con esquinas; el color, el estado */
+.vc-marca { width: 12px; height: 12px; flex: none; padding: 0; border: 1.5px solid transparent; background: rgb(var(--g-400)); border-radius: 50%; cursor: pointer;
+            transition: transform .12s ease; }
+.vc-marca--csd { border-radius: 3px; transform: rotate(45deg) scale(.86); }
+.vc-marca:hover, .vc-marca:focus-visible { transform: scale(1.35); outline: none; box-shadow: 0 0 0 2px rgb(var(--g-0)), 0 0 0 3.5px rgb(var(--g-700)); }
+.vc-marca--csd:hover, .vc-marca--csd:focus-visible { transform: rotate(45deg) scale(1.2); }
+/* 24-nov-2026 (Avance 2): el recordatorio propio es un cuadrito (la e.firma es círculo y el sello, rombo) */
+.vc-marca--rec { border-radius: 2px; }
+.vc-marca--vencido { background: rgb(var(--er-600)); }
+.vc-marca--vence_30 { background: rgb(var(--av-600)); }
+.vc-marca--vence_90 { background: rgb(var(--av-200)); border-color: rgb(var(--av-600)); }
+.vc-marca--vigente { background: rgb(var(--ok-600)); }
+.vc-marca--muestra { cursor: default; }
+.vc-marca--muestra:hover { transform: none; box-shadow: none; }
+.vc-marca--muestra.vc-marca--csd:hover { transform: rotate(45deg) scale(.86); }
+
+/* El globo (al pasar el cursor o al tocar) */
+.vc-globo { position: fixed; z-index: 60; max-width: min(320px, calc(100vw - 24px)); padding: 10px 12px; border-radius: 10px; background: rgb(var(--g-900));
+            color: rgb(var(--g-100)); font-size: var(--t-12); line-height: 1.45; box-shadow: var(--sombra-2); pointer-events: auto; }
+.vc-globo b { color: rgb(var(--g-0)); font-weight: 700; }
+.vc-globo ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; max-height: 260px; overflow: auto; }
+.vc-globo li { display: grid; gap: 1px; }
+.vc-globo small { color: rgb(var(--g-300)); }
+
+/* ---- Barra de la tabla */
+.vc-barra { display: flex; flex-wrap: wrap; align-items: center; gap: var(--e-2) var(--e-3); margin-bottom: var(--e-3); }
+.vc-buscar { flex: 1 1 240px; max-width: 340px; height: 34px; }
+.vc-tipos button { padding: 6px 12px; }
+.vc-filtros { display: flex; flex-wrap: wrap; gap: 6px; }
+.vc-orden { display: none; }
+.vc-barra__der { margin-left: auto; display: flex; gap: var(--e-2); align-items: center; }
+.vc-cuenta { font-size: var(--t-12); color: rgb(var(--g-600)); white-space: nowrap; font-variant-numeric: tabular-nums; }
+
+/* ---- Tabla (computadora) */
+.vc-caja { border: 1px solid var(--linea); border-radius: var(--r-tarjeta); background: rgb(var(--g-0)); overflow: auto; max-height: min(620px, calc(100vh - 230px)); }
+.vc-tabla { width: 100%; border-collapse: separate; border-spacing: 0; font-size: var(--t-13); }
+.vc-tabla th { position: sticky; top: 0; z-index: 1; background: rgb(var(--g-50)); color: rgb(var(--g-600)); font-weight: 600; font-size: var(--t-12); text-align: left;
+               height: 36px; padding: 0 var(--e-3); border-bottom: 1px solid var(--linea); white-space: nowrap; }
+.vc-tabla th button { border: 0; background: none; padding: 0; font: inherit; color: inherit; cursor: pointer; display: inline-flex; gap: 4px; align-items: center; }
+.vc-tabla th button:hover { color: rgb(var(--g-900)); }
+.vc-tabla th[aria-sort="ascending"] button::after { content: "↑"; color: rgb(var(--ac-700)); }
+.vc-tabla th[aria-sort="descending"] button::after { content: "↓"; color: rgb(var(--ac-700)); }
+.vc-tabla td { padding: 8px var(--e-3); border-bottom: 1px solid rgb(var(--g-100)); color: rgb(var(--g-900)); vertical-align: middle; }
+.vc-tabla tr:last-child td { border-bottom: 0; }
+.vc-tabla tbody tr:hover td { background: rgb(var(--g-50)); }
+.vc-tabla td.vc-num { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.vc-emp b { display: block; font-weight: 600; max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vc-emp small { color: rgb(var(--g-500)); font-size: var(--t-12); font-variant-numeric: tabular-nums; }
+.vc-serie { font-family: var(--fuente-mono); font-size: 12px; color: rgb(var(--g-700)); white-space: nowrap; }
+.vc-cuando { display: block; font-size: var(--t-12); color: rgb(var(--g-500)); white-space: nowrap; }
+.vc-cuando--vencido { color: rgb(var(--er-600)); font-weight: 600; }
+.vc-cuando--vence_30 { color: rgb(var(--av-600)); font-weight: 600; }
+.vc-nota { display: block; font-size: var(--t-12); color: rgb(var(--g-500)); margin-top: 2px; max-width: 280px; }
+.vc-tenue { color: rgb(var(--g-400)); }
+.vc-accion { text-align: right; white-space: nowrap; }
+
+/* Tipo: pastilla neutra con la misma figura de la línea de tiempo */
+.vc-tipo { display: inline-flex; align-items: center; gap: 6px; height: 22px; padding: 0 8px; border-radius: 999px; font-size: var(--t-12); font-weight: 600;
+           white-space: nowrap; background: rgb(var(--g-100)); color: rgb(var(--g-800)); }
+.vc-tipo--csd { background: rgb(var(--g-0)); box-shadow: inset 0 0 0 1px rgb(var(--g-300)); }
+.vc-tipo i { width: 7px; height: 7px; background: rgb(var(--g-600)); border-radius: 50%; }
+.vc-tipo--csd i { border-radius: 1.5px; transform: rotate(45deg); }
+.vc-tipo--recordatorio { max-width: 100%; background: rgb(var(--in-50)); color: rgb(var(--in-600)); }
+.vc-tipo--recordatorio i { border-radius: 1px; background: rgb(var(--in-600)); flex: none; }
+.vc-tipo--recordatorio span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.vc-form { display: grid; gap: 16px; }
+.vc-campos { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.vc-campos > * { min-width: 0; }
+.vc-campo { display: grid; gap: 8px; font-size: var(--t-13); font-weight: 600; color: rgb(var(--g-800)); }
+.vc-campo small { font-weight: 400; color: rgb(var(--g-500)); }
+.vc-campo .ui-input, .vc-campo .ui-select { width: 100%; }
+.vc-ayuda { font-size: var(--t-12); }
+.vc-check { display: flex; gap: 10px; align-items: flex-start; font-size: var(--t-13); font-weight: 600; color: rgb(var(--g-800)); }
+.vc-check small { display: block; font-weight: 400; color: rgb(var(--g-500)); margin-top: 2px; }
+.vc-error { margin: 0; color: rgb(var(--er-600)); font-size: var(--t-13); font-weight: 600; }
+.vc-borrar { margin-right: auto; color: rgb(var(--er-600)); }
+@media (max-width: 420px) { .vc-campos { grid-template-columns: 1fr; } }
+
+/* Estado: punto de color + texto */
+.vc-estado { display: inline-flex; align-items: center; gap: 7px; font-weight: 600; white-space: nowrap; color: rgb(var(--g-700)); }
+.vc-estado::before { content: ""; width: 9px; height: 9px; border-radius: 50%; background: rgb(var(--g-300)); flex: none; box-sizing: border-box; }
+.vc-estado--vencido { color: rgb(var(--er-600)); } .vc-estado--vencido::before { background: rgb(var(--er-600)); }
+.vc-estado--vence_30 { color: rgb(var(--av-600)); } .vc-estado--vence_30::before { background: rgb(var(--av-600)); }
+.vc-estado--vence_90 { color: rgb(var(--g-800)); } .vc-estado--vence_90::before { background: rgb(var(--av-200)); border: 1.5px solid rgb(var(--av-600)); }
+.vc-estado--vigente { color: rgb(var(--ok-600)); } .vc-estado--vigente::before { background: rgb(var(--ok-600)); }
+.vc-estado--sin_cargar { color: rgb(var(--g-500)); font-weight: 500; } .vc-estado--sin_cargar::before { background: none; border: 1.5px dashed rgb(var(--g-400)); }
+
+/* ---- Tarjetas (celular) */
+.vc-tarjetas { display: none; gap: var(--e-2); }
+.vc-tarjeta { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px var(--e-3); padding: var(--e-3); border: 1px solid var(--linea); border-radius: var(--r-tarjeta);
+              background: rgb(var(--g-0)); min-width: 0; }
+/* El RFC en su propio renglón: con nombres largos se cortaba junto con el nombre (revisión, 24-nov-2026) */
+.vc-tarjeta__emp { color: rgb(var(--g-900)); min-width: 0; }
+.vc-tarjeta__emp b { display: block; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vc-tarjeta__emp small { display: block; font-weight: 400; color: rgb(var(--g-500)); font-size: var(--t-12); font-variant-numeric: tabular-nums; }
+.vc-tarjeta__linea { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: center; font-size: var(--t-12); color: rgb(var(--g-600)); min-width: 0; }
+.vc-tarjeta__linea .vc-serie { overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.vc-tarjeta .vc-accion { grid-row: 1; grid-column: 2; align-self: start; }
+.vc-vermas { justify-self: center; margin-top: var(--e-1); }
+
+.vc-vacio-filtros { padding: var(--e-8) var(--e-4); text-align: center; color: rgb(var(--g-600)); font-size: var(--t-14); }
+
+/* ---- Nota de los avisos */
+.vc-avisos { display: flex; gap: var(--e-2); align-items: flex-start; margin-top: var(--e-3); font-size: var(--t-12); color: rgb(var(--g-600)); line-height: 1.5; }
+.vc-avisos svg { width: 16px; height: 16px; flex: none; margin-top: 1px; color: rgb(var(--g-500)); }
+.vc-avisos a { color: rgb(var(--ac-700)); font-weight: 600; text-decoration: none; white-space: nowrap; }
+.vc-avisos a:hover { text-decoration: underline; }
+
+.vc-esqueleto { display: grid; gap: var(--e-3); }
+
+@media (max-width: 1100px) {
+    .vc-kpi span { display: none; }
+}
+@media (max-width: 760px) {
+    .vc-kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--e-2); }
+    .vc-kpi { padding: var(--e-2) var(--e-3); }
+    .vc-kpi b { font-size: var(--t-20); }
+    .vc-caja { display: none; }
+    .vc-tarjetas { display: grid; }
+    .vc-buscar { max-width: none; flex-basis: 100%; }
+    .vc-orden { display: block; height: 32px; width: auto; font-size: var(--t-13); padding: 0 28px 0 10px; }
+    .vc-barra__der { margin-left: 0; width: 100%; justify-content: space-between; }
+    .vc-leyenda { margin-left: 0; }
+    .vc-mes__marcas { height: 56px; }
+    .vc-tarjeta { padding: 10px var(--e-3); gap: 3px var(--e-3); }
+}
+@media (max-width: 420px) {
+    .vc-kpi small { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .vc-tipos { width: 100%; }
+    .vc-tipos button { flex: 1 1 auto; padding: 6px 8px; }
+}
+@media print {
+    .vc-caja { max-height: none; overflow: visible; }
+}

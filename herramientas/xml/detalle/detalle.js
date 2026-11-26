@@ -70,8 +70,11 @@
         }
         var html = [];
         html.push('<div class="det-cabeza"><div><h1>' + esc(titulo) + '</h1><div class="det-uuid">' + esc(d.uuid) + '</div><div class="det-sellos">' + sellos.join("") + "</div></div>" +
-            '<div class="det-acciones"><button type="button" class="xml-btn" id="btn-validar-uno">Validar ante el SAT</button><a class="xml-btn" href="' + API + "/api/xml/archivo?rfc=" + encodeURIComponent(RFC) + "&uuid=" + encodeURIComponent(d.uuid) + '">Descargar XML</a>' +
-            '<button type="button" class="xml-btn" id="btn-ver-pdf" title="Representación impresa del CFDI">Ver PDF</button>' +
+            '<div class="det-acciones"><button type="button" class="xml-btn" id="btn-validar-uno">Validar ante el SAT</button><a class="xml-btn" id="btn-bajar-xml" href="' + API + "/api/xml/archivo?rfc=" + encodeURIComponent(RFC) + "&uuid=" + encodeURIComponent(d.uuid) + '">Descargar XML</a>' +
+            // 23-nov-2026, el dueño (decisión E): el PDF se abre en OTRA PESTAÑA, con el visor del navegador (imprimir y descargar
+            // con su nombre). Es un enlace directo (no una ventana que se abre después de pedir el PDF: esa la bloquea el navegador).
+            '<a class="xml-btn" id="btn-ver-pdf" target="_blank" rel="noopener" title="Representación impresa del CFDI, en otra pestaña" href="' + API + "/api/xml/pdf?rfc=" +
+                encodeURIComponent(RFC) + "&uuid=" + encodeURIComponent(d.uuid) + '&ver=1">Ver PDF</a>' +
             '<button type="button" class="xml-btn" data-fc-clic="print">Imprimir</button></div></div>');
 
         if (r.alertas && r.alertas.length) {
@@ -118,17 +121,31 @@
         $("det").innerHTML = html.join("");
         $("det").hidden = false;
         $("btn-validar-uno").addEventListener("click", validarAhora);
+        $("btn-bajar-xml").addEventListener("click", bajarXml);
         enlaces(r);
-        $("btn-ver-pdf").addEventListener("click", async function () {
-            var b = this; b.disabled = true; b.textContent = "Abriendo…";
-            try {
-                var resp = await fetch(API + "/api/xml/pdf?rfc=" + encodeURIComponent(RFC) + "&uuid=" + encodeURIComponent(d.uuid), { credentials: "include" });
-                if (!resp.ok) throw new Error("No se pudo armar el PDF.");
-                var m = /filename="?([^";]+)"?/i.exec(resp.headers.get("Content-Disposition") || "");
-                Fiscontable.verPdf(await resp.blob(), { titulo: titulo, nombre: m ? m[1] : d.uuid + ".pdf" });
-            } catch (e) { Fiscontable.avisar(e.message); }
-            b.disabled = false; b.textContent = "Ver PDF";
-        });
+    }
+
+    /* 26-nov-2026 (el dueño: «le puse descargar XML desde la ventanita cuando presionas una línea y me sale [el ícono de documento
+       roto]; ya cuando voy a abrir factura ya me deja»): «Descargar XML» era un enlace directo al servidor. En su pestaña el
+       navegador lo baja; dentro del panel de la factura (un marco) esa navegación se bloquea (la web solo permite marcos de su
+       mismo sitio y el servidor no se deja enmarcar) y el panel quedaba con el documento roto. Ahora el XML se pide y se guarda
+       sin navegar, igual en el panel y en su pestaña. Con Ctrl, Cmd, Mayús o clic medio sigue siendo un enlace (otra pestaña). */
+    async function bajarXml(e) {
+        if (e.ctrlKey || e.metaKey || e.shiftKey || e.button) return;
+        e.preventDefault();
+        var a = e.currentTarget;
+        if (a.dataset.bajando) return;
+        a.dataset.bajando = "1";
+        try {
+            var resp = await fetch(a.href, { credentials: "include" });
+            if (!resp.ok) throw new Error(await Fiscontable.leerError(resp));
+            var cd = resp.headers.get("Content-Disposition") || "", nombre = UUID + ".xml";
+            var u = cd.match(/filename\*=UTF-8''([^;]+)/i), n = cd.match(/filename="?([^";]+)"?/);
+            if (u) { try { nombre = decodeURIComponent(u[1]); } catch (err) { /* se queda el UUID */ } }
+            else if (n) nombre = n[1];
+            Fiscontable.guardarArchivo(await resp.blob(), nombre);
+        } catch (err) { Fiscontable.aviso(err.message || "No se pudo descargar el XML. Intenta de nuevo."); }
+        delete a.dataset.bajando;
     }
 
     /* ------------------------------------------------------------ enlaces con Marcas fiscales y Cancelaciones */
@@ -222,10 +239,20 @@
             encodeURIComponent((r.cfdi[parte] || {}).rfc || "") + '">Ver en Listas del SAT</a></div>';
     }
 
+    function diaLocal(s) {
+        var d = new Date(String(s).slice(0, 19) + "Z");
+        if (isNaN(d.getTime())) return f(s).slice(0, 10);
+        var dos = function (n) { return (n < 10 ? "0" : "") + n; };
+        return dos(d.getDate()) + "/" + dos(d.getMonth() + 1) + "/" + d.getFullYear();
+    }
     function selloSAT(r) {
         // estado_sat_en es cuándo CONSULTAMOS al SAT, no cuándo se canceló: el servicio
         // público del SAT no da la fecha de cancelación. Por eso va aparte y rotulada.
-        var consulta = r.estado_sat_en ? ' <span class="det-consultado">consultado el ' + esc(f(r.estado_sat_en).slice(0, 10)) + "</span>" : "";
+        // 26-nov-2026 (el dueño, m1): si el estado lo puso la lista del SAT (el cuadre de Descarga masiva), se dice de qué día es la lista
+        // Revisión del 26-nov-2026: estado_sat_en viene en hora universal; el día se dice en la hora de quien lo ve (una lista
+        // pedida a las 7 de la noche salía con la fecha de mañana)
+        var consulta = r.estado_sat_en ? ' <span class="det-consultado">' + (r.estado_sat_origen === "lista" ? "según la lista del SAT del " : "consultado el ") +
+            esc(diaLocal(r.estado_sat_en)) + "</span>" : "";
         if (r.estado_sat === "Vigente") return sello("Vigente en el SAT", "verde") + consulta;
         if (r.estado_sat === "Cancelado") return sello("Cancelado en el SAT", "rojo") + consulta;
         if (r.estado_sat === "No encontrado") return sello("El SAT no lo encuentra", "ambar") + consulta;

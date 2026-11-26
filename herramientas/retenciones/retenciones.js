@@ -1,7 +1,7 @@
 /*
  * herramientas/retenciones/retenciones.js — CFDI de Retenciones e información de pagos de una empresa:
  * recibidas (las que le hicieron: bancos, clientes que retienen ISR/IVA, dividendos) y emitidas.
- * Llegan desde Descarga masiva (Tipo «Retenciones») o subiendo los XML. Exportar a Excel y bajar los XML.
+ * Llegan desde Descarga masiva (Tipo «Retenciones») o subiendo los XML. Descargar Excel y bajar los XML.
  */
 (function () {
     "use strict";
@@ -18,7 +18,7 @@
         return r;
     }
     function m(v) { return (Number(v) || 0).toLocaleString("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
-    function aviso(t, mal) { var a = $("aviso"); a.innerHTML = t || ""; a.className = "isn-aviso" + (mal ? " isn-aviso--error" : ""); a.hidden = !t; }
+    function aviso(t, mal) { if (window.Fiscontable && Fiscontable.avisoBien && Fiscontable.avisoBien($("aviso"), t, mal ? false : undefined)) return; var a = $("aviso"); a.innerHTML = t || ""; a.className = "isn-aviso" + (mal ? " isn-aviso--error" : ""); a.hidden = !t; }
     function filtros() { return "?lado=" + E.lado + (E.anio ? "&anio=" + E.anio : ""); }
     function base() { return "/api/retenciones/" + encodeURIComponent(E.rfc); }
     function fecha(iso) {
@@ -84,8 +84,11 @@
         $("sel-anio").innerHTML = '<option value="">Todos los años</option>' + anios.map(function (a) {
             return "<option" + (a === E.anio ? " selected" : "") + ">" + a + "</option>"; }).join("");
         var t = d.totales || {};
+        // 23-nov-2026 (auditoría descarga_xml-6): las canceladas ante el SAT no suman; se ven en gris con su fecha
         $("cifras").innerHTML = cifra("Comprobantes", (t.cantidad || 0).toLocaleString("es-MX")) + cifra("Monto de operación", "$" + m(t.monto_operacion)) +
-            cifra("ISR retenido", "$" + m(t.isr_retenido)) + cifra("IVA retenido", "$" + m(t.iva_retenido)) + cifra("Total retenido", "$" + m(t.monto_retenido));
+            cifra("ISR retenido", "$" + m(t.isr_retenido)) + cifra("IVA retenido", "$" + m(t.iva_retenido)) + cifra("Total retenido", "$" + m(t.monto_retenido)) +
+            (t.canceladas ? cifra("Canceladas (no suman)", t.canceladas.toLocaleString("es-MX")) : "");
+        notaEstado(t.sin_validar);
         var hay = (d.filas || []).length;
         $("btn-zip").disabled = $("btn-excel").disabled = !hay;
         if (!hay) {
@@ -96,13 +99,23 @@
         $("tb").innerHTML = d.filas.map(function (f) {
             var rfc = E.lado === "recibida" ? f.rfc_emisor : f.rfc_receptor, nom = E.lado === "recibida" ? f.nombre_emisor : f.nombre_receptor;
             var periodo = f.ejercicio ? (f.mes_ini && f.mes_fin && f.mes_ini !== f.mes_fin ? +f.mes_ini + "–" + +f.mes_fin + "/" : (f.mes_ini ? +f.mes_ini + "/" : "")) + f.ejercicio : "";
-            return "<tr><td>" + esc(fecha(f.fecha_exp)) + '</td><td title="' + esc(f.uuid) + '">' + esc(f.uuid.slice(0, 8)) + "…</td>" +
+            var cancelada = f.estado_sat === "Cancelado", rara = f.estado_sat === "No encontrado";
+            var chip = cancelada ? '<span class="rt-sub rt-estado rt-estado--cancelada">Cancelada' + (f.fecha_cancelacion ? " · " + esc(fecha(f.fecha_cancelacion)) : "") + "</span>"
+                : (rara ? '<span class="rt-sub rt-estado rt-estado--rara" title="La lista del SAT no la trae: revísala">No aparece en el SAT</span>' : "");
+            return '<tr' + (cancelada ? ' class="rt-fila--cancelada" title="Cancelada ante el SAT: no suma"' : "") + "><td>" + esc(fecha(f.fecha_exp)) + chip +
+                '</td><td title="' + esc(f.uuid) + '">' + esc(f.uuid.slice(0, 8)) + "…</td>" +
                 '<td title="' + esc(nom || "") + '">' + esc(nom || rfc || "") + '<span class="rt-sub">' + esc(rfc || "") + "</span></td>" +
                 '<td title="' + esc(f.desc_retenc || "") + '">' + esc(f.desc_retenc || "") + '<span class="rt-sub">Clave ' + esc(f.cve_retenc || "") + "</span></td>" +
                 "<td>" + esc(periodo) + '</td><td class="xml-num">' + m(f.monto_operacion) + '</td><td class="xml-num">' + m(f.isr_retenido) +
                 '</td><td class="xml-num">' + m(f.iva_retenido) + '</td><td class="xml-num"><b>' + m(f.monto_retenido) + "</b></td>" +
                 '<td><button type="button" class="xml-btn" data-xml="' + esc(f.uuid) + '" title="Descargar el XML">XML</button></td></tr>';
         }).join("");
+    }
+
+    /* Cuántas no se han revisado ante el SAT (23-nov-2026): su estado lo trae la lista de la madrugada */
+    function notaEstado(n) {
+        if (!n || $("aviso").classList.contains("isn-aviso--error")) return;
+        aviso(n.toLocaleString("es-MX") + " retención(es) sin validar ante el SAT: su estado se revisa de madrugada con la e.firma de la empresa. Las canceladas no suman.");
     }
 
     /* ---------- Papel de trabajo: por mes y por quien retuvo (15-nov) ---------- */
@@ -117,8 +130,11 @@
         E.papel = p;
         pintarAnios((E.datos && E.datos.anios) || [], p.anio);
         var t = p.total || {};
+        var canc = p.canceladas || [];
         $("cifras").innerHTML = cifra("Año", esc(p.anio)) + cifra("ISR retenido", "$" + m(t.isr_retenido)) + cifra("IVA retenido", "$" + m(t.iva_retenido)) +
-            (t.ieps_retenido ? cifra("IEPS retenido", "$" + m(t.ieps_retenido)) : "") + cifra("Total retenido", "$" + m(t.monto_retenido));
+            (t.ieps_retenido ? cifra("IEPS retenido", "$" + m(t.ieps_retenido)) : "") + cifra("Total retenido", "$" + m(t.monto_retenido)) +
+            (canc.length ? cifra("Canceladas (no suman)", canc.length.toLocaleString("es-MX")) : "");
+        notaEstado(p.sin_validar);
         $("btn-excel").disabled = !p.periodos.length;
         var quien = E.lado === "recibida" ? "Retenedor" : "Receptor";
         if (!p.periodos.length) {
@@ -147,7 +163,12 @@
             '<div class="rt-papel__caja"><table><thead><tr><th>' + quien + "</th><th>Concepto</th>" + cab + "</tr></thead><tbody>" +
             p.por_retenedor.map(function (g) {
                 return "<tr><td>" + esc(g.nombre) + ' <span class="rt-sub">' + esc(g.rfc) + "</span></td><td>" + esc(g.concepto || ("Clave " + g.clave)) + " · " + g.cantidad + "</td>" + num(g) + "</tr>";
-            }).join("") + "</tbody></table></div>";
+            }).join("") + "</tbody></table></div>" +
+            (canc.length ? '<h2>Canceladas ante el SAT · no suman</h2><div class="rt-papel__caja"><table><thead><tr><th>Periodo</th><th>' + quien +
+                "</th><th>Expedida</th><th>Cancelada</th>" + cab + "</tr></thead><tbody>" + canc.map(function (c) {
+                    return '<tr class="rt-fila--cancelada"><td>' + esc(c.periodo) + "</td><td>" + esc(c.nombre || c.rfc) + ' <span class="rt-sub">' + esc(c.rfc) +
+                        "</span></td><td>" + esc(fecha(c.fecha_exp)) + "</td><td>" + esc(c.fecha_cancelacion ? fecha(c.fecha_cancelacion) : "—") + "</td>" + num(c) + "</tr>";
+                }).join("") + "</tbody></table></div>" : "");
         if (Fiscontable.globos) Fiscontable.globos($("papel"));
     }
     function pintarAnios(anios, actual) {
@@ -159,7 +180,11 @@
     async function bajar(ruta, nombre, boton) {
         var texto = boton.textContent;
         boton.disabled = true; boton.textContent = "Descargando…";
-        try { Fiscontable.guardarArchivo(await (await api(ruta)).blob(), nombre); }
+        // 24-nov-2026: el nombre lo pone el servidor (core/nombres: RFC primero); el de aquí solo si no viene
+        try {
+            var r = await api(ruta), mt = /filename="?([^";]+)"?/.exec(r.headers.get("Content-Disposition") || "");
+            Fiscontable.guardarArchivo(await r.blob(), mt ? mt[1] : nombre);
+        }
         catch (e) { aviso(esc(e.message), true); }
         finally { boton.disabled = false; boton.textContent = texto; }
     }
@@ -185,9 +210,11 @@
             b.addEventListener("click", function () { E.lado = b.dataset.lado; E.datos = null; pestanas(); cargar(); });
         });
         $("sel-anio").addEventListener("change", function () { E.anio = this.value; E.datos = null; cargar(); });
+        // 24-nov-2026 (decisión A del dueño, Avance 2): un solo «Descargar Excel»: lo que ves (los comprobantes de la pestaña o el
+        // papel de trabajo con sus tres tablas)
         $("btn-excel").addEventListener("click", function () {
-            if (E.ver === "papel") return bajar(base() + "/papel/excel" + filtros(), E.rfc + "_Papel-retenciones-" + E.lado + "s_" + ((E.papel && E.papel.anio) || E.anio) + ".xlsx", this);
-            bajar(base() + "/excel" + filtros(), E.rfc + "_Retenciones-" + E.lado + "s" + (E.anio ? "_" + E.anio : "") + ".xlsx", this);
+            if (E.ver === "papel") return bajar(base() + "/papel/excel" + filtros(), E.rfc + "_Papel-Retenciones.xlsx", this);
+            bajar(base() + "/excel" + filtros() + "&nombre=" + encodeURIComponent(nombreEmpresa(E.rfc)), E.rfc + "_Retenciones.xlsx", this);
         });
         [].forEach.call(document.querySelectorAll("[data-ver]"), function (b) {
             b.addEventListener("click", function () { E.ver = b.dataset.ver; cargar(); });

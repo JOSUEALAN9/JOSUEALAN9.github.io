@@ -120,9 +120,17 @@ async function verificarAdminYCargar() {
         else if (location.hash === "#correos") { abrirPestana("sistema"); const b = document.querySelector('#sub-sistema [data-sub="correos"]'); if (b) b.click(); }   // aviso «No salió un correo»
         else if (location.hash === "#errores-servidor") { abrirPestana("sistema"); const b = document.querySelector('#sub-sistema [data-sub="errores-servidor"]'); if (b) b.click(); }   // aviso «Falló algo en el servidor» (23-nov)
         else if (location.hash === "#tareas") { abrirPestana("sistema"); const b = document.querySelector('#sub-sistema [data-sub="tareas"]'); if (b) b.click(); }   // avisos de tareas y madrugada
+        // 25-nov-2026 (el dueño: «Preparar reinicio… no sé dónde es eso»): desde el buscador, «Preparar reinicio» y «¿Puedo reiniciar?»
+        else if (location.hash === "#portal") {
+            abrirPestana("sistema"); const b = document.querySelector('#sub-sistema [data-sub="portal"]'); if (b) b.click();
+            const acciones = document.getElementById("btn-puedo-reiniciar");
+            const tarjeta = acciones && (acciones.closest(".bg-white") || acciones);      // (revisión: sin tarjeta, el propio botón)
+            if (tarjeta) setTimeout(() => tarjeta.scrollIntoView({ block: "start", behavior: "smooth" }), 60);
+        }
         else if (location.hash === "#registro") { abrirRegistroAlCargar = true; abrirPestana("sistema"); }   // desde el buscador: «Registro de trámites»
         else if (location.hash === "#reporte") { abrirReporteAlCargar = true; abrirPestana("sistema"); }      // desde el buscador: «Registro de auditoría»
         else if (location.hash === "#errores") { abrirPestana("sistema"); setTimeout(abrirErrores, 0); }        // desde el buscador: «Errores informados»
+        else if (location.hash === "#inhabiles") { abrirInhabilesAlCargar = true; abrirPestana("sistema"); }  // 26-nov-2026: desde el buscador, «Días inhábiles del SAT»
         else abrirPestana(location.hash.replace("#", "") || "usuarios");
         await cargarRoles();
         await Promise.all([cargarUsuarios(), cargarProcesosAdmin()]);
@@ -913,6 +921,10 @@ function prepararEventosSistema() {
     $("btn-publicar-aviso").addEventListener("click", publicarAviso);
     $("btn-quitar-aviso").addEventListener("click", quitarAviso);
     $("btn-reiniciar").addEventListener("click", reiniciarServidor);
+    $("btn-puedo-reiniciar").addEventListener("click", () => revisarReinicio());
+    $("btn-preparar-reinicio").addEventListener("click", prepararReinicio);
+    $("btn-cancelar-reinicio").addEventListener("click", cancelarReinicio);
+    $("semaforo-reinicio").addEventListener("click", accionSemaforo);
     $("btn-reiniciar-vscode").addEventListener("click", reiniciarVSCode);
     $("btn-revisar-atorados").addEventListener("click", revisarAtorados);
     $("btn-limpiar-vencidos").addEventListener("click", () => limpiarCache(null));
@@ -923,6 +935,7 @@ function prepararEventosSistema() {
         document.querySelectorAll("#sub-sistema [data-sub]").forEach(b => b.classList.toggle("adm-sub--activa", b.dataset.sub === nombre));
         document.querySelectorAll("#panel-sistema [data-subpanel]").forEach(p => { p.hidden = p.dataset.subpanel !== nombre; });
         try { localStorage.setItem("fc-admin-sub", nombre); } catch (e) { /* sin almacenamiento */ }
+        if (nombre === "portal") revisarReinicio();          // 23-nov-2026: al abrir Portal y acciones, el «¿Puedo reiniciar?»
     };
     $("sub-sistema").addEventListener("click", e => { const b = e.target.closest("[data-sub]"); if (b) abrirSub(b.dataset.sub); });
     try { const s = localStorage.getItem("fc-admin-sub"); if (s && document.querySelector(`#sub-sistema [data-sub="${s}"]`)) abrirSub(s); } catch (e) { /* nada */ }
@@ -947,6 +960,7 @@ function prepararEventosSistema() {
         if (b) revisarSAT(b.dataset.satRevisar);
     });
     ["input", "change"].forEach(ev => $("tarjetas-estado").addEventListener(ev, cambioCampo));
+    $("tarjetas-estado").addEventListener("change", e => { if (e.target.id === "chk-exigir-manifiesto") cambiarExigirManifiesto(e.target); });
     $("tarjetas-estado").addEventListener("click", clicTarjeta);
     $("actividad-sesiones").addEventListener("click", clicTarjeta);
     ["input", "change"].forEach(ev => $("actividad-sesiones").addEventListener(ev, cambioCampo));
@@ -1027,6 +1041,7 @@ async function cargarSistema() {
         try { sesionesWeb = await api("/api/admin/sesiones"); } catch (e) { sesionesWeb = null; }
         pintarEstado();
         if (abrirRegistroAlCargar && estadoTrabajadores) { abrirRegistroAlCargar = false; abrirRegistro(); }
+        if (abrirInhabilesAlCargar && diasInhabiles) { abrirInhabilesAlCargar = false; ventana("dlg-inhabiles", "Días inhábiles del SAT", cuerpoInhabiles); }
         if (abrirReporteAlCargar) { abrirReporteAlCargar = false; const c = $("reporte-caja"); if (c) { c.scrollIntoView({ block: "center" }); c.classList.add("adm-menu--abierto"); ladoMenuReporte(); $("btn-reporte-claude").focus(); } }
         pintarPortal();
         await cargarEstadoSAT();
@@ -1037,6 +1052,7 @@ async function cargarSistema() {
 
 let estadoTrabajadores = null;
 let abrirRegistroAlCargar = false;
+let abrirInhabilesAlCargar = false;
 let abrirReporteAlCargar = false;
 
 // «Registro de auditoría» (antes «Reporte para Claude»): un ZIP con lo que hizo el sistema en esas horas (trámites, visores, correos, tiempos, errores)
@@ -1340,7 +1356,37 @@ function tarjetaTimbres() {
             <span class="text-[11px] text-slate-500">Se vuelve a leer solo al abrir esta página si pasaron ${d.bolsa.cada_min || 5} min, y al pasar o quitar timbres.</span></div>` : ""}</div>` : `<p class="text-[11px] text-amber-700 mt-1">Saldo general de MultiFacturas sin registrar: escríbelo en «Ver y asignar».</p>`}
         ${d.bolsa && d.bolsa.error ? `<p class="text-[11px] text-amber-700 mt-1">No se pudo leer de tu panel: ${esc(d.bolsa.error)}</p>` : ""}
         <p class="text-[11px] text-slate-500 mt-1">${con.length} cuenta${con.length === 1 ? "" : "s"} con timbres · ${total.toLocaleString("es-MX")} asignados en total</p>
-        <div class="flex gap-2 mt-3">${botonVer("btn-ver-timbres", "Ver y asignar")}${botonVer("btn-errores-pac", "Errores del PAC")}</div>`;
+        <div class="flex gap-2 mt-3">${botonVer("btn-ver-timbres", "Ver y asignar")}${botonVer("btn-errores-pac", "Errores del PAC")}</div>
+        ${interruptorManifiesto(d)}`;
+}
+
+// 24-nov-2026, el dueño («Luna Soft, que ya no sea necesario, ayúdame a quitarlo por defecto para facturar»): pedir el
+// manifiesto del PAC para timbrar es un ajuste de todas las cuentas, apagado de fábrica. Lo cambia solo el administrador.
+function interruptorManifiesto(d) {
+    if (d.exigir_manifiesto === undefined) return "";            // un servidor sin el ajuste: no se ofrece
+    const si = !!d.exigir_manifiesto;
+    return `<div class="mt-3 pt-3 border-t border-gray-100">
+        <label class="ui-switch"><input type="checkbox" id="chk-exigir-manifiesto" ${si ? "checked" : ""}><span class="ui-switch__riel"></span>
+            <span class="text-xs font-bold text-slate-800">Exigir el manifiesto del PAC para timbrar</span></label>
+        <p class="text-[11px] text-slate-500 mt-1">${si ? "Prendido: en producción ninguna empresa timbra sin su manifiesto firmado y guardado."
+            : "Apagado (de fábrica): se timbra sin él. Lo ya guardado se conserva y se puede seguir subiendo."}</p></div>`;
+}
+
+async function cambiarExigirManifiesto(chk) {
+    const exigir = chk.checked;
+    if (exigir && !(await Fiscontable.preguntar("¿Exigir el manifiesto del PAC para timbrar?\n\nLas empresas que no lo tengan guardado no podrán timbrar hasta subirlo (Clientes › ficha › Accesos, o Facturar › Configuración › Manifiesto)."))) {
+        chk.checked = false; return;
+    }
+    chk.disabled = true;
+    try {
+        const r = await api("/api/admin/facturacion/exigir-manifiesto", {
+            method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ exigir }),
+        });
+        if (timbresAdmin) timbresAdmin.exigir_manifiesto = r.exigir_manifiesto;
+        mostrarAlerta("exito", r.exigir_manifiesto ? "Listo: para timbrar se pide el manifiesto del PAC." : "Listo: ya no se pide el manifiesto del PAC para timbrar.");
+    } catch (err) { mostrarAlerta("error", err.message); chk.checked = !exigir; }
+    chk.disabled = false;
+    pintarEstado();
 }
 
 // «↻ Actualizar»: vuelve a leer en este momento el saldo general del panel de MultiFacturas.
@@ -1696,8 +1742,43 @@ function pintarEstado() {
     $("alerta-sistema").textContent = (alertaGit || e.mantenimiento.activo) ? "•" : "";
 }
 
+function pintarReinicioPreparado(r) {
+    const hay = !!(r && typeof r.faltan_seg === "number");
+    const hora = hay ? new Date(Date.now() + r.faltan_seg * 1000).toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit", timeZone: "America/Mexico_City" }) : "";
+    $("estado-reinicio").textContent = !hay ? "Sin aviso de reinicio." : r.faltan_seg > 0
+        ? `Avisado: las páginas abiertas dicen «Fiscontable se actualiza a las ${hora}». Mantenimiento prendido hasta que el servidor vuelva.`
+        : `La hora del aviso (${hora}) ya pasó: reinicia cuando el semáforo lo permita. Al volver, el aviso y el mantenimiento se quitan solos.`;
+    $("estado-reinicio").className = "text-xs font-bold mt-3 " + (hay ? "text-amber-700" : "text-slate-400");
+    $("btn-cancelar-reinicio").hidden = !hay;
+    $("btn-preparar-reinicio").textContent = hay ? "Avisar otra vez" : "Avisar";
+}
+
+async function prepararReinicio() {
+    const min = Number($("sel-reinicio-min").value) || 5;
+    if (!(await Fiscontable.preguntar(`¿Avisar que Fiscontable se actualiza en ${min} minutos?\n\nTodas las páginas abiertas verán la cuenta regresiva y se prende el modo mantenimiento (no se empiezan trámites nuevos). Se apaga solo cuando el servidor vuelve.`))) return;
+    const b = $("btn-preparar-reinicio"); b.disabled = true;
+    try {
+        const r = await api("/api/admin/sistema/preparar-reinicio", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ minutos: min }) });
+        mostrarAlerta("success", "Listo: las páginas abiertas ya avisan (en menos de un minuto llega a todas).");
+        if (estadoSistema) { estadoSistema.reinicio = r.reinicio; estadoSistema.mantenimiento = { activo: true }; pintarPortal(); }
+        if (Fiscontable.recargarLetreros) Fiscontable.recargarLetreros();
+    } catch (err) { mostrarAlerta("error", err.message); }
+    b.disabled = false;
+}
+
+async function cancelarReinicio() {
+    if (!(await Fiscontable.preguntar("¿Quitar el aviso de reinicio? También se apaga el mantenimiento que prendió."))) return;
+    try {
+        await api("/api/admin/sistema/preparar-reinicio", { method: "DELETE" });
+        mostrarAlerta("success", "Se quitó el aviso de reinicio.");
+        await cargarSistema();
+        if (Fiscontable.recargarLetreros) Fiscontable.recargarLetreros();
+    } catch (err) { mostrarAlerta("error", err.message); }
+}
+
 function pintarPortal() {
     const e = estadoSistema;
+    pintarReinicioPreparado(e.reinicio);
     $("chk-mantenimiento").checked = !!e.mantenimiento.activo;
     $("estado-mantenimiento").textContent = e.mantenimiento.activo ? "Activo: los demás no pueden iniciar descargas nuevas." : "Desactivado.";
     $("estado-mantenimiento").className = "text-xs font-bold mt-3 " + (e.mantenimiento.activo ? "text-amber-700" : "text-slate-400");
@@ -2006,16 +2087,77 @@ async function quitarAviso() {
     } catch (err) { mostrarAlerta("error", err.message); }
 }
 
+/* «¿Puedo reiniciar?» (23-nov-2026, el dueño: «cuando vayamos a reiniciar ayúdame diciéndome qué debo verificar, que no
+   hay nadie»). Verde = se puede; ámbar = avisa antes; rojo = espera. Quién está conectado, trámites y lotes en curso, envíos
+   armándose, validación, timbrado, tareas corriendo, el Agente y el horario (nunca de 0:00 a 9:00). Con el mensaje listo
+   para WhatsApp. Lo mismo da en la terminal de la Vostro: python3 herramientas/puedo_reiniciar.py (core/reinicio.py). */
+let semaforo = null;
+const NOMBRE_COLOR = { verde: "Verde", ambar: "Ámbar", rojo: "Rojo" };
+
+function htmlSemaforo(d, conAcciones) {
+    const filas = d.renglones.map(x => `<li class="au-sem__renglon"><i class="au-luz au-luz--${esc(x.color)}" aria-hidden="true"></i><div><b>${esc(x.texto)}</b>` +
+        (x.detalle ? `<small>${esc(x.detalle)}</small>` : "") +
+        (x.quienes && x.quienes.length ? `<small class="au-sem__quienes">${x.quienes.slice(0, 12).map(esc).join(" · ")}</small>` : "") + "</div></li>").join("");
+    const wa = `https://wa.me/?text=${encodeURIComponent(d.whatsapp)}`;
+    return `<div class="au au-sem au-sem--${esc(d.color)}"><div class="au-sem__cabeza"><i class="au-luz au-luz--${esc(d.color)}" aria-hidden="true"></i>` +
+        `<div><b>${esc(d.titulo)}</b><small>${esc(NOMBRE_COLOR[d.color] || "")} · revisado a las ${esc(d.hora_local)} (hora del centro)</small></div></div>` +
+        `<ul class="au-sem__lista">${filas}</ul>` +
+        `<div class="au-wa"><small>Mensaje para el despacho (WhatsApp)</small><p data-sem="texto">${esc(d.whatsapp)}</p>` +
+        (conAcciones ? `<div class="au-wa__botones"><button type="button" class="ui-btn ui-btn--secundario ui-btn--32" data-sem="copiar">Copiar mensaje</button>` +
+            `<a class="ui-btn ui-btn--secundario ui-btn--32" href="${esc(wa)}" target="_blank" rel="noopener">Mandar por WhatsApp</a></div>` : "") + "</div></div>";
+}
+
+async function revisarReinicio(silencioso) {
+    const caja = $("semaforo-reinicio"), boton = $("btn-puedo-reiniciar");
+    if (!caja) return null;
+    boton.disabled = true;
+    if (!silencioso) { caja.hidden = false; if (!semaforo) caja.innerHTML = `<p class="text-slate-400 text-sm">Revisando…</p>`; }
+    try {
+        semaforo = await api("/api/admin/sistema/puedo-reiniciar");
+        caja.innerHTML = htmlSemaforo(semaforo, true);
+        caja.hidden = false;
+        boton.textContent = "Revisar otra vez";
+    } catch (err) { caja.hidden = false; caja.innerHTML = `<p class="text-sm text-amber-700">${esc(err.message)}</p>`; semaforo = null; }
+    boton.disabled = false;
+    return semaforo;
+}
+
+async function accionSemaforo(e) {
+    const b = e.target.closest("[data-sem=copiar]");
+    if (!b || !semaforo) return;
+    try { await navigator.clipboard.writeText(semaforo.whatsapp); b.textContent = "✓ Copiado"; }
+    catch { mostrarAlerta("error", "No se pudo copiar: selecciona el texto y cópialo a mano."); }
+    setTimeout(() => { b.textContent = "Copiar mensaje"; }, 2000);
+}
+
+/* Reiniciar: primero enseña el «¿Puedo reiniciar?» en una ventana; con algo en rojo el botón dice «Reiniciar de todos modos». */
+function confirmarReinicio(d) {
+    return new Promise(listo => {
+        const dlg = document.createElement("dialog");
+        dlg.className = "fc-modal fc-modal--chica";
+        dlg.innerHTML = `<div class="fc-modal__cabeza"><div><h2>¿Reiniciar el servidor?</h2><p>Se apaga y vuelve solo en unos segundos.</p></div>` +
+            `<button type="button" class="fc-modal__cerrar" data-r="no" aria-label="Cerrar">×</button></div>` +
+            `<div class="fc-modal__cuerpo">${d ? htmlSemaforo(d, false) : `<p class="text-sm text-amber-700">No se pudo revisar si hay alguien trabajando. Revisa antes Actividad › En la web ahora.</p>`}` +
+            `<p class="text-xs text-slate-500">Lo que se pide solo (constancia, opinión, Buzón y XML) se vuelve a pedir una vez; los envíos se rehacen; los lotes quedan interrumpidos y se reanudan; el timbrado nunca sale doble.</p></div>` +
+            `<div class="fc-modal__pie"><button type="button" class="ui-btn ui-btn--secundario ui-btn--36" data-r="no">Cancelar</button>` +
+            `<button type="button" class="ui-btn ui-btn--peligro ui-btn--36" data-r="si">${d && d.color === "rojo" ? "Reiniciar de todos modos" : "Reiniciar"}</button></div>`;
+        document.body.appendChild(dlg);
+        const fin = r => { try { dlg.close(); } catch { /* nada */ } dlg.remove(); listo(r); };
+        dlg.addEventListener("click", ev => { const x = ev.target.closest("[data-r]"); if (x) fin(x.dataset.r === "si"); });
+        dlg.addEventListener("cancel", ev => { ev.preventDefault(); fin(false); });
+        dlg.showModal();
+        dlg.querySelector('[data-r="no"].ui-btn').focus();
+    });
+}
+
 async function reiniciarServidor() {
     const e = estadoSistema || { corriendo: { lotes: 0, trabajos: 0 } };
-    const corriendo = e.corriendo.lotes + e.corriendo.trabajos;
-    const aviso = corriendo
-        ? `Hay ${e.corriendo.lotes} lote(s) y ${e.corriendo.trabajos} trabajo(s) en curso.\n\n` +
-          "Los lotes quedarán como interrumpidos y se podrán reanudar con confirmación. Los trabajos sueltos en curso se pierden y habrá que pedirlos otra vez.\n\n¿Reiniciar de todos modos?"
-        : "¿Reiniciar el servidor? Vuelve solo en unos segundos.";
-    if (!(await Fiscontable.preguntar(aviso))) return;
-
     const boton = $("btn-reiniciar");
+    boton.disabled = true;
+    const d = await revisarReinicio(true);
+    boton.disabled = false;
+    if (!(await confirmarReinicio(d))) return;
+
     boton.disabled = true;
     const antes = e.encendido_desde;
     try {
@@ -2029,9 +2171,9 @@ async function reiniciarServidor() {
         try {
             const nuevo = await api("/api/admin/sistema/estado");
             if (nuevo.encendido_desde !== antes) {
-                mostrarAlerta("success", "El servidor ya volvió.");
+                mostrarAlerta("success", "El servidor ya volvió. Revisa la campana por si hubo «volvimos a pedir…».");
                 boton.disabled = false; boton.textContent = "Reiniciar";
-                estadoSistema = nuevo; pintarEstado(); await cargarBitacora();
+                estadoSistema = nuevo; pintarEstado(); await cargarBitacora(); revisarReinicio(true);
                 return;
             }
         } catch { /* sigue apagado */ }

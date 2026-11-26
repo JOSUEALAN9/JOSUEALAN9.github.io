@@ -6,17 +6,23 @@
  * DIOT (19-nov-2026): la evidencia guardada (vista previa, acuse) se baja desde el detalle, y en una sesión en vivo de la
  * DIOT está el «Envío grabado» (primer envío real con el dueño): desbloqueo con PIN para esa empresa y ese periodo, por 15
  * minutos, y el PIN otra vez justo antes de enviar (modulos/laboratorio/envio_diot.py). El servidor revisa todo.
+ * 23-nov-2026 (lab1): con la receta DIOT se puede adjuntar el TXT antes de iniciar (el servidor lo valida y el robot lo sube con
+ * «Agregar desde archivo», espera al SAT y se detiene en la vista previa); en vivo, «Subir el TXT aquí». El envío grabado
+ * ofrece operaciones «del TXT» cuando la carga quedó sin errores. En «Consultar declaración» los íconos sin texto salen como
+ * «PDF del renglón 1» y se pican desde el mapa.
  */
 (function () {
     "use strict";
     var API = Fiscontable.API, esc = Fiscontable.escapar;
     var $ = function (id) { return document.getElementById(id); };
-    var E = { datos: null, corrida: null, paso: 0, reloj: null, imagenes: {}, firma: "" };
+    var E = { datos: null, corrida: null, paso: 0, reloj: null, imagenes: {}, firma: "", txt: null };
     var ESTADO = { en_curso: ["aviso", "En curso"], completado: ["ok", "Terminado"], error: ["error", "Con error"], detenido: ["aviso", "Detenido"], interrumpido: ["error", "Interrumpido"] };
     var RESULTADO = { hecho: "", bloqueado: "bloqueado", "no encontrado": "no", error: "error" };
     var MESES = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
     var ENVIO = { activo: ["aviso", "Desbloqueado"], confirmado: ["aviso", "Enviando…"], enviando: ["aviso", "Enviando…"], enviado: ["ok", "Enviada"],
         revisar: ["error", "Revisar en el SAT"], detenido: ["error", "No se envió"], vencido: ["", "Venció"], cancelado: ["", "Cancelado"], error: ["error", "Con error"] };
+    var CARGA = { pendiente: ["", "Por subir"], procesando: ["aviso", "El SAT la procesa"], cargado: ["ok", "Cargado"], errores: ["error", "Con errores"],
+        rechazado: ["error", "Rechazado"], tiempo: ["error", "Sin respuesta"], detenido: ["aviso", "Detenido"], error: ["error", "Con error"] };
 
     async function api(ruta, opciones) {
         var r = await fetch(API + ruta, Object.assign({ credentials: "include" }, opciones || {}));
@@ -67,6 +73,31 @@
         if (g && !$("lb-ejercicio").value) $("lb-ejercicio").value = new Date().getFullYear() - 1;
         if (g && !$("lb-dia").value) { var d = new Date(Date.now() - 864e5); $("lb-dia").value = d.toISOString().slice(0, 10); }
         if (r.sin_navegador && !$("lb-mes").value) { var m = new Date(); m.setDate(1); m.setMonth(m.getMonth() - 1); $("lb-mes").value = m.toISOString().slice(0, 7); }
+        $("lb-txt-caja").hidden = r.clave !== "diot";
+        if (r.clave === "diot" && E.txt) $("lb-candado-txt").textContent = CANDADO.recorrido + " Única excepción: sube el TXT que adjuntaste, en el borrador de ese periodo.";
+    }
+    // 23-nov-2026 (lab1): el TXT de la DIOT. Se valida en el servidor al adjuntarlo (UTF-8, «|», tope) y se manda su id al iniciar.
+    function pintarTxt(error) {
+        var t = E.txt, est = $("lb-txt-estado"), av = $("lb-txt-avisos");
+        est.classList.toggle("lb-txt__estado--error", !!error);
+        est.innerHTML = error ? esc(error) : t ? "<b>" + esc(t.nombre) + "</b> · " + t.renglones + (t.renglones === 1 ? " renglón" : " renglones") + " · " + t.campos + " campos" : "Sin archivo";
+        $("lb-txt-quitar").hidden = !t;
+        av.hidden = !(t && t.avisos && t.avisos.length);
+        av.innerHTML = t && t.avisos ? t.avisos.map(function (a) { return "<li>" + esc(a) + "</li>"; }).join("") : "";
+        cambioReceta();
+    }
+    async function adjuntarTxt(archivo) {
+        var tope = (E.datos.txt_tope_mb || 10) * 1048576;
+        E.txt = null;
+        if (!/\.txt$/i.test(archivo.name)) return pintarTxt("Solo el TXT de la DIOT (un archivo .txt).");
+        if (archivo.size > tope) return pintarTxt("Pesa más de " + (E.datos.txt_tope_mb || 10) + " MB.");
+        $("lb-txt-estado").textContent = "Revisando " + archivo.name + "…";
+        var fd = new FormData(); fd.append("archivo", archivo, archivo.name);
+        try {
+            E.txt = await api("/api/admin/laboratorio/txt", { method: "POST", body: fd });
+            if (!$("lb-en-vivo").checked) $("lb-en-vivo").checked = true;      // para poder presentarla después con el envío grabado
+            pintarTxt();
+        } catch (er) { pintarTxt(er.message); }
     }
     function pintarLista() {
         var c = E.datos.corridas;
@@ -104,6 +135,7 @@
     function filaMapa(e) {
         if (e.clase === "lista") return filaLista(e);
         var extra = e.clase === "campo" ? "<small>" + esc((e.etiqueta || e.nombre || e.id || "campo") + " (" + (e.tipo || "texto") + ")") + "</small>"
+            : e.icono ? "<small>Ícono sin texto · " + esc(e.renglon || "") + "</small>"            // «PDF del renglón 1» (Consulta)
             : e.clase === "enlace" && e.destino ? "<small>" + esc(e.destino) + "</small>"
             : e.clase === "casilla" ? "<small>" + (e.marcada ? "Marcada" : "Sin marcar") + "</small>" : "";
         var accion = "";
@@ -123,14 +155,29 @@
             "<small>«+ paso» y las opciones de las listas en el mapa también lo mandan en este momento. Lo que presenta, envía, firma o paga sigue bloqueado. " +
             '<button type="button" class="lb-enlace" data-ayuda>¿Cómo escribo un paso?</button></small></form>';
     }
+    // 23-nov-2026 (lab1): el TXT adjuntado a la corrida y cómo terminó su carga; en vivo, «Subir el TXT aquí» (si no quedó cargado).
+    // 24-nov-2026 (revisión): el botón solo con la sesión quieta («esperando tus pasos»), no mientras corre la carga de arranque.
+    function cargaTxt(c) {
+        var t = c.carga_txt;
+        if (!t) return "";
+        var s = CARGA[t.estado] || ["", t.estado];
+        return '<div class="lb-carga"><span><b>TXT</b> · ' + esc(t.nombre) + " · " + t.renglones + (t.renglones === 1 ? " renglón" : " renglones") + " · DIOT " + esc(t.periodo) + " " + t.ejercicio + "</span>" +
+            '<span class="ui-estado ui-estado--' + s[0] + '">' + esc(s[1]) + "</span>" + (t.mensaje ? "<span>" + esc(t.mensaje) + "</span>" : "") +
+            (c.esperando && t.estado !== "cargado" && t.estado !== "procesando" ? '<button type="button" class="ui-btn ui-btn--secundario ui-btn--28" data-hacer="subir-txt" ' +
+                'title="Con la captura de ese periodo abierta: lo sube con «Agregar desde archivo» y se detiene en la vista previa">Subir el TXT aquí</button>' : "") + "</div>";
+    }
     // La evidencia que guardó la corrida (vista previa, acuse): se baja con un clic.
     function evidencias(c) {
         var ev = c.evidencias || [];
         if (!ev.length) return "";
         var nombre = function (n) {
-            var m = /^(\d+)_([a-z_]+?)(?:_(marco|documento)(\d+))?\.(html|pdf)$/.exec(n) || [];
-            var que = { vista_previa: "Vista previa", acuse: "Acuse", evidencia: "Pantalla" }[m[2]] || n;
-            return que + (m[3] === "documento" ? " · PDF del SAT" : m[3] === "marco" ? " · marco " + m[4] : m[5] === "pdf" ? " · impresa (PDF)" : " · página (HTML)");
+            var m = /^(\d+)_([a-z0-9_]+?)(?:_(marco|documento)(\d+))?\.(\w+)$/.exec(n) || [];
+            var r = /^(pdf|excel|xml|zip)_renglon_(\d+)(?:_(\d+))?$/.exec(m[2] || "");
+            if (r) return ({ pdf: "PDF", excel: "Excel", xml: "XML", zip: "ZIP" }[r[1]]) + " del renglón " + r[2] + (r[3] ? " (" + r[3] + ")" : "");
+            var que = { vista_previa: "Vista previa", acuse: "Acuse", evidencia: "Pantalla", totales: "Totales", guia_carga_masiva: "Guía de carga masiva",
+                errores_carga: "Errores del SAT", carga_errores: "Pantalla con errores", carga_error: "Pantalla del rechazo" }[m[2]] || n;
+            if (/^(guia_carga_masiva|errores_carga)$/.test(m[2] || "")) return que + " (" + m[5].toUpperCase() + ")";
+            return que + (m[3] === "documento" ? " · PDF del SAT" : m[3] === "marco" ? " · marco " + m[4] : m[5] === "pdf" ? " · impresa (PDF)" : m[5] === "html" ? " · página (HTML)" : " (" + (m[5] || "").toUpperCase() + ")");
         };
         return '<div class="lb-evid"><b>Evidencia guardada</b><div class="lb-ops">' + ev.map(function (n) {
             return '<button type="button" class="lb-op" data-archivo="' + esc(n) + '" title="' + esc(n) + '">' + esc(nombre(n)) + "</button>";
@@ -143,10 +190,17 @@
         var i = m ? MESES.map(function (x) { return x.toLowerCase(); }).indexOf(m[2].toLowerCase()) : -1;
         return { ej: m ? +m[1] : d.ej, mes: i >= 0 ? i : d.mes };
     }
+    // Operaciones del envío: «sin operaciones» o las del TXT cargado en esta sesión (e.operaciones = "txt:N:huella")
+    function textoOps(c, e) {
+        var ops = e.operaciones || "sin_operaciones", t = c.carga_txt || {};
+        if (ops === "txt" || ops.indexOf("txt:") === 0) { var n = ops.indexOf("txt:") === 0 ? +ops.split(":")[1] : t.renglones;
+            return "Las del TXT" + (t.nombre ? " «" + t.nombre + "»" : "") + " (" + n + (n === 1 ? " renglón" : " renglones") + ")"; }
+        return "La presenta sin operaciones";
+    }
     function tablaEnvio(c, e) {
         return '<div class="fc-identidad__tabla"><table><tbody>' +
             [["Empresa", empresa(c.rfc) + " · " + c.rfc], ["Declaración", "DIOT (Operaciones con Terceros)"], ["Ejercicio", String(e.ejercicio)],
-             ["Periodo", e.periodo], ["Tipo", "Normal"], ["Operaciones", "La presenta sin operaciones"]].map(function (f) {
+             ["Periodo", e.periodo], ["Tipo", "Normal"], ["Operaciones", textoOps(c, e)]].map(function (f) {
                 return "<tr><th scope=\"row\">" + esc(f[0]) + "</th><td><b>" + esc(f[1]) + "</b></td></tr>";
             }).join("") + "</tbody></table></div>";
     }
@@ -167,11 +221,16 @@
         var nota = e ? '<p class="lb-envio__msg">' + esc(e.mensaje || "") + (e.numero_operacion ? " · Número de operación <b>" + esc(e.numero_operacion) + "</b>" : "") + "</p>" : "";
         if (e && (e.estado === "confirmado" || e.estado === "enviando")) return '<section class="lb-envio lb-envio--activo">' + cab + tablaEnvio(c, e) + nota + "<p>No cierres la sesión.</p></section>";
         if (!c.en_vivo) return '<section class="lb-envio">' + cab + (e ? tablaEnvio(c, e) : "") + nota + "</section>";
-        var p = periodoDe(c);
+        var p = periodoDe(c), t = c.carga_txt, conTxt = t && t.estado === "cargado";
+        if (conTxt) { var i = MESES.indexOf(t.periodo); p = { ej: t.ejercicio, mes: i >= 0 ? i : p.mes }; }
         return '<section class="lb-envio">' + cab + nota +
-            '<p>Para el primer envío real, con el administrador presente. Solo DIOT <b>sin operaciones</b>, Normal, de esta empresa. Se desbloquea con tu PIN por 15 minutos; fuera de eso, «Enviar» sigue bloqueado.</p>' +
+            (conTxt ? "<p>Para presentar la DIOT con las operaciones del TXT que se cargó en esta sesión (o sin operaciones), Normal, de esta empresa. " +
+                "Antes de enviar, el robot revisa que la vista previa sea de ese periodo y diga las operaciones del TXT. Se desbloquea con tu PIN por 15 minutos.</p>"
+                : '<p>Para el primer envío real, con el administrador presente. Solo DIOT <b>sin operaciones</b>, Normal, de esta empresa. Se desbloquea con tu PIN por 15 minutos; fuera de eso, «Enviar» sigue bloqueado.</p>') +
             '<div class="lb-envio__forma"><label class="lb-campo">Ejercicio<input class="ui-input" id="lb-envio-ej" type="number" min="2025" max="2100" value="' + p.ej + '"></label>' +
             '<label class="lb-campo">Periodo<select class="ui-select" id="lb-envio-mes">' + MESES.map(function (m, i) { return '<option value="' + m + '"' + (i === p.mes ? " selected" : "") + ">" + m + "</option>"; }).join("") + "</select></label>" +
+            (conTxt ? '<label class="lb-campo">Operaciones<select class="ui-select" id="lb-envio-ops"><option value="txt">Las del TXT (' + t.renglones + ")</option>" +
+                '<option value="sin_operaciones">Sin operaciones</option></select></label>' : "") +
             '<button type="button" class="ui-btn ui-btn--secundario ui-btn--36" data-hacer="desbloquear">Desbloquear con PIN</button></div></section>';
     }
     // Ventana con lo que se va a hacer y SOLO el PIN (el dueño: «solo con PIN»). ejecutar(pin) hace la acción; si falla, la
@@ -211,14 +270,15 @@
         });
     }
     async function desbloquear(c) {
-        var ej = +$("lb-envio-ej").value, mes = $("lb-envio-mes").value, e = { ejercicio: ej, periodo: mes };
+        var ej = +$("lb-envio-ej").value, mes = $("lb-envio-mes").value, conOps = !!$("lb-envio-ops"), ops = conOps ? $("lb-envio-ops").value : "sin_operaciones",
+            e = { ejercicio: ej, periodo: mes, operaciones: ops };
         if (!ej) { Fiscontable.toast("Escribe el ejercicio."); return; }
         await pedirPin({ titulo: "Desbloquear el envío de la DIOT", boton: "Desbloquear 15 minutos",
             sub: "Solo para esta empresa y este periodo. Después te pediremos el PIN otra vez, justo antes de enviar.",
             resumen: tablaEnvio(c, e),
             ejecutar: async function (pin) {
                 await api("/api/admin/laboratorio/" + c.id + "/desbloqueo", { method: "POST", headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ rfc: c.rfc, ejercicio: ej, periodo: mes, tipo: "Normal", pin: pin }) });
+                    body: JSON.stringify(Object.assign({ rfc: c.rfc, ejercicio: ej, periodo: mes, tipo: "Normal", pin: pin }, conOps ? { operaciones: ops } : {})) });
             } });
         E.firma = ""; abrir(c.id, true);
     }
@@ -261,7 +321,7 @@
                 var paso = (e.clase === "casilla" ? "marcar: " : "clic: ") + e.texto;
                 if (visto[paso]) return;
                 visto[paso] = 1;
-                var que = e.clase === "casilla" ? (e.marcada ? "Desmarcar (ya está marcada)" : "Marcar la casilla") : e.clase === "boton" ? "Pulsar el botón" : "Abrir el enlace";
+                var que = e.icono ? "Bajar el " + e.icono + " de ese renglón" : e.clase === "casilla" ? (e.marcada ? "Desmarcar (ya está marcada)" : "Marcar la casilla") : e.clase === "boton" ? "Pulsar el botón" : "Abrir el enlace";
                 filas.push('<div class="lb-ay-aqui__fila"><span>' + que + '</span><button type="button" class="lb-ay-paso" data-ayuda-paso="' + esc(paso) + '">' + esc(paso) + "</button></div>");
             });
         caja.hidden = !filas.length;
@@ -300,7 +360,7 @@
                 (reg.length ? '<button type="button" class="ui-btn ui-btn--secundario ui-btn--28" data-hacer="zip">Descargar registro</button>' : "") +
                 (c.en_curso ? "" : '<button type="button" class="ui-btn ui-btn--terciario ui-btn--28" data-hacer="borrar">Borrar</button>') + "</div>" +
             '<div class="lb-datos">' + esc(fecha(c.creada)) + (c.mensaje ? " · <b>" + esc(c.mensaje) + "</b>" : c.en_curso ? " · recorriendo…" : "") + (c.nota ? " · " + esc(c.nota) : "") + "</div>" +
-            barraVivo(c) + panelEnvio(c) + evidencias(c) +
+            barraVivo(c) + cargaTxt(c) + panelEnvio(c) + evidencias(c) +
             (reg.length ? '<div class="lb-pasos">' + reg.map(function (x, i) {
                 return '<button type="button" class="lb-paso' + (RESULTADO[x.resultado] ? " lb-paso--" + RESULTADO[x.resultado] : "") + '" data-ir="' + i + '" aria-current="' + (i === E.paso) + '">' +
                     "<b>" + x.n + (x.resultado !== "hecho" ? " · " + esc(x.resultado) : "") + "</b><span>" + esc(x.accion) + "</span></button>";
@@ -323,7 +383,8 @@
     async function abrir(cid, conservar) {
         var c;
         try { c = await api("/api/admin/laboratorio/" + cid); } catch (e) { Fiscontable.toast(e.message); return; }
-        var ev = c.envio || {}, firma = [c.id, (c.registro || []).length, c.estado, c.mensaje, c.en_vivo, c.esperando, c.cola, ev.id, ev.estado, (c.evidencias || []).length].join("|"),
+        var ev = c.envio || {}, firma = [c.id, (c.registro || []).length, c.estado, c.mensaje, c.en_vivo, c.esperando, c.cola, ev.id, ev.estado, (c.evidencias || []).length,
+                (c.carga_txt || {}).estado].join("|"),
             igual = E.corrida && firma === E.firma;
         E.corrida = c; E.firma = firma;
         if (!conservar) E.paso = Math.max(0, (c.registro || []).length - 1);
@@ -378,12 +439,16 @@
             var r = await api("/api/admin/laboratorio", { method: "POST", headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ rfc: $("lb-empresa").value, receta: $("lb-receta").value, instrucciones: $("lb-pasos").value, url: $("lb-url").value, nota: $("lb-nota-txt").value,
                     en_vivo: $("lb-en-vivo").checked && !esGrabacion($("lb-receta").value),
+                    txt: $("lb-receta").value === "diot" && E.txt ? E.txt.id : "",
                     opciones: esGrabacion($("lb-receta").value) ? { partes: [].slice.call(document.querySelectorAll('input[name="lb-parte"]:checked')).map(function (x) { return x.value; }),
                         ejercicio: $("lb-ejercicio").value, dia: $("lb-dia").value, mes: $("lb-mes").value } : null }) });
+            if (E.txt && $("lb-receta").value === "diot") { E.txt = null; $("lb-txt").value = ""; pintarTxt(); }   // el servidor ya lo tomó
             await cargar(true); abrir(r.id);
         } catch (er) { Fiscontable.toast(er.message); }
         b.disabled = false;
     });
+    $("lb-txt").addEventListener("change", function () { if (this.files && this.files[0]) adjuntarTxt(this.files[0]); this.value = ""; });
+    $("lb-txt-quitar").addEventListener("click", function () { E.txt = null; pintarTxt(); });
     $("lb-lista").addEventListener("click", function (e) { var b = e.target.closest("[data-corrida]"); if (b) abrir(b.dataset.corrida); });
     $("lb-detalle").addEventListener("click", async function (e) {
         var ir = e.target.closest("[data-ir]"), mas = e.target.closest("[data-paso]"), h = e.target.closest("[data-hacer]"), c = E.corrida;
@@ -402,6 +467,11 @@
         if (!h || !c) return;
         try {
             if (h.dataset.hacer === "desbloquear") { await desbloquear(c); return; }
+            if (h.dataset.hacer === "subir-txt") {
+                h.disabled = true;
+                await api("/api/admin/laboratorio/" + c.id + "/txt", { method: "POST" });
+                Fiscontable.toast("Subiendo el TXT: mira cada pantalla aquí."); E.firma = ""; abrir(c.id); return;
+            }
             if (h.dataset.hacer === "enviar") { await enviarAhora(c); return; }
             if (h.dataset.hacer === "cancelar-envio") {
                 await api("/api/admin/laboratorio/" + c.id + "/desbloqueo", { method: "DELETE" });
@@ -413,7 +483,9 @@
             }
             else if (h.dataset.hacer === "repetir") {
                 $("lb-empresa").value = c.rfc; $("lb-receta").value = c.receta; cambioReceta(); $("lb-pasos").value = c.instrucciones || ""; if (c.receta === "libre") $("lb-url").value = c.url;
-                $("lb-pasos").focus(); Fiscontable.toast("Pasos copiados al formulario.");
+                $("lb-pasos").focus();
+                // 24-nov-2026 (revisión lab1): el TXT no se copia con los pasos; sin él el servidor no deja iniciar (no la deja en ceros)
+                Fiscontable.toast(c.carga_txt && !E.txt ? "Pasos copiados. Llevaban el TXT de la DIOT: adjúntalo otra vez antes de iniciar." : "Pasos copiados al formulario.");
             } else if (h.dataset.hacer === "zip") {
                 var r = await fetch(API + "/api/admin/laboratorio/" + c.id + "/zip", { credentials: "include" });
                 if (!r.ok) throw new Error(await Fiscontable.leerError(r));

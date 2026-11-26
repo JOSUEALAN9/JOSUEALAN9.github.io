@@ -4,16 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Clientes | Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611231800">
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611231800">
-    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611231800">
+    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611271300">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611271300">
+    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611271300">
 </head>
 <body class="min-h-screen flex flex-col relative">
 
     <!-- TOP NAV -->
     <div id="app-header" data-modulo="clientes" data-titulo="Clientes" data-migas=""></div>
-<script src="/assets/js/nucleo.js?v=202611231800"></script>
-<script src="/assets/js/barra.js?v=202611231800"></script>
+<script src="/assets/js/nucleo.js?v=202611271300"></script>
+<script src="/assets/js/barra.js?v=202611271300"></script>
 
     <!-- ÁREA DE TRABAJO -->
     <main class="flex-grow w-full mod-pagina" style="max-width:1180px">
@@ -182,15 +182,17 @@
                                 <button type="button" class="alta-ojo" data-ojo="alta-csd-pass" aria-label="Mostrar contraseña">👁</button></span></label>
                         </div>
                     </div>
-                    <div class="ficha-caja">
-                        <h3 class="text-[15px] font-bold text-slate-800">Manifiesto del PAC</h3>
-                        <p class="text-[13px] text-slate-500 mt-1 mb-4 leading-relaxed">Sin él no se puede timbrar. Se firma una vez con la <b>e.firma</b> de la empresa en la página de Luna Soft; al terminar descargas un PDF y lo subes aquí.</p>
+                    <!-- 24-nov-2026: opcional y plegado mientras el administrador no lo exija (clientes.js, pintarManifiestoAlta) -->
+                    <details class="ficha-caja cli-man" id="alta-man-caja">
+                        <summary class="cli-man__cabeza"><span class="cli-man__titulo"><span class="block text-[15px] font-bold text-slate-800">Manifiesto del PAC</span>
+                            <span class="block text-[13px] text-slate-500 mt-1 leading-relaxed" id="alta-man-texto">Opcional: algunos PAC lo piden. Hoy no es necesario para timbrar.</span></span></summary>
+                        <p class="text-[13px] text-slate-500 mt-1 mb-4 leading-relaxed" id="alta-man-como">Se firma una vez con la <b>e.firma</b> de la empresa en la página de Luna Soft; al terminar descargas un PDF y lo subes aquí.</p>
                         <div class="flex flex-wrap items-end gap-4">
                             <a href="https://firmamanifiesto.lunasoft.net/" target="_blank" rel="noopener" class="text-sm font-bold text-violet-700 border border-violet-200 hover:bg-violet-50 rounded-lg py-2 px-4">Abrir Luna Soft ↗</a>
                             <label class="block flex-1 min-w-[220px]"><span class="alta-etiqueta">PDF del manifiesto</span>
                                 <input type="file" id="alta-man-pdf" accept=".pdf,application/pdf" class="alta-archivo"></label>
                         </div>
-                    </div>
+                    </details>
                 </section>
 
                 <!-- ===== Obligaciones estatales de Quintana Roo (solo con el módulo de impuestos estatales) ===== -->
@@ -242,6 +244,7 @@
                 <div class="ficha-tabs" role="tablist">
                     <button type="button" role="tab" data-ficha="general">Datos generales</button>
                     <button type="button" role="tab" data-ficha="accesos">Accesos <span id="ficha-aviso-accesos" class="ficha-punto" hidden></span></button>
+                    <button type="button" role="tab" data-ficha="avisos" id="tab-avisos" title="Todo lo de esta empresa: lo urgente arriba">Avisos <span id="ficha-aviso-avisos" class="ficha-punto ficha-punto--rojo" hidden></span></button>
                     <button type="button" role="tab" data-ficha="receptores" id="tab-receptores" hidden title="A quién le factura esta empresa">Sus clientes</button>
                     <button type="button" role="tab" data-ficha="xml" id="tab-xml" hidden>Descarga de XML</button>
                     <button type="button" role="tab" data-ficha="obligaciones" id="tab-obligaciones" hidden>Obligaciones</button>
@@ -404,15 +407,17 @@
                     <p class="text-xs text-slate-400 mt-3">🔒 Antes de guardar revisamos que sea un CSD (no la e.firma), que sea de este RFC y que la contraseña abra la llave.</p>
                 </div>
 
-                <!-- Manifiesto del PAC: solo con el módulo Facturar -->
-                <div id="editar-man" class="ficha-caja" hidden>
-                    <div class="flex items-start justify-between gap-3 mb-2">
-                        <div>
-                            <h3 class="text-[15px] font-bold text-slate-800">Manifiesto del PAC (Luna Soft)</h3>
-                            <p class="text-xs text-slate-500 mt-0.5">Sin él no se puede timbrar. Se firma una vez con la e.firma de la empresa en la página de Luna Soft y se sube el PDF.</p>
-                        </div>
+                <!-- Manifiesto del PAC: solo con el módulo Facturar. 24-nov-2026: opcional y plegado mientras el administrador
+                     no lo exija (clientes.js, pintarManifiestoFicha); exigido, abierto y fijo como antes -->
+                <details id="editar-man" class="ficha-caja cli-man" hidden>
+                    <summary class="cli-man__cabeza">
+                        <span class="cli-man__titulo">
+                            <span class="block text-[15px] font-bold text-slate-800">Manifiesto del PAC (Luna Soft)</span>
+                            <span class="block text-xs text-slate-500 mt-0.5" id="man-ficha-texto">Opcional: algunos PAC lo piden. Hoy no es necesario para timbrar.</span>
+                        </span>
                         <span id="editar-estado-man" class="text-xs font-bold px-2 py-1 rounded-full flex-none"></span>
-                    </div>
+                    </summary>
+                    <p class="text-xs text-slate-500 mb-3" id="man-ficha-como">Se firma una vez con la e.firma de la empresa en la página de Luna Soft y se sube el PDF.</p>
                     <p id="man-guardado-texto" class="text-sm text-slate-700 mb-3 hidden"></p>
                     <div class="flex flex-wrap items-end gap-3">
                         <a href="https://firmamanifiesto.lunasoft.net/" target="_blank" rel="noopener" class="text-xs font-bold text-violet-700 border border-violet-200 hover:bg-violet-50 rounded-lg py-2 px-3">Abrir Luna Soft ↗</a>
@@ -421,11 +426,15 @@
                         <button type="button" data-fc-clic="subirManifiestoFicha" id="btn-subir-man" class="bg-violet-600 hover:bg-violet-500 text-white font-bold py-2 px-5 rounded-lg transition text-sm">Subir y revisar</button>
                     </div>
                     <p id="editar-mensaje-man" class="text-xs mt-2 hidden"></p>
-                </div>
+                </details>
 
                 </section>
 
                 <!-- ===== Receptores: a quién le factura esta empresa (para elegirlos al timbrar) ===== -->
+                <!-- ===== Avisos (25-nov-2026, paquete avi): las mismas reglas de la campana e Inicio ===== -->
+                <section data-panel="avisos" class="flex flex-col gap-4" hidden>
+                    <div id="ficha-avisos" class="cli-av"></div>
+                </section>
                 <section data-panel="receptores" class="flex flex-col gap-6" hidden>
                     <div class="flex items-start justify-between gap-3">
                         <div>
@@ -538,9 +547,9 @@
         </div>
     </div>
 
-<script src="/assets/js/comun/leer-cer.js?v=202611231800"></script>
-<script src="/assets/js/comun/zona-archivos.js?v=202611231800"></script>
-<script src="/assets/js/comun/autorizacion-efirma.js?v=202611231800"></script>
+<script src="/assets/js/comun/leer-cer.js?v=202611271300"></script>
+<script src="/assets/js/comun/zona-archivos.js?v=202611271300"></script>
+<script src="/assets/js/comun/autorizacion-efirma.js?v=202611271300"></script>
 <style>
 /* Entregas de empresas y «Pasar todas al despacho» (15-nov) */
 .cli-traspasos { display: grid; gap: 8px; margin: 0 0 14px; }
@@ -658,6 +667,58 @@
     .ficha-tabs button[aria-selected="true"] { color: rgb(var(--ac-600)); border-bottom-color: rgb(var(--ac-600)); }
     .ficha-punto { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: rgb(var(--av-600)); margin-left: 4px; vertical-align: middle; }
     .ficha-caja { border: 1px solid rgb(var(--g-200)); border-radius: 14px; padding: 20px; }
+    /* Pestaña «Avisos» de la ficha (25-nov-2026, paquete avi): «Requiere atención» en rojo tenue y lo demás por grupo */
+    .ficha-punto.ficha-punto--rojo { background: rgb(var(--er-600)); }
+    section[data-panel="avisos"] { min-width: 0; }
+    .cli-av { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; min-width: 0; width: 100%; }
+    .cli-av > * { min-width: 0; }
+    .cli-av-urgente { display: grid; gap: 2px; padding: 8px; border: 1px solid rgb(var(--er-200)); border-radius: 12px; background: rgb(var(--er-50)); }
+    .cli-av-urgente__titulo { display: flex; align-items: center; gap: 4px; min-height: 28px; margin: 0 0 2px 8px; font-size: 12px; font-weight: 700; color: rgb(var(--er-600)); text-transform: uppercase; letter-spacing: .04em; }
+    .cli-av-urgente a, .cli-av-urgente div { display: grid; gap: 1px; padding: 8px; border-radius: 8px; background: rgb(var(--g-0) / .65); color: rgb(var(--g-900)); text-decoration: none; min-width: 0; }
+    .cli-av-urgente a:hover { background: rgb(var(--g-0)); }
+    .cli-av-atendido { color: rgb(var(--ok-700)) !important; }
+    /* 26-nov-2026 (el dueño, tercera vuelta): como en la campana, sin casilla ni botón en cada renglón; arriba «Atender…» y, en el
+       modo de selección, «Ya los atendí (n)» · «Todos» · «Cancelar» con la casilla a la izquierda de los que se pueden atender */
+    .cli-av-texto { border: 0; background: none; border-radius: 8px; padding: 4px 8px; font: inherit; font-size: 12px; font-weight: 600; color: rgb(var(--er-600)); cursor: pointer; white-space: nowrap; text-transform: none; letter-spacing: 0; }
+    .cli-av-texto:hover { background: rgb(var(--g-0) / .7); }
+    .cli-av-urgente__titulo > .cli-av-texto:last-child { margin-left: auto; }
+    .cli-av-urgente__titulo--elegir { margin-left: 0; }
+    .cli-av-urgente__titulo .ui-btn { white-space: nowrap; text-transform: none; letter-spacing: 0; }
+    .cli-av-urgente .cli-av-urg-caja--elegir { display: grid; grid-template-columns: 16px minmax(0, 1fr); align-items: center; gap: 0; padding: 0 0 0 8px; border-radius: 8px; background: rgb(var(--g-0) / .65); cursor: pointer; }
+    .cli-av-urgente .cli-av-urg-caja--elegir:hover { background: rgb(var(--g-0)); }
+    .cli-av-urgente .cli-av-urg-caja--elegir > div { background: none; }
+    .cli-av-urgente .cli-av-urg-caja--elegir input { width: 16px; height: 16px; margin: 0; accent-color: rgb(var(--er-600)); cursor: pointer; }
+    .cli-av-urgente b, .cli-av-lista b { font-size: 13.5px; font-weight: 600; overflow-wrap: anywhere; }
+    .cli-av-urgente span, .cli-av-lista span { font-size: 12.5px; color: rgb(var(--g-600)); overflow-wrap: anywhere; }
+    .cli-av-tranquilo { margin: 0; font-size: 13.5px; color: rgb(var(--g-600)); }
+    .cli-av-cabeza { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px; }
+    .cli-av-grupos { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; min-width: 0; flex: 1 1 0; max-width: 100%; }
+    .cli-av-grupos::-webkit-scrollbar { display: none; }
+    .cli-av-grupos button { flex: none; border: 1px solid rgb(var(--g-200)); background: rgb(var(--g-0)); border-radius: 999px; padding: 4px 10px; font: inherit; font-size: 12.5px;
+                            font-weight: 600; color: rgb(var(--g-600)); cursor: pointer; }
+    .cli-av-grupos button[aria-pressed="true"] { border-color: rgb(var(--ac-600)); background: rgb(var(--ac-50)); color: rgb(var(--ac-700)); }
+    .cli-av-grupos button:disabled { opacity: .5; cursor: default; }
+    .cli-av-campana { border: 0; background: none; font: inherit; font-size: 13px; font-weight: 600; color: rgb(var(--ac-700)); cursor: pointer; white-space: nowrap; padding: 0; }
+    .cli-av-campana:hover { text-decoration: underline; }
+    .cli-av-lista { display: grid; border: 1px solid rgb(var(--g-200)); border-radius: 12px; overflow: hidden; }
+    .cli-av-lista > * { display: grid; gap: 2px; padding: 10px 14px; color: rgb(var(--g-900)); text-decoration: none; min-width: 0; }
+    .cli-av-lista > * + * { border-top: 1px solid rgb(var(--g-100)); }
+    .cli-av-lista > a:hover { background: rgb(var(--g-50)); }
+    .cli-av-lista small { font-size: 12px; color: rgb(var(--g-500)); }
+    .cli-av-lista .cli-av--urgente { box-shadow: inset 3px 0 0 rgb(var(--er-600)); background: rgb(var(--er-50)); }
+    .cli-av-lista em { font-style: normal; font-size: 11px; font-weight: 700; color: rgb(var(--er-600)); text-transform: uppercase; letter-spacing: .04em; }
+    .cli-av-mas { justify-self: center; }
+    /* 24-nov-2026: el manifiesto del PAC, plegado mientras sea opcional; exigido, abierto y sin flecha (como antes) */
+    .cli-man[hidden] { display: none; }
+    .cli-man__cabeza { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; cursor: pointer; list-style: none; }
+    .cli-man__cabeza::-webkit-details-marker { display: none; }
+    .cli-man__titulo { flex: 1 1 auto; min-width: 0; }
+    .cli-man__cabeza::after { content: ""; flex: none; width: 8px; height: 8px; margin: 6px 4px 0 0; border-right: 2px solid rgb(var(--g-400)); border-bottom: 2px solid rgb(var(--g-400)); transform: rotate(45deg); transition: transform .15s; }
+    .cli-man[open] > .cli-man__cabeza { margin-bottom: 10px; }
+    .cli-man[open] > .cli-man__cabeza::after { transform: rotate(225deg); margin-top: 10px; }
+    .cli-man__cabeza:focus-visible { outline: 2px solid rgb(var(--ac-600)); outline-offset: 4px; border-radius: 6px; }
+    .cli-man--exigido > .cli-man__cabeza { cursor: default; }
+    .cli-man--exigido > .cli-man__cabeza::after { display: none; }
     .ficha-datos { display: grid; grid-template-columns: auto 1fr; gap: 10px 20px; font-size: 14px; margin: 0; }
     .ficha-datos dt { color: rgb(var(--g-600)); } .ficha-datos dd { margin: 0; color: rgb(var(--g-900)); }
     .ficha-chip { font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 999px; border: 0; cursor: pointer; }
@@ -711,7 +772,7 @@
     .alta-despacho { margin-top: 8px; font-size: 13px; line-height: 1.45; border-radius: 10px; padding: 9px 12px; background: rgb(var(--in-50)); border: 1px solid rgb(var(--in-200)); color: rgb(var(--g-800)); }
     .alta-error { font-size: 13px; font-weight: 600; border-radius: 10px; padding: 10px 12px; background: rgb(var(--er-50)); border: 1px solid rgb(var(--er-200)); color: rgb(var(--er-600)); }
 </style>
-<script src="/assets/js/comun/importar-clientes.js?v=202611231800"></script>
+<script src="/assets/js/comun/importar-clientes.js?v=202611271300"></script>
 <!-- Varias constancias a la vez: obligaciones federales y alta de los que falten -->
 <dialog id="dlg-constancias" class="ui-modal" style="width:min(640px, calc(100vw - 32px))">
     <div class="ui-modal__cuerpo">
@@ -723,6 +784,6 @@
     </div>
     <div class="ui-modal__pie"><button type="button" class="ui-btn ui-btn--secundario" data-cerrar>Cerrar</button></div>
 </dialog>
-<script src="/clientes/clientes.js?v=202611231800"></script>
+<script src="/clientes/clientes.js?v=202611271300"></script>
 </body>
 </html>

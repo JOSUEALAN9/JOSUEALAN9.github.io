@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tipo de cambio · Fiscontable</title>
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611271300">
+    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611271300">
+    <link rel="stylesheet" href="/herramientas/tipo-cambio/tipo-cambio.css?v=202611271300">
+</head>
+<body class="min-h-screen flex flex-col">
+<div id="app-header" data-modulo="tipo_cambio" data-titulo="Tipo de cambio" data-migas="Herramientas|/herramientas/"></div>
+<script src="/assets/js/nucleo.js?v=202611271300"></script>
+<script src="/assets/js/barra.js?v=202611271300"></script>
+
+<!-- 23-nov-2026, el dueño (decisión F del Avance 1): el tipo de cambio del dólar de cada día, como lo pide el art. 20 del CFF
+     (el publicado en el DOF el día anterior), y la serie FIX de Banxico, con su Excel. Para cualquier cuenta con sesión. -->
+<main class="flex-grow mod-pagina">
+    <div class="mod-cabeza">
+        <div>
+            <h1>Tipo de cambio</h1>
+            <p class="tc-sub">Dólar (USD). El que aplica cada día es el publicado en el DOF el día anterior (art. 20 del CFF).</p>
+        </div>
+    </div>
+
+    <div class="tc-resumen" id="tc-resumen">
+        <div class="tc-dato"><small>Hoy aplica</small><b id="tc-hoy">—</b><span id="tc-hoy-sub"></span></div>
+        <div class="tc-dato"><small>Último FIX de Banxico</small><b id="tc-ultimo">—</b><span id="tc-ultimo-sub"></span></div>
+        <div class="tc-dato"><small>En estas fechas</small><b id="tc-rango">—</b><span id="tc-rango-sub"></span></div>
+    </div>
+
+    <div class="tc-barra">
+        <label class="ui-campo"><span class="ui-etiqueta">Desde</span><input type="date" id="tc-desde" class="ui-input" min="2017-01-01"></label>
+        <label class="ui-campo"><span class="ui-etiqueta">Hasta</span><input type="date" id="tc-hasta" class="ui-input" min="2017-01-01"></label>
+        <div class="tc-rapidos" role="group" aria-label="Fechas rápidas">
+            <button type="button" class="tc-chip" data-rango="mes">Este mes</button>
+            <button type="button" class="tc-chip" data-rango="anterior">Mes anterior</button>
+            <button type="button" class="tc-chip" data-rango="anio">Este año</button>
+        </div>
+        <div class="tc-barra__der">
+            <button type="button" id="tc-excel" class="ui-btn ui-btn--36 ui-btn--primario" title="Hojas «Por día» y «Serie FIX Banxico»">Descargar Excel</button>
+        </div>
+    </div>
+    <p class="tc-error" id="tc-error" role="alert" hidden></p>
+
+    <div class="tc-caja" id="tc-caja">
+        <table class="tc-tabla">
+            <thead><tr>
+                <th>Fecha</th><th>Día</th>
+                <th class="tc-num" title="El publicado en el DOF el día anterior (art. 20 del CFF)">T.C. que aplica</th>
+                <th>Publicado en el DOF</th><th>FIX determinado el</th>
+                <th class="tc-num">FIX del día hábil anterior</th><th class="tc-num">FIX del mismo día</th>
+            </tr></thead>
+            <tbody id="tc-tbody"></tbody>
+        </table>
+        <div class="ui-vacio" id="tc-vacio" hidden><b>Sin tipo de cambio guardado para esas fechas</b><span>Se trae solo de Banxico a las 6:00 y a las 18:00.</span></div>
+    </div>
+    <p class="tc-nota" id="tc-nota">Fuente: Banxico, serie FIX (SF43718), la que se guarda en Fiscontable. En días inhábiles el «FIX del mismo día» es el último que hubo.
+        Los mismos datos usa Conciliación de pagos.</p>
+</main>
+
+<script src="/herramientas/tipo-cambio/tipo-cambio.js?v=202611271300"></script>
+</body>
+</html>

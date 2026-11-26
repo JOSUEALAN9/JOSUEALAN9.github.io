@@ -5,6 +5,7 @@
  *   Fiscontable.API        dirección del backend (el único lugar donde vive)
  *   Fiscontable.VERSION    versión de la interfaz (la cambia publicar.sh)
  *   Fiscontable.escapar(t) texto seguro para meter en HTML
+ *   Fiscontable.enFila(t)  «En cola…» (lo guardado de antes) → «En fila…» (25-nov-2026, el dueño: un solo término)
  *   Fiscontable.leerError(resp) -> Promise<mensaje>  errores del servidor
  *                                   en lenguaje de contador
  *
@@ -14,7 +15,7 @@
 (function () {
     "use strict";
 
-    var VERSION = "202611231800";
+    var VERSION = "202611271300";
     // www.fiscontable.app → fiscontable.app: una sola dirección (la sesión y las preferencias guardadas son por dirección)
     if (location.hostname === "www.fiscontable.app") {
         location.replace("https://fiscontable.app" + location.pathname + location.search + location.hash);
@@ -284,6 +285,10 @@
             .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
     }
 
+    // 25-nov-2026 (el dueño): lo que espera su turno se llama «En fila» en todos lados (nunca «En cola»); los trámites guardados
+    // de antes todavía pueden decir «En cola…»: se enseñan igual
+    function enFila(texto) { return typeof texto === "string" ? texto.replace(/\bEn cola\b/g, "En fila") : texto; }
+
     async function leerError(resp) {
         if (!resp) return navigator.onLine === false ? "Sin conexión a internet. Revisa tu red e intenta de nuevo."
             : "Fiscontable no responde en este momento. Intenta de nuevo en unos minutos.";
@@ -469,6 +474,7 @@
         PRUEBAS: PRUEBAS,
         VERSION: VERSION,
         escapar: escapar,
+        enFila: enFila,
         leerError: leerError,
         MENSAJE_RESPALDO: MENSAJE_RESPALDO,
         enRespaldo: function () { return enRespaldo; },
@@ -534,6 +540,42 @@
         texto: function (modo) {
             return modo === "xml" ? "en pesos, con el tipo de cambio de cada XML" : modo === "dof" ? "en pesos, con el tipo de cambio del DOF (Banxico)" : "sin convertir";
         }
+    };
+
+    /* Al volver a la pestaña (26-nov-2026, el dueño: «lo cerré en la compu, fui en el celular y no se había cerrado, actualicé con
+       F5 y ya apareció»). Lo que otra persona u otro equipo pudo cambiar se vuelve a pedir solo, sin recargar la página: al regresar
+       a la pestaña (visibilitychange, focus o la página que el navegador guardó al ir atrás) y, mientras se ve, cada `cada` ms
+       (de fábrica 90 s). Nunca dos a la vez ni más seguido que `minimo` ms (de fábrica 15 s: el foco va y viene al cambiar de
+       ventana). fn pide sus datos y repinta solo si cambiaron; si regresa una promesa, se espera. Lo usan Configuración › Cierre
+       de meses, Marcas fiscales y la tabla de Inicio.   var v = Fiscontable.alVolver(fn, {cada, minimo}); v.parar(); v.ya(); */
+    window.Fiscontable.alVolver = function (fn, opciones) {
+        var o = opciones || {}, cada = o.cada || 90000, minimo = o.minimo || 15000;
+        // Revisión del 26-nov-2026: una vuelta que no termina (el celular se durmió a media petición y esa petición nunca
+        // contesta) ya no deja esto apagado hasta recargar la página: pasados `atorada` ms (45 s) se da por perdida.
+        var ultima = Date.now(), corriendo = 0, vivo = true, atorada = o.atorada || 45000;
+        function visible() { return document.visibilityState !== "hidden"; }
+        async function correr(forzar) {
+            if (!vivo || !visible() || (corriendo && Date.now() - corriendo < atorada) || (!forzar && Date.now() - ultima < minimo)) return;
+            var mia = corriendo = Date.now();
+            ultima = mia;                                    // el tope de 15 s cuenta también desde que empezó
+            try { await fn(); } catch (e) { /* sin red o la API falló: se intenta la próxima vez */ }
+            finally { if (corriendo === mia) { corriendo = 0; ultima = Date.now(); } }
+        }
+        function alVer() { correr(false); }
+        function alRegresar(e) { if (e && e.persisted) correr(true); }
+        var reloj = setInterval(function () { if (Date.now() - ultima >= cada) correr(false); }, Math.min(cada, 15000));
+        document.addEventListener("visibilitychange", alVer);
+        window.addEventListener("focus", alVer);
+        window.addEventListener("pageshow", alRegresar);
+        return {
+            ya: function () { return correr(true); },
+            parar: function () {
+                vivo = false; clearInterval(reloj);
+                document.removeEventListener("visibilitychange", alVer);
+                window.removeEventListener("focus", alVer);
+                window.removeEventListener("pageshow", alRegresar);
+            }
+        };
     };
 
     // Aviso de carga sobre una tabla (17-nov, «algo para saber que ya cargó la info nueva»): mientras llega lo pedido se ve una

@@ -73,6 +73,8 @@
 .bz-progreso__ok b, .bz-progreso__parcial b { color: rgb(var(--ok-200)); }
 .bz-progreso__error b, .bz-progreso__incompleta b { color: rgb(var(--er-200)); }
 .bz-progreso__revisando b { color: rgb(var(--in-200)); }
+/* 25-nov-2026 (el dueño): «En fila», con el color de «esperando» (ámbar) en todos lados */
+.bz-progreso__en_fila b { color: rgb(var(--av-200)); }
 .bz-progreso .bz-liga { color: rgb(var(--in-200)); }
 
 /* Por empresa */

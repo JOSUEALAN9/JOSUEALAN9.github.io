@@ -104,7 +104,7 @@
                 "Si un proveedor escribe distinto la descripción en cada factura, cada una cuenta aparte; para agruparlas, usa «Por clave SAT».") +
             dato(num(C.datos.filas.clave.length), "claves del SAT", "Cuántas claves de producto o servicio del SAT distintas se usaron, se describan como se describan") +
             dato(num(r.contrapartes), quien(true)) +
-            dato("$" + fmt.format(r.importe_mxn), "importe neto en pesos", "Importe menos descuento, en pesos con el tipo de cambio de cada factura; las notas de crédito restan") +
+            dato("$" + fmt.format(r.importe_mxn), "importe neto en pesos", "Importe menos descuento, en pesos al tipo de cambio del DOF del día de cada factura; las notas de crédito restan") +
             dato("$" + fmt.format(r.iva_mxn), "IVA en pesos") + "</div>" +
             (avisos.length ? '<p class="xc-avisos">' + avisos.map(esc).join(" · ") + "</p>" : "");
         var seg = $("conceptos-vistas"); seg.hidden = false;
@@ -141,12 +141,13 @@
         }[vista];
         var t = FCTabla.estandar({
             contenedor: cont, id: "xml-conceptos-" + vista, claveFila: "id",
+            ligaFila: vista === "detalle" && Fiscontable.urlFactura ? function (f) { return Fiscontable.urlFactura(C.ctx.rfc, f.uuid); } : null,      // E (23-nov-2026)
             catalogo: d.columnas[vista], predeterminadas: d.predeterminadas[vista],
             anchoClave: { descripcion: 320, clave_sat: 240, contraparte_nombre: 240, principal: 280, observacion: 220, clave: 110 },
             sellos: vista === "detalle" ? { estado_sat: { "Vigente": "verde", "Cancelado": "rojo", "Sin validar": "gris" } } : {},
             buscar: buscar, filtros: filtros,
             exportar: { nombre: function () { return nombreArchivo(vista); }, hoja: { detalle: "Conceptos", producto: "Resumen por producto", clave: "Resumen por clave SAT", contraparte: "Resumen por " + quien(false) }[vista],
-                        extras: [{ texto: "Excel del reporte completo (4 hojas)", accion: excelCompleto }] },
+                        enBarra: false },          // 23-nov-2026 (A.1): un solo «Descargar Excel», el de la página (Descargar ▾)
             vacio: { titulo: "Sin renglones", texto: "Quita filtros para ver más." },
             alClic: function (f) {
                 if (vista === "detalle") { if (Fiscontable.verCfdi) Fiscontable.verCfdi(C.ctx.rfc, f.uuid, [f.uuid]); return; }
@@ -174,12 +175,22 @@
         if (!C.tablas[vista]) C.tablas[vista] = crearTabla(vista);
     }
 
-    async function excelCompleto() {
+    /* 24-nov-2026 (revisión de excel1, A.1-A.2 del Avance 1): «Descargar Excel» con el reporte abierto baja la tabla COMO SE
+       VE: su vista (desglose o el resumen elegido), las columnas que se ven en su orden y los renglones que se ven (búsqueda
+       y filtros), con nuestro encabezado. Ya no el libro de 4 hojas sin filtros. */
+    async function excelCompleto(boton) {
+        var t = C.ctx && C.tablas[C.vista];
+        if (!t) return;
+        var extra = { vista: C.vista, columnas: t.tabla.columnas().map(function (c) { return c.clave; }),
+                      ids: t.visibles().map(function (f) { return String(f.id); }) };
+        var texto = boton && boton.innerHTML;
+        if (boton) { boton.disabled = true; boton.innerHTML = "<b>⏳</b>Generando…"; }
         try {
-            var resp = await post("/api/xml/conceptos/excel", cuerpo());
+            var resp = await post("/api/xml/conceptos/excel", Object.assign(cuerpo(), extra));
             var nombre = /filename="([^"]+)"/.exec(resp.headers.get("Content-Disposition") || "");
-            Fiscontable.guardarArchivo(await resp.blob(), nombre ? nombre[1] : nombreArchivo("detalle"));
+            Fiscontable.guardarArchivo(await resp.blob(), nombre ? nombre[1] : nombreArchivo(C.vista));
         } catch (e) { Fiscontable.toast ? Fiscontable.toast(e.message) : Fiscontable.avisar(e.message); }
+        if (boton) { boton.disabled = false; boton.innerHTML = texto; }
     }
 
     function cerrar() {
@@ -194,9 +205,9 @@
     document.addEventListener("DOMContentLoaded", function () {
         if (!$("conceptos")) return;
         $("conceptos-cerrar").addEventListener("click", cerrar);
-        $("conceptos-excel").addEventListener("click", excelCompleto);
+        $("conceptos-excel").addEventListener("click", function () { excelCompleto(); });
         $("conceptos-vistas").addEventListener("click", function (e) { var b = e.target.closest("[data-vista]"); if (b) mostrar(b.dataset.vista); });
     });
 
-    window.XMLConceptos = { abrir: abrir, cerrar: cerrar, abierto: function () { return !!C.ctx; } };
+    window.XMLConceptos = { abrir: abrir, cerrar: cerrar, abierto: function () { return !!C.ctx; }, excel: excelCompleto };
 })();

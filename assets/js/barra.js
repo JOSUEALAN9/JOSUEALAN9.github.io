@@ -68,12 +68,14 @@
     var MODULOS = {
         portada:       { nombre: "Fiscontable",           permiso: null },
         clientes:      { nombre: "Clientes",          permiso: null },
+        vencimientos:  { nombre: "Vencimientos",          permiso: "clientes" },     // e.firma y sellos de todas las empresas (23-nov-2026)
         herramientas:  { nombre: "Herramientas",          permiso: null },
         conciliacion:  { nombre: "Conciliación de pagos", permiso: "conciliacion" },
         recibos_nomina: { nombre: "Recibos de nómina",    permiso: "validador" },
         envios:        { nombre: "Envíos por correo",     permiso: "envios" },
         iva:           { nombre: "Papel de trabajo de IVA", permiso: "iva" },
         visores:       { nombre: "Visores del SAT",       permiso: "iva" },
+        tipo_cambio:   { nombre: "Tipo de cambio",        permiso: null },          // 23-nov-2026 (decisión F): para todas las cuentas
         cierre:        { nombre: "Cierre del mes",        permiso: null },
         validador:     { nombre: "Validador SAT",         permiso: "validador" },
         xml:           { nombre: "Administración de XML", permiso: "validador" },
@@ -165,7 +167,7 @@
         marcas: ["Elige empresa, mes y Emitidas o Recibidas.",
                  "Casi todo se marca automáticamente y dice por qué; revisa «Por revisar».",
                  "Toca la casilla de un impuesto para decir si cuenta o no; el folio abre la factura.",
-                 "⚙ Reglas: momento de cada impuesto, alcohol y lo aprendido. «Cerrar mes» cuando ya presentaste."],
+                 "⚙ Reglas: momento de cada impuesto, alcohol y lo aprendido. Cuando ya presentaste, cierra el mes en Configuración › Cierre de meses (con tu PIN)."],
         cancelaciones: ["«Por responder»: Buscar en el SAT y aceptar o rechazar una por una (72 horas).",
                         "«Cancelar emitidas»: elige el mes y Cancelar… en la factura (necesita el CSD en Facturar).",
                         "«Historial»: lo enviado, su resultado, Revisar en el SAT y el acuse."],
@@ -188,6 +190,10 @@
         retenciones: ["Elige empresa y año; Recibidas o Emitidas.",
                       "Comprobantes es la lista; Papel de trabajo, el resumen por mes.",
                       "Pedir al SAT las trae de Descarga masiva; también puedes Subir XML. Exporta a Excel o baja los XML."],
+        vencimientos: ["Arriba, cuántas e.firmas y sellos están vencidos, vencen en 30 o en 90 días, siguen vigentes o no tienen fecha. Pica uno para ver solo esos.",
+                       "La línea de tiempo enseña los próximos 12 meses: cada círculo es una e.firma y cada rombo un sello. Pasa el cursor (o toca) para ver de quién es; pica un mes para filtrar.",
+                       "En la tabla, «Renovar» o «Subir» te lleva a la ficha de Clientes (e.firma) o a Facturar › Sello digital. Si el sello no está en Facturar, sale el de su última factura emitida.",
+                       "«Descargar Excel» baja lo que ves. Los días de aviso se cambian en Configuración › Avisos."],
         despacho: ["Equipo: quién está y con qué papel; el titular invita y cambia Permisos.",
                    "Solicitudes, Trámites y Bitácora: lo que piden, lo que está en curso y quién hizo qué.",
                    "Ajustes: nombre, correo de avisos y si las personas nuevas tienen su propio espacio."]
@@ -219,7 +225,8 @@
         clientes: "M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-1.13a4 4 0 10-4-4 4 4 0 004 4zm6 0a4 4 0 10-4-4",
         balanza: "M12 3v18m0-18l-7 3m7-3l7 3M5 6l-3 7a3 3 0 006 0L5 6zm14 0l-3 7a3 3 0 006 0l-3-7zM8 21h8",
         prohibido: "M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636",
-        moneda: "M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+        moneda: "M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z",
+        calendario: "M8 7V3m8 4V3M4 11h16M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2zM12 14.5V17l1.5 1"
     };
     // Menú agrupado por el trabajo del contador (aprobado el 9 nov 2026). Las direcciones no cambian.
     // cuenta: true = no va en el menú (Descargas y Créditos viven en la barra y en el menú de usuario).
@@ -227,6 +234,8 @@
     var GRUPOS = ["Clientes", "Comprobantes", "Cierre del mes", "Cumplimiento", "Nómina", "Facturación", "Documentos"];
     var CATALOGO = [
         { clave: "clientes", grupo: "Clientes", nombre: "Clientes", desc: "Empresas, e.firma y obligaciones", url: "/clientes/", permiso: null, icono: I.clientes, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
+        // 23-nov-2026: la e.firma y el sello digital de cada empresa con su fecha de vencimiento (mismo permiso que Clientes)
+        { clave: "vencimientos", grupo: "Clientes", nombre: "Vencimientos", alias: "vencimientos efirma e.firma fiel sello sellos csd sello digital certificado caducidad vigencia vence vencida expiracion renovar recordatorio", desc: "e.firma y sellos de tus empresas, con su fecha", url: "/herramientas/vencimientos/", permiso: "clientes", icono: I.calendario, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
 
         { clave: "xml", grupo: "Comprobantes", nombre: "Administración de XML", alias: "xml comprobantes", desc: "Tus XML por tipo, con reportes en Excel", url: "/herramientas/xml/", permiso: "validador", icono: I.xml, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
         { clave: "recibos_nomina", grupo: "Comprobantes", nombre: "Recibos de nómina", alias: "nomina recibos timbrados cfdi de nomina sueldos asimilados", desc: "Los recibos de nómina timbrados, con su Excel", url: "/herramientas/xml/?vista=nomina", permiso: "validador", icono: I.gente, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
@@ -239,6 +248,7 @@
 
         { clave: "cierre", grupo: "Cierre del mes", nombre: "Avance por cliente", alias: "cierre del mes cartera avance tablero clientes pendientes", desc: "Qué tiene listo cada cliente y qué le falta", url: "/herramientas/cierre/", permiso: null, icono: I.lista, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
         { clave: "visores", grupo: "Cierre del mes", nombre: "Visores del SAT", alias: "visor visores sat facturado cobrado ingresos egresos nomina isr retenido enterado cruce xml", desc: "Lo que dice el SAT contra tus XML, facturas y nómina", url: "/herramientas/visores/", permiso: "iva", icono: I.grafica, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
+        { clave: "tipo_cambio", grupo: "Cierre del mes", nombre: "Tipo de cambio", alias: "tipo de cambio dolar usd dof fix banxico paridad", desc: "El del DOF de cada día y la serie FIX de Banxico, con Excel", url: "/herramientas/tipo-cambio/", permiso: null, icono: I.moneda, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
         { clave: "conciliacion", grupo: "Cierre del mes", nombre: "Conciliación de pagos", alias: "conciliacion ppd complementos de pago cobranza", num: 1, desc: "Facturas a crédito contra sus complementos de pago", url: "/herramientas/conciliacion/", permiso: "conciliacion", icono: I.cruce, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
         { clave: "iva", grupo: "Cierre del mes", nombre: "Papel de trabajo IVA", num: 2, alias: "papel de trabajo de iva", desc: "IVA cobrado y pagado del mes", url: "/herramientas/iva/", permiso: "iva", icono: I.porciento, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
         { clave: "isn", grupo: "Cierre del mes", nombre: "Impuestos estatales", num: 3, alias: "isn nominas hospedaje", desc: "ISN, hospedaje, profesiones y alcohol (Q. Roo)", url: "/herramientas/isn/", permiso: "isn", icono: I.gente, tono: "rgb(var(--g-700))", suave: "rgb(var(--g-100))" },
@@ -290,6 +300,33 @@
     var INICIO = "/inicio/";       // el tablero; la portada del dominio («/») es la página pública
     var ancla = document.getElementById("app-header");
     if (!ancla) return;
+
+    /* 23-nov-2026 (el dueño, Avance 1 · I.1, cierre de sesión seguro): «Cerrar sesión» (y el cierre por muchas horas sin
+       actividad) deja en este navegador la marca «fc-salio». Con ella, cualquier página de la app va directo a «Iniciar
+       sesión» SIN pintar nada (ni la barra con lo de la vez pasada) y sin esperar al servidor: antes, al dar F5 o abrir un
+       marcador, se veían unos segundos el nombre y el aviso de quien salió. La marca se quita al entrar (login.js) o cuando
+       /api/mi-perfil contesta bien. Las demás pestañas se enteran por el evento «storage» y se van también; al volver con
+       Atrás (página guardada por el navegador) se revisa otra vez (pageshow). Dentro de un marco no se navega: lo hace la de
+       arriba. Lo personal que quedaba guardado en el navegador se borra con olvidarCuenta(). */
+    var LLAVE_SALIO = "fc-salio";
+    function marcaSalio() {
+        try { var v = localStorage.getItem(LLAVE_SALIO); return v ? (JSON.parse(v) || { motivo: "salio" }) : null; }
+        catch (e) { return null; }
+    }
+    function irALoginPorSalida(m) {
+        document.documentElement.style.visibility = "hidden";          // nada de lo que había se vuelve a ver
+        if (enMarco) return;
+        var motivo = m && m.motivo === "inactividad" ? "sesion" : "salio";
+        // Después de salir, la siguiente entrada abre Inicio (no la última página de quien salió)
+        try { sessionStorage.setItem("fc-entrar-datos", JSON.stringify({ motivo: motivo, volver: location.origin + INICIO, en: Date.now() })); }
+        catch (e) { /* sin almacenamiento */ }
+        location.replace("/login");
+    }
+    if (marcaSalio()) { irALoginPorSalida(marcaSalio()); return; }
+    window.addEventListener("storage", function (e) {
+        // Cerró sesión en otra pestaña: esta también olvida lo suyo (lo de la pestaña no lo borra la otra) y se va
+        if (e.key === LLAVE_SALIO && e.newValue) { olvidarCuenta(); irALoginPorSalida(marcaSalio()); }
+    });
 
     var clave = ancla.dataset.modulo || "portada";
     var modulo = MODULOS[clave] || MODULOS.portada;
@@ -344,6 +381,8 @@
         contraer: "M11 17l-5-5 5-5M18 17l-5-5 5-5",
         estrella: "M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z",
         calendario: "M8 7V3m8 4V3M4 11h16M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z",
+        luna:     "M20.4 14.5A8.5 8.5 0 019.5 3.6a8.5 8.5 0 1010.9 10.9z",
+        abajo:    "M6 9l6 6 6-6",
         equipo:   "M17 20h5v-2a3 3 0 00-5.4-1.8M17 20H7m10 0v-2c0-.7-.1-1.3-.4-1.8M7 20H2v-2a3 3 0 015.4-1.8M7 20v-2c0-.7.1-1.3.4-1.8m0 0a5 5 0 019.2 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
     };
 
@@ -420,7 +459,7 @@
                     '<span class="fc-accion__etiqueta fc-empresa__nombre" id="fc-periodo-nombre">' + esc(bc.periodo || "Elegir periodo") + "</span>" +
                     '<span class="fc-empresa__flecha" aria-hidden="true">▾</span>' +
                   "</button>" +
-                  '<button type="button" class="fc-accion" id="fc-btn-actividad" aria-haspopup="dialog" aria-label="Actividad" title="Actividad">' +
+                  '<button type="button" class="fc-accion" id="fc-btn-actividad" aria-haspopup="dialog" aria-label="Avisos" title="Avisos">' +
                     ico(D.campana) +
                     '<span class="fc-contador" id="fc-act-contador" hidden>0</span>' +
                   "</button>" +
@@ -434,7 +473,8 @@
                   "</a>" +
                   '<button type="button" class="fc-accion" id="fc-btn-perfil" aria-haspopup="menu" aria-expanded="false">' +
                     '<span class="fc-avatar" id="fc-avatar">·</span>' +
-                    '<span class="fc-accion__etiqueta" id="fc-nombre-corto">' + esc(bc.nombre || "") + "</span>" +
+                    // 23-nov-2026 (I.1): el nombre de la vez pasada solo aparta su lugar; se ve cuando /api/mi-perfil lo confirma
+                    '<span class="fc-accion__etiqueta' + (bc.nombre ? " fc-accion--reservada" : "") + '" id="fc-nombre-corto">' + esc(bc.nombre || "") + "</span>" +
                   "</button>" +
                 "</div>" +
                 menuPerfilHTML() + menuEspaciosHTML() + menuEmpresasHTML() + menuModulosHTML() +
@@ -465,12 +505,13 @@
                 ico(D.pc) + "Conectar esta PC</a>" +
               '<a class="fc-menu__boton" href="/despacho/" id="fc-menu-despacho" role="menuitem" hidden>' +
                 ico(D.equipo) + "Mi despacho</a>" +
-              // Ayuda y contacto: las instrucciones y dos atajos de correo (soporte y sugerencias)
+              // Ayuda y contacto: las instrucciones y dos atajos de correo (soporte y sugerencias). 24-nov-2026 (auditoría contradicciones-8): un solo correo
+              // de ayuda, el de las páginas públicas (contacto-publico.js) y de los correos del servidor (core/contacto.py)
               '<a class="fc-menu__boton" href="/soporte/" target="_blank" rel="noopener" role="menuitem">' +
                 ico(D.ayuda) + "Ayuda e instrucciones</a>" +
-              '<a class="fc-menu__boton" id="fc-menu-soporte" href="mailto:soporte@fiscontable.app?subject=' + encodeURIComponent("Soporte Fiscontable") + '" role="menuitem">' +
+              '<a class="fc-menu__boton" id="fc-menu-soporte" href="mailto:contacto@fiscontable.app?subject=' + encodeURIComponent("Soporte Fiscontable") + '" role="menuitem">' +
                 ico(D.sobre) + "Escribir a soporte</a>" +
-              '<a class="fc-menu__boton" id="fc-menu-sugerencia" href="mailto:soporte@fiscontable.app?subject=' + encodeURIComponent("Sugerencia para Fiscontable") + '" role="menuitem">' +
+              '<a class="fc-menu__boton" id="fc-menu-sugerencia" href="mailto:contacto@fiscontable.app?subject=' + encodeURIComponent("Sugerencia para Fiscontable") + '" role="menuitem">' +
                 ico(D.idea) + "Enviar una sugerencia</a>" +
               '<button type="button" class="fc-menu__boton" id="fc-menu-error" data-informar-error role="menuitem">' +
                 ico(D.alerta) + "Informar un error</button>" +
@@ -587,14 +628,16 @@
             { g: "Tu cuenta", i: D.engrane, n: "Configuración", d: "Todos los ajustes", u: "/configuracion/", a: "ajustes preferencias opciones" },
             { g: "Tu cuenta", i: D.persona, n: "Mi perfil", d: "Nombre, teléfono, foto y tablas", u: cfg + "perfil", a: "foto imagen densidad compacta datos" },
             { g: "Tu cuenta", i: D.candado, n: "Seguridad", d: "Contraseña, dos pasos, sesiones y PIN", u: cfg + "seguridad", a: "clave verificacion codigo sesiones abiertas equipos de confianza bloqueo inactividad" },
-            { g: "Tu cuenta", i: D.estrella, n: "Plan y créditos", d: "Tu plan y su vigencia", u: cfg + "plan", a: "licencia pago renovar vigencia saldo" },
+            { g: "Tu cuenta", i: D.estrella, n: "Plan y licencia", d: "Tu plan y su vigencia", u: cfg + "plan", a: "licencia pago renovar vigencia saldo" },
             { g: "Tu cuenta", i: D.campana, n: "Avisos", d: "Qué te llega por correo", u: cfg + "avisos", a: "correo notificaciones resumen semanal" },
-            { g: "Avisos por correo", i: D.campana, n: "Informe diario por empresa", d: "Avisos · un correo por empresa con lo nuevo", u: cfg + "avisos", a: "correo informe diario empresa buzon listas cfdi opinion" },
-            { g: "Avisos por correo", i: D.campana, n: "Correo del cierre del mes", d: "Avisos · qué les falta del cierre", u: cfg + "avisos", a: "correo cierre mes pendientes estatales declaracion" },
-            { g: "Avisos por correo", i: D.campana, n: "Correo de e.firma y sellos por vencer", d: "Avisos · días de aviso antes de que venzan", u: cfg + "avisos", a: "correo efirma sellos csd vencer vencimiento renovar dias" },
-            { g: "Avisos por correo", i: D.campana, n: "Correo de vencimientos de obligaciones", d: "Avisos · pagos del 17 y anuales", u: cfg + "avisos", a: "correo vencimientos obligaciones 17 anual pagos provisionales" },
-            { g: "Avisos por correo", i: D.campana, n: "Correo de timbres por acabarse", d: "Avisos · empresas con pocos timbres", u: cfg + "avisos", a: "correo timbres facturar pocos" },
-            { g: "Avisos por correo", i: D.campana, n: "Correo de trámites que no salieron", d: "Avisos · lo que falló en el día", u: cfg + "avisos", a: "correo tramites fallidos error sat" },
+            // 26-nov-2026 (el dueño, k1): el correo de la mañana reemplazó al informe diario por empresa (uno por persona, no por empresa)
+            // 26-nov-2026 (el dueño, tercera vuelta): una sola entrada. Los correos de antes que hoy son secciones del correo de la
+            // mañana (cierre del mes, e.firma y sellos, vencimientos de obligaciones, timbres, trámites que no salieron) ya no salen
+            // sueltos: se encuentran escribiendo su nombre de antes y todos abren Configuración › Avisos › «Correo de la mañana».
+            { g: "Avisos por correo", i: D.campana, n: "Correo de la mañana", d: "Configuración › Avisos › Correo de la mañana: uno al día con lo de tus empresas", u: cfg + "avisos&sub=manana",
+              a: "correo manana diario informe diario por empresa requiere atencion buzon listas cfdi opinion secciones · correo del cierre del mes pendientes estatales declaracion · " +
+                 "correo de e.firma y sellos por vencer efirma csd vencimiento renovar dias · correo de vencimientos de obligaciones 17 anual pagos provisionales · " +
+                 "correo de timbres por acabarse facturar pocos · correo de tramites que no salieron fallidos error sat" },
             { g: "Avisos por correo", i: D.campana, n: "Horario de los correos", d: "Avisos · desde qué hora y qué días llegan", u: cfg + "avisos", a: "correo horario hora madrugada sabado domingo urgente" },
             { g: "Avisos por correo", i: D.campana, n: "A quién le llegan los avisos", d: "Avisos · copias, responsables y cliente", u: cfg + "avisos", a: "correo copias destinatarios cliente responsable importes" },
             { g: "Tu cuenta", i: D.calendario, n: "Lo automático", d: "XML y retenciones de madrugada, Buzón y lo programado", u: cfg + "automatico", a: "automatico automaticos automatica programar programaciones madrugada solos" },
@@ -603,7 +646,11 @@
             { g: "Tu cuenta", i: D.calendario, n: "Lo programado", d: "Constancias, opiniones y declaraciones que tocan", u: cfg + "automatico&sub=programado", a: "programaciones constancia opinion declaraciones calendario" },
             { g: "Tu cuenta", i: D.pc, n: "Conectar esta PC", d: "Fiscontable Agente para Windows", u: "/agente/", a: "agente windows instalar descargar computadora pcs conectadas" },
             { g: "Ajustes de módulos", i: D.engrane, n: "Ajustes de Facturar", d: "Emisor, series, sello, logo y correo", u: cfg + "facturacion", a: "csd timbres folio serie smtp", si: con("facturacion") },
+            // 25-nov-2026 (el dueño: «DIOT en ceros: ¿dónde está eso?»): abre Declaraciones con la ventana de la DIOT (diot.js, #diot)
+            { g: "Herramientas", i: D.documento, n: "DIOT en ceros", d: "Declaraciones · presentar la DIOT sin operaciones de una o varias empresas", u: "/herramientas/declaraciones/#diot", a: "diot ceros sin operaciones presentar declaracion informativa terceros proveedores", si: con("declaraciones") },
             { g: "Ajustes de módulos", i: D.engrane, n: "Impuestos por empresa", d: "Flujo o devengado, estatales y reglas", u: cfg + "impuestos", a: "reglas fiscales isr iva diot", si: con("marcas") },
+            // 26-nov-2026 (el dueño, k1: «no aparece en la búsqueda de Ctrl+K»)
+            { g: "Ajustes de módulos", i: D.candado, n: "Cierre de meses", d: "Configuración › Cierre de meses: cerrar o abrir meses por empresa, con PIN", u: cfg + "cierres", a: "cierre cerrar mes meses cerrados abrir candado bloquear congelar marcas fiscales pin", si: con("marcas") },
             { g: "Mi despacho", i: D.equipo, n: "Equipo del despacho", d: desp ? desp.nombre : "", u: "/despacho/", a: "despacho miembros invitar permisos", si: !!desp },
             { g: "Mi despacho", i: D.equipo, n: "Solicitudes del despacho", d: "Accesos por aprobar", u: "/despacho/?vista=solicitudes", a: "despacho aprobar acceso", si: !!desp },
             { g: "Mi despacho", i: D.equipo, n: "Bitácora del despacho", d: "Quién hizo qué", u: "/despacho/?vista=bitacora", a: "despacho registro historial", si: titular },
@@ -668,6 +715,14 @@
             { g: "Administración", i: D.llave, n: "Cuentas vencidas", d: "Planes vencidos y sus plazos", u: adm + "vencidas", a: "admin vencimiento", si: admin },
             { g: "Administración", i: D.llave, n: "Tareas automáticas y madrugada", d: "Si cada tarea salió, cuánto tardó, «Correr ahora» y la carga de la madrugada", u: adm + "tareas", a: "admin programador tareas automaticas madrugada fallas reintentar no alcanzo respaldo vps carriles", si: admin },
             { g: "Administración", i: D.llave, n: "Laboratorio", d: "Pruebas con el SAT", u: "/admin/laboratorio/", a: "admin pruebas sin navegador grabacion", si: admin },
+            // 25-nov-2026 (el dueño: «no me especificaste bien dónde»): el camino completo en la descripción
+            { g: "Administración", i: D.llave, n: "Probar todo", d: "Administración › Sistema, junto a Laboratorio: prueba todo con tus empresas", u: "/admin/probar/", a: "admin probar todo prueba pruebas revisar antes de produccion laboratorio sat", si: admin },
+            // 26-nov-2026 (k1): lo nuevo del 25-nov también se encuentra
+            { g: "Administración", i: D.llave, n: "Probar con errores", d: "Administración › Sistema, junto a Probar todo: cómo responde Fiscontable cuando algo falla", u: "/admin/probar/errores/", a: "admin probar errores escenarios fallas falla simular prueba pruebas", si: admin },
+            { g: "Administración", i: D.llave, n: "Días inhábiles del SAT", d: "Administración › Sistema: los que declara el SAT, para los plazos del Buzón", u: adm + "inhabiles", a: "admin dias inhabiles festivos vacaciones diciembre julio plazos buzon notificada", si: admin },
+            // 25-nov-2026 (el dueño: «Preparar reinicio… no sé dónde es eso»): directo a Sistema › Portal y acciones (admin.js, #portal)
+            { g: "Administración", i: D.llave, n: "Preparar reinicio", d: "Sistema › Portal y acciones: avisa con cuenta regresiva antes de reiniciar", u: adm + "portal", a: "reiniciar reinicio avisar cuenta regresiva mantenimiento pase servidor 5 minutos", si: admin },
+            { g: "Administración", i: D.llave, n: "¿Puedo reiniciar?", d: "Sistema › Portal y acciones: quién está conectado y qué se cortaría", u: adm + "portal", a: "puedo reiniciar reinicio semaforo conectados pase servidor", si: admin },
             { g: "Ayuda", i: D.ayuda, n: "Ayuda e instrucciones", d: "Cómo se usa cada parte", u: "/soporte/", a: "soporte dudas manual contacto" },
             { g: "Ayuda", i: D.alerta, n: "Informar un error", d: "Cuéntanos qué falló; llega a soporte", u: "#informar-error", a: "reportar falla bug problema no funciona soporte" },
             { g: "Administración", i: D.llave, n: "Errores informados", d: "Lo que las personas reportaron con «Informar un error»", u: adm + "errores", a: "reportes fallas bugs soporte", si: admin },
@@ -887,7 +942,10 @@
         document.body.appendChild(reportar);
     }
     // Íconos de grupo (barra plegada): distintos entre sí y de los de sus módulos
+    // 26-nov-2026 (el dueño: «¿por qué se cambió el panel de la izquierda?»): «Clientes» ya tiene dos módulos (Clientes y
+    // Vencimientos) y por eso lleva título e ícono de grupo: el de personas, como se ve en producción.
     var ICONO_GRUPO = {
+        "Clientes": I.clientes,
         "Comprobantes": "M14 3H6a2 2 0 00-2 2v14a2 2 0 002 2h12a2 2 0 002-2V9zM14 3v6h6M10 12l-2 2.5 2 2.5M14 12l2 2.5-2 2.5",
         "Cierre del mes": "M8 3v3m8-3v3M4 9h16M5 5h14a1 1 0 011 1v13a1 1 0 01-1 1H5a1 1 0 01-1-1V6a1 1 0 011-1zM9 14.5l2 2 4-4",
         "Cumplimiento": "M12 3l7 3v5c0 4.5-3 8.3-7 10-4-1.7-7-5.5-7-10V6zM9 12l2 2 4-4",
@@ -1393,6 +1451,26 @@
             window.addEventListener("message", function (ev) {
                 if (ev.origin === location.origin && ev.data && ev.data.fiscontable === "config-listo") cerrar();
             });
+            // 25-nov-2026 (el dueño: «la ventana de configuración no me deja cerrar con Esc»): en cuanto se hace clic adentro, el
+            // teclado lo recibe la página del iframe y la tecla Esc ya no le llega a esta ventana. Se escucha también ahí (es del
+            // mismo sitio). Si adentro hay algo abierto (otra ventana, un menú, un selector) o un buscador con texto, ese Esc es
+            // para eso: se mira ANTES de que la página de adentro lo atienda (fase de captura) y, si nadie lo canceló, cierra.
+            dlg.querySelector("iframe").addEventListener("load", function () {
+                var w; try { w = this.contentWindow; if (!w || !w.document) return; } catch (e) { return; }
+                var abierto = false;
+                w.addEventListener("keydown", function (e) {
+                    if (e.key !== "Escape") return;
+                    var d = w.document, a = d.activeElement;
+                    abierto = !!d.querySelector("dialog[open], [aria-haspopup][aria-expanded=\"true\"], .xml-modal:not([hidden]), .xml-panel:not([hidden]), " +
+                        ".xml-menu__lista:not([hidden]), .mod-menu__lista:not([hidden]), .fc-panel:not([hidden]), .fc-periodo:not([hidden]), .fc-globo-caja--abierta") ||
+                        !!(a && a.matches && a.matches("input[type=search], textarea") && a.value);
+                }, true);
+                w.addEventListener("keydown", function (e) {
+                    if (e.key !== "Escape" || abierto || e.defaultPrevented) return;
+                    e.preventDefault();
+                    cerrar();
+                });
+            });
         }
         dlg.dataset.seccion = seccion || "";
         dlg.querySelector("iframe").src = url;
@@ -1464,17 +1542,56 @@
         if (main) { main.classList.remove("fc-recien"); void main.offsetWidth; main.classList.add("fc-recien"); }
         brindis("Ahora ves: <b>" + esc(yo.nombre || yo.rfc || "") + "</b>" + (yo.rfc && yo.nombre && yo.nombre !== yo.rfc ? " · " + esc(yo.rfc) : ""));
     }
-    function brindis(html) {
+    /* 26-nov-2026 (el dueño: «Vista "Isita" guardada.» nunca se quitó, salió hasta arriba, lejos de donde trabajaba, y con el
+       ícono ámbar de advertencia para algo que salió bien). Lo que «se hizo» (guardado, copiado, enviado, atendido) es discreto,
+       verde, sale junto a lo que se pulsó y se quita solo a los 3 s. Las advertencias y los errores siguen en su caja de arriba.
+       cerca: el elemento junto al que sale (si no se da, el último botón que se pulsó; si no se ve, abajo al centro). */
+    var ultimoToque = null;
+    document.addEventListener("pointerdown", function (e) { ultimoToque = e.target && e.target.closest ? (e.target.closest("button, a, label, [role=button], input, select") || e.target) : null; }, true);
+    document.addEventListener("keydown", function (e) { if (e.key === "Enter" || e.key === " ") ultimoToque = document.activeElement; }, true);
+    function brindis(html, cerca, bien) {
         var t = document.getElementById("fc-brindis");
         if (!t) {
             t = document.createElement("div");
-            t.id = "fc-brindis"; t.className = "fc-brindis"; t.setAttribute("role", "status");
+            t.id = "fc-brindis"; t.className = "fc-brindis"; t.setAttribute("role", "status"); t.setAttribute("aria-live", "polite");
             document.body.appendChild(t);
         }
-        t.innerHTML = '<span aria-hidden="true">✓</span> ' + html;
-        t.classList.remove("fc-brindis--ve"); void t.offsetWidth; t.classList.add("fc-brindis--ve");
+        t.innerHTML = (bien ? '<span aria-hidden="true">✓</span> ' : "") + html;
+        t.classList.toggle("fc-brindis--bien", !!bien);           // verde solo lo que salió bien; lo demás, el gris de siempre
+        var ancla = cerca && cerca.isConnected ? cerca : (ultimoToque && ultimoToque.isConnected ? ultimoToque : null);
+        var r = ancla && ancla.getBoundingClientRect ? ancla.getBoundingClientRect() : null;
+        t.classList.remove("fc-brindis--ve", "fc-brindis--cerca"); t.style.left = t.style.top = t.style.bottom = "";
+        if (r && r.width && r.bottom > 0 && r.top < window.innerHeight) {
+            t.classList.add("fc-brindis--cerca");
+            var ancho = Math.min(t.offsetWidth || 260, window.innerWidth - 24);
+            var x = Math.max(12, Math.min(r.left + r.width / 2 - ancho / 2, window.innerWidth - ancho - 12));
+            var y = r.bottom + 8 + 40 < window.innerHeight ? r.bottom + 8 : Math.max(8, r.top - 48);
+            t.style.left = x + "px"; t.style.top = y + "px";
+        }
+        void t.offsetWidth; t.classList.add("fc-brindis--ve");
         clearTimeout(t._reloj);
-        t._reloj = setTimeout(function () { t.classList.remove("fc-brindis--ve"); }, 2800);
+        t._reloj = setTimeout(function () { t.classList.remove("fc-brindis--ve"); }, 3000);
+    }
+    function listo(texto, cerca) { brindis(esc(String(texto || "Listo.").replace(/^\s*✓\s*/, "")), cerca, true); }
+    // ¿El mensaje dice que algo salió bien? (sin acciones y sin palabras de error o advertencia)
+    /* (revisión, 26-nov-2026) Un error NUNCA sale verde. Con solo buscar «guardada», «enviado»… salían verdes (y se quitaban a los
+       3 s) errores del servidor como «Este cliente no tiene una e.firma guardada.», «La constancia guardada es de otro RFC.» o
+       «Ese documento no está guardado.». Ahora es «se hizo» solo si: empieza con «Listo», «✓», «Atendido» o «Ya quedó»; o el
+       participio es lo que se afirma (empieza con él o cierra una frase: «Vista «X» guardada.», «Enlace copiado.») y no trae
+       negación ni condición (no, sin, ningún, otro, falta, todavía, antes, solo, pero, una pregunta) ni es una instrucción. Ante
+       la duda, la caja de arriba, como antes. */
+    var PART = "(?:guardad[oa]s?|copiad[oa]s?|enviad[oa]s?|actualizad[oa]s?|borrad[oa]s?|renombrad[oa]s?|compartid[oa]s?|agregad[oa]s?|quitad[oa]s?|aplicad[oa]s?)";
+    var LETRA = "[A-Za-z0-9_áéíóúüñÁÉÍÓÚÜÑ]";
+    var BIEN_SEGURO = /^\s*(?:✓|listo(?![a-záéíóúñ])|ya qued[oó](?![a-záéíóúñ])|atendid[oa]s?(?![a-záéíóúñ]))/i;
+    var BIEN_INICIO = new RegExp("^\\s*" + PART + "(?!" + LETRA + ")", "i");
+    var BIEN_FINAL = new RegExp("(?:^|[^A-Za-z0-9_áéíóúüñÁÉÍÓÚÜÑ])" + PART + "(?:\\s+(?:al|en el) portapapeles)?\\s*(?:[.!✓]|$)", "i");
+    var NIEGA = new RegExp("(?:^|[^A-Za-z0-9_áéíóúüñÁÉÍÓÚÜÑ])(?:no|sin|ni|nunca|ning[uú]n[oa]?s?|nada|nadie|faltan?|incomplet[oa]s?|otr[oa]s?|antes|todav[ií]a|a[uú]n|pero|tope|s[oó]lo)(?!" + LETRA + ")|[?¿]|^\\s*(?:escribe|elige|sube|s[uú]bel[oa]|pon|marca|selecciona|primero|vuelve)(?!" + LETRA + ")", "i");
+    var MAL = /no se pudo|no pudimos|error|fall[oó]|no sali[oó]|no se guard|no se mand|rechaz|espera|revisa|vence|venci[oó]|sin permiso|no tienes|ojo|cuidado|todav[ií]a no|\bno\b.*\bpuede|inv[aá]lid|incorrect|caduc|bloque|imposible|problema/i;
+    function esDeBien(m) {
+        var t = String(m || "");
+        if (t.length > 160 || MAL.test(t)) return false;
+        if (BIEN_SEGURO.test(t)) return true;
+        return (BIEN_INICIO.test(t) || BIEN_FINAL.test(t)) && !NIEGA.test(t);
     }
     var tituloBase = document.title;
     function ponerTitulo(nombre) {
@@ -1769,10 +1886,12 @@
     }
 
     function avisoHTML() {
+        // 26-nov-2026 (el dueño: avisos que se quedan pegados): la advertencia se quita con ✕
         return '<div class="fc-aviso" id="fc-aviso" role="status" hidden>' +
             '<span style="flex:none;width:18px;height:18px;margin-top:1px">' + ico(D.alerta) + "</span>" +
             '<div style="flex:1"><div id="fc-aviso-texto"></div>' +
-            '<div class="fc-aviso__acciones" id="fc-aviso-acciones"></div></div></div>';
+            '<div class="fc-aviso__acciones" id="fc-aviso-acciones"></div></div>' +
+            '<button type="button" class="fc-aviso__cerrar" aria-label="Quitar este aviso">' + ico(D.cerrar) + "</button></div>";
     }
 
     /* --------------------------------------------- panel de descargas */
@@ -1787,44 +1906,79 @@
                 '<div class="fc-panel__sub" id="fc-panel-sub">Lo que pediste y lo que ya está listo</div></div>' +
                 '<button type="button" class="fc-panel__cerrar" id="fc-panel-cerrar" aria-label="Cerrar">' + ico(D.cerrar) + "</button>" +
               "</div>" +
+              // 25-nov-2026 (el dueño): «Mis pedidos · Automáticas» y el alcance, arriba del cajón (sin botones nuevos en la barra)
+              '<div class="fc-dsc-barra" id="fc-dsc-barra"></div>' +
               '<div class="fc-panel__cuerpo" id="fc-panel-cuerpo"></div>' +
-              '<div class="fc-panel__pie"><a class="fc-btn" href="/descargas/" style="width:100%;justify-content:center">Ver el historial completo</a></div>' +
+              '<div class="fc-panel__pie"><a class="fc-btn" id="fc-dsc-historial" href="/descargas/" style="width:100%;justify-content:center">Ver el historial completo</a></div>' +
             "</aside>";
         envoltorio.innerHTML +=
             '<div class="fc-velo" id="fc-act-velo" hidden></div>' +
-            '<aside class="fc-panel" id="fc-act-panel" role="dialog" aria-modal="true" aria-label="Actividad" hidden>' +
+            '<aside class="fc-panel fc-av" id="fc-act-panel" role="dialog" aria-modal="true" aria-label="Avisos" hidden>' +
               '<div class="fc-panel__cabeza">' +
-                '<div><div class="fc-panel__titulo">Actividad</div>' +
-                '<div class="fc-panel__sub">Lo que pasó mientras no estabas</div></div>' +
-                '<button type="button" class="fc-panel__cerrar" id="fc-act-cerrar" aria-label="Cerrar">' + ico(D.cerrar) + "</button>" +
+                '<div><div class="fc-panel__titulo" id="fc-av-titulo">Avisos</div></div>' +
+                '<span class="fc-av-cabeza__der"><a class="fc-panel__cerrar" href="/configuracion/?seccion=avisos" title="Qué me llega por correo" aria-label="Qué me llega por correo">' +
+                  ico(D.engrane, 1.8) + "</a>" +
+                '<button type="button" class="fc-panel__cerrar" id="fc-act-cerrar" aria-label="Cerrar">' + ico(D.cerrar) + "</button></span>" +
               "</div>" +
+              '<div class="fc-av-alcance" id="fc-av-alcance"></div>' +
               '<div class="fc-panel__cuerpo" id="fc-act-cuerpo"></div>' +
               '<div class="fc-panel__pie fc-act-pie">' +
-                '<button type="button" class="ui-btn ui-btn--secundario ui-btn--32" id="fc-act-leidas">Marcar todo como leído</button>' +
+                '<button type="button" class="ui-btn ui-btn--secundario ui-btn--32" id="fc-act-leidas">Marcar leídos</button>' +
                 '<button type="button" class="ui-btn ui-btn--terciario ui-btn--32" id="fc-act-limpiar" title="Quitar de la lista los avisos que ya leíste">Limpiar</button>' +
-                '<a class="ui-btn ui-btn--terciario ui-btn--32" href="/configuracion/?seccion=avisos">Qué me llega por correo</a>' +
+                '<a class="fc-av-ir" href="/descargas/">Ir a Mis descargas →</a>' +
               "</div>" +
             "</aside>";
         while (envoltorio.firstChild) document.body.appendChild(envoltorio.firstChild);
     }
 
-    /* --------------------------------------------- Centro de actividad (G-13)
-       Avisos de lo que pasó sin que estuvieras mirando: programaciones que terminaron, CFDI que cambiaron de
-       estado, proveedores en listas del SAT, mensajes nuevos del buzón. Mis descargas queda solo para archivos. */
-    var actividad = { datos: null, abierta: false, version: 0, abiertos: {} };
+    /* --------------------------------------------- La campana (avisos)
+       25-nov-2026 (el dueño, paquete avi; docs/prd/avance4_avisos.md): al abrirla, arriba «Requiere atención» (solo si hay
+       algo, en rojo tenue, cada renglón con su enlace) y abajo seis círculos (Buzón, CFDI, Automáticos, Cumplimiento, Envíos,
+       Despacho) con lo nuevo de cada uno; en gris y sin número si están en 0. Tocar un círculo cambia el MISMO panel a su
+       detalle («← Automáticos»). El numerito rojo de la campana cuenta SOLO lo de «Requiere atención». Arriba, el alcance:
+       «Mis asignadas · Todas · Una empresa…» (esta última lleva a la ficha de la empresa, pestaña «Avisos»: el único lugar de
+       los avisos de una empresa). Las reglas (grupo, urgente, quién ve qué) son las del servidor
+       (core/avisos_reglas.py), las mismas de Inicio, la ficha de la empresa y el correo de la mañana.
+       Antes (G-13): una lista larga con las corridas juntas por 3 horas; cada programación salía suelta y lo urgente quedaba
+       hasta abajo. */
+    var actividad = { datos: null, abierta: false, version: 0, abiertos: {}, vista: "inicio", grupo: null, detalle: null,
+                      modo: null, empresas: null, buscar: "", eligiendo: false, todos: false, elegidos: {},
+                      atendiendo: false, desplegoAtender: false };      // (26-nov) el modo de selección de «Atender…»
     var ICONO_AVISO = { programacion: "calendario", validacion: "alerta", listas: "alerta", buzon: "documento", descarga: "descarga", aviso: "campana" };
+    // Los seis círculos: su ícono (mismo grosor que el resto de la barra)
+    // 26-nov-2026: se llamaba ICONO_GRUPO, igual que los íconos de grupo del riel de módulos (arriba, mismo ámbito): este «var»
+    // pisaba al otro y el riel plegado salía con cuatro rejillas iguales. Cada uno con su nombre.
+    var ICONO_CIRCULO = {
+        buzon: "M4 13h4l2 3h4l2-3h4M5 5h14l1 8v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5l1-8z",
+        cfdi: "M14 3H6a2 2 0 00-2 2v14a2 2 0 002 2h12a2 2 0 002-2V9zM14 3v6h6M8 13h8M8 17h5",
+        automaticos: "M21 12.8A9 9 0 1111.2 3a7 7 0 009.8 9.8z",
+        cumplimiento: "M9 12l2 2 4-4m5.6-4A11.9 11.9 0 0112 2.9 11.9 11.9 0 013.4 6 12 12 0 003 9c0 5.6 3.8 10.3 9 11.6 5.2-1.3 9-6 9-11.6 0-1-.1-2-.4-3z",
+        envios: "M4 12l16-8-6 16-3-7zM11 13l9-9",
+        despacho: "M17 20h5v-2a3 3 0 00-5.4-1.8M17 20H7m10 0v-2c0-.7-.1-1.3-.4-1.8M7 20H2v-2a3 3 0 015.4-1.8M7 20v-2c0-.7.1-1.3.4-1.8m0 0a5 5 0 019.2 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"
+    };
+    var IR_GRUPO = { buzon: ["Buzón Tributario", "/herramientas/buzon/"], cfdi: ["Administración de XML", "/herramientas/xml/"],
+                     cumplimiento: ["Vencimientos", "/herramientas/vencimientos/"], envios: ["Envíos", "/herramientas/envios/"], despacho: ["Mi despacho", "/despacho/"] };
     // 19-nov-2026 (el dueño: «marco como visto y al ratito va de nuevo»): cada cambio (marcar leído, limpiar) sube la versión; un
     // sondeo que salió antes del cambio y contesta después ya no vuelve a pintar el número viejo. Las demás pestañas (y el
     // marco de Configuración) se enteran al momento por localStorage («fc:actividad-cambio») en vez de esperar su minuto.
     var LLAVE_ACT_CAMBIO = "fc:actividad-cambio";
+    var LLAVE_MODO = "fc-avisos-modo";              // «asignadas» o «todas» (por navegador; «Una empresa…» no se guarda)
+
+    function modoGuardado() {
+        try { var m = localStorage.getItem(LLAVE_MODO); return m === "asignadas" || m === "todas" ? m : null; } catch (e) { return null; }
+    }
+    function modoActual() { return actividad.modo || modoGuardado() || ""; }
+    function esRfc(m) { return /^[A-ZÑ&]{3,4}\d{6}[A-Z0-9]{3}$/.test(m || ""); }
 
     function pintarContadorActividad() {
         var c = document.getElementById("fc-act-contador"), d = actividad.datos;
         if (!c || !d) return;
-        c.textContent = d.sin_leer > 99 ? "99+" : d.sin_leer;
-        c.hidden = !d.sin_leer;
+        var n = d.rojo || 0;
+        c.textContent = n > 99 ? "99+" : n;
+        c.hidden = !n;
+        c.classList.add("fc-contador--rojo");
         var b = document.getElementById("fc-btn-actividad");
-        if (b) b.setAttribute("aria-label", d.sin_leer ? "Actividad — " + d.sin_leer + " sin leer" : "Actividad");
+        if (b) b.setAttribute("aria-label", n ? "Avisos — " + n + (n === 1 ? " requiere atención" : " requieren atención") : "Avisos");
     }
     function avisarOtrasPestanas(llave) {
         try { localStorage.setItem(llave, String(Date.now()) + ":" + Math.random().toString(36).slice(2, 6)); } catch (e) { /* sin almacenamiento */ }
@@ -1832,16 +1986,25 @@
 
     async function sondearActividad() {
         if ((bloqueo && bloqueo.activa) || document.hidden) return;
-        var version = actividad.version;
+        var version = actividad.version, modo = modoActual();
         try {
-            var r = await fetch(API + "/api/actividad?limite=30", { credentials: "include" });
-            if (!r.ok) return;
+            var r = await fetch(API + "/api/actividad/campana?modo=" + encodeURIComponent(modo) + (actividad.eligiendo && !actividad.empresas ? "&empresas=1" : ""),
+                                { credentials: "include" });
+            if (!r.ok) {
+                // la empresa elegida ya no es suya (403/404): de vuelta al alcance de siempre
+                if (esRfc(modo) && (r.status === 403 || r.status === 404)) { actividad.modo = null; sondearActividad(); }
+                return;
+            }
             var d = await r.json(), antes = actividad.datos ? actividad.datos.sin_leer : null;
-            if (version !== actividad.version) return;              // llegó tarde: hubo un cambio mientras preguntaba
+            if (version !== actividad.version || modo !== modoActual()) return;     // llegó tarde: hubo un cambio mientras preguntaba
+            if (d.empresas) actividad.empresas = d.empresas;
             actividad.datos = d;
+            avisoReinicio(d.reinicio);
             pintarContadorActividad();
-            if (antes !== null && d.sin_leer > antes && d.avisos[0]) avisarNavegador(d.avisos[0].titulo, d.avisos[0].grupo ? "" : (d.avisos[0].detalle || ""));
-            if (actividad.abierta) pintarActividad();
+            if (antes !== null && d.sin_leer > antes && d.ultimo) avisarNavegador(d.ultimo.titulo, d.ultimo.detalle || "");
+            if (actividad.abierta) {
+                if (actividad.vista === "grupo") cargarGrupo(actividad.grupo, true); else pintarActividad();
+            }
         } catch (e) { /* sin red: se vuelve a intentar */ }
     }
     function hace(iso) {
@@ -1852,31 +2015,305 @@
         return f.toLocaleDateString("es-MX", { day: "numeric", month: "short" });
     }
     function itemAviso(a, clase) {
-        var dentro = ico(D[ICONO_AVISO[a.tipo]] || D.campana, 1.8) + "<div><b>" + esc(a.titulo) + "</b>" +
-            (a.detalle ? "<span>" + esc(a.detalle).replace(/\n/g, "<br>") + "</span>" : "") + "<small>" + esc(hace(a.creada)) + "</small></div>";
+        // 25-nov-2026 (paquete xml, «Proponer al despacho»): un aviso puede traer botones («Aprobar», «Rechazar»); entonces no
+        // es un enlace (un botón no va dentro de un enlace). Los quita el servidor al contestar.
+        var botones = a.acciones && a.acciones.length ? '<p class="fc-act-acciones">' + a.acciones.map(function (x, i) {
+            return '<button type="button" class="ui-btn ui-btn--28 ' + (x.primario ? "ui-btn--primario" : "ui-btn--secundario") + '" data-act-accion="' + i +
+                '" data-act-aviso="' + esc(a.id) + '">' + esc(x.texto) + "</button>";
+        }).join("") + "</p>" : "";
+        var urgente = (a.urgente && !a.leida) || !!a.por_atender;       // 25-nov-2026 (avi-2): abrirlo no es atenderlo
+        var dentro = ico(D[ICONO_AVISO[a.tipo]] || D.campana, 1.8) + "<div>" + (urgente ? '<em class="fc-av-marca">Requiere atención</em>' : "") +
+            "<b>" + esc(a.titulo) + "</b>" + (a.detalle ? "<span>" + esc(a.detalle).replace(/\n/g, "<br>") + "</span>" : "") +
+            (a.motivo && !a.urgente ? '<span class="fc-av-motivo">' + esc(a.motivo) + "</span>" : "") + botones +
+            "<small>" + esc(hace(a.creada)) + (a.alias ? " · " + esc(a.alias) : "") + "</small></div>";
         var ids = ' data-ids="' + esc((a.ids || [a.id]).join(",")) + '"';
-        return a.enlace && a.enlace.charAt(0) === "/" ? '<a class="' + clase + '" href="' + esc(a.enlace) + '"' + ids + ">" + dentro + "</a>"
+        clase += urgente ? " fc-act-item--urgente" : "";
+        return !botones && a.enlace && a.enlace.charAt(0) === "/" ? '<a class="' + clase + '" href="' + esc(a.enlace) + '"' + ids + ">" + dentro + "</a>"
             : '<div class="' + clase + '"' + ids + ">" + dentro + "</div>";
+    }
+    function avisoPorId(id) {
+        var d = actividad.detalle, lista = (d && d.avisos) || [];
+        for (var i = 0; i < lista.length; i++) if (lista[i].id === id) return lista[i];
+        return null;
+    }
+    async function accionAviso(b) {
+        var id = Number(b.dataset.actAviso), a = avisoPorId(id), x = a && a.acciones && a.acciones[Number(b.dataset.actAccion)];
+        if (!x || !/^\/api\//.test(String(x.post || ""))) return;
+        if (x.confirmar && !(await confirmar({ titulo: x.confirmar, si: x.texto, peligro: !x.primario }))) return;
+        var hermanos = b.parentNode.querySelectorAll("button");
+        hermanos.forEach(function (y) { y.disabled = true; });
+        b.classList.add("ui-btn--cargando");
+        actividad.version++;
+        try {
+            var r = await fetch(API + x.post, { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(x.cuerpo || {}) });
+            if (!r.ok) throw new Error(await window.Fiscontable.leerError(r));
+            var d = {};
+            try { d = await r.json(); } catch (e) { /* sin cuerpo */ }
+            a.acciones = null; a.leida = 1; a.urgente = false;
+            if (actividad.abierta) pintarActividad();
+            aviso(d.mensaje || "Listo.");
+            avisarOtrasPestanas(LLAVE_ACT_CAMBIO);
+        } catch (e) {
+            aviso(e.message || "No se pudo. Intenta de nuevo.");
+            hermanos.forEach(function (y) { y.disabled = false; });
+            b.classList.remove("ui-btn--cargando");
+        }
+        actividad.version++;
+        sondearActividad();
+    }
+
+    /* El alcance: «Mis asignadas · Todas · Una empresa…» */
+    /* 26-nov-2026 (el dueño: «pensé que filtraba lo de abajo, pero "Una empresa…" me saca a la ficha»): sin «Una empresa…».
+       El titular y el contador individual no llevan selector; el integrante, solo «Mis asignadas · Todas» si tiene más empresas
+       permitidas que asignadas (el servidor lo dice en d.modos). A la derecha, «Por empresa ›»: Inicio › Mis empresas, donde se ve
+       cada empresa con su «Qué atender». */
+    function pintarAlcance() {
+        var caja = document.getElementById("fc-av-alcance"), d = actividad.datos;
+        if (!caja) return;
+        if (!d) { caja.innerHTML = ""; return; }
+        var modo = d.modo, modos = d.modos || [], h = "";
+        if (esRfc(modo)) {
+            // Sin el módulo Clientes no hay ficha: un chip de Inicio (Fiscontable.abrirAvisos) abre aquí los avisos de esa empresa
+            // (avi-2). Se dice cuál, y con ✕ se regresa a lo de siempre.
+            var alias = (d.empresa && d.empresa.alias) || modo;
+            h = '<div class="ctx-segmento fc-av-modos" role="group" aria-label="De qué empresas"><button type="button" class="fc-av-modos__una" data-av-modo="" ' +
+                'aria-pressed="true" title="Quitar: volver a todas tus empresas">' + esc(alias) + " ✕</button></div>";
+        } else if (modos.length > 1) {
+            h = '<div class="ctx-segmento fc-av-modos" role="group" aria-label="De qué empresas">' + modos.map(function (m) {
+                return '<button type="button" data-av-modo="' + esc(m.valor) + '" aria-pressed="' + (modo === m.valor) + '">' + esc(m.texto) + "</button>";
+            }).join("") + "</div>";
+        }
+        // Inicio › Mis empresas necesita el módulo Clientes (como la ficha): sin él, no se ofrece
+        if (d.ficha !== false)
+            h += '<a class="fc-av-por-empresa" href="/inicio/?vista=despacho" title="Inicio › Mis empresas: cada empresa con lo que tiene por atender">Por empresa ›</a>';
+        caja.innerHTML = h;
+    }
+    // 25-nov-2026 (el dueño): los avisos de una empresa viven en UN solo lugar, su ficha (Clientes › la empresa › Avisos).
+    // «Una empresa…» y los chips de Inicio llevan ahí; la campana ya no arma otra lista con lo mismo.
+    function irAvisosEmpresa(rfc) { location.href = "/clientes/?editar=" + encodeURIComponent(rfc) + "&ficha=avisos"; }
+    // 25-nov-2026 (el dueño, avi-2): sin el módulo Clientes no hay ficha; entonces «Una empresa…» y los chips de Inicio enseñan
+    // los avisos de esa empresa aquí mismo, en la campana (como respaldo). El servidor dice si hay ficha (campana.ficha).
+    function tieneFicha() {
+        if (actividad.datos && typeof actividad.datos.ficha === "boolean") return actividad.datos.ficha;
+        var p = perfilActual || {};
+        return p.rol === "admin" || !p.modulos_permitidos || p.modulos_permitidos.indexOf("clientes") !== -1;
+    }
+    function elegirModo(modo) {
+        if (esRfc(modo) && tieneFicha()) { actividad.eligiendo = false; actividad.buscar = ""; irAvisosEmpresa(modo); return; }
+        actividad.eligiendo = false; actividad.buscar = "";
+        actividad.modo = modo;
+        if (modo === "asignadas" || modo === "todas") { try { localStorage.setItem(LLAVE_MODO, modo); } catch (e) { /* */ } }
+        actividad.version++;
+        if (actividad.datos) { actividad.datos.modo = modo; actividad.datos.empresa = esRfc(modo) ? { rfc: modo, alias: aliasDe(modo) } : null; }
+        pintarAlcance();
+        document.getElementById("fc-act-cuerpo").innerHTML = '<span class="ui-skel" style="width:70%"></span>';
+        if (actividad.vista === "grupo") cargarGrupo(actividad.grupo);
+        sondearActividad();
+    }
+    function aliasDe(rfc) {
+        var e = (actividad.empresas || []).filter(function (x) { return x.rfc === rfc; })[0];
+        return e ? e.alias : rfc;
+    }
+    function clicAlcance(e) {
+        var m = e.target.closest("[data-av-modo]");
+        if (m) {
+            if (m.dataset.avModo === "") { actividad.modo = null; elegirModo(modoGuardado() || ""); return; }      // (26-nov) ✕ de la empresa
+            if (m.dataset.avModo === "una") {
+                actividad.eligiendo = !actividad.eligiendo;
+                pintarAlcance();
+                if (actividad.eligiendo && !actividad.empresas) cargarEmpresasAvisos();
+                var i = document.getElementById("fc-av-buscar"); if (i) i.focus();
+                return;
+            }
+            elegirModo(m.dataset.avModo);
+            return;
+        }
+        var emp = e.target.closest("[data-av-empresa]");
+        if (emp) elegirModo(emp.dataset.avEmpresa);
+    }
+    async function cargarEmpresasAvisos() {
+        try {
+            var r = await fetch(API + "/api/actividad/campana?empresas=1&modo=" + encodeURIComponent(modoActual()), { credentials: "include" });
+            if (!r.ok) return;
+            actividad.empresas = (await r.json()).empresas || [];
+            if (actividad.eligiendo) {
+                pintarAlcance();
+                var i = document.getElementById("fc-av-buscar"); if (i) i.focus();
+            }
+        } catch (e) { /* sin red */ }
+    }
+
+    /* «Requiere atención»: rojo tenue, cada renglón con su enlace (los primeros 4; «Ver las N» despliega el resto: con 5 la
+       segunda fila de círculos quedaba cortada a 1280×860 y escondida en el celular) */
+    // lista: los renglones de la franja (lo mismo en 3 empresas o más viene junto: «Declaración de octubre sin presentar · 12
+    // empresas»); total: cuántas cosas son (el número rojo)
+    // 26-nov-2026: la llave de un renglón que se puede atender: el id del aviso o, de un proveedor o cliente en listas del SAT,
+    // su clave («listas:EMPRESA:RFC»; no es un aviso de la campana sino un estado vivo)
+    function llaveAt(x) { return x && x.atender ? (x.aviso_id ? String(x.aviso_id) : String(x.atender.clave || "")) : ""; }
+    /* 26-nov-2026 (el dueño: con la franja llena, los seis círculos quedaban tapados por «Marcar leídos · Limpiar» y no los
+       encontró): la lista con tope de alto (~40 % del panel, se desliza adentro con «Ver las N»).
+       26-nov-2026, tercera vuelta (el dueño: «ahora no veo qué es lo que tengo que atender; lo del botón y el check le quitó mucho
+       espacio… quizá arriba y no en ese mismo apartado, o solo un botón y que yo seleccione»): cada renglón sin casilla ni botón,
+       en dos líneas (arriba, de quién o qué es; abajo, chico y gris, qué pasó y en qué empresa: «quien» y «que» del servidor) y
+       todo el renglón abre el aviso. Arriba, junto al contador, UN botón de texto «Atender…»: entra al modo de selección (salen
+       las casillas de los que se pueden dar por atendidos; los estados vivos no llevan) y el encabezado cambia a
+       «Ya los atendí (n)» · «Todos» · «Cancelar». Las reglas son las de antes: un solo PIN si alguno es de un mes cerrado o
+       declarado, vale para todo el despacho, queda en la bitácora. */
+    function atendiblesDe(lista) { return (lista || []).filter(function (x) { return !!llaveAt(x); }); }
+    function htmlUrgentes(lista, total, empresa) {
+        if (!lista || !lista.length) return "";
+        var todos = atendiblesDe(lista), modo = actividad.atendiendo && todos.length > 0;
+        if (!modo) actividad.atendiendo = false;                        // ya no queda nada que atender: se sale del modo
+        var vis = actividad.todos ? lista : lista.slice(0, 4);
+        var elegidos = todos.filter(function (x) { return actividad.elegidos[llaveAt(x)]; });
+        var cabeza = modo
+            ? '<div class="fc-av-urgente__titulo fc-av-urgente__titulo--elegir"><button type="button" class="ui-btn ui-btn--primario ui-btn--28" data-av-atender-varios' +
+              (elegidos.length ? "" : " disabled") + ">Ya los atendí (" + elegidos.length + ')</button><button type="button" class="fc-av-urgente__mas" data-av-elegir-todos>' +
+              (elegidos.length === todos.length ? "Ninguno" : "Todos") + '</button><button type="button" class="fc-av-urgente__mas fc-av-urgente__cancelar" data-av-atendiendo="0">Cancelar</button></div>'
+            : '<div class="fc-av-urgente__titulo">' + ico(D.alerta, 2) + "<span>Requiere atención</span><b>" + (total || lista.length) + "</b>" +
+              (todos.length ? '<button type="button" class="fc-av-urgente__mas fc-av-urgente__atender" data-av-atendiendo="1" title="Elegir los que ya atendiste: se quitan de aquí para todo el despacho">Atender…</button>' : "") + "</div>";
+        return '<section class="fc-av-urgente' + (modo ? " fc-av-urgente--elegir" : "") + '" aria-label="Requiere atención">' + cabeza +
+            '<div class="fc-av-urg-lista' + (actividad.todos ? " fc-av-urg-lista--todas" : "") + '">' + vis.map(function (x) {
+                // con «Una empresa…» el nombre de la empresa ya está arriba: no se repite en cada renglón
+                var titulo = empresa && x.alias ? String(x.titulo).replace(" · " + x.alias, "") : x.titulo;
+                var completo = titulo + (x.detalle ? " — " + x.detalle : "");
+                var uno = x.quien || titulo, dos = x.quien ? (x.que || "") : (x.detalle || "");
+                if (empresa && x.alias && uno === x.alias) { uno = titulo; dos = x.detalle || ""; }
+                var dentro = '<span class="fc-av-urg__txt"><b>' + esc(uno) + "</b>" + (dos ? "<span>" + esc(dos) + "</span>" : "") + "</span>";
+                var llave = llaveAt(x);
+                // modo de selección: el renglón que se puede atender es su casilla (no abre el aviso); los demás, como siempre
+                if (modo && llave) return '<label class="fc-av-urg fc-av-urg--elegir" title="' + esc(completo) + '"><input type="checkbox" data-av-elegir="' + esc(llave) + '"' +
+                    (actividad.elegidos[llave] ? " checked" : "") + (x.atender.pin ? ' data-pin="1"' : "") + ">" + dentro + "</label>";
+                // 25-nov-2026 (el dueño, avi-2): abrir un aviso no es atenderlo. Lo urgente que es un hecho (CFDI cancelado de un mes
+                // cerrado o declarado, envío que falló, algo por aprobar) sigue aquí hasta que se resuelve o alguien lo da por atendido
+                var marca = x.aviso_id ? ' data-ids="' + esc(x.aviso_id) + '"' : "";
+                var clase = "fc-av-urg" + (modo ? " fc-av-urg--fijo" : "");
+                return x.enlace && x.enlace.charAt(0) === "/" ? '<a class="' + clase + '"' + marca + ' href="' + esc(x.enlace) + '" title="' + esc(completo) + '">' + dentro + ico(D.flecha, 2) + "</a>"
+                    : '<div class="' + clase + '"' + marca + ' title="' + esc(completo) + '">' + dentro + "</div>";
+            }).join("") + "</div>" +
+            (lista.length > 4 ? '<div class="fc-av-urgente__pie"><button type="button" class="fc-av-urgente__mas" data-av-todos>' + (actividad.todos ? "Ver menos" : "Ver las " + lista.length) + "</button></div>" : "") +
+            "</section>";
+    }
+    // «Atender…» / «Cancelar»: entra o sale del modo de selección. Si alguno de los que se pueden atender no está entre los 4
+    // primeros, la lista se despliega completa (se desliza adentro) para poder elegirlo; al salir vuelve a como estaba.
+    function modoAtender(entra) {
+        var d = actividad.datos, lista = d ? (d.franja || d.urgentes || []) : [];
+        actividad.elegidos = {};
+        if (entra) {
+            actividad.atendiendo = true;
+            actividad.desplegoAtender = !actividad.todos && atendiblesDe(lista.slice(4)).length > 0;
+            if (actividad.desplegoAtender) actividad.todos = true;
+        } else {
+            actividad.atendiendo = false;
+            if (actividad.desplegoAtender) actividad.todos = false;
+            actividad.desplegoAtender = false;
+        }
+        pintarActividad();
+        var foco = document.querySelector(entra ? ".fc-av-urgente [data-av-elegir]" : ".fc-av-urgente__atender");
+        if (foco) try { foco.focus({ preventScroll: true }); } catch (e) { /* sin foco */ }
+    }
+    function htmlCirculos(grupos) {
+        return '<div class="fc-av-circulos">' + grupos.map(function (g) {
+            var n = g.sin_leer || 0;
+            return '<button type="button" class="fc-av-circulo' + (n ? "" : " fc-av-circulo--cero") + '" data-av-grupo="' + esc(g.clave) + '" aria-label="' +
+                esc(g.nombre + (n ? ": " + n + " sin leer" : ": nada nuevo")) + '"><span class="fc-av-circulo__ico">' + ico(ICONO_CIRCULO[g.clave] || D.campana, 1.7) +
+                (n ? '<i class="fc-av-globo">' + (n > 99 ? "99+" : n) + "</i>" : "") + '</span><span class="fc-av-circulo__nombre">' + esc(g.nombre) + "</span></button>";
+        }).join("") + "</div>";
+    }
+    function htmlEnCurso(lista) {
+        if (!lista || !lista.length) return "";
+        return '<p class="fc-act-grupo">En curso</p>' + lista.slice(0, 4).map(function (p) {
+            // 24-nov-2026: lo de la madrugada llega en un solo renglón con enlace a «Lo automático» (modulos/actividad en_curso)
+            // 25-nov-2026: lo que todavía no empieza (programado para la madrugada, o en fila detrás de otro) va en ámbar, «esperando»
+            var espera = /^(Programado|En (fila|cola)\b)/.test(String(p.progreso || ""));
+            var clase = "fc-act-item fc-act-item--curso" + (espera ? " fc-act-item--fila" : "");
+            var dentro = ico(D.reloj || D.calendario, 1.8) + "<div><b>" + esc(p.titulo) + "</b><span>" + esc(window.Fiscontable.enFila(p.progreso)) + "</span></div>";
+            return p.enlace && p.enlace.charAt(0) === "/" ? '<a class="' + clase + '" href="' + esc(p.enlace) + '">' + dentro + "</a>"
+                : '<div class="' + clase + '">' + dentro + "</div>";
+        }).join("");
     }
     function pintarActividad() {
         var cuerpo = document.getElementById("fc-act-cuerpo"), d = actividad.datos;
         var limpiar = document.getElementById("fc-act-limpiar"), leidas = document.getElementById("fc-act-leidas");
+        pintarAlcance();
         if (!d) { cuerpo.innerHTML = '<span class="ui-skel" style="width:70%"></span>'; return; }
-        if (limpiar) limpiar.disabled = !(d.leidas > 0 || d.avisos.some(function (a) { return a.leida; }));
-        if (leidas) leidas.disabled = !d.sin_leer;
+        if (limpiar) limpiar.disabled = !(d.leidas > 0);
+        if (actividad.vista === "grupo") { pintarGrupo(); return; }
+        var g = d.grupos || [];
+        // «Marcar leídos» no toca lo urgente sin leer (y lo urgente que es un hecho sigue en «Requiere atención» hasta resolverse o
+        // que alguien pique «Ya lo atendí»): si solo queda eso, el botón se apaga
+        if (leidas) leidas.disabled = typeof d.por_marcar === "number" ? !d.por_marcar : !g.some(function (x) { return x.sin_leer > 0; });
         var h = [];
-        if (d.en_curso && d.en_curso.length) {
-            h.push('<p class="fc-act-grupo">En curso</p>');
-            d.en_curso.forEach(function (p) {
-                h.push('<div class="fc-act-item fc-act-item--curso">' + ico(D.reloj || D.calendario, 1.8) + "<div><b>" + esc(p.titulo) + "</b><span>" + esc(p.progreso) + "</span></div></div>");
-            });
+        h.push(htmlUrgentes(d.franja || d.urgentes, d.rojo, !!d.empresa));
+        if (!(d.urgentes || []).length) h.push('<p class="fc-av-tranquilo">' + ico(D.palomita, 2.2) + "Nada requiere atención" + (d.empresa ? " en esta empresa" : "") + ".</p>");
+        h.push(htmlCirculos(g));
+        h.push(htmlEnCurso(d.en_curso));
+        if ("Notification" in window && Notification.permission === "default")
+            h.push('<div class="fc-act-navegador"><span>¿Avisos del navegador cuando termine algo?</span><button type="button" class="ui-btn ui-btn--secundario ui-btn--28" id="fc-act-permiso">Activar</button></div>');
+        // (26-nov-2026) la lista de «Requiere atención» desplegada se desliza adentro: al volver a pintar (marcar una casilla, el
+        // sondeo de cada minuto) se queda donde iba
+        var listaUrg = cuerpo.querySelector(".fc-av-urg-lista"), lugar = listaUrg ? listaUrg.scrollTop : 0;
+        cuerpo.innerHTML = h.join("");
+        if (lugar && (listaUrg = cuerpo.querySelector(".fc-av-urg-lista"))) listaUrg.scrollTop = lugar;
+        var permiso = document.getElementById("fc-act-permiso");
+        if (permiso) permiso.addEventListener("click", function () { Notification.requestPermission().then(pintarActividad); });
+    }
+
+    /* El detalle de un círculo, en el mismo panel */
+    async function cargarGrupo(clave, callado) {
+        actividad.vista = "grupo"; actividad.grupo = clave;
+        if (!callado) { actividad.detalle = null; pintarActividad(); }
+        var version = actividad.version, modo = modoActual();
+        try {
+            var r = await fetch(API + "/api/actividad/grupo?clave=" + encodeURIComponent(clave) + "&modo=" + encodeURIComponent(modo), { credentials: "include" });
+            if (!r.ok) throw new Error(await window.Fiscontable.leerError(r));
+            var d = await r.json();
+            if (version !== actividad.version || actividad.grupo !== clave || actividad.vista !== "grupo") return;
+            actividad.detalle = d;
+            pintarActividad();
+        } catch (e) {
+            if (!callado) document.getElementById("fc-act-cuerpo").innerHTML = '<div class="ui-falla">' + ico(D.alerta, 1.6) + "<b>No se pudo cargar</b><span>" +
+                esc(e.message || "Revisa tu conexión.") + "</span></div>";
         }
-        h.push('<p class="fc-act-grupo">Avisos</p>');
-        if (!d.avisos.length) h.push('<div class="ui-vacio">' + ico(D.campana, 1.6) + "<b>Sin avisos</b><span>Aquí verás lo que terminó o cambió.</span></div>");
+    }
+    function nombreGrupo(clave) {
+        var g = ((actividad.datos && actividad.datos.grupos) || []).filter(function (x) { return x.clave === clave; })[0];
+        return g ? g.nombre : clave;
+    }
+    function pintarGrupo() {
+        var cuerpo = document.getElementById("fc-act-cuerpo"), d = actividad.detalle, clave = actividad.grupo;
+        var leidas = document.getElementById("fc-act-leidas");
+        var ir = IR_GRUPO[clave];
+        if (clave === "despacho" && !((actividad.datos && actividad.datos.modos) || []).some(function (m) { return m.valor === "asignadas"; })) ir = null;   // sin despacho
+        var h = ['<div class="fc-av-detalle__cabeza"><button type="button" class="fc-av-volver" data-av-volver>' + "← " + esc(nombreGrupo(clave)) + "</button>" +
+                 (ir ? '<a href="' + esc(ir[1]) + '">Ir a ' + esc(ir[0]) + " ›</a>" : "") + "</div>"];
+        if (!d) { cuerpo.innerHTML = h.join("") + '<span class="ui-skel" style="width:70%"></span>'; return; }
+        if (clave === "automaticos") {
+            if (leidas) leidas.disabled = !d.rondas.some(function (x) { return !x.leida; });
+            h.push(htmlEnCurso(d.en_curso));
+            if (!d.rondas.length) h.push('<div class="ui-vacio">' + ico(ICONO_CIRCULO.automaticos, 1.6) + "<b>Nada automático todavía</b><span>Aquí sale una tarjeta por noche con lo que hizo Fiscontable solo.</span></div>");
+            d.rondas.forEach(function (x) {
+                h.push('<article class="fc-av-ronda' + (x.leida ? "" : " fc-av-ronda--nueva") + '" data-ids="' + esc(x.ids.join(",")) + '">' +
+                    '<p class="fc-av-ronda__titulo"><b>' + esc(x.titulo) + "</b></p>" +
+                    (x.lineas.length ? '<ul class="fc-av-ronda__lineas">' + x.lineas.map(function (l) {
+                        return '<li><i class="fc-av-punto fc-av-punto--' + esc(l.color) + '" aria-hidden="true"></i><span>' + esc(l.nombre) + "</span><small>" + esc(l.texto) + "</small></li>";
+                    }).join("") + "</ul>" : "") +
+                    (x.otros.length ? '<ul class="fc-av-ronda__otros">' + x.otros.map(function (o) { return "<li>" + esc(o.titulo) + "</li>"; }).join("") + "</ul>" : "") +
+                    '<p class="fc-av-ronda__enlaces">' + x.enlaces.map(function (e) { return '<a href="' + esc(e.url) + '">' + esc(e.texto) + " ›</a>"; }).join("") +
+                    '<a href="' + esc(x.resumen) + '">Ver resumen por empresa ›</a></p></article>');
+            });
+            // (revisión) sin otro «Ir a Mis descargas →» aquí: ya está abajo, en el pie del panel
+            cuerpo.innerHTML = h.join("");
+            return;
+        }
+        if (leidas) leidas.disabled = !d.avisos.some(function (a) { return !a.leida && !a.fijo; });
+        if (!d.avisos.length) h.push('<div class="ui-vacio">' + ico(ICONO_CIRCULO[clave] || D.campana, 1.6) + "<b>Sin avisos de " + esc(nombreGrupo(clave)) + "</b><span>" +
+            (d.modo && esRfc(d.modo) ? "Nada de esta empresa aquí." : "Aquí verás lo que pase.") + "</span></div>");
         d.avisos.forEach(function (a) {
             var clase = "fc-act-item" + (a.leida ? "" : " fc-act-item--nuevo");
-            if (!a.grupo) { h.push(itemAviso(a, clase)); return; }
-            // Una corrida de un proceso automático (una empresa por aviso): un solo renglón que se abre
+            if (!a.corrida) { h.push(itemAviso(a, clase)); return; }
+            // Varias empresas del mismo proceso automático: un solo renglón que se abre
             var abierto = !!actividad.abiertos[a.id];
             h.push('<div class="fc-act-corrida' + (abierto ? " fc-act-corrida--abierta" : "") + '">' +
                 '<button type="button" class="' + clase + ' fc-act-item--grupo" data-corrida="' + esc(a.id) + '" aria-expanded="' + abierto + '">' +
@@ -1886,19 +2323,32 @@
                     return itemAviso(Object.assign({ tipo: a.tipo }, x), "fc-act-item fc-act-item--parte" + (x.leida ? "" : " fc-act-item--nuevo"));
                 }).join("") + "</div>" : "") + "</div>");
         });
-        if ("Notification" in window && Notification.permission === "default")
-            h.push('<div class="fc-act-navegador"><span>¿Avisos del navegador cuando termine algo?</span><button type="button" class="ui-btn ui-btn--secundario ui-btn--28" id="fc-act-permiso">Activar</button></div>');
         cuerpo.innerHTML = h.join("");
-        var permiso = document.getElementById("fc-act-permiso");
-        if (permiso) permiso.addEventListener("click", function () { Notification.requestPermission().then(pintarActividad); });
     }
-    function abrirActividad() {
+    function volverAvisos() {
+        actividad.vista = "inicio"; actividad.grupo = null; actividad.detalle = null;
+        pintarActividad();
+        sondearActividad();
+    }
+
+    /* Abrir la campana; Fiscontable.abrirAvisos({rfc, grupo}) la abre en una empresa o en un círculo (Inicio, la ficha) */
+    function abrirActividad(opciones) {
         var velo = document.getElementById("fc-act-velo"), panel = document.getElementById("fc-act-panel");
+        var o = opciones && !(opciones instanceof Event) ? opciones : {};
+        var rfcPedido = o.rfc && esRfc(String(o.rfc).toUpperCase()) ? String(o.rfc).toUpperCase() : "";
+        if (rfcPedido && !actividad.datos && !o._esperado) {          // todavía no se sabe si hay ficha: se pregunta una vez
+            sondearActividad().then(function () { abrirActividad(Object.assign({}, o, { _esperado: true })); });
+            return;
+        }
+        if (rfcPedido && tieneFicha()) { irAvisosEmpresa(rfcPedido); return; }
+        actividad.vista = "inicio"; actividad.grupo = null; actividad.detalle = null; actividad.todos = false; actividad.eligiendo = false;
+        actividad.atendiendo = false; actividad.desplegoAtender = false; actividad.elegidos = {};
+        if (rfcPedido) { actividad.modo = rfcPedido; actividad.version++; if (actividad.datos) { actividad.datos.modo = rfcPedido; actividad.datos.empresa = { rfc: rfcPedido, alias: aliasDe(rfcPedido) }; } }
         velo.hidden = false; panel.hidden = false;
         requestAnimationFrame(function () { velo.classList.add("abierto"); panel.classList.add("abierto"); });
         document.body.classList.add("fc-sin-scroll");
         actividad.abierta = true;
-        pintarActividad();
+        if (o.grupo) cargarGrupo(o.grupo); else pintarActividad();
         sondearActividad();
         document.getElementById("fc-act-cerrar").focus();
     }
@@ -1909,6 +2359,8 @@
         actividad.abierta = false;
         setTimeout(function () { if (!actividad.abierta) { velo.hidden = true; panel.hidden = true; } }, 260);
         var b = document.getElementById("fc-btn-actividad"); if (b) b.focus();
+        // «Una empresa…» es para mirar: al cerrar, el número rojo vuelve a contar el alcance de siempre
+        if (esRfc(actividad.modo)) { actividad.modo = null; actividad.version++; sondearActividad(); }
     }
     // Lo marca en la pantalla al momento (el número baja ya) y luego en el servidor; si el servidor falla, lo dice.
     async function cambiarActividad(ruta, cuerpo, local, mensajeError) {
@@ -1922,20 +2374,160 @@
         } catch (e) { aviso(e.message || mensajeError); }
         actividad.version++;
         sondearActividad();
+        if (actividad.vista === "grupo") cargarGrupo(actividad.grupo, true);
     }
+    // «Marcar leídos»: lo que se ve con este alcance (en un círculo, solo lo de ese círculo). Lo urgente que es un estado (una
+    // notificación sin abrir) sigue en «Requiere atención» hasta que se resuelva.
     function marcarActividadLeida() {
-        cambiarActividad("/api/actividad/leidas", {}, function (d) {
-            d.sin_leer = 0;
-            d.avisos.forEach(function (a) { a.leida = 1; (a.partes || []).forEach(function (x) { x.leida = 1; }); });
+        var grupo = actividad.vista === "grupo" ? actividad.grupo : null;
+        cambiarActividad("/api/actividad/leidas-alcance", { modo: modoActual(), grupo: grupo }, function (d) {
+            // lo urgente sin leer NO se marca con el botón (el servidor tampoco lo marca): sale al abrirlo o al resolverse
+            var urgentesDe = {};
+            (d.urgentes || []).forEach(function (x) { if (x.aviso_id) urgentesDe[x.grupo] = (urgentesDe[x.grupo] || 0) + 1; });
+            (d.grupos || []).forEach(function (g) { if (!grupo || g.clave === grupo) g.sin_leer = Math.min(g.sin_leer || 0, urgentesDe[g.clave] || 0); });
+            if (!grupo) d.por_marcar = 0;
+            var det = actividad.detalle;
+            if (det && det.avisos) det.avisos.forEach(function (a) { if (a.fijo) return; a.leida = 1; (a.partes || []).forEach(function (x) { x.leida = 1; }); });
+            if (det && det.rondas) det.rondas.forEach(function (x) { x.leida = true; });
         }, "No se pudieron marcar como leídos.");
+    }
+    /* «Ya lo atendí» (25-nov-2026, el dueño, avi-2): lo quita de «Requiere atención» para todo el despacho y queda en la bitácora
+       con quién y cuándo. Solo marca (no cancela, no reenvía, no aprueba): sin PIN, salvo el CFDI cancelado de un mes cerrado o
+       declarado, que pide tu PIN (como cerrar o abrir un mes). El servidor revisa que la empresa sea tuya. */
+    // Fiscontable.atenderAviso(id, {pin, titulo, boton}) → la respuesta del servidor, o null si se canceló (también la ficha).
+    // 26-nov-2026: id puede ser la clave de un proveedor o cliente en listas del SAT («listas:EMPRESA:RFC»)
+    async function atenderAvisoId(id, o) {
+        return atenderAvisosIds([id], { pin: (o || {}).pin, titulos: [(o || {}).titulo] });
+    }
+    /* 25-nov-2026 (el dueño, av3): «Ya los atendí (N)» y «Atender todos (N)»: varios en una sola petición (el servidor revisa
+       cada uno con las reglas de «Ya lo atendí» y es todo o nada) y UN solo PIN para todo el grupo si alguno lo pide.
+       Fiscontable.atenderAvisos(ids, {pin, titulos, confirmar}) → la respuesta del servidor, o null si se canceló (también la ficha).
+       confirmar: «Atender todos» pregunta antes (sin PIN); con PIN, la ventana del PIN ya lo dice. */
+    async function atenderAvisosIds(ids, o) {
+        o = o || {};
+        // 26-nov-2026: los números son avisos de la campana; «listas:…», proveedores o clientes en listas del SAT
+        var claves = (ids || []).filter(function (i) { return /^listas:/.test(String(i)); }).map(String);
+        ids = (ids || []).filter(function (i) { return !/^listas:/.test(String(i)); }).map(Number).filter(Boolean);
+        var total = ids.length + claves.length;
+        if (!total) return null;
+        async function hacer(conf) {
+            var cuerpo = ids.length === 1 && !claves.length ? { aviso_id: ids[0] } : { aviso_ids: ids };
+            if (claves.length) cuerpo.claves = claves;
+            cuerpo.confirmacion = conf || null;
+            var r = await fetch(API + "/api/actividad/atendido", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(cuerpo) });
+            if (!r.ok) throw new Error(await window.Fiscontable.leerError(r));
+            return r.json();
+        }
+        var titulos = (o.titulos || []).filter(Boolean);
+        var lista = total > 1 ? "<ul class=\"fc-av-lista-atender\">" + titulos.slice(0, 6).map(function (t) { return "<li>" + esc(t) + "</li>"; }).join("") +
+            (titulos.length > 6 ? "<li>y " + (titulos.length - 6) + " más</li>" : "") + "</ul>" : "<p><b>" + esc(titulos[0] || "Este aviso") + "</b></p>";
+        if (!o.pin) {
+            if (o.confirmar && !(await confirmar({ titulo: "¿Dar por atendidos los " + total + "?", si: "Ya los atendí",
+                texto: "Se quitan de «Requiere atención» para todo el despacho y queda en la bitácora que los atendiste tú." }))) return null;
+            return hacer();
+        }
+        var respuesta = null;
+        var varios = total > 1;
+        var hecho = await confirmarIdentidad("atender_aviso", async function (c) { respuesta = await hacer(c); }, {
+            titulo: varios ? "Ya los atendí (" + total + ")" : "Ya lo atendí",
+            resumen: lista + "<p>" + (varios ? "Hay alguno de un mes cerrado o declarado: un solo PIN para todos. Se quitan" : "Es de un mes cerrado o declarado. Se quita") +
+                " de «Requiere atención» para todo el despacho y queda en la bitácora que " + (varios ? "los" : "lo") + " atendiste tú.</p>",
+            boton: varios ? "Ya los atendí" : "Ya lo atendí" });
+        return hecho ? respuesta || { ok: true } : null;
+    }
+    function quitarAtendidos(ids) {
+        var d = actividad.datos;
+        ids = ids.map(String);
+        ids.forEach(function (i) { delete actividad.elegidos[i]; });
+        if (!d) return;
+        var antes = (d.urgentes || []).length;
+        d.urgentes = (d.urgentes || []).filter(function (u) { return ids.indexOf(llaveAt(u)) < 0; });
+        d.franja = (d.franja || []).filter(function (u) { return ids.indexOf(llaveAt(u)) < 0; });
+        d.rojo = Math.max(0, (d.rojo || 0) - (antes - d.urgentes.length));
+    }
+    // «Ya los atendí (n)»: los elegidos en el modo de selección («Atender…»). Un solo PIN si alguno es de un mes cerrado o declarado.
+    async function atenderVarios(b) {
+        var d = actividad.datos;
+        var cuales = atendiblesDe(d ? (d.franja || d.urgentes || []) : []).filter(function (x) { return actividad.elegidos[llaveAt(x)]; });
+        if (!cuales.length) return;
+        var ids = cuales.map(llaveAt);
+        var respuesta = null;
+        actividad.version++;
+        b.disabled = true; b.classList.add("ui-btn--cargando");
+        try {
+            respuesta = await atenderAvisosIds(ids, { pin: cuales.some(function (x) { return x.atender.pin; }),
+                titulos: cuales.map(function (x) { return x.titulo; }) });
+        } catch (err) {
+            // (todo o nada) uno ya no estaba o no es tuyo: no se marcó ninguno; se vuelve a leer la campana
+            aviso(err.message || "No se pudo. Intenta de nuevo."); respuesta = null;
+            actividad.elegidos = {};
+            actividad.version++;
+            sondearActividad();
+        }
+        if (!respuesta) { b.disabled = false; b.classList.remove("ui-btn--cargando"); actividad.version++; if (actividad.abierta) pintarActividad(); return; }
+        quitarAtendidos(respuesta.atendidos || respuesta.claves ? (respuesta.atendidos || []).concat(respuesta.claves || []) : ids);
+        actividad.atendiendo = false; actividad.elegidos = {};
+        if (actividad.desplegoAtender) actividad.todos = false;
+        actividad.desplegoAtender = false;
+        pintarContadorActividad();
+        if (actividad.abierta) pintarActividad();
+        listo(ids.length === 1 ? "Atendido: ya no sale en «Requiere atención»." : "Atendidos: ya no salen en «Requiere atención».",
+              document.querySelector(".fc-av-urgente") || document.getElementById("fc-act-cuerpo"));
+        avisarOtrasPestanas(LLAVE_ACT_CAMBIO);
+        actividad.version++;
+        sondearActividad();
     }
     function limpiarActividad() {
         cambiarActividad("/api/actividad/limpiar", {}, function (d) {
-            d.avisos = d.avisos.filter(function (a) { return !a.leida; }); d.leidas = 0;
+            d.leidas = 0;
+            var det = actividad.detalle;
+            if (det && det.avisos) det.avisos = det.avisos.filter(function (a) { return !a.leida || (a.acciones && a.acciones.length); });
         }, "No se pudo limpiar la lista.");
     }
-    // Abrir un aviso (o una empresa de una corrida) lo da por leído; abrir una corrida la despliega
+    function marcarIds(ids) {
+        cambiarActividad("/api/actividad/leidas", { ids: ids }, function (d) {
+            var det = actividad.detalle;
+            if (det && det.avisos) det.avisos.forEach(function (a) {
+                (a.partes || []).forEach(function (x) { if (ids.indexOf(x.id) >= 0) x.leida = 1; });
+                if ((a.ids || [a.id]).every(function (i) { return ids.indexOf(i) >= 0; })) a.leida = 1;
+            });
+            if (det && det.rondas) det.rondas.forEach(function (x) { if (x.ids.some(function (i) { return ids.indexOf(i) >= 0; })) x.leida = true; });
+            // 25-nov-2026 (el dueño, avi-2): abrirlo no es atenderlo; lo urgente que es un hecho se queda en «Requiere atención»
+            // (se quita al resolverse o con «Ya lo atendí»)
+        }, "No se pudo marcar como leído.");
+    }
+    // Abrir un aviso (o una empresa de una corrida, o una ronda) lo da por leído; abrir una corrida la despliega
     function clicActividad(e) {
+        var accion = e.target.closest("[data-act-accion]");
+        if (accion) { e.preventDefault(); e.stopPropagation(); if (!accion.disabled) accionAviso(accion); return; }
+        // 26-nov-2026 (el dueño, tercera vuelta): «Atender…» entra al modo de selección; ahí, casillas, «Ya los atendí (n)»,
+        // «Todos» y «Cancelar» (antes: un botón y una casilla en cada renglón)
+        var modoAt = e.target.closest("[data-av-atendiendo]");
+        if (modoAt) { e.preventDefault(); e.stopPropagation(); modoAtender(modoAt.dataset.avAtendiendo === "1"); return; }
+        var elegir = e.target.closest("[data-av-elegir]");
+        if (elegir) {
+            e.stopPropagation();
+            if (elegir.checked) actividad.elegidos[elegir.dataset.avElegir] = true; else delete actividad.elegidos[elegir.dataset.avElegir];
+            pintarActividad();                                         // (la lista se queda donde iba: pintarActividad)
+            var otra = document.querySelector('[data-av-elegir="' + CSS.escape(elegir.dataset.avElegir) + '"]'); if (otra) otra.focus({ preventScroll: true });
+            return;
+        }
+        if (e.target.closest(".fc-av-urg--elegir")) { e.stopPropagation(); return; }      // el clic en el renglón marca su casilla (el navegador lo repite en ella)
+        if (e.target.closest("[data-av-elegir-todos]")) {
+            var dd = actividad.datos, todosAt = atendiblesDe(dd ? (dd.franja || dd.urgentes || []) : []);
+            var yaTodos = todosAt.every(function (x) { return actividad.elegidos[llaveAt(x)]; });
+            actividad.elegidos = {};
+            if (!yaTodos) todosAt.forEach(function (x) { actividad.elegidos[llaveAt(x)] = true; });
+            pintarActividad();
+            return;
+        }
+        var varios = e.target.closest("[data-av-atender-varios]");
+        if (varios) { e.preventDefault(); e.stopPropagation(); if (!varios.disabled) atenderVarios(varios); return; }
+        var grupo = e.target.closest("[data-av-grupo]");
+        if (grupo) { cargarGrupo(grupo.dataset.avGrupo); return; }
+        if (e.target.closest("[data-av-volver]")) { volverAvisos(); return; }
+        if (e.target.closest("[data-av-todos]")) { actividad.todos = !actividad.todos; pintarActividad(); return; }
         var corrida = e.target.closest("[data-corrida]");
         if (corrida) {
             var id = corrida.dataset.corrida;
@@ -1944,17 +2536,11 @@
             return;
         }
         var item = e.target.closest("[data-ids]");
-        if (!item || !item.classList.contains("fc-act-item--nuevo")) return;
-        var ids = item.dataset.ids.split(",").map(Number).filter(Boolean);
-        cambiarActividad("/api/actividad/leidas", { ids: ids }, function (d) {
-            d.avisos.forEach(function (a) {
-                (a.partes || []).forEach(function (x) { if (ids.indexOf(x.id) >= 0) x.leida = 1; });
-                if ((a.ids || [a.id]).every(function (i) { return ids.indexOf(i) >= 0 || (a.partes || []).some(function (x) { return x.id === i && x.leida; }); })) {
-                    if (!a.leida) d.sin_leer = Math.max(0, d.sin_leer - 1);
-                    a.leida = 1;
-                }
-            });
-        }, "No se pudo marcar como leído.");
+        if (!item) return;
+        var nuevo = item.classList.contains("fc-act-item--nuevo") || item.classList.contains("fc-av-ronda--nueva") || item.classList.contains("fc-av-urg");
+        if (!nuevo) return;
+        var ids = String(item.dataset.ids).split(",").map(Number).filter(Boolean);
+        if (ids.length) marcarIds(ids);
     }
 
     var panelAbierto = false;
@@ -2033,11 +2619,14 @@
         panelAbierto = true;
         document.getElementById("fc-panel-cerrar").focus();
 
+        pintarControles();
         if (ultimaLista.length) {
             pintarLista(ultimaLista);
             marcarComoVistos(ultimaLista);
             refrescarContador(ultimaLista);
         }
+        // 25-nov-2026: las rondas de «Automáticas» y el alcance (la lista de empresas del selector) se piden al abrir
+        pedirAutomaticas(false).then(function () { if (panelAbierto) { pintarControles(); pintarLista(ultimaLista); } });
         sondear();
     }
 
@@ -2098,22 +2687,46 @@
 
     var ICONO_ESTADO = {
         listo: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',
-        alerta: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8v5m0 3.5v.01"/></svg>'
+        alerta: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8v5m0 3.5v.01"/></svg>',
+        fila: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 7v5l3 2"/><circle cx="12" cy="12" r="8"/></svg>'
     };
+    // 25-nov-2026 (el dueño): lo que espera su turno dice «En fila» (nunca «En cola», también lo guardado de antes) y lleva el
+    // color de «esperando» (ámbar), igual en Mis descargas, el panel de la barra, la campana y cada módulo
+    var EN_FILA = /^En (fila|cola)\b/;
+    function esEnFila(p) { return !!p && EN_FILA.test(String(p.progreso || "")); }
     function botonFila(accion, icono, etiqueta, datos, clase) {
         return '<button type="button" class="fc-fila__btn' + (clase ? " " + clase : "") + '" data-accion="' + accion + '" ' + datos +
             ' title="' + esc(etiqueta) + '" aria-label="' + esc(etiqueta) + '">' + ico(D[icono]) + "</button>";
     }
 
-    /* Una descarga en un renglón: estado · nombre del documento · empresa y hora · acciones con ícono.
-       La usan el panel de la barra y la página Mis descargas (Fiscontable.descargas.tarjeta). */
-    function tarjeta(p) {
+    /* Una descarga en un renglón: estado · empresa · qué es (etiqueta chica + detalle) y hora · acciones con ícono.
+       La usan el panel de la barra y la página Mis descargas (Fiscontable.descargas.tarjeta).
+       25-nov-2026 (el dueño: los títulos repetían «Descarga de XML» y la empresa quedaba abajo, chica y cortada): el título
+       es la empresa (o «Varias empresas»), se parte en renglones y nunca se corta a media palabra en el celular; qué es va
+       en una etiqueta chica (XML, Excel, PDF, ZIP…) con su detalle («Emitidos · 10–31 oct»). enBloque: dentro del bloque de
+       una empresa, el título ya lo dice el bloque: el renglón empieza por qué es. */
+    function queEs(p) {
+        if (p.que_es) return p.que_es;
+        var ext = String(p.nombre_descarga || "").toLowerCase().split(".").pop();
+        return { zip: "ZIP", pdf: "PDF", xlsx: "Excel", xls: "Excel", xml: "XML" }[ext] || (p.clase === "lote" ? "ZIP" : "Archivo");
+    }
+    function etiquetaQue(p) {
+        var que = p.clase === "lote" ? nombreProceso(p) : (p.detalle || nombreProceso(p));
+        return '<span class="fc-etq">' + esc(queEs(p)) + "</span>" + esc(que);
+    }
+    function tarjeta(p, opciones) {
+        opciones = opciones || {};
         var id = 'data-clase="' + esc(p.clase) + '" data-id="' + esc(p.id) + '"';
         var nuevo = p.estado !== "procesando" && !estaVisto(p) ? '<span class="fc-punto" title="Nuevo desde la última vez"></span>' : "";
-        var nombre = esc(nombreProceso(p)), detalle = [esc(empresaProceso(p))], estado, acciones = "", abajo = "", clase = "";
+        var enBloque = !!opciones.enBloque;
+        var nombre = enBloque ? etiquetaQue(p) : esc(empresaProceso(p)), detalle = [enBloque ? "" : etiquetaQue(p)], estado, acciones = "", abajo = "", clase = "";
         var enPc = p.en_pc && p.en_pc.rutas && p.en_pc.rutas.length;
 
-        if (p.estado === "procesando") {
+        if (p.estado === "procesando" && esEnFila(p)) {
+            estado = '<span class="fc-fila__estado fc-fila__estado--fila" title="En fila">' + ICONO_ESTADO.fila + "</span>";
+            detalle.push(esc(window.Fiscontable.enFila(p.progreso)));
+            acciones = botonFila("detener", "cerrar", "Detener", id);
+        } else if (p.estado === "procesando") {
             estado = '<span class="fc-fila__estado fc-fila__estado--corre" title="En preparación"></span>';
             if (p.clase === "lote" && p.total > 0) {
                 detalle.push(p.procesados + " de " + p.total + (p.rfc_actual ? " · " + esc(p.rfc_actual) : ""));
@@ -2156,9 +2769,9 @@
                 (extras.length ? '<div class="fc-fila__extras">' + extras.join("") + "</div>" : "");
             acciones = botonFila("quitar", "cerrar", "Quitar de la lista", id);
         }
-        return '<div class="fc-fila' + clase + '">' + estado +
-            '<div class="fc-fila__texto"><div class="fc-fila__nombre" title="' + nombre + '">' + nuevo + nombre + "</div>" +
-            '<div class="fc-fila__detalle">' + detalle.filter(Boolean).join(" · ") + "</div></div>" +
+        return '<div class="fc-fila' + clase + '" data-fila="' + esc(p.id) + '">' + estado +
+            '<div class="fc-fila__texto"><div class="fc-fila__nombre fc-fila__nombre--envuelve">' + nuevo + nombre + "</div>" +
+            '<div class="fc-fila__detalle fc-fila__detalle--envuelve">' + detalle.filter(Boolean).join(" · ") + "</div></div>" +
             '<div class="fc-fila__acciones">' + acciones + "</div>" + abajo + "</div>";
     }
 
@@ -2177,17 +2790,157 @@
         return n ? '<a class="fc-nota-prog" href="/configuracion/?seccion=automatico&sub=programado">🌙 ' + n + (n === 1 ? " proceso programado" : " procesos programados") + " · se ven en Lo automático</a>" : "";
     }
 
-    function pintarLista(todos) {
-        var cuerpo = document.getElementById("fc-panel-cuerpo");
-        if (!cuerpo) return;
-        var procesos = sinPartes(sinProgramadas(todos)), nota = notaProgramadas(todos);
+    /* --------------------------------------------- Mis descargas en dos pestañas (25-nov-2026, el dueño)
+       El cajón decía «HOY 78»: lo automático de la madrugada salía renglón por renglón. Ahora, arriba del cajón (sin botones
+       nuevos en la barra), un control segmentado «Mis pedidos · Automáticas» y el alcance «Mis asignadas · Todas · Una
+       empresa…» (REGLAS_AVISOS.md). «Mis pedidos» = solo lo que una persona pidió a mano (de fábrica); «Automáticas» = una
+       tarjeta por ronda (noche) con lo de cada empresa junto, y lo automático que deja archivo (el paquete de documentos de la
+       noche, los envíos programados). El servidor dice en qué pestaña va cada cosa (p.pestana, core/mis_descargas.py). */
+    var LLAVE_PESTANA = "fc-descargas-pestana";
+    function leerLocal(k) { try { return localStorage.getItem(k) || ""; } catch (e) { return ""; } }
+    function guardarLocal(k, v) { try { if (v) localStorage.setItem(k, v); else localStorage.removeItem(k); } catch (e) { /* sin almacenamiento */ } }
+    var dsc = { pestana: leerLocal(LLAVE_PESTANA) === "automaticas" ? "automaticas" : "pedidos", llave: null, alcance: "", auto: null, autoDe: null,
+                autoEn: 0, pidiendo: null, bloques: {}, rondas: {} };
+    var cacheHtml = new WeakMap();          // lo último que se pintó en cada lugar (el cajón, la página)
 
-        if (!procesos.length) {
-            cuerpo.innerHTML = nota + '<div class="fc-vacio">Todavía no hay nada aquí.<br>' +
-                "Lo que generes va a aparecer en esta lista.</div>";
-            return;
+    // El alcance elegido se recuerda en este navegador y por espacio (Mi espacio y el despacho tienen empresas distintas)
+    function llaveAlcance() { var e = perfilActual && perfilActual.espacio; return "fc-descargas-alcance:" + ((e && e.tipo) || "cuenta"); }
+    function alcanceActual() {
+        var k = llaveAlcance();
+        if (dsc.llave !== k) { dsc.llave = k; dsc.alcance = leerLocal(k); }
+        return dsc.alcance || "";
+    }
+    function ponerAlcance(valor) { alcanceActual(); dsc.alcance = valor || ""; guardarLocal(dsc.llave, dsc.alcance); dsc.auto = null; }
+    function ponerPestana(p) { dsc.pestana = p === "automaticas" ? "automaticas" : "pedidos"; guardarLocal(LLAVE_PESTANA, dsc.pestana); }
+    function urlProcesos(extra) {
+        var a = alcanceActual(), q = [];
+        if (a) q.push("alcance=" + encodeURIComponent(a));
+        if (extra) q.push(extra);
+        return API + "/api/procesos" + (q.length ? "?" + q.join("&") : "");
+    }
+    function pedirAutomaticas(forzar) {
+        var a = alcanceActual();
+        if (!forzar && dsc.auto && dsc.autoDe === a && Date.now() - dsc.autoEn < 60000) return Promise.resolve(dsc.auto);
+        if (dsc.pidiendo) return dsc.pidiendo;
+        dsc.pidiendo = fetch(API + "/api/procesos/automaticas" + (a ? "?alcance=" + encodeURIComponent(a) : ""), { credentials: "include" })
+            .then(function (r) { return r.ok ? r.json() : null; })
+            .then(function (d) { if (d) { dsc.auto = d; dsc.autoEn = Date.now(); dsc.autoDe = a; } dsc.pidiendo = null; return dsc.auto; })
+            .catch(function () { dsc.pidiendo = null; return dsc.auto; });
+        return dsc.pidiendo;
+    }
+    function dePestana(procesos, pestana) { return (procesos || []).filter(function (p) { return (p.pestana || "pedidos") === pestana; }); }
+
+    // --- los controles de arriba (los mismos en el cajón y en la página Mis descargas)
+    function nombreAlcance(a) {
+        var modo = a ? a.modo : (alcanceActual() || "todas");
+        if (modo === "asignadas") return "Mis asignadas";
+        if (modo === "todas" || !modo) return "Todas";
+        var e = a && (a.empresas || []).filter(function (x) { return x.rfc === modo; })[0];
+        return e ? e.nombre : modo;
+    }
+    function controlesHtml(pestana) {
+        return '<div class="ctx-segmento" role="group" aria-label="Qué ver">' +
+            '<button type="button" data-dsc-pestana="pedidos" aria-pressed="' + (pestana === "pedidos") + '">Mis pedidos</button>' +
+            '<button type="button" data-dsc-pestana="automaticas" aria-pressed="' + (pestana === "automaticas") + '">Automáticas</button></div>' +
+            '<div class="fc-alcance"><button type="button" class="fc-alcance__boton" data-dsc-alcance-abrir aria-haspopup="true" aria-expanded="false" ' +
+            'title="De qué empresas"><span>' + esc(nombreAlcance(dsc.auto && dsc.auto.alcance)) + '</span><i class="fc-plegar">' + ico(D.abajo) + "</i></button>" +
+            '<div class="fc-alcance__menu" hidden></div></div>';
+    }
+    function menuAlcanceHtml(a) {
+        var modo = a.modo;
+        function op(valor, titulo, sub) {
+            return '<button type="button" class="fc-alcance__op" data-dsc-alcance="' + esc(valor) + '" aria-pressed="' + (modo === valor) + '"><b>' + esc(titulo) + "</b>" +
+                (sub ? "<small>" + esc(sub) + "</small>" : "") + "</button>";
         }
+        var h = (a.con_asignadas ? op("asignadas", "Mis asignadas", "Las empresas que tienes asignadas") : "") +
+            op("todas", "Todas", a.con_asignadas ? "Todas las que puedes ver" : "Todas tus empresas");
+        if ((a.empresas || []).length) {
+            h += '<div class="fc-alcance__sep">Una empresa</div>' +
+                '<input type="search" class="ui-input" data-dsc-alcance-buscar placeholder="Buscar empresa o RFC…" aria-label="Buscar empresa">' +
+                '<div class="fc-alcance__lista">' + a.empresas.map(function (e) {
+                    return '<button type="button" class="fc-alcance__op" data-dsc-alcance="' + esc(e.rfc) + '" data-buscar="' + esc(sinAcentos(e.nombre + " " + e.rfc)) +
+                        '" aria-pressed="' + (modo === e.rfc) + '"><b>' + esc(e.nombre) + "</b><small>" + esc(e.rfc) + "</small></button>";
+                }).join("") + "</div>";
+        }
+        return h;
+    }
+    // (26-nov-2026, revisión de fix3) aquí había otra «function sinAcentos», igual a la de arriba (la del buscador, mismo ámbito):
+    // dos funciones con el mismo nombre son la misma trampa que pisó los íconos del riel. Se usa la de arriba.
+    function cerrarMenusAlcance(menos) {
+        document.querySelectorAll(".fc-alcance__menu").forEach(function (m) {
+            if (m === menos) return;
+            m.hidden = true;
+            var b = m.parentNode.querySelector("[data-dsc-alcance-abrir]"); if (b) b.setAttribute("aria-expanded", "false");
+        });
+    }
+    document.addEventListener("click", function (e) { if (!e.target.closest(".fc-alcance")) cerrarMenusAlcance(); });
+    /* alCambiar(que): «pestana» o «alcance» (la página o el cajón vuelven a pintar). */
+    function atenderControles(contenedor, alCambiar) {
+        contenedor.addEventListener("click", async function (e) {
+            var b = e.target.closest("[data-dsc-pestana]");
+            if (b) { ponerPestana(b.getAttribute("data-dsc-pestana")); contenedor.innerHTML = controlesHtml(dsc.pestana); alCambiar("pestana"); return; }
+            var abrir = e.target.closest("[data-dsc-alcance-abrir]");
+            if (abrir) {
+                var menu = abrir.parentNode.querySelector(".fc-alcance__menu");
+                if (!menu.hidden) { cerrarMenusAlcance(); return; }
+                cerrarMenusAlcance(menu);
+                menu.innerHTML = '<div class="fc-ronda__nada">Cargando…</div>'; menu.hidden = false; abrir.setAttribute("aria-expanded", "true");
+                var d = await pedirAutomaticas(false);
+                if (d && d.alcance) menu.innerHTML = menuAlcanceHtml(d.alcance);
+                var q = menu.querySelector("[data-dsc-alcance-buscar]"); if (q && window.innerWidth > 640) q.focus();
+                return;
+            }
+            var op = e.target.closest("[data-dsc-alcance]");
+            if (op) {
+                ponerAlcance(op.getAttribute("data-dsc-alcance"));
+                cerrarMenusAlcance();
+                await pedirAutomaticas(true);
+                contenedor.innerHTML = controlesHtml(dsc.pestana);
+                alCambiar("alcance");
+            }
+        });
+        contenedor.addEventListener("input", function (e) {
+            var q = e.target.closest("[data-dsc-alcance-buscar]"); if (!q) return;
+            var t = sinAcentos(q.value.trim());
+            q.parentNode.querySelectorAll(".fc-alcance__lista [data-buscar]").forEach(function (x) { x.hidden = !!t && x.dataset.buscar.indexOf(t) === -1; });
+        });
+        contenedor.addEventListener("keydown", function (e) {          // Esc cierra el menú del alcance, no el cajón
+            if (e.key === "Escape" && contenedor.querySelector(".fc-alcance__menu:not([hidden])")) { cerrarMenusAlcance(); e.stopPropagation(); }
+        });
+    }
 
+    // --- «Mis pedidos»: varios seguidos de la misma empresa y el mismo día, en un bloque plegable
+    function diaLocal(iso) { var f = new Date((iso || "") + "Z"); return isNaN(f) ? "" : f.toDateString(); }
+    function claveBloque(p) { return p.clase === "individual" && p.estado !== "procesando" && p.titulo && p.titulo !== "VARIOS" ? p.titulo + "|" + diaLocal(p.creado_en) : null; }
+    function filasConBloques(lista) {
+        var salida = [], i = 0;
+        while (i < lista.length) {
+            var k = claveBloque(lista[i]), j = i + 1;
+            while (k && j < lista.length && claveBloque(lista[j]) === k) j++;
+            if (j - i >= 2) salida.push(bloqueHtml(k, lista.slice(i, j))); else salida.push(tarjeta(lista[i]));
+            i = j;
+        }
+        return salida.join("");
+    }
+    function bloqueHtml(clave, ps) {
+        var abierto = !!dsc.bloques[clave], mal = ps.some(function (p) { return p.estado !== "completado"; });
+        var nuevo = ps.some(function (p) { return !estaVisto(p); }) ? '<span class="fc-punto" title="Nuevo desde la última vez"></span>' : "";
+        var tipos = ps.map(queEs).filter(function (x, n, a) { return a.indexOf(x) === n; }).join(" · ");
+        return '<div class="fc-bloque"><button type="button" class="fc-bloque__cabeza" data-dsc-bloque="' + esc(clave) + '" aria-expanded="' + abierto + '">' +
+            '<span class="fc-fila__estado fc-fila__estado--' + (mal ? "alerta" : "listo") + '">' + ICONO_ESTADO[mal ? "alerta" : "listo"] + "</span>" +
+            '<span class="fc-bloque__texto"><b>' + nuevo + esc(empresaProceso(ps[0])) + " · " + ps.length + " archivos</b><small>" + esc(tipos) + " · " +
+            esc(horaCorta(ps[0].creado_en)) + (mal ? " · alguno no se completó" : "") + "</small></span>" +
+            '<i class="fc-plegar">' + ico(D.abajo) + "</i></button>" +
+            '<div class="fc-bloque__filas"' + (abierto ? "" : " hidden") + '><div class="fc-filas">' +
+            ps.map(function (p) { return tarjeta(p, { enBloque: true }); }).join("") + "</div></div></div>";
+    }
+    function htmlPedidos(todos) {
+        var procesos = sinPartes(dePestana(todos, "pedidos"));
+        if (!procesos.length) {
+            var hayAuto = dePestana(todos, "automaticas").length || (dsc.auto && (dsc.auto.rondas || []).length);
+            return '<div class="fc-vacio">Todavía no has pedido nada.<br>Lo que generes va a aparecer aquí.' +
+                (hayAuto ? '<br><button type="button" class="fc-enlace-chico" data-dsc-pestana-ir="automaticas">Lo que Fiscontable hizo solo está en «Automáticas»</button>' : "") + "</div>";
+        }
         var hechos = procesos.filter(function (p) { return p.estado !== "procesando"; });
         var grupos = [
             ["En preparación", procesos.filter(function (p) { return p.estado === "procesando"; })],
@@ -2195,11 +2948,144 @@
             ["Ayer", hechos.filter(function (p) { return diaDe(p.creado_en) === "ayer"; })],
             ["Antes", hechos.filter(function (p) { return diaDe(p.creado_en) === "antes"; })]
         ];
-
-        cuerpo.innerHTML = nota + grupos.filter(function (g) { return g[1].length; }).map(function (g) {
+        return grupos.filter(function (g) { return g[1].length; }).map(function (g) {
             return '<div class="fc-grupo"><div class="fc-grupo__titulo">' + g[0] + "<span>" + g[1].length + "</span></div>" +
-                '<div class="fc-filas">' + g[1].map(tarjeta).join("") + "</div></div>";
+                '<div class="fc-filas">' + (g[0] === "En preparación" ? g[1].map(function (p) { return tarjeta(p); }).join("") : filasConBloques(g[1])) + "</div></div>";
         }).join("");
+    }
+
+    // --- «Automáticas»: una tarjeta por ronda (noche), plegada
+    var CHIPS = [["con_archivos", "Con archivos"], ["sin_cambios", "Sin cambios"], ["con_error", "Con error"], ["en_curso", "En curso"]];
+    function numero(n) { return Number(n || 0).toLocaleString("es-MX"); }
+    function resumenRonda(r) {
+        var partes = [esc(numero(r.empresas)) + (r.empresas === 1 ? " empresa" : " empresas")];
+        if (r.con_archivos) partes.push(esc(numero(r.con_archivos)) + " con archivos");
+        if (r.sin_cambios) partes.push(esc(numero(r.sin_cambios)) + " sin cambios");
+        if (r.con_error) partes.push("<i>" + esc(numero(r.con_error)) + " con error</i>");
+        if (r.en_curso) partes.push(esc(numero(r.en_curso)) + " en curso");
+        return partes.join(" · ");
+    }
+    function filasRonda(r, st) {
+        var t = sinAcentos((st.buscar || "").trim());
+        var filas = (r.renglones || []).filter(function (x) {
+            return (!st.filtro || x.estado === st.filtro) && (!t || sinAcentos(x.nombre + " " + x.rfc).indexOf(t) !== -1);
+        });
+        if (!filas.length) return '<div class="fc-ronda__nada">Ninguna empresa con ese filtro.</div>';
+        return filas.map(function (x) {
+            var partes = (x.partes || []).map(function (p) {
+                var v = p.estado === "error" ? "no salió" : p.estado === "en_curso" ? "en curso" : numero(p.n);
+                // (revisión, 25-nov-2026: cada parte entera en su renglón; en el celular «Retenciones» quedaba arriba y su «0» solo abajo)
+                return '<span class="fc-ronda__parte">' + esc(p.que) + ' <em class="' + (p.estado === "sin_cambios" || (p.estado === "archivos" && !p.n) ? "fc-cero" : "") + '">' + esc(v) + "</em></span>";
+            }).join(" · ");
+            return '<div class="fc-ronda__fila fc-ronda__fila--' + esc(x.estado) + '"><div class="fc-ronda__empresa"><b>' + esc(x.nombre) + "</b><span>" + partes + "</span>" +
+                (x.motivo ? '<span class="fc-ronda__motivo">' + esc(x.motivo) + "</span>" : "") + "</div>" +
+                '<a class="ui-btn ui-btn--terciario ui-btn--28" href="' + esc(x.ver_xml || "/herramientas/xml/") + '" data-dsc-ver-xml="' + esc(x.rfc) + '">Ver XML →</a></div>';
+        }).join("");
+    }
+    function rondaHtml(r, docs) {
+        var st = dsc.rondas[r.noche] || (dsc.rondas[r.noche] = {});
+        var abierta = !!st.abierta;
+        var h = '<div class="fc-ronda' + (st.resaltada ? " fc-ronda--resaltada" : "") + '" data-ronda="' + esc(r.noche) + '">' +
+            '<button type="button" class="fc-ronda__cabeza" data-dsc-ronda="' + esc(r.noche) + '" aria-expanded="' + abierta + '">' +
+            '<span class="fc-ronda__icono">' + ico(D.luna) + '</span><span class="fc-ronda__texto"><b>' + esc(r.titulo + (r.hora ? " · " + r.hora : "")) +
+            "</b><small>" + resumenRonda(r) + '</small></span><i class="fc-plegar">' + ico(D.abajo) + "</i></button>";
+        (docs || []).forEach(function (p) {
+            h += '<div class="fc-ronda__docs" data-fila="' + esc(p.id) + '"><span>' + (estaVisto(p) ? "" : '<span class="fc-punto" title="Nuevo desde la última vez"></span>') +
+                '<span class="fc-etq">' + esc(queEs(p)) + "</span>" + esc(String(p.resumen || p.nombre || "Documentos de la noche").replace(/^[^:]*:\s*/, "")) + "</span>" +
+                botonFila("descargar", "descarga", "Descargar", 'data-url="' + esc(p.url_descarga) + '" data-nombre="' + esc(p.nombre_descarga || "documentos.zip") + '"', "fc-fila__btn--principal") + "</div>";
+        });
+        if (abierta) {
+            h += '<div class="fc-ronda__cuerpo">' +
+                '<input type="search" class="ui-input" data-dsc-ronda-buscar="' + esc(r.noche) + '" value="' + esc(st.buscar || "") + '" placeholder="Buscar empresa o RFC…" aria-label="Buscar empresa">' +
+                '<div class="fc-chips" role="group" aria-label="Filtrar">' + CHIPS.filter(function (c) { return c[0] !== "en_curso" || r.en_curso; }).map(function (c) {
+                    return '<button type="button" class="fc-chip" data-dsc-chip="' + c[0] + '" data-noche="' + esc(r.noche) + '" aria-pressed="' + (st.filtro === c[0]) + '"' +
+                        (r[c[0]] ? "" : " disabled") + ">" + c[1] + " <span>" + esc(numero(r[c[0]])) + "</span></button>";
+                }).join("") + "</div>" +
+                '<div class="fc-ronda__lista" data-dsc-lista="' + esc(r.noche) + '">' + filasRonda(r, st) + "</div></div>";
+        }
+        return h + "</div>";
+    }
+    function htmlAutomaticas(todos, auto) {
+        var nota = notaProgramadas(todos);
+        var paquetes = sinPartes(dePestana(todos, "automaticas")).filter(function (p) { return !esperaMadrugada(p); });
+        if (!auto) return nota + '<div class="fc-vacio">Cargando lo automático…</div>';
+        var rondas = auto.rondas || [], deNoche = {}, sueltos = [];
+        paquetes.forEach(function (p) {
+            if (p.noche && /^programada_/.test(p.tipo || "") && rondas.some(function (r) { return r.noche === p.noche; })) (deNoche[p.noche] = deNoche[p.noche] || []).push(p);
+            else sueltos.push(p);
+        });
+        var hoy = new Date(), ayer = new Date(hoy); ayer.setDate(hoy.getDate() - 1);
+        function iso(d) { return d.getFullYear() + "-" + ("0" + (d.getMonth() + 1)).slice(-2) + "-" + ("0" + d.getDate()).slice(-2); }
+        function cuando(noche, creado) {
+            var dia = noche || (creado ? iso(new Date(creado + "Z")) : "");
+            return dia === iso(hoy) ? "Hoy" : dia === iso(ayer) ? "Ayer" : "Antes";
+        }
+        var grupos = { Hoy: [], Ayer: [], Antes: [] };
+        rondas.forEach(function (r) { grupos[cuando(r.noche)].push({ orden: r.noche + "T99", html: rondaHtml(r, deNoche[r.noche]) }); });
+        sueltos.forEach(function (p) { grupos[cuando(p.noche, p.creado_en)].push({ orden: (p.noche || "") + "T" + (p.creado_en || ""), html: '<div class="fc-filas">' + tarjeta(p) + "</div>" }); });
+        var cuerpo = ["Hoy", "Ayer", "Antes"].filter(function (g) { return grupos[g].length; }).map(function (g) {
+            return '<div class="fc-grupo"><div class="fc-grupo__titulo">' + g + "</div>" +
+                grupos[g].sort(function (a, b) { return a.orden < b.orden ? 1 : -1; }).map(function (x) { return x.html; }).join("") + "</div>";
+        }).join("");
+        if (!cuerpo) return nota + '<div class="fc-vacio">No hay nada automático en estos ' + (auto.dias || 7) + " días.<br>" +
+            "Lo que Fiscontable baja solo de madrugada aparece aquí, una tarjeta por noche.</div>";
+        return nota + cuerpo + '<p class="fc-dsc-nota">Lo automático se borra solo de aquí a los ' + (auto.dias || 7) + " días. Los XML siguen en Administración de XML.</p>";
+    }
+    // Clics de las dos pestañas (bloques, rondas, chips, «Ver XML →»); repintar() vuelve a dibujar donde se usen
+    function clicDescargas(e, repintar) {
+        var ir = e.target.closest("[data-dsc-pestana-ir]");
+        if (ir) { ponerPestana(ir.getAttribute("data-dsc-pestana-ir")); repintar("pestana"); return true; }
+        var b = e.target.closest("[data-dsc-bloque]");
+        if (b) { var k = b.getAttribute("data-dsc-bloque"); dsc.bloques[k] = !dsc.bloques[k]; repintar(); return true; }
+        var r = e.target.closest("[data-dsc-ronda]");
+        if (r) { var st = dsc.rondas[r.getAttribute("data-dsc-ronda")] || {}; st.abierta = !st.abierta; st.resaltada = false; dsc.rondas[r.getAttribute("data-dsc-ronda")] = st; repintar(); return true; }
+        var c = e.target.closest("[data-dsc-chip]");
+        if (c) { var s = dsc.rondas[c.dataset.noche] || {}; s.filtro = s.filtro === c.dataset.dscChip ? "" : c.dataset.dscChip; repintar(); return true; }
+        var x = e.target.closest("[data-dsc-ver-xml]");
+        if (x) { e.preventDefault(); irAXml(x.getAttribute("data-dsc-ver-xml"), x.getAttribute("href")); return true; }
+        return false;
+    }
+    function buscarEnRonda(e) {
+        var q = e.target.closest("[data-dsc-ronda-buscar]"); if (!q || !dsc.auto) return;
+        var noche = q.getAttribute("data-dsc-ronda-buscar"), st = dsc.rondas[noche] || (dsc.rondas[noche] = {});
+        st.buscar = q.value;
+        var r = (dsc.auto.rondas || []).filter(function (x) { return x.noche === noche; })[0];
+        var lista = q.parentNode.querySelector("[data-dsc-lista]");
+        if (r && lista) lista.innerHTML = filasRonda(r, st);
+    }
+    // «Ver XML →»: Administración de XML ya en esa empresa (la empresa activa es la de toda la barra) y en el periodo de esa noche
+    async function irAXml(rfc, href) {
+        var activa = perfilActual && perfilActual.empresa_activa && perfilActual.empresa_activa.rfc;
+        if (rfc && rfc !== activa) await elegirEmpresa(rfc);
+        var ya = perfilActual && perfilActual.empresa_activa && perfilActual.empresa_activa.rfc;
+        if (!rfc || ya === rfc) location.href = href || "/herramientas/xml/";
+    }
+    // Pinta sin perder el foco del buscador ni lo que ya se había bajado en cada lista (el cajón se refresca solo)
+    function ponerHtml(cuerpo, html) {
+        if (cacheHtml.get(cuerpo) === html && cuerpo.childNodes.length) return;
+        var scrolls = {}, foco = document.activeElement, focoSel = null, pos = null;
+        cuerpo.querySelectorAll("[data-dsc-lista]").forEach(function (l) { scrolls[l.getAttribute("data-dsc-lista")] = l.scrollTop; });
+        if (foco && cuerpo.contains(foco) && foco.hasAttribute("data-dsc-ronda-buscar")) { focoSel = foco.getAttribute("data-dsc-ronda-buscar"); pos = foco.selectionStart; }
+        var arriba = cuerpo.scrollTop;
+        cuerpo.innerHTML = html; cacheHtml.set(cuerpo, html);
+        cuerpo.scrollTop = arriba;
+        cuerpo.querySelectorAll("[data-dsc-lista]").forEach(function (l) { var v = scrolls[l.getAttribute("data-dsc-lista")]; if (v) l.scrollTop = v; });
+        if (focoSel) { var q = cuerpo.querySelector('[data-dsc-ronda-buscar="' + focoSel + '"]'); if (q) { q.focus(); try { q.setSelectionRange(pos, pos); } catch (x) { /* nada */ } } }
+    }
+
+    function pintarControles() {
+        var barra = document.getElementById("fc-dsc-barra");
+        if (barra && !barra.querySelector(".fc-alcance__menu:not([hidden])")) barra.innerHTML = controlesHtml(dsc.pestana);
+        var sub = document.getElementById("fc-panel-sub");
+        if (sub) sub.textContent = dsc.pestana === "automaticas" ? "Lo que Fiscontable hizo solo, una tarjeta por noche" : "Lo que pediste y lo que ya está listo";
+        var hist = document.getElementById("fc-dsc-historial");
+        if (hist) hist.href = "/descargas/" + (dsc.pestana === "automaticas" ? "?pestana=automaticas" : "");
+    }
+
+    function pintarLista(todos) {
+        var cuerpo = document.getElementById("fc-panel-cuerpo");
+        if (!cuerpo) return;
+        ponerHtml(cuerpo, dsc.pestana === "automaticas" ? htmlAutomaticas(todos, dsc.auto) : htmlPedidos(todos));
     }
 
     function avisarNavegador(titulo, cuerpo) {
@@ -2243,10 +3129,11 @@
     async function sondear() {
         if (bloqueo && bloqueo.activa) { programar(); return; }      // con la pantalla bloqueada no se pregunta nada
         try {
-            var resp = await fetch(API + "/api/procesos", { credentials: "include" });
+            var resp = await fetch(urlProcesos(), { credentials: "include" });
             if (!resp.ok) { programar(); return; }
             var procesos = await resp.json();
             ultimaLista = procesos;
+            if (panelAbierto && dsc.pestana === "automaticas") await pedirAutomaticas(false);
 
             var activos = refrescarContador(procesos);
 
@@ -2857,6 +3744,7 @@
 
         // Configuración la ven todos; la parte de Administración solo el admin (adentro de Configuración)
         pintarLetreros(p);
+        avisoReinicio(p.reinicio);
         pintarEspacio(p);
         pintarEmpresa();
         pintarPeriodo();
@@ -3144,17 +4032,21 @@
     /* ------------------------------------------------- detalle de un CFDI en panel lateral (G-07)
        Fiscontable.verCfdi(rfc, uuid, lista) abre el detalle de siempre (/herramientas/xml/detalle/) en un panel a la
        derecha, sin salir de la tabla. lista = uuids en el orden en que se ven: ← y → (o los botones) pasan a la
-       anterior o la siguiente. Cualquier enlace a ese detalle en la página abre el panel (Ctrl/Cmd+clic, en pestaña). */
+       anterior o la siguiente. Cualquier enlace a ese detalle en la página abre el panel (Ctrl/Cmd+clic, en pestaña).
+       23-nov-2026, el dueño (decisión E del Avance 1): con Ctrl/Cmd/Shift o clic medio (el evento que llega o window.event,
+       así sirve a todas las tablas que ya la llaman desde su clic) la factura se abre en OTRA PESTAÑA; también si hay un
+       diálogo encima (p. ej. Posibles duplicados), porque taparía el panel. */
     var cfdiPanel = null;
-    function verCfdi(rfc, uuid, lista, desde) {
+    function verCfdi(rfc, uuid, lista, desde, ev) {
         if (!rfc || !uuid) return;
+        if (aOtraPestana(ev || window.event) || modalAbierto()) { abrirPestana(urlFactura(rfc, uuid, desde)); return; }
         if (!cfdiPanel) {
             var d = document.createElement("aside");
             d.className = "fc-cfdi"; d.setAttribute("aria-label", "Detalle de la factura"); d.hidden = true;
             d.innerHTML = '<div class="fc-cfdi__cabeza"><b>Factura</b><span class="fc-cfdi__pos"></span>' +
                 '<button type="button" class="ui-icono-btn" data-cfdi="ant" aria-label="Anterior (←)" title="Anterior (←)">' + ico(D.flecha, 2).replace("<svg ", '<svg style="transform:rotate(180deg)" ') + "</button>" +
                 '<button type="button" class="ui-icono-btn" data-cfdi="sig" aria-label="Siguiente (→)" title="Siguiente (→)">' + ico(D.flecha, 2) + "</button>" +
-                '<a class="ui-btn ui-btn--terciario ui-btn--28" data-cfdi="pestana" target="_blank" rel="noopener">Abrir en pestaña</a>' +
+                '<a class="ui-btn ui-btn--terciario ui-btn--28" data-cfdi="pestana" target="_blank" rel="noopener" title="Abrir la factura en otra pestaña">Abrir factura</a>' +
                 '<button type="button" class="ui-icono-btn" data-cfdi="cerrar" aria-label="Cerrar (Esc)" title="Cerrar (Esc)">' + ico(D.cerrar, 2) + "</button></div>" +
                 '<iframe class="fc-cfdi__marco" title="Detalle de la factura"></iframe>';
             document.body.appendChild(d);
@@ -3251,11 +4143,14 @@
         document.documentElement.classList.remove("fc-con-cfdi");
     }
 
-    // Enlaces al detalle en cualquier módulo: panel lateral (con modificador o clic medio, pestaña como siempre)
+    // Enlaces al detalle en cualquier módulo: panel lateral (con modificador o clic medio, pestaña como siempre).
+    // 23-nov-2026 (decisión E): los que dicen «en otra pestaña» (target, como «Ver factura» de Conciliación o «Ver CFDI» del
+    // Buzón) ya no se vuelven panel: abren su pestaña. El folio de Marcas fiscales y de Cancelaciones no lleva target: con el
+    // clic sigue abriendo el mini detalle, como en las demás tablas (revisión del 24-nov-2026).
     document.addEventListener("click", function (e) {
         if (e.defaultPrevented || e.button !== 0 || e.ctrlKey || e.metaKey || e.shiftKey || e.altKey) return;
         var a = e.target.closest && e.target.closest('a[href*="/herramientas/xml/detalle/"]');
-        if (!a || a.closest(".fc-cfdi") || document.documentElement.classList.contains("fc-incrustado")) return;
+        if (!a || (a.target && a.target !== "_self") || a.closest(".fc-cfdi") || document.documentElement.classList.contains("fc-incrustado")) return;
         var u = new URL(a.href, location.href), rfc = u.searchParams.get("rfc"), uuid = u.searchParams.get("uuid");
         if (!rfc || !uuid) return;
         e.preventDefault();
@@ -3263,6 +4158,56 @@
             try { return new URL(x.href, location.href).searchParams.get("uuid"); } catch (err) { return null; }
         }).filter(function (x, i, arr) { return x && arr.indexOf(x) === i; });
         verCfdi(rfc, uuid, lista, u.searchParams.get("desde"));
+    });
+
+    /* 23-nov-2026, el dueño (decisión E del Avance 1): «la factura en otra pestaña», UNA regla para todas las tablas de
+       facturas. El folio es un enlace real a la página del detalle (urlFactura / ligaFactura; tabla.js lo pone con la opción
+       ligaFila y Administración de XML al pintar). En un renglón que trae ese enlace:
+         · Ctrl/Cmd/Shift + clic o clic medio, en el folio o en cualquier parte del renglón → la factura en OTRA PESTAÑA
+           (en el folio la abre el navegador; también sirve su «Abrir enlace en una pestaña nueva»);
+         · clic normal → lo de siempre (el mini detalle o el panel propio del módulo): el enlace del folio no navega.
+       La casilla, los botones y los demás enlaces del renglón siguen haciendo lo suyo. */
+    function urlFactura(rfc, uuid, desde) {
+        return "/herramientas/xml/detalle/?rfc=" + encodeURIComponent(rfc || "") + "&uuid=" + encodeURIComponent(uuid || "") +
+            (desde ? "&desde=" + encodeURIComponent(desde) : "");
+    }
+    function ligaFactura(url, html) { return url && html ? '<a class="fc-liga-factura" href="' + esc(url) + '">' + html + "</a>" : (html || ""); }
+    function aOtraPestana(ev) {
+        return !!ev && /^(click|auxclick|keydown)$/.test(ev.type || "") && !!(ev.ctrlKey || ev.metaKey || ev.shiftKey || ev.button === 1);
+    }
+    function modalAbierto() { try { return !!document.querySelector("dialog:modal"); } catch (err) { return false; } }
+    function abrirPestana(url) { window.open(url, "_blank", "noopener"); }
+    function ligaDelRenglon(t) {
+        var tr = t && t.closest ? t.closest("tr") : null;
+        return tr ? tr.querySelector("a.fc-liga-factura") : null;
+    }
+    function hacePropio(t) {
+        var a = t.closest("a[href]");
+        return !!(t.closest("input, button, select, textarea, label, [data-dup]") || (a && !a.classList.contains("fc-liga-factura")));
+    }
+    document.addEventListener("click", function (e) {
+        if (e.button !== 0 || !e.target.closest) return;
+        var liga = ligaDelRenglon(e.target);
+        if (!liga || hacePropio(e.target)) return;
+        var enLiga = !!e.target.closest("a.fc-liga-factura");
+        if (e.ctrlKey || e.metaKey || e.shiftKey) {
+            e.stopPropagation();                                            // el renglón no abre además su panel
+            // Ctrl/Cmd en el enlace: la pestaña la abre el navegador. Shift en el enlace (Chrome abriría una VENTANA) y
+            // cualquier modificador en el resto del renglón: la abrimos aquí, en pestaña (revisión del 24-nov-2026)
+            if (!enLiga || (e.shiftKey && !e.ctrlKey && !e.metaKey)) { e.preventDefault(); abrirPestana(enLiga ? e.target.closest("a.fc-liga-factura").href : liga.href); }
+            return;
+        }
+        if (enLiga) e.preventDefault();                                     // el renglón abre su mini detalle
+    }, true);
+    document.addEventListener("auxclick", function (e) {
+        if (e.button !== 1 || !e.target.closest || e.target.closest("a[href]")) return;      // en un enlace lo hace el navegador
+        var liga = ligaDelRenglon(e.target);
+        if (!liga || hacePropio(e.target)) return;
+        e.preventDefault(); abrirPestana(liga.href);
+    });
+    document.addEventListener("mousedown", function (e) {
+        // sin el desplazamiento automático de la rueda (Windows), que se come el clic medio en el renglón
+        if (e.button === 1 && e.target.closest && !e.target.closest("a[href]") && ligaDelRenglon(e.target)) e.preventDefault();
     });
 
     /* Una página que se ve dentro de un marco (el detalle de la factura en el panel lateral, Administración o un módulo
@@ -3671,7 +4616,8 @@
     function cerrarPorInactividad() {
         if (!(perfilActual && perfilActual.sesion_propia)) { location.href = SALIR; return; }
         fetch(API + "/publico/cuenta/salir", { method: "POST", credentials: "include", keepalive: true }).catch(function () {});
-        setTimeout(function () { location.replace(urlEntrar("sesion")); }, 300);
+        olvidarCuenta(); ponerMarcaSalio("inactividad");          // 23-nov-2026 (I.1)
+        setTimeout(function () { irALoginPorSalida({ motivo: "inactividad" }); }, 300);
     }
     /* «Iniciar sesión» desde la pantalla bloqueada (inicio de sesión propio): se abre en OTRA pestaña y esta se queda
        como está. Al entrar allá se quita la marca de bloqueo y todas las pestañas se reanudan donde estaban. */
@@ -3905,9 +4851,50 @@
         window.Fiscontable.revisarVersion = function () { return revisarVersion(true); };
     }
 
+    window.addEventListener("pageshow", function (e) {
+        if (!e.persisted) return;
+        if (marcaSalio()) { irALoginPorSalida(marcaSalio()); return; }
+        fetch(API + "/api/mi-perfil", { credentials: "include", cache: "no-store" }).then(function (r) {
+            // 24-nov-2026 (revisión): la sesión venció sin «Cerrar sesión»: como manejarErrorPerfil, al entrar regresa a esta página
+            if (r.status === 401 || r.status === 403) {
+                olvidarCuenta();
+                document.documentElement.style.visibility = "hidden";
+                if (!enMarco) location.replace(urlEntrar("sesion"));
+            }
+        }, function () { /* sin red: se queda; lo siguiente que pida lo dirá */ });
+    });
+
+    /* Lo personal que este navegador guarda de quien entró (para pintar la barra sin «brinquito», las empresas recientes,
+       la foto de la pantalla bloqueada, el saldo a favor de IVA escrito a mano…). Se borra al cerrar sesión, al cerrarse
+       por inactividad y cuando el servidor dice que ya no hay sesión. Las preferencias (tema, densidad, columnas, vistas,
+       filtros, modo de entrada) se quedan: no son de la persona sino del equipo. Una llave personal nueva va en esta lista. */
+    var LLAVES_PERSONALES = ["fc-barra-ultima", "fc-aviso-acceso", "fc-letreros", "fc-empresas-recientes", "fc-foto", "fc-ya-entro", "fc-recientes"];
+    var PREFIJOS_PERSONALES = ["iva:saldo:"];
+    function olvidarCuenta() {
+        try {
+            LLAVES_PERSONALES.forEach(function (k) { localStorage.removeItem(k); });
+            for (var i = localStorage.length - 1; i >= 0; i--) {
+                var k = localStorage.key(i);
+                if (k && PREFIJOS_PERSONALES.some(function (pre) { return k.indexOf(pre) === 0; })) localStorage.removeItem(k);
+            }
+        } catch (e) { /* sin almacenamiento */ }
+        try {                                 // todo lo de la pestaña, menos la marca contra las vueltas a «Entrar» (irAEntrar)
+            var vuelta = sessionStorage.getItem("fc-entrar");
+            sessionStorage.clear();
+            if (vuelta) sessionStorage.setItem("fc-entrar", vuelta);
+        } catch (e) { /* sin almacenamiento */ }
+    }
+    function ponerMarcaSalio(motivo) {
+        try { localStorage.setItem(LLAVE_SALIO, JSON.stringify({ motivo: motivo, en: Date.now() })); } catch (e) { /* sin almacenamiento */ }
+    }
+
     function manejarErrorPerfil(tipo, motivo) {
-        // Sin perfil no hay selectores: el lugar que se apartó para ellos se suelta
+        // Sin perfil no hay selectores: el lugar que se apartó para ellos se suelta. El nombre de la vez pasada se vacía
+        // (24-nov-2026, revisión: escondido con «hidden» ya no volvía a salir si «Reintentar» traía el perfil)
+        var nom = document.getElementById("fc-nombre-corto");
+        if (nom && nom.classList.contains("fc-accion--reservada")) { nom.textContent = ""; nom.classList.remove("fc-accion--reservada"); }
         document.querySelectorAll(".fc-accion--reservada").forEach(function (b) { b.hidden = true; b.classList.remove("fc-accion--reservada"); });
+        var cajaAviso = document.getElementById("fc-aviso"); if (cajaAviso) delete cajaAviso.dataset.guardado;
         if (tipo === "bloqueada") {
             aviso(motivo, [{ texto: "Cerrar sesión", href: API + "/cdn-cgi/access/logout" },
                            { texto: "Reintentar", accion: function () { promesaPerfil = null; iniciarPerfil(); } }]);
@@ -3917,6 +4904,8 @@
         var entrar = urlEntrar("sesion");
         var reintentar = { texto: "Reintentar", accion: function () { promesaPerfil = null; iniciarPerfil(); } };
         if (tipo === "sesion") {
+            olvidarCuenta();                 // 23-nov-2026 (I.1): sin sesión, lo personal guardado en el navegador ya no sirve
+            entrar = urlEntrar("sesion");
             if (!irAEntrar("sesion")) aviso("Tu sesión terminó. Inicia sesión de nuevo para continuar.", [{ texto: "Iniciar sesión", href: entrar }, reintentar]);
             document.dispatchEvent(new CustomEvent("fc:perfil", { detail: null }));
             return;
@@ -3960,11 +4949,66 @@
     }
 
     async function iniciarPerfil() {
-        ocultarAviso();
+        var cajaAviso = document.getElementById("fc-aviso");
+        if (!(cajaAviso && cajaAviso.dataset.guardado)) ocultarAviso();      // el guardado aparta su lugar (invisible) hasta confirmarlo
         var p = await perfil();
         if (p && p._error) { manejarErrorPerfil(p._error, p.motivo); return; }
-        try { sessionStorage.removeItem("fc-entrar"); localStorage.setItem("fc-ya-entro", "1"); } catch (e) { /* sin almacenamiento */ }
+        try { sessionStorage.removeItem("fc-entrar"); localStorage.setItem("fc-ya-entro", "1"); localStorage.removeItem(LLAVE_SALIO); } catch (e) { /* sin almacenamiento */ }
         pintarPerfil(p);
+    }
+
+    /* ------------------------------------------------ «Preparar reinicio» (24-nov-2026)
+       El administrador anuncia un reinicio desde Administración › Sistema › Portal y acciones. Llega con /api/mi-perfil al abrir
+       y con la campana (/api/actividad, cada minuto): un letrero que flota abajo con la cuenta regresiva. La hora se cuenta
+       desde los segundos que dice el servidor (no del reloj de la PC). Cuando el servidor vuelve, ya no llega y se quita. */
+    var reinicio = { fin: 0, reloj: null };
+    function avisoReinicio(r) {
+        var caja = document.getElementById("fc-reinicio");
+        if (!r || typeof r.faltan_seg !== "number" || window.top !== window) {
+            reinicio.fin = 0;
+            if (reinicio.reloj) { clearInterval(reinicio.reloj); reinicio.reloj = null; }
+            if (caja) caja.remove();
+            return;
+        }
+        reinicio.fin = Date.now() + r.faltan_seg * 1000;
+        reinicio.hora = r.hora || "";
+        if (!caja) {
+            caja = document.createElement("div");
+            caja.id = "fc-reinicio";
+            caja.className = "fc-reinicio";
+            caja.setAttribute("role", "status");
+            // encima de los letreros que flotan abajo (--letreros-hueco), sin taparlos
+            caja.style.cssText = "position:fixed;left:50%;bottom:calc(16px + var(--letreros-hueco, 0px));transform:translateX(-50%);z-index:900;" +
+                "width:max-content;max-width:min(760px, calc(100vw - 32px));box-sizing:border-box;display:flex;gap:12px;align-items:flex-start;padding:12px 14px 12px 16px;" +
+                "border-radius:12px;font-size:13.5px;font-weight:600;line-height:1.4;background:rgb(var(--av-50));color:rgb(var(--av-600));" +
+                "border:1px solid rgb(var(--av-200));box-shadow:0 8px 24px rgba(15,23,42,.14)";
+            caja.innerHTML = '<span data-r="texto"></span><button type="button" data-r="cerrar" aria-label="Ocultar por ahora" title="Ocultar por ahora (vuelve a salir el último minuto)" ' +
+                'style="background:none;border:0;cursor:pointer;font-size:14px;opacity:.7;padding:0 2px;color:inherit;line-height:1.4">✕</button>';
+            // revisión 24-nov-2026: «✕» vale para ESTE aviso en todas las páginas (antes volvía a salir en cada página que se abría)
+            caja.querySelector('[data-r="cerrar"]').addEventListener("click", function () {
+                try { localStorage.setItem("fc-reinicio-oculto", reinicio.hora); } catch (e) { /* sin almacenamiento */ }
+                pasoReinicio();
+            });
+            document.body.appendChild(caja);
+        }
+        pasoReinicio();
+        if (!reinicio.reloj) reinicio.reloj = setInterval(pasoReinicio, 1000);
+    }
+    function pasoReinicio() {
+        var caja = document.getElementById("fc-reinicio");
+        if (!caja || !reinicio.fin) return;
+        var faltan = Math.round((reinicio.fin - Date.now()) / 1000);
+        var hora = new Date(reinicio.fin).toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit", timeZone: "America/Mexico_City" });
+        var texto = faltan > 0
+            ? "Fiscontable se actualiza a las " + hora + " (en " + Math.floor(faltan / 60) + ":" + ("0" + (faltan % 60)).slice(-2) +
+              "). Guarda lo que estés haciendo; en ese rato no timbres, no mandes envíos ni valides XML. Tarda uno o dos minutos." +
+              " Mientras, no se empiezan descargas nuevas."
+            : "Fiscontable se está actualizando. Si algo no responde, espera un minuto y vuelve a intentar.";
+        var oculto = false;
+        try { oculto = !!reinicio.hora && localStorage.getItem("fc-reinicio-oculto") === reinicio.hora; } catch (e) { /* sin almacenamiento */ }
+        caja.hidden = oculto && faltan > 60;         // «✕»: se oculta, pero el último minuto vuelve a salir
+        var span = caja.querySelector('[data-r="texto"]');
+        if (span.textContent !== texto) span.textContent = texto;
     }
 
     /* ------------------------------------------------ letreros globales */
@@ -3984,7 +5028,7 @@
             if (b) b.classList.remove("fc-accion--reservada");
             if (b && !b.hidden && t) g[x[0]] = t.textContent;
         });
-        var n = document.getElementById("fc-nombre-corto"); if (n) g.nombre = n.textContent;
+        var n = document.getElementById("fc-nombre-corto"); if (n) { n.classList.remove("fc-accion--reservada"); g.nombre = n.textContent; }
         try { localStorage.setItem(LLAVE_BARRA, JSON.stringify(g)); } catch (e) { /* sin almacenamiento */ }
     }
 
@@ -3994,11 +5038,12 @@
     function avisoDeAcceso(texto, acciones, desdeGuardado) {
         var caja = document.getElementById("fc-aviso");
         if (!caja) return;
-        if (desdeGuardado) { aviso(texto, acciones); caja.dataset.guardado = texto; return; }
+        // 23-nov-2026 (I.1): el de la vez pasada solo aparta su lugar (invisible): puede traer el nombre del titular
+        if (desdeGuardado) { aviso(texto, acciones); caja.dataset.guardado = texto; caja.style.visibility = "hidden"; return; }
         try { if (texto) localStorage.setItem(LLAVE_AVISO_ACCESO, JSON.stringify({ texto: texto, acciones: acciones || [] })); else localStorage.removeItem(LLAVE_AVISO_ACCESO); }
         catch (e) { /* sin almacenamiento */ }
         var previo = caja.dataset.guardado; delete caja.dataset.guardado;
-        if (previo && previo === texto && !caja.hidden) return;               // el mismo: nada se mueve
+        if (previo && previo === texto && !caja.hidden) { caja.style.visibility = ""; return; }   // el mismo: nada se mueve, ya se ve
         if (!texto) { if (previo && !caja.hidden) caja.style.visibility = "hidden"; return; }
         aviso(texto, acciones);
         if (!previo && document.querySelector("main")) caja.classList.add("fc-aviso--encima");
@@ -4018,7 +5063,7 @@
     }
     function guardarLetreros(p) {
         // Solo lo general (igual para todos): lo de cada persona no se deja en el navegador
-        try { localStorage.setItem(LLAVE_LETREROS, JSON.stringify({ t: Date.now(), p: { mantenimiento: p.mantenimiento, aviso: p.aviso, sat_fallas: p.sat_fallas, rol: p.rol } })); }
+        try { localStorage.setItem(LLAVE_LETREROS, JSON.stringify({ t: Date.now(), p: { mantenimiento: p.mantenimiento, reinicio: p.reinicio || null, aviso: p.aviso, sat_fallas: p.sat_fallas, rol: p.rol } })); }
         catch (e) { /* sin almacenamiento */ }
     }
 
@@ -4069,7 +5114,7 @@
             caja.appendChild(fila);
         }
 
-        if (p.mantenimiento) {
+        if (p.mantenimiento && !(p.reinicio && typeof p.reinicio.faltan_seg === "number")) {     // con «Preparar reinicio», lo dice su aviso
             letrero("Portal en mantenimiento: por ahora no se pueden iniciar descargas nuevas. Lo que ya estaba corriendo sigue." +
                 (p.rol === "admin" ? " (Tú, como administrador, sigues pudiendo usar todo.)" : ""),
                 "background:rgb(var(--av-50));color:rgb(var(--av-600));border-bottom:1px solid rgb(var(--av-200))", false);
@@ -4246,6 +5291,9 @@
     /* ------------------------------------------------ avisos y bloqueo */
 
     function aviso(mensaje, acciones) {
+        // 26-nov-2026 (el dueño): lo que salió bien no se queda pegado arriba con el ícono de advertencia: aviso verde junto a lo
+        // que se pulsó, que se quita solo (listo). Las advertencias, los errores y lo que trae botones siguen aquí.
+        if (!(acciones && acciones.length) && esDeBien(mensaje)) { listo(mensaje); return; }
         var caja = document.getElementById("fc-aviso");
         if (!caja) return;
         // Servidor de respaldo: nucleo.js ya lo dijo una vez arriba; no se repite aquí (20-nov-2026)
@@ -4272,6 +5320,10 @@
         caja.style.visibility = "";
     }
 
+    document.addEventListener("click", function (e) {       // (26-nov) la ✕ de la advertencia de arriba
+        var b = e.target.closest && e.target.closest(".fc-aviso__cerrar");
+        if (b && b.parentNode) b.parentNode.hidden = true;
+    });
     function ocultarAviso() {
         var caja = document.getElementById("fc-aviso");
         if (caja) caja.hidden = true;
@@ -4405,17 +5457,33 @@
     document.getElementById("fc-act-leidas").addEventListener("click", marcarActividadLeida);
     document.getElementById("fc-act-limpiar").addEventListener("click", limpiarActividad);
     document.getElementById("fc-act-cuerpo").addEventListener("click", clicActividad);
+    document.getElementById("fc-av-alcance").addEventListener("click", clicAlcance);
     // Otra pestaña (o el marco de Configuración) marcó, limpió o vio algo: se pregunta ya, sin esperar el minuto
     window.addEventListener("storage", function (e) {
         if (e.key === LLAVE_ACT_CAMBIO) { actividad.version++; sondearActividad(); }
         else if (e.key === LLAVE_VISTOS) { leerVistos().forEach(function (id) { vistos.add(id); }); if (ultimaLista.length) refrescarContador(ultimaLista); if (panelAbierto) pintarLista(ultimaLista); }
     });
-    document.addEventListener("keydown", function (e) { if (e.key === "Escape" && actividad.abierta) cerrarActividad(); });
+    document.addEventListener("keydown", function (e) {
+        if (e.key !== "Escape" || !actividad.abierta) return;
+        if (actividad.eligiendo) { actividad.eligiendo = false; pintarAlcance(); return; }      // Esc cierra primero la búsqueda de empresa
+        if (actividad.atendiendo && !document.querySelector("dialog[open]")) { modoAtender(false); return; }      // … y el modo de selección de «Atender…»
+        cerrarActividad();
+    });
     setTimeout(sondearActividad, 1500);
     setInterval(sondearActividad, 60000);
     document.getElementById("fc-panel-cerrar").addEventListener("click", cerrarDescargas);
     document.getElementById("fc-velo").addEventListener("click", cerrarDescargas);
     document.getElementById("fc-panel-cuerpo").addEventListener("click", accionPanel);
+    // 25-nov-2026: las dos pestañas del cajón (Mis pedidos · Automáticas), el alcance, los bloques y las rondas
+    function repintarCajon(que) {
+        pintarControles();
+        if (que === "alcance") sondear();
+        pintarLista(ultimaLista);
+        if (dsc.pestana === "automaticas") pedirAutomaticas(false).then(function () { if (panelAbierto) { pintarControles(); pintarLista(ultimaLista); } });
+    }
+    atenderControles(document.getElementById("fc-dsc-barra"), repintarCajon);
+    document.getElementById("fc-panel-cuerpo").addEventListener("click", function (e) { clicDescargas(e, repintarCajon); });
+    document.getElementById("fc-panel-cuerpo").addEventListener("input", buscarEnRonda);
 
     prepararEmpresas();
     prepararEspacios();
@@ -4458,7 +5526,7 @@
         [".mod-acciones--barra", "Acciones del módulo", "Lo que puedes hacer con lo que ves. «Ir a ▾» abre otro módulo con el mismo periodo."],
         ["#linea-programa .fpu", "Programación", "Lo que se ejecuta de forma programada y con qué frecuencia. «Cambiar» para ajustarlo."],
         [".fct-barra, .xml-toolbar", "La tabla", "Busca, filtra (los filtros quedan como etiquetas), elige columnas, guarda vistas y exporta a Excel."],
-        ["#fc-btn-actividad", "Actividad", "Avisos de lo que terminó o cambió mientras no estabas (también pueden llegarte por correo)."],
+        ["#fc-btn-actividad", "Avisos", "Arriba, lo que requiere atención (el número rojo); abajo, lo nuevo de cada grupo: Buzón, CFDI, Automáticos, Cumplimiento, Envíos y Despacho."],
         ["#fc-btn-descargas", "Descargas", "Los archivos que pediste: constancias, opiniones, XML y reportes."],
         ["#fc-btn-perfil", "Tu cuenta", "Tu perfil, la seguridad y «Conectar esta PC»: ahí se conecta Fiscontable Agente y se ven las PCs que trabajan para ti."]
     ];
@@ -4530,10 +5598,14 @@
         var a = e.target.closest && e.target.closest('a[href$="/cdn-cgi/access/logout"]');
         if (!a || !perfilActual || !perfilActual.sesion_propia) return;
         e.preventDefault();
-        if (a.id === "fc-bl-salir") { reingresarEnOtraPestana(); return; }
+        if (a.id === "fc-bl-salir") { reingresarEnOtraPestana(); return; }           // ese NO pone la marca: las demás esperan
+        // 23-nov-2026 (I.1): la marca va primero (las demás pestañas se tapan y se van al momento) y la página se tapa
+        // antes de salir, para que Atrás no la regrese con sus datos
+        ponerMarcaSalio("salio");
+        document.documentElement.style.visibility = "hidden";
         try { await fetch(API + "/publico/cuenta/salir", { method: "POST", credentials: "include" }); } catch (x) { /* igual se va */ }
-        try { localStorage.removeItem("fc-ya-entro"); localStorage.removeItem("fc-foto"); } catch (x) { /* nada */ }
-        location.replace(urlEntrar("salio"));
+        olvidarCuenta();
+        irALoginPorSalida({ motivo: "salio" });
     }, true);
 
     var btnPerfil = document.getElementById("fc-btn-perfil");
@@ -4586,17 +5658,27 @@
        Abajo a la derecha: título, avance, «Ocultar / Mostrar» (el detalle renglón por renglón), «Detener» mientras
        corre y «Cerrar» al terminar. Lo usan Tributanet (presentar, revisar, descargar acuses) y Declaraciones del SAT.
        Si se oculta, se queda oculto la próxima vez (por navegador). Esc: lo oculta; ya terminado, lo cierra.
-         var p = Fiscontable.panelTrabajo({ alDetener: fn });
-         p.pintar({ titulo, estado, corre, filas: [{ clase: "ok" | "mal" | "va" | "", titulo, texto }] });   p.cerrar(); */
+         var p = Fiscontable.panelTrabajo({ alDetener: fn, alAccion: fn(fila, boton) });
+         p.pintar({ titulo, estado, corre, filas: [{ clase: "ok" | "mal" | "va" | "", titulo, texto, boton?, seccion? }] });   p.cerrar();
+       24-nov-2026 (la fila de Declaraciones): un renglón puede traer su botón ({ boton: "Detener" } → alAccion(fila, botón)) y
+       uno con { seccion: "En fila (2)" } es solo un subtítulo. Sin alDetener no hay «Detener» arriba (va en cada renglón). */
     function panelTrabajo(o) {
         o = o || {};
-        var LLAVE = "fc-trabajo-min", caja = null, min = false, corre = false;
+        var LLAVE = "fc-trabajo-min", caja = null, min = false, corre = false, filasPintadas = [];
         try { min = localStorage.getItem(LLAVE) === "1"; } catch (e) { /* sin almacenamiento */ }
         function parte(n) { return caja.querySelector('[data-t="' + n + '"]'); }
+        // 24-nov-2026: con varias búsquedas el panel crece; la página deja abajo su alto para que se pueda bajar y que el panel
+        // no tape lo último (p. ej. el aviso «Terminó…» con su botón)
+        function apartar() {
+            if (!caja) return;
+            var alto = caja.hidden ? 0 : Math.ceil(caja.getBoundingClientRect().height) + 32;
+            document.body.style.paddingBottom = alto ? alto + "px" : "";
+        }
         function ponerMin(v) {
             min = v; caja.classList.toggle("fc-trabajo--min", min);
             parte("min").textContent = min ? "Mostrar" : "Ocultar"; parte("min").setAttribute("aria-expanded", String(!min));
             try { localStorage.setItem(LLAVE, min ? "1" : "0"); } catch (e) { /* nada */ }
+            apartar();
         }
         function crear() {
             if (caja) return;
@@ -4610,11 +5692,17 @@
             document.body.appendChild(caja);
             ponerMin(min);
             parte("min").addEventListener("click", function () { ponerMin(!min); });
-            parte("cerrar").addEventListener("click", function () { caja.hidden = true; });
+            parte("cerrar").addEventListener("click", function () { caja.hidden = true; apartar(); });
             parte("detener").addEventListener("click", function () { if (o.alDetener) o.alDetener(parte("detener")); });
+            parte("filas").addEventListener("click", function (e) {
+                var b = e.target.closest("[data-fila]");
+                if (!b || !o.alAccion) return;
+                var f = filasPintadas[+b.dataset.fila];
+                if (f) o.alAccion(f, b);
+            });
             document.addEventListener("keydown", function (e) {
                 if (e.key !== "Escape" || caja.hidden || document.querySelector("dialog[open]")) return;
-                if (!corre) caja.hidden = true; else if (!min) ponerMin(true);
+                if (!corre) { caja.hidden = true; apartar(); } else if (!min) ponerMin(true);
             });
         }
         return {
@@ -4626,12 +5714,18 @@
                 parte("detener").hidden = !corre || !o.alDetener;
                 parte("detener").disabled = false;
                 parte("cerrar").hidden = corre;
-                parte("filas").innerHTML = (e.filas || []).map(function (f) {
-                    return '<li class="' + esc(f.clase || "") + '">' + (f.titulo ? "<b>" + esc(f.titulo) + "</b>" : "") + esc(f.texto || "") + "</li>";
+                filasPintadas = e.filas || [];
+                parte("filas").innerHTML = filasPintadas.map(function (f, i) {
+                    if (f.seccion) return '<li class="fc-trabajo__seccion">' + esc(f.seccion) + "</li>";
+                    var dentro = (f.titulo ? "<b>" + esc(f.titulo) + "</b>" : "") + esc(f.texto || "");
+                    if (f.boton) dentro = '<div class="fc-trabajo__fila"><span>' + dentro + '</span><button type="button" class="fc-trabajo__enlace" data-fila="' +
+                        i + '"' + (f.botonTitulo ? ' title="' + esc(f.botonTitulo) + '"' : "") + ">" + esc(f.boton) + "</button></div>";
+                    return '<li class="' + esc(f.clase || "") + '">' + dentro + "</li>";
                 }).join("");
                 caja.hidden = false;
+                apartar();
             },
-            cerrar: function () { if (caja) caja.hidden = true; },
+            cerrar: function () { if (caja) { caja.hidden = true; apartar(); } },
             abierto: function () { return !!caja && !caja.hidden; }
         };
     }
@@ -4720,6 +5814,8 @@
         riel: riel,
         excel: excel,
         verCfdi: verCfdi,
+        urlFactura: urlFactura,          // 23-nov-2026 (decisión E): el folio como enlace real a la página del detalle
+        ligaFactura: ligaFactura,
         panel: panel,
         textoPlazo: textoPlazo,
         bloquearPantalla: function (servidor) { bloquearPantalla(!!servidor); },
@@ -4729,7 +5825,18 @@
         catalogo: CATALOGO,
         grupos: GRUPOS,
         avisoPlan: avisoPlan,
-        toast: function (texto) { brindis(esc(texto)); },
+        toast: function (texto, cerca) { brindis(esc(String(texto || "").replace(/^\s*✓\s*/, "")), cerca, esDeBien(texto)); },
+        listo: listo,                     // 26-nov-2026: Fiscontable.listo(texto, elemento): «se hizo», verde, junto al elemento, 3 s
+        esDeBien: esDeBien,
+        // 26-nov-2026: la caja de avisos propia de un módulo: si lo que dice salió bien (bien=true, o sin decir y el texto lo
+        // parece), se esconde la caja y sale el aviso verde que se quita solo; si no, la caja sigue como estaba. → true si lo tomó
+        avisoBien: function (caja, html, bien) {
+            var d = document.createElement("div"); d.innerHTML = html || ""; var t = (d.textContent || "").trim();
+            if (!t || bien === false || !(bien === true || esDeBien(t))) return false;
+            if (caja) caja.hidden = true;
+            listo(t);
+            return true;
+        },
         bloqueEstado: bloqueEstado,
         recorrido: function (c, textos) { recorrido(c || clave, textos || AYUDA[c || clave] || []); },
         enviarCorreo: enviarCorreo,
@@ -4767,11 +5874,24 @@
         descargas: { tarjeta: tarjeta, accion: accionPanel, sinProgramadas: sinProgramadas, notaProgramadas: notaProgramadas, tieneEntero: tieneEntero,
                      // La página Mis descargas también da por visto lo que enseña (y baja el número del botón)
                      marcarVistos: function (lista) { marcarComoVistos(lista || []); if (ultimaLista.length) refrescarContador(ultimaLista); },
-                     nombre: nombreProceso, empresa: empresaProceso, titulo: tituloProceso },
+                     nombre: nombreProceso, empresa: empresaProceso, titulo: tituloProceso,
+                     // 25-nov-2026 (dos pestañas): lo mismo que usa el cajón, para la página Mis descargas
+                     queEs: queEs, etiquetaQue: etiquetaQue, dePestana: dePestana, filasConBloques: filasConBloques,
+                     controles: function (contenedor, alCambiar) { contenedor.innerHTML = controlesHtml(dsc.pestana); atenderControles(contenedor, alCambiar);
+                                                                  return function () { if (!contenedor.querySelector(".fc-alcance__menu:not([hidden])")) contenedor.innerHTML = controlesHtml(dsc.pestana); }; },
+                     pestana: function (p) { if (p) ponerPestana(p); return dsc.pestana; }, alcance: alcanceActual, urlProcesos: urlProcesos,
+                     automaticas: function (forzar) { return pedirAutomaticas(forzar); }, datosAutomaticas: function () { return dsc.auto; },
+                     htmlAutomaticas: function (todos) { return htmlAutomaticas(todos, dsc.auto); }, htmlPedidos: htmlPedidos,
+                     clic: clicDescargas, buscarEnRonda: buscarEnRonda, ponerHtml: ponerHtml,
+                     resaltar: function (noche) { var st = dsc.rondas[noche] || (dsc.rondas[noche] = {}); st.abierta = true; st.resaltada = true; } },
         abrirModalPerfil: abrirModalPerfil,
         // La empresa elegida en el selector general (o null). Los módulos también
         // pueden escuchar window "fiscontable:empresa" para enterarse de un cambio.
         elegirEmpresa: function (rfc) { return elegirEmpresa(rfc); },
+        // 25-nov-2026 (paquete avi): abre la campana en una empresa (y en un círculo), p. ej. desde Inicio o la ficha
+        abrirAvisos: function (o) { abrirActividad(o || {}); },
+        atenderAviso: atenderAvisoId,
+        atenderAvisos: atenderAvisosIds,
         // Configuración en una ventana sobre el módulo: al dar «Listo» se cierra, se queda en el módulo y avisa con
         // window "fiscontable:config" ({seccion}) para que el módulo vuelva a leer lo que cambió.
         abrirConfiguracion: abrirConfiguracion,
@@ -4792,7 +5912,7 @@
         recargarLetreros: async function () {
             promesaPerfil = null;
             var p = await perfil();
-            if (p && !p._error) { perfilActual = p; pintarLetreros(p); }
+            if (p && !p._error) { perfilActual = p; pintarLetreros(p); avisoReinicio(p.reinicio); }
         }
     });
 })();

@@ -4,15 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Facturar | Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611231800">
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611231800">
-    <link rel="stylesheet" href="/herramientas/facturar/facturar.css?v=202611231800">
+    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611271300">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611271300">
+    <link rel="stylesheet" href="/herramientas/facturar/facturar.css?v=202611271300">
 </head>
 <body class="min-h-screen flex flex-col">
 
 <div id="app-header" data-modulo="facturar" data-titulo="Facturar" data-migas="Herramientas|/herramientas/"></div>
-<script src="/assets/js/nucleo.js?v=202611231800"></script>
-<script src="/assets/js/barra.js?v=202611231800"></script>
+<script src="/assets/js/nucleo.js?v=202611271300"></script>
+<script src="/assets/js/barra.js?v=202611271300"></script>
 
 <main class="flex-grow w-full mod-pagina fa-pagina">
     <div class="mod-cabeza">
@@ -141,7 +141,7 @@
                                 <label class="fa-campo fa-c3"><span>Método de pago</span><select id="p-metodo"></select></label>
                                 <label class="fa-campo fa-c3"><span>Forma de pago</span><select id="p-forma"></select></label>
                                 <label class="fa-campo fa-c2"><span>Moneda</span><select id="p-moneda"></select></label>
-                                <label class="fa-campo fa-c1" id="caja-tc" hidden><span>T. de cambio</span><input id="p-tc" inputmode="decimal"></label>
+                                <label class="fa-campo fa-c1" id="caja-tc" hidden><span style="white-space:nowrap">T. de cambio<a class="fa-liga-tc" style="margin-left:3px;color:rgb(var(--ac-700));text-decoration:none" href="/herramientas/tipo-cambio/" target="_blank" rel="noopener" title="Ver el tipo de cambio de cada día (otra pestaña)" aria-label="Ver el tipo de cambio de cada día">↗</a></span><input id="p-tc" inputmode="decimal"></label>
                                 <label class="fa-campo fa-c3"><span>Condiciones de pago <i>(opcional)</i></span><input id="p-condiciones" maxlength="200" placeholder="Contado, 30 días…"></label>
                                 <label class="fa-campo fa-c3"><span>Pedido u orden de compra <i>(opcional, sale en el PDF)</i></span><input id="p-pedido" maxlength="60"></label>
                             </div>
@@ -419,12 +419,14 @@
                     <h2>Manifiesto del PAC</h2>
                     <span id="c-man-estado" class="fa-chip fa-chip--gris"></span>
                 </div>
-                <p class="fa-nota">El SAT pide que <b>cada empresa</b> autorice al PAC (Luna Soft) a timbrar sus facturas firmando un manifiesto con <b>su e.firma</b> (no con el sello digital). Se firma una sola vez y nadie puede hacerlo por ella. Sin el manifiesto guardado no se puede timbrar.</p>
+                <!-- 24-nov-2026: obligatorio solo si el administrador lo exige (facturar.js, exigeManifiesto); si no, opcional -->
+                <p class="fa-nota" id="c-man-obligatorio">El SAT pide que <b>cada empresa</b> autorice al PAC (Luna Soft) a timbrar sus facturas firmando un manifiesto con <b>su e.firma</b> (no con el sello digital). Se firma una sola vez y nadie puede hacerlo por ella. Sin el manifiesto guardado no se puede timbrar.</p>
+                <p class="fa-nota" id="c-man-opcional" hidden><b>Opcional:</b> algunos PAC lo piden. Hoy no es necesario para timbrar. Si te lo piden, se firma una sola vez con la <b>e.firma</b> de la empresa (no con el sello digital) y se sube aquí.</p>
                 <ol class="fa-man-pasos">
                     <li><b>Abre la página de Luna Soft</b> con el botón de abajo (se abre en otra pestaña).</li>
                     <li>Sube el <b>.cer</b> de la e.firma de la empresa. Cuando lo lea, te pide el <b>.key</b>.</li>
                     <li>Escribe un correo y la <b>contraseña de la llave privada</b> y da <b>«Firmar el manifiesto»</b>. Fiscontable no ve ni guarda esos datos.</li>
-                    <li>Da <b>«Descargar MAN-LSO-….pdf»</b> y <b>súbelo aquí</b>. Fiscontable verifica que corresponda a esta empresa y la facturación queda habilitada.</li>
+                    <li>Da <b>«Descargar MAN-LSO-….pdf»</b> y <b>súbelo aquí</b>. Fiscontable verifica que corresponda a esta empresa y lo guarda.</li>
                 </ol>
                 <div id="c-man-pacs" class="fa-man-pacs"></div>
                 <p id="msj-man" class="fa-nota" role="status"></p>
@@ -514,7 +516,7 @@
     </div>
 </dialog>
 
-<!-- Falta el manifiesto del PAC (sale al querer timbrar sin él, en producción) -->
+<!-- Falta el manifiesto del PAC (sale al querer timbrar sin él, en producción, solo si el administrador lo exige) -->
 <dialog id="dlg-manifiesto" class="fa-dialogo fa-dialogo--ancho">
     <div class="fa-dialogo__cuerpo fa-man-dlg">
         <div class="fa-man-dlg__ico" aria-hidden="true"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M9 13h6M9 17h6"/></svg></div>
@@ -578,6 +580,20 @@
     <div class="fa-dialogo__pie">
         <button type="button" data-cerrar class="fa-btn fa-btn--suave">No cancelar</button>
         <button type="button" id="btn-cancelar-ok" class="fa-btn fa-btn--rojo">Cancelar ante el SAT</button>
+    </div>
+</dialog>
+
+<!-- Dar por saldada (auditoría 23-nov, factura-4) -->
+<dialog id="dlg-saldada" class="fa-dialogo">
+    <div class="fa-dialogo__cuerpo">
+        <h2>Dar por saldada la <span id="sal-folio"></span></h2>
+        <p class="fa-nota"><span id="sal-saldo"></span> Ya no saldrá en Recibos de pago y en Conciliación de pagos queda «Pagada (ajuste manual)». No se timbra nada.</p>
+        <label class="fa-campo"><span>Motivo</span><input id="sal-motivo" maxlength="200" placeholder="Por ejemplo: la cubre la nota NC-3 hecha en otro sistema"></label>
+        <p id="sal-error" class="fa-error" hidden></p>
+    </div>
+    <div class="fa-dialogo__pie">
+        <button type="button" data-cerrar class="fa-btn fa-btn--suave">No</button>
+        <button type="button" id="btn-saldada-ok" class="fa-btn fa-btn--principal">Dar por saldada</button>
     </div>
 </dialog>
 
@@ -763,10 +779,10 @@
     </div>
 </dialog>
 
-<script src="/assets/js/comun/zona-archivos.js?v=202611231800"></script>
-<script src="/assets/js/comun/autorizacion-efirma.js?v=202611231800"></script>
-<script src="/assets/js/comun/importar-clientes.js?v=202611231800"></script>
-<script src="/assets/js/comun/compartir.js?v=202611231800"></script>
-<script src="/herramientas/facturar/facturar.js?v=202611231800"></script>
+<script src="/assets/js/comun/zona-archivos.js?v=202611271300"></script>
+<script src="/assets/js/comun/autorizacion-efirma.js?v=202611271300"></script>
+<script src="/assets/js/comun/importar-clientes.js?v=202611271300"></script>
+<script src="/assets/js/comun/compartir.js?v=202611271300"></script>
+<script src="/herramientas/facturar/facturar.js?v=202611271300"></script>
 </body>
 </html>

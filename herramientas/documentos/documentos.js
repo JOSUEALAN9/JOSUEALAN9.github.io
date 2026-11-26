@@ -35,6 +35,7 @@
     }
     function limpio(v) { return String(v || "").toUpperCase().replace(/[\s\-./]/g, ""); }
     function aviso(html, tipo) {
+        if (window.Fiscontable && Fiscontable.avisoBien && Fiscontable.avisoBien($("aviso"), html, tipo === "ok" ? true : tipo ? false : undefined)) return; 
         var a = $("aviso");
         a.innerHTML = html || "";
         a.className = "dc-aviso" + (tipo ? " dc-aviso--" + tipo : "");

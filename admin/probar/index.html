@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex">
+    <title>Probar todo · Fiscontable</title>
+    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611271300">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611271300">
+    <style>
+        /* 24-nov-2026 (el dueño): «Probar todo», junto al Laboratorio. Prefijo pt- */
+        .pt-pestanas { justify-self: start; display: inline-flex; gap: 2px; padding: 3px; border-radius: 10px; background: rgb(var(--g-200)); max-width: 100%; overflow-x: auto; scrollbar-width: none; }
+        .pt-pestanas a { flex: none; padding: 6px 14px; border-radius: 8px; font-size: 13px; font-weight: 700; color: rgb(var(--g-600)); text-decoration: none; white-space: nowrap; }
+        .pt-pestanas a:hover { color: rgb(var(--g-900)); }
+        .pt-pestanas a[aria-selected="true"] { background: rgb(var(--g-0)); color: rgb(var(--g-900)); box-shadow: 0 1px 2px rgba(15, 23, 42, .12); }
+        .pt { display: grid; gap: var(--e-4); grid-template-columns: minmax(0, 1fr); }
+        @media (min-width: 1080px) { .pt { grid-template-columns: 400px minmax(0, 1fr); align-items: start; } }
+        .pt > *, .pt-tarjeta > * { min-width: 0; }
+        .pt-col { display: grid; gap: var(--e-4); min-width: 0; }
+        .pt-tarjeta { border: 1px solid var(--linea); border-radius: var(--r-tarjeta); background: rgb(var(--g-0)); padding: var(--e-4); display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--e-3); min-width: 0; }
+        .pt-tarjeta h2 { margin: 0; font-size: var(--t-16); font-weight: 700; color: rgb(var(--g-900)); }
+        .pt-cab { display: flex; flex-wrap: wrap; gap: var(--e-2); align-items: center; }
+        .pt-cab h2 { margin-right: auto; }
+        .pt-sub { margin: 0; font-size: var(--t-12); color: rgb(var(--g-600)); line-height: 1.5; }
+        .pt-campo { display: grid; gap: 8px; font-size: var(--t-13); font-weight: 600; color: rgb(var(--g-700)); }
+        .pt-empresas { display: grid; max-height: 248px; overflow-y: auto; border: 1px solid var(--linea); border-radius: 10px; }
+        @media (max-width: 640px) { .pt-empresas { max-height: 196px; } }
+        .pt-emp { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 2px 10px; align-items: center; padding: 9px 12px; border-top: 1px solid rgb(var(--g-100)); cursor: pointer; }
+        .pt-emp:first-child { border-top: 0; }
+        .pt-emp:hover { background: rgb(var(--g-50)); }
+        .pt-emp input { width: 16px; height: 16px; accent-color: rgb(var(--ac-600)); grid-row: span 2; }
+        .pt-emp b { font-size: var(--t-13); color: rgb(var(--g-900)); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .pt-emp small { grid-column: 2; font-size: var(--t-12); color: rgb(var(--g-500)); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .pt-emp--sin b { color: rgb(var(--g-600)); }
+        .pt-mia { grid-row: span 2; border: 1px solid transparent; background: none; border-radius: 999px; padding: 2px 8px; font: inherit; font-size: 11.5px; font-weight: 600; color: rgb(var(--g-500)); cursor: pointer; white-space: nowrap; }
+        .pt-mia:hover { border-color: rgb(var(--g-300)); color: rgb(var(--g-800)); }
+        .pt-mia[aria-pressed="true"] { border-color: rgb(var(--ac-600) / .4); background: rgb(var(--ac-600) / .08); color: rgb(var(--ac-700)); }
+        /* 25-nov-2026 (lim-2): por tema, en bloques plegables */
+        .pt-pruebas { display: grid; gap: 6px; }
+        .pt-tema { border: 1px solid var(--linea); border-radius: 10px; min-width: 0; }
+        .pt-tema > summary { list-style: none; display: flex; align-items: baseline; gap: 8px; padding: 8px 12px; cursor: pointer; font-size: var(--t-13); }
+        .pt-tema > summary::-webkit-details-marker { display: none; }
+        .pt-tema > summary b { color: rgb(var(--g-900)); font-weight: 700; }
+        .pt-tema > summary small { margin-left: auto; font-size: var(--t-12); font-weight: 400; color: rgb(var(--g-500)); white-space: nowrap; }
+        .pt-tema > summary::after { content: "▾"; color: rgb(var(--g-500)); }
+        .pt-tema[open] > summary::after { content: "▴"; }
+        .pt-pruebas__lista { display: grid; gap: 8px 12px; grid-template-columns: repeat(2, minmax(0, 1fr)); padding: 2px 12px 10px; }
+        .pt-ay-tema { margin-top: 8px; font-size: var(--t-12) !important; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: rgb(var(--g-600)) !important; }
+        .pt-ay-tema:first-child { margin-top: 0; }
+        /* el resultado de cada empresa, por tema (se abre solo lo que tiene algo que ver) */
+        .pt-subtema { border-top: 1px solid rgb(var(--g-100)); min-width: 0; }
+        .pt-subtema > summary { list-style: none; display: flex; align-items: center; gap: 8px; padding: 7px 14px; cursor: pointer; font-size: var(--t-12); font-weight: 700; color: rgb(var(--g-600)); }
+        .pt-subtema > summary::-webkit-details-marker { display: none; }
+        .pt-subtema > summary > span:first-child { margin-right: auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .pt-subtema > summary::after { content: "▾"; color: rgb(var(--g-500)); }
+        .pt-subtema[open] > summary::after { content: "▴"; }
+        @media (max-width: 640px) { .pt-subtema > summary { padding: 7px 10px; } }
+        .pt-prueba { display: flex; gap: 8px; align-items: flex-start; font-size: var(--t-13); font-weight: 400; color: rgb(var(--g-800)); cursor: pointer; }
+        .pt-prueba input { margin-top: 2px; width: 16px; height: 16px; accent-color: rgb(var(--ac-600)); flex: none; }
+        .pt-prueba span { min-width: 0; line-height: 1.35; }
+        .pt-candado { display: flex; gap: 10px; padding: 10px 12px; border-radius: var(--r-control); background: rgb(var(--ok-50)); color: rgb(var(--ok-700)); font-size: var(--t-12); line-height: 1.5; }
+        .pt-candado svg { width: 18px; height: 18px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; margin-top: 1px; }
+        .pt-aviso { margin: 0; padding: 10px 12px; border-radius: var(--r-control); background: rgb(var(--av-50)); color: rgb(var(--av-700)); font-size: var(--t-12); line-height: 1.5; }
+        .pt-enlace { border: 0; background: none; padding: 0; font: inherit; font-weight: 600; color: rgb(var(--ac-700)); cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
+        .pt-plegable > summary { list-style: none; display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline; cursor: pointer; }
+        .pt-plegable > summary::-webkit-details-marker { display: none; }
+        .pt-plegable > summary::after { content: "▾"; margin-left: auto; color: rgb(var(--g-500)); }
+        .pt-plegable[open] > summary::after { content: "▴"; }
+        .pt-plegable:not([open]) { gap: 0; }
+        .pt-semana { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; }
+        .pt-semana .pt-campo { flex: 1 1 120px; min-width: 0; }
+        .pt-barra { height: 6px; border-radius: 999px; background: rgb(var(--g-200)); overflow: hidden; }
+        .pt-barra span { display: block; height: 100%; background: rgb(var(--ac-600)); transition: width .3s; }
+        .pt-cuenta { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; font-size: var(--t-13); color: rgb(var(--g-700)); }
+        .pt-cuenta b { color: rgb(var(--g-900)); }
+        .pt-bloque { border: 1px solid var(--linea); border-radius: 10px; overflow: hidden; min-width: 0; }
+        .pt-bloque > summary { list-style: none; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 10px; align-items: center; padding: 10px 14px; cursor: pointer; background: rgb(var(--g-50)); }
+        .pt-bloque > summary::-webkit-details-marker { display: none; }
+        .pt-bloque > summary b { font-size: var(--t-14); color: rgb(var(--g-900)); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .pt-bloque > summary small { font-size: var(--t-12); color: rgb(var(--g-500)); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .pt-bloque > summary .pt-chips { grid-row: span 2; }
+        .pt-chips { display: flex; flex-wrap: wrap; gap: 4px; justify-content: flex-end; }
+        .pt-chip { display: inline-flex; align-items: center; gap: 4px; padding: 1px 8px; border-radius: 999px; font-size: 11.5px; font-weight: 700; background: rgb(var(--g-100)); color: rgb(var(--g-700)); white-space: nowrap; }
+        .pt-chip--ok { background: rgb(var(--ok-50)); color: rgb(var(--ok-700)); }
+        .pt-chip--falla { background: rgb(var(--er-50)); color: rgb(var(--er-700, 185 28 28)); }
+        .pt-chip--pendiente, .pt-chip--corriendo, .pt-chip--sin_sat { background: rgb(var(--av-50)); color: rgb(var(--av-700)); }
+        .pt-fila { display: grid; grid-template-columns: 22px minmax(0, 1fr) auto; gap: 1px 10px; padding: 7px 14px; border-top: 1px solid rgb(var(--g-100)); align-items: start; }
+        .pt-fila i { font-style: normal; font-weight: 800; font-size: 14px; line-height: 20px; text-align: center; color: rgb(var(--g-400)); }
+        .pt-fila b { font-size: var(--t-13); color: rgb(var(--g-900)); line-height: 20px; }
+        .pt-fila em { font-style: normal; font-size: var(--t-12); color: rgb(var(--g-500)); white-space: nowrap; line-height: 20px; }
+        .pt-fila p { grid-column: 2 / -1; margin: 0; font-size: var(--t-12); color: rgb(var(--g-600)); line-height: 1.5; overflow-wrap: anywhere; }
+        .pt-fila--ok i { color: rgb(var(--ok-600)); }
+        /* En el celular lo que salió bien dice su motivo en 2 renglones (tócalo para leerlo completo); lo que falló, completo */
+        @media (max-width: 640px) { .pt-fila--ok p, .pt-fila--no_aplica p { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; cursor: pointer; }
+            .pt-fila p.pt-completo { display: block; } .pt-fila { padding: 7px 10px; } .pt-bloque > summary { padding: 9px 10px; } }
+        .pt-fila--falla i { color: rgb(var(--er-600)); }
+        .pt-fila--falla p { color: rgb(var(--er-700, 185 28 28)); }
+        .pt-fila--pendiente i, .pt-fila--corriendo i, .pt-fila--sin_sat i { color: rgb(var(--av-600)); }
+        .pt-fila--sin_sat p { color: rgb(var(--av-700)); }
+        .pt-fila--corriendo i { animation: pt-gira 1.2s linear infinite; }
+        @keyframes pt-gira { to { transform: rotate(360deg); } }
+        .pt-hist { display: grid; max-height: 640px; overflow-y: auto; }
+        .pt-hfila { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 10px; padding: 9px 8px; border: 0; border-top: 1px solid rgb(var(--g-100)); background: none; text-align: left; font: inherit; cursor: pointer; border-radius: 8px; }
+        .pt-hfila:first-child { border-top: 0; }
+        .pt-hfila:hover, .pt-hfila[aria-current="true"] { background: rgb(var(--g-50)); }
+        .pt-hfila b { font-size: var(--t-13); color: rgb(var(--g-900)); }
+        .pt-hfila small { font-size: var(--t-12); color: rgb(var(--g-500)); }
+        .pt-hfila .pt-chips { grid-row: span 2; align-self: center; }
+        .pt-acciones { display: flex; flex-wrap: wrap; gap: 8px; }
+        .pt-ay { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; }
+        .pt-ay li { font-size: var(--t-13); line-height: 1.5; color: rgb(var(--g-800)); }
+        .pt-ay b { color: rgb(var(--g-900)); }
+        .pt-ay-sub { margin: 18px 0 8px; font-size: var(--t-13); font-weight: 700; color: rgb(var(--g-900)); }
+        #pt-ayuda .fc-modal__cuerpo > * { flex: none; }
+        .mod-pagina [hidden] { display: none !important; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+<div id="app-header" data-modulo="admin" data-titulo="Probar todo" data-migas="Administración|/admin/"></div>
+<script src="/assets/js/nucleo.js?v=202611271300"></script>
+<script src="/assets/js/barra.js?v=202611271300"></script>
+
+<main class="flex-grow mod-pagina" style="max-width:none">
+    <div class="mod-cabeza" style="margin-bottom:var(--e-4);display:grid;gap:10px">
+        <div class="pt-pestanas" role="tablist" aria-label="Pruebas con el SAT">
+            <a role="tab" href="/admin/laboratorio/" aria-selected="false">Laboratorio</a>
+            <a role="tab" href="/admin/probar/" aria-selected="true">Probar todo</a>
+            <a role="tab" href="/admin/probar/errores/" aria-selected="false">Con errores</a>
+        </div>
+        <h1 style="margin:0">Probar todo</h1>
+        <p style="margin:0;font-size:var(--t-13);color:rgb(var(--g-600))">Prueba de verdad, con tus empresas, lo que hace Fiscontable. Sin efecto fiscal y sin mandarle nada a ningún cliente. Solo para ti (administrador).
+            <button type="button" class="pt-enlace" data-ayuda>Qué hace y qué no</button></p>
+    </div>
+    <div id="pt-aviso" class="ui-vacio" hidden></div>
+    <div class="pt" id="pt" hidden>
+        <div class="pt-col">
+            <form class="pt-tarjeta" id="pt-forma">
+                <div class="pt-cab"><h2>Qué probar</h2><span class="ui-estado" id="pt-servidor"></span></div>
+                <div class="pt-campo"><span>Empresas <small style="font-weight:400;color:rgb(var(--g-500))" id="pt-emp-cuenta"></small></span>
+                    <input class="ui-input" id="pt-buscar" type="search" placeholder="Buscar empresa o RFC" autocomplete="off" hidden>
+                    <div class="pt-empresas" id="pt-empresas"></div>
+                    <small style="font-weight:400;color:rgb(var(--g-500));line-height:1.45">Marca con «La mía» tu empresa: viene marcada cada vez que abres esta página y es la de la prueba semanal si no eliges otras.</small></div>
+                <div class="pt-campo"><span>Pruebas <button type="button" class="pt-enlace" data-ayuda style="font-size:var(--t-12);margin-left:6px">Qué hace cada una</button><button type="button" class="pt-enlace" id="pt-todas" style="font-size:var(--t-12);margin-left:6px">Quitar todas</button></span>
+                    <div class="pt-pruebas" id="pt-pruebas"></div></div>
+                <div class="pt-candado"><svg viewBox="0 0 24 24"><path d="M6 11h12v9H6zM9 11V8a3 3 0 0 1 6 0v3"/></svg>
+                    <span>No presenta (la DIOT solo se consulta), no timbra con valor fiscal, no abre notificaciones y los correos solo te llegan a ti.</span></div>
+                <div id="pt-avisos" style="display:grid;gap:8px"></div>
+                <button type="submit" class="ui-btn ui-btn--primario ui-btn--36" id="pt-lanzar">Probar ahora</button>
+            </form>
+            <details class="pt-tarjeta pt-plegable" id="pt-semanal">
+                <summary><h2>Cada semana</h2><small class="pt-sub" id="pt-sem-resumen">Apagado</small></summary>
+                <label class="ui-switch"><input type="checkbox" id="pt-sem-activo"><span class="ui-switch__riel"></span><span style="font-size:var(--t-13)">Correr solo cada semana</span></label>
+                <p class="pt-sub">Corre las empresas y pruebas que tengas marcadas arriba al guardar. Si algo falla, te avisa en la campana. Hora del centro de México; no corre durante la madrugada.</p>
+                <div class="pt-semana">
+                    <label class="pt-campo">Día<select class="ui-select" id="pt-sem-dia"></select></label>
+                    <label class="pt-campo">Hora<select class="ui-select" id="pt-sem-hora"></select></label>
+                    <button type="button" class="ui-btn ui-btn--secundario ui-btn--36" id="pt-sem-guardar">Guardar</button>
+                </div>
+                <small class="pt-sub" id="pt-sem-estado"></small>
+            </details>
+        </div>
+        <div class="pt-col">
+            <div class="fc-vista" role="tablist" aria-label="Resultado o historial" id="pt-vista" style="justify-self:start">
+                <button type="button" role="tab" aria-selected="true" data-vista="corrida">Resultado</button>
+                <button type="button" role="tab" aria-selected="false" data-vista="historial">Historial <span id="pt-hist-n" style="color:rgb(var(--g-500))"></span></button>
+            </div>
+            <section class="pt-tarjeta" id="pt-corrida" data-panel="corrida"><div class="ui-vacio"><b>Todavía no hay corridas</b><span>Elige tus empresas y pulsa «Probar ahora»: aquí verás el avance de cada prueba y, al final, qué salió bien y qué no.</span></div></section>
+            <section class="pt-tarjeta" data-panel="historial" hidden>
+                <h2>Historial</h2>
+                <p class="pt-sub">Las últimas corridas, con su resultado. Pulsa una para verla.</p>
+                <div class="pt-hist" id="pt-hist"></div>
+            </section>
+        </div>
+    </div>
+</main>
+<dialog class="fc-modal" id="pt-ayuda" aria-labelledby="pt-ayuda-titulo">
+    <div class="fc-modal__cabeza"><div><h2 id="pt-ayuda-titulo">Qué hace «Probar todo»</h2>
+        <p>Usa las mismas funciones que Fiscontable usa todos los días, con tus empresas reales.</p></div>
+        <button type="button" class="fc-modal__cerrar" data-ayuda-cerrar aria-label="Cerrar">×</button></div>
+    <div class="fc-modal__cuerpo">
+        <ul class="pt-ay" id="pt-ay-pruebas"></ul>
+        <h3 class="pt-ay-sub">Lo que nunca hace</h3>
+        <ul class="pt-ay">
+            <li>No presenta ninguna declaración: la DIOT solo se busca en «Consultar declaración».</li>
+            <li>No timbra con valor fiscal: la factura de prueba es del PAC de pruebas y solo en el servidor de pruebas.</li>
+            <li>No abre notificaciones del Buzón (eso tiene efecto legal).</li>
+            <li>No le manda nada a tus clientes ni al despacho: el correo de prueba solo te llega a ti, y mientras se prueba cada empresa sus avisos al momento también.</li>
+            <li>No se salta la fila: una corrida a la vez, una empresa tras otra; no arranca durante la madrugada y, si la madrugada empieza, se detiene.</li>
+        </ul>
+        <h3 class="pt-ay-sub">Cómo leer el resultado</h3>
+        <ul class="pt-ay">
+            <li><b>✔ Bien</b>: el trámite funcionó de punta a punta. <b>✘ Falló</b>: el motivo dice qué pasó.</li>
+            <li><b>– No aplica</b>: esa prueba no se puede hacer hoy con esa empresa (por ejemplo, no tiene e.firma).</li>
+            <li><b>⏳ Pendiente del SAT</b>: se pidió y el SAT todavía no lo entrega; no cuenta como falla. Si el SAT no contestó a media corrida, esa prueba también queda así y se vuelve a probar una vez al final.</li>
+            <li><b>⚠ El SAT no contestó</b>: el SAT no respondió, ni al volver a probar al final (por ejemplo, «Connection reset»). No es una falla de Fiscontable; vuelve a probar más tarde.</li>
+        </ul>
+    </div>
+    <div class="fc-modal__pie"><button type="button" class="ui-btn ui-btn--primario ui-btn--36" data-ayuda-cerrar>Entendido</button></div>
+</dialog>
+<script src="/admin/probar/probar.js?v=202611271300"></script>
+</body>
+</html>

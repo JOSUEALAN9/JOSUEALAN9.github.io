@@ -79,8 +79,12 @@
         if (primero && nombre !== "access") setTimeout(function () { primero.focus(); }, 30);
     }
 
+    // 23-nov-2026 (I.1, cierre de sesión seguro): «fc-salio» la pone barra.js al cerrar sesión; mientras exista, las páginas de
+    // la app mandan aquí sin pintar nada. Se quita al entrar de verdad.
+    var salioAntes = false;
+    try { salioAntes = !!localStorage.getItem("fc-salio"); } catch (e) { /* sin almacenamiento */ }
     function irVolver() {
-        try { sessionStorage.removeItem("fc-entrar"); localStorage.setItem("fc-ya-entro", "1"); } catch (e) { /* sin almacenamiento */ }
+        try { sessionStorage.removeItem("fc-entrar"); localStorage.setItem("fc-ya-entro", "1"); localStorage.removeItem("fc-salio"); } catch (e) { /* sin almacenamiento */ }
         if (porBloqueo) {
             // Quita la marca de bloqueo (las pestañas que esperaban se reanudan) y esta pestaña se cierra sola
             try { localStorage.setItem("fc-actividad", String(Date.now())); localStorage.removeItem("fc-bloqueada"); } catch (e) { /* nada */ }
@@ -97,7 +101,7 @@
         var boton = $("en-entrar");
         boton.href = API + "/auth/entrar?volver=" + encodeURIComponent(volver);
         boton.addEventListener("click", function () {
-            try { sessionStorage.removeItem("fc-entrar"); sessionStorage.setItem("fc-auto-entrar", String(Date.now())); } catch (e) { /* sin almacenamiento */ }
+            try { sessionStorage.removeItem("fc-entrar"); sessionStorage.setItem("fc-auto-entrar", String(Date.now())); localStorage.removeItem("fc-salio"); } catch (e) { /* sin almacenamiento */ }
             boton.setAttribute("aria-busy", "true");
             boton.lastChild.textContent = " Abriendo…";
         });
@@ -106,7 +110,7 @@
         var yaEntro = false, auto = 0;
         try { yaEntro = localStorage.getItem("fc-ya-entro") === "1"; auto = +sessionStorage.getItem("fc-auto-entrar") || 0; } catch (e) { /* sin almacenamiento */ }
         if (motivo === "sesion" && yaEntro && Date.now() - auto > 60000) {
-            try { sessionStorage.setItem("fc-auto-entrar", String(Date.now())); } catch (e) { /* sin almacenamiento */ }
+            try { sessionStorage.setItem("fc-auto-entrar", String(Date.now())); localStorage.removeItem("fc-salio"); } catch (e) { /* sin almacenamiento */ }
             avisar("reconectando");
             boton.setAttribute("aria-busy", "true");
             setTimeout(function () { location.replace(boton.href); }, 700);
@@ -333,7 +337,12 @@
                 // Con la sesión abierta, /login lleva directo al tablero
                 if (m.propio && !porBloqueo && !quiereLicencia) {
                     fetch(API + "/api/mi-perfil", { credentials: "include", cache: "no-store" })
-                        .then(function (r) { if (r.ok) irVolver(); }, function () { /* se queda el formulario */ });
+                        .then(function (r) {
+                            if (!r.ok) return;
+                            // Cerró sesión pero el servidor no se enteró (se cortó la red al salir): se cierra otra vez, no se entra
+                            if (salioAntes) { fetch(API + "/publico/cuenta/salir", { method: "POST", credentials: "include" }).catch(function () {}); return; }
+                            irVolver();
+                        }, function () { /* se queda el formulario */ });
                 }
                 // Desde la pantalla bloqueada: si ya hay una sesión NUEVA (distinta de la bloqueada), se continúa sin pedir nada
                 if (m.propio && porBloqueo) {

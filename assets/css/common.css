@@ -482,6 +482,8 @@ a.fc-miga:hover { color: rgb(var(--g-0)); }
 .fc-fila__estado--listo { background: rgb(var(--ok-50)); color: rgb(var(--ok-700)); }
 .fc-fila__estado--alerta { background: rgb(var(--av-50)); color: rgb(var(--av-700)); box-shadow: inset 0 0 0 1px rgb(var(--av-200)); }
 .fc-fila__estado--corre { background: rgb(var(--g-100)); position: relative; }
+/* 25-nov-2026 (el dueño): «En fila» con el color de «esperando» (ámbar), igual en todos lados */
+.fc-fila__estado--fila { background: rgb(var(--av-50)); color: rgb(var(--av-600)); box-shadow: inset 0 0 0 1px rgb(var(--av-200)); }
 .fc-fila__estado--corre::after { content: ""; width: 12px; height: 12px; border-radius: 50%; border: 2px solid rgb(var(--g-300)); border-top-color: rgb(var(--ac-600)); animation: fc-gira .8s linear infinite; }
 @keyframes fc-gira { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .fc-fila__estado--corre::after, .fc-fila__btn--ocupado svg { animation-duration: 2.4s; } }
@@ -503,6 +505,82 @@ a.fc-miga:hover { color: rgb(var(--g-0)); }
 .fc-fila__extras { grid-column: 2 / -1; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 8px; }
 .fc-fila__extras .fc-btn { padding: 5px 10px; font-size: 12.5px; }
 @media (max-width: 640px) { .fc-fila__btn { width: 38px; height: 38px; } .fc-fila__btn svg { width: 18px; height: 18px; } }
+
+/* 25-nov-2026 (el dueño, «HOY 78»): Mis descargas en dos pestañas. «Mis pedidos»: el título es la empresa (se parte en
+   renglones, nunca a media palabra) y qué es va en una etiqueta chica con su detalle abajo; varios seguidos de la misma
+   empresa y el mismo día, en un bloque plegable. «Automáticas»: una tarjeta por ronda (noche). */
+.fc-dsc-barra { flex: none; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--e-2);
+                padding: 10px 12px; border-bottom: 1px solid var(--linea); background: rgb(var(--g-0)); }
+.fc-dsc-barra .ctx-segmento { flex: none; }
+.fc-dsc-barra .ctx-segmento button { flex: none; white-space: nowrap; }
+.fc-fila__nombre--envuelve, .fc-fila__detalle--envuelve { white-space: normal; overflow: visible; text-overflow: clip; overflow-wrap: break-word; word-break: normal; hyphens: manual; }
+.fc-etq { display: inline-block; font-size: 10.5px; font-weight: 800; letter-spacing: .03em; line-height: 16px; padding: 0 6px; border-radius: 6px;
+          background: rgb(var(--g-100)); color: rgb(var(--g-700)); margin-right: 6px; vertical-align: 1px; white-space: nowrap; }
+.fc-bloque + .fc-fila, .fc-fila + .fc-bloque, .fc-bloque + .fc-bloque { border-top: 1px solid rgb(var(--g-100)); }
+.fc-bloque__cabeza { width: 100%; display: grid; grid-template-columns: 26px minmax(0, 1fr) 18px; column-gap: 10px; align-items: center; text-align: left;
+                     padding: 9px 6px; border: 0; border-radius: 10px; background: none; font: inherit; color: inherit; cursor: pointer; }
+.fc-bloque__cabeza:hover { background: rgb(var(--g-50)); }
+.fc-bloque__texto { display: grid; gap: 1px; min-width: 0; }
+.fc-bloque__texto b { font-size: 13.5px; font-weight: 600; line-height: 1.3; color: rgb(var(--g-900)); overflow-wrap: break-word; }
+.fc-bloque__texto small { font-size: 12px; line-height: 1.35; color: var(--texto-tenue); }
+.fc-plegar { width: 16px; height: 16px; color: rgb(var(--g-500)); transition: transform .18s ease; }
+.fc-plegar svg { width: 16px; height: 16px; }
+[aria-expanded="true"] > .fc-plegar { transform: rotate(180deg); }
+.fc-bloque__filas { margin: 0 0 6px 18px; padding-left: 10px; border-left: 2px solid rgb(var(--g-100)); }
+.fc-bloque__filas[hidden], .fc-ronda__cuerpo[hidden], .fc-alcance__menu[hidden] { display: none; }
+.fc-ronda { border: 1px solid var(--linea); border-radius: var(--r-tarjeta); background: rgb(var(--g-0)); }
+.fc-ronda + .fc-ronda, .fc-ronda + .fc-filas, .fc-filas + .fc-ronda { margin-top: var(--e-2); }
+.fc-ronda--resaltada { box-shadow: 0 0 0 2px rgb(var(--ac-600) / .45); }
+.fc-ronda__cabeza { width: 100%; display: grid; grid-template-columns: 30px minmax(0, 1fr) 18px; column-gap: 10px; align-items: center; text-align: left;
+                    padding: 12px; border: 0; border-radius: var(--r-tarjeta); background: none; font: inherit; color: inherit; cursor: pointer; }
+.fc-ronda__cabeza:hover { background: rgb(var(--g-50)); }
+.fc-ronda__icono { width: 30px; height: 30px; border-radius: 9px; display: grid; place-items: center; background: rgb(var(--in-50)); color: rgb(var(--in-600)); }
+.fc-ronda__icono svg { width: 16px; height: 16px; }
+.fc-ronda__texto { display: grid; gap: 2px; min-width: 0; }
+.fc-ronda__texto b { font-size: 13.5px; font-weight: 700; color: rgb(var(--g-900)); }
+.fc-ronda__texto small { font-size: 12px; color: rgb(var(--g-600)); overflow-wrap: break-word; }
+.fc-ronda__texto small i { font-style: normal; color: rgb(var(--av-700)); font-weight: 600; }
+.fc-ronda__docs { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: center; margin: 0 12px 10px; padding: 8px 10px;
+                  border-radius: var(--r-control); background: rgb(var(--g-50)); font-size: 12.5px; color: rgb(var(--g-800)); }
+.fc-ronda__docs span { min-width: 0; overflow-wrap: break-word; }
+.fc-ronda__cuerpo { padding: 0 12px 12px; display: grid; gap: 8px; }
+.fc-ronda__cuerpo .ui-input { width: 100%; }
+.fc-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.fc-chip { display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 10px; border: 1px solid rgb(var(--g-300)); border-radius: 999px;
+           background: rgb(var(--g-0)); font: inherit; font-size: 12.5px; font-weight: 600; color: rgb(var(--g-800)); cursor: pointer; white-space: nowrap; }
+.fc-chip span { font-weight: 700; color: rgb(var(--g-500)); }
+.fc-chip[aria-pressed="true"] { background: rgb(var(--g-900)); border-color: rgb(var(--g-900)); color: rgb(var(--g-0)); }
+.fc-chip[aria-pressed="true"] span { color: rgb(var(--g-300)); }
+.fc-chip:disabled { opacity: .5; cursor: default; }
+.fc-ronda__lista { max-height: 380px; overflow-y: auto; border: 1px solid rgb(var(--g-100)); border-radius: var(--r-control); }
+.fc-ronda__fila { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 10px; align-items: center; padding: 9px 10px; }
+.fc-ronda__fila + .fc-ronda__fila { border-top: 1px solid rgb(var(--g-100)); }
+.fc-ronda__empresa { display: grid; gap: 2px; min-width: 0; }
+.fc-ronda__empresa b { font-size: 13px; font-weight: 600; color: rgb(var(--g-900)); overflow-wrap: break-word; }
+.fc-ronda__empresa > span { font-size: 12px; color: rgb(var(--g-700)); }
+.fc-ronda__parte { white-space: nowrap; }
+.fc-ronda__empresa em { font-style: normal; font-weight: 700; color: rgb(var(--g-900)); }
+.fc-ronda__empresa em.fc-cero { font-weight: 600; color: rgb(var(--g-400)); }
+.fc-ronda__motivo { font-size: 12px; line-height: 1.4; color: rgb(var(--av-700)); }
+.fc-ronda__fila--sin_cambios .fc-ronda__empresa b, .fc-ronda__fila--sin_cambios .fc-ronda__empresa > span { color: rgb(var(--g-500)); }
+.fc-ronda__fila .ui-btn { white-space: nowrap; }
+.fc-ronda__nada { padding: 14px; font-size: 12.5px; color: rgb(var(--g-500)); text-align: center; }
+.fc-dsc-nota { margin: 4px 2px 0; font-size: 12px; color: rgb(var(--g-500)); }
+.fc-alcance { position: relative; min-width: 0; }
+.fc-alcance__boton { display: inline-flex; align-items: center; gap: 6px; max-width: 190px; height: 32px; padding: 0 10px; border: 1px solid rgb(var(--g-300));
+                     border-radius: var(--r-control); background: rgb(var(--g-0)); font: inherit; font-size: 12.5px; font-weight: 600; color: rgb(var(--g-800)); cursor: pointer; }
+.fc-alcance__boton > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fc-alcance__boton:hover { border-color: rgb(var(--g-400)); }
+.fc-alcance__menu { position: absolute; right: 0; top: calc(100% + 6px); z-index: 5; width: 280px; max-width: calc(100vw - 24px); padding: 6px;
+                    border: 1px solid var(--linea); border-radius: var(--r-tarjeta); background: rgb(var(--g-0)); box-shadow: var(--sombra-alta); display: grid; gap: 2px; }
+.fc-alcance__op { display: grid; gap: 1px; width: 100%; text-align: left; padding: 7px 10px; border: 0; border-radius: 8px; background: none; font: inherit;
+                  font-size: 13px; color: rgb(var(--g-900)); cursor: pointer; }
+.fc-alcance__op:hover, .fc-alcance__op[aria-pressed="true"] { background: rgb(var(--g-100)); }
+.fc-alcance__op b { font-weight: 600; overflow-wrap: break-word; }
+.fc-alcance__op small { font-size: 11.5px; color: rgb(var(--g-500)); }
+.fc-alcance__sep { margin: 6px 10px 2px; font-size: 11px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: rgb(var(--g-500)); }
+.fc-alcance__menu .ui-input { width: 100%; margin: 2px 0 4px; }
+.fc-alcance__lista { max-height: 240px; overflow-y: auto; display: grid; gap: 1px; }
 
 .fc-item {
     border: 1px solid var(--linea);
@@ -634,6 +712,10 @@ input[type="password"]::-ms-clear { display: none; }
     width: min(720px, calc(100vw - 24px)); margin: 0; box-shadow: 0 10px 28px rgb(0 0 0 / .16); }
 @media (max-width: 1023px) { .fc-aviso.fc-aviso--encima { bottom: 72px; } }
 .fc-aviso__acciones { display: flex; gap: 8px; margin-top: 9px; flex-wrap: wrap; }
+.fc-aviso__cerrar { flex: none; display: grid; place-items: center; width: 24px; height: 24px; margin: -3px -6px 0 0; padding: 0; border: 0; border-radius: 6px;
+                    background: none; color: inherit; opacity: .7; cursor: pointer; }
+.fc-aviso__cerrar:hover { opacity: 1; background: rgb(0 0 0 / .06); }
+.fc-aviso__cerrar svg { width: 14px; height: 14px; }
 
 /* Pantalla de bloqueo cuando el plan no incluye el módulo */
 .fc-bloqueo {
@@ -1261,7 +1343,16 @@ dialog.fc-modal::backdrop { background: rgba(16, 27, 45, .5); backdrop-filter: b
 .fc-modal__cabeza p { font-size: 13.5px; color: var(--texto-tenue); margin-top: 4px; line-height: 1.45; }
 .fc-modal__cerrar { flex: none; width: 36px; height: 36px; border: 0; border-radius: 10px; background: none; color: var(--texto-tenue); font-size: 20px; cursor: pointer; }
 .fc-modal__cerrar:hover { background: var(--papel); color: rgb(var(--er-600)); }
-.fc-modal__cuerpo { padding: 24px var(--modal-pad); overflow: auto; flex: 1; display: flex; flex-direction: column; gap: 18px; }
+.fc-modal__cuerpo { padding: 24px var(--modal-pad); overflow: auto; flex: 1; display: flex; flex-direction: column; gap: 18px; min-height: 0;
+                   overscroll-behavior: contain; }
+/* 25-nov-2026 (el dueño, Vencimientos «+ Recordatorio»: «la pantalla se corta y cuando hago hacia abajo lo que baja es la pantalla
+   detrás»): si un <form> envuelve cabeza, cuerpo y pie, el alto se reparte igual que sin él (el pie queda fijo y el cuerpo se
+   desplaza). Y mientras haya una ventana abierta, la página de atrás no se mueve con la rueda ni con el dedo. */
+/* (revisión de Fable: solo el <form> que ENVUELVE la ventana; el que ya es el cuerpo —<form class="fc-modal__cuerpo">, p. ej. Envíos—
+   conserva sus propias reglas) */
+dialog.fc-modal > form:not(.fc-modal__cuerpo) { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; }
+html:has(dialog.fc-modal[open]) { overflow: hidden; scrollbar-gutter: stable; }
+html:has(dialog.fc-modal[open]) body { overflow: hidden; }
 .fc-modal__pie { display: flex; align-items: center; justify-content: flex-end; gap: 10px; flex-wrap: wrap; padding: 16px var(--modal-pad) 22px; border-top: 1px solid var(--linea); flex: none; background: rgb(var(--g-0)); }
 .fc-modal__pie .fc-btn { padding: 10px 18px; font-size: 14px; border-radius: 10px; }
 .fc-modal__pie > :first-child:not(.fc-btn) { margin-right: auto; }
@@ -1426,6 +1517,13 @@ main.fc-recien { animation: fc-recien .35s ease-out; }
               transition: opacity .2s ease, transform .2s ease; max-width: calc(100vw - 32px); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .fc-brindis span { color: rgb(var(--ac-400)); font-weight: 800; }
 .fc-brindis--ve { opacity: 1; transform: translate(-50%, 0); }
+/* 26-nov-2026 (el dueño): lo que salió bien, verde y discreto, junto a lo que se pulsó; se quita solo (barra.js brindis/listo) */
+.fc-brindis { white-space: normal; max-width: min(420px, calc(100vw - 24px)); text-align: left; }
+.fc-brindis.fc-brindis--bien { background: rgb(var(--ok-50)); color: rgb(var(--ok-600)); border: 1px solid rgb(var(--ok-200)); font-weight: 600; font-size: 13px;
+              padding: 7px 13px; box-shadow: 0 6px 18px rgba(15, 23, 42, .12); }
+.fc-brindis.fc-brindis--bien span { color: rgb(var(--ok-600)); }
+.fc-brindis.fc-brindis--cerca { bottom: auto; transform: translate(0, 6px); }
+.fc-brindis.fc-brindis--cerca.fc-brindis--ve { transform: none; }
 @media (prefers-reduced-motion: reduce) { main.fc-recien { animation: none; } .fc-cambio__giro { animation-duration: 2s; } }
 
 /* ---------- Módulos que el plan no incluye ---------- */
@@ -1767,6 +1865,13 @@ main.fc-recien { animation: fc-recien .35s ease-out; }
 .fc-trabajo__filas li.ok { border-color: rgb(var(--ac-500)); }
 .fc-trabajo__filas li.mal { border-color: rgb(var(--er-600)); }
 .fc-trabajo__filas li.va { border-color: rgb(var(--in-600)); }
+.fc-trabajo__filas li.fila { border-color: rgb(var(--av-600)); }      /* 25-nov-2026: «En fila», el color de «esperando» */
+/* 24-nov-2026 (la fila de Declaraciones): subtítulos «En curso / En fila (N) / Terminadas» y un botón por renglón */
+.fc-trabajo__filas li.fc-trabajo__seccion { border: 0; padding: 6px 0 0; font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: rgb(var(--g-600)); }
+.fc-trabajo__filas li.fc-trabajo__seccion:first-child { padding-top: 0; }
+.fc-trabajo__fila { display: flex; align-items: flex-start; gap: 10px; }
+.fc-trabajo__fila > span { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
+.fc-trabajo__fila > .fc-trabajo__enlace { margin-top: 1px; }
 
 /* --- Pantalla bloqueada por inactividad (S-01) --- */
 .fc-bloqueo-pantalla { position: fixed; inset: 0; z-index: 300; display: grid; place-items: center; padding: 16px;
@@ -1897,6 +2002,10 @@ html.fc-version-abierta body { overflow: hidden; }
 .fc-cfdi__cabeza .ui-icono-btn:disabled { opacity: .35; cursor: default; }
 .fc-cfdi__cabeza .ui-icono-btn svg { width: 16px; height: 16px; }
 .fc-cfdi__marco { flex: 1; width: 100%; border: 0; background: var(--papel); }
+/* 23-nov-2026 (decisión E): el folio de las tablas de facturas es un enlace real (Ctrl+clic o clic medio: otra pestaña).
+   Se ve como el texto de siempre (mismo color, ancho y «…»); se subraya al pasar el cursor. */
+a.fc-liga-factura { color: inherit; text-decoration: none; }
+a.fc-liga-factura:hover, a.fc-liga-factura:focus-visible { text-decoration: underline; text-underline-offset: 2px; }
 /* Panel lateral de detalle (Fiscontable.panel): misma cabeza que el de CFDI, cuerpo con datos */
 .fc-cfdi--panel { width: min(520px, 100vw); }
 .fc-panel__cuerpo { flex: 1; overflow-y: auto; padding: var(--e-4); display: flex; flex-direction: column; gap: var(--e-4); background: rgb(var(--g-0)); }
@@ -1973,6 +2082,9 @@ html.fc-amplia .fc-reportar { display: none; }
 .fct-filtro { display: grid; gap: 4px; padding: 6px 8px; font-size: var(--t-12); font-weight: 600; color: rgb(var(--g-600)); }
 .fct-filtro .ui-select { width: 100%; }
 .fct-menu-filtros { min-width: 280px; }
+/* 24-nov-2026 (revisión de a2text): el nombre de la vista en su botón («Vista: …») se corta con «…» y no empuja la página
+   de lado en el celular; el nombre completo sale al pasar el cursor (tabla.js lo pone en title). */
+.fct-vista, #nombre-vista { display: inline-block; max-width: min(40ch, 60vw); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: bottom; }
 
 /* --- Programación unificada (G-09) --- */
 .fpu { display: flex; flex-wrap: wrap; align-items: center; gap: var(--e-2); min-height: 32px; margin: 0 0 var(--e-2); font-size: var(--t-13); color: rgb(var(--g-700)); }
@@ -1995,6 +2107,9 @@ a.fc-act-item:hover { background: rgb(var(--g-50)); }
 .fc-act-item small { font-size: var(--t-12); color: rgb(var(--g-500)); }
 .fc-act-item--nuevo b::before { content: ""; display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: rgb(var(--ac-600)); margin-right: 6px; vertical-align: middle; }
 .fc-act-item--curso svg { color: rgb(var(--in-600)); }
+.fc-act-item--fila svg { color: rgb(var(--av-600)); }      /* 25-nov-2026: lo que espera su turno, ámbar */
+/* 25-nov-2026 (paquete xml): botones de un aviso que pide respuesta («Aprobar», «Rechazar») */
+.fc-act-item .fc-act-acciones { display: flex; flex-wrap: wrap; gap: var(--e-2); margin: var(--e-2) 0 2px; }
 /* Corrida de un proceso automático (19-nov-2026): un renglón que se abre con cada empresa */
 .fc-act-corrida + .fc-act-item, .fc-act-item + .fc-act-corrida, .fc-act-corrida + .fc-act-corrida { border-top: 1px solid rgb(var(--g-100)); }
 button.fc-act-item--grupo { width: 100%; background: none; border: 0; font: inherit; text-align: left; cursor: pointer; }
@@ -2006,6 +2121,113 @@ button.fc-act-item--grupo:hover { background: rgb(var(--g-50)); }
                     border: 1px solid var(--linea); border-radius: var(--r-control); font-size: var(--t-13); }
 .fc-act-pie { display: flex; gap: var(--e-2); flex-wrap: wrap; }
 #fc-btn-actividad { position: relative; }
+
+/* --- La campana (25-nov-2026, paquete avi): «Requiere atención» arriba (rojo tenue) y seis círculos con lo nuevo de cada
+   grupo; tocar uno cambia el mismo panel a su detalle. El numerito de la campana es rojo: cuenta solo lo urgente. --- */
+.fc-contador.fc-contador--rojo { background: rgb(var(--er-600)); }
+.fc-av-cabeza__der { display: inline-flex; gap: 2px; align-items: center; flex: none; }
+/* 26-nov-2026 (el dueño): sin «Una empresa…»; el integrante con más permitidas que asignadas lleva «Mis asignadas · Todas» y
+   todos, a la derecha, «Por empresa ›» (Inicio › Mis empresas). Una sola línea. */
+.fc-av-alcance { flex: none; display: flex; align-items: center; gap: var(--e-3); padding: var(--e-2) 18px 0; min-width: 0; }
+.fc-av-alcance .fc-av-modos.ctx-segmento { width: auto; flex: 0 1 auto; }
+.fc-av-alcance .fc-av-modos.ctx-segmento button { padding: 4px var(--e-3); font-size: var(--t-12); }
+.fc-av-por-empresa { margin-left: auto; flex: none; font-size: var(--t-13); font-weight: 600; color: rgb(var(--ac-700)); text-decoration: none; white-space: nowrap; }
+.fc-av-por-empresa:hover { text-decoration: underline; }
+.fc-av-alcance:empty { display: none; }
+/* (doble clase: le gana a .ctx-segmento, que va después, y a la regla del celular de xml.css que reparte parejo) */
+.fc-av-modos.ctx-segmento { display: flex; width: 100%; gap: 2px; padding: 3px; }
+.fc-av-modos.ctx-segmento button { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; padding: 7px var(--e-2); font-weight: 700; }
+.fc-av-buscar { display: grid; gap: var(--e-2); }
+.fc-av-buscar .ui-input { width: 100%; }
+.fc-av-opciones { display: grid; max-height: 260px; overflow-y: auto; border: 1px solid var(--linea); border-radius: var(--r-control); background: rgb(var(--g-0)); }
+.fc-av-opciones button { display: grid; gap: 1px; padding: var(--e-2) var(--e-3); border: 0; background: none; font: inherit; text-align: left; cursor: pointer; }
+.fc-av-opciones button + button { border-top: 1px solid rgb(var(--g-100)); }
+.fc-av-opciones button:hover { background: rgb(var(--g-50)); }
+.fc-av-opciones b { font-size: var(--t-13); font-weight: 600; color: rgb(var(--g-900)); overflow-wrap: anywhere; }
+.fc-av-opciones small { font-size: var(--t-12); color: rgb(var(--g-500)); font-family: var(--fuente-mono); }
+.fc-av-nada { padding: var(--e-2) var(--e-3); font-size: var(--t-12); color: rgb(var(--g-500)); }
+.fc-av-urgente { display: grid; gap: 2px; margin: 0 0 var(--e-2); padding: var(--e-2); border: 1px solid rgb(var(--er-200)); border-radius: var(--r-tarjeta);
+                 background: rgb(var(--er-50)); }
+.fc-av-urgente__titulo { display: flex; align-items: center; gap: 6px; min-height: 28px; margin: 0 0 2px var(--e-2); font-size: var(--t-12); font-weight: 700;
+                         color: rgb(var(--er-600)); text-transform: uppercase; letter-spacing: .04em; }
+.fc-av-urgente__titulo svg { width: 15px; height: 15px; flex: none; }
+.fc-av-urgente__titulo b { font-variant-numeric: tabular-nums; }
+/* 26-nov-2026, tercera vuelta (el dueño: «lo del botón y el check le quitó mucho espacio… está muy amontonado»): cada renglón en
+   dos líneas, sin casilla ni botón (arriba, en negrita, de quién o qué es; abajo, chico y gris, qué pasó y en qué empresa; cada
+   una cortada con «…», completo en su «title» y al abrirlo). Arriba, junto al contador, un solo botón de texto «Atender…»; en
+   el modo de selección el encabezado es «Ya los atendí (n)» · «Todos» · «Cancelar» y los renglones que se pueden atender
+   llevan su casilla a la izquierda. La lista sigue con tope de alto: se desliza adentro y los círculos quedan a la vista. */
+.fc-av-urg { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--e-2); align-items: center; padding: 5px var(--e-2);
+             border-radius: var(--r-control); color: rgb(var(--g-900)); text-decoration: none; background: rgb(var(--g-0) / .65); min-width: 0; }
+.fc-av-urg__txt { display: grid; gap: 1px; min-width: 0; }
+.fc-av-urg__txt b, .fc-av-urg__txt span { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.fc-av-urg__txt b { font-size: var(--t-13); font-weight: 600; line-height: 1.35; }
+.fc-av-urg__txt span { font-size: var(--t-12); line-height: 1.35; color: rgb(var(--g-600)); }
+.fc-av-urg svg { width: 14px; height: 14px; color: rgb(var(--er-600)); }
+.fc-av-urg-lista { display: grid; gap: 2px; min-width: 0; }
+.fc-av-urg-lista--todas { max-height: 34vh; overflow-y: auto; overscroll-behavior: contain; }
+a.fc-av-urg:hover { background: rgb(var(--g-0)); }
+.fc-av-urgente__mas { justify-self: start; padding: var(--e-1) var(--e-2); border: 0; background: none; font: inherit; font-size: var(--t-12); font-weight: 600;
+                      color: rgb(var(--er-600)); cursor: pointer; border-radius: var(--r-control); }
+.fc-av-urgente__mas:hover { background: rgb(var(--g-0) / .7); }
+.fc-av-urgente__titulo .fc-av-urgente__mas { text-transform: none; letter-spacing: 0; white-space: nowrap; }
+.fc-av-urgente__atender, .fc-av-urgente__cancelar { margin-left: auto; }
+.fc-av-urgente__titulo--elegir { margin-left: 0; gap: var(--e-1); }
+.fc-av-urgente__titulo--elegir .ui-btn { text-transform: none; letter-spacing: 0; white-space: nowrap; }
+.fc-av-urgente__pie { display: flex; align-items: center; min-width: 0; }
+/* modo de selección: la casilla a la izquierda; lo que no se puede atender (estados vivos) queda alineado y más tenue */
+.fc-av-urg--elegir { grid-template-columns: 16px minmax(0, 1fr); cursor: pointer; }
+.fc-av-urg--elegir:hover { background: rgb(var(--g-0)); }
+.fc-av-urg--elegir input { width: 16px; height: 16px; margin: 0; accent-color: rgb(var(--er-600)); cursor: pointer; }
+.fc-av-urg--fijo { padding-left: calc(var(--e-2) + 16px + var(--e-2)); opacity: .6; }
+.fc-av-lista-atender { margin: 0 0 var(--e-2); padding-left: 18px; display: grid; gap: 4px; font-size: var(--t-13); font-weight: 600; overflow-wrap: anywhere; }
+.fc-av-tranquilo { display: flex; align-items: center; gap: 6px; margin: 0 0 var(--e-3); font-size: var(--t-13); color: rgb(var(--g-600)); }
+.fc-av-tranquilo svg { width: 16px; height: 16px; flex: none; color: rgb(var(--ok-600)); }
+/* (26-nov) más compactos: con la franja llena se ven completos sin deslizar a 1280×800 y a 390 */
+.fc-av-circulos { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 2px var(--e-2); padding: 0 0 var(--e-1); }
+.fc-av-circulo { display: grid; justify-items: center; gap: 4px; min-width: 0; padding: 6px 0; border: 0; border-radius: var(--r-tarjeta); background: none;
+                 font: inherit; color: rgb(var(--g-900)); cursor: pointer; }
+.fc-av-circulo:hover { background: rgb(var(--g-50)); }
+.fc-av-circulo__ico { position: relative; display: grid; place-items: center; width: 46px; height: 46px; border-radius: 50%; background: rgb(var(--ac-50));
+                      color: rgb(var(--ac-700)); box-shadow: inset 0 0 0 1px rgb(var(--ac-100)); }
+.fc-av-circulo__ico svg { width: 21px; height: 21px; }
+.fc-av-circulo__nombre { font-size: var(--t-13); font-weight: 600; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fc-av-globo { position: absolute; top: -2px; right: -6px; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 999px; background: rgb(var(--ac-600));
+               color: rgb(var(--g-0)); font-size: 11px; font-weight: 700; font-style: normal; line-height: 20px; text-align: center;
+               font-variant-numeric: tabular-nums; box-shadow: 0 0 0 2px rgb(var(--g-0)); }
+.fc-av-circulo--cero .fc-av-circulo__ico { background: rgb(var(--g-100)); color: rgb(var(--g-400)); box-shadow: none; }
+.fc-av-circulo--cero .fc-av-circulo__nombre { color: rgb(var(--g-500)); font-weight: 500; }
+.fc-av-detalle__cabeza { display: flex; align-items: center; justify-content: space-between; gap: var(--e-2); margin: 0 0 var(--e-2); }
+.fc-av-volver { padding: var(--e-1) var(--e-2) var(--e-1) 0; border: 0; background: none; font: inherit; font-size: var(--t-14); font-weight: 700;
+                color: rgb(var(--g-900)); cursor: pointer; white-space: nowrap; }
+.fc-av-detalle__cabeza a, .fc-av-ir, .fc-av-pie-nota a, .fc-av-empresa a, .fc-av-empresa button, .fc-av-ronda__enlaces a {
+    font-size: var(--t-13); font-weight: 600; color: rgb(var(--ac-700)); text-decoration: none; white-space: nowrap; }
+.fc-av-detalle__cabeza a:hover, .fc-av-ir:hover, .fc-av-pie-nota a:hover, .fc-av-empresa a:hover, .fc-av-empresa button:hover, .fc-av-ronda__enlaces a:hover { text-decoration: underline; }
+.fc-av-empresa { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--e-1) var(--e-3); margin: 0 0 var(--e-3);
+                 font-size: var(--t-14); min-width: 0; }
+.fc-av-empresa b { overflow-wrap: anywhere; }
+.fc-av-empresa span { display: inline-flex; flex-wrap: wrap; gap: var(--e-1) var(--e-3); }
+.fc-av-empresa button { padding: 0; border: 0; background: none; font-family: inherit; cursor: pointer; }
+.fc-act-item.fc-act-item--urgente { background: rgb(var(--er-50)); box-shadow: inset 3px 0 0 rgb(var(--er-600)); }
+.fc-av-marca { font-size: 11px; font-weight: 700; font-style: normal; color: rgb(var(--er-600)); text-transform: uppercase; letter-spacing: .04em; }
+.fc-act-item span.fc-av-motivo { color: rgb(var(--g-500)); }
+.fc-av-ronda { display: grid; gap: var(--e-2); padding: var(--e-3) var(--e-4); border: 1px solid var(--linea); border-radius: var(--r-tarjeta); background: rgb(var(--g-0)); }
+.fc-av-ronda + .fc-av-ronda { margin-top: var(--e-3); }
+.fc-av-ronda--nueva { border-color: rgb(var(--ac-200)); box-shadow: inset 3px 0 0 rgb(var(--ac-600)); }
+.fc-av-ronda__titulo { margin: 0; font-size: var(--t-13); }
+.fc-av-ronda__titulo b { font-weight: 600; }
+.fc-av-ronda__lineas { display: grid; gap: 4px; margin: 0; padding: 0; list-style: none; }
+.fc-av-ronda__lineas li { display: grid; grid-template-columns: 10px minmax(0, 1fr); column-gap: var(--e-2); align-items: baseline; font-size: var(--t-13); }
+.fc-av-ronda__lineas small { grid-column: 2; font-size: var(--t-12); color: rgb(var(--g-600)); overflow-wrap: anywhere; }
+.fc-av-punto { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: rgb(var(--g-300)); }
+.fc-av-punto--verde { background: rgb(var(--ok-600)); }
+.fc-av-punto--rojo { background: rgb(var(--er-600)); }
+.fc-av-punto--naranja, .fc-av-punto--ambar { background: rgb(var(--av-600)); }
+.fc-av-punto--azul { background: rgb(var(--in-600)); }
+.fc-av-ronda__otros { margin: 0; padding-left: 18px; font-size: var(--t-12); color: rgb(var(--g-600)); }
+.fc-av-ronda__enlaces { display: flex; flex-wrap: wrap; gap: var(--e-1) var(--e-4); margin: 0; }
+.fc-av-pie-nota { margin: var(--e-4) 0 0; text-align: center; }
+.fc-act-pie .fc-av-ir { margin-left: auto; align-self: center; }
 /* Mis descargas: las mismas tarjetas del panel de la barra, en dos columnas cuando caben */
 .dsc-tarjetas { display: grid; gap: var(--e-3); grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); }
 .dsc-tarjetas .fc-item { margin: 0; }
@@ -2014,8 +2236,18 @@ button.fc-act-item--grupo:hover { background: rgb(var(--g-50)); }
 
 .dsc-filtros { display: flex; flex-wrap: wrap; gap: var(--e-2); align-items: center; margin-bottom: var(--e-4); }
 .dsc-filtros .ui-select { width: auto; }
+.dsc-cuando { align-items: center; }
+.dsc-filtros__etq { font-size: var(--t-12); font-weight: 700; color: rgb(var(--g-500)); margin-right: 2px; }
 .dsc-paquete { margin: 0 0 var(--e-3); padding: 8px 12px; border-radius: 10px; background: rgb(var(--ac-600) / .07); font-size: var(--t-13); color: rgb(var(--g-800)); }
 .dsc-paquete[hidden] { display: none; }
+/* 25-nov-2026: las pestañas y el alcance arriba de la página (sin la raya del cajón) y lo automático en una columna */
+.fc-dsc-barra.dsc-controles { padding: 0; border: 0; background: none; justify-content: flex-start; gap: var(--e-3); margin-bottom: var(--e-3); }
+.dsc-auto { display: grid; gap: var(--e-2); max-width: 760px; }
+#seccion-automaticas .dsc-paquete { max-width: 760px; }
+.dsc-auto .fc-grupo { margin-bottom: var(--e-3); }
+.dsc-auto .fc-filas { border: 1px solid var(--linea); border-radius: var(--r-tarjeta); background: rgb(var(--g-0)); padding: 2px 6px; }
+.dsc-auto .fc-ronda__lista { max-height: 460px; }
+#seccion-automaticas[hidden], #dsc-filtros[hidden] { display: none !important; }
 
 /* --- Bloque de estado de un documento (G-08) --- */
 .ui-bloque { display: flex; flex-wrap: wrap; align-items: center; gap: var(--e-3) var(--e-4); padding: var(--e-4); border: 1px solid var(--linea);

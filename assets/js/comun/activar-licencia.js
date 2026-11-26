@@ -1,5 +1,5 @@
 /**
- * activar-licencia.js — Pieza única para activar una licencia (la usan /activar/ y Configuración → Plan y créditos).
+ * activar-licencia.js — Pieza única para activar una licencia (la usan /activar/ y Configuración → Plan y licencia).
  *
  *   Fiscontable.activarLicencia(contenedor, { alActivar: function (resultado) {…} })
  *

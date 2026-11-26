@@ -196,7 +196,7 @@ function abrirModalNuevoCliente() {
     if (sinConexion || soloLectura) return;
     document.getElementById("alta-tab-obligaciones").hidden = !conIsn;
     document.getElementById("alta-tab-facturar").hidden = !conFacturar || !puedeGuardarEfirma;
-    if (conFacturar && puedeGuardarEfirma) llenarRegimenesAlta();
+    if (conFacturar && puedeGuardarEfirma) { llenarRegimenesAlta(); pintarManifiestoAlta(); }
     document.getElementById("nuevo-obl-zona").classList.add("hidden");
     document.getElementById("alta-nota-demo").hidden = puedeGuardarEfirma;
     document.getElementById("alta-ciec-caja").hidden = !puedeGuardarEfirma;
@@ -856,6 +856,30 @@ async function llenarRegimenesAlta() {
     } catch (e) { /* sin catálogo: se llena en Facturar */ }
 }
 
+/* 24-nov-2026, el dueño («Luna Soft, que ya no sea necesario»): el manifiesto del PAC solo es obligatorio si el administrador
+   prendió «Exigir el manifiesto del PAC para timbrar» (apagado de fábrica; lo manda /api/facturacion/config). Opcional: la caja
+   va plegada con «Opcional: algunos PAC lo piden…» y se puede abrir para subirlo. Exigido: abierta y fija, como antes.
+   Un servidor sin el dato: como antes (exigido). */
+const MAN_OPCIONAL = "Opcional: algunos PAC lo piden. Hoy no es necesario para timbrar.";
+function pintarCajaManifiesto(caja, exige, texto, como, textoExigido, plegar) {
+    caja.classList.toggle("cli-man--exigido", exige);
+    if (exige) caja.open = true;
+    else if (plegar || caja.dataset.exigido === "1") caja.open = false;     // otra empresa, o se acaba de apagar: plegada
+    caja.dataset.exigido = exige ? "1" : "0";
+    texto.textContent = exige ? textoExigido : MAN_OPCIONAL;
+    como.hidden = exige;                                          // exigido, el «cómo» ya va en la cabeza (como antes)
+}
+document.addEventListener("click", e => {                         // exigido no se pliega
+    if (e.target.closest(".cli-man--exigido > .cli-man__cabeza")) e.preventDefault();
+});
+
+async function pintarManifiestoAlta() {
+    let exige = false;
+    try { exige = (await cargarFactCfg()).exigir_manifiesto !== false; } catch (e) { exige = false; }     // sin la configuración: plegada
+    pintarCajaManifiesto(document.getElementById("alta-man-caja"), exige, document.getElementById("alta-man-texto"), document.getElementById("alta-man-como"),
+        "Sin él no se puede timbrar. Se firma una vez con la e.firma de la empresa en la página de Luna Soft; al terminar descargas un PDF y lo subes aquí.", true);
+}
+
 function datosFacturarAlta() {
     if (document.getElementById("alta-tab-facturar").hidden) return { hay: false };
     const v = id => document.getElementById(id);
@@ -899,10 +923,11 @@ async function guardarFacturarAlta(rfc, d) {
 }
 
 /* Manifiesto en la ficha (Accesos) */
-async function pintarManifiestoFicha(cliente) {
+async function pintarManifiestoFicha(cliente, plegar = true) {
     const caja = document.getElementById("editar-man");
     caja.hidden = !conFacturar || !puedeGuardarEfirma;
     if (caja.hidden) return;
+    if (plegar && !caja.classList.contains("cli-man--exigido")) caja.open = false;     // 24-nov-2026: cada ficha empieza plegada
     document.getElementById("man-pdf").value = "";
     document.getElementById("editar-mensaje-man").classList.add("hidden");
     const badge = document.getElementById("editar-estado-man");
@@ -913,11 +938,13 @@ async function pintarManifiestoFicha(cliente) {
         const r = await fetch(`${API_URL}/api/facturacion/manifiesto/${encodeURIComponent(cliente.rfc)}`, { credentials: "include" });
         if (!r.ok) throw new Error(await Fiscontable.leerError(r));
         m = await r.json();
-    } catch (e) { badge.textContent = ""; mensajeMan(false, e.message); return; }
+    } catch (e) { badge.textContent = ""; caja.open = true; mensajeMan(false, e.message); return; }
     if (rfcEnEdicion !== cliente.rfc) return;
-    const g = (m.pacs[0] || {}).guardado;
-    badge.textContent = g ? "Firmado" : "Falta";
-    badge.className = "text-xs font-bold px-2 py-1 rounded-full flex-none " + (g ? "bg-violet-100 text-violet-700" : "bg-amber-100 text-amber-800");
+    const g = (m.pacs[0] || {}).guardado, exige = m.exigir_manifiesto !== false;
+    pintarCajaManifiesto(caja, exige, document.getElementById("man-ficha-texto"), document.getElementById("man-ficha-como"),
+        "Sin él no se puede timbrar. Se firma una vez con la e.firma de la empresa en la página de Luna Soft y se sube el PDF.", plegar);
+    badge.textContent = g ? "Firmado" : exige ? "Falta" : "Opcional";
+    badge.className = "text-xs font-bold px-2 py-1 rounded-full flex-none " + (g ? "bg-violet-100 text-violet-700" : exige ? "bg-amber-100 text-amber-800" : "bg-gray-100 text-gray-600");
     const t = document.getElementById("man-guardado-texto");
     t.classList.toggle("hidden", !g);
     t.textContent = g ? "✓ " + [g.folio, g.firmado_en ? "firmado el " + fechaCorta(g.firmado_en) : "", g.revision && g.revision.nombre ? "por " + g.revision.nombre : ""].filter(Boolean).join(" · ") : "";
@@ -941,8 +968,8 @@ async function subirManifiestoFicha() {
         if (!r.ok) throw new Error(await Fiscontable.leerError(r));
         const d = await r.json();
         factCfg = null;
-        await pintarManifiestoFicha(clientesCache.find(c => c.rfc === rfc) || { rfc });
-        mensajeMan(true, "✓ Manifiesto revisado y guardado" + (d.revision && d.revision.folio ? " (" + d.revision.folio + ")" : "") + ". Ya puede timbrar.");
+        await pintarManifiestoFicha(clientesCache.find(c => c.rfc === rfc) || { rfc }, false);
+        mensajeMan(true, "✓ Manifiesto revisado y guardado" + (d.revision && d.revision.folio ? " (" + d.revision.folio + ")" : "") + (d.exigir_manifiesto !== false ? ". Ya puede timbrar." : "."));
     } catch (e) { mensajeMan(false, e.message); }
     b.disabled = false; b.textContent = "Subir y revisar";
 }
@@ -952,7 +979,7 @@ let rfcEnEdicion = null;
 /* ---------------------------------------------------------------- ficha del cliente (pestañas)
    Datos generales · Accesos (e.firma y contraseña del SAT) · Obligaciones. ?editar=RFC&ficha=accesos abre directo. */
 let fichaActual = "general";
-const FICHAS = ["general", "accesos", "receptores", "xml", "obligaciones"];
+const FICHAS = ["general", "accesos", "avisos", "receptores", "xml", "obligaciones"];
 function ponerFicha(nombre) {
     if (FICHAS.indexOf(nombre) === -1) nombre = "general";
     if (nombre === "obligaciones" && document.getElementById("tab-obligaciones").hidden) nombre = "general";
@@ -964,7 +991,136 @@ function ponerFicha(nombre) {
         b.setAttribute("aria-selected", String(si)); b.tabIndex = si ? 0 : -1;
     });
     document.querySelectorAll("#modal-editar-cliente [data-panel]").forEach(p => { p.hidden = p.dataset.panel !== nombre; });
+    if (nombre === "avisos" && rfcEnEdicion) {
+        if (avisosFicha.rfc === rfcEnEdicion && avisosFicha.datos) pintarAvisosFicha(avisosFicha.datos);
+        else cargarAvisosFicha(rfcEnEdicion);
+    }
 }
+
+/* ---------------------------------------------------------------- pestaña «Avisos» (25-nov-2026, paquete avi)
+   Todo lo de esta empresa, lo urgente arriba, con las mismas reglas de la campana e Inicio (core/avisos_reglas.py en el
+   servidor) y solo si la persona tiene la empresa en el espacio en que está. Lo demás va por grupo (Buzón, CFDI…), 20 a la
+   vez: nada de una lista infinita. 25-nov-2026 (el dueño): este es el ÚNICO lugar de los avisos de una empresa; los chips de Inicio
+   y «Una empresa…» de la campana traen aquí. */
+let avisosFicha = { rfc: null, datos: null, grupo: "", mas: 20, elegidos: new Set(), atendiendo: false };
+async function cargarAvisosFicha(rfc, soloPunto) {
+    const caja = document.getElementById("ficha-avisos");
+    if (!soloPunto) caja.innerHTML = '<span class="ui-skel" style="width:70%"></span>';
+    try {
+        const r = await fetch(`${API_URL}/api/actividad/empresa?rfc=${encodeURIComponent(rfc)}`, { credentials: "include" });
+        if (!r.ok) throw new Error(await interpretarError(r));
+        const d = await r.json();
+        if (rfcEnEdicion !== rfc) return;
+        avisosFicha = { rfc, datos: d, grupo: avisosFicha.rfc === rfc ? avisosFicha.grupo : "", mas: 20, elegidos: new Set() };
+        document.getElementById("ficha-aviso-avisos").hidden = !d.urgentes.length;
+        if (!soloPunto || fichaActual === "avisos") pintarAvisosFicha(d);
+    } catch (e) {
+        if (!soloPunto) caja.innerHTML = `<div class="ui-falla"><b>No se pudieron leer sus avisos</b><span>${esc(e.message)}</span></div>`;
+    }
+}
+function haceFicha(iso) {
+    const f = new Date(String(iso).length <= 19 ? iso + "Z" : iso);
+    return f.toLocaleDateString("es-MX", { day: "numeric", month: "short", year: "numeric" }) + " · " + f.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" });
+}
+function pintarAvisosFicha(d) {
+    const caja = document.getElementById("ficha-avisos");
+    const nombres = Object.fromEntries(d.grupos.map(g => [g.clave, g.nombre]));
+    const cuenta = {};
+    d.avisos.forEach(a => { cuenta[a.grupo] = (cuenta[a.grupo] || 0) + 1; });
+    const lista = d.avisos.filter(a => !avisosFicha.grupo || a.grupo === avisosFicha.grupo);
+    const enlace = (x, dentro, clase) => x.enlace && x.enlace.charAt(0) === "/" ? `<a${clase ? ` class="${clase}"` : ""} href="${esc(x.enlace)}">${dentro}</a>`
+        : `<div${clase ? ` class="${clase}"` : ""}>${dentro}</div>`;
+    // 26-nov-2026 (el dueño, tercera vuelta: «lo del botón y el check le quitó mucho espacio… solo un botón y que yo seleccione»):
+    // como en la campana, los renglones van sin casilla ni botón; arriba, junto al contador, «Atender…» entra al modo de selección
+    // (casilla en los que se pueden dar por atendidos; el encabezado cambia a «Ya los atendí (n)» · «Todos» · «Cancelar»). Un solo
+    // PIN para el grupo si alguno lo pide. También los proveedores o clientes en listas del SAT (su llave es «listas:EMPRESA:RFC»).
+    const atendibles = atendiblesFicha();
+    const modo = avisosFicha.atendiendo && atendibles.length > 0;
+    if (!modo) avisosFicha.atendiendo = false;
+    caja.innerHTML =
+        (d.urgentes.length ? `<section class="cli-av-urgente" aria-label="Requiere atención">` +
+            (modo ? `<p class="cli-av-urgente__titulo cli-av-urgente__titulo--elegir" id="ficha-av-acciones">${htmlAccionesFicha(atendibles)}</p>`
+                : `<p class="cli-av-urgente__titulo"><span>Requiere atención · ${d.urgentes.length}</span>` +
+                  (atendibles.length ? `<button type="button" class="cli-av-texto" data-av-atendiendo="1" title="Elegir los que ya atendiste: se quitan de aquí para todo el despacho">Atender…</button>` : "") + `</p>`) +
+            d.urgentes.map(x => {
+                const titulo = String(x.titulo).replace(" · " + (x.alias || d.alias), "");
+                const dentro = `<b>${esc(titulo)}</b>${x.detalle ? `<span>${esc(x.detalle)}</span>` : ""}`;
+                // 25-nov-2026 (el dueño, avi-2): lo urgente que es un hecho se queda hasta que se resuelve o alguien lo da por atendido
+                const llave = llaveFicha(x);
+                if (!(modo && llave)) return enlace(x, dentro);
+                return `<label class="cli-av-urg-caja cli-av-urg-caja--elegir"><input type="checkbox" data-av-elegir="${esc(llave)}"` +
+                    `${avisosFicha.elegidos.has(llave) ? " checked" : ""}><div>${dentro}</div></label>`;
+            }).join("") + "</section>"
+            : `<p class="cli-av-tranquilo">Nada requiere atención en esta empresa.</p>`) +
+        `<div class="cli-av-cabeza"><div class="cli-av-grupos" role="group" aria-label="Grupo de avisos">` +
+            `<button type="button" data-av-grupo="" aria-pressed="${!avisosFicha.grupo}">Todos · ${d.avisos.length}</button>` +
+            d.grupos.map(g => `<button type="button" data-av-grupo="${esc(g.clave)}" aria-pressed="${avisosFicha.grupo === g.clave}"${cuenta[g.clave] ? "" : " disabled"}>` +
+                `${esc(g.nombre)}${cuenta[g.clave] ? " · " + cuenta[g.clave] : ""}</button>`).join("") +
+        `</div></div>` +
+        (lista.length ? `<div class="cli-av-lista">` + lista.slice(0, avisosFicha.mas).map(a => enlace(a,
+            ((a.urgente && !a.leida) || a.por_atender ? "<em>Requiere atención</em>" : "") + `<b>${esc(a.titulo)}</b>` +
+            (a.detalle ? `<span>${esc(a.detalle).replace(/\n/g, "<br>")}</span>` : "") +
+            (a.motivo && !a.urgente ? `<span>${esc(a.motivo)}</span>` : "") +
+            (a.atendido ? `<span class="cli-av-atendido">Lo atendió ${esc(a.atendido.por)} · ${esc(haceFicha(a.atendido.en))}</span>` : "") +
+            `<small>${esc(nombres[a.grupo] || "")} · ${esc(haceFicha(a.creada))}</small>`, (a.urgente && !a.leida) || a.por_atender ? "cli-av--urgente" : "")).join("") + "</div>" +
+            (lista.length > avisosFicha.mas ? `<button type="button" class="ui-btn ui-btn--secundario ui-btn--32 cli-av-mas" data-av-mas>Ver ${Math.min(20, lista.length - avisosFicha.mas)} más</button>` : "")
+            : `<p class="cli-av-tranquilo">Sin avisos${avisosFicha.grupo ? " de " + esc(nombres[avisosFicha.grupo]) : ""} de esta empresa.</p>`);
+}
+function llaveFicha(x) { return x && x.atender ? (x.aviso_id ? String(x.aviso_id) : String(x.atender.clave || "")) : ""; }
+function htmlAccionesFicha(atendibles) {
+    const elegidos = atendibles.filter(x => avisosFicha.elegidos.has(llaveFicha(x)));
+    return `<button type="button" class="ui-btn ui-btn--primario ui-btn--28" data-av-atender-varios${elegidos.length ? "" : " disabled"}>Ya los atendí (${elegidos.length})</button>` +
+        `<button type="button" class="cli-av-texto" data-av-elegir-todos>${elegidos.length === atendibles.length ? "Ninguno" : "Todos"}</button>` +
+        `<button type="button" class="cli-av-texto cli-av-texto--fin" data-av-atendiendo="0">Cancelar</button>`;
+}
+function atendiblesFicha() {
+    return Fiscontable.atenderAvisos ? ((avisosFicha.datos || {}).urgentes || []).filter(x => !!llaveFicha(x)) : [];
+}
+document.addEventListener("change", (e) => {
+    const c = e.target.closest && e.target.closest("#ficha-avisos [data-av-elegir]");
+    if (!c) return;
+    const id = c.dataset.avElegir;
+    if (c.checked) avisosFicha.elegidos.add(id); else avisosFicha.elegidos.delete(id);
+    const pie = document.getElementById("ficha-av-acciones");
+    if (pie) pie.innerHTML = htmlAccionesFicha(atendiblesFicha());
+});
+// «Ya los atendí (n)» desde la ficha, con los elegidos: lo mismo que en la campana (Fiscontable.atenderAvisos; un solo PIN si
+// alguno es de un mes cerrado o declarado)
+async function atenderVariosFicha(b) {
+    const cuales = atendiblesFicha().filter(x => avisosFicha.elegidos.has(llaveFicha(x)));
+    if (!cuales.length) return;
+    b.disabled = true;
+    try {
+        const r = await Fiscontable.atenderAvisos(cuales.map(llaveFicha), { pin: cuales.some(x => x.atender.pin),
+            titulos: cuales.map(x => String(x.titulo).replace(" · " + (x.alias || avisosFicha.datos.alias), "")) });
+        if (!r) { b.disabled = false; return; }
+        Fiscontable.toast(cuales.length === 1 ? "Atendido: ya no sale en «Requiere atención»." : "Atendidos: ya no salen en «Requiere atención».", document.getElementById("ficha-avisos"));
+    } catch (err) { Fiscontable.aviso(err.message); }            // (26-nov) un error no va en el aviso verde
+    cargarAvisosFicha(avisosFicha.rfc);                     // (todo o nada) si uno ya no estaba, se vuelve a leer
+}
+document.addEventListener("click", (e) => {
+    const caja = document.getElementById("ficha-avisos");
+    if (!caja || !caja.contains(e.target) || !avisosFicha.datos) return;
+    const modoAt = e.target.closest("[data-av-atendiendo]");
+    if (modoAt) {                                           // «Atender…» / «Cancelar»: entra o sale del modo de selección
+        avisosFicha.atendiendo = modoAt.dataset.avAtendiendo === "1"; avisosFicha.elegidos.clear();
+        pintarAvisosFicha(avisosFicha.datos);
+        return;
+    }
+    if (e.target.closest(".cli-av-urg-caja--elegir")) return;          // el renglón marca su casilla (no abre el aviso)
+    const varios = e.target.closest("[data-av-atender-varios]");
+    if (varios && !varios.disabled) { e.preventDefault(); atenderVariosFicha(varios); return; }
+    if (e.target.closest("[data-av-elegir-todos]")) {
+        const todos = atendiblesFicha(), ya = todos.every(x => avisosFicha.elegidos.has(llaveFicha(x)));
+        avisosFicha.elegidos.clear();
+        if (!ya) todos.forEach(x => avisosFicha.elegidos.add(llaveFicha(x)));
+        pintarAvisosFicha(avisosFicha.datos);
+        return;
+    }
+    const g = e.target.closest("[data-av-grupo]");
+    if (g) { avisosFicha.grupo = g.dataset.avGrupo; avisosFicha.mas = 20; pintarAvisosFicha(avisosFicha.datos); return; }
+    if (e.target.closest("[data-av-mas]")) { avisosFicha.mas += 20; pintarAvisosFicha(avisosFicha.datos); }
+});
 
 function pintarEfirmaFicha(cliente, conservarMensaje) {
     const badge = document.getElementById("editar-estado-efirma");
@@ -1288,7 +1444,10 @@ function abrirModalEditar(rfc, ficha) {
     pintarResumenFicha(cliente);
     pintarObligaciones(cliente);
     pintarXmlAuto(cliente);
+    avisosFicha = { rfc: null, datos: null, grupo: "", mas: 20, elegidos: new Set(), atendiendo: false };
+    document.getElementById("ficha-aviso-avisos").hidden = true;
     ponerFicha(ficha || "general");
+    if (ficha !== "avisos") cargarAvisosFicha(rfc, true);      // el punto rojo de la pestaña si hay algo urgente
     document.getElementById("modal-editar-cliente").classList.add("modal-active");
 }
 
@@ -2106,6 +2265,15 @@ async function pintarTraspasos() {
     try { d = await apiJson("/api/empresas/entregas"); } catch (x) { /* sin entregas */ }
     const pend = (d.recibidas || []).filter(e => e.estado === "pendiente");
     const e = espacioCli, personales = e && e.tipo === "personal" && e.despacho && !e.despacho.propia ? (clientesCache || []) : [];
+    // 24-nov-2026 (auditoría del 21-nov, M6): con Mi espacio apagado, las empresas que la persona tenía en su cuenta personal
+    // (de antes de entrar al despacho) no se veían en ningún lado. En Clientes del despacho se avisa y se ofrece traerlas.
+    let mias = null;
+    if (e && e.tipo === "despacho") {
+        try { mias = await apiJson("/api/despacho/mis-empresas"); } catch (x) { mias = null; }
+    }
+    const traer = mias && (mias.empresas || []).length ? mias : null;
+    // revisión a2bajo (24-nov-2026): las que ya pidió esperan al titular; el botón solo pide las que faltan
+    const porPedir = traer ? traer.empresas.filter(x => !x.pendiente) : [];
     const ocultas = entOcultas(), todas = [...(d.recibidas || []).map(x => [x, true]), ...(d.enviadas || []).map(x => [x, false])];
     const vistas = new Set(), curso = [], fallas = [];
     todas.forEach(([x, rec]) => {
@@ -2127,9 +2295,16 @@ async function pintarTraspasos() {
         fallas.map(([x, rec]) => cajaFalla(x, rec)).join("") +
         (personales.length ? `<div class="cli-traspaso cli-traspaso--suave"><span>Tienes ${personales.length} empresa(s) en <b>Mi espacio</b>. ` +
             `¿Son del despacho «${esc(e.despacho.nombre)}»?</span><span class="cli-traspaso__acc"><button type="button" class="ui-btn ui-btn--secundario ui-btn--32" data-pasar-todas>` +
-            `${e.despacho.agregar ? "Pasar todas al despacho" : "Pedir pasarlas al despacho"}</button></span></div>` : "");
+            `${e.despacho.agregar ? "Pasar todas al despacho" : "Pedir pasarlas al despacho"}</button></span></div>` : "") +
+        (traer ? `<div class="cli-traspaso cli-traspaso--suave"><span>Tienes ${traer.empresas.length} empresa(s) en tu cuenta personal que aquí no se ven: ` +
+            `<b>${esc(traer.empresas.slice(0, 3).map(x => x.alias).join(", "))}</b>${traer.empresas.length > 3 ? ` y ${traer.empresas.length - 3} más` : ""}.` +
+            `<small>Son de cuando usabas Fiscontable con tu correo. ${!porPedir.length ? "Ya le pediste al titular que las traiga; falta que acepte."
+                : traer.directo ? "Tráelas al despacho con todo su historial." : "Pídele al titular que las traiga al despacho con todo su historial."}</small></span>` +
+            (porPedir.length ? `<span class="cli-traspaso__acc"><button type="button" class="ui-btn ui-btn--secundario ui-btn--32" data-traer-personales>` +
+            `${traer.directo ? "Traerlas al despacho" : "Pedir traerlas"}</button></span>` : "") + `</div>` : "");
     caja.hidden = !caja.innerHTML;
     caja._entregas = d;
+    caja._mias = traer;
     clearTimeout(caja._sondeo);
     if (curso.length) caja._sondeo = setTimeout(pintarTraspasos, ENT_SONDEO_MS);
     if (acabaron.length) {
@@ -2149,6 +2324,7 @@ document.addEventListener("click", (ev) => {
     const a = ev.target.closest("[data-ent-aceptar]"), r = ev.target.closest("[data-ent-rechazar]"), p = ev.target.closest("[data-pasar-todas]");
     const o = ev.target.closest("[data-ent-ocultar]");
     if (o) { entOcultar(+o.dataset.entOcultar); pintarTraspasos(); return; }
+    if (ev.target.closest("[data-traer-personales]")) { traerPersonales(); return; }
     if (a) aceptarEntrega(+a.dataset.entAceptar);
     else if (r) rechazarEntrega(+r.dataset.entRechazar);
     else if (p) pasarTodas();
@@ -2260,6 +2436,26 @@ async function pasarTodas() {
         const ok = r.resultados.filter(x => x.ok), mal = r.resultados.filter(x => !x.ok);
         mostrarAlerta(mal.length ? "error" : "success", (ok.length ? (directo ? `${ok.length} empresa(s) ya están en el despacho.` : `Mandamos ${ok.length} solicitud(es) al titular.`) : "") +
             (mal.length ? " No pasaron: " + mal.map(x => x.rfc + " (" + x.motivo + ")").join(", ") : ""));
+        await cargarClientes(); pintarTraspasos();
+    } catch (x) { mostrarAlerta("error", x.message); }
+}
+
+// 24-nov-2026 (auditoría del 21-nov, M6): traer al despacho las empresas de la cuenta personal (Mi espacio apagado).
+// Quien puede agregar empresas al despacho las pasa directo; los demás mandan una solicitud por cada una al titular.
+async function traerPersonales() {
+    const r = (document.getElementById("cli-traspasos") || {})._mias;
+    const lista = ((r && r.empresas) || []).filter(x => !x.pendiente), directo = r && r.directo;
+    if (!lista.length) return;
+    if (!(await Fiscontable.confirmar({ titulo: `¿Traer ${lista.length} empresa(s) de tu cuenta personal al despacho «${r.despacho}»?`,
+        si: directo ? "Traerlas" : "Mandar las solicitudes",
+        texto: (directo ? "Pasan con todo su historial (XML, documentos, Buzón, facturas) y dejan de estar en tu cuenta personal. El equipo las verá según sus permisos."
+                        : "Le mandamos al titular una solicitud por cada una. Cuando las acepte, pasan con todo su historial.") +
+               " Empresas: " + lista.map(x => x.alias + " (" + x.rfc + ")").join(", ") + "." }))) return;
+    try {
+        const x = await apiJson("/api/despacho/pasar", { rfcs: lista.map(e => e.rfc) });
+        const bien = x.resultados.filter(y => y.ok), mal = x.resultados.filter(y => !y.ok);
+        mostrarAlerta(mal.length ? "error" : "success", (bien.length ? (x.directo ? `${bien.length} empresa(s) ya están en el despacho.` : `Mandamos ${bien.length} solicitud(es) al titular.`) : "") +
+            (mal.length ? " No pasaron: " + mal.map(y => y.rfc + " (" + y.motivo + ")").join(", ") : ""));
         await cargarClientes(); pintarTraspasos();
     } catch (x) { mostrarAlerta("error", x.message); }
 }

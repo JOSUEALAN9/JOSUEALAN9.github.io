@@ -86,6 +86,11 @@
         return Fiscontable.leerError(resp);         // 4xx: el servidor ya trae el motivo en palabras (cuota, plan…)
     }
 
+    function fechaCorta(iso) {            // «20-nov-2026»
+        var f = new Date(String(iso).length <= 19 ? iso + "Z" : iso);
+        if (isNaN(f)) return "";
+        return f.getDate() + "-" + ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"][f.getMonth()] + "-" + f.getFullYear();
+    }
     function fechaLarga(iso) {
         var f = new Date(iso + "Z");
         if (isNaN(f)) return "";
@@ -121,7 +126,7 @@
      * e.firma guardada, y si ya existe un documento reciente.
      */
     async function investigarRFC(rfc) {
-        var info = { pendiente: null, efirma: false, cache: null, registrado: null };
+        var info = { pendiente: null, efirma: false, cache: null, registrado: null, revision: null };
 
         try {
             var r1 = await fetch(API + "/api/trabajos/pendiente?rfc=" + encodeURIComponent(rfc) +
@@ -144,6 +149,7 @@
             if (r3.ok) {
                 var d = await r3.json();
                 if (d.existe) info.cache = d;
+                info.revision = d.revision || null;        // 24-nov-2026: la revisión semanal, aunque no haya PDF guardado
             }
         } catch (e) { /* no es bloqueante */ }
 
@@ -161,6 +167,7 @@
         estado = null;               // lo de la empresa anterior ya no vale para esta (se llena abajo)
         sinAlerta();
         quitarAjenos();
+        pintarEnCurso();
         esqueleto();
 
         var info = await investigarRFC(quien.rfc);
@@ -185,6 +192,7 @@
         estado = null;
         sinAlerta();
         quitarAjenos();
+        pintarEnCurso();
         pintarPaso2("");
     }
 
@@ -236,19 +244,36 @@
 
     /* --- Estado A: ya existe un documento reciente --- */
 
+    // Tono del sentido de la opinión: rojo si es negativa o no inscrito, ámbar si está en suspensión, verde lo demás
+    function tonoSentido(r) { return !r ? "ok" : (r === "Negativa" || r === "No inscrito" ? "error" : (/suspensi/i.test(r) ? "aviso" : "ok")); }
+    // ¿La revisión semanal es más nueva que el PDF guardado? (fechas ISO en UTC: se comparan como texto)
+    function revisionManda(rev, generadoEn) {
+        return !!(rev && rev.resultado && rev.revisada_en && (!generadoEn || String(rev.revisada_en).slice(0, 19) > String(generadoEn).slice(0, 19)));
+    }
+
     function vistaCache() {
         // G-08: bloque de estado (no un anuncio): qué documento hay, de cuándo y qué hacer con él
         var rev = estado.cache.revision, ant = estado.cache.anterior;
-        var res = estado.cache.resultado, tono = !res ? "ok" : (res === "Negativa" || res === "No inscrito" ? "error" : "ok");
+        var res = estado.cache.resultado, tono = tonoSentido(res);
         var titulo = MODULO.nombre.charAt(0).toUpperCase() + MODULO.nombre.slice(1) + " del " + fechaLarga(estado.cache.generado_en);
+        // 24-nov-2026 (auditoría sat_modulos-11): si la revisión semanal es más nueva que el PDF y encontró otro sentido, el
+        // título y el color son los de la revisión (antes quedaba en verde «Positiva» y la revisión iba en letra chica)
+        var contradice = revisionManda(rev, estado.cache.generado_en) && rev.resultado !== res;
+        var detalle = contradice
+            ? "El PDF guardado (del " + fechaLarga(estado.cache.generado_en) + ") " + (res ? "dice " + res.toLowerCase() : "no deja leer su sentido") +
+              ", pero la revisión más reciente la encontró " + rev.resultado.toLowerCase() + ": pide una nueva antes de mandarla. "
+            : (res === "Negativa" ? "El SAT la emitió en sentido negativo: ábrela para ver los motivos. " : "") +
+              (rev && rev.resultado ? "Revisada en el SAT el " + fechaLarga(rev.revisada_en) + ": " + rev.resultado.toLowerCase() +
+                 (rev.resultado === res ? ", sin cambios. " : ". ") : "");
         pintarPaso2(Fiscontable.bloqueEstado({
-            icono: "documento", tono: tono, titulo: titulo + (res ? " · " + res : ""),
-            detalle: (res === "Negativa" ? "El SAT la emitió en sentido negativo: ábrela para ver los motivos. " : "") +
-                     (rev && rev.resultado ? "Revisada en el SAT el " + fechaLarga(rev.revisada_en) + ": " + rev.resultado.toLowerCase() +
-                        (rev.resultado === res ? ", sin cambios. " : ". ") : "") +
-                     (estado.cache.expira_en ? "Se conserva hasta el " + fechaLarga(estado.cache.expira_en) + "." : ""),
-            acciones: [{ id: "btn-ver-cache", texto: "Ver", primario: true }, { id: "btn-cache", texto: "Descargar" },
-                       { id: "btn-enviar-cache", texto: "Enviar por correo" }, { id: "btn-nueva", texto: "Solicitar nueva al SAT" }]
+            icono: "documento", tono: contradice ? tonoSentido(rev.resultado) : tono,
+            titulo: contradice ? "Revisada en el SAT el " + fechaLarga(rev.revisada_en) + " · " + rev.resultado : titulo + (res ? " · " + res : ""),
+            detalle: detalle + (estado.cache.expira_en ? "Se conserva hasta el " + fechaLarga(estado.cache.expira_en) + "." : ""),
+            acciones: (contradice
+                ? [{ id: "btn-nueva", texto: "Solicitar nueva al SAT", primario: true }, { id: "btn-ver-cache", texto: "Ver la guardada" },
+                   { id: "btn-cache", texto: "Descargar" }, { id: "btn-enviar-cache", texto: "Enviar por correo" }]
+                : [{ id: "btn-ver-cache", texto: "Ver", primario: true }, { id: "btn-cache", texto: "Descargar" },
+                   { id: "btn-enviar-cache", texto: "Enviar por correo" }, { id: "btn-nueva", texto: "Solicitar nueva al SAT" }])
                 .concat(ant ? [{ id: "btn-anterior", texto: "La anterior (" + fechaLarga(ant.generado_en) + (ant.resultado ? " · " + ant.resultado : "") + ")" }] : [])
         }));
         if (ant) $("btn-anterior").addEventListener("click", function () {
@@ -289,10 +314,13 @@
     /* --- Estado B: e.firma guardada, sin documento reciente --- */
 
     function vistaEfirmaGuardada() {
+        // 24-nov-2026: sin PDF guardado pero con revisión semanal, se dice lo que encontró la revisión (no «sin opinión»)
+        var rev = estado && estado.revision && estado.revision.resultado ? estado.revision : null;
+        // 26-nov-2026 (el dueño: el texto de relleno sobre el PDF y la e.firma guardada): lo concreto, en corto
         pintarPaso2(Fiscontable.bloqueEstado({
-            icono: "documento", tono: "",
-            titulo: "Sin " + MODULO.nombre + " reciente",
-            detalle: "Se pide al SAT con la e.firma guardada de este contribuyente; no hay que subir nada.",
+            icono: "documento", tono: rev ? tonoSentido(rev.resultado) : "",
+            titulo: rev ? MODULO.nombre + " " + rev.resultado.toLowerCase() + " · " + fechaCorta(rev.revisada_en) : "Sin " + MODULO.nombre.toLowerCase() + " del mes",
+            detalle: rev ? "Revisada en el SAT; sin PDF guardado." : "Se pide al SAT con la e.firma guardada.",
             acciones: [{ id: "btn-generar", texto: "Solicitar " + MODULO.nombre + " al SAT", primario: true }]
         }));
         $("btn-generar").addEventListener("click", generarConEfirmaGuardada);
@@ -543,6 +571,7 @@
             clearInterval(seg.intervalo);
             delete seguimientos[jobId];
             if (enCurso[rfc] === jobId) delete enCurso[rfc];
+            pintarEnCurso();
         };
 
         async function vuelta() {
@@ -615,6 +644,38 @@
             vuelta().catch(function () { /* se intenta en la siguiente vuelta */ }).finally(function () { seg.ocupado = false; });
         }, 2000);
         sondeos.push(seg.intervalo);
+    }
+
+    /* 24-nov-2026 (Alan): al volver a la página (F5), lo que esta persona pidió y sigue en proceso, de cualquier empresa, se
+       vuelve a seguir y se dice con SU empresa («Sigue en proceso: constancia de …»); al terminar sale su aviso con Ver y
+       Descargar de ESE documento (avisoOtra), o su pantalla si es la empresa elegida. */
+    async function retomarEnCurso() {
+        try {
+            var r = await fetch(API + "/api/trabajos/en-curso?tipo=" + encodeURIComponent(MODULO.tipo), { credentials: "include" });
+            if (!r.ok) return;
+            var d = await r.json();
+            (d.trabajos || []).forEach(function (t) {
+                if (seguimientos[t.job_id]) return;
+                vigilarTrabajo(t.job_id, { rfc: t.rfc, alias: t.alias && t.alias !== t.rfc ? t.alias : "" });
+                if (seguimientos[t.job_id]) seguimientos[t.job_id].retomado = true;
+            });
+            pintarEnCurso();
+        } catch (e) { /* no es bloqueante */ }
+    }
+    // Una línea con los retomados que no son de la empresa en pantalla (la de la pantalla ya muestra su avance)
+    function pintarEnCurso() {
+        var nombres = Object.keys(seguimientos).map(function (id) { return seguimientos[id]; })
+            .filter(function (g) { return g.retomado && !(elegido && elegido.rfc === g.rfc); })
+            .map(function (g) { return g.nombre; });
+        var caja = $("en-curso-otras");
+        if (!nombres.length) { if (caja) caja.remove(); return; }
+        if (!caja) {
+            caja = document.createElement("p");
+            caja.id = "en-curso-otras"; caja.className = "ficha__nota"; caja.setAttribute("role", "status");
+            caja.style.cssText = "margin:0 0 12px;overflow-wrap:anywhere";
+            $("alerta").insertAdjacentElement("beforebegin", caja);
+        }
+        caja.textContent = "Sigue en proceso: " + MODULO.nombre.toLowerCase() + " de " + nombres.join(", ") + ". Te avisamos aquí al terminar.";
     }
 
     // El documento recién hecho, con lo que el servidor sabe de él (resultado, hasta cuándo se guarda). Sin respuesta, la fecha de hoy.
@@ -1211,6 +1272,7 @@
             alElegir: alElegirCliente,
             alLimpiar: alLimpiarCliente
         });
+        retomarEnCurso();            // 24-nov-2026: lo que sigue en proceso al volver a la página, con su empresa
 
         prepararDropzone();
         prepararDesdeClientes();

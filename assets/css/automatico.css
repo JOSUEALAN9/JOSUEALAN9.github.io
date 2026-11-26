@@ -1,0 +1,118 @@
+/* assets/css/automatico.css — «Lo automático» por día (assets/js/comun/automatico.js). Prefijo au-.
+   Lo usan Administración › Sistema › Tareas automáticas › Resumen y Configuración › Lo automático › Anoche. */
+.au { --au-verde: var(--ok-600, 6 118 71);   --au-verde-f: var(--ok-50, 236 253 243);
+      --au-ambar: 161 98 7;                  --au-ambar-f: 254 248 220;   --au-ambar-luz: 234 179 8;
+      --au-rojo: var(--er-600, 180 35 24);   --au-rojo-f: var(--er-50, 254 243 242);
+      --au-naranja: 194 65 12;               --au-naranja-f: 255 237 213; --au-naranja-luz: 249 115 22;
+      --au-azul: var(--in-600, 23 92 211);   --au-azul-f: var(--in-50, 239 248 255);
+      --au-gris: var(--g-500, 119 115 108);  --au-gris-f: var(--g-100, 244 244 242);
+      font-size: var(--t-14); min-width: 0; }
+.au [hidden] { display: none !important; }
+.au-cabeza { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; margin-bottom: 14px; }
+.au-dias { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; min-width: 0; }
+.au-dia { font-size: var(--t-13); font-weight: 600; color: rgb(var(--g-700)); background: rgb(var(--g-0)); border: 1px solid var(--linea);
+    border-radius: 999px; padding: 5px 12px; cursor: pointer; }
+.au-dia[aria-pressed="true"] { background: rgb(var(--g-800)); border-color: rgb(var(--g-800)); color: #fff; }
+.au-select { font-size: var(--t-13); border: 1px solid var(--linea); border-radius: 8px; padding: 5px 8px; background: rgb(var(--g-0));
+    color: rgb(var(--g-800)); max-width: 100%; min-width: 0; }
+.au-cuenta { margin-left: auto; max-width: 260px; }
+.au-total { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; border: 1px solid var(--linea); border-radius: 12px;
+    padding: 14px 16px; margin-bottom: 12px; background: rgb(var(--g-0)); }
+.au-total b { font-size: var(--t-16); }
+.au-total__cifras { color: rgb(var(--g-600)); font-size: var(--t-13); }
+.au-total__cifras strong { color: rgb(var(--g-900)); }
+.au-paquete { margin-left: auto; font-size: var(--t-13); font-weight: 600; color: rgb(var(--ac-700, 8 97 63)); text-decoration: underline; }
+.au-lista { list-style: none; margin: 0; padding: 0; border: 1px solid var(--linea); border-radius: 12px; overflow: hidden; background: rgb(var(--g-0)); }
+.au-proc + .au-proc { border-top: 1px solid var(--linea); }
+.au-fila { width: 100%; display: grid; grid-template-columns: 12px minmax(0, 1fr) auto 96px 18px; align-items: center; gap: 12px;
+    padding: 12px 16px; background: none; border: 0; text-align: left; cursor: pointer; color: inherit; font: inherit; }
+.au-fila:hover { background: rgb(var(--g-50)); }
+.au-fila:focus-visible { outline: 2px solid var(--acento); outline-offset: -2px; }
+.au-luz { width: 12px; height: 12px; border-radius: 50%; background: rgb(var(--au-gris)); box-shadow: 0 0 0 3px rgb(var(--au-gris-f)); }
+.au-luz--verde { background: rgb(var(--au-verde)); box-shadow: 0 0 0 3px rgb(var(--au-verde-f)); }
+.au-luz--ambar { background: rgb(var(--au-ambar-luz)); box-shadow: 0 0 0 3px rgb(var(--au-ambar-f)); }   /* amarillo, naranja y rojo se distinguen */
+.au-luz--rojo { background: rgb(var(--au-rojo)); box-shadow: 0 0 0 3px rgb(var(--au-rojo-f)); }
+.au-luz--naranja { background: rgb(var(--au-naranja-luz)); box-shadow: 0 0 0 3px rgb(var(--au-naranja-f)); }
+.au-luz--azul { background: rgb(var(--au-azul)); box-shadow: 0 0 0 3px rgb(var(--au-azul-f)); }
+.au-nombre { min-width: 0; }
+.au-nombre b { display: block; font-size: var(--t-14); }
+.au-nombre small { display: block; color: rgb(var(--g-600)); font-size: var(--t-13); overflow-wrap: anywhere; }
+.au-hora { font-size: var(--t-12); color: rgb(var(--g-500)); text-align: right; white-space: nowrap; }
+.au-flecha { width: 18px; height: 18px; color: rgb(var(--g-400)); transition: transform .15s; }
+.au-fila[aria-expanded="true"] .au-flecha { transform: rotate(180deg); }
+.au-chip { display: inline-block; font-size: 12px; font-weight: 700; border-radius: 999px; padding: 2px 10px; white-space: nowrap;
+    background: rgb(var(--au-gris-f)); color: rgb(var(--au-gris)); }
+.au-chip--verde { background: rgb(var(--au-verde-f)); color: rgb(var(--au-verde)); }
+.au-chip--ambar { background: rgb(var(--au-ambar-f)); color: rgb(var(--au-ambar)); }
+.au-chip--rojo { background: rgb(var(--au-rojo-f)); color: rgb(var(--au-rojo)); }
+.au-chip--naranja { background: rgb(var(--au-naranja-f)); color: rgb(var(--au-naranja)); }
+.au-chip--azul { background: rgb(var(--au-azul-f)); color: rgb(var(--au-azul)); }
+.au-chip[data-explica] { cursor: help; text-decoration: underline dotted; text-underline-offset: 3px; }
+.au-pop { display: block; margin-top: 6px; font-size: var(--t-12); font-weight: 400; color: rgb(var(--g-700)); background: rgb(var(--au-naranja-f));
+    border-radius: 8px; padding: 8px 10px; max-width: 360px; white-space: normal; }
+.au-desglose { padding: 4px 16px 16px 40px; display: flex; flex-direction: column; gap: 12px; }
+.au-explica { border-radius: 10px; padding: 12px 14px; background: rgb(var(--au-naranja-f)); color: rgb(var(--g-800)); font-size: var(--t-13); }
+.au-explica b { display: block; margin-bottom: 2px; color: rgb(var(--au-naranja)); }
+.au-nota { font-size: var(--t-13); color: rgb(var(--g-600)); margin: 0; }
+/* 24-nov-2026 (madrugada-7): el aviso de la noche (p. ej. «Se reinició el servidor a las 3:40…»), arriba de la lista */
+.au-aviso { margin: 0 0 12px; border-radius: 10px; padding: 10px 14px; background: rgb(var(--au-azul-f)); color: rgb(var(--g-800));
+    font-size: var(--t-13); overflow-wrap: anywhere; }
+.au-herr { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; }
+.au-herr label { display: inline-flex; align-items: center; gap: 6px; font-size: var(--t-13); color: rgb(var(--g-700)); }
+.au-herr .ui-btn { margin-left: auto; }
+.au-tabla-caja { overflow-x: auto; min-width: 0; }
+.au-tabla { width: 100%; border-collapse: collapse; font-size: var(--t-13); }
+.au-tabla th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: rgb(var(--g-500)); font-weight: 700;
+    padding: 6px 8px; border-bottom: 1px solid var(--linea); white-space: nowrap; }
+.au-tabla td { padding: 8px; border-bottom: 1px solid rgb(var(--g-100)); vertical-align: top; }
+.au-tabla td small { display: block; color: rgb(var(--g-500)); font-size: var(--t-12); }
+.au-tabla td[data-t="Por qué"], .au-tabla td[data-t="Resultado"], .au-tabla td[data-t="Detalle"] { max-width: 420px; color: rgb(var(--g-700)); overflow-wrap: anywhere; }
+.au-tabla tr[hidden] { display: none !important; }
+.au-tabla .ui-btn, .au-tabla a.au-enlace { white-space: nowrap; }
+.au-enlace { font-size: var(--t-12); font-weight: 600; color: rgb(var(--ac-700, 8 97 63)); text-decoration: underline; }
+.au-msj { font-size: var(--t-13); min-height: 1em; }
+.au-msj--ok { color: rgb(var(--au-verde)); }
+.au-msj--mal { color: rgb(var(--au-rojo)); }
+.au-vacio { text-align: center; color: rgb(var(--g-600)); padding: 28px 16px; border: 1px dashed var(--linea); border-radius: 12px; }
+.au-vacio b { display: block; color: rgb(var(--g-800)); margin-bottom: 4px; }
+.au-leyenda { display: flex; flex-wrap: wrap; gap: 6px 14px; margin: 10px 0 0; font-size: var(--t-12); color: rgb(var(--g-500)); }
+.au-leyenda span { display: inline-flex; align-items: center; gap: 6px; }
+.au-leyenda .au-luz { width: 8px; height: 8px; box-shadow: none; }
+@media (max-width: 640px) {
+    .au-cuenta { margin-left: 0; max-width: 100%; flex: 1 1 100%; }
+    .au-fila { grid-template-columns: 12px minmax(0, 1fr) auto; gap: 4px 10px; padding: 12px; }
+    .au-fila .au-hora { grid-column: 2; grid-row: 2; text-align: left; }
+    .au-fila .au-flecha { display: none; }
+    .au-desglose { padding: 4px 12px 14px; }
+    .au-paquete { margin-left: 0; flex: 1 1 100%; }
+    .au-herr .ui-btn { margin-left: 0; }
+    .au-tabla thead { display: none; }
+    .au-tabla, .au-tabla tbody { display: block; width: 100%; }
+    .au-tabla tr { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; border: 1px solid var(--linea); border-radius: 10px;
+        padding: 10px; margin-bottom: 8px; }
+    .au-tabla td { border: 0; padding: 0; max-width: 100% !important; }
+    .au-tabla td:first-child { flex: 1 1 60%; min-width: 0; }
+    .au-tabla td[data-t="Por qué"], .au-tabla td[data-t="Resultado"], .au-tabla td[data-t="Detalle"] { flex: 1 1 100%; }
+    .au-tabla td[data-t="Máquina"], .au-tabla td[data-t="Hora"], .au-tabla td[data-t="Intentos"], .au-tabla td[data-t="Tardó"] { font-size: var(--t-12); color: rgb(var(--g-600)); }
+    .au-tabla td[data-t="Intentos"]::before { content: "Intentos "; color: rgb(var(--g-400)); }
+    .au-tabla td:empty { display: none; }
+}
+
+/* «¿Puedo reiniciar?» (Administración › Sistema › Portal y acciones; admin.js) */
+.au-sem { border: 1px solid var(--linea); border-radius: 12px; padding: 14px 16px; background: rgb(var(--g-0)); display: flex; flex-direction: column; gap: 12px; }
+.au-sem--verde { border-color: rgb(var(--au-verde) / .35); background: rgb(var(--au-verde-f)); }
+.au-sem--ambar { border-color: rgb(var(--au-ambar) / .35); background: rgb(var(--au-ambar-f)); }
+.au-sem--rojo { border-color: rgb(var(--au-rojo) / .35); background: rgb(var(--au-rojo-f)); }
+.au-sem__cabeza { display: flex; align-items: center; gap: 12px; }
+.au-sem__cabeza .au-luz { width: 16px; height: 16px; flex: none; }
+.au-sem__cabeza b { display: block; font-size: var(--t-16); }
+.au-sem__cabeza small, .au-sem__renglon small { display: block; color: rgb(var(--g-600)); font-size: var(--t-12); overflow-wrap: anywhere; }
+.au-sem__lista { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.au-sem__renglon { display: flex; gap: 10px; align-items: flex-start; font-size: var(--t-13); min-width: 0; }
+.au-sem__renglon .au-luz { width: 9px; height: 9px; margin-top: 5px; flex: none; box-shadow: none; }
+.au-sem__renglon > div { min-width: 0; }
+.au-sem__quienes { color: rgb(var(--g-800)) !important; }
+.au-wa { border-top: 1px solid rgb(var(--g-900) / .08); padding-top: 10px; }
+.au-wa small { display: block; font-size: var(--t-12); color: rgb(var(--g-500)); margin-bottom: 4px; }
+.au-wa p { margin: 0; font-size: var(--t-13); background: rgb(var(--g-0)); border: 1px solid var(--linea); border-radius: 8px; padding: 8px 10px; }
+.au-wa__botones { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }

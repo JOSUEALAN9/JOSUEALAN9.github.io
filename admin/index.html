@@ -4,22 +4,23 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Administrar Usuarios | Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611231800">
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611231800">
-    <link rel="stylesheet" href="/admin/creditos-admin.css?v=202611231800">
-    <link rel="stylesheet" href="/admin/documentos-admin.css?v=202611231800">
-    <link rel="stylesheet" href="/admin/migracion-admin.css?v=202611231800">
-    <link rel="stylesheet" href="/admin/tareas-admin.css?v=202611231800">
-    <link rel="stylesheet" href="/admin/licencias-admin.css?v=202611231800">
-    <link rel="stylesheet" href="/admin/pendientes-admin.css?v=202611231800">
-    <link rel="stylesheet" href="/admin/correos-admin.css?v=202611231800">
-    <link rel="stylesheet" href="/admin/errores-servidor-admin.css?v=202611231800">
+    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611271300">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611271300">
+    <link rel="stylesheet" href="/admin/creditos-admin.css?v=202611271300">
+    <link rel="stylesheet" href="/admin/documentos-admin.css?v=202611271300">
+    <link rel="stylesheet" href="/admin/migracion-admin.css?v=202611271300">
+    <link rel="stylesheet" href="/admin/tareas-admin.css?v=202611271300">
+    <link rel="stylesheet" href="/assets/css/automatico.css?v=202611271300">
+    <link rel="stylesheet" href="/admin/licencias-admin.css?v=202611271300">
+    <link rel="stylesheet" href="/admin/pendientes-admin.css?v=202611271300">
+    <link rel="stylesheet" href="/admin/correos-admin.css?v=202611271300">
+    <link rel="stylesheet" href="/admin/errores-servidor-admin.css?v=202611271300">
 </head>
 <body class="min-h-screen flex flex-col relative">
 
     <div id="app-header" data-modulo="admin" data-titulo="Administración" data-migas=""></div>
-<script src="/assets/js/nucleo.js?v=202611231800"></script>
-<script src="/assets/js/barra.js?v=202611231800"></script>
+<script src="/assets/js/nucleo.js?v=202611271300"></script>
+<script src="/assets/js/barra.js?v=202611271300"></script>
 
     <main class="flex-grow p-4 sm:p-6 w-full max-w-4xl mx-auto fc-principal">
         <style>
@@ -100,6 +101,7 @@
                 <button type="button" class="pestana" role="tab" data-pestana="documentos" data-de-grupo="operacion">Documentos <span class="text-amber-600 font-semibold" id="cuenta-documentos"></span></button>
                 <button type="button" class="pestana" role="tab" data-pestana="sistema" data-de-grupo="sistema">Sistema <span class="text-amber-600 font-semibold" id="cuenta-pendientes"></span><span class="text-amber-600 font-semibold" id="alerta-sistema"></span></button>
                 <a class="pestana" data-de-grupo="sistema" href="/admin/laboratorio/" title="Recorrer un portal del SAT y guardar el registro (solo lectura)">Laboratorio ↗</a>
+                <a class="pestana" data-de-grupo="sistema" href="/admin/probar/" title="Probar de verdad, con tus empresas, lo que hace Fiscontable (sin efecto fiscal)">Probar todo ↗</a>
             </div>
 
             <!-- ============ USUARIOS ============ -->
@@ -167,7 +169,7 @@
                 </div>
                 <div class="bg-white rounded-xl card-elevated border border-gray-200 p-5 mt-4" id="caja-precios">
                     <h3 class="text-[15px] font-bold text-slate-800">Planes y precios</h3>
-                    <p class="text-xs text-slate-500 mt-1 mb-3">Lo que ve cada usuario en Configuración › Plan y créditos. Al asignar un plan, el usuario queda con el rol del plan (sus módulos se eligen arriba) y su tope de empresas. Sin plan asignado no hay tope. Los timbres del plan son informativos: se asignan en Facturar › Timbres.</p>
+                    <p class="text-xs text-slate-500 mt-1 mb-3">Lo que ve cada usuario en Configuración › Plan y licencia. Al asignar un plan, el usuario queda con el rol del plan (sus módulos se eligen arriba) y su tope de empresas. Sin plan asignado no hay tope. Los timbres del plan son informativos: se asignan en Facturar › Timbres.</p>
                     <div id="pr-planes" class="flex flex-col gap-2"></div>
                     <button type="button" id="pr-mas-plan" class="text-xs font-bold text-violet-700 border border-violet-200 hover:bg-violet-50 rounded-lg py-1.5 px-3 mt-2">+ Plan</button>
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
@@ -287,7 +289,7 @@
             <section id="panel-despachos" role="tabpanel" hidden>
                 <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
                     <p class="text-sm text-slate-500 max-w-2xl">Un despacho comparte empresas con su equipo; cada persona conserva su propio espacio. Siempre nace de una
-                        <b>clave de despacho</b>: su titular la activa en Configuración › Plan y créditos, o tú la ligas aquí con «+ Nuevo despacho». El titular invita a su equipo y da los permisos desde <b>Mi despacho</b>.</p>
+                        <b>clave de despacho</b>: su titular la activa en Configuración › Plan y licencia, o tú la ligas aquí con «+ Nuevo despacho». El titular invita a su equipo y da los permisos desde <b>Mi despacho</b>.</p>
                     <button type="button" class="ui-btn ui-btn--primario ui-btn--36" id="dsa-nuevo">+ Nuevo despacho</button>
                 </div>
                 <div class="bg-white rounded-xl card-elevated border border-gray-200 overflow-hidden">
@@ -315,7 +317,7 @@
                     <button type="button" class="ui-btn ui-btn--primario ui-btn--36" id="lca-emitir">+ Emitir licencias</button>
                 </div>
                 <p class="text-sm text-slate-500 mb-4 max-w-3xl">Cada clave es al azar, sirve una sola vez y queda ligada a la cuenta que la activa. Aquí solo se ven sus últimos 4 caracteres:
-                    la clave completa se muestra una sola vez, al emitirla. El cliente la activa en <b>fiscontable.app/activar</b> o en Configuración → Plan y créditos.</p>
+                    la clave completa se muestra una sola vez, al emitirla. El cliente la activa en <b>fiscontable.app/activar</b> o en Configuración → Plan y licencia.</p>
                 <div class="bg-white rounded-xl card-elevated border border-gray-200 overflow-hidden">
                     <div class="overflow-x-auto">
                         <table class="w-full text-sm lc-tabla">
@@ -511,10 +513,37 @@
 
                 <h2 class="text-xs font-bold text-slate-500 uppercase tracking-wide mb-3">Acciones</h2>
                 <div class="bg-white rounded-xl card-elevated border border-gray-200 divide-y divide-gray-100 mb-6">
+                    <!-- 23-nov-2026 (el dueño): «¿Puedo reiniciar?» — el semáforo antes de un pase (admin.js revisarReinicio; core/reinicio.py) -->
+                    <div class="p-5">
+                        <div class="flex flex-wrap items-center gap-3">
+                            <div class="flex-grow min-w-[220px]">
+                                <p class="font-bold text-slate-800">¿Puedo reiniciar?</p>
+                                <p class="text-xs text-slate-500 mt-0.5">Quién está conectado y qué se cortaría ahora. En la terminal de la Vostro da lo mismo: <code>python3 herramientas/puedo_reiniciar.py</code></p>
+                            </div>
+                            <button type="button" id="btn-puedo-reiniciar" class="text-sm font-bold text-slate-700 border border-gray-200 hover:border-slate-400 rounded-lg py-2 px-4">Revisar</button>
+                        </div>
+                        <div id="semaforo-reinicio" class="mt-3" hidden></div>
+                    </div>
+                    <!-- 24-nov-2026: «Preparar reinicio» — aviso con cuenta regresiva en las páginas abiertas y mantenimiento que se
+                         apaga solo cuando el servidor vuelve (core/sistema.preparar_reinicio) -->
+                    <div class="p-5">
+                        <div class="flex flex-wrap items-center gap-3">
+                            <div class="flex-grow min-w-[220px]">
+                                <p class="font-bold text-slate-800">Preparar reinicio</p>
+                                <p class="text-xs text-slate-500 mt-0.5">Avisa en todas las páginas abiertas con cuenta regresiva y prende el modo mantenimiento (no se empiezan trámites nuevos). El mantenimiento se apaga solo cuando el servidor vuelve.</p>
+                            </div>
+                            <select id="sel-reinicio-min" class="text-sm border border-gray-200 rounded-lg py-2 px-2" aria-label="En cuántos minutos">
+                                <option value="5">En 5 minutos</option><option value="10">En 10 minutos</option><option value="15">En 15 minutos</option><option value="30">En 30 minutos</option>
+                            </select>
+                            <button type="button" id="btn-preparar-reinicio" class="text-sm font-bold text-slate-700 border border-gray-200 hover:border-slate-400 rounded-lg py-2 px-4">Avisar</button>
+                            <button type="button" id="btn-cancelar-reinicio" class="text-sm font-bold text-slate-500 border border-gray-200 hover:border-slate-400 rounded-lg py-2 px-4" hidden>Cancelar aviso</button>
+                        </div>
+                        <p id="estado-reinicio" class="text-xs font-bold mt-3 text-slate-400"></p>
+                    </div>
                     <div class="p-5 flex flex-wrap items-center gap-3">
                         <div class="flex-grow min-w-[220px]">
                             <p class="font-bold text-slate-800">Reiniciar servidor</p>
-                            <p class="text-xs text-slate-500 mt-0.5">Se apaga y vuelve solo en unos segundos. Los lotes en curso quedan como interrumpidos y se reanudan con confirmación.</p>
+                            <p class="text-xs text-slate-500 mt-0.5">Se apaga y vuelve solo en unos segundos. Antes te enseña el «¿Puedo reiniciar?». Lo que se pide solo se vuelve a pedir una vez y los lotes quedan interrumpidos para reanudarse.</p>
                         </div>
                         <button type="button" id="btn-reiniciar" class="text-sm font-bold text-red-600 border border-red-200 hover:bg-red-50 rounded-lg py-2 px-4">Reiniciar</button>
                     </div>
@@ -643,7 +672,7 @@
                         <label class="ui-check"><input type="radio" name="lca-tipo" value="despacho"> Despacho (equipo)</label>
                         <label class="ui-check"><input type="radio" name="lca-tipo" value="lugares"> Lugares extra (a un despacho)</label></div></fieldset>
                 <p class="ui-aviso" id="lca-ayuda-lugares" hidden>Se suman a los lugares que ya tiene el despacho (6 + 2 = 8). No cambian su vigencia ni dan timbres: corren hasta
-                    que venza el despacho. La activa su titular en Configuración › Plan y créditos. Para renovar, emite otra de «Despacho».</p>
+                    que venza el despacho. La activa su titular en Configuración › Plan y licencia. Para renovar, emite otra de «Despacho».</p>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <label class="ui-campo"><span class="ui-etiqueta">Plan</span><select class="ui-select" id="lca-plan"></select></label>
                     <label class="ui-campo" id="lca-campo-meses"><span class="ui-etiqueta">Duración</span><select class="ui-select" id="lca-meses"></select></label>
@@ -910,20 +939,21 @@
         </div>
     </div>
 
-<script src="/admin/admin.js?v=202611231800"></script>
-<script src="/admin/creditos-admin.js?v=202611231800"></script>
-<script src="/admin/planes-admin.js?v=202611231800"></script>
-<script src="/admin/documentos-admin.js?v=202611231800"></script>
-<script src="/admin/plazos-admin.js?v=202611231800"></script>
-<script src="/admin/vencidas-admin.js?v=202611231800"></script>
-<script src="/admin/despachos-admin.js?v=202611231800"></script>
-<script src="/admin/licencias-admin.js?v=202611231800"></script>
-<script src="/admin/demos-admin.js?v=202611231800"></script>
-<script src="/admin/migracion-admin.js?v=202611231800"></script>
-<script src="/admin/tareas-admin.js?v=202611231800"></script>
-<script src="/admin/servidores-admin.js?v=202611231800"></script>
-<script src="/admin/pendientes-admin.js?v=202611231800"></script>
-<script src="/admin/correos-admin.js?v=202611231800"></script>
-<script src="/admin/errores-servidor-admin.js?v=202611231800"></script>
+<script src="/admin/admin.js?v=202611271300"></script>
+<script src="/admin/creditos-admin.js?v=202611271300"></script>
+<script src="/admin/planes-admin.js?v=202611271300"></script>
+<script src="/admin/documentos-admin.js?v=202611271300"></script>
+<script src="/admin/plazos-admin.js?v=202611271300"></script>
+<script src="/admin/vencidas-admin.js?v=202611271300"></script>
+<script src="/admin/despachos-admin.js?v=202611271300"></script>
+<script src="/admin/licencias-admin.js?v=202611271300"></script>
+<script src="/admin/demos-admin.js?v=202611271300"></script>
+<script src="/admin/migracion-admin.js?v=202611271300"></script>
+<script src="/assets/js/comun/automatico.js?v=202611271300"></script>
+<script src="/admin/tareas-admin.js?v=202611271300"></script>
+<script src="/admin/servidores-admin.js?v=202611271300"></script>
+<script src="/admin/pendientes-admin.js?v=202611271300"></script>
+<script src="/admin/correos-admin.js?v=202611271300"></script>
+<script src="/admin/errores-servidor-admin.js?v=202611271300"></script>
 </body>
 </html>

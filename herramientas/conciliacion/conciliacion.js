@@ -41,7 +41,8 @@
     var E = {
         perfil: null, empresa: null, contribuyentes: [], otras: [], rfc: null, otra: null, clientesLista: null,
         lado: leer("lado") || "emitidos", datos: null, regla: leer("regla") || "dof", movsPorFactura: {},
-        estado: "", tarjeta: null, rapidos: {}, av: {}, busqueda: "", tablas: {}, filtradas: [], facturaAbierta: null
+        estado: "", tarjeta: null, rapidos: {}, av: {}, busqueda: "", tablas: {}, filtradas: [], facturaAbierta: null,
+        vistas: null, inicial: {}, vistaSel: {}, puedeCompartir: false, enDespacho: false, f2: null
     };
 
     /* ============================================================ utilidades */
@@ -73,7 +74,7 @@
     async function iniciar() {
         if (!(await Fiscontable.exigirModulo("conciliacion"))) return;
         E.perfil = await Fiscontable.perfil();
-        pintarMonedaExcel();
+        E.enDespacho = ((E.perfil && E.perfil.espacio) || {}).tipo === "despacho";
         // 18-nov: «Ampliar» deja solo la tabla (buscador, filtros, lo seleccionado y el avance de la validación)
         Fiscontable.ampliar({ en: ".xml-toolbar__der", quedan: [".xml-toolbar", "#avance-validacion", "#barra-seleccion", "#tablas-marco", ".xml-pie"] });
         var q = new URLSearchParams(location.search);
@@ -119,51 +120,268 @@
     }
 
     /* ============================================================ tablas (una por lado) */
+    /* Dos tablas por lado: la de «Fiscontable» (y las vistas guardadas a partir de ella) y la de «Formato 2» (la hoja
+       «Conciliacion» del programa anterior con nuestras columnas al final; se arma cuando se elige esa vista). */
     function prepararTablas() {
         ["emitidos", "recibidos"].forEach(function (lado) {
-            var caja = document.createElement("div");
-            caja.className = "xml-tabla-caja";
-            caja.hidden = lado !== E.lado;
-            $("tablas").appendChild(caja);
-            E.tablas[lado] = { caja: caja, tabla: null };
-        });
-        E.menuVistas = FCTabla.menuVistas({
-            menu: $("menu-vistas"), etiqueta: $("nombre-vista"),
-            tabla: {
-                vistaActual: function () { return tabla() ? tabla().vistaActual() : ""; },
-                columnas: function () { return tabla().columnas(); },
-                aplicarVista: function (v) { tabla().aplicarVista(v); },
-                marcarVista: function (n) { tabla().marcarVista(n); }
-            },
-            listar: async function () {
-                var todas = await apiJSON("/api/conciliacion/vistas");
-                return todas.filter(function (v) { return v.lado === E.lado; });
-            },
-            guardar: function (nombre, pred, cols) {
-                return enviar("/api/conciliacion/vistas", { lado: E.lado, nombre: nombre, columnas: cols, predeterminada: !!pred }, "PUT");
-            },
-            borrar: function (v) { return api("/api/conciliacion/vistas/" + v.id, { method: "DELETE" }); }
+            var caja = document.createElement("div"), cajaF2 = document.createElement("div");
+            caja.className = cajaF2.className = "xml-tabla-caja";
+            caja.hidden = lado !== E.lado; cajaF2.hidden = true;
+            $("tablas").appendChild(caja); $("tablas").appendChild(cajaF2);
+            E.tablas[lado] = { caja: caja, tabla: null, cajaF2: cajaF2, f2: null, lista: false };
         });
     }
 
-    function tabla() { return E.tablas[E.lado].tabla; }
+    /* La tabla que se ve (la de la vista activa). */
+    function tabla() { var t = E.tablas[E.lado]; return baseActual() === "formato2" ? t.f2 : t.tabla; }
 
     async function asegurarTabla() {
         var t = E.tablas[E.lado];
-        await E.menuVistas.recargar();
+        if (E.vistas === null) await cargarVistas();
         if (!t.tabla) {
             t.tabla = FCTabla.crear({
                 caja: t.caja, id: "conc-" + E.lado, catalogo: E.datos.columnas, predeterminadas: E.datos.predeterminadas,
                 sellos: SELLOS, etiquetas: { estado_conciliacion: nombreEstado }, anchoClave: ANCHOS, claveFila: "uuid",
                 claseFila: function (f) { return f.estado_conciliacion === "Cancelada" ? "fila-cancelada" : ""; },
                 alClic: abrirFactura,
+                // 23-nov-2026 (decisión E): el folio es un enlace real a la factura (Ctrl+clic o clic medio: otra pestaña)
+                ligaFila: function (f) { return puede("validador") && Fiscontable.urlFactura ? Fiscontable.urlFactura(E.rfc, f.uuid) : ""; },
                 alSeleccionar: pintarSeleccion,
-                alCambiarColumnas: function () { E.menuVistas.pintar(); }
+                alCambiarColumnas: alCambiarColumnas
             });
-            t.tabla.iniciarColumnas(E.menuVistas.predeterminada());
-            E.menuVistas.pintar();
+            t.tabla.iniciarColumnas(null);
         }
-        Object.keys(E.tablas).forEach(function (l) { E.tablas[l].caja.hidden = l !== E.lado; });
+        if (!t.lista) { t.lista = true; vistaAlAbrir(); }
+        if (baseActual() === "formato2" && !f2Listo()) await pedirF2();
+        mostrarTabla();
+    }
+
+    function mostrarTabla() {
+        var f2 = baseActual() === "formato2";
+        Object.keys(E.tablas).forEach(function (l) {
+            var t = E.tablas[l];
+            t.caja.hidden = l !== E.lado || f2;
+            t.cajaF2.hidden = l !== E.lado || !f2 || !t.f2;
+        });
+    }
+
+    /* ============================================================ vistas */
+    /* 23-nov-2026 (el dueño, A.6 del Avance 1): menú «Vista ▾» arriba de la tabla, el mismo servicio de Administración de
+       XML. «Fiscontable» (la de siempre, la que viene puesta), «Formato 2» (la hoja «Conciliacion» del programa anterior, con
+       nuestras columnas al final) y las vistas guardadas: «Mis vistas» y, en un despacho, «Del despacho». Mover, quitar o
+       agregar columnas deja la vista «con cambios» y aparece «Guardar como vista nueva». Las dos de base nunca se
+       sobrescriben. Lo acomodado sin guardar se recuerda en este navegador (por lado). */
+    var BASES = { fiscontable: "Fiscontable", formato2: "Formato 2" };
+
+    async function cargarVistas() {
+        try {
+            var d = await apiJSON("/api/conciliacion/vistas?con_estado=1");
+            E.vistas = d.vistas || []; E.inicial = d.inicial || {}; E.puedeCompartir = !!d.puede_compartir;
+        } catch (e) { E.vistas = []; E.inicial = {}; E.puedeCompartir = false; }
+    }
+    function selActual() { return E.vistaSel[E.lado] || { tipo: "fiscontable" }; }
+    function vistaGuardada(id) { return (E.vistas || []).find(function (v) { return v.id === id && v.lado === E.lado; }) || null; }
+    function baseActual() {
+        var s = selActual();
+        if (s.tipo === "guardada") return (vistaGuardada(s.id) || {}).base === "formato2" ? "formato2" : "fiscontable";
+        return s.tipo === "formato2" ? "formato2" : "fiscontable";
+    }
+    function nombreVistaActual() {
+        var s = selActual();
+        return s.tipo === "guardada" ? ((vistaGuardada(s.id) || {}).nombre || "Fiscontable") : BASES[s.tipo] || "Fiscontable";
+    }
+    function claveDe(c) { return typeof c === "string" ? c : (c && c.clave) || ""; }
+    function columnasDeVista(s) {
+        var t = E.tablas[E.lado], cols;
+        if (s.tipo === "guardada") { var v = vistaGuardada(s.id); cols = v ? v.columnas : null; }
+        else if (s.tipo === "formato2") cols = E.f2 ? E.f2.columnas.map(function (c) { return c.clave; }) : [];
+        if (!cols) cols = (E.datos && E.datos.predeterminadas) || [];
+        return cols.map(function (c) { return typeof c === "string" ? { clave: c, ancho: 0 } : { clave: c.clave, ancho: c.ancho || 0 }; })
+            .filter(function (c) { return !!c.clave; });
+    }
+    function firma(cols) { return cols.map(claveDe).join("|"); }
+    function conCambios() {
+        var t = tabla();
+        if (!t || (baseActual() === "formato2" && !f2Listo())) return false;
+        var hay = {};
+        t.columnas().forEach(function (c) { hay[c.clave] = 1; });
+        var esperadas = columnasDeVista(selActual()).filter(function (c) { return t.etiqueta(c.clave) !== c.clave || hay[c.clave]; });
+        return firma(t.columnas()) !== firma(esperadas);
+    }
+    function recordar() { guardar("vista3:" + E.lado, { sel: selActual(), cambios: conCambios() }); }
+    function alCambiarColumnas() { recordar(); pintarVistas(); }
+
+    /* Al abrir un lado: lo que este navegador recuerda; si no, «Abrir siempre con esta vista» (de la persona); si no,
+       «Fiscontable». Una vista con nombre de la versión anterior (guardada en este navegador) pasa a la nueva. */
+    function vistaAlAbrir() {
+        var local = leer("vista3:" + E.lado), s = local && local.sel, cambios = !!(local && local.cambios);
+        if (!s) {
+            var vieja = null;
+            try { vieja = JSON.parse(localStorage.getItem("tabla:conc-" + E.lado + ":vista") || "null"); } catch (e) { vieja = null; }
+            var v = vieja ? (E.vistas || []).find(function (x) { return x.lado === E.lado && x.nombre === vieja; }) : null;
+            var ini = E.inicial[E.lado];
+            s = v ? { tipo: "guardada", id: v.id } : typeof ini === "number" ? { tipo: "guardada", id: ini } : { tipo: ini === "formato2" ? "formato2" : "fiscontable" };
+            cambios = !v && !!localStorage.getItem("tabla:conc-" + E.lado + ":cols") && !ini;          // lo acomodado antes, sin nombre
+        }
+        if (s.tipo === "guardada" && !vistaGuardada(s.id)) { s = { tipo: "fiscontable" }; cambios = false; }
+        E.vistaSel[E.lado] = s;
+        if (!cambios && baseActual() === "fiscontable") E.tablas[E.lado].tabla.aplicarVista({ columnas: columnasDeVista(s), nombre: nombreVistaActual() });
+        E.tablas[E.lado].cambiosAlAbrir = cambios;
+    }
+
+    function pintarVistas() {
+        if (!E.datos) return;
+        var s = selActual(), cambios = conCambios(), v = s.tipo === "guardada" ? vistaGuardada(s.id) : null;
+        $("nombre-vista").textContent = "Vista: " + nombreVistaActual() + (cambios ? " (con cambios)" : "");
+        $("btn-guardar-vista").hidden = !cambios;
+        function item(accion, valor, texto, clase, titulo) {
+            return '<button type="button" role="menuitem" data-accion="' + accion + '" data-valor="' + esc(String(valor)) + '"' + (clase ? ' class="' + clase + '"' : "") +
+                (titulo ? ' title="' + esc(titulo) + '"' : "") + ">" + texto + "</button>";
+        }
+        var activa = function (t, id) { return s.tipo === t && (t !== "guardada" || s.id === id) ? "xml-activa" : ""; };
+        var h = [item("base", "fiscontable", "Fiscontable", activa("fiscontable"), "Nuestro diseño de siempre"),
+                 item("base", "formato2", "Formato 2", activa("formato2"), "La hoja «Conciliacion» del reporte de pagos, tal cual, y al final nuestras columnas en pesos")];
+        var deLado = (E.vistas || []).filter(function (x) { return x.lado === E.lado; });
+        var mias = deLado.filter(function (x) { return !x.compartida || !E.enDespacho; });
+        var desp = E.enDespacho ? deLado.filter(function (x) { return x.compartida; }) : [];
+        var marca = function (x) { return esc(x.nombre) + (E.inicial[E.lado] === x.id ? " ★" : ""); };
+        if (mias.length) { h.push('<p class="xml-menu__titulo">Mis vistas</p>'); mias.forEach(function (x) { h.push(item("vista", x.id, marca(x), activa("guardada", x.id))); }); }
+        if (desp.length) { h.push('<p class="xml-menu__titulo">Del despacho</p>'); desp.forEach(function (x) { h.push(item("vista", x.id, marca(x), activa("guardada", x.id))); }); }
+        h.push('<div class="xml-separador"></div>');
+        if (cambios && v && v.puede_cambiar) h.push(item("guardar", v.id, "Guardar cambios en «" + esc(v.nombre) + "»"));
+        h.push(item("nueva", "", "Guardar como vista nueva…"));
+        if (cambios) h.push(item("deshacer", "", "Deshacer mis cambios"));
+        var actual = s.tipo === "guardada" ? s.id : s.tipo;
+        if ((E.inicial[E.lado] || "fiscontable") !== actual) h.push(item("inicial", actual, "Abrir siempre con esta vista ★"));
+        if (v && E.puedeCompartir && E.enDespacho && (v.mia || v.compartida)) h.push(item("compartir", v.id, v.compartida ? "Dejar de compartir con el despacho" : "Compartir con el despacho"));
+        if (v && v.puede_cambiar) h.push(item("borrar", v.id, "Borrar «" + esc(v.nombre) + "»", "xml-peligro"));
+        $("menu-vistas").innerHTML = h.join("");
+    }
+
+    async function elegirVista(s) {
+        E.vistaSel[E.lado] = s;
+        guardar("vista3:" + E.lado, { sel: s, cambios: false });
+        if (baseActual() === "formato2" && !f2Listo()) { pintarVistas(); await pedirF2(); }
+        var t = tabla();
+        if (t) t.aplicarVista({ columnas: columnasDeVista(s), nombre: nombreVistaActual() });
+        mostrarTabla();
+        recordar();
+        pintarVistas();
+        aplicar();
+    }
+
+    /* «Formato 2» en pantalla: el servidor lee el XML guardado de cada factura de la tabla (una vez por empresa, lado y
+       periodo, cuando se elige esa vista). */
+    function claveF2() { var r = rango(); return [E.rfc, E.lado, r.desde, r.hasta, (mesesSueltos() || []).join(","), $("sel-base").value, E.regla, E.datos ? E.datos.facturas.length : 0].join("|"); }
+    function f2Listo() { return !!E.f2 && E.f2.clave === claveF2() && !!E.tablas[E.lado].f2; }
+    async function pedirF2() {
+        var clave = claveF2(), lado = E.lado;
+        if (E.f2Pidiendo === clave) return;
+        E.f2Pidiendo = clave;
+        var carga = E.carga || Fiscontable.avisoCarga($("tablas-marco"), { junto: $("acciones-alcance") });
+        E.carga = carga;
+        carga.mostrar("Leyendo los XML para «Formato 2»…", "Sigue leyendo… un periodo grande tarda un poco más.");
+        var r = rango(), d;
+        try {
+            d = await (await enviar("/api/conciliacion/formato2", { rfc: E.rfc, lado: lado, desde: r.desde, hasta: r.hasta, meses: mesesSueltos(),
+                base: $("sel-base").value, regla: E.regla })).json();
+        } catch (e) {
+            if (E.f2Pidiendo === clave) E.f2Pidiendo = "";
+            carga.quitar(); avisar(e.message);
+            E.vistaSel[lado] = { tipo: "fiscontable" }; recordar(); pintarVistas(); mostrarTabla(); aplicar();
+            return;
+        }
+        if (E.f2Pidiendo !== clave) return;
+        E.f2Pidiendo = "";
+        E.f2 = { clave: clave, columnas: d.columnas, filas: d.filas || {} };
+        var t = E.tablas[lado];
+        if (!t.f2) {
+            t.f2 = FCTabla.crear({
+                caja: t.cajaF2, id: "conc-f2-" + lado, catalogo: d.columnas, predeterminadas: d.columnas.map(function (c) { return c.clave; }),
+                claveFila: "uuid", alClic: abrirFactura, alSeleccionar: pintarSeleccion, alCambiarColumnas: alCambiarColumnas,
+                claseFila: function (f) { return f.estado_conciliacion === "Cancelada" ? "fila-cancelada" : ""; }
+            });
+            t.f2.iniciarColumnas(null);
+            if (!t.cambiosAlAbrir) t.f2.aplicarVista({ columnas: columnasDeVista(selActual()), nombre: nombreVistaActual() });
+        }
+        carga.listo("Formato 2 · " + Object.keys(E.f2.filas).length.toLocaleString("es-MX") + " factura(s)");
+    }
+
+    /* Los renglones de la tabla de «Formato 2»: la factura (para filtros, detalle y selección) con sus celdas del formato. */
+    function filasF2(filas) {
+        var f2 = (E.f2 && E.f2.filas) || {};
+        return filas.map(function (f) { return Object.assign({}, f, f2[f.uuid] || {}); });
+    }
+
+    /* «Guardar como vista nueva»: su nombre y, si eres el titular, si la ve todo el despacho. */
+    function preguntarNombreVista() {
+        var dlg = $("dlg-vista");
+        $("vista-nombre").value = "";
+        $("vista-error").hidden = true;
+        $("vista-compartir-caja").hidden = !(E.puedeCompartir && E.enDespacho);
+        $("vista-compartir").checked = false;
+        $("dlg-vista-sub").textContent = "Con las columnas que ves ahora, en su orden (" + tabla().columnas().length + "). «Fiscontable» y «Formato 2» no cambian.";
+        return new Promise(function (resolver) {
+            var hecho = false;
+            function terminar(valor) { if (hecho) return; hecho = true; dlg.removeEventListener("click", clic); dlg.removeEventListener("close", cerro); if (dlg.open) dlg.close(); resolver(valor); }
+            function clic(e) {
+                var b = e.target.closest("[data-vista-dlg]"); if (!b) return;
+                if (b.dataset.vistaDlg !== "ok") return terminar(null);
+                var n = $("vista-nombre").value.trim();
+                if (!n) { $("vista-error").textContent = "Escribe el nombre de la vista."; $("vista-error").hidden = false; $("vista-nombre").focus(); return; }
+                terminar({ nombre: n.slice(0, 60), compartida: !$("vista-compartir-caja").hidden && $("vista-compartir").checked });
+            }
+            function cerro() { terminar(null); }
+            dlg.addEventListener("click", clic);
+            dlg.addEventListener("close", cerro);
+            $("vista-nombre").onkeydown = function (e) { if (e.key === "Enter") { e.preventDefault(); dlg.querySelector('[data-vista-dlg="ok"]').click(); } };
+            dlg.showModal();
+            setTimeout(function () { $("vista-nombre").focus(); }, 30);
+        });
+    }
+
+    async function guardarVista(cuerpo) {
+        try {
+            var r = await (await enviar("/api/conciliacion/vistas", Object.assign({ lado: E.lado, base: baseActual(),
+                columnas: tabla().columnas().map(function (c) { return { clave: c.clave, ancho: c.ancho || 0 }; }) }, cuerpo), "PUT")).json();
+            await cargarVistas();
+            E.vistaSel[E.lado] = { tipo: "guardada", id: r.vista.id };
+            tabla().marcarVista(r.vista.nombre);
+            recordar(); pintarVistas();
+            var txt = "Vista «" + r.vista.nombre + "» guardada" + (r.vista.compartida ? " y compartida con el despacho." : ".");
+            if (Fiscontable.listo) Fiscontable.listo(txt, document.getElementById("btn-vistas")); else avisar(txt);      // (26-nov) verde, junto, se quita solo
+        } catch (e) { avisar(e.message); }
+    }
+
+    async function accionVista(accion, valor) {
+        $("menu-vistas").hidden = true;
+        var s = selActual(), v = s.tipo === "guardada" ? vistaGuardada(s.id) : null;
+        if (accion === "base") return elegirVista({ tipo: valor });
+        if (accion === "vista") return elegirVista({ tipo: "guardada", id: +valor });
+        if (accion === "deshacer") return elegirVista(s);
+        if (accion === "nueva") {
+            var r = await preguntarNombreVista();
+            if (r) await guardarVista({ nombre: r.nombre, compartida: r.compartida || null, nueva: true });
+            return;
+        }
+        if (accion === "guardar" && v) return guardarVista({ id: v.id, nombre: v.nombre });
+        try {
+            if (accion === "inicial") {
+                await enviar("/api/conciliacion/vistas/inicial", { lado: E.lado, vista: String(valor) }, "PUT");
+                E.inicial[E.lado] = /^\d+$/.test(String(valor)) ? +valor : valor;
+                pintarVistas();
+                avisar("Este lado abrirá siempre con «" + nombreVistaActual() + "».");
+            } else if (accion === "compartir" && v) {
+                await enviar("/api/conciliacion/vistas/" + v.id + "/compartir", { compartida: !v.compartida });
+                await cargarVistas(); pintarVistas();
+                avisar(v.compartida ? "«" + v.nombre + "» ya no se comparte con el despacho." : "«" + v.nombre + "» se compartió con el despacho.");
+            } else if (accion === "borrar" && v) {
+                if (!(await Fiscontable.preguntar("¿Borrar la vista «" + v.nombre + "»?" + (v.compartida ? " Es del despacho: dejarán de verla todos." : "")))) return;
+                await api("/api/conciliacion/vistas/" + v.id, { method: "DELETE" });
+                await cargarVistas();
+                elegirVista({ tipo: "fiscontable" });
+            }
+        } catch (e) { avisar(e.message); }
     }
 
     /* ============================================================ empresas */
@@ -538,6 +756,7 @@
 
     function aplicar() {
         if (!E.datos || !tabla()) return;
+        if (baseActual() === "formato2" && !f2Listo()) { pedirF2().then(function () { if (f2Listo()) { mostrarTabla(); aplicar(); } }); return; }
         var q = E.busqueda.trim().toLowerCase(), av = E.av;
         var activos = Object.keys(E.rapidos).filter(function (k) { return E.rapidos[k]; });
         if (E.tarjeta) activos.push(E.tarjeta);
@@ -553,7 +772,8 @@
             for (var k in CAMPOS_AV) if (av[k] && CAMPOS_AV[k].valor(f) !== av[k]) return false;
             return !q || textoBusqueda(f).indexOf(q) !== -1;
         });
-        tabla().ponerFilas(E.filtradas);
+        tabla().ponerFilas(baseActual() === "formato2" ? filasF2(E.filtradas) : E.filtradas);
+        pintarVistas();
         var total = E.datos.facturas.length;
         $("conteo-filas").textContent = !total
             ? ($("sel-base").value === "pago"
@@ -910,122 +1130,47 @@
     }
 
     /* ============================================================ Excel */
-    /* Monedas extranjeras de las facturas que van al Excel y de sus pagos. */
-    function monedasDe(facturas) {
-        var m = {};
-        facturas.forEach(function (f) {
-            if (f.moneda && f.moneda !== "MXN") m[f.moneda] = 1;
-            (E.movsPorFactura[f.uuid] || []).forEach(function (x) { if (!x.cancelado && x.moneda_pago && x.moneda_pago !== "MXN") m[x.moneda_pago] = 1; });
-        });
-        return Object.keys(m).sort();
+    /* 23-nov-2026 (el dueño, A y B del Avance 1): «Descargar Excel ▾» con dos opciones, sin preguntar moneda ni hojas (en
+       pesos con el T.C. del DOF; las columnas de la moneda original se quedan) y AL CIERRE si el mes ya cerró:
+       · «Reporte completo»: con «Fiscontable» (y las vistas guardadas a partir de ella) las hojas «Facturas PPD»,
+         «Complementos de pago», «Documentos relacionados», «Complementos pendientes», «Inconsistencias» e «IVA cobrado»
+         (o «IVA pagado»); con «Formato 2», las 5 hojas del programa anterior. Cada hoja sigue los filtros de su pestaña; con
+         facturas marcadas con su casilla, solo esas con lo suyo.
+       · «Esta tabla»: una hoja con lo que ves (las columnas de la vista en su orden, los renglones filtrados o marcados). */
+    function filtrosDePantalla() {
+        var rapidos = Object.keys(E.rapidos).filter(function (k) { return E.rapidos[k]; }), av = {};
+        Object.keys(E.av).forEach(function (k) { if (E.av[k]) av[k] = E.av[k]; });
+        return { pestana: E.pestana || "ppd", estado: E.estado || null, tarjeta: E.tarjeta || null, busqueda: E.busqueda.trim() || null,
+                 rapidos: rapidos, av: av };
     }
 
-    /* «Excel del periodo»: qué hojas lleva (18-nov, el dueño: «para lo que voy a compartir no [todo]… que se pueda editar las
-       pestañas»). Dos juegos ya armados y casillas para cambiarlos; se recuerda la última elección en este navegador. */
-    function leerHojas() { try { return JSON.parse(localStorage.getItem("fc:conc-hojas") || "null"); } catch (e) { return null; } }
-    async function elegirHojas(alElegir) {
-        var cat;
-        try { cat = await apiJSON("/api/conciliacion/hojas?lado=" + encodeURIComponent(E.lado)); } catch (e) { avisar(e.message); return; }
-        var previo = leerHojas() || {}, juegoIni = cat.juegos.find(function (j) { return j.clave === previo.juego; }) ? previo.juego : (previo.hojas ? "" : "completo");
-        var marcadas = new Set(previo.hojas && !juegoIni ? previo.hojas : (cat.juegos.find(function (j) { return j.clave === (juegoIni || "completo"); }) || cat.juegos[0]).hojas);
-        function juegoDe() {
-            var j = cat.juegos.find(function (x) { return x.hojas.length === marcadas.size && x.hojas.every(function (h) { return marcadas.has(h); }); });
-            return j ? j.clave : "";
-        }
-        preguntar("Excel del periodo",
-            '<p>¿Qué hojas lleva? Empieza con un juego y marca o quita las que quieras.</p>' +
-            '<div class="conc-juegos" id="conc-juegos">' + cat.juegos.map(function (j) {
-                return '<button type="button" class="conc-juego" data-juego="' + esc(j.clave) + '"><b>' + esc(j.nombre) + "</b><small>" + j.hojas.length + " hojas</small></button>";
-            }).join("") + "</div>" +
-            '<div class="conc-hojas" id="conc-hojas">' + cat.hojas.map(function (h) {
-                return '<label class="conc-hoja"><input type="checkbox" value="' + esc(h.clave) + '"> <span>' + esc(h.nombre) + "</span></label>";
-            }).join("") + "</div>" +
-            '<p class="conc-sub" id="conc-hojas-cuenta"></p>',
-            [{ texto: "Descargar Excel", primario: true, accion: function () {
-                var lista = cat.hojas.map(function (h) { return h.clave; }).filter(function (k) { return marcadas.has(k); });
-                if (!lista.length) { avisar("Marca al menos una hoja."); return false; }
-                try { localStorage.setItem("fc:conc-hojas", JSON.stringify({ juego: juegoDe(), hojas: lista })); } catch (e) { /* nada */ }
-                alElegir(juegoDe() || lista);
-            } }]);
-        function pintar() {
-            var actual = juegoDe();
-            $("conc-hojas").querySelectorAll("input").forEach(function (i) { i.checked = marcadas.has(i.value); });
-            $("conc-juegos").querySelectorAll("[data-juego]").forEach(function (b) { b.setAttribute("aria-pressed", String(b.dataset.juego === actual)); });
-            $("conc-hojas-cuenta").textContent = marcadas.size + (marcadas.size === 1 ? " hoja" : " hojas") + (actual ? "" : " · elección propia");
-        }
-        $("conc-juegos").addEventListener("click", function (ev) {
-            var b = ev.target.closest("[data-juego]"); if (!b) return;
-            marcadas = new Set(cat.juegos.find(function (j) { return j.clave === b.dataset.juego; }).hojas); pintar();
-        });
-        $("conc-hojas").addEventListener("change", function (ev) {
-            if (ev.target.checked) marcadas.add(ev.target.value); else marcadas.delete(ev.target.value);
-            pintar();
-        });
-        pintar();
-    }
-
-    function exportarExcel(modo, hojas) {
-        if (modo === "completo" && hojas === undefined) { elegirHojas(function (h) { exportarExcel(modo, h); }); return; }
+    function exportarExcel(modo) {
+        var t = tabla();
+        if (!t) return;
         var r = rango();
         var cuerpo = { rfc: E.rfc, lado: E.lado, desde: r.desde, hasta: r.hasta, meses: mesesSueltos(), base: $("sel-base").value, regla: E.regla,
-            columnas: tabla().columnas().map(function (c) { return c.clave; }), uuids: null, moneda: "xml" };
-        if (modo === "completo") cuerpo.hojas = hojas;
-        var facturas = E.datos.facturas;
-        if (modo === "vista") {
-            cuerpo.solo_tabla = true;          // 17-nov: «Excel de esta tabla» es una sola hoja con lo que ves; lo demás, en «Excel completo»
-            var sel = tabla().seleccion;
-            if (sel.size) cuerpo.uuids = Array.from(sel);
-            else if (hayFiltros()) cuerpo.uuids = E.filtradas.map(function (f) { return f.uuid; });
-            if (cuerpo.uuids) { var elegidas = new Set(cuerpo.uuids); facturas = facturas.filter(function (f) { return elegidas.has(f.uuid); }); }
+            tipo: modo === "tabla" ? "tabla" : "completo", vista_base: baseActual(), vista_nombre: nombreVistaActual() };
+        var sel = t.seleccion;
+        if (modo === "tabla") {
+            // Lo que ves, en el orden en que lo ves (o solo lo marcado)
+            var filas = t.filas().filter(function (f) { return !sel.size || sel.has(f.uuid); });
+            if (!filas.length) { avisar("No hay facturas en la tabla."); return; }
+            cuerpo.pestana = E.pestana || "ppd";
+            cuerpo.columnas = t.columnas().map(function (c) { return c.clave; });
+            cuerpo.uuids = filas.map(function (f) { return f.uuid; });
+            // 24-nov-2026 (revisión): para que arriba de la hoja diga qué la recortó (lo marcado o los filtros), no siempre
+            // «filtradas o marcadas»
+            if (sel.size) cuerpo.marcadas = Array.from(sel);
+            cuerpo.filtros = filtrosDePantalla();
+        } else {
+            if (sel.size) cuerpo.marcadas = Array.from(sel);
+            cuerpo.filtros = filtrosDePantalla();
         }
-        var monedas = monedasDe(facturas);
-        if (!monedas.length) { descargarExcel(modo, cuerpo); return; }
-        // Hay moneda extranjera. Con «Usar esto siempre» (la misma preferencia de Administración de XML) ya no se pregunta
-        var pref = Fiscontable.monedaReportes.leer();
-        if (pref.siempre) { cuerpo.moneda = A_CONC[pref.modo] || "xml"; descargarExcel(modo, cuerpo); return; }
-        preguntarMoneda(monedas, "Descargar Excel", function (elegida) { cuerpo.moneda = elegida; descargarExcel(modo, cuerpo); });
-    }
-
-    // La preferencia es una sola para todos los reportes (Fiscontable.monedaReportes): aquí «dof» se llama «banxico»
-    var A_CONC = { xml: "xml", dof: "banxico", "": "original" }, DE_CONC = { xml: "xml", banxico: "dof", original: "" };
-
-    function preguntarMoneda(monedas, textoBoton, alElegir) {
-        var pref = Fiscontable.monedaReportes.leer(), reglas = E.datos.reglas || {};
-        var previa = A_CONC[pref.modo] || "xml";
-        var sinBanxico = !(E.datos.tipo_cambio || {}).token_configurado;
-        function opcion(valor, titulo, detalle) {
-            return '<label class="conc-opcion"><input type="radio" name="conc-moneda" value="' + valor + '"' + (previa === valor ? " checked" : "") + ">" +
-                "<span><b>" + titulo + "</b><small>" + detalle + "</small></span></label>";
-        }
-        preguntar(monedas.length ? "Hay importes en " + monedas.join(", ") : "Moneda de los Excel",
-            "<p>" + (monedas.length ? "Este Excel lleva facturas o pagos en moneda extranjera. " : "") + "¿Cómo quieres los importes en moneda extranjera?</p>" +
-            opcion("xml", "En pesos, con el tipo de cambio de tus XML", "El de cada factura y el de cada complemento de pago. Es lo que dicen tus comprobantes.") +
-            opcion("banxico", "En pesos, con el tipo de cambio de Banxico", esc(reglas[E.regla] || "Publicado en el DOF") +
-                ". Si tienes un tipo de cambio propio para una fecha, se usa ese; lo que te pagaron en pesos se queda con los pesos del complemento." +
-                (sinBanxico ? " Banxico todavía no está conectado: donde falte se usa el del XML, y el Excel lo dice." : "")) +
-            opcion("original", "Sin convertir", "Cada importe en la moneda de su factura. El IVA " + textoLado("cobrado", "pagado") + " va en pesos de todos modos.") +
-            '<p class="conc-sub">En los tres casos el Excel trae al lado la moneda original, el tipo de cambio usado y el total en moneda original, y dice en qué moneda está el saldo insoluto.</p>' +
-            '<label class="conc-opcion conc-opcion--siempre"><input type="checkbox" id="conc-moneda-siempre"' + (pref.siempre ? " checked" : "") + ">" +
-            "<span><b>Usar esto siempre</b><small>En todos los Excel (también en Administración de XML), sin volver a preguntar. Lo cambias aquí mismo, en «Moneda de los Excel».</small></span></label>",
-            [{ texto: textoBoton, primario: true, accion: function () {
-                var elegida = document.querySelector('input[name="conc-moneda"]:checked');
-                var valor = elegida ? elegida.value : "xml";
-                Fiscontable.monedaReportes.guardar(DE_CONC[valor], $("conc-moneda-siempre").checked);
-                pintarMonedaExcel();
-                alElegir(valor);                          // la ventana se cierra ya; el botón de la izquierda muestra el avance
-            } }]);
-    }
-
-    /* Con «Usar esto siempre» el Excel ya no pregunta: este renglón dice cómo sale y deja cambiarlo. */
-    function pintarMonedaExcel() {          // va dentro del menú «Descargar»: dice cómo salen y deja cambiarlo, sin ocupar la barra
-        var b = $("btn-moneda-excel"), pref = Fiscontable.monedaReportes.leer();
-        if (!b) return;
-        var corto = pref.modo === "xml" ? "pesos (TC de cada XML)" : pref.modo === "dof" ? "pesos (TC del DOF)" : "sin convertir";
-        b.innerHTML = "<b>$</b>Moneda de los Excel: " + esc(pref.siempre ? corto : "preguntar cada vez") + "…";
+        descargarExcel(modo, cuerpo);
     }
 
     async function descargarExcel(modo, cuerpo) {
-        var boton = document.querySelector('.mod-acciones [data-excel="' + modo + '"]'), texto = boton.innerHTML;
+        var boton = document.querySelector('.mod-acciones [data-excel="' + modo + '"]'), texto = boton.innerHTML;          // dentro de «Descargar Excel ▾»
         if (boton.disabled) return;
         boton.disabled = true; boton.innerHTML = "<b>⏳</b>Generando…";
         try {
@@ -1132,9 +1277,10 @@
             $(par[1]).addEventListener("click", function (e) { e.stopPropagation(); });
         });
         document.addEventListener("click", function () { cerrarMenus(); });
+        $("menu-vistas").addEventListener("click", function (e) { var b = e.target.closest("[data-accion]"); if (b) accionVista(b.dataset.accion, b.dataset.valor); });
+        $("btn-guardar-vista").addEventListener("click", function () { accionVista("nueva"); });
         document.querySelector(".mod-acciones").addEventListener("click", function (e) {
             var b = e.target.closest("[data-excel]"); if (b && !b.disabled && E.datos) exportarExcel(b.dataset.excel);
-            if (e.target.closest("#btn-moneda-excel") && E.datos) preguntarMoneda([], "Guardar", function () {});
         });
         $("btn-listas").addEventListener("click", function () {
             var q = new URLSearchParams({ empresa: E.rfc || "" }), est = E.selPeriodo.estado();

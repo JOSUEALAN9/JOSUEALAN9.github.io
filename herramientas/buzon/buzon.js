@@ -31,7 +31,7 @@
     }
     function diaSemana(iso) { return new Date(iso + "T12:00:00").toLocaleDateString("es-MX", { weekday: "short", day: "numeric", month: "short" }); }
     function hoy() { return new Date().toISOString().slice(0, 10); }
-    function aviso(html, tipo) { var a = $("aviso"); a.innerHTML = html || ""; a.className = "bz-aviso" + (tipo ? " bz-aviso--" + tipo : ""); a.hidden = !html; }
+    function aviso(html, tipo) { if (window.Fiscontable && Fiscontable.avisoBien && Fiscontable.avisoBien($("aviso"), html, tipo === "ok" ? true : tipo ? false : undefined)) return; var a = $("aviso"); a.innerHTML = html || ""; a.className = "bz-aviso" + (tipo ? " bz-aviso--" + tipo : ""); a.hidden = !html; }
 
     async function api(ruta, metodo, cuerpo) {
         var r;
@@ -95,9 +95,11 @@
             // 22-nov-2026 (auditoría sat_modulos-1 y -4): una revisión incompleta cuenta aquí; y las apagadas se dicen
             { n: r.errores, t: "Revisiones con error", d: [r.sin_efirma ? r.sin_efirma + " empresa(s) sin e.firma guardada" : "", r.apagadas ? r.apagadas + " con la revisión automática apagada" : ""].filter(Boolean).join(" · ") || (r.errores ? "Revisiones incompletas o que no se pudieron hacer" : "Todo se pudo revisar"), c: r.errores ? "roja" : "gris" }
         ];
+        // 24-nov-2026 (auditoría de Fable, hallazgo 1): las que llegaron «Sin carpetas» y falta confirmar en el SAT (ámbar)
+        if (r.por_confirmar) tarjetas.push({ n: r.por_confirmar, t: "Sin carpetas por confirmar", d: "El SAT no enseñó sus carpetas. Revísalas en el SAT y confírmalo en su renglón", c: "ambar" });
         $("resumen").innerHTML = tarjetas.map(function (x) {
             // 18-nov: la explicación de cada cifra sale al pasar el cursor; visible solo la que avisa de algo (empresas sin e.firma)
-            var avisa = (x.t === "Revisiones con error" && (r.sin_efirma || r.apagadas)) || (x.t === "Notificaciones pendientes" && x.n && r.limite_notificacion);
+            var avisa = (x.t === "Revisiones con error" && (r.sin_efirma || r.apagadas)) || (x.t === "Notificaciones pendientes" && x.n && r.limite_notificacion) || x.t === "Sin carpetas por confirmar";
             return '<div class="bz-tarjeta bz-tarjeta--' + (x.n ? x.c : "gris") + '" title="' + esc(x.d) + '"><strong>' + x.n + "</strong><span>" + x.t + "</span>" + (avisa ? "<small>" + esc(x.d) + "</small>" : "") + "</div>";
         }).join("");
     }
@@ -105,7 +107,7 @@
     function filtradas() {
         var q = $("buscar").value.trim().toLowerCase(), solo = $("solo-atender").checked;
         return E.panel.empresas.filter(function (e) {
-            if (solo && !(e.nuevos || e.pendientes || e.cancelaciones || e.estado === "error")) return false;
+            if (solo && !(e.nuevos || e.pendientes || e.cancelaciones || e.estado === "error" || e.por_confirmar)) return false;
             return !q || (e.alias + " " + e.rfc).toLowerCase().indexOf(q) !== -1;
         });
     }
@@ -114,8 +116,16 @@
         if (!e.efirma) return '<span class="bz-sello bz-sello--gris">Sin e.firma</span><br><a class="bz-liga" href="/clientes/?editar=' + encodeURIComponent(e.rfc) + '">Guardarla en Mis clientes</a>';
         if (e.estado === "revisando") return '<span class="bz-sello bz-sello--azul">Revisando…</span>';
         var t = e.ultima_revision ? fechaHora(e.ultima_revision) : "Nunca";
-        var sello = e.estado === "error" ? '<span class="bz-sello bz-sello--roja">' + (e.incompleta ? "Incompleta" : "Error") + "</span> " : e.estado === "ok" ? '<span class="bz-sello bz-sello--verde">OK</span> ' : "";
-        return sello + "<small>" + t + "</small>" + (e.estado === "error" && e.mensaje ? '<br><small class="bz-error">' + esc(e.mensaje) + "</small>" : "") +
+        var sello = e.estado === "error" ? '<span class="bz-sello bz-sello--roja">' + (e.incompleta ? "Incompleta" : "Error") + "</span> " : e.estado === "ok" ? '<span class="bz-sello bz-sello--verde">OK</span> ' :
+            e.por_confirmar ? '<span class="bz-sello bz-sello--ambar">Sin carpetas</span> ' : "";
+        // 24-nov-2026 (auditoría de Fable, hallazgo 1): «Sin carpetas · confírmalo en el SAT» queda en ámbar hasta que el titular
+        // (o el administrador) confirme en el SAT que esa empresa no tiene notificaciones; nunca se abre nada desde aquí
+        var confirmar = e.por_confirmar ? '<br><small class="bz-tenue">Confírmalo en el SAT: entra a su Buzón y revisa «Mis notificaciones».</small>' +
+            (E.panel.puede_apagar !== false ? '<br><button type="button" class="bz-liga" data-confirmar-vacia="' + esc(e.rfc) + '" data-nombre="' + esc(e.alias || e.rfc) +
+                '">Confirmé en el SAT que no tiene notificaciones</button>' : '<br><small class="bz-tenue">Lo confirma el titular del despacho.</small>') :
+            e.estado === "ok" && e.vacia_confirmo && (e.mensaje || "").indexOf("Sin notificaciones") !== -1 ?
+                '<br><small class="bz-tenue">Sin notificaciones: lo confirmó ' + esc(e.vacia_confirmo) + (e.vacia_confirmo_en ? " el " + esc(fechaHora(e.vacia_confirmo_en)) : "") + " en el SAT</small>" : "";
+        return sello + "<small>" + t + "</small>" + (e.estado === "error" && e.mensaje ? '<br><small class="bz-error">' + esc(e.mensaje) + "</small>" : "") + confirmar +
             (e.proxima && e.activo ? "<br><small>Próxima: " + (e.proxima === "esta noche" || e.proxima === "hoy" ? "hoy" : fechaLocal(e.proxima)) + "</small>" : "");
     }
 
@@ -165,20 +175,22 @@
     async function revisar(rfcs) {
         try {
             var t = await api("/api/buzon/revisar", "POST", { rfcs: rfcs, diagnostico: $("con-diagnostico").checked });
-            aviso("");
+            // 24-nov-2026 (sat_modulos-8): si alguna ya se estaba revisando (la pidió otra persona del despacho), se dice y
+            // se sigue esa revisión; ya no sale «Ya hay una revisión del buzón en curso» por las empresas de los demás
+            aviso(t.aviso ? esc(t.aviso) : "");
             vigilarTrabajo(t.job_id, t);
         } catch (e) { aviso(esc(e.message), "error"); }
     }
 
     function pintarTrabajo(t) {
         var r = t.renglones || [];
-        var listos = r.filter(function (x) { return ["ok", "parcial", "incompleta", "error", "cancelado"].indexOf(x.estado) !== -1; }).length;
+        var listos = r.filter(function (x) { return ["ok", "parcial", "sin_confirmar", "incompleta", "error", "cancelado"].indexOf(x.estado) !== -1; }).length;
         $("progreso").hidden = false;
         var abrir = t.tipo === "buzon_abrir";
         $("progreso-titulo").textContent = abrir ? (t.estado === "procesando" ? "Abriendo la notificación…" : "Apertura terminada")
             : (t.estado === "procesando" ? "Revisando el buzón…" : "Revisión terminada");
         $("progreso-cuenta").textContent = listos + " de " + r.length;
-        var NOM = { en_fila: "En fila", revisando: abrir ? "Abriendo en el SAT…" : "Revisando…", ok: "Listo", parcial: "Listo con avisos", incompleta: "Incompleta", error: "Error", cancelado: "Detenido" };
+        var NOM = { en_fila: "En fila", revisando: abrir ? "Abriendo en el SAT…" : "Revisando…", ok: "Listo", parcial: "Listo con avisos", sin_confirmar: "Listo: confírmalo en el SAT", incompleta: "Incompleta", error: "Error", cancelado: "Detenido" };
         $("progreso-lista").innerHTML = r.map(function (x) {
             return '<li class="bz-progreso__' + esc(x.estado) + '"><b>' + esc(x.alias || x.rfc) + "</b>" + (x.folio ? " · folio <code>" + esc(x.folio) + "</code>" : "") + " " + esc(NOM[x.estado] || x.estado) +
                 (x.mensaje ? " · <small>" + esc(x.mensaje) + "</small>" : "") + "</li>";
@@ -496,8 +508,8 @@
         var ORIGEN = { manual: "Revisar ahora", madrugada: "Programada", abrir: "Abrir notificación" };
         return '<div class="bz-tabla-caja"><table class="bz-tabla"><thead><tr><th>Cuándo</th><th>Cómo</th><th>Resultado</th><th class="num">Nuevos</th></tr></thead><tbody>' +
             r.map(function (x) {
-                var s = x.estado === "ok" ? "verde" : x.estado === "parcial" ? "ambar" : x.estado === "revisando" ? "azul" : "roja";
-                var t = { ok: "OK", parcial: "Con avisos", incompleta: "Incompleta", error: "Error", revisando: "Revisando" }[x.estado] || x.estado;
+                var s = x.estado === "ok" ? "verde" : x.estado === "parcial" || x.estado === "sin_confirmar" ? "ambar" : x.estado === "revisando" ? "azul" : "roja";
+                var t = { ok: "OK", parcial: "Con avisos", sin_confirmar: "Sin carpetas", incompleta: "Incompleta", error: "Error", revisando: "Revisando" }[x.estado] || x.estado;
                 return "<tr><td>" + esc(fechaHora(x.inicio)) + "</td><td>" + esc(ORIGEN[x.origen] || x.origen) + '</td><td><span class="bz-sello bz-sello--' + s + '">' + t + "</span> <small>" + esc(x.mensaje || "") + '</small></td><td class="num">' + (x.nuevos || 0) + "</td></tr>";
             }).join("") + "</tbody></table></div>";
     }
@@ -605,6 +617,22 @@
                 aviso(sw.checked ? "Listo: la revisión automática quedó prendida." : "Listo: la revisión automática quedó apagada.", "ok");
                 await cargarPanel();
             } catch (err) { aviso(esc(err.message), "error"); sw.checked = !sw.checked; sw.disabled = false; }
+        });
+        // 24-nov-2026 (auditoría de Fable, hallazgo 1): «Confirmé en el SAT que no tiene notificaciones» (en la tabla y en la empresa)
+        document.addEventListener("click", async function (e) {
+            var b = e.target.closest("[data-confirmar-vacia]");
+            if (!b) return;
+            var si = await Fiscontable.confirmar({ titulo: "¿Ya lo revisaste en el SAT?", si: "Sí, no tiene notificaciones",
+                texto: "Márcalo solo si entraste al Buzón Tributario de " + b.dataset.nombre + " y en «Mis notificaciones» no hay ninguna (ni pendientes ni notificadas). " +
+                    "Desde ahora, mientras el SAT siga mostrando la página igual, esta empresa sale en verde «Sin notificaciones». Queda anotado quién lo confirmó y cuándo." });
+            if (!si) return;
+            b.disabled = true;
+            try {
+                await api("/api/buzon/empresas/" + encodeURIComponent(b.dataset.confirmarVacia) + "/confirmar-sin-notificaciones", "POST", {});
+                aviso("Listo: quedó confirmado. Si el SAT cambia la página, te lo volvemos a pedir.", "ok");
+                await cargarPanel();
+                if (E.vista === "empresa") cargarEmpresa();
+            } catch (err) { aviso(esc(err.message), "error"); b.disabled = false; }
         });
         $("tabla-empresas").addEventListener("click", function (e) {
             // 23-nov-2026 (revisión sat42): en el celular no hay «pasar el cursor»: al tocar el interruptor bloqueado se dice por qué

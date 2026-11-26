@@ -112,7 +112,11 @@
         if (!puede) return;
 
         var msj = caja.querySelector(".cf-msj");
-        function aviso(ok, texto) { msj.textContent = texto; msj.className = "cf-msj " + (ok ? "cf-msj--ok" : "cf-msj--mal"); }
+        function aviso(ok, texto) {
+            msj.textContent = texto; msj.className = "cf-msj " + (ok ? "cf-msj--ok" : "cf-msj--mal");
+            clearTimeout(msj._reloj);        // 26-nov-2026 (el dueño): lo que salió bien se quita solo
+            if (ok) msj._reloj = setTimeout(function () { if (msj.textContent === texto) { msj.textContent = ""; msj.className = "cf-msj"; } }, 4000);
+        }
         var guardar = caja.querySelector("#cf-na-guardar"), fabrica = caja.querySelector("#cf-na-fabrica");
         guardar.addEventListener("click", function () {
             var bien = secciones.map(refrescar).every(Boolean);

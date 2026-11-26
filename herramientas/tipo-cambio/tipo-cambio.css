@@ -1,0 +1,42 @@
+/* Tipo de cambio (23-nov-2026, el dueño: decisión F del Avance 1). Prefijo tc-. */
+.tc-sub { margin: 4px 0 0; font-size: var(--t-13); color: rgb(var(--g-600)); }
+.tc-resumen { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: var(--e-3); margin-bottom: var(--e-4); }
+.tc-dato { min-width: 0; background: rgb(var(--g-0)); border: 1px solid var(--linea); border-radius: var(--r-tarjeta); padding: var(--e-3) var(--e-4); }
+.tc-dato small { display: block; font-size: var(--t-12); font-weight: 600; color: rgb(var(--g-600)); }
+.tc-dato b { display: block; margin: 2px 0; font-size: 24px; font-weight: 800; color: rgb(var(--g-900)); font-variant-numeric: tabular-nums; }
+.tc-dato span { display: block; font-size: var(--t-12); color: rgb(var(--g-600)); }
+.tc-barra { display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--e-3); margin-bottom: var(--e-3); }
+.tc-barra .ui-campo { min-width: 0; }
+.tc-barra .ui-input { width: 158px; max-width: 100%; }
+.tc-rapidos { display: flex; flex-wrap: wrap; gap: 6px; padding-bottom: 2px; }
+.tc-chip { height: 32px; padding: 0 12px; border-radius: 999px; border: 1px solid rgb(var(--g-300)); background: rgb(var(--g-0));
+           font-size: var(--t-13); font-weight: 600; color: rgb(var(--g-700)); cursor: pointer; white-space: nowrap; }
+.tc-chip:hover { border-color: rgb(var(--g-400)); color: rgb(var(--g-900)); }
+.tc-chip[aria-pressed="true"] { background: rgb(var(--g-900)); border-color: rgb(var(--g-900)); color: rgb(var(--g-0)); }
+.tc-barra__der { margin-left: auto; }
+.tc-error { margin: 0 0 var(--e-3); font-size: var(--t-13); color: rgb(var(--er-600)); }      /* --er-700 no existe en common.css */
+.tc-caja { max-height: 62vh; overflow: auto; border: 1px solid var(--linea); border-radius: var(--r-tarjeta); background: rgb(var(--g-0)); min-width: 0; }
+.tc-caja.tc-cargando { opacity: .55; }
+.tc-tabla { width: 100%; border-collapse: separate; border-spacing: 0; font-size: var(--t-13); }
+.tc-tabla th { position: sticky; top: 0; z-index: 1; padding: 9px 12px; background: rgb(var(--g-50)); border-bottom: 1px solid var(--linea);
+               text-align: left; font-weight: 700; color: rgb(var(--g-700)); white-space: nowrap; }
+.tc-tabla td { padding: 7px 12px; border-bottom: 1px solid rgb(var(--g-100)); white-space: nowrap; font-variant-numeric: tabular-nums; color: rgb(var(--g-800)); }
+.tc-tabla .tc-num { text-align: right; }
+.tc-tabla td.tc-aplica { font-weight: 700; color: rgb(var(--g-900)); }
+.tc-tabla tr.tc-inhabil td { background: rgb(var(--g-50)); color: rgb(var(--g-500)); }
+.tc-tabla tr.tc-inhabil td.tc-aplica { color: rgb(var(--g-700)); }
+.tc-tabla small.tc-de { font-size: 11px; color: rgb(var(--g-500)); }
+.tc-tabla tr.tc-hoy td { box-shadow: inset 0 -2px 0 rgb(var(--ac-600) / .55); }
+.tc-nota { margin-top: var(--e-3); max-width: 900px; font-size: var(--t-12); color: rgb(var(--g-600)); }
+@media (max-width: 640px) {
+    /* 24-nov-2026 (revisión): en el celular las tres tarjetas ocupaban media pantalla; van de dos en dos y la del rango, abajo */
+    .tc-resumen { grid-template-columns: 1fr 1fr; gap: var(--e-2); }
+    .tc-resumen .tc-dato:last-child { grid-column: 1 / -1; }
+    .tc-dato { padding: var(--e-2) var(--e-3); }
+    .tc-dato b { font-size: 20px; }
+    .tc-barra .ui-campo { flex: 1 1 140px; }
+    .tc-barra .ui-input { width: 100%; }
+    .tc-barra__der { margin-left: 0; width: 100%; }
+    .tc-barra__der .ui-btn { width: 100%; }
+    .tc-caja { max-height: 70vh; }
+}

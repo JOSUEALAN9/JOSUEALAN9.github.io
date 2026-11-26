@@ -24,7 +24,7 @@
             '<div class="fc-modal__cuerpo">' +
             '  <div data-c="crear"><div class="fc-cmp-rejilla">' +
             '    <label class="fc-cmp-campo fc-cmp-campo--ancho"><span>Título (lo ve tu cliente)</span><input data-c="titulo" maxlength="120"></label>' +
-            '    <label class="fc-cmp-campo"><span>Disponible</span><select data-c="dias"><option value="7">7 días</option><option value="30" selected>30 días</option><option value="90">90 días</option><option value="365">1 año</option><option value="0">Sin vencimiento</option></select></label>' +
+            '    <label class="fc-cmp-campo"><span>Disponible</span><select data-c="dias"><option value="7">7 días</option><option value="30" selected>30 días</option><option value="90">90 días</option><option value="365">1 año</option></select></label>' +
             '    <label class="fc-cmp-campo fc-cmp-campo--todo"><span>Mensaje <i>(opcional)</i></span><textarea data-c="mensaje" rows="3" maxlength="1000" placeholder="Te comparto las facturas del mes…"></textarea></label>' +
             "  </div></div>" +
             '  <div data-c="listo" hidden>' +
@@ -79,7 +79,7 @@
         E.q("asunto").value = r.titulo || "Documentos";
         E.q("cuerpo").value = (r.mensaje ? r.mensaje + "\n\n" : "Hola, te comparto " + r.documentos + " documento" + (r.documentos === 1 ? "" : "s") + ". Puedes verlos y descargarlos (PDF y XML) aquí:\n\n") + "(enlace)\n\nSaludos.";
         E.q("para").value = E.op.correo || "";
-        E.q("sub").textContent = r.documentos + " documento" + (r.documentos === 1 ? "" : "s") + (r.expira_en ? " · disponible hasta el " + fecha(r.expira_en) : " · sin vencimiento");
+        E.q("sub").textContent = r.documentos + " documento" + (r.documentos === 1 ? "" : "s") + (r.expira_en ? " · disponible hasta el " + fecha(r.expira_en) : "");
     }
 
     async function mandar() {
@@ -129,7 +129,7 @@
         catch (e) { tb.innerHTML = '<tr><td colspan="7" class="fc-docs-vacio">' + esc(e.message) + "</td></tr>"; return; }
         tb.innerHTML = E.lista.length ? E.lista.map(function (x) {
             var chip = { activo: '<span class="fc-cmp-chip fc-cmp-chip--ok">Activo</span>', vencido: '<span class="fc-cmp-chip">Vencido</span>', revocado: '<span class="fc-cmp-chip fc-cmp-chip--mal">Revocado</span>' }[x.estado];
-            return "<tr><td class='fc-docs-principal'>" + esc(x.titulo) + "</td><td>" + x.documentos + "</td><td>" + fecha(x.creado_en) + "</td><td>" + (x.expira_en ? fecha(x.expira_en) : "Nunca") + "</td>" +
+            return "<tr><td class='fc-docs-principal'>" + esc(x.titulo) + "</td><td>" + x.documentos + "</td><td>" + fecha(x.creado_en) + "</td><td>" + (x.expira_en ? fecha(x.expira_en) : "—") + "</td>" +
                 "<td>" + x.abierto + " / " + x.descargas + "</td><td>" + chip + '</td><td class="fc-docs-acc">' +
                 (x.estado === "activo" ? '<a class="fc-docs-btn" href="' + esc(x.url) + '" target="_blank" rel="noopener">Ver</a><button type="button" class="fc-docs-btn" data-acc="copiar" data-id="' + esc(x.id) + '">Copiar</button>' +
                     '<button type="button" class="fc-docs-btn fc-cmp-rojo" data-acc="revocar" data-id="' + esc(x.id) + '">Revocar</button>' : "") + "</td></tr>";

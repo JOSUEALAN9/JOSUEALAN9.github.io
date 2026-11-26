@@ -23,6 +23,10 @@
 .fi-seleccion { position: sticky; top: 8px; z-index: 5; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; background: rgb(var(--g-900)); color: rgb(var(--g-0));
   border-radius: 12px; padding: 8px 12px; margin-bottom: 8px; box-shadow: 0 8px 24px rgba(15, 23, 42, .18); }
 .fi-seleccion[hidden] { display: none; }
+/* 26-nov-2026: igual que en Administración de XML, flota abajo y no empuja la tabla al marcar la primera */
+.fi-seleccion { position: fixed; top: auto; z-index: 50; left: 50%; bottom: 60px; transform: translateX(-50%); width: max-content;
+                max-width: min(920px, calc(100vw - 24px)); margin: 0; box-shadow: 0 12px 32px rgba(15, 23, 42, .28); }
+@media (max-width: 700px) { .fi-seleccion { top: calc(var(--barra-alto, 56px) + 8px); bottom: auto; width: calc(100vw - 24px); } }
 .fi-seleccion b { font-size: 13px; margin-right: 4px; }
 .fi-seleccion .xml-enlace { color: rgb(var(--g-300)); }
 .fi-tabla { width: max-content; min-width: 100%; }
@@ -104,6 +108,10 @@
 #v-recibidas[hidden], #v-emitidas[hidden], #v-historial[hidden] { display: none; }
 .fi-candado { background: rgb(var(--g-100)); border: 1px solid rgb(var(--g-300)); color: rgb(var(--g-700)); border-radius: 12px; padding: 10px 14px; font-size: 13px; margin-bottom: 12px; }
 .fi-candado[hidden] { display: none; }
+.fi-congelado { margin-top: 8px; }                     /* 23-nov-2026: lo que cambiaría en el mes cerrado */
+.fi-congelado summary { cursor: pointer; font-weight: 600; }
+.fi-congelado ul { margin: 6px 0 0 18px; padding: 0; list-style: disc; overflow-wrap: anywhere; }
+.fi-congelado li { margin: 2px 0; }
 .fi-celda:disabled { cursor: default; opacity: .75; }
 .fi-celda:disabled:hover { box-shadow: none; }
 .fi-cerrado .fi-guia { display: none; }
@@ -128,3 +136,12 @@ a.ca-uuid { font-weight: 500; }
 .fi-contra-ley { display: block; color: rgb(var(--av-600)); font-weight: 700; font-size: 11.5px; }
 .fi-tarjeta span.fi-desglose { color: rgb(var(--g-600)); }
 .ca-otra-vez { display: block; margin-top: 4px; font-size: 11.5px; font-weight: 700; color: rgb(var(--av-600)); background: rgb(var(--av-50)); border: 1px solid rgb(var(--av-200)); border-radius: 8px; padding: 3px 7px; }
+
+/* 24-nov-2026 (a2dec, D): «Ver todos los meses cerrados» (Configuración › Cierre de meses) */
+.fi-enlace { border: 0; background: none; padding: 0; font: inherit; font-weight: 700; color: var(--acento); cursor: pointer; text-decoration: underline; }
+/* 25-nov-2026, el dueño: el candado del mes ya no es un botón (se cierra en Configuración); el enlace solo a quien puede */
+.fi-mes-estado { display: inline-flex; align-items: center; border: 1px solid rgb(var(--g-200)); background: rgb(var(--g-0)); border-radius: 10px; padding: 9px 12px;
+                 font-size: 13px; font-weight: 700; color: rgb(var(--g-600)); white-space: nowrap; }
+.fi-mes-estado--cerrado { background: rgb(var(--g-100)); border-color: rgb(var(--g-300)); color: rgb(var(--g-800)); }
+.fi-mes-estado[hidden], .fi-cierres[hidden] { display: none; }
+.fi-cierres { font-size: 13px; white-space: nowrap; }

@@ -50,10 +50,10 @@
         { id: "seguridad", grupo: "Tu cuenta", titulo: "Seguridad", ico: ICO.candado, desc: "Tu contraseña, la verificación en dos pasos, las sesiones abiertas y el bloqueo por inactividad.",
           palabras: "seguridad contraseña clave dos pasos verificación código autenticación sesiones abiertas equipos de confianza pin bloqueo inactividad",
           pintar: function (c) { pintarSeguridad(c); pintarBloqueo(c); } },
-        { id: "plan", grupo: "Tu cuenta", titulo: "Plan y créditos", ico: ICO.creditos, desc: "Tu plan, su vigencia y tus créditos.", palabras: "plan créditos recargar vigencia pago",
+        { id: "plan", grupo: "Tu cuenta", titulo: "Plan y licencia", ico: ICO.creditos, desc: "Tu plan, su vigencia y tu licencia.", palabras: "plan licencia clave activar créditos recargar timbres vigencia pago",
           pintar: pintarPlan },
-        { id: "avisos", grupo: "Tu cuenta", titulo: "Avisos", ico: ICO.campana, desc: "Qué avisos te llegan también por correo, a qué dirección, y el resumen de tu cartera.",
-          palabras: "avisos correo notificaciones campana actividad email resumen semanal diario lunes cartera", pintar: pintarAvisos },
+        { id: "avisos", grupo: "Tu cuenta", titulo: "Avisos", ico: ICO.campana, desc: "Tu correo de la mañana, lo que llega al momento, a qué dirección y el resumen de tu cartera.",
+          palabras: "avisos correo mañana notificaciones campana actividad email resumen semanal diario lunes cartera vista previa", pintar: pintarAvisos },
         // 20-nov-2026, el dueño: cómo se llaman los archivos (configuracion/nombres-archivo.js; en el despacho, los pone el titular)
         { id: "nombres", grupo: "Tu cuenta", titulo: "Nombres de archivo", ico: ICO.factura,
           desc: "Cómo se llaman los XML, los PDF, los Excel y los ZIP que bajas o mandas en los envíos.",
@@ -79,12 +79,18 @@
           desc: "Cuándo cuenta cada impuesto (flujo o devengado), estatales, alcohol y las reglas que Fiscontable aprendió de cada empresa.",
           palabras: "impuestos reglas fiscales isr iva diot deducible no deducible flujo devengado cobrado facturado profesiones alcohol régimen paquete marcas",
           pintar: pintarImpuestos },
-        // 20-nov-2026, el dueño: el «formato del despacho» del Excel · reporte completo (Recibidos y Emitidos). Lo define el titular
-        // una vez y sale así para todos y en los Envíos por correo; los integrantes lo ven sin poder cambiarlo.
-        { id: "formato_reportes", grupo: "Módulos", titulo: "Formato de los reportes", ico: ICO.tabla, modulo: "validador",
-          desc: "Qué columnas y en qué orden lleva el «Excel · reporte completo» de Recibidos y Emitidos, también en los envíos por correo.",
-          palabras: "formato reporte completo excel columnas orden recibidos emitidos administración xml despacho envíos plantilla fiscontable",
-          pintar: pintarFormatoReportes },
+        // 24-nov-2026 (a2dec, decisión D del dueño): cerrar y abrir meses por empresa. 25-nov-2026, el dueño: SOLO aquí (Marcas
+        // fiscales trae a esta sección), con PIN, y en un despacho solo el titular (configuracion/cierres.js)
+        { id: "cierres", grupo: "Módulos", titulo: "Cierre de meses", ico: ICO.candado, modulo: "marcas",
+          desc: "Por empresa y mes: cerrar o abrir (con tu PIN), quién y cuándo, y los meses que cerró solo una declaración.",
+          palabras: "cierre cerrar mes meses abrir candado marcas fiscales declaración congelar periodo cerrado bloqueado pin cerrar hasta",
+          pintar: function (c) { window.FcCierres.pintar(c, { api: api, enviar: enviar }); } },
+        // 23-nov-2026, el dueño (A.6): lo que era «Formato de los reportes» ahora son las vistas compartidas del despacho
+        // 24-nov-2026 (revisión): solo en un despacho (fuera de él no hay vistas que compartir: las de antes pasan a «Mis vistas»)
+        { id: "vistas_despacho", grupo: "Módulos", titulo: "Vistas del despacho", ico: ICO.tabla, modulo: "validador", solo_despacho: true,
+          desc: "Las vistas de la tabla de Administración de XML que el titular comparte con todo el despacho (columnas y orden del Excel).",
+          palabras: "vistas vista despacho formato reporte excel columnas orden recibidos emitidos administración xml formato 2 compartir fiscontable",
+          pintar: pintarVistasDespacho },
         { id: "fabrica", grupo: "Administración", titulo: "Valores de fábrica", ico: ICO.admin, solo_admin: true,
           desc: "Lo que les sale por defecto a todas las cuentas (correos, horario, lo automático, bloqueo) y lo que no pueden cambiar.",
           palabras: "valores de fábrica por defecto predeterminados ajustes correos horario automático madrugada bloqueo bloquear", pintar: pintarFabrica },
@@ -97,7 +103,7 @@
         var mods = (perfil && perfil.modulos_permitidos) || [];
         return SECCIONES.filter(function (s) {
             if (s.solo_admin) return perfil && perfil.rol === "admin";
-            if (s.solo_despacho) return !!(perfil && perfil.despacho && perfil.despacho.id);
+            if (s.solo_despacho && !(perfil && perfil.despacho && perfil.despacho.id)) return false;
             return !s.modulo || mods.indexOf(s.modulo) !== -1;
         });
     }
@@ -155,6 +161,8 @@
         var p = caja.querySelector(".cf-msj");
         if (!p) return;
         p.textContent = texto; p.className = "cf-msj " + (ok ? "cf-msj--ok" : "cf-msj--mal");
+        clearTimeout(p._reloj);              // 26-nov-2026 (el dueño): lo que salió bien se quita solo
+        if (ok) p._reloj = setTimeout(function () { if (p.textContent === texto) { p.textContent = ""; p.className = "cf-msj"; } }, 4000);
     }
 
     /* 22-nov-2026 (auditoría despacho-4): los ajustes que valen para todo el despacho (avisos por correo, horario, resumen,
@@ -481,6 +489,9 @@
         if (!modo && !b.tiene_pin && sub === "pin") setTimeout(function () { caja.scrollIntoView({ block: "center" }); abrirForma("crear"); }, 80);
     }
 
+    function usaCreditos() {
+        return perfil.rol === "admin" || (perfil.modulos_permitidos || []).indexOf("documentos") !== -1;
+    }
     function pintarPlan(c) {
         var vence = perfil.fecha_expira ? new Date(perfil.fecha_expira).toLocaleDateString("es-MX", { day: "numeric", month: "long", year: "numeric" }) : "Sin vencimiento";
         var pc = perfil.plan_comercial, info = perfil.planes || {}, cat = info.catalogo, contacto = info.contacto || {};
@@ -495,7 +506,9 @@
             (pc ? "<dt>Empresas</dt><dd>" + pc.empresas_usadas + " de " + pc.empresas + (pc.ambito === "despacho" ? " <small>(entre todo el despacho)</small>" : "") + "</dd>" +
                 (Number(pc.timbres) > 0 ? "<dt>" + (pc.timbres_periodo === "anio" ? "Timbres incluidos al año" : "Timbres al mes") + "</dt><dd>" + pc.timbres + "</dd>" : "") : "") +
             "<dt>Vigencia</dt><dd>" + esc(vence) + "</dd><dt>Módulos</dt><dd>" + esc(String((perfil.modulos_permitidos || []).length)) + " activos</dd></dl>" +
-            '<a class="cf-btn cf-btn--principal" href="/creditos/"' + (incrustado ? ' target="_top"' : "") + ">Ver y recargar créditos</a></div>";
+            // 24-nov-2026 (auditoría contradicciones-7): los créditos solo sirven para Documentos. A quien no lo tiene (Pro,
+            // Pro despacho) no se le invita a recargarlos; es la misma regla con la que el menú esconde «Créditos» (barra.js).
+            (usaCreditos() ? '<a class="cf-btn cf-btn--principal" href="/creditos/"' + (incrustado ? ' target="_top"' : "") + ">Ver y recargar créditos</a>" : "") + "</div>";
         if (cat && cat.planes && cat.planes.length) {
             var tarjeta = function (p) {
                 var actual = pc && pc.clave === p.clave, pronto = !!p.proximamente;
@@ -525,7 +538,11 @@
             if ((cat.timbres || []).length) html += '<h3 class="cf-subtitulo">Timbres extra</h3><div class="cf-timbres">' + cat.timbres.map(function (t) {
                 return '<div class="cf-timbre"><b>' + Number(t.timbres).toLocaleString("es-MX") + "</b> timbres<span>" + precio(t.precio) + "</span><small>" +
                     "$" + (t.precio / t.timbres).toFixed(2) + " cada uno</small></div>";
-            }).join("") + "</div>";
+            }).join("") + "</div>" +
+                // 24-nov-2026 (revisión de a2text, contradicciones-7): sin el botón de créditos, quien busca más timbres
+                // necesita saber cómo pedirlos (los timbres no se compran con créditos).
+                '<div id="cf-timbres-pedir"><p class="cf-texto" style="margin:14px 0 8px">¿Necesitas más timbres? Escríbenos:</p><div class="cf-acciones" style="margin-top:0">' +
+                quiero("Hola, quiero comprar timbres de Fiscontable (" + (perfil.persona || perfil.correo || "") + ").") + "</div></div>";
         }
         html += '<h3 class="cf-subtitulo">Activar una licencia</h3><div class="cf-tarjeta"><p class="cf-texto">¿Te dimos una clave (FSC-…)? Actívala aquí: ' +
             'se aplica a tu cuenta y, si es de despacho, crea tu despacho.</p><div id="cf-licencia"></div></div>';
@@ -664,14 +681,14 @@
                 "Marca «No lo pueden cambiar» para que nadie lo mueva en su cuenta.</p>" +
                 d.grupos.map(function (g) {
                     return '<div class="cf-tarjeta">' + d.ajustes.filter(function (a) { return a.grupo === g; }).map(function (a) {
-                        return '<div class="cf-fabrica' + (a.grupo === "Cuándo salen los correos" ? " cf-fabrica--detalle" : "") + '" data-fb-caja="' + esc(a.clave) + '"><div class="cf-fabrica__valor">' + control(a) + (a.ayuda ? '<small class="cf-fabrica__ayuda">' + esc(a.ayuda) + "</small>" : "") + "</div>" +
+                        return '<div class="cf-fabrica' + (a.grupo === "Cuándo salen los correos" || a.grupo === "El cierre del mes" ? " cf-fabrica--detalle" : "") + '" data-fb-caja="' + esc(a.clave) + '"><div class="cf-fabrica__valor">' + control(a) + (a.ayuda ? '<small class="cf-fabrica__ayuda">' + esc(a.ayuda) + "</small>" : "") + "</div>" +
                             (a.global ? '<span class="cf-fabrica__fijo cf-fabrica__todas">Aplica a todas las cuentas</span>' :
                             '<label class="ui-check cf-fabrica__fijo"><input type="checkbox" data-fb-fijo="' + esc(a.clave) + '"' + (a.bloqueado ? " checked" : "") + "> No lo pueden cambiar</label>") + "</div>";
                     }).join("") +
                     '<div class="cf-acciones"><button type="button" class="cf-btn cf-btn--principal" data-fb-guardar>Guardar los valores de fábrica</button><span class="cf-msj"></span></div></div>';
                 }).join("");
             // Lo programado (constancia, opinión y declaraciones) vive en «Lo automático» con una sola regla para todos (15-nov)
-            subPestanas(c, d.grupos.map(function (g) { return { "Cuándo salen los correos": "Cuándo salen", "Horario de los correos": "Horario" }[g] || g; }), "fabrica");
+            subPestanas(c, d.grupos.map(function (g) { return { "Cuándo salen los correos": "Cuándo salen", "El cierre del mes": "El cierre", "Horario de los correos": "Horario" }[g] || g; }), "fabrica");
             // Desde Ctrl+K (?seccion=fabrica&sub=<clave>): abre su pestaña y lo señala
             var pedido = Fiscontable.url("sub"), cajaPedida = pedido && c.querySelector('[data-fb-caja="' + pedido.replace(/"/g, "") + '"]');
             if (cajaPedida) {
@@ -698,14 +715,49 @@
         } catch (e) { c.innerHTML = '<div class="cf-tarjeta"><p class="cf-msj cf-msj--mal">' + esc(e.message) + "</p></div>"; }
     }
 
+    /* ---------- «Ver cómo llega mi correo de hoy» (25-nov-2026): el correo de la mañana sin mandarlo ---------- */
+    async function verCorreoDeHoy(boton) {
+        var d = $("cf-mn-vista");
+        if (!d) {
+            d = document.createElement("dialog");
+            d.id = "cf-mn-vista"; d.className = "fc-modal fc-modal--grande cf-mn-vista";
+            d.innerHTML = '<div class="fc-modal__cabeza"><div><h2>Así llega tu correo de hoy</h2><p data-mn="asunto">Cargando…</p></div>' +
+                '<button type="button" class="fc-modal__cerrar" data-mn="cerrar" aria-label="Cerrar">✕</button></div>' +
+                '<div class="fc-modal__cuerpo"><div class="ctx-segmento" role="group" aria-label="Cómo verlo" data-mn="ancho">' +
+                '<button type="button" data-ancho="720" aria-pressed="true">Computadora</button><button type="button" data-ancho="390" aria-pressed="false">Celular</button></div>' +
+                '<p class="cf-texto" data-mn="nota" hidden></p><div class="cf-mn-vista__marco"><iframe title="Tu correo de la mañana" data-mn="marco" sandbox="allow-popups allow-popups-to-escape-sandbox"></iframe></div></div>' +
+                '<div class="fc-modal__pie"><span class="cf-texto">Es solo la vista previa: no se mandó a nadie.</span><button type="button" class="cf-btn cf-btn--principal" data-mn="cerrar">Cerrar</button></div>';
+            document.body.appendChild(d);
+            d.addEventListener("click", function (e) {
+                if (e.target.closest('[data-mn="cerrar"]')) { d.close(); return; }
+                var b = e.target.closest("[data-ancho]"); if (!b) return;
+                d.querySelectorAll("[data-ancho]").forEach(function (x) { x.setAttribute("aria-pressed", String(x === b)); });
+                d.querySelector('[data-mn="marco"]').style.maxWidth = b.dataset.ancho + "px";
+            });
+        }
+        var marco = d.querySelector('[data-mn="marco"]'), nota = d.querySelector('[data-mn="nota"]'), asunto = d.querySelector('[data-mn="asunto"]');
+        if (boton) boton.disabled = true;
+        try {
+            var v = await api("/api/actividad/mi-correo/vista");
+            asunto.textContent = v.hay ? v.asunto.replace(/^Fiscontable · /, "") + (v.enviado ? " · Ya te llegó hoy" : "") : "Hoy no te llega correo de la mañana";
+            nota.hidden = !!v.hay; nota.textContent = v.motivo || "";
+            d.querySelector('[data-mn="ancho"]').hidden = !v.hay;
+            marco.parentNode.hidden = !v.hay;
+            marco.srcdoc = v.hay ? v.html : "";
+            if (!d.open) d.showModal();
+        } catch (e) { Fiscontable.avisar ? Fiscontable.avisar(e.message) : alert(e.message); }
+        finally { if (boton) boton.disabled = false; }
+    }
+
     /* ---------- Avisos (G-13 / G-14): qué llega por correo ---------- */
     async function pintarAvisos(c) {
         c.innerHTML = '<div class="cf-tarjeta"><p class="cf-texto">Cargando…</p></div>';
         try {
             var p = await api("/api/actividad/preferencias");
-            // Los 9 correos por tema (diseño del 14-nov): cada uno con su «cuándo»; los de fecha se pueden probar
-            var temas = p.por_tema || Object.keys(p.tipos), conFecha = p.con_fecha || [], cuando = p.cuando || {};
-            var otros = Object.keys(p.tipos).filter(function (t) { return temas.indexOf(t) < 0; });
+            // 25-nov-2026 (el dueño): UN correo de la mañana por persona (los 9 correos por tema ahora son sus secciones). Lo
+            // demás que puede ir suelto por correo (programaciones, descargas, avisos de Fiscontable) queda en «Otros avisos».
+            var cuando = p.cuando || {}, mn = p.manana || {};
+            var otros = (p.otros_avisos || []).filter(function (t) { return p.tipos[t]; });
             var bloq = p.bloqueados || [], fijo = function (clave) { return bloq.indexOf(clave) >= 0; };
             // 15-nov (el dueño): apagar un correo siempre se puede; lo que Fiscontable apagó y bloqueó no se puede prender
             var noPrende = p.no_se_prenden || [];
@@ -714,7 +766,6 @@
                 return '<div class="cf-tema"><label class="ui-check cf-tema__check"><input type="checkbox" data-tipo="' + esc(t) + '"' + (p.correo[t] ? " checked" : "") + (cerrado ? " disabled" : "") + ">" +
                     '<span><b>' + esc(p.tipos[t]) + '</b><small>' + esc(cuando[t] || "Al momento") + (cerrado ? " · Apagado por Fiscontable" : fx ? " · Sus fechas las define Fiscontable" : "") + "</small></span></label></div>";
             };
-            var probar = conFecha.filter(function (t) { return p.tipos[t]; });
             var h = p.horario || {};
             var hcampo = function (k, html) { return fijo("horario." + k) ? html.replace("<input", "<input disabled") : html; };
             var cajaHorario = '<div class="cf-tarjeta" style="margin-top:14px"><h3 class="cf-sub">Horario de los correos</h3>' +
@@ -725,22 +776,44 @@
                 hcampo("sabado", '<label class="ui-check cf-check"><input type="checkbox" id="cf-h-sabado"' + (h.sabado ? " checked" : "") + "> También los sábados</label>") +
                 hcampo("domingo", '<label class="ui-check cf-check"><input type="checkbox" id="cf-h-domingo"' + (h.domingo ? " checked" : "") + "> También los domingos</label>") +
                 hcampo("urgentes", '<label class="ui-check cf-check"><input type="checkbox" id="cf-h-urgentes"' + (h.urgentes ? " checked" : "") +
-                    "> Lo urgente sale al momento, a cualquier hora (notificación pendiente del Buzón, e.firma revocada)</label>") +
+                    "> Lo urgente que aparece de día me llega al momento, en un correo aparte (una notificación, carta invitación o " +
+                    "requerimiento del Buzón; una e.firma revocada o con la contraseña rechazada). Lo de la madrugada va en el correo de la mañana.</label>") +
                 (["inicio", "fin", "sabado", "domingo", "urgentes"].some(fijo) ? '<p class="cf-texto">Lo que está apagado lo define Fiscontable.</p>' : "") +
                 '<div class="cf-acciones"><button type="button" class="cf-btn cf-btn--principal" id="cf-h-guardar">Guardar el horario</button><span class="cf-msj"></span></div></div>';
-            c.innerHTML = '<div class="cf-tarjeta"><h3 class="cf-sub">Correos</h3>' +
-                '<p class="cf-texto">Lo de cada empresa llega junto en su informe de la mañana; lo rápido, un correo por tema con todas tus empresas.</p>' +
-                '<div class="cf-temas">' + temas.filter(function (t) { return p.tipos[t]; }).map(renglon).join("") + "</div>" +
-                (otros.length ? '<details class="cf-otros"><summary>Otros avisos de la campana que también pueden ir por correo</summary>' +
+            var secciones = mn.secciones || [];
+            var cajaManana = '<div class="cf-tarjeta" id="cf-av-caja-manana"><h3 class="cf-sub">Correo de la mañana</h3>' +
+                '<p class="cf-texto">Uno solo, ' + esc((mn.cuando || "de lunes a viernes al abrir tu horario de correos").replace(/^De /, "de ")) +
+                '. Arriba, lo que requiere atención; luego lo del cierre (solo los días que toca), una tabla por tema y la ronda de la madrugada en una línea.' +
+                (p.es_despacho ? " Trae tus empresas del despacho y, aparte, las de Mi espacio." : "") + "</p>" +
+                // 25-nov-2026 (el dueño, av3 y av4): el Buzón sin abrir no va todos los días (core/correo_manana.cadencia_buzon)
+                '<p class="cf-texto" id="cf-mn-buzon">Lo del Buzón sin abrir (una notificación, una carta invitación o un requerimiento) no llega todos los días: ' +
+                "va el día que lo encontramos, otra vez un día hábil antes de que el SAT la tenga por notificada, el mismo día en que el SAT la tiene por notificada (desde ese día corren los plazos) y, después, cada lunes mientras siga sin abrirse. " +
+                "Si uno de esos días no sale tu correo, llega en el siguiente. La campana lo enseña todos los días. Fiscontable solo te avisa: nunca abre una notificación; para ver qué dice, ábrela tú en el Buzón.</p>" +
+                '<label class="ui-check cf-check"><input type="checkbox" id="cf-mn-recibir"' + (mn.recibir ? " checked" : "") + (mn.apagado_fabrica ? " disabled" : "") +
+                "> Recibir mi correo de la mañana" + (mn.apagado_fabrica ? " (apagado por Fiscontable)" : "") + "</label>" +
+                '<p class="cf-texto cf-mn__nota">Qué trae, además de «Requiere atención» (eso va siempre):</p>' +
+                '<div class="cf-temas" id="cf-mn-secciones">' + (mn.opciones || []).map(function (o) {
+                    return '<div class="cf-tema"><label class="ui-check cf-tema__check"><input type="checkbox" value="' + esc(o.valor) + '"' +
+                        (secciones.indexOf(o.valor) >= 0 ? " checked" : "") + (mn.secciones_fijas ? " disabled" : "") + "><span><b>" + esc(o.texto) +
+                        "</b><small>" + esc(o.ayuda || "") + "</small></span></label></div>";
+                }).join("") + "</div>" + (mn.secciones_fijas ? '<p class="cf-texto">Qué trae lo define Fiscontable.</p>' : "") +
+                '<div class="cf-acciones"><button type="button" class="cf-btn cf-btn--principal" id="cf-mn-guardar">Guardar</button>' +
+                '<button type="button" class="cf-btn" id="cf-mn-ver">Ver cómo llega mi correo de hoy</button><span class="cf-msj"></span></div>' +
+                '<p class="cf-texto" style="margin-top:12px">' + (mn.al_momento ? "Lo urgente que aparece de día te llega al momento, en un correo aparte. " : "") +
+                "La hora y lo de «al momento» se cambian en «Horario». Esto es tuyo: en un despacho, cada persona elige el suyo.</p></div>";
+            c.innerHTML = cajaManana + '<div class="cf-tarjeta"><h3 class="cf-sub">Correo de la cuenta</h3>' +
+                '<p class="cf-texto">A dónde llegan los avisos de la cuenta y los escalones de la e.firma. Todo lo de tus empresas va en el correo de la mañana; ' +
+                "aquí puedes prender, además, avisos sueltos que no son de una empresa.</p>" +
+                (otros.length ? '<details class="cf-otros"><summary>Otros avisos que también pueden llegar sueltos por correo</summary>' +
                     '<div class="cf-temas">' + otros.map(renglon).join("") + "</div></details>" : "") +
                 '<label class="cf-campo"><span>Avisar de e.firma y sellos por vencer cuando falten (días)</span><input type="text" id="cf-av-dias" inputmode="numeric" value="' +
                 esc((p.dias_vence || []).join(", ")) + '"' + (fijo("vencimientos.dias") ? " disabled" : "") + "></label>" +
-                '<p class="cf-texto">Un aviso por cada escalón. Si ya la renovaste, deja de avisar sola.' + (fijo("vencimientos.dias") ? " Estos días los define Fiscontable." : "") + "</p>" +
+                '<p class="cf-texto">En el correo de la mañana de esos días (de 5 para abajo, en «Requiere atención»). Si ya la renovaste, deja de avisar sola.' + (fijo("vencimientos.dias") ? " Estos días los define Fiscontable." : "") + "</p>" +
                 '<label class="cf-campo"><span>Mandar los avisos a</span><input type="email" id="cf-av-destino" value="' + esc(p.destino || "") + '"></label>' +
                 '<div class="cf-acciones"><button type="button" class="cf-btn cf-btn--principal" id="cf-av-guardar">Guardar</button>' +
                 '<div class="cf-menu-prueba" id="cf-av-prueba-caja"><button type="button" class="cf-btn" id="cf-av-prueba-abrir" aria-haspopup="menu" aria-expanded="false">Mandar un correo de prueba ▾</button>' +
                 '<div class="cf-menu-prueba__lista" role="menu"><button type="button" role="menuitem" id="cf-av-prueba"><b>Solo saber si me llegan</b><small>Un correo corto de prueba</small></button>' +
-                probar.map(function (t) { return '<button type="button" role="menuitem" data-probar="' + esc(t) + '"><b>' + esc(p.tipos[t]) + "</b><small>Con lo de hoy, aunque no le toque</small></button>"; }).join("") +
+                '<button type="button" role="menuitem" id="cf-mn-prueba"><b>Mi correo de la mañana de hoy</b><small>Solo a ti; no marca nada como avisado</small></button>' +
                 '</div></div><span class="cf-msj"></span></div>' +
                 '<p class="cf-texto" style="margin-top:12px">Los correos salen por el mismo correo que usas en Facturar (el general de Fiscontable o el tuyo).</p></div>' +
                 cajaHorario +
@@ -749,11 +822,12 @@
                 '<label class="cf-campo"><span>Copias (separa con comas)</span><input type="text" id="cf-av-copias" inputmode="email" autocomplete="off" placeholder="avisos@tudespacho.mx, socio@tudespacho.mx" value="' +
                 esc((p.copias || []).join(", ")) + '"></label>' +
                 (p.es_despacho ? '<label class="ui-check cf-check"><input type="checkbox" id="cf-av-responsables"' + (p.responsables ? " checked" : "") +
-                    "> El aviso de una empresa, también a la persona que la tiene asignada</label>" : "") +
+                    "> Cada persona del despacho recibe su correo de la mañana (solo con sus empresas) y lo urgente de las que tiene asignadas</label>" : "") +
                 '<label class="ui-check cf-check"><input type="checkbox" id="cf-av-cliente"' + (p.cliente ? " checked" : "") +
-                    "> El informe de cada empresa, también a su cliente (el correo de su ficha)</label>" +
+                    "> Copia a cada cliente: lo de su empresa (Buzón, opinión, e.firma) al correo de su ficha; nunca los errores de sus facturas</label>" +
                 '<label class="ui-check cf-check"><input type="checkbox" id="cf-av-importes"' + (p.importes ? " checked" : "") +
-                    "> Poner importes en los correos (de fábrica, sin importes)</label>" +
+                    // 24-nov-2026 (auditoría contradicciones-6): dice lo que de verdad viene puesto (core/fabrica.py, «correo.importes»)
+                    "> Poner importes en los correos (de fábrica, " + (p.importes_fabrica === false ? "sin" : "con") + " importes)</label>" +
                 (p.puede_destinatarios ? '<div class="cf-acciones"><button type="button" class="cf-btn cf-btn--principal" id="cf-av-quien-guardar">Guardar</button><span class="cf-msj"></span></div>'
                     : p.puede_editar === false ? "" : '<p class="cf-texto">Solo el titular del despacho puede cambiar esto.</p>') + "</div>" +
                 '<div class="cf-tarjeta" id="cf-av-caja-resumen" style="margin-top:14px"><h3 class="cf-sub">Resumen completo (opcional)</h3>' +
@@ -766,7 +840,10 @@
                 (p.equipo_resumen > 1 ? '<label class="ui-check cf-check"><input type="checkbox" id="cf-av-resumen-copia"' + (p.resumen_copia ? " checked" : "") +
                     "> Que cada persona de mi despacho reciba el de sus empresas (" + p.equipo_resumen + " personas)</label>" : "") +
                 '<div class="cf-acciones"><button type="button" class="cf-btn" id="cf-av-resumen-ya">Mándame uno ahora</button><span class="cf-msj"></span></div></div>';
-            subPestanas(c, ["Correos", "Horario", "A quién llegan", "Resumen completo"], "avisos");
+            subPestanas(c, ["Correo de la mañana", "Correo de la cuenta", "Horario", "A quién llegan", "Resumen completo"], "avisos");
+            // 26-nov-2026: Ctrl+K «Correo de la mañana» (y los nombres de los correos de antes) abre esa pestaña (?sub=manana),
+            // aunque la última vez se haya quedado en otra
+            if (Fiscontable.url("sub") === "manana") { var bm = c.querySelector('.cf-subtabs [data-sub="0"]'); if (bm) bm.click(); }
             var soloVer = p.puede_editar === false;
             var guardado = p;                                   // lo último que quedó guardado (el resumen se guarda automáticamente, sin tocar lo demás)
             var cajaResumen = $("cf-av-caja-resumen");
@@ -827,16 +904,27 @@
                     aviso(caja, true, "✓ Guardado. Los correos salen de " + guardado.horario.inicio + " a " + guardado.horario.fin + ".");
                 } catch (e) { aviso(caja, false, e.message); }
             });
-            c.querySelectorAll("[data-probar]").forEach(function (b) {
-                b.addEventListener("click", async function () {
-                    b.disabled = true;
-                    try { var r = await enviar("/api/actividad/tema-ahora", "POST", { tema: b.dataset.probar }); aviso(c, true, r.mensaje); }
-                    catch (e) { aviso(c, false, e.message); }
-                    finally { b.disabled = false; }
-                });
+            // 25-nov-2026: el correo de la mañana es de cada persona (también en un despacho): sus secciones, la vista previa y la prueba
+            var cajaMn = $("cf-av-caja-manana");
+            $("cf-mn-guardar").addEventListener("click", async function () {
+                var b = this; b.disabled = true;
+                var elegidas = [].map.call(cajaMn.querySelectorAll("#cf-mn-secciones input:checked"), function (x) { return x.value; });
+                try {
+                    var g = await enviar("/api/actividad/mi-correo", "PUT", { recibir: $("cf-mn-recibir").checked, secciones: elegidas });
+                    if (g.de_la_cuenta && guardado.correo) guardado.correo.manana = !!g.recibir;     // las otras cajas mandan guardado.correo
+                    aviso(cajaMn, true, g.recibir ? "✓ Guardado. Te llega " + (g.cuando || "en la mañana").replace(/^De /, "de ") + "." : "✓ Guardado: ya no te llega el correo de la mañana.");
+                } catch (e) { aviso(cajaMn, false, e.message); }
+                finally { b.disabled = false; }
+            });
+            $("cf-mn-ver").addEventListener("click", function () { verCorreoDeHoy(this); });
+            $("cf-mn-prueba").addEventListener("click", async function () {
+                var b = this; b.disabled = true;
+                try { var r = await enviar("/api/actividad/mi-correo/prueba", "POST", {}); aviso(c, true, r.mensaje); }
+                catch (e) { aviso(c, false, e.message); }
+                finally { b.disabled = false; }
             });
             $("cf-av-guardar").addEventListener("click", async function () {
-                var correo = {};
+                var correo = {};                          // (solo los avisos sueltos de esta caja; lo demás se queda como está)
                 c.querySelectorAll("[data-tipo]").forEach(function (x) { correo[x.dataset.tipo] = x.checked; });
                 var dias = $("cf-av-dias").value.split(/[^0-9]+/).map(Number).filter(function (n) { return n > 0 && n <= 365; });
                 if (!dias.length) { aviso(c, false, "Escribe al menos un número de días (por ejemplo 30, 15, 5)."); return; }
@@ -877,7 +965,8 @@
                 catch (e) { aviso(c, false, e.message); }
                 finally { b.disabled = false; }
             });
-            if (soloVer) soloTitular(c.querySelectorAll(":scope > .cf-tarjeta"), p.motivo_editar);
+            // (el correo de la mañana es de la persona: ese no se bloquea)
+            if (soloVer) soloTitular(c.querySelectorAll(":scope > .cf-tarjeta:not(#cf-av-caja-manana)"), p.motivo_editar);
         } catch (e) { c.innerHTML = '<div class="cf-tarjeta"><p class="cf-msj cf-msj--mal">' + esc(e.message) + "</p></div>"; }
     }
 
@@ -947,6 +1036,8 @@
     function pintarAutomatico(c) {
         var mods = (perfil && perfil.modulos_permitidos) || [];
         var partes = [
+            // 23-nov-2026 (el dueño: «presionar y [ver] el desglose, si se hizo o no»): lo que pasó cada noche, primero
+            { clave: "anoche", nombre: "Anoche", si: !!window.FcAutomatico, pintar: pintarAnoche },
             { clave: "xml", nombre: mods.indexOf("buzon") !== -1 ? "XML, retenciones y Buzón" : "XML y retenciones", si: mods.indexOf("descarga_xml") !== -1 || mods.indexOf("buzon") !== -1, pintar: pintarXmlAuto },
             { clave: "programado", nombre: "Lo programado", si: true, pintar: pintarProgramaciones }
         ].filter(function (p) { return p.si; });
@@ -956,9 +1047,10 @@
             partes.map(function (p) { return '<div class="cf-tarjeta cf-tarjeta--plana" data-auto-parte="' + p.clave + '"><div></div></div>'; }).join("");
         pintarNoSalio(c.querySelector(".cf-auto__nosalio"));
         partes.forEach(function (p) { p.pintar(c.querySelector('[data-auto-parte="' + p.clave + '"] > div')); });
-        subPestanas(c, partes.map(function (p) { return p.nombre; }), "automatico");
+        subPestanas(c, partes.map(function (p) { return p.nombre; }), "automatico2");   // «2»: antes no existía «Anoche» (los números cambiaron)
         var pedido = Fiscontable.url("sub"), i = partes.map(function (p) { return p.clave; }).indexOf(pedido === "buzon" ? "xml" : pedido);   // el Buzón ya va en la tabla
         if (i >= 0) { var b = c.querySelector('.cf-subtabs [data-sub="' + i + '"]'); if (b) b.click(); }
+        else if (Fiscontable.url("dia")) { var b0 = c.querySelector('.cf-subtabs [data-sub="0"]'); if (b0) b0.click(); }   // el anuncio de la campana
         // «Cambiar/Programar» desde un módulo (?programar=csf&rfc=…): Lo programado, con esa empresa señalada. Ya no hay fecha
         // que elegir (15-nov): solo encender o pausar, y si se le manda al cliente.
         var pm = Fiscontable.url("programar"), prfc = Fiscontable.url("rfc");
@@ -976,6 +1068,15 @@
                 setTimeout(function () { clearInterval(espera); }, 8000);
             }
         }
+    }
+
+    /* 23-nov-2026: «Anoche» — lo automático de cada noche, un renglón por proceso y el desglose por empresa al picarlo
+       (assets/js/comun/automatico.js). El anuncio de la campana trae aquí (?seccion=automatico&sub=anoche&dia=…). */
+    function pintarAnoche(c) {
+        var caja = c.closest(".cf-tarjeta") || c;
+        c.innerHTML = '<p class="cf-texto">Lo que Fiscontable hizo solo cada noche por tus empresas. Pica un proceso para ver cada empresa y, si algo no salió, reintentarlo.</p><div data-anoche></div>';
+        window.FcAutomatico.pintar(c.querySelector("[data-anoche]"), { base: "/api/programadas/automatico" });
+        return caja;
     }
 
     /* 19-nov: «Reintentar lo que no salió» — lo de las madrugadas de la última semana que no salió (solo de esta cuenta) */
@@ -1023,6 +1124,10 @@
     async function pintarXmlAuto(c) {
         c.innerHTML = '<div class="cf-tarjeta"><p class="cf-texto">Cargando…</p></div>';
         try {
+            // 26-nov-2026 (revisión de fix3): si la tabla se vuelve a pintar (se salió de la sección y se regresó) con algo de la
+            // anterior por guardar o en camino, primero se termina de guardar. Si no, la tabla nueva salía con lo de antes y el
+            // siguiente cambio en ese renglón deshacía el anterior sin avisar (el guardado manda el renglón completo).
+            if (pintarXmlAuto._vaciar) await pintarXmlAuto._vaciar();
             var mods = (perfil && perfil.modulos_permitidos) || [], conXml = mods.indexOf("descarga_xml") !== -1, conBuzon = mods.indexOf("buzon") !== -1;
             var cfg = conXml ? await api("/api/descarga-xml/automatica") : { empresas: [], tipos: {}, frecuencias: {} };
             var clientes = await api("/api/clientes");
@@ -1036,15 +1141,18 @@
             // 15-nov (XML seguros): el cuadre UUID por UUID con la lista del SAT, mes por mes desde «Desde»
             var cuadre = function (e) {
                 var q = e.cuadre;
-                var expl = "Cuadre con la lista del SAT: cada semana (los meses viejos, cada mes) se compara UUID por UUID desde «Desde»; lo que falte se pide solo y los que pasen a cancelados se avisan.";
+                var expl = "Cuadre con la lista del SAT: el mes en curso cada noche (del 1 al 5, también el que acaba de cerrar); los dos anteriores cada semana y los viejos cada mes. Se compara UUID por UUID desde «Desde»; lo que falte se pide solo y los que pasen a cancelados se avisan.";
                 if (!q) return '<small class="cf-auto__cuadre" title="' + esc(expl + " Empieza cuando terminen de bajar sus XML.") + '">Cuadre SAT: en espera</small>';
                 var det = [expl, "Última revisión: " + (q.ultima ? dia(q.ultima) : "—")];
                 if (q.faltaban) det.push("faltaban " + q.faltaban + (q.pedidos ? " (se pidieron " + q.pedidos + ")" : ""));
                 // 19-nov: un mes cuenta cuando ya no espera XML; se vuelve a contar en cuanto termina de bajar lo que faltaba
                 if (q.esperando) det.push(q.esperando + " mes(es) esperando los XML que faltaban" + (q.por_llegar ? " (" + q.por_llegar + " por llegar)" : "") + ": cuentan en cuanto terminen de bajar");
+                // 24-nov-2026 (auditoría de Fable): vigentes que el SAT lista y no se pudieron bajar: el mes queda «con faltantes» (no cuenta)
+                if (q.con_faltantes) det.push(q.con_faltantes + " mes(es) con faltantes: el SAT lista " + (q.sin_bajar || 0) + " vigente(s) que no se pudieron bajar; no cuentan como al día");
                 if (q.cancelados_nuevos) det.push(q.cancelados_nuevos + " pasaron a cancelados");
                 if (q.errores) det.push(q.errores + " mes(es) por volver a pedir");
                 return '<small class="cf-auto__cuadre" data-cuadre title="' + esc(det.join(" · ")) + '">Cuadre SAT: ' + q.cuadrados + " de " + q.total + " meses" +
+                    (q.con_faltantes ? '<span class="cf-auto__faltantes">' + q.con_faltantes + (q.con_faltantes === 1 ? " mes con faltantes" : " meses con faltantes") + "</span>" : "") +
                     (q.cancelados_nuevos ? '<span class="cf-auto__cancelados">' + q.cancelados_nuevos + (q.cancelados_nuevos === 1 ? " cancelado" : " cancelados") + "</span>" : "") + "</small>";
             };
             // 19-nov: la primera vez se baja el historial desde «Desde» en varias noches (nunca a costa de lo del día)
@@ -1054,200 +1162,306 @@
                 return '<small class="cf-auto__historial" title="Lo de meses anteriores se baja de noche en noche, después de lo del día.">Cargando historial: ' +
                     h.hechos + " de " + h.total + " meses</small>";
             };
+            /* 26-nov-2026 (el dueño: «me molesta mucho que haya un botón para cada empresa; podríamos usar el mismo principio»):
+               sin botones por renglón. Lo que se cambia en un renglón (interruptores y listas) se guarda solo, con una espera
+               corta por renglón; sale «✓ Guardado» junto a lo que se movió (2 s) o, si el servidor lo rechaza, el motivo en rojo
+               bajo ese renglón y los controles regresan a lo último guardado. Igual la lista «Revisar los buzones».
+               «Descargar ahora»: una casilla por renglón (solo con e.firma guardada), la de «todas» en el encabezado y la barra de
+               las marcadas («N empresas · Descargar ahora · ✕»), con una sola confirmación para todas. */
+            var proxima = function (e, x) {
+                return e.activo && x.efirma_guardada ? "<b>" + esc(dia(e.proxima)) + "</b>" + (e.ultima ? "<small>Última: " + esc(dia(e.ultima)) + "</small>" : "") + historial(e) + cuadre(e) : "—";
+            };
             var bzFrec = bz ? '<label class="cf-campo cf-campo--corto cf-auto__buzon"><span>Revisar los buzones</span><select id="cf-buzon-frec">' +
                 Object.keys(bz.frecuencias).sort(function (a, b) { return (+a || 99) - (+b || 99); }).map(function (k) {
-                    return '<option value="' + k + '"' + (+k === bz.frecuencia ? " selected" : "") + ">" + esc(bz.frecuencias[k]) + "</option>"; }).join("") + "</select></label>" : "";
-            c.innerHTML = '<div class="cf-tarjeta cf-tarjeta--tabla">' + bzFrec + '<table class="cf-tabla cf-auto__tabla"><thead><tr><th>Empresa</th>' +
+                    return '<option value="' + k + '"' + (+k === bz.frecuencia ? " selected" : "") + ">" + esc(bz.frecuencias[k]) + "</option>"; }).join("") +
+                '</select><small class="cf-auto__dijo cf-auto__dijo--lista" role="status"></small></label>' : "";
+            var conEfirma = clientes.filter(function (x) { return x.efirma_guardada; }).length;
+            var columnas = 1 + (conXml ? 7 : 0) + (conBuzon ? 1 : 0);
+            c.innerHTML = '<div class="cf-tarjeta cf-tarjeta--tabla">' + bzFrec + '<table class="cf-tabla cf-auto__tabla"><thead><tr>' +
+                (conXml ? '<th class="cf-auto__marca"><input type="checkbox" data-marcar-todas aria-label="Marcar todas las empresas con e.firma" title="Marcar todas, para «Descargar ahora»"' +
+                    (conEfirma ? "" : " disabled") + "></th>" : "") + "<th>Empresa</th>" +
                 (conXml ? "<th>XML</th><th>Qué</th><th>Retenciones</th><th>Cada cuánto</th><th>Desde</th><th>Próxima</th>" : "") +
-                (conBuzon ? '<th title="Se guarda al momento">Buzón</th>' : "") + (conXml ? "<th></th>" : "") + "</tr></thead><tbody>" +
+                (conBuzon ? "<th>Buzón</th>" : "") + "</tr></thead><tbody>" +
                 clientes.map(function (x) {
                     var e = porRfc[x.rfc] || { activo: false, tipo: "ambos", frecuencia: "diaria" }, b = bzDe[x.rfc];
-                    return '<tr data-rfc="' + esc(x.rfc) + '"><td><b>' + esc(x.alias) + "</b><small>" + esc(x.rfc) + (x.efirma_guardada ? "" : " · sin e.firma") + "</small></td>" +
+                    return '<tr data-rfc="' + esc(x.rfc) + '">' +
+                        (conXml ? '<td class="cf-auto__marca">' + (x.efirma_guardada ? '<input type="checkbox" data-marcar aria-label="Marcar ' + esc(x.alias) + ' para «Descargar ahora»">' : "") + "</td>" : "") +
+                        "<td><b>" + esc(x.alias) + "</b><small>" + esc(x.rfc) + (x.efirma_guardada ? "" : " · sin e.firma") + "</small></td>" +
                         (conXml ? '<td><label class="cf-switch"><input type="checkbox" data-c="activo"' + (e.activo ? " checked" : "") + (x.efirma_guardada ? "" : " disabled") + "><span></span></label></td>" +
                         '<td><select data-c="tipo">' + opc(cfg.tipos, e.tipo) + "</select></td>" +
                         '<td><label class="cf-switch" title="También sus CFDI de Retenciones"><input type="checkbox" data-c="retenciones"' + (e.retenciones ? " checked" : "") + "><span></span></label></td>" +
                         "<td><select data-c=\"frecuencia\">" + opc(cfg.frecuencias, e.frecuencia) + "</select></td>" +
-                        '<td><select data-c="desde">' + Fiscontable.opcionesDesde(cfg.desde_minimo, cfg.mes_actual, e.desde || "") + "</select></td>" +
-                        "<td>" + (e.activo && x.efirma_guardada ? "<b>" + esc(dia(e.proxima)) + "</b>" + (e.ultima ? "<small>Última: " + esc(dia(e.ultima)) + "</small>" : "") + historial(e) + cuadre(e) : "—") + "</td>" : "") +
+                        // (revisión de fix3) la columna ya se llama «Desde»: las opciones van sin repetirlo («Enero 2026») y la tabla cabe a 1280
+                        '<td><select data-c="desde">' + Fiscontable.opcionesDesde(cfg.desde_minimo, cfg.mes_actual, e.desde || "").replace(/>Desde /g, ">") + "</select></td>" +
+                        "<td data-proxima>" + proxima(e, x) + "</td>" : "") +
                         (conBuzon ? '<td><label class="cf-switch" title="Revisar su Buzón Tributario"><input type="checkbox" data-buzon' + ((b ? b.activo : true) && x.efirma_guardada ? " checked" : "") +
-                            (x.efirma_guardada ? "" : " disabled") + "><span></span></label></td>" : "") +
-                        (conXml ? '<td class="cf-celda-acciones"><button type="button" class="cf-btn cf-btn--chico" data-guardar>Guardar</button>' +
-                        (x.efirma_guardada ? ' <button type="button" class="cf-btn cf-btn--chico" data-ahora title="Pedir ahora el periodo programado">Descargar ahora</button>' : "") + "</td>" : "") + "</tr>";
-                }).join("") + "</tbody></table><div class=\"cf-acciones\"><span class=\"cf-msj\"></span></div></div>";
-            var fb = c.querySelector("#cf-buzon-frec");
+                            (x.efirma_guardada ? "" : " disabled") + "><span></span></label></td>" : "") + "</tr>";
+                }).join("") + "</tbody></table>" +
+                (conXml ? '<div class="cm-seleccion cf-auto__sel" role="region" aria-label="Empresas marcadas" hidden><span data-sel-texto></span>' +
+                    '<button type="button" class="ui-btn ui-btn--primario ui-btn--32" data-sel-ahora title="Pedir ahora al SAT el periodo programado de cada una">Descargar ahora</button>' +
+                    '<button type="button" class="cf-auto__sel-quitar" data-sel-quitar aria-label="Quitar las marcas" title="Quitar las marcas">✕</button></div>' : "") + "</div>";
+            var tabla = c.querySelector(".cf-auto__tabla"), fb = c.querySelector("#cf-buzon-frec");
+            // RFC → {fila, guardado: lo último que aceptó el servidor, reloj: la espera, enVuelo: la promesa del guardado en camino,
+            //        enviado: lo que lleva, otra: hay que mandar otro al terminar, ultimo: el control que se movió, fallo: no se guardó}
+            var deFila = {};
+            var CLAVES = ["activo", "tipo", "frecuencia", "desde", "retenciones"];
+            var valores = function (fila) {
+                var v = {};
+                CLAVES.forEach(function (k) { var el = fila.querySelector('[data-c="' + k + '"]'); v[k] = el.type === "checkbox" ? el.checked : (k === "desde" ? el.value || null : el.value); });
+                return v;
+            };
+            var poner = function (fila, v) {
+                CLAVES.forEach(function (k) { var el = fila.querySelector('[data-c="' + k + '"]'); if (el.type === "checkbox") el.checked = !!v[k]; else el.value = v[k] || ""; });
+            };
+            var iguales = function (a, b) { return CLAVES.every(function (k) { return a[k] === b[k]; }); };
+            // «✓ Guardado», verde y corto, junto al control que se movió (no mueve nada: va sobre el renglón)
+            var dijo = function (control, texto) {
+                var celda = control && control.closest("td, label.cf-auto__buzon");
+                if (!celda) return;
+                var s = celda.querySelector(":scope > .cf-auto__dijo");
+                if (!s) { s = document.createElement("small"); s.className = "cf-auto__dijo"; s.setAttribute("role", "status"); celda.appendChild(s); }
+                s.textContent = texto; s.classList.remove("cf-auto__dijo--mal"); s.hidden = false;
+                clearTimeout(s._reloj);
+                s._reloj = setTimeout(function () { s.textContent = ""; s.hidden = true; }, 2000);
+            };
+            // El motivo, en rojo, bajo su renglón (se queda hasta que ese renglón se vuelve a mover o se guarda bien)
+            var quitarError = function (fila) { var e = fila.nextElementSibling; if (e && e.classList.contains("cf-auto__error")) e.remove(); };
+            var errorFila = function (fila, texto) {
+                quitarError(fila);
+                fila.insertAdjacentHTML("afterend", '<tr class="cf-auto__error"><td colspan="' + columnas + '"><span role="alert">' + esc(texto) + "</span></td></tr>");
+            };
+            if (conXml) tabla.querySelectorAll("tbody tr[data-rfc]").forEach(function (fila) { deFila[fila.dataset.rfc] = { fila: fila, guardado: valores(fila) }; });
+            /* El guardado de un renglón (revisión de fix3, 26-nov-2026). Uno a la vez por renglón y en orden: lo que se mueva
+               mientras uno va en camino sale en otro, al terminar, con lo último. «keepalive»: si la página se cierra con uno en
+               camino, el navegador lo termina de mandar. Devuelve una promesa que acaba cuando el renglón ya no tiene nada
+               pendiente (la usan «Descargar ahora» y el volver a pintar la tabla). */
+            var mandar = function (rfc, v) {
+                return api("/api/descarga-xml/automatica/" + encodeURIComponent(rfc), { method: "PUT", headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(v), keepalive: true });
+            };
+            var guardarFila = function (fila, alSalir) {
+                var rfc = fila.dataset.rfc, st = deFila[rfc];
+                clearTimeout(st.reloj); st.reloj = null;
+                if (st.enVuelo) {
+                    if (!alSalir) { st.otra = true; return st.enVuelo; }      // ya va uno: al terminar se manda otro con lo último
+                    // Al salir de la página ya no hay «al terminar»: lo último se manda en ese momento, detrás del que va en camino
+                    // (antes se quedaba esperando y ese cambio se perdía)
+                    var ultimo = valores(fila);
+                    st.otra = false;
+                    if (!iguales(ultimo, st.enviado)) { st.enviado = ultimo; mandar(rfc, ultimo).catch(function () { /* la página ya se fue */ }); }
+                    return st.enVuelo;
+                }
+                var v = valores(fila);
+                if (iguales(v, st.guardado)) return Promise.resolve();      // regresó a como estaba: nada que guardar
+                st.enviado = v;
+                st.enVuelo = (async function () {
+                    try {
+                        var r = await mandar(rfc, v);
+                        st.guardado = v; st.fallo = false;
+                        var x = clientes.filter(function (y) { return y.rfc === rfc; })[0];
+                        if (r && r.rfc && x) { porRfc[rfc] = r; fila.querySelector("[data-proxima]").innerHTML = proxima(r, x); }
+                        if (!st.otra && !st.reloj) dijo(st.ultimo, "✓ Guardado");
+                    } catch (e) {
+                        // Si mientras tanto se movió otra cosa en el renglón (espera su turno o va a salir al terminar), ese
+                        // guardado lleva el renglón completo y es el que decide: aquí no se toca nada. (Al salir de la página el
+                        // navegador da por fallido el que iba en camino justo antes de avisar que se sale; si aquí se regresaran
+                        // los controles, lo último que movió la persona ya no se mandaría.)
+                        if (!st.reloj && !st.otra) {
+                            st.fallo = true;
+                            poner(fila, st.guardado);                        // los controles regresan a lo último guardado
+                            var motivo = (nombre[rfc] || rfc) + ": no se guardó. " + e.message;
+                            errorFila(fila, motivo);
+                            // si la tabla ya no está a la vista (se cambió de sección antes de la respuesta), se dice arriba
+                            if (!fila.isConnected && window.Fiscontable && Fiscontable.aviso) Fiscontable.aviso(motivo);
+                        }
+                    } finally { st.enVuelo = null; }
+                    if (st.otra) { st.otra = false; await guardarFila(fila); }
+                })();
+                return st.enVuelo;
+            };
+            // Lo del Buzón que va en camino (la lista y los interruptores), para poder esperarlo
+            var enCurso = [];
+            var seguir = function (p) {
+                var q = Promise.resolve(p).catch(function () { /* quien lo pidió ya dice el motivo */ });
+                enCurso.push(q); q.then(function () { enCurso.splice(enCurso.indexOf(q), 1); });
+                return p;
+            };
+            // Todo lo pendiente de esta tabla, ya: lo que espera su turno se manda en ese momento y se aguarda a lo que va en camino.
+            // Con tope (8 s): si el servidor no contesta, no se queda esperando para siempre.
+            var vaciar = function () {
+                var todo = Promise.all(Object.keys(deFila).map(function (rfc) {
+                    var st = deFila[rfc];
+                    return st.reloj ? guardarFila(st.fila) : st.enVuelo;
+                }).concat(enCurso)).catch(function () { /* cada guardado ya dijo lo suyo */ });
+                return Promise.race([todo, new Promise(function (listo) { setTimeout(listo, 8000); })]);
+            };
+            pintarXmlAuto._vaciar = vaciar;
+            tabla.addEventListener("change", function (ev) {
+                var el = ev.target, fila = el.closest("tr[data-rfc]");
+                if (!fila) { if (el.matches("[data-marcar-todas]")) marcarTodas(el.checked); return; }
+                if (el.matches("[data-marcar]")) { pintarMarcadas(); return; }
+                if (!el.matches("[data-c]")) return;
+                var st = deFila[fila.dataset.rfc];
+                st.ultimo = el; st.fallo = false; quitarError(fila);
+                clearTimeout(st.reloj);
+                st.reloj = setTimeout(function () { guardarFila(fila); }, 600);      // la espera corta: dos controles seguidos van en un solo guardado
+            });
+            // Si se sale de la página con algo por guardar (antes de que pase la espera), se manda en ese momento
+            if (pintarXmlAuto._alSalir) window.removeEventListener("pagehide", pintarXmlAuto._alSalir);      // la de la tabla anterior, si se volvió a pintar
+            pintarXmlAuto._alSalir = function () {
+                Object.keys(deFila).forEach(function (rfc) { var st = deFila[rfc]; if (st.reloj || st.otra) guardarFila(st.fila, true); });
+            };
+            window.addEventListener("pagehide", pintarXmlAuto._alSalir);
             if (soloConsulta()) soloTitular(c.querySelectorAll(":scope > .cf-tarjeta"), soloConsulta());
             else if (fb && bz.puede_frecuencia === false) {
                 fb.disabled = true; fb.title = bz.motivo_frecuencia || LO_DECIDE_EL_TITULAR;
                 fb.insertAdjacentHTML("afterend", '<small class="cf-solo-titular__chico">Lo decide el titular</small>');
             }
-            if (fb) fb.addEventListener("change", async function () {
-                try { await enviar("/api/buzon/ajustes", "PUT", { frecuencia: +fb.value }); aviso(c, true, "✓ Buzones: " + fb.options[fb.selectedIndex].textContent.toLowerCase() + "."); }
-                catch (x) { aviso(c, false, x.message); }
-            });
+            if (fb) {
+                // (revisión de fix3) uno a la vez y en orden, como los renglones: con dos cambios seguidos y el primero lento, al
+                // servidor le llegaba al final el primero y la pantalla se quedaba con el segundo
+                var frec = { guardada: fb.value, enVuelo: null, otra: false }, dijoLista = fb.parentNode.querySelector(".cf-auto__dijo--lista");
+                var guardarFrec = function () {
+                    if (frec.enVuelo) { frec.otra = true; return frec.enVuelo; }
+                    var pedida = fb.value;
+                    if (pedida === frec.guardada) return Promise.resolve();
+                    clearTimeout(dijoLista._reloj); dijoLista.textContent = ""; dijoLista.classList.remove("cf-auto__dijo--mal");
+                    frec.enVuelo = (async function () {
+                        try {
+                            await enviar("/api/buzon/ajustes", "PUT", { frecuencia: +pedida });
+                            frec.guardada = pedida;
+                            if (!frec.otra) { dijoLista.textContent = "✓ Guardado"; dijoLista._reloj = setTimeout(function () { dijoLista.textContent = ""; }, 2000); }
+                        } catch (x) { frec.otra = false; fb.value = frec.guardada; dijoLista.textContent = x.message; dijoLista.classList.add("cf-auto__dijo--mal"); }
+                        finally { frec.enVuelo = null; }
+                        if (frec.otra) { frec.otra = false; await guardarFrec(); }
+                    })();
+                    return seguir(frec.enVuelo);
+                };
+                fb.addEventListener("change", function () { guardarFrec(); });
+            }
             c.querySelectorAll("[data-buzon]").forEach(function (sw) {
                 sw.addEventListener("change", async function () {
-                    var rfc = sw.closest("tr").dataset.rfc;
+                    var fila = sw.closest("tr"), rfc = fila.dataset.rfc;
                     // 22-nov-2026 (auditoría sat_modulos-4): apagar el Buzón de una empresa se confirma (deja de avisar sus notificaciones)
                     if (!sw.checked && window.Fiscontable && Fiscontable.confirmar && !(await Fiscontable.confirmar({ titulo: "¿Apagar la revisión automática?", peligro: true, si: "Apagar",
                         texto: (nombre[rfc] || rfc) + " dejará de revisarse en la madrugada y no te avisaremos de sus notificaciones del SAT." }))) { sw.checked = true; return; }
-                    sw.disabled = true;
-                    try { await enviar("/api/buzon/empresas/" + encodeURIComponent(rfc), "PUT", { activo: sw.checked }); aviso(c, true, "✓ " + (nombre[rfc] || rfc) + ": Buzón " + (sw.checked ? "encendido." : "apagado.")); }
-                    catch (x) { sw.checked = !sw.checked; aviso(c, false, x.message); }
+                    sw.disabled = true; quitarError(fila);
+                    try { await seguir(enviar("/api/buzon/empresas/" + encodeURIComponent(rfc), "PUT", { activo: sw.checked })); dijo(sw, "✓ Guardado"); }
+                    catch (x) { sw.checked = !sw.checked; errorFila(fila, (nombre[rfc] || rfc) + ": no se guardó. " + x.message); }
                     finally { sw.disabled = false; }
                 });
             });
-            c.querySelectorAll("[data-ahora]").forEach(function (b) {
-                b.addEventListener("click", async function () {
-                    var rfc = b.closest("tr").dataset.rfc;
+            // --- «Descargar ahora» de las marcadas
+            var sel = c.querySelector(".cf-auto__sel"), todas = c.querySelector("[data-marcar-todas]"), pidiendo = false;
+            var casillas = function () { return [].slice.call(tabla.querySelectorAll("[data-marcar]:not(:disabled)")); };
+            var marcadas = function () { return casillas().filter(function (x) { return x.checked; }); };
+            function pintarMarcadas() {
+                if (!sel) return;
+                var n = marcadas().length, total = casillas().length;
+                sel.hidden = !n;
+                sel.querySelector("[data-sel-texto]").textContent = n === 1 ? "1 empresa" : n + " empresas";
+                if (todas) { todas.checked = n > 0 && n === total; todas.indeterminate = n > 0 && n < total; }
+            }
+            function marcarTodas(si) { if (pidiendo) return; casillas().forEach(function (x) { x.checked = si; }); pintarMarcadas(); }
+            if (sel) {
+                sel.querySelector("[data-sel-quitar]").addEventListener("click", function () { marcarTodas(false); });
+                sel.querySelector("[data-sel-ahora]").addEventListener("click", async function (ev) {
+                    var b = ev.currentTarget, filas = marcadas().map(function (x) { return x.closest("tr"); }), n = filas.length;
+                    if (!n || pidiendo) return;
+                    pidiendo = true;                                         // desde antes de preguntar: un segundo clic no hace nada
+                    if (!(await Fiscontable.confirmar({ titulo: n === 1 ? "¿Descargar ahora los XML de " + (nombre[filas[0].dataset.rfc] || filas[0].dataset.rfc) + "?" : "¿Descargar ahora los XML de " + n + " empresas?",
+                        si: "Descargar ahora", texto: "Se pide al SAT el periodo programado de " + (n === 1 ? "la empresa" : "cada una") + ". Lo ves en Descarga masiva › Solicitudes." }))) { pidiendo = false; return; }
                     b.disabled = true;
-                    try {
-                        var d = await enviar("/api/descarga-xml/automatica/" + encodeURIComponent(rfc) + "/ahora", "POST", {});
-                        aviso(c, true, "✓ " + (nombre[rfc] || rfc) + ": se pidió del " + dia(d.desde) + " al " + dia(d.hasta) + ". Va en Descarga XML › Solicitudes.");
-                    } catch (e) { aviso(c, false, e.message); }
-                    b.disabled = false;
+                    var texto = sel.querySelector("[data-sel-texto]"), bien = 0, mal = 0, conMotivo = null;
+                    texto.textContent = "Pidiendo 1 de " + n + "…";
+                    // (revisión de fix3) «Descargar ahora» pide con lo guardado («Qué», «Cada cuánto», «Desde»): si se acaba de mover
+                    // algo, primero se termina de guardar (antes salía con lo de antes)
+                    var porGuardar = {};
+                    filas.forEach(function (f) { var s = deFila[f.dataset.rfc]; if (s && (s.reloj || s.enVuelo)) porGuardar[f.dataset.rfc] = true; });
+                    await vaciar();
+                    for (var k = 0; k < n; k++) {
+                        var fila = filas[k], rfc = fila.dataset.rfc;
+                        texto.textContent = "Pidiendo " + (k + 1) + " de " + n + "…";
+                        // lo que se acababa de mover no se guardó (su motivo sigue bajo el renglón) o sigue guardándose: no se pide con
+                        // lo de antes
+                        var stf = deFila[rfc] || {};
+                        if (porGuardar[rfc] && (stf.fallo || stf.enVuelo || stf.reloj)) {
+                            if (!stf.fallo) errorFila(fila, (nombre[rfc] || rfc) + ": no se pidió. Lo que cambiaste todavía se está guardando. Intenta de nuevo.");
+                            mal++; if (!conMotivo) conMotivo = fila; continue;
+                        }
+                        quitarError(fila);
+                        try {
+                            await enviar("/api/descarga-xml/automatica/" + encodeURIComponent(rfc) + "/ahora", "POST", {});
+                            bien++; fila.querySelector("[data-marcar]").checked = false;
+                        } catch (e) { mal++; errorFila(fila, (nombre[rfc] || rfc) + ": no se pidió. " + e.message); if (!conMotivo) conMotivo = fila; }
+                    }
+                    pidiendo = false; b.disabled = false;
+                    pintarMarcadas();                                        // las que no salieron siguen marcadas, con su motivo
+                    var pedidas = bien === 1 ? "Se pidieron los XML de 1 empresa" : "Se pidieron los XML de " + bien + " empresas";
+                    if (!mal) Fiscontable.listo(pedidas + ". Lo ves en Descarga masiva › Solicitudes.", todas);
+                    else Fiscontable.aviso((bien ? pedidas + ". " : "") + (mal === 1 ? "1 no se pudo pedir" : mal + " no se pudieron pedir") + ": el motivo está bajo su renglón.");
+                    // la primera que no salió, a la vista (con muchas empresas puede quedar lejos de donde está la persona)
+                    if (conMotivo && conMotivo.nextElementSibling) conMotivo.nextElementSibling.scrollIntoView({ block: "center" });
                 });
-            });
-            c.querySelectorAll("[data-guardar]").forEach(function (b) {
-                b.addEventListener("click", async function () {
-                    var fila = b.closest("tr"), val = function (k) { var el = fila.querySelector('[data-c="' + k + '"]'); return el.type === "checkbox" ? el.checked : el.value; };
-                    try {
-                        await enviar("/api/descarga-xml/automatica/" + encodeURIComponent(fila.dataset.rfc), "PUT", { activo: val("activo"), tipo: val("tipo"), frecuencia: val("frecuencia"), desde: val("desde") || null, retenciones: val("retenciones") });
-                        aviso(c, true, "✓ " + (nombre[fila.dataset.rfc] || fila.dataset.rfc) + " guardada.");
-                    } catch (e) { aviso(c, false, e.message); }
-                });
-            });
+            }
         } catch (e) { c.innerHTML = '<div class="cf-tarjeta"><p class="cf-msj cf-msj--mal">' + esc(e.message) + "</p></div>"; }
     }
 
-    /* ---------- Formato de los reportes (20-nov-2026, el dueño: «formato del despacho») ----------
-       Una lista por pestaña (Recibidos, Emitidos): arriba, en su orden, las columnas que van en el reporte completo; abajo,
-       las que no van. Se ordena arrastrando o con ↑ ↓ (en el celular no hay arrastre) y se marca o desmarca cada una. El
-       folio fiscal no se puede quitar. Sin guardar nada sale el formato de Fiscontable, que es de donde parte la lista. */
-    async function pintarFormatoReportes(c) {
+    /* ---------- Vistas del despacho (23-nov-2026, el dueño, decisión A.6 del Avance 1) ----------
+       Lo que era «Formato de los reportes» ahora son vistas: se arman en la tabla de Administración de XML (Vista ▾ › Guardar
+       como vista nueva) y el titular comparte las que quiera con todo el despacho. Aquí se ven las compartidas, por pestaña;
+       el titular las deja de compartir o las borra. Lo que se había guardado como «Formato del despacho» pasó, una sola vez,
+       como la vista compartida «Formato del despacho» (sin perder nada). */
+    async function pintarVistasDespacho(c) {
         c.innerHTML = '<div class="cf-tarjeta"><p class="cf-texto">Cargando…</p></div>';
         var d;
-        try { d = await api("/api/xml/formato-reporte"); }
+        try { d = await api("/api/xml/vistas-despacho"); }
         catch (e) { c.innerHTML = '<div class="cf-tarjeta"><p class="cf-msj cf-msj--mal">' + esc(e.message) + "</p></div>"; return; }
-        var NOMBRES = { recibidos: "Recibidos", emitidos: "Emitidos" };
-        var estado = {};                 // modulo → {orden: [claves marcadas], cambiado: bool}
+        var NOMBRES = { recibidos: "Recibidas", emitidos: "Emitidas", pagos: "Complementos de pago", nomina: "Recibos de nómina" };
         var fecha = function (iso) { return iso ? iso.slice(8, 10) + "/" + iso.slice(5, 7) + "/" + iso.slice(0, 4) : ""; };
-        function inicial(m) { var x = d.modulos[m]; return (x.guardado || x.fabrica).slice(); }
-        Object.keys(NOMBRES).forEach(function (m) { estado[m] = { orden: inicial(m), cambiado: false }; });
-        c.innerHTML = '<p class="cf-texto cf-fmt__intro">' + (d.despacho ? "Vale para todos en el despacho. " : "") +
-            "«Excel de esta tabla» no cambia: sigue con las columnas que cada quien ve en pantalla.</p>" +
-            (d.puede_editar ? "" : '<p class="cf-fmt__aviso">Solo ' + esc(d.titular || "el titular") + " (titular del despacho) lo puede cambiar. Así salen tus reportes.</p>") +
-            Object.keys(NOMBRES).map(function (m) { return '<div class="cf-tarjeta" data-fmt="' + m + '"></div>'; }).join("");
-        Object.keys(NOMBRES).forEach(function (m) { pintarLista(m); });
-        subPestanas(c, Object.keys(NOMBRES).map(function (m) { return NOMBRES[m]; }), "formato_reportes");
-        var pedido = Fiscontable.url("sub");
-        if (pedido === "emitidos" || pedido === "recibidos") { var bt = c.querySelector('.cf-subtabs [data-sub="' + (pedido === "emitidos" ? 1 : 0) + '"]'); if (bt) bt.click(); }
-
-        function pintarLista(m) {
-            var caja = c.querySelector('[data-fmt="' + m + '"]'), x = d.modulos[m], st = estado[m], ed = d.puede_editar;
-            var porClave = {}; x.catalogo.forEach(function (k) { porClave[k.clave] = k; });
-            var van = st.orden.filter(function (k) { return porClave[k]; });
-            var no = x.catalogo.filter(function (k) { return van.indexOf(k.clave) === -1; }).map(function (k) { return k.clave; });
-            var origen = x.guardado ? "Formato del despacho" + (x.actualizado_en ? " · cambiado el " + fecha(x.actualizado_en) + (x.actualizado_por ? " por " + x.actualizado_por : "") : "")
-                : "Formato de Fiscontable (de fábrica)";
-            function fila(k, i, dentro) {
-                var col = porClave[k], ob = col.obligatoria;
-                return '<li class="cf-fmt__fila' + (dentro ? "" : " cf-fmt__fila--fuera") + '" data-clave="' + esc(k) + '"' + (ed && dentro ? ' draggable="true"' : "") + ">" +
-                    (ed && dentro ? '<span class="cf-fmt__asa" aria-hidden="true">⋮⋮</span>' : '<span class="cf-fmt__asa cf-fmt__asa--vacia"></span>') +
-                    '<label class="cf-fmt__nombre"><input type="checkbox" data-marca' + (dentro ? " checked" : "") + (ob || !ed ? " disabled" : "") + ">" +
-                    "<span><b>" + esc(col.etiqueta) + "</b><small>" + esc(col.grupo || "") + (ob ? " · obligatoria" : "") + "</small></span></label>" +
-                    (ed && dentro ? '<span class="cf-fmt__mover"><button type="button" class="cf-fmt__btn" data-mover="-1" aria-label="Subir ' + esc(col.etiqueta) + '"' + (i === 0 ? " disabled" : "") + ">↑</button>" +
-                        '<button type="button" class="cf-fmt__btn" data-mover="1" aria-label="Bajar ' + esc(col.etiqueta) + '"' + (i === van.length - 1 ? " disabled" : "") + ">↓</button></span>" : "") + "</li>";
-            }
-            caja.innerHTML = '<div class="cf-fmt__cab"><div><b>' + NOMBRES[m] + " · " + van.length + " columnas</b><small>" + esc(origen) + "</small></div>" +
-                '<input type="search" class="cf-fmt__buscar" placeholder="Buscar una columna" aria-label="Buscar una columna"></div>' +
-                '<div class="cf-fmt__marco"><ol class="cf-fmt__lista" data-lista="van">' + van.map(function (k, i) { return fila(k, i, true); }).join("") + "</ol>" +
-                (no.length ? '<p class="cf-fmt__divisor">No van en el reporte (' + no.length + ")</p>" +
-                    '<ul class="cf-fmt__lista" data-lista="no">' + no.map(function (k, i) { return fila(k, i, false); }).join("") + "</ul>" : "") + "</div>" +
-                '<details class="cf-fmt__reglas"><summary>Cómo se arma el reporte</summary><ul>' +
-                "<li>Una columna marcada que no trae datos en el periodo no sale. Las básicas (estado SAT, folio fiscal, serie, folio, fechas, emisor, receptor, forma y método de pago, subtotal, descuento, total, moneda, IVA 16 %, ISR e IVA retenidos) salen siempre, para que el Excel tenga la misma forma cada mes.</li>" +
-                "<li>Con facturas en otra moneda, la moneda, el tipo de cambio y el total en pesos van junto al total aunque no estén marcados.</li>" +
-                "<li>En el Excel de un mes ya cerrado, «Pago posterior al periodo» va sola junto al estado de pago (si lo marcaste).</li>" +
-                "<li>«IEPS por tasa» y «Retenciones por tasa» se abren en las tasas que traiga el periodo. La banda de grupos sigue tu orden.</li>" +
-                "<li>El folio fiscal (UUID) no se puede quitar: sin él no se identifica la factura. Sí puedes moverlo.</li></ul></details>" +
-                (ed ? '<div class="cf-acciones"><button type="button" class="cf-btn cf-btn--principal" data-guardar' + (st.cambiado ? "" : " disabled") + ">Guardar formato</button>" +
-                    '<button type="button" class="cf-btn" data-fabrica' + (x.guardado || st.cambiado ? "" : " disabled") + ">Volver al formato de Fiscontable</button>" +
-                    '<span class="cf-msj">' + (st.cambiado ? "Sin guardar" : "") + "</span></div>" : "");
-            var buscar = caja.querySelector(".cf-fmt__buscar");
-            buscar.value = st.buscar || "";
-            function filtrar() {
-                var q = buscar.value.trim().toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, ""); st.buscar = buscar.value;
-                caja.querySelectorAll(".cf-fmt__fila").forEach(function (li) {
-                    li.hidden = !!q && li.textContent.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").indexOf(q) === -1;
-                });
-            }
-            buscar.addEventListener("input", filtrar); filtrar();
-            if (!ed) return;
-            caja._van = van;
-            if (caja.dataset.listo) { arrastrar(caja); return; }          // los eventos de la caja se ponen una sola vez (la lista se vuelve a pintar)
-            caja.dataset.listo = "1";
-            function cambio(nuevoOrden, foco) {
-                estado[m].orden = nuevoOrden; estado[m].cambiado = true; pintarLista(m);
-                if (foco) { var b = caja.querySelector('[data-clave="' + foco.clave + '"] ' + foco.sel); if (b && !b.disabled) b.focus(); else { b = caja.querySelector('[data-clave="' + foco.clave + '"] input'); if (b) b.focus(); } }
-            }
-            caja._cambio = cambio;
-            arrastrar(caja);
-            caja.addEventListener("change", function (ev) {
-                var el = ev.target.closest("[data-marca]"); if (!el) return;
-                var k = el.closest("li").dataset.clave, nuevo = caja._van.slice();
-                if (el.checked) nuevo.push(k); else nuevo.splice(nuevo.indexOf(k), 1);
-                cambio(nuevo, { clave: k, sel: "input" });
-            });
-            caja.addEventListener("click", async function (ev) {
-                var van = caja._van, b = ev.target.closest("[data-mover]");
-                if (b) {
-                    var k = b.closest("li").dataset.clave, i = van.indexOf(k), j = i + (+b.dataset.mover), nuevo = van.slice();
-                    if (j < 0 || j >= nuevo.length) return;
-                    nuevo.splice(i, 1); nuevo.splice(j, 0, k);
-                    cambio(nuevo, { clave: k, sel: '[data-mover="' + b.dataset.mover + '"]' });
-                    return;
+        var porModulo = {};
+        d.vistas.forEach(function (v) { (porModulo[v.modulo] = porModulo[v.modulo] || []).push(v); });
+        var html = '<div class="cf-tarjeta"><p class="cf-texto">Cada quien ve la tabla con su vista: <b>Fiscontable</b> (la de siempre), <b>Formato 2</b> ' +
+            "(las 148 columnas del reporte «Facturas», en Emitidas y Recibidas) o una propia. Para guardar una, acomoda las columnas en " +
+            "Administración de XML y usa <b>Vista ▾ › Guardar como vista nueva</b>. «Descargar Excel» sale con la vista que tengas puesta.</p>" +
+            // 25-nov-2026 (el dueño): cualquiera del despacho propone una vista suya; el titular la aprueba desde su campana
+            (d.puede_compartir ? '<p class="cf-texto">' + (d.despacho ? "Como titular, puedes compartir una vista con todo el despacho desde ese menú; " +
+                "las que te propongan te llegan a la campana para aprobarlas o rechazarlas. " : "") + "Aquí las dejas de compartir o las borras.</p>"
+                : '<p class="cf-fmt__aviso">Solo ' + esc(d.titular || "el titular") + " (titular del despacho) comparte, cambia o borra estas vistas. Tú las usas desde el menú «Vista». " +
+                  "Para que una tuya sea del despacho, proponla: <b>Vista ▾ › Proponer al despacho…</b></p>") +
+            '<p class="cf-msj"></p></div>';
+        var hay = Object.keys(NOMBRES).filter(function (m) { return (porModulo[m] || []).length; });
+        if (!hay.length) html += '<div class="cf-tarjeta"><p class="cf-texto"><b>Todavía no hay vistas compartidas.</b> ' +
+            (d.puede_compartir ? "Guarda una en la tabla y elige «Compartir con el despacho»." : "Cuando el titular comparta una, aparecerá aquí y en tu menú «Vista».") + "</p></div>";
+        hay.forEach(function (m) {
+            html += '<div class="cf-tarjeta"><div class="cf-fmt__cab"><div><b>' + esc(NOMBRES[m]) + "</b><small>" + porModulo[m].length + " vista" + (porModulo[m].length === 1 ? "" : "s") +
+                " del despacho</small></div></div><ul class=\"cf-vd__lista\">" + porModulo[m].map(function (v) {
+                    return '<li class="cf-vd__fila" data-vista="' + v.id + '"><span><b>' + esc(v.nombre) + "</b><small>" +
+                        (v.base === "formato2" ? "A partir de Formato 2 · " : "") + v.columnas.length + " columnas" +
+                        (v.actualizado_en ? " · cambiada el " + fecha(v.actualizado_en) + (v.actualizado_por ? " por " + esc(v.actualizado_por) : "") : "") + "</small></span>" +
+                        (d.puede_compartir ? '<span class="cf-vd__acciones"><button type="button" class="cf-btn" data-dejar="' + v.id + '">Dejar de compartir</button>' +
+                            '<button type="button" class="cf-btn cf-btn--peligro" data-borrar="' + v.id + '">Borrar</button></span>' : "") + "</li>";
+                }).join("") + "</ul></div>";
+        });
+        c.innerHTML = html;
+        c._vd = d;
+        if (!d.puede_compartir || c.dataset.vd) return;
+        c.dataset.vd = "1";                     // el clic se escucha una sola vez aunque la lista se vuelva a pintar
+        c.addEventListener("click", async function (ev) {
+            var b = ev.target.closest("[data-dejar],[data-borrar]"); if (!b) return;
+            var id = b.dataset.dejar || b.dataset.borrar, v = (c._vd.vistas || []).find(function (x) { return String(x.id) === id; }) || {};
+            var caja = c.querySelector(".cf-tarjeta");
+            try {
+                if (b.dataset.borrar) {
+                    if (!(await Fiscontable.confirmar({ titulo: "Borrar la vista", si: "Borrar", texto: "«" + (v.nombre || "") + "» deja de estar en el menú «Vista» de todos." }))) return;
+                    await api("/api/xml/vistas/" + id, { method: "DELETE" });
+                } else {
+                    await enviar("/api/xml/vistas/" + id + "/compartir", "POST", { compartida: false });
                 }
-                if (ev.target.closest("[data-guardar]")) {
-                    var g = ev.target.closest("[data-guardar]"); g.disabled = true;
-                    try {
-                        d = await enviar("/api/xml/formato-reporte", "PUT", { modulo: m, columnas: van });
-                        estado[m] = { orden: inicial(m), cambiado: false, buscar: estado[m].buscar }; pintarLista(m);
-                        aviso(caja, true, "✓ Guardado. Así sale desde ahora el reporte completo de " + NOMBRES[m] + (d.despacho ? " para todo el despacho." : "."));
-                    } catch (e) { g.disabled = false; aviso(caja, false, e.message); }
-                    return;
-                }
-                if (ev.target.closest("[data-fabrica]")) {
-                    if (!d.modulos[m].guardado) { estado[m] = { orden: inicial(m), cambiado: false }; pintarLista(m); return; }      // solo deshacer lo no guardado
-                    if (!(await Fiscontable.confirmar({ titulo: "Volver al formato de Fiscontable", si: "Volver",
-                        texto: "El reporte completo de " + NOMBRES[m] + " vuelve a salir con las columnas de fábrica" + (d.despacho ? " para todo el despacho" : "") + "." }))) return;
-                    try {
-                        d = await api("/api/xml/formato-reporte/" + m, { method: "DELETE" });
-                        estado[m] = { orden: inicial(m), cambiado: false }; pintarLista(m);
-                        aviso(caja, true, "✓ De vuelta al formato de Fiscontable.");
-                    } catch (e) { aviso(caja, false, e.message); }
-                }
-            });
-        }
-
-        function arrastrar(caja) {
-            // Arrastrar (computadora): se suelta sobre otra columna de las que van
-            var arr = null, lista = caja.querySelector('[data-lista="van"]'), van = caja._van, cambio = caja._cambio;
-            lista.addEventListener("dragstart", function (ev) { var li = ev.target.closest("li"); if (!li) return; arr = li.dataset.clave; ev.dataTransfer.effectAllowed = "move"; ev.dataTransfer.setData("text/plain", arr); li.classList.add("cf-fmt__fila--arrastrando"); });
-            lista.addEventListener("dragend", function () { arr = null; lista.querySelectorAll(".cf-fmt__fila").forEach(function (x2) { x2.classList.remove("cf-fmt__fila--arrastrando", "cf-fmt__fila--destino"); }); });
-            lista.addEventListener("dragover", function (ev) {
-                var li = ev.target.closest("li"); if (!li || !arr) return;
-                ev.preventDefault();
-                lista.querySelectorAll(".cf-fmt__fila--destino").forEach(function (x2) { x2.classList.remove("cf-fmt__fila--destino"); });
-                li.classList.add("cf-fmt__fila--destino");
-            });
-            lista.addEventListener("drop", function (ev) {
-                var li = ev.target.closest("li"); if (!li || !arr) return;
-                ev.preventDefault();
-                var destino = li.dataset.clave, nuevo = van.slice(), i = nuevo.indexOf(arr);
-                if (destino === arr || i === -1) return;
-                nuevo.splice(i, 1); nuevo.splice(nuevo.indexOf(destino) + (van.indexOf(destino) > i ? 1 : 0), 0, arr);
-                arr = null; cambio(nuevo);
-            });
-        }
+                await pintarVistasDespacho(c);
+                aviso(c.querySelector(".cf-tarjeta"), true, b.dataset.borrar ? "✓ Vista borrada." : "✓ «" + (v.nombre || "") + "» ya no se comparte; queda como tuya.");
+            } catch (e) { aviso(caja, false, e.message); }
+        });
     }
 
     async function iniciar() {

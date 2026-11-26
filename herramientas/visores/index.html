@@ -4,9 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Visores del SAT · Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611231800">
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611231800">
-    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611231800">
+    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611271300">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611271300">
+    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611271300">
     <style>
         .vi-cabeza { display: flex; flex-wrap: wrap; gap: var(--e-3); align-items: center; margin-bottom: var(--e-4); }
         .vi-cabeza h1 { margin: 0; }
@@ -130,6 +130,11 @@
         .vn-tiempo li { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: var(--e-3); font-size: var(--t-14); padding-bottom: var(--e-3); border-bottom: 1px solid var(--linea); }
         .vn-tiempo time { font-size: var(--t-12); color: rgb(var(--g-500)); font-variant-numeric: tabular-nums; padding-top: 2px; }
         .vn-acciones { display: flex; gap: var(--e-2); flex-wrap: wrap; align-items: center; }
+        /* 24-nov-2026: «Descargar Excel» con sus dos opciones (Reporte completo / Esta tabla), como un solo grupo */
+        .vn-excel { display: inline-flex; flex-wrap: wrap; align-items: center; gap: var(--e-2); }
+        .vn-excel__t { font-size: var(--t-12); font-weight: 700; color: rgb(var(--g-600)); text-transform: uppercase; letter-spacing: .03em; }
+        /* revisión 24-nov-2026: en el celular el título va en su renglón y los dos botones juntos debajo (antes «Esta tabla» caía sola) */
+        @media (max-width: 560px) { .vn-excel__t { flex-basis: 100%; } }
         @media (max-width: 560px) { .vn-tiempo li { grid-template-columns: minmax(0, 1fr); gap: 2px; } }
         /* «Leer ahora ▾»: se despliega al pasar el puntero o con clic (en el celular, con toque) */
         .vn-leer { position: relative; }
@@ -150,8 +155,8 @@
 </head>
 <body class="min-h-screen flex flex-col">
 <div id="app-header" data-modulo="visores" data-titulo="Visores del SAT" data-migas="Herramientas|/herramientas/"></div>
-<script src="/assets/js/nucleo.js?v=202611231800"></script>
-<script src="/assets/js/barra.js?v=202611231800"></script>
+<script src="/assets/js/nucleo.js?v=202611271300"></script>
+<script src="/assets/js/barra.js?v=202611271300"></script>
 
 <main class="flex-grow mod-pagina" style="max-width:none">
     <!-- 15-nov: el módulo nuevo de Visores (maqueta aprobada): una empresa, un año y cinco pestañas -->
@@ -217,9 +222,9 @@
     </div>
 </main>
 
-<script src="/assets/js/comun/tabla.js?v=202611231800"></script>
-<script src="/herramientas/visores/visores.js?v=202611231800"></script>
-<script src="/herramientas/visores/visores-sat.js?v=202611231800"></script>
-<script src="/herramientas/visores/visores-panel.js?v=202611231800"></script>
+<script src="/assets/js/comun/tabla.js?v=202611271300"></script>
+<script src="/herramientas/visores/visores.js?v=202611271300"></script>
+<script src="/herramientas/visores/visores-sat.js?v=202611271300"></script>
+<script src="/herramientas/visores/visores-panel.js?v=202611271300"></script>
 </body>
 </html>

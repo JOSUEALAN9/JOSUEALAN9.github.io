@@ -4,10 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Descarga masiva | Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611231800">
-    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611231800">
-    <link rel="stylesheet" href="/herramientas/descarga-xml/descarga-xml.css?v=202611231800">
-    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611231800">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611271300">
+    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611271300">
+    <link rel="stylesheet" href="/herramientas/descarga-xml/descarga-xml.css?v=202611271300">
+    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611271300">
 </head>
 <body class="min-h-screen flex flex-col">
 
@@ -15,8 +15,8 @@
      data-modulo="descarga_xml"
      data-titulo="Descarga masiva"
      data-migas="Herramientas|/herramientas/"></div>
-<script src="/assets/js/nucleo.js?v=202611231800"></script>
-<script src="/assets/js/barra.js?v=202611231800"></script>
+<script src="/assets/js/nucleo.js?v=202611271300"></script>
+<script src="/assets/js/barra.js?v=202611271300"></script>
 
 <main class="flex-grow w-full dm-pagina">
 
@@ -24,12 +24,29 @@
     <!-- Cabecera: título y el acceso a las solicitudes (panel lateral) -->
     <div class="dm-cabeza">
         <h1>Descarga masiva</h1>
-        <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <div class="dm-cabeza__acciones">
+            <!-- 25-nov-2026 (el dueño: «roba mucho espacio, podría quedarse como un botón, o similar a descargar excel»): la revisión
+                 de un mes contra la lista del SAT es un botón con menú, como «Descargar Excel ▾»; el resultado sale en un aviso corto -->
+            <div class="mod-menu dm-revisar-menu" id="revisar-caja" hidden>
+                <button type="button" id="btn-revisar-menu" class="dm-btn-solicitudes mod-menu__btn" aria-haspopup="true" aria-expanded="false"
+                        aria-controls="revisar-lista" title="Pide al SAT la lista de un mes y la compara uno por uno con tu biblioteca">Revisar contra el SAT<span aria-hidden="true">▾</span></button>
+                <div class="mod-menu__lista dm-revisar-lista" id="revisar-lista" hidden>
+                    <!-- 26-nov-2026 (el dueño, m2: «en Turismo no veo esa opción»): sale en toda empresa; sin e.firma guardada, solo el porqué -->
+                    <div id="revisar-con-efirma">
+                        <label class="dm-revisar__mes"><span class="dm-cuadre__et">Mes</span><select id="revisar-mes" class="campo__control"></select></label>
+                        <button type="button" id="btn-revisar" class="mod-accion" data-fc-cambia><b>✓</b>Revisar ese mes</button>
+                        <button type="button" id="btn-revisar-portal" class="mod-accion" data-fc-cambia hidden><b>⇢</b>Hacerlo por el portal</button>
+                        <p class="dm-revisar__nota">Pide al SAT la lista de ese mes y la compara uno por uno con tu biblioteca; lo que falte se pide solo.</p>
+                    </div>
+                    <p class="dm-revisar__nota dm-revisar__sin" id="revisar-sin-efirma" hidden>Requiere su e.firma guardada. <a id="revisar-ir-efirma" href="/clientes/">Guardarla en su ficha › Accesos</a></p>
+                </div>
+            </div>
             <button type="button" id="btn-automatica" class="dm-btn-solicitudes" title="Se configura en Configuración › Lo automático">
                 Descarga automática<span id="insignia-auto" class="dm-insignia" hidden></span>
             </button>
         </div>
     </div>
+    <div id="revisar-res" class="fc-aviso dm-revisar-aviso" role="status" hidden></div>
 
     <div id="linea-programa"></div>
     <!-- M-06: el método es un ajuste avanzado plegado; el sistema usa el web service salvo que lo cambies -->
@@ -180,8 +197,12 @@
   </div>
 
     <!-- Solicitudes al SAT de este contribuyente: tabla estándar debajo del formulario (antes, panel lateral) -->
-    <!-- Lo que el SAT tiene de esta empresa contra lo que ya está en Fiscontable (cuadre con la lista del SAT) -->
-    <div id="cuadre-sat" class="dm-cuadre" role="status" hidden></div>
+    <!-- Lo que el SAT tiene de esta empresa contra lo que ya está en Fiscontable (cuadre con la lista del SAT).
+         25-nov-2026 (el dueño: «que se oculte de default, pero que se pueda mostrar»): plegado de fábrica, con su resumen en el renglón -->
+    <details id="cuadre-sat" class="dm-cuadre" hidden>
+        <summary class="dm-cuadre__resumen"><span id="cuadre-resumen">Lo que tiene el SAT de esta empresa</span></summary>
+        <div id="cuadre-cuerpo"></div>
+    </details>
 
     <section id="seccion-solicitudes" class="dm-solicitudes" hidden>
         <div class="dm-solicitudes__cabeza"><h2>Solicitudes al SAT</h2><span id="cajon-sub" class="dm-pista"></span>
@@ -294,13 +315,13 @@
 
 <div id="aviso-flotante" class="dm-toast" hidden></div>
 
-<script src="/assets/js/comun/leer-cer.js?v=202611231800"></script>
-<script src="/assets/js/comun/paso-cliente.js?v=202611231800"></script>
-<script src="/assets/js/comun/autorizacion-efirma.js?v=202611231800"></script>
-<script src="/assets/js/comun/tabla.js?v=202611231800"></script>
-<script src="/assets/js/comun/programacion.js?v=202611231800"></script>
-<script src="/herramientas/descarga-xml/descarga-xml.js?v=202611231800"></script>
-<script src="/herramientas/descarga-xml/programacion.js?v=202611231800"></script>
+<script src="/assets/js/comun/leer-cer.js?v=202611271300"></script>
+<script src="/assets/js/comun/paso-cliente.js?v=202611271300"></script>
+<script src="/assets/js/comun/autorizacion-efirma.js?v=202611271300"></script>
+<script src="/assets/js/comun/tabla.js?v=202611271300"></script>
+<script src="/assets/js/comun/programacion.js?v=202611271300"></script>
+<script src="/herramientas/descarga-xml/descarga-xml.js?v=202611271300"></script>
+<script src="/herramientas/descarga-xml/programacion.js?v=202611271300"></script>
 <!-- Programar descargas de XML en la madrugada: pendiente para otra entrega (el motor ya lo soporta). -->
 </body>
 </html>

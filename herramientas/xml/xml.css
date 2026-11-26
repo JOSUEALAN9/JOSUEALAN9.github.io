@@ -66,6 +66,14 @@
 .xml-seleccion { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; background: rgb(var(--g-900)); color: rgb(var(--g-0)); padding: 8px 12px; border-radius: 12px; margin-bottom: 10px; font-size: 13px; font-weight: 700; }
 .xml-seleccion .xml-btn { padding: 6px 10px; font-size: 12.5px; }
 .xml-seleccion .xml-enlace { color: rgb(var(--g-300)); }
+/* 26-nov-2026 (el dueño: al marcar el PRIMER XML la barra aparecía y empujaba la tabla hacia abajo, un brinco): la barra de lo
+   seleccionado flota abajo, al centro, encima de la página; no ocupa lugar en ella (Administración de XML, Conciliación, Listas
+   del SAT). En el celular, arriba, bajo la barra de Fiscontable (abajo están «Informar un error» y el letrero de pruebas). */
+.xml-seleccion { position: fixed; z-index: 50; left: 50%; bottom: 60px; transform: translateX(-50%); width: max-content;
+                 max-width: min(920px, calc(100vw - 24px)); margin: 0; padding: 8px 10px 8px 14px; box-shadow: 0 12px 32px rgba(15, 23, 42, .28); }
+.xml-seleccion[hidden] { display: none; }
+body:has(.xml-seleccion:not([hidden])) .xml-tabla-caja { padding-bottom: 110px; }     /* lo último de la tabla no queda debajo de la barra */
+@media (max-width: 700px) { .xml-seleccion { top: calc(var(--barra-alto, 56px) + 8px); bottom: auto; width: calc(100vw - 24px); } .xml-seleccion .xml-tenue { display: none; } }
 
 .xml-tabla-caja { position: relative; background: rgb(var(--g-0)); border: 1px solid rgb(var(--g-200)); border-radius: 14px; overflow: auto; height: calc(100vh - 290px); min-height: 380px; }
 .xml-tabla { border-collapse: separate; border-spacing: 0; table-layout: fixed; font-size: 12.5px; color: rgb(var(--g-900)); }
@@ -168,6 +176,8 @@
 .xml-modal__acciones { display: flex; flex-direction: column; gap: 10px; }
 .xml-modal__acciones .xml-btn { justify-content: center; padding: 10px 14px; }
 .xml-alerta { color: rgb(var(--av-600)); font-weight: 800; }
+/* 24-nov-2026 (a2dec, B): «Observaciones» que empiezan con «Revisar:», en rojo como en el Excel v6 */
+.xml-obs-revisar { color: rgb(var(--er-600)); }
 /* Marca de «Posibles duplicados» en la primera columna (22-nov-2026): ámbar = por revisar; rojo = marcada, falta cancelarla.
    Va encima, pegada a la orilla derecha de la celda (que es fija): no le quita lugar a lo que ya dice la columna. */
 .xml-dup { position: absolute; right: 5px; top: 50%; transform: translateY(-50%); display: grid; place-items: center; width: 18px; height: 18px; padding: 0; border: 0; border-radius: 6px; font-size: 12px; line-height: 1; font-weight: 800; cursor: pointer; text-decoration: none; box-shadow: 0 0 0 2px rgb(var(--g-0)); }
@@ -445,3 +455,57 @@ details.xd-seccion .xd-grupo + .xd-grupo { margin-top: 12px; }
     .xml-todas__tabla td { padding: 0; border: 0; text-align: left; font-size: 12.5px; }
     .xml-todas__tabla td::after { content: " " attr(data-et); color: rgb(var(--g-500)); font-weight: 400; }
 }
+
+/* 23-nov-2026 (Avance 1): menú «Vista ▾» con sus grupos, el diálogo «Guardar como vista nueva» y lo que no viene en 3.3 */
+.xml-menu__lista--vistas { width: 280px; max-height: 70vh; overflow: auto; }
+.xml-menu__lista .xml-menu__titulo { font-size: 11px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; color: rgb(var(--g-600)); padding: 8px 10px 4px; margin: 0; }
+.xml-campo { display: block; font-size: 13.5px; font-weight: 700; color: rgb(var(--g-900)); }
+.xml-campo input { display: block; width: 100%; margin-top: 8px; padding: 9px 12px; border: 1px solid rgb(var(--g-300)); border-radius: 10px; font: inherit; font-weight: 500; }
+.xml-campo__error { margin: 8px 0 0; color: rgb(var(--er-600)); font-size: 13px; }
+#dlg-vista .xml-siempre { margin-top: 18px; }
+td .xml-tenue { font-size: inherit; }
+
+/* 25-nov-2026 (paquete xml, el dueño: la barra de vistas «abarca mucho espacio»): el botón «Vista ▾» dice solo el nombre
+   (cortado si es largo) y una insignia chica «sin guardar»; el menú ⋮ de cada columna; «Ocultar columnas vacías»; el panel
+   con las dos familias de columnas en una vista que parte de «Formato 2» */
+.xml-btn--vista { max-width: 300px; }
+.xml-btn--vista .xml-btn__pre { color: rgb(var(--g-500)); font-weight: 600; }
+.xml-btn--vista .xml-btn__nombre { min-width: 0; max-width: 170px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.xml-btn--vista .xml-insignia { margin-left: 0; font-weight: 700; }
+.xml-menu__lista .xml-menu__principal { color: var(--acento, rgb(var(--ac-600))); }
+.xml-menu__lista .xml-menu__nota { font-size: 12px; color: rgb(var(--g-600)); padding: 6px 10px; margin: 0; }
+.xml-menu__lista button:disabled { color: rgb(var(--g-300)); cursor: default; background: none; }
+.xml-menu__lista--columna { position: fixed; width: 260px; min-width: 0; z-index: 100; }     /* sobre el letrero «Ambiente de pruebas» (95) */
+.xml-menu__lista--columna .xml-menu__titulo { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.xml-tabla thead th .xml-th-menu { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); width: 20px; height: 26px; padding: 0;
+  border: 0; border-radius: 6px; background: rgb(var(--g-900)); color: rgb(var(--g-300)); font-size: 16px; font-weight: 800; line-height: 1; cursor: pointer; }
+.xml-tabla thead th .xml-th-menu:hover, .xml-tabla thead th .xml-th-menu[aria-expanded="true"] { background: rgb(var(--g-700)); color: rgb(var(--g-0)); }
+.xml-tabla thead th .xml-th-menu:focus-visible { outline: 2px solid rgb(var(--in-200)); outline-offset: -2px; color: rgb(var(--g-0)); }
+/* En las de importe el nombre va a la derecha: ahí el ⋮ va a la izquierda, para no taparlo */
+.xml-tabla thead th.xml-num .xml-th-menu { right: auto; left: 4px; }
+/* Con ratón solo aparece al pasar por el encabezado (o con el foco del teclado); escondido no estorba al clic ni al arrastre */
+@media (hover: hover) {
+  .xml-tabla thead th .xml-th-menu { opacity: 0; pointer-events: none; }
+  .xml-tabla thead th:hover .xml-th-menu, .xml-tabla thead th .xml-th-menu:focus-visible, .xml-tabla thead th .xml-th-menu[aria-expanded="true"] { opacity: 1; pointer-events: auto; }
+}
+.xml-panel__vacias { font-size: 13px; font-weight: 600; color: rgb(var(--g-700)); }
+.xml-panel__vacias small { font-weight: 500; }
+.xml-panel__vacio { padding: 10px; margin: 0; }
+.xml-lista li.xml-lista__vacia { color: rgb(var(--g-500)); }
+.xml-grupo.xml-grupo--familia { background: rgb(var(--g-100)); text-transform: uppercase; letter-spacing: .04em; }
+.xml-grupo.xml-grupo--sub { position: static; background: none; color: rgb(var(--g-600)); padding-top: 8px; }
+/* En el celular «sin guardar» es un punto (el texto lo sigue leyendo el lector de pantalla y lo dice el «title»), para que la
+   barra no baje un renglón más al hacer un cambio */
+@media (max-width: 640px) {
+  .xml-btn--vista { position: relative; }
+  .xml-btn--vista .xml-btn__pre { display: none; }
+  .xml-btn--vista .xml-btn__nombre { max-width: 120px; }
+  .xml-btn--vista .xml-insignia { position: absolute; top: 3px; right: 3px; width: 9px; height: 9px; padding: 0; overflow: hidden; color: transparent;
+    font-size: 1px; box-shadow: 0 0 0 2px rgb(var(--g-0)); }
+}
+@media (max-width: 700px) { .xml-menu__lista.xml-menu__lista--columna { width: auto; } }
+/* Revisión del 25-nov-2026: en el celular el menú «Vista» creció (cambios sin guardar, cambiar nombre, proponer) y, pegado
+   bajo su botón, lo de abajo («Proponer al despacho…», «Borrar») quedaba fuera de la pantalla sin poder alcanzarse. Ahora
+   sale desde abajo, completo, y se desliza por dentro; va sobre el letrero «Ambiente de pruebas» (95), como el de la columna */
+@media (max-width: 700px) { .xml-menu__lista.xml-menu__lista--vistas { top: auto; bottom: 12px; max-height: min(70vh, calc(100dvh - 24px)); z-index: 100; } }
+

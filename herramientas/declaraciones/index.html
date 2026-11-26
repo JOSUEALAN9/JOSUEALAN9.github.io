@@ -4,8 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Declaraciones | Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611231800">
-    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611231800">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611271300">
+    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611271300">
+    <link rel="stylesheet" href="/herramientas/declaraciones/diot.css?v=202611271300">
 </head>
 <body class="min-h-screen flex flex-col">
 
@@ -13,13 +14,14 @@
      data-modulo="declaraciones"
      data-titulo="Declaraciones"
      data-migas="Herramientas|/herramientas/"></div>
-<script src="/assets/js/nucleo.js?v=202611231800"></script>
-<script src="/assets/js/barra.js?v=202611231800"></script>
+<script src="/assets/js/nucleo.js?v=202611271300"></script>
+<script src="/assets/js/barra.js?v=202611271300"></script>
 
 <main class="flex-grow w-full mod-pagina mod-pagina--angosta">
 
     <div class="mod-cabeza"><h1>Declaraciones</h1>
         <div class="mod-cabeza__acciones">
+            <button type="button" class="fc-btn" id="btn-diot" hidden title="Presentar la DIOT sin operaciones de una o varias empresas (hasta 20)">DIOT en ceros</button>
             <button type="button" class="fc-btn" data-programar title="Una sola vez, en horario nocturno, para los clientes que elijas">Programar una vez</button>
         </div>
     </div>
@@ -79,10 +81,15 @@
                     <option value="pf">Física</option>
                 </select>
             </label>
-            <label class="campo">
-                <span class="campo__etiqueta">Ejercicio</span>
-                <select id="ejercicio" class="campo__control"></select>
-            </label>
+            <!-- 24-nov-2026 (a2ses, el dueño): varios años en una sola búsqueda («Desde año / Hasta año», hasta 10) -->
+            <div class="campo">
+                <span class="campo__etiqueta" id="et-anios">Años</span>
+                <div style="display:flex;align-items:center;gap:8px;min-width:0" role="group" aria-labelledby="et-anios">
+                    <select id="ejercicio" class="campo__control" aria-label="Desde año" style="flex:1;min-width:0"></select>
+                    <span style="flex:none;color:var(--discreto)">a</span>
+                    <select id="ejercicio-hasta" class="campo__control" aria-label="Hasta año" style="flex:1;min-width:0"></select>
+                </div>
+            </div>
         </div>
 
         <fieldset style="margin-top:16px;border:0;padding:0">
@@ -95,6 +102,7 @@
 
         <label class="marca" style="margin-top:14px"><input type="checkbox" id="forzar"> Volver a descargar todo</label>
         <p class="ficha__nota" style="margin-top:8px">Se descargan el acuse de detalle, el de pago y el de recibo.</p>
+        <p class="ficha__nota" id="nota-anios" style="margin-top:4px" hidden>Hasta 10 años. Se entra una sola vez a cada portal del SAT y se recorren los años. Los años de hace dos o más que ya se revisaron completos en los últimos 30 días no se vuelven a buscar; para revisarlos en el SAT, búscalos de un solo año.</p>
 
         <button type="button" id="btn-buscar" class="boton-principal">Buscar y descargar</button>
 
@@ -104,15 +112,16 @@
 
 </main>
 
-<script src="/assets/js/comun/leer-cer.js?v=202611231800"></script>
-<script src="/assets/js/comun/paso-cliente.js?v=202611231800"></script>
-<script src="/assets/js/comun/autorizacion-efirma.js?v=202611231800"></script>
-<script src="/assets/js/comun/documentos-guardados.js?v=202611231800"></script>
-<script src="/herramientas/declaraciones/declaraciones.js?v=202611231800"></script>
-<script src="/assets/js/comun/acciones.js?v=202611231800"></script>
-<script src="/assets/js/comun/programar.js?v=202611231800"></script>
-<script src="/assets/js/comun/programacion.js?v=202611231800"></script>
-<script src="/herramientas/declaraciones/programacion.js?v=202611231800"></script>
+<script src="/assets/js/comun/leer-cer.js?v=202611271300"></script>
+<script src="/assets/js/comun/paso-cliente.js?v=202611271300"></script>
+<script src="/assets/js/comun/autorizacion-efirma.js?v=202611271300"></script>
+<script src="/assets/js/comun/documentos-guardados.js?v=202611271300"></script>
+<script src="/herramientas/declaraciones/declaraciones.js?v=202611271300"></script>
+<script src="/herramientas/declaraciones/diot.js?v=202611271300"></script>
+<script src="/assets/js/comun/acciones.js?v=202611271300"></script>
+<script src="/assets/js/comun/programar.js?v=202611271300"></script>
+<script src="/assets/js/comun/programacion.js?v=202611271300"></script>
+<script src="/herramientas/declaraciones/programacion.js?v=202611271300"></script>
 
 </body>
 </html>

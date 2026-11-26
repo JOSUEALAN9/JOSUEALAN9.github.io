@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vencimientos · Fiscontable</title>
+    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611271300">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611271300">
+    <link rel="stylesheet" href="/herramientas/vencimientos/vencimientos.css?v=202611271300">
+</head>
+<body class="min-h-screen flex flex-col">
+<!-- 23-nov-2026: e.firma y sellos digitales (CSD) de todas tus empresas, con su fecha de vencimiento (docs/prd/avance1_venc1.md) -->
+<div id="app-header" data-modulo="vencimientos" data-titulo="Vencimientos" data-migas="Herramientas|/herramientas/"></div>
+<script src="/assets/js/nucleo.js?v=202611271300"></script>
+<script src="/assets/js/barra.js?v=202611271300"></script>
+
+<main class="flex-grow mod-pagina vc-pagina">
+    <div class="mod-cabeza vc-cabeza">
+        <div>
+            <h1>Vencimientos</h1>
+            <p class="vc-sub" id="vc-sub">e.firma y sellos digitales de tus empresas.</p>
+        </div>
+        <div class="mod-cabeza__acciones">
+            <!-- 24-nov-2026 (Avance 2): recordatorios propios de cualquier tipo (core/recordatorios.py) -->
+            <button type="button" class="ui-btn ui-btn--primario" id="vc-nuevo" hidden title="Agenda algo con su fecha y cada cuánto se repite: te avisamos en la campana y por correo">+ Recordatorio</button>
+            <button type="button" class="ui-btn ui-btn--secundario" id="vc-excel" disabled title="Descarga lo que ves en la tabla">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                Descargar Excel</button>
+        </div>
+    </div>
+
+    <div id="vc-cuerpo">
+        <div class="vc-esqueleto" aria-busy="true">
+            <span class="ui-skel" style="height:72px"></span>
+            <span class="ui-skel" style="height:150px"></span>
+            <span class="ui-skel" style="height:260px"></span>
+        </div>
+    </div>
+
+    <div id="vc-contenido" hidden>
+        <div class="vc-kpis" id="vc-kpis" role="group" aria-label="Filtrar por estado"></div>
+
+        <section class="ui-tarjeta vc-tiempo" aria-labelledby="vc-tiempo-titulo">
+            <div class="vc-tiempo__cabeza">
+                <h2 id="vc-tiempo-titulo">Próximos 12 meses</h2>
+                <div class="vc-leyenda" aria-hidden="true">
+                    <span><i class="vc-marca vc-marca--muestra"></i>e.firma</span>
+                    <span><i class="vc-marca vc-marca--muestra vc-marca--csd"></i>Sello digital (CSD)</span>
+                    <span><i class="vc-marca vc-marca--muestra vc-marca--rec"></i>Recordatorio</span>
+                </div>
+            </div>
+            <div class="vc-rio"><div class="vc-meses" id="vc-meses"></div></div>
+            <p class="vc-tiempo__nota" id="vc-tiempo-nota" hidden></p>
+        </section>
+
+        <div class="vc-barra">
+            <input type="search" class="ui-input vc-buscar" id="vc-buscar" placeholder="Buscar empresa o RFC…" aria-label="Buscar empresa o RFC" autocomplete="off">
+            <div class="ctx-segmento vc-tipos" id="vc-tipos" role="group" aria-label="Tipo">
+                <button type="button" data-tipo="" aria-pressed="true">Todos</button>
+                <button type="button" data-tipo="efirma" aria-pressed="false">e.firma</button>
+                <button type="button" data-tipo="csd" aria-pressed="false">Sello CSD</button>
+                <button type="button" data-tipo="recordatorio" aria-pressed="false">Recordatorios</button>
+            </div>
+            <div class="vc-filtros" id="vc-filtros"></div>
+            <div class="vc-barra__der">
+                <select class="ui-select vc-orden" id="vc-orden" aria-label="Ordenar">
+                    <option value="">Más urgente primero</option>
+                    <option value="alias">Empresa (A-Z)</option>
+                    <option value="hasta">Fecha de vencimiento</option>
+                    <option value="tipo">Tipo</option>
+                </select>
+                <span class="vc-cuenta" id="vc-cuenta"></span>
+            </div>
+        </div>
+
+        <div class="vc-caja" id="vc-caja">
+            <table class="vc-tabla">
+                <thead><tr>
+                    <th data-orden="alias"><button type="button">Empresa</button></th>
+                    <th data-orden="tipo"><button type="button">Tipo</button></th>
+                    <th>Número de serie</th>
+                    <th data-orden="desde"><button type="button">Vigente desde</button></th>
+                    <th data-orden="hasta"><button type="button">Vence</button></th>
+                    <th data-orden="estado"><button type="button">Estado</button></th>
+                    <th aria-label="Acción"></th>
+                </tr></thead>
+                <tbody id="vc-filas"></tbody>
+            </table>
+            <p class="vc-vacio-filtros" id="vc-sin-filas" hidden>Nada con estos filtros.</p>
+        </div>
+        <div class="vc-tarjetas" id="vc-tarjetas"></div>
+
+        <p class="vc-avisos" id="vc-avisos"></p>
+    </div>
+</main>
+
+<!-- 24-nov-2026 (Avance 2): agregar o cambiar un recordatorio -->
+<dialog id="vc-dlg" class="fc-modal fc-modal--chica" aria-labelledby="vc-dlg-titulo">
+    <form id="vc-form" method="dialog" novalidate>
+        <div class="fc-modal__cabeza">
+            <div><h2 id="vc-dlg-titulo">Nuevo recordatorio</h2><p>Sale en la línea de tiempo y te avisamos en la campana y por correo.</p></div>
+            <button type="button" class="fc-modal__cerrar" data-cerrar aria-label="Cerrar">✕</button>
+        </div>
+        <div class="fc-modal__cuerpo vc-form">
+            <label class="vc-campo"><span>¿De qué es?</span>
+                <input type="text" class="ui-input" id="vc-r-titulo" maxlength="80" placeholder="Por ejemplo: Renovar la FIEL del representante" required></label>
+            <label class="vc-campo"><span>Empresa <small>(opcional)</small></span>
+                <select class="ui-select" id="vc-r-rfc"><option value="">Sin empresa</option></select></label>
+            <div class="vc-campos">
+                <label class="vc-campo"><span>Fecha</span><input type="date" class="ui-input" id="vc-r-fecha" required></label>
+                <label class="vc-campo"><span>Se repite</span>
+                    <select class="ui-select" id="vc-r-repetir">
+                        <option value="una_vez">Una vez</option><option value="mensual">Cada mes</option><option value="anual">Cada año</option>
+                    </select></label>
+            </div>
+            <label class="vc-campo"><span>Avisar</span>
+                <select class="ui-select" id="vc-r-avisar">
+                    <option value="0">El mismo día</option><option value="1">1 día antes</option><option value="3">3 días antes</option>
+                    <option value="7" selected>7 días antes</option><option value="15">15 días antes</option><option value="30">30 días antes</option>
+                    <option value="60">60 días antes</option>
+                </select>
+                <small class="vc-ayuda">Te avisamos ese día y el mismo día del recordatorio.</small></label>
+            <label class="vc-campo"><span>Nota <small>(opcional)</small></span>
+                <input type="text" class="ui-input" id="vc-r-nota" maxlength="300" placeholder="Lo que debes tener a la mano"></label>
+            <label class="vc-check" id="vc-r-compartir-caja" hidden><input type="checkbox" id="vc-r-compartido">
+                <span>Compartir con todo el despacho <small>Lo ven todos (los de una empresa, solo quien la tiene); solo tú lo cambias.</small></span></label>
+            <p class="vc-error" id="vc-r-error" role="alert" hidden></p>
+        </div>
+        <div class="fc-modal__pie">
+            <button type="button" class="ui-btn ui-btn--terciario vc-borrar" id="vc-r-borrar" hidden>Borrar</button>
+            <button type="button" class="ui-btn ui-btn--secundario" data-cerrar>Cancelar</button>
+            <button type="submit" class="ui-btn ui-btn--primario" id="vc-r-guardar">Guardar</button>
+        </div>
+    </form>
+</dialog>
+
+<script src="/herramientas/vencimientos/vencimientos.js?v=202611271300"></script>
+</body>
+</html>

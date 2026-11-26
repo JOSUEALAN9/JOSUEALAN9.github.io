@@ -4,15 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611231800">
-    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611231800">
-    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611231800">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611271300">
+    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611271300">
+    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611271300">
 </head>
 <body class="min-h-screen flex flex-col">
 
 <div id="app-header" data-carriles="1" data-modulo="portada"></div>
-<script src="/assets/js/nucleo.js?v=202611231800"></script>
-<script src="/assets/js/barra.js?v=202611231800"></script>
+<script src="/assets/js/nucleo.js?v=202611271300"></script>
+<script src="/assets/js/barra.js?v=202611271300"></script>
 
 <main class="flex-grow w-full mod-pagina tb-pagina tb-cargando">
 
@@ -31,6 +31,8 @@
     <section id="tb-despacho">
         <div id="tb-resumen" class="tb-kpis"></div>
         <div id="tb-cierre" class="tb-cierre" hidden></div>
+        <!-- 23-nov-2026: e.firma y sellos por vencer de todas las empresas, en su propia franja (los «Próximos vencimientos» son declaraciones) -->
+        <div id="tb-efirmas" class="tb-efirmas" hidden></div>
         <div class="tb-cuerpo">
             <div class="tb-principal"><div id="tb-tabla" class="tb-tabla"></div></div>
             <aside class="tb-lado" aria-label="Vencimientos y actividad">
@@ -97,6 +99,10 @@
     .tb-motivo--error { background: rgb(var(--er-50)); color: rgb(var(--er-700)); }
     .tb-motivo--aviso { background: rgb(var(--av-50)); color: rgb(var(--av-700)); }
     .tb-motivo--mas { background: rgb(var(--g-100)); color: rgb(var(--g-600)); }
+    /* 25-nov-2026 (paquete avi): cada chip abre los avisos de la empresa; los comunicados del Buzón van en gris */
+    button.tb-motivo { border: 0; font-family: inherit; cursor: pointer; line-height: inherit; }
+    button.tb-motivo:hover { filter: brightness(.96); text-decoration: underline; }
+    .tb-motivo--gris { background: rgb(var(--g-100)); color: rgb(var(--g-500)); font-weight: 500; }
     .tb-cabeza { align-items: center; }
     .tb-cabeza .ctx-segmento { margin-left: auto; }
 
@@ -131,7 +137,35 @@
     .tb-lista > * { min-width: 0; }
     .tb-der { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: baseline; gap: 2px 6px; text-align: right; min-width: 0; max-width: 62%; }
     .tb-der > span { display: inline-flex; flex-wrap: wrap; justify-content: flex-end; align-items: baseline; gap: 2px 6px; }
+    /* 24-nov-2026: en la tarjeta «e.firma y sellos» de la empresa, a 390 px, la nota de la derecha del sello («No está en
+       Facturar ni hay facturas emitidas suyas…», «según su factura del…») iba en un solo renglón (nowrap) y, alineada a la
+       derecha, se salía de la tarjeta por la izquierda, por encima de «Sello digital (CSD)». Ahora la nota se parte en
+       renglones dentro de su columna y el nombre de la izquierda no se encoge. */
+    #tb-efirmas-emp .tb-lista > a > :first-child { flex: 0 0 auto; }
+    #tb-efirmas-emp .tb-der small { white-space: normal; }
     .tb-titulo { font-size: var(--t-14); font-weight: 700; margin: 0 0 var(--e-2); }
+    /* e.firma y sellos (23-nov-2026): una franja como la del cierre: «e.firma y sellos: 2 vencen en 30 días · 4 vencidos», los
+       más urgentes en pastillas y «Ver todos». En la vista de la empresa, su tarjeta (tb-efirmas-emp). */
+    .tb-efirmas { display: flex; align-items: center; gap: var(--e-2) var(--e-3); flex-wrap: wrap; padding: var(--e-3) var(--e-4); margin-bottom: var(--e-4);
+                  border: 1px solid var(--linea); border-radius: var(--r-tarjeta); background: rgb(var(--g-0)); font-size: var(--t-14); color: rgb(var(--g-900)); }
+    .tb-efirmas__titulo { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; }
+    .tb-efirmas__titulo b { font-weight: 700; }
+    .tb-efirmas__titulo a { text-decoration: none; font-weight: 600; }
+    .tb-efirmas__titulo a:hover { text-decoration: underline; }
+    .tb-efirmas__titulo span { color: rgb(var(--g-600)); font-size: var(--t-13); }
+    .tb-efirmas--error { color: rgb(var(--er-600)); }
+    .tb-efirmas--aviso { color: rgb(var(--av-600)); }
+    .tb-efirmas__pastillas { display: flex; flex-wrap: wrap; gap: var(--e-2); min-width: 0; }
+    .tb-efirmas__pastilla { display: inline-flex; gap: 6px; align-items: center; max-width: 100%; padding: 3px 10px; border-radius: 999px; font-size: var(--t-12);
+                            text-decoration: none; background: rgb(var(--av-50)); color: rgb(var(--av-600)); }
+    .tb-efirmas__pastilla span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; color: rgb(var(--g-900)); font-weight: 600; }
+    .tb-efirmas__pastilla--vencido { background: rgb(var(--er-50)); color: rgb(var(--er-600)); }
+    .tb-efirmas__pastilla--vence_90, .tb-efirmas__pastilla--vigente { background: rgb(var(--g-100)); color: rgb(var(--g-600)); }
+    .tb-efirmas__todos { margin-left: auto; font-size: var(--t-13); font-weight: 600; color: rgb(var(--ac-700)); text-decoration: none; white-space: nowrap; }
+    .tb-efirmas__todos:hover { text-decoration: underline; }
+    .tb-efirmas__cabeza { display: flex; align-items: baseline; justify-content: space-between; gap: var(--e-3); }
+    .tb-efirmas__cabeza a { font-size: var(--t-12); font-weight: 600; color: rgb(var(--ac-700)); text-decoration: none; white-space: nowrap; }
+    .tb-efirmas__cabeza a:hover { text-decoration: underline; }
     .tb-recientes { display: flex; flex-wrap: wrap; align-items: center; gap: var(--e-2); margin: var(--e-6) 0 var(--e-8); font-size: var(--t-13); color: rgb(var(--g-600)); }
     .tb-recientes__lista { display: flex; flex-wrap: wrap; gap: var(--e-2); }
     .tb-recientes__lista a { padding: 4px 10px; border: 1px solid var(--linea); border-radius: 999px; background: rgb(var(--g-0)); color: rgb(var(--g-800)); text-decoration: none; }
@@ -152,7 +186,7 @@
     .tb-pasos small { color: rgb(var(--g-500)); }
 </style>
 
-<script src="/assets/js/comun/tabla.js?v=202611231800"></script>
-<script src="/assets/js/inicio.js?v=202611231800"></script>
+<script src="/assets/js/comun/tabla.js?v=202611271300"></script>
+<script src="/assets/js/inicio.js?v=202611271300"></script>
 </body>
 </html>
