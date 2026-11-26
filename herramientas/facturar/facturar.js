@@ -43,6 +43,7 @@
     }
 
     function aviso(texto, tipo) {
+        if (window.Fiscontable && Fiscontable.avisoBien && Fiscontable.avisoBien($("aviso"), texto, tipo === "ok" ? true : tipo ? false : undefined)) return; 
         var a = $("aviso");
         a.textContent = texto || "";
         a.className = "fa-aviso" + (tipo ? " fa-aviso--" + tipo : "");

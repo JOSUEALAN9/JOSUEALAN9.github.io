@@ -195,6 +195,8 @@
             var m = zona && zona.querySelector("[data-au=msj]");
             if (!m) { if (!ok) alert(texto); return; }
             m.textContent = texto; m.className = "au-msj " + (ok ? "au-msj--ok" : "au-msj--mal");
+            clearTimeout(m._reloj);          // 26-nov-2026 (el dueño): lo que salió bien se quita solo
+            if (ok) m._reloj = setTimeout(function () { if (m.textContent === texto) { m.textContent = ""; m.className = "au-msj"; } }, 4000);
         }
 
         async function reintentar(boton) {

@@ -23,6 +23,10 @@
 .fi-seleccion { position: sticky; top: 8px; z-index: 5; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; background: rgb(var(--g-900)); color: rgb(var(--g-0));
   border-radius: 12px; padding: 8px 12px; margin-bottom: 8px; box-shadow: 0 8px 24px rgba(15, 23, 42, .18); }
 .fi-seleccion[hidden] { display: none; }
+/* 26-nov-2026: igual que en Administración de XML, flota abajo y no empuja la tabla al marcar la primera */
+.fi-seleccion { position: fixed; top: auto; z-index: 50; left: 50%; bottom: 60px; transform: translateX(-50%); width: max-content;
+                max-width: min(920px, calc(100vw - 24px)); margin: 0; box-shadow: 0 12px 32px rgba(15, 23, 42, .28); }
+@media (max-width: 700px) { .fi-seleccion { top: calc(var(--barra-alto, 56px) + 8px); bottom: auto; width: calc(100vw - 24px); } }
 .fi-seleccion b { font-size: 13px; margin-right: 4px; }
 .fi-seleccion .xml-enlace { color: rgb(var(--g-300)); }
 .fi-tabla { width: max-content; min-width: 100%; }

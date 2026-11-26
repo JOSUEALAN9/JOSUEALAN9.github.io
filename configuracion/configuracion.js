@@ -161,6 +161,8 @@
         var p = caja.querySelector(".cf-msj");
         if (!p) return;
         p.textContent = texto; p.className = "cf-msj " + (ok ? "cf-msj--ok" : "cf-msj--mal");
+        clearTimeout(p._reloj);              // 26-nov-2026 (el dueño): lo que salió bien se quita solo
+        if (ok) p._reloj = setTimeout(function () { if (p.textContent === texto) { p.textContent = ""; p.className = "cf-msj"; } }, 4000);
     }
 
     /* 22-nov-2026 (auditoría despacho-4): los ajustes que valen para todo el despacho (avisos por correo, horario, resumen,

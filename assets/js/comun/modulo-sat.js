@@ -86,6 +86,11 @@
         return Fiscontable.leerError(resp);         // 4xx: el servidor ya trae el motivo en palabras (cuota, plan…)
     }
 
+    function fechaCorta(iso) {            // «20-nov-2026»
+        var f = new Date(String(iso).length <= 19 ? iso + "Z" : iso);
+        if (isNaN(f)) return "";
+        return f.getDate() + "-" + ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"][f.getMonth()] + "-" + f.getFullYear();
+    }
     function fechaLarga(iso) {
         var f = new Date(iso + "Z");
         if (isNaN(f)) return "";
@@ -311,11 +316,11 @@
     function vistaEfirmaGuardada() {
         // 24-nov-2026: sin PDF guardado pero con revisión semanal, se dice lo que encontró la revisión (no «sin opinión»)
         var rev = estado && estado.revision && estado.revision.resultado ? estado.revision : null;
+        // 26-nov-2026 (el dueño: el texto de relleno sobre el PDF y la e.firma guardada): lo concreto, en corto
         pintarPaso2(Fiscontable.bloqueEstado({
             icono: "documento", tono: rev ? tonoSentido(rev.resultado) : "",
-            titulo: rev ? "Revisada en el SAT el " + fechaLarga(rev.revisada_en) + " · " + rev.resultado : "Sin " + MODULO.nombre + " reciente",
-            detalle: (rev ? "No hay PDF guardado de la " + MODULO.nombre.toLowerCase() + ". " : "") +
-                     "Se pide al SAT con la e.firma guardada de este contribuyente; no hay que subir nada.",
+            titulo: rev ? MODULO.nombre + " " + rev.resultado.toLowerCase() + " · " + fechaCorta(rev.revisada_en) : "Sin " + MODULO.nombre.toLowerCase() + " del mes",
+            detalle: rev ? "Revisada en el SAT; sin PDF guardado." : "Se pide al SAT con la e.firma guardada.",
             acciones: [{ id: "btn-generar", texto: "Solicitar " + MODULO.nombre + " al SAT", primario: true }]
         }));
         $("btn-generar").addEventListener("click", generarConEfirmaGuardada);

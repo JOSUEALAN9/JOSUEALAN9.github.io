@@ -348,7 +348,8 @@
             E.vistaSel[E.lado] = { tipo: "guardada", id: r.vista.id };
             tabla().marcarVista(r.vista.nombre);
             recordar(); pintarVistas();
-            avisar("Vista «" + r.vista.nombre + "» guardada" + (r.vista.compartida ? " y compartida con el despacho." : "."));
+            var txt = "Vista «" + r.vista.nombre + "» guardada" + (r.vista.compartida ? " y compartida con el despacho." : ".");
+            if (Fiscontable.listo) Fiscontable.listo(txt, document.getElementById("btn-vistas")); else avisar(txt);      // (26-nov) verde, junto, se quita solo
         } catch (e) { avisar(e.message); }
     }
 

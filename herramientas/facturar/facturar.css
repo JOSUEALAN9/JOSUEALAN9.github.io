@@ -460,6 +460,11 @@ tr.fa-fila-desglose > td { background: rgb(var(--g-50)); padding: 4px 12px 12px;
 /* ---------- Emitidas: selección para ZIP y acciones compactas ---------- */
 .fa-sel-barra { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; background: rgb(var(--ac-50)); border: 1px solid rgb(var(--ac-200)); border-radius: 12px; padding: 10px 14px; margin-bottom: 10px; }
 .fa-sel-barra b { font-size: 14px; color: rgb(var(--ac-800)); }
+/* 26-nov-2026: las marcadas de Facturas emitidas, flotando abajo (no empujan la lista al marcar la primera) */
+.fa-sel-barra { position: fixed; z-index: 50; left: 50%; bottom: 60px; transform: translateX(-50%); width: max-content;
+                max-width: min(920px, calc(100vw - 24px)); margin: 0; box-shadow: 0 12px 32px rgba(15, 23, 42, .18); }
+.fa-sel-barra[hidden] { display: none; }
+@media (max-width: 700px) { .fa-sel-barra { top: calc(var(--barra-alto, 56px) + 8px); bottom: auto; width: calc(100vw - 24px); } }
 .fa-sel-barra select { font: inherit; font-size: 13.5px; border: 1px solid rgb(var(--ac-200)); border-radius: 9px; padding: 6px 10px; background: rgb(var(--g-0)); }
 .fa-sel-barra .fa-link { margin-left: auto; }
 .fa-col-check { width: 1%; padding-right: 0 !important; }

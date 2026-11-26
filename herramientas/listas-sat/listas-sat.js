@@ -36,6 +36,7 @@
     }
 
     function aviso(texto, error) {
+        if (window.Fiscontable && Fiscontable.avisoBien && Fiscontable.avisoBien($("aviso"), texto, error ? false : undefined)) return; 
         var a = $("aviso");
         a.textContent = texto || "";
         a.className = "ls-aviso" + (error ? " ls-aviso--error" : "");

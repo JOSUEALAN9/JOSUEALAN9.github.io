@@ -20,7 +20,7 @@
     }
     function enviar(ruta, metodo, cuerpo) { return api(ruta, { method: metodo, headers: { "Content-Type": "application/json" }, body: JSON.stringify(cuerpo) }); }
     function m(v) { return (v < 0 ? "−$" : "$") + Math.abs(Number(v) || 0).toLocaleString("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
-    function aviso(t, mal) { var a = $("aviso"); a.innerHTML = t || ""; a.className = "isn-aviso" + (mal ? " isn-aviso--error" : ""); a.hidden = !t; }
+    function aviso(t, mal) { if (window.Fiscontable && Fiscontable.avisoBien && Fiscontable.avisoBien($("aviso"), t, mal ? false : undefined)) return; var a = $("aviso"); a.innerHTML = t || ""; a.className = "isn-aviso" + (mal ? " isn-aviso--error" : ""); a.hidden = !t; }
     function nombre(imp) { return (E.cat && E.cat.impuestos[imp]) || imp; }
 
     /* ------------------------------------------------------------ inicio */
@@ -109,7 +109,12 @@
         $("btn-cierres").hidden = !E.datos || !puede;
         $("candado").hidden = !c;
         if (c) $("candado").innerHTML = "🔒 <b>" + MESES[E.mes - 1] + " " + E.anio + " está cerrado</b>" +
-            (c.por.length ? ": ya se presentó " + esc(c.por.join(" y ")) + "." : c.quien ? " (lo cerró " + esc(c.quien_nombre || c.quien) + ")." : ".") +
+            // 26-nov-2026 (el dueño): al integrante el servidor ya no le dice quién lo cerró; sí desde cuándo
+            (c.por.length ? ": ya se presentó " + esc(c.por.join(" y ")) + "." : (function () {
+                var t = (c.quien ? "lo cerró " + esc(c.quien_nombre || c.quien) : "") + (c.en ? (c.quien ? " " : "") + "el " +
+                    new Date(String(c.en).slice(0, 19) + "Z").toLocaleDateString("es-MX", { day: "numeric", month: "short", year: "numeric" }) : "");
+                return t ? " (" + t + ")." : ".";
+            })()) +
             " Las marcas se ven pero no se cambian." +
             (puede ? ' Si hay que corregir, <button type="button" class="fi-enlace" data-cierres>ábrelo en Configuración</button>.'
                    : " Solo quien cierra los meses (en un despacho, el titular) lo puede abrir, en Configuración › Cierre de meses.") + congelado();

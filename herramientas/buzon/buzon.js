@@ -31,7 +31,7 @@
     }
     function diaSemana(iso) { return new Date(iso + "T12:00:00").toLocaleDateString("es-MX", { weekday: "short", day: "numeric", month: "short" }); }
     function hoy() { return new Date().toISOString().slice(0, 10); }
-    function aviso(html, tipo) { var a = $("aviso"); a.innerHTML = html || ""; a.className = "bz-aviso" + (tipo ? " bz-aviso--" + tipo : ""); a.hidden = !html; }
+    function aviso(html, tipo) { if (window.Fiscontable && Fiscontable.avisoBien && Fiscontable.avisoBien($("aviso"), html, tipo === "ok" ? true : tipo ? false : undefined)) return; var a = $("aviso"); a.innerHTML = html || ""; a.className = "bz-aviso" + (tipo ? " bz-aviso--" + tipo : ""); a.hidden = !html; }
 
     async function api(ruta, metodo, cuerpo) {
         var r;

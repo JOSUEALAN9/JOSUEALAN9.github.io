@@ -92,6 +92,8 @@
        carga espera al desbloqueo y sigue donde iba (nucleo.js). */
     var PARTE = { fcRepetible: true, fcTrabajo: true };
     function avisar(texto, tipo) { Fiscontable.aviso ? Fiscontable.aviso(texto) : Fiscontable.avisar(texto); }
+    // 26-nov-2026 (el dueño): lo que salió bien, verde y junto a lo que se pulsó (o a «cerca»); se quita solo
+    function listo(texto, cerca) { if (Fiscontable.listo) Fiscontable.listo(texto, cerca); else avisar(texto); }
     function guardarLocal(clave, valor) { try { localStorage.setItem("xml:" + clave, JSON.stringify(valor)); } catch (e) { /* nada */ } }
     function leerLocal(clave) { try { return JSON.parse(localStorage.getItem("xml:" + clave)); } catch (e) { return null; } }
     function borrarLocal(clave) { try { localStorage.removeItem("xml:" + clave); } catch (e) { /* nada */ } }
@@ -458,7 +460,8 @@
     function pintarAlcance() {
         var n = uuidsParaAcciones().length;
         $("acciones-alcance").textContent = !n ? "No hay XML en la tabla."
-            : E.seleccion.size ? "Sobre los " + n.toLocaleString("es-MX") + " seleccionados." : "Sobre los " + n.toLocaleString("es-MX") + " XML que ves.";
+            : E.seleccion.size ? (n === 1 ? "Sobre el seleccionado." : "Sobre los " + n.toLocaleString("es-MX") + " seleccionados.")
+            : (n === 1 ? "Sobre el XML que ves." : "Sobre los " + n.toLocaleString("es-MX") + " XML que ves.");
         $("btn-zip").disabled = $("btn-pdf").disabled = $("btn-zip-completo").disabled = $("btn-compartir").disabled = !n;
         // 25-nov-2026 (el dueño): «Formato 2 para importar (sin títulos)» solo aparece con una vista de «Formato 2»
         var imp = document.querySelector('.mod-acciones [data-excel="importar"]');
@@ -849,7 +852,7 @@
             guardarLocal("vista3:" + E.modulo, { sel: E.vistaSel[E.modulo], cols: null });
             E.columnas[E.modulo] = columnasDeVista(E.vistaSel[E.modulo]);
             pintarVistas(); pintarTabla();
-            avisar("Vista «" + r.vista.nombre + "» guardada" + (r.vista.compartida ? " y compartida con el despacho." : "."));
+            listo("Vista «" + r.vista.nombre + "» guardada" + (r.vista.compartida ? " y compartida con el despacho." : "."), $("btn-vistas"));
             return true;
         } catch (e) { avisar(e.message); return false; }
     }
@@ -871,7 +874,7 @@
                     body: JSON.stringify({ modulo: E.modulo, vista: String(valor) }) });
                 E.inicial[E.modulo] = /^\d+$/.test(String(valor)) ? +valor : String(valor);
                 pintarVistas();
-                avisar("Esta pestaña abrirá siempre con «" + nombreVistaActual() + "».");
+                listo("Esta pestaña abrirá siempre con «" + nombreVistaActual() + "».", $("btn-vistas"));
             } catch (e) { avisar(e.message); }
             return;
         }
@@ -880,7 +883,7 @@
                 await api("/api/xml/vistas/" + v.id + "/compartir", { method: "POST", headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ compartida: !v.compartida }) });
                 await cargarVistas(); pintarVistas();
-                avisar(v.compartida ? "«" + v.nombre + "» ya no se comparte; queda como tuya." : "«" + v.nombre + "» ya la ve todo el despacho.");
+                listo(v.compartida ? "«" + v.nombre + "» ya no se comparte; queda como tuya." : "«" + v.nombre + "» ya la ve todo el despacho.", $("btn-vistas"));
             } catch (e) { avisar(e.message); }
             return;
         }
@@ -918,7 +921,7 @@
                 body: JSON.stringify({ modulo: E.modulo, id: v.id, nombre: r.nombre, base: v.base, columnas: v.columnas }) });
             await cargarVistas();
             pintarVistas(); pintarBotonExcel();
-            avisar("Listo: la vista ahora se llama «" + r.nombre + "».");
+            listo("La vista ahora se llama «" + r.nombre + "».", $("btn-vistas"));
         } catch (e) { avisar(e.message); }
     }
 
@@ -933,7 +936,7 @@
         try {
             var r = await (await api("/api/xml/vistas/" + v.id + "/proponer", { method: "POST" })).json();
             await cargarVistas(); pintarVistas();
-            avisar(r.mensaje || "Listo: se la propusiste al titular.");
+            listo(r.mensaje || "Se la propusiste al titular.", $("btn-vistas"));
         } catch (e) { avisar(e.message); }
     }
 
@@ -1239,6 +1242,7 @@
         var ocultas = E.ocultarVacias && VAC.vacias && VAC.filas === E.filas ? E.columnas[E.modulo].length - cols.length : 0;
         $("conteo-filas").textContent = E.filas.length.toLocaleString("es-MX") + " registro(s)" +
             (ocultas > 0 ? " · " + ocultas + " columna" + (ocultas === 1 ? " vacía oculta" : "s vacías ocultas") : "");
+        notaExcel(ocultas);
         pintarAlcance();
         pintarFilas(true);
         pintarSeleccion();
@@ -1497,7 +1501,7 @@
                 if (Fiscontable.aviso) Fiscontable.aviso("Volvió «" + c.etiqueta + "».");
             };
             if (Fiscontable.aviso) Fiscontable.aviso("Ocultaste «" + c.etiqueta + "». La regresas desde «Columnas» o aquí.", [{ texto: "Deshacer", accion: deshacer }]);
-            else avisar("Ocultaste «" + c.etiqueta + "».");
+            else listo("Ocultaste «" + c.etiqueta + "».");
         }
         var b = botonMenuColumna(foco);
         if (b) b.focus();
@@ -1631,6 +1635,31 @@
        25-nov-2026 (el dueño): «Formato 2» también con nuestro formato (los mismos 148 nombres y en su orden); formato
        "importar" = «Formato 2 para importar (sin títulos)», como antes. Con renglones marcados se manda cuántos son: van
        todos (aunque el chip esconda alguno) y el Excel dice «Selección: N facturas marcadas». */
+    /* 26-nov-2026 (el dueño: «¿si descargo el Excel sale sin eso?»): con «Ocultar columnas vacías», el Excel sale como se ve
+       (sin esas columnas), salvo «Formato 2», que es un formato fijo para importar: siempre con sus 148 columnas en su orden.
+       Debajo de «Descargar Excel», una línea lo dice cuando aplica. */
+    function esFormato2Fijo() { return selActual().tipo === "formato2"; }
+    function columnasParaExcel() {
+        var todas = E.columnas[E.modulo].map(function (c) { return c.clave; });
+        if (esFormato2Fijo() || !E.ocultarVacias) return todas;
+        var vacias = columnasVacias();
+        if (!vacias) return todas;
+        var llenas = todas.filter(function (k) { return !vacias[k]; });
+        return llenas.length ? llenas : todas;
+    }
+    function notaExcel(ocultas) {
+        var nota = $("excel-nota");
+        if (!nota) return;
+        nota.hidden = !(ocultas > 0);
+        nota.textContent = !ocultas ? "" : esFormato2Fijo() ? "Formato 2: el Excel lleva sus 148 columnas."
+            : (ocultas === 1 ? "Sin la columna vacía" : "Sin las " + ocultas + " columnas vacías") + ", como lo ves.";
+    }
+    // 26-nov-2026 (el dueño: «le cambié el ajuste y siempre salió la misma leyenda»): lo que eligió en «Importes» (XML, DOF o
+    // sin convertir) va al servidor; sin elegir nunca, el servidor usa el DOF (decisión A.4)
+    function convertirParaExcel() {
+        var p = Fiscontable.monedaReportes.leer();
+        return p.deFabrica ? null : p.modo;
+    }
     async function exportarExcel(formato) {
         var boton = document.querySelector('.mod-acciones [data-excel="' + (formato === "importar" ? "importar" : "unico") + '"]');
         if (!boton || boton.disabled) return;
@@ -1639,8 +1668,10 @@
         if (baseActual() === "formato2" && !f2Listo()) return avisar("Espera a que termine de leer los XML de «Formato 2».");
         var r = rangoPeriodo();
         var cuerpo = { rfc: E.rfc, desde: r.desde, hasta: r.hasta, meses: mesesElegidos(), modo: "vista", pagos_por: E.pagosPor,
-                       modulo: E.modulo, sub: E.sub || null, columnas: E.columnas[E.modulo].map(function (c) { return c.clave; }),
+                       modulo: E.modulo, sub: E.sub || null, columnas: columnasParaExcel(),
                        vista_base: baseActual(), vista_nombre: nombreVistaActual() };
+        var conv = convertirParaExcel();
+        if (conv !== null) cuerpo.convertir = conv;
         if (E.orden.clave) { cuerpo.orden_clave = E.orden.clave; cuerpo.orden_dir = E.orden.dir; }
         var filtrado = E.busqueda.trim() || Object.keys(E.rapidos).some(function (k) { return E.rapidos[k]; }) ||
             Object.keys(E.av).some(function (k) { return E.av[k]; });
@@ -2120,7 +2151,11 @@
     function leerXML(nombre, bytes) {
         if (!bytes.length) { BJ.invalidos.push({ archivo: nombre, motivo: NO_XML.vacio }); return; }
         if (bytes.length > 5 * 1024 * 1024) { BJ.invalidos.push({ archivo: nombre, motivo: "Pesa más de 5 MB." }); return; }
-        var texto = new TextDecoder("utf-8").decode(bytes);
+        // 26-nov-2026 (el dueño: «facturaci�n»): un XML que dice UTF-8 y trae los acentos en latin-1 se lee como windows-1252 (el
+        // servidor hace lo mismo, core/cfdi.acentos_bien); antes salía «�» en la bandeja
+        var texto;
+        try { texto = new TextDecoder("utf-8", { fatal: true }).decode(bytes); }
+        catch (e) { texto = new TextDecoder("windows-1252").decode(bytes); }
         var doc = new DOMParser().parseFromString(texto, "application/xml");
         var raiz = doc.documentElement;
         if (!raiz || raiz.localName !== "Comprobante" || doc.getElementsByTagName("parsererror").length) {

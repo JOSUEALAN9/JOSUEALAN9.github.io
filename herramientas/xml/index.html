@@ -4,15 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Administración de XML · Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611261900">
-    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611261900">
-    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611261900">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611262100">
+    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611262100">
+    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611262100">
 </head>
 <body class="bg-slate-50">
 <div id="app-header" data-modulo="xml" data-titulo="Administración de XML" data-migas="Herramientas|/herramientas/"></div>
-<script src="/herramientas/xml/vista.js?v=202611261900"></script>
-<script src="/assets/js/nucleo.js?v=202611261900"></script>
-<script src="/assets/js/barra.js?v=202611261900"></script>
+<script src="/herramientas/xml/vista.js?v=202611262100"></script>
+<script src="/assets/js/nucleo.js?v=202611262100"></script>
+<script src="/assets/js/barra.js?v=202611262100"></script>
 
 <main class="xml-pagina">
     <!-- Una sola fila: qué módulo y de quién. «+ Agregar XML» va en la barra de acciones, junto al periodo (18-nov: encabezado compacto) -->
@@ -65,6 +65,8 @@
             <button type="button" id="btn-duplicados" class="mod-accion" title="Facturas que parecen la misma timbrada dos veces: mismo cliente o proveedor, mismo total y los mismos conceptos, con 3 días o menos de diferencia"><b>⧉</b>Posibles duplicados</button>
             <p class="mod-acciones__grupo">Descargar</p>
             <button type="button" class="mod-accion" data-excel="unico" title="Como ves la tabla: la vista activa, tus filtros (o lo marcado con la casilla), en pesos y, si el mes ya cerró, al cierre"><b>▦</b>Descargar Excel</button>
+            <!-- 26-nov-2026: una línea en el menú «Descargar ▾» cuando hay columnas vacías ocultas (sale sin ellas; «Formato 2», con sus 148) -->
+            <button type="button" id="excel-nota" class="mod-accion mod-accion--nota" disabled hidden></button>
             <!-- 25-nov-2026 (el dueño): «Formato 2» sale con nuestro formato; esta es la opción secundaria, como antes (encabezados en el renglón 1), para importarlo a otro programa -->
             <button type="button" class="mod-accion" data-excel="importar" hidden title="El mismo Excel de «Formato 2» sin título ni leyendas: los encabezados en el renglón 1 y la hoja «XML», para importarlo a otro programa o compararlo"><b>▦</b>Formato 2 para importar (sin títulos)</button>
             <button type="button" id="btn-pdf" class="mod-accion" title="Representación impresa: uno en PDF, varios en ZIP (si son muchos, el ZIP se arma en segundo plano y queda en Mis descargas)"><b>⎙</b>XML a PDF</button>
@@ -244,7 +246,7 @@
     </div>
     <input type="search" id="buscar-columna" placeholder="Buscar columna…">
     <!-- 25-nov-2026, el dueño: esconder las que no traen nada en lo que ves. Es solo de la pantalla: no cambia la vista -->
-    <label class="ui-switch xml-panel__vacias" title="Solo en la pantalla: no cambia tu vista ni el Excel">
+    <label class="ui-switch xml-panel__vacias" title="No cambia tu vista. El Excel sale como lo ves, salvo «Formato 2» (siempre sus 148 columnas)">
         <input type="checkbox" id="ocultar-vacias"><span class="ui-switch__riel" aria-hidden="true"></span>
         <span>Ocultar columnas vacías <small id="cuenta-vacias" class="xml-tenue"></small></span>
     </label>
@@ -261,12 +263,12 @@
 <!-- 25-nov-2026, el dueño («¿puedo seleccionar la columna y quitarla?»): el menú ⋮ de cada encabezado (o clic derecho) -->
 <div id="menu-columna" class="xml-menu__lista xml-menu__lista--columna" role="menu" aria-label="Opciones de la columna" hidden></div>
 
-<script src="/assets/js/comun/periodo-meses.js?v=202611261900"></script>
-<script src="/assets/js/comun/compartir.js?v=202611261900"></script>
-<script src="/assets/js/comun/tabla.js?v=202611261900"></script>
-<script src="/assets/js/comun/pestanas-conciliacion.js?v=202611261900"></script>
-<script src="/herramientas/xml/conceptos.js?v=202611261900"></script>
-<script src="/herramientas/xml/duplicados.js?v=202611261900"></script>
-<script src="/herramientas/xml/xml.js?v=202611261900"></script>
+<script src="/assets/js/comun/periodo-meses.js?v=202611262100"></script>
+<script src="/assets/js/comun/compartir.js?v=202611262100"></script>
+<script src="/assets/js/comun/tabla.js?v=202611262100"></script>
+<script src="/assets/js/comun/pestanas-conciliacion.js?v=202611262100"></script>
+<script src="/herramientas/xml/conceptos.js?v=202611262100"></script>
+<script src="/herramientas/xml/duplicados.js?v=202611262100"></script>
+<script src="/herramientas/xml/xml.js?v=202611262100"></script>
 </body>
 </html>

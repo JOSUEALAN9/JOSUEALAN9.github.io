@@ -23,7 +23,7 @@
     }
     function enviar(ruta, cuerpo) { return api(ruta, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(cuerpo || {}) }); }
     function m(v) { return "$" + (Number(v) || 0).toLocaleString("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
-    function aviso(t, mal) { var a = $("aviso"); a.innerHTML = t || ""; a.className = "isn-aviso" + (mal ? " isn-aviso--error" : ""); a.hidden = !t; }
+    function aviso(t, mal) { if (window.Fiscontable && Fiscontable.avisoBien && Fiscontable.avisoBien($("aviso"), t, mal ? false : undefined)) return; var a = $("aviso"); a.innerHTML = t || ""; a.className = "isn-aviso" + (mal ? " isn-aviso--error" : ""); a.hidden = !t; }
     function base() { return "/api/cancelaciones/" + encodeURIComponent(E.rfc); }
     function fecha(iso) {
         if (!iso) return "";

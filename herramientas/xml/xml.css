@@ -66,6 +66,14 @@
 .xml-seleccion { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; background: rgb(var(--g-900)); color: rgb(var(--g-0)); padding: 8px 12px; border-radius: 12px; margin-bottom: 10px; font-size: 13px; font-weight: 700; }
 .xml-seleccion .xml-btn { padding: 6px 10px; font-size: 12.5px; }
 .xml-seleccion .xml-enlace { color: rgb(var(--g-300)); }
+/* 26-nov-2026 (el dueño: al marcar el PRIMER XML la barra aparecía y empujaba la tabla hacia abajo, un brinco): la barra de lo
+   seleccionado flota abajo, al centro, encima de la página; no ocupa lugar en ella (Administración de XML, Conciliación, Listas
+   del SAT). En el celular, arriba, bajo la barra de Fiscontable (abajo están «Informar un error» y el letrero de pruebas). */
+.xml-seleccion { position: fixed; z-index: 50; left: 50%; bottom: 60px; transform: translateX(-50%); width: max-content;
+                 max-width: min(920px, calc(100vw - 24px)); margin: 0; padding: 8px 10px 8px 14px; box-shadow: 0 12px 32px rgba(15, 23, 42, .28); }
+.xml-seleccion[hidden] { display: none; }
+body:has(.xml-seleccion:not([hidden])) .xml-tabla-caja { padding-bottom: 110px; }     /* lo último de la tabla no queda debajo de la barra */
+@media (max-width: 700px) { .xml-seleccion { top: calc(var(--barra-alto, 56px) + 8px); bottom: auto; width: calc(100vw - 24px); } .xml-seleccion .xml-tenue { display: none; } }
 
 .xml-tabla-caja { position: relative; background: rgb(var(--g-0)); border: 1px solid rgb(var(--g-200)); border-radius: 14px; overflow: auto; height: calc(100vh - 290px); min-height: 380px; }
 .xml-tabla { border-collapse: separate; border-spacing: 0; table-layout: fixed; font-size: 12.5px; color: rgb(var(--g-900)); }
@@ -500,3 +508,7 @@ td .xml-tenue { font-size: inherit; }
    bajo su botón, lo de abajo («Proponer al despacho…», «Borrar») quedaba fuera de la pantalla sin poder alcanzarse. Ahora
    sale desde abajo, completo, y se desliza por dentro; va sobre el letrero «Ambiente de pruebas» (95), como el de la columna */
 @media (max-width: 700px) { .xml-menu__lista.xml-menu__lista--vistas { top: auto; bottom: 12px; max-height: min(70vh, calc(100dvh - 24px)); z-index: 100; } }
+
+/* 26-nov-2026: la línea de «Descargar ▾» que dice cómo sale el Excel con «Ocultar columnas vacías» (no es un botón) */
+.mod-accion.mod-accion--nota, .mod-accion.mod-accion--nota:hover { cursor: default; background: none; font-size: 12px; font-weight: 500;
+    color: rgb(var(--g-600)); white-space: normal; padding-top: 0; opacity: 1; }

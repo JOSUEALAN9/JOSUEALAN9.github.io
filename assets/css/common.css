@@ -712,6 +712,10 @@ input[type="password"]::-ms-clear { display: none; }
     width: min(720px, calc(100vw - 24px)); margin: 0; box-shadow: 0 10px 28px rgb(0 0 0 / .16); }
 @media (max-width: 1023px) { .fc-aviso.fc-aviso--encima { bottom: 72px; } }
 .fc-aviso__acciones { display: flex; gap: 8px; margin-top: 9px; flex-wrap: wrap; }
+.fc-aviso__cerrar { flex: none; display: grid; place-items: center; width: 24px; height: 24px; margin: -3px -6px 0 0; padding: 0; border: 0; border-radius: 6px;
+                    background: none; color: inherit; opacity: .7; cursor: pointer; }
+.fc-aviso__cerrar:hover { opacity: 1; background: rgb(0 0 0 / .06); }
+.fc-aviso__cerrar svg { width: 14px; height: 14px; }
 
 /* Pantalla de bloqueo cuando el plan no incluye el módulo */
 .fc-bloqueo {
@@ -1513,6 +1517,13 @@ main.fc-recien { animation: fc-recien .35s ease-out; }
               transition: opacity .2s ease, transform .2s ease; max-width: calc(100vw - 32px); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .fc-brindis span { color: rgb(var(--ac-400)); font-weight: 800; }
 .fc-brindis--ve { opacity: 1; transform: translate(-50%, 0); }
+/* 26-nov-2026 (el dueño): lo que salió bien, verde y discreto, junto a lo que se pulsó; se quita solo (barra.js brindis/listo) */
+.fc-brindis { white-space: normal; max-width: min(420px, calc(100vw - 24px)); text-align: left; }
+.fc-brindis.fc-brindis--bien { background: rgb(var(--ok-50)); color: rgb(var(--ok-600)); border: 1px solid rgb(var(--ok-200)); font-weight: 600; font-size: 13px;
+              padding: 7px 13px; box-shadow: 0 6px 18px rgba(15, 23, 42, .12); }
+.fc-brindis.fc-brindis--bien span { color: rgb(var(--ok-600)); }
+.fc-brindis.fc-brindis--cerca { bottom: auto; transform: translate(0, 6px); }
+.fc-brindis.fc-brindis--cerca.fc-brindis--ve { transform: none; }
 @media (prefers-reduced-motion: reduce) { main.fc-recien { animation: none; } .fc-cambio__giro { animation-duration: 2s; } }
 
 /* ---------- Módulos que el plan no incluye ---------- */
@@ -2115,7 +2126,13 @@ button.fc-act-item--grupo:hover { background: rgb(var(--g-50)); }
    grupo; tocar uno cambia el mismo panel a su detalle. El numerito de la campana es rojo: cuenta solo lo urgente. --- */
 .fc-contador.fc-contador--rojo { background: rgb(var(--er-600)); }
 .fc-av-cabeza__der { display: inline-flex; gap: 2px; align-items: center; flex: none; }
-.fc-av-alcance { flex: none; display: grid; gap: var(--e-2); padding: var(--e-3) 18px 0; }
+/* 26-nov-2026 (el dueño): sin «Una empresa…»; el integrante con más permitidas que asignadas lleva «Mis asignadas · Todas» y
+   todos, a la derecha, «Por empresa ›» (Inicio › Mis empresas). Una sola línea. */
+.fc-av-alcance { flex: none; display: flex; align-items: center; gap: var(--e-3); padding: var(--e-2) 18px 0; min-width: 0; }
+.fc-av-alcance .fc-av-modos.ctx-segmento { width: auto; flex: 0 1 auto; }
+.fc-av-alcance .fc-av-modos.ctx-segmento button { padding: 4px var(--e-3); font-size: var(--t-12); }
+.fc-av-por-empresa { margin-left: auto; flex: none; font-size: var(--t-13); font-weight: 600; color: rgb(var(--ac-700)); text-decoration: none; white-space: nowrap; }
+.fc-av-por-empresa:hover { text-decoration: underline; }
 .fc-av-alcance:empty { display: none; }
 /* (doble clase: le gana a .ctx-segmento, que va después, y a la regla del celular de xml.css que reparte parejo) */
 .fc-av-modos.ctx-segmento { display: flex; width: 100%; gap: 2px; padding: 3px; }
@@ -2135,16 +2152,22 @@ button.fc-act-item--grupo:hover { background: rgb(var(--g-50)); }
                          color: rgb(var(--er-600)); text-transform: uppercase; letter-spacing: .04em; }
 .fc-av-urgente__titulo svg { width: 15px; height: 15px; flex: none; }
 .fc-av-urgente__titulo b { margin-left: auto; font-variant-numeric: tabular-nums; }
-.fc-av-urg { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 1px var(--e-2); align-items: center; padding: var(--e-2);
-             border-radius: var(--r-control); color: rgb(var(--g-900)); text-decoration: none; background: rgb(var(--g-0) / .65); }
-.fc-av-urg b { font-size: var(--t-13); font-weight: 600; overflow-wrap: anywhere; }
-.fc-av-urg span { grid-column: 1; font-size: var(--t-12); color: rgb(var(--g-600)); overflow-wrap: anywhere; }
-.fc-av-urg svg { grid-column: 2; grid-row: 1 / span 2; width: 14px; height: 14px; color: rgb(var(--er-600)); }
+/* 26-nov-2026 (el dueño: con la franja llena no se veían los círculos): cada renglón en una línea, el detalle en gris a
+   continuación y cortado con «…» (completo en su «title» y al abrirlo); la lista con tope de alto: se desliza adentro. */
+.fc-av-urg { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--e-2); align-items: center; padding: 6px var(--e-2);
+             border-radius: var(--r-control); color: rgb(var(--g-900)); text-decoration: none; background: rgb(var(--g-0) / .65); min-width: 0; }
+.fc-av-urg__txt { display: block; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: var(--t-13); }
+.fc-av-urg__txt b { font-weight: 600; }
+.fc-av-urg__txt span { margin-left: 6px; font-size: var(--t-12); color: rgb(var(--g-600)); }
+.fc-av-urg svg { width: 14px; height: 14px; color: rgb(var(--er-600)); }
+.fc-av-urg-lista { display: grid; gap: 2px; min-width: 0; }
+.fc-av-urg-lista--todas { max-height: 34vh; overflow-y: auto; overscroll-behavior: contain; }
 a.fc-av-urg:hover { background: rgb(var(--g-0)); }
 /* 25-nov-2026 (avi-2): el renglón con «Ya lo atendí» (lo urgente que es un hecho no se quita al abrirlo) */
 .fc-av-urg-caja { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: var(--e-1); border-radius: var(--r-control); background: rgb(var(--g-0) / .65); }
 .fc-av-urg-caja .fc-av-urg { background: none; }
-.fc-av-urg-caja .fc-av-atendi { margin-right: var(--e-2); white-space: nowrap; }
+.fc-av-urg-caja .fc-av-atendi { margin-right: 6px; white-space: nowrap; gap: 4px; padding: 0 var(--e-2); border-color: rgb(var(--er-200)); color: rgb(var(--er-600)); }
+.fc-av-urg-caja .fc-av-atendi svg { width: 13px; height: 13px; flex: none; }
 .fc-av-urgente__mas { justify-self: start; padding: var(--e-1) var(--e-2); border: 0; background: none; font: inherit; font-size: var(--t-12); font-weight: 600;
                       color: rgb(var(--er-600)); cursor: pointer; }
 /* 25-nov-2026 (el dueño, av3): «Atender varios»: casilla en cada renglón que se puede atender y, abajo, «Atender todos (N)» o
@@ -2159,13 +2182,14 @@ a.fc-av-urg:hover { background: rgb(var(--g-0)); }
 .fc-av-lista-atender { margin: 0 0 var(--e-2); padding-left: 18px; display: grid; gap: 4px; font-size: var(--t-13); font-weight: 600; overflow-wrap: anywhere; }
 .fc-av-tranquilo { display: flex; align-items: center; gap: 6px; margin: 0 0 var(--e-3); font-size: var(--t-13); color: rgb(var(--g-600)); }
 .fc-av-tranquilo svg { width: 16px; height: 16px; flex: none; color: rgb(var(--ok-600)); }
-.fc-av-circulos { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--e-2) var(--e-2); padding: 0 0 var(--e-2); }
-.fc-av-circulo { display: grid; justify-items: center; gap: 6px; min-width: 0; padding: var(--e-2) 0; border: 0; border-radius: var(--r-tarjeta); background: none;
+/* (26-nov) más compactos: con la franja llena se ven completos sin deslizar a 1280×800 y a 390 */
+.fc-av-circulos { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 2px var(--e-2); padding: 0 0 var(--e-1); }
+.fc-av-circulo { display: grid; justify-items: center; gap: 4px; min-width: 0; padding: 6px 0; border: 0; border-radius: var(--r-tarjeta); background: none;
                  font: inherit; color: rgb(var(--g-900)); cursor: pointer; }
 .fc-av-circulo:hover { background: rgb(var(--g-50)); }
-.fc-av-circulo__ico { position: relative; display: grid; place-items: center; width: 56px; height: 56px; border-radius: 50%; background: rgb(var(--ac-50));
+.fc-av-circulo__ico { position: relative; display: grid; place-items: center; width: 46px; height: 46px; border-radius: 50%; background: rgb(var(--ac-50));
                       color: rgb(var(--ac-700)); box-shadow: inset 0 0 0 1px rgb(var(--ac-100)); }
-.fc-av-circulo__ico svg { width: 24px; height: 24px; }
+.fc-av-circulo__ico svg { width: 21px; height: 21px; }
 .fc-av-circulo__nombre { font-size: var(--t-13); font-weight: 600; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .fc-av-globo { position: absolute; top: -2px; right: -6px; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 999px; background: rgb(var(--ac-600));
                color: rgb(var(--g-0)); font-size: 11px; font-weight: 700; font-style: normal; line-height: 20px; text-align: center;

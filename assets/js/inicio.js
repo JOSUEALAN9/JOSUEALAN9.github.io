@@ -497,7 +497,9 @@
         }
         var e = p.empresa_activa;
         $("tb-vista-empresa").textContent = e ? (e.alias || e.rfc) : "Empresa activa";
-        verVista(vistaGuardada() || (e ? "empresa" : "despacho"));
+        // 26-nov-2026: «Por empresa ›» de la campana llega con ?vista=despacho (Mis empresas, con su «Qué atender»)
+        var pedida = new URLSearchParams(location.search).get("vista");
+        verVista(pedida === "despacho" || pedida === "empresa" ? pedida : (vistaGuardada() || (e ? "empresa" : "despacho")));
     });
     window.addEventListener("fiscontable:empresa", function (ev) {
         var e = ev.detail;

@@ -26,7 +26,7 @@
         return api(ruta, { method: metodo, headers: { "Content-Type": "application/json" }, body: JSON.stringify(cuerpo) }).then(function (r) { return r.json(); });
     }
     function m(v) { return v == null ? "" : Number(v).toLocaleString("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
-    function aviso(texto, error) { var a = $("aviso"); a.textContent = texto || ""; a.className = "isn-aviso" + (error ? " isn-aviso--error" : ""); a.hidden = !texto; }
+    function aviso(texto, error) { if (window.Fiscontable && Fiscontable.avisoBien && Fiscontable.avisoBien($("aviso"), texto, error ? false : undefined)) return; var a = $("aviso"); a.textContent = texto || ""; a.className = "isn-aviso" + (error ? " isn-aviso--error" : ""); a.hidden = !texto; }
     async function bajar(resp, porDefecto) {
         var mt = /filename="?([^";]+)"?/.exec(resp.headers.get("Content-Disposition") || "");
         Fiscontable.guardarArchivo(await resp.blob(), mt ? mt[1] : porDefecto);
