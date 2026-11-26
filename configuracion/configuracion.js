@@ -841,6 +841,9 @@
                     "> Que cada persona de mi despacho reciba el de sus empresas (" + p.equipo_resumen + " personas)</label>" : "") +
                 '<div class="cf-acciones"><button type="button" class="cf-btn" id="cf-av-resumen-ya">Mándame uno ahora</button><span class="cf-msj"></span></div></div>';
             subPestanas(c, ["Correo de la mañana", "Correo de la cuenta", "Horario", "A quién llegan", "Resumen completo"], "avisos");
+            // 26-nov-2026: Ctrl+K «Correo de la mañana» (y los nombres de los correos de antes) abre esa pestaña (?sub=manana),
+            // aunque la última vez se haya quedado en otra
+            if (Fiscontable.url("sub") === "manana") { var bm = c.querySelector('.cf-subtabs [data-sub="0"]'); if (bm) bm.click(); }
             var soloVer = p.puede_editar === false;
             var guardado = p;                                   // lo último que quedó guardado (el resumen se guarda automáticamente, sin tocar lo demás)
             var cajaResumen = $("cf-av-caja-resumen");
@@ -1121,6 +1124,10 @@
     async function pintarXmlAuto(c) {
         c.innerHTML = '<div class="cf-tarjeta"><p class="cf-texto">Cargando…</p></div>';
         try {
+            // 26-nov-2026 (revisión de fix3): si la tabla se vuelve a pintar (se salió de la sección y se regresó) con algo de la
+            // anterior por guardar o en camino, primero se termina de guardar. Si no, la tabla nueva salía con lo de antes y el
+            // siguiente cambio en ese renglón deshacía el anterior sin avisar (el guardado manda el renglón completo).
+            if (pintarXmlAuto._vaciar) await pintarXmlAuto._vaciar();
             var mods = (perfil && perfil.modulos_permitidos) || [], conXml = mods.indexOf("descarga_xml") !== -1, conBuzon = mods.indexOf("buzon") !== -1;
             var cfg = conXml ? await api("/api/descarga-xml/automatica") : { empresas: [], tipos: {}, frecuencias: {} };
             var clientes = await api("/api/clientes");
@@ -1155,68 +1162,248 @@
                 return '<small class="cf-auto__historial" title="Lo de meses anteriores se baja de noche en noche, después de lo del día.">Cargando historial: ' +
                     h.hechos + " de " + h.total + " meses</small>";
             };
+            /* 26-nov-2026 (el dueño: «me molesta mucho que haya un botón para cada empresa; podríamos usar el mismo principio»):
+               sin botones por renglón. Lo que se cambia en un renglón (interruptores y listas) se guarda solo, con una espera
+               corta por renglón; sale «✓ Guardado» junto a lo que se movió (2 s) o, si el servidor lo rechaza, el motivo en rojo
+               bajo ese renglón y los controles regresan a lo último guardado. Igual la lista «Revisar los buzones».
+               «Descargar ahora»: una casilla por renglón (solo con e.firma guardada), la de «todas» en el encabezado y la barra de
+               las marcadas («N empresas · Descargar ahora · ✕»), con una sola confirmación para todas. */
+            var proxima = function (e, x) {
+                return e.activo && x.efirma_guardada ? "<b>" + esc(dia(e.proxima)) + "</b>" + (e.ultima ? "<small>Última: " + esc(dia(e.ultima)) + "</small>" : "") + historial(e) + cuadre(e) : "—";
+            };
             var bzFrec = bz ? '<label class="cf-campo cf-campo--corto cf-auto__buzon"><span>Revisar los buzones</span><select id="cf-buzon-frec">' +
                 Object.keys(bz.frecuencias).sort(function (a, b) { return (+a || 99) - (+b || 99); }).map(function (k) {
-                    return '<option value="' + k + '"' + (+k === bz.frecuencia ? " selected" : "") + ">" + esc(bz.frecuencias[k]) + "</option>"; }).join("") + "</select></label>" : "";
-            c.innerHTML = '<div class="cf-tarjeta cf-tarjeta--tabla">' + bzFrec + '<table class="cf-tabla cf-auto__tabla"><thead><tr><th>Empresa</th>' +
+                    return '<option value="' + k + '"' + (+k === bz.frecuencia ? " selected" : "") + ">" + esc(bz.frecuencias[k]) + "</option>"; }).join("") +
+                '</select><small class="cf-auto__dijo cf-auto__dijo--lista" role="status"></small></label>' : "";
+            var conEfirma = clientes.filter(function (x) { return x.efirma_guardada; }).length;
+            var columnas = 1 + (conXml ? 7 : 0) + (conBuzon ? 1 : 0);
+            c.innerHTML = '<div class="cf-tarjeta cf-tarjeta--tabla">' + bzFrec + '<table class="cf-tabla cf-auto__tabla"><thead><tr>' +
+                (conXml ? '<th class="cf-auto__marca"><input type="checkbox" data-marcar-todas aria-label="Marcar todas las empresas con e.firma" title="Marcar todas, para «Descargar ahora»"' +
+                    (conEfirma ? "" : " disabled") + "></th>" : "") + "<th>Empresa</th>" +
                 (conXml ? "<th>XML</th><th>Qué</th><th>Retenciones</th><th>Cada cuánto</th><th>Desde</th><th>Próxima</th>" : "") +
-                (conBuzon ? '<th title="Se guarda al momento">Buzón</th>' : "") + (conXml ? "<th></th>" : "") + "</tr></thead><tbody>" +
+                (conBuzon ? "<th>Buzón</th>" : "") + "</tr></thead><tbody>" +
                 clientes.map(function (x) {
                     var e = porRfc[x.rfc] || { activo: false, tipo: "ambos", frecuencia: "diaria" }, b = bzDe[x.rfc];
-                    return '<tr data-rfc="' + esc(x.rfc) + '"><td><b>' + esc(x.alias) + "</b><small>" + esc(x.rfc) + (x.efirma_guardada ? "" : " · sin e.firma") + "</small></td>" +
+                    return '<tr data-rfc="' + esc(x.rfc) + '">' +
+                        (conXml ? '<td class="cf-auto__marca">' + (x.efirma_guardada ? '<input type="checkbox" data-marcar aria-label="Marcar ' + esc(x.alias) + ' para «Descargar ahora»">' : "") + "</td>" : "") +
+                        "<td><b>" + esc(x.alias) + "</b><small>" + esc(x.rfc) + (x.efirma_guardada ? "" : " · sin e.firma") + "</small></td>" +
                         (conXml ? '<td><label class="cf-switch"><input type="checkbox" data-c="activo"' + (e.activo ? " checked" : "") + (x.efirma_guardada ? "" : " disabled") + "><span></span></label></td>" +
                         '<td><select data-c="tipo">' + opc(cfg.tipos, e.tipo) + "</select></td>" +
                         '<td><label class="cf-switch" title="También sus CFDI de Retenciones"><input type="checkbox" data-c="retenciones"' + (e.retenciones ? " checked" : "") + "><span></span></label></td>" +
                         "<td><select data-c=\"frecuencia\">" + opc(cfg.frecuencias, e.frecuencia) + "</select></td>" +
-                        '<td><select data-c="desde">' + Fiscontable.opcionesDesde(cfg.desde_minimo, cfg.mes_actual, e.desde || "") + "</select></td>" +
-                        "<td>" + (e.activo && x.efirma_guardada ? "<b>" + esc(dia(e.proxima)) + "</b>" + (e.ultima ? "<small>Última: " + esc(dia(e.ultima)) + "</small>" : "") + historial(e) + cuadre(e) : "—") + "</td>" : "") +
+                        // (revisión de fix3) la columna ya se llama «Desde»: las opciones van sin repetirlo («Enero 2026») y la tabla cabe a 1280
+                        '<td><select data-c="desde">' + Fiscontable.opcionesDesde(cfg.desde_minimo, cfg.mes_actual, e.desde || "").replace(/>Desde /g, ">") + "</select></td>" +
+                        "<td data-proxima>" + proxima(e, x) + "</td>" : "") +
                         (conBuzon ? '<td><label class="cf-switch" title="Revisar su Buzón Tributario"><input type="checkbox" data-buzon' + ((b ? b.activo : true) && x.efirma_guardada ? " checked" : "") +
-                            (x.efirma_guardada ? "" : " disabled") + "><span></span></label></td>" : "") +
-                        (conXml ? '<td class="cf-celda-acciones"><button type="button" class="cf-btn cf-btn--chico" data-guardar>Guardar</button>' +
-                        (x.efirma_guardada ? ' <button type="button" class="cf-btn cf-btn--chico" data-ahora title="Pedir ahora el periodo programado">Descargar ahora</button>' : "") + "</td>" : "") + "</tr>";
-                }).join("") + "</tbody></table><div class=\"cf-acciones\"><span class=\"cf-msj\"></span></div></div>";
-            var fb = c.querySelector("#cf-buzon-frec");
+                            (x.efirma_guardada ? "" : " disabled") + "><span></span></label></td>" : "") + "</tr>";
+                }).join("") + "</tbody></table>" +
+                (conXml ? '<div class="cm-seleccion cf-auto__sel" role="region" aria-label="Empresas marcadas" hidden><span data-sel-texto></span>' +
+                    '<button type="button" class="ui-btn ui-btn--primario ui-btn--32" data-sel-ahora title="Pedir ahora al SAT el periodo programado de cada una">Descargar ahora</button>' +
+                    '<button type="button" class="cf-auto__sel-quitar" data-sel-quitar aria-label="Quitar las marcas" title="Quitar las marcas">✕</button></div>' : "") + "</div>";
+            var tabla = c.querySelector(".cf-auto__tabla"), fb = c.querySelector("#cf-buzon-frec");
+            // RFC → {fila, guardado: lo último que aceptó el servidor, reloj: la espera, enVuelo: la promesa del guardado en camino,
+            //        enviado: lo que lleva, otra: hay que mandar otro al terminar, ultimo: el control que se movió, fallo: no se guardó}
+            var deFila = {};
+            var CLAVES = ["activo", "tipo", "frecuencia", "desde", "retenciones"];
+            var valores = function (fila) {
+                var v = {};
+                CLAVES.forEach(function (k) { var el = fila.querySelector('[data-c="' + k + '"]'); v[k] = el.type === "checkbox" ? el.checked : (k === "desde" ? el.value || null : el.value); });
+                return v;
+            };
+            var poner = function (fila, v) {
+                CLAVES.forEach(function (k) { var el = fila.querySelector('[data-c="' + k + '"]'); if (el.type === "checkbox") el.checked = !!v[k]; else el.value = v[k] || ""; });
+            };
+            var iguales = function (a, b) { return CLAVES.every(function (k) { return a[k] === b[k]; }); };
+            // «✓ Guardado», verde y corto, junto al control que se movió (no mueve nada: va sobre el renglón)
+            var dijo = function (control, texto) {
+                var celda = control && control.closest("td, label.cf-auto__buzon");
+                if (!celda) return;
+                var s = celda.querySelector(":scope > .cf-auto__dijo");
+                if (!s) { s = document.createElement("small"); s.className = "cf-auto__dijo"; s.setAttribute("role", "status"); celda.appendChild(s); }
+                s.textContent = texto; s.classList.remove("cf-auto__dijo--mal"); s.hidden = false;
+                clearTimeout(s._reloj);
+                s._reloj = setTimeout(function () { s.textContent = ""; s.hidden = true; }, 2000);
+            };
+            // El motivo, en rojo, bajo su renglón (se queda hasta que ese renglón se vuelve a mover o se guarda bien)
+            var quitarError = function (fila) { var e = fila.nextElementSibling; if (e && e.classList.contains("cf-auto__error")) e.remove(); };
+            var errorFila = function (fila, texto) {
+                quitarError(fila);
+                fila.insertAdjacentHTML("afterend", '<tr class="cf-auto__error"><td colspan="' + columnas + '"><span role="alert">' + esc(texto) + "</span></td></tr>");
+            };
+            if (conXml) tabla.querySelectorAll("tbody tr[data-rfc]").forEach(function (fila) { deFila[fila.dataset.rfc] = { fila: fila, guardado: valores(fila) }; });
+            /* El guardado de un renglón (revisión de fix3, 26-nov-2026). Uno a la vez por renglón y en orden: lo que se mueva
+               mientras uno va en camino sale en otro, al terminar, con lo último. «keepalive»: si la página se cierra con uno en
+               camino, el navegador lo termina de mandar. Devuelve una promesa que acaba cuando el renglón ya no tiene nada
+               pendiente (la usan «Descargar ahora» y el volver a pintar la tabla). */
+            var mandar = function (rfc, v) {
+                return api("/api/descarga-xml/automatica/" + encodeURIComponent(rfc), { method: "PUT", headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(v), keepalive: true });
+            };
+            var guardarFila = function (fila, alSalir) {
+                var rfc = fila.dataset.rfc, st = deFila[rfc];
+                clearTimeout(st.reloj); st.reloj = null;
+                if (st.enVuelo) {
+                    if (!alSalir) { st.otra = true; return st.enVuelo; }      // ya va uno: al terminar se manda otro con lo último
+                    // Al salir de la página ya no hay «al terminar»: lo último se manda en ese momento, detrás del que va en camino
+                    // (antes se quedaba esperando y ese cambio se perdía)
+                    var ultimo = valores(fila);
+                    st.otra = false;
+                    if (!iguales(ultimo, st.enviado)) { st.enviado = ultimo; mandar(rfc, ultimo).catch(function () { /* la página ya se fue */ }); }
+                    return st.enVuelo;
+                }
+                var v = valores(fila);
+                if (iguales(v, st.guardado)) return Promise.resolve();      // regresó a como estaba: nada que guardar
+                st.enviado = v;
+                st.enVuelo = (async function () {
+                    try {
+                        var r = await mandar(rfc, v);
+                        st.guardado = v; st.fallo = false;
+                        var x = clientes.filter(function (y) { return y.rfc === rfc; })[0];
+                        if (r && r.rfc && x) { porRfc[rfc] = r; fila.querySelector("[data-proxima]").innerHTML = proxima(r, x); }
+                        if (!st.otra && !st.reloj) dijo(st.ultimo, "✓ Guardado");
+                    } catch (e) {
+                        // Si mientras tanto se movió otra cosa en el renglón (espera su turno o va a salir al terminar), ese
+                        // guardado lleva el renglón completo y es el que decide: aquí no se toca nada. (Al salir de la página el
+                        // navegador da por fallido el que iba en camino justo antes de avisar que se sale; si aquí se regresaran
+                        // los controles, lo último que movió la persona ya no se mandaría.)
+                        if (!st.reloj && !st.otra) {
+                            st.fallo = true;
+                            poner(fila, st.guardado);                        // los controles regresan a lo último guardado
+                            var motivo = (nombre[rfc] || rfc) + ": no se guardó. " + e.message;
+                            errorFila(fila, motivo);
+                            // si la tabla ya no está a la vista (se cambió de sección antes de la respuesta), se dice arriba
+                            if (!fila.isConnected && window.Fiscontable && Fiscontable.aviso) Fiscontable.aviso(motivo);
+                        }
+                    } finally { st.enVuelo = null; }
+                    if (st.otra) { st.otra = false; await guardarFila(fila); }
+                })();
+                return st.enVuelo;
+            };
+            // Lo del Buzón que va en camino (la lista y los interruptores), para poder esperarlo
+            var enCurso = [];
+            var seguir = function (p) {
+                var q = Promise.resolve(p).catch(function () { /* quien lo pidió ya dice el motivo */ });
+                enCurso.push(q); q.then(function () { enCurso.splice(enCurso.indexOf(q), 1); });
+                return p;
+            };
+            // Todo lo pendiente de esta tabla, ya: lo que espera su turno se manda en ese momento y se aguarda a lo que va en camino.
+            // Con tope (8 s): si el servidor no contesta, no se queda esperando para siempre.
+            var vaciar = function () {
+                var todo = Promise.all(Object.keys(deFila).map(function (rfc) {
+                    var st = deFila[rfc];
+                    return st.reloj ? guardarFila(st.fila) : st.enVuelo;
+                }).concat(enCurso)).catch(function () { /* cada guardado ya dijo lo suyo */ });
+                return Promise.race([todo, new Promise(function (listo) { setTimeout(listo, 8000); })]);
+            };
+            pintarXmlAuto._vaciar = vaciar;
+            tabla.addEventListener("change", function (ev) {
+                var el = ev.target, fila = el.closest("tr[data-rfc]");
+                if (!fila) { if (el.matches("[data-marcar-todas]")) marcarTodas(el.checked); return; }
+                if (el.matches("[data-marcar]")) { pintarMarcadas(); return; }
+                if (!el.matches("[data-c]")) return;
+                var st = deFila[fila.dataset.rfc];
+                st.ultimo = el; st.fallo = false; quitarError(fila);
+                clearTimeout(st.reloj);
+                st.reloj = setTimeout(function () { guardarFila(fila); }, 600);      // la espera corta: dos controles seguidos van en un solo guardado
+            });
+            // Si se sale de la página con algo por guardar (antes de que pase la espera), se manda en ese momento
+            if (pintarXmlAuto._alSalir) window.removeEventListener("pagehide", pintarXmlAuto._alSalir);      // la de la tabla anterior, si se volvió a pintar
+            pintarXmlAuto._alSalir = function () {
+                Object.keys(deFila).forEach(function (rfc) { var st = deFila[rfc]; if (st.reloj || st.otra) guardarFila(st.fila, true); });
+            };
+            window.addEventListener("pagehide", pintarXmlAuto._alSalir);
             if (soloConsulta()) soloTitular(c.querySelectorAll(":scope > .cf-tarjeta"), soloConsulta());
             else if (fb && bz.puede_frecuencia === false) {
                 fb.disabled = true; fb.title = bz.motivo_frecuencia || LO_DECIDE_EL_TITULAR;
                 fb.insertAdjacentHTML("afterend", '<small class="cf-solo-titular__chico">Lo decide el titular</small>');
             }
-            if (fb) fb.addEventListener("change", async function () {
-                try { await enviar("/api/buzon/ajustes", "PUT", { frecuencia: +fb.value }); aviso(c, true, "✓ Buzones: " + fb.options[fb.selectedIndex].textContent.toLowerCase() + "."); }
-                catch (x) { aviso(c, false, x.message); }
-            });
+            if (fb) {
+                // (revisión de fix3) uno a la vez y en orden, como los renglones: con dos cambios seguidos y el primero lento, al
+                // servidor le llegaba al final el primero y la pantalla se quedaba con el segundo
+                var frec = { guardada: fb.value, enVuelo: null, otra: false }, dijoLista = fb.parentNode.querySelector(".cf-auto__dijo--lista");
+                var guardarFrec = function () {
+                    if (frec.enVuelo) { frec.otra = true; return frec.enVuelo; }
+                    var pedida = fb.value;
+                    if (pedida === frec.guardada) return Promise.resolve();
+                    clearTimeout(dijoLista._reloj); dijoLista.textContent = ""; dijoLista.classList.remove("cf-auto__dijo--mal");
+                    frec.enVuelo = (async function () {
+                        try {
+                            await enviar("/api/buzon/ajustes", "PUT", { frecuencia: +pedida });
+                            frec.guardada = pedida;
+                            if (!frec.otra) { dijoLista.textContent = "✓ Guardado"; dijoLista._reloj = setTimeout(function () { dijoLista.textContent = ""; }, 2000); }
+                        } catch (x) { frec.otra = false; fb.value = frec.guardada; dijoLista.textContent = x.message; dijoLista.classList.add("cf-auto__dijo--mal"); }
+                        finally { frec.enVuelo = null; }
+                        if (frec.otra) { frec.otra = false; await guardarFrec(); }
+                    })();
+                    return seguir(frec.enVuelo);
+                };
+                fb.addEventListener("change", function () { guardarFrec(); });
+            }
             c.querySelectorAll("[data-buzon]").forEach(function (sw) {
                 sw.addEventListener("change", async function () {
-                    var rfc = sw.closest("tr").dataset.rfc;
+                    var fila = sw.closest("tr"), rfc = fila.dataset.rfc;
                     // 22-nov-2026 (auditoría sat_modulos-4): apagar el Buzón de una empresa se confirma (deja de avisar sus notificaciones)
                     if (!sw.checked && window.Fiscontable && Fiscontable.confirmar && !(await Fiscontable.confirmar({ titulo: "¿Apagar la revisión automática?", peligro: true, si: "Apagar",
                         texto: (nombre[rfc] || rfc) + " dejará de revisarse en la madrugada y no te avisaremos de sus notificaciones del SAT." }))) { sw.checked = true; return; }
-                    sw.disabled = true;
-                    try { await enviar("/api/buzon/empresas/" + encodeURIComponent(rfc), "PUT", { activo: sw.checked }); aviso(c, true, "✓ " + (nombre[rfc] || rfc) + ": Buzón " + (sw.checked ? "encendido." : "apagado.")); }
-                    catch (x) { sw.checked = !sw.checked; aviso(c, false, x.message); }
+                    sw.disabled = true; quitarError(fila);
+                    try { await seguir(enviar("/api/buzon/empresas/" + encodeURIComponent(rfc), "PUT", { activo: sw.checked })); dijo(sw, "✓ Guardado"); }
+                    catch (x) { sw.checked = !sw.checked; errorFila(fila, (nombre[rfc] || rfc) + ": no se guardó. " + x.message); }
                     finally { sw.disabled = false; }
                 });
             });
-            c.querySelectorAll("[data-ahora]").forEach(function (b) {
-                b.addEventListener("click", async function () {
-                    var rfc = b.closest("tr").dataset.rfc;
+            // --- «Descargar ahora» de las marcadas
+            var sel = c.querySelector(".cf-auto__sel"), todas = c.querySelector("[data-marcar-todas]"), pidiendo = false;
+            var casillas = function () { return [].slice.call(tabla.querySelectorAll("[data-marcar]:not(:disabled)")); };
+            var marcadas = function () { return casillas().filter(function (x) { return x.checked; }); };
+            function pintarMarcadas() {
+                if (!sel) return;
+                var n = marcadas().length, total = casillas().length;
+                sel.hidden = !n;
+                sel.querySelector("[data-sel-texto]").textContent = n === 1 ? "1 empresa" : n + " empresas";
+                if (todas) { todas.checked = n > 0 && n === total; todas.indeterminate = n > 0 && n < total; }
+            }
+            function marcarTodas(si) { if (pidiendo) return; casillas().forEach(function (x) { x.checked = si; }); pintarMarcadas(); }
+            if (sel) {
+                sel.querySelector("[data-sel-quitar]").addEventListener("click", function () { marcarTodas(false); });
+                sel.querySelector("[data-sel-ahora]").addEventListener("click", async function (ev) {
+                    var b = ev.currentTarget, filas = marcadas().map(function (x) { return x.closest("tr"); }), n = filas.length;
+                    if (!n || pidiendo) return;
+                    pidiendo = true;                                         // desde antes de preguntar: un segundo clic no hace nada
+                    if (!(await Fiscontable.confirmar({ titulo: n === 1 ? "¿Descargar ahora los XML de " + (nombre[filas[0].dataset.rfc] || filas[0].dataset.rfc) + "?" : "¿Descargar ahora los XML de " + n + " empresas?",
+                        si: "Descargar ahora", texto: "Se pide al SAT el periodo programado de " + (n === 1 ? "la empresa" : "cada una") + ". Lo ves en Descarga masiva › Solicitudes." }))) { pidiendo = false; return; }
                     b.disabled = true;
-                    try {
-                        var d = await enviar("/api/descarga-xml/automatica/" + encodeURIComponent(rfc) + "/ahora", "POST", {});
-                        aviso(c, true, "✓ " + (nombre[rfc] || rfc) + ": se pidió del " + dia(d.desde) + " al " + dia(d.hasta) + ". Va en Descarga XML › Solicitudes.");
-                    } catch (e) { aviso(c, false, e.message); }
-                    b.disabled = false;
+                    var texto = sel.querySelector("[data-sel-texto]"), bien = 0, mal = 0, conMotivo = null;
+                    texto.textContent = "Pidiendo 1 de " + n + "…";
+                    // (revisión de fix3) «Descargar ahora» pide con lo guardado («Qué», «Cada cuánto», «Desde»): si se acaba de mover
+                    // algo, primero se termina de guardar (antes salía con lo de antes)
+                    var porGuardar = {};
+                    filas.forEach(function (f) { var s = deFila[f.dataset.rfc]; if (s && (s.reloj || s.enVuelo)) porGuardar[f.dataset.rfc] = true; });
+                    await vaciar();
+                    for (var k = 0; k < n; k++) {
+                        var fila = filas[k], rfc = fila.dataset.rfc;
+                        texto.textContent = "Pidiendo " + (k + 1) + " de " + n + "…";
+                        // lo que se acababa de mover no se guardó (su motivo sigue bajo el renglón) o sigue guardándose: no se pide con
+                        // lo de antes
+                        var stf = deFila[rfc] || {};
+                        if (porGuardar[rfc] && (stf.fallo || stf.enVuelo || stf.reloj)) {
+                            if (!stf.fallo) errorFila(fila, (nombre[rfc] || rfc) + ": no se pidió. Lo que cambiaste todavía se está guardando. Intenta de nuevo.");
+                            mal++; if (!conMotivo) conMotivo = fila; continue;
+                        }
+                        quitarError(fila);
+                        try {
+                            await enviar("/api/descarga-xml/automatica/" + encodeURIComponent(rfc) + "/ahora", "POST", {});
+                            bien++; fila.querySelector("[data-marcar]").checked = false;
+                        } catch (e) { mal++; errorFila(fila, (nombre[rfc] || rfc) + ": no se pidió. " + e.message); if (!conMotivo) conMotivo = fila; }
+                    }
+                    pidiendo = false; b.disabled = false;
+                    pintarMarcadas();                                        // las que no salieron siguen marcadas, con su motivo
+                    var pedidas = bien === 1 ? "Se pidieron los XML de 1 empresa" : "Se pidieron los XML de " + bien + " empresas";
+                    if (!mal) Fiscontable.listo(pedidas + ". Lo ves en Descarga masiva › Solicitudes.", todas);
+                    else Fiscontable.aviso((bien ? pedidas + ". " : "") + (mal === 1 ? "1 no se pudo pedir" : mal + " no se pudieron pedir") + ": el motivo está bajo su renglón.");
+                    // la primera que no salió, a la vista (con muchas empresas puede quedar lejos de donde está la persona)
+                    if (conMotivo && conMotivo.nextElementSibling) conMotivo.nextElementSibling.scrollIntoView({ block: "center" });
                 });
-            });
-            c.querySelectorAll("[data-guardar]").forEach(function (b) {
-                b.addEventListener("click", async function () {
-                    var fila = b.closest("tr"), val = function (k) { var el = fila.querySelector('[data-c="' + k + '"]'); return el.type === "checkbox" ? el.checked : el.value; };
-                    try {
-                        await enviar("/api/descarga-xml/automatica/" + encodeURIComponent(fila.dataset.rfc), "PUT", { activo: val("activo"), tipo: val("tipo"), frecuencia: val("frecuencia"), desde: val("desde") || null, retenciones: val("retenciones") });
-                        aviso(c, true, "✓ " + (nombre[fila.dataset.rfc] || fila.dataset.rfc) + " guardada.");
-                    } catch (e) { aviso(c, false, e.message); }
-                });
-            });
+            }
         } catch (e) { c.innerHTML = '<div class="cf-tarjeta"><p class="cf-msj cf-msj--mal">' + esc(e.message) + "</p></div>"; }
     }
 

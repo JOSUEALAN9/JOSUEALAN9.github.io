@@ -631,12 +631,13 @@
             { g: "Tu cuenta", i: D.estrella, n: "Plan y licencia", d: "Tu plan y su vigencia", u: cfg + "plan", a: "licencia pago renovar vigencia saldo" },
             { g: "Tu cuenta", i: D.campana, n: "Avisos", d: "Qué te llega por correo", u: cfg + "avisos", a: "correo notificaciones resumen semanal" },
             // 26-nov-2026 (el dueño, k1): el correo de la mañana reemplazó al informe diario por empresa (uno por persona, no por empresa)
-            { g: "Avisos por correo", i: D.campana, n: "Correo de la mañana", d: "Configuración › Avisos: uno al día con lo de tus empresas", u: cfg + "avisos", a: "correo manana diario informe diario por empresa requiere atencion buzon listas cfdi opinion" },
-            { g: "Avisos por correo", i: D.campana, n: "Correo del cierre del mes", d: "Avisos · qué les falta del cierre", u: cfg + "avisos", a: "correo cierre mes pendientes estatales declaracion" },
-            { g: "Avisos por correo", i: D.campana, n: "Correo de e.firma y sellos por vencer", d: "Avisos · días de aviso antes de que venzan", u: cfg + "avisos", a: "correo efirma sellos csd vencer vencimiento renovar dias" },
-            { g: "Avisos por correo", i: D.campana, n: "Correo de vencimientos de obligaciones", d: "Avisos · pagos del 17 y anuales", u: cfg + "avisos", a: "correo vencimientos obligaciones 17 anual pagos provisionales" },
-            { g: "Avisos por correo", i: D.campana, n: "Correo de timbres por acabarse", d: "Avisos · empresas con pocos timbres", u: cfg + "avisos", a: "correo timbres facturar pocos" },
-            { g: "Avisos por correo", i: D.campana, n: "Correo de trámites que no salieron", d: "Avisos · lo que falló en el día", u: cfg + "avisos", a: "correo tramites fallidos error sat" },
+            // 26-nov-2026 (el dueño, tercera vuelta): una sola entrada. Los correos de antes que hoy son secciones del correo de la
+            // mañana (cierre del mes, e.firma y sellos, vencimientos de obligaciones, timbres, trámites que no salieron) ya no salen
+            // sueltos: se encuentran escribiendo su nombre de antes y todos abren Configuración › Avisos › «Correo de la mañana».
+            { g: "Avisos por correo", i: D.campana, n: "Correo de la mañana", d: "Configuración › Avisos › Correo de la mañana: uno al día con lo de tus empresas", u: cfg + "avisos&sub=manana",
+              a: "correo manana diario informe diario por empresa requiere atencion buzon listas cfdi opinion secciones · correo del cierre del mes pendientes estatales declaracion · " +
+                 "correo de e.firma y sellos por vencer efirma csd vencimiento renovar dias · correo de vencimientos de obligaciones 17 anual pagos provisionales · " +
+                 "correo de timbres por acabarse facturar pocos · correo de tramites que no salieron fallidos error sat" },
             { g: "Avisos por correo", i: D.campana, n: "Horario de los correos", d: "Avisos · desde qué hora y qué días llegan", u: cfg + "avisos", a: "correo horario hora madrugada sabado domingo urgente" },
             { g: "Avisos por correo", i: D.campana, n: "A quién le llegan los avisos", d: "Avisos · copias, responsables y cliente", u: cfg + "avisos", a: "correo copias destinatarios cliente responsable importes" },
             { g: "Tu cuenta", i: D.calendario, n: "Lo automático", d: "XML y retenciones de madrugada, Buzón y lo programado", u: cfg + "automatico", a: "automatico automaticos automatica programar programaciones madrugada solos" },
@@ -941,7 +942,10 @@
         document.body.appendChild(reportar);
     }
     // Íconos de grupo (barra plegada): distintos entre sí y de los de sus módulos
+    // 26-nov-2026 (el dueño: «¿por qué se cambió el panel de la izquierda?»): «Clientes» ya tiene dos módulos (Clientes y
+    // Vencimientos) y por eso lleva título e ícono de grupo: el de personas, como se ve en producción.
     var ICONO_GRUPO = {
+        "Clientes": I.clientes,
         "Comprobantes": "M14 3H6a2 2 0 00-2 2v14a2 2 0 002 2h12a2 2 0 002-2V9zM14 3v6h6M10 12l-2 2.5 2 2.5M14 12l2 2.5-2 2.5",
         "Cierre del mes": "M8 3v3m8-3v3M4 9h16M5 5h14a1 1 0 011 1v13a1 1 0 01-1 1H5a1 1 0 01-1-1V6a1 1 0 011-1zM9 14.5l2 2 4-4",
         "Cumplimiento": "M12 3l7 3v5c0 4.5-3 8.3-7 10-4-1.7-7-5.5-7-10V6zM9 12l2 2 4-4",
@@ -1938,10 +1942,13 @@
        Antes (G-13): una lista larga con las corridas juntas por 3 horas; cada programación salía suelta y lo urgente quedaba
        hasta abajo. */
     var actividad = { datos: null, abierta: false, version: 0, abiertos: {}, vista: "inicio", grupo: null, detalle: null,
-                      modo: null, empresas: null, buscar: "", eligiendo: false, todos: false, elegidos: {} };
+                      modo: null, empresas: null, buscar: "", eligiendo: false, todos: false, elegidos: {},
+                      atendiendo: false, desplegoAtender: false };      // (26-nov) el modo de selección de «Atender…»
     var ICONO_AVISO = { programacion: "calendario", validacion: "alerta", listas: "alerta", buzon: "documento", descarga: "descarga", aviso: "campana" };
     // Los seis círculos: su ícono (mismo grosor que el resto de la barra)
-    var ICONO_GRUPO = {
+    // 26-nov-2026: se llamaba ICONO_GRUPO, igual que los íconos de grupo del riel de módulos (arriba, mismo ámbito): este «var»
+    // pisaba al otro y el riel plegado salía con cuatro rejillas iguales. Cada uno con su nombre.
+    var ICONO_CIRCULO = {
         buzon: "M4 13h4l2 3h4l2-3h4M5 5h14l1 8v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5l1-8z",
         cfdi: "M14 3H6a2 2 0 00-2 2v14a2 2 0 002 2h12a2 2 0 002-2V9zM14 3v6h6M8 13h8M8 17h5",
         automaticos: "M21 12.8A9 9 0 1111.2 3a7 7 0 009.8 9.8z",
@@ -2145,52 +2152,72 @@
     // su clave («listas:EMPRESA:RFC»; no es un aviso de la campana sino un estado vivo)
     function llaveAt(x) { return x && x.atender ? (x.aviso_id ? String(x.aviso_id) : String(x.atender.clave || "")) : ""; }
     /* 26-nov-2026 (el dueño: con la franja llena, los seis círculos quedaban tapados por «Marcar leídos · Limpiar» y no los
-       encontró): cada renglón en UNA línea (lo esencial; el detalle completo en su «title» y al abrirlo), la lista con tope de
-       alto (~40 % del panel, se desliza adentro con «Ver las N») y «Ya lo atendí» a la vista en cada renglón que se puede
-       atender (también los proveedores o clientes en listas del SAT). */
+       encontró): la lista con tope de alto (~40 % del panel, se desliza adentro con «Ver las N»).
+       26-nov-2026, tercera vuelta (el dueño: «ahora no veo qué es lo que tengo que atender; lo del botón y el check le quitó mucho
+       espacio… quizá arriba y no en ese mismo apartado, o solo un botón y que yo seleccione»): cada renglón sin casilla ni botón,
+       en dos líneas (arriba, de quién o qué es; abajo, chico y gris, qué pasó y en qué empresa: «quien» y «que» del servidor) y
+       todo el renglón abre el aviso. Arriba, junto al contador, UN botón de texto «Atender…»: entra al modo de selección (salen
+       las casillas de los que se pueden dar por atendidos; los estados vivos no llevan) y el encabezado cambia a
+       «Ya los atendí (n)» · «Todos» · «Cancelar». Las reglas son las de antes: un solo PIN si alguno es de un mes cerrado o
+       declarado, vale para todo el despacho, queda en la bitácora. */
+    function atendiblesDe(lista) { return (lista || []).filter(function (x) { return !!llaveAt(x); }); }
     function htmlUrgentes(lista, total, empresa) {
         if (!lista || !lista.length) return "";
+        var todos = atendiblesDe(lista), modo = actividad.atendiendo && todos.length > 0;
+        if (!modo) actividad.atendiendo = false;                        // ya no queda nada que atender: se sale del modo
         var vis = actividad.todos ? lista : lista.slice(0, 4);
-        // 25-nov-2026 (el dueño, av3): «Atender varios». Con dos o más que se pueden dar por atendidos a la vista, cada uno lleva su
-        // casilla; abajo, «Atender todos (N)» (lo que se ve) o, con algunos elegidos, «Ya los atendí (N)». Un solo PIN para el grupo.
-        var atendibles = vis.filter(function (x) { return !!llaveAt(x); });
-        var casillas = atendibles.length >= 2;
-        var elegidos = atendibles.filter(function (x) { return actividad.elegidos[llaveAt(x)]; });
-        var pie = [];
-        if (lista.length > 4) pie.push('<button type="button" class="fc-av-urgente__mas" data-av-todos>' + (actividad.todos ? "Ver menos" : "Ver las " + lista.length) + "</button>");
-        if (casillas) {
-            pie.push('<span class="fc-av-urg-acciones">' + (elegidos.length
-                ? '<button type="button" class="ui-btn ui-btn--terciario ui-btn--28" data-av-quitar>Quitar</button>' +
-                  '<button type="button" class="ui-btn ui-btn--primario ui-btn--28" data-av-atender-varios="elegidos">Ya los atendí (' + elegidos.length + ")</button>"
-                : '<button type="button" class="ui-btn ui-btn--secundario ui-btn--28" data-av-atender-varios="todos" title="Los que se ven aquí y se pueden dar por atendidos">' +
-                  "Atender todos (" + atendibles.length + ")</button>") + "</span>");
-        }
-        return '<section class="fc-av-urgente" aria-label="Requiere atención"><p class="fc-av-urgente__titulo">' + ico(D.alerta, 2) +
-            "Requiere atención <b>" + (total || lista.length) + '</b></p><div class="fc-av-urg-lista' + (actividad.todos ? " fc-av-urg-lista--todas" : "") + '">' + vis.map(function (x) {
+        var elegidos = todos.filter(function (x) { return actividad.elegidos[llaveAt(x)]; });
+        var cabeza = modo
+            ? '<div class="fc-av-urgente__titulo fc-av-urgente__titulo--elegir"><button type="button" class="ui-btn ui-btn--primario ui-btn--28" data-av-atender-varios' +
+              (elegidos.length ? "" : " disabled") + ">Ya los atendí (" + elegidos.length + ')</button><button type="button" class="fc-av-urgente__mas" data-av-elegir-todos>' +
+              (elegidos.length === todos.length ? "Ninguno" : "Todos") + '</button><button type="button" class="fc-av-urgente__mas fc-av-urgente__cancelar" data-av-atendiendo="0">Cancelar</button></div>'
+            : '<div class="fc-av-urgente__titulo">' + ico(D.alerta, 2) + "<span>Requiere atención</span><b>" + (total || lista.length) + "</b>" +
+              (todos.length ? '<button type="button" class="fc-av-urgente__mas fc-av-urgente__atender" data-av-atendiendo="1" title="Elegir los que ya atendiste: se quitan de aquí para todo el despacho">Atender…</button>' : "") + "</div>";
+        return '<section class="fc-av-urgente' + (modo ? " fc-av-urgente--elegir" : "") + '" aria-label="Requiere atención">' + cabeza +
+            '<div class="fc-av-urg-lista' + (actividad.todos ? " fc-av-urg-lista--todas" : "") + '">' + vis.map(function (x) {
                 // con «Una empresa…» el nombre de la empresa ya está arriba: no se repite en cada renglón
                 var titulo = empresa && x.alias ? String(x.titulo).replace(" · " + x.alias, "") : x.titulo;
                 var completo = titulo + (x.detalle ? " — " + x.detalle : "");
-                var dentro = '<span class="fc-av-urg__txt"><b>' + esc(titulo) + "</b>" + (x.detalle ? "<span>" + esc(x.detalle) + "</span>" : "") + "</span>";
-                var marca = x.aviso_id ? ' data-ids="' + esc(x.aviso_id) + '"' : "";
-                var renglon = x.enlace && x.enlace.charAt(0) === "/" ? '<a class="fc-av-urg"' + marca + ' href="' + esc(x.enlace) + '" title="' + esc(completo) + '">' + dentro + ico(D.flecha, 2) + "</a>"
-                    : '<div class="fc-av-urg"' + marca + ' title="' + esc(completo) + '">' + dentro + "</div>";
-                // 25-nov-2026 (el dueño, avi-2): abrir un aviso no es atenderlo. Lo urgente que es un hecho (CFDI cancelado de un mes
-                // cerrado o declarado, envío que falló, algo por aprobar) sigue aquí hasta que se resuelve o alguien pica «Ya lo atendí»
+                var uno = x.quien || titulo, dos = x.quien ? (x.que || "") : (x.detalle || "");
+                if (empresa && x.alias && uno === x.alias) { uno = titulo; dos = x.detalle || ""; }
+                var dentro = '<span class="fc-av-urg__txt"><b>' + esc(uno) + "</b>" + (dos ? "<span>" + esc(dos) + "</span>" : "") + "</span>";
                 var llave = llaveAt(x);
-                if (!llave) return renglon;
-                var casilla = casillas ? '<label class="fc-av-elegir" title="Elegir para «Ya los atendí»"><input type="checkbox" data-av-elegir="' + esc(llave) + '"' +
-                    (actividad.elegidos[llave] ? " checked" : "") + ' aria-label="Elegir: ' + esc(titulo) + '"></label>' : "";
-                return '<div class="fc-av-urg-caja' + (casillas ? " fc-av-urg-caja--elegir" : "") + '">' + casilla + renglon +
-                    '<button type="button" class="ui-btn ui-btn--secundario ui-btn--28 fc-av-atendi" data-av-atender="' +
-                    esc(llave) + '"' + (x.atender.pin ? ' data-pin="1" title="Pide tu PIN: es de un mes cerrado o declarado"' : ' title="Se quita de «Requiere atención» para todo el despacho"') +
-                    ">" + ico(D.palomita, 2.2) + "Ya lo atendí</button></div>";
-            }).join("") + "</div>" + (pie.length ? '<div class="fc-av-urgente__pie">' + pie.join("") + "</div>" : "") + "</section>";
+                // modo de selección: el renglón que se puede atender es su casilla (no abre el aviso); los demás, como siempre
+                if (modo && llave) return '<label class="fc-av-urg fc-av-urg--elegir" title="' + esc(completo) + '"><input type="checkbox" data-av-elegir="' + esc(llave) + '"' +
+                    (actividad.elegidos[llave] ? " checked" : "") + (x.atender.pin ? ' data-pin="1"' : "") + ">" + dentro + "</label>";
+                // 25-nov-2026 (el dueño, avi-2): abrir un aviso no es atenderlo. Lo urgente que es un hecho (CFDI cancelado de un mes
+                // cerrado o declarado, envío que falló, algo por aprobar) sigue aquí hasta que se resuelve o alguien lo da por atendido
+                var marca = x.aviso_id ? ' data-ids="' + esc(x.aviso_id) + '"' : "";
+                var clase = "fc-av-urg" + (modo ? " fc-av-urg--fijo" : "");
+                return x.enlace && x.enlace.charAt(0) === "/" ? '<a class="' + clase + '"' + marca + ' href="' + esc(x.enlace) + '" title="' + esc(completo) + '">' + dentro + ico(D.flecha, 2) + "</a>"
+                    : '<div class="' + clase + '"' + marca + ' title="' + esc(completo) + '">' + dentro + "</div>";
+            }).join("") + "</div>" +
+            (lista.length > 4 ? '<div class="fc-av-urgente__pie"><button type="button" class="fc-av-urgente__mas" data-av-todos>' + (actividad.todos ? "Ver menos" : "Ver las " + lista.length) + "</button></div>" : "") +
+            "</section>";
+    }
+    // «Atender…» / «Cancelar»: entra o sale del modo de selección. Si alguno de los que se pueden atender no está entre los 4
+    // primeros, la lista se despliega completa (se desliza adentro) para poder elegirlo; al salir vuelve a como estaba.
+    function modoAtender(entra) {
+        var d = actividad.datos, lista = d ? (d.franja || d.urgentes || []) : [];
+        actividad.elegidos = {};
+        if (entra) {
+            actividad.atendiendo = true;
+            actividad.desplegoAtender = !actividad.todos && atendiblesDe(lista.slice(4)).length > 0;
+            if (actividad.desplegoAtender) actividad.todos = true;
+        } else {
+            actividad.atendiendo = false;
+            if (actividad.desplegoAtender) actividad.todos = false;
+            actividad.desplegoAtender = false;
+        }
+        pintarActividad();
+        var foco = document.querySelector(entra ? ".fc-av-urgente [data-av-elegir]" : ".fc-av-urgente__atender");
+        if (foco) try { foco.focus({ preventScroll: true }); } catch (e) { /* sin foco */ }
     }
     function htmlCirculos(grupos) {
         return '<div class="fc-av-circulos">' + grupos.map(function (g) {
             var n = g.sin_leer || 0;
             return '<button type="button" class="fc-av-circulo' + (n ? "" : " fc-av-circulo--cero") + '" data-av-grupo="' + esc(g.clave) + '" aria-label="' +
-                esc(g.nombre + (n ? ": " + n + " sin leer" : ": nada nuevo")) + '"><span class="fc-av-circulo__ico">' + ico(ICONO_GRUPO[g.clave] || D.campana, 1.7) +
+                esc(g.nombre + (n ? ": " + n + " sin leer" : ": nada nuevo")) + '"><span class="fc-av-circulo__ico">' + ico(ICONO_CIRCULO[g.clave] || D.campana, 1.7) +
                 (n ? '<i class="fc-av-globo">' + (n > 99 ? "99+" : n) + "</i>" : "") + '</span><span class="fc-av-circulo__nombre">' + esc(g.nombre) + "</span></button>";
         }).join("") + "</div>";
     }
@@ -2224,7 +2251,11 @@
         h.push(htmlEnCurso(d.en_curso));
         if ("Notification" in window && Notification.permission === "default")
             h.push('<div class="fc-act-navegador"><span>¿Avisos del navegador cuando termine algo?</span><button type="button" class="ui-btn ui-btn--secundario ui-btn--28" id="fc-act-permiso">Activar</button></div>');
+        // (26-nov-2026) la lista de «Requiere atención» desplegada se desliza adentro: al volver a pintar (marcar una casilla, el
+        // sondeo de cada minuto) se queda donde iba
+        var listaUrg = cuerpo.querySelector(".fc-av-urg-lista"), lugar = listaUrg ? listaUrg.scrollTop : 0;
         cuerpo.innerHTML = h.join("");
+        if (lugar && (listaUrg = cuerpo.querySelector(".fc-av-urg-lista"))) listaUrg.scrollTop = lugar;
         var permiso = document.getElementById("fc-act-permiso");
         if (permiso) permiso.addEventListener("click", function () { Notification.requestPermission().then(pintarActividad); });
     }
@@ -2261,7 +2292,7 @@
         if (clave === "automaticos") {
             if (leidas) leidas.disabled = !d.rondas.some(function (x) { return !x.leida; });
             h.push(htmlEnCurso(d.en_curso));
-            if (!d.rondas.length) h.push('<div class="ui-vacio">' + ico(ICONO_GRUPO.automaticos, 1.6) + "<b>Nada automático todavía</b><span>Aquí sale una tarjeta por noche con lo que hizo Fiscontable solo.</span></div>");
+            if (!d.rondas.length) h.push('<div class="ui-vacio">' + ico(ICONO_CIRCULO.automaticos, 1.6) + "<b>Nada automático todavía</b><span>Aquí sale una tarjeta por noche con lo que hizo Fiscontable solo.</span></div>");
             d.rondas.forEach(function (x) {
                 h.push('<article class="fc-av-ronda' + (x.leida ? "" : " fc-av-ronda--nueva") + '" data-ids="' + esc(x.ids.join(",")) + '">' +
                     '<p class="fc-av-ronda__titulo"><b>' + esc(x.titulo) + "</b></p>" +
@@ -2277,7 +2308,7 @@
             return;
         }
         if (leidas) leidas.disabled = !d.avisos.some(function (a) { return !a.leida && !a.fijo; });
-        if (!d.avisos.length) h.push('<div class="ui-vacio">' + ico(ICONO_GRUPO[clave] || D.campana, 1.6) + "<b>Sin avisos de " + esc(nombreGrupo(clave)) + "</b><span>" +
+        if (!d.avisos.length) h.push('<div class="ui-vacio">' + ico(ICONO_CIRCULO[clave] || D.campana, 1.6) + "<b>Sin avisos de " + esc(nombreGrupo(clave)) + "</b><span>" +
             (d.modo && esRfc(d.modo) ? "Nada de esta empresa aquí." : "Aquí verás lo que pase.") + "</span></div>");
         d.avisos.forEach(function (a) {
             var clase = "fc-act-item" + (a.leida ? "" : " fc-act-item--nuevo");
@@ -2311,6 +2342,7 @@
         }
         if (rfcPedido && tieneFicha()) { irAvisosEmpresa(rfcPedido); return; }
         actividad.vista = "inicio"; actividad.grupo = null; actividad.detalle = null; actividad.todos = false; actividad.eligiendo = false;
+        actividad.atendiendo = false; actividad.desplegoAtender = false; actividad.elegidos = {};
         if (rfcPedido) { actividad.modo = rfcPedido; actividad.version++; if (actividad.datos) { actividad.datos.modo = rfcPedido; actividad.datos.empresa = { rfc: rfcPedido, alias: aliasDe(rfcPedido) }; } }
         velo.hidden = false; panel.hidden = false;
         requestAnimationFrame(function () { velo.classList.add("abierto"); panel.classList.add("abierto"); });
@@ -2414,37 +2446,17 @@
         d.franja = (d.franja || []).filter(function (u) { return ids.indexOf(llaveAt(u)) < 0; });
         d.rojo = Math.max(0, (d.rojo || 0) - (antes - d.urgentes.length));
     }
-    async function atenderAviso(b) {
-        var id = b.dataset.avAtender, d = actividad.datos;
-        var x = d && (d.urgentes || []).filter(function (u) { return llaveAt(u) === id; })[0];
-        var respuesta = null;
-        actividad.version++;
-        b.disabled = true; b.classList.add("ui-btn--cargando");
-        try { respuesta = await atenderAvisoId(id, { pin: b.dataset.pin === "1", titulo: x && x.titulo }); }
-        catch (err) { aviso(err.message || "No se pudo. Intenta de nuevo."); respuesta = null; }
-        if (!respuesta) { b.disabled = false; b.classList.remove("ui-btn--cargando"); actividad.version++; return; }
-        quitarAtendidos([id]);
-        pintarContadorActividad();
-        if (actividad.abierta) pintarActividad();
-        listo("Atendido: ya no sale en «Requiere atención».", document.querySelector(".fc-av-urgente") || document.getElementById("fc-act-cuerpo"));
-        avisarOtrasPestanas(LLAVE_ACT_CAMBIO);
-        actividad.version++;
-        sondearActividad();
-    }
-    // «Ya los atendí (N)» (los elegidos) y «Atender todos (N)» (los que se ven en la franja y se pueden atender)
+    // «Ya los atendí (n)»: los elegidos en el modo de selección («Atender…»). Un solo PIN si alguno es de un mes cerrado o declarado.
     async function atenderVarios(b) {
         var d = actividad.datos;
-        var lista = d ? (d.franja || d.urgentes || []) : [];
-        var vis = (actividad.todos ? lista : lista.slice(0, 4)).filter(function (x) { return !!llaveAt(x); });
-        var todos = b.dataset.avAtenderVarios === "todos";
-        var cuales = todos ? vis : vis.filter(function (x) { return actividad.elegidos[llaveAt(x)]; });
+        var cuales = atendiblesDe(d ? (d.franja || d.urgentes || []) : []).filter(function (x) { return actividad.elegidos[llaveAt(x)]; });
         if (!cuales.length) return;
         var ids = cuales.map(llaveAt);
         var respuesta = null;
         actividad.version++;
         b.disabled = true; b.classList.add("ui-btn--cargando");
         try {
-            respuesta = await atenderAvisosIds(ids, { pin: cuales.some(function (x) { return x.atender.pin; }), confirmar: todos,
+            respuesta = await atenderAvisosIds(ids, { pin: cuales.some(function (x) { return x.atender.pin; }),
                 titulos: cuales.map(function (x) { return x.titulo; }) });
         } catch (err) {
             // (todo o nada) uno ya no estaba o no es tuyo: no se marcó ninguno; se vuelve a leer la campana
@@ -2453,11 +2465,15 @@
             actividad.version++;
             sondearActividad();
         }
-        if (!respuesta) { b.disabled = false; b.classList.remove("ui-btn--cargando"); actividad.version++; return; }
+        if (!respuesta) { b.disabled = false; b.classList.remove("ui-btn--cargando"); actividad.version++; if (actividad.abierta) pintarActividad(); return; }
         quitarAtendidos(respuesta.atendidos || respuesta.claves ? (respuesta.atendidos || []).concat(respuesta.claves || []) : ids);
+        actividad.atendiendo = false; actividad.elegidos = {};
+        if (actividad.desplegoAtender) actividad.todos = false;
+        actividad.desplegoAtender = false;
         pintarContadorActividad();
         if (actividad.abierta) pintarActividad();
-        listo("Atendidos: ya no salen en «Requiere atención».", document.querySelector(".fc-av-urgente") || document.getElementById("fc-act-cuerpo"));
+        listo(ids.length === 1 ? "Atendido: ya no sale en «Requiere atención»." : "Atendidos: ya no salen en «Requiere atención».",
+              document.querySelector(".fc-av-urgente") || document.getElementById("fc-act-cuerpo"));
         avisarOtrasPestanas(LLAVE_ACT_CAMBIO);
         actividad.version++;
         sondearActividad();
@@ -2485,21 +2501,29 @@
     function clicActividad(e) {
         var accion = e.target.closest("[data-act-accion]");
         if (accion) { e.preventDefault(); e.stopPropagation(); if (!accion.disabled) accionAviso(accion); return; }
-        var atendi = e.target.closest("[data-av-atender]");
-        if (atendi) { e.preventDefault(); e.stopPropagation(); if (!atendi.disabled) atenderAviso(atendi); return; }
-        // 25-nov-2026 (el dueño, av3): casillas, «Ya los atendí (N)» y «Atender todos (N)»
+        // 26-nov-2026 (el dueño, tercera vuelta): «Atender…» entra al modo de selección; ahí, casillas, «Ya los atendí (n)»,
+        // «Todos» y «Cancelar» (antes: un botón y una casilla en cada renglón)
+        var modoAt = e.target.closest("[data-av-atendiendo]");
+        if (modoAt) { e.preventDefault(); e.stopPropagation(); modoAtender(modoAt.dataset.avAtendiendo === "1"); return; }
         var elegir = e.target.closest("[data-av-elegir]");
         if (elegir) {
             e.stopPropagation();
             if (elegir.checked) actividad.elegidos[elegir.dataset.avElegir] = true; else delete actividad.elegidos[elegir.dataset.avElegir];
-            pintarActividad();
-            var otra = document.querySelector('[data-av-elegir="' + CSS.escape(elegir.dataset.avElegir) + '"]'); if (otra) otra.focus();
+            pintarActividad();                                         // (la lista se queda donde iba: pintarActividad)
+            var otra = document.querySelector('[data-av-elegir="' + CSS.escape(elegir.dataset.avElegir) + '"]'); if (otra) otra.focus({ preventScroll: true });
             return;
         }
-        if (e.target.closest(".fc-av-elegir")) { e.stopPropagation(); return; }      // el clic en la orilla de la casilla
+        if (e.target.closest(".fc-av-urg--elegir")) { e.stopPropagation(); return; }      // el clic en el renglón marca su casilla (el navegador lo repite en ella)
+        if (e.target.closest("[data-av-elegir-todos]")) {
+            var dd = actividad.datos, todosAt = atendiblesDe(dd ? (dd.franja || dd.urgentes || []) : []);
+            var yaTodos = todosAt.every(function (x) { return actividad.elegidos[llaveAt(x)]; });
+            actividad.elegidos = {};
+            if (!yaTodos) todosAt.forEach(function (x) { actividad.elegidos[llaveAt(x)] = true; });
+            pintarActividad();
+            return;
+        }
         var varios = e.target.closest("[data-av-atender-varios]");
         if (varios) { e.preventDefault(); e.stopPropagation(); if (!varios.disabled) atenderVarios(varios); return; }
-        if (e.target.closest("[data-av-quitar]")) { actividad.elegidos = {}; pintarActividad(); return; }
         var grupo = e.target.closest("[data-av-grupo]");
         if (grupo) { cargarGrupo(grupo.dataset.avGrupo); return; }
         if (e.target.closest("[data-av-volver]")) { volverAvisos(); return; }
@@ -2840,7 +2864,8 @@
         }
         return h;
     }
-    function sinAcentos(t) { return String(t || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, ""); }
+    // (26-nov-2026, revisión de fix3) aquí había otra «function sinAcentos», igual a la de arriba (la del buscador, mismo ámbito):
+    // dos funciones con el mismo nombre son la misma trampa que pisó los íconos del riel. Se usa la de arriba.
     function cerrarMenusAlcance(menos) {
         document.querySelectorAll(".fc-alcance__menu").forEach(function (m) {
             if (m === menos) return;
@@ -5441,6 +5466,7 @@
     document.addEventListener("keydown", function (e) {
         if (e.key !== "Escape" || !actividad.abierta) return;
         if (actividad.eligiendo) { actividad.eligiendo = false; pintarAlcance(); return; }      // Esc cierra primero la búsqueda de empresa
+        if (actividad.atendiendo && !document.querySelector("dialog[open]")) { modoAtender(false); return; }      // … y el modo de selección de «Atender…»
         cerrarActividad();
     });
     setTimeout(sondearActividad, 1500);

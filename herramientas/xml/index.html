@@ -65,8 +65,6 @@
             <button type="button" id="btn-duplicados" class="mod-accion" title="Facturas que parecen la misma timbrada dos veces: mismo cliente o proveedor, mismo total y los mismos conceptos, con 3 días o menos de diferencia"><b>⧉</b>Posibles duplicados</button>
             <p class="mod-acciones__grupo">Descargar</p>
             <button type="button" class="mod-accion" data-excel="unico" title="Como ves la tabla: la vista activa, tus filtros (o lo marcado con la casilla), en pesos y, si el mes ya cerró, al cierre"><b>▦</b>Descargar Excel</button>
-            <!-- 26-nov-2026: una línea en el menú «Descargar ▾» cuando hay columnas vacías ocultas (sale sin ellas; «Formato 2», con sus 148) -->
-            <button type="button" id="excel-nota" class="mod-accion mod-accion--nota" disabled hidden></button>
             <!-- 25-nov-2026 (el dueño): «Formato 2» sale con nuestro formato; esta es la opción secundaria, como antes (encabezados en el renglón 1), para importarlo a otro programa -->
             <button type="button" class="mod-accion" data-excel="importar" hidden title="El mismo Excel de «Formato 2» sin título ni leyendas: los encabezados en el renglón 1 y la hoja «XML», para importarlo a otro programa o compararlo"><b>▦</b>Formato 2 para importar (sin títulos)</button>
             <button type="button" id="btn-pdf" class="mod-accion" title="Representación impresa: uno en PDF, varios en ZIP (si son muchos, el ZIP se arma en segundo plano y queda en Mis descargas)"><b>⎙</b>XML a PDF</button>
@@ -212,7 +210,7 @@
         </fieldset>
         <p class="xml-opciones__nota">En pesos, junto a cada importe quedan el tipo de cambio usado, la moneda original y el importe en esa moneda.</p>
         <label class="xml-siempre"><input type="checkbox" id="moneda-siempre">
-            <span><strong>Usar esto siempre</strong><small>En la tabla y en todos los Excel (también en Conciliación de pagos), sin volver a preguntar. Lo cambias cuando quieras con el botón «Importes» de la tabla.</small></span></label>
+            <span><strong>Usar esto siempre</strong><small>En la tabla y en su Excel, sin volver a preguntar. Lo cambias cuando quieras con el botón «Importes» de la tabla.</small></span></label>
     </div>
     <div class="fc-modal__pie">
         <button type="button" class="ui-btn ui-btn--secundario ui-btn--36" data-moneda="cerrar">Cancelar</button>

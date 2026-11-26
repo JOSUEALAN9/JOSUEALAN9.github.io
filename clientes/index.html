@@ -673,20 +673,21 @@
     .cli-av { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; min-width: 0; width: 100%; }
     .cli-av > * { min-width: 0; }
     .cli-av-urgente { display: grid; gap: 2px; padding: 8px; border: 1px solid rgb(var(--er-200)); border-radius: 12px; background: rgb(var(--er-50)); }
-    .cli-av-urgente__titulo { margin: 2px 8px 4px; font-size: 12px; font-weight: 700; color: rgb(var(--er-600)); text-transform: uppercase; letter-spacing: .04em; }
+    .cli-av-urgente__titulo { display: flex; align-items: center; gap: 4px; min-height: 28px; margin: 0 0 2px 8px; font-size: 12px; font-weight: 700; color: rgb(var(--er-600)); text-transform: uppercase; letter-spacing: .04em; }
     .cli-av-urgente a, .cli-av-urgente div { display: grid; gap: 1px; padding: 8px; border-radius: 8px; background: rgb(var(--g-0) / .65); color: rgb(var(--g-900)); text-decoration: none; min-width: 0; }
     .cli-av-urgente a:hover { background: rgb(var(--g-0)); }
-    /* 25-nov-2026 (avi-2): el renglón con «Ya lo atendí» */
-    .cli-av-urgente .cli-av-urg-caja { grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 4px; padding: 0 8px 0 0; }
-    .cli-av-urgente .cli-av-urg-caja > a, .cli-av-urgente .cli-av-urg-caja > div { background: none; }
-    .cli-av-urgente .cli-av-urg-caja .ui-btn { white-space: nowrap; }
     .cli-av-atendido { color: rgb(var(--ok-700)) !important; }
-    /* 25-nov-2026 (el dueño, av3): «Atender varios» en la ficha: casilla en cada renglón y, abajo, «Atender todos» o «Ya los atendí» */
-    .cli-av-urgente .cli-av-urg-caja--elegir { grid-template-columns: auto minmax(0, 1fr) auto; }
-    .cli-av-urgente .cli-av-elegir { display: grid; place-items: center; align-self: stretch; padding: 0 0 0 8px; background: none; cursor: pointer; }
-    .cli-av-urgente .cli-av-elegir input { width: 16px; height: 16px; margin: 0; accent-color: rgb(var(--er-600)); cursor: pointer; }
-    .cli-av-urgente .cli-av-urg-pie { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; padding: 4px 0 0; background: none; }
-    .cli-av-urgente .cli-av-urg-pie .ui-btn { white-space: nowrap; }
+    /* 26-nov-2026 (el dueño, tercera vuelta): como en la campana, sin casilla ni botón en cada renglón; arriba «Atender…» y, en el
+       modo de selección, «Ya los atendí (n)» · «Todos» · «Cancelar» con la casilla a la izquierda de los que se pueden atender */
+    .cli-av-texto { border: 0; background: none; border-radius: 8px; padding: 4px 8px; font: inherit; font-size: 12px; font-weight: 600; color: rgb(var(--er-600)); cursor: pointer; white-space: nowrap; text-transform: none; letter-spacing: 0; }
+    .cli-av-texto:hover { background: rgb(var(--g-0) / .7); }
+    .cli-av-urgente__titulo > .cli-av-texto:last-child { margin-left: auto; }
+    .cli-av-urgente__titulo--elegir { margin-left: 0; }
+    .cli-av-urgente__titulo .ui-btn { white-space: nowrap; text-transform: none; letter-spacing: 0; }
+    .cli-av-urgente .cli-av-urg-caja--elegir { display: grid; grid-template-columns: 16px minmax(0, 1fr); align-items: center; gap: 0; padding: 0 0 0 8px; border-radius: 8px; background: rgb(var(--g-0) / .65); cursor: pointer; }
+    .cli-av-urgente .cli-av-urg-caja--elegir:hover { background: rgb(var(--g-0)); }
+    .cli-av-urgente .cli-av-urg-caja--elegir > div { background: none; }
+    .cli-av-urgente .cli-av-urg-caja--elegir input { width: 16px; height: 16px; margin: 0; accent-color: rgb(var(--er-600)); cursor: pointer; }
     .cli-av-urgente b, .cli-av-lista b { font-size: 13.5px; font-weight: 600; overflow-wrap: anywhere; }
     .cli-av-urgente span, .cli-av-lista span { font-size: 12.5px; color: rgb(var(--g-600)); overflow-wrap: anywhere; }
     .cli-av-tranquilo { margin: 0; font-size: 13.5px; color: rgb(var(--g-600)); }

@@ -509,6 +509,3 @@ td .xml-tenue { font-size: inherit; }
    sale desde abajo, completo, y se desliza por dentro; va sobre el letrero «Ambiente de pruebas» (95), como el de la columna */
 @media (max-width: 700px) { .xml-menu__lista.xml-menu__lista--vistas { top: auto; bottom: 12px; max-height: min(70vh, calc(100dvh - 24px)); z-index: 100; } }
 
-/* 26-nov-2026: la línea de «Descargar ▾» que dice cómo sale el Excel con «Ocultar columnas vacías» (no es un botón) */
-.mod-accion.mod-accion--nota, .mod-accion.mod-accion--nota:hover { cursor: default; background: none; font-size: 12px; font-weight: 500;
-    color: rgb(var(--g-600)); white-space: normal; padding-top: 0; opacity: 1; }

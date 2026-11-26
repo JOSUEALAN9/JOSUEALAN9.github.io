@@ -1002,7 +1002,7 @@ function ponerFicha(nombre) {
    servidor) y solo si la persona tiene la empresa en el espacio en que está. Lo demás va por grupo (Buzón, CFDI…), 20 a la
    vez: nada de una lista infinita. 25-nov-2026 (el dueño): este es el ÚNICO lugar de los avisos de una empresa; los chips de Inicio
    y «Una empresa…» de la campana traen aquí. */
-let avisosFicha = { rfc: null, datos: null, grupo: "", mas: 20, elegidos: new Set() };
+let avisosFicha = { rfc: null, datos: null, grupo: "", mas: 20, elegidos: new Set(), atendiendo: false };
 async function cargarAvisosFicha(rfc, soloPunto) {
     const caja = document.getElementById("ficha-avisos");
     if (!soloPunto) caja.innerHTML = '<span class="ui-skel" style="width:70%"></span>';
@@ -1030,24 +1030,27 @@ function pintarAvisosFicha(d) {
     const lista = d.avisos.filter(a => !avisosFicha.grupo || a.grupo === avisosFicha.grupo);
     const enlace = (x, dentro, clase) => x.enlace && x.enlace.charAt(0) === "/" ? `<a${clase ? ` class="${clase}"` : ""} href="${esc(x.enlace)}">${dentro}</a>`
         : `<div${clase ? ` class="${clase}"` : ""}>${dentro}</div>`;
-    // 25-nov-2026 (el dueño, av3): «Atender varios», como en la campana: con dos o más que se pueden dar por atendidos, cada uno lleva
-    // su casilla y abajo «Atender todos (N)» o, con algunos elegidos, «Ya los atendí (N)»; un solo PIN para el grupo si alguno lo pide
-    // 26-nov-2026: también los proveedores o clientes en listas del SAT (su llave es «listas:EMPRESA:RFC», no un id de aviso)
-    const atendibles = d.urgentes.filter(x => llaveFicha(x) && Fiscontable.atenderAviso);
-    const casillas = atendibles.length >= 2 && !!Fiscontable.atenderAvisos;
+    // 26-nov-2026 (el dueño, tercera vuelta: «lo del botón y el check le quitó mucho espacio… solo un botón y que yo seleccione»):
+    // como en la campana, los renglones van sin casilla ni botón; arriba, junto al contador, «Atender…» entra al modo de selección
+    // (casilla en los que se pueden dar por atendidos; el encabezado cambia a «Ya los atendí (n)» · «Todos» · «Cancelar»). Un solo
+    // PIN para el grupo si alguno lo pide. También los proveedores o clientes en listas del SAT (su llave es «listas:EMPRESA:RFC»).
+    const atendibles = atendiblesFicha();
+    const modo = avisosFicha.atendiendo && atendibles.length > 0;
+    if (!modo) avisosFicha.atendiendo = false;
     caja.innerHTML =
-        (d.urgentes.length ? `<section class="cli-av-urgente" aria-label="Requiere atención"><p class="cli-av-urgente__titulo">Requiere atención · ${d.urgentes.length}</p>` +
+        (d.urgentes.length ? `<section class="cli-av-urgente" aria-label="Requiere atención">` +
+            (modo ? `<p class="cli-av-urgente__titulo cli-av-urgente__titulo--elegir" id="ficha-av-acciones">${htmlAccionesFicha(atendibles)}</p>`
+                : `<p class="cli-av-urgente__titulo"><span>Requiere atención · ${d.urgentes.length}</span>` +
+                  (atendibles.length ? `<button type="button" class="cli-av-texto" data-av-atendiendo="1" title="Elegir los que ya atendiste: se quitan de aquí para todo el despacho">Atender…</button>` : "") + `</p>`) +
             d.urgentes.map(x => {
                 const titulo = String(x.titulo).replace(" · " + (x.alias || d.alias), "");
-                const renglon = enlace(x, `<b>${esc(titulo)}</b>${x.detalle ? `<span>${esc(x.detalle)}</span>` : ""}`);
-                // 25-nov-2026 (el dueño, avi-2): lo urgente que es un hecho se queda hasta que se resuelve o alguien pica «Ya lo atendí»
+                const dentro = `<b>${esc(titulo)}</b>${x.detalle ? `<span>${esc(x.detalle)}</span>` : ""}`;
+                // 25-nov-2026 (el dueño, avi-2): lo urgente que es un hecho se queda hasta que se resuelve o alguien lo da por atendido
                 const llave = llaveFicha(x);
-                if (!(llave && Fiscontable.atenderAviso)) return renglon;
-                const casilla = casillas ? `<label class="cli-av-elegir" title="Elegir para «Ya los atendí»"><input type="checkbox" data-av-elegir="${esc(llave)}"` +
-                    `${avisosFicha.elegidos.has(llave) ? " checked" : ""} aria-label="Elegir: ${esc(titulo)}"></label>` : "";
-                return `<div class="cli-av-urg-caja${casillas ? " cli-av-urg-caja--elegir" : ""}">${casilla}${renglon}<button type="button" class="ui-btn ui-btn--secundario ui-btn--28" ` +
-                    `data-av-atender="${esc(llave)}"${x.atender.pin ? ' data-pin="1"' : ""}>Ya lo atendí</button></div>`;
-            }).join("") + (casillas ? `<div class="cli-av-urg-pie" id="ficha-av-acciones">${htmlAccionesFicha(atendibles)}</div>` : "") + "</section>"
+                if (!(modo && llave)) return enlace(x, dentro);
+                return `<label class="cli-av-urg-caja cli-av-urg-caja--elegir"><input type="checkbox" data-av-elegir="${esc(llave)}"` +
+                    `${avisosFicha.elegidos.has(llave) ? " checked" : ""}><div>${dentro}</div></label>`;
+            }).join("") + "</section>"
             : `<p class="cli-av-tranquilo">Nada requiere atención en esta empresa.</p>`) +
         `<div class="cli-av-cabeza"><div class="cli-av-grupos" role="group" aria-label="Grupo de avisos">` +
             `<button type="button" data-av-grupo="" aria-pressed="${!avisosFicha.grupo}">Todos · ${d.avisos.length}</button>` +
@@ -1066,13 +1069,12 @@ function pintarAvisosFicha(d) {
 function llaveFicha(x) { return x && x.atender ? (x.aviso_id ? String(x.aviso_id) : String(x.atender.clave || "")) : ""; }
 function htmlAccionesFicha(atendibles) {
     const elegidos = atendibles.filter(x => avisosFicha.elegidos.has(llaveFicha(x)));
-    return elegidos.length
-        ? `<button type="button" class="ui-btn ui-btn--terciario ui-btn--28" data-av-quitar>Quitar</button>` +
-          `<button type="button" class="ui-btn ui-btn--primario ui-btn--28" data-av-atender-varios="elegidos">Ya los atendí (${elegidos.length})</button>`
-        : `<button type="button" class="ui-btn ui-btn--secundario ui-btn--28" data-av-atender-varios="todos">Atender todos (${atendibles.length})</button>`;
+    return `<button type="button" class="ui-btn ui-btn--primario ui-btn--28" data-av-atender-varios${elegidos.length ? "" : " disabled"}>Ya los atendí (${elegidos.length})</button>` +
+        `<button type="button" class="cli-av-texto" data-av-elegir-todos>${elegidos.length === atendibles.length ? "Ninguno" : "Todos"}</button>` +
+        `<button type="button" class="cli-av-texto cli-av-texto--fin" data-av-atendiendo="0">Cancelar</button>`;
 }
 function atendiblesFicha() {
-    return ((avisosFicha.datos || {}).urgentes || []).filter(x => !!llaveFicha(x));
+    return Fiscontable.atenderAvisos ? ((avisosFicha.datos || {}).urgentes || []).filter(x => !!llaveFicha(x)) : [];
 }
 document.addEventListener("change", (e) => {
     const c = e.target.closest && e.target.closest("#ficha-avisos [data-av-elegir]");
@@ -1082,50 +1084,43 @@ document.addEventListener("change", (e) => {
     const pie = document.getElementById("ficha-av-acciones");
     if (pie) pie.innerHTML = htmlAccionesFicha(atendiblesFicha());
 });
-// «Ya los atendí (N)» y «Atender todos (N)» desde la ficha: lo mismo que en la campana (Fiscontable.atenderAvisos)
+// «Ya los atendí (n)» desde la ficha, con los elegidos: lo mismo que en la campana (Fiscontable.atenderAvisos; un solo PIN si
+// alguno es de un mes cerrado o declarado)
 async function atenderVariosFicha(b) {
-    const todos = b.dataset.avAtenderVarios === "todos";
-    const cuales = atendiblesFicha().filter(x => todos || avisosFicha.elegidos.has(llaveFicha(x)));
+    const cuales = atendiblesFicha().filter(x => avisosFicha.elegidos.has(llaveFicha(x)));
     if (!cuales.length) return;
     b.disabled = true;
     try {
-        const r = await Fiscontable.atenderAvisos(cuales.map(llaveFicha), { pin: cuales.some(x => x.atender.pin), confirmar: todos,
+        const r = await Fiscontable.atenderAvisos(cuales.map(llaveFicha), { pin: cuales.some(x => x.atender.pin),
             titulos: cuales.map(x => String(x.titulo).replace(" · " + (x.alias || avisosFicha.datos.alias), "")) });
         if (!r) { b.disabled = false; return; }
-        Fiscontable.toast("Atendidos: ya no salen en «Requiere atención».", document.getElementById("ficha-avisos"));
+        Fiscontable.toast(cuales.length === 1 ? "Atendido: ya no sale en «Requiere atención»." : "Atendidos: ya no salen en «Requiere atención».", document.getElementById("ficha-avisos"));
     } catch (err) { Fiscontable.aviso(err.message); }            // (26-nov) un error no va en el aviso verde
     cargarAvisosFicha(avisosFicha.rfc);                     // (todo o nada) si uno ya no estaba, se vuelve a leer
 }
 document.addEventListener("click", (e) => {
     const caja = document.getElementById("ficha-avisos");
     if (!caja || !caja.contains(e.target) || !avisosFicha.datos) return;
-    if (e.target.closest(".cli-av-elegir")) return;          // la casilla (no abre el renglón)
+    const modoAt = e.target.closest("[data-av-atendiendo]");
+    if (modoAt) {                                           // «Atender…» / «Cancelar»: entra o sale del modo de selección
+        avisosFicha.atendiendo = modoAt.dataset.avAtendiendo === "1"; avisosFicha.elegidos.clear();
+        pintarAvisosFicha(avisosFicha.datos);
+        return;
+    }
+    if (e.target.closest(".cli-av-urg-caja--elegir")) return;          // el renglón marca su casilla (no abre el aviso)
     const varios = e.target.closest("[data-av-atender-varios]");
     if (varios && !varios.disabled) { e.preventDefault(); atenderVariosFicha(varios); return; }
-    if (e.target.closest("[data-av-quitar]")) {
+    if (e.target.closest("[data-av-elegir-todos]")) {
+        const todos = atendiblesFicha(), ya = todos.every(x => avisosFicha.elegidos.has(llaveFicha(x)));
         avisosFicha.elegidos.clear();
-        caja.querySelectorAll("[data-av-elegir]").forEach(c => { c.checked = false; });
-        const pie = document.getElementById("ficha-av-acciones");
-        if (pie) pie.innerHTML = htmlAccionesFicha(atendiblesFicha());
+        if (!ya) todos.forEach(x => avisosFicha.elegidos.add(llaveFicha(x)));
+        pintarAvisosFicha(avisosFicha.datos);
         return;
     }
     const g = e.target.closest("[data-av-grupo]");
     if (g) { avisosFicha.grupo = g.dataset.avGrupo; avisosFicha.mas = 20; pintarAvisosFicha(avisosFicha.datos); return; }
     if (e.target.closest("[data-av-mas]")) { avisosFicha.mas += 20; pintarAvisosFicha(avisosFicha.datos); }
-    const atendi = e.target.closest("[data-av-atender]");
-    if (atendi && !atendi.disabled) { e.preventDefault(); atenderDesdeFicha(atendi); }
 });
-// «Ya lo atendí» desde la ficha: el mismo de la campana (Fiscontable.atenderAviso: PIN solo si es de un mes cerrado o declarado)
-async function atenderDesdeFicha(b) {
-    const id = b.dataset.avAtender, x = (avisosFicha.datos.urgentes || []).find(u => llaveFicha(u) === id);
-    b.disabled = true;
-    try {
-        const r = await Fiscontable.atenderAviso(id, { pin: b.dataset.pin === "1", titulo: x && x.titulo });
-        if (!r) { b.disabled = false; return; }
-        Fiscontable.toast("Atendido: ya no sale en «Requiere atención».", document.getElementById("ficha-avisos"));
-        cargarAvisosFicha(avisosFicha.rfc);
-    } catch (err) { Fiscontable.aviso(err.message); b.disabled = false; }      // (26-nov) un error no va en el aviso verde
-}
 
 function pintarEfirmaFicha(cliente, conservarMensaje) {
     const badge = document.getElementById("editar-estado-efirma");
@@ -1449,7 +1444,7 @@ function abrirModalEditar(rfc, ficha) {
     pintarResumenFicha(cliente);
     pintarObligaciones(cliente);
     pintarXmlAuto(cliente);
-    avisosFicha = { rfc: null, datos: null, grupo: "", mas: 20 };
+    avisosFicha = { rfc: null, datos: null, grupo: "", mas: 20, elegidos: new Set(), atendiendo: false };
     document.getElementById("ficha-aviso-avisos").hidden = true;
     ponerFicha(ficha || "general");
     if (ficha !== "avisos") cargarAvisosFicha(rfc, true);      // el punto rojo de la pestaña si hay algo urgente

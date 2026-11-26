@@ -2148,37 +2148,38 @@ button.fc-act-item--grupo:hover { background: rgb(var(--g-50)); }
 .fc-av-nada { padding: var(--e-2) var(--e-3); font-size: var(--t-12); color: rgb(var(--g-500)); }
 .fc-av-urgente { display: grid; gap: 2px; margin: 0 0 var(--e-2); padding: var(--e-2); border: 1px solid rgb(var(--er-200)); border-radius: var(--r-tarjeta);
                  background: rgb(var(--er-50)); }
-.fc-av-urgente__titulo { display: flex; align-items: center; gap: 6px; margin: 2px var(--e-2) var(--e-1); font-size: var(--t-12); font-weight: 700;
+.fc-av-urgente__titulo { display: flex; align-items: center; gap: 6px; min-height: 28px; margin: 0 0 2px var(--e-2); font-size: var(--t-12); font-weight: 700;
                          color: rgb(var(--er-600)); text-transform: uppercase; letter-spacing: .04em; }
 .fc-av-urgente__titulo svg { width: 15px; height: 15px; flex: none; }
-.fc-av-urgente__titulo b { margin-left: auto; font-variant-numeric: tabular-nums; }
-/* 26-nov-2026 (el dueño: con la franja llena no se veían los círculos): cada renglón en una línea, el detalle en gris a
-   continuación y cortado con «…» (completo en su «title» y al abrirlo); la lista con tope de alto: se desliza adentro. */
-.fc-av-urg { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--e-2); align-items: center; padding: 6px var(--e-2);
+.fc-av-urgente__titulo b { font-variant-numeric: tabular-nums; }
+/* 26-nov-2026, tercera vuelta (el dueño: «lo del botón y el check le quitó mucho espacio… está muy amontonado»): cada renglón en
+   dos líneas, sin casilla ni botón (arriba, en negrita, de quién o qué es; abajo, chico y gris, qué pasó y en qué empresa; cada
+   una cortada con «…», completo en su «title» y al abrirlo). Arriba, junto al contador, un solo botón de texto «Atender…»; en
+   el modo de selección el encabezado es «Ya los atendí (n)» · «Todos» · «Cancelar» y los renglones que se pueden atender
+   llevan su casilla a la izquierda. La lista sigue con tope de alto: se desliza adentro y los círculos quedan a la vista. */
+.fc-av-urg { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--e-2); align-items: center; padding: 5px var(--e-2);
              border-radius: var(--r-control); color: rgb(var(--g-900)); text-decoration: none; background: rgb(var(--g-0) / .65); min-width: 0; }
-.fc-av-urg__txt { display: block; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: var(--t-13); }
-.fc-av-urg__txt b { font-weight: 600; }
-.fc-av-urg__txt span { margin-left: 6px; font-size: var(--t-12); color: rgb(var(--g-600)); }
+.fc-av-urg__txt { display: grid; gap: 1px; min-width: 0; }
+.fc-av-urg__txt b, .fc-av-urg__txt span { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.fc-av-urg__txt b { font-size: var(--t-13); font-weight: 600; line-height: 1.35; }
+.fc-av-urg__txt span { font-size: var(--t-12); line-height: 1.35; color: rgb(var(--g-600)); }
 .fc-av-urg svg { width: 14px; height: 14px; color: rgb(var(--er-600)); }
 .fc-av-urg-lista { display: grid; gap: 2px; min-width: 0; }
 .fc-av-urg-lista--todas { max-height: 34vh; overflow-y: auto; overscroll-behavior: contain; }
 a.fc-av-urg:hover { background: rgb(var(--g-0)); }
-/* 25-nov-2026 (avi-2): el renglón con «Ya lo atendí» (lo urgente que es un hecho no se quita al abrirlo) */
-.fc-av-urg-caja { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: var(--e-1); border-radius: var(--r-control); background: rgb(var(--g-0) / .65); }
-.fc-av-urg-caja .fc-av-urg { background: none; }
-.fc-av-urg-caja .fc-av-atendi { margin-right: 6px; white-space: nowrap; gap: 4px; padding: 0 var(--e-2); border-color: rgb(var(--er-200)); color: rgb(var(--er-600)); }
-.fc-av-urg-caja .fc-av-atendi svg { width: 13px; height: 13px; flex: none; }
 .fc-av-urgente__mas { justify-self: start; padding: var(--e-1) var(--e-2); border: 0; background: none; font: inherit; font-size: var(--t-12); font-weight: 600;
-                      color: rgb(var(--er-600)); cursor: pointer; }
-/* 25-nov-2026 (el dueño, av3): «Atender varios»: casilla en cada renglón que se puede atender y, abajo, «Atender todos (N)» o
-   «Ya los atendí (N)». Sin botones nuevos en la barra: todo dentro de la franja. */
-.fc-av-urg-caja--elegir { grid-template-columns: auto minmax(0, 1fr) auto; }
-.fc-av-elegir { display: grid; place-items: center; align-self: stretch; padding: 0 0 0 var(--e-2); cursor: pointer; }
-.fc-av-elegir input { width: 16px; height: 16px; margin: 0; accent-color: rgb(var(--er-600)); cursor: pointer; }
-.fc-av-urg-caja--elegir .fc-av-urg { padding-left: var(--e-1); }
-.fc-av-urgente__pie { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--e-1) var(--e-2); min-width: 0; }
-.fc-av-urg-acciones { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: var(--e-1); margin-left: auto; }
-.fc-av-urg-acciones .ui-btn { white-space: nowrap; }
+                      color: rgb(var(--er-600)); cursor: pointer; border-radius: var(--r-control); }
+.fc-av-urgente__mas:hover { background: rgb(var(--g-0) / .7); }
+.fc-av-urgente__titulo .fc-av-urgente__mas { text-transform: none; letter-spacing: 0; white-space: nowrap; }
+.fc-av-urgente__atender, .fc-av-urgente__cancelar { margin-left: auto; }
+.fc-av-urgente__titulo--elegir { margin-left: 0; gap: var(--e-1); }
+.fc-av-urgente__titulo--elegir .ui-btn { text-transform: none; letter-spacing: 0; white-space: nowrap; }
+.fc-av-urgente__pie { display: flex; align-items: center; min-width: 0; }
+/* modo de selección: la casilla a la izquierda; lo que no se puede atender (estados vivos) queda alineado y más tenue */
+.fc-av-urg--elegir { grid-template-columns: 16px minmax(0, 1fr); cursor: pointer; }
+.fc-av-urg--elegir:hover { background: rgb(var(--g-0)); }
+.fc-av-urg--elegir input { width: 16px; height: 16px; margin: 0; accent-color: rgb(var(--er-600)); cursor: pointer; }
+.fc-av-urg--fijo { padding-left: calc(var(--e-2) + 16px + var(--e-2)); opacity: .6; }
 .fc-av-lista-atender { margin: 0 0 var(--e-2); padding-left: 18px; display: grid; gap: 4px; font-size: var(--t-13); font-weight: 600; overflow-wrap: anywhere; }
 .fc-av-tranquilo { display: flex; align-items: center; gap: 6px; margin: 0 0 var(--e-3); font-size: var(--t-13); color: rgb(var(--g-600)); }
 .fc-av-tranquilo svg { width: 16px; height: 16px; flex: none; color: rgb(var(--ok-600)); }

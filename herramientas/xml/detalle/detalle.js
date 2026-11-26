@@ -70,7 +70,7 @@
         }
         var html = [];
         html.push('<div class="det-cabeza"><div><h1>' + esc(titulo) + '</h1><div class="det-uuid">' + esc(d.uuid) + '</div><div class="det-sellos">' + sellos.join("") + "</div></div>" +
-            '<div class="det-acciones"><button type="button" class="xml-btn" id="btn-validar-uno">Validar ante el SAT</button><a class="xml-btn" href="' + API + "/api/xml/archivo?rfc=" + encodeURIComponent(RFC) + "&uuid=" + encodeURIComponent(d.uuid) + '">Descargar XML</a>' +
+            '<div class="det-acciones"><button type="button" class="xml-btn" id="btn-validar-uno">Validar ante el SAT</button><a class="xml-btn" id="btn-bajar-xml" href="' + API + "/api/xml/archivo?rfc=" + encodeURIComponent(RFC) + "&uuid=" + encodeURIComponent(d.uuid) + '">Descargar XML</a>' +
             // 23-nov-2026, el dueño (decisión E): el PDF se abre en OTRA PESTAÑA, con el visor del navegador (imprimir y descargar
             // con su nombre). Es un enlace directo (no una ventana que se abre después de pedir el PDF: esa la bloquea el navegador).
             '<a class="xml-btn" id="btn-ver-pdf" target="_blank" rel="noopener" title="Representación impresa del CFDI, en otra pestaña" href="' + API + "/api/xml/pdf?rfc=" +
@@ -121,7 +121,31 @@
         $("det").innerHTML = html.join("");
         $("det").hidden = false;
         $("btn-validar-uno").addEventListener("click", validarAhora);
+        $("btn-bajar-xml").addEventListener("click", bajarXml);
         enlaces(r);
+    }
+
+    /* 26-nov-2026 (el dueño: «le puse descargar XML desde la ventanita cuando presionas una línea y me sale [el ícono de documento
+       roto]; ya cuando voy a abrir factura ya me deja»): «Descargar XML» era un enlace directo al servidor. En su pestaña el
+       navegador lo baja; dentro del panel de la factura (un marco) esa navegación se bloquea (la web solo permite marcos de su
+       mismo sitio y el servidor no se deja enmarcar) y el panel quedaba con el documento roto. Ahora el XML se pide y se guarda
+       sin navegar, igual en el panel y en su pestaña. Con Ctrl, Cmd, Mayús o clic medio sigue siendo un enlace (otra pestaña). */
+    async function bajarXml(e) {
+        if (e.ctrlKey || e.metaKey || e.shiftKey || e.button) return;
+        e.preventDefault();
+        var a = e.currentTarget;
+        if (a.dataset.bajando) return;
+        a.dataset.bajando = "1";
+        try {
+            var resp = await fetch(a.href, { credentials: "include" });
+            if (!resp.ok) throw new Error(await Fiscontable.leerError(resp));
+            var cd = resp.headers.get("Content-Disposition") || "", nombre = UUID + ".xml";
+            var u = cd.match(/filename\*=UTF-8''([^;]+)/i), n = cd.match(/filename="?([^";]+)"?/);
+            if (u) { try { nombre = decodeURIComponent(u[1]); } catch (err) { /* se queda el UUID */ } }
+            else if (n) nombre = n[1];
+            Fiscontable.guardarArchivo(await resp.blob(), nombre);
+        } catch (err) { Fiscontable.aviso(err.message || "No se pudo descargar el XML. Intenta de nuevo."); }
+        delete a.dataset.bajando;
     }
 
     /* ------------------------------------------------------------ enlaces con Marcas fiscales y Cancelaciones */

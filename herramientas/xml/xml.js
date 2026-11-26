@@ -1334,7 +1334,6 @@
         var ocultas = E.ocultarVacias && VAC.vacias && VAC.filas === E.filas ? E.columnas[E.modulo].length - cols.length : 0;
         $("conteo-filas").textContent = E.filas.length.toLocaleString("es-MX") + " registro(s)" +
             (ocultas > 0 ? " · " + ocultas + " columna" + (ocultas === 1 ? " vacía oculta" : "s vacías ocultas") : "");
-        notaExcel(ocultas);
         pintarAlcance();
         pintarFilas(true);
         pintarSeleccion();
@@ -1733,7 +1732,8 @@
        todos (aunque el chip esconda alguno) y el Excel dice «Selección: N facturas marcadas». */
     /* 26-nov-2026 (el dueño: «¿si descargo el Excel sale sin eso?»): con «Ocultar columnas vacías», el Excel sale como se ve
        (sin esas columnas), salvo «Formato 2», que es un formato fijo para importar: siempre con sus 148 columnas en su orden.
-       Debajo de «Descargar Excel», una línea lo dice cuando aplica. */
+       (26-nov-2026, el dueño: «quita eso de “Sin la columna vacía, como lo ves.”… solo Descargar Excel»): la línea que lo decía
+       debajo de «Descargar Excel» se quitó; el Excel sale igual. */
     function esFormato2Fijo() { return selActual().tipo === "formato2"; }
     function columnasParaExcel() {
         var todas = E.columnas[E.modulo].map(function (c) { return c.clave; });
@@ -1743,15 +1743,9 @@
         var llenas = todas.filter(function (k) { return !vacias[k]; });
         return llenas.length ? llenas : todas;
     }
-    function notaExcel(ocultas) {
-        var nota = $("excel-nota");
-        if (!nota) return;
-        nota.hidden = !(ocultas > 0);
-        nota.textContent = !ocultas ? "" : esFormato2Fijo() ? "Formato 2: el Excel lleva sus 148 columnas."
-            : (ocultas === 1 ? "Sin la columna vacía" : "Sin las " + ocultas + " columnas vacías") + ", como lo ves.";
-    }
     // 26-nov-2026 (el dueño: «le cambié el ajuste y siempre salió la misma leyenda»): lo que eligió en «Importes» (XML, DOF o
-    // sin convertir) va al servidor; sin elegir nunca, el servidor usa el DOF (decisión A.4)
+    // sin convertir) va al servidor; sin elegir nunca, el servidor usa su valor de fábrica: el T.C. del XML, como la
+    // pantalla (antes el DOF, decisión A.4)
     function convertirParaExcel() {
         var p = Fiscontable.monedaReportes.leer();
         return p.deFabrica ? null : p.modo;
@@ -1858,7 +1852,8 @@
             // 24-nov-2026 (revisión): «Formato 2» trae los importes como el reporte original (al T.C. de cada factura): aquí
             // el botón no cambia nada, así que no se ofrece
             boton.hidden = true; aviso.hidden = !hay; aviso.title = "";
-            aviso.textContent = "«Formato 2»: lo que viene en otra moneda va en pesos al tipo de cambio de su factura, como el reporte original (en pantalla y en el Excel).";
+            // (26-nov-2026, el dueño: «era T.C. del XML y no de la factura; se queda del XML») decía «de su factura»
+            aviso.textContent = "«Formato 2»: lo que viene en otra moneda va en pesos al tipo de cambio del XML, como el reporte original (en pantalla y en el Excel).";
             return;
         }
         boton.hidden = !hay && !c.modo;
@@ -1866,11 +1861,16 @@
         aviso.hidden = !c.modo;
         if (c.modo) {
             // 18-nov (el dueño: «más corto»): solo qué se hizo con lo que venía en otra moneda
-            aviso.textContent = "Importes en otra moneda: en pesos, al tipo de cambio " + (c.modo === "dof" ? "del DOF" : "de su factura") +
+            // (26-nov-2026, el dueño: «era T.C. del XML y no de la factura; se queda del XML») decía «de su factura»: ahora «del XML»,
+            // como la leyenda del Excel («Moneda extranjera convertida al T.C. del XML.») y la ventana «Importes»
+            aviso.textContent = "Importes en otra moneda: en pesos, al tipo de cambio " + (c.modo === "dof" ? "del DOF" : "del XML") +
                 (c.sin_tc ? " (" + c.sin_tc + " sin tipo de cambio siguen en su moneda)" : "") + ".";
-            // 24-nov-2026 (revisión, A.4): el Excel ya no sigue a la pantalla en esto: siempre al DOF, con la moneda original al lado
-            aviso.title = Number(c.convertidas || 0).toLocaleString("es-MX") + " renglón(es) convertidos con " + c.con +
-                ". «Descargar Excel» los pone siempre en pesos con el T.C. del DOF, con la moneda original al lado.";
+            // 26-nov-2026 (el dueño: «no menciones del DOF cuando es del XML»): decía «“Descargar Excel” los pone siempre en pesos con
+            // el T.C. del DOF». Desde ese día el Excel sigue lo elegido en «Importes» y, sin haber elegido nunca, sale como la
+            // pantalla: al T.C. del XML (el dueño: «el Excel por defecto sale convertido al T.C. de la factura», que es el del XML).
+            var paraExcel = convertirParaExcel();
+            aviso.title = Number(c.convertidas || 0).toLocaleString("es-MX") + " renglón(es) convertidos con " + c.con + "." +
+                ((paraExcel === null ? "xml" : paraExcel) === c.modo ? " «Descargar Excel» sale igual." : "");
             var b = document.createElement("button"); b.type = "button"; b.textContent = "Cambiar"; b.addEventListener("click", elegirMoneda);
             aviso.appendChild(b);
         }

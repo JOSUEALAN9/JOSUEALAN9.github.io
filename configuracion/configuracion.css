@@ -196,8 +196,39 @@
     padding: 12px 16px; border-radius: 12px; border: 1px solid rgb(var(--av-600) / .35); background: rgb(var(--av-600) / .06); }
 .cf-auto__nosalio[hidden] { display: none !important; }
 .cf-auto__nosalio small { display: block; color: rgb(var(--g-600)); margin-top: 2px; }
-.cf-auto__tabla .cf-celda-acciones { white-space: normal; width: 1%; }
-.cf-auto__tabla .cf-celda-acciones .cf-btn { display: block; width: 100%; margin: 3px 0; white-space: nowrap; }
+/* 26-nov-2026 (el dueño: «me molesta mucho que haya un botón para cada empresa»): sin botones por renglón. Cada renglón se guarda
+   solo («✓ Guardado» verde junto a lo que se movió, 2 s, sin mover nada; si no se pudo, el motivo en rojo bajo el renglón) y
+   «Descargar ahora» va con casillas y la barra de las marcadas (la de Cierre de meses, flotando como la de Administración de
+   XML: abajo al centro; en el celular, arriba). */
+.cf-auto__tabla td { position: relative; }
+/* 26-nov-2026 (revisión de fix3): sin los botones, la tabla debe caber completa a 1280 con el menú desplegado (el interruptor del
+   Buzón quedaba cortado a la derecha): celdas y listas más juntas, y el nombre de la empresa en un renglón mientras quepa. En
+   pantallas más angostas se sigue deslizando dentro de su tarjeta. */
+.cf-auto__tabla thead th, .cf-auto__tabla tr[data-rfc] > td { padding-left: 7px; padding-right: 7px; }
+.cf-auto__tabla thead th:first-child, .cf-auto__tabla tr[data-rfc] > td:first-child { padding-left: 14px; }
+.cf-auto__tabla thead th:last-child, .cf-auto__tabla tr[data-rfc] > td:last-child { padding-right: 14px; }
+.cf-auto__tabla select { padding: 6px 2px 6px 6px; }
+.cf-auto__tabla .cf-auto__marca { width: 1%; padding-right: 0; }
+.cf-auto__marca input { display: block; width: 16px; height: 16px; margin: 0; accent-color: rgb(var(--ac-600)); cursor: pointer; }
+.cf-auto__marca input:disabled { cursor: not-allowed; }
+.cf-tabla small.cf-auto__dijo { position: absolute; left: 12px; top: calc(50% + 17px); white-space: nowrap; font-size: 11.5px; font-weight: 600; color: rgb(var(--ok-600)); pointer-events: none; }
+.cf-tabla.cf-auto__tabla small.cf-auto__dijo { left: 7px; }          /* (revisión) alineado con lo de su celda, que ahora empieza a 7 px */
+.cf-auto__buzon small.cf-auto__dijo { position: static; display: block; min-height: 16px; white-space: normal; font-size: 12px; font-weight: 600; color: rgb(var(--ok-600)); }
+.cf-auto__buzon small.cf-auto__dijo--mal { color: rgb(var(--er-600)); }
+.cf-auto__tabla tr:has(+ .cf-auto__error) td { border-bottom: 0; }
+.cf-auto__tabla .cf-auto__error td { padding: 0 12px 10px; }
+.cf-auto__error span { position: sticky; left: 12px; display: inline-block; max-width: min(560px, calc(100vw - 72px)); font-size: 12.5px; font-weight: 600; color: rgb(var(--er-600)); }
+.cm-seleccion.cf-auto__sel { position: fixed; z-index: 50; left: 50%; bottom: 60px; transform: translateX(-50%); width: max-content; max-width: min(920px, calc(100vw - 24px)); margin: 0;
+                padding: 8px 8px 8px 14px; box-shadow: 0 12px 32px rgba(15, 23, 42, .28); }
+.cm-seleccion.cf-auto__sel[hidden] { display: none; }
+.cf-auto__sel-quitar { border: 0; background: none; border-radius: 8px; padding: 4px 8px; font: inherit; font-size: 15px; line-height: 1; color: rgb(var(--g-300)); cursor: pointer; }
+.cf-auto__sel-quitar:hover { color: rgb(var(--g-0)); }
+body:has(.cf-auto__sel:not([hidden])) .cf-contenido { padding-bottom: 110px; }      /* lo último de la tabla no queda debajo de la barra */
+@media (max-width: 700px) {
+    .cm-seleccion.cf-auto__sel { top: calc(var(--barra-alto, 56px) + 8px); bottom: auto; width: calc(100vw - 24px); }
+    .cf-auto__sel [data-sel-ahora] { margin-left: auto; }
+    .cf-incrustado .cm-seleccion.cf-auto__sel { top: 8px; }
+}
 .cf-auto__cancelados { display: block; color: rgb(var(--er-600)); font-weight: 600; }
 .cf-auto__faltantes { display: block; color: rgb(var(--av-600)); font-weight: 600; }   /* 24-nov-2026 (auditoría de Fable): naranja */
 
