@@ -31,10 +31,14 @@
                 <button type="button" id="btn-revisar-menu" class="dm-btn-solicitudes mod-menu__btn" aria-haspopup="true" aria-expanded="false"
                         aria-controls="revisar-lista" title="Pide al SAT la lista de un mes y la compara uno por uno con tu biblioteca">Revisar contra el SAT<span aria-hidden="true">▾</span></button>
                 <div class="mod-menu__lista dm-revisar-lista" id="revisar-lista" hidden>
-                    <label class="dm-revisar__mes"><span class="dm-cuadre__et">Mes</span><select id="revisar-mes" class="campo__control"></select></label>
-                    <button type="button" id="btn-revisar" class="mod-accion" data-fc-cambia><b>✓</b>Revisar ese mes</button>
-                    <button type="button" id="btn-revisar-portal" class="mod-accion" data-fc-cambia hidden><b>⇢</b>Hacerlo por el portal</button>
-                    <p class="dm-revisar__nota">Pide al SAT la lista de ese mes y la compara uno por uno con tu biblioteca; lo que falte se pide solo.</p>
+                    <!-- 26-nov-2026 (el dueño, m2: «en Turismo no veo esa opción»): sale en toda empresa; sin e.firma guardada, solo el porqué -->
+                    <div id="revisar-con-efirma">
+                        <label class="dm-revisar__mes"><span class="dm-cuadre__et">Mes</span><select id="revisar-mes" class="campo__control"></select></label>
+                        <button type="button" id="btn-revisar" class="mod-accion" data-fc-cambia><b>✓</b>Revisar ese mes</button>
+                        <button type="button" id="btn-revisar-portal" class="mod-accion" data-fc-cambia hidden><b>⇢</b>Hacerlo por el portal</button>
+                        <p class="dm-revisar__nota">Pide al SAT la lista de ese mes y la compara uno por uno con tu biblioteca; lo que falte se pide solo.</p>
+                    </div>
+                    <p class="dm-revisar__nota dm-revisar__sin" id="revisar-sin-efirma" hidden>Requiere su e.firma guardada. <a id="revisar-ir-efirma" href="/clientes/">Guardarla en su ficha › Accesos</a></p>
                 </div>
             </div>
             <button type="button" id="btn-automatica" class="dm-btn-solicitudes" title="Se configura en Configuración › Lo automático">

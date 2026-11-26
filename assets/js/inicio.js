@@ -329,6 +329,18 @@
         if (fil.indexOf("f:") === 0) E.tabla.filtrar(fil.slice(2), VALOR[fil.slice(2)]);
         else if (fil.indexOf("e:") === 0) E.tabla.filtrar("estado", fil.slice(2));
     }
+    /* 26-nov-2026 (el dueño, k4: «lo cerré en la compu, fui en el celular y no se había cerrado, actualicé con F5 y ya apareció»):
+       al volver a la pestaña y cada 2 min mientras se ve (Fiscontable.alVolver), la tabla de «Mis empresas» se vuelve a pedir. Sin
+       «Revisando tus empresas…» y solo si algo cambió: se repinta con la misma búsqueda, los mismos filtros y el mismo orden. */
+    async function refrescarDespacho() {
+        if (E.vista !== "despacho" || !E.tabla || !E.datos) return;
+        var d;
+        try { d = await api("/api/tablero"); } catch (e) { return; }
+        if (E.vista !== "despacho" || !d || JSON.stringify(d) === JSON.stringify(E.datos)) return;
+        E.datos = d;
+        pintarDespacho();
+    }
+    if (Fiscontable.alVolver) Fiscontable.alVolver(refrescarDespacho, { cada: 120000 });
     async function marcarFavorita(rfc) {
         var f = E.datos.empresas.find(function (x) { return x.rfc === rfc; }); if (!f) return;
         try {

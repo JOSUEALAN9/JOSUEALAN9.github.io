@@ -481,6 +481,25 @@
             resumen(); lista();
         };
 
+        /* ------------------------------------------------ al volver a la pestaña (26-nov-2026, el dueño, k4: «lo cerré en la compu,
+           fui en el celular y no se había cerrado, actualicé con F5 y ya apareció»). Se vuelve a pedir la tabla al regresar y cada
+           90 s mientras se ve (Fiscontable.alVolver); solo se repinta si cambió, sin tocar el año, la búsqueda, el filtro, la página
+           ni las marcadas. Con una ventanita o el PIN abiertos espera a la siguiente vez. */
+        async function refrescar() {
+            if (!E.datos || c._cm !== E || pop || document.querySelector("dialog[open]")) return;
+            var d;
+            try { d = await h.api("/api/fiscal/cierres?anio=" + E.anio); } catch (e) { return; }
+            if (c._cm !== E || !E.datos || !d || d.anio !== E.anio || pop || JSON.stringify(d) === JSON.stringify(E.datos)) return;
+            var todo = d.puede_cambiar !== E.datos.puede_cambiar || d.motivo !== E.datos.motivo || String(d.anios) !== String(E.datos.anios);
+            E.datos = d; E.hoy = d.hoy || E.hoy;
+            Object.keys(E.marcadas).forEach(function (r) { if (!d.empresas.some(function (e) { return e.rfc === r; })) delete E.marcadas[r]; });
+            if (todo) dibujar(); else { resumen(); lista(); }
+        }
+        var vuelta = Fiscontable.alVolver && Fiscontable.alVolver(function () {
+            if (!c.isConnected || c._cm !== E) { vuelta.parar(); return; }          // ya se fue a otra sección
+            return refrescar();
+        });
+
         E.angosta = c.clientWidth > 0 ? c.clientWidth < ANGOSTA : window.innerWidth <= ANGOSTA;
         var sub = E.sub.split(":")[1];
         cargar(sub && /^\d{4}$/.test(sub) ? +sub : 0);

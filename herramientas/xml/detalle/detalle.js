@@ -215,10 +215,20 @@
             encodeURIComponent((r.cfdi[parte] || {}).rfc || "") + '">Ver en Listas del SAT</a></div>';
     }
 
+    function diaLocal(s) {
+        var d = new Date(String(s).slice(0, 19) + "Z");
+        if (isNaN(d.getTime())) return f(s).slice(0, 10);
+        var dos = function (n) { return (n < 10 ? "0" : "") + n; };
+        return dos(d.getDate()) + "/" + dos(d.getMonth() + 1) + "/" + d.getFullYear();
+    }
     function selloSAT(r) {
         // estado_sat_en es cuándo CONSULTAMOS al SAT, no cuándo se canceló: el servicio
         // público del SAT no da la fecha de cancelación. Por eso va aparte y rotulada.
-        var consulta = r.estado_sat_en ? ' <span class="det-consultado">consultado el ' + esc(f(r.estado_sat_en).slice(0, 10)) + "</span>" : "";
+        // 26-nov-2026 (el dueño, m1): si el estado lo puso la lista del SAT (el cuadre de Descarga masiva), se dice de qué día es la lista
+        // Revisión del 26-nov-2026: estado_sat_en viene en hora universal; el día se dice en la hora de quien lo ve (una lista
+        // pedida a las 7 de la noche salía con la fecha de mañana)
+        var consulta = r.estado_sat_en ? ' <span class="det-consultado">' + (r.estado_sat_origen === "lista" ? "según la lista del SAT del " : "consultado el ") +
+            esc(diaLocal(r.estado_sat_en)) + "</span>" : "";
         if (r.estado_sat === "Vigente") return sello("Vigente en el SAT", "verde") + consulta;
         if (r.estado_sat === "Cancelado") return sello("Cancelado en el SAT", "rojo") + consulta;
         if (r.estado_sat === "No encontrado") return sello("El SAT no lo encuentra", "ambar") + consulta;

@@ -542,6 +542,42 @@
         }
     };
 
+    /* Al volver a la pestaña (26-nov-2026, el dueño: «lo cerré en la compu, fui en el celular y no se había cerrado, actualicé con
+       F5 y ya apareció»). Lo que otra persona u otro equipo pudo cambiar se vuelve a pedir solo, sin recargar la página: al regresar
+       a la pestaña (visibilitychange, focus o la página que el navegador guardó al ir atrás) y, mientras se ve, cada `cada` ms
+       (de fábrica 90 s). Nunca dos a la vez ni más seguido que `minimo` ms (de fábrica 15 s: el foco va y viene al cambiar de
+       ventana). fn pide sus datos y repinta solo si cambiaron; si regresa una promesa, se espera. Lo usan Configuración › Cierre
+       de meses, Marcas fiscales y la tabla de Inicio.   var v = Fiscontable.alVolver(fn, {cada, minimo}); v.parar(); v.ya(); */
+    window.Fiscontable.alVolver = function (fn, opciones) {
+        var o = opciones || {}, cada = o.cada || 90000, minimo = o.minimo || 15000;
+        // Revisión del 26-nov-2026: una vuelta que no termina (el celular se durmió a media petición y esa petición nunca
+        // contesta) ya no deja esto apagado hasta recargar la página: pasados `atorada` ms (45 s) se da por perdida.
+        var ultima = Date.now(), corriendo = 0, vivo = true, atorada = o.atorada || 45000;
+        function visible() { return document.visibilityState !== "hidden"; }
+        async function correr(forzar) {
+            if (!vivo || !visible() || (corriendo && Date.now() - corriendo < atorada) || (!forzar && Date.now() - ultima < minimo)) return;
+            var mia = corriendo = Date.now();
+            ultima = mia;                                    // el tope de 15 s cuenta también desde que empezó
+            try { await fn(); } catch (e) { /* sin red o la API falló: se intenta la próxima vez */ }
+            finally { if (corriendo === mia) { corriendo = 0; ultima = Date.now(); } }
+        }
+        function alVer() { correr(false); }
+        function alRegresar(e) { if (e && e.persisted) correr(true); }
+        var reloj = setInterval(function () { if (Date.now() - ultima >= cada) correr(false); }, Math.min(cada, 15000));
+        document.addEventListener("visibilitychange", alVer);
+        window.addEventListener("focus", alVer);
+        window.addEventListener("pageshow", alRegresar);
+        return {
+            ya: function () { return correr(true); },
+            parar: function () {
+                vivo = false; clearInterval(reloj);
+                document.removeEventListener("visibilitychange", alVer);
+                window.removeEventListener("focus", alVer);
+                window.removeEventListener("pageshow", alRegresar);
+            }
+        };
+    };
+
     // Aviso de carga sobre una tabla (17-nov, «algo para saber que ya cargó la info nueva»): mientras llega lo pedido se ve una
     // barra que corre y la etiqueta «Cargando…»; al llegar, «Actualizado · …» unos segundos. Lo usan Administración de XML,
     // Conciliación y Retenciones.  var c = Fiscontable.avisoCarga(marco, {atenuar: true}); c.mostrar(texto, textoSiTarda); c.listo(texto); c.quitar();

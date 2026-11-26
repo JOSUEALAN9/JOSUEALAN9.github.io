@@ -719,12 +719,100 @@
         var cols = local && local.cols ? sinRepetidas(local.cols) : columnasDeVista(s);
         E.columnas[E.modulo] = cols.length ? cols : columnasDeVista(s);
         if (!E.columnas[E.modulo].length) E.columnas[E.modulo] = columnasDeFabrica();
+        empezarHistoria(false);               // 26-nov-2026 (x1): si es lo mismo que ya se tenía, Ctrl+Z sigue sirviendo
     }
 
     function guardarColumnasLocal() {
         guardarLocal("vista3:" + E.modulo, { sel: selActual(), cols: conCambios() ? E.columnas[E.modulo] : null });
+        anotarPaso();                         // 26-nov-2026 (x1): para Ctrl+Z
         pintarVistas();
     }
+
+    /* ============================================================ deshacer y rehacer los cambios de columnas
+       26-nov-2026 (el dueño, x1: «me gusta, ¿Ctrl+Z no lo regresa?»): Ctrl+Z (Cmd+Z en Mac) deshace el último cambio de columnas de
+       la vista (mover, quitar, ocultar, agregar o cambiar el ancho), varios pasos hacia atrás; Ctrl+Y o Ctrl+Mayús+Z lo rehace. Cada
+       pestaña lleva los suyos. No se activa mientras escribes en un campo de texto ni con una ventana abierta. Elegir otra vista
+       (o guardarla) empieza de cero; «Deshacer mis cambios» y «Restablecer» cuentan como un paso más (Ctrl+Z los regresa). Un
+       aviso corto dice qué se deshizo. Todo cambio de columnas pasa por guardarColumnasLocal(): ahí se anota (anotarPaso). */
+    var PASOS_MAX = 50;
+    var HIST = {};                            // {modulo: {ultimo, sel, atras: [paso], adelante: [paso]}}; paso = {cols, movida}
+    var MOVIDA = { clave: null };             // la columna que movió moverColumna (con dos vecinas que se cruzan no se sabe cuál fue)
+    function copiaColumnas(cols) {
+        // el ancho de fábrica cuenta como 0: tocar el borde de una columna sin moverlo no es un cambio
+        return (cols || []).map(function (c) {
+            var x = c.ancho ? colPorClave(c.clave) : null;
+            return { clave: c.clave, ancho: c.ancho && !(x && c.ancho === anchoDefecto(x)) ? c.ancho : 0 };
+        });
+    }
+    function mismasColumnas(a, b) { return JSON.stringify(copiaColumnas(a)) === JSON.stringify(copiaColumnas(b)); }
+    function historia() { return HIST[E.modulo] || (HIST[E.modulo] = { ultimo: null, sel: "", atras: [], adelante: [] }); }
+    // El punto de partida: al abrir la pestaña (si no es lo mismo que ya se tenía), al elegir otra vista o al guardarla
+    function empezarHistoria(deCero) {
+        var h = historia(), ahora = copiaColumnas(E.columnas[E.modulo]), sel = JSON.stringify(selActual());
+        if (deCero || !h.ultimo || h.sel !== sel || !mismasColumnas(h.ultimo, ahora)) { h.atras = []; h.adelante = []; }
+        h.ultimo = ahora; h.sel = sel;
+    }
+    function anotarPaso() {
+        var h = historia(), ahora = copiaColumnas(E.columnas[E.modulo]);
+        if (!ahora.length) return;                       // «Formato 2» mientras lee sus columnas
+        if (h.ultimo && h.ultimo.length && !mismasColumnas(h.ultimo, ahora)) {
+            h.atras.push({ cols: h.ultimo, movida: MOVIDA.clave });
+            if (h.atras.length > PASOS_MAX) h.atras.shift();
+            h.adelante = [];
+        }
+        h.ultimo = ahora; h.sel = JSON.stringify(selActual()); MOVIDA.clave = null;
+    }
+    function nombreColumna(clave) { var c = colPorClave(clave); return "«" + (c ? c.etiqueta : clave) + "»"; }
+    /* Qué hizo el paso que va de `antes` a `despues`, en palabras: deshecho ? lo que regresa : lo que vuelve a pasar */
+    function textoPaso(antes, despues, deshecho, pista) {
+        var a = antes.map(function (c) { return c.clave; }), d = despues.map(function (c) { return c.clave; });
+        var quitadas = a.filter(function (k) { return d.indexOf(k) < 0; }), puestas = d.filter(function (k) { return a.indexOf(k) < 0; });
+        if (quitadas.length === 1 && !puestas.length) return nombreColumna(quitadas[0]) + (deshecho ? " volvió a la tabla" : " se ocultó otra vez");
+        if (puestas.length === 1 && !quitadas.length) return nombreColumna(puestas[0]) + (deshecho ? " salió de la tabla" : " volvió a la tabla");
+        if (!quitadas.length && !puestas.length && a.join() !== d.join()) {
+            var i = 0; while (a[i] === d[i]) i++;
+            var sin = function (lista, k) { return lista.filter(function (x) { return x !== k; }).join(); };
+            var movida = pista && a.indexOf(pista) !== d.indexOf(pista) ? pista : sin(a, d[i]) === sin(d, d[i]) ? d[i] : a[i];
+            return nombreColumna(movida) + (deshecho ? " regresó a su lugar" : " se movió otra vez");
+        }
+        if (!quitadas.length && !puestas.length) {
+            var x = despues.filter(function (c, j) { return c.ancho !== antes[j].ancho; })[0];
+            if (x) return "el ancho de " + nombreColumna(x.clave);
+        }
+        return "los cambios de columnas";
+    }
+    function deshacerColumnas(rehacer) {
+        var h = historia(), de = rehacer ? h.adelante : h.atras, hacia = rehacer ? h.atras : h.adelante;
+        if (!de.length || !h.ultimo) return false;
+        var ahora = h.ultimo, paso = de.pop(), destino = paso.cols;
+        hacia.push({ cols: ahora, movida: paso.movida });   // el mismo paso, visto desde el otro lado
+        h.ultimo = copiaColumnas(destino);                  // anotarPaso ya no lo cuenta como un cambio nuevo
+        E.columnas[E.modulo] = copiaColumnas(destino);
+        if (E.orden.clave && !destino.some(function (c) { return c.clave === E.orden.clave; })) E.orden = { clave: null, dir: 1 };
+        cerrarMenuColumna(false);
+        guardarColumnasLocal(); aplicar();
+        if (!$("panel-columnas").hidden) pintarPanelColumnas();
+        var texto = rehacer ? textoPaso(ahora, destino, false, paso.movida) : textoPaso(destino, ahora, true, paso.movida);
+        texto = (rehacer ? "Rehecho: " : "Deshecho: ") + texto + ".";
+        // el aviso de arriba «Ocultaste «X»… Deshacer» ya no aplica después de deshacer o rehacer con el teclado
+        var arriba = document.getElementById("fc-aviso"), suTexto = document.getElementById("fc-aviso-texto");
+        if (arriba && !arriba.hidden && suTexto && /^Ocultaste «/.test(suTexto.textContent) && Fiscontable.ocultarAviso) Fiscontable.ocultarAviso();
+        if (Fiscontable.toast) Fiscontable.toast(texto); else avisar(texto);
+        return true;
+    }
+    function escribiendo(el) {
+        if (!el || !el.tagName) return false;
+        if (el.isContentEditable || el.tagName === "TEXTAREA" || el.tagName === "SELECT") return true;
+        return el.tagName === "INPUT" && !/^(checkbox|radio|button|submit|reset|range|color|file|image)$/i.test(el.type || "text");
+    }
+    document.addEventListener("keydown", function (e) {
+        if (!(e.ctrlKey || e.metaKey) || e.altKey || e.defaultPrevented) return;
+        var k = (e.key || "").toLowerCase(), rehacer = (k === "z" && e.shiftKey) || (k === "y" && !e.shiftKey);
+        if (!(k === "z" && !e.shiftKey) && !rehacer) return;
+        // Revisión del 26-nov-2026: «Validar con el SAT» no es un <dialog> (es .xml-modal): con ella abierta tampoco
+        if (escribiendo(e.target) || escribiendo(document.activeElement) || document.querySelector("dialog[open], .xml-modal:not([hidden])") || enConceptos()) return;
+        if (deshacerColumnas(rehacer)) e.preventDefault();
+    });
 
     async function cargarVistas() {
         try {
@@ -786,6 +874,7 @@
     }
 
     function elegirVista(s) {
+        var misma = JSON.stringify(s) === JSON.stringify(selActual());   // «Deshacer mis cambios» o «Restablecer»: un paso más (x1)
         E.vistaSel[E.modulo] = s;
         if (baseActual() === "formato2" && !f2Listo()) {
             E.columnas[E.modulo] = [];
@@ -793,6 +882,7 @@
             pintarVistas(); pintarTabla(); pedirF2(); return;
         }
         E.columnas[E.modulo] = columnasDeVista(s);
+        if (misma) anotarPaso(); else empezarHistoria(true);
         guardarLocal("vista3:" + E.modulo, { sel: s, cols: null });
         if (E.orden.clave && !colPorClave(E.orden.clave)) E.orden = { clave: null, dir: 1 };
         pintarVistas();
@@ -851,6 +941,7 @@
             E.vistaSel[E.modulo] = { tipo: "guardada", id: r.vista.id };
             guardarLocal("vista3:" + E.modulo, { sel: E.vistaSel[E.modulo], cols: null });
             E.columnas[E.modulo] = columnasDeVista(E.vistaSel[E.modulo]);
+            empezarHistoria(true);            // 26-nov-2026 (x1): ya quedó guardada
             pintarVistas(); pintarTabla();
             listo("Vista «" + r.vista.nombre + "» guardada" + (r.vista.compartida ? " y compartida con el despacho." : "."), $("btn-vistas"));
             return true;
@@ -967,6 +1058,7 @@
         var local = leerLocal("vista3:" + m);
         var cols = local && local.cols && baseActual() === "formato2" ? sinRepetidas(local.cols) : columnasDeVista(selActual());
         E.columnas[m] = cols.length ? cols : columnasDeVista(selActual());
+        empezarHistoria(false);               // 26-nov-2026 (x1)
         pintarVistas();
         aplicar();
         if (!$("panel-columnas").hidden) pintarPanelColumnas();
@@ -1327,6 +1419,7 @@
         var item = lista.splice(i, 1)[0];
         var j = lista.findIndex(function (c) { return c.clave === a; });
         lista.splice(despues ? j + 1 : j, 0, item);
+        MOVIDA.clave = de;                    // 26-nov-2026 (x1): para decir cuál se movió al deshacer
         guardarColumnasLocal();
         pintarTabla();
         if (!$("panel-columnas").hidden) pintarPanelColumnas();
@@ -1496,6 +1589,9 @@
             guardarColumnasLocal(); aplicar();
             if (!$("panel-columnas").hidden) pintarPanelColumnas();
             var deshacer = function () {
+                // 26-nov-2026 (x1): si sigue siendo el último paso, el mismo de Ctrl+Z (así Ctrl+Y lo vuelve a ocultar)
+                var h = historia(), ult = h.atras[h.atras.length - 1];
+                if (ult && mismasColumnas(ult.cols, antes) && deshacerColumnas(false)) return;
                 E.columnas[E.modulo] = antes; guardarColumnasLocal(); aplicar();
                 if (!$("panel-columnas").hidden) pintarPanelColumnas();
                 if (Fiscontable.aviso) Fiscontable.aviso("Volvió «" + c.etiqueta + "».");

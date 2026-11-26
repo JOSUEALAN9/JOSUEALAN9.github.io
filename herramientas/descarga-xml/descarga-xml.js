@@ -381,10 +381,15 @@
         caja.hidden = true; $("revisar-caja").hidden = true; ocultarRevision();
         detenerRevisar(); REV.rfc = null;
         if (!q || !q.esCliente) return;
+        // 26-nov-2026 (el dueño, m2: «en Turismo no veo esa opción, ¿se ocultó el botón?»): «Revisar contra el SAT ▾» ya no espera
+        // al cuadro de lo automático. Sale en toda empresa del directorio: la lista se pide al web service con su e.firma guardada,
+        // tenga o no la descarga automática y sea cual sea el método de esta página; sin e.firma, el menú dice por qué no.
+        prepararRevisar(q);
         var d;
         try { d = await api("/api/descarga-xml/cuadre/" + encodeURIComponent(q.rfc)); }
         catch (e) { return; }
-        if (!E.elegido || E.elegido.rfc !== q.rfc || !d || !d.automatica) return;
+        // el cuadro «Lo que tiene el SAT»: con la descarga automática, o si ya se revisó algún mes contra la lista
+        if (!E.elegido || E.elegido.rfc !== q.rfc || !d || !(d.automatica || d.hay)) return;
         var html, resumen = '<b>Lo que tiene el SAT</b>';
         if (!d.hay) {
             resumen += ' <span class="dm-cuadre__det">· todavía no se compara (empieza sola, de madrugada)</span>';
@@ -418,7 +423,6 @@
         $("cuadre-cuerpo").innerHTML = html + htmlPortal(d);
         caja.open = leerLocal(CLAVE_ABIERTO) === "1";
         caja.hidden = false;
-        prepararRevisar(q, d);
     }
     $("cuadre-sat").addEventListener("toggle", function () { guardarLocal(CLAVE_ABIERTO, this.open ? "1" : "0"); });
 
@@ -482,8 +486,13 @@
     function prepararRevisar(q) {
         detenerRevisar();
         REV.rfc = q.rfc; REV.mesTocado = false;
-        $("revisar-caja").hidden = !q.efirmaGuardada;
-        if (!q.efirmaGuardada) return;
+        $("revisar-caja").hidden = false;
+        $("revisar-con-efirma").hidden = !q.efirmaGuardada;
+        $("revisar-sin-efirma").hidden = !!q.efirmaGuardada;
+        $("revisar-ir-efirma").href = "/clientes/?editar=" + encodeURIComponent(q.rfc) + "&ficha=accesos";
+        $("btn-revisar-menu").title = q.efirmaGuardada ? "Pide al SAT la lista de un mes y la compara uno por uno con tu biblioteca"
+            : "Requiere su e.firma guardada";
+        if (!q.efirmaGuardada) { REV.rfc = null; return; }
         var sel = $("revisar-mes");
         sel.innerHTML = mesesRevisables().map(function (m) { return '<option value="' + m + '">' + esc(mesCorto(m)) + "</option>"; }).join("");
         sel.value = mesDeLaPagina();

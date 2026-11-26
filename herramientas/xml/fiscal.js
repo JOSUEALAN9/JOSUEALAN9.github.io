@@ -37,6 +37,7 @@
         $("sel-anio").innerHTML = anios.map(function (x) { return "<option" + (x === E.anio ? " selected" : "") + ">" + x + "</option>"; }).join("");
         $("sel-mes").innerHTML = MESES.map(function (n, i) { return '<option value="' + (i + 1) + '"' + (i + 1 === E.mes ? " selected" : "") + ">" + n + "</option>"; }).join("");
         eventos();
+        if (Fiscontable.alVolver) Fiscontable.alVolver(revisarCandado);
         if (q.get("uuid")) { E.buscar = q.get("uuid"); $("buscar").value = E.buscar; }      // desde el detalle de la factura
         ponerLado(E.lado, true);
         ponerFiltro(E.filtro, true);
@@ -61,13 +62,26 @@
     }
 
     /* ------------------------------------------------------------ datos */
-    async function cargar() {
+    async function cargar(quieto) {
         E.sel.clear();
         if (!E.rfc) { E.datos = null; pintar(); return; }
-        $("tbody").innerHTML = '<tr><td colspan="8" class="xml-vacio">Calculando…</td></tr>';
+        if (!quieto) $("tbody").innerHTML = '<tr><td colspan="8" class="xml-vacio">Calculando…</td></tr>';
         try { E.datos = await api("/api/fiscal/" + encodeURIComponent(E.rfc) + "/mes?anio=" + E.anio + "&mes=" + E.mes + "&lado=" + E.lado); }
         catch (e) { E.datos = null; aviso(esc(e.message), true); }
         pintar();
+    }
+
+    /* 26-nov-2026 (el dueño, k4: «lo cerré en la compu, fui en el celular y no se había cerrado»): al volver a la pestaña y cada
+       90 s mientras se ve (Fiscontable.alVolver) se revisa si este mes se cerró o se abrió en otro equipo. La revisión es la tabla
+       ligera de Configuración › Cierre de meses; el mes completo (que lee toda la biblioteca) solo se vuelve a pedir si cambió, sin
+       «Calculando…». Con una ventana abierta o facturas seleccionadas espera a la siguiente vez. */
+    async function revisarCandado() {
+        if (!E.rfc || !E.datos || E.sel.size || !$("modal-marcar").hidden || !$("modal-config").hidden) return;
+        var rfc = E.rfc, anio = E.anio, mes = E.mes, d;
+        try { d = await api("/api/fiscal/cierres?anio=" + anio); } catch (e) { return; }
+        if (rfc !== E.rfc || anio !== E.anio || mes !== E.mes || !E.datos || E.sel.size) return;
+        var emp = (d.empresas || []).find(function (x) { return x.rfc === rfc; }), m = emp && emp.meses && emp.meses[mes - 1];
+        if (m && !!m.cerrado !== !!E.datos.candado) await cargar(true);
     }
 
     function impuestosDelLado() {

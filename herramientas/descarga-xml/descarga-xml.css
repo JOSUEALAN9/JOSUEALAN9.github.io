@@ -220,6 +220,11 @@
 .dm-revisar__mes { display: flex; flex-direction: column; gap: 4px; min-width: 0; margin-bottom: 4px; }
 .dm-revisar__mes select { width: 100%; }
 .dm-revisar__nota { margin: 4px 2px 0; font-size: 11.5px; line-height: 1.4; color: var(--texto-tenue); }
+/* 26-nov-2026 (m2): lo de la e.firma va en una caja: la rejilla del menú se conserva adentro; sin e.firma, solo la línea del porqué */
+#revisar-con-efirma { display: grid; gap: 6px; min-width: 0; }
+#revisar-con-efirma[hidden], .dm-revisar__sin[hidden] { display: none; }
+.dm-revisar__sin { margin: 2px; font-size: 13px; color: var(--texto); }
+.dm-revisar__sin a { color: var(--acento); font-weight: 600; white-space: nowrap; }
 .dm-revisar__error { color: rgb(var(--er-600, 220 38 38)); }
 @media (max-width: 640px) { .dm-revisar-lista { width: auto; } .dm-cabeza { flex-wrap: wrap; } .dm-cabeza__acciones { justify-content: flex-start; } }
 /* El resultado: un aviso corto bajo la cabecera, que se cierra con ✕ */

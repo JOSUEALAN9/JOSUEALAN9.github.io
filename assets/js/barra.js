@@ -630,7 +630,8 @@
             { g: "Tu cuenta", i: D.candado, n: "Seguridad", d: "Contraseña, dos pasos, sesiones y PIN", u: cfg + "seguridad", a: "clave verificacion codigo sesiones abiertas equipos de confianza bloqueo inactividad" },
             { g: "Tu cuenta", i: D.estrella, n: "Plan y licencia", d: "Tu plan y su vigencia", u: cfg + "plan", a: "licencia pago renovar vigencia saldo" },
             { g: "Tu cuenta", i: D.campana, n: "Avisos", d: "Qué te llega por correo", u: cfg + "avisos", a: "correo notificaciones resumen semanal" },
-            { g: "Avisos por correo", i: D.campana, n: "Informe diario por empresa", d: "Avisos · un correo por empresa con lo nuevo", u: cfg + "avisos", a: "correo informe diario empresa buzon listas cfdi opinion" },
+            // 26-nov-2026 (el dueño, k1): el correo de la mañana reemplazó al informe diario por empresa (uno por persona, no por empresa)
+            { g: "Avisos por correo", i: D.campana, n: "Correo de la mañana", d: "Configuración › Avisos: uno al día con lo de tus empresas", u: cfg + "avisos", a: "correo manana diario informe diario por empresa requiere atencion buzon listas cfdi opinion" },
             { g: "Avisos por correo", i: D.campana, n: "Correo del cierre del mes", d: "Avisos · qué les falta del cierre", u: cfg + "avisos", a: "correo cierre mes pendientes estatales declaracion" },
             { g: "Avisos por correo", i: D.campana, n: "Correo de e.firma y sellos por vencer", d: "Avisos · días de aviso antes de que venzan", u: cfg + "avisos", a: "correo efirma sellos csd vencer vencimiento renovar dias" },
             { g: "Avisos por correo", i: D.campana, n: "Correo de vencimientos de obligaciones", d: "Avisos · pagos del 17 y anuales", u: cfg + "avisos", a: "correo vencimientos obligaciones 17 anual pagos provisionales" },
@@ -647,6 +648,8 @@
             // 25-nov-2026 (el dueño: «DIOT en ceros: ¿dónde está eso?»): abre Declaraciones con la ventana de la DIOT (diot.js, #diot)
             { g: "Herramientas", i: D.documento, n: "DIOT en ceros", d: "Declaraciones · presentar la DIOT sin operaciones de una o varias empresas", u: "/herramientas/declaraciones/#diot", a: "diot ceros sin operaciones presentar declaracion informativa terceros proveedores", si: con("declaraciones") },
             { g: "Ajustes de módulos", i: D.engrane, n: "Impuestos por empresa", d: "Flujo o devengado, estatales y reglas", u: cfg + "impuestos", a: "reglas fiscales isr iva diot", si: con("marcas") },
+            // 26-nov-2026 (el dueño, k1: «no aparece en la búsqueda de Ctrl+K»)
+            { g: "Ajustes de módulos", i: D.candado, n: "Cierre de meses", d: "Configuración › Cierre de meses: cerrar o abrir meses por empresa, con PIN", u: cfg + "cierres", a: "cierre cerrar mes meses cerrados abrir candado bloquear congelar marcas fiscales pin", si: con("marcas") },
             { g: "Mi despacho", i: D.equipo, n: "Equipo del despacho", d: desp ? desp.nombre : "", u: "/despacho/", a: "despacho miembros invitar permisos", si: !!desp },
             { g: "Mi despacho", i: D.equipo, n: "Solicitudes del despacho", d: "Accesos por aprobar", u: "/despacho/?vista=solicitudes", a: "despacho aprobar acceso", si: !!desp },
             { g: "Mi despacho", i: D.equipo, n: "Bitácora del despacho", d: "Quién hizo qué", u: "/despacho/?vista=bitacora", a: "despacho registro historial", si: titular },
@@ -713,6 +716,9 @@
             { g: "Administración", i: D.llave, n: "Laboratorio", d: "Pruebas con el SAT", u: "/admin/laboratorio/", a: "admin pruebas sin navegador grabacion", si: admin },
             // 25-nov-2026 (el dueño: «no me especificaste bien dónde»): el camino completo en la descripción
             { g: "Administración", i: D.llave, n: "Probar todo", d: "Administración › Sistema, junto a Laboratorio: prueba todo con tus empresas", u: "/admin/probar/", a: "admin probar todo prueba pruebas revisar antes de produccion laboratorio sat", si: admin },
+            // 26-nov-2026 (k1): lo nuevo del 25-nov también se encuentra
+            { g: "Administración", i: D.llave, n: "Probar con errores", d: "Administración › Sistema, junto a Probar todo: cómo responde Fiscontable cuando algo falla", u: "/admin/probar/errores/", a: "admin probar errores escenarios fallas falla simular prueba pruebas", si: admin },
+            { g: "Administración", i: D.llave, n: "Días inhábiles del SAT", d: "Administración › Sistema: los que declara el SAT, para los plazos del Buzón", u: adm + "inhabiles", a: "admin dias inhabiles festivos vacaciones diciembre julio plazos buzon notificada", si: admin },
             // 25-nov-2026 (el dueño: «Preparar reinicio… no sé dónde es eso»): directo a Sistema › Portal y acciones (admin.js, #portal)
             { g: "Administración", i: D.llave, n: "Preparar reinicio", d: "Sistema › Portal y acciones: avisa con cuenta regresiva antes de reiniciar", u: adm + "portal", a: "reiniciar reinicio avisar cuenta regresiva mantenimiento pase servidor 5 minutos", si: admin },
             { g: "Administración", i: D.llave, n: "¿Puedo reiniciar?", d: "Sistema › Portal y acciones: quién está conectado y qué se cortaría", u: adm + "portal", a: "puedo reiniciar reinicio semaforo conectados pase servidor", si: admin },

@@ -130,6 +130,7 @@ async function verificarAdminYCargar() {
         else if (location.hash === "#registro") { abrirRegistroAlCargar = true; abrirPestana("sistema"); }   // desde el buscador: «Registro de trámites»
         else if (location.hash === "#reporte") { abrirReporteAlCargar = true; abrirPestana("sistema"); }      // desde el buscador: «Registro de auditoría»
         else if (location.hash === "#errores") { abrirPestana("sistema"); setTimeout(abrirErrores, 0); }        // desde el buscador: «Errores informados»
+        else if (location.hash === "#inhabiles") { abrirInhabilesAlCargar = true; abrirPestana("sistema"); }  // 26-nov-2026: desde el buscador, «Días inhábiles del SAT»
         else abrirPestana(location.hash.replace("#", "") || "usuarios");
         await cargarRoles();
         await Promise.all([cargarUsuarios(), cargarProcesosAdmin()]);
@@ -1040,6 +1041,7 @@ async function cargarSistema() {
         try { sesionesWeb = await api("/api/admin/sesiones"); } catch (e) { sesionesWeb = null; }
         pintarEstado();
         if (abrirRegistroAlCargar && estadoTrabajadores) { abrirRegistroAlCargar = false; abrirRegistro(); }
+        if (abrirInhabilesAlCargar && diasInhabiles) { abrirInhabilesAlCargar = false; ventana("dlg-inhabiles", "Días inhábiles del SAT", cuerpoInhabiles); }
         if (abrirReporteAlCargar) { abrirReporteAlCargar = false; const c = $("reporte-caja"); if (c) { c.scrollIntoView({ block: "center" }); c.classList.add("adm-menu--abierto"); ladoMenuReporte(); $("btn-reporte-claude").focus(); } }
         pintarPortal();
         await cargarEstadoSAT();
@@ -1050,6 +1052,7 @@ async function cargarSistema() {
 
 let estadoTrabajadores = null;
 let abrirRegistroAlCargar = false;
+let abrirInhabilesAlCargar = false;
 let abrirReporteAlCargar = false;
 
 // «Registro de auditoría» (antes «Reporte para Claude»): un ZIP con lo que hizo el sistema en esas horas (trámites, visores, correos, tiempos, errores)
