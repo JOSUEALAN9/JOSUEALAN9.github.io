@@ -1040,12 +1040,18 @@
             "Descarga la serie del dólar que tiene el portal para este periodo (fecha del FIX, fecha en que se publicó en el DOF y valor) y compárala con la de Banxico." +
             '<div class="conc-acciones" style="margin-top:8px"><button type="button" class="xml-btn" id="btn-serie-tc">Descargar serie (CSV, abre en Excel)</button>' +
             '<a class="xml-btn" target="_blank" rel="noopener" href="https://www.banxico.org.mx/tipcamb/main.do?page=tip&amp;idioma=sp">Comparar en Banxico</a></div></div>');
-        h.push('<p class="conc-sub">Cada fecha con pagos o notas en moneda extranjera. <strong>Tu tipo de cambio para el reporte</strong> no cambia los XML ni la tabla de Banxico: ' +
-            "se usa en las columnas «TC contable» y «Diferencia vs TC contable» y en el Excel, solo para esta empresa. Déjalo vacío para usar el de Banxico.</p>");
+        // 26-nov-2026 (el dueño: «el reporte va al T.C. del XML» y «teníamos algo de un comparativo de tc, la opción de poner el
+        // tc del dof para ese día»): la conciliación y sus Excel van al tipo de cambio del XML; este panel es el comparativo
+        // contra el del DOF (o contra el tuyo de ese día) y alimenta la columna «Diferencia vs TC contable».
+        // Decía que tu tipo de cambio se usa «en el Excel», «para el reporte» y en una columna «TC contable» que la tabla no
+        // tiene: ya no mueve los importes, solo la comparación (salvo donde el XML no trae tipo de cambio: ahí sí se usa).
+        h.push('<p class="conc-sub">Cada fecha con pagos o notas en moneda extranjera. La conciliación y sus Excel van al <strong>tipo de cambio del XML</strong>; ' +
+            "aquí lo comparas con el de Banxico o con <strong>tu tipo de cambio</strong> de ese día (columna «Diferencia vs TC contable»). " +
+            "Es solo de esta empresa. Déjalo vacío para comparar con el de Banxico.</p>");
         if (!filas.length) h.push('<p class="conc-sub"><strong>No hay pagos en moneda extranjera en este periodo.</strong></p>');
         else {
             h.push('<div class="conc-scroll"><table class="conc-mini"><thead><tr><th>Fecha</th><th>Moneda</th><th class="num">Docs</th><th class="num">TC del XML</th>' +
-                '<th class="num">TC Banxico</th><th class="num">Diferencia en pesos</th><th>Tu tipo de cambio para el reporte</th><th></th></tr></thead><tbody>' +
+                '<th class="num">TC Banxico</th><th class="num">Diferencia en pesos</th><th>Tu tipo de cambio</th><th></th></tr></thead><tbody>' +
                 filas.map(function (g) {
                     var min = g.tcs.length ? Math.min.apply(null, g.tcs) : null, max = g.tcs.length ? Math.max.apply(null, g.tcs) : null;
                     var xml = min !== null ? fmtTc.format(min) + (max - min > 0.00005 ? " a " + fmtTc.format(max) : "") : "—";
@@ -1066,7 +1072,7 @@
             if (!caja) return;
             var usd = (est.monedas || {}).USD, tarea = est.tarea || {}, partes = [];
             if (!est.token_configurado) {
-                partes.push('<strong style="color:rgb(var(--av-600))">El tipo de cambio de Banxico todavía no está conectado.</strong> Mientras tanto no hay columna de Banxico; tu tipo de cambio para el reporte sí funciona.');
+                partes.push('<strong style="color:rgb(var(--av-600))">El tipo de cambio de Banxico todavía no está conectado.</strong> Mientras tanto no hay columna de Banxico; tu tipo de cambio sí funciona.');
             } else {
                 partes.push("<strong>Banxico (dólar):</strong> " + (usd ? "último FIX del " + esc(fechaMX(usd.hasta)) + " = " + esc(fmtTc.format(usd.ultimo_valor)) +
                     " · " + usd.dias.toLocaleString("es-MX") + " días guardados desde " + esc(fechaMX(usd.desde)) : "todavía no hay datos (la primera descarga corre sola al arrancar)"));
@@ -1116,7 +1122,7 @@
         if (e.target.closest("[data-guardar-tc]")) {
             var valor = parseFloat(tr.querySelector("[data-tc]").value), motivo = tr.querySelector("[data-motivo]").value.trim();
             if (!valor) { avisar("Escribe el tipo de cambio (o usa «Quitar» para volver al de Banxico)."); return; }
-            if (!motivo) { avisar("Escribe el motivo del ajuste: queda en el reporte."); return; }
+            if (!motivo) { avisar("Escribe el motivo del ajuste."); return; }
             try {
                 await enviar("/api/conciliacion/tipos-cambio/ajuste", { rfc: E.rfc, fecha: tr.dataset.fecha, moneda: tr.dataset.moneda, valor: valor, motivo: motivo }, "PUT");
                 await cargarDatos();
@@ -1131,7 +1137,8 @@
 
     /* ============================================================ Excel */
     /* 23-nov-2026 (el dueño, A y B del Avance 1): «Descargar Excel ▾» con dos opciones, sin preguntar moneda ni hojas (en
-       pesos con el T.C. del DOF; las columnas de la moneda original se quedan) y AL CIERRE si el mes ya cerró:
+       pesos con el mismo tipo de cambio que la tabla: desde el 26-nov-2026 el del XML, antes el del DOF; las columnas de la
+       moneda original se quedan) y AL CIERRE si el mes ya cerró:
        · «Reporte completo»: con «Fiscontable» (y las vistas guardadas a partir de ella) las hojas «Facturas PPD»,
          «Complementos de pago», «Documentos relacionados», «Complementos pendientes», «Inconsistencias» e «IVA cobrado»
          (o «IVA pagado»); con «Formato 2», las 5 hojas del programa anterior. Cada hoja sigue los filtros de su pestaña; con

@@ -4,15 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Conciliación de pagos · Fiscontable</title>
-    <link rel="stylesheet" href="/assets/css/common.css?v=202611271300">
-    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611271300">
-    <link rel="stylesheet" href="/herramientas/conciliacion/conciliacion.css?v=202611271300">
-    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611271300">
+    <link rel="stylesheet" href="/assets/css/common.css?v=202611271400">
+    <link rel="stylesheet" href="/herramientas/xml/xml.css?v=202611271400">
+    <link rel="stylesheet" href="/herramientas/conciliacion/conciliacion.css?v=202611271400">
+    <link rel="stylesheet" href="/assets/css/tailwind.css?v=202611271400">
 </head>
 <body class="bg-slate-50">
 <div id="app-header" data-modulo="conciliacion" data-titulo="Conciliación de pagos" data-migas="Herramientas|/herramientas/"></div>
-<script src="/assets/js/nucleo.js?v=202611271300"></script>
-<script src="/assets/js/barra.js?v=202611271300"></script>
+<script src="/assets/js/nucleo.js?v=202611271400"></script>
+<script src="/assets/js/barra.js?v=202611271400"></script>
 
 <main class="xml-pagina">
     <!-- Una sola fila: qué módulo, de quién, qué periodo y las acciones -->
@@ -41,7 +41,8 @@
             <button type="button" id="btn-validar" class="mod-accion" title="Vigentes o cancelados: facturas, pagos y notas"><b>✓</b>Validar estado SAT</button>
             <button type="button" id="btn-tc" class="mod-accion" title="Tipos de cambio usados y ajustes propios"><b>$</b>Tipos de cambio</button>
             <!-- 23-nov-2026 (el dueño, B del Avance 1): «Descargar Excel ▾» con dos opciones; sale con la vista activa, en pesos
-                 con el T.C. del DOF y, si el mes ya cerró, al cierre (sin preguntar moneda ni hojas) -->
+                 con el mismo tipo de cambio que la tabla (26-nov-2026: el del XML; antes el del DOF) y, si el mes ya cerró, al
+                 cierre (sin preguntar moneda ni hojas) -->
             <p class="mod-acciones__grupo">Descargar Excel</p>
             <button type="button" class="mod-accion" data-excel="completo" title="Todas las hojas de la conciliación con la vista activa. Cada hoja sigue los filtros de su pestaña; con facturas marcadas, solo esas y lo suyo"><b>▤</b>Reporte completo</button>
             <button type="button" class="mod-accion" data-excel="tabla" title="Una hoja con lo que ves: las columnas de la vista, tus filtros o lo marcado con la casilla"><b>▦</b>Esta tabla</button>
@@ -159,10 +160,10 @@
     </div>
 </dialog>
 
-<script src="/assets/js/comun/periodo-meses.js?v=202611271300"></script>
-<script src="/assets/js/comun/pestanas-conciliacion.js?v=202611271300"></script>
-<script src="/assets/js/comun/tabla.js?v=202611271300"></script>
-<script src="/assets/js/comun/bandeja-xml.js?v=202611271300"></script>
-<script src="/herramientas/conciliacion/conciliacion.js?v=202611271300"></script>
+<script src="/assets/js/comun/periodo-meses.js?v=202611271400"></script>
+<script src="/assets/js/comun/pestanas-conciliacion.js?v=202611271400"></script>
+<script src="/assets/js/comun/tabla.js?v=202611271400"></script>
+<script src="/assets/js/comun/bandeja-xml.js?v=202611271400"></script>
+<script src="/herramientas/conciliacion/conciliacion.js?v=202611271400"></script>
 </body>
 </html>

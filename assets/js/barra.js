@@ -140,7 +140,7 @@
                  "Descargar ▾: Excel de hallazgos o los acuses en PDF para dejar constancia."],
         conciliacion: ["Elige empresa y periodo arriba.",
                        "Usa las pestañas (Facturas PPD, Complementos de pago, Inconsistencias, IVA del periodo) y escoge Facturas emitidas o recibidas.",
-                       "Cruza cada factura con sus pagos y notas de crédito (tipo de cambio de Banxico).",
+                       "Cruza cada factura con sus pagos y notas de crédito (en pesos, al tipo de cambio del XML).",
                        "El periodo es por fecha de cobro (para el IVA) o por fecha de emisión (para saber qué te deben).",
                        "Descargar ▾: Excel de la tabla o del periodo completo."],
         visores: ["Elige empresa y año arriba.",
